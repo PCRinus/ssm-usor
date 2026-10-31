@@ -45,7 +45,12 @@ import { trainingLocks } from '@/features/signatures/use-record-signatures';
 
 import { DeleteTrainingDialog, type TrainingToDelete } from './delete-training-dialog';
 import { TrainingDialog, type TrainingDialogTarget } from './training-dialog';
-import { attendeeCountLabel, formatDuration, formatPerson } from './training-format';
+import {
+  attendeeCountLabel,
+  formatDuration,
+  formatPerson,
+  paperTrainingBadge,
+} from './training-format';
 import { TrainingMaterial } from './training-material';
 
 const route = getRouteApi('/_authenticated/clients/$clientId/trainings');
@@ -283,7 +288,7 @@ function TrainingRow({
         <span className="block font-medium">{trainingPhaseLabels[training.phase]}</span>
         <span className="mt-1 flex flex-wrap gap-1">
           <Badge variant="secondary">{trainingDomainLabels[training.domain]}</Badge>
-          {training.source === 'paper' && <Badge variant="outline">De pe fișa de hârtie</Badge>}
+          {training.source === 'paper' && <Badge variant="outline">{paperTrainingBadge}</Badge>}
         </span>
       </TableCell>
       <TableCell className="whitespace-nowrap tabular-nums">

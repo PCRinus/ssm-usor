@@ -1,5 +1,5 @@
 begin;
-select plan(106);
+select plan(114);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -102,8 +102,8 @@ select has_column('public', 'client_files', 'import_path', 'and the folder it sa
 
 select results_eq(
   $$ select public, file_size_limit from storage.buckets where id = 'imports' $$,
-  $$ values (false, 20971520::bigint) $$,
-  'the imports bucket is private and takes 20 MiB a file'
+  $$ values (false, 26214400::bigint) $$,
+  'the imports bucket is private and takes 25 MiB a file, an employee import''s largest'
 );
 
 select is(
@@ -810,6 +810,72 @@ select throws_ok(
 select lives_ok(
   $$ update public.import_files set size_bytes = 10485760 where id = 'f1100000-0000-4000-8000-000000000006' $$,
   'up to 100 MiB in all, it is written once the import has moved past uploading'
+);
+
+insert into public.imports (id, organization_id, kind, client_id, into_existing_client) values
+  ('10000000-0000-4000-8000-000000000021', '11111111-0000-4000-8000-000000000001', 'employees', 'cccccccc-0000-4000-8000-000000000001', true),
+  ('10000000-0000-4000-8000-000000000022', '11111111-0000-4000-8000-000000000001', 'employees', 'cccccccc-0000-4000-8000-000000000001', true),
+  ('10000000-0000-4000-8000-000000000023', '11111111-0000-4000-8000-000000000001', 'employees', 'cccccccc-0000-4000-8000-000000000001', true),
+  ('10000000-0000-4000-8000-000000000024', '11111111-0000-4000-8000-000000000001', 'client', null, false);
+
+select lives_ok(
+  $$ insert into public.import_files (import_id, organization_id, upload_path, original_file_name, mime_type, size_bytes, sha256)
+     select '10000000-0000-4000-8000-000000000021', '11111111-0000-4000-8000-000000000001', 'Fișa ' || n || '.jpg', 'Fișa ' || n || '.jpg',
+       'image/jpeg', 1, repeat('f', 64)
+     from generate_series(1, 500) n $$,
+  'an employee import takes 500 files'
+);
+
+select throws_ok(
+  $$ insert into public.import_files (import_id, organization_id, upload_path, original_file_name, mime_type, size_bytes, sha256)
+     values ('10000000-0000-4000-8000-000000000021', '11111111-0000-4000-8000-000000000001', 'Fișa 501.jpg', 'Fișa 501.jpg', 'image/jpeg', 1, repeat('f', 64)) $$,
+  'IMP05',
+  null,
+  'and not one more'
+);
+
+select lives_ok(
+  $$ insert into public.import_files (import_id, organization_id, upload_path, original_file_name, mime_type, size_bytes, sha256)
+     values ('10000000-0000-4000-8000-000000000022', '11111111-0000-4000-8000-000000000001', 'Fișe.pdf', 'Fișe.pdf', 'application/pdf', 26214400, repeat('f', 64)) $$,
+  'an employee import takes a file of 25 MiB'
+);
+
+select throws_ok(
+  $$ insert into public.import_files (import_id, organization_id, upload_path, original_file_name, mime_type, size_bytes, sha256)
+     values ('10000000-0000-4000-8000-000000000022', '11111111-0000-4000-8000-000000000001', 'Fișe mari.pdf', 'Fișe mari.pdf', 'application/pdf', 26214401, repeat('f', 64)) $$,
+  'IMP05',
+  null,
+  'and none larger'
+);
+
+select lives_ok(
+  $$ insert into public.import_files (import_id, organization_id, upload_path, original_file_name, mime_type, size_bytes, sha256)
+     select '10000000-0000-4000-8000-000000000023', '11111111-0000-4000-8000-000000000001', 'Fișe ' || n || '.pdf', 'Fișe ' || n || '.pdf',
+       'application/pdf', 26214400, repeat('f', 64)
+     from generate_series(1, 40) n $$,
+  'an employee import takes 1000 MiB'
+);
+
+select throws_ok(
+  $$ insert into public.import_files (import_id, organization_id, upload_path, original_file_name, mime_type, size_bytes, sha256)
+     values ('10000000-0000-4000-8000-000000000023', '11111111-0000-4000-8000-000000000001', 'Fișe 41.pdf', 'Fișe 41.pdf', 'application/pdf', 25165825, repeat('f', 64)) $$,
+  'IMP05',
+  null,
+  'but not a byte past 1 GiB'
+);
+
+select lives_ok(
+  $$ insert into public.import_files (import_id, organization_id, upload_path, original_file_name, mime_type, size_bytes, sha256)
+     values ('10000000-0000-4000-8000-000000000023', '11111111-0000-4000-8000-000000000001', 'Fișe 41.pdf', 'Fișe 41.pdf', 'application/pdf', 25165824, repeat('f', 64)) $$,
+  'up to 1 GiB exactly'
+);
+
+select throws_ok(
+  $$ insert into public.import_files (import_id, organization_id, upload_path, original_file_name, mime_type, size_bytes, sha256)
+     values ('10000000-0000-4000-8000-000000000024', '11111111-0000-4000-8000-000000000001', 'Plan mare.pdf', 'Plan mare.pdf', 'application/pdf', 20971521, repeat('f', 64)) $$,
+  'IMP05',
+  null,
+  'a client import keeps its 20 MiB a file, though the column allows an employee import''s 25'
 );
 
 insert into public.imports (id, organization_id, kind, into_existing_client) values

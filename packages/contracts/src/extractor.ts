@@ -6,7 +6,7 @@ export const extractionFailed = 'extraction_failed';
 
 /**
  * Why the extractor refused a file. Trying the same file again does not help.
- * `too_large` is a file over `extractorFileLimit`, or a PDF over 300 pages or whose text passes
+ * `too_large` is a file over `extractorFileLimit`, or a PDF over 1000 pages or whose text passes
  * 8 MiB; `timeout` is a file the tool did not finish within its limit; `page_out_of_range` a page
  * number below 1 or past the PDF's last page.
  */
@@ -33,8 +33,8 @@ export function extractionRefusalOf(error: unknown): ExtractionRefusal | null {
   return extractionRefusals.find((each) => each === reason) ?? null;
 }
 
-/** The largest file the extractor takes, as for a client file. */
-export const extractorFileLimit = 20 * 1024 * 1024;
+/** The largest file the extractor takes: the largest file of an import, an employee import's. */
+export const extractorFileLimit = 25 * 1024 * 1024;
 
 export type PdfPageText = {
   /** From 1. */

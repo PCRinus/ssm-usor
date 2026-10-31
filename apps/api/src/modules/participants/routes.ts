@@ -1,8 +1,12 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
+  bulkEmployeeInvitationRequestSchema,
+  bulkEmployeeInvitationResponseSchema,
+  bulkInvitationLimit,
   clientAdministratorInvitationRequestSchema,
   clientParticipantsResponseSchema,
   employeeParticipantStateSchema,
+  importInviteesResponseSchema,
   participantInvitationRequestSchema,
   participantInvitationSchema,
 } from '@ssm-usor/contracts';
@@ -130,6 +134,76 @@ export const inviteClientAdministratorRoute = createRoute({
     },
     409: conflicts,
     ...sending,
+  },
+});
+
+export const listImportPortalInviteesRoute = createRoute({
+  method: 'get',
+  path: '/clients/{clientId}/imports/{importId}/portal-invitees',
+  operationId: 'listImportPortalInvitees',
+  summary: 'The employees a confirmed employee import brought, with their standing on the portal',
+  description:
+    "Every employee a confirmed employee import of the client created or completed (ADR 032), the ones whose sheets it filed among the employee's files, by name: their email and phone as their row holds them, whether they are current, and whether they are a participant or hold an invitation neither accepted, revoked nor expired.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: clientParams.extend({ importId: z.uuid() }) },
+  responses: {
+    200: {
+      description: 'The employees, by last and first name',
+      content: {
+        'application/json': {
+          schema: importInviteesResponseSchema.meta({ id: 'ImportInviteesResponse' }),
+        },
+      },
+    },
+    400: { description: 'Invalid path', content: errorContent },
+    404: {
+      description: 'No confirmed employee import of this client has this id',
+      content: errorContent,
+    },
+    ...membershipErrors,
+  },
+});
+
+export const inviteEmployeeParticipantsRoute = createRoute({
+  method: 'post',
+  path: '/clients/{clientId}/employee-participant-invitations',
+  operationId: 'inviteEmployeeParticipants',
+  summary: 'Invite several employees to the portal, each at an address typed for them',
+  description: `Up to ${bulkInvitationLimit} employees, one after the other (ADR 032). An address with \`@\` goes by email, any other as a phone by SMS, normalized to E.164 with Romania as the default country. A typed address the employee's row does not hold is saved to it in the same transaction as the invitation, so an invitation refused leaves the row as it was. Each invitation is the one \`inviteEmployeeParticipant\` sends, under the same rules. A former employee, a participant and an employee with an open invitation are skipped with nothing saved or sent. One result per row, in order: \`invited\`, \`skipped\` or \`failed\` with its \`reason\`; a row failing never stops the next. A failed message leaves the invitation saved, in \`invitation\`, for a resend 10 minutes after it.`,
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: {
+    params: clientParams,
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: bulkEmployeeInvitationRequestSchema.meta({
+            id: 'BulkEmployeeInvitationRequest',
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'One result per invitation asked for',
+      content: {
+        'application/json': {
+          schema: bulkEmployeeInvitationResponseSchema.meta({
+            id: 'BulkEmployeeInvitationResponse',
+          }),
+        },
+      },
+    },
+    400: { description: 'Invalid path or body', content: errorContent },
+    404: { description: 'The client does not exist in the organization', content: errorContent },
+    409: {
+      description: 'The client is archived or a lead; see `reason`',
+      content: errorContent,
+    },
+    ...membershipErrors,
   },
 });
 

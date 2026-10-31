@@ -65,6 +65,10 @@ msgstr "{count, plural, one {Fișa nu poate fi întocmită încă: lipsește {it
 msgid "{count, plural, one {O semnătură așteaptă la angajați} few {# semnături așteaptă la angajați} other {# de semnături așteaptă la angajați}}"
 msgstr "{count, plural, one {O semnătură așteaptă la angajați} few {# semnături așteaptă la angajați} other {# de semnături așteaptă la angajați}}"
 
+#: src/features/training/training-summary.tsx
+msgid "{fromPaper, plural, one {O instruire de pe fișa pe hârtie, semnată acolo.} few {# instruiri de pe fișa pe hârtie, semnate acolo.} other {# de instruiri de pe fișa pe hârtie, semnate acolo.}}"
+msgstr "{fromPaper, plural, one {O instruire de pe fișa pe hârtie, semnată acolo.} few {# instruiri de pe fișa pe hârtie, semnate acolo.} other {# de instruiri de pe fișa pe hârtie, semnate acolo.}}"
+
 #: src/features/tests/tests-section.tsx
 msgid "{grade}, {day}"
 msgstr "{grade}, {day}"
@@ -1522,6 +1526,10 @@ msgstr "Tot ce a fost trimis spre semnare este semnat."
 #: src/features/training/training-material.tsx
 msgid "Tot textul"
 msgstr "Tot textul"
+
+#: src/features/training/training-records-list.tsx
+msgid "Transcris de pe fișa pe hârtie. Semnat pe hârtie."
+msgstr "Transcris de pe fișa pe hârtie. Semnat pe hârtie."
 
 #: src/features/home/home-page.tsx
 msgid "Traseu de deplasare"

@@ -493,14 +493,14 @@ function TrainingForm({
                 ? 'Un participant nu mai este angajat al clientului. Reîncarcă lista și alege din nou.'
                 : field === 'heldOn'
                   ? 'O instruire se înregistrează după ce a avut loc.'
-                  : (signingMessage(cause) ?? message),
+                  : (signingMessage(cause, training) ?? message),
           });
         }
         return;
       }
       form.setError('root.server', {
         message:
-          signingMessage(cause) ??
+          signingMessage(cause, training) ??
           (status === 409
             ? 'Clientul este arhivat; instruirile lui nu mai pot fi modificate.'
             : status === 404
@@ -592,7 +592,7 @@ function TrainingForm({
             id="training-source"
             label="Sursa"
             mark="required"
-            hint="O instruire de pe fișa de hârtie are semnăturile pe hârtie."
+            hint="O instruire de pe fișa pe hârtie are semnăturile pe hârtie."
             error={errors.source}
           >
             <NativeSelect

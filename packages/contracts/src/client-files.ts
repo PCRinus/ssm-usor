@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { importKinds } from './imports';
+
 export const clientFileTypes = [
   'application/pdf',
   'image/jpeg',
@@ -27,7 +29,7 @@ export const clientFileExtensions = {
 } as const satisfies Record<string, ClientFileType>;
 
 // The limit the bucket applies as well.
-export const maxClientFileBytes = 20 * 1024 * 1024;
+export const maxClientFileBytes = 25 * 1024 * 1024;
 
 const name = z.string().trim().min(1).max(200);
 const note = z.string().trim().max(2000);
@@ -52,6 +54,8 @@ export const clientFileSchema = z.object({
   // both null for a file uploaded on its own, the path null at the top of the folder.
   importId: z.uuid().nullable(),
   importPath: z.string().nullable(),
+  // A client's documentation, or an employee import's scanned training sheets (ADR 032).
+  importKind: z.enum(importKinds).nullable(),
   // Whether the import read the file; with the reason when it did not. Null outside an import.
   importRead: z.boolean().nullable(),
   importReason: z.string().nullable(),

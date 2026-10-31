@@ -3,6 +3,7 @@ import {
   type ClientFile,
   clientFileErrorReasons,
   type ClientFileType,
+  type ImportKind,
   maxClientFileBytes,
 } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
@@ -50,10 +51,11 @@ type FileRow = Pick<
 > & {
   employees: { id: string; last_name: string; first_name: string } | null;
   import_files: { state: string; reason: string | null }[];
+  imports: { kind: ImportKind } | null;
 };
 
 const fileColumns =
-  'id, name, note, owners_only, original_file_name, mime_type, size_bytes, sha256, storage_path, uploaded_by, import_id, import_path, created_at, updated_at, employees(id, last_name, first_name), import_files!import_files_client_file_id_fkey(state, reason)';
+  'id, name, note, owners_only, original_file_name, mime_type, size_bytes, sha256, storage_path, uploaded_by, import_id, import_path, created_at, updated_at, employees(id, last_name, first_name), import_files!import_files_client_file_id_fkey(state, reason), imports!client_files_import_in_organization(kind)';
 
 const isOwner = (c: Context<ApiEnv>) => c.get('membership').role === 'owner';
 
@@ -91,6 +93,7 @@ function toClientFile(c: Context<ApiEnv>, row: FileRow, names: Map<string, strin
     canChange: canChange(c, row),
     importId: row.import_id,
     importPath: row.import_path,
+    importKind: row.imports?.kind ?? null,
     importRead: row.import_id ? (row.import_files[0]?.state ?? 'read') === 'read' : null,
     importReason:
       row.import_id && row.import_files[0]?.state !== 'read'
@@ -171,7 +174,7 @@ const refused = (reason: string, message: string) =>
 function checkedType(fileName: string, bytes: Uint8Array) {
   if (bytes.length === 0) throw refused(clientFileErrorReasons.empty, 'The file is empty.');
   if (bytes.length > maxClientFileBytes) {
-    throw refused(clientFileErrorReasons.tooLarge, 'The file is larger than 20 MiB.');
+    throw refused(clientFileErrorReasons.tooLarge, 'The file is larger than 25 MiB.');
   }
   const type = typeOfExtension(splitFileName(fileName).extension);
   if (!type) {
@@ -209,7 +212,7 @@ export const uploadClientFile: RouteHandler<typeof uploadClientFileRoute, ApiEnv
   const { clientId } = c.req.valid('param');
   const query = c.req.valid('query');
   if (Number(c.req.header('Content-Length') ?? 0) > maxClientFileBytes) {
-    throw refused(clientFileErrorReasons.tooLarge, 'The file is larger than 20 MiB.');
+    throw refused(clientFileErrorReasons.tooLarge, 'The file is larger than 25 MiB.');
   }
   // The body is the file itself, not JSON, so it is read here rather than validated above.
   const bytes = new Uint8Array(await c.req.arrayBuffer());

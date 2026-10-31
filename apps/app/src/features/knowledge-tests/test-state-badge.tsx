@@ -9,6 +9,7 @@ import { Badge } from '@ssm-usor/ui/components/badge';
 
 const stateBadges: Record<TestState, { variant: 'outline' | 'destructive'; className?: string }> = {
   none: { variant: 'outline', className: 'text-muted-foreground' },
+  unverified: { variant: 'outline', className: 'text-muted-foreground' },
   pending: {
     variant: 'outline',
     className: 'border-warning-border bg-warning text-warning-foreground',

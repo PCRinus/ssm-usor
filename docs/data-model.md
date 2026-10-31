@@ -811,13 +811,18 @@ per employee with, for each domain, `<domain>_hiring_trained_on`, `<domain>_last
 `<domain>_state` and `<domain>_awaiting_test`, and `psi_due_on`. Nothing of it is stored.
 
 - The hiring training the test closes is the latest `introductory_general` record for `ssm` and
-  the latest `workplace` record for `psi`, whose one test closes both hiring trainings.
+  the latest `workplace` record for `psi`, whose one test closes both hiring trainings. On a day
+  with records from the app and from paper, the one from the app counts.
 - Any result in the domain is a pass, an annual one included; `psi_due_on` is twelve months
   after the last.
-- The state (`test_state`) is `none` with neither a pass nor a hiring record, `pending` with the
-  record and no pass, `annual_due` for `psi` once `psi_due_on` is today or past, else `passed`. A
-  terminated employee has a null state. `<domain>_awaiting_test` is `hiring` while `pending` and
-  `annual` while `annual_due`.
+- The state (`test_state`) is `none` with neither a pass nor a hiring record; with the record and
+  no pass, `pending` when the record's training was held in the app (`trainings.source = 'app'`)
+  and `unverified` when it came from paper, whose test the sheet closed but the app could not
+  verify ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md));
+  `annual_due` for `psi` once `psi_due_on` is today or past, else `passed`. A terminated
+  employee has a null state. `<domain>_awaiting_test` is `hiring` while `pending` and `annual`
+  while `annual_due`; `unverified` awaits nothing, so no test in the portal and no count on the
+  dashboard.
 
 `employee_test_due(...)` computes one domain for one employee and is inlined, as
 `employee_training_due` is; the employee lists embed the view through `test_status(employees)`,
@@ -1192,7 +1197,7 @@ deleting the first.
 | `owners_only`          | Hides the row and its file from specialists. False by default.                              |
 | `original_file_name`   | The name it was uploaded under, up to 255 characters; the download carries it.              |
 | `mime_type`            | PDF, JPEG, PNG, `.docx`, `.doc`, `.xlsx` or `.xls`, by a check constraint.                  |
-| `size_bytes`, `sha256` | 1 byte to 20 MiB, and the SHA-256 of the content in hex.                                    |
+| `size_bytes`, `sha256` | 1 byte to 25 MiB, and the SHA-256 of the content in hex.                                    |
 | `storage_path`         | Generated as `<organization>/<client>/<id>.<extension>` from the type; unique.              |
 | `uploaded_by`          | The signed-in user, the platform admin during an impersonation; null once the account goes. |
 | `employee_id`          | Optional: the employee of the same client the file is about (ADR 021); set at upload only.  |
@@ -1218,8 +1223,9 @@ the uploader in. It is a trigger rather than a policy so that the API can name t
 secret key passes the second check, not the first.
 
 The files live in the private `client-files` bucket, which accepts the same seven types up to
-20 MiB. No character of a user's file name reaches a path. The row comes first: the read
-policy asks `is_readable_client_file_path`, true for a path a row the caller can see names;
+25 MiB, the size an employee import takes a sheet at (ADR 032). No character of a user's file
+name reaches a path. The row comes first: the read policy asks `is_readable_client_file_path`,
+true for a path a row the caller can see names;
 the upload and delete policies ask `is_writable_client_file_path`, which also wants the caller
 to be the uploader or an owner and the client to be active. There is no update policy, so an
 object is never replaced. Supabase's database backups do not include these files, and unlike a
@@ -1230,8 +1236,13 @@ A client file can come from an import from documents ([ADR 030](architecture/adr
 inside the upload, with `/` between them, null at the top of the folder and for a file uploaded
 on its own. `client_files_import_idx` on `(import_id, import_path)` lists a folder. `import_id`
 holds to the same organization by the composite key to `imports (id, organization_id)`, and the
-import is kept as long as one of its files is (`on delete restrict`). Only confirming an import
-fills these two columns: the column grants leave them out of a member's insert.
+import is kept as long as one of its files is (`on delete restrict`). An employee's file from
+an employee import ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md))
+also names, in `import_file_id`, the import's file it is a copy of, since one photograph can be
+a file of several employees (`client_files_import_file_idx`; set null if that row goes, and only
+with an `import_id`), and in `import_page` the page of a PDF whose image it is (1 to 10,000, only
+with an `import_file_id`). Only confirming an import fills these columns: the column grants
+leave them out of a member's insert.
 
 ## Imports from documents
 
@@ -1266,7 +1277,7 @@ composite key to `imports (id, organization_id)`, deleted with the import:
 | Column                                                             | Notes                                                                                                                                                        |
 | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `upload_path`, `original_file_name`                                | Where the file sat in the upload, its folders and its name, and the name alone, up to 1024 and 255 characters.                                               |
-| `mime_type`, `size_bytes`, `sha256`                                | PDF, `.doc`, `.docx`, JPEG, PNG or HEIC (`image/heic` or `image/heif`); 1 byte to 20 MiB.                                                                    |
+| `mime_type`, `size_bytes`, `sha256`                                | PDF, `.doc`, `.docx`, JPEG, PNG or HEIC (`image/heic` or `image/heif`); 1 byte to 25 MiB, the trigger holding each kind to its own cap.                      |
 | `storage_path`                                                     | Generated as `<organization>/<import>/<id>.<extension>` from the type; unique.                                                                               |
 | `state`                                                            | `import_file_state`: `uploading` until its object is stored, `uploaded`, `prepared`, then `read`, `set_aside`, `for_employees`, `other_company` or `failed`. |
 | `document_kind`, `reason`, `company_name`, `company_cui`           | What the sorting took the file for (a key `packages/import` names), why it was set aside or failed (in Romanian), and the company it names.                  |
@@ -1275,10 +1286,18 @@ composite key to `imports (id, organization_id)`, deleted with the import:
 | `derived_path`, `derived_size_bytes`, `derived_sha256`             | The `.docx` of a `.doc` (`<id>.docx`) or the upright JPEG of a photograph (`<id>.jpg`, a JPEG's `<id>.jpeg`), beside it by a check; the three together.      |
 | `input_tokens`, `cached_input_tokens`, `output_tokens`, `cost_usd` | The requests that read this file on its own, a scan or a photograph; the import's totals include them.                                                       |
 | `client_file_id`                                                   | The client file it became in the import folder; set null if that file is deleted.                                                                            |
+| `source_file_id`                                                   | An employee import's copy of a sheet photograph a confirmed client import found (`for_employees`): that client import's file; set null if that row goes.     |
+
+`import_page_images` (`20261101170000_employee_sheet_pages`) holds, per `(import_file_id,
+page)`, the `size_bytes` (up to 25 MiB) and `sha256` of the JPEG of a PDF's page an employee
+import read, which the pipeline keeps beside the PDF at `<id>.page-<n>.jpg` before reading the
+page: what becomes the file of the page's employee. Its rows go with their file; only the secret
+key reads and writes them, and `apply_employee_import` reads them as its owner.
 
 `limit_import_files` locks the import and refuses a file once the import is past `uploading`
-(`IMP01`), or one that would take it beyond 150 files or 100 MiB, or is over 20 MiB itself
-(`IMP05`). It checks the size again when `size_bytes` grows, since the browser declares it and
+(`IMP01`), or one past the caps of the import's kind (`IMP05`): a client import holds 150 files
+and 100 MiB, each at most 20 MiB; an employee import 500 files and 1 GiB, each at most 25 MiB
+([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)). It checks the size again when `size_bytes` grows, since the browser declares it and
 the API writes the stored object's real size over it. `protect_import`
 refuses an import into an archived client (`CLA01`) or a lead (`CLL01`), for the secret key too,
 since the API writes imports with it, and keeps a confirmed or abandoned import at its step
@@ -1310,7 +1329,8 @@ reading, checking, ready, confirmed or failed (`IMP01`), a file that is not one 
 one and not abandoned (`IMP08`).
 
 **The bucket.** `imports` is private, takes PDF, `.doc`, `.docx`, JPEG, PNG, HEIC, plain text
-and JSON, up to 20 MiB. As for client files, the row comes first: members upload only to the
+and JSON, up to 25 MiB, an employee import's largest file; the trigger keeps a client import's
+files to 20 MiB. As for client files, the row comes first: members upload only to the
 `storage_path` of a row of theirs that is still `uploading`, in an import still `uploading`,
 whose client, if any, is active (`is_uploadable_import_path`); they read any path a row of theirs
 names, the original, its text or its converted file (`is_readable_import_path`, which finds the
@@ -1400,7 +1420,61 @@ and the import is confirmed with its client, `confirmed_by` and `quality`.
 The API then copies each `source_path` in `imports` to its `target_path` in `client-files`,
 treating an object already there as copied, and sets `files_copied_at` with the secret key.
 `import_folder_copies(import)` lists the same copies again, under the caller's policies, for a
-copy that was interrupted.
+copy that was interrupted. For an employee import it lists each file it made, from the
+photograph's converted JPEG, the page's image (`<id>.page-<n>.jpg`) or the PDF as it is.
+
+**Confirming an employee import.** `apply_employee_import(import, expected version, payload)`
+([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)) writes everything
+in one transaction and returns `{"client_id", "employees": {"<key>": id}, "training_record_ids",
+"test_result_ids", "files": [{"client_file_id", "source_path", "target_path"}]}`: the records
+and results whose rows the API brings up to date on stored signed sheets, and the objects it
+copies as for a client import. It refuses an import the caller cannot see (`P0002`), another
+kind (`22023`), one not ready (`IMP01`), a stale version (`IMP02`) and an archived client
+(`CLA01`). The payload is what `toEmployeePayload` in `packages/import` builds, every object
+refusing a field it does not name (`22023`):
+
+```text
+{
+  "employees": [{ "key", "id", "replace", "job_position_id", "workplace_id", "last_name",
+    "first_name", "cnp", "employee_number", "birth_date", "birth_place", "home_address",
+    "education", "qualification", "blood_group", "rh_factor", "job_title", "hired_at",
+    "commute_route", "commute_minutes", "status", "terminated_at" }],
+  "trainings": [{ "key", "domain", "phase", "held_on", "duration_minutes", "material",
+    "trainer_name", "trainer_job_title", "verifier_name", "verifier_job_title",
+    "supplementary_reason", "records": [{ "employee_key", "admitted_on", "admitted_by_name",
+    "admitted_by_job_title" }] }],
+  "test_results": [{ "employee_key", "domain", "test", "taken_on", "material",
+    "examiner_name", "examiner_job_title" }],
+  "files": [{ "employee_key", "import_file_id", "page" }],
+  "quality": { "<section>": { "changed": 0, "unticked": 0, "kept": 0 } }
+}
+```
+
+- An employee without `id` is created on the active position of the client it names; one
+  without a position is refused (`22023`), so `default_employee_job_position` never makes a
+  position from a job title. One with `id` is an active employee of the client (`22023`
+  otherwise), filled as an existing client is: empty columns filled, those in `replace` taken.
+  A workplace is an active one of the client (`22023`).
+- The other lists name an employee by the `key` of one of `employees` (`22023` otherwise).
+- A training is held from paper (`source` `paper`), with one record per attendee, at most one
+  each (`22023`), carrying the name of the attendee's position as the occupation, as the app's
+  own save does; the admission goes on a workplace record. Its duration is a whole number of
+  minutes from 1 to 600 and its day is not after today in Romania: both are refused as checks
+  of `trainings`, `trainings_duration_range` and `trainings_held_on_past` (`23514`).
+- A test result is a paper one, grade `admis`, with its examiner; a day after today is refused as
+  `test_results_taken_on_past`, and a second hiring result of a domain for the same employee as
+  `test_results_hiring_once` (`23514`).
+- A file is one of the import's files, past `uploading`: a client file of the employee in the
+  import's folder, at its top, uploaded by the member who created the import; a photograph as its
+  converted JPEG. A PDF goes page by page: `page` names one whose image `import_page_images`
+  holds (`22023` without it, for a page with no image, or for `page` on a photograph), and the
+  employee's file is that JPEG, `<name> — pagina <n>.jpg`, so a PDF holding several people's
+  sheets gives each only their own pages. The PDF itself becomes, once, a client file of the
+  client (no employee) in the import's folder, in the folders of its `upload_path`, unless it is
+  a copy of a sheet found in the client's documentation pack (`source_file_id`), which is among
+  the client's files already. A file or page listed for several employees is a file of each, and
+  listed twice for the same employee, one. Its import file's `client_file_id` stays null.
+- The import is confirmed with `confirmed_by` and `quality`.
 
 **Retention.** Functions for the secret key, which a daily job of the API calls. Removing
 objects is in two calls, so that a failed removal leaves the rows to list them again the next
@@ -1424,6 +1498,19 @@ nothing, then, with the ids whose objects the API removed, the change.
   stay.
 
 The change functions take only ids the list would still give, and return those they changed.
+
+**Sheet photographs a client import found.** A confirmed client import keeps the training sheets
+it sorted as `for_employees` as plain files of the client's import folder. An employee import
+takes them as copies, made by the API from `client-files` into its own folder with the secret
+key, each a row like an uploaded file's with `source_file_id` naming the client import's file
+(`20261101140000_import_found_sheets`, [ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)).
+A copy rather than a reference keeps the bucket's policies, the caps and the clean-up those of an
+upload, and the client's files whatever becomes of the import. A found photograph is offered
+while no employee import that is not abandoned or failed holds a copy of it, or of a photograph
+with its SHA-256, and never when it is for owners only. The API marks the copies `uploaded` with
+`mark_found_sheets_uploaded(import, files)` (`20261101180000_mark_found_sheets_uploaded`), which
+locks the import's row and refuses (`IMP01`) once the import is no longer `uploading`, or a copy
+was dropped or moved on by the start.
 
 ## Profiles
 

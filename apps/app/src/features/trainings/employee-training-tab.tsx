@@ -11,7 +11,7 @@ import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
-import { ClipboardCheck, Lock, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ClipboardCheck, Lock, Pencil, Plus, Signature, Trash2 } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
 import {
@@ -34,7 +34,12 @@ import { TrainingSheetReadiness } from '@/features/training-sheets/training-shee
 
 import { DeleteTrainingDialog, type TrainingToDelete } from './delete-training-dialog';
 import { TrainingDialog, type TrainingDialogTarget } from './training-dialog';
-import { formatDuration, formatPerson } from './training-format';
+import {
+  formatDuration,
+  formatPerson,
+  paperSignedLine,
+  paperTrainingBadge,
+} from './training-format';
 import { TrainingMaterial } from './training-material';
 import { TrainingStateBadge } from './training-state-badge';
 
@@ -339,7 +344,7 @@ function RecordItem({
             </span>
             {training.source === 'paper' && (
               <Badge variant="outline" data-testid="training-record-paper">
-                De pe fișa de hârtie
+                {paperTrainingBadge}
               </Badge>
             )}
           </p>
@@ -413,6 +418,15 @@ function RecordItem({
           </RecordFact>
         )}
       </dl>
+      {training.source === 'paper' && (
+        <p
+          data-testid="training-record-paper-signed"
+          className="flex items-center gap-2 border-t pt-3 text-sm text-muted-foreground"
+        >
+          <Signature aria-hidden="true" className="size-4 shrink-0" />
+          {paperSignedLine({ verifier: training.verifier, admission })}
+        </p>
+      )}
       {signs && (
         <RecordSignatures
           clientId={clientId}

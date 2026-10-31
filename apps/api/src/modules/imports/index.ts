@@ -1,26 +1,32 @@
 import { createRouter } from '../../router';
 import {
   abandonImport,
+  addFoundSheets,
   confirmImport,
   createImport,
   getImport,
   getImportSource,
+  listFoundSheets,
   listImports,
   readImportFile,
   registerImportFiles,
+  saveEmployeeImportChanges,
   saveImportChanges,
   splitImport,
   startImport,
 } from './handlers';
 import {
   abandonImportRoute,
+  addFoundSheetsRoute,
   confirmImportRoute,
   createImportRoute,
   getImportRoute,
   getImportSourceRoute,
+  listFoundSheetsRoute,
   listImportsRoute,
   readImportFileRoute,
   registerImportFilesRoute,
+  saveEmployeeImportChangesRoute,
   saveImportChangesRoute,
   splitImportRoute,
   startImportRoute,
@@ -37,4 +43,7 @@ export const importsRouter = createRouter()
   .openapi(confirmImportRoute, confirmImport)
   .openapi(abandonImportRoute, abandonImport)
   .openapi(splitImportRoute, splitImport)
-  .openapi(readImportFileRoute, readImportFile);
+  .openapi(readImportFileRoute, readImportFile)
+  .openapi(saveEmployeeImportChangesRoute, saveEmployeeImportChanges)
+  .openapi(listFoundSheetsRoute, listFoundSheets)
+  .openapi(addFoundSheetsRoute, addFoundSheets);

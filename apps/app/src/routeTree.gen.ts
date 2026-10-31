@@ -100,12 +100,15 @@ import { Route as AuthenticatedClientsImportImportIdSectionRouteImport } from '.
 import { Route as AuthenticatedClientsImportImportIdFilesRouteImport } from './routes/_authenticated/clients/import/$importId/files';
 import { Route as AuthenticatedClientsClientIdEmployeesEmployeeIdIndexRouteImport } from './routes/_authenticated/clients/$clientId/employees/$employeeId/index';
 import { Route as AuthenticatedClientsClientIdEmployeesEmployeeIdEditRouteImport } from './routes/_authenticated/clients/$clientId/employees/$employeeId_.edit';
+import { Route as AuthenticatedClientsClientIdEmployeesImportImportIdRouteImport } from './routes/_authenticated/clients/$clientId/employees/import/$importId';
 import { Route as AuthenticatedClientsClientIdJobPositionsJobPositionIdIndexRouteImport } from './routes/_authenticated/clients/$clientId/job-positions/$jobPositionId/index';
 import { Route as AuthenticatedClientsClientIdJobPositionsJobPositionIdRiskEvaluationRouteImport } from './routes/_authenticated/clients/$clientId/job-positions/$jobPositionId/risk-evaluation';
 import { Route as AuthenticatedClientsClientIdJobPositionsRiskEvaluationsEvaluationIdRouteImport } from './routes/_authenticated/clients/$clientId/job-positions/risk-evaluations.$evaluationId';
 import { Route as AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingIndexRouteImport } from './routes/_authenticated/clients/$clientId/employees/$employeeId/training/index';
 import { Route as AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingPsiRouteImport } from './routes/_authenticated/clients/$clientId/employees/$employeeId/training/psi';
 import { Route as AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSsmRouteImport } from './routes/_authenticated/clients/$clientId/employees/$employeeId/training/ssm';
+import { Route as AuthenticatedClientsClientIdEmployeesImportImportIdIndexRouteImport } from './routes/_authenticated/clients/$clientId/employees/import/$importId/index';
+import { Route as AuthenticatedClientsClientIdEmployeesImportImportIdPersonIdRouteImport } from './routes/_authenticated/clients/$clientId/employees/import/$importId/$personId';
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -624,6 +627,12 @@ const AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute =
     path: '/$employeeId/edit',
     getParentRoute: () => AuthenticatedClientsClientIdEmployeesRoute,
   } as any);
+const AuthenticatedClientsClientIdEmployeesImportImportIdRoute =
+  AuthenticatedClientsClientIdEmployeesImportImportIdRouteImport.update({
+    id: '/import/$importId',
+    path: '/import/$importId',
+    getParentRoute: () => AuthenticatedClientsClientIdEmployeesRoute,
+  } as any);
 const AuthenticatedClientsClientIdJobPositionsJobPositionIdIndexRoute =
   AuthenticatedClientsClientIdJobPositionsJobPositionIdIndexRouteImport.update({
     id: '/',
@@ -669,6 +678,22 @@ const AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSsmRoute =
     path: '/training/ssm',
     getParentRoute: () => AuthenticatedClientsClientIdEmployeesEmployeeIdRoute,
   } as any);
+const AuthenticatedClientsClientIdEmployeesImportImportIdIndexRoute =
+  AuthenticatedClientsClientIdEmployeesImportImportIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () =>
+      AuthenticatedClientsClientIdEmployeesImportImportIdRoute,
+  } as any);
+const AuthenticatedClientsClientIdEmployeesImportImportIdPersonIdRoute =
+  AuthenticatedClientsClientIdEmployeesImportImportIdPersonIdRouteImport.update(
+    {
+      id: '/$personId',
+      path: '/$personId',
+      getParentRoute: () =>
+        AuthenticatedClientsClientIdEmployeesImportImportIdRoute,
+    } as any,
+  );
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
@@ -758,13 +783,16 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/other-documents/': typeof AuthenticatedClientsClientIdOtherDocumentsIndexRoute;
   '/clients/import/$importId/': typeof AuthenticatedClientsImportImportIdIndexRoute;
   '/clients/$clientId/employees/$employeeId/edit': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute;
+  '/clients/$clientId/employees/import/$importId': typeof AuthenticatedClientsClientIdEmployeesImportImportIdRouteWithChildren;
   '/clients/$clientId/job-positions/$jobPositionId/risk-evaluation': typeof AuthenticatedClientsClientIdJobPositionsJobPositionIdRiskEvaluationRoute;
   '/clients/$clientId/job-positions/risk-evaluations/$evaluationId': typeof AuthenticatedClientsClientIdJobPositionsRiskEvaluationsEvaluationIdRoute;
   '/clients/$clientId/employees/$employeeId/': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdIndexRoute;
   '/clients/$clientId/job-positions/$jobPositionId/': typeof AuthenticatedClientsClientIdJobPositionsJobPositionIdIndexRoute;
   '/clients/$clientId/employees/$employeeId/training/psi': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingPsiRoute;
   '/clients/$clientId/employees/$employeeId/training/ssm': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSsmRoute;
+  '/clients/$clientId/employees/import/$importId/$personId': typeof AuthenticatedClientsClientIdEmployeesImportImportIdPersonIdRoute;
   '/clients/$clientId/employees/$employeeId/training/': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingIndexRoute;
+  '/clients/$clientId/employees/import/$importId/': typeof AuthenticatedClientsClientIdEmployeesImportImportIdIndexRoute;
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
@@ -840,7 +868,9 @@ export interface FileRoutesByTo {
   '/clients/$clientId/job-positions/$jobPositionId': typeof AuthenticatedClientsClientIdJobPositionsJobPositionIdIndexRoute;
   '/clients/$clientId/employees/$employeeId/training/psi': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingPsiRoute;
   '/clients/$clientId/employees/$employeeId/training/ssm': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSsmRoute;
+  '/clients/$clientId/employees/import/$importId/$personId': typeof AuthenticatedClientsClientIdEmployeesImportImportIdPersonIdRoute;
   '/clients/$clientId/employees/$employeeId/training': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingIndexRoute;
+  '/clients/$clientId/employees/import/$importId': typeof AuthenticatedClientsClientIdEmployeesImportImportIdIndexRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
@@ -934,13 +964,16 @@ export interface FileRoutesById {
   '/_authenticated/clients/$clientId/other-documents/': typeof AuthenticatedClientsClientIdOtherDocumentsIndexRoute;
   '/_authenticated/clients/import/$importId/': typeof AuthenticatedClientsImportImportIdIndexRoute;
   '/_authenticated/clients/$clientId/employees/$employeeId_/edit': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute;
+  '/_authenticated/clients/$clientId/employees/import/$importId': typeof AuthenticatedClientsClientIdEmployeesImportImportIdRouteWithChildren;
   '/_authenticated/clients/$clientId/job-positions/$jobPositionId/risk-evaluation': typeof AuthenticatedClientsClientIdJobPositionsJobPositionIdRiskEvaluationRoute;
   '/_authenticated/clients/$clientId/job-positions/risk-evaluations/$evaluationId': typeof AuthenticatedClientsClientIdJobPositionsRiskEvaluationsEvaluationIdRoute;
   '/_authenticated/clients/$clientId/employees/$employeeId/': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdIndexRoute;
   '/_authenticated/clients/$clientId/job-positions/$jobPositionId/': typeof AuthenticatedClientsClientIdJobPositionsJobPositionIdIndexRoute;
   '/_authenticated/clients/$clientId/employees/$employeeId/training/psi': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingPsiRoute;
   '/_authenticated/clients/$clientId/employees/$employeeId/training/ssm': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSsmRoute;
+  '/_authenticated/clients/$clientId/employees/import/$importId/$personId': typeof AuthenticatedClientsClientIdEmployeesImportImportIdPersonIdRoute;
   '/_authenticated/clients/$clientId/employees/$employeeId/training/': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingIndexRoute;
+  '/_authenticated/clients/$clientId/employees/import/$importId/': typeof AuthenticatedClientsClientIdEmployeesImportImportIdIndexRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
@@ -1032,13 +1065,16 @@ export interface FileRouteTypes {
     | '/clients/$clientId/other-documents/'
     | '/clients/import/$importId/'
     | '/clients/$clientId/employees/$employeeId/edit'
+    | '/clients/$clientId/employees/import/$importId'
     | '/clients/$clientId/job-positions/$jobPositionId/risk-evaluation'
     | '/clients/$clientId/job-positions/risk-evaluations/$evaluationId'
     | '/clients/$clientId/employees/$employeeId/'
     | '/clients/$clientId/job-positions/$jobPositionId/'
     | '/clients/$clientId/employees/$employeeId/training/psi'
     | '/clients/$clientId/employees/$employeeId/training/ssm'
-    | '/clients/$clientId/employees/$employeeId/training/';
+    | '/clients/$clientId/employees/import/$importId/$personId'
+    | '/clients/$clientId/employees/$employeeId/training/'
+    | '/clients/$clientId/employees/import/$importId/';
   fileRoutesByTo: FileRoutesByTo;
   to:
     | '/'
@@ -1114,7 +1150,9 @@ export interface FileRouteTypes {
     | '/clients/$clientId/job-positions/$jobPositionId'
     | '/clients/$clientId/employees/$employeeId/training/psi'
     | '/clients/$clientId/employees/$employeeId/training/ssm'
-    | '/clients/$clientId/employees/$employeeId/training';
+    | '/clients/$clientId/employees/import/$importId/$personId'
+    | '/clients/$clientId/employees/$employeeId/training'
+    | '/clients/$clientId/employees/import/$importId';
   id:
     | '__root__'
     | '/'
@@ -1207,13 +1245,16 @@ export interface FileRouteTypes {
     | '/_authenticated/clients/$clientId/other-documents/'
     | '/_authenticated/clients/import/$importId/'
     | '/_authenticated/clients/$clientId/employees/$employeeId_/edit'
+    | '/_authenticated/clients/$clientId/employees/import/$importId'
     | '/_authenticated/clients/$clientId/job-positions/$jobPositionId/risk-evaluation'
     | '/_authenticated/clients/$clientId/job-positions/risk-evaluations/$evaluationId'
     | '/_authenticated/clients/$clientId/employees/$employeeId/'
     | '/_authenticated/clients/$clientId/job-positions/$jobPositionId/'
     | '/_authenticated/clients/$clientId/employees/$employeeId/training/psi'
     | '/_authenticated/clients/$clientId/employees/$employeeId/training/ssm'
-    | '/_authenticated/clients/$clientId/employees/$employeeId/training/';
+    | '/_authenticated/clients/$clientId/employees/import/$importId/$personId'
+    | '/_authenticated/clients/$clientId/employees/$employeeId/training/'
+    | '/_authenticated/clients/$clientId/employees/import/$importId/';
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
@@ -1869,6 +1910,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsClientIdEmployeesEmployeeIdEditRouteImport;
       parentRoute: typeof AuthenticatedClientsClientIdEmployeesRoute;
     };
+    '/_authenticated/clients/$clientId/employees/import/$importId': {
+      id: '/_authenticated/clients/$clientId/employees/import/$importId';
+      path: '/import/$importId';
+      fullPath: '/clients/$clientId/employees/import/$importId';
+      preLoaderRoute: typeof AuthenticatedClientsClientIdEmployeesImportImportIdRouteImport;
+      parentRoute: typeof AuthenticatedClientsClientIdEmployeesRoute;
+    };
     '/_authenticated/clients/$clientId/job-positions/$jobPositionId/': {
       id: '/_authenticated/clients/$clientId/job-positions/$jobPositionId/';
       path: '/';
@@ -1910,6 +1958,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/clients/$clientId/employees/$employeeId/training/ssm';
       preLoaderRoute: typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSsmRouteImport;
       parentRoute: typeof AuthenticatedClientsClientIdEmployeesEmployeeIdRoute;
+    };
+    '/_authenticated/clients/$clientId/employees/import/$importId/': {
+      id: '/_authenticated/clients/$clientId/employees/import/$importId/';
+      path: '/';
+      fullPath: '/clients/$clientId/employees/import/$importId/';
+      preLoaderRoute: typeof AuthenticatedClientsClientIdEmployeesImportImportIdIndexRouteImport;
+      parentRoute: typeof AuthenticatedClientsClientIdEmployeesImportImportIdRoute;
+    };
+    '/_authenticated/clients/$clientId/employees/import/$importId/$personId': {
+      id: '/_authenticated/clients/$clientId/employees/import/$importId/$personId';
+      path: '/$personId';
+      fullPath: '/clients/$clientId/employees/import/$importId/$personId';
+      preLoaderRoute: typeof AuthenticatedClientsClientIdEmployeesImportImportIdPersonIdRouteImport;
+      parentRoute: typeof AuthenticatedClientsClientIdEmployeesImportImportIdRoute;
     };
   }
 }
@@ -1990,11 +2052,30 @@ const AuthenticatedClientsClientIdEmployeesEmployeeIdRouteWithChildren =
     AuthenticatedClientsClientIdEmployeesEmployeeIdRouteChildren,
   );
 
+interface AuthenticatedClientsClientIdEmployeesImportImportIdRouteChildren {
+  AuthenticatedClientsClientIdEmployeesImportImportIdPersonIdRoute: typeof AuthenticatedClientsClientIdEmployeesImportImportIdPersonIdRoute;
+  AuthenticatedClientsClientIdEmployeesImportImportIdIndexRoute: typeof AuthenticatedClientsClientIdEmployeesImportImportIdIndexRoute;
+}
+
+const AuthenticatedClientsClientIdEmployeesImportImportIdRouteChildren: AuthenticatedClientsClientIdEmployeesImportImportIdRouteChildren =
+  {
+    AuthenticatedClientsClientIdEmployeesImportImportIdPersonIdRoute:
+      AuthenticatedClientsClientIdEmployeesImportImportIdPersonIdRoute,
+    AuthenticatedClientsClientIdEmployeesImportImportIdIndexRoute:
+      AuthenticatedClientsClientIdEmployeesImportImportIdIndexRoute,
+  };
+
+const AuthenticatedClientsClientIdEmployeesImportImportIdRouteWithChildren =
+  AuthenticatedClientsClientIdEmployeesImportImportIdRoute._addFileChildren(
+    AuthenticatedClientsClientIdEmployeesImportImportIdRouteChildren,
+  );
+
 interface AuthenticatedClientsClientIdEmployeesRouteChildren {
   AuthenticatedClientsClientIdEmployeesEmployeeIdRoute: typeof AuthenticatedClientsClientIdEmployeesEmployeeIdRouteWithChildren;
   AuthenticatedClientsClientIdEmployeesNewRoute: typeof AuthenticatedClientsClientIdEmployeesNewRoute;
   AuthenticatedClientsClientIdEmployeesIndexRoute: typeof AuthenticatedClientsClientIdEmployeesIndexRoute;
   AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute: typeof AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute;
+  AuthenticatedClientsClientIdEmployeesImportImportIdRoute: typeof AuthenticatedClientsClientIdEmployeesImportImportIdRouteWithChildren;
 }
 
 const AuthenticatedClientsClientIdEmployeesRouteChildren: AuthenticatedClientsClientIdEmployeesRouteChildren =
@@ -2007,6 +2088,8 @@ const AuthenticatedClientsClientIdEmployeesRouteChildren: AuthenticatedClientsCl
       AuthenticatedClientsClientIdEmployeesIndexRoute,
     AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute:
       AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute,
+    AuthenticatedClientsClientIdEmployeesImportImportIdRoute:
+      AuthenticatedClientsClientIdEmployeesImportImportIdRouteWithChildren,
   };
 
 const AuthenticatedClientsClientIdEmployeesRouteWithChildren =

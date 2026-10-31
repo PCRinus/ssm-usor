@@ -45,7 +45,7 @@ import type {
 const trainingStatusColumns =
   'training_status(ssm_state, ssm_due_on, ssm_last_periodic_on, ssm_interval_months, ssm_interval_source, psi_state, psi_due_on, psi_last_periodic_on, psi_interval_months, psi_interval_source)';
 
-const recordColumns = `id, occupation, admitted_on, admitted_by_name, admitted_by_job_title, trainings!inner(domain, phase, held_on, duration_minutes, material, trainer_name, trainer_job_title, verifier_name, verifier_job_title, supplementary_reason, created_at), signature_requests!signature_requests_record_of_client(${requestColumns}), training_signatures!training_signatures_record_of_client(${signatureColumns})`;
+const recordColumns = `id, occupation, admitted_on, admitted_by_name, admitted_by_job_title, trainings!inner(domain, phase, held_on, duration_minutes, material, trainer_name, trainer_job_title, verifier_name, verifier_job_title, supplementary_reason, source, created_at), signature_requests!signature_requests_record_of_client(${requestColumns}), training_signatures!training_signatures_record_of_client(${signatureColumns})`;
 
 const dataColumns = `last_name, first_name, employee_number, job_title, hired_at, home_address, birth_date, birth_place, blood_group, rh_factor, qualification, education, authorizations, commute_route, commute_minutes, job_positions(name), client_workplaces!employees_workplace_in_client(name), ${trainingStatusColumns}`;
 
@@ -128,6 +128,7 @@ async function trainingRecords(
           ? { name: record.trainings.verifier_name, jobTitle: record.trainings.verifier_job_title }
           : null,
       supplementaryReason: record.trainings.supplementary_reason,
+      source: record.trainings.source,
       occupation: record.occupation,
       admission: toAdmission(record),
       slots: recordSlots(

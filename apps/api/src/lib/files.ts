@@ -208,6 +208,13 @@ function fileStore(
       if (error && !alreadyExists(error)) throw fileError('copy import object', error);
     },
 
+    async copyClientFileToImports(from: string, to: string) {
+      const { error } = await storage
+        .from(clientFilesBucket)
+        .copy(from, to, { destinationBucket: importsBucket });
+      if (error && !alreadyExists(error)) throw fileError('copy client file to imports', error);
+    },
+
     async removeImportObjects(paths: string[]) {
       for (let start = 0; start < paths.length; start += 100) {
         const { error } = await storage.from(importsBucket).remove(paths.slice(start, start + 100));

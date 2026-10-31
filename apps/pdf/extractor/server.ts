@@ -17,10 +17,10 @@ import {
 import { Abandoned, Busy, gate, type Refusal, Refused, run } from './processes.ts';
 
 const port = Number(process.env.PORT ?? 3302);
-const fileLimit = 20 * 1024 * 1024;
-// Twice what an import reads as scans, and past the text the model reads for a whole client; a
-// small file can hold thousands of pages that share one content stream.
-const pdfPageLimit = 300;
+const fileLimit = 25 * 1024 * 1024;
+// Twice the most scans an import reads (an employee import's 500), and past the text the model
+// reads for a whole client; a small file can hold thousands of pages that share one content stream.
+const pdfPageLimit = 1000;
 const libreOfficeProfile = process.env.LIBREOFFICE_PROFILE ?? join(tmpdir(), 'libreoffice');
 
 const refusalStatus: Record<Refusal, number> = {

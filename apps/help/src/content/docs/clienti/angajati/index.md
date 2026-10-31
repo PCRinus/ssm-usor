@@ -48,6 +48,7 @@ sources:
   - docs/architecture/adr-021-training-records-and-individual-sheets.md
   - docs/architecture/adr-024-knowledge-tests.md
   - docs/architecture/adr-027-dashboard.md
+  - docs/architecture/adr-032-employees-imported-from-training-sheets.md
   - packages/contracts/src/employees.ts
   - packages/contracts/src/organization-employees.ts
   - packages/contracts/src/trainings.ts
@@ -63,6 +64,7 @@ sources:
   - apps/app/src/features/knowledge-tests/test-state-filter.tsx
   - apps/app/src/features/knowledge-tests/test-state-badge.tsx
   - apps/app/src/features/client-files/client-files-card.tsx
+  - apps/app/src/features/client-files/import-folder.tsx
   - supabase/migrations/20261016210000_training_records.sql
   - supabase/migrations/20261017100000_training_interval_source.sql
   - supabase/migrations/20261020100000_knowledge_tests.sql
@@ -84,7 +86,7 @@ Lista unui client e în tabul **Angajați** al clientului. Fiecare rând arată:
 
 Poți ordona lista după nume, post sau data angajării. Din meniul de la capătul rândului ajungi la **Modifică** și **Marchează plecarea…**. Un clic pe rând deschide pagina angajatului.
 
-Adaugi un angajat cu **Adaugă angajat**. Ce cere formularul găsești în [Adăugarea și modificarea unui angajat](/clienti/angajati/adaugare-si-editare/).
+Adaugi un angajat cu **Adaugă angajat**. Ce cere formularul găsești în [Adăugarea și modificarea unui angajat](/clienti/angajati/adaugare-si-editare/). Angajații unui client pe care îl preiei îi poți aduce și din fotografiile fișelor lor de instruire: vezi [Importul angajaților din fișe](/clienti/import/#importul-angajaților-din-fișe).
 
 ### Angajați actuali și foști angajați
 
@@ -143,6 +145,10 @@ Fiecare angajat actual are o stare a testării pentru SSM și una pentru PSI, ca
 
 Instruirea e înregistrată, iar testul la angajare nu e promovat încă. Testul îl așteaptă pe angajat în portal sau, dacă nu folosește portalul, pe hârtie.
 
+### Neverificat pe fișă
+
+Instruirea la angajare e transcrisă de pe fișa pe hârtie, iar testul care a încheiat-o nu e înregistrat, de obicei pentru că semnătura celui care a verificat cunoștințele nu se vede clar pe fișă sau lipsește. Testul s-a dat pe hârtie, odată cu instruirea, așa că nu îl mai așteaptă pe angajat: nu apare în portal și nu se numără pe **Dashboard**. Dacă originalul arată testul promovat, îl înregistrezi ca rezultat de pe hârtie. Vezi [Când îl așteaptă un test](/clienti/angajati/instruire-si-teste/).
+
 ### Promovat
 
 Angajatul a promovat testul. În PSI, starea ține 12 luni de la ultimul test promovat. Filtrul **La zi** de la **Testare:** îi arată pe cei promovați în ambele domenii.
@@ -174,6 +180,8 @@ Accesul la portal și actul adițional sunt explicate în [Portalul și actul ad
 ### Fișierele angajatului
 
 În **Fișiere** încarci fotografiile sau scanurile fișelor de instruire completate pe hârtie, actul adițional semnat de mână și orice alt fișier despre angajat. Fișierele unui angajat apar doar pe pagina lui, nu și în **Alte documente** ale clientului, unde rămân fișierele clientului.
+
+Un angajat adus dintr-un import din fișe are aici un folder „Fișe importate pe …”, cu fotografiile fișelor lui și, dintr-un PDF scanat cu fișele mai multor persoane, doar paginile lui. Folderul se descarcă întreg cu **Descarcă fișele (ZIP)**.
 
 ## Angajații unui client arhivat
 

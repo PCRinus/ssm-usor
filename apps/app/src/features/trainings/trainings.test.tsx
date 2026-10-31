@@ -151,6 +151,7 @@ const workplaceRecord = {
   }),
   signed: false,
   hasSignatures: false,
+  printed: false,
 };
 
 const periodicRecord = {
@@ -160,6 +161,7 @@ const periodicRecord = {
   training: training(),
   signed: false,
   hasSignatures: false,
+  printed: false,
 };
 
 const detailOf = (attendees: { id: string; lastName: string; firstName: string }[]) => ({
@@ -331,6 +333,7 @@ describe("an employee's training tabs", () => {
     expect(periodic.getByText('Maria Pop, Șef atelier')).toBeTruthy();
     expect(periodic.getByText('Dan Marin, Inspector SSM')).toBeTruthy();
     expect(periodic.queryByTestId('training-record-paper')).toBeNull();
+    expect(periodic.queryByTestId('training-record-paper-signed')).toBeNull();
     const toggle = periodic.getByTestId('training-material-toggle');
     expect(periodic.getByTestId('training-material-text').className).toContain('line-clamp-2');
     await user.click(toggle);
@@ -338,7 +341,13 @@ describe("an employee's training tabs", () => {
     expect(toggle.textContent).toBe('mai puțin');
 
     const workplace = within(items[1]!);
-    expect(workplace.getByTestId('training-record-paper')).toBeTruthy();
+    expect(workplace.getByTestId('training-record-paper').textContent).toBe(
+      'Transcris de pe fișa pe hârtie'
+    );
+    expect(workplace.getByTestId('training-record-paper-signed').textContent).toBe(
+      'Semnat pe hârtie: instruit, instructor, verificator, admite la lucru'
+    );
+    expect(workplace.queryByTestId('record-signatures')).toBeNull();
     expect(workplace.getByTestId('training-record-duration').textContent).toBe('240 min (4 h)');
     expect(workplace.getByTestId('training-record-admission').textContent).toBe(
       'Admis la lucru de Maria Pop, Șef atelier la 2 mar. 2020'
@@ -553,6 +562,22 @@ describe("an employee's training tabs", () => {
 });
 
 describe("a client's trainings held", () => {
+  it('marks a training typed from a paper sheet', async () => {
+    mockApi({
+      [`GET ${trainingsPath}`]: () =>
+        Response.json({
+          items: [
+            { ...heldWith(popescu), source: 'paper' },
+            { ...heldWith(taranu), id: '6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e' },
+          ],
+        }),
+    });
+    mountApp(authFixture(makeSession()).client, trainingsPath);
+    const rows = await screen.findAllByTestId('trainings-row');
+    expect(within(rows[0]!).getByText('Transcris de pe fișa pe hârtie')).toBeTruthy();
+    expect(within(rows[1]!).queryByText('Transcris de pe fișa pe hârtie')).toBeNull();
+  });
+
   it("is a tab of the client's page, filtered by domain and phase in the URL", async () => {
     const held = heldWith(popescu, taranu);
     mockApi({
@@ -708,6 +733,11 @@ describe("a client's trainings held", () => {
       { signed: false, hasSignatures: true },
       false,
       'Instruirea are semnături, chiar anulate sau pe hârtie, care rămân în evidență, așa că nu se mai poate șterge.',
+    ],
+    [
+      { source: 'paper', signed: false, hasSignatures: true, printed: true },
+      true,
+      'Instruirea este trecută pe o fișă individuală semnată electronic, care nu se mai schimbă, așa că nu se mai poate modifica sau șterge.',
     ],
   ])('locks a training by its signatures, %o', async (signing, editLocked, lock) => {
     mockApi({
@@ -949,6 +979,24 @@ describe("an employee's knowledge tests", () => {
     expect(screen.getAllByTestId('training-record').length).toBeGreaterThan(0);
   });
 
+  it('says when a hiring test from paper could not be verified, and takes its result on paper', async () => {
+    mockApi({
+      [`GET ${testsPath}`]: () => Response.json(employeeTests(undefined, testStatus('unverified'))),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/psi`);
+    const user = userEvent.setup();
+    const card = within(await screen.findByTestId('employee-tests'));
+    expect((await card.findByTestId('tests-state')).textContent).toBe('Neverificat pe fișă');
+    expect(card.getByTestId('tests-awaiting').textContent).toBe(
+      'Testul la angajare nu a putut fi verificat pe fișă: semnătura nu se vede clar sau lipsește.'
+    );
+    expect(card.queryByTestId('tests-gap')).toBeNull();
+    await user.click(card.getByTestId('tests-record-paper'));
+    const dialog = within(await screen.findByTestId('test-result-dialog'));
+    const choice = dialog.getByTestId('test-result-test') as HTMLSelectElement;
+    expect([...choice.options].map((option) => option.value)).toEqual(['hiring', 'annual']);
+  });
+
   it('lists the results with their source and examiner, and the attempts with their score', async () => {
     const tests = employeeTests(
       testStatus('passed', null, '2026-09-02'),
@@ -1180,7 +1228,14 @@ describe('test state in the employee lists', () => {
       within(screen.getByTestId('employees-test-filter'))
         .getAllByRole('button')
         .map((chip) => chip.textContent)
-    ).toEqual(['Toate', 'La zi', 'De susținut', 'Anual scadent', 'Fără test']);
+    ).toEqual([
+      'Toate',
+      'La zi',
+      'De susținut',
+      'Anual scadent',
+      'Neverificat pe fișă',
+      'Fără test',
+    ]);
     await user.click(screen.getByTestId('employees-test-filter-pending'));
     await waitFor(() =>
       expect(runtime.router.state.location.search).toEqual({ testState: 'pending' })
@@ -1188,6 +1243,12 @@ describe('test state in the employee lists', () => {
     await waitFor(() =>
       expect(requests('GET', employeesPath).at(-1)!.url.searchParams.get('testState')).toBe(
         'pending'
+      )
+    );
+    await user.click(screen.getByTestId('employees-test-filter-unverified'));
+    await waitFor(() =>
+      expect(requests('GET', employeesPath).at(-1)!.url.searchParams.get('testState')).toBe(
+        'unverified'
       )
     );
     await user.click(screen.getByTestId('employees-test-filter-none'));

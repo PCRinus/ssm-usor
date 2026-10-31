@@ -1,5 +1,5 @@
 begin;
-select plan(14);
+select plan(15);
 
 -- organization_employee_states repeats the rules of employee_training_due and employee_test_due
 -- for speed; the seeded employees reach every state, so a rule changed on one side only fails here.
@@ -50,28 +50,34 @@ from day d, lateral (values
   ('e1e1e1e1-0000-4000-8000-000000000008', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'b1b1b1b1-0000-4000-8000-000000000001', 'Archived', 'active', null, now()),
   ('e1e1e1e1-0000-4000-8000-000000000009', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'b1b1b1b1-0000-4000-8000-000000000004', 'Of archived client', 'active', null, null),
   ('e1e1e1e1-0000-4000-8000-000000000010', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'b1b1b1b1-0000-4000-8000-000000000001', 'Fire introduction', 'active', null, null),
+  ('e1e1e1e1-0000-4000-8000-000000000011', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'b1b1b1b1-0000-4000-8000-000000000001', 'Paper hiring', 'active', null, null),
+  ('e1e1e1e1-0000-4000-8000-000000000012', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'b1b1b1b1-0000-4000-8000-000000000001', 'Paper and app hiring', 'active', null, null),
   ('e2e2e2e2-0000-4000-8000-000000000001', '22222222-0000-4000-8000-000000000002', 'c2c2c2c2-0000-4000-8000-000000000001', 'b2b2b2b2-0000-4000-8000-000000000001', 'Of B', 'active', null, null)
 ) as v (id, organization_id, client_id, job_position_id, last_name, status, terminated_at, archived_at);
 
-insert into public.trainings (id, organization_id, client_id, domain, phase, held_on, duration_minutes, material, trainer_name, trainer_job_title, supplementary_reason)
-select v.id::uuid, v.organization_id::uuid, v.client_id::uuid, v.domain::public.training_domain, v.phase::public.training_phase, d.today - v.days_ago, 120, 'Material', 'Ion POP', 'Șef atelier', v.reason::public.supplementary_training_reason
+insert into public.trainings (id, organization_id, client_id, domain, phase, held_on, duration_minutes, material, trainer_name, trainer_job_title, supplementary_reason, source)
+select v.id::uuid, v.organization_id::uuid, v.client_id::uuid, v.domain::public.training_domain, v.phase::public.training_phase, d.today - v.days_ago, 120, 'Material', 'Ion POP', 'Șef atelier', v.reason::public.supplementary_training_reason, v.source::public.training_source
 from day d, (values
-  ('a1a1a1a1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'introductory_general', 790, null),
-  ('a1a1a1a1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'workplace', 100, null),
-  ('a1a1a1a1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 'workplace', 100, null),
-  ('a1a1a1a1-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'workplace', 400, null),
-  ('a1a1a1a1-0000-4000-8000-000000000005', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'periodic', 170, null),
-  ('a1a1a1a1-0000-4000-8000-000000000006', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 'workplace', 200, null),
-  ('a1a1a1a1-0000-4000-8000-000000000007', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'workplace', 20, null),
-  ('a1a1a1a1-0000-4000-8000-000000000008', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 'workplace', 10, null),
-  ('a1a1a1a1-0000-4000-8000-000000000009', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'supplementary', 5, 'rules_changed'),
-  ('a1a1a1a1-0000-4000-8000-000000000010', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'ssm', 'workplace', 30, null),
-  ('a1a1a1a1-0000-4000-8000-000000000011', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'psi', 'workplace', 30, null),
-  ('a1a1a1a1-0000-4000-8000-000000000012', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'workplace', 50, null),
-  ('a1a1a1a1-0000-4000-8000-000000000013', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'ssm', 'workplace', 30, null),
-  ('a1a1a1a1-0000-4000-8000-000000000014', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 'introductory_general', 20, null),
-  ('a2a2a2a2-0000-4000-8000-000000000001', '22222222-0000-4000-8000-000000000002', 'c2c2c2c2-0000-4000-8000-000000000001', 'ssm', 'workplace', 30, null)
-) as v (id, organization_id, client_id, domain, phase, days_ago, reason);
+  ('a1a1a1a1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'introductory_general', 790, null, 'app'),
+  ('a1a1a1a1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'workplace', 100, null, 'app'),
+  ('a1a1a1a1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 'workplace', 100, null, 'app'),
+  ('a1a1a1a1-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'workplace', 400, null, 'app'),
+  ('a1a1a1a1-0000-4000-8000-000000000005', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'periodic', 170, null, 'app'),
+  ('a1a1a1a1-0000-4000-8000-000000000006', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 'workplace', 200, null, 'app'),
+  ('a1a1a1a1-0000-4000-8000-000000000007', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'workplace', 20, null, 'app'),
+  ('a1a1a1a1-0000-4000-8000-000000000008', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 'workplace', 10, null, 'app'),
+  ('a1a1a1a1-0000-4000-8000-000000000009', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'supplementary', 5, 'rules_changed', 'app'),
+  ('a1a1a1a1-0000-4000-8000-000000000010', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'ssm', 'workplace', 30, null, 'app'),
+  ('a1a1a1a1-0000-4000-8000-000000000011', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'psi', 'workplace', 30, null, 'app'),
+  ('a1a1a1a1-0000-4000-8000-000000000012', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'workplace', 50, null, 'app'),
+  ('a1a1a1a1-0000-4000-8000-000000000013', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'ssm', 'workplace', 30, null, 'app'),
+  ('a1a1a1a1-0000-4000-8000-000000000014', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 'introductory_general', 20, null, 'app'),
+  ('a1a1a1a1-0000-4000-8000-000000000015', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'introductory_general', 300, null, 'paper'),
+  ('a1a1a1a1-0000-4000-8000-000000000016', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 'workplace', 300, null, 'paper'),
+  ('a1a1a1a1-0000-4000-8000-000000000017', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'introductory_general', 40, null, 'app'),
+  ('a1a1a1a1-0000-4000-8000-000000000018', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'introductory_general', 40, null, 'paper'),
+  ('a2a2a2a2-0000-4000-8000-000000000001', '22222222-0000-4000-8000-000000000002', 'c2c2c2c2-0000-4000-8000-000000000001', 'ssm', 'workplace', 30, null, 'app')
+) as v (id, organization_id, client_id, domain, phase, days_ago, reason, source);
 
 insert into public.training_records (organization_id, client_id, training_id, phase, employee_id, occupation)
 select t.organization_id, t.client_id, t.id, t.phase, v.employee_id::uuid, 'Sudor'
@@ -92,6 +98,10 @@ from (values
   ('a1a1a1a1-0000-4000-8000-000000000012', 'e1e1e1e1-0000-4000-8000-000000000008'),
   ('a1a1a1a1-0000-4000-8000-000000000013', 'e1e1e1e1-0000-4000-8000-000000000009'),
   ('a1a1a1a1-0000-4000-8000-000000000014', 'e1e1e1e1-0000-4000-8000-000000000010'),
+  ('a1a1a1a1-0000-4000-8000-000000000015', 'e1e1e1e1-0000-4000-8000-000000000011'),
+  ('a1a1a1a1-0000-4000-8000-000000000016', 'e1e1e1e1-0000-4000-8000-000000000011'),
+  ('a1a1a1a1-0000-4000-8000-000000000017', 'e1e1e1e1-0000-4000-8000-000000000012'),
+  ('a1a1a1a1-0000-4000-8000-000000000018', 'e1e1e1e1-0000-4000-8000-000000000012'),
   ('a2a2a2a2-0000-4000-8000-000000000001', 'e2e2e2e2-0000-4000-8000-000000000001')
 ) as v (training_id, employee_id)
 join public.trainings t on t.id = v.training_id::uuid;
@@ -145,7 +155,8 @@ select results_eq(
        ('e1e1e1e1-0000-4000-8000-000000000001'::uuid), ('e1e1e1e1-0000-4000-8000-000000000002'),
        ('e1e1e1e1-0000-4000-8000-000000000003'), ('e1e1e1e1-0000-4000-8000-000000000004'),
        ('e1e1e1e1-0000-4000-8000-000000000005'), ('e1e1e1e1-0000-4000-8000-000000000006'),
-       ('e1e1e1e1-0000-4000-8000-000000000010') $$,
+       ('e1e1e1e1-0000-4000-8000-000000000010'), ('e1e1e1e1-0000-4000-8000-000000000011'),
+       ('e1e1e1e1-0000-4000-8000-000000000012') $$,
   'only current employees of active clients have states'
 );
 
@@ -169,6 +180,17 @@ select is(
      lateral (values (ssm_test_state), (psi_test_state)) as v (state)),
   enum_range(null::public.test_state),
   'the seeded employees reach every test state'
+);
+
+select results_eq(
+  $$ select employee_id, ssm_test_state, psi_test_state
+     from public.organization_employee_states('11111111-0000-4000-8000-000000000001')
+     where employee_id in ('e1e1e1e1-0000-4000-8000-000000000011', 'e1e1e1e1-0000-4000-8000-000000000012')
+     order by 1 $$,
+  $$ values
+       ('e1e1e1e1-0000-4000-8000-000000000011'::uuid, 'unverified'::public.test_state, 'unverified'::public.test_state),
+       ('e1e1e1e1-0000-4000-8000-000000000012', 'pending', 'none') $$,
+  'a hiring training only on paper leaves the test unverified; on a day with both, the one held in the app awaits it'
 );
 
 select results_eq(
@@ -215,7 +237,9 @@ select results_eq(
 
 select results_eq(
   $$ select id from public.organization_employees_in_state('11111111-0000-4000-8000-000000000001', 'overdue', 'pending') order by 1 $$,
-  $$ values ('e1e1e1e1-0000-4000-8000-000000000002'::uuid), ('e1e1e1e1-0000-4000-8000-000000000003') $$,
+  $$ values
+       ('e1e1e1e1-0000-4000-8000-000000000002'::uuid), ('e1e1e1e1-0000-4000-8000-000000000003'),
+       ('e1e1e1e1-0000-4000-8000-000000000012') $$,
   'a training state and a test state together keep the employees in both'
 );
 

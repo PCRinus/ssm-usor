@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatDate, formatTenure } from './employee-format';
+import { formatDate, formatTenure, roCount } from './employee-format';
 
 describe('employee formatting', () => {
   it('formats ISO dates in Romanian', () => {
@@ -17,5 +17,17 @@ describe('employee formatting', () => {
     ['2003-08-18', '2026-09-18', '23 de ani și 1 lună'],
   ])('computes tenure from %s to %s', (from, to, expected) => {
     expect(formatTenure(from, to)).toBe(expected);
+  });
+
+  it.each([
+    [0, '0 invitații'],
+    [1, '1 invitație'],
+    [19, '19 invitații'],
+    [20, '20 de invitații'],
+    [101, '101 invitații'],
+    [100, '100 de invitații'],
+    [1000, '1000 de invitații'],
+  ])('counts %i with the noun Romanian takes', (value, expected) => {
+    expect(roCount(value, 'invitație', 'invitații')).toBe(expected);
   });
 });

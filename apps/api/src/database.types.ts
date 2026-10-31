@@ -328,7 +328,9 @@ export type Database = {
           created_at: string;
           employee_id: string | null;
           id: string;
+          import_file_id: string | null;
           import_id: string | null;
+          import_page: number | null;
           import_path: string | null;
           mime_type: string;
           name: string;
@@ -347,7 +349,9 @@ export type Database = {
           created_at?: string;
           employee_id?: string | null;
           id?: string;
+          import_file_id?: string | null;
           import_id?: string | null;
+          import_page?: number | null;
           import_path?: string | null;
           mime_type: string;
           name: string;
@@ -366,7 +370,9 @@ export type Database = {
           created_at?: string;
           employee_id?: string | null;
           id?: string;
+          import_file_id?: string | null;
           import_id?: string | null;
+          import_page?: number | null;
           import_path?: string | null;
           mime_type?: string;
           name?: string;
@@ -415,6 +421,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'employees';
             referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'client_files_import_file_id_fkey';
+            columns: ['import_file_id'];
+            isOneToOne: false;
+            referencedRelation: 'import_files';
+            referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'client_files_import_in_organization';
@@ -2568,6 +2581,7 @@ export type Database = {
           reason: string | null;
           sha256: string;
           size_bytes: number;
+          source_file_id: string | null;
           state: Database['public']['Enums']['import_file_state'];
           storage_path: string;
           text_path: string | null;
@@ -2597,6 +2611,7 @@ export type Database = {
           reason?: string | null;
           sha256: string;
           size_bytes: number;
+          source_file_id?: string | null;
           state?: Database['public']['Enums']['import_file_state'];
           storage_path?: string;
           text_path?: string | null;
@@ -2626,6 +2641,7 @@ export type Database = {
           reason?: string | null;
           sha256?: string;
           size_bytes?: number;
+          source_file_id?: string | null;
           state?: Database['public']['Enums']['import_file_state'];
           storage_path?: string;
           text_path?: string | null;
@@ -2646,6 +2662,45 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'imports';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'import_files_source_file_id_fkey';
+            columns: ['source_file_id'];
+            isOneToOne: false;
+            referencedRelation: 'import_files';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      import_page_images: {
+        Row: {
+          created_at: string;
+          import_file_id: string;
+          page: number;
+          sha256: string;
+          size_bytes: number;
+        };
+        Insert: {
+          created_at?: string;
+          import_file_id: string;
+          page: number;
+          sha256: string;
+          size_bytes: number;
+        };
+        Update: {
+          created_at?: string;
+          import_file_id?: string;
+          page?: number;
+          sha256?: string;
+          size_bytes?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'import_page_images_import_file_id_fkey';
+            columns: ['import_file_id'];
+            isOneToOne: false;
+            referencedRelation: 'import_files';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -6534,6 +6589,14 @@ export type Database = {
         };
         Returns: Json;
       };
+      apply_employee_import: {
+        Args: {
+          p_expected_version: number;
+          p_import_id: string;
+          p_payload: Json;
+        };
+        Returns: Json;
+      };
       apply_evaluation_profile: {
         Args: { p_evaluation_id: string; p_profile_id: string };
         Returns: number;
@@ -6568,6 +6631,38 @@ export type Database = {
       copy_risk_factors: {
         Args: { p_evaluation_id: string; p_from_evaluation_id: string };
         Returns: number;
+      };
+      create_employee_invitation_at_address: {
+        Args: {
+          p_address: string;
+          p_channel: string;
+          p_client_id: string;
+          p_employee_id: string;
+        };
+        Returns: {
+          accepted_at: string | null;
+          address: string;
+          channel: string;
+          client_id: string;
+          created_at: string;
+          employee_id: string | null;
+          expires_at: string;
+          full_name: string | null;
+          id: string;
+          invited_by: string | null;
+          kind: Database['public']['Enums']['participant_kind'];
+          last_sent_at: string;
+          organization_id: string;
+          participant_id: string | null;
+          revoked_at: string | null;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'participant_invitations';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
       create_organization: {
         Args: {
@@ -6912,6 +7007,10 @@ export type Database = {
           isOneToOne: true;
           isSetofReturn: false;
         };
+      };
+      mark_found_sheets_uploaded: {
+        Args: { p_file_ids: string[]; p_import_id: string };
+        Returns: undefined;
       };
       mark_import_objects_removed: {
         Args: { p_import_ids: string[] };
@@ -7618,7 +7717,7 @@ export type Database = {
         | 'changed_procedure'
         | 'new_technology';
       test_result_source: 'portal' | 'paper';
-      test_state: 'none' | 'pending' | 'passed' | 'annual_due';
+      test_state: 'none' | 'pending' | 'unverified' | 'passed' | 'annual_due';
       training_domain: 'ssm' | 'psi';
       training_phase: 'introductory_general' | 'workplace' | 'periodic' | 'supplementary';
       training_source: 'app' | 'paper';
@@ -7831,7 +7930,7 @@ export const Constants = {
         'new_technology',
       ],
       test_result_source: ['portal', 'paper'],
-      test_state: ['none', 'pending', 'passed', 'annual_due'],
+      test_state: ['none', 'pending', 'unverified', 'passed', 'annual_due'],
       training_domain: ['ssm', 'psi'],
       training_phase: ['introductory_general', 'workplace', 'periodic', 'supplementary'],
       training_source: ['app', 'paper'],

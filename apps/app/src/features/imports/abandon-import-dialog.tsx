@@ -20,11 +20,13 @@ import { importErrorMessage } from './import-format';
 export function AbandonImportDialog({
   importId,
   running,
+  employees = false,
   onClose,
   onAbandoned,
 }: {
   importId: string | null;
   running: boolean;
+  employees?: boolean;
   onClose: () => void;
   onAbandoned: () => void;
 }) {
@@ -42,6 +44,14 @@ export function AbandonImportDialog({
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getGetImportQueryKey(importId) }),
+        // The sheets an employee import took from the documentation are offered again.
+        ...(employees
+          ? [
+              queryClient.invalidateQueries({
+                predicate: ({ queryKey }) => String(queryKey[0]).endsWith('/found-sheets'),
+              }),
+            ]
+          : []),
       ]);
       toast.success(running ? 'Importul a fost oprit.' : 'Ai renunțat la import.');
       onClose();
@@ -59,8 +69,9 @@ export function AbandonImportDialog({
         <DialogHeader>
           <DialogTitle>{running ? 'Oprești importul?' : 'Renunți la import?'}</DialogTitle>
           <DialogDescription>
-            Nu se creează și nu se modifică niciun client. Fișierele încărcate se șterg după 14
-            zile.
+            {employees
+              ? 'Nu se creează și nu se modifică niciun angajat. Fotografiile încărcate se șterg după 14 zile.'
+              : 'Nu se creează și nu se modifică niciun client. Fișierele încărcate se șterg după 14 zile.'}
           </DialogDescription>
         </DialogHeader>
         {error && <Notice variant="destructive">{error}</Notice>}

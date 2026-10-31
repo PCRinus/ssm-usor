@@ -1,22 +1,33 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
   clientConflictReasons,
+  confirmedListed,
+  type EmployeeImportPeople,
+  type FoundSheet,
   type ImportChanges,
   importChangesSchema,
   type ImportDetail,
   importErrorReasons,
   importFileExtensions,
   type ImportFileType,
+  type ImportKind,
+  type ImportLimits,
   importLimits,
   type ImportSourceResponse,
   type ImportSummary,
   type ImportUsage,
   isSystemPath,
+  sheetFileTypes,
 } from '@ssm-usor/contracts';
-import { placeQuote, proposalSchema } from '@ssm-usor/import';
+import {
+  type EmployeeImportPayload,
+  placeQuote,
+  proposalSchema,
+  toEmployeePayload,
+} from '@ssm-usor/import';
 import type { Context } from 'hono';
 
-import type { Database } from '../../database.types';
+import type { Database, Json } from '../../database.types';
 import { type AdminClient, createAdminClient } from '../../lib/admin-db';
 import { adminToolsAllowed } from '../../lib/auth';
 import {
@@ -28,6 +39,21 @@ import {
 import type { ApiEnv, ImportMessage, ImportQueue } from '../../lib/env';
 import { ApiError, type BrokenConstraint } from '../../lib/errors';
 import { createAdminFileStore, createFileStore } from '../../lib/files';
+import { romanianDay } from '../documents/context';
+import { uninvitedOfImports } from '../participants/handlers';
+import {
+  signedSheetContext,
+  syncResultRows,
+  syncTrainingRows,
+} from '../signed-sheets/signed-sheets';
+import {
+  employeeImportClient,
+  peopleCounts,
+  personStates,
+  romanianToday,
+  storedEmployeeChanges,
+  storedEmployeeProposal,
+} from './employees';
 import {
   type ExistingRecords,
   noExistingRecords,
@@ -38,7 +64,6 @@ import {
   characterCount,
   describe,
   loadPrepared,
-  maxScannedPages,
   type PreparedPages,
   sendAll,
   textPathOf,
@@ -46,13 +71,16 @@ import {
 } from './pipeline';
 import type {
   abandonImportRoute,
+  addFoundSheetsRoute,
   confirmImportRoute,
   createImportRoute,
   getImportRoute,
   getImportSourceRoute,
+  listFoundSheetsRoute,
   listImportsRoute,
   readImportFileRoute,
   registerImportFilesRoute,
+  saveEmployeeImportChangesRoute,
   saveImportChangesRoute,
   splitImportRoute,
   startImportRoute,
@@ -77,6 +105,7 @@ type ImportRow = Pick<
   | 'failure_reason'
   | 'created_by'
   | 'created_at'
+  | 'updated_at'
   | 'started_at'
   | 'ready_at'
   | 'failed_at'
@@ -84,10 +113,15 @@ type ImportRow = Pick<
 > & {
   clients: { id: string; legal_name: string } | null;
   import_files: { count: number }[];
+  last_file: { updated_at: string }[];
 };
 
 const summaryColumns =
-  'id, kind, status, client_id, into_existing_client, company_name, company_cui, source_import_id, failure_reason, created_by, created_at, started_at, ready_at, failed_at, confirmed_at, clients!imports_client_in_organization(id, legal_name), import_files(count)';
+  'id, kind, status, client_id, into_existing_client, company_name, company_cui, source_import_id, failure_reason, created_by, created_at, updated_at, started_at, ready_at, failed_at, confirmed_at, clients!imports_client_in_organization(id, legal_name), import_files(count), last_file:import_files(updated_at)';
+
+// The clean-up fails an import uploading or ready with no change to it or its files for 14 days
+// (fail_stalled_imports).
+const leftForDays = 14;
 
 const detailColumns = `${summaryColumns}, version, proposal, changes, proposal_dropped_at, read_characters, input_tokens, cached_input_tokens, output_tokens, cost_usd, usage_by_step`;
 
@@ -132,7 +166,22 @@ async function creatorNames(db: DataClient, rows: { created_by: string | null }[
   return new Map(data.map((profile) => [profile.user_id, profile.full_name]));
 }
 
-function toSummary(row: ImportRow, names: Map<string, string>): ImportSummary {
+function expiresAtOf(row: Pick<ImportRow, 'status' | 'updated_at' | 'last_file'>) {
+  if (row.status !== 'uploading' && row.status !== 'ready') return null;
+  const changed = Math.max(
+    ...[row.updated_at, ...(row.last_file ?? []).map((file) => file.updated_at)].map((at) =>
+      Date.parse(at)
+    )
+  );
+  return new Date(changed + leftForDays * 24 * 60 * 60 * 1000).toISOString();
+}
+
+function toSummary(
+  row: ImportRow,
+  names: Map<string, string>,
+  people: EmployeeImportPeople | null = null,
+  uninvited: number | null = null
+): ImportSummary {
   return {
     id: row.id,
     kind: row.kind,
@@ -152,6 +201,9 @@ function toSummary(row: ImportRow, names: Map<string, string>): ImportSummary {
     readyAt: row.ready_at,
     failedAt: row.failed_at,
     confirmedAt: row.confirmed_at,
+    expiresAt: expiresAtOf(row),
+    people,
+    uninvited,
   };
 }
 
@@ -160,6 +212,8 @@ async function summaryOf(db: DataClient, importId: string) {
     .from('imports')
     .select(summaryColumns)
     .eq('id', importId)
+    .order('updated_at', { referencedTable: 'last_file', ascending: false })
+    .limit(1, { referencedTable: 'last_file' })
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'read import');
   if (!data) throw notFound();
@@ -171,6 +225,8 @@ async function findImport(db: DataClient, importId: string) {
     .from('imports')
     .select(detailColumns)
     .eq('id', importId)
+    .order('updated_at', { referencedTable: 'last_file', ascending: false })
+    .limit(1, { referencedTable: 'last_file' })
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'find import');
   if (!data) throw notFound();
@@ -183,6 +239,15 @@ async function importExists(db: DataClient, importId: string) {
   const { data, error } = await db.from('imports').select('id').eq('id', importId).maybeSingle();
   if (error) throw fromDatabaseError(error, 'find import');
   if (!data) throw notFound();
+}
+
+const wrongKind = () => conflict('This import is of another kind.', importErrorReasons.wrongKind);
+
+async function requireKind(db: DataClient, importId: string, kind: ImportKind) {
+  const { data, error } = await db.from('imports').select('kind').eq('id', importId).maybeSingle();
+  if (error) throw fromDatabaseError(error, 'find import');
+  if (!data) throw notFound();
+  if (data.kind !== kind) throw wrongKind();
 }
 
 async function listFilesOf(db: DataClient | AdminClient, importId: string) {
@@ -322,7 +387,7 @@ function progressOf(files: ImportFileRow[]) {
 
 export const createImport: RouteHandler<typeof createImportRoute, ApiEnv> = async (c) => {
   requireImportService(c);
-  const { clientId } = c.req.valid('json');
+  const { clientId, kind = 'client', addFoundSheets } = c.req.valid('json');
   const db = createDataClient(c);
   if (clientId) {
     const { data, error } = await db
@@ -340,11 +405,14 @@ export const createImport: RouteHandler<typeof createImportRoute, ApiEnv> = asyn
       );
     }
   }
-  const { data, error } = await createAdminClient(c)
+  const found = addFoundSheets && clientId ? await offeredSheets(db, clientId) : [];
+  if (addFoundSheets && found.length === 0) throw noFoundSheets();
+  const admin = createAdminClient(c);
+  const { data, error } = await admin
     .from('imports')
     .insert({
       organization_id: c.get('membership').organizationId,
-      kind: 'client',
+      kind,
       client_id: clientId ?? null,
       into_existing_client: clientId !== undefined,
       created_by: c.get('user').id,
@@ -352,27 +420,97 @@ export const createImport: RouteHandler<typeof createImportRoute, ApiEnv> = asyn
     .select('id')
     .single();
   if (error) throw fromDatabaseError(error, 'create import');
+  if (found.length > 0) {
+    try {
+      await copyFoundSheets(c, admin, data.id, found, []);
+    } catch (failure) {
+      await admin.from('imports').delete().eq('id', data.id);
+      throw failure;
+    }
+  }
   return c.json({ import: await summaryOf(db, data.id) }, 201);
 };
 
 export const listImports: RouteHandler<typeof listImportsRoute, ApiEnv> = async (c) => {
-  const { clientId } = c.req.valid('query');
+  const { clientId, kind = 'client', status = 'open' } = c.req.valid('query');
   const db = createDataClient(c);
-  const query = db
-    .from('imports')
-    .select(summaryColumns)
-    .in('status', [...openStatuses])
-    .order('created_at', { ascending: false });
+  const selected = db.from('imports').select(summaryColumns).eq('kind', kind);
+  const query = (
+    status === 'confirmed'
+      ? selected
+          .eq('status', 'confirmed')
+          .order('confirmed_at', { ascending: false })
+          .limit(confirmedListed)
+      : selected.in('status', [...openStatuses]).order('created_at', { ascending: false })
+  )
+    .order('updated_at', { referencedTable: 'last_file', ascending: false })
+    .limit(1, { referencedTable: 'last_file' });
   const { data, error } = await (clientId ? query.eq('client_id', clientId) : query);
   if (error) throw fromDatabaseError(error, 'list imports');
-  const names = await creatorNames(db, data);
-  return c.json({ items: data.map((row) => toSummary(row, names)) }, 200);
+  const countUninvited = status === 'confirmed' && kind === 'employees' && clientId;
+  const [names, people, uninvited] = await Promise.all([
+    creatorNames(db, data),
+    peopleOfReady(
+      db,
+      data.filter((row) => row.kind === 'employees' && row.status === 'ready').map((row) => row.id)
+    ),
+    countUninvited
+      ? uninvitedOfImports(
+          db,
+          clientId,
+          data.map((row) => row.id)
+        )
+      : null,
+  ]);
+  return c.json(
+    {
+      items: data.map((row) =>
+        toSummary(
+          row,
+          names,
+          people.get(row.id) ?? null,
+          uninvited ? (uninvited.get(row.id) ?? 0) : null
+        )
+      ),
+    },
+    200
+  );
 };
+
+// Only the proposal's people and the changes, not the whole proposal: a list holds several.
+async function peopleOfReady(db: DataClient, importIds: string[]) {
+  const counts = new Map<string, EmployeeImportPeople>();
+  if (importIds.length === 0) return counts;
+  const { data, error } = await db
+    .from('imports')
+    .select('id, people:proposal->people, changes')
+    .in('id', importIds);
+  if (error) throw fromDatabaseError(error, 'count the people of imports');
+  for (const row of data) {
+    const proposal = peopleIdsOf(row.people);
+    if (proposal) {
+      counts.set(row.id, peopleCounts(personStates(proposal, storedEmployeeChanges(row.changes))));
+    }
+  }
+  return counts;
+}
+
+function peopleIdsOf(value: unknown) {
+  if (!Array.isArray(value)) return null;
+  const people = value.flatMap((person: unknown) =>
+    person && typeof person === 'object' && typeof (person as { id?: unknown }).id === 'string'
+      ? [{ id: (person as { id: string }).id }]
+      : []
+  );
+  return { people };
+}
 
 export const getImport: RouteHandler<typeof getImportRoute, ApiEnv> = async (c) => {
   const { importId } = c.req.valid('param');
   const db = createDataClient(c);
   const row = await findImport(db, importId);
+  if (row.kind === 'employees')
+    return c.json({ import: await employeeImportDetail(c, db, row) }, 200);
   const files = await listFilesOf(db, importId);
   const stored = storedProposal(row.proposal);
   const visible = stored !== null && (row.status === 'ready' || row.status === 'confirmed');
@@ -401,10 +539,48 @@ export const getImport: RouteHandler<typeof getImportRoute, ApiEnv> = async (c) 
     blockers,
     proposalDroppedAt: row.proposal_dropped_at,
     proposal: visible ? stored.proposal : null,
+    employees: null,
     ...(adminToolsAllowed(c) ? { usage: usageOf(row) } : {}),
   };
   return c.json({ import: detail }, 200);
 };
+
+type FoundImport = Awaited<ReturnType<typeof findImport>>;
+
+async function employeeImportDetail(c: Context<ApiEnv>, db: DataClient, row: FoundImport) {
+  const files = await listFilesOf(db, row.id);
+  const reviewed = row.status === 'ready' || row.status === 'confirmed';
+  const proposal = reviewed ? storedEmployeeProposal(row.proposal) : null;
+  const changes = proposal ? storedEmployeeChanges(row.changes) : null;
+  const states = proposal ? personStates(proposal, changes) : null;
+  let blockers: ImportDetail['blockers'] = [];
+  if (proposal && row.status === 'ready' && row.client_id) {
+    blockers = toEmployeePayload({
+      proposal,
+      changes,
+      records: await employeeImportClient(db, row.client_id),
+      today: romanianToday(),
+    }).blockers;
+  }
+  return {
+    ...toSummary(
+      row,
+      await creatorNames(db, [row]),
+      states && row.status === 'ready' ? peopleCounts(states) : null
+    ),
+    version: row.version,
+    files: files.map(presentFile),
+    progress: progressOf(files),
+    otherCompanies: [],
+    registeredCompany: null,
+    changes: null,
+    blockers,
+    proposalDroppedAt: row.proposal_dropped_at,
+    proposal: null,
+    employees: proposal && states ? { proposal, changes, states } : null,
+    ...(adminToolsAllowed(c) ? { usage: usageOf(row) } : {}),
+  };
+}
 
 function checkedPaths(files: { uploadPath: string; mimeType: ImportFileType }[]) {
   const seen = new Set<string>();
@@ -434,10 +610,25 @@ function checkedPaths(files: { uploadPath: string; mimeType: ImportFileType }[])
   }
 }
 
-const tooLarge = () =>
+function onlySheets(files: { mimeType: ImportFileType }[]) {
+  for (const [index, file] of files.entries()) {
+    if (!(sheetFileTypes as readonly string[]).includes(file.mimeType)) {
+      throw new ApiError(
+        'validation_error',
+        'An employee import reads only photographs and PDFs of the training sheets.',
+        [{ path: `files.${index}.mimeType`, message: 'The file is not a photograph or a PDF.' }],
+        importErrorReasons.photosOnly
+      );
+    }
+  }
+}
+
+const mebibytes = (bytes: number) => bytes / (1024 * 1024);
+
+const tooLarge = (limits: ImportLimits) =>
   new ApiError(
     'unprocessable',
-    'An import holds at most 150 files and 100 MiB.',
+    `An import of this kind holds at most ${limits.files} files and ${mebibytes(limits.totalBytes)} MiB, each file at most ${mebibytes(limits.fileBytes)} MiB.`,
     undefined,
     importErrorReasons.tooLarge
   );
@@ -453,6 +644,7 @@ export const registerImportFiles: RouteHandler<typeof registerImportFilesRoute, 
   checkedPaths(files);
   const row = await findImport(createDataClient(c), importId);
   if (row.status !== 'uploading') throw notUploading();
+  if (row.kind === 'employees') onlySheets(files);
   const admin = createAdminClient(c);
   const known = await listFilesOf(admin, importId);
   if (known.some((file) => files.some((each) => each.uploadPath === file.upload_path))) {
@@ -465,8 +657,13 @@ export const registerImportFiles: RouteHandler<typeof registerImportFilesRoute, 
     (total, file) => total + ('sizeBytes' in file ? file.sizeBytes : file.size_bytes),
     0
   );
-  if (known.length + files.length > importLimits.files || bytes > importLimits.totalBytes) {
-    throw tooLarge();
+  const limits = importLimits[row.kind];
+  if (
+    known.length + files.length > limits.files ||
+    bytes > limits.totalBytes ||
+    files.some((file) => file.sizeBytes > limits.fileBytes)
+  ) {
+    throw tooLarge(limits);
   }
   const { data, error } = await admin
     .from('import_files')
@@ -482,7 +679,7 @@ export const registerImportFiles: RouteHandler<typeof registerImportFilesRoute, 
       }))
     )
     .select('id, upload_path, storage_path');
-  if (error?.code === 'IMP05') throw tooLarge();
+  if (error?.code === 'IMP05') throw tooLarge(limits);
   if (error?.code === 'IMP01') throw notUploading();
   if (error) throw fromDatabaseError(error, 'register import files');
   return c.json(
@@ -594,28 +791,56 @@ export const startImport: RouteHandler<typeof startImportRoute, ApiEnv> = async 
   return c.json({ import: await summaryOf(db, importId) }, 200);
 };
 
-const proposalListOfTable: Record<string, string> = {
-  clients: 'client',
-  client_fire_safety: 'fireSafety',
-  client_workplaces: 'workplaces',
-  job_positions: 'jobPositions',
-  job_position_equipment: 'protectiveEquipment',
-  client_responsible_persons: 'responsiblePersons',
-  employees: 'employees',
-  fire_equipment: 'fireEquipment',
-  fire_installations: 'fireInstallations',
+const proposalListOfTable: Record<ImportKind, Record<string, string>> = {
+  client: {
+    clients: 'client',
+    client_fire_safety: 'fireSafety',
+    client_workplaces: 'workplaces',
+    job_positions: 'jobPositions',
+    job_position_equipment: 'protectiveEquipment',
+    client_responsible_persons: 'responsiblePersons',
+    employees: 'employees',
+    fire_equipment: 'fireEquipment',
+    fire_installations: 'fireInstallations',
+  },
+  employees: {
+    employees: 'people',
+    trainings: 'rows',
+    training_records: 'rows',
+    test_results: 'rows',
+    client_files: 'pages',
+  },
 };
 
 const registeredOfficeKey = 'client_workplaces_registered_office_key';
 
-function proposalPathOf(constraint: BrokenConstraint) {
+const employeeKeys: Record<string, { column: 'cnp' | 'employee_number'; field: string }> = {
+  employees_client_cnp_key: { column: 'cnp', field: 'cnp' },
+  employees_client_employee_number_key: { column: 'employee_number', field: 'employeeNumber' },
+};
+
+function proposalPathOf(constraint: BrokenConstraint, kind: ImportKind) {
+  const lists = proposalListOfTable[kind];
   const table =
-    constraint.table ??
-    Object.keys(proposalListOfTable).find((name) => constraint.name.startsWith(`${name}_`));
-  return (table && proposalListOfTable[table]) ?? table ?? constraint.name;
+    constraint.table ?? Object.keys(lists).find((name) => constraint.name.startsWith(`${name}_`));
+  return (table && lists[table]) ?? table ?? constraint.name;
 }
 
-function decisionError(error: { code?: string | null; message?: string }, context: string) {
+type DatabaseFailure = { code?: string | null; message?: string; details?: string | null };
+
+// Postgres names the duplicate value only in the error's details, which are never logged.
+function duplicatePersonPath(error: DatabaseFailure, name: string, payload: EmployeeImportPayload) {
+  const key = employeeKeys[name]!;
+  const value = /=\([^,]*, (.*)\) already exists/.exec(error.details ?? '')?.[1];
+  const person = payload.employees.find((employee) => employee[key.column] === value);
+  return person ? `people.${person.key}.fields.${key.field}` : 'people';
+}
+
+function decisionError(
+  error: DatabaseFailure,
+  context: string,
+  refusal: { kind: ImportKind; payload?: EmployeeImportPayload } = { kind: 'client' }
+) {
   switch (error.code) {
     case 'P0002':
       return notFound();
@@ -646,33 +871,66 @@ function decisionError(error: { code?: string | null; message?: string }, contex
       );
   }
   const refused = fromDatabaseError(error, context);
+  const constraint = refused.constraint;
   // The payload's checks mirror the tables' rules; one they miss still names the section. The
-  // payload cannot see an existing client's registered office, which the unique index guards.
+  // payload cannot see an existing client's registered office, which the unique index guards,
+  // nor an employee another member gave the same CNP since the review was read.
+  const duplicatePerson =
+    error.code === '23505' &&
+    refusal.payload !== undefined &&
+    constraint !== undefined &&
+    constraint.name in employeeKeys;
   const refusedRule =
     error.code === '23514' ||
     error.code === '23502' ||
-    (error.code === '23505' && refused.constraint?.name === registeredOfficeKey);
-  if (refusedRule && refused.constraint) {
+    (error.code === '23505' && constraint?.name === registeredOfficeKey) ||
+    duplicatePerson;
+  if (refusedRule && constraint) {
     return new ApiError(
       'unprocessable',
       'The client refused a value of the import.',
-      [{ path: proposalPathOf(refused.constraint), message: refused.constraint.name }],
+      [
+        {
+          path: duplicatePerson
+            ? duplicatePersonPath(error, constraint.name, refusal.payload!)
+            : proposalPathOf(constraint, refusal.kind),
+          message: constraint.name,
+        },
+      ],
       importErrorReasons.refused
     );
   }
   return refused;
 }
 
-export const saveImportChanges: RouteHandler<typeof saveImportChangesRoute, ApiEnv> = async (c) => {
-  const { importId } = c.req.valid('param');
-  const { version, changes } = c.req.valid('json');
-  const { data, error } = await createDataClient(c).rpc('save_import_changes', {
+async function saveChanges(db: DataClient, importId: string, version: number, changes: Json) {
+  const { data, error } = await db.rpc('save_import_changes', {
     p_import_id: importId,
     p_expected_version: version,
     p_changes: changes,
   });
   if (error) throw decisionError(error, 'save import changes');
-  return c.json({ version: data }, 200);
+  return data;
+}
+
+export const saveImportChanges: RouteHandler<typeof saveImportChangesRoute, ApiEnv> = async (c) => {
+  const { importId } = c.req.valid('param');
+  const { version, changes } = c.req.valid('json');
+  const db = createDataClient(c);
+  await requireKind(db, importId, 'client');
+  return c.json({ version: await saveChanges(db, importId, version, changes) }, 200);
+};
+
+// Each save is a change to the import, so it restarts the 14 days an import is kept untouched.
+export const saveEmployeeImportChanges: RouteHandler<
+  typeof saveEmployeeImportChangesRoute,
+  ApiEnv
+> = async (c) => {
+  const { importId } = c.req.valid('param');
+  const { version, changes } = c.req.valid('json');
+  const db = createDataClient(c);
+  await requireKind(db, importId, 'employees');
+  return c.json({ version: await saveChanges(db, importId, version, changes) }, 200);
 };
 
 export const getImportSource: RouteHandler<typeof getImportSourceRoute, ApiEnv> = async (c) => {
@@ -745,11 +1003,21 @@ export const getImportSource: RouteHandler<typeof getImportSourceRoute, ApiEnv> 
   );
 };
 
+const incomplete = (issues: { path: string; message: string }[]) =>
+  new ApiError(
+    'unprocessable',
+    'Some values still need a decision.',
+    issues,
+    importErrorReasons.incomplete
+  );
+
 export const confirmImport: RouteHandler<typeof confirmImportRoute, ApiEnv> = async (c) => {
   const { importId } = c.req.valid('param');
   const { version } = c.req.valid('json');
   const db = createDataClient(c);
   const row = await findImport(db, importId);
+  if (row.kind === 'employees')
+    return c.json(await confirmEmployeeImport(c, db, row, version), 200);
   const stored = storedProposal(row.proposal);
   if (row.status !== 'ready' || !stored) {
     throw conflict('The import is not ready for review.', importErrorReasons.notReady);
@@ -766,12 +1034,7 @@ export const confirmImport: RouteHandler<typeof confirmImportRoute, ApiEnv> = as
     registeredCompany: stored.registeredCompany,
   });
   if (blockers.length > 0) {
-    throw new ApiError(
-      'unprocessable',
-      'Some values still need a decision.',
-      blockers.map((blocker) => ({ path: blocker.path, message: blocker.code })),
-      importErrorReasons.incomplete
-    );
+    throw incomplete(blockers.map((blocker) => ({ path: blocker.path, message: blocker.code })));
   }
   const { data, error } = await db.rpc('apply_client_import', {
     p_import_id: importId,
@@ -780,6 +1043,11 @@ export const confirmImport: RouteHandler<typeof confirmImportRoute, ApiEnv> = as
   });
   if (error) throw decisionError(error, 'confirm import');
   const result = data as { client_id: string; files: unknown[] };
+  await queueCopy(c, importId);
+  return c.json({ clientId: result.client_id, fileCount: result.files.length }, 200);
+};
+
+async function queueCopy(c: Context<ApiEnv>, importId: string) {
   try {
     await c.env.IMPORT_QUEUE?.send({ type: 'copy', importId });
   } catch (failure) {
@@ -788,8 +1056,73 @@ export const confirmImport: RouteHandler<typeof confirmImportRoute, ApiEnv> = as
       `The folder of import ${importId} was not queued for copying: ${describe(failure)}`
     );
   }
-  return c.json({ clientId: result.client_id, fileCount: result.files.length }, 200);
-};
+}
+
+/**
+ * Only the people marked checked are written; those still to check are left out, which the app
+ * warns about by name before it confirms (ADR 032).
+ */
+async function confirmEmployeeImport(
+  c: Context<ApiEnv>,
+  db: DataClient,
+  row: FoundImport,
+  version: number
+) {
+  const proposal = storedEmployeeProposal(row.proposal);
+  if (row.status !== 'ready' || !proposal || !row.client_id) {
+    throw conflict('The import is not ready for review.', importErrorReasons.notReady);
+  }
+  if (row.version !== version) throw decisionError({ code: 'IMP02' }, 'confirm import');
+  const { payload, blockers } = toEmployeePayload({
+    proposal,
+    changes: storedEmployeeChanges(row.changes),
+    records: await employeeImportClient(db, row.client_id),
+    today: romanianToday(),
+  });
+  if (blockers.length > 0) {
+    throw incomplete(blockers.map((blocker) => ({ path: blocker.path, message: blocker.code })));
+  }
+  if (payload.employees.length === 0) throw incomplete([{ path: 'people', message: 'missing' }]);
+  const { data, error } = await db.rpc('apply_employee_import', {
+    p_import_id: row.id,
+    p_expected_version: version,
+    p_payload: JSON.parse(JSON.stringify(payload)),
+  });
+  if (error) throw decisionError(error, 'confirm import', { kind: 'employees', payload });
+  const result = data as {
+    client_id: string;
+    employees: Record<string, string>;
+    training_record_ids: string[];
+    test_result_ids: string[];
+    files: unknown[];
+  };
+  await syncSignedSheets(c, row.id, result);
+  await queueCopy(c, row.id);
+  return {
+    clientId: result.client_id,
+    fileCount: result.files.length,
+    employeeIds: [...new Set(Object.values(result.employees))],
+  };
+}
+
+// Best effort, as after a training saved by hand: an employee's stored signed sheets take the
+// imported rows now or before their next signature. An employee without a stored sheet is left
+// alone; their first sheet prints every row.
+async function syncSignedSheets(
+  c: Context<ApiEnv>,
+  importId: string,
+  result: { training_record_ids: string[]; test_result_ids: string[] }
+) {
+  try {
+    const ctx = signedSheetContext(c);
+    await syncTrainingRows(ctx, result.training_record_ids);
+    await syncResultRows(ctx, result.test_result_ids);
+  } catch (error) {
+    console.error(
+      `Signed sheet rows of import ${importId} not brought up to date: ${describe(error)}`
+    );
+  }
+}
 
 export const abandonImport: RouteHandler<typeof abandonImportRoute, ApiEnv> = async (c) => {
   const { importId } = c.req.valid('param');
@@ -863,6 +1196,7 @@ export const readImportFile: RouteHandler<typeof readImportFileRoute, ApiEnv> = 
   const { importId, fileId } = c.req.valid('param');
   const db = createDataClient(c);
   const row = await findImport(db, importId);
+  if (row.kind !== 'client') throw wrongKind();
   if (row.status !== 'ready') {
     throw conflict('The import is not ready for review.', importErrorReasons.notReady);
   }
@@ -899,7 +1233,7 @@ export const readImportFile: RouteHandler<typeof readImportFileRoute, ApiEnv> = 
     (sum, entry) => sum + (entry.pages?.pages.filter((page) => page.isScan).length ?? 0),
     0
   );
-  if (scannedPages > maxScannedPages) {
+  if (scannedPages > importLimits[row.kind].scannedPages) {
     throw new ApiError(
       'unprocessable',
       'With this file the documents have more scanned pages than one import reads.',
@@ -956,4 +1290,202 @@ export const readImportFile: RouteHandler<typeof readImportFileRoute, ApiEnv> = 
     throw unavailable();
   }
   return c.json({ import: await summaryOf(db, importId) }, 200);
+};
+
+const noFoundSheets = () =>
+  new ApiError(
+    'unprocessable',
+    'The client has no sheet photographs found in its documentation that an import has not taken.',
+    undefined,
+    importErrorReasons.noFoundSheets
+  );
+
+const foundSheetTypes = sheetFileTypes.filter((type) => !type.startsWith('image/hei'));
+
+type OfferedSheet = Awaited<ReturnType<typeof offeredSheets>>[number];
+
+// A file only owners see is never offered, even to an owner: its copy would be an import file,
+// which every member reads, and would become the employee's file for every member to see.
+async function offeredSheets(db: DataClient, clientId: string) {
+  const [found, taken] = await Promise.all([
+    db
+      .from('import_files')
+      .select(
+        'id, upload_path, imports!inner(id, kind, status, client_id, confirmed_at, files_copied_at), client_file:client_files!import_files_client_file_id_fkey!inner(id, storage_path, original_file_name, mime_type, size_bytes, sha256)'
+      )
+      .eq('state', 'for_employees')
+      .eq('imports.kind', 'client')
+      .eq('imports.status', 'confirmed')
+      .eq('imports.client_id', clientId)
+      .not('imports.files_copied_at', 'is', null)
+      .in('client_file.mime_type', foundSheetTypes)
+      .eq('client_file.owners_only', false)
+      .order('upload_path')
+      .order('id'),
+    db
+      .from('import_files')
+      .select('source_file_id, sha256, imports!inner(kind, status, client_id)')
+      .not('source_file_id', 'is', null)
+      .eq('imports.kind', 'employees')
+      .eq('imports.client_id', clientId)
+      .not('imports.status', 'in', '(abandoned,failed)'),
+  ]);
+  if (found.error) throw fromDatabaseError(found.error, 'list found sheets');
+  if (taken.error) throw fromDatabaseError(taken.error, 'list taken sheets');
+  const takenIds = new Set(taken.data.map((file) => file.source_file_id));
+  // Two client imports of one pack hold the same photograph; reading it twice pays twice.
+  const seen = new Set(taken.data.map((file) => file.sha256));
+  return found.data
+    .filter((file) => {
+      if (takenIds.has(file.id) || seen.has(file.client_file.sha256)) return false;
+      seen.add(file.client_file.sha256);
+      return true;
+    })
+    .map((file) => ({
+      id: file.id,
+      uploadPath: file.upload_path,
+      importId: file.imports.id,
+      confirmedAt: file.imports.confirmed_at!,
+      clientFile: file.client_file,
+    }));
+}
+
+const day = (timestamp: string) => romanianDay(timestamp).split('-').reverse().join('.');
+
+const maxUploadPath = 1024;
+
+function numbered(path: string, copy: number) {
+  if (copy === 1) return path;
+  const dot = path.lastIndexOf('.');
+  return dot > path.lastIndexOf('/')
+    ? `${path.slice(0, dot)} (${copy})${path.slice(dot)}`
+    : `${path} (${copy})`;
+}
+
+// The documentation's own folders are kept under one of the import's, so a person's pages stay
+// together and in order, as the upload orders them.
+function foundSheetPath(sheet: OfferedSheet, copy: number) {
+  const folder = `Din documentația importată pe ${day(sheet.confirmedAt)}`;
+  const path = `${folder}/${numbered(sheet.uploadPath, copy)}`;
+  return path.length <= maxUploadPath
+    ? path
+    : `${folder}/${numbered(sheet.clientFile.original_file_name, copy)}`;
+}
+
+function foundSheetPaths(sheets: OfferedSheet[], known: Pick<ImportFileRow, 'upload_path'>[]) {
+  const used = new Set(known.map((file) => file.upload_path));
+  return sheets.map((sheet) => {
+    let copy = 1;
+    while (used.has(foundSheetPath(sheet, copy))) copy++;
+    const path = foundSheetPath(sheet, copy);
+    used.add(path);
+    return path;
+  });
+}
+
+// Copies rather than references, so the import holds them as an upload, under its bucket's
+// policies, caps and clean-up, and the client's files keep theirs whatever becomes of the import.
+async function copyFoundSheets(
+  c: Context<ApiEnv>,
+  admin: AdminClient,
+  importId: string,
+  sheets: OfferedSheet[],
+  known: Pick<ImportFileRow, 'upload_path'>[]
+) {
+  const paths = foundSheetPaths(sheets, known);
+  const { data, error } = await admin
+    .from('import_files')
+    .insert(
+      sheets.map((sheet, index) => ({
+        import_id: importId,
+        organization_id: c.get('membership').organizationId,
+        upload_path: paths[index]!,
+        original_file_name: sheet.clientFile.original_file_name,
+        mime_type: sheet.clientFile.mime_type,
+        size_bytes: sheet.clientFile.size_bytes,
+        sha256: sheet.clientFile.sha256,
+        source_file_id: sheet.id,
+      }))
+    )
+    .select('id, storage_path, source_file_id');
+  if (error?.code === 'IMP05') throw tooLarge(importLimits.employees);
+  if (error?.code === 'IMP01') throw notUploading();
+  if (error) throw fromDatabaseError(error, 'add found sheets');
+  const objects = createAdminFileStore(c);
+  const copied: string[] = [];
+  const takeBack = async () => {
+    await objects.removeImportObjects(copied).catch(() => undefined);
+    await admin
+      .from('import_files')
+      .delete()
+      .in(
+        'id',
+        data.map((file) => file.id)
+      );
+  };
+  try {
+    for (const file of data) {
+      const sheet = sheets.find((each) => each.id === file.source_file_id)!;
+      copied.push(file.storage_path);
+      await objects.copyClientFileToImports(sheet.clientFile.storage_path, file.storage_path);
+    }
+  } catch (failure) {
+    console.error(`Found sheets of import ${importId} were not copied: ${describe(failure)}`);
+    await takeBack();
+    throw unavailable();
+  }
+  const marked = await admin.rpc('mark_found_sheets_uploaded', {
+    p_import_id: importId,
+    p_file_ids: data.map((file) => file.id),
+  });
+  if (marked.error?.code === 'IMP01') {
+    await takeBack();
+    throw notUploading();
+  }
+  if (marked.error) throw fromDatabaseError(marked.error, 'mark found sheets uploaded');
+}
+
+export const listFoundSheets: RouteHandler<typeof listFoundSheetsRoute, ApiEnv> = async (c) => {
+  const { clientId } = c.req.valid('param');
+  const offered = await offeredSheets(createDataClient(c), clientId);
+  const byImport = new Map<
+    string,
+    { importId: string; confirmedAt: string; sheets: FoundSheet[] }
+  >();
+  for (const sheet of offered) {
+    const group = byImport.get(sheet.importId) ?? {
+      importId: sheet.importId,
+      confirmedAt: sheet.confirmedAt,
+      sheets: [],
+    };
+    group.sheets.push({
+      id: sheet.id,
+      clientFileId: sheet.clientFile.id,
+      uploadPath: sheet.uploadPath,
+      fileName: sheet.clientFile.original_file_name,
+      mimeType: sheet.clientFile.mime_type as FoundSheet['mimeType'],
+      sizeBytes: sheet.clientFile.size_bytes,
+    });
+    byImport.set(sheet.importId, group);
+  }
+  const items = [...byImport.values()].sort((a, b) => b.confirmedAt.localeCompare(a.confirmedAt));
+  return c.json({ items, total: offered.length }, 200);
+};
+
+export const addFoundSheets: RouteHandler<typeof addFoundSheetsRoute, ApiEnv> = async (c) => {
+  requireImportService(c);
+  const { importId } = c.req.valid('param');
+  const { fileIds } = c.req.valid('json');
+  const db = createDataClient(c);
+  const row = await findImport(db, importId);
+  if (row.kind !== 'employees' || !row.client_id) throw wrongKind();
+  if (row.status !== 'uploading') throw notUploading();
+  const offered = await offeredSheets(db, row.client_id);
+  const chosen = fileIds ? offered.filter((sheet) => fileIds.includes(sheet.id)) : offered;
+  if (chosen.length === 0 || (fileIds && chosen.length !== new Set(fileIds).size)) {
+    throw noFoundSheets();
+  }
+  const admin = createAdminClient(c);
+  await copyFoundSheets(c, admin, importId, chosen, await listFilesOf(admin, importId));
+  return c.json({ import: await summaryOf(db, importId) }, 201);
 };

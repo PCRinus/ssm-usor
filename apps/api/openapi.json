@@ -1736,7 +1736,7 @@
                         "state": {
                           "type": "string",
                           "nullable": true,
-                          "enum": ["none", "pending", "passed", "annual_due", null]
+                          "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                         },
                         "awaitingTest": {
                           "type": "string",
@@ -1762,7 +1762,7 @@
                         "state": {
                           "type": "string",
                           "nullable": true,
-                          "enum": ["none", "pending", "passed", "annual_due", null]
+                          "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                         },
                         "awaitingTest": {
                           "type": "string",
@@ -2055,7 +2055,7 @@
                       "state": {
                         "type": "string",
                         "nullable": true,
-                        "enum": ["none", "pending", "passed", "annual_due", null]
+                        "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                       },
                       "awaitingTest": {
                         "type": "string",
@@ -2081,7 +2081,7 @@
                       "state": {
                         "type": "string",
                         "nullable": true,
-                        "enum": ["none", "pending", "passed", "annual_due", null]
+                        "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                       },
                       "awaitingTest": {
                         "type": "string",
@@ -2611,7 +2611,7 @@
                         "state": {
                           "type": "string",
                           "nullable": true,
-                          "enum": ["none", "pending", "passed", "annual_due", null]
+                          "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                         },
                         "awaitingTest": {
                           "type": "string",
@@ -2637,7 +2637,7 @@
                         "state": {
                           "type": "string",
                           "nullable": true,
-                          "enum": ["none", "pending", "passed", "annual_due", null]
+                          "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                         },
                         "awaitingTest": {
                           "type": "string",
@@ -2834,6 +2834,9 @@
                 },
                 "hasSignatures": {
                   "type": "boolean"
+                },
+                "printed": {
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -2855,7 +2858,8 @@
                 "attendeeCount",
                 "attendees",
                 "signed",
-                "hasSignatures"
+                "hasSignatures",
+                "printed"
               ]
             }
           }
@@ -3077,6 +3081,9 @@
               "hasSignatures": {
                 "type": "boolean"
               },
+              "printed": {
+                "type": "boolean"
+              },
               "signers": {
                 "type": "object",
                 "properties": {
@@ -3118,6 +3125,7 @@
               "records",
               "signed",
               "hasSignatures",
+              "printed",
               "signers"
             ]
           }
@@ -3419,9 +3427,20 @@
                 },
                 "hasSignatures": {
                   "type": "boolean"
+                },
+                "printed": {
+                  "type": "boolean"
                 }
               },
-              "required": ["id", "occupation", "admission", "training", "signed", "hasSignatures"]
+              "required": [
+                "id",
+                "occupation",
+                "admission",
+                "training",
+                "signed",
+                "hasSignatures",
+                "printed"
+              ]
             }
           }
         },
@@ -3849,7 +3868,7 @@
                   "state": {
                     "type": "string",
                     "nullable": true,
-                    "enum": ["none", "pending", "passed", "annual_due", null]
+                    "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                   },
                   "awaitingTest": {
                     "type": "string",
@@ -4036,7 +4055,7 @@
                   "state": {
                     "type": "string",
                     "nullable": true,
-                    "enum": ["none", "pending", "passed", "annual_due", null]
+                    "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                   },
                   "awaitingTest": {
                     "type": "string",
@@ -10536,6 +10555,11 @@
                   "type": "string",
                   "nullable": true
                 },
+                "importKind": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["client", "employees", null]
+                },
                 "importRead": {
                   "type": "boolean",
                   "nullable": true
@@ -10567,6 +10591,7 @@
                 "canChange",
                 "importId",
                 "importPath",
+                "importKind",
                 "importRead",
                 "importReason",
                 "createdAt",
@@ -10664,6 +10689,11 @@
                 "type": "string",
                 "nullable": true
               },
+              "importKind": {
+                "type": "string",
+                "nullable": true,
+                "enum": ["client", "employees", null]
+              },
               "importRead": {
                 "type": "boolean",
                 "nullable": true
@@ -10695,6 +10725,7 @@
               "canChange",
               "importId",
               "importPath",
+              "importKind",
               "importRead",
               "importReason",
               "createdAt",
@@ -10858,6 +10889,39 @@
             "type": "string",
             "nullable": true,
             "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "people": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "toCheck": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "checked": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "setAside": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": ["total", "toCheck", "checked", "setAside"]
+          },
+          "uninvited": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
           }
         },
         "required": [
@@ -10876,7 +10940,10 @@
           "startedAt",
           "readyAt",
           "failedAt",
-          "confirmedAt"
+          "confirmedAt",
+          "expiresAt",
+          "people",
+          "uninvited"
         ]
       },
       "CreateImportRequest": {
@@ -10885,6 +10952,13 @@
           "clientId": {
             "type": "string",
             "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["client", "employees"]
+          },
+          "addFoundSheets": {
+            "type": "boolean"
           }
         }
       },
@@ -10994,6 +11068,39 @@
                   "type": "string",
                   "nullable": true,
                   "format": "date-time"
+                },
+                "expiresAt": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date-time"
+                },
+                "people": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "total": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "toCheck": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "checked": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "setAside": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": ["total", "toCheck", "checked", "setAside"]
+                },
+                "uninvited": {
+                  "type": "integer",
+                  "nullable": true,
+                  "minimum": 0
                 }
               },
               "required": [
@@ -11012,7 +11119,10 @@
                 "startedAt",
                 "readyAt",
                 "failedAt",
-                "confirmedAt"
+                "confirmedAt",
+                "expiresAt",
+                "people",
+                "uninvited"
               ]
             }
           }
@@ -11129,6 +11239,39 @@
             "type": "string",
             "nullable": true,
             "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "people": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "toCheck": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "checked": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "setAside": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": ["total", "toCheck", "checked", "setAside"]
+          },
+          "uninvited": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
           },
           "version": {
             "type": "integer",
@@ -11399,6 +11542,9 @@
           },
           "usage": {
             "$ref": "#/components/schemas/ImportUsage"
+          },
+          "employees": {
+            "$ref": "#/components/schemas/EmployeeImportReview"
           },
           "proposal": {
             "type": "object",
@@ -13687,6 +13833,9 @@
           "readyAt",
           "failedAt",
           "confirmedAt",
+          "expiresAt",
+          "people",
+          "uninvited",
           "version",
           "files",
           "progress",
@@ -13695,6 +13844,7 @@
           "changes",
           "blockers",
           "proposalDroppedAt",
+          "employees",
           "proposal"
         ]
       },
@@ -13768,6 +13918,1580 @@
         },
         "required": ["costUsd", "inputTokens", "cachedInputTokens", "outputTokens"]
       },
+      "EmployeeImportReview": {
+        "type": "object",
+        "nullable": true,
+        "properties": {
+          "changes": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "people": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "state": {
+                      "type": "string",
+                      "enum": ["to_check", "checked", "set_aside"]
+                    },
+                    "included": {
+                      "type": "boolean"
+                    },
+                    "fields": {
+                      "type": "object",
+                      "properties": {
+                        "lastName": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "firstName": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "cnp": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "employeeNumber": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "birthDate": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "birthPlace": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "homeAddress": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "education": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "qualification": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "bloodGroup": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "rhFactor": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "jobTitle": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "hiredAt": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "leftOn": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "workplace": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "commuteRoute": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "commuteMinutes": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "cnpCorrection": {
+                      "type": "boolean"
+                    },
+                    "existing": {
+                      "type": "boolean"
+                    },
+                    "jobPositionId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "workplaceId": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uuid"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "default": {}
+              },
+              "jobTitles": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "jobPositionId": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": ["jobPositionId"],
+                  "additionalProperties": false
+                },
+                "default": {}
+              },
+              "workplaces": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "workplaceId": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uuid"
+                    }
+                  },
+                  "required": ["workplaceId"],
+                  "additionalProperties": false
+                },
+                "default": {}
+              },
+              "rows": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "included": {
+                      "type": "boolean"
+                    },
+                    "test": {
+                      "type": "boolean"
+                    },
+                    "values": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "nullable": true
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "default": {}
+              },
+              "pages": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "personId": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1,
+                      "maxLength": 80
+                    }
+                  },
+                  "required": ["personId"],
+                  "additionalProperties": false
+                },
+                "default": {}
+              }
+            }
+          },
+          "states": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "enum": ["to_check", "checked", "set_aside"]
+            }
+          },
+          "proposal": {
+            "type": "object",
+            "properties": {
+              "pages": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "fileId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "page": {
+                      "type": "integer",
+                      "nullable": true,
+                      "minimum": 1
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        "ssm_sheet_front",
+                        "ssm_periodic",
+                        "psi_sheet_front",
+                        "psi_periodic",
+                        "commute_declaration",
+                        "other",
+                        null
+                      ]
+                    },
+                    "personId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "placement": {
+                      "type": "string",
+                      "enum": [
+                        "cnp",
+                        "name",
+                        "near_name",
+                        "employee_number",
+                        "new_person",
+                        "placed_by_order",
+                        "unplaced"
+                      ]
+                    },
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "domain": {
+                            "type": "string",
+                            "enum": ["ssm", "psi"]
+                          },
+                          "phase": {
+                            "type": "string",
+                            "enum": [
+                              "introductory_general",
+                              "workplace",
+                              "periodic",
+                              "supplementary"
+                            ]
+                          },
+                          "heldOn": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "date"
+                          },
+                          "durationMinutes": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "trainerName": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "trainerJobTitle": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "verifierName": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "verifierJobTitle": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "material": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "supplementaryReason": {
+                            "type": "string",
+                            "nullable": true,
+                            "enum": [
+                              "absence_over_thirty_days",
+                              "rules_changed",
+                              "after_accident",
+                              "special_works",
+                              "new_equipment",
+                              "changed_procedure",
+                              "new_technology",
+                              null
+                            ]
+                          },
+                          "signatures": {
+                            "type": "object",
+                            "properties": {
+                              "trainee": {
+                                "type": "string",
+                                "enum": ["present", "absent", "unclear"]
+                              },
+                              "trainer": {
+                                "type": "string",
+                                "enum": ["present", "absent", "unclear"]
+                              },
+                              "verifier": {
+                                "type": "string",
+                                "enum": ["present", "absent", "unclear", "no_box"]
+                              }
+                            },
+                            "required": ["trainee", "trainer", "verifier"]
+                          },
+                          "admission": {
+                            "type": "object",
+                            "nullable": true,
+                            "properties": {
+                              "admittedOn": {
+                                "type": "string",
+                                "nullable": true,
+                                "format": "date"
+                              },
+                              "admittedByName": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "admittedByJobTitle": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            },
+                            "required": ["admittedOn", "admittedByName", "admittedByJobTitle"]
+                          },
+                          "fromThemes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "trainerName",
+                                "trainerJobTitle",
+                                "material",
+                                "durationMinutes"
+                              ]
+                            }
+                          },
+                          "testOnly": {
+                            "type": "boolean"
+                          },
+                          "test": {
+                            "type": "object",
+                            "nullable": true,
+                            "properties": {
+                              "test": {
+                                "type": "string",
+                                "enum": ["hiring", "annual"]
+                              },
+                              "takenOn": {
+                                "type": "string",
+                                "nullable": true,
+                                "format": "date"
+                              },
+                              "examinerName": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "examinerJobTitle": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "verified": {
+                                "type": "boolean"
+                              },
+                              "inApp": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "test",
+                              "takenOn",
+                              "examinerName",
+                              "examinerJobTitle",
+                              "verified",
+                              "inApp"
+                            ]
+                          },
+                          "flags": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "month_only",
+                                "from_client_themes",
+                                "unsigned",
+                                "signature_unclear",
+                                "unusual_duration",
+                                "before_hire",
+                                "after_today",
+                                "admission_incomplete",
+                                "in_app",
+                                "repeated"
+                              ]
+                            }
+                          },
+                          "proposedIncluded": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "domain",
+                          "phase",
+                          "heldOn",
+                          "durationMinutes",
+                          "trainerName",
+                          "trainerJobTitle",
+                          "verifierName",
+                          "verifierJobTitle",
+                          "material",
+                          "supplementaryReason",
+                          "signatures",
+                          "admission",
+                          "fromThemes",
+                          "testOnly",
+                          "test",
+                          "flags",
+                          "proposedIncluded"
+                        ]
+                      }
+                    },
+                    "unreadable": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "notes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "fileId",
+                    "page",
+                    "label",
+                    "kind",
+                    "personId",
+                    "placement",
+                    "rows",
+                    "unreadable",
+                    "notes"
+                  ]
+                }
+              },
+              "people": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "pageIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "fields": {
+                      "type": "object",
+                      "properties": {
+                        "lastName": {
+                          "type": "object",
+                          "properties": {
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "pageIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "minItems": 1
+                                  }
+                                },
+                                "required": ["value", "pageIds"]
+                              }
+                            },
+                            "app": {
+                              "type": "string",
+                              "nullable": true,
+                              "minLength": 1
+                            }
+                          },
+                          "required": ["options"]
+                        },
+                        "firstName": {
+                          "type": "object",
+                          "properties": {
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "pageIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "minItems": 1
+                                  }
+                                },
+                                "required": ["value", "pageIds"]
+                              }
+                            },
+                            "app": {
+                              "type": "string",
+                              "nullable": true,
+                              "minLength": 1
+                            }
+                          },
+                          "required": ["options"]
+                        },
+                        "cnp": {
+                          "type": "object",
+                          "properties": {
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "pageIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "minItems": 1
+                                  }
+                                },
+                                "required": ["value", "pageIds"]
+                              }
+                            },
+                            "app": {
+                              "type": "string",
+                              "nullable": true,
+                              "minLength": 1
+                            }
+                          },
+                          "required": ["options"]
+                        },
+                        "employeeNumber": {
+                          "type": "object",
+                          "properties": {
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "pageIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "minItems": 1
+                                  }
+                                },
+                                "required": ["value", "pageIds"]
+                              }
+                            },
+                            "app": {
+                              "type": "string",
+                              "nullable": true,
+                              "minLength": 1
+                            }
+                          },
+                          "required": ["options"]
+                        },
+                        "birthDate": {
+                          "type": "object",
+                          "properties": {
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "format": "date"
+                                  },
+                                  "pageIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "minItems": 1
+                                  }
+                                },
+                                "required": ["value", "pageIds"]
+                              }
+                            },
+                            "app": {
+                              "type": "string",
+                              "nullable": true,
+                              "format": "date"
+                            }
+                          },
+                          "required": ["options"]
+                        },
+                        "birthPlace": {
+                          "type": "object",
+                          "properties": {
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "pageIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "minItems": 1
+                                  }
+                                },
+                                "required": ["value", "pageIds"]
+                              }
+                            },
+                            "app": {
+                              "type": "string",
+                              "nullable": true,
+                              "minLength": 1
+                            }
+                          },
+                          "required": ["options"]
+                        },
+                        "homeAddress": {
+                          "type": "object",
+                          "properties": {
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "pageIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "minItems": 1
+                                  }
+                                },
+                                "required": ["value", "pageIds"]
+                              }
+                            },
+                            "app": {
+                              "type": "string",
+                              "nullable": true,
+                              "minLength": 1
+                            }
+                          },
+                          "required": ["options"]
+                        },
+                        "education": {
+                          "type": "object",
+                          "properties": {
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "pageIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "minItems": 1
+                                  }
+                                },
+                                "required": ["value", "pageIds"]
+                              }
+                            },
+                            "app": {
+                              "type": "string",
+                              "nullable": true,
+                              "minLength": 1
+                            }
+                          },
+                          "required": ["options"]
+                        },
+                        "qualification": {
+                          "type": "object",
+                          "properties": {
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "pageIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "minItems": 1
+                                  }
+                                },
+                                "required": ["value", "pageIds"]
+                              }
+                            },
+                            "app": {
+                              "type": "string",
+                              "nullable": true,
+                              "minLength": 1
+                            }
+                          },
+                          "required": ["options"]
+                        },
+                        "bloodGroup": {
+                          "type": "object",
+                          "properties": {
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "enum": ["0(I)", "A(II)", "B(III)", "AB(IV)"]
+                                  },
+                                  "pageIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "minItems": 1
+                                  }
+                                },
+                                "required": ["value", "pageIds"]
+                              }
+                            },
+                            "app": {
+                              "type": "string",
+                              "nullable": true,
+                              "enum": ["0(I)", "A(II)", "B(III)", "AB(IV)", null]
+                            }
+                          },
+                          "required": ["options"]
+                        },
+                        "rhFactor": {
+                          "type": "object",
+                          "properties": {
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "enum": ["+", "-"]
+                                  },
+                                  "pageIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "minItems": 1
+                                  }
+                                },
+                                "required": ["value", "pageIds"]
+                              }
+                            },
+                            "app": {
+                              "type": "string",
+                              "nullable": true,
+                              "enum": ["+", "-", null]
+                            }
+                          },
+                          "required": ["options"]
+                        },
+                        "jobTitle": {
+                          "type": "object",
+                          "properties": {
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "pageIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "minItems": 1
+                                  }
+                                },
+                                "required": ["value", "pageIds"]
+                              }
+                            },
+                            "app": {
+                              "type": "string",
+                              "nullable": true,
+                              "minLength": 1
+                            }
+                          },
+                          "required": ["options"]
+                        },
+                        "hiredAt": {
+                          "type": "object",
+                          "properties": {
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "format": "date"
+                                  },
+                                  "pageIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "minItems": 1
+                                  }
+                                },
+                                "required": ["value", "pageIds"]
+                              }
+                            },
+                            "app": {
+                              "type": "string",
+                              "nullable": true,
+                              "format": "date"
+                            }
+                          },
+                          "required": ["options"]
+                        },
+                        "leftOn": {
+                          "type": "object",
+                          "properties": {
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "format": "date"
+                                  },
+                                  "pageIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "minItems": 1
+                                  }
+                                },
+                                "required": ["value", "pageIds"]
+                              }
+                            },
+                            "app": {
+                              "type": "string",
+                              "nullable": true,
+                              "format": "date"
+                            }
+                          },
+                          "required": ["options"]
+                        },
+                        "workplace": {
+                          "type": "object",
+                          "properties": {
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "pageIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "minItems": 1
+                                  }
+                                },
+                                "required": ["value", "pageIds"]
+                              }
+                            },
+                            "app": {
+                              "type": "string",
+                              "nullable": true,
+                              "minLength": 1
+                            }
+                          },
+                          "required": ["options"]
+                        },
+                        "commuteRoute": {
+                          "type": "object",
+                          "properties": {
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "pageIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "minItems": 1
+                                  }
+                                },
+                                "required": ["value", "pageIds"]
+                              }
+                            },
+                            "app": {
+                              "type": "string",
+                              "nullable": true,
+                              "minLength": 1
+                            }
+                          },
+                          "required": ["options"]
+                        },
+                        "commuteMinutes": {
+                          "type": "object",
+                          "properties": {
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "integer"
+                                  },
+                                  "pageIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "minItems": 1
+                                  }
+                                },
+                                "required": ["value", "pageIds"]
+                              }
+                            },
+                            "app": {
+                              "type": "integer",
+                              "nullable": true
+                            }
+                          },
+                          "required": ["options"]
+                        }
+                      },
+                      "required": [
+                        "lastName",
+                        "firstName",
+                        "cnp",
+                        "employeeNumber",
+                        "birthDate",
+                        "birthPlace",
+                        "homeAddress",
+                        "education",
+                        "qualification",
+                        "bloodGroup",
+                        "rhFactor",
+                        "jobTitle",
+                        "hiredAt",
+                        "leftOn",
+                        "workplace",
+                        "commuteRoute",
+                        "commuteMinutes"
+                      ]
+                    },
+                    "cnpCorrection": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "existing": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "employeeId": {
+                          "type": "string"
+                        },
+                        "matchedBy": {
+                          "type": "string",
+                          "enum": ["cnp", "name_birth_date", "name_only"]
+                        }
+                      },
+                      "required": ["employeeId", "matchedBy"]
+                    },
+                    "jobTitleId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "workplaceId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "rowsInApp": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "flags": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string",
+                            "enum": [
+                              "invalid_cnp",
+                              "cnp_birth_date_mismatch",
+                              "cnp_correction",
+                              "blood_group_not_read",
+                              "month_only",
+                              "no_contact",
+                              "leaver",
+                              "former_employee",
+                              "rehire"
+                            ]
+                          },
+                          "field": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["code"]
+                      }
+                    },
+                    "proposedIncluded": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "pageIds",
+                    "fields",
+                    "cnpCorrection",
+                    "existing",
+                    "jobTitleId",
+                    "workplaceId",
+                    "rowsInApp",
+                    "flags",
+                    "proposedIncluded"
+                  ]
+                }
+              },
+              "jobTitles": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "match": {
+                      "type": "string",
+                      "enum": ["exact", "near", "none"]
+                    },
+                    "proposedId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "closestId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "personIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": ["id", "match", "proposedId", "closestId", "personIds", "title"]
+                }
+              },
+              "workplaces": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "match": {
+                      "type": "string",
+                      "enum": ["exact", "near", "none"]
+                    },
+                    "proposedId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "closestId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "personIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "match", "proposedId", "closestId", "personIds", "text"]
+                }
+              },
+              "clientHasPositions": {
+                "type": "boolean"
+              }
+            },
+            "required": ["pages", "people", "jobTitles", "workplaces", "clientHasPositions"]
+          }
+        },
+        "required": ["changes", "states", "proposal"]
+      },
       "ImportInference": {
         "type": "string",
         "enum": ["no_posts_in_category", "ssm_training_schedule", "office_work"]
@@ -13829,7 +15553,7 @@
                 "sizeBytes": {
                   "type": "integer",
                   "minimum": 1,
-                  "maximum": 20971520
+                  "maximum": 26214400
                 },
                 "sha256": {
                   "type": "string",
@@ -13839,7 +15563,7 @@
               "required": ["uploadPath", "mimeType", "sizeBytes", "sha256"]
             },
             "minItems": 1,
-            "maxItems": 150
+            "maxItems": 500
           }
         },
         "required": ["files"]
@@ -14082,6 +15806,13 @@
           "fileCount": {
             "type": "integer",
             "minimum": 0
+          },
+          "employeeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         },
         "required": ["clientId", "fileCount"]
@@ -14110,6 +15841,665 @@
           }
         },
         "required": ["fileIds"]
+      },
+      "SaveEmployeeImportChangesRequest": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "changes": {
+            "type": "object",
+            "properties": {
+              "people": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "state": {
+                      "type": "string",
+                      "enum": ["to_check", "checked", "set_aside"]
+                    },
+                    "included": {
+                      "type": "boolean"
+                    },
+                    "fields": {
+                      "type": "object",
+                      "properties": {
+                        "lastName": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "firstName": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "cnp": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "employeeNumber": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "birthDate": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "birthPlace": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "homeAddress": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "education": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "qualification": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "bloodGroup": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "rhFactor": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "jobTitle": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "hiredAt": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "leftOn": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "workplace": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "commuteRoute": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "commuteMinutes": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "cnpCorrection": {
+                      "type": "boolean"
+                    },
+                    "existing": {
+                      "type": "boolean"
+                    },
+                    "jobPositionId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "workplaceId": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uuid"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "default": {}
+              },
+              "jobTitles": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "jobPositionId": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": ["jobPositionId"],
+                  "additionalProperties": false
+                },
+                "default": {}
+              },
+              "workplaces": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "workplaceId": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uuid"
+                    }
+                  },
+                  "required": ["workplaceId"],
+                  "additionalProperties": false
+                },
+                "default": {}
+              },
+              "rows": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "included": {
+                      "type": "boolean"
+                    },
+                    "test": {
+                      "type": "boolean"
+                    },
+                    "values": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "nullable": true
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "default": {}
+              },
+              "pages": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "personId": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1,
+                      "maxLength": 80
+                    }
+                  },
+                  "required": ["personId"],
+                  "additionalProperties": false
+                },
+                "default": {}
+              }
+            }
+          }
+        },
+        "required": ["version", "changes"]
+      },
+      "FoundSheetsResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "importId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "confirmedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "sheets": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "clientFileId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "uploadPath": {
+                        "type": "string"
+                      },
+                      "fileName": {
+                        "type": "string"
+                      },
+                      "mimeType": {
+                        "type": "string",
+                        "enum": [
+                          "application/pdf",
+                          "image/jpeg",
+                          "image/png",
+                          "image/heic",
+                          "image/heif"
+                        ]
+                      },
+                      "sizeBytes": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "clientFileId",
+                      "uploadPath",
+                      "fileName",
+                      "mimeType",
+                      "sizeBytes"
+                    ]
+                  }
+                }
+              },
+              "required": ["importId", "confirmedAt", "sheets"]
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": ["items", "total"]
+      },
+      "AddFoundSheetsRequest": {
+        "type": "object",
+        "properties": {
+          "fileIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "minItems": 1,
+            "maxItems": 500
+          }
+        }
       },
       "ServiceContractResponse": {
         "type": "object",
@@ -16287,6 +18677,126 @@
         },
         "required": ["channel", "address"]
       },
+      "BulkEmployeeInvitationResponse": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "employeeId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "outcome": {
+                  "type": "string",
+                  "enum": ["invited", "skipped", "failed"]
+                },
+                "reason": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "invitation": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "clientId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": ["employee", "client_administrator"]
+                    },
+                    "employeeId": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uuid"
+                    },
+                    "fullName": {
+                      "type": "string"
+                    },
+                    "channel": {
+                      "type": "string",
+                      "enum": ["email", "sms"]
+                    },
+                    "address": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": ["open", "expired", "accepted", "revoked"]
+                    },
+                    "lastSentAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "resendableAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "clientId",
+                    "kind",
+                    "employeeId",
+                    "fullName",
+                    "channel",
+                    "address",
+                    "status",
+                    "lastSentAt",
+                    "resendableAt",
+                    "expiresAt",
+                    "createdAt"
+                  ]
+                }
+              },
+              "required": ["employeeId", "outcome", "reason", "invitation"]
+            }
+          }
+        },
+        "required": ["results"]
+      },
+      "BulkEmployeeInvitationRequest": {
+        "type": "object",
+        "properties": {
+          "invitations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "employeeId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "address": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 254
+                }
+              },
+              "required": ["employeeId", "address"]
+            },
+            "minItems": 1,
+            "maxItems": 25
+          }
+        },
+        "required": ["invitations"]
+      },
       "ClientAdministratorInvitationRequest": {
         "type": "object",
         "properties": {
@@ -16456,6 +18966,59 @@
         },
         "required": ["participants", "invitations"]
       },
+      "ImportInviteesResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "employeeId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "lastName": {
+                  "type": "string"
+                },
+                "firstName": {
+                  "type": "string"
+                },
+                "position": {
+                  "type": "string"
+                },
+                "email": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "phone": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "current": {
+                  "type": "boolean"
+                },
+                "portal": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["participant", "invited", null]
+                }
+              },
+              "required": [
+                "employeeId",
+                "lastName",
+                "firstName",
+                "position",
+                "email",
+                "phone",
+                "current",
+                "portal"
+              ]
+            }
+          }
+        },
+        "required": ["items"]
+      },
       "PortalMeResponse": {
         "type": "object",
         "properties": {
@@ -16607,6 +19170,10 @@
                     null
                   ]
                 },
+                "source": {
+                  "type": "string",
+                  "enum": ["app", "paper"]
+                },
                 "occupation": {
                   "type": "string"
                 },
@@ -16668,6 +19235,7 @@
                 "trainer",
                 "verifier",
                 "supplementaryReason",
+                "source",
                 "occupation",
                 "admission",
                 "slots"
@@ -17104,7 +19672,7 @@
                         "state": {
                           "type": "string",
                           "nullable": true,
-                          "enum": ["none", "pending", "passed", "annual_due", null]
+                          "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                         },
                         "awaitingTest": {
                           "type": "string",
@@ -17130,7 +19698,7 @@
                         "state": {
                           "type": "string",
                           "nullable": true,
-                          "enum": ["none", "pending", "passed", "annual_due", null]
+                          "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                         },
                         "awaitingTest": {
                           "type": "string",
@@ -17230,7 +19798,7 @@
                   "state": {
                     "type": "string",
                     "nullable": true,
-                    "enum": ["none", "pending", "passed", "annual_due", null]
+                    "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                   },
                   "awaitingTest": {
                     "type": "string",
@@ -17481,7 +20049,7 @@
                   "state": {
                     "type": "string",
                     "nullable": true,
-                    "enum": ["none", "pending", "passed", "annual_due", null]
+                    "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                   },
                   "awaitingTest": {
                     "type": "string",
@@ -21082,7 +23650,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["passed", "pending", "annual_due", "none"]
+              "enum": ["passed", "pending", "annual_due", "unverified", "none"]
             },
             "required": false,
             "name": "testState",
@@ -21819,7 +24387,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["passed", "pending", "annual_due", "none"]
+              "enum": ["passed", "pending", "annual_due", "unverified", "none"]
             },
             "required": false,
             "name": "testState",
@@ -23677,7 +26245,7 @@
       "post": {
         "operationId": "recordPaperTestResult",
         "summary": "Record a pass of the printed test",
-        "description": "A test filled in on paper and passed: the day, the examiner and the grade, always `admis`; the material defaults to the test's name and code. A hiring result is taken while the hiring test awaits the employee (a hiring training recorded, no pass yet); an annual one once the employee has a fire-safety pass. Otherwise reason `test_not_awaiting`. The day is not in the future. The result fills its row of the employee's stored signed sheet.",
+        "description": "A test filled in on paper and passed: the day, the examiner and the grade, always `admis`; the material defaults to the test's name and code. A hiring result is taken once the domain's hiring training is recorded and before a hiring pass in that domain, otherwise reason `test_not_awaiting`; an annual fire-safety one at any time, since a paper sheet may record annual tests where its hiring one could not be read. The day is not in the future. The result fills its row of the employee's stored signed sheet.",
         "security": [
           {
             "bearerAuth": []
@@ -35068,7 +37636,7 @@
       "post": {
         "operationId": "uploadClientFile",
         "summary": "Upload one file about a client",
-        "description": "Takes the bytes of the file, up to 20 MiB, as the body; one file per request. `fileName` is the file's own name, whose extension decides the type: PDF, JPEG, PNG, Word (`.docx`, `.doc`) or Excel (`.xlsx`, `.xls`); any other is refused (reason `client_file_type_not_allowed`), and so is content that is not of that type (reason `client_file_content_mismatch`). An empty file answers the reason `client_file_empty`, a larger one `client_file_too_large`. The name defaults to the file name without its extension. Only an owner uploads a file for owners only (`403`); a lead's files are always for owners only. `employeeId` makes the file one of an employee of this client (ADR 021), and an employee the client does not have answers `400` on `employeeId`; it cannot be changed after the upload.",
+        "description": "Takes the bytes of the file, up to 25 MiB, as the body; one file per request. `fileName` is the file's own name, whose extension decides the type: PDF, JPEG, PNG, Word (`.docx`, `.doc`) or Excel (`.xlsx`, `.xls`); any other is refused (reason `client_file_type_not_allowed`), and so is content that is not of that type (reason `client_file_content_mismatch`). An empty file answers the reason `client_file_empty`, a larger one `client_file_too_large`. The name defaults to the file name without its extension. Only an owner uploads a file for owners only (`403`); a lead's files are always for owners only. `employeeId` makes the file one of an employee of this client (ADR 021), and an employee the client does not have answers `400` on `employeeId`; it cannot be changed after the upload.",
         "security": [
           {
             "bearerAuth": []
@@ -35750,7 +38318,7 @@
       "post": {
         "operationId": "createImport",
         "summary": "Start an import from documents",
-        "description": "A client import (ADR 030) for a new client, or with `clientId` for an existing one, which must be an active client, not a lead. It starts `uploading`: register its files, upload them, then start the reading. Answers `503` with the reason `import_unavailable` where the model gateway, the extractor or the queue is not configured.",
+        "description": "A client import (ADR 030) for a new client, or with `clientId` for an existing one, which must be an active client, not a lead. With `kind` `employees`, an employee import (ADR 032) for `clientId`, which then is required; with `addFoundSheets`, it starts holding every training sheet photograph the client's documentation pack held that no employee import has taken, copied from the client's files (`422` with `import_no_found_sheets` when there is none). It starts `uploading`: register its files, upload them, then start the reading. Answers `503` with the reason `import_unavailable` where the model gateway, the extractor or the queue is not configured.",
         "security": [
           {
             "bearerAuth": []
@@ -35827,6 +38395,16 @@
               }
             }
           },
+          "422": {
+            "description": "The client has no sheet photographs found in its documentation to add",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -35851,8 +38429,8 @@
       },
       "get": {
         "operationId": "listImports",
-        "summary": "List the organization's open imports",
-        "description": "Every import neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show. Not paginated; an organization has a handful at a time.",
+        "summary": "List the organization's open or last confirmed imports",
+        "description": "Every import of `kind` (client imports when left out) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first; with `kind` `employees` and `clientId` each counts in `uninvited` the current employees it brought who are neither participants nor invited, and the Angajați tab offers to invite the people of the latest with someone left.",
         "security": [
           {
             "bearerAuth": []
@@ -35869,11 +38447,33 @@
             "description": "Only the imports into this client; without it, every open import.",
             "name": "clientId",
             "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["client", "employees"],
+              "description": "The imports of this kind; client imports when left out."
+            },
+            "required": false,
+            "description": "The imports of this kind; client imports when left out.",
+            "name": "kind",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["open", "confirmed"],
+              "description": "The open imports when left out; `confirmed` the 10 confirmed last, with `uninvited` counted for a client's employee imports."
+            },
+            "required": false,
+            "description": "The open imports when left out; `confirmed` the 10 confirmed last, with `uninvited` counted for a client's employee imports.",
+            "name": "status",
+            "in": "query"
           }
         ],
         "responses": {
           "200": {
-            "description": "The open imports",
+            "description": "The open imports, or the last confirmed",
             "content": {
               "application/json": {
                 "schema": {
@@ -35939,7 +38539,7 @@
       "get": {
         "operationId": "getImport",
         "summary": "Get an import with its files and proposal",
-        "description": "Its step, every file with its state and reason, the progress counts, the other companies the documents named, and from `ready` on the proposal with its flags, the member's changes, the version to save on, and what still blocks confirming. The proposal is null before `ready` and once dropped, 30 days after confirming. `usage`, a debugging aid, is the models' cost at list price and tokens for the whole import and for each step, and the characters read; it is served outside production and, in production, only to a platform admin.",
+        "description": "Its step, every file with its state and reason, the progress counts, the other companies the documents named, and from `ready` on the proposal with its flags, the member's changes, the version to save on, and what still blocks confirming. The proposal is null before `ready` and once dropped, 30 days after confirming. An employee import's proposal, changes and each person's state are in `employees` instead, `proposal` and `changes` being a client import's; its `blockers` count only the people marked checked. `usage`, a debugging aid, is the models' cost at list price and tokens for the whole import and for each step, and the characters read; it is served outside production and, in production, only to a platform admin.",
         "security": [
           {
             "bearerAuth": []
@@ -36034,7 +38634,7 @@
       "post": {
         "operationId": "registerImportFiles",
         "summary": "Register the files the browser is about to upload",
-        "description": "One row per file, while the import is `uploading` (else `409` with `import_not_uploading`). Each answer names the bucket and the path the browser uploads the file to in Supabase Storage with the member's own session; the bucket's policy takes only that path, only while the file is uploading. A path the import already has, or twice in one request, answers `409` with `import_duplicate_path`; an extension that is not the type's, `400` with `import_type_mismatch`; a file the system or Word leaves beside the documents (a name starting `~$` or `._`, `.DS_Store`, anything under `__MACOSX`), `400` with `import_system_file`; more than 150 files or 100 MiB in all, `422` with `import_too_large`. Registering can be repeated in batches.",
+        "description": "One row per file, while the import is `uploading` (else `409` with `import_not_uploading`). An employee import takes only photographs and PDFs (else `400` with `import_photos_only`). Each answer names the bucket and the path the browser uploads the file to in Supabase Storage with the member's own session; the bucket's policy takes only that path, only while the file is uploading. A path the import already has, or twice in one request, answers `409` with `import_duplicate_path`; an extension that is not the type's, `400` with `import_type_mismatch`; a file the system or Word leaves beside the documents (a name starting `~$` or `._`, `.DS_Store`, anything under `__MACOSX`), `400` with `import_system_file`; past the caps of the import's kind, `422` with `import_too_large`: a client import holds at most 150 files and 100 MiB, each at most 20 MiB, an employee import 500 files and 1 GiB, each at most 25 MiB. Registering can be repeated in batches.",
         "security": [
           {
             "bearerAuth": []
@@ -36274,7 +38874,7 @@
       "put": {
         "operationId": "saveImportChanges",
         "summary": "Save the member's review",
-        "description": "Replaces the changes, on the `version` the caller read, and answers the next version. `409` with `import_changed` when someone saved since, `import_not_ready` when the import is not `ready`.",
+        "description": "A client import's: replaces the changes, on the `version` the caller read, and answers the next version. `409` with `import_changed` when someone saved since, `import_not_ready` when the import is not `ready`, `import_wrong_kind` for an employee import.",
         "security": [
           {
             "bearerAuth": []
@@ -36389,7 +38989,7 @@
       "get": {
         "operationId": "getImportSource",
         "summary": "Get the file a value was quoted from",
-        "description": "`file` is a source's `file` exactly as the proposal names it: a file's upload path, or `<upload path> (pagina N)` for a page read as an image. The answer links to the original and to the converted file, carries the text taken out of a Word file or the pages of a PDF, none for a page read as an image, and where `quote` is in them: when it is in several places, the one `near` (the post a table row is for) precedes most closely, or else the first.",
+        "description": "`file` is a source's `file` exactly as the proposal names it: a file's upload path, or `<upload path> (pagina N)` for a page read as an image; for an employee import, a page's `label`. The answer links to the original and to the converted file, carries the text taken out of a Word file or the pages of a PDF, none for a page read as an image, and where `quote` is in them: when it is in several places, the one `near` (the post a table row is for) precedes most closely, or else the first.",
         "security": [
           {
             "bearerAuth": []
@@ -36512,7 +39112,7 @@
       "post": {
         "operationId": "confirmImport",
         "summary": "Confirm the proposal",
-        "description": "Writes the proposal with the member's changes into the client, its workplaces, positions, people and fire-safety data in one transaction, and the import folder into its files, on the `version` the caller read. `422` with `import_incomplete` lists in `issues` what still blocks (a choice, a missing or invalid value, a second registered office, an unknown reference). `409` with `import_changed`, `import_not_ready`, `import_other_company` (an existing client's CUI is not the documents'), `import_client_exists` (a new client's CUI is the organization's already) or `import_outdated` (a workplace, position or employee the review named is no longer the client's). `422` with `import_refused` when a table still refuses a value, as a registered office beside the one an existing client has: one issue with the proposal's list or group as `path` and the constraint's name as `message`. The files are copied into the client's files by the queue after the answer.",
+        "description": "Writes the proposal with the member's changes into the client, its workplaces, positions, people and fire-safety data in one transaction, and the import folder into its files, on the `version` the caller read. An employee import writes the people marked checked, created or completed, with their paper trainings, test results and sheets as their files (`apply_employee_import`), then brings their stored signed sheets up to date, and answers their `employeeIds`; with nobody checked it is `422` with `import_incomplete` on `people`, and a CNP or employee number another employee of the client took since is `422` with `import_refused` on that person's field. `422` with `import_incomplete` lists in `issues` what still blocks (a choice, a missing or invalid value, a second registered office, an unknown reference). `409` with `import_changed`, `import_not_ready`, `import_other_company` (an existing client's CUI is not the documents'), `import_client_exists` (a new client's CUI is the organization's already) or `import_outdated` (a workplace, position or employee the review named is no longer the client's). `422` with `import_refused` when a table still refuses a value, as a registered office beside the one an existing client has: one issue with the proposal's list or group as `path` and the constraint's name as `message`. The files are copied into the client's files by the queue after the answer.",
         "security": [
           {
             "bearerAuth": []
@@ -36949,6 +39549,331 @@
           },
           "422": {
             "description": "The file was not set aside, or its text or scanned pages do not fit the import",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Reading imports is not set up on this deployment (reason `import_unavailable`), or a dependency is down",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/imports/{importId}/employee-changes": {
+      "put": {
+        "operationId": "saveEmployeeImportChanges",
+        "summary": "Save the member's review of an employee import",
+        "description": "An employee import's: replaces the changes (people's states, choices and values, a post per job title, a workplace per text, rows, pages), on the `version` the caller read, and answers the next version. Each save restarts the 14 days an import untouched is kept. `409` with `import_changed` when someone saved since, `import_not_ready` when the import is not `ready`, `import_wrong_kind` for a client import.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "importId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveEmployeeImportChangesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The new version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaveImportChangesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The import does not exist in the organization, or the caller cannot see it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready, saved since it was read, or a client import",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/found-sheets": {
+      "get": {
+        "operationId": "listFoundSheets",
+        "summary": "The sheet photographs a client's documentation pack held",
+        "description": "The training sheet photographs and PDFs a confirmed client import of the client set aside for the employee import (ADR 032), once they are in the client's files, that no employee import not abandoned or failed has taken: one taken by an import that is abandoned or fails is offered again. By the client import that found them, newest first. A photograph found twice, or one an import holds a copy of, is listed once or not at all. A file only owners see is never listed, since its copy would be an import file every member reads.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The found sheets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FoundSheetsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/imports/{importId}/found-sheets": {
+      "post": {
+        "operationId": "addFoundSheets",
+        "summary": "Add the sheet photographs the client's documentation pack held",
+        "description": "To an employee import still `uploading` (else `409` with `import_not_uploading`; a client import is `409` with `import_wrong_kind`): copies the found sheets `fileIds` names, or every one offered, from the client's files into the import's own, server side, as if uploaded. A file not offered, or none to add, is `422` with `import_no_found_sheets`; past the import's caps `422` with `import_too_large`.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "importId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddFoundSheetsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The import with the sheets added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportSummaryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The import does not exist in the organization, or the caller cannot see it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not uploading, or not an employee import",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "No such found sheet, or past the caps",
             "content": {
               "application/json": {
                 "schema": {
@@ -39796,6 +42721,121 @@
         }
       }
     },
+    "/clients/{clientId}/employee-participant-invitations": {
+      "post": {
+        "operationId": "inviteEmployeeParticipants",
+        "summary": "Invite several employees to the portal, each at an address typed for them",
+        "description": "Up to 25 employees, one after the other (ADR 032). An address with `@` goes by email, any other as a phone by SMS, normalized to E.164 with Romania as the default country. A typed address the employee's row does not hold is saved to it in the same transaction as the invitation, so an invitation refused leaves the row as it was. Each invitation is the one `inviteEmployeeParticipant` sends, under the same rules. A former employee, a participant and an employee with an open invitation are skipped with nothing saved or sent. One result per row, in order: `invited`, `skipped` or `failed` with its `reason`; a row failing never stops the next. A failed message leaves the invitation saved, in `invitation`, for a resend 10 minutes after it.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkEmployeeInvitationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "One result per invitation asked for",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkEmployeeInvitationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived or a lead; see `reason`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/clients/{clientId}/participant-invitations": {
       "post": {
         "operationId": "inviteClientAdministrator",
@@ -39975,6 +43015,110 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/imports/{importId}/portal-invitees": {
+      "get": {
+        "operationId": "listImportPortalInvitees",
+        "summary": "The employees a confirmed employee import brought, with their standing on the portal",
+        "description": "Every employee a confirmed employee import of the client created or completed (ADR 032), the ones whose sheets it filed among the employee's files, by name: their email and phone as their row holds them, whether they are current, and whether they are a participant or hold an invitation neither accepted, revoked nor expired.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "importId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The employees, by last and first name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportInviteesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No confirmed employee import of this client has this id",
             "content": {
               "application/json": {
                 "schema": {

@@ -23,7 +23,14 @@ export const trainingStateMessages: Record<TrainingState, MessageDescriptor> = {
   overdue: msg`Depășită`,
 };
 
-export const testStateMessages: Record<TestState, MessageDescriptor> = {
+export type PortalTestState = Exclude<TestState, 'unverified'>;
+
+// A hiring test from paper that could not be verified awaits nothing, so the portal shows no
+// state for it (ADR 032).
+export const portalTestState = (state: TestState | null): PortalTestState | null =>
+  state === 'unverified' ? null : state;
+
+export const testStateMessages: Record<PortalTestState, MessageDescriptor> = {
   none: msg`Fără test`,
   pending: msg`De susținut`,
   passed: msg`Promovat`,

@@ -84,7 +84,8 @@ The tests of [ADR 024](architecture/adr-024-knowledge-tests.md) live in `src/fea
 _Acasă_ lists an awaiting test above the signatures (`AwaitingTestsPanel`), _Instruiri_ shows per
 domain the test state, the results with their day and grade, and a link while a test awaits
 (`TestsSection`), and the client administrator's _Angajați_ shows the two test states beside the
-training states. The test page sits under _Instruiri_, with no place of its own, and keeps its
+training states. An `unverified` state, a hiring test from paper that could not be verified, shows
+nothing, since nothing awaits ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)). The test page sits under _Instruiri_, with no place of its own, and keeps its
 three screens in local state: the study card, the sitting (one question a screen, every option a
 checkbox since several may be correct, `Continuă` saving the answer before it moves on) and the
 result, from which a failed attempt is retaken at once.
@@ -96,6 +97,11 @@ in a tab opened before the request, as the training sheets do; while the trainee
 sheet. Its request is listed and signed with the records' (`SigningItemText`, the signing screen,
 the client administrator's pending list), named through Lingui from `testSheet` rather than the
 API's Romanian `label`, with the examiner as a slot of its own.
+
+**Trainings from paper.** A record whose `source` is `paper` reads "Transcris de pe fișa pe
+hârtie. Semnat pe hârtie." under _Instruiri_ instead of its slots, and _Acasă_ counts them per
+domain, "N instruiri de pe fișa pe hârtie, semnate acolo."
+([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)).
 
 What the pages call, all in the portal's generated client ([API, Portal](api.md#portal)):
 

@@ -1,23 +1,27 @@
-import { importErrorReasons } from '@ssm-usor/contracts';
+import { importErrorReasons, type ImportKind, importLimits } from '@ssm-usor/contracts';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
 
 import {
   abandonImport,
+  addFoundSheets,
   createImport,
   getGetImportQueryKey,
+  getListFoundSheetsQueryKey,
   getListImportsQueryKey,
   registerImportFiles,
   startImport,
 } from '@/api/generated/api';
 
+import { shrinkSelected } from './employees/shrink-photo';
 import { importErrorMessage, importErrorReason } from './import-format';
 import { sha256Of, uploadImportObject } from './import-storage';
-import type { SelectedFile } from './upload-selection';
+import { type SelectedFile, shrinksBeforeUpload } from './upload-selection';
 
 export type UploadPhase =
   | { step: 'choosing' }
+  | { step: 'shrinking'; done: number; total: number }
   | { step: 'hashing'; done: number; total: number }
   | { step: 'uploading'; sentBytes: number; totalBytes: number }
   | { step: 'starting' }
@@ -25,6 +29,15 @@ export type UploadPhase =
   | { step: 'unstarted'; error: string }
   | { step: 'empty' }
   | { step: 'failed'; error: string };
+
+export const busySteps = new Set<UploadPhase['step']>([
+  'shrinking',
+  'hashing',
+  'uploading',
+  'starting',
+]);
+
+export const heldSteps = new Set<UploadPhase['step']>(['stalled', 'unstarted', 'empty']);
 
 const registerBatch = 50;
 const maxConcurrent = 3;
@@ -43,6 +56,22 @@ async function inParallel<T>(items: T[], limit: number, work: (item: T) => Promi
   );
 }
 
+function overAfterShrinking(files: SelectedFile[], foundBytes: number) {
+  const limits = importLimits.employees;
+  const large = files.filter((file) => file.size > limits.fileBytes);
+  if (large.length === 1) {
+    return `Fotografia „${large[0]!.name}” are peste 25 MB și nu am putut-o micșora. Salveaz-o mai mică sau fotografiaz-o din nou, apoi alege fotografiile din nou.`;
+  }
+  if (large.length > 1) {
+    return `${large.length} fotografii au peste 25 MB și nu le-am putut micșora, între ele „${large[0]!.name}”. Salvează-le mai mici, apoi alege fotografiile din nou.`;
+  }
+  const bytes = files.reduce((total, file) => total + file.size, foundBytes);
+  if (bytes > limits.totalBytes) {
+    return 'Și micșorate, fotografiile au peste 1 GB, cât intră într-un import. Scoate o parte și păstreaz-o pentru un import următor, cu toate fotografiile unei persoane în același import.';
+  }
+  return null;
+}
+
 async function withRetry(work: () => Promise<void>) {
   for (let attempt = 1; ; attempt += 1) {
     try {
@@ -54,7 +83,11 @@ async function withRetry(work: () => Promise<void>) {
   }
 }
 
-export function useImportUpload(clientId: string | undefined, onStarted: (id: string) => void) {
+export function useImportUpload(
+  clientId: string | undefined,
+  onStarted: (id: string) => void,
+  kind: ImportKind = 'client'
+) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const queryClient = useQueryClient();
   const [phase, setPhase] = useState<UploadPhase>({ step: 'choosing' });
@@ -85,7 +118,7 @@ export function useImportUpload(clientId: string | undefined, onStarted: (id: st
       else {
         setPhase({
           step: 'unstarted',
-          error: importErrorMessage(cause, 'Citirea nu a putut porni. Încearcă din nou.'),
+          error: importErrorMessage(cause, 'Citirea nu a putut porni. Încearcă din nou.', kind),
         });
       }
       return;
@@ -127,11 +160,38 @@ export function useImportUpload(clientId: string | undefined, onStarted: (id: st
     await start(id);
   }
 
-  async function upload(files: SelectedFile[]) {
+  async function shrink(chosen: SelectedFile[]) {
+    const photos = chosen.filter((file) => shrinksBeforeUpload(kind, file.mimeType));
+    if (photos.length === 0) return chosen;
+    const taken = new Set(chosen.map((file) => file.path));
+    const shrunk = new Map<string, SelectedFile>();
+    let done = 0;
+    setPhase({ step: 'shrinking', done, total: photos.length });
+    await inParallel(photos, 2, async (file) => {
+      shrunk.set(file.key, await shrinkSelected(file, taken));
+      done += 1;
+      setPhase({ step: 'shrinking', done, total: photos.length });
+    });
+    return chosen.map((file) => shrunk.get(file.key) ?? file);
+  }
+
+  // `found`: an employee import's sheets found in the client's documentation, copied server side
+  // rather than uploaded.
+  async function upload(
+    chosen: SelectedFile[],
+    found: { ids: string[]; bytes: number } = { ids: [], bytes: 0 }
+  ) {
     if (phase.step !== 'choosing' && phase.step !== 'failed') return;
     abandoned.current = false;
-    fileCount.current = files.length;
+    fileCount.current = chosen.length;
     try {
+      const files = kind === 'employees' ? await shrink(chosen) : chosen;
+      if (abandoned.current) return;
+      const over = kind === 'employees' ? overAfterShrinking(files, found.bytes) : null;
+      if (over) {
+        setPhase({ step: 'failed', error: over });
+        return;
+      }
       setPhase({ step: 'hashing', done: 0, total: files.length });
       const hashes = new Map<string, string>();
       let hashed = 0;
@@ -141,11 +201,15 @@ export function useImportUpload(clientId: string | undefined, onStarted: (id: st
         setPhase({ step: 'hashing', done: hashed, total: files.length });
       });
       if (abandoned.current) return;
-      const id = (await createImport(clientId ? { clientId } : {}, apiRequest)).import.id;
+      const body = kind === 'employees' ? { clientId, kind } : clientId ? { clientId } : {};
+      const id = (await createImport(body, apiRequest)).import.id;
       importId.current = id;
       if (abandoned.current) {
         abandon();
         return;
+      }
+      if (found.ids.length > 0) {
+        await addFoundSheets(id, { fileIds: found.ids }, apiRequest);
       }
       const jobs: { file: SelectedFile; storagePath: string }[] = [];
       for (let first = 0; first < files.length; first += registerBatch) {
@@ -166,17 +230,25 @@ export function useImportUpload(clientId: string | undefined, onStarted: (id: st
         for (const file of batch) jobs.push({ file, storagePath: byPath.get(file.path)! });
       }
       void queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() });
-      await send(id, jobs);
+      if (jobs.length === 0) await start(id);
+      else await send(id, jobs);
     } catch (cause) {
       if (abandoned.current) return;
-      // Its files are half registered, so trying again starts a new import.
-      if (importId.current) void abandonImport(importId.current, apiRequest).catch(() => undefined);
+      // Its files are half registered, so trying again starts a new import. It must be gone first:
+      // until then its found sheets count as taken, and the retry would be refused them.
+      const id = importId.current;
       importId.current = null;
+      if (id) await abandonImport(id, apiRequest).catch(() => undefined);
+      if (abandoned.current) return;
+      if (importErrorReason(cause) === importErrorReasons.noFoundSheets && clientId) {
+        await queryClient.invalidateQueries({ queryKey: getListFoundSheetsQueryKey(clientId) });
+      }
       setPhase({
         step: 'failed',
         error: importErrorMessage(
           cause,
-          'Fișierele nu au putut fi încărcate. Verifică conexiunea și încearcă din nou.'
+          'Fișierele nu au putut fi încărcate. Verifică conexiunea și încearcă din nou.',
+          kind
         ),
       });
     }

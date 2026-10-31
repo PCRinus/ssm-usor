@@ -54,6 +54,7 @@ const ownFile = {
   updated_at: '2026-09-30T10:00:00+00:00',
   employees: null as { id: string; last_name: string; first_name: string } | null,
   import_files: [] as { state: string; reason: string | null }[],
+  imports: null as { kind: string } | null,
 };
 const colleagueFile = {
   ...ownFile,
@@ -232,8 +233,9 @@ describe('GET /clients/{clientId}/files', () => {
     expect(listed.searchParams.get('select')).toContain('employees(id,last_name,first_name)');
   });
 
-  it('names the import folder a file came with, and whether the import read it', async () => {
+  it('names the import folder a file came with, its kind, and whether the import read it', async () => {
     const importId = '6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f';
+    const sheetsImportId = '7a1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f';
     mockUpstream({
       files: () =>
         Response.json([
@@ -242,12 +244,20 @@ describe('GET /clients/{clientId}/files', () => {
             import_id: importId,
             import_path: 'dosar.zip/SSM',
             import_files: [{ state: 'read', reason: null }],
+            imports: { kind: 'client' },
           },
           {
             ...colleagueFile,
             import_id: importId,
             import_path: null,
             import_files: [{ state: 'set_aside', reason: 'Formular sau registru necompletat.' }],
+            imports: { kind: 'client' },
+          },
+          {
+            ...ownFile,
+            import_id: sheetsImportId,
+            import_path: 'Fise',
+            imports: { kind: 'employees' },
           },
           ownFile,
         ]),
@@ -255,15 +265,22 @@ describe('GET /clients/{clientId}/files', () => {
     const response = await request(`/clients/${clientId}/files`);
     const { items } = clientFileListResponseSchema.parse(await response.json());
     expect(
-      items.map((item) => [item.importId, item.importPath, item.importRead, item.importReason])
+      items.map((item) => [
+        item.importId,
+        item.importKind,
+        item.importPath,
+        item.importRead,
+        item.importReason,
+      ])
     ).toEqual([
-      [importId, 'dosar.zip/SSM', true, null],
-      [importId, null, false, 'Formular sau registru necompletat.'],
-      [null, null, null, null],
+      [importId, 'client', 'dosar.zip/SSM', true, null],
+      [importId, 'client', null, false, 'Formular sau registru necompletat.'],
+      [sheetsImportId, 'employees', 'Fise', true, null],
+      [null, null, null, null, null],
     ]);
     const listed = new URL(String(calls('/rest/v1/client_files', 'GET')[0]![0]));
     expect(listed.searchParams.get('select')).toContain(
-      'import_files!import_files_client_file_id_fkey(state,reason)'
+      'import_files!import_files_client_file_id_fkey(state,reason),imports!client_files_import_in_organization(kind)'
     );
   });
 
@@ -393,13 +410,14 @@ describe('POST /clients/{clientId}/files', () => {
     expect(calls('/rest/v1/client_files', 'POST')).toHaveLength(0);
   });
 
-  it('refuses a file larger than 20 MiB', async () => {
+  it('refuses a file larger than 25 MiB and takes one of 25 MiB', async () => {
     mockUpstream();
-    const bytes = new Uint8Array(20 * 1024 * 1024 + 1);
+    const bytes = new Uint8Array(25 * 1024 * 1024 + 1);
     bytes.set(pdf);
     const response = await upload({ fileName: 'mare.pdf' }, bytes);
     expect(response.status).toBe(400);
     expect(await reasonOf(response)).toBe('client_file_too_large');
+    expect((await upload({ fileName: 'mare.pdf' }, bytes.subarray(0, -1))).status).toBe(201);
   });
 
   it('keeps a file for owners only only when an owner asks', async () => {

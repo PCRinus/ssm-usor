@@ -1,8 +1,15 @@
-import type { ExistingClient, ProviderIdentity, Usage } from '@ssm-usor/import';
+import type {
+  EmployeeImportClient,
+  ExistingClient,
+  ProviderIdentity,
+  TrainingThemes,
+  Usage,
+} from '@ssm-usor/import';
 
 import type { Database, Json } from '../../database.types';
 import type { AdminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
+import { clientTrainingThemes, employeeImportClient } from './employees';
 
 type Tables = Database['public']['Tables'];
 
@@ -21,6 +28,7 @@ export type ImportRow = Pick<
   | 'company_cui'
   | 'proposal'
   | 'files_copied_at'
+  | 'created_by'
 >;
 
 export type ImportFileRow = Pick<
@@ -49,7 +57,7 @@ export type ImportStep = 'sorting' | 'reading' | 'scanning';
 export type ImportFileUpdate = Tables['import_files']['Update'];
 
 const importColumns =
-  'id, organization_id, kind, client_id, into_existing_client, status, company_name, company_cui, proposal, files_copied_at';
+  'id, organization_id, kind, client_id, into_existing_client, status, company_name, company_cui, proposal, files_copied_at, created_by';
 
 export const importFileColumns =
   'id, import_id, upload_path, original_file_name, mime_type, size_bytes, sha256, storage_path, state, document_kind, reason, company_name, company_cui, page_count, is_scan, text_path, derived_path';
@@ -70,6 +78,13 @@ export interface ImportStore {
   ): Promise<void>;
   provider(organizationId: string): Promise<ProviderIdentity>;
   client(clientId: string): Promise<ExistingClient | null>;
+  employeeImportClient(clientId: string): Promise<EmployeeImportClient>;
+  trainingThemes(row: ImportRow, today: string): Promise<TrainingThemes>;
+  keepPageImage(
+    fileId: string,
+    page: number,
+    image: { sizeBytes: number; sha256: string }
+  ): Promise<void>;
   folderCopies(importId: string): Promise<{ source_path: string; target_path: string }[]>;
   markCopied(importId: string): Promise<void>;
   uncopiedImports(confirmedBefore: string): Promise<string[]>;
@@ -90,7 +105,7 @@ export interface ImportObjectList {
 /** IMP05: the real size of a file breaks the import's caps. */
 export class ImportLimitError extends Error {
   constructor() {
-    super('The import holds at most 150 files and 100 MiB, each file at most 20 MiB.');
+    super('The import breaks the caps of its kind.');
     this.name = 'ImportLimitError';
   }
 }
@@ -191,6 +206,26 @@ export function importStore(admin: AdminClient): ImportStore {
         .maybeSingle();
       if (error) throw fromDatabaseError(error, 'read import client');
       return data ? { legalName: data.legal_name, cui: data.cui } : null;
+    },
+
+    employeeImportClient: (clientId) => employeeImportClient(admin, clientId),
+
+    trainingThemes: (row, today) =>
+      clientTrainingThemes(admin, {
+        clientId: row.client_id!,
+        organizationId: row.organization_id,
+        createdBy: row.created_by,
+        today,
+      }),
+
+    async keepPageImage(fileId, page, image) {
+      const { error } = await admin
+        .from('import_page_images')
+        .upsert(
+          { import_file_id: fileId, page, size_bytes: image.sizeBytes, sha256: image.sha256 },
+          { onConflict: 'import_file_id,page' }
+        );
+      if (error) throw fromDatabaseError(error, 'keep import page image');
     },
 
     async folderCopies(importId) {

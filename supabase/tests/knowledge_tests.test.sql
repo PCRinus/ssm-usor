@@ -1,5 +1,5 @@
 begin;
-select plan(81);
+select plan(88);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -673,6 +673,93 @@ select results_eq(
 select throws_ok(
   $$ select public.start_test_attempt('9e9e9e9e-0000-4000-8000-000000000001', 'ssm', 'hiring') $$,
   'TST05', 'test_not_awaiting', 'a passed test does not await'
+);
+
+-- ADR 032: a hiring test awaits only after a hiring training held in the app.
+select pg_temp.act_as_postgres();
+
+insert into public.employees (id, organization_id, client_id, job_position_id, last_name, first_name, job_title, hired_at, status, terminated_at) values
+  ('e1e1e1e1-0000-4000-8000-000000000005', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'b1b1b1b1-0000-4000-8000-000000000001', 'Hârtie', 'Ilie', 'Sudor', '2019-03-04', 'active', null),
+  ('e1e1e1e1-0000-4000-8000-000000000006', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'b1b1b1b1-0000-4000-8000-000000000001', 'Verificat', 'Radu', 'Sudor', '2019-03-04', 'active', null),
+  ('e1e1e1e1-0000-4000-8000-000000000007', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'b1b1b1b1-0000-4000-8000-000000000001', 'Reangajat', 'Mihai', 'Sudor', '2019-03-04', 'active', null),
+  ('e1e1e1e1-0000-4000-8000-000000000008', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'b1b1b1b1-0000-4000-8000-000000000001', 'Transcris', 'Sorin', 'Sudor', '2019-03-04', 'active', null);
+
+insert into public.trainings (id, organization_id, client_id, domain, phase, held_on, duration_minutes, material, trainer_name, trainer_job_title, source) values
+  ('a1a1a1a1-0000-4000-8000-000000000005', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'introductory_general', '2019-03-04', 480, 'MISSMIG', 'Ana SPECIALIST', 'Inspector SSM', 'paper'),
+  ('a1a1a1a1-0000-4000-8000-000000000006', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 'workplace', '2019-03-05', 480, 'IPSU', 'Mihai VECHI', 'Cadru tehnic PSI', 'paper'),
+  ('a1a1a1a1-0000-4000-8000-000000000007', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'introductory_general', '2026-02-02', 240, 'MISSMIG', 'Ana SPECIALIST', 'Inspector SSM', 'app'),
+  ('a1a1a1a1-0000-4000-8000-000000000008', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'introductory_general', '2018-01-08', 480, 'MISSMIG', 'Ana SPECIALIST', 'Inspector SSM', 'app');
+
+insert into public.training_records (organization_id, client_id, training_id, phase, employee_id, occupation)
+select t.organization_id, t.client_id, t.id, t.phase, v.employee_id::uuid, 'Sudor'
+from (values
+  ('a1a1a1a1-0000-4000-8000-000000000005', 'e1e1e1e1-0000-4000-8000-000000000005'),
+  ('a1a1a1a1-0000-4000-8000-000000000006', 'e1e1e1e1-0000-4000-8000-000000000005'),
+  ('a1a1a1a1-0000-4000-8000-000000000005', 'e1e1e1e1-0000-4000-8000-000000000006'),
+  ('a1a1a1a1-0000-4000-8000-000000000005', 'e1e1e1e1-0000-4000-8000-000000000007'),
+  ('a1a1a1a1-0000-4000-8000-000000000007', 'e1e1e1e1-0000-4000-8000-000000000007'),
+  ('a1a1a1a1-0000-4000-8000-000000000008', 'e1e1e1e1-0000-4000-8000-000000000008'),
+  ('a1a1a1a1-0000-4000-8000-000000000005', 'e1e1e1e1-0000-4000-8000-000000000008')
+) as v (training_id, employee_id)
+join public.trainings t on t.id = v.training_id::uuid;
+
+insert into public.test_results (organization_id, client_id, employee_id, domain, test, taken_on, material, examiner_name, examiner_job_title, source) values
+  ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000006', 'ssm', 'hiring', '2019-03-04', 'Test de verificare a cunoștințelor la angajare (TASSM)', 'Ana SPECIALIST', 'Inspector SSM', 'paper');
+
+select results_eq(
+  $$ select ssm_state::text, ssm_awaiting_test::text, ssm_hiring_trained_on, psi_state::text, psi_awaiting_test::text
+     from public.employee_test_status where employee_id = 'e1e1e1e1-0000-4000-8000-000000000005' $$,
+  $$ values ('unverified', null::text, '2019-03-04'::date, 'unverified', null::text) $$,
+  'hiring trainings only from paper and no pass: unverified in both domains, no test awaits'
+);
+
+select is(
+  (select ssm_state::text from public.employee_test_status where employee_id = 'e1e1e1e1-0000-4000-8000-000000000006'),
+  'passed',
+  'a paper hiring training with a paper pass is passed'
+);
+
+select results_eq(
+  $$ select ssm_state::text, ssm_awaiting_test::text, ssm_hiring_trained_on
+     from public.employee_test_status where employee_id = 'e1e1e1e1-0000-4000-8000-000000000007' $$,
+  $$ values ('pending', 'hiring', '2026-02-02'::date) $$,
+  'the newest hiring training held in the app makes the hiring test await, whatever came before on paper'
+);
+
+select is(
+  (select ssm_state::text from public.employee_test_status where employee_id = 'e1e1e1e1-0000-4000-8000-000000000008'),
+  'unverified',
+  'an older hiring training in the app does not, once a newer one comes from paper'
+);
+
+update public.trainings set held_on = '2018-01-08' where id = 'a1a1a1a1-0000-4000-8000-000000000005';
+
+select is(
+  (select ssm_state::text from public.employee_test_status where employee_id = 'e1e1e1e1-0000-4000-8000-000000000008'),
+  'pending',
+  'on the same day, the training held in the app wins'
+);
+
+update public.trainings set held_on = '2019-03-04' where id = 'a1a1a1a1-0000-4000-8000-000000000005';
+
+select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
+
+select is(
+  (select tests_pending from public.dashboard_summary where organization_id = '11111111-0000-4000-8000-000000000001'),
+  2,
+  'the dashboard counts the hiring tests that await, never an unverified one'
+);
+
+select pg_temp.act_as_postgres();
+
+insert into public.client_participants (id, organization_id, client_id, kind, employee_id, full_name, user_id) values
+  ('9e9e9e9e-0000-4000-8000-000000000005', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'employee', 'e1e1e1e1-0000-4000-8000-000000000005', null, 'dddddddd-0000-4000-8000-000000000005');
+
+select pg_temp.act_as('dddddddd-0000-4000-8000-000000000005');
+
+select throws_ok(
+  $$ select public.start_test_attempt('9e9e9e9e-0000-4000-8000-000000000005', 'ssm', 'hiring') $$,
+  'TST05', 'test_not_awaiting', 'an unverified hiring test is not taken in the portal'
 );
 
 select * from finish();

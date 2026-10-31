@@ -4,6 +4,7 @@ import type {
   TrainingDetail,
   TrainingDomain,
   TrainingRequest,
+  TrainingSource,
 } from '@ssm-usor/contracts';
 import { proposalEmployeeIds } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
@@ -20,7 +21,8 @@ import {
   planSignatureRequests,
   type SignaturePlan,
 } from '../signing/requests';
-import { fireSafetyTechnicianJobTitle, type ProposalPerson, trainingProposal } from './proposal';
+import { proposalPerson, themesTypeKeys } from './client-facts';
+import { fireSafetyTechnicianJobTitle, trainingProposal } from './proposal';
 import type {
   createTrainingRoute,
   deleteTrainingRoute,
@@ -33,29 +35,28 @@ import type {
 import { toAdmission, toTraining, trainingColumns } from './training-rows';
 
 const signingColumns =
-  'training_signatures(method, voided_at), signed_sheet_rows!signed_sheet_rows_record_of_client(id)';
+  'training_signatures(method, voided_at), signed_sheet_rows!signed_sheet_rows_record_of_client(voided_at, signed_sheets!signed_sheet_rows_sheet_of_client(certified_at))';
 
 const recordColumns = `id, occupation, admitted_on, admitted_by_name, admitted_by_job_title, employees(id, last_name, first_name), ${signingColumns}`;
 
 type RecordSigning = {
   training_signatures: { method: string; voided_at: string | null }[] | null;
-  signed_sheet_rows: { id: string }[] | null;
+  signed_sheet_rows:
+    { voided_at: string | null; signed_sheets: { certified_at: string | null } }[] | null;
 };
 
-function signingOf(records: RecordSigning[]) {
+// `printed` is the rule of training_record_is_printed, by which the database refuses the change.
+function signingOf(source: TrainingSource, records: RecordSigning[]) {
   const signatures = records.flatMap((record) => record.training_signatures ?? []);
+  const sheetRows = records.flatMap((record) => record.signed_sheet_rows ?? []);
   return {
     signed: signatures.some((each) => each.method === 'electronic' && each.voided_at === null),
-    hasSignatures:
-      signatures.length > 0 ||
-      records.some((record) => (record.signed_sheet_rows ?? []).length > 0),
+    hasSignatures: signatures.length > 0 || sheetRows.length > 0,
+    printed:
+      source === 'paper' &&
+      sheetRows.some((row) => row.voided_at === null && row.signed_sheets.certified_at !== null),
   };
 }
-
-const themesTypeKeys: Record<TrainingDomain, string> = {
-  ssm: 'training_themes',
-  psi: 'fire_training_themes',
-};
 
 const noSuchClient = () =>
   new ApiError('not_found', 'This client does not exist in your organization.');
@@ -89,7 +90,7 @@ async function loadTraining(db: DataClient, clientId: string, trainingId: string
   const { training_records: records, ...training } = data;
   return {
     ...toTraining(training),
-    ...signingOf(records as unknown as RecordSigning[]),
+    ...signingOf(training.source, records as unknown as RecordSigning[]),
     signers: await slotSignersOf(
       db,
       records.map((record) => record.id)
@@ -235,7 +236,7 @@ export const listTrainings: RouteHandler<typeof listTrainingsRoute, ApiEnv> = as
     {
       items: data.map(({ training_records: records, ...training }) => ({
         ...toTraining(training),
-        ...signingOf(records as unknown as RecordSigning[]),
+        ...signingOf(training.source, records as unknown as RecordSigning[]),
         attendeeCount: records.length,
         attendees: records
           .map(({ employees: employee }) => ({
@@ -368,20 +369,13 @@ export const listEmployeeTrainingRecords: RouteHandler<
           occupation: record.occupation,
           admission: toAdmission(record),
           training: toTraining(training),
-          ...signingOf(records as unknown as RecordSigning[]),
+          ...signingOf(training.source, records as unknown as RecordSigning[]),
         };
       }),
     },
     200
   );
 };
-
-const person = (
-  name: string | null | undefined,
-  jobTitle: string | null | undefined,
-  employeeId: string | null = null
-): ProposalPerson | null =>
-  name?.trim() ? { name: name.trim(), jobTitle: jobTitle?.trim() || null, employeeId } : null;
 
 export const getTrainingProposal: RouteHandler<typeof getTrainingProposalRoute, ApiEnv> = async (
   c
@@ -473,18 +467,18 @@ export const getTrainingProposal: RouteHandler<typeof getTrainingProposalRoute, 
         ? { id: themes.data.id, snapshot: themes.data.data_snapshot }
         : null,
       people: {
-        specialist: person(profile.data?.full_name, profile.data?.professional_title),
-        workplaceManager: person(
+        specialist: proposalPerson(profile.data?.full_name, profile.data?.professional_title),
+        workplaceManager: proposalPerson(
           manager.data?.full_name,
           manager.data?.job_title,
           manager.data?.employee_id ?? null
         ),
-        legalRepresentative: person(
+        legalRepresentative: proposalPerson(
           client.legal_representative_name,
           client.legal_representative_role,
           client.legal_representative_employee_id
         ),
-        fireSafetyTechnician: person(
+        fireSafetyTechnician: proposalPerson(
           organization.data?.fire_safety_technician_name,
           fireSafetyTechnicianJobTitle
         ),

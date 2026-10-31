@@ -42,6 +42,17 @@ const savedReasons = new Set<string>([
   participantErrorReasons.messageNotSent,
 ]);
 
+const savedMessage =
+  'Invitația a fost salvată, dar mesajul nu a putut fi trimis. O poți retrimite peste 10 minute.';
+
+export function participantReasonMessage(reason: string): string | null {
+  if (reason === participantErrorReasons.sentRecently) {
+    return 'Am trimis deja un mesaj la această adresă în ultimele 10 minute. Încearcă din nou peste câteva minute.';
+  }
+  if (savedReasons.has(reason)) return savedMessage;
+  return addressReasons[reason] ?? requestReasons[reason] ?? null;
+}
+
 const failure = (message: string, aboutAddress = false, saved = false): ParticipantFailure => ({
   message,
   aboutAddress,
@@ -62,11 +73,7 @@ export function participantFailure(cause: unknown, resendableAt?: string): Parti
     );
   }
   if (savedReasons.has(reason)) {
-    return failure(
-      'Invitația a fost salvată, dar mesajul nu a putut fi trimis. O poți retrimite peste 10 minute.',
-      false,
-      true
-    );
+    return failure(savedMessage, false, true);
   }
   const addressMessage = addressReasons[reason];
   if (addressMessage) return failure(addressMessage, true);

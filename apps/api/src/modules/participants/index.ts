@@ -3,7 +3,9 @@ import {
   getEmployeeParticipant,
   inviteClientAdministrator,
   inviteEmployeeParticipant,
+  inviteEmployeeParticipants,
   listClientParticipants,
+  listImportPortalInvitees,
   resendParticipantInvitation,
   revokeClientParticipant,
   revokeParticipantInvitation,
@@ -12,7 +14,9 @@ import {
   getEmployeeParticipantRoute,
   inviteClientAdministratorRoute,
   inviteEmployeeParticipantRoute,
+  inviteEmployeeParticipantsRoute,
   listClientParticipantsRoute,
+  listImportPortalInviteesRoute,
   resendParticipantInvitationRoute,
   revokeClientParticipantRoute,
   revokeParticipantInvitationRoute,
@@ -21,8 +25,10 @@ import {
 export const participantsRouter = createRouter()
   .openapi(getEmployeeParticipantRoute, getEmployeeParticipant)
   .openapi(inviteEmployeeParticipantRoute, inviteEmployeeParticipant)
+  .openapi(inviteEmployeeParticipantsRoute, inviteEmployeeParticipants)
   .openapi(inviteClientAdministratorRoute, inviteClientAdministrator)
   .openapi(listClientParticipantsRoute, listClientParticipants)
+  .openapi(listImportPortalInviteesRoute, listImportPortalInvitees)
   .openapi(resendParticipantInvitationRoute, resendParticipantInvitation)
   .openapi(revokeParticipantInvitationRoute, revokeParticipantInvitation)
   .openapi(revokeClientParticipantRoute, revokeClientParticipant);

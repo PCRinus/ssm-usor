@@ -14,6 +14,8 @@ import { zipFiles } from './zip-files';
 
 type Folder = { path: string; files: ClientFile[] };
 
+const byName = new Intl.Collator('ro', { numeric: true });
+
 function foldersOf(files: ClientFile[]) {
   const folders = new Map<string, ClientFile[]>();
   for (const file of files) {
@@ -21,25 +23,60 @@ function foldersOf(files: ClientFile[]) {
     folders.set(path, [...(folders.get(path) ?? []), file]);
   }
   return [...folders.entries()]
-    .map(([path, list]): Folder => ({ path, files: list }))
-    .sort((a, b) => a.path.localeCompare(b.path, 'ro'));
+    .map(([path, list]): Folder => ({
+      path,
+      files: list.sort((a, b) => byName.compare(a.name, b.name)),
+    }))
+    .sort((a, b) => byName.compare(a.path, b.path));
 }
 
 const bytesOf = (files: ClientFile[]) => files.reduce((total, file) => total + file.sizeBytes, 0);
 
 const shownPerFolder = 5;
 
+const kinds = {
+  client: {
+    title: (date: string, count: number) => `Dosar importat pe ${date} · ${filesLabel(count)}`,
+    description: 'Fișierele din care a fost creat clientul, în folderele în care au fost încărcate',
+    toggle: (open: boolean) => (open ? 'Restrânge dosarul importat' : 'Deschide dosarul importat'),
+    zip: 'Descarcă tot dosarul (ZIP)',
+    zipName: (date: string) => `Dosar importat ${date}.zip`,
+    openAtFirst: false,
+  },
+  employee: {
+    title: (date: string, count: number) => `Fișe importate pe ${date} · ${filesLabel(count)}`,
+    description:
+      'Fotografiile și paginile scanate din care au fost transcrise instruirile. Originalele pe hârtie rămân la client.',
+    toggle: (open: boolean) => (open ? 'Restrânge fișele importate' : 'Deschide fișele importate'),
+    zip: 'Descarcă fișele (ZIP)',
+    zipName: (date: string) => `Fișe importate ${date}.zip`,
+    openAtFirst: true,
+  },
+  sheets: {
+    title: (date: string, count: number) => `Fișe importate pe ${date} · ${filesLabel(count)}`,
+    description:
+      'Fișele scanate din care au fost transcrise instruirile. Fiecare angajat are la fișierele sale doar paginile lui.',
+    toggle: (open: boolean) => (open ? 'Restrânge fișele importate' : 'Deschide fișele importate'),
+    zip: 'Descarcă fișele (ZIP)',
+    zipName: (date: string) => `Fișe importate ${date}.zip`,
+    openAtFirst: false,
+  },
+} as const;
+
 export function ImportFolderRows({
   clientId,
+  kind,
   files,
   renderFile,
 }: {
   clientId: string;
+  kind: keyof typeof kinds;
   files: ClientFile[];
   renderFile: (file: ClientFile, depth: number) => ReactNode;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
-  const [open, setOpen] = useState(false);
+  const text = kinds[kind];
+  const [open, setOpen] = useState<boolean>(text.openAtFirst);
   const [openFolders, setOpenFolders] = useState<string[]>([]);
   const [showAll, setShowAll] = useState<string[]>([]);
   const [zipping, setZipping] = useState<{ done: number; total: number } | null>(null);
@@ -67,7 +104,7 @@ export function ImportFolderRows({
         })),
         (done) => setZipping({ done, total: files.length })
       );
-      saveFile(blob, `Dosar importat ${date}.zip`);
+      saveFile(blob, text.zipName(date));
     } catch {
       setFailed(true);
     } finally {
@@ -80,15 +117,18 @@ export function ImportFolderRows({
 
   return (
     <>
-      <TableRow data-testid="client-import-folder" className="bg-muted/40 hover:bg-muted/60">
-        <TableCell className="whitespace-normal">
+      <TableRow
+        data-testid="client-import-folder"
+        className="bg-muted/40 hover:bg-muted/60 max-sm:grid max-sm:grid-cols-1 max-sm:gap-y-2 max-sm:py-3"
+      >
+        <TableCell className="whitespace-normal max-sm:py-0">
           <div className="flex min-w-0 items-start gap-2">
             <Button
               variant="ghost"
               size="icon-sm"
               className="-my-1 size-7"
               aria-expanded={open}
-              aria-label={open ? 'Restrânge dosarul importat' : 'Deschide dosarul importat'}
+              aria-label={text.toggle(open)}
               data-testid="client-import-folder-toggle"
               onClick={() => setOpen(!open)}
             >
@@ -99,12 +139,10 @@ export function ImportFolderRows({
               aria-hidden="true"
             />
             <div className="grid min-w-0 gap-0.5">
-              <span className="font-medium">
-                Dosar importat pe {date} · {filesLabel(files.length)}
+              <span className="font-medium" data-testid="client-import-folder-title">
+                {text.title(date, files.length)}
               </span>
-              <span className="text-xs text-muted-foreground">
-                Fișierele din care a fost creat clientul, în folderele în care au fost încărcate
-              </span>
+              <span className="text-xs text-muted-foreground">{text.description}</span>
               {failed && (
                 <span role="alert" className="text-xs text-destructive">
                   Arhiva nu a putut fi făcută. Încearcă din nou.
@@ -124,7 +162,7 @@ export function ImportFolderRows({
             </span>
           )}
         </TableCell>
-        <TableCell className="align-top">
+        <TableCell className="align-top max-sm:py-0 max-sm:pl-17">
           <Button
             variant="outline"
             size="sm"
@@ -133,9 +171,7 @@ export function ImportFolderRows({
             onClick={() => void downloadAll()}
           >
             <Download aria-hidden="true" />
-            {zipping
-              ? `Se pregătește: ${zipping.done} din ${zipping.total}`
-              : 'Descarcă tot dosarul (ZIP)'}
+            {zipping ? `Se pregătește: ${zipping.done} din ${zipping.total}` : text.zip}
           </Button>
         </TableCell>
       </TableRow>
@@ -147,9 +183,13 @@ export function ImportFolderRows({
           const depth = folder.path === '' ? 1 : 2;
           return [
             folder.path !== '' && (
-              <TableRow key={`folder-${folder.path}`} data-testid="client-import-subfolder">
-                <TableCell className="whitespace-normal" colSpan={1}>
-                  <div className="flex items-center gap-2 pl-6">
+              <TableRow
+                key={`folder-${folder.path}`}
+                data-testid="client-import-subfolder"
+                className="max-sm:grid max-sm:grid-cols-1"
+              >
+                <TableCell className="whitespace-normal">
+                  <div className="flex min-w-0 items-center gap-2 pl-6">
                     <Button
                       variant="ghost"
                       size="icon-sm"
@@ -169,8 +209,8 @@ export function ImportFolderRows({
                       )}
                     </Button>
                     <Folder className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                    <span className="font-medium wrap-anywhere">{folder.path}</span>
-                    <span className="text-xs text-muted-foreground tabular-nums">
+                    <span className="min-w-0 font-medium wrap-break-word">{folder.path}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
                       {filesLabel(folder.files.length)}
                     </span>
                   </div>
@@ -179,7 +219,7 @@ export function ImportFolderRows({
                   {formatFileSize(bytesOf(folder.files))}
                 </TableCell>
                 <TableCell className="max-sm:hidden" />
-                <TableCell />
+                <TableCell className="max-sm:hidden" />
               </TableRow>
             ),
             ...(isOpen ? shown.map((file) => renderFile(file, depth)) : []),

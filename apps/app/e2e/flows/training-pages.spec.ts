@@ -145,7 +145,7 @@ test('a specialist records trainings held and follows each employee’s state', 
 
   await page.goto(`/clients/${clientId}/trainings?domain=ssm`);
   await expect(trainings).toHaveCount(3);
-  const paperRow = trainings.filter({ hasText: 'De pe fișa de hârtie' });
+  const paperRow = trainings.filter({ hasText: 'Transcris de pe fișa pe hârtie' });
   await expect(paperRow).toHaveCount(1);
   await paperRow.getByTestId('trainings-row-menu').click();
   await page.getByTestId('trainings-edit').click();

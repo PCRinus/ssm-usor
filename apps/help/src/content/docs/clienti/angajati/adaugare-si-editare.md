@@ -171,7 +171,7 @@ Alegi țara din listă, România fiind prima, și scrii numărul. Merge și „0
 
 ## Datele pentru fișa de instruire
 
-Câmpurile din această secțiune sunt opționale în formular și apar pe fișele individuale de instruire. Un câmp gol se tipărește gol, ca pe formularul de hârtie, cu două excepții: traseul de deplasare pentru fișa SSM și punctul de lucru la un client cu mai multe puncte. Fără ele, fișa nu se poate întocmi (vezi [Ce lipsește pentru fișă](/clienti/angajati/instruire-si-teste/)).
+Câmpurile din această secțiune sunt opționale în formular și apar pe fișele individuale de instruire. Un câmp gol se tipărește gol, ca pe formularul pe hârtie, cu două excepții: traseul de deplasare pentru fișa SSM și punctul de lucru la un client cu mai multe puncte. Fără ele, fișa nu se poate întocmi (vezi [Ce lipsește pentru fișă](/clienti/angajati/instruire-si-teste/)).
 
 ### Punctul de lucru
 

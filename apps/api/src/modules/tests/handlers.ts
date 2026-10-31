@@ -299,6 +299,24 @@ export const getEmployeeTests: RouteHandler<typeof getEmployeeTestsRoute, ApiEnv
 const notAwaiting = (message: string) =>
   new ApiError('conflict', message, undefined, testErrorReasons.notAwaiting);
 
+async function hasPassedHiringTest(
+  db: DataClient,
+  clientId: string,
+  employeeId: string,
+  domain: TrainingDomain
+) {
+  const { data, error } = await db
+    .from('test_results')
+    .select('id')
+    .eq('employee_id', employeeId)
+    .eq('client_id', clientId)
+    .eq('domain', domain)
+    .eq('test', 'hiring')
+    .limit(1);
+  if (error) throw fromDatabaseError(error, 'find passed hiring test');
+  return data.length > 0;
+}
+
 export const recordPaperTestResult: RouteHandler<
   typeof recordPaperTestResultRoute,
   ApiEnv
@@ -316,11 +334,9 @@ export const recordPaperTestResult: RouteHandler<
         'Testul la angajare se înregistrează după instruirea la angajare pe care o încheie.'
       );
     }
-    if (lastPassedOn) throw notAwaiting('Angajatul a promovat deja testul la angajare.');
-  } else if (!lastPassedOn) {
-    throw notAwaiting(
-      'Testul anual urmează unui test promovat în domeniul situațiilor de urgență.'
-    );
+    if (lastPassedOn && (await hasPassedHiringTest(db, clientId, employeeId, body.domain))) {
+      throw notAwaiting('Angajatul a promovat deja testul la angajare.');
+    }
   }
   if (body.takenOn > romanianDay(new Date().toISOString())) {
     throw new ApiError('validation_error', 'A test is recorded once it was taken.', [

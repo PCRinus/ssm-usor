@@ -194,6 +194,9 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/clients/$clientId/employees.tsx`                                    | pathless                                                    | Employees section layout carrying the breadcrumb title.                                                                                                                                                     |
 | `routes/_authenticated/clients/$clientId/employees/index.tsx`                              | `/clients/:id/employees`                                    | The client's employees with a status filter, the state filters (`trainingState`, `testState`) and a text search (`q`) in the search params.                                                                 |
 | `routes/_authenticated/clients/$clientId/employees/new.tsx`                                | `/clients/:id/employees/new`                                | Form that adds an employee to the client.                                                                                                                                                                   |
+| `routes/_authenticated/clients/$clientId/employees/import/$importId.tsx`                   | `/clients/:id/employees/import/:importId`                   | Layout of an employee import (ADR 032), full page, carrying the breadcrumb "Angajați din fișe" and the store its review saves through.                                                                      |
+| `routes/_authenticated/clients/$clientId/employees/import/$importId/index.tsx`             | `/clients/:id/employees/import/:importId`                   | The employee import: its steps and photographs while it runs, the people hub once it is ready.                                                                                                              |
+| `routes/_authenticated/clients/$clientId/employees/import/$importId/$personId.tsx`         | `/clients/:id/employees/import/:importId/:personId`         | One person of the import, by the proposal's id; the loader names the breadcrumb after them.                                                                                                                 |
 | `routes/_authenticated/clients/$clientId/job-positions/index.tsx`                          | `/clients/:id/job-positions`                                | The client's job positions (ADR 006): the posts it employs people in, then the risk evaluations that are not of a position (ADR 015).                                                                       |
 | `routes/_authenticated/clients/$clientId/job-positions/$jobPositionId.tsx`                 | `/clients/:id/job-positions/:jobPositionId`                 | Layout of one position: finds it in the client's list of positions and names the breadcrumb.                                                                                                                |
 | `routes/_authenticated/clients/$clientId/job-positions/$jobPositionId/index.tsx`           | `/clients/:id/job-positions/:jobPositionId`                 | One position with its protective equipment (ADR 011), the instruction modules it applies (ADR 012) and its risk evaluation (ADR 015).                                                                       |
@@ -560,7 +563,9 @@ their tab bars read.
   field, then the records from `GET …/employees/{employeeId}/training-records?domain=`, newest
   first: phase, day, duration ("120 min (2 h)"), the occupation, the material clamped to two
   lines behind "mai mult", who trained and verified with their functions, the supplementary
-  reason, "Admis la lucru de … la …" and a badge for a record taken from paper. An empty
+  reason, "Admis la lucru de … la …" and, for a record taken from paper, the badge "Transcris de
+  pe fișa pe hârtie" and, in place of the signature slots, "Semnat pe hârtie: instruit, instructor",
+  with "verificator" and "admite la lucru" where the record has them. An empty
   `training-tab-actions` container at the top right is kept for the sheet's download.
   "Înregistrează o instruire" opens the recording dialog with the employee as the only
   attendee, proposing the next hiring phase until both are recorded; a record's "Modifică" and
@@ -989,6 +994,49 @@ their tab bars read.
   "Modificat de tine". Confirming shows what is created, added, changed and kept, posts
   `/confirm` with the version, and opens the client's "Detalii" with a notice held in memory for
   that one visit (`import-notice.ts`).
+- The employee import ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)),
+  in `src/features/imports/employees/`. The client's Angajați tab offers three ways: "Adaugă
+  angajat", "Importă din fișele găsite în documentație (N fotografii)" while `GET
+/clients/{id}/found-sheets` lists sheets no employee import has taken, and "Importă din
+  fotografii noi" ("Importă din fișele de instruire" when none were found); the empty list shows
+  them as cards, the found sheets with their thumbnails (`GET …/files/{fileId}/download`). An
+  open import of the client (`GET /imports?kind=employees&clientId=`) shows above the list with
+  "N din M verificați", the day it expires and "Continuă"; the latest of the client's
+  last ten confirmed employee imports (`GET /imports?kind=employees&clientId=&status=confirmed`)
+  with someone it brought left to invite (`uninvited`) shows as a card, with "Invită în portal
+  angajații din fișe": on the visit right after the confirm the import just confirmed, with what
+  was created, held in memory for that visit (`employees-imported-notice.ts`), on later visits
+  with the day of the import and how many are left. "Ascunde" hides it for that import in this
+  browser (`localStorage`, keyed by the import), and the next import with someone left shows
+  instead. The upload dialog
+  (`employee-upload-dialog.tsx`) reuses the client import's selection with the employee caps
+  (photographs and PDFs only, 500 photographs or PDF pages with a PDF's pages estimated in the
+  browser, 25 MiB a file, 1 GiB in all, two counters), offers the found sheets ("Din
+  documentația importată pe …", "Adaugă-le"), warns a client without posts, and before hashing
+  makes JPEG and PNG photographs at most 2,000 pixels a side (`shrink-photo.ts`:
+  `createImageBitmap` upright by EXIF, `OffscreenCanvas` or a canvas, JPEG at 0.85; a HEIC, an
+  unreadable or an already small one goes as it is). It creates the import with `kind:
+employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the rest as the
+  client import does, and opens the import's page. While it runs, the page shows four steps and
+  the photographs read one by one; once ready, the hub (`employee-hub.tsx`): the progress with
+  "Continuă cu" the first person to check, the job titles of the sheets (a near title to
+  confirm, a missing one chosen once for all its people or added through `JobPositionDialog`;
+  exact ones in a quiet line), the workplaces the same way when the client has several, the
+  people by state with those still to check split into "Cu ceva de hotărât" and "Încă
+  nedeschise", the photographs no person took (assigned in a dialog or left out), and
+  "Creează angajații…". The person page (`person-page.tsx`) has the sticky, collapsible photo
+  column (`SheetPageView`: the converted JPEG with zoom, or the PDF at its page), the decisions
+  first (post, CNP with the corrected one offered, workplace, values the pages disagree on), the
+  data by group with "Schimbă", or for an existing employee "Se adaugă", "Diferă de aplicație"
+  (the app's value kept) and "Rămân la fel", the trainings per domain with the hiring block, the
+  admission, the paper test, the periodic rows to tick and their tags, and "După import"; a
+  number beside a value opens its photograph, full screen on a phone (`SourceDialog`). Moving
+  to the previous or next person marks one with nothing to decide checked. What a person still
+  needs, the groups and the confirm's counts are pure functions (`employee-review-model.ts`),
+  mirroring `@ssm-usor/import`'s payload. Every change goes to `PUT
+/imports/{id}/employee-changes`, one save after another on the version the previous answered.
+  Confirming names the people still to check, who are left out, posts `/confirm` and opens the
+  Angajați tab; a refused value names the person and the field.
 - "Sursa" opens `SourceDialog`, near full screen, stepping through every passage that quotes the
   value. A Word file (the `.docx` the import made of a `.doc`) opens in the editor in view mode,
   the passage found line by line with `findMatches` and marked with `useHighlights`; a PDF is
@@ -997,7 +1045,9 @@ their tab bars read.
   so. Both viewers load lazily. "Descarcă originalul" asks Storage for the file under its name.
 - In "Alte documente", the files of an import (`importId`) sit under one collapsed row, "Dosar
   importat pe … · N fișiere", with their folders beneath it and "Necitit" on the files the
-  import did not read. "Descarcă tot dosarul (ZIP)" fetches them one by one and stores them in a
+  import did not read; the scanned PDFs of an employee import (`importKind` `employees`) under
+  "Fișe importate pe … · N fișiere", "Fișele scanate din care au fost transcrise instruirile.
+  Fiecare angajat are la fișierele sale doar paginile lui." "Descarcă tot dosarul (ZIP)" fetches them one by one and stores them in a
   ZIP built in the browser with `fflate`, uncompressed.
 - The editor is one view for both kinds of document. `DocumentEditorView` takes a
   `DocumentSource` (the document, the state of its query, how to refetch and invalidate, and
@@ -1039,19 +1089,43 @@ their tab bars read.
   linking the record's training tab, or "Nicio semnătură în așteptare.". An archived client
   gets no invite or resend. The employee page keeps its own "Acces la portal" card for that
   one employee; nothing else of the client's page names the portal.
+- "Invită în portal angajații din fișe" (`BulkInviteDialog` in `src/features/participants/`,
+  [ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md), canvas board
+  EmpInvite) invites the people of a confirmed employee import at once. `useBulkInvite(clientId)`
+  gives `openBulkInvite(importId)` and the dialog to render; `useImportInvitees` and
+  `uninvitedOf` tell an after-import notice whether anyone is left to invite. The Angajați
+  tab's card (`EmployeesImportedCard`) offers it for the latest confirmed employee import, not
+  hidden, with someone it brought current, neither a participant nor invited. The dialog reads
+  `GET /clients/{clientId}/imports/{importId}/portal-invitees` afresh on each opening, never
+  from the cache, and keeps those rows while open: three cards of what the person meets in the portal (the privacy notice, the act
+  adițional, the trainings to come), then "Primesc invitația" (an email or phone on their row),
+  "Fără email sau telefon pe fișă" (eight shown, "Arată încă N" for the rest) and "Au deja acces
+  sau invitație". Each invitable row is one field, its stored email else phone, and what is
+  typed decides the channel (`typedInvitationAddress`), shown beside it; an address that is
+  neither, or one typed on two rows, is named under the row on blur, at once when it came from
+  the employee's row, and that person is not sent and shows "Neinvitat". Former employees are only named in the note that the typed addresses are saved to the
+  employees; a line counts the invitations going by SMS. The footer counts what goes and who is
+  left ("Nicio invitație de trimis" while nothing would). "Trimite N invitații" posts to
+  `POST /clients/{clientId}/employee-participant-invitations` ten rows at a time, each row then
+  showing "Trimisă" or its reason; a request refused as a whole marks its own rows not sent and
+  the next one still goes.
+  Sending refreshes the participants and the client's employees; closing, the list.
 - The employee page ends with "Fișiere", the same card for that employee's files
   (`EmployeeFilesCard` in `src/features/client-files/`, [ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)):
   it lists `GET /clients/{clientId}/files?employeeId=`, and its upload dialog names the
   employee and sends every file with `employeeId`; there is no way to choose another
   employee. Renaming, the owners' switch, deleting and an archived client's read-only list
-  work as on the tab.
+  work as on the tab. The photographs and scanned page images an employee import kept of the
+  employee's paper sheets ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md))
+  sit under one row per import, open at first, "Fișe importate pe … · N fișiere", with
+  "Descarcă fișele (ZIP)".
 - The upload dialog (`src/features/client-files/client-file-upload-dialog.tsx`) has a drop zone with
-  "Alege fișiere" and the accepted types and the 20 MB limit under it, the list of chosen
+  "Alege fișiere" and the accepted types and the 25 MB limit under it, the list of chosen
   files (name, kind, size, a button to take each out), an owner's "Doar pentru
   administratori" checkbox that applies to every file in the list (a lead's dialog says
   instead that its files are for owners until promotion), and "Renunță" beside "Încarcă
   fișierul" or "Încarcă N fișiere". Each chosen file is first checked in the browser against
-  the contracts' extension list, the 20 MiB limit, emptiness and a 255-character name; a
+  the contracts' extension list, the 25 MiB limit, emptiness and a 255-character name; a
   refused one shows its reason in the list and is not sent. The rest are queued by
   `use-client-file-uploads.ts` and sent three at a time, each its own `POST` through
   `apiUpload` in `src/api/http.ts`, which sends the `File` with `XMLHttpRequest` because
@@ -1231,14 +1305,15 @@ their tab bars read.
   marked, and under it the explanation as it follows a wrong answer, or that there is none.
 - The employee's "Instruire SSM" and "Instruire PSI" tabs carry a "Testare" card under the
   training state, from `GET …/employees/{employeeId}/tests`: the domain's test state as a badge
-  ("Fără test", "De susținut", "Promovat", "Anual scadent"; a dash for a leaver), what comes next
-  ("Testul la angajare îl așteaptă în portal", "Testul anual este scadent din …", "Testul anual
-  urmează la …", or after which training the hiring test appears), a warning line while the
+  ("Fără test", "De susținut", "Neverificat pe fișă" in grey, "Promovat", "Anual scadent"; a dash
+  for a leaver), what comes next ("Testul la angajare îl așteaptă în portal", "Testul la angajare
+  nu a putut fi verificat pe fișă: semnătura nu se vede clar sau lipsește.", "Testul anual este
+  scadent din …", "Testul anual urmează la …", or after which training the hiring test appears), a warning line while the
   hiring test is not passed, which blocks nothing, the results newest first (day, grade, source
   "Din portal" or "De pe hârtie", material, examiner) and the attempts in the portal (day,
   "7/10", "Promovat" or "Nepromovat", "În curs"). "Înregistrează un rezultat de pe hârtie" shows
-  while the API would take one (the hiring test awaiting, or for fire safety the annual test once
-  a pass exists) and posts `POST …/tests/results` with the day, today by default, and the
+  for the hiring test while it awaits or is unverified, and for the fire-safety annual test once
+  a pass exists or while the hiring test is unverified (the API takes any paper annual result) and posts `POST …/tests/results` with the day, today by default, and the
   examiner, proposed from `GET …/trainings/proposal` for the introductory general training: the
   caller as specialist for SSM, the organization's fire-safety technician for PSI. A result's
   "Modifică examinatorul" (or "Numește examinatorul" for a portal pass without one) sends
@@ -1258,7 +1333,7 @@ their tab bars read.
   linking to the employee's tab of its domain; one code signs both kinds.
 - Test state in the lists: after the two training columns, one "Testare" column with the SSM
   and PSI states as badges, each after its domain's name; chips "Toate / La zi / De susținut /
-  Anual scadent / Fără test" beside the training chips set `?testState=` the same way ("La zi"
+  Anual scadent / Neverificat pe fișă / Fără test" beside the training chips set `?testState=` the same way ("La zi"
   is passed in both domains, any other chip that state in either), and are hidden on the former
   employees.
 - `/legislatie`: the "Legislație" page ([ADR 017](architecture/adr-017-legislation-monitoring.md)),

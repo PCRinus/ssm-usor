@@ -20,14 +20,20 @@ export function Tag({
   icon,
   children,
   testId,
+  className,
 }: {
   tone: keyof typeof tones;
   icon?: ReactNode;
   children: ReactNode;
   testId?: string;
+  className?: string;
 }) {
   return (
-    <Badge variant="outline" className={cn('rounded-md', tones[tone])} data-testid={testId}>
+    <Badge
+      variant="outline"
+      className={cn('rounded-md', tones[tone], className)}
+      data-testid={testId}
+    >
       {icon}
       {children}
     </Badge>

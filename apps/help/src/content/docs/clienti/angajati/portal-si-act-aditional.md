@@ -8,6 +8,8 @@ topics:
     heading: Invitația
   - id: angajati.invitatie-fara-adresa
     heading: Angajat fără email sau telefon
+  - id: angajati.invitatie-din-fise
+    heading: Invitarea angajaților din fișe
   - id: angajati.revocare-acces
     heading: Revocarea
   - id: angajati.act-aditional
@@ -27,9 +29,12 @@ topics:
 sources:
   - docs/architecture/adr-022-participants-and-the-portal.md
   - docs/architecture/adr-023-advanced-electronic-signature.md
+  - docs/architecture/adr-032-employees-imported-from-training-sheets.md
   - packages/contracts/src/participants.ts
   - apps/app/src/features/participants/employee-portal-card.tsx
   - apps/app/src/features/participants/invite-employee-dialog.tsx
+  - apps/app/src/features/participants/bulk-invite-dialog.tsx
+  - apps/app/src/features/participants/bulk-invite-format.ts
   - apps/app/src/features/participants/participant-actions.tsx
   - apps/app/src/features/participants/participant-errors.ts
   - apps/app/src/features/signatures/signing-agreement-card.tsx
@@ -63,6 +68,23 @@ Câteva mesaje pe care le poți vedea:
 ### Angajat fără email sau telefon
 
 Fără email și fără telefon, dialogul îți spune „Angajatul nu are email sau telefon” și te trimite la **Modifică datele**. Adaugă unul dintre ele, apoi trimite invitația.
+
+### Invitarea angajaților din fișe
+
+După un import de angajați din fișele de instruire, îi inviți pe toți în portal deodată, cu **Invită în portal angajații din fișe**. Butonul e în cardul pe care tabul **Angajați** îl arată după confirmarea importului și la vizitele următoare, cât timp unii dintre angajații aduși nu sunt nici invitați, nici în portal. Cu **Ascunde** nu-l mai vezi pentru acel import, în browserul în care lucrezi. Dacă mai multe importuri au angajați de invitat, cardul îl arată pe cel mai recent; după ce îi inviți sau îl ascunzi, apare următorul.
+
+Dialogul începe cu ce găsesc angajații în portal, în ordine: informarea despre cum le folosim datele, la care apasă „Am înțeles”; actul adițional privind semnarea electronică, primul lucru de semnat; apoi instruirile de acum înainte, pe care le semnează pe telefon. Instruirile transcrise de pe fișe rămân semnate pe hârtie și apar doar de citit. Nu li se cere niciun acord: informarea doar îi anunță, pentru că evidența instruirilor e o obligație legală a angajatorului.
+
+Apoi îi împarte pe angajați în două liste:
+
+- **Primesc invitația**: cei cu email sau telefon în datele lor. Cine are și email și telefon primește invitația pe email.
+- **Fără email sau telefon pe fișă**: fișele pe hârtie au rareori un contact. Scrie un email sau un număr de telefon în dreptul celor pe care vrei să-i inviți acum.
+
+Ce scrii hotărăște cum pleacă invitația: un email, pe email; un număr de telefon, prin SMS. Un rând lăsat gol rămâne neinvitat, fără să-i oprească pe ceilalți; îl inviți oricând din pagina lui sau din tabul **Portal**. Emailurile și telefoanele scrise aici se salvează în datele angajaților, ca atunci când le modifici, odată cu invitația: o adresă pentru care invitația e refuzată nu se salvează. Foștii angajați nu apar, iar cei care au deja acces sau o invitație deschisă apar separat și nu primesc nimic din nou.
+
+Înainte să trimiți, dialogul îți spune câte invitații pleacă prin SMS: fiecare SMS costă, ca și codurile de intrare trimise după aceea, pe când emailul nu.
+
+Cu **Trimite**, fiecare invitație pleacă la fel ca atunci când inviți angajatul din pagina lui și e valabilă 30 de zile. La sfârșit, fiecare rând îți spune dacă invitația a plecat sau de ce nu, de exemplu pentru o adresă care aparține deja altei persoane a clientului. O invitație salvată al cărei mesaj nu a plecat o retrimiți după 10 minute, din pagina angajatului sau din tabul **Portal**.
 
 ### Revocarea
 

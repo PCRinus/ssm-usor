@@ -203,6 +203,14 @@ export const PortalTrainingRecordsResponseItemsItemSupplementaryReason = {
   new_technology: 'new_technology',
 } as const;
 
+export type PortalTrainingRecordsResponseItemsItemSource =
+  (typeof PortalTrainingRecordsResponseItemsItemSource)[keyof typeof PortalTrainingRecordsResponseItemsItemSource];
+
+export const PortalTrainingRecordsResponseItemsItemSource = {
+  app: 'app',
+  paper: 'paper',
+} as const;
+
 /**
  * @nullable
  */
@@ -256,6 +264,7 @@ export type PortalTrainingRecordsResponseItemsItem = {
   verifier: PortalTrainingRecordsResponseItemsItemVerifier;
   /** @nullable */
   supplementaryReason: PortalTrainingRecordsResponseItemsItemSupplementaryReason;
+  source: PortalTrainingRecordsResponseItemsItemSource;
   occupation: string;
   /** @nullable */
   admission: PortalTrainingRecordsResponseItemsItemAdmission;
@@ -686,6 +695,7 @@ export type PortalClientEmployeesResponseItemsItemTestsSsmState =
 export const PortalClientEmployeesResponseItemsItemTestsSsmState = {
   none: 'none',
   pending: 'pending',
+  unverified: 'unverified',
   passed: 'passed',
   annual_due: 'annual_due',
 } as const;
@@ -723,6 +733,7 @@ export type PortalClientEmployeesResponseItemsItemTestsPsiState =
 export const PortalClientEmployeesResponseItemsItemTestsPsiState = {
   none: 'none',
   pending: 'pending',
+  unverified: 'unverified',
   passed: 'passed',
   annual_due: 'annual_due',
 } as const;
@@ -808,6 +819,7 @@ export type PortalTestsResponseSsmStatusState =
 export const PortalTestsResponseSsmStatusState = {
   none: 'none',
   pending: 'pending',
+  unverified: 'unverified',
   passed: 'passed',
   annual_due: 'annual_due',
 } as const;
@@ -1020,6 +1032,7 @@ export type PortalTestsResponsePsiStatusState =
 export const PortalTestsResponsePsiStatusState = {
   none: 'none',
   pending: 'pending',
+  unverified: 'unverified',
   passed: 'passed',
   annual_due: 'annual_due',
 } as const;

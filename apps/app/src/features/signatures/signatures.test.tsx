@@ -147,6 +147,7 @@ const record = (overrides: Record<string, unknown> = {}) => ({
   },
   signed: false,
   hasSignatures: false,
+  printed: false,
   ...overrides,
 });
 
@@ -741,6 +742,54 @@ describe("a record's signatures", () => {
     await user.click(await within(dialog).findByTestId('training-save'));
     expect((await within(dialog).findByTestId('training-error')).textContent).toBe(
       'Instruirea are semnături electronice și nu se mai poate modifica. Anulează semnăturile, apoi modifică instruirea.'
+    );
+  });
+
+  it('locks a training from paper once a certified signed sheet prints it', async () => {
+    const paper = record({ hasSignatures: true, printed: true });
+    paper.training.source = 'paper';
+    mockApi({
+      [`GET ${employeePath}/training-records`]: () => Response.json({ items: [paper] }),
+    });
+    mount(`${employeePath}/training/ssm`);
+    await screen.findByTestId('training-record-item');
+    expect(screen.getByTestId('training-record-edit')).toHaveProperty('disabled', true);
+    expect(screen.getByTestId('training-record-delete')).toHaveProperty('disabled', true);
+    expect(screen.getByTestId('training-record-lock').textContent).toBe(
+      'Instruirea este trecută pe o fișă individuală semnată electronic, care nu se mai schimbă, așa că nu se mai poate modifica sau șterge.'
+    );
+  });
+
+  it('says a training from paper cannot change once a certified signed sheet prints it', async () => {
+    const paper = record();
+    paper.training.source = 'paper';
+    mockApi({
+      [`GET ${employeePath}/training-records`]: () => Response.json({ items: [paper] }),
+      [`GET ${trainingsPath}/${trainingId}`]: () =>
+        Response.json({
+          training: {
+            ...paper.training,
+            records: [
+              {
+                id: recordId,
+                employee: { id: employeeId, lastName: 'Popescu', firstName: 'Ion' },
+                occupation: 'Sudor',
+                admission: null,
+              },
+            ],
+            signers: { trainer: null, verifier: null, admitter: null },
+          },
+        }),
+      [`PUT ${trainingsPath}/${trainingId}`]: () => conflict('record_signed'),
+    });
+    const user = userEvent.setup();
+    mount(`${employeePath}/training/ssm`);
+    await screen.findByTestId('training-record-item');
+    await user.click(screen.getByTestId('training-record-edit'));
+    const dialog = await screen.findByTestId('training-dialog');
+    await user.click(await within(dialog).findByTestId('training-save'));
+    expect((await within(dialog).findByTestId('training-error')).textContent).toBe(
+      'Instruirea este trecută pe o fișă individuală semnată electronic, care nu se mai schimbă, așa că nu se mai poate modifica sau șterge.'
     );
   });
 

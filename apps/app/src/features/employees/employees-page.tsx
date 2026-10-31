@@ -3,7 +3,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { keepPreviousData } from '@tanstack/react-query';
 import { getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
-import { Plus, UserRound } from 'lucide-react';
+import { UserRound } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { getListEmployeesQueryKey, useListEmployees } from '@/api/generated/api';
@@ -12,6 +12,14 @@ import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
+import {
+  EmployeeImportButtons,
+  EmployeesImportedCard,
+  EmployeeStartWays,
+  OpenEmployeeImports,
+} from '@/features/imports/employees/employee-import-entry';
+import { EmployeeUploadDialog } from '@/features/imports/employees/employee-upload-dialog';
+import { ImportUploadDialog } from '@/features/imports/import-upload-dialog';
 import { TestStateFilter } from '@/features/knowledge-tests/test-state-filter';
 import { TrainingStateFilter } from '@/features/trainings/training-state-filter';
 
@@ -38,7 +46,9 @@ const rowKey = (row: EmployeeRow) => row.id;
 
 export function EmployeesPage() {
   const { clientId } = employeesRoute.useParams();
-  const readOnly = clientRoute.useLoaderData().client.archivedAt !== null;
+  const { client } = clientRoute.useLoaderData();
+  const readOnly = client.archivedAt !== null;
+  const [importing, setImporting] = useState<'found' | 'new' | 'documentation' | null>(null);
   const {
     status,
     trainingState,
@@ -77,19 +87,10 @@ export function EmployeesPage() {
     <div data-testid="employees-page" className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">Angajați</h2>
-        {!readOnly && (
-          <Button asChild>
-            <Link
-              to="/clients/$clientId/employees/new"
-              params={{ clientId }}
-              data-testid="employees-add"
-            >
-              <Plus aria-hidden="true" />
-              Adaugă angajat
-            </Link>
-          </Button>
-        )}
+        {!readOnly && <EmployeeImportButtons clientId={clientId} onStart={setImporting} />}
       </div>
+      <EmployeesImportedCard clientId={clientId} />
+      {!readOnly && <OpenEmployeeImports clientId={clientId} />}
       <div className="overflow-hidden rounded-lg border bg-card">
         <div className="flex flex-wrap items-center gap-3 border-b px-5 py-3">
           <nav aria-label="Filtrează angajații" className="flex gap-1">
@@ -277,12 +278,7 @@ export function EmployeesPage() {
                     : 'Adaugă angajații clientului pentru a le organiza instruirile și documentele.'}
                 </p>
                 {!status && !readOnly && (
-                  <Button asChild variant="outline" className="mt-5">
-                    <Link to="/clients/$clientId/employees/new" params={{ clientId }}>
-                      <Plus aria-hidden="true" />
-                      Adaugă primul angajat
-                    </Link>
-                  </Button>
+                  <EmployeeStartWays clientId={clientId} onStart={setImporting} />
                 )}
               </>
             )
@@ -290,6 +286,27 @@ export function EmployeesPage() {
         />
       </div>
       <EmployeeStatusDialog clientId={clientId} change={change} onClose={() => setChange(null)} />
+      <EmployeeUploadDialog
+        open={importing === 'found' || importing === 'new'}
+        withFound={importing === 'found'}
+        client={client}
+        onClose={() => setImporting(null)}
+        onStarted={(importId) =>
+          void navigate({
+            to: '/clients/$clientId/employees/import/$importId',
+            params: { clientId, importId },
+          })
+        }
+        onImportDocumentation={() => setImporting('documentation')}
+      />
+      <ImportUploadDialog
+        open={importing === 'documentation'}
+        client={client}
+        onClose={() => setImporting(null)}
+        onStarted={(importId) =>
+          void navigate({ to: '/clients/import/$importId', params: { importId } })
+        }
+      />
     </div>
   );
 }

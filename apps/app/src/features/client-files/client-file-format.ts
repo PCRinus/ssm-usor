@@ -51,7 +51,7 @@ export const opensInTab = (mimeType: ClientFileType) =>
 
 const decimal = new Intl.NumberFormat('ro-RO', { maximumFractionDigits: 1 });
 
-// In binary units, so that the 20 MiB limit reads as the "20 MB" the messages promise.
+// In binary units, so that the 25 MiB limit reads as the "25 MB" the messages promise.
 export function formatFileSize(bytes: number) {
   const kilobytes = bytes / 1024;
   if (kilobytes < 1000) return `${Math.max(1, Math.round(kilobytes))} KB`;
@@ -72,7 +72,7 @@ const refusals = {
   [clientFileErrorReasons.contentMismatch]:
     'Conținutul nu corespunde tipului din numele fișierului. Salvează-l din nou din programul în care a fost creat.',
   [clientFileErrorReasons.empty]: 'Fișierul este gol.',
-  [clientFileErrorReasons.tooLarge]: 'Fișierul depășește 20 MB.',
+  [clientFileErrorReasons.tooLarge]: 'Fișierul depășește 25 MB.',
 } as const;
 
 const maxFileNameLength = 255;

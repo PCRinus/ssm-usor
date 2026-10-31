@@ -101,17 +101,20 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PUT /clients/{clientId}/files/{fileId}/owners-only`                   | Owner                                 | `{ "file": { … } }` after keeping it for owners or opening it to the team                                                                                                                          |
 | `GET /clients/{clientId}/files/{fileId}/download`                      | Verified user with a membership       | `{ "url", "fileName", "disposition", "expiresInSeconds" }`, a link valid for a minute                                                                                                              |
 | `DELETE /clients/{clientId}/files/{fileId}`                            | Uploader or owner                     | `204` after deleting the stored file and the row                                                                                                                                                   |
-| `POST /imports`                                                        | Verified user with a membership       | `201 { "import": { … } }`, an import from documents `uploading`, for a new client or `{ clientId }`                                                                                                |
-| `GET /imports`                                                         | Verified user with a membership       | `{ "items": [ … ] }`, the open imports, failed ones included, newest first; `?clientId=` for one client's                                                                                          |
+| `POST /imports`                                                        | Verified user with a membership       | `201 { "import": { … } }`, an import from documents `uploading`, for a new client or `{ clientId }`; `{ clientId, kind: "employees", addFoundSheets? }` for an employee import                     |
+| `GET /imports`                                                         | Verified user with a membership       | `{ "items": [ … ] }`, the open imports of `?kind=` (client imports by default), failed ones included, newest first; `?clientId=` for one client's; `?status=confirmed` the last ten confirmed      |
 | `GET /imports/{importId}`                                              | Verified user with a membership       | `{ "import": { … } }` with its files, progress, other companies, and from `ready` its proposal, changes and blockers                                                                               |
 | `POST /imports/{importId}/files`                                       | Verified user with a membership       | `201 { "files": [ … ] }`, the bucket and path each file is uploaded to, after registering `{ files }`                                                                                              |
 | `POST /imports/{importId}/start`                                       | Verified user with a membership       | `{ "import": { … } }`, `preparing`, after dropping files never uploaded and queueing the rest                                                                                                      |
 | `PUT /imports/{importId}/changes`                                      | Verified user with a membership       | `{ "version" }` after saving `{ version, changes }`; `409` on a stale version                                                                                                                      |
 | `GET /imports/{importId}/source`                                       | Verified user with a membership       | Signed links to a source file and its converted file, its text, and where `?quote=` is in it, nearest after `?near=`; `?file=` as the proposal names it                                            |
-| `POST /imports/{importId}/confirm`                                     | Verified user with a membership       | `{ "clientId", "fileCount" }` after writing the proposal and the changes in one transaction; `422` lists what blocks                                                                               |
+| `POST /imports/{importId}/confirm`                                     | Verified user with a membership       | `{ "clientId", "fileCount" }` (and `employeeIds` for an employee import) after writing the proposal and the changes in one transaction; `422` lists what blocks                                    |
 | `POST /imports/{importId}/abandon`                                     | Verified user with a membership       | `204`                                                                                                                                                                                              |
 | `POST /imports/{importId}/split`                                       | Verified user with a membership       | `201 { "import": { … } }`, another company's files `{ fileIds }` in a new import, already reading                                                                                                  |
 | `POST /imports/{importId}/files/{fileId}/read`                         | Verified user with a membership       | `200 { "import": { … } }`, a set-aside file of a ready import read again with the rest                                                                                                             |
+| `PUT /imports/{importId}/employee-changes`                             | Verified user with a membership       | `{ "version" }` after saving an employee import's `{ version, changes }`; `409` on a stale version or a client import                                                                              |
+| `GET /clients/{clientId}/found-sheets`                                 | Verified user with a membership       | `{ "items": [ … ], "total" }`, the sheet photographs a client import found that no employee import holds                                                                                           |
+| `POST /imports/{importId}/found-sheets`                                | Verified user with a membership       | `201 { "import": { … } }` after copying found sheets `{ fileIds? }` into an employee import still uploading                                                                                        |
 | `GET /files/download`                                                  | Public, by signed Storage link        | The file behind `?source=`, named `?name=`; `?disposition=inline` shows a PDF, a JPEG or a PNG                                                                                                     |
 | `GET /organization/company-details`                                    | Verified user with a membership       | `{ "companyDetails": { … } }`: what documents print about the provider as a company                                                                                                                |
 | `PUT /organization/company-details`                                    | Owner                                 | The company details after replacing them                                                                                                                                                           |
@@ -678,9 +681,11 @@ carries `name`, `note`, `ownersOnly`, `employee` (`{ id, lastName, firstName }` 
 employees, otherwise null), `originalFileName`, `mimeType`, `sizeBytes`, `sha256`,
 `uploadedBy` (`{ id, fullName }`, null once the account is gone), `canChange`, true for its
 uploader and for an owner, and for a file of an import folder ([ADR 030](architecture/adr-030-import-from-documents.md))
-`importId`, `importPath` (the folders it sat in inside the upload, null at the top) and
-`importRead` with `importReason`, from the import's file row (`import_files.client_file_id`):
-whether the import read it and, if not, why. The four are null for a file uploaded on its own.
+`importId`, `importKind` (`client`, or `employees` for an employee import's scanned sheets,
+[ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)), `importPath` (the
+folders it sat in inside the upload, null at the top) and `importRead` with `importReason`, from
+the import's file row (`import_files.client_file_id`): whether the import read it and, if not,
+why. The five are null for a file uploaded on its own.
 `?employeeId=` lists that employee's files instead ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)); a
 value that is not an id answers `400`, and the id of an employee the client does not have gives
 an empty list.
@@ -692,7 +697,7 @@ computer, whose extension decides the type; `name` defaults to it without the ex
 to one of the client's employees, and one the client does not have, or one archived, answers
 `400` with an issue on `employeeId` before anything is stored. It cannot be changed after the
 upload. A refused file answers `400` with a
-reason: `client_file_empty`; `client_file_too_large` over 20 MiB, by `Content-Length` before
+reason: `client_file_empty`; `client_file_too_large` over 25 MiB, by `Content-Length` before
 the body is read; `client_file_type_not_allowed` for any extension but `.pdf`, `.jpg`,
 `.jpeg`, `.png`, `.docx`, `.doc`, `.xlsx` and `.xls`; and `client_file_content_mismatch` when
 the content is not that type. The content check reads the first bytes of a PDF, a JPEG, a PNG
@@ -1006,6 +1011,8 @@ portal's client.
 | `POST /participant-invitations/{invitationId}/resend`                     | The invitation renewed for 30 days, after sending its message again         |
 | `POST /participant-invitations/{invitationId}/revoke`                     | `204`                                                                       |
 | `POST /client-participants/{participantId}/revoke`                        | `204`; the person's records stay                                            |
+| `GET /clients/{clientId}/imports/{importId}/portal-invitees`              | `{ items }`: the employees a confirmed employee import brought              |
+| `POST /clients/{clientId}/employee-participant-invitations`               | `200` with `{ results }`, one per invitation asked for                      |
 
 A participant carries the `channel` and `address` of the accepted invitation, which is what
 they sign in with, `noticeVersion`, and `language`, `ro` or `en` once they chose one in the
@@ -1042,6 +1049,31 @@ Errors carry a `reason` from `participantErrorReasons` in the contracts, all `40
 `employee_required`, `full_name_required`, `invalid_address`, `sent_recently`,
 `invitation_accepted`, `invitation_revoked`, plus `client_archived` and `client_is_lead`. A
 client, employee or invitation outside the organization is `404`.
+
+### Inviting the people of an employee import at once
+
+[ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md) adds the bulk
+invitation. `portal-invitees` lists the employees whose sheets a confirmed employee import filed
+among their files (`client_files.import_id`), which are the employees it created or completed:
+an import keeps no list of its own, and the files outlive its proposal. Each carries its email
+and phone as the row holds them, `current` (false for a former employee) and `portal`,
+`participant`, `invited` (an invitation neither accepted, revoked nor expired) or null.
+
+`employee-participant-invitations` takes `{ invitations: [{ employeeId, address }] }`, at most
+`bulkInvitationLimit` (25) rows with each employee once; the app sends a longer list in turns.
+The address is as typed: with `@` it goes by email, otherwise as a phone by SMS
+(`typedInvitationAddress` in the contracts, which the app uses too). Rows run one after the
+other. A former employee (`former_employee`), a participant (`employee_has_participant`) and an
+employee with an open invitation (`employee_invited`) are `skipped` with nothing saved or sent.
+Otherwise `create_employee_invitation_at_address` saves an address the employee's row does not
+hold and creates the single invitation's `create_participant_invitation` in one transaction, so
+an invitation refused leaves the row as it was; the account and the message follow as for a
+single one. A row that cannot be done is `failed` with its `reason`: a participant error reason,
+`invalid_address` for text that is neither, `employee_not_found`, `contact_not_saved` (the
+employee's row refused the address) or `invitation_failed`; when only the account or the message
+failed, `invitation` holds the saved invitation for a resend. A failing row never stops the next,
+whatever the failure. An archived client or a lead is
+`409` before any row, and a missing binding for a channel asked for `503`.
 
 ## Portal
 
@@ -1104,7 +1136,8 @@ with the specialist. The request and signature rows come embedded in the records
 the participant: the participants' and the client administrators' policies on
 `signature_requests` and `training_signatures` cover the records they read. The portal says a
 slot that is `signed` or `paper`; a `void` one reads as not signed, and a live request shows
-through the signature requests list.
+through the signature requests list. A record's `source` is its training's: one from `paper`
+has no slots, its signatures being on the paper sheet.
 
 Policies choose the rows a participant reads, not the columns, so every portal query names its
 columns and every response is built field by field into a schema of its own in
@@ -1198,16 +1231,17 @@ and each slot's state as a record's slots have them (`unassigned`, `pending`, `s
 `void`), from `test_sheets`, its requests and `test_sheet_signatures` as the caller reads them.
 The portal's `GET …/tests` carries the same `sheet` on each result. The client's employee lists and the organization's _Angajați_ answer
 `tests: { ssm, psi }` beside `training`, from the computed relationship `test_status`, and
-`?testState=passed|pending|annual_due|none` filters as `?trainingState=` does: `passed` keeps
+`?testState=passed|pending|annual_due|unverified|none` filters as `?trainingState=` does: `passed` keeps
 those passed in both domains, any other state those in it in either, through an inner embed.
 
 **A paper result** is a test filled in on the printed copy and passed: the day (not in the
 future), the examiner, the grade `admis` and the material, by default the test's name and code
 (`testResultMaterial`). It is taken while the test can be owed, read from the hiring training
-and the last pass rather than from the state, which a leaver has none of: a hiring result once
+and the results rather than from the state, which a leaver has none of: a hiring result once
 the domain's hiring training is recorded (the introductory general one for occupational safety,
-the workplace one for fire safety) and before any pass, an annual one once the employee has a
-fire-safety pass. Otherwise `409 test_not_awaiting`. A failed paper test is not recorded.
+the workplace one for fire safety) and before a hiring pass in that domain, otherwise
+`409 test_not_awaiting`; an annual fire-safety one at any time, since a paper sheet may record
+annual tests where its hiring one could not be read ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)). A failed paper test is not recorded.
 `PATCH` replaces the examiner, and of a paper result the day and the material; a portal result's
 day and material are the attempt's (`TST06`).
 
@@ -1862,12 +1896,20 @@ Without the secret key there is nothing to read with, and the queue retries.
 
 An **import** ([ADR 030](architecture/adr-030-import-from-documents.md)) turns a client's files
 into a **proposal** a member reviews and confirms; nothing under a client is written before.
-Only the client import is built; the employee import comes later. The module is
-`modules/imports`: the routes, `payload.ts` (the proposal and the changes as
-`apply_client_import` takes them), `pipeline.ts` (the queue's steps), `queue.ts` (the consumer)
-and `cleanup.ts` (the cron). The tables, the bucket and the functions are in the
-[data model](data-model.md#imports-from-documents); the proposal's schema, the prompts, the
-sorting, the checks and the gateway client are `packages/import`.
+There are two kinds: the client import, from a documentation pack, and the employee import
+([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)), from the
+photographs of a client's individual training sheets. The module is `modules/imports`: the
+routes, `payload.ts` (a client import's proposal and changes as `apply_client_import` takes
+them), `employees.ts` (what an employee import reads of the client: its posts, workplaces,
+employees with their trainings and passes, and the training themes), `pipeline.ts` (the queue's
+steps), `queue.ts` (the consumer) and `cleanup.ts` (the cron). The tables, the bucket and the
+functions are in the [data model](data-model.md#imports-from-documents); the proposals' schemas,
+the prompts, the sorting, the checks and the gateway client are `packages/import`: for the
+employee import, the sheet page's schema and prompt (`sheetPageAnswer`, `sheetPageMessages`),
+the grouping of pages into people and the proposal built from them (`toEmployeeProposal`), and
+the proposal with the member's changes (`EmployeeImportChanges` in `packages/contracts`) as
+`apply_employee_import` takes it (`toEmployeePayload`, whose `sheetFilesOf` decides which import
+files become each person's files: a PDF holding several people's pages is a file of each).
 
 Members read imports through their own policies. The API writes the rows with the secret key,
 after finding the import under the caller's token; saving, abandoning, splitting and
@@ -1879,14 +1921,20 @@ the extractor (`EXTRACTOR` with `PDF_CONVERSION=service`, or `EXTRACTOR_URL`) an
 ### Uploading and starting
 
 `POST /imports` creates the import, for a new client or for `clientId`, an active client that is
-not a lead (`409` with `client_archived` or `client_is_lead`). `POST /imports/{importId}/files`
+not a lead (`409` with `client_archived` or `client_is_lead`). With `kind: "employees"` it is an
+employee import, which needs `clientId` (`400` otherwise); `addFoundSheets: true` starts it with
+the client's found sheet photographs (below), `422` with `import_no_found_sheets` when there are
+none, creating nothing. An employee import takes only photographs and PDFs: registering another
+type is `400` with `import_photos_only`. `POST /imports/{importId}/files`
 registers `{ files: [{ uploadPath, mimeType, sizeBytes, sha256 }] }`: the path inside the upload
 with its folders, whose last part is the name. A path climbing out (`..`), with an empty folder or
 with a name over 255 characters is a plain `400` `validation_error` whose issue names its
 `uploadPath`, an extension that is not the type's `400` (`import_type_mismatch`), a file the system
 or Word leaves beside the documents (a Word lock file `~$…`, a `._…` or `.DS_Store`, anything under
 `__MACOSX`) `400` (`import_system_file`), a path twice `409` (`import_duplicate_path`),
-more than 150 files or 100 MiB `422` (`import_too_large`). The answer gives each file's `id`, the
+past the caps of the import's kind `422` (`import_too_large`): a client import holds 150 files
+and 100 MiB, each at most 20 MiB, an employee import 500 files and 1 GiB, each at most 25 MiB
+(`importLimits`). The answer gives each file's `id`, the
 bucket `imports` and the `storagePath`: the browser uploads the bytes there itself, with its own
 Supabase session, which the bucket's policy accepts for that path while the file and the import
 are `uploading`. The bytes never pass through the Worker. Registering can be repeated in
@@ -1899,6 +1947,31 @@ caps counted the declared sizes), marks the others `uploaded`, moves the import 
 (`import_not_uploading`). When the messages cannot be sent the import goes back to `uploading`
 and the answer is `503`.
 
+### Sheet photographs a client import found
+
+A client import sorts training sheets as `for_employees` and its confirmation copies them into
+the client's import folder as plain files. `GET /clients/{clientId}/found-sheets` lists those of
+the client's confirmed client imports whose folder is copied, PDF, JPEG or PNG (a HEIC is its
+JPEG there), that no employee import not abandoned or failed holds a copy of, under the member's
+own policies, and never a file for owners only, whose copy every member would read. A photograph
+two client imports found, by its SHA-256, is listed once, and not at all while an import holds a
+copy of it: `{ items: [{ importId, confirmedAt, sheets: [{ id, clientFileId, uploadPath,
+fileName, mimeType, sizeBytes }] }], total }`, newest import first. One an abandoned or failed
+import took is offered again. `POST /imports/{importId}/found-sheets` with `{ fileIds }`, or
+`{}` for all, adds them to an employee import still `uploading` (`409` with
+`import_not_uploading`, or `import_wrong_kind` for a client import; `422` with
+`import_no_found_sheets` for one not offered, `import_too_large` past the caps). Either way the
+API inserts a row per sheet with the secret key, as an uploaded file's with `source_file_id`,
+under the folder `Din documentația importată pe <dd.mm.yyyy>/` followed by the sheet's path in
+the documentation, so a person's pages keep their order, with ` (2)`, ` (3)` before the
+extension when two copies would land on one path; copies each object from `client-files` into
+the import's `storage_path`; and marks the rows `uploaded` with
+`mark_found_sheets_uploaded(import, files)`, which holds the import's row and refuses (`IMP01`)
+once its reading started. A failed copy removes the objects copied and the rows (and the import
+it was creating) and answers `503`; a reading started meanwhile removes them too and answers
+`409` with `import_not_uploading`. A copy rather
+than a reference keeps the bucket's policies, the caps and the clean-up those of an upload.
+
 ### The queue
 
 `ssm-usor-import` (`-non-prod` in non-prod) is sent to and consumed by the API Worker, which
@@ -1908,14 +1981,15 @@ that step and the file is in the state the step expects, so a message delivered 
 harm. A step that moves the import on and sends the next message takes the move back when the
 send fails, so the retried delivery moves on again.
 
-| Message          | Step                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `prepare` (file) | Reads the original; one whose size is not the declared one fails, its real size recorded, and a real size past the caps (`IMP05`) fails the import. A `.docx` is rendered to text (`docxToText`); a `.doc` is converted by the extractor and its `.docx` kept as the derived file; a PDF's pages are taken with `pdfText`, scans marked; a photograph (HEIC, JPEG or PNG) is converted by the extractor to an upright JPEG, at most 2,000 pixels a side, kept as the derived file (`<id>.jpg`, or `<id>.jpeg` for a JPEG, whose own object is `<id>.jpg`); the sorting and reading steps send the model that JPEG, and the original stays as uploaded. The text goes to `<id>.txt`, the pages to `<id>.json` (a photograph is one scanned page). The stored bytes' hash replaces what the browser declared. When no file is left `uploaded`, the import moves to `sorting`. |
-| `sort` (import)  | One GPT-6 Luna request with the first 3,000 characters of every file that has text, then `sortFiles` with the organization as the provider and, for an existing client, the client. Each file gets its kind and company: read, set aside with a reason, kept for the employee import, or another company's. The company most files name is recorded on the import. The characters to read are recorded on the import (`read_characters`) before it fails past 600,000 of them or 150 scanned pages. Moves to `reading`, sending one `scan` per file with scanned pages and one `read`.                                                                                                                                                                                                                                                                                      |
-| `scan` (file)    | A photograph or a PDF with no text is first sorted from its first page as an image (Luna); a training sheet is kept for the employee import, a cover or blank form set aside. Then one `scan` message per batch of five scanned pages, each a GPT-6.1 Terra request per page (`pdfPageImage`) or photograph, each reading kept in `<id>.page-<n>.json` as it comes, so a retry pays only for what is left. The batch that finds every page read gathers the readings into the file's `.json` and the file becomes `read`. Each step and batch first claims `<id>.scan.json` or `<id>.scan-<first page>.json`, created only when absent, so one sent twice is read once.                                                                                                                                                                                                     |
-| `read` (import)  | Comes back every 10 seconds while a scan is unfinished, and gives up after half an hour in which no scanned page was read. Then one Terra request with the text of every file read, and `toProposal` joins it with the scans' readings. Moves to `checking` with that proposal.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `check` (import) | `withChecks` against every file's text, and the proposal's CUIs confirmed with ANAF (`companies/anaf.ts`); what ANAF answered is kept beside the proposal as `registeredCompany`. Moves to `ready`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `copy` (import)  | After confirming: copies each file of the import folder from `imports` to `client-files` (`import_folder_copies`), an object already there counting as copied, then sets `files_copied_at`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Message          | Step                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prepare` (file) | Reads the original; one whose size is not the declared one fails, its real size recorded, and a real size past the caps (`IMP05`) fails the import. A `.docx` is rendered to text (`docxToText`); a `.doc` is converted by the extractor and its `.docx` kept as the derived file; a PDF's pages are taken with `pdfText`, scans marked; a photograph (HEIC, JPEG or PNG) is converted by the extractor to an upright JPEG, at most 2,000 pixels a side, kept as the derived file (`<id>.jpg`, or `<id>.jpeg` for a JPEG, whose own object is `<id>.jpg`); the sorting and reading steps send the model that JPEG, and the original stays as uploaded. The text goes to `<id>.txt`, the pages to `<id>.json` (a photograph is one scanned page). The stored bytes' hash replaces what the browser declared. When no file is left `uploaded`, the import moves to `sorting`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `sort` (import)  | One GPT-6 Luna request with the first 3,000 characters of every file that has text, then `sortFiles` with the organization as the provider and, for an existing client, the client. Each file gets its kind and company: read, set aside with a reason, kept for the employee import, or another company's. The company most files name is recorded on the import. The characters to read are recorded on the import (`read_characters`) before it fails past 600,000 of them or the scanned pages of the import's kind (150 for a client import, 500 for an employee import). Moves to `reading`, sending one `scan` per file with scanned pages and one `read`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `scan` (file)    | A photograph or a PDF with no text is first sorted from its first page as an image (Luna); a training sheet is kept for the employee import, a cover or blank form set aside. Then one `scan` message per batch of five scanned pages, each a GPT-6.1 Terra request per page (`pdfPageImage`) or photograph, each reading kept in `<id>.page-<n>.json` as it comes, so a retry pays only for what is left. The batch that finds every page read gathers the readings into the file's `.json` and the file becomes `read`. Each step and batch first claims `<id>.scan.json` or `<id>.scan-<first page>.json`, created only when absent, so one sent twice is read once.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `read` (import)  | Comes back every 10 seconds while a scan is unfinished, and gives up after half an hour in which no scanned page was read. Then one Terra request with the text of every file read, and `toProposal` joins it with the scans' readings. Moves to `checking` with that proposal.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `check` (import) | `withChecks` against every file's text, and the proposal's CUIs confirmed with ANAF (`companies/anaf.ts`); what ANAF answered is kept beside the proposal as `registeredCompany`. Moves to `ready`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| employee import  | No sorting request: `sort` sets aside what is not a photograph or a PDF (with a reason), marks the rest scans, fails the import past 500 pages (`import_too_many_scans` reason) or with none, and sends one `scan` per file and one `read`. Every page of a PDF is read as an image, text or not. Each page is one GPT-6.1 Terra request with medium reasoning, the sheet prompt and `sheetPageAnswer`, at most 16,000 output tokens, recorded as `scanning` on its file; a page the model refuses or answers outside the schema twice, or the gateway turns down for good (a `4xx` other than `429`), is kept as unread rather than failing its file, while a busy gateway is retried. A PDF's page image is kept before the page is read, at `<id>.page-<n>.jpg` with its size and hash in `import_page_images`, as the file the page's employee gets. The gathered readings sit in the file's `.json` as `sheets`, by page number. `read` waits for the scans, then moves to `checking`, failing the import when no file was read. `check` builds the proposal with `toEmployeeProposal` from the pages in the order of their paths with numbers compared as numbers, `Scan 2` before `Scan 10`, since the rows keep no upload position (`page-<n>`, labelled as a source's `file`), the client's posts, workplaces and current employees with their trainings and passes, the training themes the app proposes from for a training typed by hand (`trainings/client-facts.ts`, the import's creator as the specialist), and today in Romania, and moves to `ready`. |
+| `copy` (import)  | After confirming: copies each file of the import folder, or each file an employee import made (an employee's photograph or page image, a scanned PDF of the client), from `imports` to `client-files` (`import_folder_copies`), an object already there counting as copied, then sets `files_copied_at`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 Every model request carries `{ organizationId, importId }` as the gateway's metadata, and its
 tokens and cost go to `record_import_usage` with its step (`sorting` for the pack and a scan's
@@ -1939,6 +2013,37 @@ reason in Romanian and the import goes on without it; the failure of `sort`, `re
 marks the import `failed` with a reason. The copy is not failed: the clean-up copies again.
 
 ### Reviewing and confirming
+
+An employee import's review is in `employees` of `GET /imports/{importId}`, from `ready` on:
+`{ proposal, changes, states }`, the `EmployeeImportProposal`, the member's
+`EmployeeImportChanges`, and each person's state by id (`to_check` unless checked or set aside);
+`proposal`, `changes`, `registeredCompany` and `otherCompanies` are then a client import's and
+empty, and `blockers` are `toEmployeePayload`'s for the people marked checked.
+`PUT /imports/{importId}/employee-changes` saves `{ version, changes }` through the same
+`save_import_changes`, restarting the 14 days; `PUT /imports/{importId}/changes` is a client
+import's. Each refuses the other kind with `409` and `import_wrong_kind`, as sending a set-aside
+file back to be read does for an employee import. `GET /imports?kind=employees&clientId=` lists a
+client's open employee imports, the Angajați tab's; without `kind` the list holds client imports
+only. `?status=confirmed` lists the last ten confirmed instead, latest confirmation first; with
+`kind=employees` and `clientId` each carries `uninvited`, the current employees it brought who are
+neither participants nor invited (null elsewhere), and the Angajați tab offers to invite the
+people of the latest with someone left. Every summary carries `expiresAt`, when an import `uploading` or `ready` fails untouched,
+14 days after the last change to it or its files, and `people`, an employee import's
+`{ total, toCheck, checked, setAside }` once ready.
+
+`POST /imports/{importId}/confirm` on an employee import writes only the people marked checked
+(`toEmployeePayload` with the client's records as the member reads them): `422` with
+`import_incomplete` lists the blockers, or `people` when nobody is checked. `apply_employee_import`
+runs as the member; its refusals are mapped as a client import's (`P0002` `404`; `IMP01`,
+`IMP02`, `CLA01` and `22023` `409`), a check it raises names `rows` for trainings, their
+records and test results, `pages` for client files and `people` for employees, and a CNP or
+employee number another employee of the client took since (`employees_client_cnp_key`,
+`employees_client_employee_number_key`) is `422` `import_refused` on that person's field,
+`people.<id>.fields.cnp`, found from the error's details, which are never logged or answered.
+Then, best effort, the returned `training_record_ids` and `test_result_ids` are brought up to
+date on the employees' stored signed sheets (`syncTrainingRows`, `syncResultRows`), and a `copy`
+message copies each employee's files. The answer adds `employeeIds`, the employees created or
+completed.
 
 `GET /imports/{importId}` returns the summary, the `files` with `state`, `documentKind`,
 `reason`, the company and the page count, `progress` (`files`, `prepared`, `scans`,

@@ -16,6 +16,50 @@ export {
 } from './checks';
 export { DocxReadError, docxToText } from './docx';
 export {
+  type BloodType,
+  checkCnp,
+  type CnpCheck,
+  parseBloodType,
+  type RowCheckContext,
+  rowFlags,
+} from './employee-checks';
+export {
+  type EmployeeImportClient,
+  type EmployeeImportInput,
+  hiringTestRowIds,
+  includedByDefault,
+  type SheetPageInput,
+  type ThemeDefaults,
+  type ThemeQuery,
+  toEmployeeProposal,
+  type TrainingThemes,
+} from './employee-import';
+export {
+  type ClientWorkplace,
+  type ExistingEmployee,
+  type ExistingTraining,
+  findExistingEmployee,
+  matchJobTitle,
+  matchWorkplace,
+  type Named,
+  type PersonKey,
+  type ReferenceMatchResult,
+} from './employee-match';
+export {
+  type EmployeeFilePayloadRow,
+  type EmployeeImportPayload,
+  type EmployeeImportQuality,
+  type EmployeeImportRecords,
+  type EmployeeMapping,
+  type EmployeePayloadRow,
+  matchOf,
+  sheetFilesOf,
+  type TestResultPayloadRow,
+  toEmployeePayload,
+  type TrainingPayloadRow,
+} from './employee-payload';
+export * from './employee-proposal';
+export {
   type Completion,
   type CompletionRequest,
   createModelClient,
@@ -25,8 +69,10 @@ export {
   type ModelClient,
   type ReasoningEffort,
 } from './gateway';
+export { groupHeldTrainings, type HeldRow, type HeldTraining } from './held-trainings';
 export {
   contained,
+  editDistance,
   findQuote,
   findQuotes,
   foldName,
@@ -56,6 +102,8 @@ export {
   type ProviderIdentity,
   readingMessages,
   readingSystemPrompt,
+  sheetPageMessages,
+  sheetPageSystemPrompt,
   sortingCharacters,
   sortingMessages,
   sortingSystemPrompt,
@@ -69,6 +117,27 @@ export {
   readingSchema,
   toProposal,
 } from './reading';
+export {
+  type SheetDate,
+  sheetDate,
+  type SheetPage,
+  sheetPageAnswer,
+  type SheetPageKind,
+  sheetPageKinds,
+  sheetPageSchema,
+  type SheetRow,
+  type SignatureState,
+  signatureStates,
+  type VerifierSignatureState,
+  verifierSignatureStates,
+} from './sheet-page';
+export {
+  nearName,
+  type PageToPlace,
+  type PlacedPages,
+  type Placement,
+  placePages,
+} from './sheet-people';
 export {
   type Company,
   type DocumentKind,

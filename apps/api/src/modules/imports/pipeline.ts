@@ -3,6 +3,7 @@ import {
   extractionFailed,
   extractionRefusalOf,
   type ExtractorService,
+  importLimits,
   type PdfPageText,
 } from '@ssm-usor/contracts';
 import {
@@ -24,11 +25,16 @@ import {
   readingMessages,
   readingModel,
   setAsideKinds,
+  type SheetPage,
+  sheetPageAnswer,
+  type SheetPageInput,
+  sheetPageMessages,
   sortFiles,
   sortingAnswer,
   sortingMessages,
   sortingModel,
   sortingSystemPrompt,
+  toEmployeeProposal,
   toProposal,
   withChecks,
 } from '@ssm-usor/import';
@@ -36,6 +42,7 @@ import {
 import { sha256 } from '../../lib/docx';
 import type { ImportMessage, ImportQueue } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { romanianToday } from './employees';
 import type { RegisteredCompany } from './payload';
 import {
   asJson,
@@ -72,10 +79,11 @@ export interface PipelineDeps {
 // The documents go to the reading model in one request, so this bounds that request's cost and
 // size: about 185,000 tokens at the 3.25 characters a token measured on the reference packs.
 export const maxReadingCharacters = 600_000;
-export const maxScannedPages = 150;
 // The reading's is the one the evaluation used.
 export const sortingOutputTokens = 16_000;
 export const readingOutputTokens = 64_000;
+// One sheet page answers in a few thousand tokens, reasoning included.
+export const sheetOutputTokens = 16_000;
 // About a hundred seconds of reading, well inside a consumer's 15 minutes of wall time.
 export const scanBatchPages = 5;
 export const readPollSeconds = 10;
@@ -111,21 +119,33 @@ export const fileReasons = {
     'Material de instruire introductiv-generală: text general, nu conține date despre client. Îl citim doar dacă ceri.',
   noClientData: 'Nu conține date despre client.',
   trainingSheet: 'Fișă de instruire individuală: rămâne pentru importul angajaților.',
+  notASheet:
+    'Nu este o fotografie sau un PDF: importul angajaților citește doar fișele fotografiate sau scanate.',
 } as const;
 
 export const importReasons = {
   nothingPrepared: 'Niciun fișier nu a putut fi citit.',
   nothingToRead: 'Niciun document nu conține date despre client.',
-  tooManyScans:
-    'Sunt prea multe pagini scanate pentru un singur import: cel mult 150. Scoate o parte dintre fișierele scanate.',
+  noSheets: 'Niciun fișier nu este o fotografie sau un PDF al unei fișe.',
+  noSheetRead: 'Nicio fotografie și nicio pagină nu a putut fi citită.',
+  tooManyScans: {
+    client:
+      'Sunt prea multe pagini scanate pentru un singur import: cel mult 150. Scoate o parte dintre fișierele scanate.',
+    employees:
+      'Sunt prea multe fotografii și pagini scanate pentru un singur import: cel mult 500. Împarte fișele în mai multe importuri.',
+  },
   scansUnfinished: 'Citirea fișierelor scanate nu s-a terminat.',
   unavailable: 'Serviciul care citește documentele nu a răspuns.',
   notConfigured: 'Importul din documente nu este disponibil acum.',
   modelRefused: 'Modelul a refuzat să citească documentele.',
   modelFailed: 'Modelul nu a dat un răspuns pe care să-l putem folosi.',
   failed: 'Importul s-a oprit din cauza unei erori.',
-  overLimits:
-    'Fișierele depășesc limitele unui import: cel mult 150 de fișiere și 100 MiB, fiecare fișier de cel mult 20 MiB.',
+  overLimits: {
+    client:
+      'Fișierele depășesc limitele unui import: cel mult 150 de fișiere și 100 MiB, fiecare fișier de cel mult 20 MiB.',
+    employees:
+      'Fișierele depășesc limitele unui import de angajați: cel mult 500 de fișiere și 1 GiB, fiecare fișier de cel mult 25 MiB.',
+  },
   stalled: 'Importul s-a oprit înainte să se termine.',
   left: 'Importul a rămas neterminat 14 zile.',
 } as const;
@@ -165,6 +185,8 @@ const wordTypes = new Set(['application/msword', docxType]);
 
 const isWord = (file: Pick<ImportFileRow, 'mime_type'>) => wordTypes.has(file.mime_type);
 const isImage = (file: Pick<ImportFileRow, 'mime_type'>) => file.mime_type.startsWith('image/');
+const isSheetFile = (file: Pick<ImportFileRow, 'mime_type'>) =>
+  isImage(file) || file.mime_type === 'application/pdf';
 
 export const textPathOf = (file: Pick<ImportFileRow, 'storage_path' | 'mime_type'>) =>
   file.storage_path.replace(/\.[a-z]+$/, isWord(file) ? '.txt' : '.json');
@@ -179,6 +201,10 @@ const pageReadingPathOf = (file: Pick<ImportFileRow, 'storage_path'>, page: numb
   `${basePathOf(file)}.page-${page}.json`;
 
 const pageReadingName = /^[0-9a-f-]{36}\.page-\d+\.json$/;
+
+// import_folder_copies in the database names a page's image the same way.
+const pageImagePathOf = (file: Pick<ImportFileRow, 'storage_path'>, page: number) =>
+  `${basePathOf(file)}.page-${page}.jpg`;
 
 // Null for the step that sorts a scan and sends its pages; a batch's first page otherwise.
 const scanClaimPathOf = (file: Pick<ImportFileRow, 'storage_path'>, firstPage: number | null) =>
@@ -203,6 +229,9 @@ export interface PreparedPages {
   pages: PdfPageText[];
   // By page label, what the model read on each scanned page, once every one of them is read.
   readings?: Record<string, Reading>;
+  // An employee import's: by page number, what the model read on each page; null for a page it
+  // could not read.
+  sheets?: Record<string, SheetPage | null>;
 }
 
 export interface LoadedFile {
@@ -345,7 +374,11 @@ export async function prepareFile(deps: PipelineDeps, importId: string, fileId: 
       await deps.store.updateFile(file.id, await prepare(deps, file), 'uploaded');
     } catch (error) {
       if (error instanceof ImportLimitError) {
-        await deps.store.advance(importId, 'preparing', failedPatch(importReasons.overLimits));
+        await deps.store.advance(
+          importId,
+          'preparing',
+          failedPatch(importReasons.overLimits[row.kind])
+        );
         return;
       }
       if (!permanentFileFailure(error)) throw error;
@@ -436,6 +469,10 @@ function setAsideReason(kind: DocumentKind) {
 export async function sortImport(deps: PipelineDeps, importId: string) {
   const row = await deps.store.getImport(importId);
   if (!row || row.status !== 'sorting') return;
+  if (row.kind === 'employees') {
+    await keepSheets(deps, row);
+    return;
+  }
   // Every file past preparing: a delivery that is retried sorts again what an earlier one began.
   const sortable = (await deps.store.listFiles(importId)).filter((file) =>
     sortedStates.has(file.state)
@@ -512,7 +549,9 @@ export async function sortImport(deps: PipelineDeps, importId: string) {
   if (toRead === 0) throw new ImportFailure(importReasons.nothingToRead);
   const overCap = tooMuchText(kept);
   if (overCap) throw new ImportFailure(overCap);
-  if (scannedPages > maxScannedPages) throw new ImportFailure(importReasons.tooManyScans);
+  if (scannedPages > importLimits[row.kind].scannedPages) {
+    throw new ImportFailure(importReasons.tooManyScans[row.kind]);
+  }
 
   const companyName = sorting.company?.name?.trim().slice(0, 200) ?? null;
   await transition(
@@ -530,6 +569,39 @@ export async function sortImport(deps: PipelineDeps, importId: string) {
     ]
   );
 }
+
+// An employee import has no sorting: each page says its own kind as it is read (ADR 032). Only
+// what is not a photograph or a PDF is set aside, which the upload already refuses.
+async function keepSheets(deps: PipelineDeps, row: ImportRow) {
+  const files = (await deps.store.listFiles(row.id)).filter((file) => sortedStates.has(file.state));
+  if (files.length === 0) throw new ImportFailure(importReasons.nothingPrepared);
+  const sheets: ImportFileRow[] = [];
+  let pages = 0;
+  for (const file of files) {
+    if (!isSheetFile(file)) {
+      await deps.store.updateFile(file.id, { state: 'set_aside', reason: fileReasons.notASheet });
+      continue;
+    }
+    sheets.push(file);
+    pages += file.page_count ?? 1;
+    await deps.store.updateFile(file.id, { state: 'prepared', reason: null, is_scan: true });
+  }
+  if (sheets.length === 0) throw new ImportFailure(importReasons.noSheets);
+  if (pages > importLimits.employees.scannedPages) {
+    throw new ImportFailure(importReasons.tooManyScans.employees);
+  }
+  await transition(deps, row.id, 'sorting', { status: 'reading' }, [
+    ...sheets.map((file): ImportMessage => ({ type: 'scan', importId: row.id, fileId: file.id })),
+    { type: 'read', importId: row.id, waits: 0 },
+  ]);
+}
+
+// Every page of an employee import's file is read as an image; a client import's PDF has its
+// text taken out, so only its scanned pages are.
+const pagesToRead = (row: Pick<ImportRow, 'kind'>, prepared: PreparedPages) =>
+  prepared.pages
+    .filter((page) => row.kind === 'employees' || page.isScan)
+    .map((page) => page.number);
 
 // A claim is an object created only when absent, so a scan's step or a batch of its pages sent
 // twice (a step retried after sending part of its messages) is paid for once. The owner is the
@@ -587,8 +659,13 @@ export async function scanFile(
   if (!(await claimed(deps, scanClaimPathOf(file, null), owner))) return;
   try {
     const prepared = (await loadPrepared(deps.objects, file)).pages!;
-    const scanned = prepared.pages.filter((page) => page.isScan).map((page) => page.number);
-    if (file.document_kind === null && scanned.length === prepared.pages.length && scanned[0]) {
+    const scanned = pagesToRead(row, prepared);
+    if (
+      row.kind === 'client' &&
+      file.document_kind === null &&
+      scanned.length === prepared.pages.length &&
+      scanned[0]
+    ) {
       const settled = await triageScan(deps, row, file, scanned[0]);
       if (settled) {
         await deps.store.updateFile(file.id, settled, 'prepared');
@@ -672,23 +749,18 @@ export async function scanPages(
   if (!(await claimed(deps, scanClaimPathOf(file, pages[0]!), owner))) return;
   try {
     const read = await readPageNumbers(deps, row, file);
-    const { provider, client } = await identityOf(deps, row);
     const image = await pageImage(deps, file);
+    const readPage =
+      row.kind === 'employees'
+        ? sheetPageReader(deps, row, file)
+        : await documentPageReader(deps, row, file);
     for (const page of pages) {
       if (read.has(page)) continue;
-      const label = pageLabel(file, page);
       const picture = await image(page);
-      const reading = await ask(deps, row, file.id, 'scanning', {
-        model: readingModel,
-        messages: readingMessages({
-          provider,
-          client,
-          files: [{ path: label, imageUrl: dataUrl(picture.bytes, picture.type) }],
-        }),
-        answer: readingAnswer,
-        reasoningEffort: 'medium',
-        maxCompletionTokens: readingOutputTokens,
-      });
+      if (row.kind === 'employees' && !isImage(file)) {
+        await keepPageImage(deps, file, page, picture.bytes);
+      }
+      const reading = await readPage(pageLabel(file, page), dataUrl(picture.bytes, picture.type));
       await deps.objects.write(
         pageReadingPathOf(file, page),
         encoder.encode(JSON.stringify(reading)),
@@ -699,6 +771,53 @@ export async function scanPages(
   } catch (error) {
     await failScan(deps, file, error);
   }
+}
+
+// Kept before the page's reading, so a page read always has the image its employee's file
+// becomes (ADR 032).
+async function keepPageImage(
+  deps: PipelineDeps,
+  file: ImportFileRow,
+  page: number,
+  bytes: Uint8Array
+) {
+  await deps.objects.write(pageImagePathOf(file, page), bytes, 'image/jpeg');
+  await deps.store.keepPageImage(file.id, page, {
+    sizeBytes: bytes.byteLength,
+    sha256: await sha256(bytes),
+  });
+}
+
+async function documentPageReader(deps: PipelineDeps, row: ImportRow, file: ImportFileRow) {
+  const { provider, client } = await identityOf(deps, row);
+  return (label: string, imageUrl: string): Promise<Reading> =>
+    ask(deps, row, file.id, 'scanning', {
+      model: readingModel,
+      messages: readingMessages({ provider, client, files: [{ path: label, imageUrl }] }),
+      answer: readingAnswer,
+      reasoningEffort: 'medium',
+      maxCompletionTokens: readingOutputTokens,
+    });
+}
+
+// A page the model refuses, answers outside the schema or the gateway turns down for good is kept
+// as unread, for the member to give to a person or leave out, rather than failing the whole PDF.
+function sheetPageReader(deps: PipelineDeps, row: ImportRow, file: ImportFileRow) {
+  return async (label: string, imageUrl: string): Promise<SheetPage | null> => {
+    try {
+      return await ask(deps, row, file.id, 'scanning', {
+        model: readingModel,
+        messages: sheetPageMessages({ path: label, imageUrl }),
+        answer: sheetPageAnswer,
+        reasoningEffort: 'medium',
+        maxCompletionTokens: sheetOutputTokens,
+      });
+    } catch (error) {
+      if (error instanceof ModelAnswerError) return null;
+      if (error instanceof GatewayError && !isTransient(error)) return null;
+      throw error;
+    }
+  };
 }
 
 async function readPageNumbers(deps: PipelineDeps, row: ImportRow, file: ImportFileRow) {
@@ -715,18 +834,26 @@ async function readPageNumbers(deps: PipelineDeps, row: ImportRow, file: ImportF
 async function finishScan(deps: PipelineDeps, row: ImportRow, file: ImportFileRow) {
   const read = await readPageNumbers(deps, row, file);
   const prepared = (await loadPrepared(deps.objects, file)).pages!;
-  const scanned = prepared.pages.filter((page) => page.isScan).map((page) => page.number);
+  const scanned = pagesToRead(row, prepared);
   if (!scanned.every((page) => read.has(page))) return;
-  const readings: Record<string, Reading> = {};
+  const pageReadings = new Map<number, unknown>();
   for (const page of scanned) {
     const bytes = await deps.objects.read(pageReadingPathOf(file, page));
-    readings[pageLabel(file, page)] = JSON.parse(decoder.decode(bytes)) as Reading;
+    pageReadings.set(page, JSON.parse(decoder.decode(bytes)));
+  }
+  const gathered: PreparedPages = { pageCount: prepared.pageCount, pages: prepared.pages };
+  if (row.kind === 'employees') {
+    gathered.sheets = Object.fromEntries(
+      [...pageReadings].map(([page, reading]) => [String(page), reading as SheetPage | null])
+    );
+  } else {
+    gathered.readings = Object.fromEntries(
+      [...pageReadings].map(([page, reading]) => [pageLabel(file, page), reading as Reading])
+    );
   }
   await deps.objects.write(
     file.text_path ?? textPathOf(file),
-    encoder.encode(
-      JSON.stringify({ pageCount: prepared.pageCount, pages: prepared.pages, readings })
-    ),
+    encoder.encode(JSON.stringify(gathered)),
     'application/json'
   );
   await deps.store.updateFile(file.id, { state: 'read', reason: null }, 'prepared');
@@ -756,6 +883,15 @@ export async function readImport(
       { type: 'read', importId, waits: still, progress: now },
       { delaySeconds: readPollSeconds }
     );
+    return;
+  }
+  if (row.kind === 'employees') {
+    if (!files.some((file) => file.state === 'read')) {
+      throw new ImportFailure(importReasons.noSheetRead);
+    }
+    await transition(deps, importId, 'reading', { status: 'checking' }, [
+      { type: 'check', importId },
+    ]);
     return;
   }
   const loaded = await Promise.all(
@@ -793,6 +929,10 @@ export async function readImport(
 export async function checkImport(deps: PipelineDeps, importId: string) {
   const row = await deps.store.getImport(importId);
   if (!row || row.status !== 'checking') return;
+  if (row.kind === 'employees') {
+    await checkSheets(deps, row);
+    return;
+  }
   const proposal = proposalSchema.parse(row.proposal);
   const files = (await deps.store.listFiles(importId)).filter((file) => file.state === 'read');
   const texts: Record<string, string | null> = {};
@@ -824,6 +964,50 @@ export async function checkImport(deps: PipelineDeps, importId: string) {
   await deps.store.advance(importId, 'checking', {
     status: 'ready',
     proposal: asJson({ ...checked, registeredCompany }),
+    ready_at: new Date().toISOString(),
+  });
+}
+
+const pathOrder = new Intl.Collator('ro', { numeric: true });
+
+// A page without a name is placed after the one before it, so the order is the one a phone or a
+// scanner numbers its files in: `Scan 2` before `Scan 10`. The rows record no upload position.
+export async function sheetPagesOf(
+  deps: Pick<PipelineDeps, 'objects'>,
+  files: ImportFileRow[]
+): Promise<SheetPageInput[]> {
+  const ordered = [...files].sort(
+    (a, b) => pathOrder.compare(a.upload_path, b.upload_path) || a.id.localeCompare(b.id)
+  );
+  const pages: SheetPageInput[] = [];
+  for (const entry of await Promise.all(ordered.map((file) => loadPrepared(deps.objects, file)))) {
+    const sheets = entry.pages?.sheets ?? {};
+    for (const page of entry.pages?.pages ?? []) {
+      pages.push({
+        id: `page-${pages.length + 1}`,
+        fileId: entry.file.id,
+        page: isImage(entry.file) ? null : page.number,
+        label: pageLabel(entry.file, page.number),
+        reading: sheets[String(page.number)] ?? null,
+      });
+    }
+  }
+  return pages;
+}
+
+async function checkSheets(deps: PipelineDeps, row: ImportRow) {
+  if (!row.client_id) throw new ImportFailure(importReasons.failed);
+  const files = (await deps.store.listFiles(row.id)).filter((file) => file.state === 'read');
+  const today = romanianToday();
+  const [pages, client, themes] = await Promise.all([
+    sheetPagesOf(deps, files),
+    deps.store.employeeImportClient(row.client_id),
+    deps.store.trainingThemes(row, today),
+  ]);
+  const proposal = toEmployeeProposal({ pages, client, themes, today });
+  await deps.store.advance(row.id, 'checking', {
+    status: 'ready',
+    proposal: asJson(proposal),
     ready_at: new Date().toISOString(),
   });
 }

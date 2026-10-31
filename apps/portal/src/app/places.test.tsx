@@ -108,6 +108,27 @@ describe('Acasă', () => {
     );
   });
 
+  it('counts the trainings of a domain transcribed from the paper sheet', async () => {
+    const [ssm, psi] = trainingRecords().items;
+    vi.mocked(useListPortalTrainingRecords).mockReturnValue(
+      queryResult(
+        trainingRecords({
+          items: [
+            { ...ssm!, source: 'paper', slots: [] },
+            { ...ssm!, id: '6f0c3e43-0c1b-4f4b-8a1e-0000000000a3', source: 'paper', slots: [] },
+            psi!,
+          ],
+        })
+      )
+    );
+    mountPortal(signedIn(), '/');
+
+    expect((await screen.findByTestId('training-summary-paper-ssm')).textContent).toBe(
+      '2 instruiri de pe fișa pe hârtie, semnate acolo.'
+    );
+    expect(screen.queryByTestId('training-summary-paper-psi')).toBeNull();
+  });
+
   it('says a domain without a training has none recorded yet, and nothing else', async () => {
     vi.mocked(useListPortalTrainingRecords).mockReturnValue(
       queryResult(
@@ -323,6 +344,21 @@ describe('Instruiri', () => {
       'Semnat pe hârtie (verificator).',
     ]);
     expect(within(records[1]!).queryByTestId('training-record-signed')).toBeNull();
+  });
+
+  it('says a training from the paper sheet was transcribed and signed there', async () => {
+    const [first, second] = trainingRecords().items;
+    vi.mocked(useListPortalTrainingRecords).mockReturnValue(
+      queryResult(trainingRecords({ items: [{ ...first!, source: 'paper', slots: [] }, second!] }))
+    );
+    mountPortal(signedIn(), '/instruiri');
+
+    const records = await screen.findAllByTestId('training-record');
+    expect(within(records[0]!).getByTestId('training-record-paper').textContent).toBe(
+      'Transcris de pe fișa pe hârtie. Semnat pe hârtie.'
+    );
+    expect(within(records[0]!).queryByTestId('training-record-signed')).toBeNull();
+    expect(within(records[1]!).queryByTestId('training-record-paper')).toBeNull();
   });
 
   it('counts the records of a ready sheet and says when it was last updated', async () => {

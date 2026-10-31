@@ -76,6 +76,8 @@ The review is a hub of sections with a status each, after the GOV.UK patterns "C
 
 ### The employee import
 
+(Detailed and replaced by [ADR 032](adr-032-employees-imported-from-training-sheets.md), 2026-10-31, with steps 9 and 10 of the order of work. This section stands as first written.)
+
 The member uploads the sheets' photographs or scans. Each photograph is read on its own; the pages of one person are grouped by the name, the CNP and the order they came in, and photographs the reading cannot place are offered to assign to a person or leave out. Per person: name, CNP, birth date and place, address, education, qualification, blood group, commute, job title as written, hire date, employee number and the training rows (date, kind, duration, trainer), with every unreadable field marked.
 
 - **A job title is matched to the client's positions.** One that matches none is a choice between the existing positions and adding it as a new one; a position is never created silently.
@@ -146,6 +148,8 @@ Each step is a pull request in one stack, on this ADR.
 
 9. Reading sheets: the photograph prompt and schema, grouping pages into people, matching positions and existing employees, in `packages/import` and the API.
 10. The app: the entry on the Angajați tab, the upload with thumbnails, the people hub, the person page with the photo column, confirming into employees, training records and their files.
+
+(Steps 9 and 10 are replaced by the order of work of [ADR 032](adr-032-employees-imported-from-training-sheets.md).)
 
 ## Defaults taken instead of asking
 

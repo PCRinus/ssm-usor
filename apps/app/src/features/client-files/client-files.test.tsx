@@ -366,7 +366,7 @@ describe('uploading client files', () => {
     mount();
     const user = userEvent.setup({ applyAccept: false });
     const large = pdf('scan.pdf');
-    Object.defineProperty(large, 'size', { value: 21 * 1024 * 1024 });
+    Object.defineProperty(large, 'size', { value: 26 * 1024 * 1024 });
     const certificate = pdf('certificat.pdf');
 
     const dialog = await openUploadDialog(user);
@@ -375,7 +375,7 @@ describe('uploading client files', () => {
       true
     );
     expect(dialog.textContent).toContain(
-      'PDF, imagini, Word sau Excel, de cel mult 20 MB fiecare.'
+      'PDF, imagini, Word sau Excel, de cel mult 25 MB fiecare.'
     );
     await user.upload(within(dialog).getByTestId('client-files-input'), [
       new File(['MZ'], 'setup.exe'),
@@ -390,7 +390,7 @@ describe('uploading client files', () => {
       rows.slice(0, 2).map((row) => within(row).getByTestId('client-file-upload-error').textContent)
     ).toEqual([
       'Se pot încărca doar fișiere PDF, JPEG, PNG, Word și Excel.',
-      'Fișierul depășește 20 MB.',
+      'Fișierul depășește 25 MB.',
     ]);
     expect(rows[2]!.textContent).toContain('PDF · 1 KB');
     expect(within(dialog).getByTestId('client-files-upload-submit').textContent).toBe(
@@ -754,6 +754,7 @@ describe('the import folder', () => {
     name: name.replace(/\.[^.]+$/, ''),
     originalFileName: name,
     importId,
+    importKind: 'client',
     importPath: path,
     importRead: read,
     importReason: read ? null : 'Fișierul este protejat cu parolă.',
@@ -811,5 +812,89 @@ describe('the import folder', () => {
     await waitFor(() => expect(saved).toHaveLength(1));
     expect(saved[0]!.type).toBe('application/zip');
     expect(saved[0]!.size).toBeGreaterThan(3 * 4);
+  });
+
+  it("shows the scanned sheets of an employee import among the client's files as a folder of their own", async () => {
+    mockApi({
+      items: [
+        {
+          ...imported('66666666-6666-4666-8666-666666666666', 'Fise scanate.pdf', null),
+          importKind: 'employees',
+        },
+      ],
+    });
+    mount();
+
+    const folder = await screen.findByTestId('client-import-folder');
+    expect(within(folder).getByTestId('client-import-folder-title').textContent).toBe(
+      'Fișe importate pe 27.10.2026 · un fișier'
+    );
+    expect(folder.textContent).toContain(
+      'Fișele scanate din care au fost transcrise instruirile. Fiecare angajat are la fișierele sale doar paginile lui.'
+    );
+    expect(
+      within(folder).getByTestId('client-import-folder-toggle').getAttribute('aria-label')
+    ).toBe('Deschide fișele importate');
+  });
+
+  it("shows an employee's sheet photographs from an import as an open folder of their own", async () => {
+    const photo = (id: string, name: string) => ({
+      ...imported(id, name, null),
+      employee: trainingSheet.employee,
+      mimeType: 'image/jpeg',
+      sizeBytes: 500_000,
+    });
+    mockApi({
+      items: [
+        trainingSheet,
+        photo('44444444-4444-4444-8444-444444444444', 'IMG_3110.jpg'),
+        photo('55555555-5555-4555-8555-555555555555', 'IMG_3111.jpg'),
+      ],
+    });
+    mount(employeePath);
+
+    const card = await screen.findByTestId('employee-files-card');
+    const folder = await within(card).findByTestId('client-import-folder');
+    expect(within(folder).getByTestId('client-import-folder-title').textContent).toBe(
+      'Fișe importate pe 27.10.2026 · 2 fișiere'
+    );
+    expect(folder.textContent).toContain(
+      'Fotografiile și paginile scanate din care au fost transcrise instruirile. Originalele pe hârtie rămân la client.'
+    );
+    expect(
+      within(folder).getByTestId('client-import-folder-toggle').getAttribute('aria-label')
+    ).toBe('Restrânge fișele importate');
+    expect(within(folder).getByTestId('client-import-folder-zip').textContent).toBe(
+      'Descarcă fișele (ZIP)'
+    );
+    expect(
+      within(card)
+        .getAllByTestId('client-file-row')
+        .map((row) => within(row).getByTestId('client-file-open').textContent)
+    ).toEqual(['Fișă de instruire 2019', 'IMG_3110', 'IMG_3111']);
+  });
+
+  it("lists an employee's pages of a scanned PDF in the order of the pages", async () => {
+    const page = (n: number) => ({
+      ...imported(
+        `${n}${n}${n}${n}${n}${n}${n}${n}-0000-4000-8000-00000000000${n}`,
+        `Fise — pagina ${n}.jpg`,
+        null
+      ),
+      employee: trainingSheet.employee,
+      mimeType: 'image/jpeg',
+      sizeBytes: 300_000,
+    });
+    const pages = [5, 3, 10, 4, 1, 7, 2, 6].map(page);
+    mockApi({ items: pages });
+    mount(employeePath);
+
+    const card = await screen.findByTestId('employee-files-card');
+    await within(card).findByTestId('client-import-folder');
+    expect(
+      within(card)
+        .getAllByTestId('client-file-row')
+        .map((row) => within(row).getByTestId('client-file-open').textContent)
+    ).toEqual([1, 2, 3, 4, 5].map((n) => `Fise — pagina ${n}`));
   });
 });
