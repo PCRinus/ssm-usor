@@ -349,6 +349,19 @@ describe('toEmployeePayload', () => {
     });
   });
 
+  it('blocks a second person proposed as the employee another one completes', () => {
+    const { proposal, check, map } = setUp(popFront, comanFront);
+    const pop = idOf(proposal, 'Pop');
+    const coman = idOf(proposal, 'Coman');
+    check(pop, coman);
+    proposal.people.find((person) => person.id === coman)!.existing = {
+      employeeId: existingPop.id,
+      matchedBy: 'name_birth_date',
+    };
+
+    expect(map().blockers).toEqual([{ path: `people.${coman}.existing`, code: 'invalid' }]);
+  });
+
   it('moves a page to another person, and leaves one out', () => {
     const { proposal, changes, check, map } = setUp(comanFront, comanPeriodic, tomaFront);
     const coman = idOf(proposal, 'Coman');

@@ -328,6 +328,7 @@ export function toEmployeePayload(input: {
   const files: EmployeeFilePayloadRow[] = [];
   const cnps = new Map<string, string>();
   const numbers = new Map<string, string>();
+  const completed = new Set<string>();
 
   for (const person of written) {
     const change = changes.people[person.id];
@@ -337,6 +338,8 @@ export function toEmployeePayload(input: {
       ? records.employees.find((employee) => employee.id === person.existing!.employeeId)
       : undefined;
     if (person.existing && !existing) block(path, 'unknown_reference');
+    if (existing && completed.has(existing.id)) block(`${path}.existing`, 'invalid');
+    if (existing) completed.add(existing.id);
 
     const values = {} as Record<EmployeeImportFieldName, Value | null>;
     const replace: string[] = [];

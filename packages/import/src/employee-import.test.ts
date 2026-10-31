@@ -234,6 +234,32 @@ describe('toEmployeeProposal', () => {
     expect(rusu.fields.rhFactor.options[0]!.value).toBe('-');
   });
 
+  it('groups a name written surname last with the same person, matched once', () => {
+    const proposal = toEmployeeProposal({
+      pages: pagesOf(
+        page({
+          pageKind: 'ssm_sheet_front',
+          person: { lastName: 'Pop', firstName: 'Elena' },
+          fields: { birthDate: '1990-07-20' },
+        }),
+        page({
+          pageKind: 'psi_sheet_front',
+          person: { lastName: 'Elena', firstName: 'Pop' },
+          fields: { birthDate: '1990-07-20' },
+        })
+      ),
+      client,
+      themes,
+      today,
+    });
+
+    expect(proposal.people).toHaveLength(1);
+    expect(proposal.people[0]!.existing).toEqual({
+      employeeId: existingPop.id,
+      matchedBy: 'name_birth_date',
+    });
+  });
+
   it('completes an existing employee: the app’s values beside the sheet’s, its trainings hidden', () => {
     const proposal = propose();
     const pop = personNamed(proposal, 'Pop');
