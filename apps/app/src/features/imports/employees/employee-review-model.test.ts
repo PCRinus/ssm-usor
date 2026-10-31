@@ -25,6 +25,7 @@ import {
   nextToCheck,
   notesOf,
   peopleViews,
+  personName,
   type Proposal,
   reopened,
   resolveField,
@@ -173,6 +174,33 @@ describe('resolving a field', () => {
     const pop = twoDates.people.find((each) => each.id === 'pop')!;
     expect(resolveField(context, pop, 'hiredAt')).toMatchObject({ choice: true, value: null });
     expect(decisionsOf(context, pop).map((decision) => decision.key)).toContain('choice-hiredAt');
+  });
+
+  it('names a person whose pages disagree on the name by the one most pages give', () => {
+    const twoNames = {
+      ...proposal,
+      people: proposal.people.map((each) =>
+        each.id === 'pop'
+          ? {
+              ...each,
+              fields: {
+                ...each.fields,
+                lastName: {
+                  options: [
+                    { value: 'Popa', pageIds: ['p3'] },
+                    { value: 'Pora', pageIds: ['p3'] },
+                  ],
+                },
+              },
+            }
+          : each
+      ),
+    } as Proposal;
+    const context = { ...contextOf(), proposal: twoNames };
+    const pop = twoNames.people.find((each) => each.id === 'pop')!;
+
+    expect(resolveField(context, pop, 'lastName').choice).toBe(true);
+    expect(personName(context, pop)).toMatch(/^Popa /);
   });
 });
 
