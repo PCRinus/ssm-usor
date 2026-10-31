@@ -90,7 +90,7 @@ export interface ImportObjectList {
 /** IMP05: the real size of a file breaks the import's caps. */
 export class ImportLimitError extends Error {
   constructor() {
-    super('The import holds at most 150 files and 100 MiB, each file at most 20 MiB.');
+    super('The import breaks the caps of its kind.');
     this.name = 'ImportLimitError';
   }
 }
