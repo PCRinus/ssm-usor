@@ -11,7 +11,7 @@ export const trainingSourceLabels: Record<TrainingSource, string> = {
 
 export const paperTrainingBadge = 'Transcris de pe fișa pe hârtie';
 
-// The slots `recordSlots` in the API gives a record held in the app.
+// The same slots the API's `recordSlots` gives a training held in the app.
 export function paperSignedLine(record: { verifier: unknown; admission: unknown }) {
   const slots: SignerSlot[] = [
     'trainee',
