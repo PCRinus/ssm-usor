@@ -188,7 +188,9 @@ describe('ensureTestSheet', () => {
     });
     const [path, written] = files.writeDocument.mock.calls[0]!;
     expect(path).toMatch(
-      new RegExp(`^test-sheets/${clientId}/${employeeId}/${resultId}/v1-[0-9a-f]{8}\\.pdf$`)
+      new RegExp(
+        `^${organizationId}/test-sheets/${clientId}/${employeeId}/${resultId}/v1-[0-9a-f]{8}\\.pdf$`
+      )
     );
     const [insert] = callsTo('/rest/v1/test_sheets', 'POST');
     expect(insert!.secret).toBe(true);

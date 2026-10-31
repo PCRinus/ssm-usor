@@ -16847,7 +16847,7 @@ export const getUpdateEmployeeStatusUrl = (clientId: string, employeeId: string)
 };
 
 /**
- * Terminating needs the leave date, on or after the hire date. Reactivating clears it and is meant for undoing a mistake; a rehire after a gap is a new employee.
+ * Terminating needs the leave date, on or after the hire date. Reactivating clears it and is meant for undoing a mistake; a rehire after a gap is a new employee. The CNP and the employee number are unique among current employees, so reactivating is refused while a current employee holds either.
  * @summary Mark an employee as former, or reactivate one
  */
 export const updateEmployeeStatus = async (

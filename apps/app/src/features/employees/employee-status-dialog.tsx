@@ -40,6 +40,7 @@ export interface EmployeeStatusChange {
 function serverMessage(cause: unknown) {
   if (cause instanceof ApiHttpError) {
     if (cause.status === 404) return 'Angajatul nu mai există la acest client.';
+    if (cause.status === 409) return conflictMessage(cause.body as Partial<ApiErrorResponse>);
     if (cause.status === 401) {
       return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
     }
@@ -48,6 +49,20 @@ function serverMessage(cause: unknown) {
     }
   }
   return 'Nu am putut salva modificarea. Verifică conexiunea și încearcă din nou.';
+}
+
+function conflictMessage(body: Partial<ApiErrorResponse> | undefined) {
+  if (body?.reason === 'client_archived') {
+    return 'Clientul este arhivat; situația angajaților nu se mai schimbă.';
+  }
+  const message = body?.message ?? '';
+  if (message.includes('CNP')) {
+    return 'Nu poate fi reactivat: un angajat actual al clientului are același CNP, de obicei rândul adăugat la reangajare.';
+  }
+  if (message.includes('number')) {
+    return 'Nu poate fi reactivat: un angajat actual al clientului are aceeași marcă, de obicei rândul adăugat la reangajare.';
+  }
+  return 'Situația angajatului nu a putut fi schimbată. Reîncarcă pagina și încearcă din nou.';
 }
 
 // Marking a leaver asks for the leave date; reactivating is for undoing a mistake, since a

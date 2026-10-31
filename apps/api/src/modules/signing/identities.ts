@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 
-import { type AdminClient, adminClient } from '../../lib/admin-db';
+import { type AdminClient, createLastingAdminClient } from '../../lib/admin-db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import {
@@ -98,7 +98,7 @@ export function identityStore(admin: AdminClient): IdentityStore {
  */
 export async function createSigningIdentities(c: Context<ApiEnv>) {
   const ca = await loadSigningCa(c.env);
-  const store = identityStore(adminClient(c.env));
+  const store = identityStore(createLastingAdminClient(c));
   return {
     chainPem: [ca.certificatePem],
     identityFor: (accountId: string, subjectName: string) =>

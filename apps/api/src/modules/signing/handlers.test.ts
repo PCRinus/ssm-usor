@@ -679,7 +679,8 @@ describe('the portal’s request lists', () => {
       },
     });
     const [call] = callsTo('/rest/v1/signature_requests');
-    expect(call!.secret).toBe(false);
+    expect(call!.secret).toBe(true);
+    expect(call!.url.searchParams.get('client_id')).toBe(`eq.${clientId}`);
     expect(call!.url.searchParams.get('select')).not.toMatch(/cnp|notes/);
     const [sheets] = callsTo('/rest/v1/test_sheets');
     expect(sheets!.secret).toBe(true);
@@ -851,9 +852,9 @@ describe('the signing agreement', () => {
     expect(response.status).toBe(200);
     const [employee] = callsTo('/rest/v1/employees');
     expect(employee!.url.searchParams.get('id')).toBe(`eq.${employeeId}`);
+    expect(employee!.url.searchParams.get('client_id')).toBe(`eq.${clientId}`);
     expect(employee!.url.searchParams.get('select')).not.toContain('cnp');
-    const [templates] = callsTo('/rest/v1/document_templates');
-    expect(templates!.secret).toBe(false);
+    expect(employee!.secret).toBe(true);
     const [read] = callsTo(
       '/storage/v1/object/sign/document-templates/built-in/signing_agreement/v1.docx',
       'POST'
@@ -1024,7 +1025,7 @@ describe("the client's signing agreements for the administrator", () => {
     ]);
     expect(body.items[0]!.agreement.employeeSignedAt).toBe('2026-10-02T09:00:00.000Z');
     const [query] = callsTo('/rest/v1/employee_signing_agreements');
-    expect(query!.secret).toBe(false);
+    expect(query!.secret).toBe(true);
     expect(query!.url.searchParams.get('client_id')).toBe(`eq.${clientId}`);
     expect(query!.url.searchParams.get('or')).toBe(
       '(state.eq.signed_electronically,and(state.eq.generated,employee_signed_at.not.is.null,employer_signed_at.is.null))'

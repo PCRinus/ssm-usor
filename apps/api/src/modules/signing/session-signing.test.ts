@@ -472,7 +472,7 @@ const readAgreementTemplate = () =>
   );
 
 const employeeDigest = () =>
-  agreementDigest({ env: signingEnv } as Context<ApiEnv>, {
+  agreementDigest({ env: signingEnv, get: () => undefined } as unknown as Context<ApiEnv>, {
     clientId,
     employeeId,
     party: 'employee',
@@ -1101,7 +1101,9 @@ describe('the signing agreement signed in a portal session', () => {
     });
     const [written, bytes] = sheetFiles.writeDocument.mock.calls[0]!;
     expect(written).toMatch(
-      new RegExp(`^signing-agreements/${clientId}/${employeeId}/v1-[0-9a-f]{8}\\.pdf$`)
+      new RegExp(
+        `^${organizationId}/signing-agreements/${clientId}/${employeeId}/v1-[0-9a-f]{8}\\.pdf$`
+      )
     );
     expect(new TextDecoder().decode(bytes)).toBe('%PDF signed');
     const [evidence] = callsTo('/rest/v1/agreement_signatures', 'POST');

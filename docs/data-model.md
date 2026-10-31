@@ -108,6 +108,41 @@ Writes made during an impersonation carry the target's organization but the admi
 id in `created_by`. The API routes and the banner for starting and ending impersonations are a
 follow-up; the schema, policies, and pgTAP tests already cover the mechanism.
 
+The row is the record of the impersonation, so the admin writes it once and then only ends it
+([ADR 033](architecture/adr-033-audit-log.md)): `authenticated` inserts only `admin_user_id`,
+`target_user_id`, `reason` and `expires_at`, so `started_at` is always `now()`, and updates only
+`ended_at`, which a trigger stamps with the moment of ending; an ended row is not changed again
+(`IMS01`), and nothing is deleted. `impersonations_expiry_within_two_hours` holds `expires_at` to
+at most two hours after `started_at`, the column's default, for every writer.
+
+## Audit log
+
+`audit.events` records who wrote what in the tables that hold personal data or legally binding
+records ([ADR 033](architecture/adr-033-audit-log.md)): one event per row inserted, updated or
+deleted, with the table, the row's key, its organization, the names of the changed columns
+(`changed_columns`; the filled ones on an insert, none on a delete), and for a few columns per
+table that say nothing about a person, such as a state, a role or a stage, the `[old, new]`
+values in `details`. Never the value of a personal field: the event says `cnp` changed, not what
+it was. ADR 033 lists the audited tables and the kept columns, and why the others are left out.
+
+| Column                  | Notes                                                                                                                                                 |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `action`                | `insert`, `update`, `delete`, `impersonation_started`, `impersonation_ended` or `client_deleted`.                                                     |
+| `actor_id`              | The account that acted: `auth.uid()` on a user's token; on the secret key, the account the API names in `x-audit-actor`; null for the service or SQL. |
+| `impersonating_user_id` | The member the actor was acting as during an impersonation.                                                                                           |
+| `source`                | `user`, `api` (secret key with an actor), `service` (secret key without one) or `database`.                                                           |
+| `transaction_id`        | Groups the events of one request.                                                                                                                     |
+
+`audit.record_changes()` runs as three statement-level triggers (`audit_insert`, `audit_update`,
+`audit_delete`) per audited table, with transition tables, so a bulk statement writes its events
+in one insert. The header is believed only when the request's `role` is `service_role`, which
+only the secret key reaches; a user's token sending it is recorded as the user. The schema is not
+exposed by PostgREST and no API role has a privilege on it; support reads it with SQL. Events
+are never changed or deleted: `AUD01` on any update, delete or truncate, whoever runs it.
+`delete_archived_client` records one `client_deleted` event naming the client, and sets
+`audit.suppressed` for its own transaction so the rows it deletes record nothing. How long
+events are kept is not decided, and nothing deletes them.
+
 ## Clients
 
 `clients` stores the client companies of an organization, and its leads (ADR 007):
@@ -180,8 +215,10 @@ service contracts, and the client. The guards that keep evidence for good
 again before it returns; the foreign keys stay on, so a table it forgets fails the call. It
 returns the objects to remove as `(bucket, path)`: those its rows name, and every object under the
 client's prefixes (`<organization>/<client>/` in `documents` and `client-files`,
-`signed-sheets/<client>/`, `test-sheets/<client>/` and `signing-agreements/<client>/` in
-`documents`, `<organization>/<import>/` in `imports`), since a sheet's earlier versions are kept
+`<organization>/signed-sheets/<client>/`, `<organization>/test-sheets/<client>/` and
+`<organization>/signing-agreements/<client>/` in `documents`, with `signed-sheets/<client>/`,
+`test-sheets/<client>/` and `signing-agreements/<client>/` for the evidence stored before it moved
+under the organization, `<organization>/<import>/` in `imports`), since a sheet's earlier versions are kept
 and no row names them. The objects themselves are the API's to remove, through Storage.
 
 ### Leads
@@ -774,9 +811,8 @@ employee (`P0002`, `participant_not_found` or `attempt_not_found`, otherwise):
 | `finish_test_attempt(attempt, address, agent)`                                     | Scores and finishes: a question counts only when the options chosen are exactly the correct ones, and `passed` is a score of at least 70% of `total`, seven of ten. A pass inserts the test result while the test still awaits the employee, so an attempt left open across a paper pass gives no second one.                                                                                                                                                |
 | `test_study_card(participant, domain, test)`                                       | The explanations of the test's active questions, for the study card.                                                                                                                                                                                                                                                                                                                                                                                         |
 
-Members read their organization's attempts and participants their own employee's, each finished
-question marked right or wrong but never which option is correct. The client administrator
-reads none.
+Members read their organization's attempts, each finished question marked right or wrong but
+never which option is correct; the portal shows an employee their own through the API.
 
 ### Test results
 
@@ -798,8 +834,8 @@ PSI", else the trainer and job title of the employee's latest introductory gener
 the domain, which for occupational safety is the specialist. A member records a paper result
 (only `source = 'paper'`, for an active client) and updates `taken_on`, `material` and the
 examiner; a portal result changes only in its examiner and is not deleted (`TST06`,
-`result_from_attempt`). Members read their organization's results, participants their own, the
-client administrator the client's. Once the examiner has signed the result's test sheet,
+`result_from_attempt`). Members read their organization's results; the portal shows an employee
+their own and the client administrator the client's, through the API. Once the examiner has signed the result's test sheet,
 electronically or on paper, its examiner no longer changes (`TST07`, `examiner_signed`); before
 that, a change of examiner voids the pending examiner request with `signer_changed`
 ([test sheets](#test-sheets)).
@@ -1069,8 +1105,12 @@ the secret key. In `documents`, a member reads everything under their organizati
 and can upload, replace, or delete a file only where a draft revision of their organization
 says it lives (`is_draft_document_path`). Issuing a revision therefore locks its file as
 well as its row, and tenancy and impersonation apply to files exactly as they do to rows,
-because the policies use `current_organization_id()`. Supabase's database backups cover these
-rows but not the files (issue #77).
+because the policies use `current_organization_id()`. Every file of `documents` is under its
+organization, the signing evidence too (`<organization>/signed-sheets/…`, `…/test-sheets/…`,
+`…/signing-agreements/…`); since a member chooses a draft's path and the policies open the files
+it names, no revision's path may have one of those folders second
+(`document_revisions_path_not_evidence`). Supabase's database backups cover these rows but not
+the files (issue #77).
 
 ### Documents behind and regeneration jobs
 
@@ -1638,8 +1678,8 @@ A **participant** is a person of a client who signs in to the portal
 ([ADR 022](architecture/adr-022-participants-and-the-portal.md)): an `employee` or the
 `client_administrator` (`participant_kind`). A participant is not a member: the account has no
 row in `organization_members`, so `current_organization_id()` is null and every members' policy
-yields nothing. They read through policies of their own and write only their test attempts, through the
-functions of [Knowledge tests](#knowledge-tests). One account may hold
+yields nothing. Their token reads none of a client's tables either (below) and writes only their
+test attempts, through the functions of [Knowledge tests](#knowledge-tests). One account may hold
 a membership and participations at once; the app's routes act on the membership, the portal's
 on the participations.
 
@@ -1689,31 +1729,16 @@ A client, employee or invitation that is not the caller's raises `P0002` with
 `client_not_found`, `employee_not_found` or `invitation_not_found`; a caller without a
 membership `42501`.
 
-The participant policies, all `select` for `authenticated`, are built on `security definer`
-helpers that read the caller's active participations: `participant_client_ids()`,
-`participant_employee_ids()` (the employee rows of either kind) and `administered_client_ids()`,
-each an array compared as `column = any ((select …)::uuid[])` so it is read once per query and
-an index can serve it. `is_client_administrator(client)` answers the same for one client.
-
-| Table                        | An employee reads                       | An administrator also reads  |
-| ---------------------------- | --------------------------------------- | ---------------------------- |
-| `clients`                    | their clients                           |                              |
-| `organizations`              | the provider of their clients           |                              |
-| `employees`                  | their own row                           | every employee of the client |
-| `training_records`           | their own                               | the client's                 |
-| `trainings`                  | the trainings they attended             | the client's                 |
-| `job_positions`              | their own position                      | the client's                 |
-| `client_workplaces`          | every workplace of their clients        |                              |
-| `client_fire_safety`         | their clients' row (training intervals) |                              |
-| `client_responsible_persons` |                                         | the client's                 |
-| `document_templates`         | the built-in per-employee templates     |                              |
-| `client_participants`        | their own participations                |                              |
-
-The workplaces are all the client's because a sheet names the workplace only at a client with
-more than one. `employee_training_status` is a security-invoker view, so it follows the rows
-above; `document_template_versions` follows its templates, the two training sheets and the
-signing agreement (`20261018110000_signing_agreement_policy.sql`). Storage has no participant policy
-yet: a template file read for a participant needs the API's secret key or a policy of its own.
+**What a participant's token reads.** Only their own `client_participants` rows, and, as any
+signer, the signature requests addressed to them and the signatures they gave
+([who reads what](#who-reads-what)). A policy chooses rows, not columns, and members share the
+`authenticated` role, so a participant policy on a client's tables would let the token select
+every column straight from PostgREST: the CNP, the blood group, the specialist's notes, the
+provider's bank account. The portal's routes read with the API's secret key instead, once
+`requireParticipant` has resolved the caller's participations through `current_participations()`,
+each read filtered by that participation's client (and employee) and naming the columns the screen
+shows (`20261101194000_participants_read_through_the_api.sql`, ADR 022's amendment of
+2026-11-01). A new table gets no participant policy; a new portal screen is a new API read.
 
 ### The phone in E.164
 
@@ -1829,15 +1854,17 @@ change allowed is `withdrawn` (`20261018150000_agreement_withdrawal.sql`), which
 `employer`, one row each by a unique key), the signer's account and printed name, the code's
 `channel`, `address`, `code_sent_at` and `code_verified_at`, `signed_at`, both digests of the file,
 the certificate serial, `client_ip`, `user_agent`, the `signing_session_id` and `storage_path`, the
-file this signature produced, all required but the client's. Before the insert a trigger locks the
+file this signature produced, all required but the client's. The path starts with the
+organization (`agreement_signatures_path_in_organization`, not valid: older rows name files under
+`signing-agreements/`, as do the agreements they settled). Before the insert a trigger locks the
 agreement and requires it `generated` and awaiting this party, the employee's evidence existing
 before the employer's (`SIG10`, `agreement_not_awaiting`); the signer to be the employee's own
 active participant for `employee` and an active client administrator of the client for `employer`
 (`SIG10`, `agreement_signer_not_party`); and the session as for a training signature (`SIG09`).
 After the insert a trigger moves the agreement on: `storage_path` and `employee_signed_at`, or
 `storage_path`, `employer_signed_at`, `signed_at` and `signed_electronically`. Any update, delete
-or truncate raises `SIG06`. Members read their organization's, participants the ones on their own
-agreement, administrators the client's; nobody but the secret key writes.
+or truncate raises `SIG06`. Members read their organization's and signers their own; nobody but
+the secret key writes.
 
 **The evidence columns participants cannot read.** On `training_signatures` and
 `agreement_signatures`, `authenticated` has `SELECT` on the columns that say who signed what and
@@ -1857,8 +1884,9 @@ typed.
 
 `signed_sheets` is an individual training sheet stored as a PDF form for signing: one per
 `employee_id`, `domain` and `sequence`, the continuation sheets counting up, with its
-`storage_path`, the `digest` (SHA-256, hex) and `version` of the current bytes, the `row_capacity`
-of periodic rows and the `rows_used`, the highest `p` row taken (a voided row's key is never
+`storage_path` (starting with the organization, `signed_sheets_path_in_organization`, not valid
+for the older sheets stored under `signed-sheets/`), the `digest` (SHA-256, hex) and
+`version` of the current bytes, the `row_capacity` of periodic rows and the `rows_used`, the highest `p` row taken (a voided row's key is never
 reused), and `certified_at` from its first signature. `signed_sheet_rows` says which
 `training_record_id` fills which `row_key` of a sheet: `h1` and `h2` for the hiring trainings, `adm`
 for the admission, `p1` and onward for the periodic rows, and `s1` and onward for the occupational
@@ -1886,8 +1914,9 @@ the freeze below concerns records only. A result with a row is not deleted (`235
 
 `test_sheets` is the **test sheet** of one passing attempt (ADR 024), stored as a PDF form for the
 trainee's and the examiner's signatures: `test_result_id` (unique, by `(test_result_id,
-client_id)`), the `employee_id` of the result by `(employee_id, client_id)`, the `storage_path`,
-`digest` (SHA-256, hex) and `version` of the current file, `generated_at`, and `certified_at` from
+client_id)`), the `employee_id` of the result by `(employee_id, client_id)`, the `storage_path`
+(starting with the organization, `test_sheets_path_in_organization`, not valid for the older
+sheets stored under `test-sheets/`), `digest` (SHA-256, hex) and `version` of the current file, `generated_at`, and `certified_at` from
 its first signature. A trigger requires the result to be a portal one of the same employee
 (`23514`, `test_sheet_not_of_attempt`): a paper result has no test sheet, its test being signed on
 the printed test. A table of its own rather than columns on `test_results`: the sheet is a file
@@ -1963,19 +1992,17 @@ They insert requests naming only `organization_id`, `client_id`, `training_recor
 `signer_account_id` (the column grant), `pending` and issued by themselves, for an active client,
 write the agreements, and change the rest only through the functions above.
 
-| Table                         | Anyone reads                   | An employee participant reads              | An administrator also reads |
-| ----------------------------- | ------------------------------ | ------------------------------------------ | --------------------------- |
-| `signature_requests`          | the requests addressed to them | those on their own records and test sheets | the client's                |
-| `training_signatures`         | their own signatures           | those on their own records                 | the client's                |
-| `test_sheets`                 |                                | their own                                  | the client's                |
-| `test_sheet_signatures`       | their own signatures           | those on their own test sheets             | the client's                |
-| `employee_signing_agreements` |                                | their own                                  | the client's                |
-| `agreement_signatures`        | their own signatures           | those on their own agreement               | the client's                |
-| `signed_sheets`               |                                | their own                                  | the client's                |
-| `signed_sheet_rows`           |                                | the rows of their own sheets               | the client's                |
+| Table                   | Any signer reads, member or participant |
+| ----------------------- | --------------------------------------- |
+| `signature_requests`    | the requests addressed to them          |
+| `training_signatures`   | their own signatures                    |
+| `test_sheet_signatures` | their own signatures                    |
+| `agreement_signatures`  | their own signatures                    |
 
-"Them" is the real signed-in user, as in the other participant policies; the two evidence tables
-only in the columns above. Errors, raised with these SQLSTATEs:
+"Them" is the real signed-in user; the evidence tables only in the columns above. Participants
+read nothing else here: the portal shows an employee their records, sheets, agreement and the
+signatures on them, and the client administrator the client's, through the API
+([participants](#participants)). Errors, raised with these SQLSTATEs:
 
 - `SIG01` the record is signed: `record_signed` for a change to what it prints,
   `record_has_signatures` for a delete

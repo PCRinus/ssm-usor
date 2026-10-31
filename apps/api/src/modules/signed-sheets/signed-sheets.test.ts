@@ -285,7 +285,9 @@ describe('ensureSignedSheet', () => {
       rowsUsed: 2,
     });
     expect(sheet.storagePath).toMatch(
-      new RegExp(`^signed-sheets/${owner.clientId}/${employeeId}/ssm-1/v2-[0-9a-f]{8}\\.pdf$`)
+      new RegExp(
+        `^${owner.organizationId}/signed-sheets/${owner.clientId}/${employeeId}/ssm-1/v2-[0-9a-f]{8}\\.pdf$`
+      )
     );
     expect(drawn[0]!.form.rows).toMatchObject({ p1: false, p2: true });
     expect(drawn[0]!.periodic.map((row) => row.heldOn)).toEqual(['01.04.2025']);

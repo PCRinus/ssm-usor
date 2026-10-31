@@ -201,7 +201,7 @@ async function cleanUp() {
       .select('id, storage_path')
       .eq('employee_id', employeeId);
     const ids = (sheets.data ?? []).map((sheet) => sheet.id);
-    const prefix = (sheets.data ?? [])[0]?.storage_path.split('/').slice(0, 3).join('/');
+    const prefix = (sheets.data ?? [])[0]?.storage_path.split('/').slice(0, -2).join('/');
     await db.from('signed_sheet_rows').delete().in('signed_sheet_id', ids);
     await db.from('signed_sheets').delete().in('id', ids);
     if (prefix) {

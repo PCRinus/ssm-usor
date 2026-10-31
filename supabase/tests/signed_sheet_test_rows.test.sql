@@ -26,8 +26,8 @@ insert into public.test_results (id, organization_id, client_id, employee_id, do
   ('7e7e7e7e-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000002', 'ssm', 'hiring', '2026-01-06', 'Test de verificare a cunoștințelor la angajare (TASSM)', 'Ana SPECIALIST', 'Inspector SSM', 'paper');
 
 insert into public.signed_sheets (id, organization_id, client_id, employee_id, domain, storage_path, digest, row_capacity) values
-  ('5d5d5d5d-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'ssm', 'sheets/ion-ssm-1.pdf', repeat('d', 64), 17),
-  ('5d5d5d5d-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'psi', 'sheets/ion-psi-1.pdf', repeat('d', 64), 17);
+  ('5d5d5d5d-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'ssm', '11111111-0000-4000-8000-000000000001/sheets/ion-ssm-1.pdf', repeat('d', 64), 17),
+  ('5d5d5d5d-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'psi', '11111111-0000-4000-8000-000000000001/sheets/ion-psi-1.pdf', repeat('d', 64), 17);
 
 select lives_ok(
   $$ insert into public.signed_sheet_rows (signed_sheet_id, client_id, row_key, test_result_id)

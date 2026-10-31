@@ -3,6 +3,7 @@
 - Status: accepted
 - Date: 2026-10-17
 - Amended 2026-10-31: CAPTCHA is on for the portal's code requests; see the amendment below.
+- Amended 2026-11-01: a participant's token reads none of a client's tables; the portal reads through the API with the secret key. See the amendment below.
 
 ## Context
 
@@ -92,6 +93,14 @@ A participant whose employee is terminated keeps the portal: the records stay, a
 - An auth user is created when an invitation is sent, not when it is accepted, so `auth.users` holds addresses of people who have not signed in; the invitation row says why each exists.
 - Costs: email codes are free; an SMS invitation plus a code is two messages, about $0.16 to a Romanian number, per employee without an email, then one code per sign-in. Twilio bills by the number's country, not the person's: Moldova is about twice the Romanian rate, Ukraine three times, Nepal four, Sri Lanka five, and some countries restrict senders, so delivery to a new country is verified at the first such employee rather than promised.
 - The glossary gains participant, client administrator, participant invitation and portal; `docs/data-model.md` and `docs/api.md` change with the pull requests.
+
+## Amendment (2026-11-01): the portal reads through the API, not the participant's token
+
+The participant policies chose the rows a participant reads but not the columns, and a policy cannot choose columns. The portal's routes named their columns, but the publishable key is in every browser and the participant holds a Supabase session, so the token could query PostgREST directly: a client administrator could select every employee's CNP, birth date, home address, blood group and Rh, and the specialist's notes, for the whole client, and the provider's bank account; an employee could read the notes on their own row and on the trainings they attended. A pre-launch audit found it before any real client used the portal.
+
+Column grants cannot fix it, since members and participants are the same `authenticated` role and members read every column. Security definer functions per screen were considered and set aside: the portal's reads embed records, trainings, requests and signatures, and rewriting them as functions returning JSON would duplicate the shapes the API already builds and types. The policies that chose a participant's rows are dropped instead, with the helpers only they called (`participant_client_ids`, `participant_employee_ids`, `administered_client_ids`, `is_client_administrator`). The API reads the portal's data with the secret key once `requireParticipant` has resolved the account's participations through `current_participations()`, which runs as the caller; every such read filters by that participation's client, and by its employee for an employee, and names the columns the screen shows. That was already how the portal read other people's records for a workplace manager or an examiner. The employee's own data screen and the sheets still show the employee's own birth date, address and blood group, which the individual training sheet prints, and the client administrator still downloads every employee's sheet and signing agreement as the employer; neither ever shows the CNP or the notes.
+
+A participant's token now reads only their own `client_participants` rows, and, as any signer does, the signature requests addressed to them and the signatures they gave, without the evidence columns no member reads either. The definer functions the portal calls (`current_participations`, the notice, the language, the knowledge tests, the material) answer for the caller's own participation as before. The decision at the top that "a participant acts under policies of their own" is replaced by this: a participant reads nothing of a client through policies, and a new table never gets a participant policy; a new portal screen is a new API read.
 
 ## Order of work
 

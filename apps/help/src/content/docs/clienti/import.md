@@ -203,7 +203,7 @@ O fișă cu data plecării e propusă nebifată. Bifează **Preia-l ca fost anga
 
 Când persoana se potrivește cu un fost angajat al clientului, vezi asta pe pagina ei. Dacă fișa scrie o dată a angajării de după plecarea lui, persoana a fost reangajată, iar în aplicație o reangajare e un angajat nou (vezi [Reangajarea](/clienti/angajati/plecare/#reangajarea)). Importul nu reactivează fostul angajat, iar persoana are ceva de hotărât până alegi una dintre:
 
-- o creezi ca angajat nou; CNP-ul și marca le scrii doar pe unul dintre rânduri, ca la orice reangajare;
+- o creezi ca angajat nou; importul nu-i trece CNP-ul și marca fostului angajat, iar după import le poți completa pe rândul nou;
 - corectezi data angajării, dacă a fost citită greșit;
 - o lași deoparte.
 

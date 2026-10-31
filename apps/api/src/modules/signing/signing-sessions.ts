@@ -1,7 +1,7 @@
 import { type ParticipantChannel, signatureErrorReasons } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
-import { type AdminClient, adminClient } from '../../lib/admin-db';
+import { type AdminClient, createLastingAdminClient } from '../../lib/admin-db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 
@@ -353,7 +353,7 @@ export function signingCodeSender(env: ApiEnv['Bindings']): SigningCodeSender {
 }
 
 export function signingSessionsOf(c: Context<ApiEnv>) {
-  const store = signingSessionStore(adminClient(c.env));
+  const store = signingSessionStore(createLastingAdminClient(c));
   return {
     create: (
       input: Parameters<typeof createSigningSession>[1],

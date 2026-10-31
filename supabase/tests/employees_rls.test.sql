@@ -1,5 +1,5 @@
 begin;
-select plan(20);
+select plan(24);
 
 -- Fixtures: two organizations with one member and one client each, plus an archived client in A.
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -170,6 +170,31 @@ select throws_ok(
 select lives_ok(
   $$ update public.employees set status = 'active', terminated_at = null where last_name = 'Nou' $$,
   'a member can reactivate a former employee'
+);
+
+select lives_ok(
+  $$ update public.employees set status = 'terminated', terminated_at = '2026-09-20' where last_name = 'Din nou' $$,
+  'a member can mark the holder of a CNP and an employee number as former'
+);
+
+select lives_ok(
+  $$ insert into public.employees (organization_id, client_id, last_name, first_name, job_title, hired_at, cnp, employee_number)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Revenit', 'Ion', 'Sudor', '2026-10-01', '1900101400127', 'A-1') $$,
+  'a rehire after a gap takes the CNP and the employee number of the former employment'
+);
+
+select throws_like(
+  $$ update public.employees set status = 'active', terminated_at = null where last_name = 'Din nou' $$,
+  '%employees_client_cnp_key%',
+  'a former employment cannot be reactivated while a current one holds its CNP'
+);
+
+update public.employees set cnp = null where last_name = 'Revenit';
+
+select throws_like(
+  $$ update public.employees set status = 'active', terminated_at = null where last_name = 'Din nou' $$,
+  '%employees_client_employee_number_key%',
+  'a former employment cannot be reactivated while a current one holds its employee number'
 );
 
 select throws_ok(

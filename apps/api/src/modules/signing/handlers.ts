@@ -28,7 +28,7 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore, createFileStore } from '../../lib/files';
-import { participationOf } from '../../lib/participant';
+import { createPortalReadClient, participationOf } from '../../lib/participant';
 import { requirePdfConverter } from '../../lib/pdf';
 import { collator } from '../../lib/romanian';
 import { builtInTemplates, merge } from '../documents/documents';
@@ -404,8 +404,8 @@ export const listClientSignatureRequests: RouteHandler<
   );
 };
 
-// Policies choose the rows a participant reads, not the columns: every portal select names its
-// columns, so the CNP and the notes never leave.
+// Read with the secret key: every portal select names its columns, so the CNP and the notes never
+// leave.
 const portalRecordColumns =
   'id, occupation, admitted_on, admitted_by_name, admitted_by_job_title, employees(id, last_name, first_name, employee_signing_agreements(state, employee_signed_at, employer_signed_at)), trainings(domain, phase, held_on, duration_minutes, material, trainer_name, trainer_job_title, verifier_name, verifier_job_title, supplementary_reason)';
 
@@ -639,15 +639,14 @@ export const listPortalClientSignatureRequests: RouteHandler<
 > = async (c) => {
   const { participantId } = c.req.valid('param');
   const participation = participationOf(c, participantId);
-  // Checked here and not left to the policies: an account that is also a member reads every
-  // request of the organization through the members' policies.
+  // Checked here, since the read takes the secret key.
   if (participation.kind !== 'client_administrator') {
     throw new ApiError(
       'forbidden',
       "Only the client administrator sees the client's signature requests."
     );
   }
-  const { data, error } = await createDataClient(c)
+  const { data, error } = await createPortalReadClient(c)
     .from('signature_requests')
     .select(portalRequestColumns)
     .eq('client_id', participation.clientId)
@@ -978,8 +977,6 @@ function ownEmployee(c: Context<ApiEnv>, participantId: string) {
   return { clientId: participation.clientId, employeeId: participation.employeeId };
 }
 
-// Storage lets only members read the templates. The participant reads the template's registry
-// row through their own policy, so the path the secret key reads is one they may use.
 export const getPortalSigningAgreement: RouteHandler<
   typeof getPortalSigningAgreementRoute,
   ApiEnv
@@ -987,7 +984,7 @@ export const getPortalSigningAgreement: RouteHandler<
   const { participantId } = c.req.valid('param');
   const drawn = await signingAgreementPdf(
     c,
-    createDataClient(c),
+    createPortalReadClient(c),
     ownEmployee(c, participantId),
     createAdminFileStore(c).readTemplate
   );
@@ -1000,11 +997,10 @@ export const getPortalSigningAgreementState: RouteHandler<
 > = async (c) => {
   const { participantId } = c.req.valid('param');
   const { clientId, employeeId } = ownEmployee(c, participantId);
-  return c.json(await agreementOf(createDataClient(c), clientId, employeeId), 200);
+  return c.json(await agreementOf(createPortalReadClient(c), clientId, employeeId), 200);
 };
 
-// Checked here and not left to the policies, as for the client's requests: a member reads every
-// agreement of the organization through the members' policies.
+// Checked here, as for the client's requests, since the reads take the secret key.
 function administeredClient(c: Context<ApiEnv>, participantId: string) {
   const participation = participationOf(c, participantId);
   if (participation.kind !== 'client_administrator') {
@@ -1023,7 +1019,7 @@ export const listPortalSigningAgreements: RouteHandler<
 > = async (c) => {
   const { participantId } = c.req.valid('param');
   const clientId = administeredClient(c, participantId);
-  const { data, error } = await createDataClient(c)
+  const { data, error } = await createPortalReadClient(c)
     .from('employee_signing_agreements')
     .select(
       `${agreementColumns}, employees!employee_signing_agreements_employee_of_client(id, last_name, first_name)`
@@ -1061,7 +1057,7 @@ export const getPortalEmployeeSigningAgreement: RouteHandler<
   const clientId = administeredClient(c, participantId);
   const drawn = await signingAgreementPdf(
     c,
-    createDataClient(c),
+    createPortalReadClient(c),
     { clientId, employeeId },
     createAdminFileStore(c).readTemplate
   );

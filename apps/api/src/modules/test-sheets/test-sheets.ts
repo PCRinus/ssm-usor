@@ -12,7 +12,7 @@ import {
 import { buildTestSheetData, testSheetTypeKey } from '@ssm-usor/document-engine';
 import type { Context } from 'hono';
 
-import { type AdminClient, adminClient } from '../../lib/admin-db';
+import { type AdminClient, createLastingAdminClient } from '../../lib/admin-db';
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
@@ -62,7 +62,7 @@ export type TestSheetDeps = {
 };
 
 export const testSheetDeps = (c: Context<ApiEnv>): TestSheetDeps => ({
-  admin: adminClient(c.env),
+  admin: createLastingAdminClient(c),
   sheets: signedSheetContext(c),
 });
 
@@ -113,10 +113,10 @@ async function sha256(bytes: Uint8Array) {
 // Every version is a file of its own, as a signed sheet's: the evidence's digest before a
 // signature names a file that still exists.
 const storagePathOf = (
-  sheet: Pick<TestSheetRow, 'client_id' | 'employee_id' | 'test_result_id'>,
+  sheet: Pick<TestSheetRow, 'organization_id' | 'client_id' | 'employee_id' | 'test_result_id'>,
   version: number
 ) =>
-  `test-sheets/${sheet.client_id}/${sheet.employee_id}/${sheet.test_result_id}/v${version}-${crypto.randomUUID().slice(0, 8)}.pdf`;
+  `${sheet.organization_id}/test-sheets/${sheet.client_id}/${sheet.employee_id}/${sheet.test_result_id}/v${version}-${crypto.randomUUID().slice(0, 8)}.pdf`;
 
 const examinerValues = (result: Pick<ResultRow, 'examiner_name' | 'examiner_job_title'>) => ({
   [testSheetFieldNames.examinerName]: result.examiner_name?.trim() ?? '',
@@ -230,6 +230,7 @@ export async function ensureTestSheet(
   const filled = new Uint8Array(await signer.fillFields(prepared, examinerValues(result)));
   const path = storagePathOf(
     {
+      organization_id: result.organization_id,
       client_id: result.client_id,
       employee_id: result.employee_id,
       test_result_id: result.id,

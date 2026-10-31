@@ -14,7 +14,7 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
-import { participationOf } from '../../lib/participant';
+import { createPortalReadClient, participationOf } from '../../lib/participant';
 import { fileNameOf } from '../documents/documents';
 import { clientIpOf } from '../signing/session-signing';
 import {
@@ -101,7 +101,7 @@ function ownAttempt(attempt: AttemptRow, participantId: string) {
 export const getPortalTests: RouteHandler<typeof getPortalTestsRoute, ApiEnv> = async (c) => {
   const { participantId } = c.req.valid('param');
   const { clientId, employeeId } = testedEmployee(c, participantId);
-  const db = createDataClient(c);
+  const db = createPortalReadClient(c);
   const [employee, results, finished, inProgress] = await Promise.all([
     db
       .from('employees')
@@ -245,9 +245,9 @@ export const finishPortalTestAttempt: RouteHandler<
 > = async (c) => {
   const { participantId, attemptId } = c.req.valid('param');
   testedEmployee(c, participantId);
-  const db = createDataClient(c);
+  const reader = createPortalReadClient(c);
   // Checked before the finish, which answers for the account and cannot be taken back.
-  const drawn = await db
+  const drawn = await reader
     .from('test_attempts')
     .select('id')
     .eq('id', attemptId)
@@ -255,13 +255,13 @@ export const finishPortalTestAttempt: RouteHandler<
     .maybeSingle();
   if (drawn.error) throw fromDatabaseError(drawn.error, 'attempt to finish');
   if (!drawn.data) throw new ApiError('not_found', 'This attempt is not of this participation.');
-  const { data, error } = await db.rpc('finish_test_attempt', {
+  const { data, error } = await createDataClient(c).rpc('finish_test_attempt', {
     p_attempt_id: attemptId,
     ...evidenceOf(c),
   });
   if (error) throw fromTestFunction(error, 'finish test attempt');
   const attempt = ownAttempt(data, participantId);
-  if (attempt.passed) await afterPass(c, db, attempt.id);
+  if (attempt.passed) await afterPass(c, reader, attempt.id);
   // Which option was correct is never answered (ADR 024).
   const mistakes = attempt.passed
     ? []
@@ -305,14 +305,13 @@ export const getPortalMaterial: RouteHandler<typeof getPortalMaterialRoute, ApiE
 };
 
 // The employee reads their own results' sheets; the client administrator any employee's of the
-// client, checked here as for the client's requests, since an account that is also a member
-// reads every result of the organization through the members' policies.
+// client. Checked here, since the read takes the secret key.
 export const getPortalTestSheet: RouteHandler<typeof getPortalTestSheetRoute, ApiEnv> = async (
   c
 ) => {
   const { participantId, resultId } = c.req.valid('param');
   const participation = participationOf(c, participantId);
-  let query = createDataClient(c)
+  let query = createPortalReadClient(c)
     .from('test_results')
     .select(
       'id, domain, test, taken_on, source, employee_id, employees!test_results_employee_of_client(last_name, first_name)'

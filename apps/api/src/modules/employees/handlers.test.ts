@@ -663,6 +663,27 @@ describe('PATCH /clients/{clientId}/employees/{employeeId}/status', () => {
     expect(JSON.parse(String(patch[1]?.body))).toEqual({ status: 'active', terminated_at: null });
   });
 
+  it('refuses to reactivate while a current employee holds the CNP', async () => {
+    mockUpstream({
+      employees: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json(
+              {
+                code: '23505',
+                message:
+                  'duplicate key value violates unique constraint "employees_client_cnp_key"',
+              },
+              { status: 409 }
+            )
+          : Response.json([{ id: employeeRow.id, hired_at: employeeRow.hired_at }]),
+    });
+    const response = await patchStatus({ status: 'active' });
+    expect(response.status).toBe(409);
+    const error = apiErrorResponseSchema.parse(await response.json());
+    expect(error.error).toBe('conflict');
+    expect(error.message).toContain('CNP');
+  });
+
   it('rejects a leave date before the hire date with a field issue', async () => {
     mockUpstream({
       employees: () => Response.json([{ id: employeeRow.id, hired_at: employeeRow.hired_at }]),

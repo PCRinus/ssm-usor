@@ -23,7 +23,11 @@ insert into public.import_files (id, import_id, organization_id, upload_path, or
 
 select has_column('public', 'import_files', 'source_file_id', 'an import''s file names the found photograph it copies');
 
-select fk_ok('public', 'import_files', 'source_file_id', 'public', 'import_files', 'id', 'and that photograph is a file of an import');
+select fk_ok(
+  'public', 'import_files', array['source_file_id', 'organization_id'],
+  'public', 'import_files', array['id', 'organization_id'],
+  'and that photograph is a file of an import of the same organization'
+);
 
 select is(
   (select source_file_id from public.import_files where id = 'f0000000-0000-4000-8000-000000000002'),

@@ -581,8 +581,10 @@ describe('GET /portal/participants/{participantId}/training-records', () => {
     expect(text).not.toMatch(/notifiedAt|issuedAt|voidReason|requestId/);
 
     const [records] = calls('/rest/v1/training_records');
-    expect(records!.headers.get('Authorization')).toBe('Bearer user-token');
+    expect(records!.headers.get('Authorization')).toBe(`Bearer ${env.SUPABASE_SECRET_KEY}`);
     const query = records!.url.searchParams;
+    expect(query.get('employee_id')).toBe(`eq.${employeeId}`);
+    expect(query.get('client_id')).toBe(`eq.${clientId}`);
     expect(query.get('select')).toContain(
       'signature_requests!signature_requests_record_of_client('
     );
@@ -678,9 +680,9 @@ describe('the sheets', () => {
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(storedSheetBytes);
     const [signed] = calls(`/storage/v1/object/sign/documents/${storedSheetRow.storage_path}`);
     expect(signed?.headers.get('Authorization')).toBe(`Bearer ${env.SUPABASE_SECRET_KEY}`);
-    expect(calls('/rest/v1/signed_sheets')[0]?.headers.get('Authorization')).toBe(
-      'Bearer user-token'
-    );
+    const [sheets] = calls('/rest/v1/signed_sheets');
+    expect(sheets?.headers.get('Authorization')).toBe(`Bearer ${env.SUPABASE_SECRET_KEY}`);
+    expect(sheets?.url.searchParams.get('client_id')).toBe(`eq.${clientId}`);
     expect(convertDocx).not.toHaveBeenCalled();
   });
 
@@ -697,7 +699,7 @@ describe('the sheets', () => {
     );
     expect(signed?.headers.get('Authorization')).toBe(`Bearer ${env.SUPABASE_SECRET_KEY}`);
     expect(calls('/rest/v1/document_templates')[0]?.headers.get('Authorization')).toBe(
-      'Bearer user-token'
+      `Bearer ${env.SUPABASE_SECRET_KEY}`
     );
   });
 
@@ -828,5 +830,36 @@ describe("the client administrator's places", () => {
 
     expect(response.status).toBe(403);
     expect(calls('/rest/v1/client_responsible_persons')).toEqual([]);
+  });
+});
+
+describe("the participant's token", () => {
+  it.each([
+    own('/training-records'),
+    own('/data'),
+    own('/sheets'),
+    own('/sheets/ssm'),
+    administered('/employees'),
+    administered('/responsible-persons'),
+    administered(`/employees/${colleagueId}/training-records`),
+    administered(`/employees/${colleagueId}/sheets`),
+  ])('reads no table for %s, which the database would refuse it', async (path) => {
+    mockUpstream();
+
+    await request(path);
+
+    const tableReads = fetchMock.mock.calls
+      .map(([input, init]) => ({
+        url: new URL(String(input)),
+        headers: new Headers(init?.headers),
+      }))
+      .filter(
+        ({ url }) =>
+          url.pathname.startsWith('/rest/v1/') && !url.pathname.startsWith('/rest/v1/rpc/')
+      );
+    expect(tableReads.length).toBeGreaterThan(0);
+    for (const { headers } of tableReads) {
+      expect(headers.get('Authorization')).toBe(`Bearer ${env.SUPABASE_SECRET_KEY}`);
+    }
   });
 });

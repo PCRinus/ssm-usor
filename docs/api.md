@@ -740,7 +740,12 @@ Routes acting for a signed-in user need only the publishable key. The waitlist a
 signed in, so it uses `createAdminClient(c)` from `src/lib/admin-db.ts`, which holds
 `SUPABASE_SECRET_KEY` and bypasses row-level security. Import that client only in a module
 with the same need; never reach for it to work around a policy. The invitations module is the
-second, for the three things listed below.
+second, for the three things listed below. Inside a request, `createAdminClient(c)` and
+`createLastingAdminClient(c)` (for a write that must finish when the caller disconnects, as
+the signing evidence) send the signed-in account's id in `x-audit-actor`, which the audit log
+names as the actor of the write ([ADR 033](architecture/adr-033-audit-log.md)); build a
+secret-key client for a user only through them, never with `adminClient(env)`, which names
+nobody and is for the queues and the webhook.
 Supabase owns its Auth schema; business tables live in SQL migrations
 and are protected by row-level security. User-editable `user_metadata` never grants permissions.
 
@@ -1119,8 +1124,8 @@ and answers `403` when the account has none. It never looks at a membership: a m
 also a participant uses the portal as the participant. A route for one participation takes its
 `participantId` from the path and answers `404` for one that is not the caller's. The
 employee's routes answer `404` for a client administrator who is not an employee; the
-administrator's routes answer `403` to an employee, checked in the API because an account that
-is also a member reads more through the members' policies than the participant's would give.
+administrator's routes answer `403` to an employee, checked in the API because the portal's reads
+take the secret key (below).
 
 A responsible person reads as the decisions name them: `fullName`, `jobTitle`, the `roles` as
 keys (the contracts' `responsiblePersonRoleLabels` word them), `employeeId` or null for someone
@@ -1132,18 +1137,22 @@ has, derived by the same rule as `GET /clients/{clientId}/training-records/{reco
 (`recordSlots` in `src/modules/signing/record-slots.ts`), each cut to `slot`, `state`,
 `signedAt`, `signerName` and `signerJobTitle`, which the signed sheet prints. The request, the
 addressed account, the delivery times and the void reason, which is the member's own words, stay
-with the specialist. The request and signature rows come embedded in the records query, read as
-the participant: the participants' and the client administrators' policies on
-`signature_requests` and `training_signatures` cover the records they read. The portal says a
+with the specialist. The request and signature rows come embedded in the records query. The
+portal says a
 slot that is `signed` or `paper`; a `void` one reads as not signed, and a live request shows
 through the signature requests list. A record's `source` is its training's: one from `paper`
 has no slots, its signatures being on the paper sheet.
 
-Policies choose the rows a participant reads, not the columns, so every portal query names its
-columns and every response is built field by field into a schema of its own in
-`packages/contracts/src/participants.ts`: never the CNP, the specialist's notes, a training's
-notes, or the organization's bank, contract and terms details. Nothing of the app's responses
-is reused as-is. A new portal route does the same.
+**The participant's token reads no table of a client** ([ADR 022](architecture/adr-022-participants-and-the-portal.md),
+amended 2026-11-01): a policy chooses rows, not columns, and the token can query PostgREST
+directly. The portal's reads take the secret key through `createPortalReadClient` in
+`src/lib/participant.ts`, which only works after `requireParticipant`; every one filters by the
+participation's client, and by its employee for an employee's route, names its columns, and is
+built field by field into a schema of its own in `packages/contracts/src/participants.ts`: never
+the CNP, the specialist's notes, a training's notes, or the organization's bank, contract and
+terms details. Nothing of the app's responses is reused as-is. A new portal route does the same.
+The participant's own token still calls the definer functions (`current_participations`, the
+notice, the language, the tests, the material) and reads the signature requests addressed to it.
 
 **The tests.** A participant never reads `test_questions`, whose options carry the key: the
 draw, the answers and the finish are the definer functions `start_test_attempt`,
@@ -1170,12 +1179,10 @@ own participation, and the API reads its PDF with the secret key. No Storage pol
 manifest flag were added: the function is the one place that says which documents the portal
 shows.
 
-The secret key reads files for the sheets and the signing agreement: a template from Storage
-with `createAdminFileStore`, because Storage's template policy admits members only, and a stored
-signed sheet's or agreement's file the same way. The participant reads the template's registry
-row, the signed sheet's row and the agreement's row through their own policies, so the paths the
-secret key reads are ones they are allowed. Signing, below, is the other exception. Everything
-else runs as the participant.
+The secret key also reads files for the sheets and the signing agreement: a template from
+Storage with `createAdminFileStore`, because Storage's template policy admits members only, and a
+stored signed sheet's or agreement's file the same way, each from a row read for the
+participation's client and employee.
 
 ## Knowledge tests
 
@@ -1287,7 +1294,7 @@ the options chosen, the score and total), the employee's name and position, the 
 code and title and the day, converts it with `convertForm`, makes `test_sig_trainee` and
 `test_sig_examiner` signature fields with `prepareSheet`, fills `test_examiner_name` and
 `test_examiner_job_title` from the result, and stores it at
-`test-sheets/{clientId}/{employeeId}/{resultId}/v1-{nonce}.pdf` in the documents bucket with its
+`{organizationId}/test-sheets/{clientId}/{employeeId}/{resultId}/v1-{nonce}.pdf` in the documents bucket with its
 `test_sheets` row; two calls racing keep one sheet. Then `issueTestSheetRequests` asks the
 trainee, the employee's own active participant (none while their agreement is `withdrawn`), and
 the examiner: the member whose profile name is the result's examiner by `samePerson`, as a slot's
@@ -1418,10 +1425,10 @@ member's own pending requests in the membership's organization, never a trainee'
 account that is also an employee signs in the portal. A request whose client, record, employee or
 training a policy hides is left out of a list rather than failing it. The portal's items carry
 the record as its row of the sheet prints it and `signerName`, the person the slot prints. Both
-portal lists read the request rows as the participant, then those records and test sheets, by id
-and client, with the secret key: a workplace manager signs other employees' admissions, and an
-examiner who is a participant other employees' test sheets, which the participant policies do not
-show. The administrator's list is refused to an employee with `403`.
+portal lists read the request rows, the employee's addressed to them as the participant and the
+administrator's for the client with the secret key, then those records and test sheets, by id and
+client, with the secret key: a workplace manager signs other employees' admissions, and an
+examiner who is a participant other employees' test sheets. The administrator's list is refused to an employee with `403`.
 
 **The signing agreement** is drawn up like an individual training sheet: merged from the
 `signing_agreement` template with `buildSigningAgreementData` (the employee, the client's legal
@@ -1431,8 +1438,7 @@ has one, else the phone; with neither it answers `409` with `employee_has_no_add
 the client's legal representative's name or role it answers `409` with `missing_document_data`
 and `client.representativeName` or `client.representativeRole` under `missing`, as the documents
 do; `PUT …/state` with `generated` refuses the same way. The portal reads its template with the
-secret key, as the sheets do, after the participant's own policy has shown the registry row
-(`20261018110000_signing_agreement_policy.sql`). `PUT …/state` takes `generated`,
+secret key, as the sheets do. `PUT …/state` takes `generated`,
 `signed_on_paper`, `withdrawn` (the employee went back to signing by hand: the database voids
 their pending trainee requests and no new one is issued while it stands) or `in_contract` (a new
 hire whose contract carries the clause, which counts as agreed), inserts the row or updates only
@@ -1562,7 +1568,7 @@ it is given (a paper copy keeps them blank). The employee signs first: the agree
 as on demand, its digest compared with the one the session item kept (`agreement_changed` when
 it differs), converted with `convertForm`, the two fields made signature fields by
 `prepareSheet`, and `sig_employee` signed with `certify: true` and nothing locked; the file is stored at
-`signing-agreements/{clientId}/{employeeId}/v1-{nonce}.pdf` in the documents bucket and the
+`{organizationId}/signing-agreements/{clientId}/{employeeId}/v1-{nonce}.pdf` in the documents bucket and the
 `agreement_signatures` row written with it as `storage_path`, which moves the agreement on in the
 database. The administrator then signs `sig_employer` on that file, whose digest must match the
 employee's evidence and the session item, without certifying, into `v2-{nonce}.pdf`; the evidence

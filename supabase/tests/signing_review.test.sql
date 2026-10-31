@@ -1,5 +1,5 @@
 begin;
-select plan(63);
+select plan(64);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -85,8 +85,8 @@ insert into public.signing_session_items (session_id, position, request_id) valu
   ('5e5e5e5e-0000-4000-8000-000000000004', 0, '9a9a9a9a-0000-4000-8000-000000000003');
 
 insert into public.signed_sheets (id, organization_id, client_id, employee_id, domain, storage_path, digest, row_capacity, certified_at) values
-  ('5d5d5d5d-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'ssm', 'sheets/ion-ssm-1.pdf', repeat('d', 64), 17, now()),
-  ('5d5d5d5d-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'e2e2e2e2-0000-4000-8000-000000000001', 'ssm', 'sheets/alt-ssm-1.pdf', repeat('d', 64), 17, null);
+  ('5d5d5d5d-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'ssm', '11111111-0000-4000-8000-000000000001/sheets/ion-ssm-1.pdf', repeat('d', 64), 17, now()),
+  ('5d5d5d5d-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'e2e2e2e2-0000-4000-8000-000000000001', 'ssm', '11111111-0000-4000-8000-000000000001/sheets/alt-ssm-1.pdf', repeat('d', 64), 17, null);
 
 insert into public.signed_sheet_rows (signed_sheet_id, client_id, row_key, training_record_id) values
   ('5d5d5d5d-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'p1', '7a7a7a7a-0000-4000-8000-000000000003'),
@@ -122,7 +122,7 @@ returns text language sql security definer as $$
   select state || coalesce(':' || void_reason, '') from public.signature_requests where id = p_id;
 $$;
 
-create or replace function pg_temp.agreement_signature(p_employee uuid, p_party text, p_session uuid)
+create or replace function pg_temp.agreement_signature(p_employee uuid, p_party text, p_session uuid, p_path text default null)
 returns void language sql as $$
   insert into public.agreement_signatures (
     organization_id, client_id, employee_id, party, signer_account_id, signer_name, channel, address,
@@ -131,7 +131,8 @@ returns void language sql as $$
   )
   select '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', p_employee,
     p_party, s.account_id, 'Semnatar', s.channel, s.address, now(), now(), repeat('a', 64),
-    repeat('b', 64), '01', s.id, 'signing-agreements/' || p_party || '.pdf'
+    repeat('b', 64), '01', s.id,
+    coalesce(p_path, '11111111-0000-4000-8000-000000000001/signing-agreements/' || p_party || '.pdf')
   from public.signing_sessions s where s.id = p_session;
 $$;
 
@@ -223,9 +224,9 @@ select is(
 
 
 select pg_temp.act_as('dddddddd-0000-4000-8000-000000000001');
-select is(
-  (select signer_name from public.training_signatures where request_id = '9a9a9a9a-0000-4000-8000-000000000002'),
-  'Semnatar', 'the employee reads who signed their record'
+select is_empty(
+  $$ select signer_name from public.training_signatures where request_id = '9a9a9a9a-0000-4000-8000-000000000002' $$,
+  'the employee reads no one else''s signature on their record: the portal reads it through the API'
 );
 select throws_ok(
   $$ select address from public.training_signatures $$,
@@ -430,13 +431,19 @@ select throws_ok(
   $$ select pg_temp.agreement_signature('e1e1e1e1-0000-4000-8000-000000000001', 'employee', '5e5e5e5e-0000-4000-8000-000000000003') $$,
   'SIG10', 'agreement_signer_not_party', 'the administrator does not sign as the employee'
 );
+select throws_ok(
+  $$ select pg_temp.agreement_signature('e1e1e1e1-0000-4000-8000-000000000001', 'employee', '5e5e5e5e-0000-4000-8000-000000000001',
+       'signing-agreements/c1c1c1c1-0000-4000-8000-000000000001/e1e1e1e1-0000-4000-8000-000000000001/v1-abcd1234.pdf') $$,
+  '23514', 'new row for relation "agreement_signatures" violates check constraint "agreement_signatures_path_in_organization"',
+  'an agreement''s signed file is under its organization'
+);
 select lives_ok(
   $$ select pg_temp.agreement_signature('e1e1e1e1-0000-4000-8000-000000000001', 'employee', '5e5e5e5e-0000-4000-8000-000000000001') $$,
   'the employee signs their agreement'
 );
 select results_eq(
   $$ select state, storage_path, employee_signed_at is not null from public.employee_signing_agreements where employee_id = 'e1e1e1e1-0000-4000-8000-000000000001' $$,
-  $$ values ('generated', 'signing-agreements/employee.pdf', true) $$,
+  $$ values ('generated', '11111111-0000-4000-8000-000000000001/signing-agreements/employee.pdf', true) $$,
   'and the agreement records it with the evidence'
 );
 select lives_ok(
@@ -445,7 +452,7 @@ select lives_ok(
 );
 select results_eq(
   $$ select state, storage_path, signed_at = employer_signed_at from public.employee_signing_agreements where employee_id = 'e1e1e1e1-0000-4000-8000-000000000001' $$,
-  $$ values ('signed_electronically', 'signing-agreements/employer.pdf', true) $$,
+  $$ values ('signed_electronically', '11111111-0000-4000-8000-000000000001/signing-agreements/employer.pdf', true) $$,
   'which settles the agreement'
 );
 select throws_ok(

@@ -19,7 +19,7 @@ import {
 import type { Context } from 'hono';
 import type Stripe from 'stripe';
 
-import { adminClient } from '../../lib/admin-db';
+import { createAdminClient } from '../../lib/admin-db';
 import { type ApiEnv, appOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { adminFileStore } from '../../lib/files';
@@ -64,7 +64,7 @@ const subscriptionTab = '/organization/subscription';
 
 function billingOf(c: Context<ApiEnv>): Billing {
   return {
-    db: adminClient(c.env, c.req.raw.signal),
+    db: createAdminClient(c),
     organizationId: c.get('membership').organizationId,
     userId: c.get('user').id,
     now: new Date(),
