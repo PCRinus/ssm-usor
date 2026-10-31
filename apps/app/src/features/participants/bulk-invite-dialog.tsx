@@ -35,6 +35,7 @@ import {
   nameOf,
   rowReasonMessage,
   sendLabel,
+  sentSummary,
   uninvitedCount,
 } from './bulk-invite-format';
 import { participantFailure } from './participant-errors';
@@ -321,11 +322,7 @@ function BulkInviteForm({
             data-testid="bulk-invite-summary"
             className="mt-4"
           >
-            {phase.invited === 0
-              ? 'Nicio invitație nu a plecat.'
-              : `Am trimis ${invitationCount(phase.invited)}.`}
-            {phase.notInvited > 0 &&
-              ` Pentru ${phase.notInvited === 1 ? 'un angajat' : `${phase.notInvited} angajați`} nu a mers: vezi ${phase.notInvited === 1 ? 'rândul lui' : 'rândurile lor'}.`}
+            {sentSummary(phase.invited, phase.notInvited)}
           </Notice>
         )}
         <DialogFooter className="mt-5 items-center gap-3 border-t pt-4 sm:justify-between">

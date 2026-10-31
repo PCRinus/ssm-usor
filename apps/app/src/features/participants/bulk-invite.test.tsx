@@ -13,7 +13,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createQueryClient } from '@/lib/query-client';
 import type { RouterContext } from '@/routes/__root';
 
-import { formerEmployeesSentence, invitationCount, uninvitedCount } from './bulk-invite-format';
+import {
+  formerEmployeesSentence,
+  invitationCount,
+  sentSummary,
+  uninvitedCount,
+} from './bulk-invite-format';
 import { useBulkInvite } from './use-bulk-invite';
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
@@ -289,12 +294,23 @@ describe('inviting the people of an employee import to the portal', () => {
 
 describe('bulk invitation wording', () => {
   it.each([
+    [0, '0 invitații'],
     [1, 'o invitație'],
     [4, '4 invitații'],
     [20, '20 de invitații'],
     [101, '101 invitații'],
   ])('counts %i as %s', (count, label) => {
     expect(invitationCount(count)).toBe(label);
+  });
+
+  it('says what was sent and for how many it did not work', () => {
+    expect(sentSummary(0, 20)).toBe(
+      'Nicio invitație nu a plecat. Pentru 20 de angajați nu a mers: vezi rândurile lor.'
+    );
+    expect(sentSummary(3, 1)).toBe(
+      'Am trimis 3 invitații. Pentru un angajat nu a mers: vezi rândul lui.'
+    );
+    expect(sentSummary(21, 0)).toBe('Am trimis 21 de invitații.');
   });
 
   it('says how many stay uninvited', () => {
