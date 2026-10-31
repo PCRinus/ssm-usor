@@ -1300,7 +1300,7 @@ async function offeredSheets(db: DataClient, clientId: string) {
       .order('id'),
     db
       .from('import_files')
-      .select('source_file_id, imports!inner(kind, status, client_id)')
+      .select('source_file_id, sha256, imports!inner(kind, status, client_id)')
       .not('source_file_id', 'is', null)
       .eq('imports.kind', 'employees')
       .eq('imports.client_id', clientId)
@@ -1309,8 +1309,14 @@ async function offeredSheets(db: DataClient, clientId: string) {
   if (found.error) throw fromDatabaseError(found.error, 'list found sheets');
   if (taken.error) throw fromDatabaseError(taken.error, 'list taken sheets');
   const takenIds = new Set(taken.data.map((file) => file.source_file_id));
+  // Two client imports of one pack hold the same photograph; reading it twice pays twice.
+  const seen = new Set(taken.data.map((file) => file.sha256));
   return found.data
-    .filter((file) => !takenIds.has(file.id))
+    .filter((file) => {
+      if (takenIds.has(file.id) || seen.has(file.client_file.sha256)) return false;
+      seen.add(file.client_file.sha256);
+      return true;
+    })
     .map((file) => ({
       id: file.id,
       uploadPath: file.upload_path,
@@ -1324,12 +1330,33 @@ const day = (timestamp: string) => romanianDay(timestamp).split('-').reverse().j
 
 const maxUploadPath = 1024;
 
+function numbered(path: string, copy: number) {
+  if (copy === 1) return path;
+  const dot = path.lastIndexOf('.');
+  return dot > path.lastIndexOf('/')
+    ? `${path.slice(0, dot)} (${copy})${path.slice(dot)}`
+    : `${path} (${copy})`;
+}
+
 // The documentation's own folders are kept under one of the import's, so a person's pages stay
 // together and in order, as the upload orders them.
-function foundSheetPath(sheet: OfferedSheet) {
+function foundSheetPath(sheet: OfferedSheet, copy: number) {
   const folder = `Din documentația importată pe ${day(sheet.confirmedAt)}`;
-  const path = `${folder}/${sheet.uploadPath}`;
-  return path.length <= maxUploadPath ? path : `${folder}/${sheet.clientFile.original_file_name}`;
+  const path = `${folder}/${numbered(sheet.uploadPath, copy)}`;
+  return path.length <= maxUploadPath
+    ? path
+    : `${folder}/${numbered(sheet.clientFile.original_file_name, copy)}`;
+}
+
+function foundSheetPaths(sheets: OfferedSheet[], known: Pick<ImportFileRow, 'upload_path'>[]) {
+  const used = new Set(known.map((file) => file.upload_path));
+  return sheets.map((sheet) => {
+    let copy = 1;
+    while (used.has(foundSheetPath(sheet, copy))) copy++;
+    const path = foundSheetPath(sheet, copy);
+    used.add(path);
+    return path;
+  });
 }
 
 // Copies rather than references, so the import holds them as an upload, under its bucket's
@@ -1341,16 +1368,7 @@ async function copyFoundSheets(
   sheets: OfferedSheet[],
   known: Pick<ImportFileRow, 'upload_path'>[]
 ) {
-  const paths = sheets.map(foundSheetPath);
-  if (
-    new Set(paths).size !== paths.length ||
-    known.some((file) => paths.includes(file.upload_path))
-  ) {
-    throw conflict(
-      'A file with this path is in the import already.',
-      importErrorReasons.duplicatePath
-    );
-  }
+  const paths = foundSheetPaths(sheets, known);
   const { data, error } = await admin
     .from('import_files')
     .insert(

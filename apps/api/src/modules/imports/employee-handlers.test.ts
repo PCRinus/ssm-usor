@@ -409,6 +409,40 @@ describe('GET /clients/{clientId}/found-sheets', () => {
     expect(taken!.url.searchParams.get('imports.kind')).toBe('eq.employees');
     expect(taken!.url.searchParams.get('imports.status')).toBe('not.in.(abandoned,failed)');
   });
+
+  it('offers a photograph found twice once, and not at all when an import holds a copy of it', async () => {
+    const later = {
+      ...foundRow(1).imports,
+      id: 'aa000000-0000-4000-8000-000000000003',
+      confirmed_at: '2026-10-20T08:00:00+00:00',
+    };
+    const again = (n: number, of: number) =>
+      foundRow(n, {
+        imports: later,
+        client_file: { ...foundRow(n).client_file, sha256: foundRow(of).client_file.sha256 },
+      });
+    mockUpstream(
+      foundSheets(
+        [foundRow(1), foundRow(2), again(3, 1), again(4, 5)],
+        [
+          {
+            source_file_id: fileId(5),
+            sha256: foundRow(5).client_file.sha256,
+            imports: { kind: 'employees', status: 'ready' },
+          },
+        ]
+      )
+    );
+    const response = await request(`/clients/${clientId}/found-sheets`);
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { items: { sheets: { id: string }[] }[] };
+    expect(body.items.flatMap((group) => group.sheets.map((sheet) => sheet.id))).toEqual([
+      fileId(1),
+      fileId(2),
+    ]);
+    expect(callsTo('/rest/v1/import_files')[1]!.url.searchParams.get('select')).toContain('sha256');
+  });
 });
 
 describe('found sheets taken into an employee import', () => {
@@ -494,6 +528,32 @@ describe('found sheets taken into an employee import', () => {
     const marked = callsTo('/rest/v1/import_files', 'PATCH')[0]!;
     expect(marked.body).toEqual({ state: 'uploaded' });
     expect(marked.url.searchParams.get('id')).toBe(`in.(${fileId(10)},${fileId(11)})`);
+  });
+
+  it('numbers the copies of two photographs that would land on one path', async () => {
+    const sameDay = {
+      ...foundRow(2).imports,
+      id: 'aa000000-0000-4000-8000-000000000003',
+      confirmed_at: '2026-10-12T15:00:00+00:00',
+    };
+    mockUpstream((call) => {
+      const listed = foundSheets(
+        [foundRow(1), foundRow(2, { upload_path: 'Dosar/Fise/Poza 1.jpg', imports: sameDay })],
+        []
+      )(call);
+      return listed ?? adding()(call);
+    });
+    const response = await request(`/imports/${importId}/found-sheets`, 'POST', {});
+
+    expect(response.status).toBe(201);
+    expect(
+      (callsTo('/rest/v1/import_files', 'POST')[0]!.body as { upload_path: string }[]).map(
+        (row) => row.upload_path
+      )
+    ).toEqual([
+      'Din documentația importată pe 12.10.2026/Dosar/Fise/Poza 1.jpg',
+      'Din documentația importată pe 12.10.2026/Dosar/Fise/Poza 1 (2).jpg',
+    ]);
   });
 
   it('creates nothing when the client has no found sheet left', async () => {
