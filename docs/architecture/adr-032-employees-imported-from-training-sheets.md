@@ -124,7 +124,7 @@ These differences in behaviour were accepted when the screens were built (Mircea
 
 ### Usage
 
-The reading is recorded per photograph or page from the first import, with `record_import_usage` against the file, as the client import's scans are. Each photograph or page read is one credit, reserved when the reading starts and returned when unused, under [ADR 030's rule](adr-030-import-from-documents.md#usage-is-counted-in-credits). (Amended 2026-10-31: credits were left to #640.)
+The reading is recorded per photograph or page from the first import, with `record_import_usage` against the file, as the client import's scans are. Each photograph or PDF page read is one credit. All of them are counted before the upload, so an employee import starts only when the credits left cover every page and never takes the balance below zero, under [ADR 030's rule](adr-030-import-from-documents.md#usage-is-counted-in-credits). (Amended 2026-10-31: credits were left to #640.)
 
 ### What this changes in earlier ADRs
 
