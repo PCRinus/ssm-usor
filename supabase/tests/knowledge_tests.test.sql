@@ -742,11 +742,15 @@ select is(
 
 update public.trainings set held_on = '2019-03-04' where id = 'a1a1a1a1-0000-4000-8000-000000000005';
 
+select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
+
 select is(
   (select tests_pending from public.dashboard_summary where organization_id = '11111111-0000-4000-8000-000000000001'),
   2,
   'the dashboard counts the hiring tests that await, never an unverified one'
 );
+
+select pg_temp.act_as_postgres();
 
 insert into public.client_participants (id, organization_id, client_id, kind, employee_id, full_name, user_id) values
   ('9e9e9e9e-0000-4000-8000-000000000005', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'employee', 'e1e1e1e1-0000-4000-8000-000000000005', null, 'dddddddd-0000-4000-8000-000000000005');
