@@ -1425,6 +1425,32 @@ describe('an employee import', () => {
     expect(proposal.pages[2]!.rows[0]!.test).toMatchObject({ test: 'hiring', verified: true });
   });
 
+  it('places a nameless page after the page numbered before it, not after the name sorted before it', async () => {
+    const scans: FileSpec[] = [
+      { path: 'Fise/Scan 1.jpg', mime: 'image/jpeg', bytes: strToU8('jpeg-scan-1') },
+      { path: 'Fise/Scan 10.jpg', mime: 'image/jpeg', bytes: strToU8('jpeg-scan-10') },
+      { path: 'Fise/Scan 2.jpg', mime: 'image/jpeg', bytes: strToU8('jpeg-scan-2') },
+    ];
+    model = sheetModel({
+      'Fise/Scan 1.jpg': sheetAnswers['Fise/Popescu 1.jpg'],
+      'Fise/Scan 2.jpg': sheetAnswers['Fise/Popescu 2.jpg'],
+      'Fise/Scan 10.jpg': sheetAnswers['Fise/Ionescu.pdf (pagina 1)'],
+    });
+    startEmployees(scans);
+    await drain(deps());
+
+    const proposal = employeeImportProposalSchema.parse(world.imports.get(importId)!.proposal);
+    expect(proposal.pages.map((page) => page.label)).toEqual([
+      'Fise/Scan 1.jpg',
+      'Fise/Scan 2.jpg',
+      'Fise/Scan 10.jpg',
+    ]);
+    const popescu = proposal.people.find(
+      (person) => person.fields.lastName.options[0]?.value === 'Popescu'
+    )!;
+    expect(popescu.pageIds).toEqual(['page-1', 'page-2']);
+  });
+
   it('keeps a page the model cannot answer for as unread, and reads the rest', async () => {
     const answers = { ...sheetAnswers };
     delete answers['Fise/Popescu 2.jpg'];

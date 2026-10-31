@@ -946,13 +946,19 @@ export async function checkImport(deps: PipelineDeps, importId: string) {
   });
 }
 
-// In the upload's order, which places a page without a name after the one before it.
+const pathOrder = new Intl.Collator('ro', { numeric: true });
+
+// A page without a name is placed after the one before it, so the order is the one a phone or a
+// scanner numbers its files in: `Scan 2` before `Scan 10`. The rows record no upload position.
 export async function sheetPagesOf(
   deps: Pick<PipelineDeps, 'objects'>,
   files: ImportFileRow[]
 ): Promise<SheetPageInput[]> {
+  const ordered = [...files].sort(
+    (a, b) => pathOrder.compare(a.upload_path, b.upload_path) || a.id.localeCompare(b.id)
+  );
   const pages: SheetPageInput[] = [];
-  for (const entry of await Promise.all(files.map((file) => loadPrepared(deps.objects, file)))) {
+  for (const entry of await Promise.all(ordered.map((file) => loadPrepared(deps.objects, file)))) {
     const sheets = entry.pages?.sheets ?? {};
     for (const page of entry.pages?.pages ?? []) {
       pages.push({
