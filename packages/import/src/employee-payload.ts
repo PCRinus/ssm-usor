@@ -96,10 +96,14 @@ export interface TestResultPayloadRow {
   examiner_job_title: string;
 }
 
-/** A photograph or a PDF, kept as the employee's file in the import's folder. */
+/**
+ * A photograph, or with `page` a page of a PDF, kept as the employee's file in the import's
+ * folder: the photograph's upright copy, the page's image.
+ */
 export interface EmployeeFilePayloadRow {
   employee_key: string;
   import_file_id: string;
+  page?: number;
 }
 
 type Counts = { changed: number; unticked: number; kept: number };
@@ -286,17 +290,22 @@ function fieldsOf(person: ProposedSheetPerson, change: PersonChange | undefined)
 }
 
 /**
- * The files a person's pages become: each photograph, and each PDF a page of theirs is in,
- * whole, so a PDF holding several people's pages is a file of each of them.
+ * The files a person's pages become: each photograph, and each of their own pages of a PDF, so
+ * a PDF holding several people's pages gives each of them only theirs.
  */
 export function sheetFilesOf(
   personId: string,
-  pages: readonly Pick<ProposedSheetPage, 'fileId'>[]
+  pages: readonly Pick<ProposedSheetPage, 'fileId' | 'page'>[]
 ): EmployeeFilePayloadRow[] {
-  return [...new Set(pages.map((page) => page.fileId))].map((fileId) => ({
-    employee_key: personId,
-    import_file_id: fileId,
-  }));
+  const files = new Map<string, EmployeeFilePayloadRow>();
+  for (const { fileId, page } of pages) {
+    files.set(`${fileId}:${page ?? ''}`, {
+      employee_key: personId,
+      import_file_id: fileId,
+      ...(page === null ? {} : { page }),
+    });
+  }
+  return [...files.values()];
 }
 
 /**

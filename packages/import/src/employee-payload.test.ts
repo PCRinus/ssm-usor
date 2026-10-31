@@ -2,7 +2,7 @@ import type { EmployeeImportChanges } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
 import { type EmployeeImportClient, toEmployeeProposal } from './employee-import';
-import { toEmployeePayload } from './employee-payload';
+import { sheetFilesOf, toEmployeePayload } from './employee-payload';
 import type { EmployeeImportProposal } from './employee-proposal';
 import {
   cnps,
@@ -502,5 +502,49 @@ describe('toEmployeePayload', () => {
       rows: { changed: 1, unticked: 1, kept: 3 },
       tests: { changed: 0, unticked: 0, kept: 1 },
     });
+  });
+});
+
+describe('the files of a person', () => {
+  it('give each person on a shared PDF only their own pages', () => {
+    const scan = '00000000-0000-4000-8000-000000000499';
+    const pages = pagesOf(comanFront, comanPeriodic, tomaFront, tomaPeriodic).map(
+      (page, index) => ({
+        ...page,
+        fileId: scan,
+        page: index + 1,
+        label: `Fise.pdf (pagina ${index + 1})`,
+      })
+    );
+    const proposal = toEmployeeProposal({ pages, client, themes, today });
+    const changes = noChanges();
+    const coman = idOf(proposal, 'Coman');
+    const toma = idOf(proposal, 'Toma');
+    for (const id of [coman, toma]) changes.people[id] = { state: 'checked' };
+
+    const { payload } = toEmployeePayload({ proposal, changes, records, today });
+
+    expect(payload.files).toEqual([
+      { employee_key: coman, import_file_id: scan, page: 1 },
+      { employee_key: coman, import_file_id: scan, page: 2 },
+      { employee_key: toma, import_file_id: scan, page: 3 },
+      { employee_key: toma, import_file_id: scan, page: 4 },
+    ]);
+  });
+
+  it('are their photographs and only their own pages of a PDF, each once', () => {
+    const pages = [
+      { fileId: 'photo', page: null },
+      { fileId: 'scan', page: 1 },
+      { fileId: 'scan', page: 3 },
+      { fileId: 'scan', page: 3 },
+      { fileId: 'photo', page: null },
+    ];
+
+    expect(sheetFilesOf('person-1', pages)).toEqual([
+      { employee_key: 'person-1', import_file_id: 'photo' },
+      { employee_key: 'person-1', import_file_id: 'scan', page: 1 },
+      { employee_key: 'person-1', import_file_id: 'scan', page: 3 },
+    ]);
   });
 });
