@@ -17,14 +17,14 @@ import {
   Camera,
   FileText,
   FolderUp,
-  Layers,
   LoaderCircle,
   Plus,
   Upload,
-  UsersRound,
+  X,
 } from 'lucide-react';
 import { type FormEvent, type ReactNode, useRef, useState } from 'react';
 
+import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
 import { useRefuseStrayDrops } from '@/features/client-files/use-file-drop';
@@ -33,12 +33,14 @@ import { useJobPositionOptions } from '@/features/job-positions/use-job-position
 
 import { formatFileSize, photosLabel } from '../import-format';
 import { LocalThumb, SetAsideList, UploadProgress } from '../import-upload-dialog';
+import { LocalPhotoView, PhotoPreviewDialog, type PreviewPhoto } from '../photo-preview-dialog';
 import { pickedFromInput } from '../picked-files';
 import {
   emptySelection,
   mergeSelection,
   openPicked,
   type PickedFile,
+  removeFiles,
   type SelectedFile,
   type Selection,
   selectionTotals,
@@ -47,11 +49,13 @@ import {
 import { useImportDrop } from '../use-import-drop';
 import { busySteps, heldSteps, useImportUpload } from '../use-import-upload';
 import { type FoundBatch, foundIn, foundOn, useFoundSheets } from './found-sheets';
-import { FoundStrip } from './found-strip';
+import { FoundSheetView, FoundStrip, FoundThumb } from './found-strip';
 
 const limits = importLimits.employees;
 const formats = ['JPG', 'PNG', 'HEIC', 'PDF scanat'];
 const shownThumbs = 15;
+// Far below the caps the meters only repeat the count and size the card already shows.
+const metersFrom = 0.8;
 
 const setAsideReasons: Record<SetAsideFile['reason'], string> = {
   unsupported: 'nu e o fotografie sau o scanare',
@@ -145,8 +149,10 @@ function UploadForm({
   });
   const over = totals.overFiles || totals.overBytes;
   const bytesLabel = `${totals.estimated ? 'cam ' : ''}${sizeLabel(totals.bytes)}`;
-  const positionNames = (positions.data?.items ?? []).map((position) => position.name);
-  const noPosts = positions.isSuccess && positionNames.length === 0;
+  const noPosts = positions.isSuccess && (positions.data?.items ?? []).length === 0;
+  const nearLimits =
+    totals.pages >= metersFrom * limits.scannedPages ||
+    totals.bytes >= metersFrom * limits.totalBytes;
   useRefuseStrayDrops();
 
   async function add(picked: Promise<PickedFile[]> | PickedFile[]) {
@@ -222,9 +228,13 @@ function UploadForm({
           <DialogHeader>
             <DialogTitle>Angajați din fișele de instruire</DialogTitle>
             <DialogDescription>
-              Încarcă fotografiile fișelor individuale de instruire ale angajaților de la{' '}
-              {client.legalName}. Le citim și îți propunem angajații și instruirile lor. Nu creăm
-              niciun angajat până nu confirmi, după verificare.
+              <span className="block">
+                Citim fișele de instruire de la {client.legalName} și îți propunem angajații.
+              </span>
+              <span className="block">
+                Nu creăm niciun angajat până nu confirmi.{' '}
+                <HelpLink topic="import.angajati">Află mai mult</HelpLink>
+              </span>
             </DialogDescription>
           </DialogHeader>
           <DialogBody className="mt-4 grid gap-3.5">
@@ -326,11 +336,6 @@ function UploadForm({
                     </span>
                   ))}
                 </div>
-                <p className="max-w-xl text-xs leading-relaxed text-muted-foreground">
-                  Arhivele ZIP le deschidem aici, înainte de încărcare. Într-un import intră până la{' '}
-                  {limits.scannedPages} de fotografii sau pagini PDF, cel mult 25 MB un fișier și 1
-                  GB în total. Fotografiile le micșorăm înainte de încărcare.
-                </p>
                 <input
                   ref={filesInput}
                   type="file"
@@ -392,6 +397,8 @@ function UploadForm({
                 onlyPhotos={selection.files.every((file) => file.mimeType !== 'application/pdf')}
                 bytes={bytesLabel}
                 removable={choosing}
+                onRemoveFile={(key) => setSelection((current) => removeFiles(current, [key]))}
+                onRemoveFound={(id) => setAdded(addedIds.filter((each) => each !== id))}
                 onClear={() => {
                   setSelection((current) => ({ ...current, files: [] }));
                   setAdded([]);
@@ -405,38 +412,36 @@ function UploadForm({
               title="Puse deoparte, nu le citim"
             />
             <UploadProgress phase={phase} onRetry={retry} onContinue={continueWithout} />
-            <Hint icon={Layers}>
-              Clientul are mai mulți angajați decât încap? Fă mai multe importuri, cu fișele
-              fiecărei persoane în același import. Un import făcut mai târziu completează angajații
-              creați de cel dinainte.
-            </Hint>
-            {positionNames.length > 0 && (
-              <Hint icon={BriefcaseBusiness}>
-                Postul scris pe fișă îl potrivim cu posturile clientului: {listJoin(positionNames)}.
-                Unde nu se potrivește exact, îți propunem cel mai apropiat post și hotărăști o
-                singură dată pentru toți cei cu același post.
-              </Hint>
-            )}
           </DialogBody>
-          <DialogFooter className="mt-6 items-center sm:justify-between">
-            <div
-              className="grid min-w-[min(100%,18rem)] flex-1 gap-4 sm:grid-cols-2"
-              aria-label="Cât intră într-un import"
-              data-testid="employee-upload-limits"
-            >
-              <Meter
-                value={totals.pages}
-                max={limits.scannedPages}
-                label={`${totals.pages}`}
-                of={`din ${limits.scannedPages} de fotografii și pagini`}
-              />
-              <Meter
-                value={totals.bytes}
-                max={limits.totalBytes}
-                label={bytesLabel}
-                of="din 1 GB"
-              />
-            </div>
+          <DialogFooter
+            className={cn(
+              'mt-6 items-center',
+              nearLimits ? 'sm:justify-between' : 'sm:justify-end'
+            )}
+          >
+            {nearLimits && (
+              <div className="flex min-w-[min(100%,18rem)] flex-1 items-center gap-3">
+                <div
+                  className="grid flex-1 gap-4 sm:grid-cols-2"
+                  aria-label="Cât intră într-un import"
+                  data-testid="employee-upload-limits"
+                >
+                  <Meter
+                    value={totals.pages}
+                    max={limits.scannedPages}
+                    label={`${totals.pages}`}
+                    of={`din ${limits.scannedPages} de fotografii și pagini`}
+                  />
+                  <Meter
+                    value={totals.bytes}
+                    max={limits.totalBytes}
+                    label={bytesLabel}
+                    of="din 1 GB"
+                  />
+                </div>
+                <HelpLink topic="import.limite" label="Ajutor: cât intră într-un import" />
+              </div>
+            )}
             <div className="flex gap-2">
               <Button type="button" variant="outline" disabled={busy} onClick={leave}>
                 Renunță
@@ -453,15 +458,6 @@ function UploadForm({
         </form>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function Hint({ icon: Icon, children }: { icon: typeof Layers; children: ReactNode }) {
-  return (
-    <p className="grid grid-cols-[1rem_minmax(0,1fr)] gap-2.5 text-sm leading-relaxed text-muted-foreground">
-      <Icon className="mt-0.5 size-4" aria-hidden="true" />
-      <span>{children}</span>
-    </p>
   );
 }
 
@@ -543,6 +539,8 @@ function ChosenPhotos({
   onlyPhotos,
   bytes,
   removable,
+  onRemoveFile,
+  onRemoveFound,
   onClear,
 }: {
   files: SelectedFile[];
@@ -552,10 +550,32 @@ function ChosenPhotos({
   onlyPhotos: boolean;
   bytes: string;
   removable: boolean;
+  onRemoveFile: (key: string) => void;
+  onRemoveFound: (sheetId: string) => void;
   onClear: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [previewing, setPreviewing] = useState<string | null>(null);
   const shown = expanded ? files : files.slice(0, shownThumbs);
+  const foundSheets = found.flatMap(({ batch, sheets }) =>
+    sheets.map((sheet) => ({ batch, sheet }))
+  );
+  const photos: PreviewPhoto[] = [
+    ...foundSheets.map(({ batch, sheet }) => ({
+      key: foundKey(sheet.id),
+      name: sheet.fileName,
+      detail: `Din documentația importată pe ${foundOn(batch)}`,
+      view: <FoundSheetView clientId={clientId} sheet={sheet} />,
+    })),
+    ...files.map((file) => ({
+      key: file.key,
+      name: file.name,
+      detail: localDetail(file),
+      view: <LocalPhotoView file={file} />,
+    })),
+  ];
+  const remove = (key: string) =>
+    key.startsWith(foundPrefix) ? onRemoveFound(key.slice(foundPrefix.length)) : onRemoveFile(key);
   const sources = [
     ...(files.length > 0 ? [`${files.length} alese de tine`] : []),
     ...found.map(
@@ -564,10 +584,12 @@ function ChosenPhotos({
     ),
   ];
   return (
+    // Clip, not hidden: a hidden card is a scroll container, so the dialog body's grid squeezes
+    // it below its content and cuts off the photos instead of letting the body scroll.
     <section
       aria-labelledby="employee-upload-chosen"
       data-testid="employee-upload-chosen"
-      className="overflow-hidden rounded-lg border"
+      className="overflow-clip rounded-lg border"
     >
       <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/40 px-3 py-2.5 text-sm">
         <span className="grid">
@@ -593,18 +615,27 @@ function ChosenPhotos({
         className="grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-3 px-3 pt-3.5 pb-3"
         aria-label="Fotografiile alese"
       >
-        {found.flatMap(({ sheets }) =>
-          sheets.map((sheet) => (
-            <li key={sheet.id} className="grid justify-items-center gap-1">
-              <FoundStrip clientId={clientId} sheets={[sheet]} shown={1} />
-              <span className="max-w-full truncate text-[11.5px] text-muted-foreground">
-                {sheet.fileName}
-              </span>
-            </li>
-          ))
-        )}
+        {foundSheets.map(({ sheet }) => (
+          <ChosenThumb
+            key={sheet.id}
+            name={sheet.fileName}
+            label={sheet.fileName}
+            removable={removable}
+            onOpen={() => setPreviewing(foundKey(sheet.id))}
+            onRemove={() => onRemoveFound(sheet.id)}
+          >
+            <FoundThumb clientId={clientId} sheet={sheet} />
+          </ChosenThumb>
+        ))}
         {shown.map((file) => (
-          <li key={file.key} className="grid justify-items-center gap-1">
+          <ChosenThumb
+            key={file.key}
+            name={file.name}
+            label={file.name.replace(/\.[^.]+$/, '')}
+            removable={removable}
+            onOpen={() => setPreviewing(file.key)}
+            onRemove={() => onRemoveFile(file.key)}
+          >
             {file.mimeType === 'application/pdf' ? (
               <span className="grid h-[51px] w-10 place-items-center rounded-sm bg-secondary">
                 <FileText className="size-4 text-muted-foreground" aria-hidden="true" />
@@ -612,10 +643,7 @@ function ChosenPhotos({
             ) : (
               <LocalThumb file={file} className="h-[51px] w-10 rounded-sm" />
             )}
-            <span className="max-w-full truncate text-[11.5px] text-muted-foreground">
-              {file.name.replace(/\.[^.]+$/, '')}
-            </span>
-          </li>
+          </ChosenThumb>
         ))}
         {files.length > shownThumbs && !expanded && (
           <li className="grid justify-items-center gap-1">
@@ -632,13 +660,65 @@ function ChosenPhotos({
           </li>
         )}
       </ul>
-      <p className="grid grid-cols-[1rem_minmax(0,1fr)] gap-2.5 border-t px-3 py-2.5 text-[13px] leading-relaxed text-muted-foreground">
-        <UsersRound className="mt-0.5 size-4" aria-hidden="true" />
-        <span>
-          După citire grupăm fotografiile pe persoane. O fișă poate avea 2 sau 3 fotografii, față,
-          verso și continuare, în orice ordine. Ține fotografiile unei persoane în același import.
-        </span>
-      </p>
+      <PhotoPreviewDialog
+        photos={photos}
+        current={previewing}
+        onCurrent={setPreviewing}
+        onClose={() => setPreviewing(null)}
+        onRemove={removable ? remove : undefined}
+      />
     </section>
+  );
+}
+
+const foundPrefix = 'found:';
+const foundKey = (sheetId: string) => `${foundPrefix}${sheetId}`;
+
+function localDetail(file: SelectedFile) {
+  const folder = file.path.slice(0, -file.name.length - 1);
+  return [folder && `Din ${folder}`, formatFileSize(file.size)].filter(Boolean).join(' · ');
+}
+
+function ChosenThumb({
+  name,
+  label,
+  removable,
+  onOpen,
+  onRemove,
+  children,
+}: {
+  name: string;
+  label: string;
+  removable: boolean;
+  onOpen: () => void;
+  onRemove: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <li className="grid justify-items-center gap-1" data-testid="employee-upload-thumb">
+      <span className="group relative">
+        <button
+          type="button"
+          aria-label={`Deschide ${name}`}
+          title={name}
+          onClick={onOpen}
+          className="flex rounded-sm outline-none hover:opacity-90 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          {children}
+        </button>
+        {removable && (
+          // A touch screen has no hover to reveal it, so there it always shows.
+          <button
+            type="button"
+            aria-label={`Scoate ${name}`}
+            onClick={onRemove}
+            className="absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-full border bg-card text-muted-foreground opacity-0 shadow-sm outline-none transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 before:absolute before:-inset-1.5 before:content-[''] hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none pointer-coarse:opacity-100 [@media(hover:none)]:opacity-100"
+          >
+            <X className="size-3" aria-hidden="true" />
+          </button>
+        )}
+      </span>
+      <span className="max-w-full truncate text-[11.5px] text-muted-foreground">{label}</span>
+    </li>
   );
 }

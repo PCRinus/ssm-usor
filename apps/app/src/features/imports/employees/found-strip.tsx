@@ -1,31 +1,15 @@
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { useRouteContext } from '@tanstack/react-router';
-import { FileText, Image as ImageIcon } from 'lucide-react';
+import { FileText, Image as ImageIcon, ImageOff } from 'lucide-react';
 
-import { getGetClientFileDownloadQueryKey, useGetClientFileDownload } from '@/api/generated/api';
+import { PreviewImage, PreviewLoading, PreviewNote } from '../photo-preview-dialog';
+import { type FoundSheet, useFoundSheetUrl } from './found-sheets';
 
-import type { FoundSheet } from './found-sheets';
-
-const drawable = (mimeType: string) => mimeType === 'image/jpeg' || mimeType === 'image/png';
-
-// A link lives a minute; the image loads once from it.
-const linkLifeMs = 50_000;
-
-function FoundThumb({ clientId, sheet }: { clientId: string; sheet: FoundSheet }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const show = drawable(sheet.mimeType);
-  const link = useGetClientFileDownload(clientId, sheet.clientFileId, {
-    request: apiRequest,
-    query: {
-      queryKey: getGetClientFileDownloadQueryKey(clientId, sheet.clientFileId),
-      enabled: show,
-      staleTime: linkLifeMs,
-    },
-  });
-  if (show && link.data) {
+export function FoundThumb({ clientId, sheet }: { clientId: string; sheet: FoundSheet }) {
+  const { drawable, url } = useFoundSheetUrl(clientId, sheet);
+  if (drawable && url) {
     return (
       <img
-        src={link.data.url}
+        src={url}
         alt=""
         loading="lazy"
         className="h-[51px] w-10 shrink-0 rounded-sm bg-secondary object-cover"
@@ -38,6 +22,30 @@ function FoundThumb({ clientId, sheet }: { clientId: string; sheet: FoundSheet }
       <Icon className="size-4 text-muted-foreground" />
     </span>
   );
+}
+
+export function FoundSheetView({ clientId, sheet }: { clientId: string; sheet: FoundSheet }) {
+  const { drawable, url, failed } = useFoundSheetUrl(clientId, sheet);
+  if (!drawable) {
+    return sheet.mimeType === 'application/pdf' ? (
+      <PreviewNote icon={FileText} title="PDF-urile nu se pot previzualiza aici">
+        Fiecare pagină a PDF-ului o citim ca pe o fotografie.
+      </PreviewNote>
+    ) : (
+      <PreviewNote icon={ImageOff} title="Browserul nu poate arăta fotografiile HEIC">
+        Fotografia se citește la fel ca celelalte.
+      </PreviewNote>
+    );
+  }
+  if (failed) {
+    return (
+      <PreviewNote icon={ImageOff} title="Nu am putut deschide fotografia">
+        Încearcă din nou peste câteva clipe.
+      </PreviewNote>
+    );
+  }
+  if (!url) return <PreviewLoading />;
+  return <PreviewImage source={url} alt={`Fotografia ${sheet.fileName}`} />;
 }
 
 export function FoundStrip({

@@ -91,7 +91,7 @@ Sunt două importuri, în această ordine: întâi clientul, din documentația l
 
 ## Importul unui client din documente
 
-Pornești din **Clienți**, cu **Importă din documente**, pentru un client nou, sau de pe pagina unui client existent, cu **Completează din documentație**. Încarci documentația unei singure firme: fișiere, un folder sau o arhivă ZIP, în PDF, DOC, DOCX, JPG, PNG sau HEIC, cel mult 150 de fișiere și 100 MB în total.
+Pornești din **Clienți**, cu **Importă din documente**, pentru un client nou, sau de pe pagina unui client existent, cu **Completează din documentație**. Încarci documentația unei singure firme: fișiere, un folder sau o arhivă ZIP, în PDF, DOC, DOCX, JPG, PNG sau HEIC, cel mult 150 de fișiere și 100 MB în total. Arhiva o deschide aplicația înainte de încărcare, așa că vezi ce intră.
 
 Aplicația pune deoparte ce nu poartă date despre client (coperți, formulare goale, texte de lege, instrucțiunile proprii), citește restul și îți propune datele firmei, punctele de lucru, posturile, persoanele cu atribuții, programul de instruire, datele PSI și echipamentul de protecție. Le verifici pe secțiuni, cu sursa fiecărei valori la un clic, apoi confirmi. La un client existent, o valoare pe care o ai deja în aplicație nu se schimbă decât dacă alegi tu valoarea din documente.
 
@@ -131,17 +131,19 @@ O pagină pe fotografie, întreagă, dreaptă și clară, cu rubricile de semnă
 
 Poți încărca fotografii JPG, PNG și HEIC, PDF-uri scanate, un folder sau o arhivă ZIP. Arhiva o deschide aplicația înainte de încărcare, așa că vezi ce intră; o arhivă 7z sau RAR o dezarhivezi întâi și tragi folderul. Ce nu e fotografie sau PDF e pus deoparte și nu se încarcă. Fotografiile le micșorăm înainte de încărcare, ca să urce mai repede.
 
+Fotografiile alese le vezi în fereastră ca miniaturi. Un clic pe una o deschide mare, ca să verifici că fișa se citește; treci la următoarea cu butoanele de jos sau cu săgețile tastaturii. O fotografie greșită sau în plus o scoți cu semnul x din colțul miniaturii, care apare când treci cu mouse-ul peste ea și se vede mereu pe telefon, ori cu **Scoate fotografia** din fotografia deschisă. Numărul fotografiilor și totalurile se actualizează pe loc, iar o fișă găsită în documentație, odată scoasă, îți rămâne oferită cu **Adaugă-le**. PDF-urile și, în cele mai multe browsere, fotografiile HEIC nu se pot arăta înainte de încărcare, dar se citesc la fel ca celelalte.
+
 ### Cât intră într-un import
 
-Într-un import de angajați intră cel mult 500 de fotografii sau pagini PDF, cel mult 25 MB un fișier și 1 GB în total. În fereastra de încărcare vezi cât ai folosit din fiecare.
+Într-un import de angajați intră cel mult 500 de fotografii sau pagini PDF, cel mult 25 MB un fișier și 1 GB în total. În fereastra de încărcare vezi câte fotografii ai ales și cât ocupă; când te apropii de una dintre limite, vezi și cât ai folosit din fiecare.
 
-Fotografiile JPG și PNG se socotesc după ce le micșorăm, așa că o fotografie mare nu e oprită când o alegi, iar totalul îl vezi aproximativ, de exemplu „cam 250 MB din 1 GB”. Dacă o fotografie are tot peste 25 MB după micșorare, îți spunem care e. Un PDF sau o fotografie HEIC de peste 25 MB e pusă deoparte de cum o alegi.
+Fotografiile JPG și PNG se socotesc după ce le micșorăm, așa că o fotografie mare nu e oprită când o alegi, iar totalul îl vezi aproximativ, de exemplu „cam 250 MB”. Dacă o fotografie are tot peste 25 MB după micșorare, îți spunem care e. Un PDF sau o fotografie HEIC de peste 25 MB e pusă deoparte de cum o alegi.
 
 Un client mai mare îl imporți în mai multe importuri, cu fișele fiecărei persoane în același import. Un import făcut mai târziu completează angajații creați de cel dinainte, ca pe orice angajat pe care clientul îl are deja.
 
 ### Citirea fișelor
 
-După **Încarcă și citește**, aplicația pregătește fotografiile, citește fiecare pagină, le grupează pe persoane și verifică datele. Durează câteva secunde pe pagină. Poți închide pagina: importul rămâne pe tabul **Angajați** al clientului, cu pasul la care a ajuns, și îl deschizi de acolo când persoanele sunt gata de verificat.
+După **Încarcă și citește**, aplicația pregătește fotografiile, citește fiecare pagină, le grupează pe persoane și verifică datele. Durează câteva secunde pe pagină. Poți închide pagina: importul rămâne pe tabul **Angajați** al clientului, cu pasul la care a ajuns, și îl deschizi de acolo când persoanele sunt gata de verificat. Cât timp citim, un clic pe o fotografie o deschide mare, cu pasul la care a ajuns citirea ei.
 
 O pagină ajunge la o persoană după CNP, dacă cifra lui de control se potrivește; fără un CNP valid, după nume, chiar dacă e scris puțin diferit pe pagini sau cu prenumele înaintea numelui; fără CNP și fără nume, după marcă. Două prenume care diferă doar printr-o literă la sfârșit, ca Daniel și Daniela, sunt două persoane. O pagină de continuare fără niciunul dintre ele merge după pagina dinaintea ei, în ordinea încărcării, și e semnalată „O pagină pusă după ordine”.
 

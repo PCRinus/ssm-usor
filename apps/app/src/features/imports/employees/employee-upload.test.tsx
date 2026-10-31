@@ -146,15 +146,45 @@ describe('photographs over the caps until they are shrunk', () => {
         ],
       },
     });
-    await within(dialog).findByTestId('employee-upload-chosen');
-    expect(within(dialog).getByTestId('employee-upload-limits').textContent).toContain(
-      'cam 1 MB din 1 GB'
+    expect((await within(dialog).findByTestId('employee-upload-chosen')).textContent).toContain(
+      'cam 1 MB'
     );
     await userEvent.click(within(dialog).getByTestId('employee-upload-submit'));
     expect((await within(dialog).findByTestId('import-upload-error')).textContent).toBe(
       'Fotografia „IMG_4001.jpg” are peste 25 MB și nu am putut-o micșora. Salveaz-o mai mică sau fotografiaz-o din nou, apoi alege fotografiile din nou.'
     );
     expect(requestsTo('/imports', 'POST')).toEqual([]);
+  });
+});
+
+describe('how much fits in one import', () => {
+  it('leaves the caps out while the selection is far below them', async () => {
+    mockUpload();
+    const dialog = await openDialog('employees-import-found');
+    await within(dialog).findByTestId('employee-upload-chosen');
+    expect(within(dialog).queryByTestId('employee-upload-limits')).toBeNull();
+    expect(
+      within(dialog).getByRole('link', { name: 'Află mai mult' }).getAttribute('data-help-topic')
+    ).toBe('import.angajati');
+  });
+
+  it('shows how much of each cap is used once the selection nears one', async () => {
+    mockUpload({
+      found: () => {
+        const found = foundOf([1]);
+        found.items[0]!.sheets[0]!.sizeBytes = 900 * 1024 ** 2;
+        return found;
+      },
+    });
+    const dialog = await openDialog('employees-import-found');
+    const meters = await within(dialog).findByTestId('employee-upload-limits');
+    expect(meters.textContent).toContain('1 din 500 de fotografii și pagini');
+    expect(meters.textContent).toContain('din 1 GB');
+    expect(
+      within(dialog)
+        .getByRole('link', { name: 'Ajutor: cât intră într-un import' })
+        .getAttribute('data-help-topic')
+    ).toBe('import.limite');
   });
 });
 
@@ -237,5 +267,93 @@ describe('a client without job positions', () => {
     expect(within(dialog).queryByTestId('employee-upload-no-posts')).toBeNull();
     creating.resolve(refused('import_unavailable', 503));
     await within(dialog).findByTestId('import-upload-error');
+  });
+});
+
+describe('the chosen photographs', () => {
+  const photo = (name: string, type = 'image/jpeg') =>
+    new File([new Uint8Array(2000)], name, { type });
+
+  async function choose(files: File[]) {
+    mockUpload({ found: () => foundOf([]) });
+    const dialog = await openDialog('employees-import');
+    fireEvent.change(within(dialog).getByTestId('employee-upload-files-input'), {
+      target: { files },
+    });
+    await within(dialog).findByTestId('employee-upload-chosen');
+    return dialog;
+  }
+
+  const chosenTitle = (dialog: HTMLElement) =>
+    within(dialog).queryByTestId('employee-upload-chosen')?.querySelector('#employee-upload-chosen')
+      ?.textContent;
+
+  it('opens a photograph large, steps through them, and lets its object URL go', async () => {
+    let made = 0;
+    const revoked: string[] = [];
+    vi.spyOn(URL, 'createObjectURL').mockImplementation(() => `blob:photo-${(made += 1)}`);
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation((url) => void revoked.push(url));
+    const dialog = await choose([
+      photo('WhatsApp Image 2026-10-30 at 09.12.01.jpeg'),
+      photo('IMG_2.jpg'),
+      photo('IMG_3.HEIC', 'image/heic'),
+    ]);
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Deschide IMG_2.jpg' }));
+    const preview = await screen.findByTestId('photo-preview');
+    expect(within(preview).getByRole('heading').textContent).toBe('IMG_2.jpg');
+    expect(within(preview).getByTestId('photo-preview-position').textContent).toBe('2 din 3');
+    const shown = within(preview).getByTestId<HTMLImageElement>('photo-preview-image').src;
+    expect(shown).toMatch(/^blob:photo-/);
+
+    await userEvent.click(within(preview).getByTestId('photo-preview-next'));
+    expect(within(preview).getByRole('heading').textContent).toBe('IMG_3.HEIC');
+    expect(within(preview).getByTestId('photo-preview-next')).toHaveProperty('disabled', true);
+    expect(revoked).toContain(shown);
+    fireEvent.error(within(preview).getByTestId('photo-preview-image'));
+    expect(within(preview).getByTestId('photo-preview-note').textContent).toContain('HEIC');
+
+    await userEvent.keyboard('{ArrowLeft}{ArrowLeft}');
+    expect(within(preview).getByRole('heading').textContent).toBe(
+      'WhatsApp Image 2026-10-30 at 09.12.01.jpeg'
+    );
+    expect(within(preview).getByTestId('photo-preview-previous')).toHaveProperty('disabled', true);
+
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('photo-preview')).toBeNull());
+    expect(screen.getByTestId('employee-upload-dialog')).toBeTruthy();
+    vi.restoreAllMocks();
+  });
+
+  it('takes one out from its corner or from the preview, and counts again', async () => {
+    const dialog = await choose([photo('IMG_1.jpg'), photo('IMG_2.jpg'), photo('IMG_3.jpg')]);
+    expect(chosenTitle(dialog)).toBe('3 fotografii de citit');
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Scoate IMG_1.jpg' }));
+    expect(chosenTitle(dialog)).toBe('2 fotografii de citit');
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Deschide IMG_2.jpg' }));
+    const preview = await screen.findByTestId('photo-preview');
+    await userEvent.click(within(preview).getByTestId('photo-preview-remove'));
+    expect(chosenTitle(dialog)).toBe('O fotografie de citit');
+    expect(within(preview).getByRole('heading').textContent).toBe('IMG_3.jpg');
+    expect(within(preview).getByTestId('photo-preview-position').textContent).toBe('1 din 1');
+
+    await userEvent.click(within(preview).getByTestId('photo-preview-remove'));
+    await waitFor(() => expect(screen.queryByTestId('photo-preview')).toBeNull());
+    expect(within(dialog).queryByTestId('employee-upload-chosen')).toBeNull();
+  });
+
+  it('gives a sheet from the documentation back to the offer it came from', async () => {
+    mockUpload();
+    const dialog = await openDialog('employees-import-found');
+    await waitFor(() => expect(chosenTitle(dialog)).toBe('2 fotografii de citit'));
+    expect(within(dialog).queryByTestId('employee-upload-found')).toBeNull();
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Scoate IMG_1.HEIC' }));
+    expect(chosenTitle(dialog)).toBe('O fotografie de citit');
+    expect(within(dialog).getByTestId('employee-upload-found').textContent).toContain(
+      'o fotografie'
+    );
   });
 });
