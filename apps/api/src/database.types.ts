@@ -424,10 +424,10 @@ export type Database = {
           },
           {
             foreignKeyName: 'client_files_import_file_id_fkey';
-            columns: ['import_file_id'];
+            columns: ['import_file_id', 'import_id'];
             isOneToOne: false;
             referencedRelation: 'import_files';
-            referencedColumns: ['id'];
+            referencedColumns: ['id', 'import_id'];
           },
           {
             foreignKeyName: 'client_files_import_in_organization';
@@ -1276,11 +1276,11 @@ export type Database = {
             referencedColumns: ['document_id', 'organization_id'];
           },
           {
-            foreignKeyName: 'document_revisions_generation_id_fkey';
-            columns: ['generation_id'];
+            foreignKeyName: 'document_revisions_generation_in_organization';
+            columns: ['generation_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'document_generations';
-            referencedColumns: ['id'];
+            referencedColumns: ['id', 'organization_id'];
           },
           {
             foreignKeyName: 'document_revisions_organization_id_fkey';
@@ -2651,10 +2651,10 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: 'import_files_client_file_id_fkey';
-            columns: ['client_file_id'];
+            columns: ['client_file_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'client_files';
-            referencedColumns: ['id'];
+            referencedColumns: ['id', 'organization_id'];
           },
           {
             foreignKeyName: 'import_files_import_in_organization';
@@ -2664,11 +2664,11 @@ export type Database = {
             referencedColumns: ['id', 'organization_id'];
           },
           {
-            foreignKeyName: 'import_files_source_file_id_fkey';
-            columns: ['source_file_id'];
+            foreignKeyName: 'import_files_source_file_in_organization';
+            columns: ['source_file_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'import_files';
-            referencedColumns: ['id'];
+            referencedColumns: ['id', 'organization_id'];
           },
         ];
       };
@@ -2837,11 +2837,11 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
-            foreignKeyName: 'imports_source_import_id_fkey';
-            columns: ['source_import_id'];
+            foreignKeyName: 'imports_source_import_in_organization';
+            columns: ['source_import_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'imports';
-            referencedColumns: ['id'];
+            referencedColumns: ['id', 'organization_id'];
           },
         ];
       };
@@ -4313,11 +4313,11 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
-            foreignKeyName: 'service_contract_sends_revision_id_fkey';
-            columns: ['revision_id'];
+            foreignKeyName: 'service_contract_sends_revision_of_document';
+            columns: ['revision_id', 'document_id'];
             isOneToOne: false;
             referencedRelation: 'document_revisions';
-            referencedColumns: ['id'];
+            referencedColumns: ['id', 'document_id'];
           },
         ];
       };
@@ -5198,11 +5198,11 @@ export type Database = {
             referencedColumns: ['id', 'client_id'];
           },
           {
-            foreignKeyName: 'test_attempts_material_revision_id_fkey';
-            columns: ['material_revision_id'];
+            foreignKeyName: 'test_attempts_material_revision_in_organization';
+            columns: ['material_revision_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'document_revisions';
-            referencedColumns: ['id'];
+            referencedColumns: ['id', 'organization_id'];
           },
           {
             foreignKeyName: 'test_attempts_organization_id_fkey';
@@ -6148,11 +6148,11 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
-            foreignKeyName: 'trainings_themes_revision_id_fkey';
-            columns: ['themes_revision_id'];
+            foreignKeyName: 'trainings_themes_revision_in_organization';
+            columns: ['themes_revision_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'document_revisions';
-            referencedColumns: ['id'];
+            referencedColumns: ['id', 'organization_id'];
           },
         ];
       };
