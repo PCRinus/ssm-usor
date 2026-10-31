@@ -778,8 +778,8 @@ async function documentPageReader(deps: PipelineDeps, row: ImportRow, file: Impo
     });
 }
 
-// A page the model refuses or answers outside the schema is kept as unread, for the member to
-// give to a person or leave out, rather than failing the whole PDF it is a page of.
+// A page the model refuses, answers outside the schema or the gateway turns down for good is kept
+// as unread, for the member to give to a person or leave out, rather than failing the whole PDF.
 function sheetPageReader(deps: PipelineDeps, row: ImportRow, file: ImportFileRow) {
   return async (label: string, imageUrl: string): Promise<SheetPage | null> => {
     try {
@@ -792,6 +792,7 @@ function sheetPageReader(deps: PipelineDeps, row: ImportRow, file: ImportFileRow
       });
     } catch (error) {
       if (error instanceof ModelAnswerError) return null;
+      if (error instanceof GatewayError && !isTransient(error)) return null;
       throw error;
     }
   };

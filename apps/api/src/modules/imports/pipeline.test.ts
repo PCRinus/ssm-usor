@@ -1445,6 +1445,36 @@ describe('an employee import', () => {
     expect(proposal.people).toHaveLength(2);
   });
 
+  it('keeps a page the gateway refuses as unread, and keeps the PDF pages already read', async () => {
+    model = (request) =>
+      request.text.includes('=== FILE: Fise/Ionescu.pdf (pagina 2) ===')
+        ? new Response('too large', { status: 413 })
+        : sheetModel(sheetAnswers)(request);
+    startEmployees(sheetFiles);
+    await drain(deps());
+
+    const imported = world.imports.get(importId)!;
+    expect(imported.status).toBe('ready');
+    expect(world.fileAt('Fise/Ionescu.pdf').state).toBe('read');
+    const proposal = employeeImportProposalSchema.parse(imported.proposal);
+    expect(proposal.pages[0]!.kind).toBe('ssm_sheet_front');
+    expect(proposal.pages[1]).toMatchObject({ kind: null, placement: 'unplaced', rows: [] });
+  });
+
+  it('reads a page again after the gateway was busy', async () => {
+    let busy = 8;
+    model = (request) =>
+      request.text.includes('=== FILE: Fise/Popescu 2.jpg ===') && busy-- > 0
+        ? new Response('busy', { status: 503 })
+        : sheetModel(sheetAnswers)(request);
+    startEmployees(sheetFiles);
+    const outcomes = await drain(deps());
+
+    expect(outcomes.some((outcome) => outcome.outcome === 'retry')).toBe(true);
+    const proposal = employeeImportProposalSchema.parse(world.imports.get(importId)!.proposal);
+    expect(proposal.pages[3]!.kind).toBe('ssm_periodic');
+  });
+
   it('fails the import past 500 pages, before any page is read', async () => {
     model = sheetModel(sheetAnswers);
     extractor.pdfText.mockResolvedValueOnce({
@@ -1482,11 +1512,12 @@ describe('an employee import', () => {
   });
 
   it('fails the import when no page could be read', async () => {
-    model = () => new Response('busy', { status: 400 });
-    startEmployees([sheetFiles[0]!]);
+    model = sheetModel(sheetAnswers);
+    extractor.pdfPageImage.mockRejectedValueOnce(new Error(extractionRefused('too_large')));
+    startEmployees([sheetFiles[2]!]);
     await drain(deps());
 
-    expect(world.fileAt('Fise/Popescu 1.jpg').state).toBe('failed');
+    expect(world.fileAt('Fise/Ionescu.pdf').state).toBe('failed');
     expect(world.imports.get(importId)).toMatchObject({
       status: 'failed',
       failure_reason: importReasons.noSheetRead,
