@@ -645,6 +645,7 @@ describe('the credits an import uses', () => {
     expect(screen.queryByTestId('import-upload-stalled')).toBeNull();
     expect(screen.queryByTestId('import-upload-error')).toBeNull();
     await waitFor(() => expect(requestsTo(`/imports/${importId}/abandon`, 'POST')).toHaveLength(1));
+    await waitFor(() => expect(requestsTo('/me').length).toBeGreaterThan(1));
     expect((screen.getByTestId('import-upload-submit') as HTMLButtonElement).disabled).toBe(true);
     expect(runtime.router.state.location.pathname).toBe('/clients');
   });

@@ -13,8 +13,8 @@ import {
   addFoundSheets,
   type ApiErrorResponse,
   createImport,
-  getGetBillingQueryKey,
   getGetImportQueryKey,
+  getGetMeQueryKey,
   getListFoundSheetsQueryKey,
   getListImportsQueryKey,
   registerImportFiles,
@@ -118,6 +118,7 @@ export function useImportUpload(
       queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() }),
       queryClient.invalidateQueries({ queryKey: getGetImportQueryKey(id) }),
     ]);
+    void queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
     if (!abandoned.current) onStarted(id);
   }
 
@@ -137,7 +138,7 @@ export function useImportUpload(
       else if (reason === importErrorReasons.creditsInsufficient && short) {
         importId.current = null;
         await abandonImport(id, apiRequest).catch(() => undefined);
-        void queryClient.invalidateQueries({ queryKey: getGetBillingQueryKey() });
+        void queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
         void queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() });
         if (!abandoned.current) setPhase({ step: 'short', credits: short });
       } else {
