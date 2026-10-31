@@ -7720,6 +7720,20 @@ export type ImportSummaryPeople = {
   setAside: number;
 } | null;
 
+/**
+ * @nullable
+ */
+export type ImportSummaryProgress = {
+  /** @minimum 0 */
+  files: number;
+  /** @minimum 0 */
+  prepared: number;
+  /** @minimum 0 */
+  scans: number;
+  /** @minimum 0 */
+  scansRead: number;
+} | null;
+
 export interface ImportSummary {
   id: string;
   kind: ImportSummaryKind;
@@ -7757,6 +7771,8 @@ export interface ImportSummary {
    * @nullable
    */
   uninvited: number | null;
+  /** @nullable */
+  progress: ImportSummaryProgress;
 }
 
 export interface ImportSummaryResponse {
@@ -7831,6 +7847,20 @@ export type ImportListResponseItemsItemPeople = {
   setAside: number;
 } | null;
 
+/**
+ * @nullable
+ */
+export type ImportListResponseItemsItemProgress = {
+  /** @minimum 0 */
+  files: number;
+  /** @minimum 0 */
+  prepared: number;
+  /** @minimum 0 */
+  scans: number;
+  /** @minimum 0 */
+  scansRead: number;
+} | null;
+
 export type ImportListResponseItemsItem = {
   id: string;
   kind: ImportListResponseItemsItemKind;
@@ -7868,6 +7898,8 @@ export type ImportListResponseItemsItem = {
    * @nullable
    */
   uninvited: number | null;
+  /** @nullable */
+  progress: ImportListResponseItemsItemProgress;
 };
 
 export interface ImportListResponse {
@@ -8986,6 +9018,17 @@ export type ImportDetailPeople = {
   setAside: number;
 } | null;
 
+export type ImportDetailProgress = {
+  /** @minimum 0 */
+  files: number;
+  /** @minimum 0 */
+  prepared: number;
+  /** @minimum 0 */
+  scans: number;
+  /** @minimum 0 */
+  scansRead: number;
+};
+
 export type ImportDetailFilesItem = {
   id: string;
   uploadPath: string;
@@ -9007,17 +9050,6 @@ export type ImportDetailFilesItem = {
   /** @nullable */
   isScan: boolean | null;
   hasDerived: boolean;
-};
-
-export type ImportDetailProgress = {
-  /** @minimum 0 */
-  files: number;
-  /** @minimum 0 */
-  prepared: number;
-  /** @minimum 0 */
-  scans: number;
-  /** @minimum 0 */
-  scansRead: number;
 };
 
 export type ImportDetailOtherCompaniesItem = {
@@ -10207,10 +10239,10 @@ export interface ImportDetail {
    * @nullable
    */
   uninvited: number | null;
+  progress: ImportDetailProgress;
   /** @minimum 0 */
   version: number;
   files: ImportDetailFilesItem[];
-  progress: ImportDetailProgress;
   otherCompanies: ImportDetailOtherCompaniesItem[];
   /** @nullable */
   registeredCompany: ImportDetailRegisteredCompany;

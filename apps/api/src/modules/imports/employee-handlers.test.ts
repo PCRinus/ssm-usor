@@ -784,9 +784,17 @@ describe('GET /imports for employee imports', () => {
     expect(callsTo('/rest/v1/imports')[0]!.url.searchParams.get('kind')).toBe('eq.client');
   });
 
-  it('lists the open imports of both kinds with `all`, an employee one with its people', async () => {
+  it('lists the open imports of both kinds with `all`, a ready one with its people and a running one with its progress', async () => {
     const clientImportId = '8c3a4b5d-6e7f-4a8b-9c0d-1e2f3a4b5c6d';
     mockUpstream(({ url }) => {
+      if (url.pathname === '/rest/v1/import_files') {
+        return Response.json([
+          { import_id: clientImportId, state: 'read', is_scan: false },
+          { import_id: clientImportId, state: 'read', is_scan: true },
+          { import_id: clientImportId, state: 'prepared', is_scan: true },
+          { import_id: clientImportId, state: 'uploaded', is_scan: null },
+        ]);
+      }
       if (url.pathname !== '/rest/v1/imports') return undefined;
       if (url.searchParams.get('select')?.startsWith('id,people')) {
         return Response.json([{ id: importId, people: proposal.people, changes: null }]);
@@ -801,10 +809,17 @@ describe('GET /imports for employee imports', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
       items: [
-        { id: importId, kind: 'employees', people: { total: 2, toCheck: 2 } },
-        { id: clientImportId, kind: 'client', people: null },
+        { id: importId, kind: 'employees', people: { total: 2, toCheck: 2 }, progress: null },
+        {
+          id: clientImportId,
+          kind: 'client',
+          people: null,
+          progress: { files: 4, prepared: 3, scans: 2, scansRead: 1 },
+        },
       ],
     });
+    const [files] = callsTo('/rest/v1/import_files');
+    expect(files!.url.searchParams.get('import_id')).toBe(`in.(${clientImportId})`);
     const [list] = callsTo('/rest/v1/imports');
     expect(list!.url.searchParams.has('kind')).toBe(false);
     expect(list!.url.searchParams.get('status')).toMatch(/^in\./);
