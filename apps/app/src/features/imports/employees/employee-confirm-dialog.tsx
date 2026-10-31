@@ -1,4 +1,4 @@
-import { importErrorReasons } from '@ssm-usor/contracts';
+import { importErrorReasons, trainingDomainLabels } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -38,7 +38,7 @@ import { Notice } from '@/components/notice';
 import { roCount } from '@/features/employees/employee-format';
 
 import { importErrorMessage, photosLabel } from '../import-format';
-import { confirmIssueMessage, createLabel } from './confirm-messages';
+import { confirmIssueLines, createLabel } from './confirm-messages';
 import {
   confirmSummary,
   decisionsOf,
@@ -99,6 +99,9 @@ const join = (names: string[]) =>
 const count = (value: number, one: string, many: string) =>
   roCount(value, one, many).replace(/^\d+ /, '');
 
+const issueFallback =
+  'Nu am putut crea angajații: o valoare nu se poate salva. Verifică persoanele și încearcă din nou.';
+
 const conflictReasons: Record<string, string> = {
   [importErrorReasons.outdated]:
     'Clientul s-a schimbat între timp: un post, un loc de muncă sau un angajat ales nu mai există. Reîncarcă pagina și alege din nou.',
@@ -127,6 +130,7 @@ export function EmployeeConfirmDialog({
   const router = useRouter();
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [issues, setIssues] = useState<string[]>([]);
   const summary = confirmSummary(context);
   const total = context.proposal.people.length;
   const writtenCount = summary.written.length;
@@ -138,6 +142,7 @@ export function EmployeeConfirmDialog({
   async function confirm() {
     setSending(true);
     setError(null);
+    setIssues([]);
     try {
       const saved = await review.flush();
       if ('error' in saved) {
@@ -175,17 +180,21 @@ export function EmployeeConfirmDialog({
           ? (cause.body as Partial<ApiErrorResponse> | undefined)
           : undefined;
       const reason = body?.reason;
-      setError(
-        reason === importErrorReasons.refused || reason === importErrorReasons.incomplete
-          ? confirmIssueMessage(context, body?.issues?.[0])
-          : reason && Object.hasOwn(conflictReasons, reason)
+      if (reason === importErrorReasons.refused || reason === importErrorReasons.incomplete) {
+        const lines = confirmIssueLines(context, body?.issues ?? []);
+        if (lines.length > 0) setIssues(lines);
+        else setError(issueFallback);
+      } else {
+        setError(
+          reason && Object.hasOwn(conflictReasons, reason)
             ? conflictReasons[reason]!
             : importErrorMessage(
                 cause,
                 'Nu am putut crea angajații. Încearcă din nou.',
                 'employees'
               )
-      );
+        );
+      }
       setSending(false);
     }
   }
@@ -308,7 +317,7 @@ export function EmployeeConfirmDialog({
             />
           </Group>
           {(summary.noContact.length > 0 ||
-            summary.unverified.length > 0 ||
+            summary.untested.length > 0 ||
             summary.noCommute.length > 0 ||
             summary.unusual.length > 0) && (
             <Group title="Rămân pentru tine, după creare">
@@ -325,17 +334,17 @@ export function EmployeeConfirmDialog({
                   detail="Fișele nu le au. Le adaugi când îi inviți în portal."
                 />
               )}
-              {summary.unverified.length > 0 && (
+              {summary.untested.length > 0 && (
                 <Line
                   warn
                   icon={<TriangleAlert className="size-4" />}
-                  count={summary.unverified.length}
+                  count={summary.untested.length}
                   label={count(
-                    summary.unverified.length,
+                    summary.untested.length,
                     'test la angajare neverificat pe fișă',
                     'teste la angajare neverificate pe fișă'
                   )}
-                  detail={`${join(summary.unverified.map(nameOf))}: semnătura de verificare nu se vede pe fișă. Poți înregistra rezultatul pe pagina angajatului.`}
+                  detail={`${join(summary.untested.map(({ person, domain }) => `${nameOf(person)} (${trainingDomainLabels[domain]})`))}: pe fișă nu se vede testul verificat. Poți înregistra rezultatul pe pagina angajatului.`}
                 />
               )}
               {summary.noCommute.length > 0 && (
@@ -373,6 +382,23 @@ export function EmployeeConfirmDialog({
           {error && (
             <Notice variant="destructive" data-testid="employee-confirm-error">
               {error}
+            </Notice>
+          )}
+          {issues.length > 0 && (
+            <Notice
+              variant="destructive"
+              title="Nu am putut crea angajații"
+              data-testid="employee-confirm-error"
+            >
+              <ul
+                className="my-1 grid list-disc gap-0.5 pl-5"
+                data-testid="employee-confirm-issues"
+              >
+                {issues.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+              Deschide persoanele, corectează și încearcă din nou.
             </Notice>
           )}
         </DialogBody>

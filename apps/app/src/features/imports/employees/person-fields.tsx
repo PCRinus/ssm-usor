@@ -1,4 +1,4 @@
-import { bloodGroups, rhFactors } from '@ssm-usor/contracts';
+import { bloodGroups, isValidCnp, rhFactors } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card } from '@ssm-usor/ui/components/card';
 import {
@@ -20,6 +20,7 @@ import { Field } from '@/components/form-field';
 import { EditedTag, Tag } from '../review-parts';
 import {
   type Changes,
+  effectiveCnp,
   type FieldName,
   fieldTitles,
   type FieldValue,
@@ -30,6 +31,7 @@ import {
   resolveField,
   type ReviewContext,
   withField,
+  withPersonChange,
 } from './employee-review-model';
 import { compareWithApp, dateFields, rhLabels, showValue } from './person-values';
 import { PageButton } from './photo-column';
@@ -62,7 +64,25 @@ const groups = {
 
 export type FieldGroup = keyof typeof groups;
 
-const editable = (name: FieldName) => name !== 'cnp';
+function shownField(context: ReviewContext, person: Person, name: FieldName): ResolvedField {
+  const field = resolveField(context, person, name);
+  return name === 'cnp' ? { ...field, value: effectiveCnp(context, person) } : field;
+}
+
+function withFields(
+  changes: Changes,
+  personId: string,
+  values: Partial<Record<FieldName, FieldValue | null>>
+) {
+  const written = Object.entries(values).reduce(
+    (current, [name, value]) => withField(current, personId, name as FieldName, { value }),
+    changes
+  );
+  // A CNP written over the offered correction is the one confirming takes.
+  return 'cnp' in values
+    ? withPersonChange(written, personId, (change) => ({ ...change, cnpCorrection: undefined }))
+    : written;
+}
 
 function FieldRow({
   context,
@@ -125,7 +145,7 @@ export function FieldsCard({
             context={context}
             person={person}
             name={name}
-            field={resolveField(context, person, name)}
+            field={shownField(context, person, name)}
             extra={notes?.[name]}
           />
         ))}
@@ -135,17 +155,9 @@ export function FieldsCard({
           context={context}
           person={person}
           title={title}
-          names={names.filter(editable)}
+          names={names}
           onClose={() => setEditing(false)}
-          onSave={(values) =>
-            onChange((current) =>
-              Object.entries(values).reduce(
-                (changes, [name, value]) =>
-                  withField(changes, person.id, name as FieldName, { value }),
-                current
-              )
-            )
-          }
+          onSave={(values) => onChange((current) => withFields(current, person.id, values))}
         />
       )}
     </Card>
@@ -153,6 +165,7 @@ export function FieldsCard({
 }
 
 const lengthLimits: Partial<Record<FieldName, number>> = {
+  cnp: 13,
   lastName: 100,
   firstName: 100,
   employeeNumber: 40,
@@ -181,7 +194,7 @@ function FieldsDialog({
 }) {
   const initial = Object.fromEntries(
     names.map((name) => {
-      const value = resolveField(context, person, name).value;
+      const value = shownField(context, person, name).value;
       return [name, value === null ? '' : String(value)];
     })
   ) as Record<FieldName, string>;
@@ -191,10 +204,15 @@ function FieldsDialog({
     names.includes('commuteMinutes') &&
     minutes !== '' &&
     !(/^\d+$/.test(minutes) && Number(minutes) >= 1 && Number(minutes) <= 600);
+  const cnpInvalid =
+    names.includes('cnp') &&
+    values.cnp !== initial.cnp &&
+    values.cnp.trim() !== '' &&
+    !isValidCnp(values.cnp.trim());
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (minutesInvalid) return;
+    if (minutesInvalid || cnpInvalid) return;
     const changed: Partial<Record<FieldName, FieldValue | null>> = {};
     for (const name of names) {
       if (values[name] === initial[name]) continue;
@@ -257,13 +275,18 @@ function FieldsDialog({
                   error={
                     name === 'commuteMinutes' && minutesInvalid
                       ? { type: 'range', message: 'Scrie un număr de minute între 1 și 600.' }
-                      : undefined
+                      : name === 'cnp' && cnpInvalid
+                        ? {
+                            type: 'validate',
+                            message: 'CNP-ul nu e valid. Verifică cele 13 cifre.',
+                          }
+                        : undefined
                   }
                 >
                   <Input
                     id={id}
                     value={values[name]}
-                    inputMode={name === 'commuteMinutes' ? 'numeric' : undefined}
+                    inputMode={name === 'commuteMinutes' || name === 'cnp' ? 'numeric' : undefined}
                     maxLength={lengthLimits[name]}
                     onChange={(event) => set(name, event.target.value)}
                   />
@@ -294,26 +317,48 @@ export function ExistingComparison({
   person: Person;
   onChange: Update;
 }) {
+  const [editing, setEditing] = useState(false);
   if (!isExisting(person)) return null;
   const { added, differs, same } = compareWithApp(context, person);
   const pages = pagesOf(context, person.id);
   const sheetValue = (name: FieldName, field: ResolvedField) =>
     context.changes.people[person.id]?.fields?.[name]?.value ?? field.options[0]?.value ?? null;
   return (
-    <div className="grid gap-4" data-testid="person-existing">
+    <div className="grid scroll-mt-32 gap-4" id="existing" data-testid="person-existing">
       {added.length > 0 && (
         <Card className="gap-2 px-5 py-4">
-          <h2 className="text-base font-semibold">
-            Se adaugă <span className="font-normal text-muted-foreground">{added.length}</span>
-          </h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-base font-semibold">
+              Se adaugă <span className="font-normal text-muted-foreground">{added.length}</span>
+            </h2>
+            <Button type="button" variant="link" size="sm" onClick={() => setEditing(true)}>
+              Schimbă<span className="sr-only"> ce se adaugă</span>
+            </Button>
+          </div>
           <p className="text-sm text-muted-foreground">
             Angajatul nu are încă aceste date în aplicație. Le preluăm de pe fișă.
           </p>
           <dl className="divide-y">
-            {added.map(({ name, field }) => (
-              <FieldRow key={name} context={context} person={person} name={name} field={field} />
+            {added.map(({ name }) => (
+              <FieldRow
+                key={name}
+                context={context}
+                person={person}
+                name={name}
+                field={shownField(context, person, name)}
+              />
             ))}
           </dl>
+          {editing && (
+            <FieldsDialog
+              context={context}
+              person={person}
+              title="Se adaugă"
+              names={added.map(({ name }) => name)}
+              onClose={() => setEditing(false)}
+              onSave={(values) => onChange((current) => withFields(current, person.id, values))}
+            />
+          )}
         </Card>
       )}
       {differs.length > 0 && (

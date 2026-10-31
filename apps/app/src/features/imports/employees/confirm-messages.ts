@@ -8,13 +8,12 @@ import {
   type ReviewContext,
 } from './employee-review-model';
 
-export function confirmIssueMessage(
-  context: ReviewContext,
-  issue: { path: string; message: string } | undefined
-) {
-  const generic =
-    'Nu am putut crea angajații: o valoare nu se poate salva. Verifică persoanele și încearcă din nou.';
-  if (!issue) return generic;
+type Issue = { path: string; message: string };
+
+// A refused write names the unique index the database tripped.
+const takenIndexes = new Set(['employees_client_cnp_key', 'employees_client_employee_number_key']);
+
+function issueLine(context: ReviewContext, issue: Issue) {
   const [list, id, part, name] = issue.path.split('.');
   let person =
     list === 'people' ? context.proposal.people.find((each) => each.id === id) : undefined;
@@ -25,31 +24,43 @@ export function confirmIssueMessage(
   }
   if (list === 'jobTitles') {
     const group = context.proposal.jobTitles.find((each) => each.id === id);
-    return `Postul pentru «${group?.title ?? ''}» nu e ales. Alege-l și încearcă din nou.`;
+    return `Postul pentru «${group?.title ?? ''}» nu e ales.`;
   }
-  if (!person) return generic;
+  if (!person) return null;
   const who = personName(context, person);
+  const field = part === 'fields' && name && name in fieldLabels ? (name as FieldName) : undefined;
   const what =
     list === 'rows'
-      ? 'o instruire'
-      : part === 'fields' && name === 'cnp'
+      ? part === 'test'
+        ? 'un test'
+        : 'o instruire'
+      : field === 'cnp'
         ? 'CNP-ul'
-        : part === 'fields' && name && name in fieldLabels
-          ? fieldLabels[name as FieldName].toLowerCase()
+        : field
+          ? fieldLabels[field].toLowerCase()
           : part === 'jobPosition'
             ? 'postul'
             : part === 'workplace'
               ? 'locul de muncă'
               : 'datele';
-  const why =
-    issue.message === 'missing'
+  const taken =
+    takenIndexes.has(issue.message) ||
+    (issue.message === 'invalid' && (field === 'cnp' || field === 'employeeNumber'));
+  const why = taken
+    ? 'îl are deja alt angajat al clientului sau altă persoană din import'
+    : issue.message === 'missing'
       ? 'lipsește'
       : issue.message === 'choice'
         ? 'e de ales'
         : issue.message === 'unknown_reference'
           ? 'nu mai există la client'
           : 'nu se poate salva';
-  return `La ${who}, ${what} ${why}. Deschide persoana, corectează și încearcă din nou.`;
+  return `La ${who}, ${what} ${why}.`;
+}
+
+/** What keeps confirming, one line per value, as the review names it. */
+export function confirmIssueLines(context: ReviewContext, issues: readonly Issue[]) {
+  return [...new Set(issues.flatMap((issue) => issueLine(context, issue) ?? []))];
 }
 
 export function createLabel(created: number, left: number) {

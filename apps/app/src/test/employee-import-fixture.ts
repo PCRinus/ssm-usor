@@ -111,7 +111,7 @@ export function employeeProposal() {
         sheetRow('r5', { heldOn: '2025-08-11', trainerName: null }),
       ]),
       page('p3', fileIds[2]!, 'pop', [
-        sheetRow('r3', { durationMinutes: 1440, flags: ['unusual_duration'] }),
+        sheetRow('r3', { durationMinutes: 240, flags: ['unusual_duration'] }),
       ]),
       page('p4', fileIds[3]!, 'lazar', [
         sheetRow('r4', { flags: ['in_app'], proposedIncluded: false }),

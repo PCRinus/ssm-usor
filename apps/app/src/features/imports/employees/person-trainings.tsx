@@ -318,6 +318,7 @@ function DomainSection({
   domain,
   pages,
   onEdit,
+  onEditTest,
   onChange,
 }: {
   context: ReviewContext;
@@ -325,6 +326,7 @@ function DomainSection({
   domain: DomainTrainings;
   pages: SheetPage[];
   onEdit: (row: SheetRow) => void;
+  onEditTest: (row: SheetRow) => void;
   onChange: Update;
 }) {
   const [showInApp, setShowInApp] = useState(false);
@@ -416,7 +418,7 @@ function DomainSection({
         return (
           <div
             key={row.id}
-            className="grid grid-cols-[1.25rem_minmax(0,1fr)_auto] items-start gap-3 rounded-lg bg-muted/50 px-3 py-2.5 text-sm"
+            className="grid grid-cols-[1.25rem_minmax(0,1fr)_auto_auto] items-start gap-3 rounded-lg bg-muted/50 px-3 py-2.5 text-sm"
             data-testid="person-annual-test"
           >
             <Checkbox
@@ -433,6 +435,19 @@ function DomainSection({
               {dateLabel(heldOn) ?? 'o dată necitită'}: promovat pe fișă
             </span>
             <PageButton pages={pages} pageId={page.id} />
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="h-6 px-1"
+              onClick={() => onEditTest(row)}
+            >
+              Schimbă
+              <span className="sr-only">
+                {' '}
+                testul anual din {dateLabel(heldOn) ?? 'data necitită'}
+              </span>
+            </Button>
           </div>
         );
       })}
@@ -487,6 +502,7 @@ export function PersonTrainings({
   onChange: Update;
 }) {
   const [editing, setEditing] = useState<SheetRow | null>(null);
+  const [editingTest, setEditingTest] = useState<SheetRow | null>(null);
   const pages = pagesOf(context, person.id);
   const domains = trainingsByDomain(context, person.id);
   return (
@@ -499,6 +515,7 @@ export function PersonTrainings({
           domain={domain}
           pages={pages}
           onEdit={setEditing}
+          onEditTest={setEditingTest}
           onChange={onChange}
         />
       ))}
@@ -518,7 +535,97 @@ export function PersonTrainings({
           }
         />
       )}
+      {editingTest && (
+        <TestDialog
+          context={context}
+          row={editingTest}
+          onClose={() => setEditingTest(null)}
+          onSave={(values) =>
+            onChange((current) =>
+              withRow(current, editingTest.id, (change) => ({
+                ...change,
+                values: { ...change.values, ...values },
+              }))
+            )
+          }
+        />
+      )}
     </div>
+  );
+}
+
+function TestDialog({
+  context,
+  row,
+  onClose,
+  onSave,
+}: {
+  context: ReviewContext;
+  row: SheetRow;
+  onClose: () => void;
+  onSave: (values: Record<'heldOn' | 'examinerName' | 'examinerJobTitle', string | null>) => void;
+}) {
+  const own = context.changes.rows[row.id]?.values ?? {};
+  const initialName = 'examinerName' in own ? own.examinerName : (row.test?.examinerName ?? null);
+  const initialTitle =
+    'examinerJobTitle' in own ? own.examinerJobTitle : (row.test?.examinerJobTitle ?? null);
+  const [heldOn, setHeldOn] = useState(rowValues(context.changes, row).heldOn ?? '');
+  const [examinerName, setExaminerName] = useState(String(initialName ?? ''));
+  const [examinerTitle, setExaminerTitle] = useState(String(initialTitle ?? ''));
+  const text = (value: string) => (value.trim() === '' ? null : value.trim());
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    onSave({
+      heldOn: heldOn || null,
+      examinerName: text(examinerName),
+      examinerJobTitle: text(examinerTitle),
+    });
+    onClose();
+  }
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg" data-testid="person-test-dialog">
+        <form onSubmit={submit} noValidate>
+          <DialogHeader>
+            <DialogTitle>Testul anual {trainingDomainLabels[row.domain]}</DialogTitle>
+            <DialogDescription>
+              Corectează ce s-a citit greșit. Se preia așa cum lași aici.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogBody className="mt-4 grid gap-4 sm:grid-cols-2">
+            <Field id="test-taken-on" label="Data" mark="required" className="sm:col-span-2">
+              <DatePicker id="test-taken-on" value={heldOn} onChange={setHeldOn} />
+            </Field>
+            <Field id="test-examiner" label="Examinator" mark="required">
+              <Input
+                id="test-examiner"
+                value={examinerName}
+                maxLength={160}
+                onChange={(event) => setExaminerName(event.target.value)}
+              />
+            </Field>
+            <Field id="test-examiner-title" label="Funcția examinatorului" mark="required">
+              <Input
+                id="test-examiner-title"
+                value={examinerTitle}
+                maxLength={160}
+                onChange={(event) => setExaminerTitle(event.target.value)}
+              />
+            </Field>
+          </DialogBody>
+          <DialogFooter className="mt-6">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Renunță
+            </Button>
+            <Button type="submit" data-testid="person-test-save">
+              Salvează
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

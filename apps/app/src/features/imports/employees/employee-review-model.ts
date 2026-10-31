@@ -1,7 +1,10 @@
 import {
+  bloodGroups,
   decodeCnp,
   isValidCnp,
+  rhFactors,
   type TrainingDomain,
+  trainingDomainLabels,
   type TrainingPhase,
   trainingPhaseLabels,
 } from '@ssm-usor/contracts';
@@ -69,6 +72,11 @@ export type ReviewContext = {
 
 export const stateOf = (context: Pick<ReviewContext, 'states'>, personId: string): PersonState =>
   context.states[personId] ?? 'to_check';
+
+export const statesOf = (proposal: Proposal, changes: Changes): Record<string, PersonState> =>
+  Object.fromEntries(
+    proposal.people.map((person) => [person.id, changes.people[person.id]?.state ?? 'to_check'])
+  );
 
 export const fieldLabels: Record<FieldName, string> = {
   lastName: 'Numele',
@@ -284,7 +292,8 @@ const filled = (value: unknown) =>
 export type Decision = {
   key: string;
   // Where on the person page it is answered.
-  anchor: 'post' | 'cnp' | 'workplace' | 'personal' | 'employment' | 'trainings';
+  anchor:
+    'post' | 'cnp' | 'workplace' | 'personal' | 'employment' | 'medical' | 'existing' | 'trainings';
   label: string;
   tag: string;
   // A near post or workplace to confirm, rather than a gap.
@@ -310,6 +319,128 @@ export const ownRows = (context: Pick<ReviewContext, 'proposal' | 'changes'>, pe
 
 const cnpUnreadable = (value: FieldValue | null) =>
   typeof value === 'string' && /[^0-9]/.test(value);
+
+const employmentFields = new Set<FieldName>(['jobTitle', 'hiredAt', 'employeeNumber', 'leftOn']);
+const medicalFields = new Set<FieldName>([
+  'bloodGroup',
+  'rhFactor',
+  'commuteRoute',
+  'commuteMinutes',
+]);
+
+function fieldAnchor(person: Person, name: FieldName): Decision['anchor'] {
+  if (isExisting(person)) return 'existing';
+  if (employmentFields.has(name)) return 'employment';
+  return medicalFields.has(name) ? 'medical' : 'personal';
+}
+
+// As `@ssm-usor/import` checks a value before confirming: the employee form's and the
+// database's limits.
+const textLimits: Partial<Record<FieldName, [number, number]>> = {
+  lastName: [1, 100],
+  firstName: [1, 100],
+  employeeNumber: [1, 40],
+  birthPlace: [1, 160],
+  homeAddress: [1, 240],
+  education: [1, 160],
+  qualification: [1, 160],
+  jobTitle: [2, 160],
+  commuteRoute: [1, 1000],
+};
+
+const isoDate = /^\d{4}-\d{2}-\d{2}$/;
+
+const inMinutesRange = (value: unknown) =>
+  typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 600;
+
+function invalidField(person: Person, name: FieldName, value: FieldValue): Decision | null {
+  const lower = fieldLabels[name].toLowerCase();
+  const decision = (label: string): Decision => ({
+    key: `invalid-${name}`,
+    anchor: fieldAnchor(person, name),
+    label,
+    tag: `${fieldLabels[name]} de corectat`,
+    tone: 'destructive',
+  });
+  if (name === 'commuteMinutes') {
+    return inMinutesRange(value) ? null : decision(`Corectează ${lower}: între 1 și 600 de minute`);
+  }
+  if (name === 'bloodGroup' || name === 'rhFactor') {
+    const allowed: readonly FieldValue[] = name === 'bloodGroup' ? bloodGroups : rhFactors;
+    return allowed.includes(value) ? null : decision(`Corectează ${lower}`);
+  }
+  if (name === 'birthDate' || name === 'hiredAt' || name === 'leftOn') {
+    return typeof value === 'string' && isoDate.test(value)
+      ? null
+      : decision(`Corectează ${lower}`);
+  }
+  if (typeof value !== 'string') return decision(`Corectează ${lower}`);
+  const limits = textLimits[name];
+  if (!limits) return null;
+  const length = value.trim().length;
+  if (length < limits[0]) {
+    return decision(
+      `Corectează ${lower}: are cel puțin ${roCount(limits[0], 'caracter', 'caractere')}`
+    );
+  }
+  if (length > limits[1]) {
+    return decision(
+      `Corectează ${lower}: are cel mult ${roCount(limits[1], 'caracter', 'caractere')}`
+    );
+  }
+  return null;
+}
+
+/** The CNP confirming would take: the offered correction when the member took it. */
+export function effectiveCnp(context: Pick<ReviewContext, 'proposal' | 'changes'>, person: Person) {
+  return context.changes.people[person.id]?.cnpCorrection === true && person.cnpCorrection !== null
+    ? person.cnpCorrection
+    : resolveField(context, person, 'cnp').value;
+}
+
+type Unique = 'cnp' | 'employeeNumber';
+type Holders = Record<Unique, Map<string, string[]>>;
+
+const holdersByProposal = new WeakMap<Proposal, WeakMap<Changes, Holders>>();
+
+const uniqueValue = (
+  context: Pick<ReviewContext, 'proposal' | 'changes'>,
+  person: Person,
+  name: Unique
+) => {
+  const value =
+    name === 'cnp' ? effectiveCnp(context, person) : resolveField(context, person, name).value;
+  if (value === null || (name === 'cnp' && !isValidCnp(String(value)))) return null;
+  return foldText(String(value));
+};
+
+// Who would hold each CNP and employee number: a client's employees each have their own, so
+// confirming refuses a second person with one.
+function holdersOf(context: Pick<ReviewContext, 'proposal' | 'changes'>): Holders {
+  let byChanges = holdersByProposal.get(context.proposal);
+  if (!byChanges) {
+    byChanges = new WeakMap();
+    holdersByProposal.set(context.proposal, byChanges);
+  }
+  const known = byChanges.get(context.changes);
+  if (known) return known;
+  const holders: Holders = { cnp: new Map(), employeeNumber: new Map() };
+  for (const person of context.proposal.people) {
+    const change = context.changes.people[person.id];
+    if (change?.state === 'set_aside' || !(change?.included ?? person.proposedIncluded)) continue;
+    for (const name of ['cnp', 'employeeNumber'] as const) {
+      const key = uniqueValue(context, person, name);
+      if (key !== null) holders[name].set(key, [...(holders[name].get(key) ?? []), person.id]);
+    }
+  }
+  byChanges.set(context.changes, holders);
+  return holders;
+}
+
+const testName = (row: SheetRow) =>
+  row.test?.test === 'hiring'
+    ? 'testului la angajare'
+    : `testului anual ${trainingDomainLabels[row.domain]}`;
 
 export function decisionsOf(context: ReviewContext, person: Person): Decision[] {
   const decisions: Decision[] = [];
@@ -371,7 +502,7 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
       tone: 'destructive',
     });
   } else {
-    const effective = change?.cnpCorrection === true ? person.cnpCorrection : cnp.value;
+    const effective = effectiveCnp(context, person);
     const birthDate = resolveField(context, person, 'birthDate').value;
     if (
       typeof effective === 'string' &&
@@ -382,9 +513,26 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
     ) {
       decisions.push({
         key: 'birthDate',
-        anchor: 'personal',
+        anchor: fieldAnchor(person, 'birthDate'),
         label: 'Data nașterii nu se potrivește cu CNP-ul',
         tag: 'Data nașterii diferă de CNP',
+        tone: 'destructive',
+      });
+    }
+  }
+
+  const holders = holdersOf(context);
+  for (const name of ['cnp', 'employeeNumber'] as const) {
+    const key = uniqueValue(context, person, name);
+    const otherId =
+      key === null ? undefined : holders[name].get(key)?.find((id) => id !== person.id);
+    const other = proposal.people.find((each) => each.id === otherId);
+    if (other) {
+      decisions.push({
+        key: `duplicate-${name}`,
+        anchor: fieldAnchor(person, name),
+        label: `${fieldLabels[name]} apare și la ${personName(context, other)}`,
+        tag: `${fieldLabels[name]} apare la două persoane`,
         tone: 'destructive',
       });
     }
@@ -396,11 +544,14 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
     if (resolved.choice) {
       decisions.push({
         key: `choice-${name}`,
-        anchor: name === 'jobTitle' || name === 'hiredAt' ? 'employment' : 'personal',
+        anchor: fieldAnchor(person, name),
         label: `${fieldLabels[name]}: fișele scriu valori diferite`,
         tag: `${fieldLabels[name]} diferă între fișe`,
         tone: 'destructive',
       });
+    } else if (resolved.value !== null && name !== 'workplace') {
+      const invalid = invalidField(person, name, resolved.value);
+      if (invalid) decisions.push(invalid);
     }
   }
   if (!isExisting(person)) {
@@ -409,7 +560,7 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
       if (!resolved.choice && !filled(resolved.value)) {
         decisions.push({
           key: `missing-${name}`,
-          anchor: name === 'jobTitle' || name === 'hiredAt' ? 'employment' : 'personal',
+          anchor: fieldAnchor(person, name),
           label: `Completează ${fieldLabels[name].toLowerCase()}`,
           tag: `Lipsește ${fieldLabels[name].toLowerCase()}`,
           tone: 'destructive',
@@ -450,6 +601,14 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
           tag: `Lipsește ${rowFieldLabels[missing[0]!]} la o instruire`,
           tone: 'destructive',
         });
+      } else if (!inMinutesRange(values.durationMinutes)) {
+        decisions.push({
+          key: `row-${row.id}`,
+          anchor: 'trainings',
+          label: `Corectează durata instruirii din ${rowDate(row, values)}: între 1 și 600 de minute`,
+          tag: 'O instruire cu durata de corectat',
+          tone: 'destructive',
+        });
       } else if (values.heldOn !== null && values.heldOn > context.today) {
         decisions.push({
           key: `row-${row.id}`,
@@ -461,15 +620,24 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
       }
     }
     if (row.test && testIncluded(changes, row)) {
-      const examiner = changes.rows[row.id]?.values ?? {};
-      const name = 'examinerName' in examiner ? examiner.examinerName : row.test.examinerName;
-      const title =
-        'examinerJobTitle' in examiner ? examiner.examinerJobTitle : row.test.examinerJobTitle;
+      const own = changes.rows[row.id]?.values ?? {};
+      const takenOn = row.testOnly ? values.heldOn : (row.test.takenOn ?? values.heldOn);
+      if (!filled(takenOn)) {
+        decisions.push({
+          key: `test-date-${row.id}`,
+          anchor: 'trainings',
+          label: `Completează data ${testName(row)}`,
+          tag: 'Lipsește data unui test',
+          tone: 'destructive',
+        });
+      }
+      const name = 'examinerName' in own ? own.examinerName : row.test.examinerName;
+      const title = 'examinerJobTitle' in own ? own.examinerJobTitle : row.test.examinerJobTitle;
       if (!filled(name) || !filled(title)) {
         decisions.push({
           key: `test-${row.id}`,
           anchor: 'trainings',
-          label: 'Completează examinatorul testului la angajare',
+          label: `Completează examinatorul ${testName(row)}`,
           tag: 'Lipsește examinatorul unui test',
           tone: 'destructive',
         });
@@ -597,6 +765,21 @@ export function leaving(context: ReviewContext, person: Person): Changes {
   }));
 }
 
+/**
+ * The changes with every checked person who has something to decide again, after an edit, a
+ * page given or a choice, back to check: confirming would refuse them.
+ */
+export function reopened(context: Omit<ReviewContext, 'states'>): Changes {
+  const full = { ...context, states: statesOf(context.proposal, context.changes) };
+  let changes = context.changes;
+  for (const person of context.proposal.people) {
+    if (stateOf(full, person.id) !== 'checked') continue;
+    if (decisionsOf(full, person).length === 0) continue;
+    changes = withPersonChange(changes, person.id, (current) => ({ ...current, state: undefined }));
+  }
+  return changes;
+}
+
 export type HiringBlock = {
   domain: TrainingDomain;
   rows: { row: SheetRow; page: SheetPage }[];
@@ -675,6 +858,44 @@ export const isWritten = (context: ReviewContext, person: Person) =>
   stateOf(context, person.id) === 'checked' &&
   (context.changes.people[person.id]?.included ?? person.proposedIncluded);
 
+// The phase of the hiring record whose test the app waits for, as `employee_test_due` reads it.
+const testedHiringPhase: Record<TrainingDomain, TrainingPhase> = {
+  ssm: 'introductory_general',
+  psi: 'workplace',
+};
+
+function endsTerminated(context: ReviewContext, person: Person) {
+  const leftOn = resolveField(context, person, 'leftOn');
+  if (!isExisting(person)) return leftOn.value !== null;
+  return (
+    (leftOn.app !== null && leftOn.app !== undefined) ||
+    (leftOn.value !== null && context.changes.people[person.id]?.fields?.leftOn?.replace === true)
+  );
+}
+
+/**
+ * The domains whose hiring test a written person is left without: a hiring record transcribed
+ * from paper and no pass, ticked here or already in the app, which the app shows as
+ * "Neverificat pe fișă".
+ */
+export function untestedDomains(context: ReviewContext, person: Person): TrainingDomain[] {
+  if (endsTerminated(context, person)) return [];
+  const rows = ownRows(context, person.id).map(({ row }) => row);
+  return (['ssm', 'psi'] as const).filter((domain) => {
+    const own = rows.filter((row) => row.domain === domain);
+    const transcribed = own.some(
+      (row) =>
+        !row.testOnly &&
+        row.phase === testedHiringPhase[domain] &&
+        rowIncluded(context.changes, row)
+    );
+    const passed = own.some(
+      (row) => row.test !== null && (row.test.inApp || testIncluded(context.changes, row))
+    );
+    return transcribed && !passed;
+  });
+}
+
 /** What confirming creates, for the confirm dialog: the people marked checked only. */
 export function confirmSummary(context: ReviewContext) {
   const written = context.proposal.people.filter((person) => isWritten(context, person));
@@ -688,23 +909,17 @@ export function confirmSummary(context: ReviewContext) {
   const tests = { ssm: 0, psi: 0 };
   const files = new Set<string>();
   const unusual: { person: Person; row: SheetRow }[] = [];
-  const unverified: Person[] = [];
+  const untested: { person: Person; domain: TrainingDomain }[] = [];
   for (const person of written) {
     const seen = new Set<string>();
     const pages = pagesOf(context, person.id);
     for (const page of pages) files.add(page.fileId);
-    let hiringRows = false;
-    let hiringTest = false;
     for (const { row } of ownRows(context, person.id)) {
-      if (row.test && testIncluded(context.changes, row)) {
-        if (row.test.test === 'hiring') {
-          tests[row.domain] += 1;
-          hiringTest = true;
-        }
+      if (row.test?.test === 'hiring' && testIncluded(context.changes, row)) {
+        tests[row.domain] += 1;
       }
       if (row.testOnly || !rowIncluded(context.changes, row)) continue;
       const values = rowValues(context.changes, row);
-      if (hiringPhases.has(row.phase) && row.domain === 'ssm') hiringRows = true;
       const own = `${row.domain}|${row.phase}|${values.heldOn}`;
       if (seen.has(own)) continue;
       seen.add(own);
@@ -713,7 +928,7 @@ export function confirmSummary(context: ReviewContext) {
       if (row.flags.includes('unusual_duration') || row.flags.includes('before_hire'))
         unusual.push({ person, row });
     }
-    if (hiringRows && !hiringTest) unverified.push(person);
+    for (const domain of untestedDomains(context, person)) untested.push({ person, domain });
   }
   const allFiles = new Set(context.proposal.pages.map((page) => page.fileId));
   const noContact = written.filter((person) =>
@@ -735,7 +950,7 @@ export function confirmSummary(context: ReviewContext) {
     filesLeft: allFiles.size - files.size,
     noContact,
     noCommute,
-    unverified,
+    untested,
     unusual,
   };
 }

@@ -376,7 +376,7 @@ describe('confirming', () => {
     await waitFor(() => expect(screen.getByTestId('client-employee-count').textContent).toBe('1'));
   });
 
-  it('says whose value the client refused, as the review names it', async () => {
+  it('names every value the confirm refused, as the review names them', async () => {
     mockEmployeeImport({
       detail: partly(),
       confirm: () =>
@@ -385,7 +385,11 @@ describe('confirming', () => {
             error: 'unprocessable',
             message: 'refused',
             reason: 'import_refused',
-            issues: [{ path: 'people.pop.fields.cnp', message: 'employees_client_cnp_key' }],
+            issues: [
+              { path: 'people.pop.fields.cnp', message: 'employees_client_cnp_key' },
+              { path: 'people.lazar.fields.hiredAt', message: 'missing' },
+              { path: 'people.pop.fields.cnp', message: 'employees_client_cnp_key' },
+            ],
           },
           { status: 422 }
         ),
@@ -394,8 +398,14 @@ describe('confirming', () => {
     mount(importPath);
     await user.click(await screen.findByTestId('employee-hub-confirm'));
     await user.click(await screen.findByTestId('employee-confirm-submit'));
-    expect((await screen.findByTestId('employee-confirm-error')).textContent).toBe(
-      'La Pop Elena, CNP-ul nu se poate salva. Deschide persoana, corectează și încearcă din nou.'
-    );
+    const issues = await screen.findByTestId('employee-confirm-issues');
+    expect(
+      within(issues)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent)
+    ).toEqual([
+      'La Pop Elena, CNP-ul îl are deja alt angajat al clientului sau altă persoană din import.',
+      'La Lazăr Radu, data angajării lipsește.',
+    ]);
   });
 });
