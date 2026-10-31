@@ -503,6 +503,7 @@ export function AppShell() {
                 <SubscriptionBadge
                   subscription={me.data.subscription}
                   sms={me.data.smsThisMonth ?? null}
+                  credits={me.data.creditsThisMonth ?? null}
                   isOwner={me.data.membership?.role === 'owner'}
                   impersonating={Boolean(me.data.impersonation)}
                 />

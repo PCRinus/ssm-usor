@@ -1,5 +1,6 @@
 import {
   type BillingChoice,
+  type BillingCreditsUsage,
   type BillingOverview,
   billingPlans,
   type BillingPreview,
@@ -41,6 +42,25 @@ export function meFor({
       : null,
     subscription,
     smsThisMonth,
+  };
+}
+
+/** The month's import credits as the API reports them, on a paid Profesional unless told otherwise. */
+export function creditsUsage(overrides: Partial<BillingCreditsUsage> = {}): BillingCreditsUsage {
+  return {
+    used: 640,
+    included: 1500,
+    allowance: 1500,
+    granted: 0,
+    shortfall: 0,
+    left: 860,
+    giftLeft: 8640,
+    giftPending: 0,
+    period: 'month',
+    periodStart: inDays(-17),
+    periodEnd: inDays(14),
+    state: 'ok',
+    ...overrides,
   };
 }
 
@@ -166,6 +186,7 @@ export function overviewWith({
   members = 1,
   limits,
   sms,
+  credits,
 }: {
   subscription: Subscription | null;
   owner?: Owner | null;
@@ -173,6 +194,7 @@ export function overviewWith({
   members?: number;
   limits?: { employees: number | null; members: number | null; sms: number | null };
   sms?: Partial<BillingSmsUsage>;
+  credits?: Partial<BillingCreditsUsage>;
 }): BillingOverview {
   return {
     subscription,
@@ -205,6 +227,7 @@ export function overviewWith({
         periodStart: '2026-10-01T08:00:00.000Z',
         periodEnd: '2026-10-31T08:00:00.000Z',
         state: 'ok',
+        ...credits,
       },
     },
     catalogue,

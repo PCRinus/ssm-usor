@@ -10,7 +10,7 @@ import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { smsUsage } from '@/test/billing-fixture';
+import { creditsUsage, smsUsage } from '@/test/billing-fixture';
 
 import { SubscriptionBadge } from './subscription-badge';
 import { SubscriptionBar } from './subscription-bar';
@@ -339,6 +339,53 @@ describe('the SMS meter in the badge', () => {
     expect((await screen.findByTestId('subscription-details-sms')).textContent).toContain('4 / 50');
     expect(screen.getByTestId('subscription-details-sms-note').textContent).toBe(
       'Până la prima plată, codurile se opresc la 50.'
+    );
+  });
+});
+
+describe('the credits meter in the badge', () => {
+  it("shows the month's credits and the welcome gift left", async () => {
+    await renderRouted(
+      <SubscriptionBadge
+        subscription={active}
+        sms={smsUsage({ used: 142 })}
+        credits={creditsUsage()}
+        isOwner
+        impersonating={false}
+      />
+    );
+    await userEvent.click(await screen.findByTestId('subscription-badge'));
+    expect((await screen.findByTestId('subscription-details-credits')).textContent).toBe(
+      'Credite pentru import640 / 1.500'
+    );
+    expect(screen.getByTestId('subscription-details-gift').textContent).toBe(
+      'Plus 8.640 de credite de bun venit, fără termen.'
+    );
+  });
+
+  it('promises the gift to a plan chosen during the trial', async () => {
+    await renderRouted(
+      <SubscriptionBadge
+        subscription={chosen(12)}
+        sms={null}
+        credits={creditsUsage({
+          used: 85,
+          included: 300,
+          left: 215,
+          giftLeft: 0,
+          giftPending: 2500,
+          period: 'trial',
+        })}
+        isOwner
+        impersonating={false}
+      />
+    );
+    await userEvent.click(await screen.findByTestId('subscription-badge'));
+    expect((await screen.findByTestId('subscription-details-credits')).textContent).toContain(
+      '85 / 300'
+    );
+    expect(screen.getByTestId('subscription-details-gift').textContent).toBe(
+      'La prima plată primești 2.500 de credite de bun venit.'
     );
   });
 });

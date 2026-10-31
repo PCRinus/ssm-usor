@@ -1,4 +1,8 @@
-import type { BillingSmsUsage, SubscriptionSummary } from '@ssm-usor/contracts';
+import type {
+  BillingCreditsUsage,
+  BillingSmsUsage,
+  SubscriptionSummary,
+} from '@ssm-usor/contracts';
 import { Popover, PopoverContent, PopoverTrigger } from '@ssm-usor/ui/components/popover';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
@@ -6,9 +10,10 @@ import { useState } from 'react';
 
 import { formatCount } from './billing-format';
 import { UsageBar } from './billing-ui';
+import { creditsCount, creditsLabel, creditsMeterFor, creditsReaderOf } from './credits-copy';
 import { toneInks } from './meter-tones';
 import { sealLooks } from './seal-looks';
-import { codesLabel, smsMeterFor, stopOf } from './sms-copy';
+import { codesLabel, type MeterTone, smsMeterFor, stopOf } from './sms-copy';
 import {
   daysLeftLabel,
   daysUntil,
@@ -71,12 +76,14 @@ export function SubscriptionSeal({
 export function SubscriptionBadge({
   subscription,
   sms,
+  credits = null,
   isOwner,
   impersonating,
   className,
 }: {
   subscription: SubscriptionSummary;
   sms: BillingSmsUsage | null;
+  credits?: BillingCreditsUsage | null;
   isOwner: boolean;
   // Support acting as the owner is not told to write to itself.
   impersonating: boolean;
@@ -115,6 +122,7 @@ export function SubscriptionBadge({
         <SubscriptionDetails
           subscription={subscription}
           sms={sms}
+          credits={credits}
           isOwner={isOwner}
           canAct={isOwner && !impersonating}
           impersonating={impersonating}
@@ -128,6 +136,7 @@ export function SubscriptionBadge({
 function SubscriptionDetails({
   subscription,
   sms,
+  credits,
   isOwner,
   canAct,
   impersonating,
@@ -135,6 +144,7 @@ function SubscriptionDetails({
 }: {
   subscription: SubscriptionSummary;
   sms: BillingSmsUsage | null;
+  credits: BillingCreditsUsage | null;
   isOwner: boolean;
   canAct: boolean;
   impersonating: boolean;
@@ -186,6 +196,20 @@ function SubscriptionDetails({
       ? `Până la prima plată, codurile se opresc la ${formatCount(sms.included)}.`
       : `Cont de test: după ${codesLabel(sms.included)} pe lună, codurile pleacă pe email.`;
   }
+  const creditsShown = !readOnly && credits && credits.included !== null ? credits : null;
+  const creditsMeter = creditsShown
+    ? creditsMeterFor(
+        creditsShown,
+        creditsReaderOf(creditsShown, { planChosen: subscription.planChosen, nextMonthly: null })
+      )
+    : null;
+  const giftNote = !creditsShown
+    ? null
+    : creditsShown.giftPending > 0
+      ? `La prima plată primești ${creditsCount(creditsShown.giftPending)} de bun venit.`
+      : creditsShown.giftLeft > 0
+        ? `Plus ${creditsCount(creditsShown.giftLeft)} de bun venit, fără termen.`
+        : null;
   const needsOwner = readOnly || Boolean(trial) || subscription.status === 'past_due';
   const action = ownerActionFor(subscription);
 
@@ -202,6 +226,28 @@ function SubscriptionDetails({
       ))}
       {!readOnly && sms && sms.included !== null && sms.state !== 'none' && (
         <SmsMeterLine sms={sms} owner={isOwner} planChosen={subscription.planChosen} />
+      )}
+      {creditsMeter && creditsMeter.used !== null && creditsMeter.limit !== null && (
+        <MeterLine
+          testId="subscription-details-credits"
+          state={creditsShown!.state}
+          label={creditsLabel}
+          value={
+            creditsMeter.valueShort ??
+            `${formatCount(creditsMeter.used)} / ${formatCount(creditsMeter.limit)}`
+          }
+          used={creditsMeter.used}
+          limit={creditsMeter.limit}
+          tone={creditsMeter.tone}
+        />
+      )}
+      {giftNote && (
+        <p
+          data-testid="subscription-details-gift"
+          className="leading-relaxed text-muted-foreground"
+        >
+          {giftNote}
+        </p>
       )}
       {smsNote && (
         <p
@@ -258,22 +304,45 @@ function SmsMeterLine({
 }) {
   const meter = smsMeterFor(sms, { owner, stop: stopOf(sms, planChosen) });
   if (meter.used === null || meter.limit === null) return null;
-  const label = 'Coduri de semnare prin SMS';
   return (
-    <div data-testid="subscription-details-sms" data-state={sms.state} className="grid gap-1">
+    <MeterLine
+      testId="subscription-details-sms"
+      state={sms.state}
+      label="Coduri de semnare prin SMS"
+      value={`${formatCount(meter.used)} / ${formatCount(meter.limit)}`}
+      used={meter.used}
+      limit={meter.limit}
+      tone={meter.tone}
+    />
+  );
+}
+
+function MeterLine({
+  testId,
+  state,
+  label,
+  value,
+  used,
+  limit,
+  tone,
+}: {
+  testId: string;
+  state: string;
+  label: string;
+  value: string;
+  used: number;
+  limit: number;
+  tone: MeterTone;
+}) {
+  return (
+    <div data-testid={testId} data-state={state} className="grid gap-1">
       <div className="flex justify-between gap-3 text-[13px]">
         <span>{label}</span>
-        <span className={cn('tabular-nums', toneInks[meter.tone] ?? 'text-muted-foreground')}>
-          {formatCount(meter.used)} / {formatCount(meter.limit)}
+        <span className={cn('tabular-nums', toneInks[tone] ?? 'text-muted-foreground')}>
+          {value}
         </span>
       </div>
-      <UsageBar
-        used={meter.used}
-        limit={meter.limit}
-        label={label}
-        tone={meter.tone}
-        className="h-1.5"
-      />
+      <UsageBar used={used} limit={limit} label={label} tone={tone} className="h-1.5" />
     </div>
   );
 }

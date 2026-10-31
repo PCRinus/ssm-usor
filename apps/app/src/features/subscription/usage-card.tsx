@@ -1,6 +1,7 @@
 import { type BillingOverview, billingPlans } from '@ssm-usor/contracts';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
+import { Gift } from 'lucide-react';
 
 import {
   employeeLimitOf,
@@ -13,17 +14,28 @@ import {
   shortPlanNames,
 } from './billing-format';
 import { BillingCard, UsageBar } from './billing-ui';
+import {
+  creditsExplained,
+  creditsLabel,
+  type CreditsMeter,
+  creditsMeterFor,
+  creditsReaderOf,
+  type GiftPanel,
+  giftPanelFor,
+} from './credits-copy';
 import { toneInks } from './meter-tones';
 import { type MeterTone, type SmsMeter, smsMeterFor, stopOf } from './sms-copy';
 import { roDate } from './subscription-copy';
 import { currentChoice, hasLiveSubscription, type SubscriptionView } from './use-billing';
 
 interface Meter {
-  key: 'employees' | 'members' | 'sms';
+  key: 'employees' | 'members' | 'sms' | 'credits';
   label: string;
   used: number | null;
   limit: number | null;
   value?: string;
+  valueShort?: string | null;
+  hintShort?: string | null;
   ticks?: number[];
   tone?: MeterTone;
   hint: string;
@@ -151,6 +163,37 @@ export function UsageCard({
         }
       : smsMeterFor(sms, { owner, stop: stopOf(sms, Boolean(subscription?.planChosen)) });
 
+  const credits = overview.usage.creditsThisMonth;
+  const creditsMeter: CreditsMeter =
+    view === 'readOnly'
+      ? {
+          used: null,
+          limit: null,
+          value: '',
+          valueShort: null,
+          tone: 'normal',
+          hint: 'Cât contul e doar pentru citire, nu se mai pornesc importuri.',
+          hintShort: null,
+        }
+      : creditsMeterFor(
+          credits,
+          creditsReaderOf(credits, {
+            planChosen: Boolean(subscription?.planChosen),
+            nextMonthly: choice ? billingPlans[choice.plan].monthlyCredits : null,
+          })
+        );
+  const paidPlan =
+    choice && (view === 'active' || view === 'canceling' || view === 'pastDue')
+      ? choice.plan
+      : null;
+  const gift =
+    view === 'readOnly'
+      ? null
+      : giftPanelFor(credits, {
+          paid: paidPlan !== null,
+          welcomeCredits: paidPlan ? billingPlans[paidPlan].welcomeCredits : null,
+        });
+
   const meters: Meter[] = [
     {
       key: 'employees',
@@ -194,6 +237,17 @@ export function UsageCard({
       hint: smsMeter.hint,
       raiseCap: canAct && smsMeter.raiseCap,
     },
+    {
+      key: 'credits',
+      label: creditsLabel,
+      used: creditsMeter.used,
+      limit: creditsMeter.limit,
+      value: creditsMeter.value || undefined,
+      valueShort: creditsMeter.valueShort,
+      tone: creditsMeter.tone,
+      hint: creditsMeter.hint,
+      hintShort: creditsMeter.hintShort,
+    },
   ];
 
   return (
@@ -213,7 +267,7 @@ export function UsageCard({
             meter.value ??
             (bar
               ? `${formatCount(meter.used!)} din ${formatCount(meter.limit!)}`
-              : meter.used !== null && meter.key !== 'sms'
+              : meter.used !== null && meter.key !== 'sms' && meter.key !== 'credits'
                 ? formatCount(meter.used)
                 : null);
           return (
@@ -222,7 +276,14 @@ export function UsageCard({
                 <span className="font-medium">{meter.label}</span>
                 {value && (
                   <span className={cn('font-semibold whitespace-nowrap tabular-nums', ink)}>
-                    {value}
+                    {meter.valueShort ? (
+                      <>
+                        <span className="sm:hidden">{meter.valueShort}</span>
+                        <span className="hidden sm:inline">{value}</span>
+                      </>
+                    ) : (
+                      value
+                    )}
                   </span>
                 )}
               </div>
@@ -242,7 +303,14 @@ export function UsageCard({
                   ink ?? 'text-muted-foreground'
                 )}
               >
-                {meter.hint}
+                {meter.hintShort ? (
+                  <>
+                    <span className="sm:hidden">{meter.hintShort}</span>
+                    <span className="hidden sm:inline">{meter.hint}</span>
+                  </>
+                ) : (
+                  meter.hint
+                )}
               </p>
               {meter.raiseCap && (
                 <button
@@ -268,6 +336,64 @@ export function UsageCard({
           );
         })}
       </div>
+      {gift && <GiftPanelView gift={gift} />}
+      {view !== 'readOnly' && credits.included !== null && (
+        <p className="max-w-[68ch] border-t pt-3.5 text-[13px] leading-relaxed text-pretty text-muted-foreground">
+          {creditsExplained}
+        </p>
+      )}
     </BillingCard>
+  );
+}
+
+const giftLooks: Record<GiftPanel['look'], { panel: string; badge: string; value: string }> = {
+  balance: {
+    panel: 'border-success-border bg-success',
+    badge: 'bg-brand-lime text-foreground',
+    value: 'text-foreground',
+  },
+  promise: {
+    panel: 'border-dashed border-success-foreground/45 bg-card',
+    badge: 'bg-success text-success-foreground',
+    value: 'text-foreground',
+  },
+  spent: {
+    panel: 'border-border bg-muted/60',
+    badge: 'bg-muted text-muted-foreground',
+    value: 'text-muted-foreground',
+  },
+};
+
+function GiftPanelView({ gift }: { gift: GiftPanel }) {
+  const look = giftLooks[gift.look];
+  return (
+    <div
+      data-testid="credits-gift"
+      data-look={gift.look}
+      className={cn(
+        'flex flex-wrap items-center gap-x-3.5 gap-y-3 rounded-xl border px-3.5 py-3 sm:px-4 sm:py-3.5',
+        look.panel
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className={cn('grid size-9 shrink-0 place-items-center rounded-[10px]', look.badge)}
+      >
+        <Gift className="size-[18px]" />
+      </span>
+      <div className="grid min-w-0 flex-[1_1_220px] gap-0.5">
+        <span className="text-sm font-semibold">{gift.title}</span>
+        <span className="text-[13px] leading-relaxed text-pretty text-muted-foreground">
+          {gift.text}
+        </span>
+      </div>
+      {gift.value !== null && (
+        <strong
+          className={cn('text-2xl leading-none font-bold tracking-tight tabular-nums', look.value)}
+        >
+          {gift.value}
+        </strong>
+      )}
+    </div>
   );
 }

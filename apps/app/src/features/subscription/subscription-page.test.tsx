@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import {
   activeSubscription,
+  creditsUsage,
   inDays,
   meFor,
   overviewWith,
@@ -762,5 +763,85 @@ describe('the signing codes by SMS on the Abonament tab', () => {
     const meter = await screen.findByTestId('meter-sms');
     expect(within(meter).queryByRole('meter')).toBeNull();
     expect(meter.textContent).toContain('În perioada de probă nu trimitem SMS');
+  });
+});
+
+describe('the import credits on the Abonament tab', () => {
+  const monthly = () =>
+    activeSubscription({ interval: 'month', employeePacks: 0, extraMembers: 0 });
+
+  it("shows the month's credits, the welcome gift left and what a credit is", async () => {
+    mockApi({
+      overview: overviewWith({
+        subscription: monthly(),
+        owner: ownerPart(),
+        credits: creditsUsage(),
+      }),
+    });
+    mount();
+    const meter = await screen.findByTestId('meter-credits');
+    expect(meter.textContent).toContain('Credite pentru import');
+    expect(meter.textContent).toContain('640 din 1.500');
+    const gift = screen.getByTestId('credits-gift');
+    expect(gift.dataset.look).toBe('balance');
+    expect(gift.textContent).toContain('8.640');
+    expect(gift.textContent).toContain('Rămase din 10.000. Nu expiră');
+    expect(screen.getByTestId('usage-card').textContent).toContain(
+      'Un credit e o pagină scanată sau o fotografie citită la import.'
+    );
+  });
+
+  it('shows a balance below zero short beside the label, with the sentence in the hint', async () => {
+    mockApi({
+      overview: overviewWith({
+        subscription: monthly(),
+        owner: ownerPart(),
+        credits: creditsUsage({ used: 1504, left: -4, giftLeft: 0, state: 'negative' }),
+      }),
+    });
+    mount();
+    const meter = await screen.findByTestId('meter-credits');
+    expect(within(meter).getByText('−4').className).toContain('sm:hidden');
+    expect(within(meter).getByText('−4 · se scad din luna viitoare').className).toContain(
+      'hidden sm:inline'
+    );
+    expect(within(meter).getByRole('meter').firstElementChild!.className).toContain('bg-chart-3');
+    expect(screen.getByTestId('credits-gift').dataset.look).toBe('spent');
+  });
+
+  it('turns red when used up, and promises the gift to a plan chosen during the trial', async () => {
+    mockApi({
+      overview: overviewWith({
+        subscription: monthly(),
+        owner: ownerPart(),
+        credits: creditsUsage({ used: 1500, left: 0, giftLeft: 0, state: 'out' }),
+      }),
+    });
+    mount();
+    const meter = await screen.findByTestId('meter-credits');
+    expect(within(meter).getByRole('meter').firstElementChild!.className).toContain(
+      'bg-destructive'
+    );
+    expect(within(meter).getByTestId('meter-credits-hint').textContent).toContain(
+      'îți adăugăm credite'
+    );
+    cleanup();
+    disposeRuntimes();
+
+    mockApi({
+      overview: overviewWith({
+        subscription: trialChosenSubscription(),
+        owner: ownerPart(),
+        credits: { used: 85, left: 215, giftPending: 2500 },
+      }),
+    });
+    mount();
+    const gift = await screen.findByTestId('credits-gift');
+    expect(gift.dataset.look).toBe('promise');
+    expect(gift.textContent).toContain('La prima plată primești 2.500 de credite de bun venit.');
+    expect(screen.getByTestId('meter-credits-hint').textContent).toContain(
+      'Cele 300 din perioada de probă, până la prima plată.'
+    );
+    expect(screen.getByTestId('meter-credits-hint').textContent).toContain('primești 300 pe lună');
   });
 });
