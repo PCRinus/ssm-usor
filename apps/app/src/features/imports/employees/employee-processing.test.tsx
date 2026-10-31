@@ -71,10 +71,12 @@ describe('the page of an employee import that is not ready', () => {
       })
     );
     expect(await heading()).toBe('Se încarcă fotografiile');
+    // The stall is three seconds away on the real clock, and a loaded CI runner takes most of the
+    // default five seconds to render the page before that.
     await waitFor(async () => expect(await heading()).toBe('Încărcarea nu s-a terminat'), {
-      timeout: 5000,
+      timeout: 10_000,
     });
-  });
+  }, 15_000);
 
   it('calls a confirmed import confirmed', async () => {
     mount(employeeDetail({ status: 'confirmed', confirmedAt: '2026-10-31T10:00:00+00:00' }));
