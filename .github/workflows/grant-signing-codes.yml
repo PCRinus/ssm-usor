@@ -1,0 +1,71 @@
+name: Adaugă coduri de semnare prin SMS
+
+# Operator action, run by hand: adds signing codes by SMS to an organization's current month, as
+# for a tester at the hard stop (ADR 029). A paying owner at the safety cap raises the cap from the
+# Abonament tab instead. Replaced by the admin area (#611). The codes, the reason and the GitHub
+# account that ran it go to the subscription's change log.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: The environment whose organization to change
+        type: choice
+        options:
+          - non-prod
+          - production
+        default: non-prod
+      email:
+        description: The email of the organization's owner
+        type: string
+        required: true
+      codes:
+        description: How many signing codes to add to the current month
+        type: string
+        required: true
+      reason:
+        description: Why, for example "Tester, runda 1"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: grant-signing-codes-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  grant:
+    name: Add the signing codes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: ${{ inputs.environment }}
+    env:
+      SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      EMAIL: ${{ inputs.email }}
+      CODES: ${{ inputs.codes }}
+      REASON: ${{ inputs.reason }}
+      ACTOR: ${{ github.actor }}
+    steps:
+      - name: Check the branch
+        if: inputs.environment == 'production'
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" != refs/heads/main ]]; then
+            echo "::error::Change production from main only, not from $GITHUB_REF."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - name: Build the API's workspace packages
+        run: pnpm --filter "@ssm-usor/api^..." build
+
+      # The inputs reach the script as environment variables, never spliced into the command.
+      - name: Add the signing codes
+        shell: bash
+        run: |
+          pnpm --filter @ssm-usor/api grant-signing-codes \
+            --email="$EMAIL" --codes="$CODES" --reason="$REASON" --actor="$ACTOR"
