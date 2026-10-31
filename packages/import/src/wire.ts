@@ -78,6 +78,38 @@ export function wireMonths(value: unknown) {
   return Number.isInteger(months) ? months : null;
 }
 
+const minuteSchemas = new WeakSet<z.ZodType>();
+
+// A duration in minutes a sheet may write in hours ("8 ore", "1h30"), which the first number of
+// the text would read as minutes.
+export function minutes<T extends z.ZodNumber>(schema: T): T {
+  minuteSchemas.add(schema);
+  return schema;
+}
+
+const hourWord = /(?:^|[^a-z])(?:h|hr|hrs|ora|ore|hours?)(?![a-z])/;
+const clock = /^(\d{1,2}):([0-5]\d)$/;
+const hours =
+  /^(\d+(?:[.,]\d+)?|o|una|un)\s*(?:h|hr|hrs|ora|ore|hours?)\.?(?:\s*(?:si\s+)?(\d+)\s*(?:de\s+)?(?:m|min|mins|minut|minute|minutes|')?\.?)?$/;
+
+export function wireMinutes(value: unknown) {
+  const text = String(value)
+    .trim()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .replace(/\s*\([^)]*\)/g, '')
+    .replace(/[\s.,;:!]+$/, '');
+  const onClock = clock.exec(text);
+  if (onClock) return Number(onClock[1]) * 60 + Number(onClock[2]);
+  if (!hourWord.test(text)) return wireNumber(text, true);
+  const match = hours.exec(text);
+  if (!match) return null;
+  const count = /^\d/.test(match[1]!) ? Number(match[1]!.replace(',', '.')) : 1;
+  const total = count * 60 + Number(match[2] ?? 0);
+  return Math.abs(total - Math.round(total)) < 1e-9 ? Math.round(total) : null;
+}
+
 export function restore(schema: z.ZodType, value: unknown): unknown {
   if (schema instanceof z.ZodNullable) {
     if (value === null || value === undefined) return null;
@@ -87,6 +119,7 @@ export function restore(schema: z.ZodType, value: unknown): unknown {
   if (schema instanceof z.ZodNumber) {
     if (typeof value === 'number') return value;
     if (monthSchemas.has(schema)) return wireMonths(value);
+    if (minuteSchemas.has(schema)) return wireMinutes(value);
     return wireNumber(value, schema.format === 'safeint' || schema.format === 'int32');
   }
   if (schema instanceof z.ZodArray) {

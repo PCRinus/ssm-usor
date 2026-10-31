@@ -58,6 +58,7 @@ describe('checkCnp', () => {
 describe('rowFlags', () => {
   const signed = { trainee: 'present', trainer: 'present', verifier: 'absent' } as const;
   const base = {
+    domain: 'ssm' as const,
     phase: 'periodic' as const,
     heldOn: '2025-07-14',
     durationMinutes: 120,
@@ -73,6 +74,22 @@ describe('rowFlags', () => {
   it('flags a periodic duration other than 60, 90 or 120 minutes', () => {
     expect(rowFlags({ ...base, durationMinutes: 1440 }, context)).toEqual(['unusual_duration']);
     expect(rowFlags({ ...base, phase: 'workplace', durationMinutes: 480 }, context)).toEqual([]);
+  });
+
+  it('flags an occupational safety hiring or supplementary training under the hour of art. 80¹', () => {
+    for (const phase of ['introductory_general', 'workplace', 'supplementary'] as const) {
+      expect(rowFlags({ ...base, phase, durationMinutes: 8 }, context)).toEqual([
+        'unusual_duration',
+      ]);
+      expect(rowFlags({ ...base, phase, durationMinutes: 60 }, context)).toEqual([]);
+    }
+  });
+
+  it('flags a fire-safety training under a quarter of an hour, which no act sets a floor for', () => {
+    const psi = { ...base, domain: 'psi' as const, phase: 'workplace' as const };
+
+    expect(rowFlags({ ...psi, durationMinutes: 8 }, context)).toEqual(['unusual_duration']);
+    expect(rowFlags({ ...psi, durationMinutes: 30 }, context)).toEqual([]);
   });
 
   it('flags a date before the hire date or after today, but not a hiring training', () => {

@@ -88,7 +88,8 @@ export const rowFlagCodes = [
   // Nesemnat pe fișă: the trainee's box is empty.
   'unsigned',
   'signature_unclear',
-  // A periodic duration other than 60, 90 or 120 minutes.
+  // A periodic duration other than 60, 90 or 120 minutes, or another training shorter than an
+  // hour for occupational safety and a quarter of an hour for fire safety.
   'unusual_duration',
   'before_hire',
   'after_today',

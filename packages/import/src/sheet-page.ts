@@ -1,7 +1,7 @@
 import { supplementaryTrainingReasons, trainingDomains, trainingPhases } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import { answerFormat } from './wire';
+import { answerFormat, minutes } from './wire';
 
 export const sheetPageKinds = [
   'ssm_sheet_front',
@@ -48,7 +48,7 @@ export const sheetPageSchema = z.object({
     leftOn: text,
     workplace: text,
     commuteRoute: text,
-    commuteMinutes: z.int().nullable(),
+    commuteMinutes: minutes(z.int()).nullable(),
   }),
   admission: z.object({
     admittedOn: text,
@@ -62,7 +62,7 @@ export const sheetPageSchema = z.object({
       annualTest: z.boolean(),
       // YYYY-MM-DD, or YYYY-MM where the sheet writes only the month.
       heldOn: text,
-      durationMinutes: z.int().nullable(),
+      durationMinutes: minutes(z.int()).nullable(),
       trainerName: text,
       trainerJobTitle: text,
       verifierName: text,

@@ -117,21 +117,31 @@ export interface RowCheckContext {
 
 const hiringPhases = new Set(['introductory_general', 'workplace']);
 
+// H.G. 1425/2006 art. 80¹ gives every occupational safety phase at least an hour. No act sets one
+// for fire safety, where a quarter of an hour still catches "8 ore" read as eight minutes.
+const shortestMinutes: Record<ProposedSheetRow['domain'], number> = { ssm: 60, psi: 15 };
+
+function unusualDuration(
+  row: Pick<ProposedSheetRow, 'domain' | 'phase' | 'durationMinutes' | 'testOnly'>
+) {
+  if (row.testOnly || row.durationMinutes === null) return false;
+  if (row.phase === 'periodic') {
+    return !(periodicTrainingMinutesOptions as readonly number[]).includes(row.durationMinutes);
+  }
+  return row.durationMinutes < shortestMinutes[row.domain];
+}
+
 export function rowFlags(
-  row: Pick<ProposedSheetRow, 'phase' | 'heldOn' | 'durationMinutes' | 'testOnly' | 'signatures'>,
+  row: Pick<
+    ProposedSheetRow,
+    'domain' | 'phase' | 'heldOn' | 'durationMinutes' | 'testOnly' | 'signatures'
+  >,
   context: RowCheckContext
 ): RowFlagCode[] {
   const flags: RowFlagCode[] = [];
   if (row.signatures.trainee === 'absent') flags.push('unsigned');
   if (row.signatures.trainee === 'unclear') flags.push('signature_unclear');
-  if (
-    row.phase === 'periodic' &&
-    !row.testOnly &&
-    row.durationMinutes !== null &&
-    !(periodicTrainingMinutesOptions as readonly number[]).includes(row.durationMinutes)
-  ) {
-    flags.push('unusual_duration');
-  }
+  if (unusualDuration(row)) flags.push('unusual_duration');
   if (row.heldOn !== null) {
     // The hiring trainings come before the admission to work, which a sheet may give as the
     // hire date.

@@ -60,6 +60,20 @@ describe('the sheet page answer', () => {
     });
   });
 
+  it('reads a training and a commute written in hours as minutes', () => {
+    const page = sheetPageAnswer.parse({
+      ...wire,
+      fields: { ...wire.fields, commuteMinutes: '1 oră' },
+      trainings: [
+        { ...wire.trainings[0]!, durationMinutes: '8 ore' },
+        { ...wire.trainings[1]!, durationMinutes: '1h30' },
+      ],
+    });
+
+    expect(page.fields.commuteMinutes).toBe(60);
+    expect(page.trainings.map((row) => row.durationMinutes)).toEqual([480, 90]);
+  });
+
   it('refuses an answer outside the schema, which the client then asks again', () => {
     expect(() => sheetPageAnswer.parse({ ...wire, pageKind: 'cover' })).toThrow();
   });

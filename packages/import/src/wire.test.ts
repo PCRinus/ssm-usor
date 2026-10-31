@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { readingAnswer } from './reading';
 import { sortingAnswer } from './sorting';
 import { wireAnswer } from './test/fixtures';
-import { answerFormat, flatten, months, restore, strictJsonSchema } from './wire';
+import { answerFormat, flatten, minutes, months, restore, strictJsonSchema } from './wire';
 
 function visit(node: unknown, each: (node: Record<string, unknown>) => void) {
   if (Array.isArray(node)) node.forEach((child) => visit(child, each));
@@ -69,6 +69,37 @@ describe('the wire form', () => {
       )
     ).toEqual([6, 12, 24, 36, 12, null, null, null, null, 9]);
     expect(restore(z.int().nullable(), '1 an')).toBe(1);
+  });
+
+  it('reads a duration in hours as minutes', () => {
+    const duration = minutes(z.int()).nullable();
+    const written = {
+      '90': 90,
+      '90 min': 90,
+      '120 minute': 120,
+      "45'": 45,
+      '8 ore': 480,
+      '8 ORE': 480,
+      '1h': 60,
+      '1 h': 60,
+      '1h30': 90,
+      '1h 30min': 90,
+      '1 oră': 60,
+      'o oră': 60,
+      '1 oră și 30 de minute': 90,
+      '1,5 ore': 90,
+      '2 ore (120 min)': 120,
+      '1:30': 90,
+      '1,3 ore': 78,
+      '': null,
+      ore: null,
+      '1,01 ore': null,
+    };
+
+    expect(Object.keys(written).map((value) => restore(duration, value))).toEqual(
+      Object.values(written)
+    );
+    expect(restore(duration, 240)).toBe(240);
   });
 
   it('reads the intervals training themes write in words', () => {
