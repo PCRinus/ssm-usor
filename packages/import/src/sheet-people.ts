@@ -38,19 +38,37 @@ export function pageCnp(page: SheetPage) {
 
 const pageEmployeeNumber = (page: SheetPage) => (page.person.employeeNumber ?? '').trim() || null;
 
+// Daniel and Daniela, Ioan and Ioana: a letter added at the end is another person, not a misread.
+const endsApart = (a: string, b: string) =>
+  a.length !== b.length && (a.startsWith(b) || b.startsWith(a));
+
 const closeWord = (a: string, b: string) =>
-  a === b || (a.length >= 4 && b.length >= 4 && editDistance(a, b) <= 1);
+  a === b || (a.length >= 4 && b.length >= 4 && editDistance(a, b) <= 1 && !endsApart(a, b));
+
+function sharedWords(x: readonly string[], y: readonly string[]) {
+  const free = [...y];
+  let shared = 0;
+  for (const word of x) {
+    const at = free.findIndex((other) => closeWord(word, other));
+    if (at === -1) continue;
+    free.splice(at, 1);
+    shared++;
+  }
+  return shared;
+}
 
 // One misread letter or a given name cut short on one page must not split a person, as exact
 // names did in the evaluation: the surname within one edit and about two thirds of the parts
-// shared.
+// shared. Sheets write the surname first or last, so either name's first word is looked for
+// anywhere in the other.
 export function nearName(a: string, b: string) {
   const x = a.split(' ').filter(Boolean);
   const y = b.split(' ').filter(Boolean);
   if (x.length === 0 || y.length === 0) return false;
-  if (!closeWord(x[0]!, y[0]!)) return false;
-  const shared = x.filter((word) => y.some((other) => closeWord(word, other))).length;
-  return shared / Math.min(x.length, y.length) >= 0.66;
+  const found = (word: string, words: readonly string[]) =>
+    words.some((other) => closeWord(word, other));
+  if (!found(x[0]!, y) || !found(y[0]!, x)) return false;
+  return sharedWords(x, y) / Math.min(x.length, y.length) >= 0.66;
 }
 
 // A page with nothing to say about anyone is never someone's continuation.
