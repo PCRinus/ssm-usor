@@ -163,7 +163,7 @@ O pagină pe care aplicația nu o poate lega de nicio persoană apare sub listă
 
 ## Pagina unei persoane
 
-Pe pagina unei persoane vezi, alături, fotografiile fișelor ei; un clic pe una o mărește. Sus sunt lucrurile de hotărât, apoi datele citite, pe grupuri, și instruirile, pe domenii. O valoare citită greșit o corectezi cu **Modifică**. Cu butoanele de jos treci la persoana anterioară sau la următoarea.
+Pe pagina unei persoane vezi, alături, fotografiile fișelor ei; un clic pe una o mărește. Sus sunt lucrurile de hotărât, apoi datele citite, pe grupuri, și instruirile, pe domenii. O valoare citită greșit o corectezi cu **Schimbă**. Cu butoanele de jos treci la persoana anterioară sau la următoarea.
 
 Ca să fie creat, un angajat are nevoie de nume, prenume, funcția din contract, data angajării și un post. Emailul și telefonul nu sunt obligatorii: când lipsesc, vezi „Fără email sau telefon. Îl adaugi când îl inviți în portal.” Când fișele aceleiași persoane scriu valori diferite, de exemplu două date ale angajării, alegi una.
 
@@ -209,7 +209,7 @@ Când persoana se potrivește cu un fost angajat al clientului, vezi asta pe pag
 
 ### Rândurile de instruire
 
-Se preiau toate instruirile de pe fișă, nu doar cele de care depinde termenul: introductiv-generală, la locul de muncă, periodice și suplimentare, cu ziua, durata, cine a instruit, funcția lui și materialul. „Admis la lucru”, cu ziua și cine l-a admis, merge la instruirea la locul de muncă. Un rând îl corectezi cu **Modifică** sau îl scoți debifându-l.
+Se preiau toate instruirile de pe fișă, nu doar cele de care depinde termenul: introductiv-generală, la locul de muncă, periodice și suplimentare, cu ziua, durata, cine a instruit, funcția lui și materialul. „Admis la lucru”, cu ziua și cine l-a admis, merge la instruirea la locul de muncă. Un rând îl corectezi cu **Schimbă** sau îl scoți debifându-l.
 
 Unele rânduri poartă o etichetă:
 
