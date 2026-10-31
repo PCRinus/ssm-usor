@@ -1,4 +1,4 @@
-import { importErrorReasons, type ImportKind } from '@ssm-usor/contracts';
+import { importErrorReasons, type ImportKind, importLimits } from '@ssm-usor/contracts';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
@@ -16,7 +16,7 @@ import {
 import { shrinkSelected } from './employees/shrink-photo';
 import { importErrorMessage, importErrorReason } from './import-format';
 import { sha256Of, uploadImportObject } from './import-storage';
-import type { SelectedFile } from './upload-selection';
+import { type SelectedFile, shrinksBeforeUpload } from './upload-selection';
 
 export type UploadPhase =
   | { step: 'choosing' }
@@ -53,6 +53,22 @@ async function inParallel<T>(items: T[], limit: number, work: (item: T) => Promi
       }
     })
   );
+}
+
+function overAfterShrinking(files: SelectedFile[], foundBytes: number) {
+  const limits = importLimits.employees;
+  const large = files.filter((file) => file.size > limits.fileBytes);
+  if (large.length === 1) {
+    return `Fotografia „${large[0]!.name}” are peste 25 MB și nu am putut-o micșora. Salveaz-o mai mică sau fotografiaz-o din nou, apoi alege fotografiile din nou.`;
+  }
+  if (large.length > 1) {
+    return `${large.length} fotografii au peste 25 MB și nu le-am putut micșora, între ele „${large[0]!.name}”. Salvează-le mai mici, apoi alege fotografiile din nou.`;
+  }
+  const bytes = files.reduce((total, file) => total + file.size, foundBytes);
+  if (bytes > limits.totalBytes) {
+    return 'Și micșorate, fotografiile au peste 1 GB, cât intră într-un import. Scoate o parte și păstreaz-o pentru un import următor, cu toate fotografiile unei persoane în același import.';
+  }
+  return null;
 }
 
 async function withRetry(work: () => Promise<void>) {
@@ -144,9 +160,7 @@ export function useImportUpload(
   }
 
   async function shrink(chosen: SelectedFile[]) {
-    const photos = chosen.filter(
-      (file) => file.mimeType === 'image/jpeg' || file.mimeType === 'image/png'
-    );
+    const photos = chosen.filter((file) => shrinksBeforeUpload(kind, file.mimeType));
     if (photos.length === 0) return chosen;
     const taken = new Set(chosen.map((file) => file.path));
     const shrunk = new Map<string, SelectedFile>();
@@ -160,15 +174,23 @@ export function useImportUpload(
     return chosen.map((file) => shrunk.get(file.key) ?? file);
   }
 
-  // `foundSheetIds`: an employee import's sheets found in the client's documentation, copied
-  // server side rather than uploaded.
-  async function upload(chosen: SelectedFile[], foundSheetIds: string[] = []) {
+  // `found`: an employee import's sheets found in the client's documentation, copied server side
+  // rather than uploaded.
+  async function upload(
+    chosen: SelectedFile[],
+    found: { ids: string[]; bytes: number } = { ids: [], bytes: 0 }
+  ) {
     if (phase.step !== 'choosing' && phase.step !== 'failed') return;
     abandoned.current = false;
     fileCount.current = chosen.length;
     try {
       const files = kind === 'employees' ? await shrink(chosen) : chosen;
       if (abandoned.current) return;
+      const over = kind === 'employees' ? overAfterShrinking(files, found.bytes) : null;
+      if (over) {
+        setPhase({ step: 'failed', error: over });
+        return;
+      }
       setPhase({ step: 'hashing', done: 0, total: files.length });
       const hashes = new Map<string, string>();
       let hashed = 0;
@@ -185,8 +207,8 @@ export function useImportUpload(
         abandon();
         return;
       }
-      if (foundSheetIds.length > 0) {
-        await addFoundSheets(id, { fileIds: foundSheetIds }, apiRequest);
+      if (found.ids.length > 0) {
+        await addFoundSheets(id, { fileIds: found.ids }, apiRequest);
       }
       const jobs: { file: SelectedFile; storagePath: string }[] = [];
       for (let first = 0; first < files.length; first += registerBatch) {

@@ -74,6 +74,13 @@ const acceptedTypes: Record<ImportKind, readonly ImportFileType[] | null> = {
 
 const maxZipDepth = 3;
 
+// The browser shrinks these before the upload (ADR 032), so the byte caps wait for their new size.
+export const shrinksBeforeUpload = (kind: ImportKind, mimeType: ImportFileType) =>
+  kind === 'employees' && (mimeType === 'image/jpeg' || mimeType === 'image/png');
+
+// About what a photograph weighs once shrunk; the upload weighs the real one.
+const shrunkPhotoBytes = 1024 * 1024;
+
 const extensionOf = (name: string) => /\.([^./]+)$/.exec(name)?.[1]?.toLowerCase() ?? '';
 
 export function importTypeOf(name: string, kind: ImportKind = 'client'): ImportFileType | null {
@@ -136,7 +143,7 @@ function sortOne(
     ? 'unsupported'
     : blob.size === 0
       ? 'empty'
-      : blob.size > importLimits[kind].fileBytes
+      : blob.size > importLimits[kind].fileBytes && !shrinksBeforeUpload(kind, mimeType)
         ? 'too_large'
         : name.length > 255
           ? 'name_too_long'
@@ -171,13 +178,14 @@ async function openZips(kind: ImportKind, zips: Zip[], into: Selection) {
           if (!path || entry.name.endsWith('/')) return false;
           const entryName = path.split('/').at(-1)!;
           const extension = extensionOf(entryName);
+          const type = importTypeOf(entryName, kind);
           if (isSystemPath(path)) found.systemFiles.push(path);
           else if (
             unopenedArchives.has(extension) ||
             (extension === 'zip' && zip.depth + 1 >= maxZipDepth)
           ) {
             found.archives.push(entryName);
-          } else if (extension !== 'zip' && !importTypeOf(entryName, kind)) {
+          } else if (extension !== 'zip' && !type) {
             found.setAside.push({
               key: nextKey(),
               path,
@@ -185,7 +193,11 @@ async function openZips(kind: ImportKind, zips: Zip[], into: Selection) {
               reason: 'unsupported',
               group,
             });
-          } else if (extension !== 'zip' && entry.originalSize > limits.fileBytes) {
+          } else if (
+            extension !== 'zip' &&
+            entry.originalSize > limits.fileBytes &&
+            !(type && shrinksBeforeUpload(kind, type))
+          ) {
             found.setAside.push({
               key: nextKey(),
               path,
@@ -311,7 +323,11 @@ export function selectionTotals(
   // Photographs and pages added from elsewhere, as the documentation's found sheets.
   extra: { count: number; pages: number; bytes: number } = { count: 0, pages: 0, bytes: 0 }
 ) {
-  const bytes = selection.files.reduce((total, file) => total + file.size, extra.bytes);
+  const shrunk = (file: SelectedFile) => shrinksBeforeUpload(kind, file.mimeType);
+  const bytes = selection.files.reduce(
+    (total, file) => total + (shrunk(file) ? Math.min(file.size, shrunkPhotoBytes) : file.size),
+    extra.bytes
+  );
   const pages = selection.files.reduce((total, file) => total + file.pages, extra.pages);
   const count = selection.files.length + extra.count;
   const limits = importLimits[kind];
@@ -319,6 +335,7 @@ export function selectionTotals(
     count,
     bytes,
     pages,
+    estimated: selection.files.some((file) => shrunk(file) && file.size > shrunkPhotoBytes),
     overFiles: kind === 'employees' ? pages > limits.scannedPages : count > limits.files,
     overBytes: bytes > limits.totalBytes,
   };

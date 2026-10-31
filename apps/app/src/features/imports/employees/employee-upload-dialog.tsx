@@ -144,6 +144,7 @@ function UploadForm({
     bytes: addedSheets.reduce((total, sheet) => total + sheet.sizeBytes, 0),
   });
   const over = totals.overFiles || totals.overBytes;
+  const bytesLabel = `${totals.estimated ? 'cam ' : ''}${sizeLabel(totals.bytes)}`;
   const positionNames = (positions.data?.items ?? []).map((position) => position.name);
   const noPosts = positions.isSuccess && positionNames.length === 0;
   useRefuseStrayDrops();
@@ -168,7 +169,10 @@ function UploadForm({
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (totals.count === 0 || over || opening) return;
-    void upload(selection.files, addedIds);
+    void upload(selection.files, {
+      ids: addedSheets.map((sheet) => sheet.id),
+      bytes: addedSheets.reduce((total, sheet) => total + sheet.sizeBytes, 0),
+    });
   }
 
   const holdOpen = (event: Event) => {
@@ -373,10 +377,10 @@ function UploadForm({
                 title="Sunt prea multe pentru un singur import"
                 data-testid="employee-upload-over"
               >
-                Ai ales {pagesAndPhotos(totals.pages)}, cu {sizeLabel(totals.bytes)} în total.
-                Într-un import intră cel mult {limits.scannedPages} și 1 GB. Scoate o parte și
-                păstreaz-o pentru un import următor, cu toate fotografiile unei persoane în același
-                import. Importul următor completează angajații creați de acesta.
+                Ai ales {pagesAndPhotos(totals.pages)}, cu {bytesLabel} în total. Într-un import
+                intră cel mult {limits.scannedPages} și 1 GB. Scoate o parte și păstreaz-o pentru un
+                import următor, cu toate fotografiile unei persoane în același import. Importul
+                următor completează angajații creați de acesta.
               </Notice>
             )}
             {totals.count > 0 && (
@@ -386,7 +390,7 @@ function UploadForm({
                 clientId={client.id}
                 pages={totals.pages}
                 onlyPhotos={selection.files.every((file) => file.mimeType !== 'application/pdf')}
-                bytes={totals.bytes}
+                bytes={bytesLabel}
                 removable={choosing}
                 onClear={() => {
                   setSelection((current) => ({ ...current, files: [] }));
@@ -429,7 +433,7 @@ function UploadForm({
               <Meter
                 value={totals.bytes}
                 max={limits.totalBytes}
-                label={sizeLabel(totals.bytes)}
+                label={bytesLabel}
                 of="din 1 GB"
               />
             </div>
@@ -546,7 +550,7 @@ function ChosenPhotos({
   clientId: string;
   pages: number;
   onlyPhotos: boolean;
-  bytes: number;
+  bytes: string;
   removable: boolean;
   onClear: () => void;
 }) {
@@ -577,7 +581,7 @@ function ChosenPhotos({
           )}
         </span>
         <span className="flex items-center gap-2">
-          <span className="text-muted-foreground tabular-nums">{sizeLabel(bytes)}</span>
+          <span className="text-muted-foreground tabular-nums">{bytes}</span>
           {removable && (
             <Button type="button" variant="ghost" size="xs" onClick={onClear}>
               Scoate toate
