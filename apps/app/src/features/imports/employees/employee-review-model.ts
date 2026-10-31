@@ -120,6 +120,9 @@ export const fieldTitles: Record<FieldName, string> = {
 
 const requiredForNew = ['lastName', 'firstName', 'jobTitle', 'hiredAt'] as const;
 
+export const requiredForNewField = (name: FieldName) =>
+  (requiredForNew as readonly FieldName[]).includes(name);
+
 export function pagesOf(context: Pick<ReviewContext, 'proposal' | 'changes'>, personId: string) {
   return context.proposal.pages.filter((page) => ownerOf(context, page) === personId);
 }

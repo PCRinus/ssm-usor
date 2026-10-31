@@ -280,6 +280,34 @@ describe('the person page', () => {
     expect(saved(0).changes.people).toEqual({ pop: { state: 'checked' } });
   });
 
+  it('marks the names, job title and hire date a new employee needs, and the rest optional', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(`${importPath}/pop`);
+    const label = (text: string) =>
+      screen.getByTestId('person-fields-dialog').querySelector(`label[for="person-field-${text}"]`)
+        ?.textContent;
+
+    await user.click(
+      within(await screen.findByTestId('person-fields-personal')).getByRole('button', {
+        name: /Schimbă/,
+      })
+    );
+    expect(label('lastName')).toBe('Nume*(obligatoriu)');
+    expect(label('firstName')).toBe('Prenume*(obligatoriu)');
+    expect(label('cnp')).toBe('CNP(opțional)');
+    await user.click(screen.getByRole('button', { name: 'Renunță' }));
+
+    await user.click(
+      within(screen.getByTestId('person-fields-employment')).getByRole('button', {
+        name: /Schimbă/,
+      })
+    );
+    expect(label('jobTitle')).toContain('(obligatoriu)');
+    expect(label('hiredAt')).toContain('(obligatoriu)');
+    expect(label('employeeNumber')).toContain('(opțional)');
+  });
+
   it('names what is left, takes the corrected CNP and keeps the person to check', async () => {
     mockEmployeeImport();
     const user = userEvent.setup();

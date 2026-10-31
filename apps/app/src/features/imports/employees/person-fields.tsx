@@ -27,6 +27,7 @@ import {
   isExisting,
   pagesOf,
   type Person,
+  requiredForNewField,
   type ResolvedField,
   resolveField,
   type ReviewContext,
@@ -225,6 +226,8 @@ function FieldsDialog({
 
   const set = (name: FieldName, value: string) =>
     setValues((current) => ({ ...current, [name]: value }));
+  const mark = (name: FieldName) =>
+    !isExisting(context, person) && requiredForNewField(name) ? 'required' : 'optional';
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -242,7 +245,7 @@ function FieldsDialog({
               const label = fieldTitles[name];
               if (dateFields.has(name)) {
                 return (
-                  <Field key={name} id={id} label={label} mark="optional">
+                  <Field key={name} id={id} label={label} mark={mark(name)}>
                     <DatePicker id={id} value={values[name]} onChange={(next) => set(name, next)} />
                   </Field>
                 );
@@ -250,7 +253,7 @@ function FieldsDialog({
               if (name === 'bloodGroup' || name === 'rhFactor') {
                 const options = name === 'bloodGroup' ? bloodGroups : rhFactors;
                 return (
-                  <Field key={name} id={id} label={label} mark="optional">
+                  <Field key={name} id={id} label={label} mark={mark(name)}>
                     <NativeSelect
                       id={id}
                       value={values[name]}
@@ -271,7 +274,7 @@ function FieldsDialog({
                   key={name}
                   id={id}
                   label={label}
-                  mark="optional"
+                  mark={mark(name)}
                   error={
                     name === 'commuteMinutes' && minutesInvalid
                       ? { type: 'range', message: 'Scrie un număr de minute între 1 și 600.' }
