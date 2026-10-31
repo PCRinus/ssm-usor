@@ -330,6 +330,7 @@ export type Database = {
           id: string;
           import_file_id: string | null;
           import_id: string | null;
+          import_page: number | null;
           import_path: string | null;
           mime_type: string;
           name: string;
@@ -350,6 +351,7 @@ export type Database = {
           id?: string;
           import_file_id?: string | null;
           import_id?: string | null;
+          import_page?: number | null;
           import_path?: string | null;
           mime_type: string;
           name: string;
@@ -370,6 +372,7 @@ export type Database = {
           id?: string;
           import_file_id?: string | null;
           import_id?: string | null;
+          import_page?: number | null;
           import_path?: string | null;
           mime_type?: string;
           name?: string;
@@ -2663,6 +2666,38 @@ export type Database = {
           {
             foreignKeyName: 'import_files_source_file_id_fkey';
             columns: ['source_file_id'];
+            isOneToOne: false;
+            referencedRelation: 'import_files';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      import_page_images: {
+        Row: {
+          created_at: string;
+          import_file_id: string;
+          page: number;
+          sha256: string;
+          size_bytes: number;
+        };
+        Insert: {
+          created_at?: string;
+          import_file_id: string;
+          page: number;
+          sha256: string;
+          size_bytes: number;
+        };
+        Update: {
+          created_at?: string;
+          import_file_id?: string;
+          page?: number;
+          sha256?: string;
+          size_bytes?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'import_page_images_import_file_id_fkey';
+            columns: ['import_file_id'];
             isOneToOne: false;
             referencedRelation: 'import_files';
             referencedColumns: ['id'];

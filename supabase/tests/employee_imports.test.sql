@@ -1,5 +1,5 @@
 begin;
-select plan(47);
+select plan(52);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -89,7 +89,9 @@ returns jsonb language sql as $$
     "files": [
       { "employee_key": "p1", "import_file_id": "f0000000-0000-4000-8000-000000000001" },
       { "employee_key": "p1", "import_file_id": "f0000000-0000-4000-8000-000000000002" },
-      { "employee_key": "p1", "import_file_id": "f0000000-0000-4000-8000-000000000003" },
+      { "employee_key": "p1", "import_file_id": "f0000000-0000-4000-8000-000000000003", "page": 1 },
+      { "employee_key": "p2", "import_file_id": "f0000000-0000-4000-8000-000000000003", "page": 2 },
+      { "employee_key": "p2", "import_file_id": "f0000000-0000-4000-8000-000000000005", "page": 1 },
       { "employee_key": "p3", "import_file_id": "f0000000-0000-4000-8000-000000000001" },
       { "employee_key": "p3", "import_file_id": "f0000000-0000-4000-8000-000000000001" }
     ],
@@ -111,6 +113,8 @@ insert into public.imports (id, organization_id, kind, client_id, into_existing_
   ('10000000-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001', 'employees', 'cccccccc-0000-4000-8000-000000000001', true, 'bbbbbbbb-0000-4000-8000-000000000001');
 
 insert into public.import_files (id, import_id, organization_id, upload_path, original_file_name, mime_type, size_bytes, sha256) values
+  ('f0000000-0000-4000-8000-000000000006', '10000000-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001',
+    'Dosar/Fise scanate.pdf', 'Fise scanate.pdf', 'application/pdf', 307200, repeat('e', 64)),
   ('f0000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001',
     'Fise/IMG_0001.jpg', 'IMG_0001.jpg', 'image/jpeg', 3145728, repeat('a', 64)),
   ('f0000000-0000-4000-8000-000000000002', '10000000-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001',
@@ -120,14 +124,23 @@ insert into public.import_files (id, import_id, organization_id, upload_path, or
   ('f0000000-0000-4000-8000-000000000004', '10000000-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001',
     'IMG_0009.jpg', 'IMG_0009.jpg', 'image/jpeg', 1048576, repeat('d', 64));
 
+insert into public.import_files (id, import_id, organization_id, upload_path, original_file_name, mime_type, size_bytes, sha256, source_file_id) values
+  ('f0000000-0000-4000-8000-000000000005', '10000000-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001',
+    'Fise scanate.pdf', 'Fise scanate.pdf', 'application/pdf', 307200, repeat('e', 64), 'f0000000-0000-4000-8000-000000000006');
+
 update public.import_files set state = 'read', is_scan = true,
   derived_path = regexp_replace(storage_path, '\.jpg$', '.jpeg'), derived_size_bytes = 512000, derived_sha256 = repeat('1', 64)
 where id = 'f0000000-0000-4000-8000-000000000001';
 update public.import_files set state = 'read', is_scan = true,
   derived_path = regexp_replace(storage_path, '\.heic$', '.jpg'), derived_size_bytes = 480000, derived_sha256 = repeat('2', 64)
 where id = 'f0000000-0000-4000-8000-000000000002';
-update public.import_files set state = 'read', is_scan = true, page_count = 1
-where id = 'f0000000-0000-4000-8000-000000000003';
+update public.import_files set state = 'read', is_scan = true, page_count = 2
+where id in ('f0000000-0000-4000-8000-000000000003', 'f0000000-0000-4000-8000-000000000005');
+
+insert into public.import_page_images (import_file_id, page, size_bytes, sha256) values
+  ('f0000000-0000-4000-8000-000000000003', 1, 200001, repeat('3', 64)),
+  ('f0000000-0000-4000-8000-000000000003', 2, 200002, repeat('4', 64)),
+  ('f0000000-0000-4000-8000-000000000005', 1, 150000, repeat('5', 64));
 
 update public.imports set status = 'ready', started_at = now(), ready_at = now(), proposal = '{"people": []}'
 where id in (
@@ -148,6 +161,13 @@ select ok(
   not has_column_privilege('authenticated', 'public.client_files', 'import_file_id', 'insert')
     and not has_column_privilege('authenticated', 'public.client_files', 'import_file_id', 'update'),
   'and no member writes the link of a file to an import'
+);
+select ok(
+  not has_column_privilege('authenticated', 'public.client_files', 'import_page', 'insert')
+    and not has_column_privilege('authenticated', 'public.client_files', 'import_page', 'update')
+    and not has_table_privilege('authenticated', 'public.import_page_images', 'select')
+    and not has_table_privilege('anon', 'public.import_page_images', 'select'),
+  'nor the page of a PDF it is, and no member reads the images of an import''s pages'
 );
 
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000002');
@@ -356,6 +376,30 @@ select throws_ok(
   'a file of another import is not taken'
 );
 
+select throws_ok(
+  $$ select public.apply_employee_import('10000000-0000-4000-8000-000000000001', 0,
+       pg_temp.payload() #- '{files,2,page}') $$,
+  '22023',
+  'A PDF of an import goes to an employee page by page.',
+  'a PDF goes to an employee page by page, never whole'
+);
+
+select throws_ok(
+  $$ select public.apply_employee_import('10000000-0000-4000-8000-000000000001', 0,
+       jsonb_set(pg_temp.payload(), '{files,2,page}', '3')) $$,
+  '22023',
+  null,
+  'a page whose image the import did not keep is not taken'
+);
+
+select throws_ok(
+  $$ select public.apply_employee_import('10000000-0000-4000-8000-000000000001', 0,
+       jsonb_set(pg_temp.payload(), '{files,0,page}', '1')) $$,
+  '22023',
+  'Only a PDF of an import has pages.',
+  'a photograph has no pages'
+);
+
 select is(
   (select count(*)::integer from public.employees where client_id = 'cccccccc-0000-4000-8000-000000000001'),
   1,
@@ -468,15 +512,28 @@ select results_eq(
      where cf.import_id = '10000000-0000-4000-8000-000000000001'
      order by e.last_name, cf.name $$,
   $$ values
+     ('Dumitru', 'Fise scanate — pagina 1', 'Fise scanate — pagina 1.jpg', 'image/jpeg', 150000,
+       repeat('5', 64), null::text, 'bbbbbbbb-0000-4000-8000-000000000001'::uuid),
+     ('Dumitru', 'Popescu verso — pagina 2', 'Popescu verso — pagina 2.jpg', 'image/jpeg', 200002,
+       repeat('4', 64), null::text, 'bbbbbbbb-0000-4000-8000-000000000001'::uuid),
      ('Ionescu', 'IMG_0001', 'IMG_0001.jpg', 'image/jpeg', 512000, repeat('1', 64), null::text,
        'bbbbbbbb-0000-4000-8000-000000000001'::uuid),
      ('Popescu', 'IMG_0001', 'IMG_0001.jpg', 'image/jpeg', 512000, repeat('1', 64), null::text,
        'bbbbbbbb-0000-4000-8000-000000000001'::uuid),
      ('Popescu', 'IMG_0002', 'IMG_0002.jpg', 'image/jpeg', 480000, repeat('2', 64), null::text,
        'bbbbbbbb-0000-4000-8000-000000000001'::uuid),
-     ('Popescu', 'Popescu verso', 'Popescu verso.pdf', 'application/pdf', 409600, repeat('c', 64), null::text,
-       'bbbbbbbb-0000-4000-8000-000000000001'::uuid) $$,
-  'each employee gets the upright copy of their photographs and their PDF, once, a shared one as a file of each'
+     ('Popescu', 'Popescu verso — pagina 1', 'Popescu verso — pagina 1.jpg', 'image/jpeg', 200001,
+       repeat('3', 64), null::text, 'bbbbbbbb-0000-4000-8000-000000000001'::uuid) $$,
+  'each employee gets the upright copy of their photographs and only their own pages of a PDF, as images, once, a shared one as a file of each'
+);
+
+select results_eq(
+  $$ select cf.name, cf.original_file_name, cf.mime_type, cf.size_bytes, cf.import_path, cf.import_file_id
+     from public.client_files cf
+     where cf.import_id = '10000000-0000-4000-8000-000000000001' and cf.employee_id is null $$,
+  $$ values ('Popescu verso', 'Popescu verso.pdf', 'application/pdf', 409600, 'Fise',
+       'f0000000-0000-4000-8000-000000000003'::uuid) $$,
+  'the PDF itself stays once among the client''s files, in the import''s folder, unless it was found in the client''s documentation pack'
 );
 
 select results_eq(
@@ -488,14 +545,17 @@ select results_eq(
        ('11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000001/f0000000-0000-4000-8000-000000000001.jpeg'),
        ('11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000001/f0000000-0000-4000-8000-000000000001.jpeg'),
        ('11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000001/f0000000-0000-4000-8000-000000000002.jpg'),
-       ('11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000001/f0000000-0000-4000-8000-000000000003.pdf')
+       ('11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000001/f0000000-0000-4000-8000-000000000003.page-1.jpg'),
+       ('11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000001/f0000000-0000-4000-8000-000000000003.page-2.jpg'),
+       ('11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000001/f0000000-0000-4000-8000-000000000003.pdf'),
+       ('11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000001/f0000000-0000-4000-8000-000000000005.page-1.jpg')
      ) as v (p) order by p $$,
-  'the copy job copies the converted photographs and the PDF into each employee''s file'
+  'the copy job copies the converted photographs and the pages'' images into each employee''s file, and the PDF into the client''s'
 );
 
 select is(
   (select jsonb_array_length(result -> 'files') from applied),
-  4,
+  7,
   'and the confirmation returns them'
 );
 
