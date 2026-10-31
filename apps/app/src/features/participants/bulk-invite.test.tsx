@@ -10,12 +10,15 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getListImportPortalInviteesQueryKey } from '@/api/generated/api';
 import { createQueryClient } from '@/lib/query-client';
 import type { RouterContext } from '@/routes/__root';
 
 import {
   formerEmployeesSentence,
   invitationCount,
+  pendingSummary,
+  sendLabel,
   sentSummary,
   uninvitedCount,
 } from './bulk-invite-format';
@@ -92,8 +95,13 @@ function Harness() {
   );
 }
 
-async function openDialog() {
+async function openDialog(cached?: ImportInvitee[]) {
   const queryClient = createQueryClient();
+  if (cached) {
+    queryClient.setQueryData(getListImportPortalInviteesQueryKey(clientId, importId), {
+      items: cached,
+    });
+  }
   const routeTree = createRootRouteWithContext<RouterContext>()({ component: Harness });
   const router = createRouter({
     routeTree,
@@ -185,8 +193,11 @@ describe('inviting the people of an employee import to the portal', () => {
     const matei = invitee('Matei', 'Sorin');
     mockApi([dobre, ene, matei]);
     const { user, dialog } = await openDialog();
-    expect((within(dialog).getByTestId('bulk-invite-submit') as HTMLButtonElement).disabled).toBe(
-      true
+    const submit = within(dialog).getByTestId('bulk-invite-submit') as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+    expect(submit.textContent).toBe('Trimite invitațiile');
+    expect(within(dialog).getByTestId('bulk-invite-count').textContent).toBe(
+      'Nicio invitație de trimis'
     );
 
     await user.type(field(dialog, 'Dobre Cristian'), '0742 115 980');
@@ -272,7 +283,7 @@ describe('inviting the people of an employee import to the portal', () => {
     );
   });
 
-  it('marks the rest not sent when a request fails as a whole', async () => {
+  it('marks the rows of a request refused as a whole not sent', async () => {
     mockApi([invitee('Dobre', 'Cristian', { phone: '+40742115980' })], () =>
       Response.json(
         { error: 'conflict', message: 'archived', reason: 'client_archived' },
@@ -289,6 +300,69 @@ describe('inviting the people of an employee import to the portal', () => {
     expect(within(dialog).getByTestId('bulk-invite-row-message').textContent).toBe(
       'Clientul este arhivat; nu i se mai trimit invitații în portal.'
     );
+  });
+
+  it('goes on with the next request after one fails', async () => {
+    const people = Array.from({ length: 12 }, (_, index) =>
+      invitee('Angajat', `${index + 1}`, { email: `angajat${index + 1}@example.ro` })
+    );
+    let request = 0;
+    mockApi(people, (rows) =>
+      request++ === 0
+        ? Response.json({ error: 'internal', message: 'Something failed.' }, { status: 500 })
+        : Response.json({
+            results: rows.map((row) => ({
+              employeeId: row.employeeId,
+              outcome: 'invited',
+              reason: null,
+              invitation: null,
+            })),
+          })
+    );
+    const { user, dialog } = await openDialog();
+    await user.click(within(dialog).getByRole('button', { name: 'Arată încă 4' }));
+
+    await user.click(within(dialog).getByTestId('bulk-invite-submit'));
+
+    expect((await within(dialog).findByTestId('bulk-invite-summary')).textContent).toContain(
+      'Am trimis 2 invitații. Pentru 10 angajați nu a mers: vezi rândurile lor.'
+    );
+    expect(sent().map((rows) => rows.length)).toEqual([10, 2]);
+    const rows = within(dialog).getAllByTestId('bulk-invite-row');
+    expect(rows[9]!.textContent).toContain('Netrimisă');
+    expect(rows[10]!.textContent).toContain('Trimisă');
+  });
+
+  it("names a duplicate address from the employees' rows at once and does not offer to send it", async () => {
+    mockApi([
+      invitee('Coman', 'Daniela', { email: 'familia.coman@yahoo.com' }),
+      invitee('Coman', 'Mihai', { email: 'familia.coman@yahoo.com' }),
+    ]);
+    const { dialog } = await openDialog();
+
+    const rows = within(dialog).getAllByTestId('bulk-invite-row');
+    expect(rows[0]!.textContent).toContain('Email');
+    expect(rows[1]!.textContent).toContain('Aceeași adresă e scrisă și la Coman Daniela.');
+    expect(rows[1]!.textContent).toContain('Neinvitat');
+    expect(rows[1]!.textContent).not.toMatch(/Email(?! sau telefon)/);
+    expect(field(dialog, 'Coman Mihai').getAttribute('aria-invalid')).toBe('true');
+    expect(within(dialog).getByTestId('bulk-invite-count').textContent).toBe(
+      'O invitație, 1 rămâne neinvitat'
+    );
+  });
+
+  it('lists the people as they are now, not as an earlier visit left them', async () => {
+    const dobre = invitee('Dobre', 'Cristian', { phone: '+40742115980' });
+    const ene = invitee('Ene', 'Bogdan', { email: 'ene.bogdan@gmail.com' });
+    mockApi([dobre, { ...ene, portal: 'invited' }]);
+    const { dialog } = await openDialog([dobre, ene]);
+
+    expect(within(dialog).getAllByTestId('bulk-invite-row')).toHaveLength(1);
+    expect(within(dialog).queryByLabelText('Email sau telefon pentru Ene Bogdan')).toBeNull();
+    expect(within(dialog).getByTestId('bulk-invite-on-portal').textContent).toContain(
+      'Ene BogdanBrutarInvitat'
+    );
+    expect(within(dialog).getByTestId('bulk-invite-count').textContent).toBe('O invitație');
   });
 });
 
@@ -311,6 +385,15 @@ describe('bulk invitation wording', () => {
       'Am trimis 3 invitații. Pentru un angajat nu a mers: vezi rândul lui.'
     );
     expect(sentSummary(21, 0)).toBe('Am trimis 21 de invitații.');
+  });
+
+  it('says how many invitations are ready to go, and none when there are none', () => {
+    expect(pendingSummary(0, 3)).toBe('Nicio invitație de trimis');
+    expect(pendingSummary(3, 0)).toBe('3 invitații');
+    expect(pendingSummary(1, 2)).toBe('O invitație, 2 rămân neinvitați');
+    expect(sendLabel(0)).toBe('Trimite invitațiile');
+    expect(sendLabel(1)).toBe('Trimite invitația');
+    expect(sendLabel(20)).toBe('Trimite 20 de invitații');
   });
 
   it('says how many stay uninvited', () => {

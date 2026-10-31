@@ -1094,17 +1094,19 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   `uninvitedOf` tell an after-import notice whether anyone is left to invite. The Angajați
   tab's card for the latest confirmed employee import (`EmployeesImportedCard`) offers it while
   someone the import brought is current, neither a participant nor invited. The dialog reads
-  `GET /clients/{clientId}/imports/{importId}/portal-invitees` once and keeps those rows while
-  open: three cards of what the person meets in the portal (the privacy notice, the act
+  `GET /clients/{clientId}/imports/{importId}/portal-invitees` afresh on each opening, never
+  from the cache, and keeps those rows while open: three cards of what the person meets in the portal (the privacy notice, the act
   adițional, the trainings to come), then "Primesc invitația" (an email or phone on their row),
   "Fără email sau telefon pe fișă" (eight shown, "Arată încă N" for the rest) and "Au deja acces
   sau invitație". Each invitable row is one field, its stored email else phone, and what is
   typed decides the channel (`typedInvitationAddress`), shown beside it; an address that is
-  neither, or one typed on two rows, is named under the row on blur and that person is not
-  sent. Former employees are only named in the note that the typed addresses are saved to the
-  employees; a line counts the invitations going by SMS. "Trimite N invitații" posts to
+  neither, or one typed on two rows, is named under the row on blur, at once when it came from
+  the employee's row, and that person is not sent and shows "Neinvitat". Former employees are only named in the note that the typed addresses are saved to the
+  employees; a line counts the invitations going by SMS. The footer counts what goes and who is
+  left ("Nicio invitație de trimis" while nothing would). "Trimite N invitații" posts to
   `POST /clients/{clientId}/employee-participant-invitations` ten rows at a time, each row then
-  showing "Trimisă" or its reason, and a request refused as a whole marks the rest not sent.
+  showing "Trimisă" or its reason; a request refused as a whole marks its own rows not sent and
+  the next one still goes.
   Sending refreshes the participants and the client's employees; closing, the list.
 - The employee page ends with "Fișiere", the same card for that employee's files
   (`EmployeeFilesCard` in `src/features/client-files/`, [ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)):

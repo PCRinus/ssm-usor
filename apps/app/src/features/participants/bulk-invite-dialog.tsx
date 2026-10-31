@@ -30,13 +30,14 @@ import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 
 import {
+  capitalized,
   formerEmployeesSentence,
   invitationCount,
   nameOf,
+  pendingSummary,
   rowReasonMessage,
   sendLabel,
   sentSummary,
-  uninvitedCount,
 } from './bulk-invite-format';
 import { participantFailure } from './participant-errors';
 import { useImportInvitees } from './use-import-invitees';
@@ -57,8 +58,6 @@ type Phase =
   | { step: 'sent'; invited: number; notInvited: number };
 
 const storedAddress = (invitee: ImportInvitee) => invitee.email ?? invitee.phone ?? '';
-
-const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 export function BulkInviteDialog({
   clientId,
@@ -96,11 +95,12 @@ function BulkInviteForm({
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const invitees = useImportInvitees(clientId, importId);
-  // The rows as they were on opening: sending changes who is invited, and the rows keep their
-  // results until the dialog closes.
+  const invitees = useImportInvitees(clientId, importId, { refetchOnMount: 'always' });
+  // The rows as fetched on opening, not as cached: someone may have been invited elsewhere since.
+  // They stay while the dialog is open, since sending changes who is invited and each row keeps
+  // its result.
   const [rows, setRows] = useState<ImportInvitee[] | null>(null);
-  if (!rows && invitees.data) setRows(invitees.data.items);
+  if (!rows && invitees.data && invitees.isFetchedAfterMount) setRows(invitees.data.items);
   const [typed, setTyped] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [results, setResults] = useState<Record<string, RowResult>>({});
@@ -168,10 +168,9 @@ function BulkInviteForm({
         }
       } catch (cause) {
         const { message } = participantFailure(cause);
-        for (const row of planned.slice(start)) {
+        for (const row of chunk) {
           outcome[row.employeeId] = { outcome: 'failed', channel: null, message };
         }
-        break;
       }
       setResults({ ...outcome });
       setPhase({ step: 'sending', done: start + chunk.length, total: planned.length });
@@ -190,19 +189,24 @@ function BulkInviteForm({
     ]);
   }
 
-  const row = (invitee: ImportInvitee) => (
-    <InviteeRow
-      key={invitee.employeeId}
-      invitee={invitee}
-      text={textOf(invitee)}
-      channel={plans.get(invitee.employeeId)?.channel ?? null}
-      error={touched[invitee.employeeId] ? errors.get(invitee.employeeId) : undefined}
-      result={results[invitee.employeeId]}
-      disabled={!editing}
-      onChange={(text) => setTyped((current) => ({ ...current, [invitee.employeeId]: text }))}
-      onBlur={() => setTouched((current) => ({ ...current, [invitee.employeeId]: true }))}
-    />
-  );
+  const row = (invitee: ImportInvitee) => {
+    const id = invitee.employeeId;
+    // An address from the employee's row is checked at once: nobody types it, so nobody blurs it.
+    const prefilled = typed[id] === undefined;
+    return (
+      <InviteeRow
+        key={id}
+        invitee={invitee}
+        text={textOf(invitee)}
+        channel={plans.get(id)?.channel ?? null}
+        error={touched[id] || prefilled ? errors.get(id) : undefined}
+        result={results[id]}
+        disabled={!editing}
+        onChange={(text) => setTyped((current) => ({ ...current, [id]: text }))}
+        onBlur={() => setTouched((current) => ({ ...current, [id]: true }))}
+      />
+    );
+  };
   const leftOut = candidates.length - toSend.length;
 
   return (
@@ -333,7 +337,7 @@ function BulkInviteForm({
             {phase.step === 'sending'
               ? `Se trimit: ${phase.done} din ${phase.total}`
               : rows && candidates.length > 0 && editing
-                ? `${capitalized(invitationCount(toSend.length))}, ${uninvitedCount(leftOut)}`
+                ? pendingSummary(toSend.length, leftOut)
                 : null}
           </span>
           <span className="flex flex-col-reverse gap-2 sm:flex-row">
@@ -528,7 +532,12 @@ function InviteeRow({
           onBlur={onBlur}
         />
       </span>
-      <RowStatus text={text} channel={channel} result={result} />
+      <RowStatus
+        text={text}
+        channel={error ? null : channel}
+        result={result}
+        leftOut={Boolean(error)}
+      />
       {message && (
         <p
           id={messageId}
@@ -549,10 +558,12 @@ function RowStatus({
   text,
   channel,
   result,
+  leftOut,
 }: {
   text: string;
   channel: ParticipantChannel | null;
   result: RowResult | undefined;
+  leftOut: boolean;
 }) {
   if (result) {
     if (result.outcome === 'invited') {
@@ -565,7 +576,9 @@ function RowStatus({
     }
     return <span className="text-xs text-muted-foreground">Netrimisă</span>;
   }
-  const shown = channel ?? (text.trim() ? (text.includes('@') ? 'email' : 'sms') : null);
+  const shown = leftOut
+    ? null
+    : (channel ?? (text.trim() ? (text.includes('@') ? 'email' : 'sms') : null));
   if (!shown) return <span className="text-xs text-muted-foreground">Neinvitat</span>;
   const Icon = shown === 'email' ? Mail : Smartphone;
   return (
