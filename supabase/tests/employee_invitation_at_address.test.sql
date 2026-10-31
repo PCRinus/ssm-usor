@@ -1,5 +1,5 @@
 begin;
-select plan(9);
+select plan(11);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -93,6 +93,16 @@ select throws_ok(
   $$ select public.create_employee_invitation_at_address('c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'email', 'x@example.com') $$,
   'P0002', 'client_not_found',
   'a member of another organization invites nobody here'
+);
+
+select ok(
+  not has_function_privilege('anon', 'public.create_employee_invitation_at_address(uuid, uuid, text, text)', 'execute'),
+  'a visitor cannot invite'
+);
+
+select ok(
+  has_function_privilege('authenticated', 'public.create_employee_invitation_at_address(uuid, uuid, text, text)', 'execute'),
+  'a member can invite'
 );
 
 select * from finish();

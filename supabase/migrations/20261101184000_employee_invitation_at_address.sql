@@ -35,3 +35,6 @@ begin
   );
 end;
 $$;
+
+revoke all on function public.create_employee_invitation_at_address(uuid, uuid, text, text) from public, anon;
+grant execute on function public.create_employee_invitation_at_address(uuid, uuid, text, text) to authenticated;
