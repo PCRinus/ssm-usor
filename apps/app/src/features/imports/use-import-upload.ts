@@ -1,4 +1,9 @@
-import { importErrorReasons, type ImportKind, importLimits } from '@ssm-usor/contracts';
+import {
+  type CreditsShort,
+  importErrorReasons,
+  type ImportKind,
+  importLimits,
+} from '@ssm-usor/contracts';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
@@ -6,13 +11,16 @@ import { useRef, useState } from 'react';
 import {
   abandonImport,
   addFoundSheets,
+  type ApiErrorResponse,
   createImport,
+  getGetBillingQueryKey,
   getGetImportQueryKey,
   getListFoundSheetsQueryKey,
   getListImportsQueryKey,
   registerImportFiles,
   startImport,
 } from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
 
 import { shrinkSelected } from './employees/shrink-photo';
 import { importErrorMessage, importErrorReason } from './import-format';
@@ -28,7 +36,8 @@ export type UploadPhase =
   | { step: 'stalled'; failed: number; uploaded: number }
   | { step: 'unstarted'; error: string }
   | { step: 'empty' }
-  | { step: 'failed'; error: string };
+  | { step: 'failed'; error: string }
+  | { step: 'short'; credits: CreditsShort };
 
 export const busySteps = new Set<UploadPhase['step']>([
   'shrinking',
@@ -38,6 +47,13 @@ export const busySteps = new Set<UploadPhase['step']>([
 ]);
 
 export const heldSteps = new Set<UploadPhase['step']>(['stalled', 'unstarted', 'empty']);
+
+export const choosingSteps = new Set<UploadPhase['step']>(['choosing', 'failed', 'short']);
+
+const creditsShortOf = (cause: unknown) =>
+  cause instanceof ApiHttpError
+    ? (cause.body as Partial<ApiErrorResponse> | undefined)?.credits
+    : undefined;
 
 const registerBatch = 50;
 const maxConcurrent = 3;
@@ -113,9 +129,18 @@ export function useImportUpload(
       if (abandoned.current) return;
       const reason = importErrorReason(cause);
       // An earlier start reached the server and only its answer was lost.
+      const short = creditsShortOf(cause);
       if (reason === importErrorReasons.notUploading) await opened(id);
       else if (reason === importErrorReasons.empty) setPhase({ step: 'empty' });
-      else {
+      // The balance changed after the dialog opened. Its files cannot be read until credits
+      // come, long after an upload stalls, so the import goes and the files can be chosen again.
+      else if (reason === importErrorReasons.creditsInsufficient && short) {
+        importId.current = null;
+        await abandonImport(id, apiRequest).catch(() => undefined);
+        void queryClient.invalidateQueries({ queryKey: getGetBillingQueryKey() });
+        void queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() });
+        if (!abandoned.current) setPhase({ step: 'short', credits: short });
+      } else {
         setPhase({
           step: 'unstarted',
           error: importErrorMessage(cause, 'Citirea nu a putut porni. Încearcă din nou.', kind),
@@ -181,7 +206,7 @@ export function useImportUpload(
     chosen: SelectedFile[],
     found: { ids: string[]; bytes: number } = { ids: [], bytes: 0 }
   ) {
-    if (phase.step !== 'choosing' && phase.step !== 'failed') return;
+    if (!choosingSteps.has(phase.step)) return;
     abandoned.current = false;
     fileCount.current = chosen.length;
     try {
@@ -222,6 +247,9 @@ export function useImportUpload(
               mimeType: file.mimeType,
               sizeBytes: file.size,
               sha256: hashes.get(file.key)!,
+              ...(kind === 'employees' && file.mimeType === 'application/pdf'
+                ? { pages: file.pages }
+                : {}),
             })),
           },
           apiRequest
@@ -272,5 +300,8 @@ export function useImportUpload(
       .then(() => queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() }));
   }
 
-  return { phase, upload, retry, continueWithout, abandon } as const;
+  const forgetShort = () =>
+    setPhase((current) => (current.step === 'short' ? { step: 'choosing' } : current));
+
+  return { phase, upload, retry, continueWithout, abandon, forgetShort } as const;
 }

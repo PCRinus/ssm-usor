@@ -31,6 +31,13 @@ import { useRefuseStrayDrops } from '@/features/client-files/use-file-drop';
 import { roCount } from '@/features/employees/employee-format';
 import { useJobPositionOptions } from '@/features/job-positions/use-job-position-options';
 
+import {
+  CreditsLine,
+  CreditsShortNotice,
+  NoCreditsFooter,
+  NoCreditsNotices,
+} from '../credits-notices';
+import { creditsRefusal, refusalFromApi, usesSentence } from '../import-credits';
 import { formatFileSize, photosLabel } from '../import-format';
 import { LocalThumb, SetAsideList, UploadProgress } from '../import-upload-dialog';
 import { LocalPhotoView, PhotoPreviewDialog, type PreviewPhoto } from '../photo-preview-dialog';
@@ -46,8 +53,9 @@ import {
   selectionTotals,
   type SetAsideFile,
 } from '../upload-selection';
+import { useCreditsBalance } from '../use-credits-balance';
 import { useImportDrop } from '../use-import-drop';
-import { busySteps, heldSteps, useImportUpload } from '../use-import-upload';
+import { busySteps, choosingSteps, heldSteps, useImportUpload } from '../use-import-upload';
 import { type FoundBatch, foundIn, foundOn, useFoundSheets } from './found-sheets';
 import { FoundSheetView, FoundStrip, FoundThumb } from './found-strip';
 
@@ -132,7 +140,7 @@ function UploadForm({
   const addedSheets = batches.flatMap((batch) =>
     batch.sheets.filter((sheet) => addedIds.includes(sheet.id))
   );
-  const { phase, upload, retry, continueWithout, abandon } = useImportUpload(
+  const { phase, upload, retry, continueWithout, abandon, forgetShort } = useImportUpload(
     client.id,
     (id) => {
       openingImport.current = true;
@@ -141,7 +149,7 @@ function UploadForm({
     'employees'
   );
   const busy = busySteps.has(phase.step);
-  const choosing = phase.step === 'choosing' || phase.step === 'failed';
+  const choosing = choosingSteps.has(phase.step);
   const totals = selectionTotals(selection, 'employees', {
     count: addedSheets.length,
     pages: addedSheets.length,
@@ -150,6 +158,14 @@ function UploadForm({
   const over = totals.overFiles || totals.overBytes;
   const bytesLabel = `${totals.estimated ? 'cam ' : ''}${sizeLabel(totals.bytes)}`;
   const noPosts = positions.isSuccess && (positions.data?.items ?? []).length === 0;
+  const { balance, isOwner } = useCreditsBalance();
+  const refusal =
+    phase.step === 'short'
+      ? refusalFromApi(phase.credits)
+      : choosing
+        ? creditsRefusal(balance, totals.pages)
+        : null;
+  const pdfs = selection.files.filter((file) => file.mimeType === 'application/pdf').length;
   const nearLimits =
     totals.pages >= metersFrom * limits.scannedPages ||
     totals.bytes >= metersFrom * limits.totalBytes;
@@ -160,6 +176,7 @@ function UploadForm({
     setUnreadable(false);
     try {
       const chosen = await openPicked(await picked, 'employees');
+      forgetShort();
       setSelection((current) => mergeSelection(current, chosen));
     } catch {
       setUnreadable(true);
@@ -174,7 +191,7 @@ function UploadForm({
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (totals.count === 0 || over || opening) return;
+    if (totals.count === 0 || over || opening || refusal) return;
     void upload(selection.files, {
       ids: addedSheets.map((sheet) => sheet.id),
       bytes: addedSheets.reduce((total, sheet) => total + sheet.sizeBytes, 0),
@@ -237,224 +254,266 @@ function UploadForm({
               </span>
             </DialogDescription>
           </DialogHeader>
-          <DialogBody className="mt-4 grid gap-3.5">
-            {choosing && noPosts && !noPostsDismissed && (
-              <Notice
-                variant="warning"
-                icon={<BriefcaseBusiness aria-hidden="true" />}
-                title="Clientul nu are încă posturi de lucru"
-                data-testid="employee-upload-no-posts"
-              >
-                <p>
-                  Fiecare angajat intră pe un post al clientului. Îți recomandăm să imporți întâi
-                  documentația clientului: aduce posturile, iar angajații din fișe intră direct pe
-                  ele. Dacă mergi mai departe acum, adaugi posturile pe parcurs, câte unul pentru
-                  fiecare post scris pe fișe.
-                </p>
-                <span className="mt-2 flex flex-wrap gap-2">
-                  {onImportDocumentation && (
-                    <Button type="button" size="sm" onClick={onImportDocumentation}>
-                      Importă documentația clientului
-                    </Button>
-                  )}
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="bg-card"
-                    onClick={() => setNoPostsDismissed(true)}
+          {refusal?.kind === 'none' ? (
+            <>
+              <DialogBody className="mt-4 grid gap-3.5">
+                <NoCreditsNotices kind="employees" balance={balance} />
+              </DialogBody>
+              <DialogFooter className="mt-6">
+                <NoCreditsFooter isOwner={isOwner} onClose={leave} />
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <DialogBody className="mt-4 grid gap-3.5">
+                {choosing && noPosts && !noPostsDismissed && (
+                  <Notice
+                    variant="warning"
+                    icon={<BriefcaseBusiness aria-hidden="true" />}
+                    title="Clientul nu are încă posturi de lucru"
+                    data-testid="employee-upload-no-posts"
                   >
-                    Continuă fără posturi
-                  </Button>
-                </span>
-              </Notice>
-            )}
-            {choosing &&
-              offered.map((batch) => (
-                <FoundOffer
-                  key={batch.importId}
-                  clientId={client.id}
-                  batch={batch}
-                  addedIds={addedIds}
-                  onAdd={(ids) => setAdded([...addedIds, ...ids])}
-                />
-              ))}
-            {choosing && (
-              <div
-                data-testid="employee-upload-drop"
-                className={cn(
-                  'grid justify-items-center gap-2.5 rounded-lg border-[1.5px] border-dashed border-info-border bg-muted/30 p-5 text-center transition-colors',
-                  dragging && 'border-primary bg-primary/5'
-                )}
-                {...handlers}
-              >
-                {opening ? (
-                  <LoaderCircle
-                    className="size-6 animate-spin text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <Camera className="size-6 text-muted-foreground" aria-hidden="true" />
-                )}
-                <p className="text-sm font-medium">
-                  {opening
-                    ? 'Deschidem fotografiile…'
-                    : 'Trage aici fotografiile fișelor, un folder sau o arhivă ZIP'}
-                </p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={opening}
-                    onClick={() => filesInput.current?.click()}
-                  >
-                    <Upload aria-hidden="true" />
-                    Alege fotografii
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={opening}
-                    onClick={() => folderInput.current?.click()}
-                  >
-                    <FolderUp aria-hidden="true" />
-                    Alege un folder
-                  </Button>
-                </div>
-                <div
-                  className="flex flex-wrap justify-center gap-1.5"
-                  aria-label="Fișiere pe care le citim"
-                >
-                  {formats.map((format) => (
-                    <span
-                      key={format}
-                      className="rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground"
-                    >
-                      {format}
+                    <p>
+                      Fiecare angajat intră pe un post al clientului. Îți recomandăm să imporți
+                      întâi documentația clientului: aduce posturile, iar angajații din fișe intră
+                      direct pe ele. Dacă mergi mai departe acum, adaugi posturile pe parcurs, câte
+                      unul pentru fiecare post scris pe fișe.
+                    </p>
+                    <span className="mt-2 flex flex-wrap gap-2">
+                      {onImportDocumentation && (
+                        <Button type="button" size="sm" onClick={onImportDocumentation}>
+                          Importă documentația clientului
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="bg-card"
+                        onClick={() => setNoPostsDismissed(true)}
+                      >
+                        Continuă fără posturi
+                      </Button>
                     </span>
+                  </Notice>
+                )}
+                {choosing &&
+                  offered.map((batch) => (
+                    <FoundOffer
+                      key={batch.importId}
+                      clientId={client.id}
+                      batch={batch}
+                      addedIds={addedIds}
+                      onAdd={(ids) => {
+                        forgetShort();
+                        setAdded([...addedIds, ...ids]);
+                      }}
+                    />
                   ))}
-                </div>
-                <input
-                  ref={filesInput}
-                  type="file"
-                  multiple
-                  accept="image/jpeg,image/png,image/heic,image/heif,application/pdf,.heic,.heif,.zip"
-                  className="hidden"
-                  data-testid="employee-upload-files-input"
-                  onChange={(event) => {
-                    void add(pickedFromInput(event.target.files ?? []));
-                    event.target.value = '';
-                  }}
-                />
-                <input
-                  ref={folderInput}
-                  type="file"
-                  className="hidden"
-                  data-testid="employee-upload-folder-input"
-                  {...{ webkitdirectory: '' }}
-                  onChange={(event) => {
-                    void add(pickedFromInput(event.target.files ?? []));
-                    event.target.value = '';
-                  }}
-                />
-              </div>
-            )}
-            {unreadable && (
-              <Notice variant="warning" data-testid="employee-upload-unreadable">
-                Nu am putut deschide fișierele alese. Încearcă din nou sau alege-le cu „Alege
-                fotografii” ori „Alege un folder”.
-              </Notice>
-            )}
-            {[...selection.largeZips, ...selection.brokenZips, ...selection.archives].map(
-              (name) => (
-                <Notice key={name} variant="warning" data-testid="employee-upload-zip">
-                  <strong className="font-semibold">{name}</strong> nu se poate deschide aici.
-                  Dezarhivează-l și trage folderul aici, sau împarte fotografiile în mai multe
-                  importuri.
-                </Notice>
-              )
-            )}
-            {over && (
-              <Notice
-                variant="destructive"
-                title="Sunt prea multe pentru un singur import"
-                data-testid="employee-upload-over"
-              >
-                Ai ales {pagesAndPhotos(totals.pages)}, cu {bytesLabel} în total. Într-un import
-                intră cel mult {limits.scannedPages} și 1 GB. Scoate o parte și păstreaz-o pentru un
-                import următor, cu toate fotografiile unei persoane în același import. Importul
-                următor completează angajații creați de acesta.
-              </Notice>
-            )}
-            {totals.count > 0 && (
-              <ChosenPhotos
-                files={selection.files}
-                found={fromFound}
-                clientId={client.id}
-                pages={totals.pages}
-                onlyPhotos={selection.files.every((file) => file.mimeType !== 'application/pdf')}
-                bytes={bytesLabel}
-                removable={choosing}
-                onRemoveFile={(key) => setSelection((current) => removeFiles(current, [key]))}
-                onRemoveFound={(id) => setAdded(addedIds.filter((each) => each !== id))}
-                onClear={() => {
-                  setSelection((current) => ({ ...current, files: [] }));
-                  setAdded([]);
-                }}
-              />
-            )}
-            <SetAsideList
-              setAside={selection.setAside}
-              systemFiles={selection.systemFiles}
-              reasons={setAsideReasons}
-              title="Puse deoparte, nu le citim"
-            />
-            <UploadProgress phase={phase} onRetry={retry} onContinue={continueWithout} />
-          </DialogBody>
-          <DialogFooter
-            className={cn(
-              'mt-6 items-center',
-              nearLimits ? 'sm:justify-between' : 'sm:justify-end'
-            )}
-          >
-            {nearLimits && (
-              <div className="flex min-w-[min(100%,18rem)] flex-1 items-center gap-3">
-                <div
-                  className="grid flex-1 gap-4 sm:grid-cols-2"
-                  aria-label="Cât intră într-un import"
-                  data-testid="employee-upload-limits"
-                >
-                  <Meter
-                    value={totals.pages}
-                    max={limits.scannedPages}
-                    label={`${totals.pages}`}
-                    of={`din ${limits.scannedPages} de fotografii și pagini`}
+                {choosing && (
+                  <div
+                    data-testid="employee-upload-drop"
+                    className={cn(
+                      'grid justify-items-center gap-2.5 rounded-lg border-[1.5px] border-dashed border-info-border bg-muted/30 p-5 text-center transition-colors',
+                      dragging && 'border-primary bg-primary/5'
+                    )}
+                    {...handlers}
+                  >
+                    {opening ? (
+                      <LoaderCircle
+                        className="size-6 animate-spin text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <Camera className="size-6 text-muted-foreground" aria-hidden="true" />
+                    )}
+                    <p className="text-sm font-medium">
+                      {opening
+                        ? 'Deschidem fotografiile…'
+                        : 'Trage aici fotografiile fișelor, un folder sau o arhivă ZIP'}
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={opening}
+                        onClick={() => filesInput.current?.click()}
+                      >
+                        <Upload aria-hidden="true" />
+                        Alege fotografii
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={opening}
+                        onClick={() => folderInput.current?.click()}
+                      >
+                        <FolderUp aria-hidden="true" />
+                        Alege un folder
+                      </Button>
+                    </div>
+                    <div
+                      className="flex flex-wrap justify-center gap-1.5"
+                      aria-label="Fișiere pe care le citim"
+                    >
+                      {formats.map((format) => (
+                        <span
+                          key={format}
+                          className="rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground"
+                        >
+                          {format}
+                        </span>
+                      ))}
+                    </div>
+                    <input
+                      ref={filesInput}
+                      type="file"
+                      multiple
+                      accept="image/jpeg,image/png,image/heic,image/heif,application/pdf,.heic,.heif,.zip"
+                      className="hidden"
+                      data-testid="employee-upload-files-input"
+                      onChange={(event) => {
+                        void add(pickedFromInput(event.target.files ?? []));
+                        event.target.value = '';
+                      }}
+                    />
+                    <input
+                      ref={folderInput}
+                      type="file"
+                      className="hidden"
+                      data-testid="employee-upload-folder-input"
+                      {...{ webkitdirectory: '' }}
+                      onChange={(event) => {
+                        void add(pickedFromInput(event.target.files ?? []));
+                        event.target.value = '';
+                      }}
+                    />
+                  </div>
+                )}
+                {refusal?.kind === 'short' && (
+                  <CreditsShortNotice
+                    kind="employees"
+                    refusal={refusal}
+                    balance={balance}
+                    isOwner={isOwner}
+                    withPages={pdfs > 0}
                   />
-                  <Meter
-                    value={totals.bytes}
-                    max={limits.totalBytes}
-                    label={bytesLabel}
-                    of="din 1 GB"
+                )}
+                {unreadable && (
+                  <Notice variant="warning" data-testid="employee-upload-unreadable">
+                    Nu am putut deschide fișierele alese. Încearcă din nou sau alege-le cu „Alege
+                    fotografii” ori „Alege un folder”.
+                  </Notice>
+                )}
+                {[...selection.largeZips, ...selection.brokenZips, ...selection.archives].map(
+                  (name) => (
+                    <Notice key={name} variant="warning" data-testid="employee-upload-zip">
+                      <strong className="font-semibold">{name}</strong> nu se poate deschide aici.
+                      Dezarhivează-l și trage folderul aici, sau împarte fotografiile în mai multe
+                      importuri.
+                    </Notice>
+                  )
+                )}
+                {over && (
+                  <Notice
+                    variant="destructive"
+                    title="Sunt prea multe pentru un singur import"
+                    data-testid="employee-upload-over"
+                  >
+                    Ai ales {pagesAndPhotos(totals.pages)}, cu {bytesLabel} în total. Într-un import
+                    intră cel mult {limits.scannedPages} și 1 GB. Scoate o parte și păstreaz-o
+                    pentru un import următor, cu toate fotografiile unei persoane în același import.
+                    Importul următor completează angajații creați de acesta.
+                  </Notice>
+                )}
+                {totals.count > 0 && (
+                  <ChosenPhotos
+                    files={selection.files}
+                    found={fromFound}
+                    clientId={client.id}
+                    pages={totals.pages}
+                    onlyPhotos={selection.files.every(
+                      (file) => file.mimeType !== 'application/pdf'
+                    )}
+                    bytes={bytesLabel}
+                    removable={choosing}
+                    onRemoveFile={(key) => {
+                      forgetShort();
+                      setSelection((current) => removeFiles(current, [key]));
+                    }}
+                    onRemoveFound={(id) => {
+                      forgetShort();
+                      setAdded(addedIds.filter((each) => each !== id));
+                    }}
+                    onClear={() => {
+                      forgetShort();
+                      setSelection((current) => ({ ...current, files: [] }));
+                      setAdded([]);
+                    }}
                   />
-                </div>
-                <HelpLink topic="import.limite" label="Ajutor: cât intră într-un import" />
-              </div>
-            )}
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" disabled={busy} onClick={leave}>
-                Renunță
-              </Button>
-              <Button
-                type="submit"
-                data-testid="employee-upload-submit"
-                disabled={!choosing || totals.count === 0 || over || opening}
+                )}
+                <SetAsideList
+                  setAside={selection.setAside}
+                  systemFiles={selection.systemFiles}
+                  reasons={setAsideReasons}
+                  title="Puse deoparte, nu le citim"
+                />
+                <UploadProgress phase={phase} onRetry={retry} onContinue={continueWithout} />
+              </DialogBody>
+              <DialogFooter
+                className={cn(
+                  'mt-6 flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4',
+                  nearLimits ? 'sm:justify-between' : 'sm:justify-end'
+                )}
               >
-                {busy ? 'Se încarcă…' : 'Încarcă și citește'}
-              </Button>
-            </div>
-          </DialogFooter>
+                <CreditsLine
+                  className={nearLimits ? 'sm:basis-full' : 'sm:flex-1'}
+                  uses={usesSentence('employees', { photos: 0, pages: totals.pages, pdfs })}
+                  balance={balance}
+                  short={refusal !== null}
+                />
+                {nearLimits && (
+                  <div className="flex min-w-[min(100%,18rem)] flex-1 items-center gap-3">
+                    <div
+                      className="grid flex-1 gap-4 sm:grid-cols-2"
+                      aria-label="Cât intră într-un import"
+                      data-testid="employee-upload-limits"
+                    >
+                      <Meter
+                        value={totals.pages}
+                        max={limits.scannedPages}
+                        label={`${totals.pages}`}
+                        of={`din ${limits.scannedPages} de fotografii și pagini`}
+                      />
+                      <Meter
+                        value={totals.bytes}
+                        max={limits.totalBytes}
+                        label={bytesLabel}
+                        of="din 1 GB"
+                      />
+                    </div>
+                    <HelpLink topic="import.limite" label="Ajutor: cât intră într-un import" />
+                  </div>
+                )}
+                <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                  <Button type="button" variant="outline" disabled={busy} onClick={leave}>
+                    Renunță
+                  </Button>
+                  <Button
+                    type="submit"
+                    data-testid="employee-upload-submit"
+                    disabled={
+                      !choosing || totals.count === 0 || over || opening || refusal !== null
+                    }
+                  >
+                    {busy ? 'Se încarcă…' : 'Încarcă și citește'}
+                  </Button>
+                </div>
+              </DialogFooter>
+            </>
+          )}
         </form>
       </DialogContent>
     </Dialog>
