@@ -131,6 +131,8 @@ O pagină pe fotografie, întreagă, dreaptă și clară, cu rubricile de semnă
 
 Poți încărca fotografii JPG, PNG și HEIC, PDF-uri scanate, un folder sau o arhivă ZIP. Arhiva o deschide aplicația înainte de încărcare, așa că vezi ce intră; o arhivă 7z sau RAR o dezarhivezi întâi și tragi folderul. Ce nu e fotografie sau PDF e pus deoparte și nu se încarcă. Fotografiile le micșorăm înainte de încărcare, ca să urce mai repede.
 
+Fotografiile alese le vezi în fereastră ca miniaturi. Un clic pe una o deschide mare, ca să verifici că fișa se citește; treci la următoarea cu butoanele de jos sau cu săgețile tastaturii. O fotografie greșită sau în plus o scoți cu semnul x din colțul miniaturii, care apare când treci cu mouse-ul peste ea și se vede mereu pe telefon, ori cu **Scoate fotografia** din fotografia deschisă. Numărul fotografiilor și totalurile se actualizează pe loc, iar o fișă găsită în documentație, odată scoasă, îți rămâne oferită cu **Adaugă-le**. PDF-urile și, în cele mai multe browsere, fotografiile HEIC nu se pot arăta înainte de încărcare, dar se citesc la fel ca celelalte.
+
 ### Cât intră într-un import
 
 Într-un import de angajați intră cel mult 500 de fotografii sau pagini PDF, cel mult 25 MB un fișier și 1 GB în total. În fereastra de încărcare vezi cât ai folosit din fiecare.
@@ -141,7 +143,7 @@ Un client mai mare îl imporți în mai multe importuri, cu fișele fiecărei pe
 
 ### Citirea fișelor
 
-După **Încarcă și citește**, aplicația pregătește fotografiile, citește fiecare pagină, le grupează pe persoane și verifică datele. Durează câteva secunde pe pagină. Poți închide pagina: importul rămâne pe tabul **Angajați** al clientului, cu pasul la care a ajuns, și îl deschizi de acolo când persoanele sunt gata de verificat.
+După **Încarcă și citește**, aplicația pregătește fotografiile, citește fiecare pagină, le grupează pe persoane și verifică datele. Durează câteva secunde pe pagină. Poți închide pagina: importul rămâne pe tabul **Angajați** al clientului, cu pasul la care a ajuns, și îl deschizi de acolo când persoanele sunt gata de verificat. Cât timp citim, un clic pe o fotografie o deschide mare, cu pasul la care a ajuns citirea ei.
 
 O pagină ajunge la o persoană după CNP, dacă cifra lui de control se potrivește; fără un CNP valid, după nume, chiar dacă e scris puțin diferit pe pagini sau cu prenumele înaintea numelui; fără CNP și fără nume, după marcă. Două prenume care diferă doar printr-o literă la sfârșit, ca Daniel și Daniela, sunt două persoane. O pagină de continuare fără niciunul dintre ele merge după pagina dinaintea ei, în ordinea încărcării, și e semnalată „O pagină pusă după ordine”.
 
