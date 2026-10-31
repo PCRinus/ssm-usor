@@ -856,10 +856,10 @@ describe('the import folder', () => {
     const card = await screen.findByTestId('employee-files-card');
     const folder = await within(card).findByTestId('client-import-folder');
     expect(within(folder).getByTestId('client-import-folder-title').textContent).toBe(
-      'Fișe importate pe 27.10.2026 · 2 fotografii'
+      'Fișe importate pe 27.10.2026 · 2 fișiere'
     );
     expect(folder.textContent).toContain(
-      'Fotografiile din care au fost transcrise instruirile. Originalele pe hârtie rămân la client.'
+      'Fotografiile și paginile scanate din care au fost transcrise instruirile. Originalele pe hârtie rămân la client.'
     );
     expect(
       within(folder).getByTestId('client-import-folder-toggle').getAttribute('aria-label')

@@ -1088,10 +1088,10 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   it lists `GET /clients/{clientId}/files?employeeId=`, and its upload dialog names the
   employee and sends every file with `employeeId`; there is no way to choose another
   employee. Renaming, the owners' switch, deleting and an archived client's read-only list
-  work as on the tab. The photographs an employee import kept of the employee's paper sheets
-  ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)) sit under one
-  row per import, open at first, "Fișe importate pe … · N fotografii", with "Descarcă fișele
-  (ZIP)".
+  work as on the tab. The photographs and scanned page images an employee import kept of the
+  employee's paper sheets ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md))
+  sit under one row per import, open at first, "Fișe importate pe … · N fișiere", with
+  "Descarcă fișele (ZIP)".
 - The upload dialog (`src/features/client-files/client-file-upload-dialog.tsx`) has a drop zone with
   "Alege fișiere" and the accepted types and the 25 MB limit under it, the list of chosen
   files (name, kind, size, a button to take each out), an owner's "Doar pentru

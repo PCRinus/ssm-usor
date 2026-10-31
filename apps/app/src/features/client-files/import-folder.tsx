@@ -6,7 +6,7 @@ import { ChevronDown, ChevronRight, Download, FileArchive, Folder } from 'lucide
 import { type ReactNode, useState } from 'react';
 
 import { getClientFileDownload } from '@/api/generated/api';
-import { filesLabel, photosLabel } from '@/features/imports/import-format';
+import { filesLabel } from '@/features/imports/import-format';
 import { saveFile } from '@/lib/save-file';
 
 import { type ClientFile, formatFileSize, formatUploadDate } from './client-file-format';
@@ -44,9 +44,9 @@ const kinds = {
     openAtFirst: false,
   },
   employee: {
-    title: (date: string, count: number) => `Fișe importate pe ${date} · ${photosLabel(count)}`,
+    title: (date: string, count: number) => `Fișe importate pe ${date} · ${filesLabel(count)}`,
     description:
-      'Fotografiile din care au fost transcrise instruirile. Originalele pe hârtie rămân la client.',
+      'Fotografiile și paginile scanate din care au fost transcrise instruirile. Originalele pe hârtie rămân la client.',
     toggle: (open: boolean) => (open ? 'Restrânge fișele importate' : 'Deschide fișele importate'),
     zip: 'Descarcă fișele (ZIP)',
     zipName: (date: string) => `Fișe importate ${date}.zip`,
