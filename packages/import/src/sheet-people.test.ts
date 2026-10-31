@@ -9,6 +9,7 @@ import {
   otherPhoto,
   page,
   pagesOf,
+  row,
   rusuFront,
   tomaFront,
   tomaPeriodic,
@@ -65,6 +66,18 @@ describe('placePages', () => {
 
     expect(placed.groups).toEqual([['page-1', 'page-3'], ['page-2']]);
     expect(placed.placements.get('page-3')!.placement).toBe('cnp');
+  });
+
+  it('joins a nameless page by its employee number, over the page before it', () => {
+    const byNumber = page({
+      pageKind: 'ssm_periodic',
+      person: { employeeNumber: '12' },
+      trainings: [row({ heldOn: '2026-01-12' })],
+    });
+    const placed = placePages(pagesOf(comanFront, tomaFront, byNumber));
+
+    expect(placed.groups).toEqual([['page-1', 'page-3'], ['page-2']]);
+    expect(placed.placements.get('page-3')).toEqual({ group: 0, placement: 'employee_number' });
   });
 
   it('takes a CNP with an unreadable digit for no CNP', () => {
