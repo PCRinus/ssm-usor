@@ -33,6 +33,7 @@ const env: ApiEnv['Bindings'] = {
     sendSignInCode: sendSignInCodeEmail,
     sendSigningCode: vi.fn(),
     sendSignatureRequest: vi.fn(),
+    sendSmsUsageNotice: vi.fn(),
   },
   SMS: {
     sendParticipantInvitation: vi.fn(),

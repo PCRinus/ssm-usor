@@ -379,7 +379,7 @@ const itemNotFound = {
 };
 const sessionRefused = {
   description:
-    "A code was sent to the account in the last minute (reason `code_rate_limited`, with `retryAfterSeconds`), the account has no address for the code (reason `signer_has_no_address`), or an agreement's client has no legal representative filled in (reason `missing_document_data`)",
+    "A code was sent to the account in the last minute (reason `code_rate_limited`, with `retryAfterSeconds`), the account has no address for the code (reason `signer_has_no_address`), or an agreement's client has no legal representative filled in (reason `missing_document_data`). A code that would go by SMS and may not is refused and no session is kept: a trial (`sms_trial`), a number outside Romania (`sms_foreign_number`), the month's codes used up at a hard stop (`sms_allowance_reached`) or the safety cap reached (`sms_cap_reached`); the last two carry `resumesAt`, when the month's codes start again",
   content: errorContent,
 };
 const sessionUnavailable = {

@@ -70,7 +70,10 @@ const refused = (reason: string, message: string) =>
   new ApiError('conflict', message, undefined, reason);
 
 export class SigningCodeRefused extends Error {
-  constructor(readonly reason: string) {
+  constructor(
+    readonly reason: string,
+    readonly resumesAt?: Date
+  ) {
     super(`The signing code was refused: ${reason}`);
     this.name = 'SigningCodeRefused';
   }
@@ -188,7 +191,9 @@ export async function createSigningSession(
         'conflict',
         'The signing code cannot be texted now; ask your specialist.',
         undefined,
-        error.reason
+        error.reason,
+        undefined,
+        error.resumesAt ? { resumesAt: error.resumesAt.toISOString() } : undefined
       );
     }
     console.error(
@@ -381,7 +386,7 @@ export function signingCodeSender(deps: {
       to: message.to,
       deliver: (sms) => sms.sendSigningCode(message),
     });
-    if (!outcome.sent) throw new SigningCodeRefused(outcome.reason);
+    if (!outcome.sent) throw new SigningCodeRefused(outcome.reason, outcome.resumesAt);
     return outcome.receipt;
   };
 }

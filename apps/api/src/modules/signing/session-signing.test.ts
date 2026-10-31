@@ -571,6 +571,67 @@ describe('POST /portal/participants/{participantId}/signing-sessions', () => {
     expect(callsTo('/rest/v1/sms_sends', 'PATCH')).toHaveLength(1);
   });
 
+  it("emails the owner when the texted code takes the month to 80 % of the plan's codes", async () => {
+    const ownerId = '0a0a0a0a-0000-4000-8000-000000000001';
+    const sendSmsUsageNotice = vi.fn<MailService['sendSmsUsageNotice']>(async () => ({
+      id: 'msg_1',
+    }));
+    participantUpstream('employee', {
+      'GET /rest/v1/subscriptions': () => [
+        {
+          organization_id: organizationId,
+          plan: 'start',
+          status: 'active',
+          created_at: '2026-01-14T08:00:00.000Z',
+          trial_ends_at: null,
+          stripe_subscription_id: 'sub_1',
+          stripe_customer_id: 'cus_1',
+          tester_allowances: false,
+          first_paid_at: '2026-01-14T08:00:00.000Z',
+          billing_anchor_at: '2026-01-14T08:00:00.000Z',
+          current_period_end: null,
+          sms_cap_factor: 3,
+        },
+      ],
+      '/rest/v1/rpc/sms_period_usage': () => ({ used: 40, overage: 0, granted: 0 }),
+      'POST /rest/v1/usage_notices': () => new Response(null, { status: 201 }),
+      '/rest/v1/organization_members': () => ({ user_id: ownerId }),
+      [`/auth/v1/admin/users/${ownerId}`]: () => ({ id: ownerId, email: 'olga@protect.example' }),
+      '/rest/v1/organizations': () => ({ name: 'Protect SSM' }),
+    });
+
+    const response = await send(
+      path,
+      { requestIds: [requestA], agreementEmployeeIds: [] },
+      {
+        ...signingEnv,
+        MAIL: {
+          sendSigningCode: sendSigningCodeEmail,
+          sendSmsUsageNotice,
+        } as unknown as MailService,
+      }
+    );
+
+    expect(response.status).toBe(201);
+    await vi.waitFor(() => expect(sendSmsUsageNotice).toHaveBeenCalledOnce());
+    expect(sendSmsUsageNotice).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: 'olga@protect.example',
+        kind: 'sms_80',
+        organizationName: 'Protect SSM',
+        planName: 'Start',
+        billed: true,
+        used: 40,
+        included: 50,
+        cap: 150,
+        subscriptionUrl: `${signingEnv.APP_ORIGIN}/organization/subscription`,
+      })
+    );
+    const [notice] = callsTo('/rest/v1/usage_notices', 'POST');
+    expect(notice!.body).toMatchObject({ organization_id: organizationId, kind: 'sms_80' });
+    expect(notice!.secret).toBe(true);
+  });
+
   it.each(['sms_cap_reached', 'sms_allowance_reached'])(
     'answers 409 with %s when no code may be texted to a signer without email, and keeps no session',
     async (refusal) => {
@@ -582,7 +643,10 @@ describe('POST /portal/participants/{participantId}/signing-sessions', () => {
       const response = await send(path, { requestIds: [requestA], agreementEmployeeIds: [] });
 
       expect(response.status).toBe(409);
-      expect(await response.json()).toMatchObject({ reason: refusal });
+      expect(await response.json()).toMatchObject({
+        reason: refusal,
+        resumesAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+      });
       expect(sendSigningCodeSms).not.toHaveBeenCalled();
       expect(callsTo('/rest/v1/signing_sessions', 'DELETE')).toHaveLength(1);
     }

@@ -24,6 +24,7 @@ const env: ApiEnv['Bindings'] = {
     sendSignInCode: vi.fn(),
     sendSigningCode: vi.fn(),
     sendSignatureRequest: vi.fn(),
+    sendSmsUsageNotice: vi.fn(),
   },
 };
 

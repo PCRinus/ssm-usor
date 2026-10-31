@@ -951,7 +951,8 @@ What each caller does with a refusal: an SMS invitation answers `409` (`422` for
 `sms_foreign_number`) before anything is saved, and the bulk invitation reports the reason on the
 person's row; a signature-request notice by SMS is skipped and the request stays without
 `notified_at`; a signing session answers `409` with the reason and keeps no session (a signer
-with an email always gets the code by email, so a texted code has no email to fall back on). The
+with an email always gets the code by email, so a texted code has no email to fall back on), and
+with `resumesAt`, the end of the month, for `sms_allowance_reached` and `sms_cap_reached`. The
 Send SMS hook texts a sign-in code when any organization the participant belongs to, or that
 invited the number, may text, logs it against the most recent invitation's organization among
 those, and otherwise answers `403` with a message.
@@ -963,6 +964,14 @@ those, and otherwise answers `403` with a message.
 reached). `PUT /billing/sms-cap { factor }`, owner only, sets the cap from 3 to 20 times the
 allowance on a chosen plan (`409 no_subscription` without one, `enterprise_plan` on Enterprise),
 logged as `sms_cap` in `subscription_changes`.
+
+After a signing code is counted, or refused at the month's limit, the sender looks for a usage
+notice, in the background of the request: the month's state gives `sms_80` (`near`), `sms_100`
+(`over` or `stopped`) or `sms_cap` (`capped`), only the highest reached. It is inserted into
+`usage_notices` first, and only the request that inserted it emails the organization's first
+owner, at the owner's account email (not the email for invoices: the owner is the one who can
+raise the cap). A failed email deletes the row again, so the next code tries once more. A month
+with no limit, and the kinds that are not counted, send none.
 
 ## Import credits
 

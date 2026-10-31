@@ -41,7 +41,10 @@ export class ApiError extends Error {
     // A stable identifier for an error the client words itself.
     readonly reason?: string,
     readonly missing?: MissingDocumentData[],
-    readonly extra?: Pick<ApiErrorResponse, 'attemptsLeft' | 'retryAfterSeconds' | 'credits'>
+    readonly extra?: Pick<
+      ApiErrorResponse,
+      'attemptsLeft' | 'retryAfterSeconds' | 'credits' | 'resumesAt'
+    >
   ) {
     super(message);
     this.name = 'ApiError';

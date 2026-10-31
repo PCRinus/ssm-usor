@@ -135,6 +135,9 @@ export const apiErrorResponseSchema = z.object({
   retryAfterSeconds: z.int().min(1).optional(),
   // With `credits_insufficient`: what an import needs and what is left.
   credits: creditsShortSchema.optional(),
+  // With `sms_allowance_reached` or `sms_cap_reached`: when the month's signing codes by SMS
+  // start again.
+  resumesAt: z.iso.datetime({ offset: true }).optional(),
 });
 
 export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;
