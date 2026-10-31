@@ -30,6 +30,13 @@ function markAnnounced(importId: string) {
 
 const toastId = (importId: string) => `import-ready:${importId}`;
 
+// Client names are long: beside the button, the title takes three narrow lines.
+const noticeLayout = {
+  toast: '!flex-wrap',
+  content: '!basis-[calc(100%-2rem)]',
+  actionButton: '!mt-1',
+};
+
 const params = { kind: 'all' } as const;
 
 export function ImportReadyWatcher() {
@@ -70,6 +77,7 @@ export function ImportReadyWatcher() {
         description: notice.description ?? undefined,
         duration: Infinity,
         action: { label: notice.action, onClick: () => void navigate(notice.link) },
+        classNames: noticeLayout,
       });
     }
   }, [imports.data, userId, watching, navigate]);
