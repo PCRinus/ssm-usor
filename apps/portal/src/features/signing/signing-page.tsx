@@ -48,6 +48,8 @@ import {
   tooManyItemsMessage,
   unreachableMessage,
 } from './signing-messages';
+import { type SmsRefusal, smsRefusalOf } from './sms-refusal';
+import { SmsRefusalNotice } from './sms-refusal-notice';
 
 // The API sends one signing code per account a minute.
 const resendDelaySeconds = 60;
@@ -69,11 +71,18 @@ const errorBody = (cause: unknown) =>
 
 const reasonOf = (cause: unknown) => errorBody(cause)?.reason ?? null;
 
-type SessionFailure = { message: MessageDescriptor; retryAfterSeconds: number };
+type SessionFailure = {
+  message: MessageDescriptor;
+  retryAfterSeconds: number;
+  sms?: SmsRefusal;
+};
 
 function sessionFailureOf(cause: unknown): SessionFailure {
   const body = errorBody(cause);
   const reason = body?.reason ?? null;
+  const sms = smsRefusalOf(body);
+  if (sms)
+    return { message: sessionFailureMessages.signing_code_not_sent, retryAfterSeconds: 0, sms };
   if (reason === 'code_rate_limited') {
     return {
       message: msg`Ai cerut un cod acum mai puțin de un minut.`,
@@ -351,19 +360,33 @@ function ChooseStep({
           {t`Cu un cod semnezi cel mult ${signingLimit} de documente. Debifează ${selected.length - signingLimit}; pe celelalte le semnezi apoi cu alt cod.`}
         </Notice>
       )}
-      {failure && (
-        <Notice variant="destructive" data-testid="signing-send-error">
-          {i18n._(failure.message)}
-          {secondsLeft > 0 && ' '}
-          {secondsLeft > 0 && t`Poți cere altul în ${secondsLeft} s.`}
-        </Notice>
+      {failure?.sms ? (
+        <SmsRefusalNotice
+          refusal={failure.sms}
+          organizationName={participation.organizationName}
+          testId="signing-sms-refused"
+        />
+      ) : (
+        failure && (
+          <Notice variant="destructive" data-testid="signing-send-error">
+            {i18n._(failure.message)}
+            {secondsLeft > 0 && ' '}
+            {secondsLeft > 0 && t`Poți cere altul în ${secondsLeft} s.`}
+          </Notice>
+        )
       )}
       <div className="grid gap-2">
         <Button
           type="submit"
           data-testid="signing-send"
           className="h-12 w-full text-base sm:w-fit sm:px-8"
-          disabled={sending || selected.length === 0 || overLimit || secondsLeft > 0}
+          disabled={
+            sending ||
+            selected.length === 0 ||
+            overLimit ||
+            secondsLeft > 0 ||
+            Boolean(failure?.sms)
+          }
           aria-describedby={overLimit ? 'signing-limit' : undefined}
         >
           {sending && <LoaderCircle aria-hidden="true" className="animate-spin" />}
@@ -659,10 +682,19 @@ function CodeStep({
           </p>
         )}
       </form>
-      {resend.failure && (
-        <Notice variant="destructive" data-testid="signing-resend-error">
-          {i18n._(resend.failure.message)}
-        </Notice>
+      {resend.failure?.sms ? (
+        <SmsRefusalNotice
+          refusal={resend.failure.sms}
+          organizationName={participation.organizationName}
+          testId="signing-resend-sms-refused"
+          again
+        />
+      ) : (
+        resend.failure && (
+          <Notice variant="destructive" data-testid="signing-resend-error">
+            {i18n._(resend.failure.message)}
+          </Notice>
+        )
       )}
       <div className="grid gap-1">
         <Button

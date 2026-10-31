@@ -7,15 +7,16 @@ import {
 import type { Context } from 'hono';
 
 import { adminClient } from '../../lib/admin-db';
-import type { ApiEnv } from '../../lib/env';
+import { type ApiEnv, appOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { createUsageNotices, noticeRecipient } from './notices';
 import { type OverageSend, reportOverageLater } from './overage';
 import { type SmsPolicy, smsPolicy, type SmsSubscription } from './policy';
 import { type SmsKind, type SmsUsageStore, smsUsageStore } from './store';
 
 export type SmsOutcome =
   | { sent: true; id: string; overage: boolean; receipt: SmsReceipt }
-  | { sent: false; reason: SmsRefusalReason };
+  | { sent: false; reason: SmsRefusalReason; resumesAt?: Date };
 
 export type SmsSendInput = {
   organizationId: string;
@@ -54,6 +55,7 @@ export function createSmsSender(deps: {
   sms: SmsService | undefined;
   store: SmsUsageStore;
   onOverage: (send: OverageSend) => void;
+  onCounted?: (organizationId: string, subscription: SmsSubscription | null) => void;
   now?: () => Date;
 }) {
   const now = () => deps.now?.() ?? new Date();
@@ -86,7 +88,10 @@ export function createSmsSender(deps: {
         allowance: counted ? policy.allowance : null,
         cap: counted ? policy.cap : null,
       });
-      if ('refusal' in claim) return { sent: false, reason: claim.refusal };
+      if ('refusal' in claim) {
+        deps.onCounted?.(input.organizationId, row);
+        return { sent: false, reason: claim.refusal, resumesAt: policy.period.end };
+      }
 
       let receipt: SmsReceipt;
       try {
@@ -99,6 +104,7 @@ export function createSmsSender(deps: {
       }
 
       const sentAt = now();
+      if (counted) deps.onCounted?.(input.organizationId, row);
       try {
         await deps.store.markSent(claim.id, receipt.id, sentAt);
       } catch {
@@ -128,10 +134,26 @@ function waitUntilOf(c: Context<ApiEnv>) {
 }
 
 export function smsSenderFor(env: ApiEnv['Bindings'], later: (work: Promise<unknown>) => void) {
+  const db = adminClient(env);
+  const store = smsUsageStore(db);
+  const notices = createUsageNotices({
+    store,
+    recipient: (organizationId) => noticeRecipient(db, organizationId),
+    mail: env.MAIL,
+    subscriptionUrl: () => new URL('/organization/subscription', appOrigin(env)).href,
+  });
   return createSmsSender({
     sms: env.SMS,
-    store: smsUsageStore(adminClient(env)),
+    store,
     onOverage: (send) => later(reportOverageLater(env, send)),
+    onCounted: (organizationId, subscription) =>
+      later(
+        notices(organizationId, subscription, new Date()).catch((error: unknown) => {
+          console.error(
+            `Usage notice for ${organizationId} failed: ${error instanceof Error ? error.message : 'unknown'}`
+          );
+        })
+      ),
   });
 }
 

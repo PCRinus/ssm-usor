@@ -57,6 +57,8 @@ const mail: MailService = {
   sendSigningCode: ({ to, code }) => record('signing-code', to, `code=${code}`),
   sendSignatureRequest: ({ to, signUrl, count }) =>
     record('signature-request', to, `${signUrl} count=${count}`),
+  sendSmsUsageNotice: ({ to, kind, subscriptionUrl, used }) =>
+    record('sms-usage-notice', to, `${subscriptionUrl} kind=${kind} used=${used}`),
 };
 const sms: SmsService = {
   sendParticipantInvitation: ({ to, portalUrl }) =>

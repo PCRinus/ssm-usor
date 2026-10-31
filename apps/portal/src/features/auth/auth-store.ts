@@ -89,9 +89,11 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
         listeners.delete(listener);
       };
     },
-    // Every refusal reads as a code on its way: an address nobody invited, a number the SMS hook
-    // will not text, a rate limit. Telling them apart would say which addresses have an account.
-    // A refused Turnstile token says nothing about the address, so it is told apart.
+    // Every refusal reads as a code on its way: an address nobody invited, a rate limit, and a
+    // number the Send SMS hook will not text (a trial, no organization that may text, a 403 or a
+    // 5xx). Supabase calls the hook only for an account that exists, so telling its refusal apart
+    // would say which numbers have one. The page's wording for a number covers the refusal
+    // instead. A refused Turnstile token says nothing about the address, so it is told apart.
     async requestCode(address: SignInAddress, captchaToken?: string): Promise<CodeRequestResult> {
       if (!client) return 'unreachable';
       await ready;

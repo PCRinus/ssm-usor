@@ -21,6 +21,8 @@ import {
   signingCodeEmailSchema,
   type SignupConfirmationEmail,
   signupConfirmationEmailSchema,
+  type SmsUsageNoticeEmail,
+  smsUsageNoticeEmailSchema,
   type WaitlistConfirmationEmail,
   waitlistConfirmationEmailSchema,
 } from '@ssm-usor/contracts';
@@ -44,6 +46,7 @@ import SigningCode, { subject as signingCodeSubject } from './emails/signing-cod
 import SignupConfirmation, {
   subject as signupConfirmationSubject,
 } from './emails/signup-confirmation';
+import SmsUsageNotice, { subject as smsUsageNoticeSubject } from './emails/sms-usage-notice';
 import WaitlistConfirmation, { subject as waitlistSubject } from './emails/waitlist-confirmation';
 import type { MailEnv } from './env';
 import { sendEmail } from './send';
@@ -159,6 +162,16 @@ export class Mail extends WorkerEntrypoint<MailEnv> implements MailService {
       to,
       subject: signatureRequestSubject(request.count),
       body: <SignatureRequest {...request} />,
+    });
+  }
+
+  async sendSmsUsageNotice(input: SmsUsageNoticeEmail): Promise<MailReceipt> {
+    const { to, ...notice } = smsUsageNoticeEmailSchema.parse(input);
+
+    return sendEmail(this.env, {
+      to,
+      subject: smsUsageNoticeSubject(notice),
+      body: <SmsUsageNotice {...notice} />,
     });
   }
 }

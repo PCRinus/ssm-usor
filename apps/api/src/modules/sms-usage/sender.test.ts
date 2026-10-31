@@ -33,13 +33,17 @@ function setUp(
     markSent: vi.fn(async () => undefined),
     release: vi.fn(async () => undefined),
     periodUsage: vi.fn(),
+    recordNotice: vi.fn(),
+    forgetNotice: vi.fn(),
   } satisfies SmsUsageStore;
   const sendSigningCode = vi.fn(async () => ({ id: 'SM1' }));
   const onOverage = vi.fn();
+  const onCounted = vi.fn();
   const sender = createSmsSender({
     sms: { sendSigningCode } as unknown as SmsService,
     store,
     onOverage,
+    onCounted,
     now: () => now,
   });
   const send = (
@@ -52,7 +56,7 @@ function setUp(
       to,
       deliver: (sms) => sms.sendSigningCode({ to, code: '123456', expiresInMinutes: 10 }),
     });
-  return { store, sendSigningCode, onOverage, sender, send };
+  return { store, sendSigningCode, onOverage, onCounted, sender, send };
 }
 
 describe('the SMS sender', () => {
@@ -80,14 +84,23 @@ describe('the SMS sender', () => {
     expect(onOverage).not.toHaveBeenCalled();
   });
 
-  it('logs the other kinds uncounted', async () => {
-    const { store, send } = setUp(paid);
+  it('logs the other kinds uncounted, and looks for no usage notice', async () => {
+    const { store, send, onCounted } = setUp(paid);
 
     await send('participant_invitation');
 
     expect(store.claim).toHaveBeenCalledWith(
       expect.objectContaining({ kind: 'participant_invitation', allowance: null, cap: null })
     );
+    expect(onCounted).not.toHaveBeenCalled();
+  });
+
+  it('looks for a usage notice once a signing code is counted', async () => {
+    const { send, onCounted } = setUp(paid);
+
+    await send();
+
+    expect(onCounted).toHaveBeenCalledWith(organizationId, paid);
   });
 
   it('reports a code past the allowance to Stripe, for the subscription’s customer', async () => {
@@ -130,20 +143,26 @@ describe('the SMS sender', () => {
   it.each(['sms_allowance_reached', 'sms_cap_reached'] as const)(
     'answers the refusal the count gives (%s) and sends nothing',
     async (refusal) => {
-      const { send, sendSigningCode } = setUp(paid, { refusal });
+      const { send, sendSigningCode, onCounted } = setUp(paid, { refusal });
 
-      expect(await send()).toEqual({ sent: false, reason: refusal });
+      expect(await send()).toEqual({
+        sent: false,
+        reason: refusal,
+        resumesAt: new Date('2026-12-13T08:00:00.000Z'),
+      });
       expect(sendSigningCode).not.toHaveBeenCalled();
+      expect(onCounted).toHaveBeenCalledWith(organizationId, paid);
     }
   );
 
   it('takes back the count of a message the provider refused', async () => {
-    const { store, send, sendSigningCode } = setUp(paid);
+    const { store, send, sendSigningCode, onCounted } = setUp(paid);
     sendSigningCode.mockRejectedValueOnce(new Error('Twilio refused'));
 
     await expect(send()).rejects.toThrow('Twilio refused');
     expect(store.release).toHaveBeenCalledWith('row-1');
     expect(store.markSent).not.toHaveBeenCalled();
+    expect(onCounted).not.toHaveBeenCalled();
   });
 
   it('answers the gate without counting, for a caller that saves before it sends', async () => {

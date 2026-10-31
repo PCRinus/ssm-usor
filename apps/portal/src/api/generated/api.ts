@@ -142,6 +142,7 @@ export interface ApiErrorResponse {
   /** @minimum 1 */
   retryAfterSeconds?: number;
   credits?: ApiErrorResponseCredits;
+  resumesAt?: string;
 }
 
 export interface PortalNoticeRequest {
