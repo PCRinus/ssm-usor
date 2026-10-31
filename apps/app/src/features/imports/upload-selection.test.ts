@@ -228,3 +228,49 @@ describe('choosing the files of an import', () => {
     expect(selectionTotals(heavy)).toMatchObject({ count: 6, overFiles: false, overBytes: true });
   });
 });
+
+describe('choosing the photographs of an employee import', () => {
+  it('takes photographs and PDFs only, each under 25 MB', async () => {
+    const selection = await addToSelection(
+      emptySelection,
+      [
+        { path: 'IMG_3101.HEIC', blob: blob() },
+        { path: 'IMG_3102.jpg', blob: blob() },
+        { path: 'contract munca Toma.docx', blob: blob() },
+        { path: 'dosar personal Badea.pdf', blob: new Blob([megabytes(26)]) },
+        { path: 'scan_016.pdf', blob: blob() },
+      ],
+      'employees'
+    );
+    expect(selection.files.map((file) => file.path)).toEqual([
+      'IMG_3101.HEIC',
+      'IMG_3102.jpg',
+      'scan_016.pdf',
+    ]);
+    expect(selection.setAside.map((file) => [file.path, file.reason])).toEqual([
+      ['contract munca Toma.docx', 'unsupported'],
+      ['dosar personal Badea.pdf', 'too_large'],
+    ]);
+  });
+
+  it("counts a PDF's pages against the 500 photographs and pages", async () => {
+    const pdf = `%PDF-1.4 ${'<< /Type /Page /Parent 2 0 R >> '.repeat(3)}<< /Type /Pages /Kids [] /Count 3 >>`;
+    const selection = await addToSelection(
+      emptySelection,
+      [
+        { path: 'fise.pdf', blob: blob(pdf) },
+        ...Array.from({ length: 498 }, (_, index) => ({ path: `IMG_${index}.jpg`, blob: blob() })),
+      ],
+      'employees'
+    );
+    expect(selection.files[0]!.pages).toBe(3);
+    expect(selectionTotals(selection, 'employees')).toMatchObject({
+      count: 499,
+      pages: 501,
+      overFiles: true,
+    });
+    expect(
+      selectionTotals(selection, 'employees', { count: 0, pages: 0, bytes: 2 * 1024 ** 3 })
+    ).toMatchObject({ overBytes: true });
+  });
+});
