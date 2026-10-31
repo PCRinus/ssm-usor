@@ -220,9 +220,11 @@ Unele rânduri poartă o etichetă:
 
 O durată scrisă în ore, de exemplu „8 ore” sau „1h30”, e citită în minute. Sunt semnalate, dar nu opresc nimic:
 
-- o instruire periodică cu altă durată decât 60, 90 sau 120 de minute;
+- o instruire SSM periodică cu altă durată decât 60, 90 sau 120 de minute;
 - o instruire SSM la angajare sau suplimentară mai scurtă de o oră, cât cer normele cel puțin (HG 1425/2006, art. 80¹);
-- o instruire PSI la angajare sau suplimentară mai scurtă de 15 minute;
+- o instruire PSI la angajare mai scurtă de 8 ore, cât cer normele (OMAI 712/2005, art. 13 și 18);
+- o instruire PSI periodică mai scurtă de 2 ore (OMAI 712/2005, art. 21);
+- o instruire PSI suplimentară mai scurtă de 15 minute;
 - o dată dinaintea angajării.
 
 Se preiau așa dacă nu le schimbi. O instruire cu data în viitor sau fără o valoare obligatorie trebuie corectată.
