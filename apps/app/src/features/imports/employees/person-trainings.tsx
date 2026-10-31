@@ -143,7 +143,9 @@ function TrainingRow({
   const note = rowNote(row, values, included, personName(context, person));
   const missing = (value: unknown, label: string) =>
     value === null || value === '' ? (
-      <Tag tone={included ? 'destructive' : 'muted'}>{label}</Tag>
+      <Tag tone={included ? 'destructive' : 'muted'} className="whitespace-normal">
+        {label}
+      </Tag>
     ) : null;
   return (
     <li
@@ -151,7 +153,7 @@ function TrainingRow({
       data-testid="person-training-row"
       data-included={included}
     >
-      <div className="grid grid-cols-[1.25rem_minmax(0,1fr)_auto_auto] items-start gap-x-3 gap-y-1 sm:grid-cols-[1.25rem_1.5rem_7.5rem_5rem_minmax(0,1fr)_auto]">
+      <div className="grid grid-cols-[1.25rem_minmax(0,1fr)_auto_auto] items-start gap-x-3 gap-y-1 sm:grid-cols-[1.25rem_1.5rem_6.5rem_5rem_minmax(0,1fr)_auto]">
         <IncludeBox
           row={row}
           included={included}
