@@ -125,6 +125,8 @@ const leftForDays = 14;
 
 const detailColumns = `${summaryColumns}, version, proposal, changes, proposal_dropped_at, read_characters, input_tokens, cached_input_tokens, output_tokens, cost_usd, usage_by_step`;
 
+const runningStatuses: readonly string[] = ['preparing', 'sorting', 'reading', 'checking'];
+
 const openStatuses = [
   'uploading',
   'preparing',
@@ -180,7 +182,8 @@ function toSummary(
   row: ImportRow,
   names: Map<string, string>,
   people: EmployeeImportPeople | null = null,
-  uninvited: number | null = null
+  uninvited: number | null = null,
+  progress: ImportProgress | null = null
 ): ImportSummary {
   return {
     id: row.id,
@@ -204,6 +207,7 @@ function toSummary(
     expiresAt: expiresAtOf(row),
     people,
     uninvited,
+    progress,
   };
 }
 
@@ -375,7 +379,9 @@ function otherCompanies(files: ImportFileRow[]) {
   return [...groups.values()].sort((a, b) => b.fileIds.length - a.fileIds.length);
 }
 
-function progressOf(files: ImportFileRow[]) {
+type ImportProgress = NonNullable<ImportSummary['progress']>;
+
+function progressOf(files: Pick<ImportFileRow, 'state' | 'is_scan'>[]): ImportProgress {
   const scans = files.filter((file) => file.is_scan);
   return {
     files: files.length,
@@ -434,7 +440,8 @@ export const createImport: RouteHandler<typeof createImportRoute, ApiEnv> = asyn
 export const listImports: RouteHandler<typeof listImportsRoute, ApiEnv> = async (c) => {
   const { clientId, kind = 'client', status = 'open' } = c.req.valid('query');
   const db = createDataClient(c);
-  const selected = db.from('imports').select(summaryColumns).eq('kind', kind);
+  const everyKind = db.from('imports').select(summaryColumns);
+  const selected = kind === 'all' ? everyKind : everyKind.eq('kind', kind);
   const query = (
     status === 'confirmed'
       ? selected
@@ -448,7 +455,7 @@ export const listImports: RouteHandler<typeof listImportsRoute, ApiEnv> = async 
   const { data, error } = await (clientId ? query.eq('client_id', clientId) : query);
   if (error) throw fromDatabaseError(error, 'list imports');
   const countUninvited = status === 'confirmed' && kind === 'employees' && clientId;
-  const [names, people, uninvited] = await Promise.all([
+  const [names, people, uninvited, progress] = await Promise.all([
     creatorNames(db, data),
     peopleOfReady(
       db,
@@ -461,6 +468,10 @@ export const listImports: RouteHandler<typeof listImportsRoute, ApiEnv> = async 
           data.map((row) => row.id)
         )
       : null,
+    progressOfRunning(
+      db,
+      data.filter((row) => runningStatuses.includes(row.status)).map((row) => row.id)
+    ),
   ]);
   return c.json(
     {
@@ -469,13 +480,28 @@ export const listImports: RouteHandler<typeof listImportsRoute, ApiEnv> = async 
           row,
           names,
           people.get(row.id) ?? null,
-          uninvited ? (uninvited.get(row.id) ?? 0) : null
+          uninvited ? (uninvited.get(row.id) ?? 0) : null,
+          progress.get(row.id) ?? null
         )
       ),
     },
     200
   );
 };
+
+async function progressOfRunning(db: DataClient, importIds: string[]) {
+  const progress = new Map<string, ImportProgress>();
+  if (importIds.length === 0) return progress;
+  const { data, error } = await db
+    .from('import_files')
+    .select('import_id, state, is_scan')
+    .in('import_id', importIds);
+  if (error) throw fromDatabaseError(error, 'count the files of imports');
+  for (const importId of importIds) {
+    progress.set(importId, progressOf(data.filter((file) => file.import_id === importId)));
+  }
+  return progress;
+}
 
 // Only the proposal's people and the changes, not the whole proposal: a list holds several.
 async function peopleOfReady(db: DataClient, importIds: string[]) {

@@ -65,6 +65,8 @@ sources:
   - apps/app/src/features/imports/review-hub.tsx
   - apps/app/src/features/imports/confirm-import-dialog.tsx
   - apps/app/src/features/imports/abandon-import-dialog.tsx
+  - apps/app/src/features/imports/import-ready-notices.ts
+  - apps/app/src/features/imports/open-imports.ts
   - apps/app/src/features/imports/employees/employee-import-entry.tsx
   - apps/app/src/features/imports/employees/employee-upload-dialog.tsx
   - apps/app/src/features/imports/employees/employee-processing.tsx
@@ -94,6 +96,10 @@ Sunt două importuri, în această ordine: întâi clientul, din documentația l
 Pornești din **Clienți**, cu **Importă din documente**, pentru un client nou, sau de pe pagina unui client existent, cu **Completează din documentație**. Încarci documentația unei singure firme: fișiere, un folder sau o arhivă ZIP, în PDF, DOC, DOCX, JPG, PNG sau HEIC, cel mult 150 de fișiere și 100 MB în total. Arhiva o deschide aplicația înainte de încărcare, așa că vezi ce intră.
 
 Aplicația pune deoparte ce nu poartă date despre client (coperți, formulare goale, texte de lege, instrucțiunile proprii), citește restul și îți propune datele firmei, punctele de lucru, posturile, persoanele cu atribuții, programul de instruire, datele PSI și echipamentul de protecție. Le verifici pe secțiuni, cu sursa fiecărei valori la un clic, apoi confirmi. La un client existent, o valoare pe care o ai deja în aplicație nu se schimbă decât dacă alegi tu valoarea din documente.
+
+Nu trebuie să aștepți citirea: importul rămâne în **Clienți**, la **Importuri din documente**, până creezi clientul sau renunți. Dacă ai pornit tu importul și lucrezi între timp pe altă pagină din aplicație, îți apare o notificare când propunerea e gata, cu **Verifică propunerea**, sau când citirea s-a oprit.
+
+Cât timp ai un import pornit de tine care se citește, te așteaptă la verificare sau s-a oprit, în capul paginii apare butonul **Importuri**, lângă **Ghid de configurare**; pe telefon e butonul rotund de lângă ghid, cu numărul importurilor de verificat. Îl deschizi de pe orice pagină și vezi importurile grupate: **De verificat**, cu butonul care te duce la verificare, **Se citesc**, cu cât s-a citit, și **S-au oprit**, cu **Vezi importul**. Un import confirmat sau la care ai renunțat iese din listă, iar butonul dispare când nu mai ai niciunul deschis.
 
 Documentele încărcate rămân la client, în **Alte documente**, într-un folder „Dosar importat pe …”. Fotografiile fișelor de instruire găsite printre ele sunt păstrate pentru importul angajaților.
 
@@ -143,7 +149,7 @@ Un client mai mare îl imporți în mai multe importuri, cu fișele fiecărei pe
 
 ### Citirea fișelor
 
-După **Încarcă și citește**, aplicația pregătește fotografiile, citește fiecare pagină, le grupează pe persoane și verifică datele. Durează câteva secunde pe pagină. Poți închide pagina: importul rămâne pe tabul **Angajați** al clientului, cu pasul la care a ajuns, și îl deschizi de acolo când persoanele sunt gata de verificat. Cât timp citim, un clic pe o fotografie o deschide mare, cu pasul la care a ajuns citirea ei.
+După **Încarcă și citește**, aplicația pregătește fotografiile, citește fiecare pagină, le grupează pe persoane și verifică datele. Durează câteva secunde pe pagină. Poți închide pagina: importul rămâne pe tabul **Angajați** al clientului, cu pasul la care a ajuns, și îl deschizi de acolo când persoanele sunt gata de verificat. Cât timp citim, un clic pe o fotografie o deschide mare, cu pasul la care a ajuns citirea ei. Dacă ai pornit tu importul și lucrezi între timp pe altă pagină din aplicație, îți apare o notificare când fișele sunt citite, cu câte persoane te așteaptă și **Verifică persoanele**, care te duce direct la ele. Până confirmi sau renunți, îl regăsești de pe orice pagină și în butonul **Importuri** din capul paginii.
 
 O pagină ajunge la o persoană după CNP, dacă cifra lui de control se potrivește; fără un CNP valid, după nume, chiar dacă e scris puțin diferit pe pagini sau cu prenumele înaintea numelui; fără CNP și fără nume, după marcă. Două prenume care diferă doar printr-o literă la sfârșit, ca Daniel și Daniela, sunt două persoane. O pagină de continuare fără niciunul dintre ele merge după pagina dinaintea ei, în ordinea încărcării, și e semnalată „O pagină pusă după ordine”.
 

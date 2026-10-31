@@ -7720,6 +7720,20 @@ export type ImportSummaryPeople = {
   setAside: number;
 } | null;
 
+/**
+ * @nullable
+ */
+export type ImportSummaryProgress = {
+  /** @minimum 0 */
+  files: number;
+  /** @minimum 0 */
+  prepared: number;
+  /** @minimum 0 */
+  scans: number;
+  /** @minimum 0 */
+  scansRead: number;
+} | null;
+
 export interface ImportSummary {
   id: string;
   kind: ImportSummaryKind;
@@ -7757,6 +7771,8 @@ export interface ImportSummary {
    * @nullable
    */
   uninvited: number | null;
+  /** @nullable */
+  progress: ImportSummaryProgress;
 }
 
 export interface ImportSummaryResponse {
@@ -7831,6 +7847,20 @@ export type ImportListResponseItemsItemPeople = {
   setAside: number;
 } | null;
 
+/**
+ * @nullable
+ */
+export type ImportListResponseItemsItemProgress = {
+  /** @minimum 0 */
+  files: number;
+  /** @minimum 0 */
+  prepared: number;
+  /** @minimum 0 */
+  scans: number;
+  /** @minimum 0 */
+  scansRead: number;
+} | null;
+
 export type ImportListResponseItemsItem = {
   id: string;
   kind: ImportListResponseItemsItemKind;
@@ -7868,6 +7898,8 @@ export type ImportListResponseItemsItem = {
    * @nullable
    */
   uninvited: number | null;
+  /** @nullable */
+  progress: ImportListResponseItemsItemProgress;
 };
 
 export interface ImportListResponse {
@@ -8986,6 +9018,17 @@ export type ImportDetailPeople = {
   setAside: number;
 } | null;
 
+export type ImportDetailProgress = {
+  /** @minimum 0 */
+  files: number;
+  /** @minimum 0 */
+  prepared: number;
+  /** @minimum 0 */
+  scans: number;
+  /** @minimum 0 */
+  scansRead: number;
+};
+
 export type ImportDetailFilesItem = {
   id: string;
   uploadPath: string;
@@ -9007,17 +9050,6 @@ export type ImportDetailFilesItem = {
   /** @nullable */
   isScan: boolean | null;
   hasDerived: boolean;
-};
-
-export type ImportDetailProgress = {
-  /** @minimum 0 */
-  files: number;
-  /** @minimum 0 */
-  prepared: number;
-  /** @minimum 0 */
-  scans: number;
-  /** @minimum 0 */
-  scansRead: number;
 };
 
 export type ImportDetailOtherCompaniesItem = {
@@ -10207,10 +10239,10 @@ export interface ImportDetail {
    * @nullable
    */
   uninvited: number | null;
+  progress: ImportDetailProgress;
   /** @minimum 0 */
   version: number;
   files: ImportDetailFilesItem[];
-  progress: ImportDetailProgress;
   otherCompanies: ImportDetailOtherCompaniesItem[];
   /** @nullable */
   registeredCompany: ImportDetailRegisteredCompany;
@@ -13578,7 +13610,7 @@ export type ListImportsParams = {
    */
   clientId?: string;
   /**
-   * The imports of this kind; client imports when left out.
+   * The imports of this kind, or `all` of both; client imports when left out.
    */
   kind?: ListImportsKind;
   /**
@@ -13592,6 +13624,7 @@ export type ListImportsKind = (typeof ListImportsKind)[keyof typeof ListImportsK
 export const ListImportsKind = {
   client: 'client',
   employees: 'employees',
+  all: 'all',
 } as const;
 
 export type ListImportsStatus = (typeof ListImportsStatus)[keyof typeof ListImportsStatus];
@@ -32658,7 +32691,7 @@ export const getListImportsUrl = (params?: ListImportsParams) => {
 };
 
 /**
- * Every import of `kind` (client imports when left out) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first; with `kind` `employees` and `clientId` each counts in `uninvited` the current employees it brought who are neither participants nor invited, and the Angajați tab offers to invite the people of the latest with someone left.
+ * Every import of `kind` (client imports when left out, both kinds with `all`) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, with `all` those the app watches to say when a member's import finishes reading, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first; with `kind` `employees` and `clientId` each counts in `uninvited` the current employees it brought who are neither participants nor invited, and the Angajați tab offers to invite the people of the latest with someone left.
  * @summary List the organization's open or last confirmed imports
  */
 export const listImports = async (

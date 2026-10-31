@@ -1,0 +1,72 @@
+import { toast } from '@ssm-usor/ui/lib/toast';
+import { useNavigate, useParams } from '@tanstack/react-router';
+import { useEffect, useRef } from 'react';
+
+import { importReadyNotices } from './import-ready-notices';
+import { useMyImports } from './use-my-imports';
+
+const announcedKey = (importId: string) => `ssm-usor:import-announced:${importId}`;
+
+// Shared by the member's tabs, so a second tab or a reload does not announce the import again.
+// Storage throws in some private windows; this tab still announces each import once.
+function wasAnnounced(importId: string) {
+  try {
+    return localStorage.getItem(announcedKey(importId)) !== null;
+  } catch {
+    return false;
+  }
+}
+
+function markAnnounced(importId: string) {
+  try {
+    localStorage.setItem(announcedKey(importId), new Date().toISOString());
+  } catch {
+    return;
+  }
+}
+
+const toastId = (importId: string) => `import-ready:${importId}`;
+
+// Client names are long: beside the button, the title takes three narrow lines.
+const noticeLayout = {
+  toast: '!flex-wrap',
+  content: '!basis-[calc(100%-2rem)]',
+  actionButton: '!mt-1',
+};
+
+export function ImportReadyWatcher() {
+  const { items, userId } = useMyImports();
+  const navigate = useNavigate();
+  const watching = useParams({ strict: false, select: (each) => each.importId ?? null });
+  const seen = useRef(new Map<string, string>());
+
+  useEffect(() => {
+    if (!items || !userId) return;
+    const { shown, quiet } = importReadyNotices({
+      previous: seen.current,
+      items,
+      userId,
+      watching,
+      announced: wasAnnounced,
+    });
+    seen.current = new Map(items.map((item) => [item.id, item.status]));
+    quiet.forEach(markAnnounced);
+    for (const notice of shown) {
+      markAnnounced(notice.importId);
+      const show = notice.tone === 'error' ? toast.error : toast.success;
+      show(notice.title, {
+        id: toastId(notice.importId),
+        description: notice.description ?? undefined,
+        duration: Infinity,
+        action: { label: notice.action, onClick: () => void navigate(notice.link) },
+        classNames: noticeLayout,
+      });
+    }
+  }, [items, userId, watching, navigate]);
+
+  useEffect(() => {
+    if (watching) toast.dismiss(toastId(watching));
+  }, [watching]);
+
+  return null;
+}

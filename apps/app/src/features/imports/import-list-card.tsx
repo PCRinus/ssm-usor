@@ -1,10 +1,9 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card } from '@ssm-usor/ui/components/card';
 import { Progress } from '@ssm-usor/ui/components/progress';
-import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
+import { Link, useRouteContext } from '@tanstack/react-router';
 import { CircleAlert, CircleCheck, LoaderCircle, Upload } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
@@ -98,7 +97,7 @@ function ImportListRow({ item }: { item: ImportItem }) {
     detail?.companyName ??
     item.companyName ??
     (detail ? uploadName(detail.files) : 'Import din documente');
-  useReadyToast(item.id, name, status, Boolean(item.client));
+  useRefreshWhenFinished(status);
 
   const link = (label: string, primary = false) => (
     <Button asChild size="sm" variant={primary ? 'default' : 'outline'}>
@@ -191,9 +190,8 @@ function ImportListRow({ item }: { item: ImportItem }) {
   );
 }
 
-// Announced once, when the reading finishes while the list is open, never for one ready before.
-function useReadyToast(importId: string, name: string, status: string, existing: boolean) {
-  const navigate = useNavigate();
+// The row follows its own import, so the list learns of the change from it.
+function useRefreshWhenFinished(status: string) {
   const queryClient = useQueryClient();
   const previous = useRef(status);
   useEffect(() => {
@@ -201,15 +199,5 @@ function useReadyToast(importId: string, name: string, status: string, existing:
     previous.current = status;
     if (was === status || !isRunning(was)) return;
     void queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() });
-    if (status !== 'ready') return;
-    toast.success(`Propunerea pentru ${name} e gata.`, {
-      description: existing
-        ? 'Verifică datele înainte să completezi clientul.'
-        : 'Verifică datele înainte să creezi clientul.',
-      action: {
-        label: 'Verifică propunerea',
-        onClick: () => void navigate({ to: '/clients/import/$importId', params: { importId } }),
-      },
-    });
-  }, [status, name, existing, importId, navigate, queryClient]);
+  }, [status, queryClient]);
 }

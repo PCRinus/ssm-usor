@@ -204,6 +204,15 @@ export type RegisterImportFilesResponse = z.infer<typeof registerImportFilesResp
 
 const person = z.object({ id: z.uuid(), fullName: z.string().nullable() });
 
+export const importProgressSchema = z.object({
+  files: z.int().min(0),
+  // Files whose text is taken out, or that failed on the way.
+  prepared: z.int().min(0),
+  // Photographs and PDFs with scanned pages, and those of them already read.
+  scans: z.int().min(0),
+  scansRead: z.int().min(0),
+});
+
 /** De verificat, Verificat, Lăsat deoparte: only a checked person is written. */
 export const employeeImportPersonStates = ['to_check', 'checked', 'set_aside'] as const;
 
@@ -245,6 +254,8 @@ export const importSummarySchema = z.object({
   // A confirmed employee import listed for one client: how many current employees it brought are
   // neither participants nor invited. Null otherwise.
   uninvited: z.int().min(0).nullable(),
+  // A listed import still being read: how far its files got. Null otherwise.
+  progress: importProgressSchema.nullable(),
 });
 
 export type ImportSummary = z.infer<typeof importSummarySchema>;
@@ -255,9 +266,12 @@ export const listImportsQuerySchema = z.object({
   clientId: z.uuid().optional().meta({
     description: 'Only the imports into this client; without it, every open import.',
   }),
-  kind: z.enum(importKinds).optional().meta({
-    description: 'The imports of this kind; client imports when left out.',
-  }),
+  kind: z
+    .enum([...importKinds, 'all'])
+    .optional()
+    .meta({
+      description: 'The imports of this kind, or `all` of both; client imports when left out.',
+    }),
   status: z
     .enum(['open', 'confirmed'])
     .optional()
@@ -293,15 +307,6 @@ export const importFileSchema = z.object({
 });
 
 export type ImportFile = z.infer<typeof importFileSchema>;
-
-export const importProgressSchema = z.object({
-  files: z.int().min(0),
-  // Files whose text is taken out, or that failed on the way.
-  prepared: z.int().min(0),
-  // Photographs and PDFs with scanned pages, and those of them already read.
-  scans: z.int().min(0),
-  scansRead: z.int().min(0),
-});
 
 export const otherCompanySchema = z.object({
   name: z.string().nullable(),

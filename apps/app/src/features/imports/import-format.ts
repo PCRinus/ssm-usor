@@ -81,6 +81,8 @@ export function importErrorMessage(cause: unknown, fallback: string, kind: Impor
   return fallback;
 }
 
+export const importListPollMs = 5000;
+
 export const importRunningStatuses = ['preparing', 'sorting', 'reading', 'checking'] as const;
 
 export const isRunning = (status: string) =>
