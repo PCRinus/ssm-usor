@@ -1,4 +1,5 @@
 import {
+  differs as differ,
   type FieldName,
   type FieldValue,
   type Person,
@@ -29,12 +30,17 @@ export function compareWithApp(context: ReviewContext, person: Person) {
   for (const name of Object.keys(person.fields) as FieldName[]) {
     if (name === 'workplace' || name === 'leftOn') continue;
     const field = resolveField(context, person, name);
-    const sheet =
-      context.changes.people[person.id]?.fields?.[name]?.value ??
-      (field.options.length === 1 ? field.options[0]!.value : null);
-    if (sheet === null || sheet === undefined) continue;
+    const written = context.changes.people[person.id]?.fields?.[name]?.value;
+    if (written === null) {
+      if (field.app === null || field.app === undefined) added.push({ name, field });
+      continue;
+    }
+    const sheet = written ?? (field.options.length === 1 ? field.options[0]!.value : null);
+    if (sheet === null) continue;
     if (field.app === null || field.app === undefined) added.push({ name, field });
-    else if (String(field.app).trim().toLowerCase() !== String(sheet).trim().toLowerCase())
+    // Confirming replaces the app's value with one the member wrote unless equal, and with the
+    // sheet's only when they differ past case, spacing and diacritics.
+    else if (written !== undefined ? written !== field.app : differ(field.app, sheet))
       differs.push({ name, field });
     else same.push({ name, field });
   }

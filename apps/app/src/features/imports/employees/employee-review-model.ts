@@ -137,7 +137,7 @@ export type ResolvedField = {
   replaced: boolean;
 };
 
-const differs = (a: FieldValue, b: FieldValue) =>
+export const differs = (a: FieldValue, b: FieldValue) =>
   typeof a === 'number' || typeof b === 'number'
     ? Number(a) !== Number(b)
     : foldText(String(a)) !== foldText(String(b));
