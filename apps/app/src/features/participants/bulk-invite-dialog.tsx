@@ -24,6 +24,7 @@ import { type ReactNode, useState } from 'react';
 import {
   getListClientParticipantsQueryKey,
   getListImportPortalInviteesQueryKey,
+  getListImportsQueryKey,
   inviteEmployeeParticipants,
 } from '@/api/generated/api';
 import { HelpLink } from '@/components/help-link';
@@ -74,6 +75,9 @@ export function BulkInviteDialog({
   const close = () => {
     void queryClient.invalidateQueries({
       queryKey: getListImportPortalInviteesQueryKey(clientId, importId),
+    });
+    void queryClient.invalidateQueries({
+      queryKey: getListImportsQueryKey({ clientId, kind: 'employees', status: 'confirmed' }),
     });
     onClose();
   };

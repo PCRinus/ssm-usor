@@ -10917,6 +10917,11 @@
               }
             },
             "required": ["total", "toCheck", "checked", "setAside"]
+          },
+          "uninvited": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
           }
         },
         "required": [
@@ -10937,7 +10942,8 @@
           "failedAt",
           "confirmedAt",
           "expiresAt",
-          "people"
+          "people",
+          "uninvited"
         ]
       },
       "CreateImportRequest": {
@@ -11090,6 +11096,11 @@
                     }
                   },
                   "required": ["total", "toCheck", "checked", "setAside"]
+                },
+                "uninvited": {
+                  "type": "integer",
+                  "nullable": true,
+                  "minimum": 0
                 }
               },
               "required": [
@@ -11110,7 +11121,8 @@
                 "failedAt",
                 "confirmedAt",
                 "expiresAt",
-                "people"
+                "people",
+                "uninvited"
               ]
             }
           }
@@ -11255,6 +11267,11 @@
               }
             },
             "required": ["total", "toCheck", "checked", "setAside"]
+          },
+          "uninvited": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
           },
           "version": {
             "type": "integer",
@@ -13818,6 +13835,7 @@
           "confirmedAt",
           "expiresAt",
           "people",
+          "uninvited",
           "version",
           "files",
           "progress",
@@ -38412,7 +38430,7 @@
       "get": {
         "operationId": "listImports",
         "summary": "List the organization's open or last confirmed imports",
-        "description": "Every import of `kind` (client imports when left out) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first: with `kind` `employees` and `clientId`, the import whose people the Angajați tab offers to invite to the portal.",
+        "description": "Every import of `kind` (client imports when left out) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first; with `kind` `employees` and `clientId` each counts in `uninvited` the current employees it brought who are neither participants nor invited, and the Angajați tab offers to invite the people of the latest with someone left.",
         "security": [
           {
             "bearerAuth": []
@@ -38445,10 +38463,10 @@
             "schema": {
               "type": "string",
               "enum": ["open", "confirmed"],
-              "description": "The open imports when left out; `confirmed` the 10 confirmed last."
+              "description": "The open imports when left out; `confirmed` the 10 confirmed last, with `uninvited` counted for a client's employee imports."
             },
             "required": false,
-            "description": "The open imports when left out; `confirmed` the 10 confirmed last.",
+            "description": "The open imports when left out; `confirmed` the 10 confirmed last, with `uninvited` counted for a client's employee imports.",
             "name": "status",
             "in": "query"
           }

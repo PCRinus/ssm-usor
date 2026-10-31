@@ -331,18 +331,23 @@ export function EmployeesImportedCard({ clientId }: { clientId: string }) {
   // twice, and a read that also deleted would leave the second call with nothing.
   const [notice] = useState(() => readEmployeesImported(clientId));
   useEffect(() => forgetEmployeesImported(clientId), [clientId]);
-  const [hidden, setHidden] = useState<string | null>(null);
-  const latest = confirmed.data?.items[0];
-  if (!latest || hidden === latest.id || wasHiddenHere(latest.id)) return null;
+  const [hidden, setHidden] = useState<string[]>([]);
+  const items = confirmed.data?.items ?? [];
+  const visible = (item: ImportListResponseItemsItem) =>
+    !hidden.includes(item.id) && !wasHiddenHere(item.id);
+  const shown =
+    items.find((item) => item.id === notice?.importId && visible(item)) ??
+    items.find((item) => (item.uninvited ?? 0) > 0 && visible(item));
+  if (!shown) return null;
   return (
     <ImportedNoticeCard
-      key={latest.id}
+      key={shown.id}
       clientId={clientId}
-      item={latest}
-      notice={notice?.importId === latest.id ? notice : null}
+      item={shown}
+      notice={notice?.importId === shown.id ? notice : null}
       onHide={() => {
-        hideHere(latest.id);
-        setHidden(latest.id);
+        hideHere(shown.id);
+        setHidden((current) => [...current, shown.id]);
       }}
     />
   );

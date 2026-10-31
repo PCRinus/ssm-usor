@@ -40,6 +40,7 @@ import type { ApiEnv, ImportMessage, ImportQueue } from '../../lib/env';
 import { ApiError, type BrokenConstraint } from '../../lib/errors';
 import { createAdminFileStore, createFileStore } from '../../lib/files';
 import { romanianDay } from '../documents/context';
+import { uninvitedOfImports } from '../participants/handlers';
 import {
   signedSheetContext,
   syncResultRows,
@@ -178,7 +179,8 @@ function expiresAtOf(row: Pick<ImportRow, 'status' | 'updated_at' | 'last_file'>
 function toSummary(
   row: ImportRow,
   names: Map<string, string>,
-  people: EmployeeImportPeople | null = null
+  people: EmployeeImportPeople | null = null,
+  uninvited: number | null = null
 ): ImportSummary {
   return {
     id: row.id,
@@ -201,6 +203,7 @@ function toSummary(
     confirmedAt: row.confirmed_at,
     expiresAt: expiresAtOf(row),
     people,
+    uninvited,
   };
 }
 
@@ -444,15 +447,32 @@ export const listImports: RouteHandler<typeof listImportsRoute, ApiEnv> = async 
     .limit(1, { referencedTable: 'last_file' });
   const { data, error } = await (clientId ? query.eq('client_id', clientId) : query);
   if (error) throw fromDatabaseError(error, 'list imports');
-  const [names, people] = await Promise.all([
+  const countUninvited = status === 'confirmed' && kind === 'employees' && clientId;
+  const [names, people, uninvited] = await Promise.all([
     creatorNames(db, data),
     peopleOfReady(
       db,
       data.filter((row) => row.kind === 'employees' && row.status === 'ready').map((row) => row.id)
     ),
+    countUninvited
+      ? uninvitedOfImports(
+          db,
+          clientId,
+          data.map((row) => row.id)
+        )
+      : null,
   ]);
   return c.json(
-    { items: data.map((row) => toSummary(row, names, people.get(row.id) ?? null)) },
+    {
+      items: data.map((row) =>
+        toSummary(
+          row,
+          names,
+          people.get(row.id) ?? null,
+          uninvited ? (uninvited.get(row.id) ?? 0) : null
+        )
+      ),
+    },
     200
   );
 };

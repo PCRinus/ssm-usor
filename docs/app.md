@@ -1001,12 +1001,14 @@ their tab bars read.
   fotografii noi" ("Importă din fișele de instruire" when none were found); the empty list shows
   them as cards, the found sheets with their thumbnails (`GET …/files/{fileId}/download`). An
   open import of the client (`GET /imports?kind=employees&clientId=`) shows above the list with
-  "N din M verificați", the day it expires and "Continuă"; the client's latest confirmed
-  employee import (`GET /imports?kind=employees&clientId=&status=confirmed`) shows as a card while
-  someone it brought is left to invite, with "Invită în portal angajații din fișe": on the visit
-  right after the confirm with what was created, held in memory for that visit
-  (`employees-imported-notice.ts`), on later visits with the day of the import and how many are
-  left. "Ascunde" hides it for that import in this browser (`localStorage`, keyed by the import). The upload dialog
+  "N din M verificați", the day it expires and "Continuă"; the latest of the client's
+  last ten confirmed employee imports (`GET /imports?kind=employees&clientId=&status=confirmed`)
+  with someone it brought left to invite (`uninvited`) shows as a card, with "Invită în portal
+  angajații din fișe": on the visit right after the confirm the import just confirmed, with what
+  was created, held in memory for that visit (`employees-imported-notice.ts`), on later visits
+  with the day of the import and how many are left. "Ascunde" hides it for that import in this
+  browser (`localStorage`, keyed by the import), and the next import with someone left shows
+  instead. The upload dialog
   (`employee-upload-dialog.tsx`) reuses the client import's selection with the employee caps
   (photographs and PDFs only, 500 photographs or PDF pages with a PDF's pages estimated in the
   browser, 25 MiB a file, 1 GiB in all, two counters), offers the found sheets ("Din
@@ -1092,8 +1094,8 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   EmpInvite) invites the people of a confirmed employee import at once. `useBulkInvite(clientId)`
   gives `openBulkInvite(importId)` and the dialog to render; `useImportInvitees` and
   `uninvitedOf` tell an after-import notice whether anyone is left to invite. The Angajați
-  tab's card for the latest confirmed employee import (`EmployeesImportedCard`) offers it while
-  someone the import brought is current, neither a participant nor invited. The dialog reads
+  tab's card (`EmployeesImportedCard`) offers it for the latest confirmed employee import, not
+  hidden, with someone it brought current, neither a participant nor invited. The dialog reads
   `GET /clients/{clientId}/imports/{importId}/portal-invitees` afresh on each opening, never
   from the cache, and keeps those rows while open: three cards of what the person meets in the portal (the privacy notice, the act
   adițional, the trainings to come), then "Primesc invitația" (an email or phone on their row),

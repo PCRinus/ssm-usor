@@ -715,14 +715,38 @@ describe('GET /imports for employee imports', () => {
     expect(people!.url.searchParams.get('id')).toBe(`in.(${importId})`);
   });
 
-  it("lists a client's last confirmed employee imports, latest confirmation first", async () => {
-    mockUpstream(({ url }) =>
-      url.pathname === '/rest/v1/imports'
-        ? Response.json([
-            importRow({ status: 'confirmed', confirmed_at: '2026-10-30T09:15:00+00:00' }),
-          ])
-        : undefined
+  it("lists a client's last confirmed employee imports, latest confirmation first, with who is left to invite", async () => {
+    const olderId = '7b1f3a52-0d4e-4c8a-9f61-2e5d8c7b4a10';
+    const [lazar, pop, toma, ene] = [1, 2, 3, 4].map(
+      (n) => `e1e1e1e1-0000-4000-8000-00000000003${n}`
     );
+    mockUpstream(({ url }) => {
+      if (url.pathname === '/rest/v1/imports') {
+        return Response.json([
+          importRow({ status: 'confirmed', confirmed_at: '2026-10-30T09:15:00+00:00' }),
+          importRow({
+            id: olderId,
+            status: 'confirmed',
+            confirmed_at: '2026-10-20T09:15:00+00:00',
+          }),
+        ]);
+      }
+      if (url.pathname === '/rest/v1/employees') {
+        return Response.json([
+          { id: lazar, client_files: [{ import_id: importId }, { import_id: importId }] },
+          { id: pop, client_files: [{ import_id: olderId }] },
+          { id: toma, client_files: [{ import_id: olderId }, { import_id: importId }] },
+          { id: ene, client_files: [{ import_id: olderId }] },
+        ]);
+      }
+      if (url.pathname === '/rest/v1/client_participants') {
+        return Response.json([{ employee_id: lazar }]);
+      }
+      if (url.pathname === '/rest/v1/participant_invitations') {
+        return Response.json([{ employee_id: ene }]);
+      }
+      return undefined;
+    });
     const response = await request(`/imports?clientId=${clientId}&kind=employees&status=confirmed`);
 
     expect(response.status).toBe(200);
@@ -734,9 +758,16 @@ describe('GET /imports for employee imports', () => {
           confirmedAt: '2026-10-30T09:15:00+00:00',
           expiresAt: null,
           people: null,
+          uninvited: 1,
         },
+        { id: olderId, uninvited: 2 },
       ],
     });
+    const [employees] = callsTo('/rest/v1/employees');
+    expect(employees!.url.searchParams.get('client_files.import_id')).toBe(
+      `in.(${importId},${olderId})`
+    );
+    expect(employees!.url.searchParams.get('status')).toBe('eq.active');
     const [list] = callsTo('/rest/v1/imports');
     expect(list!.url.searchParams.get('status')).toBe('eq.confirmed');
     expect(list!.url.searchParams.get('order')).toBe('confirmed_at.desc');

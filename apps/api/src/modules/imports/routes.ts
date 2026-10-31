@@ -88,7 +88,7 @@ export const listImportsRoute = createRoute({
   operationId: 'listImports',
   summary: "List the organization's open or last confirmed imports",
   description:
-    "Every import of `kind` (client imports when left out) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first: with `kind` `employees` and `clientId`, the import whose people the Angajați tab offers to invite to the portal.",
+    "Every import of `kind` (client imports when left out) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first; with `kind` `employees` and `clientId` each counts in `uninvited` the current employees it brought who are neither participants nor invited, and the Angajați tab offers to invite the people of the latest with someone left.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { query: listImportsQuerySchema },

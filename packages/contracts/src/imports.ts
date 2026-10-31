@@ -242,6 +242,9 @@ export const importSummarySchema = z.object({
   expiresAt: z.iso.datetime({ offset: true }).nullable(),
   // An employee import ready for review: its people by state. Null otherwise.
   people: employeeImportPeopleSchema.nullable(),
+  // A confirmed employee import listed for one client: how many current employees it brought are
+  // neither participants nor invited. Null otherwise.
+  uninvited: z.int().min(0).nullable(),
 });
 
 export type ImportSummary = z.infer<typeof importSummarySchema>;
@@ -259,7 +262,7 @@ export const listImportsQuerySchema = z.object({
     .enum(['open', 'confirmed'])
     .optional()
     .meta({
-      description: `The open imports when left out; \`confirmed\` the ${confirmedListed} confirmed last.`,
+      description: `The open imports when left out; \`confirmed\` the ${confirmedListed} confirmed last, with \`uninvited\` counted for a client's employee imports.`,
     }),
 });
 

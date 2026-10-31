@@ -2024,8 +2024,10 @@ empty, and `blockers` are `toEmployeePayload`'s for the people marked checked.
 import's. Each refuses the other kind with `409` and `import_wrong_kind`, as sending a set-aside
 file back to be read does for an employee import. `GET /imports?kind=employees&clientId=` lists a
 client's open employee imports, the Angajați tab's; without `kind` the list holds client imports
-only. `?status=confirmed` lists the last ten confirmed instead, latest confirmation first: the
-Angajați tab offers to invite the people of the first to the portal. Every summary carries `expiresAt`, when an import `uploading` or `ready` fails untouched,
+only. `?status=confirmed` lists the last ten confirmed instead, latest confirmation first; with
+`kind=employees` and `clientId` each carries `uninvited`, the current employees it brought who are
+neither participants nor invited (null elsewhere), and the Angajați tab offers to invite the
+people of the latest with someone left. Every summary carries `expiresAt`, when an import `uploading` or `ready` fails untouched,
 14 days after the last change to it or its files, and `people`, an employee import's
 `{ total, toCheck, checked, setAside }` once ready.
 

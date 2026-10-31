@@ -133,7 +133,7 @@ function mockEmployeeImport({
       return Response.json({ items: workplaces });
     }
     if (url.pathname === `/clients/${clientId}/found-sheets`) return Response.json(found);
-    if (url.pathname === `/clients/${clientId}/imports/${importId}/portal-invitees`) {
+    if (/^\/clients\/[^/]+\/imports\/[^/]+\/portal-invitees$/.test(url.pathname)) {
       return Response.json({ items: invitees });
     }
     if (url.pathname.startsWith(`/clients/${clientId}/files/`)) {
@@ -506,7 +506,21 @@ describe('confirming', () => {
     expect(card.textContent).toContain('Ce urmează: invită-i în portal');
   });
 
-  const confirmedImport = { ...openImport, status: 'confirmed', confirmedAt, expiresAt: null };
+  const confirmedImport = {
+    ...openImport,
+    status: 'confirmed',
+    confirmedAt,
+    expiresAt: null,
+    people: null,
+    uninvited: 2,
+  };
+  const newerImportId = '5d6e7f80-1a2b-4c3d-8e4f-a5b6c7d8e9f0';
+  const newerImport = {
+    ...confirmedImport,
+    id: newerImportId,
+    confirmedAt: '2026-10-31T08:00:00+00:00',
+    uninvited: 0,
+  };
 
   it('keeps offering the invitation on a later visit, with the day of the import and who is left', async () => {
     mockEmployeeImport({
@@ -533,18 +547,61 @@ describe('confirming', () => {
     expect(await screen.findByTestId('bulk-invite-dialog')).toBeTruthy();
   });
 
-  it('shows nothing on a later visit once nobody the import brought is left to invite', async () => {
+  it('shows nothing on a later visit once nobody the imports brought is left to invite', async () => {
     mockEmployeeImport({
-      confirmed: [confirmedImport],
+      confirmed: [newerImport, { ...confirmedImport, uninvited: 0 }],
       invitees: [invitee(1, 'Lazăr', 'invited'), invitee(2, 'Pop', null, false)],
     });
     mount(`/clients/${clientId}/employees`);
-    await waitFor(() =>
-      expect(requestsTo(`/clients/${clientId}/imports/${importId}/portal-invitees`)).toHaveLength(1)
-    );
     await screen.findByTestId('employees-page');
+    await waitFor(() =>
+      expect(
+        requestsTo('/imports').some(([input]) => String(input).includes('status=confirmed'))
+      ).toBe(true)
+    );
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(screen.queryByTestId('employees-imported')).toBeNull();
+  });
+
+  it('offers an earlier import whose people are left to invite when the latest has nobody left', async () => {
+    mockEmployeeImport({
+      confirmed: [newerImport, confirmedImport],
+      invitees: [invitee(1, 'Lazăr'), invitee(2, 'Pop')],
+    });
+    const user = userEvent.setup();
+    mount(`/clients/${clientId}/employees`);
+    const card = await screen.findByTestId('employees-imported');
+    expect(within(card).getByRole('heading', { level: 3 }).textContent).toBe(
+      'Angajați importați din fișe pe 30 oct.'
+    );
+    expect(requestsTo(`/clients/${clientId}/imports/${newerImportId}/portal-invitees`)).toEqual([]);
+    await user.click(within(card).getByTestId('employees-imported-invite'));
+    await screen.findByTestId('bulk-invite-dialog');
+    await waitFor(() =>
+      expect(
+        requestsTo(`/clients/${clientId}/imports/${importId}/portal-invitees`).length
+      ).toBeGreaterThan(1)
+    );
+  });
+
+  it('offers the earlier import once the member hides the latest', async () => {
+    mockEmployeeImport({
+      confirmed: [{ ...newerImport, uninvited: 1 }, confirmedImport],
+      invitees: [invitee(1, 'Lazăr')],
+    });
+    const user = userEvent.setup();
+    mount(`/clients/${clientId}/employees`);
+    const card = await screen.findByTestId('employees-imported');
+    expect(within(card).getByRole('heading', { level: 3 }).textContent).toBe(
+      'Angajați importați din fișe pe 31 oct.'
+    );
+    await user.click(within(card).getByTestId('employees-imported-hide'));
+    await waitFor(() =>
+      expect(
+        within(screen.getByTestId('employees-imported')).getByRole('heading', { level: 3 })
+          .textContent
+      ).toBe('Angajați importați din fișe pe 30 oct.')
+    );
   });
 
   it('stays hidden for the import the member hid', async () => {
