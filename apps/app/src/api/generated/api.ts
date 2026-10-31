@@ -8112,6 +8112,7 @@ export type EmployeeImportReviewProposalPeopleItemExistingMatchedBy =
 export const EmployeeImportReviewProposalPeopleItemExistingMatchedBy = {
   cnp: 'cnp',
   name_birth_date: 'name_birth_date',
+  name_only: 'name_only',
 } as const;
 
 export type EmployeeImportReviewProposalPeopleItemFlagsItemCode =
@@ -8125,6 +8126,8 @@ export const EmployeeImportReviewProposalPeopleItemFlagsItemCode = {
   month_only: 'month_only',
   no_contact: 'no_contact',
   leaver: 'leaver',
+  former_employee: 'former_employee',
+  rehire: 'rehire',
 } as const;
 
 export type EmployeeImportReviewProposalJobTitlesItemMatch =
@@ -8290,6 +8293,7 @@ export type EmployeeImportReviewChangesPeople = {
     included?: boolean;
     fields?: EmployeeImportReviewChangesPeopleFields;
     cnpCorrection?: boolean;
+    existing?: boolean;
     jobPositionId?: string;
     /** @nullable */
     workplaceId?: string | null;
@@ -10514,6 +10518,7 @@ export type SaveEmployeeImportChangesRequestChangesPeople = {
     included?: boolean;
     fields?: SaveEmployeeImportChangesRequestChangesPeopleFields;
     cnpCorrection?: boolean;
+    existing?: boolean;
     jobPositionId?: string;
     /** @nullable */
     workplaceId?: string | null;
@@ -19016,7 +19021,7 @@ export const getRecordPaperTestResultUrl = (clientId: string, employeeId: string
 };
 
 /**
- * A test filled in on paper and passed: the day, the examiner and the grade, always `admis`; the material defaults to the test's name and code. A hiring result is taken while the hiring test awaits the employee (a hiring training recorded, no pass yet); an annual one once the employee has a fire-safety pass. Otherwise reason `test_not_awaiting`. The day is not in the future. The result fills its row of the employee's stored signed sheet.
+ * A test filled in on paper and passed: the day, the examiner and the grade, always `admis`; the material defaults to the test's name and code. A hiring result is taken once the domain's hiring training is recorded and before a hiring pass in that domain, otherwise reason `test_not_awaiting`; an annual fire-safety one at any time, since a paper sheet may record annual tests where its hiring one could not be read. The day is not in the future. The result fills its row of the employee's stored signed sheet.
  * @summary Record a pass of the printed test
  */
 export const recordPaperTestResult = async (
@@ -32730,7 +32735,7 @@ export const getRegisterImportFilesUrl = (importId: string) => {
 };
 
 /**
- * One row per file, while the import is `uploading` (else `409` with `import_not_uploading`). An employee import takes only photographs and PDFs (else `400` with `import_photos_only`). Each answer names the bucket and the path the browser uploads the file to in Supabase Storage with the member's own session; the bucket's policy takes only that path, only while the file is uploading. A path the import already has, or twice in one request, answers `409` with `import_duplicate_path`; an extension that is not the type's, `400` with `import_type_mismatch`; a file the system or Word leaves beside the documents (a name starting `~$` or `._`, `.DS_Store`, anything under `__MACOSX`), `400` with `import_system_file`; more than 150 files or 100 MiB in all, `422` with `import_too_large`. Registering can be repeated in batches.
+ * One row per file, while the import is `uploading` (else `409` with `import_not_uploading`). An employee import takes only photographs and PDFs (else `400` with `import_photos_only`). Each answer names the bucket and the path the browser uploads the file to in Supabase Storage with the member's own session; the bucket's policy takes only that path, only while the file is uploading. A path the import already has, or twice in one request, answers `409` with `import_duplicate_path`; an extension that is not the type's, `400` with `import_type_mismatch`; a file the system or Word leaves beside the documents (a name starting `~$` or `._`, `.DS_Store`, anything under `__MACOSX`), `400` with `import_system_file`; past the caps of the import's kind, `422` with `import_too_large`: a client import holds at most 150 files and 100 MiB, each at most 20 MiB, an employee import 500 files and 1 GiB, each at most 25 MiB. Registering can be repeated in batches.
  * @summary Register the files the browser is about to upload
  */
 export const registerImportFiles = async (
