@@ -7676,6 +7676,20 @@ export type ImportSummaryCreatedBy = {
   fullName: string | null;
 } | null;
 
+/**
+ * @nullable
+ */
+export type ImportSummaryPeople = {
+  /** @minimum 0 */
+  total: number;
+  /** @minimum 0 */
+  toCheck: number;
+  /** @minimum 0 */
+  checked: number;
+  /** @minimum 0 */
+  setAside: number;
+} | null;
+
 export interface ImportSummary {
   id: string;
   kind: ImportSummaryKind;
@@ -7704,14 +7718,28 @@ export interface ImportSummary {
   failedAt: string | null;
   /** @nullable */
   confirmedAt: string | null;
+  /** @nullable */
+  expiresAt: string | null;
+  /** @nullable */
+  people: ImportSummaryPeople;
 }
 
 export interface ImportSummaryResponse {
   import: ImportSummary;
 }
 
+export type CreateImportRequestKind =
+  (typeof CreateImportRequestKind)[keyof typeof CreateImportRequestKind];
+
+export const CreateImportRequestKind = {
+  client: 'client',
+  employees: 'employees',
+} as const;
+
 export interface CreateImportRequest {
   clientId?: string;
+  kind?: CreateImportRequestKind;
+  addFoundSheets?: boolean;
 }
 
 export type ImportListResponseItemsItemKind =
@@ -7754,6 +7782,20 @@ export type ImportListResponseItemsItemCreatedBy = {
   fullName: string | null;
 } | null;
 
+/**
+ * @nullable
+ */
+export type ImportListResponseItemsItemPeople = {
+  /** @minimum 0 */
+  total: number;
+  /** @minimum 0 */
+  toCheck: number;
+  /** @minimum 0 */
+  checked: number;
+  /** @minimum 0 */
+  setAside: number;
+} | null;
+
 export type ImportListResponseItemsItem = {
   id: string;
   kind: ImportListResponseItemsItemKind;
@@ -7782,6 +7824,10 @@ export type ImportListResponseItemsItem = {
   failedAt: string | null;
   /** @nullable */
   confirmedAt: string | null;
+  /** @nullable */
+  expiresAt: string | null;
+  /** @nullable */
+  people: ImportListResponseItemsItemPeople;
 };
 
 export interface ImportListResponse {
@@ -7880,6 +7926,852 @@ export interface ImportUsage {
   readCharacters: number | null;
   bySteps: ImportUsageBySteps;
 }
+
+export type EmployeeImportReviewChangesPeopleState =
+  (typeof EmployeeImportReviewChangesPeopleState)[keyof typeof EmployeeImportReviewChangesPeopleState];
+
+export const EmployeeImportReviewChangesPeopleState = {
+  to_check: 'to_check',
+  checked: 'checked',
+  set_aside: 'set_aside',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EmployeeImportReviewProposalPagesItemKind =
+  | (typeof EmployeeImportReviewProposalPagesItemKind)[keyof typeof EmployeeImportReviewProposalPagesItemKind]
+  | null;
+
+export const EmployeeImportReviewProposalPagesItemKind = {
+  ssm_sheet_front: 'ssm_sheet_front',
+  ssm_periodic: 'ssm_periodic',
+  psi_sheet_front: 'psi_sheet_front',
+  psi_periodic: 'psi_periodic',
+  commute_declaration: 'commute_declaration',
+  other: 'other',
+} as const;
+
+export type EmployeeImportReviewProposalPagesItemPlacement =
+  (typeof EmployeeImportReviewProposalPagesItemPlacement)[keyof typeof EmployeeImportReviewProposalPagesItemPlacement];
+
+export const EmployeeImportReviewProposalPagesItemPlacement = {
+  cnp: 'cnp',
+  name: 'name',
+  near_name: 'near_name',
+  employee_number: 'employee_number',
+  new_person: 'new_person',
+  placed_by_order: 'placed_by_order',
+  unplaced: 'unplaced',
+} as const;
+
+export type EmployeeImportReviewProposalPagesItemRowsItemDomain =
+  (typeof EmployeeImportReviewProposalPagesItemRowsItemDomain)[keyof typeof EmployeeImportReviewProposalPagesItemRowsItemDomain];
+
+export const EmployeeImportReviewProposalPagesItemRowsItemDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type EmployeeImportReviewProposalPagesItemRowsItemPhase =
+  (typeof EmployeeImportReviewProposalPagesItemRowsItemPhase)[keyof typeof EmployeeImportReviewProposalPagesItemRowsItemPhase];
+
+export const EmployeeImportReviewProposalPagesItemRowsItemPhase = {
+  introductory_general: 'introductory_general',
+  workplace: 'workplace',
+  periodic: 'periodic',
+  supplementary: 'supplementary',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EmployeeImportReviewProposalPagesItemRowsItemSupplementaryReason =
+  | (typeof EmployeeImportReviewProposalPagesItemRowsItemSupplementaryReason)[keyof typeof EmployeeImportReviewProposalPagesItemRowsItemSupplementaryReason]
+  | null;
+
+export const EmployeeImportReviewProposalPagesItemRowsItemSupplementaryReason = {
+  absence_over_thirty_days: 'absence_over_thirty_days',
+  rules_changed: 'rules_changed',
+  after_accident: 'after_accident',
+  special_works: 'special_works',
+  new_equipment: 'new_equipment',
+  changed_procedure: 'changed_procedure',
+  new_technology: 'new_technology',
+} as const;
+
+export type EmployeeImportReviewProposalPagesItemRowsItemSignaturesTrainee =
+  (typeof EmployeeImportReviewProposalPagesItemRowsItemSignaturesTrainee)[keyof typeof EmployeeImportReviewProposalPagesItemRowsItemSignaturesTrainee];
+
+export const EmployeeImportReviewProposalPagesItemRowsItemSignaturesTrainee = {
+  present: 'present',
+  absent: 'absent',
+  unclear: 'unclear',
+} as const;
+
+export type EmployeeImportReviewProposalPagesItemRowsItemSignaturesTrainer =
+  (typeof EmployeeImportReviewProposalPagesItemRowsItemSignaturesTrainer)[keyof typeof EmployeeImportReviewProposalPagesItemRowsItemSignaturesTrainer];
+
+export const EmployeeImportReviewProposalPagesItemRowsItemSignaturesTrainer = {
+  present: 'present',
+  absent: 'absent',
+  unclear: 'unclear',
+} as const;
+
+export type EmployeeImportReviewProposalPagesItemRowsItemSignaturesVerifier =
+  (typeof EmployeeImportReviewProposalPagesItemRowsItemSignaturesVerifier)[keyof typeof EmployeeImportReviewProposalPagesItemRowsItemSignaturesVerifier];
+
+export const EmployeeImportReviewProposalPagesItemRowsItemSignaturesVerifier = {
+  present: 'present',
+  absent: 'absent',
+  unclear: 'unclear',
+  no_box: 'no_box',
+} as const;
+
+export type EmployeeImportReviewProposalPagesItemRowsItemFromThemesItem =
+  (typeof EmployeeImportReviewProposalPagesItemRowsItemFromThemesItem)[keyof typeof EmployeeImportReviewProposalPagesItemRowsItemFromThemesItem];
+
+export const EmployeeImportReviewProposalPagesItemRowsItemFromThemesItem = {
+  trainerName: 'trainerName',
+  trainerJobTitle: 'trainerJobTitle',
+  material: 'material',
+  durationMinutes: 'durationMinutes',
+} as const;
+
+export type EmployeeImportReviewProposalPagesItemRowsItemTestTest =
+  (typeof EmployeeImportReviewProposalPagesItemRowsItemTestTest)[keyof typeof EmployeeImportReviewProposalPagesItemRowsItemTestTest];
+
+export const EmployeeImportReviewProposalPagesItemRowsItemTestTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type EmployeeImportReviewProposalPagesItemRowsItemFlagsItem =
+  (typeof EmployeeImportReviewProposalPagesItemRowsItemFlagsItem)[keyof typeof EmployeeImportReviewProposalPagesItemRowsItemFlagsItem];
+
+export const EmployeeImportReviewProposalPagesItemRowsItemFlagsItem = {
+  month_only: 'month_only',
+  from_client_themes: 'from_client_themes',
+  unsigned: 'unsigned',
+  signature_unclear: 'signature_unclear',
+  unusual_duration: 'unusual_duration',
+  before_hire: 'before_hire',
+  after_today: 'after_today',
+  admission_incomplete: 'admission_incomplete',
+  in_app: 'in_app',
+  repeated: 'repeated',
+} as const;
+
+export type EmployeeImportReviewProposalPeopleItemFieldsBloodGroupOptionsItemValue =
+  (typeof EmployeeImportReviewProposalPeopleItemFieldsBloodGroupOptionsItemValue)[keyof typeof EmployeeImportReviewProposalPeopleItemFieldsBloodGroupOptionsItemValue];
+
+export const EmployeeImportReviewProposalPeopleItemFieldsBloodGroupOptionsItemValue = {
+  '0(I)': '0(I)',
+  'A(II)': 'A(II)',
+  'B(III)': 'B(III)',
+  'AB(IV)': 'AB(IV)',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EmployeeImportReviewProposalPeopleItemFieldsBloodGroupApp =
+  | (typeof EmployeeImportReviewProposalPeopleItemFieldsBloodGroupApp)[keyof typeof EmployeeImportReviewProposalPeopleItemFieldsBloodGroupApp]
+  | null;
+
+export const EmployeeImportReviewProposalPeopleItemFieldsBloodGroupApp = {
+  '0(I)': '0(I)',
+  'A(II)': 'A(II)',
+  'B(III)': 'B(III)',
+  'AB(IV)': 'AB(IV)',
+} as const;
+
+export type EmployeeImportReviewProposalPeopleItemFieldsRhFactorOptionsItemValue =
+  (typeof EmployeeImportReviewProposalPeopleItemFieldsRhFactorOptionsItemValue)[keyof typeof EmployeeImportReviewProposalPeopleItemFieldsRhFactorOptionsItemValue];
+
+export const EmployeeImportReviewProposalPeopleItemFieldsRhFactorOptionsItemValue = {
+  '+': '+',
+  '-': '-',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EmployeeImportReviewProposalPeopleItemFieldsRhFactorApp =
+  | (typeof EmployeeImportReviewProposalPeopleItemFieldsRhFactorApp)[keyof typeof EmployeeImportReviewProposalPeopleItemFieldsRhFactorApp]
+  | null;
+
+export const EmployeeImportReviewProposalPeopleItemFieldsRhFactorApp = {
+  '+': '+',
+  '-': '-',
+} as const;
+
+export type EmployeeImportReviewProposalPeopleItemExistingMatchedBy =
+  (typeof EmployeeImportReviewProposalPeopleItemExistingMatchedBy)[keyof typeof EmployeeImportReviewProposalPeopleItemExistingMatchedBy];
+
+export const EmployeeImportReviewProposalPeopleItemExistingMatchedBy = {
+  cnp: 'cnp',
+  name_birth_date: 'name_birth_date',
+} as const;
+
+export type EmployeeImportReviewProposalPeopleItemFlagsItemCode =
+  (typeof EmployeeImportReviewProposalPeopleItemFlagsItemCode)[keyof typeof EmployeeImportReviewProposalPeopleItemFlagsItemCode];
+
+export const EmployeeImportReviewProposalPeopleItemFlagsItemCode = {
+  invalid_cnp: 'invalid_cnp',
+  cnp_birth_date_mismatch: 'cnp_birth_date_mismatch',
+  cnp_correction: 'cnp_correction',
+  blood_group_not_read: 'blood_group_not_read',
+  month_only: 'month_only',
+  no_contact: 'no_contact',
+  leaver: 'leaver',
+} as const;
+
+export type EmployeeImportReviewProposalJobTitlesItemMatch =
+  (typeof EmployeeImportReviewProposalJobTitlesItemMatch)[keyof typeof EmployeeImportReviewProposalJobTitlesItemMatch];
+
+export const EmployeeImportReviewProposalJobTitlesItemMatch = {
+  exact: 'exact',
+  near: 'near',
+  none: 'none',
+} as const;
+
+export type EmployeeImportReviewProposalWorkplacesItemMatch =
+  (typeof EmployeeImportReviewProposalWorkplacesItemMatch)[keyof typeof EmployeeImportReviewProposalWorkplacesItemMatch];
+
+export const EmployeeImportReviewProposalWorkplacesItemMatch = {
+  exact: 'exact',
+  near: 'near',
+  none: 'none',
+} as const;
+
+export type EmployeeImportReviewChangesPeopleFieldsLastName = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type EmployeeImportReviewChangesPeopleFieldsFirstName = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type EmployeeImportReviewChangesPeopleFieldsCnp = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type EmployeeImportReviewChangesPeopleFieldsEmployeeNumber = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type EmployeeImportReviewChangesPeopleFieldsBirthDate = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type EmployeeImportReviewChangesPeopleFieldsBirthPlace = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type EmployeeImportReviewChangesPeopleFieldsHomeAddress = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type EmployeeImportReviewChangesPeopleFieldsEducation = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type EmployeeImportReviewChangesPeopleFieldsQualification = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type EmployeeImportReviewChangesPeopleFieldsBloodGroup = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type EmployeeImportReviewChangesPeopleFieldsRhFactor = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type EmployeeImportReviewChangesPeopleFieldsJobTitle = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type EmployeeImportReviewChangesPeopleFieldsHiredAt = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type EmployeeImportReviewChangesPeopleFieldsLeftOn = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type EmployeeImportReviewChangesPeopleFieldsWorkplace = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type EmployeeImportReviewChangesPeopleFieldsCommuteRoute = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type EmployeeImportReviewChangesPeopleFieldsCommuteMinutes = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type EmployeeImportReviewChangesPeopleFields = {
+  lastName?: EmployeeImportReviewChangesPeopleFieldsLastName;
+  firstName?: EmployeeImportReviewChangesPeopleFieldsFirstName;
+  cnp?: EmployeeImportReviewChangesPeopleFieldsCnp;
+  employeeNumber?: EmployeeImportReviewChangesPeopleFieldsEmployeeNumber;
+  birthDate?: EmployeeImportReviewChangesPeopleFieldsBirthDate;
+  birthPlace?: EmployeeImportReviewChangesPeopleFieldsBirthPlace;
+  homeAddress?: EmployeeImportReviewChangesPeopleFieldsHomeAddress;
+  education?: EmployeeImportReviewChangesPeopleFieldsEducation;
+  qualification?: EmployeeImportReviewChangesPeopleFieldsQualification;
+  bloodGroup?: EmployeeImportReviewChangesPeopleFieldsBloodGroup;
+  rhFactor?: EmployeeImportReviewChangesPeopleFieldsRhFactor;
+  jobTitle?: EmployeeImportReviewChangesPeopleFieldsJobTitle;
+  hiredAt?: EmployeeImportReviewChangesPeopleFieldsHiredAt;
+  leftOn?: EmployeeImportReviewChangesPeopleFieldsLeftOn;
+  workplace?: EmployeeImportReviewChangesPeopleFieldsWorkplace;
+  commuteRoute?: EmployeeImportReviewChangesPeopleFieldsCommuteRoute;
+  commuteMinutes?: EmployeeImportReviewChangesPeopleFieldsCommuteMinutes;
+};
+
+export type EmployeeImportReviewChangesPeople = {
+  [key: string]: {
+    state?: EmployeeImportReviewChangesPeopleState;
+    included?: boolean;
+    fields?: EmployeeImportReviewChangesPeopleFields;
+    cnpCorrection?: boolean;
+    jobPositionId?: string;
+    /** @nullable */
+    workplaceId?: string | null;
+  };
+};
+
+export type EmployeeImportReviewChangesJobTitles = {
+  [key: string]: {
+    jobPositionId: string;
+  };
+};
+
+export type EmployeeImportReviewChangesWorkplaces = {
+  [key: string]: {
+    /** @nullable */
+    workplaceId: string | null;
+  };
+};
+
+export type EmployeeImportReviewChangesRowsValues = { [key: string]: string | number | null };
+
+export type EmployeeImportReviewChangesRows = {
+  [key: string]: {
+    included?: boolean;
+    test?: boolean;
+    values?: EmployeeImportReviewChangesRowsValues;
+  };
+};
+
+export type EmployeeImportReviewChangesPages = {
+  [key: string]: {
+    /**
+     * @minLength 1
+     * @maxLength 80
+     * @nullable
+     */
+    personId: string | null;
+  };
+};
+
+/**
+ * @nullable
+ */
+export type EmployeeImportReviewChanges = {
+  people?: EmployeeImportReviewChangesPeople;
+  jobTitles?: EmployeeImportReviewChangesJobTitles;
+  workplaces?: EmployeeImportReviewChangesWorkplaces;
+  rows?: EmployeeImportReviewChangesRows;
+  pages?: EmployeeImportReviewChangesPages;
+} | null;
+
+export type EmployeeImportReviewStates = { [key: string]: 'to_check' | 'checked' | 'set_aside' };
+
+export type EmployeeImportReviewProposalPagesItemRowsItemSignatures = {
+  trainee: EmployeeImportReviewProposalPagesItemRowsItemSignaturesTrainee;
+  trainer: EmployeeImportReviewProposalPagesItemRowsItemSignaturesTrainer;
+  verifier: EmployeeImportReviewProposalPagesItemRowsItemSignaturesVerifier;
+};
+
+/**
+ * @nullable
+ */
+export type EmployeeImportReviewProposalPagesItemRowsItemAdmission = {
+  /** @nullable */
+  admittedOn: string | null;
+  /** @nullable */
+  admittedByName: string | null;
+  /** @nullable */
+  admittedByJobTitle: string | null;
+} | null;
+
+/**
+ * @nullable
+ */
+export type EmployeeImportReviewProposalPagesItemRowsItemTest = {
+  test: EmployeeImportReviewProposalPagesItemRowsItemTestTest;
+  /** @nullable */
+  takenOn: string | null;
+  /** @nullable */
+  examinerName: string | null;
+  /** @nullable */
+  examinerJobTitle: string | null;
+  verified: boolean;
+  inApp: boolean;
+} | null;
+
+export type EmployeeImportReviewProposalPagesItemRowsItem = {
+  /** @minLength 1 */
+  id: string;
+  domain: EmployeeImportReviewProposalPagesItemRowsItemDomain;
+  phase: EmployeeImportReviewProposalPagesItemRowsItemPhase;
+  /** @nullable */
+  heldOn: string | null;
+  /** @nullable */
+  durationMinutes: number | null;
+  /** @nullable */
+  trainerName: string | null;
+  /** @nullable */
+  trainerJobTitle: string | null;
+  /** @nullable */
+  verifierName: string | null;
+  /** @nullable */
+  verifierJobTitle: string | null;
+  /** @nullable */
+  material: string | null;
+  /** @nullable */
+  supplementaryReason: EmployeeImportReviewProposalPagesItemRowsItemSupplementaryReason;
+  signatures: EmployeeImportReviewProposalPagesItemRowsItemSignatures;
+  /** @nullable */
+  admission: EmployeeImportReviewProposalPagesItemRowsItemAdmission;
+  fromThemes: EmployeeImportReviewProposalPagesItemRowsItemFromThemesItem[];
+  testOnly: boolean;
+  /** @nullable */
+  test: EmployeeImportReviewProposalPagesItemRowsItemTest;
+  flags: EmployeeImportReviewProposalPagesItemRowsItemFlagsItem[];
+  proposedIncluded: boolean;
+};
+
+export type EmployeeImportReviewProposalPagesItem = {
+  /** @minLength 1 */
+  id: string;
+  /** @minLength 1 */
+  fileId: string;
+  /**
+   * @minimum 1
+   * @nullable
+   */
+  page: number | null;
+  label: string;
+  /** @nullable */
+  kind: EmployeeImportReviewProposalPagesItemKind;
+  /** @nullable */
+  personId: string | null;
+  placement: EmployeeImportReviewProposalPagesItemPlacement;
+  rows: EmployeeImportReviewProposalPagesItemRowsItem[];
+  unreadable: string[];
+  notes: string[];
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsLastNameOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  pageIds: string[];
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsLastName = {
+  options: EmployeeImportReviewProposalPeopleItemFieldsLastNameOptionsItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  app?: string | null;
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsFirstNameOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  pageIds: string[];
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsFirstName = {
+  options: EmployeeImportReviewProposalPeopleItemFieldsFirstNameOptionsItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  app?: string | null;
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsCnpOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  pageIds: string[];
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsCnp = {
+  options: EmployeeImportReviewProposalPeopleItemFieldsCnpOptionsItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  app?: string | null;
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsEmployeeNumberOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  pageIds: string[];
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsEmployeeNumber = {
+  options: EmployeeImportReviewProposalPeopleItemFieldsEmployeeNumberOptionsItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  app?: string | null;
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsBirthDateOptionsItem = {
+  value: string;
+  /** @minItems 1 */
+  pageIds: string[];
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsBirthDate = {
+  options: EmployeeImportReviewProposalPeopleItemFieldsBirthDateOptionsItem[];
+  /** @nullable */
+  app?: string | null;
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsBirthPlaceOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  pageIds: string[];
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsBirthPlace = {
+  options: EmployeeImportReviewProposalPeopleItemFieldsBirthPlaceOptionsItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  app?: string | null;
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsHomeAddressOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  pageIds: string[];
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsHomeAddress = {
+  options: EmployeeImportReviewProposalPeopleItemFieldsHomeAddressOptionsItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  app?: string | null;
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsEducationOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  pageIds: string[];
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsEducation = {
+  options: EmployeeImportReviewProposalPeopleItemFieldsEducationOptionsItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  app?: string | null;
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsQualificationOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  pageIds: string[];
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsQualification = {
+  options: EmployeeImportReviewProposalPeopleItemFieldsQualificationOptionsItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  app?: string | null;
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsBloodGroupOptionsItem = {
+  value: EmployeeImportReviewProposalPeopleItemFieldsBloodGroupOptionsItemValue;
+  /** @minItems 1 */
+  pageIds: string[];
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsBloodGroup = {
+  options: EmployeeImportReviewProposalPeopleItemFieldsBloodGroupOptionsItem[];
+  /** @nullable */
+  app?: EmployeeImportReviewProposalPeopleItemFieldsBloodGroupApp;
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsRhFactorOptionsItem = {
+  value: EmployeeImportReviewProposalPeopleItemFieldsRhFactorOptionsItemValue;
+  /** @minItems 1 */
+  pageIds: string[];
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsRhFactor = {
+  options: EmployeeImportReviewProposalPeopleItemFieldsRhFactorOptionsItem[];
+  /** @nullable */
+  app?: EmployeeImportReviewProposalPeopleItemFieldsRhFactorApp;
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsJobTitleOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  pageIds: string[];
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsJobTitle = {
+  options: EmployeeImportReviewProposalPeopleItemFieldsJobTitleOptionsItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  app?: string | null;
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsHiredAtOptionsItem = {
+  value: string;
+  /** @minItems 1 */
+  pageIds: string[];
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsHiredAt = {
+  options: EmployeeImportReviewProposalPeopleItemFieldsHiredAtOptionsItem[];
+  /** @nullable */
+  app?: string | null;
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsLeftOnOptionsItem = {
+  value: string;
+  /** @minItems 1 */
+  pageIds: string[];
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsLeftOn = {
+  options: EmployeeImportReviewProposalPeopleItemFieldsLeftOnOptionsItem[];
+  /** @nullable */
+  app?: string | null;
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsWorkplaceOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  pageIds: string[];
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsWorkplace = {
+  options: EmployeeImportReviewProposalPeopleItemFieldsWorkplaceOptionsItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  app?: string | null;
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsCommuteRouteOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  pageIds: string[];
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsCommuteRoute = {
+  options: EmployeeImportReviewProposalPeopleItemFieldsCommuteRouteOptionsItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  app?: string | null;
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsCommuteMinutesOptionsItem = {
+  value: number;
+  /** @minItems 1 */
+  pageIds: string[];
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsCommuteMinutes = {
+  options: EmployeeImportReviewProposalPeopleItemFieldsCommuteMinutesOptionsItem[];
+  /** @nullable */
+  app?: number | null;
+};
+
+export type EmployeeImportReviewProposalPeopleItemFields = {
+  lastName: EmployeeImportReviewProposalPeopleItemFieldsLastName;
+  firstName: EmployeeImportReviewProposalPeopleItemFieldsFirstName;
+  cnp: EmployeeImportReviewProposalPeopleItemFieldsCnp;
+  employeeNumber: EmployeeImportReviewProposalPeopleItemFieldsEmployeeNumber;
+  birthDate: EmployeeImportReviewProposalPeopleItemFieldsBirthDate;
+  birthPlace: EmployeeImportReviewProposalPeopleItemFieldsBirthPlace;
+  homeAddress: EmployeeImportReviewProposalPeopleItemFieldsHomeAddress;
+  education: EmployeeImportReviewProposalPeopleItemFieldsEducation;
+  qualification: EmployeeImportReviewProposalPeopleItemFieldsQualification;
+  bloodGroup: EmployeeImportReviewProposalPeopleItemFieldsBloodGroup;
+  rhFactor: EmployeeImportReviewProposalPeopleItemFieldsRhFactor;
+  jobTitle: EmployeeImportReviewProposalPeopleItemFieldsJobTitle;
+  hiredAt: EmployeeImportReviewProposalPeopleItemFieldsHiredAt;
+  leftOn: EmployeeImportReviewProposalPeopleItemFieldsLeftOn;
+  workplace: EmployeeImportReviewProposalPeopleItemFieldsWorkplace;
+  commuteRoute: EmployeeImportReviewProposalPeopleItemFieldsCommuteRoute;
+  commuteMinutes: EmployeeImportReviewProposalPeopleItemFieldsCommuteMinutes;
+};
+
+/**
+ * @nullable
+ */
+export type EmployeeImportReviewProposalPeopleItemExisting = {
+  employeeId: string;
+  matchedBy: EmployeeImportReviewProposalPeopleItemExistingMatchedBy;
+} | null;
+
+export type EmployeeImportReviewProposalPeopleItemFlagsItem = {
+  code: EmployeeImportReviewProposalPeopleItemFlagsItemCode;
+  field?: string;
+  detail?: string;
+};
+
+export type EmployeeImportReviewProposalPeopleItem = {
+  /** @minLength 1 */
+  id: string;
+  pageIds: string[];
+  fields: EmployeeImportReviewProposalPeopleItemFields;
+  /** @nullable */
+  cnpCorrection: string | null;
+  /** @nullable */
+  existing: EmployeeImportReviewProposalPeopleItemExisting;
+  /** @nullable */
+  jobTitleId: string | null;
+  /** @nullable */
+  workplaceId: string | null;
+  /** @minimum 0 */
+  rowsInApp: number;
+  flags: EmployeeImportReviewProposalPeopleItemFlagsItem[];
+  proposedIncluded: boolean;
+};
+
+export type EmployeeImportReviewProposalJobTitlesItem = {
+  /** @minLength 1 */
+  id: string;
+  match: EmployeeImportReviewProposalJobTitlesItemMatch;
+  /** @nullable */
+  proposedId: string | null;
+  /** @nullable */
+  closestId: string | null;
+  personIds: string[];
+  /** @minLength 1 */
+  title: string;
+};
+
+export type EmployeeImportReviewProposalWorkplacesItem = {
+  /** @minLength 1 */
+  id: string;
+  match: EmployeeImportReviewProposalWorkplacesItemMatch;
+  /** @nullable */
+  proposedId: string | null;
+  /** @nullable */
+  closestId: string | null;
+  personIds: string[];
+  text: string;
+};
+
+export type EmployeeImportReviewProposal = {
+  pages: EmployeeImportReviewProposalPagesItem[];
+  people: EmployeeImportReviewProposalPeopleItem[];
+  jobTitles: EmployeeImportReviewProposalJobTitlesItem[];
+  workplaces: EmployeeImportReviewProposalWorkplacesItem[];
+  clientHasPositions: boolean;
+};
+
+/**
+ * @nullable
+ */
+export type EmployeeImportReview = {
+  /** @nullable */
+  changes: EmployeeImportReviewChanges;
+  states: EmployeeImportReviewStates;
+  proposal: EmployeeImportReviewProposal;
+} | null;
 
 export type ImportInference = (typeof ImportInference)[keyof typeof ImportInference];
 
@@ -8034,6 +8926,20 @@ export type ImportDetailCreatedBy = {
   id: string;
   /** @nullable */
   fullName: string | null;
+} | null;
+
+/**
+ * @nullable
+ */
+export type ImportDetailPeople = {
+  /** @minimum 0 */
+  total: number;
+  /** @minimum 0 */
+  toCheck: number;
+  /** @minimum 0 */
+  checked: number;
+  /** @minimum 0 */
+  setAside: number;
 } | null;
 
 export type ImportDetailFilesItem = {
@@ -9248,6 +10154,10 @@ export interface ImportDetail {
   failedAt: string | null;
   /** @nullable */
   confirmedAt: string | null;
+  /** @nullable */
+  expiresAt: string | null;
+  /** @nullable */
+  people: ImportDetailPeople;
   /** @minimum 0 */
   version: number;
   files: ImportDetailFilesItem[];
@@ -9261,6 +10171,7 @@ export interface ImportDetail {
   /** @nullable */
   proposalDroppedAt: string | null;
   usage?: ImportUsage;
+  employees: EmployeeImportReview | null;
   /** @nullable */
   proposal: ImportDetailProposal;
 }
@@ -9433,6 +10344,7 @@ export interface ConfirmImportResponse {
   clientId: string;
   /** @minimum 0 */
   fileCount: number;
+  employeeIds?: string[];
 }
 
 export interface ConfirmImportRequest {
@@ -9446,6 +10358,257 @@ export interface SplitImportRequest {
    * @maxItems 150
    */
   fileIds: string[];
+}
+
+export type SaveEmployeeImportChangesRequestChangesPeopleState =
+  (typeof SaveEmployeeImportChangesRequestChangesPeopleState)[keyof typeof SaveEmployeeImportChangesRequestChangesPeopleState];
+
+export const SaveEmployeeImportChangesRequestChangesPeopleState = {
+  to_check: 'to_check',
+  checked: 'checked',
+  set_aside: 'set_aside',
+} as const;
+
+export type SaveEmployeeImportChangesRequestChangesPeopleFieldsLastName = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type SaveEmployeeImportChangesRequestChangesPeopleFieldsFirstName = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type SaveEmployeeImportChangesRequestChangesPeopleFieldsCnp = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type SaveEmployeeImportChangesRequestChangesPeopleFieldsEmployeeNumber = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type SaveEmployeeImportChangesRequestChangesPeopleFieldsBirthDate = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type SaveEmployeeImportChangesRequestChangesPeopleFieldsBirthPlace = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type SaveEmployeeImportChangesRequestChangesPeopleFieldsHomeAddress = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type SaveEmployeeImportChangesRequestChangesPeopleFieldsEducation = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type SaveEmployeeImportChangesRequestChangesPeopleFieldsQualification = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type SaveEmployeeImportChangesRequestChangesPeopleFieldsBloodGroup = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type SaveEmployeeImportChangesRequestChangesPeopleFieldsRhFactor = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type SaveEmployeeImportChangesRequestChangesPeopleFieldsJobTitle = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type SaveEmployeeImportChangesRequestChangesPeopleFieldsHiredAt = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type SaveEmployeeImportChangesRequestChangesPeopleFieldsLeftOn = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type SaveEmployeeImportChangesRequestChangesPeopleFieldsWorkplace = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type SaveEmployeeImportChangesRequestChangesPeopleFieldsCommuteRoute = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type SaveEmployeeImportChangesRequestChangesPeopleFieldsCommuteMinutes = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
+export type SaveEmployeeImportChangesRequestChangesPeopleFields = {
+  lastName?: SaveEmployeeImportChangesRequestChangesPeopleFieldsLastName;
+  firstName?: SaveEmployeeImportChangesRequestChangesPeopleFieldsFirstName;
+  cnp?: SaveEmployeeImportChangesRequestChangesPeopleFieldsCnp;
+  employeeNumber?: SaveEmployeeImportChangesRequestChangesPeopleFieldsEmployeeNumber;
+  birthDate?: SaveEmployeeImportChangesRequestChangesPeopleFieldsBirthDate;
+  birthPlace?: SaveEmployeeImportChangesRequestChangesPeopleFieldsBirthPlace;
+  homeAddress?: SaveEmployeeImportChangesRequestChangesPeopleFieldsHomeAddress;
+  education?: SaveEmployeeImportChangesRequestChangesPeopleFieldsEducation;
+  qualification?: SaveEmployeeImportChangesRequestChangesPeopleFieldsQualification;
+  bloodGroup?: SaveEmployeeImportChangesRequestChangesPeopleFieldsBloodGroup;
+  rhFactor?: SaveEmployeeImportChangesRequestChangesPeopleFieldsRhFactor;
+  jobTitle?: SaveEmployeeImportChangesRequestChangesPeopleFieldsJobTitle;
+  hiredAt?: SaveEmployeeImportChangesRequestChangesPeopleFieldsHiredAt;
+  leftOn?: SaveEmployeeImportChangesRequestChangesPeopleFieldsLeftOn;
+  workplace?: SaveEmployeeImportChangesRequestChangesPeopleFieldsWorkplace;
+  commuteRoute?: SaveEmployeeImportChangesRequestChangesPeopleFieldsCommuteRoute;
+  commuteMinutes?: SaveEmployeeImportChangesRequestChangesPeopleFieldsCommuteMinutes;
+};
+
+export type SaveEmployeeImportChangesRequestChangesPeople = {
+  [key: string]: {
+    state?: SaveEmployeeImportChangesRequestChangesPeopleState;
+    included?: boolean;
+    fields?: SaveEmployeeImportChangesRequestChangesPeopleFields;
+    cnpCorrection?: boolean;
+    jobPositionId?: string;
+    /** @nullable */
+    workplaceId?: string | null;
+  };
+};
+
+export type SaveEmployeeImportChangesRequestChangesJobTitles = {
+  [key: string]: {
+    jobPositionId: string;
+  };
+};
+
+export type SaveEmployeeImportChangesRequestChangesWorkplaces = {
+  [key: string]: {
+    /** @nullable */
+    workplaceId: string | null;
+  };
+};
+
+export type SaveEmployeeImportChangesRequestChangesRowsValues = {
+  [key: string]: string | number | null;
+};
+
+export type SaveEmployeeImportChangesRequestChangesRows = {
+  [key: string]: {
+    included?: boolean;
+    test?: boolean;
+    values?: SaveEmployeeImportChangesRequestChangesRowsValues;
+  };
+};
+
+export type SaveEmployeeImportChangesRequestChangesPages = {
+  [key: string]: {
+    /**
+     * @minLength 1
+     * @maxLength 80
+     * @nullable
+     */
+    personId: string | null;
+  };
+};
+
+export type SaveEmployeeImportChangesRequestChanges = {
+  people?: SaveEmployeeImportChangesRequestChangesPeople;
+  jobTitles?: SaveEmployeeImportChangesRequestChangesJobTitles;
+  workplaces?: SaveEmployeeImportChangesRequestChangesWorkplaces;
+  rows?: SaveEmployeeImportChangesRequestChangesRows;
+  pages?: SaveEmployeeImportChangesRequestChangesPages;
+};
+
+export interface SaveEmployeeImportChangesRequest {
+  /** @minimum 0 */
+  version: number;
+  changes: SaveEmployeeImportChangesRequestChanges;
+}
+
+export type FoundSheetsResponseItemsItemSheetsItemMimeType =
+  (typeof FoundSheetsResponseItemsItemSheetsItemMimeType)[keyof typeof FoundSheetsResponseItemsItemSheetsItemMimeType];
+
+export const FoundSheetsResponseItemsItemSheetsItemMimeType = {
+  'application/pdf': 'application/pdf',
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+  'image/heic': 'image/heic',
+  'image/heif': 'image/heif',
+} as const;
+
+export type FoundSheetsResponseItemsItemSheetsItem = {
+  id: string;
+  clientFileId: string;
+  uploadPath: string;
+  fileName: string;
+  mimeType: FoundSheetsResponseItemsItemSheetsItemMimeType;
+  /** @minimum 1 */
+  sizeBytes: number;
+};
+
+export type FoundSheetsResponseItemsItem = {
+  importId: string;
+  confirmedAt: string;
+  sheets: FoundSheetsResponseItemsItemSheetsItem[];
+};
+
+export interface FoundSheetsResponse {
+  items: FoundSheetsResponseItemsItem[];
+  /** @minimum 0 */
+  total: number;
+}
+
+export interface AddFoundSheetsRequest {
+  /**
+   * @minItems 1
+   * @maxItems 500
+   */
+  fileIds?: string[];
 }
 
 /**
@@ -12250,7 +13413,18 @@ export type ListImportsParams = {
    * Only the imports into this client; without it, every open import.
    */
   clientId?: string;
+  /**
+   * The imports of this kind; client imports when left out.
+   */
+  kind?: ListImportsKind;
 };
+
+export type ListImportsKind = (typeof ListImportsKind)[keyof typeof ListImportsKind];
+
+export const ListImportsKind = {
+  client: 'client',
+  employees: 'employees',
+} as const;
 
 export type GetImportSourceParams = {
   /**
@@ -17842,7 +19016,7 @@ export const getRecordPaperTestResultUrl = (clientId: string, employeeId: string
 };
 
 /**
- * A test filled in on paper and passed: the day, the examiner and the grade, always `admis`; the material defaults to the test's name and code. A hiring result is taken once the domain's hiring training is recorded and before a hiring pass in that domain, otherwise reason `test_not_awaiting`; an annual fire-safety one at any time, since a paper sheet may record annual tests where its hiring one could not be read. The day is not in the future. The result fills its row of the employee's stored signed sheet.
+ * A test filled in on paper and passed: the day, the examiner and the grade, always `admis`; the material defaults to the test's name and code. A hiring result is taken while the hiring test awaits the employee (a hiring training recorded, no pass yet); an annual one once the employee has a fire-safety pass. Otherwise reason `test_not_awaiting`. The day is not in the future. The result fills its row of the employee's stored signed sheet.
  * @summary Record a pass of the printed test
  */
 export const recordPaperTestResult = async (
@@ -31194,7 +32368,7 @@ export const getCreateImportUrl = () => {
 };
 
 /**
- * A client import (ADR 030) for a new client, or with `clientId` for an existing one, which must be an active client, not a lead. It starts `uploading`: register its files, upload them, then start the reading. Answers `503` with the reason `import_unavailable` where the model gateway, the extractor or the queue is not configured.
+ * A client import (ADR 030) for a new client, or with `clientId` for an existing one, which must be an active client, not a lead. With `kind` `employees`, an employee import (ADR 032) for `clientId`, which then is required; with `addFoundSheets`, it starts holding every training sheet photograph the client's documentation pack held that no employee import has taken, copied from the client's files (`422` with `import_no_found_sheets` when there is none). It starts `uploading`: register its files, upload them, then start the reading. Answers `503` with the reason `import_unavailable` where the model gateway, the extractor or the queue is not configured.
  * @summary Start an import from documents
  */
 export const createImport = async (
@@ -31309,7 +32483,7 @@ export const getListImportsUrl = (params?: ListImportsParams) => {
 };
 
 /**
- * Every import neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show. Not paginated; an organization has a handful at a time.
+ * Every import of `kind` (client imports when left out) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time.
  * @summary List the organization's open imports
  */
 export const listImports = async (
@@ -31431,7 +32605,7 @@ export const getGetImportUrl = (importId: string) => {
 };
 
 /**
- * Its step, every file with its state and reason, the progress counts, the other companies the documents named, and from `ready` on the proposal with its flags, the member's changes, the version to save on, and what still blocks confirming. The proposal is null before `ready` and once dropped, 30 days after confirming. `usage`, a debugging aid, is the models' cost at list price and tokens for the whole import and for each step, and the characters read; it is served outside production and, in production, only to a platform admin.
+ * Its step, every file with its state and reason, the progress counts, the other companies the documents named, and from `ready` on the proposal with its flags, the member's changes, the version to save on, and what still blocks confirming. The proposal is null before `ready` and once dropped, 30 days after confirming. An employee import's proposal, changes and each person's state are in `employees` instead, `proposal` and `changes` being a client import's; its `blockers` count only the people marked checked. `usage`, a debugging aid, is the models' cost at list price and tokens for the whole import and for each step, and the characters read; it is served outside production and, in production, only to a platform admin.
  * @summary Get an import with its files and proposal
  */
 export const getImport = async (
@@ -31556,7 +32730,7 @@ export const getRegisterImportFilesUrl = (importId: string) => {
 };
 
 /**
- * One row per file, while the import is `uploading` (else `409` with `import_not_uploading`). Each answer names the bucket and the path the browser uploads the file to in Supabase Storage with the member's own session; the bucket's policy takes only that path, only while the file is uploading. A path the import already has, or twice in one request, answers `409` with `import_duplicate_path`; an extension that is not the type's, `400` with `import_type_mismatch`; a file the system or Word leaves beside the documents (a name starting `~$` or `._`, `.DS_Store`, anything under `__MACOSX`), `400` with `import_system_file`; past the caps of the import's kind, `422` with `import_too_large`: a client import holds at most 150 files and 100 MiB, each at most 20 MiB, an employee import 500 files and 1 GiB, each at most 25 MiB. Registering can be repeated in batches.
+ * One row per file, while the import is `uploading` (else `409` with `import_not_uploading`). An employee import takes only photographs and PDFs (else `400` with `import_photos_only`). Each answer names the bucket and the path the browser uploads the file to in Supabase Storage with the member's own session; the bucket's policy takes only that path, only while the file is uploading. A path the import already has, or twice in one request, answers `409` with `import_duplicate_path`; an extension that is not the type's, `400` with `import_type_mismatch`; a file the system or Word leaves beside the documents (a name starting `~$` or `._`, `.DS_Store`, anything under `__MACOSX`), `400` with `import_system_file`; more than 150 files or 100 MiB in all, `422` with `import_too_large`. Registering can be repeated in batches.
  * @summary Register the files the browser is about to upload
  */
 export const registerImportFiles = async (
@@ -31751,7 +32925,7 @@ export const getSaveImportChangesUrl = (importId: string) => {
 };
 
 /**
- * Replaces the changes, on the `version` the caller read, and answers the next version. `409` with `import_changed` when someone saved since, `import_not_ready` when the import is not `ready`.
+ * A client import's: replaces the changes, on the `version` the caller read, and answers the next version. `409` with `import_changed` when someone saved since, `import_not_ready` when the import is not `ready`, `import_wrong_kind` for an employee import.
  * @summary Save the member's review
  */
 export const saveImportChanges = async (
@@ -31874,7 +33048,7 @@ export const getGetImportSourceUrl = (importId: string, params: GetImportSourceP
 };
 
 /**
- * `file` is a source's `file` exactly as the proposal names it: a file's upload path, or `<upload path> (pagina N)` for a page read as an image. The answer links to the original and to the converted file, carries the text taken out of a Word file or the pages of a PDF, none for a page read as an image, and where `quote` is in them: when it is in several places, the one `near` (the post a table row is for) precedes most closely, or else the first.
+ * `file` is a source's `file` exactly as the proposal names it: a file's upload path, or `<upload path> (pagina N)` for a page read as an image; for an employee import, a page's `label`. The answer links to the original and to the converted file, carries the text taken out of a Word file or the pages of a PDF, none for a page read as an image, and where `quote` is in them: when it is in several places, the one `near` (the post a table row is for) precedes most closely, or else the first.
  * @summary Get the file a value was quoted from
  */
 export const getImportSource = async (
@@ -32005,7 +33179,7 @@ export const getConfirmImportUrl = (importId: string) => {
 };
 
 /**
- * Writes the proposal with the member's changes into the client, its workplaces, positions, people and fire-safety data in one transaction, and the import folder into its files, on the `version` the caller read. `422` with `import_incomplete` lists in `issues` what still blocks (a choice, a missing or invalid value, a second registered office, an unknown reference). `409` with `import_changed`, `import_not_ready`, `import_other_company` (an existing client's CUI is not the documents'), `import_client_exists` (a new client's CUI is the organization's already) or `import_outdated` (a workplace, position or employee the review named is no longer the client's). `422` with `import_refused` when a table still refuses a value, as a registered office beside the one an existing client has: one issue with the proposal's list or group as `path` and the constraint's name as `message`. The files are copied into the client's files by the queue after the answer.
+ * Writes the proposal with the member's changes into the client, its workplaces, positions, people and fire-safety data in one transaction, and the import folder into its files, on the `version` the caller read. An employee import writes the people marked checked, created or completed, with their paper trainings, test results and sheets as their files (`apply_employee_import`), then brings their stored signed sheets up to date, and answers their `employeeIds`; with nobody checked it is `422` with `import_incomplete` on `people`, and a CNP or employee number another employee of the client took since is `422` with `import_refused` on that person's field. `422` with `import_incomplete` lists in `issues` what still blocks (a choice, a missing or invalid value, a second registered office, an unknown reference). `409` with `import_changed`, `import_not_ready`, `import_other_company` (an existing client's CUI is not the documents'), `import_client_exists` (a new client's CUI is the organization's already) or `import_outdated` (a workplace, position or employee the review named is no longer the client's). `422` with `import_refused` when a table still refuses a value, as a registered office beside the one an existing client has: one issue with the proposal's list or group as `path` and the constraint's name as `message`. The files are copied into the client's files by the queue after the answer.
  * @summary Confirm the proposal
  */
 export const confirmImport = async (
@@ -32379,6 +33553,351 @@ export const useReadImportFile = <TError = ErrorType<ApiErrorResponse>, TContext
   TContext
 > => {
   return useMutation(getReadImportFileMutationOptions(options), queryClient);
+};
+
+export const getSaveEmployeeImportChangesUrl = (importId: string) => {
+  return `/imports/${importId}/employee-changes`;
+};
+
+/**
+ * An employee import's: replaces the changes (people's states, choices and values, a post per job title, a workplace per text, rows, pages), on the `version` the caller read, and answers the next version. Each save restarts the 14 days an import untouched is kept. `409` with `import_changed` when someone saved since, `import_not_ready` when the import is not `ready`, `import_wrong_kind` for a client import.
+ * @summary Save the member's review of an employee import
+ */
+export const saveEmployeeImportChanges = async (
+  importId: string,
+  saveEmployeeImportChangesRequest: SaveEmployeeImportChangesRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SaveImportChangesResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<SaveImportChangesResponse>(getSaveEmployeeImportChangesUrl(importId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(saveEmployeeImportChangesRequest),
+  });
+};
+
+export const getSaveEmployeeImportChangesMutationKey = () => ['saveEmployeeImportChanges'] as const;
+
+export const getSaveEmployeeImportChangesMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveEmployeeImportChanges>>,
+    TError,
+    SaveEmployeeImportChangesMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof saveEmployeeImportChanges>>,
+  TError,
+  SaveEmployeeImportChangesMutationVariables,
+  TContext
+> => {
+  const mutationKey = getSaveEmployeeImportChangesMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof saveEmployeeImportChanges>>,
+    SaveEmployeeImportChangesMutationVariables
+  > = (props) => {
+    const { importId, data } = props ?? {};
+
+    return saveEmployeeImportChanges(importId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SaveEmployeeImportChangesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof saveEmployeeImportChanges>>
+>;
+export type SaveEmployeeImportChangesMutationBody = SaveEmployeeImportChangesRequest;
+export type SaveEmployeeImportChangesMutationError = ErrorType<ApiErrorResponse>;
+export type SaveEmployeeImportChangesMutationVariables = {
+  importId: string;
+  data: SaveEmployeeImportChangesRequest;
+};
+
+/**
+ * @summary Save the member's review of an employee import
+ */
+export const useSaveEmployeeImportChanges = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof saveEmployeeImportChanges>>,
+      TError,
+      SaveEmployeeImportChangesMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof saveEmployeeImportChanges>>,
+  TError,
+  SaveEmployeeImportChangesMutationVariables,
+  TContext
+> => {
+  return useMutation(getSaveEmployeeImportChangesMutationOptions(options), queryClient);
+};
+
+export const getListFoundSheetsUrl = (clientId: string) => {
+  return `/clients/${clientId}/found-sheets`;
+};
+
+/**
+ * The training sheet photographs and PDFs a confirmed client import of the client set aside for the employee import (ADR 032), once they are in the client's files, that no employee import not abandoned or failed has taken: one taken by an import that is abandoned or fails is offered again. By the client import that found them, newest first. A file only owners see is listed to owners only.
+ * @summary The sheet photographs a client's documentation pack held
+ */
+export const listFoundSheets = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<FoundSheetsResponse> => {
+  return apiFetch<FoundSheetsResponse>(getListFoundSheetsUrl(clientId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListFoundSheetsQueryKey = (clientId: string) => {
+  return [`/clients/${clientId}/found-sheets`] as const;
+};
+
+export const getListFoundSheetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listFoundSheets>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listFoundSheets>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListFoundSheetsQueryKey(clientId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listFoundSheets>>> = ({ signal }) =>
+    listFoundSheets(clientId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listFoundSheets>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListFoundSheetsQueryResult = NonNullable<Awaited<ReturnType<typeof listFoundSheets>>>;
+export type ListFoundSheetsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListFoundSheets<
+  TData = Awaited<ReturnType<typeof listFoundSheets>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listFoundSheets>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listFoundSheets>>,
+          TError,
+          Awaited<ReturnType<typeof listFoundSheets>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListFoundSheets<
+  TData = Awaited<ReturnType<typeof listFoundSheets>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listFoundSheets>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listFoundSheets>>,
+          TError,
+          Awaited<ReturnType<typeof listFoundSheets>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListFoundSheets<
+  TData = Awaited<ReturnType<typeof listFoundSheets>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listFoundSheets>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary The sheet photographs a client's documentation pack held
+ */
+
+export function useListFoundSheets<
+  TData = Awaited<ReturnType<typeof listFoundSheets>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listFoundSheets>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListFoundSheetsQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getAddFoundSheetsUrl = (importId: string) => {
+  return `/imports/${importId}/found-sheets`;
+};
+
+/**
+ * To an employee import still `uploading` (else `409` with `import_not_uploading`; a client import is `409` with `import_wrong_kind`): copies the found sheets `fileIds` names, or every one offered, from the client's files into the import's own, server side, as if uploaded. A file not offered, or none to add, is `422` with `import_no_found_sheets`; past the import's caps `422` with `import_too_large`.
+ * @summary Add the sheet photographs the client's documentation pack held
+ */
+export const addFoundSheets = async (
+  importId: string,
+  addFoundSheetsRequest: AddFoundSheetsRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ImportSummaryResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ImportSummaryResponse>(getAddFoundSheetsUrl(importId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(addFoundSheetsRequest),
+  });
+};
+
+export const getAddFoundSheetsMutationKey = () => ['addFoundSheets'] as const;
+
+export const getAddFoundSheetsMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addFoundSheets>>,
+    TError,
+    AddFoundSheetsMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof addFoundSheets>>,
+  TError,
+  AddFoundSheetsMutationVariables,
+  TContext
+> => {
+  const mutationKey = getAddFoundSheetsMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof addFoundSheets>>,
+    AddFoundSheetsMutationVariables
+  > = (props) => {
+    const { importId, data } = props ?? {};
+
+    return addFoundSheets(importId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddFoundSheetsMutationResult = NonNullable<Awaited<ReturnType<typeof addFoundSheets>>>;
+export type AddFoundSheetsMutationBody = AddFoundSheetsRequest;
+export type AddFoundSheetsMutationError = ErrorType<ApiErrorResponse>;
+export type AddFoundSheetsMutationVariables = { importId: string; data: AddFoundSheetsRequest };
+
+/**
+ * @summary Add the sheet photographs the client's documentation pack held
+ */
+export const useAddFoundSheets = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof addFoundSheets>>,
+      TError,
+      AddFoundSheetsMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof addFoundSheets>>,
+  TError,
+  AddFoundSheetsMutationVariables,
+  TContext
+> => {
+  return useMutation(getAddFoundSheetsMutationOptions(options), queryClient);
 };
 
 export const getGetServiceContractUrl = (clientId: string) => {

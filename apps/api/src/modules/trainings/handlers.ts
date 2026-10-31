@@ -20,7 +20,8 @@ import {
   planSignatureRequests,
   type SignaturePlan,
 } from '../signing/requests';
-import { fireSafetyTechnicianJobTitle, type ProposalPerson, trainingProposal } from './proposal';
+import { proposalPerson, themesTypeKeys } from './client-facts';
+import { fireSafetyTechnicianJobTitle, trainingProposal } from './proposal';
 import type {
   createTrainingRoute,
   deleteTrainingRoute,
@@ -51,11 +52,6 @@ function signingOf(records: RecordSigning[]) {
       records.some((record) => (record.signed_sheet_rows ?? []).length > 0),
   };
 }
-
-const themesTypeKeys: Record<TrainingDomain, string> = {
-  ssm: 'training_themes',
-  psi: 'fire_training_themes',
-};
 
 const noSuchClient = () =>
   new ApiError('not_found', 'This client does not exist in your organization.');
@@ -376,13 +372,6 @@ export const listEmployeeTrainingRecords: RouteHandler<
   );
 };
 
-const person = (
-  name: string | null | undefined,
-  jobTitle: string | null | undefined,
-  employeeId: string | null = null
-): ProposalPerson | null =>
-  name?.trim() ? { name: name.trim(), jobTitle: jobTitle?.trim() || null, employeeId } : null;
-
 export const getTrainingProposal: RouteHandler<typeof getTrainingProposalRoute, ApiEnv> = async (
   c
 ) => {
@@ -473,18 +462,18 @@ export const getTrainingProposal: RouteHandler<typeof getTrainingProposalRoute, 
         ? { id: themes.data.id, snapshot: themes.data.data_snapshot }
         : null,
       people: {
-        specialist: person(profile.data?.full_name, profile.data?.professional_title),
-        workplaceManager: person(
+        specialist: proposalPerson(profile.data?.full_name, profile.data?.professional_title),
+        workplaceManager: proposalPerson(
           manager.data?.full_name,
           manager.data?.job_title,
           manager.data?.employee_id ?? null
         ),
-        legalRepresentative: person(
+        legalRepresentative: proposalPerson(
           client.legal_representative_name,
           client.legal_representative_role,
           client.legal_representative_employee_id
         ),
-        fireSafetyTechnician: person(
+        fireSafetyTechnician: proposalPerson(
           organization.data?.fire_safety_technician_name,
           fireSafetyTechnicianJobTitle
         ),

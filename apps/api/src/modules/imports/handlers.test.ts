@@ -110,12 +110,14 @@ function importRow(overrides: Record<string, unknown> = {}) {
     failure_reason: null,
     created_by: user.id,
     created_at: '2026-10-28T09:00:00+00:00',
+    updated_at: '2026-10-28T09:00:00+00:00',
     started_at: null,
     ready_at: null,
     failed_at: null,
     confirmed_at: null,
     clients: null,
     import_files: [{ count: 2 }],
+    last_file: [],
     version: 0,
     proposal: null,
     changes: null,
@@ -535,14 +537,15 @@ describe('POST /imports/{importId}/start', () => {
 
 describe('PUT /imports/{importId}/changes', () => {
   it('answers a save on an old version as a conflict', async () => {
-    mockUpstream(({ url }) =>
-      url.pathname === '/rest/v1/rpc/save_import_changes'
-        ? Response.json(
-            { code: 'IMP02', message: 'The import was saved since it was read.' },
-            { status: 400 }
-          )
-        : undefined
-    );
+    mockUpstream(({ url }) => {
+      if (url.pathname === '/rest/v1/imports') return Response.json({ kind: 'client' });
+      if (url.pathname === '/rest/v1/rpc/save_import_changes') {
+        return Response.json(
+          { code: 'IMP02', message: 'The import was saved since it was read.' },
+          { status: 400 }
+        );
+      }
+    });
     const response = await request(`/imports/${importId}/changes`, 'PUT', {
       version: 2,
       changes: { fields: { 'client.locality': { value: 'Lugoj' } }, items: {} },
@@ -558,15 +561,30 @@ describe('PUT /imports/{importId}/changes', () => {
   });
 
   it('saves and answers the next version', async () => {
-    mockUpstream(({ url }) =>
-      url.pathname === '/rest/v1/rpc/save_import_changes' ? Response.json(3) : undefined
-    );
+    mockUpstream(({ url }) => {
+      if (url.pathname === '/rest/v1/imports') return Response.json({ kind: 'client' });
+      if (url.pathname === '/rest/v1/rpc/save_import_changes') return Response.json(3);
+    });
     const response = await request(`/imports/${importId}/changes`, 'PUT', {
       version: 2,
       changes: {},
     });
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ version: 3 });
+  });
+
+  it("refuses an employee import's review, which has a shape of its own", async () => {
+    mockUpstream(({ url }) =>
+      url.pathname === '/rest/v1/imports' ? Response.json({ kind: 'employees' }) : undefined
+    );
+    const response = await request(`/imports/${importId}/changes`, 'PUT', {
+      version: 2,
+      changes: {},
+    });
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ reason: 'import_wrong_kind' });
+    expect(callsTo('/rest/v1/rpc/save_import_changes')).toEqual([]);
   });
 });
 

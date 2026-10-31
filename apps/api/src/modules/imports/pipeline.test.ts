@@ -1,5 +1,11 @@
 import { extractionRefused, type ExtractorService } from '@ssm-usor/contracts';
-import { createModelClient, proposalSchema } from '@ssm-usor/import';
+import {
+  createModelClient,
+  type EmployeeImportClient,
+  employeeImportProposalSchema,
+  proposalSchema,
+  type ThemeDefaults,
+} from '@ssm-usor/import';
 import { strToU8, zipSync } from 'fflate';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -113,6 +119,8 @@ class World {
   failRemovalOf = new Set<string>();
   calls: string[] = [];
   nextMessage = 0;
+  sheetClient: EmployeeImportClient = { jobPositions: [], workplaces: [], employees: [] };
+  themeDefaults: ThemeDefaults | null = null;
 
   send(body: ImportMessage, delaySeconds?: number) {
     this.sent.push({ id: `message-${++this.nextMessage}`, body, attempts: 1, delaySeconds });
@@ -130,6 +138,7 @@ class World {
       company_cui: null,
       proposal: null,
       files_copied_at: null,
+      created_by: null,
       ...row,
     });
   }
@@ -195,6 +204,8 @@ class World {
         people: ['Marinescu Elena'],
       }),
       client: async () => null,
+      employeeImportClient: async () => this.sheetClient,
+      trainingThemes: async () => () => this.themeDefaults,
       folderCopies: async () =>
         [...this.files.values()]
           .filter((file) => file.state !== 'other_company' && file.state !== 'failed')
@@ -424,6 +435,7 @@ let modelRequests: {
   images: string[];
   metadata: string | null;
   maxTokens: number;
+  effort: string;
 }[];
 
 function completion(content: unknown) {
@@ -487,6 +499,7 @@ function deps(overrides: Partial<PipelineDeps> = {}): PipelineDeps {
         const body = JSON.parse(String(init?.body)) as {
           response_format: { json_schema: { name: string } };
           max_completion_tokens: number;
+          reasoning_effort: string;
           messages: {
             content: string | { type: string; text?: string; image_url?: { url: string } }[];
           }[];
@@ -506,6 +519,7 @@ function deps(overrides: Partial<PipelineDeps> = {}): PipelineDeps {
           images: request.images,
           metadata: new Headers(init?.headers).get('cf-aig-metadata'),
           maxTokens: body.max_completion_tokens,
+          effort: body.reasoning_effort,
         });
         const answer = model(request);
         return answer instanceof Response ? answer : completion(answer);
@@ -1212,5 +1226,270 @@ describe('cleanUpImports', () => {
     expect(world.objects.has(`${folder}/a.page-2.json`)).toBe(false);
     expect(world.objects.has(`${organizationId}/stuck/b.pdf`)).toBe(true);
     expect(result).toMatchObject({ failed: 1, deleted: 2, dropped: 2, emptied: 1, left: 1 });
+  });
+});
+
+describe('an employee import', () => {
+  const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
+  const positionId = 'b0000000-0000-4000-8000-000000000001';
+
+  const sheetFiles: FileSpec[] = [
+    { path: 'Fise/Popescu 1.jpg', mime: 'image/jpeg', bytes: strToU8('jpeg-popescu-1') },
+    { path: 'Fise/Popescu 2.jpg', mime: 'image/jpeg', bytes: strToU8('jpeg-popescu-2') },
+    { path: 'Fise/Ionescu.pdf', mime: 'application/pdf', bytes: strToU8('%PDF ionescu') },
+  ];
+
+  const noPerson = { lastName: null, firstName: null, cnp: null, employeeNumber: null };
+  const noFields = {
+    birthDate: null,
+    birthPlace: null,
+    homeAddress: null,
+    education: null,
+    qualification: null,
+    bloodGroup: null,
+    rhFactor: null,
+    jobTitle: null,
+    hiredAt: null,
+    leftOn: null,
+    workplace: null,
+    commuteRoute: null,
+    commuteMinutes: null,
+  };
+
+  const sheet = (overrides: Record<string, unknown>) => ({
+    pageKind: 'ssm_sheet_front',
+    person: noPerson,
+    fields: noFields,
+    admission: { admittedOn: null, admittedByName: null, admittedByJobTitle: null },
+    trainings: [],
+    unreadable: [],
+    notes: [],
+    ...overrides,
+  });
+
+  const row = (overrides: Record<string, unknown>) => ({
+    domain: 'ssm',
+    phase: 'introductory_general',
+    annualTest: false,
+    heldOn: '2015-03-02',
+    durationMinutes: 480,
+    trainerName: 'Vasile Georgescu',
+    trainerJobTitle: 'Inspector SSM',
+    verifierName: 'Elena Marin',
+    verifierJobTitle: 'Administrator',
+    material: 'Legislația SSM',
+    supplementaryReason: null,
+    traineeSignature: 'present',
+    trainerSignature: 'present',
+    verifierSignature: 'present',
+    ...overrides,
+  });
+
+  const sheetAnswers: Record<string, unknown> = {
+    'Fise/Popescu 1.jpg': sheet({
+      person: { ...noPerson, lastName: 'Popescu', firstName: 'Ion' },
+      fields: { ...noFields, jobTitle: 'Vânzător', hiredAt: '2015-03-02' },
+      trainings: [row({})],
+    }),
+    'Fise/Popescu 2.jpg': sheet({
+      pageKind: 'ssm_periodic',
+      trainings: [
+        row({
+          phase: 'periodic',
+          heldOn: '2023-05-10',
+          durationMinutes: 60,
+          trainerName: null,
+          trainerJobTitle: null,
+          verifierName: null,
+          verifierJobTitle: null,
+          material: 'IPSSM',
+          verifierSignature: 'no_box',
+        }),
+      ],
+    }),
+    'Fise/Ionescu.pdf (pagina 1)': sheet({
+      person: { ...noPerson, lastName: 'Ionescu', firstName: 'Maria' },
+      fields: { ...noFields, jobTitle: 'Vânzătoare', hiredAt: '2019-01-07' },
+    }),
+    'Fise/Ionescu.pdf (pagina 2)': sheet({
+      pageKind: 'psi_sheet_front',
+      person: { ...noPerson, lastName: 'Ionescu', firstName: 'Maria' },
+    }),
+  };
+
+  const sheetModel =
+    (answers: Record<string, unknown>): Recorded =>
+    ({ name, text }) => {
+      if (name !== 'sheet_page') throw new Error(`Unexpected request ${name}`);
+      const label = Object.keys(answers).find((each) => text.includes(`=== FILE: ${each} ===`));
+      return label === undefined ? { unexpected: true } : answers[label];
+    };
+
+  function startEmployees(specs: FileSpec[]) {
+    world.addImport({ kind: 'employees', client_id: clientId, into_existing_client: true });
+    for (const [index, spec] of specs.entries()) {
+      const id = world.addFile(spec, index);
+      world.send({ type: 'prepare', importId, fileId: id });
+    }
+  }
+
+  beforeEach(() => {
+    world.sheetClient = {
+      jobPositions: [{ id: positionId, name: 'Vânzător' }],
+      workplaces: [],
+      employees: [],
+    };
+    world.themeDefaults = {
+      trainerName: 'Elena Marin',
+      trainerJobTitle: 'Administrator',
+      material: 'Tematica',
+      durationMinutes: 90,
+    };
+    extractor.pdfPageImage.mockClear();
+  });
+
+  it('reads every photograph and PDF page on its own, without sorting, into people ready for review', async () => {
+    model = sheetModel(sheetAnswers);
+    startEmployees([
+      ...sheetFiles,
+      {
+        path: 'Fise/nota.docx',
+        mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        bytes: docx(['O notă']),
+      },
+    ]);
+    const outcomes = await drain(deps());
+
+    expect(outcomes.every((outcome) => outcome.outcome === 'ack')).toBe(true);
+    const imported = world.imports.get(importId)!;
+    expect(imported.status).toBe('ready');
+    expect(modelRequests).toHaveLength(4);
+    expect(
+      modelRequests.every(
+        (request) =>
+          request.name === 'sheet_page' &&
+          request.effort === 'medium' &&
+          request.maxTokens === 16_000 &&
+          request.images.length === 1 &&
+          request.metadata === JSON.stringify({ organizationId, importId })
+      )
+    ).toBe(true);
+    const pdf = world.fileAt('Fise/Ionescu.pdf');
+    const photo = world.fileAt('Fise/Popescu 1.jpg');
+    const second = world.fileAt('Fise/Popescu 2.jpg');
+    expect(world.usage.map((usage) => `${usage.step} ${usage.fileId}`).sort()).toEqual(
+      [
+        `scanning ${pdf.id}`,
+        `scanning ${pdf.id}`,
+        `scanning ${photo.id}`,
+        `scanning ${second.id}`,
+      ].sort()
+    );
+    expect(extractor.pdfPageImage).toHaveBeenCalledTimes(2);
+    expect(
+      modelRequests.filter((request) =>
+        request.images.includes(`data:image/jpeg;base64,${btoa('upright jpeg-popescu-1')}`)
+      )
+    ).toHaveLength(1);
+    for (const spec of sheetFiles) {
+      expect(world.fileAt(spec.path)).toMatchObject({ state: 'read', is_scan: true });
+    }
+    expect(world.fileAt('Fise/nota.docx')).toMatchObject({
+      state: 'set_aside',
+      reason: fileReasons.notASheet,
+    });
+
+    const proposal = employeeImportProposalSchema.parse(imported.proposal);
+    expect(proposal.pages.map((page) => [page.label, page.page, page.fileId])).toEqual([
+      ['Fise/Ionescu.pdf (pagina 1)', 1, pdf.id],
+      ['Fise/Ionescu.pdf (pagina 2)', 2, pdf.id],
+      ['Fise/Popescu 1.jpg', null, photo.id],
+      ['Fise/Popescu 2.jpg', null, second.id],
+    ]);
+    expect(proposal.people).toHaveLength(2);
+    const popescu = proposal.people.find(
+      (person) => person.fields.lastName.options[0]?.value === 'Popescu'
+    )!;
+    expect(popescu.pageIds).toEqual(['page-3', 'page-4']);
+    expect(proposal.pages[3]!.placement).toBe('placed_by_order');
+    expect(proposal.jobTitles.find((group) => group.title === 'Vânzător')).toMatchObject({
+      match: 'exact',
+      proposedId: positionId,
+    });
+    expect(proposal.pages[3]!.rows[0]).toMatchObject({
+      trainerName: 'Elena Marin',
+      trainerJobTitle: 'Administrator',
+      material: 'IPSSM',
+      fromThemes: ['trainerName', 'trainerJobTitle'],
+    });
+    expect(proposal.pages[2]!.rows[0]!.test).toMatchObject({ test: 'hiring', verified: true });
+  });
+
+  it('keeps a page the model cannot answer for as unread, and reads the rest', async () => {
+    const answers = { ...sheetAnswers };
+    delete answers['Fise/Popescu 2.jpg'];
+    model = sheetModel(answers);
+    startEmployees(sheetFiles);
+    await drain(deps());
+
+    const imported = world.imports.get(importId)!;
+    expect(imported.status).toBe('ready');
+    expect(world.fileAt('Fise/Popescu 2.jpg').state).toBe('read');
+    const proposal = employeeImportProposalSchema.parse(imported.proposal);
+    expect(proposal.pages[3]).toMatchObject({
+      kind: null,
+      personId: null,
+      placement: 'unplaced',
+      rows: [],
+    });
+    expect(proposal.people).toHaveLength(2);
+  });
+
+  it('fails the import past 500 pages, before any page is read', async () => {
+    model = sheetModel(sheetAnswers);
+    extractor.pdfText.mockResolvedValueOnce({
+      pageCount: 501,
+      pages: Array.from({ length: 501 }, (_, index) => ({
+        number: index + 1,
+        text: '',
+        isScan: true,
+      })),
+    });
+    startEmployees([sheetFiles[2]!]);
+    await drain(deps());
+
+    expect(world.imports.get(importId)).toMatchObject({
+      status: 'failed',
+      failure_reason: importReasons.tooManyScans.employees,
+    });
+    expect(modelRequests).toHaveLength(0);
+  });
+
+  it('fails the import that holds no photograph and no PDF', async () => {
+    startEmployees([
+      {
+        path: 'Fise/nota.docx',
+        mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        bytes: docx(['O notă']),
+      },
+    ]);
+    await drain(deps());
+
+    expect(world.imports.get(importId)).toMatchObject({
+      status: 'failed',
+      failure_reason: importReasons.noSheets,
+    });
+  });
+
+  it('fails the import when no page could be read', async () => {
+    model = () => new Response('busy', { status: 400 });
+    startEmployees([sheetFiles[0]!]);
+    await drain(deps());
+
+    expect(world.fileAt('Fise/Popescu 1.jpg').state).toBe('failed');
+    expect(world.imports.get(importId)).toMatchObject({
+      status: 'failed',
+      failure_reason: importReasons.noSheetRead,
+    });
   });
 });
