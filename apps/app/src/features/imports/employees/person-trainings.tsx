@@ -32,6 +32,7 @@ import {
   type Changes,
   type DomainTrainings,
   heldWith,
+  isExisting,
   pagesOf,
   type Person,
   personName,
@@ -41,6 +42,7 @@ import {
   rowValues,
   type SheetPage,
   type SheetRow,
+  testInApp,
   testIncluded,
   trainingsByDomain,
   withRow,
@@ -80,7 +82,9 @@ function rowNote(row: SheetRow, values: RowValues, included: boolean, who: strin
   const notes: string[] = [];
   if (row.flags.includes('unusual_duration') && values.durationMinutes !== null) {
     notes.push(
-      `${values.durationMinutes} min — verifică pe fotografie. O instruire periodică ține de obicei 60, 90 sau 120 de minute. Se preia așa dacă nu o schimbi.`
+      row.phase === 'periodic'
+        ? `${values.durationMinutes} min — verifică pe fotografie. O instruire periodică ține de obicei 60, 90 sau 120 de minute. Se preia așa dacă nu o schimbi.`
+        : `${values.durationMinutes} min — verifică pe fotografie: pare scurtă pentru o instruire ${trainingPhaseLabels[row.phase].toLowerCase()}. Se preia așa dacă nu o schimbi.`
     );
   }
   if (row.flags.includes('before_hire')) {
@@ -134,7 +138,7 @@ function TrainingRow({
   onChange: Update;
 }) {
   const values = rowValues(context.changes, row);
-  const included = rowIncluded(context.changes, row);
+  const included = rowIncluded(context.changes, row, isExisting(context, person));
   const date = values.heldOn ? dateLabel(values.heldOn) : null;
   const note = rowNote(row, values, included, personName(context, person));
   const missing = (value: unknown, label: string) =>
@@ -205,16 +209,20 @@ function TestLine({
   row,
   page,
   pages,
+  matched,
   onChange,
 }: {
   context: ReviewContext;
   row: SheetRow;
   page: SheetPage;
   pages: SheetPage[];
+  matched: boolean;
   onChange: Update;
 }) {
   const test = row.test!;
-  const included = testIncluded(context.changes, row);
+  const included = testIncluded(context.changes, row, matched);
+  const inApp = testInApp(row, matched);
+  const heldOn = rowValues(context.changes, row).heldOn;
   const values = context.changes.rows[row.id]?.values ?? {};
   const examinerName = ('examinerName' in values ? values.examinerName : test.examinerName) as
     string | null;
@@ -248,13 +256,14 @@ function TestLine({
         <label htmlFor={id} className="font-medium">
           Testul la angajare: verificat pe fișă
         </label>
-        {test.inApp ? (
+        {inApp ? (
           <span className="text-muted-foreground">Testul e deja promovat în aplicație.</span>
         ) : test.verified ? (
           <span className="text-muted-foreground">
             Examinator:{' '}
             {[examinerName, examinerTitle].filter(Boolean).join(', ') || 'nu se citește'}. Semnătura
-            e în rubrica «Verificat» a instruirii {trainingPhaseLabels[row.phase].toLowerCase()}.
+            e în rubrica «Verificat» a instruirii {trainingPhaseLabels[row.phase].toLowerCase()}
+            {heldOn ? ` din ${dateLabel(heldOn)}` : ''}.
           </span>
         ) : (
           <span className="text-muted-foreground">
@@ -262,7 +271,7 @@ function TestLine({
             e pe originalul pe hârtie.
           </span>
         )}
-        {!included && !test.inApp && (
+        {!included && !inApp && (
           <span data-testid="person-test-unverified">
             Testul la angajare nu a putut fi verificat pe fișă: semnătura nu se vede clar sau
             lipsește.
@@ -331,8 +340,9 @@ function DomainSection({
 }) {
   const [showInApp, setShowInApp] = useState(false);
   const label = trainingDomainLabels[domain.domain];
+  const matched = isExisting(context, person);
   const all = [...domain.hiring.rows, ...domain.periodic];
-  const taken = all.filter(({ row }) => rowIncluded(context.changes, row)).length;
+  const taken = all.filter(({ row }) => rowIncluded(context.changes, row, matched)).length;
   const workplaceRow = domain.hiring.rows.find(({ row }) => row.phase === 'workplace');
   if (domain.pages.length === 0) {
     return (
@@ -381,6 +391,7 @@ function DomainSection({
               row={domain.hiring.test.row}
               page={domain.hiring.test.page}
               pages={pages}
+              matched={matched}
               onChange={onChange}
             />
           )}
@@ -413,7 +424,7 @@ function DomainSection({
         </div>
       )}
       {domain.annualTests.map(({ row, page }) => {
-        const included = testIncluded(context.changes, row);
+        const included = testIncluded(context.changes, row, matched);
         const heldOn = rowValues(context.changes, row).heldOn;
         return (
           <div
@@ -638,24 +649,30 @@ function AfterImport({
   person: Person;
   domains: DomainTrainings[];
 }) {
+  const matched = isExisting(context, person);
   const columns = domains.map((domain) => {
     const included = [...domain.hiring.rows, ...domain.periodic].filter(({ row }) =>
-      rowIncluded(context.changes, row)
+      rowIncluded(context.changes, row, matched)
     );
     const periodic = domain.periodic
-      .filter(({ row }) => rowIncluded(context.changes, row))
+      .filter(({ row }) => rowIncluded(context.changes, row, matched))
       .map(({ row }) => ({ row, heldOn: rowValues(context.changes, row).heldOn }))
       .filter((each): each is { row: SheetRow; heldOn: string } => each.heldOn !== null)
       .sort((a, b) => a.heldOn.localeCompare(b.heldOn));
     const last = periodic.at(-1) ?? null;
     const test = domain.hiring.test;
-    const tested = test && testIncluded(context.changes, test.row);
-    const examiner = test?.row.test?.examinerName;
-    const testText = tested
-      ? `Promovat, verificat pe fișă${test.row.heldOn ? ` la ${dateLabel(test.row.heldOn)}` : ''}${examiner ? ` de ${examiner}` : ''}`
-      : domain.hiring.rows.length > 0
-        ? 'Neverificat pe fișă'
-        : 'Fără test';
+    const tested = test && testIncluded(context.changes, test.row, matched);
+    const own = test ? (context.changes.rows[test.row.id]?.values ?? {}) : {};
+    const examiner = 'examinerName' in own ? own.examinerName : test?.row.test?.examinerName;
+    const takenOn = test ? rowValues(context.changes, test.row).heldOn : null;
+    const testText =
+      test && testInApp(test.row, matched)
+        ? 'Promovat, deja în aplicație'
+        : tested
+          ? `Promovat, verificat pe fișă${takenOn ? ` la ${dateLabel(takenOn)}` : ''}${examiner ? ` de ${examiner}` : ''}`
+          : domain.hiring.rows.length > 0
+            ? 'Neverificat pe fișă'
+            : 'Fără test';
     return { domain, included, last, testText };
   });
   const latest = columns

@@ -162,7 +162,7 @@ function PersonRow({
   const group = titleGroupOf(context.proposal, person);
   const postId = positionOf(context, person);
   const rows = ownRows(context, person.id).filter(({ row }) => !row.testOnly).length;
-  const postNote = isExisting(person)
+  const postNote = isExisting(context, person)
     ? 'Angajat existent'
     : group?.match === 'none' && !context.changes.jobTitles[group.id]
       ? 'Se hotărăște mai sus'

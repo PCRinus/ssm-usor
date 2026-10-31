@@ -320,6 +320,39 @@ describe('the person page', () => {
     expect(saved(0).changes.jobTitles).toEqual({ 'title-helper': { jobPositionId: bakerId } });
   });
 
+  it('asks whether a name-only match is the employee, and makes a declined one new', async () => {
+    const base = employeeDetail();
+    const proposal = base.employees!.proposal;
+    mockEmployeeImport({
+      detail: employeeDetail({
+        employees: {
+          ...base.employees!,
+          proposal: {
+            ...proposal,
+            people: proposal.people.map((each) =>
+              each.id === 'lazar'
+                ? { ...each, existing: { ...each.existing!, matchedBy: 'name_only' } }
+                : each
+            ),
+          },
+        },
+      }),
+    });
+    const user = userEvent.setup();
+    mount(`${importPath}/lazar`);
+    const card = await screen.findByTestId('person-decide-match');
+    expect(within(card).getByRole('heading').textContent).toBe('Este același angajat?');
+    await user.click(within(card).getByTestId('person-match-decline'));
+    await waitFor(() =>
+      expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(1)
+    );
+    expect(saved(0).changes.people.lazar).toEqual({ existing: false });
+    expect(screen.getByTestId('person-declined-notice').textContent).toContain(
+      'Îl creăm ca angajat nou, nu îl completăm pe Lazăr Radu din aplicație.'
+    );
+    expect(screen.getByTestId('person-decide-post')).toBeTruthy();
+  });
+
   it("compares an existing employee's data with the app and keeps the app's by default", async () => {
     mockEmployeeImport();
     const user = userEvent.setup();
@@ -388,6 +421,7 @@ describe('confirming', () => {
             issues: [
               { path: 'people.pop.fields.cnp', message: 'employees_client_cnp_key' },
               { path: 'people.lazar.fields.hiredAt', message: 'missing' },
+              { path: 'people.lazar.existing', message: 'choice' },
               { path: 'people.pop.fields.cnp', message: 'employees_client_cnp_key' },
             ],
           },
@@ -406,6 +440,7 @@ describe('confirming', () => {
     ).toEqual([
       'La Pop Elena, CNP-ul îl are deja alt angajat al clientului sau altă persoană din import.',
       'La Lazăr Radu, data angajării lipsește.',
+      'La Lazăr Radu, e de spus dacă e același angajat din aplicație.',
     ]);
   });
 });

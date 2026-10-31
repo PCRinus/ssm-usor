@@ -2,6 +2,7 @@ import { isValidCnp } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { cn } from '@ssm-usor/ui/lib/utils';
+import { Link } from '@tanstack/react-router';
 import { type ReactNode, useState } from 'react';
 
 import { roCount } from '@/features/employees/employee-format';
@@ -12,8 +13,12 @@ import { formatRoDate } from '@/lib/dates';
 import { Tag } from '../review-parts';
 import {
   type Changes,
+  type Decision,
   fieldLabels,
   type FieldName,
+  formerLeftOn,
+  isRehire,
+  matchedName,
   type Person,
   personName,
   positionOf,
@@ -22,6 +27,7 @@ import {
   titleGroupOf,
   titleStatus,
   withField,
+  withMatchDeclined,
   withPersonChange,
   workplaceGroupOf,
   workplaceOf,
@@ -458,6 +464,120 @@ export function FieldChoice({
             }
           />
         ))}
+      </div>
+    </DecideCard>
+  );
+}
+
+export function MatchDecision({
+  context,
+  person,
+  clientId,
+  decisions,
+  onChange,
+}: {
+  context: ReviewContext;
+  person: Person;
+  clientId: string;
+  decisions: Decision[];
+  onChange: Update;
+}) {
+  const match = person.existing;
+  if (!match) return null;
+  const change = context.changes.people[person.id];
+  const asked = match.matchedBy === 'name_only' && change?.existing === undefined;
+  const rehire = isRehire(context, person);
+  const twin = decisions.find((decision) => decision.key === 'match' && !asked);
+  const name = matchedName(person);
+  const leftAt = formerLeftOn(person);
+  const hiredAt = person.fields.hiredAt.app;
+  const hire = resolveField(context, person, 'hiredAt');
+  const sheetHiredAt = hire.edited ? hire.value : hire.sheet;
+  const employee = (
+    <Link
+      to="/clients/$clientId/employees/$employeeId"
+      params={{ clientId, employeeId: match.employeeId }}
+      className="underline"
+    >
+      Deschide angajatul
+    </Link>
+  );
+  return (
+    <DecideCard
+      id="match"
+      title={
+        asked
+          ? 'Este același angajat?'
+          : rehire
+            ? 'Angajat din nou după plecare'
+            : 'Același angajat la două persoane'
+      }
+    >
+      {asked && (
+        <p className="text-sm">
+          Fișa nu are CNP și nici data nașterii. Clientul are un singur angajat cu același nume,{' '}
+          {name}
+          {hiredAt ? `, angajat la ${dateLabel(String(hiredAt))}` : ''}
+          {leftAt ? `, plecat din firmă la ${dateLabel(leftAt)}` : ''}. {employee}
+        </p>
+      )}
+      {rehire && leftAt && (
+        <p className="text-sm">
+          {name} a plecat din firmă la {dateLabel(leftAt)}, iar fișa scrie angajarea
+          {typeof sheetHiredAt === 'string' ? ` la ${dateLabel(sheetHiredAt)}` : ' după plecare'}.
+          În aplicație, o reangajare după o pauză e un angajat nou, nu cel vechi readus. Îl poți
+          crea ca angajat nou, poți corecta mai jos data angajării, dacă e citită greșit, sau îl
+          poți lăsa deoparte. {employee}
+        </p>
+      )}
+      {twin && (
+        <p className="text-sm">
+          {twin.label}. Un angajat se completează o singură dată: spune că nu e el sau lasă una
+          dintre persoane deoparte.
+        </p>
+      )}
+      <div role="group" aria-labelledby="match-title" className="grid gap-2">
+        {asked && (
+          <Option
+            checked={false}
+            onSelect={() =>
+              onChange((current) =>
+                withPersonChange(current, person.id, (each) => ({ ...each, existing: true }))
+              )
+            }
+            label="Da, e același angajat"
+            detail="Îl completăm cu ce lipsește și cu instruirile de pe fișă."
+            testId="person-match-confirm"
+          />
+        )}
+        <Option
+          checked={false}
+          onSelect={() =>
+            onChange((current) =>
+              withMatchDeclined({ ...context, changes: current }, person, rehire)
+            )
+          }
+          label={asked ? 'Nu, e altă persoană' : 'Creează-l ca angajat nou'}
+          detail={
+            rehire
+              ? 'Fără CNP și număr de marcă, care rămân la fostul angajat. Îi alegi postul.'
+              : 'Datele din aplicație nu se folosesc. Îi alegi postul.'
+          }
+          testId="person-match-decline"
+        />
+        {!asked && (
+          <Option
+            checked={false}
+            onSelect={() =>
+              onChange((current) =>
+                withPersonChange(current, person.id, (each) => ({ ...each, state: 'set_aside' }))
+              )
+            }
+            label="Lasă-l deoparte"
+            detail="Nu îl creăm și nu îl completăm la confirmare."
+            testId="person-match-aside"
+          />
+        )}
       </div>
     </DecideCard>
   );

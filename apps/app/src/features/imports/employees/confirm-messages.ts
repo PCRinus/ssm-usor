@@ -28,6 +28,11 @@ function issueLine(context: ReviewContext, issue: Issue) {
   }
   if (!person) return null;
   const who = personName(context, person);
+  if (part === 'existing') {
+    return issue.message === 'choice'
+      ? `La ${who}, e de spus dacă e același angajat din aplicație.`
+      : `La ${who}, angajatul din aplicație e propus și la altă persoană.`;
+  }
   const field = part === 'fields' && name && name in fieldLabels ? (name as FieldName) : undefined;
   const what =
     list === 'rows'

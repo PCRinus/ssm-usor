@@ -1,6 +1,16 @@
+import {
+  hiringTestRowIds as packageHiringTestRowIds,
+  includedByDefault as packageIncludedByDefault,
+} from '@ssm-usor/import';
 import { describe, expect, it } from 'vitest';
 
-import { bakerId, employeeProposal, sellerId, sheetRow } from '@/test/employee-import-fixture';
+import {
+  bakerId,
+  employeeProposal,
+  existingEmployeeId,
+  sellerId,
+  sheetRow,
+} from '@/test/employee-import-fixture';
 
 import {
   type Changes,
@@ -8,6 +18,9 @@ import {
   decisionsOf,
   emptyChanges,
   heldWith,
+  hiringTestRowIds,
+  includedByDefault,
+  includedOf,
   leaving,
   nextToCheck,
   notesOf,
@@ -21,6 +34,8 @@ import {
   toCheckGroups,
   untestedDomains,
   withField,
+  withMatchDeclined,
+  withMatchRestored,
   withPersonChange,
   withRow,
 } from './employee-review-model';
@@ -52,6 +67,28 @@ function withRows(pageId: string, rows: ReturnType<typeof sheetRow>[]) {
   return (changes: Changes = emptyChanges()) => ({ ...contextOf(changes), proposal: changed });
 }
 
+const hiringTest = {
+  test: 'hiring',
+  takenOn: null,
+  examinerName: 'Mureșan Ioana',
+  examinerJobTitle: 'administrator',
+  verified: true,
+  inApp: false,
+};
+
+function withPerson(id: string, patch: (person: Record<string, unknown>) => object) {
+  const changed = {
+    ...proposal,
+    people: proposal.people.map((each) =>
+      each.id === id ? { ...each, ...patch(each as unknown as Record<string, unknown>) } : each
+    ),
+  } as unknown as Proposal;
+  return {
+    context: (changes: Changes = emptyChanges()) => ({ ...contextOf(changes), proposal: changed }),
+    person: changed.people.find((each) => each.id === id)!,
+  };
+}
+
 const annualTest = (overrides: Record<string, unknown> = {}, test: Record<string, unknown> = {}) =>
   sheetRow('annual', {
     domain: 'psi',
@@ -71,7 +108,10 @@ const annualTest = (overrides: Record<string, unknown> = {}, test: Record<string
 const row = (id: string) =>
   proposal.pages.flatMap((page) => page.rows).find((each) => each.id === id)!;
 const tags = (context: ReviewContext, id: string) =>
-  decisionsOf(context, person(id)).map((decision) => decision.tag);
+  decisionsOf(
+    context,
+    context.proposal.people.find((each) => each.id === id)!
+  ).map((decision) => decision.tag);
 
 describe('resolving a field', () => {
   it('takes the one value the pages give', () => {
@@ -258,18 +298,20 @@ describe('what a person still needs', () => {
 
 describe('rows and tests', () => {
   it('leaves out a row already in the app unless ticked, and keeps a verified test', () => {
-    expect(rowIncluded(emptyChanges(), row('r4'))).toBe(false);
+    expect(rowIncluded(emptyChanges(), row('r4'), true)).toBe(false);
     expect(
       rowIncluded(
         withRow(emptyChanges(), 'r4', () => ({ included: true })),
-        row('r4')
+        row('r4'),
+        true
       )
     ).toBe(true);
-    expect(testIncluded(emptyChanges(), row('r1'))).toBe(true);
+    expect(testIncluded(emptyChanges(), row('r1'), false)).toBe(true);
     expect(
       testIncluded(
         withRow(emptyChanges(), 'r1', () => ({ test: false })),
-        row('r1')
+        row('r1'),
+        false
       )
     ).toBe(false);
   });
@@ -367,21 +409,16 @@ describe('hiring tests left unverified', () => {
   });
 
   it('counts nothing when the app already has the pass', () => {
-    const passed = withRows('p1', [])();
-    const inApp = {
-      ...passed,
-      proposal: {
-        ...passed.proposal,
-        pages: passed.proposal.pages.map((page) => ({
-          ...page,
-          rows: page.rows.map((each) =>
-            each.test ? { ...each, test: { ...each.test, verified: false, inApp: true } } : each
-          ),
-        })),
-      },
-    } as ReviewContext;
-    expect(testIncluded(inApp.changes, inApp.proposal.pages[0]!.rows[0]!)).toBe(false);
-    expect(untestedDomains(inApp, person('toma'))).toEqual([]);
+    const context = withRows('p4', [
+      sheetRow('lazar-hiring', {
+        phase: 'introductory_general',
+        heldOn: '2019-04-03',
+        test: { ...hiringTest, verified: false, inApp: true },
+      }),
+    ]);
+    const hiring = context().proposal.pages[3]!.rows.at(-1)!;
+    expect(testIncluded(emptyChanges(), hiring, true)).toBe(false);
+    expect(untestedDomains(context(), person('lazar'))).toEqual([]);
   });
 
   it("reads PSI's workplace training, not its periodic one, and SSM's introductory only", () => {
@@ -414,5 +451,150 @@ describe('hiring tests left unverified', () => {
     expect(
       confirmSummary(contextOf(changes)).untested.map(({ person, domain }) => [person.id, domain])
     ).toEqual([['toma', 'ssm']]);
+  });
+});
+
+describe('the hiring test confirming writes', () => {
+  const twoIntroductions = withRows('p2', [
+    sheetRow('older', {
+      phase: 'introductory_general',
+      heldOn: '2023-01-10',
+      test: { ...hiringTest, examinerName: null },
+    }),
+  ]);
+
+  it('is the newest row of the phase, as the import picks it', () => {
+    const rows = twoIntroductions().proposal.pages.flatMap((page) => page.rows);
+    expect(hiringTestRowIds(rows)).toEqual(new Set(['r1']));
+    expect(hiringTestRowIds(rows)).toEqual(packageHiringTestRowIds(rows as never));
+    const psi = [
+      sheetRow('a', { domain: 'psi', phase: 'introductory_general', test: hiringTest }),
+      sheetRow('b', { domain: 'psi', phase: 'workplace', heldOn: '2020-01-01', test: hiringTest }),
+      sheetRow('c', { domain: 'psi', phase: 'workplace', heldOn: null, test: hiringTest }),
+    ] as unknown as Parameters<typeof hiringTestRowIds>[0];
+    expect(hiringTestRowIds(psi)).toEqual(new Set(['b']));
+    expect(hiringTestRowIds(psi)).toEqual(packageHiringTestRowIds(psi as never));
+  });
+
+  it('asks nothing of the other rows, and counts one test', () => {
+    const context = twoIntroductions(
+      withPersonChange(withTitle(emptyChanges(), 'title-helper', sellerId), 'toma', () => ({
+        state: 'checked',
+      }))
+    );
+    expect(tags(context, 'toma')).not.toContain('Lipsește examinatorul unui test');
+    expect(confirmSummary(context).tests).toEqual({ ssm: 1, psi: 0 });
+  });
+
+  it('follows the dates as the member left them', () => {
+    const moved = withRow(emptyChanges(), 'older', () => ({ values: { heldOn: '2024-09-01' } }));
+    const context = twoIntroductions(moved);
+    expect(decisionsOf(context, person('toma')).map((decision) => decision.label)).toContain(
+      'Completează examinatorul testului la angajare'
+    );
+  });
+
+  it('wants a test date that is not in the future', () => {
+    const future = withRow(emptyChanges(), 'r1', () => ({ values: { heldOn: '2026-11-02' } }));
+    expect(tags(contextOf(future), 'toma')).toContain('Un test cu data în viitor');
+  });
+});
+
+describe('who is created', () => {
+  it('leaves out someone new with a leave date, unless ticked, and completes an existing one', () => {
+    const left = withField(emptyChanges(), 'pop', 'leftOn', { value: '2024-01-31' });
+    expect(includedOf(contextOf(left), person('pop'))).toBe(false);
+    const ticked = withPersonChange(left, 'pop', (change) => ({ ...change, included: true }));
+    expect(includedOf(contextOf(ticked), person('pop'))).toBe(true);
+    const leftLazar = withField(emptyChanges(), 'lazar', 'leftOn', { value: '2024-01-31' });
+    expect(includedOf(contextOf(leftLazar), person('lazar'))).toBe(true);
+    for (const [leftOn, existing] of [
+      [null, false],
+      ['2024-01-31', false],
+      ['2024-01-31', true],
+    ] as const) {
+      expect(includedByDefault(leftOn, existing)).toBe(packageIncludedByDefault(leftOn, existing));
+    }
+  });
+});
+
+describe('the employee a person completes', () => {
+  const nameOnly = withPerson('lazar', () => ({
+    existing: { employeeId: existingEmployeeId, matchedBy: 'name_only' },
+  }));
+
+  it('asks whether a name-only match is the same employee', () => {
+    expect(tags(nameOnly.context(), 'lazar')).toEqual(['Angajat de confirmat']);
+    const confirmed = withPersonChange(emptyChanges(), 'lazar', () => ({ existing: true }));
+    expect(tags(nameOnly.context(confirmed), 'lazar')).toEqual([]);
+  });
+
+  it('makes a declined match someone new, who needs a post and keeps no app value', () => {
+    const declined = withMatchDeclined(contextOf(), person('lazar'), false);
+    const context = contextOf(declined);
+    expect(declined.people.lazar).toEqual({ existing: false });
+    expect(tags(context, 'lazar')).toEqual(['Post de hotărât']);
+    expect(resolveField(context, person('lazar'), 'homeAddress').value).toBe(
+      'Str. Fabricii nr. 21, Sibiu'
+    );
+    expect(rowIncluded(declined, row('r4'), false)).toBe(true);
+    const placed = withPersonChange(declined, 'lazar', (change) => ({
+      ...change,
+      jobPositionId: bakerId,
+    }));
+    expect(tags(contextOf(placed), 'lazar')).toEqual([]);
+    expect(withMatchRestored(declined, person('lazar')).people.lazar).toBeUndefined();
+  });
+
+  it("wants a declined match's CNP and employee number other than the employee's", () => {
+    const numbered = withPerson('lazar', (each) => ({
+      fields: {
+        ...(each.fields as object),
+        employeeNumber: { options: [{ value: 'M-7', pageIds: ['p4'] }], app: 'M 7' },
+      },
+    }));
+    const declined = withPersonChange(emptyChanges(), 'lazar', () => ({
+      existing: false,
+      jobPositionId: bakerId,
+    }));
+    expect(tags(numbered.context(declined), 'lazar')).toEqual([
+      'Numărul de marcă e deja în aplicație',
+    ]);
+  });
+
+  it('names a former employee and asks how to take a rehire', () => {
+    const rehired = withPerson('lazar', (each) => ({
+      flags: [{ code: 'former_employee', detail: '2020-01-31' }, { code: 'rehire' }],
+      fields: {
+        ...(each.fields as object),
+        hiredAt: { options: [{ value: '2021-06-01', pageIds: ['p4'] }], app: '2015-03-02' },
+        employeeNumber: { options: [{ value: 'M 7', pageIds: ['p4'] }], app: 'M 7' },
+      },
+    }));
+    const context = rehired.context();
+    expect(notesOf(context, rehired.person).map((note) => note.tag)).toContain(
+      'A plecat din firmă la 31.01.2020'
+    );
+    expect(tags(context, 'lazar')).toEqual(['Reangajat după plecare']);
+
+    const corrected = withField(emptyChanges(), 'lazar', 'hiredAt', { value: '2015-03-02' });
+    expect(tags(rehired.context(corrected), 'lazar')).toEqual([]);
+
+    const asNew = withMatchDeclined(context, rehired.person, true);
+    expect(asNew.people.lazar).toEqual({
+      existing: false,
+      fields: { employeeNumber: { value: null } },
+    });
+    expect(tags(rehired.context(asNew), 'lazar')).toEqual(['Post de hotărât']);
+  });
+
+  it('completes an employee once: two people proposed as one are both asked', () => {
+    const twice = withPerson('pop', () => ({
+      existing: { employeeId: existingEmployeeId, matchedBy: 'cnp' },
+    }));
+    expect(tags(twice.context(), 'pop')).toContain('Același angajat la două persoane');
+    expect(tags(twice.context(), 'lazar')).toContain('Același angajat la două persoane');
+    const aside = withPersonChange(emptyChanges(), 'pop', () => ({ state: 'set_aside' }));
+    expect(tags(twice.context(aside), 'lazar')).not.toContain('Același angajat la două persoane');
   });
 });

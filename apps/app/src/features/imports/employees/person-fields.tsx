@@ -317,8 +317,8 @@ export function ExistingComparison({
   person: Person;
   onChange: Update;
 }) {
-  const [editing, setEditing] = useState(false);
-  if (!isExisting(person)) return null;
+  const [editing, setEditing] = useState<'added' | 'differs' | null>(null);
+  if (!isExisting(context, person)) return null;
   const { added, differs, same } = compareWithApp(context, person);
   const pages = pagesOf(context, person.id);
   const sheetValue = (name: FieldName, field: ResolvedField) =>
@@ -331,7 +331,7 @@ export function ExistingComparison({
             <h2 className="text-base font-semibold">
               Se adaugă <span className="font-normal text-muted-foreground">{added.length}</span>
             </h2>
-            <Button type="button" variant="link" size="sm" onClick={() => setEditing(true)}>
+            <Button type="button" variant="link" size="sm" onClick={() => setEditing('added')}>
               Schimbă<span className="sr-only"> ce se adaugă</span>
             </Button>
           </div>
@@ -349,13 +349,13 @@ export function ExistingComparison({
               />
             ))}
           </dl>
-          {editing && (
+          {editing === 'added' && (
             <FieldsDialog
               context={context}
               person={person}
               title="Se adaugă"
               names={added.map(({ name }) => name)}
-              onClose={() => setEditing(false)}
+              onClose={() => setEditing(null)}
               onSave={(values) => onChange((current) => withFields(current, person.id, values))}
             />
           )}
@@ -363,10 +363,25 @@ export function ExistingComparison({
       )}
       {differs.length > 0 && (
         <Card className="gap-2 px-5 py-4">
-          <h2 className="text-base font-semibold">
-            Diferă de aplicație{' '}
-            <span className="font-normal text-muted-foreground">{differs.length}</span>
-          </h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-base font-semibold">
+              Diferă de aplicație{' '}
+              <span className="font-normal text-muted-foreground">{differs.length}</span>
+            </h2>
+            <Button type="button" variant="link" size="sm" onClick={() => setEditing('differs')}>
+              Schimbă<span className="sr-only"> ce diferă de aplicație</span>
+            </Button>
+          </div>
+          {editing === 'differs' && (
+            <FieldsDialog
+              context={context}
+              person={person}
+              title="Diferă de aplicație"
+              names={differs.map(({ name }) => name)}
+              onClose={() => setEditing(null)}
+              onSave={(values) => onChange((current) => withFields(current, person.id, values))}
+            />
+          )}
           <p className="text-sm text-muted-foreground">
             Angajatul are deja o valoare, iar fișa scrie alta. Păstrăm valoarea ta dacă nu alegi
             altfel.

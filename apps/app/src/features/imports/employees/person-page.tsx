@@ -13,8 +13,11 @@ import { Tag } from '../review-parts';
 import { SourceDialog, type SourceRequest } from '../source-dialog';
 import {
   decisionsOf,
+  formerLeftOn,
+  includedOf,
   isExisting,
   leaving,
+  matchedName,
   pagesOf,
   type Person,
   personName,
@@ -22,12 +25,15 @@ import {
   positionOf,
   resolveField,
   type ReviewContext,
+  withMatchRestored,
+  withoutContact,
   withPersonChange,
 } from './employee-review-model';
 import {
   CnpDecision,
   DecideCard,
   FieldChoice,
+  MatchDecision,
   PostDecision,
   WorkplaceDecision,
 } from './person-decisions';
@@ -87,9 +93,11 @@ export function EmployeePersonPage({
   const decisions = decisionsOf(context, person);
   const previous = people[index - 1];
   const next = people[index + 1];
-  const existing = isExisting(person);
+  const existing = isExisting(context, person);
+  const declined = person.existing !== null && !existing;
   const leftOn = resolveField(context, person, 'leftOn').value;
-  const included = context.changes.people[person.id]?.included ?? person.proposedIncluded;
+  const former = existing ? formerLeftOn(person) : null;
+  const included = includedOf(context, person);
 
   const showPage = (pageId: string) => {
     setCurrent(pageId);
@@ -133,7 +141,7 @@ export function EmployeePersonPage({
     );
 
   const postId = positionOf(context, person);
-  const contact = person.flags.some((flag) => flag.code === 'no_contact');
+  const contact = withoutContact(context, person);
   const anchors = new Set(decisions.map((decision) => decision.anchor));
   const choiceFields = decisions
     .filter((decision) => decision.key.startsWith('choice-'))
@@ -224,14 +232,40 @@ export function EmployeePersonPage({
                 </ul>
               </section>
             )}
+            {anchors.has('match') && (
+              <MatchDecision
+                context={context}
+                person={person}
+                clientId={clientId}
+                decisions={decisions}
+                onChange={review.update}
+              />
+            )}
+            {declined && (
+              <Notice variant="info" data-testid="person-declined-notice">
+                Îl creăm ca angajat nou, nu îl completăm pe {matchedName(person)} din aplicație.{' '}
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="h-auto px-0"
+                  onClick={() => review.update((current) => withMatchRestored(current, person))}
+                >
+                  E totuși același angajat
+                </Button>
+              </Notice>
+            )}
             {existing && (
               <Notice variant="info" data-testid="person-existing-notice">
-                {name} e deja angajat al clientului, cu{' '}
+                {name} {former ? 'a fost' : 'e deja'} angajat al clientului, cu{' '}
                 {person.existing?.matchedBy === 'cnp'
                   ? 'același CNP'
-                  : 'același nume și aceeași dată a nașterii'}
-                . Importul îl completează: adaugă ce lipsește și instruirile noi de pe fișă. Ce are
-                deja în aplicație rămâne așa, dacă nu alegi altfel.{' '}
+                  : person.existing?.matchedBy === 'name_only'
+                    ? 'același nume'
+                    : 'același nume și aceeași dată a nașterii'}
+                {former ? `, și a plecat din firmă la ${dateLabel(former)}` : ''}. Importul îl
+                completează: adaugă ce lipsește și instruirile noi de pe fișă. Ce are deja în
+                aplicație rămâne așa, dacă nu alegi altfel.{' '}
                 <Link
                   to="/clients/$clientId/employees/$employeeId"
                   params={{ clientId, employeeId: person.existing!.employeeId }}
@@ -284,7 +318,7 @@ export function EmployeePersonPage({
                       review.update((current) =>
                         withPersonChange(current, person.id, (change) => ({
                           ...change,
-                          included: checked === true ? true : undefined,
+                          included: checked === true,
                         }))
                       )
                     }
