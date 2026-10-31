@@ -79,6 +79,26 @@ describe('the page of an employee import that is not ready', () => {
   it('calls a confirmed import confirmed', async () => {
     mount(employeeDetail({ status: 'confirmed', confirmedAt: '2026-10-31T10:00:00+00:00' }));
     expect(await heading()).toBe('Import confirmat');
+    expect(screen.getByTestId('employee-processing').textContent).toContain(
+      '5 fotografii ale fișelor individuale de instruire'
+    );
+  });
+
+  it('counts files, not photos, when a PDF is among them', async () => {
+    const detail = employeeDetail({
+      status: 'confirmed',
+      confirmedAt: '2026-10-31T10:00:00+00:00',
+    });
+    mount({
+      ...detail,
+      files: detail.files.map((file, index) =>
+        index === 0 ? { ...file, mimeType: 'application/pdf' } : file
+      ),
+    });
+    await heading();
+    const page = screen.getByTestId('employee-processing').textContent;
+    expect(page).toContain('5 fișiere ale fișelor individuale de instruire');
+    expect(page).toContain('5 fișiere, toate se pot deschide');
   });
 
   it("is not found under another client's page, or for a client import", async () => {

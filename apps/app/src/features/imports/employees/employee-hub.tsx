@@ -8,11 +8,10 @@ import type { ImportDetail } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
 
 import { AbandonImportDialog } from '../abandon-import-dialog';
-import { photosLabel } from '../import-format';
 import { EmployeeConfirmDialog } from './employee-confirm-dialog';
 import { nextToCheck, peopleCounts, peopleViews } from './employee-review-model';
 import { PeopleList } from './people-list';
-import { peopleLabel } from './review-format';
+import { peopleLabel, sheetFilesLabel } from './review-format';
 import { TitleGroups, WorkplaceGroups } from './review-groups';
 import { SaveStatus } from './save-status';
 import { UnplacedPages } from './unplaced-pages';
@@ -37,7 +36,8 @@ export function EmployeeHub({
   const counts = peopleCounts(context);
   const next = nextToCheck(context);
   const nextView = next && views.find((view) => view.person.id === next.id);
-  const files = new Set(context.proposal.pages.map((page) => page.fileId)).size;
+  const fileIds = new Set(context.proposal.pages.map((page) => page.fileId));
+  const files = detail.files.filter((file) => fileIds.has(file.id));
 
   return (
     <div className="grid gap-6" data-testid="employee-hub">
@@ -45,8 +45,8 @@ export function EmployeeHub({
         <div className="grid max-w-3xl gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">Verifică angajații propuși</h1>
           <p className="text-sm text-muted-foreground">
-            Pentru {clientName}: {peopleLabel(counts.total)} din {photosLabel(files)}. Nu creăm pe
-            nimeni până nu confirmi, o singură dată, la final.
+            Pentru {clientName}: {peopleLabel(counts.total)} din {sheetFilesLabel(files)}. Nu creăm
+            pe nimeni până nu confirmi, o singură dată, la final.
           </p>
         </div>
         <Button variant="ghost" size="sm" onClick={() => setAbandoning(true)}>

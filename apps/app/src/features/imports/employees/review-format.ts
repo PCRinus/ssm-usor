@@ -1,7 +1,7 @@
 import { roCount } from '@/features/employees/employee-format';
 import { formatRoDate } from '@/lib/dates';
 
-import { pagesLabel, photosLabel } from '../import-format';
+import { filesLabel, pagesLabel, photosLabel } from '../import-format';
 import type { SheetPage } from './employee-review-model';
 
 export const pageKindLabels: Record<NonNullable<SheetPage['kind']>, string> = {
@@ -27,6 +27,12 @@ export const peopleLabel = (count: number) =>
 
 export const trainingsLabel = (count: number) =>
   count === 1 ? 'o instruire' : roCount(count, 'instruire', 'instruiri');
+
+export const onlyPhotos = (files: { mimeType: string }[]) =>
+  files.every((file) => file.mimeType.startsWith('image/'));
+
+export const sheetFilesLabel = (files: { mimeType: string }[]) =>
+  onlyPhotos(files) ? photosLabel(files.length) : filesLabel(files.length);
 
 export function pagesPhotosLabel(pages: SheetPage[]) {
   const photos = new Set(pages.map((page) => page.fileId)).size;

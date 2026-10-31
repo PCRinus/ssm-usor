@@ -10,9 +10,10 @@ import type { ImportDetail } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
 
 import { AbandonImportDialog } from '../abandon-import-dialog';
-import { isRunning, photosLabel, uploadedWhen } from '../import-format';
+import { isRunning, uploadedWhen } from '../import-format';
 import { ImportThumbnail } from '../import-thumbnail';
 import { useUploadStalled } from '../use-upload-stalled';
+import { onlyPhotos, sheetFilesLabel } from './review-format';
 
 type ImportFile = ImportDetail['files'][number];
 
@@ -70,6 +71,8 @@ export function EmployeeProcessing({
   const stalled = useUploadStalled(detail);
   const reached = reachedStep(detail);
   const files = detail.files;
+  const photos = onlyPhotos(files);
+  const filesText = sheetFilesLabel(files);
   const read = files.filter((file) => file.state === 'read').length;
   const failed = files.filter((file) => fileState(file) === 'failed');
   const shown = expanded ? files : files.slice(0, 24);
@@ -85,7 +88,9 @@ export function EmployeeProcessing({
           : detail.status === 'uploading'
             ? stalled
               ? 'Încărcarea nu s-a terminat'
-              : 'Se încarcă fotografiile'
+              : photos
+                ? 'Se încarcă fotografiile'
+                : 'Se încarcă fișierele'
             : 'Citim fișele';
 
   return (
@@ -94,7 +99,7 @@ export function EmployeeProcessing({
         <div className="grid gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
           <p className="text-sm text-muted-foreground">
-            {photosLabel(files.length)} ale fișelor individuale de instruire, încărcate{' '}
+            {filesText} ale fișelor individuale de instruire, încărcate{' '}
             {uploadedWhen(detail.startedAt ?? detail.createdAt)}
           </p>
         </div>
@@ -172,8 +177,8 @@ export function EmployeeProcessing({
                     {index === 0 &&
                       (reached > 0
                         ? failed.length > 0
-                          ? `${photosLabel(files.length)}, ${failed.length === 1 ? 'una nu se poate citi' : `${failed.length} nu se pot citi`}`
-                          : `${photosLabel(files.length)}, toate se pot deschide`
+                          ? `${filesText}, ${failed.length === 1 ? `${photos ? 'una' : 'unul'} nu se poate citi` : `${failed.length} nu se pot citi`}`
+                          : `${filesText}, toate se pot deschide`
                         : null)}
                     {index === 1 && reached >= 1 && `${scansRead} din ${scans}`}
                     {index === 2 && 'După nume, CNP și ordinea pozelor'}
@@ -210,7 +215,7 @@ export function EmployeeProcessing({
       {files.length > 0 && (
         <Card className="gap-3 px-5 py-4" data-testid="employee-processing-photos">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <h2 className="text-base font-semibold">Fotografiile</h2>
+            <h2 className="text-base font-semibold">{photos ? 'Fotografiile' : 'Fișierele'}</h2>
             <span className="rounded-md bg-secondary px-1.5 text-xs font-medium tabular-nums">
               {files.length}
             </span>
