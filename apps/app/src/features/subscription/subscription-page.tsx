@@ -111,7 +111,7 @@ function SubscriptionContent({
   const [changeTarget, setChangeTarget] = useState<BillingChoice | null>(null);
   const sms = overview.usage.smsThisMonth;
   const capAdjustable = canAct && sms.cap !== null && sms.capFactor !== null;
-  const [raisingCap, setRaisingCap] = useState(raiseCap && capAdjustable);
+  const [raisingCap, setRaisingCap] = useState(false);
   const [busy, setBusy] = useState<'resume' | 'card' | 'withdraw' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -235,7 +235,7 @@ function SubscriptionContent({
       {capAdjustable && (
         <SmsCapDialog
           sms={sms}
-          open={raisingCap}
+          open={raisingCap || raiseCap}
           onClose={() => {
             setRaisingCap(false);
             if (raiseCap) onRaiseCapClosed?.();

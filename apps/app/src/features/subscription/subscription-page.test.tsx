@@ -34,7 +34,9 @@ function mockApi({
   role = 'owner',
   impersonating = false,
   routes = {},
+  me = {},
 }: {
+  me?: Partial<Parameters<typeof meFor>[0]>;
   overview: BillingOverview;
   role?: 'owner' | 'specialist';
   impersonating?: boolean;
@@ -47,7 +49,7 @@ function mockApi({
     if (route) return route(init);
     if (pathname === '/me') {
       return Response.json(
-        meFor({ role, impersonating, subscription: summaryOf(overview.subscription) })
+        meFor({ role, impersonating, subscription: summaryOf(overview.subscription), ...me })
       );
     }
     if (pathname === '/billing' && method === 'GET') return Response.json(overview);
@@ -720,6 +722,16 @@ describe('the signing codes by SMS on the Abonament tab', () => {
     expect((await within(dialog).findByTestId('sms-cap-error')).textContent).toContain(
       'Abonamentul Enterprise se schimbă prin email'
     );
+  });
+
+  it('opens the dialog from the bar while already on the tab', async () => {
+    const capped = smsUsage({ used: 900, overage: 600, state: 'capped' });
+    mockApi({ overview: paidWith(capped), me: { smsThisMonth: capped } });
+    mount();
+    await screen.findByTestId('meter-sms');
+    expect(screen.queryByTestId('sms-cap-dialog')).toBeNull();
+    await userEvent.click(await screen.findByTestId('subscription-bar-action'));
+    expect(await screen.findByTestId('sms-cap-dialog')).toBeTruthy();
   });
 
   it('offers a member no way to raise the cap', async () => {
