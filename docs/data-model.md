@@ -1284,6 +1284,7 @@ composite key to `imports (id, organization_id)`, deleted with the import:
 | `derived_path`, `derived_size_bytes`, `derived_sha256`             | The `.docx` of a `.doc` (`<id>.docx`) or the upright JPEG of a photograph (`<id>.jpg`, a JPEG's `<id>.jpeg`), beside it by a check; the three together.      |
 | `input_tokens`, `cached_input_tokens`, `output_tokens`, `cost_usd` | The requests that read this file on its own, a scan or a photograph; the import's totals include them.                                                       |
 | `client_file_id`                                                   | The client file it became in the import folder; set null if that file is deleted.                                                                            |
+| `source_file_id`                                                   | An employee import's copy of a sheet photograph a confirmed client import found (`for_employees`): that client import's file; set null if that row goes.     |
 
 `limit_import_files` locks the import and refuses a file once the import is past `uploading`
 (`IMP01`), or one past the caps of the import's kind (`IMP05`): a client import holds 150 files
@@ -1483,6 +1484,15 @@ nothing, then, with the ids whose objects the API removed, the change.
   stay.
 
 The change functions take only ids the list would still give, and return those they changed.
+
+**Sheet photographs a client import found.** A confirmed client import keeps the training sheets
+it sorted as `for_employees` as plain files of the client's import folder. An employee import
+takes them as copies, made by the API from `client-files` into its own folder with the secret
+key, each a row like an uploaded file's with `source_file_id` naming the client import's file
+(`20261101140000_import_found_sheets`, [ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)).
+A copy rather than a reference keeps the bucket's policies, the caps and the clean-up those of an
+upload, and the client's files whatever becomes of the import. A found photograph is offered
+while no employee import that is not abandoned or failed holds a copy of it.
 
 ## Profiles
 
