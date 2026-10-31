@@ -2578,6 +2578,7 @@ export type Database = {
           reason: string | null;
           sha256: string;
           size_bytes: number;
+          source_file_id: string | null;
           state: Database['public']['Enums']['import_file_state'];
           storage_path: string;
           text_path: string | null;
@@ -2607,6 +2608,7 @@ export type Database = {
           reason?: string | null;
           sha256: string;
           size_bytes: number;
+          source_file_id?: string | null;
           state?: Database['public']['Enums']['import_file_state'];
           storage_path?: string;
           text_path?: string | null;
@@ -2636,6 +2638,7 @@ export type Database = {
           reason?: string | null;
           sha256?: string;
           size_bytes?: number;
+          source_file_id?: string | null;
           state?: Database['public']['Enums']['import_file_state'];
           storage_path?: string;
           text_path?: string | null;
@@ -2656,6 +2659,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'imports';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'import_files_source_file_id_fkey';
+            columns: ['source_file_id'];
+            isOneToOne: false;
+            referencedRelation: 'import_files';
+            referencedColumns: ['id'];
           },
         ];
       };
