@@ -80,7 +80,7 @@ Apoi îi împarte pe angajați în două liste:
 - **Primesc invitația**: cei cu email sau telefon în datele lor. Cine are și email și telefon primește invitația pe email.
 - **Fără email sau telefon pe fișă**: fișele pe hârtie au rareori un contact. Scrie un email sau un număr de telefon în dreptul celor pe care vrei să-i inviți acum.
 
-Ce scrii hotărăște cum pleacă invitația: un email, pe email; un număr de telefon, prin SMS. Un rând lăsat gol rămâne neinvitat, fără să-i oprească pe ceilalți; îl inviți oricând din pagina lui sau din tabul **Portal**. Emailurile și telefoanele scrise aici se salvează în datele angajaților, ca atunci când le modifici. Foștii angajați nu apar, iar cei care au deja acces sau o invitație deschisă apar separat și nu primesc nimic din nou.
+Ce scrii hotărăște cum pleacă invitația: un email, pe email; un număr de telefon, prin SMS. Un rând lăsat gol rămâne neinvitat, fără să-i oprească pe ceilalți; îl inviți oricând din pagina lui sau din tabul **Portal**. Emailurile și telefoanele scrise aici se salvează în datele angajaților, ca atunci când le modifici, odată cu invitația: o adresă pentru care invitația e refuzată nu se salvează. Foștii angajați nu apar, iar cei care au deja acces sau o invitație deschisă apar separat și nu primesc nimic din nou.
 
 Înainte să trimiți, dialogul îți spune câte invitații pleacă prin SMS: fiecare SMS costă, ca și codurile de intrare trimise după aceea, pe când emailul nu.
 

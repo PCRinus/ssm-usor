@@ -99,7 +99,7 @@ const upstreamDefaults = {
   invitations: () => Response.json([invitationRow]),
   participants: () => Response.json([] as unknown[]),
   employees: () => Response.json([{ id: employeeId }]),
-  updateEmployee: () => Response.json({ id: employeeId }),
+  createAtAddress: () => Response.json({ ...invitationRow, employees: undefined }),
   clients: () => Response.json([{ id: clientId }]),
   client: () =>
     Response.json({ organization_id: organizationId, archived_at: null, stage: 'client' }),
@@ -132,6 +132,8 @@ function mockUpstream(overrides: Partial<typeof upstreamDefaults> = {}) {
         ]);
       case '/rest/v1/rpc/create_participant_invitation':
         return upstream.create();
+      case '/rest/v1/rpc/create_employee_invitation_at_address':
+        return upstream.createAtAddress();
       case '/rest/v1/rpc/resend_participant_invitation':
         return upstream.resend();
       case '/rest/v1/rpc/revoke_participant_invitation':
@@ -149,7 +151,7 @@ function mockUpstream(overrides: Partial<typeof upstreamDefaults> = {}) {
           ? upstream.activeParticipants()
           : upstream.participants();
       case '/rest/v1/employees':
-        return method === 'PATCH' ? upstream.updateEmployee() : upstream.employees();
+        return upstream.employees();
       case '/rest/v1/imports':
         return upstream.imports();
       case '/rest/v1/clients':
@@ -679,7 +681,7 @@ describe('POST /clients/{clientId}/employee-participant-invitations', () => {
     employees: { last_name: 'Ilie', first_name: 'Gheorghe' },
   };
 
-  it('saves a typed phone to the employee and invites by SMS, an address on file by email', async () => {
+  it('invites each at the address typed, by SMS for a phone and by email for an email', async () => {
     let created = 0;
     mockUpstream({
       employees: () =>
@@ -687,7 +689,7 @@ describe('POST /clients/{clientId}/employee-participant-invitations', () => {
           employeeRow(employeeId, { email: 'ion@example.ro' }),
           employeeRow(newcomerId),
         ]),
-      create: () => Response.json({ id: created++ === 0 ? invitationId : smsRow.id }),
+      createAtAddress: () => Response.json({ id: created++ === 0 ? invitationId : smsRow.id }),
       invitations: () => Response.json(created === 1 ? invitationRow : smsRow),
     });
 
@@ -706,22 +708,23 @@ describe('POST /clients/{clientId}/employee-participant-invitations', () => {
       [employeeId, 'invited', 'email'],
       [newcomerId, 'invited', 'sms'],
     ]);
-    const updates = calls('/rest/v1/employees', 'PATCH');
-    expect(updates.map((update) => update.body)).toEqual([{ phone: '+40742115980' }]);
-    expect(updates[0]?.url.searchParams.get('id')).toBe(`eq.${newcomerId}`);
-    expect(updates[0]?.headers.get('Authorization')).toBe('Bearer user-token');
-    expect(calls('/rest/v1/rpc/create_participant_invitation').map((call) => call.body)).toEqual([
-      expect.objectContaining({
+    expect(calls('/rest/v1/employees', 'PATCH')).toEqual([]);
+    const invited = calls('/rest/v1/rpc/create_employee_invitation_at_address');
+    expect(invited.map((call) => call.body)).toEqual([
+      {
+        p_client_id: clientId,
         p_employee_id: employeeId,
         p_channel: 'email',
         p_address: 'ion@example.ro',
-      }),
-      expect.objectContaining({
+      },
+      {
+        p_client_id: clientId,
         p_employee_id: newcomerId,
         p_channel: 'sms',
         p_address: '+40742115980',
-      }),
+      },
     ]);
+    expect(invited[0]?.headers.get('Authorization')).toBe('Bearer user-token');
     expect(sendInvitationEmail).toHaveBeenCalledOnce();
     expect(sendInvitationSms).toHaveBeenCalledWith(
       expect.objectContaining({ to: '+40742115980', clientName: 'S.C. CLIENT DEMO S.R.L.' })
@@ -761,8 +764,7 @@ describe('POST /clients/{clientId}/employee-participant-invitations', () => {
       ['failed', 'invalid_address'],
       ['failed', 'employee_not_found'],
     ]);
-    expect(calls('/rest/v1/employees', 'PATCH')).toEqual([]);
-    expect(calls('/rest/v1/rpc/create_participant_invitation')).toEqual([]);
+    expect(calls('/rest/v1/rpc/create_employee_invitation_at_address')).toEqual([]);
     expect(sendInvitationEmail).not.toHaveBeenCalled();
   });
 
@@ -774,7 +776,7 @@ describe('POST /clients/{clientId}/employee-participant-invitations', () => {
           employeeRow(employeeId, { phone: '+40742115980' }),
           employeeRow(newcomerId),
         ]),
-      create: () =>
+      createAtAddress: () =>
         created++ === 0
           ? databaseError('PRT03', 'address_invited_for_another_person')
           : Response.json({ id: smsRow.id }),
@@ -798,11 +800,67 @@ describe('POST /clients/{clientId}/employee-participant-invitations', () => {
     expect(sendInvitationSms).toHaveBeenCalledOnce();
   });
 
+  it("names an address the employee's row refused as not saved", async () => {
+    let created = 0;
+    mockUpstream({
+      employees: () => Response.json([employeeRow(employeeId), employeeRow(newcomerId)]),
+      createAtAddress: () =>
+        created++ === 0
+          ? databaseError('PRT04', 'address_not_of_employee')
+          : Response.json({ id: smsRow.id }),
+      invitations: () => Response.json(smsRow),
+    });
+
+    const response = await request(bulk, {
+      invitations: [
+        { employeeId, address: 'ion@example.ro' },
+        { employeeId: newcomerId, address: '0742115980' },
+      ],
+    });
+
+    const { results } = (await response.json()) as {
+      results: { outcome: string; reason: string | null }[];
+    };
+    expect(results.map((row) => [row.outcome, row.reason])).toEqual([
+      ['failed', 'contact_not_saved'],
+      ['invited', null],
+    ]);
+  });
+
+  it('answers a row whose saved invitation cannot be read on its own and goes on with the next', async () => {
+    let read = 0;
+    mockUpstream({
+      employees: () => Response.json([employeeRow(employeeId), employeeRow(newcomerId)]),
+      createAtAddress: () => Response.json({ id: read === 0 ? invitationId : smsRow.id }),
+      invitations: () =>
+        read++ === 0
+          ? Response.json({ code: '57014', message: 'canceling statement' }, { status: 500 })
+          : Response.json(smsRow),
+    });
+
+    const response = await request(bulk, {
+      invitations: [
+        { employeeId, address: 'ion@example.ro' },
+        { employeeId: newcomerId, address: '0742115980' },
+      ],
+    });
+
+    expect(response.status).toBe(200);
+    const { results } = (await response.json()) as {
+      results: { outcome: string; reason: string | null }[];
+    };
+    expect(results.map((row) => [row.outcome, row.reason])).toEqual([
+      ['failed', 'invitation_failed'],
+      ['invited', null],
+    ]);
+    expect(sendInvitationSms).toHaveBeenCalledOnce();
+  });
+
   it('keeps the invitation whose message failed, for a resend', async () => {
     sendInvitationSms.mockRejectedValueOnce(new Error('Twilio down'));
     mockUpstream({
       employees: () => Response.json([employeeRow(newcomerId)]),
-      create: () => Response.json({ id: smsRow.id }),
+      createAtAddress: () => Response.json({ id: smsRow.id }),
       invitations: () => Response.json(smsRow),
     });
 
@@ -843,7 +901,7 @@ describe('POST /clients/{clientId}/employee-participant-invitations', () => {
 
     expect(response.status).toBe(409);
     expect(await reasonOf(response)).toBe('client_archived');
-    expect(calls('/rest/v1/employees', 'PATCH')).toEqual([]);
+    expect(calls('/rest/v1/rpc/create_employee_invitation_at_address')).toEqual([]);
   });
 
   it('answers 503 when a channel asked for cannot send', async () => {

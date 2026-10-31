@@ -1065,12 +1065,14 @@ The address is as typed: with `@` it goes by email, otherwise as a phone by SMS
 (`typedInvitationAddress` in the contracts, which the app uses too). Rows run one after the
 other. A former employee (`former_employee`), a participant (`employee_has_participant`) and an
 employee with an open invitation (`employee_invited`) are `skipped` with nothing saved or sent.
-Otherwise an address the employee's row does not hold is saved to it, as editing the employee
-does, and the invitation is the single one's: `create_participant_invitation`, the account, the
-message. A row that cannot be done is `failed` with its `reason`: a participant error reason,
-`invalid_address` for text that is neither, `employee_not_found`, `contact_not_saved` or
-`invitation_failed`; when only the account or the message failed, `invitation` holds the saved
-invitation for a resend. A failing row never stops the next. An archived client or a lead is
+Otherwise `create_employee_invitation_at_address` saves an address the employee's row does not
+hold and creates the single invitation's `create_participant_invitation` in one transaction, so
+an invitation refused leaves the row as it was; the account and the message follow as for a
+single one. A row that cannot be done is `failed` with its `reason`: a participant error reason,
+`invalid_address` for text that is neither, `employee_not_found`, `contact_not_saved` (the
+employee's row refused the address) or `invitation_failed`; when only the account or the message
+failed, `invitation` holds the saved invitation for a resend. A failing row never stops the next,
+whatever the failure. An archived client or a lead is
 `409` before any row, and a missing binding for a channel asked for `503`.
 
 ## Portal

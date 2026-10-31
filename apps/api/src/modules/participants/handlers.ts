@@ -494,6 +494,35 @@ export const listImportPortalInvitees: RouteHandler<
   return c.json({ items }, 200);
 };
 
+async function createInvitationAtAddress(
+  db: DataClient,
+  clientId: string,
+  employeeId: string,
+  address: { channel: ParticipantChannel; address: string }
+) {
+  const { data, error } = await db.rpc('create_employee_invitation_at_address', {
+    p_client_id: clientId,
+    p_employee_id: employeeId,
+    p_channel: address.channel,
+    p_address: address.address,
+  });
+  if (!error) return data.id;
+  // The function saves the address before inviting at it, so either means the row refused it.
+  if (
+    error.code?.startsWith('23') ||
+    error.message === participantErrorReasons.addressNotOfEmployee
+  ) {
+    console.error(`Bulk invitation contact failed: ${error.code}`);
+    throw new ApiError(
+      'conflict',
+      'The address could not be saved to the employee.',
+      undefined,
+      bulkInvitationFailureReasons.contactNotSaved
+    );
+  }
+  throw fromParticipantError(error, 'bulk invitation create');
+}
+
 const savedFailures = new Set<string>([
   participantErrorReasons.accountUnavailable,
   participantErrorReasons.messageNotSent,
@@ -528,7 +557,7 @@ export const inviteEmployeeParticipants: RouteHandler<
       .maybeSingle(),
     db
       .from('employees')
-      .select('id, email, phone, status')
+      .select('id, status')
       .eq('client_id', clientId)
       .in(
         'id',
@@ -588,38 +617,16 @@ export const inviteEmployeeParticipants: RouteHandler<
       continue;
     }
 
-    const byEmail = address.channel === 'email';
-    const held = byEmail ? employee.email?.trim().toLowerCase() : employee.phone;
-    if (held !== address.address) {
-      const saved = await db
-        .from('employees')
-        .update(byEmail ? { email: address.address } : { phone: address.address })
-        .eq('id', employeeId)
-        .eq('client_id', clientId)
-        .select('id')
-        .maybeSingle();
-      if (saved.error || !saved.data) {
-        if (saved.error) console.error(`Bulk invitation contact failed: ${saved.error.code}`);
-        result('failed', bulkInvitationFailureReasons.contactNotSaved);
-        continue;
-      }
-    }
-
-    let invitationId: string;
+    let invitation: InvitationRow;
     try {
-      invitationId = await createInvitation(db, {
-        clientId,
-        kind: 'employee',
-        employeeId,
-        fullName: null,
-        channel: address.channel,
-        address: address.address,
-      });
+      invitation = await loadInvitation(
+        db,
+        await createInvitationAtAddress(db, clientId, employeeId, address)
+      );
     } catch (error) {
       result('failed', failureReason(error));
       continue;
     }
-    const invitation = await loadInvitation(db, invitationId);
     try {
       result('invited', null, await send(c, admin, invitation, names));
     } catch (error) {

@@ -6632,6 +6632,33 @@ export type Database = {
         Args: { p_evaluation_id: string; p_from_evaluation_id: string };
         Returns: number;
       };
+      create_employee_invitation_at_address: {
+        Args: { p_address: string; p_channel: string; p_client_id: string; p_employee_id: string };
+        Returns: {
+          accepted_at: string | null;
+          address: string;
+          channel: string;
+          client_id: string;
+          created_at: string;
+          employee_id: string | null;
+          expires_at: string;
+          full_name: string | null;
+          id: string;
+          invited_by: string | null;
+          kind: Database['public']['Enums']['participant_kind'];
+          last_sent_at: string;
+          organization_id: string;
+          participant_id: string | null;
+          revoked_at: string | null;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'participant_invitations';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       create_organization: {
         Args: {
           accepted_terms_version: string;
