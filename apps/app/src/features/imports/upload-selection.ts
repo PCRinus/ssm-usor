@@ -207,7 +207,7 @@ async function openZips(kind: ImportKind, zips: Zip[], into: Selection) {
       for (const [entry, content] of Object.entries(entries)) {
         const path = cleanPath(`${zip.path}/${named(entry)}`);
         if (!path) continue;
-        const type = importTypeOf(path) ?? undefined;
+        const type = importTypeOf(path, kind) ?? undefined;
         sortOne(kind, path, new Blob([content as BlobPart], { type }), group, found, inner);
       }
     } catch (cause) {
