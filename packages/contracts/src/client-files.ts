@@ -27,7 +27,7 @@ export const clientFileExtensions = {
 } as const satisfies Record<string, ClientFileType>;
 
 // The limit the bucket applies as well.
-export const maxClientFileBytes = 20 * 1024 * 1024;
+export const maxClientFileBytes = 25 * 1024 * 1024;
 
 const name = z.string().trim().min(1).max(200);
 const note = z.string().trim().max(2000);

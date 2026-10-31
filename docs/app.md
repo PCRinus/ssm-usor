@@ -1051,12 +1051,12 @@ their tab bars read.
   row per import, open at first, "Fișe importate pe … · N fotografii", with "Descarcă fișele
   (ZIP)".
 - The upload dialog (`src/features/client-files/client-file-upload-dialog.tsx`) has a drop zone with
-  "Alege fișiere" and the accepted types and the 20 MB limit under it, the list of chosen
+  "Alege fișiere" and the accepted types and the 25 MB limit under it, the list of chosen
   files (name, kind, size, a button to take each out), an owner's "Doar pentru
   administratori" checkbox that applies to every file in the list (a lead's dialog says
   instead that its files are for owners until promotion), and "Renunță" beside "Încarcă
   fișierul" or "Încarcă N fișiere". Each chosen file is first checked in the browser against
-  the contracts' extension list, the 20 MiB limit, emptiness and a 255-character name; a
+  the contracts' extension list, the 25 MiB limit, emptiness and a 255-character name; a
   refused one shows its reason in the list and is not sent. The rest are queued by
   `use-client-file-uploads.ts` and sent three at a time, each its own `POST` through
   `apiUpload` in `src/api/http.ts`, which sends the `File` with `XMLHttpRequest` because

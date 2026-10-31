@@ -366,7 +366,7 @@ describe('uploading client files', () => {
     mount();
     const user = userEvent.setup({ applyAccept: false });
     const large = pdf('scan.pdf');
-    Object.defineProperty(large, 'size', { value: 21 * 1024 * 1024 });
+    Object.defineProperty(large, 'size', { value: 26 * 1024 * 1024 });
     const certificate = pdf('certificat.pdf');
 
     const dialog = await openUploadDialog(user);
@@ -375,7 +375,7 @@ describe('uploading client files', () => {
       true
     );
     expect(dialog.textContent).toContain(
-      'PDF, imagini, Word sau Excel, de cel mult 20 MB fiecare.'
+      'PDF, imagini, Word sau Excel, de cel mult 25 MB fiecare.'
     );
     await user.upload(within(dialog).getByTestId('client-files-input'), [
       new File(['MZ'], 'setup.exe'),
@@ -390,7 +390,7 @@ describe('uploading client files', () => {
       rows.slice(0, 2).map((row) => within(row).getByTestId('client-file-upload-error').textContent)
     ).toEqual([
       'Se pot încărca doar fișiere PDF, JPEG, PNG, Word și Excel.',
-      'Fișierul depășește 20 MB.',
+      'Fișierul depășește 25 MB.',
     ]);
     expect(rows[2]!.textContent).toContain('PDF · 1 KB');
     expect(within(dialog).getByTestId('client-files-upload-submit').textContent).toBe(

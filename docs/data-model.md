@@ -1197,7 +1197,7 @@ deleting the first.
 | `owners_only`          | Hides the row and its file from specialists. False by default.                              |
 | `original_file_name`   | The name it was uploaded under, up to 255 characters; the download carries it.              |
 | `mime_type`            | PDF, JPEG, PNG, `.docx`, `.doc`, `.xlsx` or `.xls`, by a check constraint.                  |
-| `size_bytes`, `sha256` | 1 byte to 20 MiB, and the SHA-256 of the content in hex.                                    |
+| `size_bytes`, `sha256` | 1 byte to 25 MiB, and the SHA-256 of the content in hex.                                    |
 | `storage_path`         | Generated as `<organization>/<client>/<id>.<extension>` from the type; unique.              |
 | `uploaded_by`          | The signed-in user, the platform admin during an impersonation; null once the account goes. |
 | `employee_id`          | Optional: the employee of the same client the file is about (ADR 021); set at upload only.  |
@@ -1223,8 +1223,9 @@ the uploader in. It is a trigger rather than a policy so that the API can name t
 secret key passes the second check, not the first.
 
 The files live in the private `client-files` bucket, which accepts the same seven types up to
-20 MiB. No character of a user's file name reaches a path. The row comes first: the read
-policy asks `is_readable_client_file_path`, true for a path a row the caller can see names;
+25 MiB, the size an employee import takes a sheet at (ADR 032). No character of a user's file
+name reaches a path. The row comes first: the read policy asks `is_readable_client_file_path`,
+true for a path a row the caller can see names;
 the upload and delete policies ask `is_writable_client_file_path`, which also wants the caller
 to be the uploader or an owner and the client to be active. There is no update policy, so an
 object is never replaced. Supabase's database backups do not include these files, and unlike a

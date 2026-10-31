@@ -695,7 +695,7 @@ computer, whose extension decides the type; `name` defaults to it without the ex
 to one of the client's employees, and one the client does not have, or one archived, answers
 `400` with an issue on `employeeId` before anything is stored. It cannot be changed after the
 upload. A refused file answers `400` with a
-reason: `client_file_empty`; `client_file_too_large` over 20 MiB, by `Content-Length` before
+reason: `client_file_empty`; `client_file_too_large` over 25 MiB, by `Content-Length` before
 the body is read; `client_file_type_not_allowed` for any extension but `.pdf`, `.jpg`,
 `.jpeg`, `.png`, `.docx`, `.doc`, `.xlsx` and `.xls`; and `client_file_content_mismatch` when
 the content is not that type. The content check reads the first bytes of a PDF, a JPEG, a PNG

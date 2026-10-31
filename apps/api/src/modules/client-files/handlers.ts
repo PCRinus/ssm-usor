@@ -171,7 +171,7 @@ const refused = (reason: string, message: string) =>
 function checkedType(fileName: string, bytes: Uint8Array) {
   if (bytes.length === 0) throw refused(clientFileErrorReasons.empty, 'The file is empty.');
   if (bytes.length > maxClientFileBytes) {
-    throw refused(clientFileErrorReasons.tooLarge, 'The file is larger than 20 MiB.');
+    throw refused(clientFileErrorReasons.tooLarge, 'The file is larger than 25 MiB.');
   }
   const type = typeOfExtension(splitFileName(fileName).extension);
   if (!type) {
@@ -209,7 +209,7 @@ export const uploadClientFile: RouteHandler<typeof uploadClientFileRoute, ApiEnv
   const { clientId } = c.req.valid('param');
   const query = c.req.valid('query');
   if (Number(c.req.header('Content-Length') ?? 0) > maxClientFileBytes) {
-    throw refused(clientFileErrorReasons.tooLarge, 'The file is larger than 20 MiB.');
+    throw refused(clientFileErrorReasons.tooLarge, 'The file is larger than 25 MiB.');
   }
   // The body is the file itself, not JSON, so it is read here rather than validated above.
   const bytes = new Uint8Array(await c.req.arrayBuffer());

@@ -393,9 +393,9 @@ describe('POST /clients/{clientId}/files', () => {
     expect(calls('/rest/v1/client_files', 'POST')).toHaveLength(0);
   });
 
-  it('refuses a file larger than 20 MiB', async () => {
+  it('refuses a file larger than 25 MiB and takes one of 25 MiB', async () => {
     mockUpstream();
-    const bytes = new Uint8Array(20 * 1024 * 1024 + 1);
+    const bytes = new Uint8Array(25 * 1024 * 1024 + 1);
     bytes.set(pdf);
     const response = await upload({ fileName: 'mare.pdf' }, bytes);
     expect(response.status).toBe(400);

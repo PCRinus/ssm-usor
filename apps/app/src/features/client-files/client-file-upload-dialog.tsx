@@ -153,7 +153,7 @@ function UploadForm({
                 Alege fișiere
               </Button>
               <p className="text-xs text-muted-foreground">
-                PDF, imagini, Word sau Excel, de cel mult 20 MB fiecare.
+                PDF, imagini, Word sau Excel, de cel mult 25 MB fiecare.
               </p>
               <input
                 ref={fileInput}

@@ -1,5 +1,5 @@
 begin;
-select plan(42);
+select plan(43);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -37,6 +37,12 @@ create or replace function pg_temp.path_of(file_id text)
 returns text language sql as $$
   select storage_path from public.client_files where id = file_id::uuid;
 $$;
+
+select results_eq(
+  $$ select file_size_limit from storage.buckets where id = 'client-files' $$,
+  $$ values (26214400::bigint) $$,
+  'the bucket takes a file of 25 MiB, as the table does'
+);
 
 select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000001');
 
@@ -112,10 +118,10 @@ select throws_ok(
 select throws_ok(
   $$ insert into public.client_files (organization_id, client_id, name, original_file_name, mime_type, size_bytes, sha256)
      values ('11111111-0000-4000-8000-000000000001', 'cccccccc-0000-4000-8000-000000000001',
-       'Mare', 'Mare.pdf', 'application/pdf', 20971521, repeat('b', 64)) $$,
+       'Mare', 'Mare.pdf', 'application/pdf', 26214401, repeat('b', 64)) $$,
   '23514',
   null,
-  'and so is a file above 20 MiB'
+  'and so is a file above 25 MiB'
 );
 
 select results_eq(
