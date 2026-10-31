@@ -37,6 +37,8 @@ sources:
   - apps/app/src/features/participants/bulk-invite-format.ts
   - apps/app/src/features/participants/participant-actions.tsx
   - apps/app/src/features/participants/participant-errors.ts
+  - apps/app/src/features/participants/sms-rules.ts
+  - apps/app/src/features/participants/invite-administrator-dialog.tsx
   - apps/app/src/features/signatures/signing-agreement-card.tsx
   - apps/app/src/features/signatures/agreement-warning.tsx
   - apps/app/src/features/signatures/signature-format.ts
@@ -54,7 +56,14 @@ Cardul arată dacă angajatul are acces, cu ce adresă și din ce zi, și în ce
 
 ### Invitația
 
-**Invită în portal** trimite adresa portalului la emailul sau la telefonul din datele angajatului. Dacă are ambele, alegi unde; emailul e ales din start, pentru că fiecare cod trimis prin SMS costă. SMS-urile pleacă doar la numere din România (+40) și nu pleacă deloc în perioada de probă, înainte să alegi un plan. Angajatul intră apoi cu un cod primit la aceeași adresă: adresa la care l-ai invitat e cea cu care intră.
+**Invită în portal** trimite adresa portalului la emailul sau la telefonul din datele angajatului. Dacă are ambele, alegi unde; emailul e ales din start. Angajatul intră apoi cu un cod primit la aceeași adresă: adresa la care l-ai invitat e cea cu care intră.
+
+SMS-urile pleacă doar la numere din România (+40) și nu pleacă deloc în perioada de probă, înainte să alegi un plan:
+
+- în perioada de probă, telefonul apare în dialog, dar nu se poate alege: sub el scrie „SMS, după ce alegi un plan”, iar dialogul îți spune că invitația și codurile de semnare pleacă pe email. Dacă angajatul are doar telefon, adaugă-i un email cu **Modifică datele**;
+- un număr din altă țară apare cu „SMS doar spre numere din România”. Dacă e singurul contact al angajatului, dialogul îți spune din ce țară e numărul și îți cere un email.
+
+La fel e și la invitarea administratorului clientului, din tabul **Portal**: în perioada de probă SMS-ul nu se poate alege, iar sub telefon scrie că SMS trimitem doar spre numere din România.
 
 Invitația e valabilă 30 de zile. Până o acceptă, vezi **Invitat**, cu data trimiterii și data la care expiră; după 30 de zile, **Invitație expirată**. **Retrimite** reînnoiește invitația și retrimite mesajul, cel mult o dată la 10 minute.
 
@@ -64,6 +73,8 @@ Câteva mesaje pe care le poți vedea:
 - „Angajatul are deja o invitație deschisă la cealaltă adresă. Revoc-o înainte de a-l invita la aceasta.”
 - „Adresa nu mai este cea din datele angajatului. Reîncarcă pagina și încearcă din nou.”: emailul sau telefonul s-a schimbat între timp.
 - „Invitația a fost salvată, dar mesajul nu a putut fi trimis. O poți retrimite peste 10 minute.”
+- „În perioada de probă nu trimitem SMS. Trimite invitația pe email; SMS-urile pornesc când se alege un plan.”
+- „SMS trimitem doar spre numere din România (+40). Trimite invitația pe email.”
 
 ### Angajat fără email sau telefon
 
@@ -80,9 +91,9 @@ Apoi îi împarte pe angajați în două liste:
 - **Primesc invitația**: cei cu email sau telefon în datele lor. Cine are și email și telefon primește invitația pe email.
 - **Fără email sau telefon pe fișă**: fișele pe hârtie au rareori un contact. Scrie un email sau un număr de telefon în dreptul celor pe care vrei să-i inviți acum.
 
-Ce scrii hotărăște cum pleacă invitația: un email, pe email; un număr de telefon, prin SMS. Un rând lăsat gol rămâne neinvitat, fără să-i oprească pe ceilalți; îl inviți oricând din pagina lui sau din tabul **Portal**. Emailurile și telefoanele scrise aici se salvează în datele angajaților, ca atunci când le modifici, odată cu invitația: o adresă pentru care invitația e refuzată nu se salvează. Foștii angajați nu apar, iar cei care au deja acces sau o invitație deschisă apar separat și nu primesc nimic din nou.
+Ce scrii hotărăște cum pleacă invitația: un email, pe email; un număr de telefon din România, prin SMS. Un număr din altă țară rămâne neinvitat, cu „SMS trimitem doar spre numere din România (+40); scrie un email.” pe rândul lui. În perioada de probă orice număr de telefon rămâne neinvitat, cu „În perioada de probă nu trimitem SMS; scrie un email.”, iar dialogul îți spune că invitațiile pleacă doar pe email. Un rând lăsat gol rămâne neinvitat, fără să-i oprească pe ceilalți; îl inviți oricând din pagina lui sau din tabul **Portal**. Emailurile și telefoanele scrise aici se salvează în datele angajaților, ca atunci când le modifici, odată cu invitația: o adresă pentru care invitația e refuzată nu se salvează. Foștii angajați nu apar, iar cei care au deja acces sau o invitație deschisă apar separat și nu primesc nimic din nou.
 
-Înainte să trimiți, dialogul îți spune câte invitații pleacă prin SMS: fiecare SMS costă, ca și codurile de intrare trimise după aceea, pe când emailul nu.
+Înainte să trimiți, dialogul îți spune câte invitații pleacă prin SMS. Invitațiile și codurile de intrare nu se numără din cele incluse în plan; se numără doar codurile de semnare trimise prin SMS, adică ale celor care nu au email.
 
 Cu **Trimite**, fiecare invitație pleacă la fel ca atunci când inviți angajatul din pagina lui și e valabilă 30 de zile. La sfârșit, fiecare rând îți spune dacă invitația a plecat sau de ce nu, de exemplu pentru o adresă care aparține deja altei persoane a clientului. O invitație salvată al cărei mesaj nu a plecat o retrimiți după 10 minute, din pagina angajatului sau din tabul **Portal**.
 

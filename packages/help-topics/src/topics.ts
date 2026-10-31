@@ -359,6 +359,10 @@ export const helpTopics = {
     path: '/organizatie/abonament/',
     anchor: 'contul-doar-pentru-citire',
   },
+  'organizatie.limita-sms': {
+    path: '/organizatie/abonament/',
+    anchor: 'limita-de-siguranță-pentru-sms',
+  },
   'organizatie.pachete': {
     path: '/organizatie/abonament/',
     anchor: 'pachetele-de-angajați-și-utilizatorii-în-plus',
