@@ -128,6 +128,10 @@ export const helpTopics = {
     anchor: 'intervalul-de-instruire',
   },
   'angajati.invitatie': { path: '/clienti/angajati/portal-si-act-aditional/', anchor: 'invitația' },
+  'angajati.invitatie-din-fise': {
+    path: '/clienti/angajati/portal-si-act-aditional/',
+    anchor: 'invitarea-angajaților-din-fișe',
+  },
   'angajati.invitatie-fara-adresa': {
     path: '/clienti/angajati/portal-si-act-aditional/',
     anchor: 'angajat-fără-email-sau-telefon',
