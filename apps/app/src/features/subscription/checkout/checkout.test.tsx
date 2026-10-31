@@ -138,6 +138,15 @@ describe('choosing a plan', () => {
     expect((screen.getByTestId('packs-less') as HTMLButtonElement).disabled).toBe(true);
     expect((await screen.findByTestId('checkout-total')).textContent).toBe('83,49 €');
     expect(await screen.findByText('Azi nu plătești nimic.')).toBeTruthy();
+    expect(
+      screen.getByText(/La prima plată primești 2\.500 de credite de bun venit\.$/)
+    ).toBeTruthy();
+    expect(screen.getByTestId('plan-option-start').textContent).toContain(
+      '300 de credite pentru import pe lună, plus 2.500 la prima plată'
+    );
+    expect(screen.getByTestId('plan-option-profesional').textContent).toContain(
+      '1.500 de credite pentru import pe lună, plus 10.000 la prima plată'
+    );
     await screen.findByTestId('payment-element');
     expect(stripe.elementsOptions.at(-1)).toMatchObject({
       mode: 'setup',

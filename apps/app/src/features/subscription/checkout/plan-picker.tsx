@@ -16,6 +16,9 @@ import { contactEmail } from '../subscription-copy';
 import type { BillingOwner } from '../use-billing';
 import { limitsFor, unavailableReason } from './checkout-choice';
 
+const creditsLine = (plan: PaidPlan) =>
+  `${formatCount(billingPlans[plan].monthlyCredits)} de credite pentru import pe lună, plus ${formatCount(billingPlans[plan].welcomeCredits)} la prima plată`;
+
 const planCopy: Record<PaidPlan, { who: string; lines: string[] }> = {
   start: {
     who: 'Pentru specialistul care lucrează singur.',
@@ -23,6 +26,7 @@ const planCopy: Record<PaidPlan, { who: string; lines: string[] }> = {
       '250 de angajați, apoi pachete de 50, până la 600',
       'Un utilizator; al doilea costă 15 € pe lună',
       '50 SMS pe lună, apoi 0,10 € fiecare',
+      creditsLine('start'),
     ],
   },
   profesional: {
@@ -31,6 +35,7 @@ const planCopy: Record<PaidPlan, { who: string; lines: string[] }> = {
       '1.500 de angajați, apoi pachete de 500',
       '3 utilizatori, apoi 15 € pe lună fiecare',
       '300 SMS pe lună, apoi 0,10 € fiecare',
+      creditsLine('profesional'),
       'Fiecare coleg își vede clienții lui',
       'Documente fără marca SSM Ușor',
       'Suport prioritar',
