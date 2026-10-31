@@ -103,6 +103,14 @@ describe('rowFlags', () => {
     expect(rowFlags({ ...base, heldOn: '2026-11-02' }, context)).toEqual(['after_today']);
   });
 
+  it('compares a month-only date with the hire date by month', () => {
+    expect(rowFlags({ ...base, heldOn: '2021-01-01', monthOnly: true }, context)).toEqual([]);
+    expect(rowFlags({ ...base, heldOn: '2020-12-01', monthOnly: true }, context)).toEqual([
+      'before_hire',
+    ]);
+    expect(rowFlags({ ...base, heldOn: '2021-01-01' }, context)).toEqual(['before_hire']);
+  });
+
   it('flags an empty or unclear trainee box', () => {
     expect(rowFlags({ ...base, signatures: { ...signed, trainee: 'absent' } }, context)).toEqual([
       'unsigned',

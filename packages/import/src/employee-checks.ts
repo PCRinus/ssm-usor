@@ -135,7 +135,7 @@ export function rowFlags(
   row: Pick<
     ProposedSheetRow,
     'domain' | 'phase' | 'heldOn' | 'durationMinutes' | 'testOnly' | 'signatures'
-  >,
+  > & { monthOnly?: boolean },
   context: RowCheckContext
 ): RowFlagCode[] {
   const flags: RowFlagCode[] = [];
@@ -145,9 +145,11 @@ export function rowFlags(
   if (row.heldOn !== null) {
     // The hiring trainings come before the admission to work, which a sheet may give as the
     // hire date.
-    if (context.hiredAt !== null && !hiringPhases.has(row.phase) && row.heldOn < context.hiredAt) {
-      flags.push('before_hire');
-    }
+    const { hiredAt } = context;
+    const before =
+      hiredAt !== null &&
+      (row.monthOnly ? row.heldOn.slice(0, 7) < hiredAt.slice(0, 7) : row.heldOn < hiredAt);
+    if (before && !hiringPhases.has(row.phase)) flags.push('before_hire');
     if (row.heldOn > context.today) flags.push('after_today');
   }
   return flags;

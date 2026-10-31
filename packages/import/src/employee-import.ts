@@ -327,7 +327,12 @@ function readRow(
     if (proposed.fromThemes.length > 0) flags.push('from_client_themes');
   }
 
-  flags.push(...rowFlags(proposed, { hiredAt: person.hiredAt, today: builder.today }));
+  flags.push(
+    ...rowFlags(
+      { ...proposed, monthOnly: date?.monthOnly ?? false },
+      { hiredAt: person.hiredAt, today: builder.today }
+    )
+  );
   proposed.flags = flags;
   proposed.proposedIncluded = !flags.includes('unsigned');
 
