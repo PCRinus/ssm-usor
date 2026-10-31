@@ -53,6 +53,10 @@ sources:
   - docs/architecture/adr-032-employees-imported-from-training-sheets.md
   - docs/architecture/adr-023-advanced-electronic-signature.md
   - packages/contracts/src/imports.ts
+  - packages/contracts/src/billing.ts
+  - apps/api/src/modules/credits/usage.ts
+  - apps/app/src/features/imports/import-credits.ts
+  - apps/app/src/features/imports/credits-notices.tsx
   - apps/api/src/modules/imports/handlers.ts
   - apps/api/src/modules/imports/employees.ts
   - apps/api/src/modules/imports/cleanup.ts
@@ -90,6 +94,31 @@ sources:
 Un client pe care îl preiei vine cu un dosar: documentația SSM și PSI scrisă de-a lungul anilor și fișele individuale de instruire completate de mână. Aplicația le citește și îți face o propunere. Nu se salvează nimic până nu verifici propunerea și o confirmi.
 
 Sunt două importuri, în această ordine: întâi clientul, din documentația lui, apoi angajații, din fișele lor.
+
+## Creditele importurilor
+
+Citirea documentelor și a fotografiilor se socotește în credite. Un credit înseamnă o fotografie sau o pagină scanată citită.
+
+- **Importul unui client** folosește 25 de credite pentru citirea documentelor, oricât de lungi ar fi, plus câte unul pentru fiecare fotografie și pagină scanată. Un PDF cu text, salvat din Word de exemplu, intră în cele 25. Care pagini ale unui PDF sunt scanate se află abia la citire, așa că fereastra de încărcare îți spune: „Folosește 25 de credite, plus 1 pentru fiecare pagină scanată.”
+- **Importul angajaților** folosește un credit pentru fiecare fotografie și pentru fiecare pagină a unui PDF.
+
+### Câte credite ai
+
+În perioada de probă ai 300 de credite pentru toată perioada. Planul Start are 300 de credite pe lună, iar Profesional 1.500. Luna e cea a abonamentului, iar creditele nefolosite nu trec în luna următoare.
+
+La prima plată primești, o singură dată, creditele de bun venit, ca să-ți aduci toți clienții în aplicație: 2.500 cu Start sau 10.000 cu Profesional. Ele nu expiră și se folosesc după cele ale lunii. Dacă treci de la Start la Profesional, primești pe loc diferența de credite a lunii și, dacă aveai deja cadoul de la Start, diferența de cadou.
+
+Înainte să pornești un import, fereastra de încărcare îți arată cât folosește și câte credite îți mai rămân luna aceasta și din cadoul de bun venit.
+
+### Când nu ajung creditele
+
+Un import nou pornește doar dacă creditele rămase acoperă ce se știe dinainte: cele 25 ale citirii și fotografiile, la un client; toate fotografiile și paginile, la angajați. Altfel **Încarcă și citește** rămâne oprit, iar fereastra îți spune câte credite trebuie, câte îți mai rămân și când primești altele. La angajați poți scoate o parte dintre fotografii și le imporți după reînnoire, cu toate fotografiile unei persoane în același import. Dacă ai nevoie de credite mai devreme, scrie-ne la contact@ssmusor.ro și îți adăugăm credite.
+
+Un import pornit nu se oprește din lipsă de credite. Dacă documentele unui client au mai multe pagini scanate decât credite rămase, importul se termină, iar diferența se scade din creditele lunii următoare: cu 4 credite peste, luna următoare pe Start începe cu 296. Înainte să creezi clientul vezi cât a folosit importul, de exemplu „Importul a folosit 34 de credite (25 + 9 pagini scanate)”.
+
+### Creditele returnate
+
+Dacă un import se oprește înainte să fie gata de verificat, primești înapoi toate creditele lui, iar pagina importului îți spune „Creditele ți-au fost returnate.” Un import la care renunți după ce a fost citit nu se returnează: citirea s-a făcut.
 
 ## Importul unui client din documente
 
