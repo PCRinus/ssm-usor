@@ -11,6 +11,8 @@ const capitalWords = new Set([
   'ITM',
   'EIP',
   'IPSSM',
+  'IPSU',
+  'SEPP',
   'CAEN',
   'GPL',
   'PVC',

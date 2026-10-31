@@ -147,12 +147,16 @@ const text = (value: string | null) => {
   return trimmed === '' ? null : trimmed;
 };
 
-// A post read as "SUDOR" or "sudor" would be added to the client as written.
+const capitalized = (value: string | null) => {
+  const cleaned = text(value);
+  return cleaned === null ? null : cleaned.charAt(0).toLocaleUpperCase('ro') + cleaned.slice(1);
+};
+
+// A post read as "SUDOR" or "sudor" would be added to the client as written. A trainer's job
+// title keeps its capitals: it is often an acronym ("SEPP", "RSVTI").
 const titled = (value: string | null) => {
   const cleaned = text(value);
-  if (cleaned === null) return null;
-  const cased = allCapitals(cleaned) ? sentenceCase(cleaned) : cleaned;
-  return cased.charAt(0).toLocaleUpperCase('ro') + cased.slice(1);
+  return capitalized(cleaned !== null && allCapitals(cleaned) ? sentenceCase(cleaned) : cleaned);
 };
 
 const titledFields = new Set<EmployeeImportFieldName>(['jobTitle', 'qualification', 'workplace']);
@@ -305,9 +309,9 @@ function readRow(
     durationMinutes:
       row.durationMinutes !== null && row.durationMinutes > 0 ? row.durationMinutes : null,
     trainerName: text(row.trainerName),
-    trainerJobTitle: titled(row.trainerJobTitle),
+    trainerJobTitle: capitalized(row.trainerJobTitle),
     verifierName: text(row.verifierName),
-    verifierJobTitle: titled(row.verifierJobTitle),
+    verifierJobTitle: capitalized(row.verifierJobTitle),
     material: text(row.material),
     supplementaryReason: row.phase === 'supplementary' ? row.supplementaryReason : null,
     signatures: {
@@ -332,7 +336,7 @@ function readRow(
     const parts = [
       admittedOn,
       text(admission.admittedByName),
-      titled(admission.admittedByJobTitle),
+      capitalized(admission.admittedByJobTitle),
     ];
     if (parts.some((part) => part !== null)) {
       proposed.admission = {

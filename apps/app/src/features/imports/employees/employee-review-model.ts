@@ -224,9 +224,13 @@ export function includedOf(context: Pick<ReviewContext, 'proposal' | 'changes'>,
   );
 }
 
+// While the pages disagree on a name, the person goes by the one most pages give, which comes first.
+const shownName = (field: ResolvedField) =>
+  field.choice ? (field.options[0]?.value ?? null) : field.value;
+
 export function personName(context: Pick<ReviewContext, 'proposal' | 'changes'>, person: Person) {
-  const last = resolveField(context, person, 'lastName').value;
-  const first = resolveField(context, person, 'firstName').value;
+  const last = shownName(resolveField(context, person, 'lastName'));
+  const first = shownName(resolveField(context, person, 'firstName'));
   const name = [last, first].filter((part) => part !== null && part !== '').join(' ');
   return name || 'Persoană fără nume';
 }
