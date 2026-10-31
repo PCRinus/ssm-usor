@@ -29,6 +29,7 @@ import {
   type ApiErrorResponse,
   confirmImport,
   getGetClientQueryKey,
+  getGetImportQueryKey,
   getListImportsQueryKey,
   type ImportDetail,
 } from '@/api/generated/api';
@@ -156,6 +157,7 @@ export function EmployeeConfirmDialog({
       });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getGetImportQueryKey(detail.id) }),
         queryClient.invalidateQueries({
           predicate: ({ queryKey }) => String(queryKey[0]).startsWith(`/clients/${clientId}`),
         }),
