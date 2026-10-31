@@ -152,6 +152,7 @@ export function EmployeeConfirmDialog({
       }
       await confirmImport(detail.id, { version: saved.version }, apiRequest);
       leaveEmployeesImported(clientId, {
+        importId: detail.id,
         created: summary.created.length + summary.leavers.length,
         photos: summary.files,
         trainingsHeld: summary.trainingsHeld,

@@ -71,7 +71,7 @@ Fără email și fără telefon, dialogul îți spune „Angajatul nu are email 
 
 ### Invitarea angajaților din fișe
 
-După un import de angajați din fișele de instruire, îi inviți pe toți în portal deodată, cu **Invită în portal angajații din fișe**. Dialogul se deschide după confirmarea importului și din cardul pe care tabul **Angajați** îl arată după import, cât timp unii dintre angajații aduși nu sunt nici invitați, nici în portal.
+După un import de angajați din fișele de instruire, îi inviți pe toți în portal deodată, cu **Invită în portal angajații din fișe**. Butonul e în cardul pe care tabul **Angajați** îl arată după confirmarea importului, cât timp unii dintre angajații aduși nu sunt nici invitați, nici în portal.
 
 Dialogul începe cu ce găsesc angajații în portal, în ordine: informarea despre cum le folosim datele, la care apasă „Am înțeles”; actul adițional privind semnarea electronică, primul lucru de semnat; apoi instruirile de acum înainte, pe care le semnează pe telefon. Instruirile transcrise de pe fișe rămân semnate pe hârtie și apar doar de citit. Nu li se cere niciun acord: informarea doar îi anunță, pentru că evidența instruirilor e o obligație legală a angajatorului.
 

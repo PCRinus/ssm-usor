@@ -11,6 +11,7 @@ import {
   PenLine,
   Plus,
   ScanText,
+  Send,
 } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 
@@ -21,10 +22,13 @@ import {
 } from '@/api/generated/api';
 import { useAuth } from '@/features/auth/auth-context';
 import { roCount } from '@/features/employees/employee-format';
+import { useBulkInvite } from '@/features/participants/use-bulk-invite';
+import { uninvitedOf, useImportInvitees } from '@/features/participants/use-import-invitees';
 
 import { AbandonImportDialog } from '../abandon-import-dialog';
 import { isRunning, isUploadUnderway, photosLabel } from '../import-format';
 import {
+  type EmployeesImported,
   forgetEmployeesImported,
   importedSentence,
   joinNames,
@@ -316,6 +320,21 @@ export function EmployeesImportedCard({ clientId }: { clientId: string }) {
   const [notice, setNotice] = useState(() => readEmployeesImported(clientId));
   useEffect(() => forgetEmployeesImported(clientId), [clientId]);
   if (!notice) return null;
+  return <ImportedNoticeCard clientId={clientId} notice={notice} onHide={() => setNotice(null)} />;
+}
+
+function ImportedNoticeCard({
+  clientId,
+  notice,
+  onHide,
+}: {
+  clientId: string;
+  notice: EmployeesImported;
+  onHide: () => void;
+}) {
+  const { openBulkInvite, bulkInviteDialog } = useBulkInvite(clientId);
+  const invitees = useImportInvitees(clientId, notice.importId);
+  const uninvited = uninvitedOf(invitees.data?.items ?? []);
   const created = notice.created;
   return (
     <Card
@@ -335,29 +354,41 @@ export function EmployeesImportedCard({ clientId }: { clientId: string }) {
           </h3>
           <p className="text-sm text-muted-foreground">{importedSentence(notice)}</p>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => setNotice(null)}>
+        <Button variant="ghost" size="sm" onClick={onHide}>
           Ascunde
         </Button>
       </div>
-      <div className="grid gap-1.5 rounded-lg bg-muted/50 px-4 py-3 text-sm">
-        <p className="font-medium">Ce urmează: invită-i în portal</p>
-        <p className="text-muted-foreground">
-          Acolo semnează actul adițional privind semnarea electronică, apoi, de acum înainte,
-          instruirile pe telefon. Ce e pe fișe rămâne semnat pe hârtie.
-        </p>
-        <ul className="grid list-disc gap-1 pl-5 text-muted-foreground">
-          {notice.noContact > 0 && (
-            <li>
-              {notice.noContact === notice.created
-                ? 'Fișele nu au email sau telefon: le adaugi când îi inviți în portal.'
-                : `${roCount(notice.noContact, 'angajat nu are', 'angajați nu au')} email sau telefon: le adaugi când îi inviți în portal.`}
-            </li>
-          )}
-          {notice.noCommute.length > 0 && (
-            <li>Mai lipsește traseul de deplasare la {joinNames(notice.noCommute)}.</li>
-          )}
-        </ul>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-lg bg-muted/50 px-4 py-3 text-sm">
+        <div className="grid min-w-0 flex-1 basis-80 gap-1.5">
+          <p className="font-medium">Ce urmează: invită-i în portal</p>
+          <p className="text-muted-foreground">
+            Acolo semnează actul adițional privind semnarea electronică, apoi, de acum înainte,
+            instruirile pe telefon. Ce e pe fișe rămâne semnat pe hârtie.
+          </p>
+          <ul className="grid list-disc gap-1 pl-5 text-muted-foreground">
+            {notice.noContact > 0 && (
+              <li>
+                {notice.noContact === notice.created
+                  ? 'Fișele nu au email sau telefon: le scrii în dialogul de invitare.'
+                  : `${roCount(notice.noContact, 'angajat nu are', 'angajați nu au')} email sau telefon: le scrii în dialogul de invitare.`}
+              </li>
+            )}
+            {notice.noCommute.length > 0 && (
+              <li>Mai lipsește traseul de deplasare la {joinNames(notice.noCommute)}.</li>
+            )}
+          </ul>
+        </div>
+        {uninvited > 0 && (
+          <Button
+            data-testid="employees-imported-invite"
+            onClick={() => openBulkInvite(notice.importId)}
+          >
+            <Send aria-hidden="true" />
+            Invită în portal angajații din fișe
+          </Button>
+        )}
       </div>
+      {bulkInviteDialog}
     </Card>
   );
 }

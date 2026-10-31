@@ -82,6 +82,7 @@ type Options = {
   found?: typeof foundSheets;
   open?: unknown[];
   confirm?: () => Response;
+  invitees?: unknown[];
 };
 
 function mockEmployeeImport({
@@ -89,6 +90,7 @@ function mockEmployeeImport({
   found = { items: [], total: 0 },
   open = [],
   confirm,
+  invitees = [],
 }: Options = {}) {
   let version = detail.version;
   let confirmed = false;
@@ -120,6 +122,9 @@ function mockEmployeeImport({
       return Response.json({ items: workplaces });
     }
     if (url.pathname === `/clients/${clientId}/found-sheets`) return Response.json(found);
+    if (url.pathname === `/clients/${clientId}/imports/${importId}/portal-invitees`) {
+      return Response.json({ items: invitees });
+    }
     if (url.pathname.startsWith(`/clients/${clientId}/files/`)) {
       return Response.json({}, { status: 404 });
     }
@@ -435,6 +440,59 @@ describe('confirming', () => {
     expect(card.textContent).toContain('Un angajat creat din fișe');
     expect(card.textContent).toContain('Lazăr Radu a fost completat');
     await waitFor(() => expect(screen.getByTestId('client-employee-count').textContent).toBe('1'));
+  });
+
+  const invitee = (
+    index: number,
+    lastName: string,
+    portal: 'participant' | 'invited' | null = null,
+    current = true
+  ) => ({
+    employeeId: `7c9e6679-7425-40de-944b-${String(index).padStart(12, '0')}`,
+    lastName,
+    firstName: 'Ana',
+    position: 'Brutar',
+    email: null,
+    phone: null,
+    current,
+    portal,
+  });
+
+  async function confirmPartly(invitees: unknown[]) {
+    mockEmployeeImport({ detail: partly(), invitees });
+    const user = userEvent.setup();
+    mount(importPath);
+    await user.click(await screen.findByTestId('employee-hub-confirm'));
+    await user.click(await screen.findByTestId('employee-confirm-submit'));
+    return { user, card: await screen.findByTestId('employees-imported') };
+  }
+
+  it("offers to invite the import's people to the portal while some are left", async () => {
+    const { user, card } = await confirmPartly([invitee(1, 'Lazăr'), invitee(2, 'Pop', 'invited')]);
+    const invite = await within(card).findByTestId('employees-imported-invite');
+    expect(invite.textContent).toBe('Invită în portal angajații din fișe');
+    await user.click(invite);
+    expect(
+      within(await screen.findByTestId('bulk-invite-dialog')).getByRole('heading', { level: 2 })
+        .textContent
+    ).toBe('Invită în portal angajații din fișe');
+    expect(requestsTo(`/clients/${clientId}/imports/${importId}/portal-invitees`)).not.toHaveLength(
+      0
+    );
+  });
+
+  it('offers no invitation once everyone current the import brought is invited or in the portal', async () => {
+    const { card } = await confirmPartly([
+      invitee(1, 'Lazăr', 'participant'),
+      invitee(2, 'Pop', 'invited'),
+      invitee(3, 'Toma', null, false),
+    ]);
+    await waitFor(() =>
+      expect(requestsTo(`/clients/${clientId}/imports/${importId}/portal-invitees`)).toHaveLength(1)
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(within(card).queryByTestId('employees-imported-invite')).toBeNull();
+    expect(card.textContent).toContain('Ce urmează: invită-i în portal');
   });
 
   it('names every value the confirm refused, as the review names them', async () => {

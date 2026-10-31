@@ -1002,7 +1002,8 @@ their tab bars read.
   them as cards, the found sheets with their thumbnails (`GET …/files/{fileId}/download`). An
   open import of the client (`GET /imports?kind=employees&clientId=`) shows above the list with
   "N din M verificați", the day it expires and "Continuă"; after a confirm, the tab shows what
-  was created, held in memory for that visit (`employees-imported-notice.ts`). The upload dialog
+  was created, held in memory for that visit (`employees-imported-notice.ts`), with "Invită în
+  portal angajații din fișe" while some of them are left to invite. The upload dialog
   (`employee-upload-dialog.tsx`) reuses the client import's selection with the employee caps
   (photographs and PDFs only, 500 photographs or PDF pages with a PDF's pages estimated in the
   browser, 25 MiB a file, 1 GiB in all, two counters), offers the found sheets ("Din
@@ -1087,7 +1088,9 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   [ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md), canvas board
   EmpInvite) invites the people of a confirmed employee import at once. `useBulkInvite(clientId)`
   gives `openBulkInvite(importId)` and the dialog to render; `useImportInvitees` and
-  `uninvitedOf` tell an after-import notice whether anyone is left to invite. The dialog reads
+  `uninvitedOf` tell an after-import notice whether anyone is left to invite. The Angajați
+  tab's card after a confirm (`EmployeesImportedCard`) offers it while someone the import brought
+  is current, neither a participant nor invited. The dialog reads
   `GET /clients/{clientId}/imports/{importId}/portal-invitees` once and keeps those rows while
   open: three cards of what the person meets in the portal (the privacy notice, the act
   adițional, the trainings to come), then "Primesc invitația" (an email or phone on their row),

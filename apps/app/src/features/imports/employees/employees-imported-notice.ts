@@ -8,6 +8,7 @@ export { joinNames };
 // In memory, for the client's Angajați tab until it is hidden or the page reloads: the
 // employees are saved either way, and their pages say where they came from.
 export type EmployeesImported = {
+  importId: string;
   created: number;
   photos: number;
   trainingsHeld: number;
