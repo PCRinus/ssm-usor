@@ -246,6 +246,6 @@ describe('the PDF viewer', () => {
     expect((await screen.findByRole('alert')).textContent).toContain(
       'PDF-ul nu a putut fi deschis aici.'
     );
-    expect(onShown).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onShown).toHaveBeenCalledTimes(1));
   });
 });
