@@ -256,6 +256,34 @@ function dropEmpty<T extends object>(row: T): T {
   ) as T;
 }
 
+// What the sheets give, or the member wrote, whatever the app's value: every page's while they
+// disagree.
+function sheetValues(
+  field: PersonField<Value>,
+  change: NonNullable<PersonChange['fields']>[EmployeeImportFieldName],
+  pages: ReadonlySet<string>
+): Value[] {
+  if (change?.value !== undefined) return change.value === null ? [] : [change.value];
+  const chosen = change?.option === undefined ? undefined : field.options[change.option];
+  if (chosen) return [chosen.value];
+  return field.options
+    .filter((option) => option.pageIds.some((id) => pages.has(id)))
+    .map((option) => option.value);
+}
+
+/** The employee a person completes, unless the member declined the match. */
+export function matchOf(person: ProposedSheetPerson, change: PersonChange | undefined) {
+  return change?.existing === false ? null : person.existing;
+}
+
+// A declined match leaves the person new: the employee's values are no one's to keep.
+function fieldsOf(person: ProposedSheetPerson, change: PersonChange | undefined) {
+  if (matchOf(person, change) !== null || person.existing === null) return person.fields;
+  return Object.fromEntries(
+    Object.entries(person.fields).map(([name, field]) => [name, { options: field.options }])
+  ) as ProposedSheetPerson['fields'];
+}
+
 /**
  * The proposal with the member's changes, shaped as `apply_employee_import` takes it, and what
  * keeps it from being confirmed. Only people marked checked are written.
@@ -308,7 +336,7 @@ export function toEmployeePayload(input: {
     const state = change?.state ?? 'to_check';
     if (state === 'to_check') toCheck.push(person.id);
     const leftOn = resolveField(
-      person.fields.leftOn,
+      fieldsOf(person, change).leftOn,
       change?.fields?.leftOn,
       new Set(pagesOf.get(person.id) ?? []),
       () => {}
@@ -316,7 +344,10 @@ export function toEmployeePayload(input: {
     const included =
       state === 'checked' &&
       (change?.included ??
-        includedByDefault(typeof leftOn === 'string' ? leftOn : null, person.existing !== null));
+        includedByDefault(
+          typeof leftOn === 'string' ? leftOn : null,
+          matchOf(person, change) !== null
+        ));
     if (!included) quality.people.unticked++;
     return included;
   });
@@ -334,18 +365,23 @@ export function toEmployeePayload(input: {
     const change = changes.people[person.id];
     const pages = new Set(pagesOf.get(person.id) ?? []);
     const path = `people.${person.id}`;
-    const existing = person.existing
-      ? records.employees.find((employee) => employee.id === person.existing!.employeeId)
+    const match = matchOf(person, change);
+    const existing = match
+      ? records.employees.find((employee) => employee.id === match.employeeId)
       : undefined;
-    if (person.existing && !existing) block(path, 'unknown_reference');
+    if (match && !existing) block(path, 'unknown_reference');
+    if (match?.matchedBy === 'name_only' && change?.existing === undefined) {
+      block(`${path}.existing`, 'choice');
+    }
     if (existing && completed.has(existing.id)) block(`${path}.existing`, 'invalid');
     if (existing) completed.add(existing.id);
 
+    const fields = fieldsOf(person, change);
     const values = {} as Record<EmployeeImportFieldName, Value | null>;
     const replace: string[] = [];
     let changed = false;
     for (const name of employeeImportFieldNames) {
-      const field = person.fields[name] as PersonField<Value>;
+      const field = fields[name] as PersonField<Value>;
       const fieldPath = `${path}.fields.${name}`;
       const resolved = resolveField(field, change?.fields?.[name], pages, (code) =>
         block(fieldPath, code)
@@ -383,6 +419,17 @@ export function toEmployeePayload(input: {
       if (other || (taken.has(key) && taken.get(key) !== person.id))
         block(`${path}.fields.${name}`, 'invalid');
       taken.set(key, person.id);
+    }
+
+    // A rehire is a new employee in the app, never the former one reactivated.
+    const leftAt = existing?.terminatedAt ?? null;
+    if (
+      leftAt !== null &&
+      sheetValues(fields.hiredAt, change?.fields?.hiredAt, pages).some(
+        (day) => String(day) > leftAt
+      )
+    ) {
+      block(`${path}.fields.hiredAt`, 'invalid');
     }
 
     const row: EmployeePayloadRow = { key: person.id };

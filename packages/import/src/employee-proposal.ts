@@ -70,6 +70,11 @@ export const personFlagCodes = [
   'month_only',
   'no_contact',
   'leaver',
+  // The employee proposed has left the client, on the date in `detail`.
+  'former_employee',
+  // The sheet's hire date is after that leave date. In the app a rehire is a new employee, so
+  // confirming blocks while the person stays matched to the former one.
+  'rehire',
 ] as const;
 
 export const personFlagSchema = z.object({
@@ -181,7 +186,11 @@ export const proposedSheetPageSchema = z.object({
 
 export type ProposedSheetPage = z.infer<typeof proposedSheetPageSchema>;
 
-export const existingMatches = ['cnp', 'name_birth_date'] as const;
+// `name_only`, for a person with no CNP and no birth date, is asked: the member confirms or
+// declines it.
+export const existingMatches = ['cnp', 'name_birth_date', 'name_only'] as const;
+
+export type ExistingMatch = (typeof existingMatches)[number];
 
 export const proposedSheetPersonSchema = z.object({
   id: z.string().min(1),

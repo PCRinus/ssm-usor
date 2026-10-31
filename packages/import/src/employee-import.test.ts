@@ -260,6 +260,45 @@ describe('toEmployeeProposal', () => {
     });
   });
 
+  it('flags a former employee, and a rehire when the sheet’s hire date is after they left', () => {
+    const former = { ...existingPop, terminatedAt: '2018-12-31' };
+    const propose = (hiredAt: string) =>
+      toEmployeeProposal({
+        pages: pagesOf(page({ ...popFront, fields: { ...popFront.fields, hiredAt } })),
+        client: { ...client, employees: [former] },
+        themes,
+        today,
+      }).people[0]!;
+
+    expect(propose('2015-04-03').flags).toEqual([
+      { code: 'former_employee', detail: '2018-12-31' },
+    ]);
+    expect(propose('2024-02-01').flags).toEqual([
+      { code: 'former_employee', detail: '2018-12-31' },
+      { code: 'rehire', field: 'hiredAt', detail: '2018-12-31' },
+    ]);
+  });
+
+  it('proposes the employee of the same name for a page with no CNP and no birth date', () => {
+    const proposal = toEmployeeProposal({
+      pages: pagesOf(
+        page({
+          pageKind: 'ssm_periodic',
+          person: { lastName: 'Pop', firstName: 'Elena' },
+          trainings: [row({ heldOn: '2026-01-12' })],
+        })
+      ),
+      client,
+      themes,
+      today,
+    });
+
+    expect(proposal.people[0]!.existing).toEqual({
+      employeeId: existingPop.id,
+      matchedBy: 'name_only',
+    });
+  });
+
   it('completes an existing employee: the app’s values beside the sheet’s, its trainings hidden', () => {
     const proposal = propose();
     const pop = personNamed(proposal, 'Pop');

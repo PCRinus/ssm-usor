@@ -84,12 +84,31 @@ describe('findExistingEmployee', () => {
     ).toBe('name_birth_date');
   });
 
-  it('takes nobody for the name alone, or for another CNP', () => {
+  it('proposes the one employee of the same name for a person with no CNP and no birth date', () => {
+    const named = { cnp: null, lastName: 'Elena', firstName: 'Pop', birthDate: null };
+
+    expect(findExistingEmployee(named, [existingPop])).toMatchObject({
+      matchedBy: 'name_only',
+      employee: { id: existingPop.id },
+    });
     expect(
-      findExistingEmployee({ cnp: null, lastName: 'Pop', firstName: 'Elena', birthDate: null }, [
-        existingPop,
-      ])
+      findExistingEmployee(named, [existingPop, { ...existingPop, id: 'other', cnp: null }])
     ).toBeNull();
+    expect(findExistingEmployee({ ...named, birthDate: '1991-01-01' }, [existingPop])).toBeNull();
+  });
+
+  it('prefers a current employee to a former one of the same name and birth date', () => {
+    const former = { ...existingPop, id: 'former', cnp: null, terminatedAt: '2018-12-31' };
+
+    expect(
+      findExistingEmployee(
+        { cnp: null, lastName: 'Pop', firstName: 'Elena', birthDate: '1990-07-20' },
+        [former, existingPop]
+      )?.employee.id
+    ).toBe(existingPop.id);
+  });
+
+  it('takes nobody for another CNP', () => {
     expect(
       findExistingEmployee(
         { cnp: cnps.coman, lastName: 'Pop', firstName: 'Elena', birthDate: '1990-07-20' },

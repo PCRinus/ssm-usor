@@ -1,6 +1,6 @@
 import { isValidCnp } from '@ssm-usor/contracts';
 
-import type { ReferenceMatch } from './employee-proposal';
+import type { ExistingMatch, ReferenceMatch } from './employee-proposal';
 import { contained, editDistance, foldName, foldText, sameName, similar, streetKey } from './match';
 
 export interface Named {
@@ -109,23 +109,41 @@ export interface PersonKey {
   birthDate: string | null;
 }
 
+const nameKey = (lastName: string, firstName: string | null) =>
+  foldName(`${lastName} ${firstName ?? ''}`)
+    .split(' ')
+    .filter(Boolean)
+    .sort()
+    .join(' ');
+
 export function findExistingEmployee<E extends ExistingEmployee>(
   person: PersonKey,
   employees: readonly E[]
-): { employee: E; matchedBy: 'cnp' | 'name_birth_date' } | null {
+): { employee: E; matchedBy: ExistingMatch } | null {
   // A code whose control digit fails is a misread one, which must not hide the name and birth date.
   const cnp = person.cnp !== null && isValidCnp(person.cnp) ? person.cnp : null;
   if (cnp !== null) {
     const byCnp = employees.find((employee) => employee.cnp === cnp);
     if (byCnp) return { employee: byCnp, matchedBy: 'cnp' };
   }
-  if (person.lastName === null || person.birthDate === null) return null;
+  if (person.lastName === null) return null;
+  if (person.birthDate === null) {
+    if (cnp !== null) return null;
+    // A later import's continuation pages often carry the name alone (ADR 032).
+    const key = nameKey(person.lastName, person.firstName);
+    const named = employees.filter(
+      (employee) => nameKey(employee.lastName, employee.firstName) === key
+    );
+    return named.length === 1 ? { employee: named[0]!, matchedBy: 'name_only' } : null;
+  }
   const name = `${person.lastName} ${person.firstName ?? ''}`;
-  const byName = employees.find(
-    (employee) =>
-      employee.birthDate === person.birthDate &&
-      (cnp === null || employee.cnp === null) &&
-      sameName(`${employee.lastName} ${employee.firstName}`, name)
-  );
+  const byName = [...employees]
+    .sort((a, b) => Number(a.terminatedAt !== null) - Number(b.terminatedAt !== null))
+    .find(
+      (employee) =>
+        employee.birthDate === person.birthDate &&
+        (cnp === null || employee.cnp === null) &&
+        sameName(`${employee.lastName} ${employee.firstName}`, name)
+    );
   return byName ? { employee: byName, matchedBy: 'name_birth_date' } : null;
 }

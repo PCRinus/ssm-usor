@@ -496,6 +496,13 @@ export function toEmployeeProposal(input: EmployeeImportInput): EmployeeImportPr
     if (leftOn !== null && (existing === null || existing.terminatedAt === null)) {
       flags.push({ code: 'leaver', field: 'leftOn' });
     }
+    if (existing?.terminatedAt) {
+      flags.push({ code: 'former_employee', detail: existing.terminatedAt });
+      const hiredAt = first(fields.hiredAt) as string | null;
+      if (hiredAt !== null && hiredAt > existing.terminatedAt) {
+        flags.push({ code: 'rehire', field: 'hiredAt', detail: existing.terminatedAt });
+      }
+    }
     if (!existing?.hasContact) flags.push({ code: 'no_contact' });
 
     people.push({

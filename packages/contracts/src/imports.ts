@@ -374,6 +374,9 @@ export const employeeImportChangesSchema = z.object({
             .optional(),
           // The corrected CNP the import offered is taken.
           cnpCorrection: z.boolean().optional(),
+          // Whether the person is the client's employee the import proposed: false creates them
+          // instead. Asked of a match by the name alone.
+          existing: z.boolean().optional(),
           // This person's post or workplace, over the one decided for their title or text.
           jobPositionId: z.uuid().optional(),
           workplaceId: z.uuid().nullable().optional(),

@@ -362,6 +362,81 @@ describe('toEmployeePayload', () => {
     expect(map().blockers).toEqual([{ path: `people.${coman}.existing`, code: 'invalid' }]);
   });
 
+  it('asks the member to confirm or decline an employee matched by the name alone', () => {
+    const continuation = page({
+      pageKind: 'ssm_periodic',
+      person: { lastName: 'Pop', firstName: 'Elena' },
+      trainings: [row({ heldOn: '2026-01-12' })],
+    });
+    const { proposal, changes, check, map } = setUp(continuation);
+    const pop = proposal.people[0]!.id;
+    check(pop);
+
+    expect(map().blockers).toEqual([{ path: `people.${pop}.existing`, code: 'choice' }]);
+
+    changes.people[pop]!.existing = true;
+    expect(map().blockers).toEqual([]);
+    expect(map().payload.employees[0]).toMatchObject({ key: pop, id: existingPop.id });
+
+    changes.people[pop]!.existing = false;
+    expect(map().blockers).toEqual([
+      { path: `people.${pop}.fields.jobTitle`, code: 'missing' },
+      { path: `people.${pop}.fields.hiredAt`, code: 'missing' },
+      { path: `people.${pop}.jobPosition`, code: 'missing' },
+    ]);
+    changes.people[pop]!.jobPositionId = positions[1]!.id;
+    changes.people[pop]!.fields = {
+      jobTitle: { value: 'Brutar' },
+      hiredAt: { value: '2026-01-05' },
+    };
+    expect(map().blockers).toEqual([]);
+    expect(map().payload.employees[0]).toEqual({
+      key: pop,
+      job_position_id: positions[1]!.id,
+      last_name: 'Pop',
+      first_name: 'Elena',
+      job_title: 'Brutar',
+      hired_at: '2026-01-05',
+      status: 'active',
+    });
+  });
+
+  it('blocks a rehire matched to the former employee, whom the app keeps apart', () => {
+    const former = { ...existingPop, terminatedAt: '2018-12-31' };
+    const rehired = page({ ...popFront, fields: { ...popFront.fields, hiredAt: '2024-02-01' } });
+    const proposal = toEmployeeProposal({
+      pages: pagesOf(rehired),
+      client: { ...client, employees: [former] },
+      themes,
+      today,
+    });
+    const pop = proposal.people[0]!.id;
+    const changes = noChanges();
+    changes.people[pop] = { state: 'checked' };
+    const map = () =>
+      toEmployeePayload({ proposal, changes, records: { ...records, employees: [former] }, today });
+
+    expect(map().blockers).toEqual([{ path: `people.${pop}.fields.hiredAt`, code: 'invalid' }]);
+
+    changes.people[pop]!.existing = false;
+    changes.people[pop]!.jobPositionId = positions[1]!.id;
+    expect(map().blockers).toEqual([
+      { path: `people.${pop}.fields.cnp`, code: 'invalid' },
+      { path: `people.${pop}.fields.employeeNumber`, code: 'invalid' },
+    ]);
+
+    changes.people[pop]!.fields = { cnp: { value: null }, employeeNumber: { value: null } };
+    const { payload, blockers } = map();
+    expect(blockers).toEqual([]);
+    expect(payload.employees[0]).toMatchObject({
+      key: pop,
+      hired_at: '2024-02-01',
+      status: 'active',
+    });
+    expect(payload.employees[0]!.id).toBeUndefined();
+    expect(payload.trainings.length).toBeGreaterThan(0);
+  });
+
   it('moves a page to another person, and leaves one out', () => {
     const { proposal, changes, check, map } = setUp(comanFront, comanPeriodic, tomaFront);
     const coman = idOf(proposal, 'Coman');

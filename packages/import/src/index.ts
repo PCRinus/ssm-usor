@@ -52,6 +52,7 @@ export {
   type EmployeeImportRecords,
   type EmployeeMapping,
   type EmployeePayloadRow,
+  matchOf,
   type TestResultPayloadRow,
   toEmployeePayload,
   type TrainingPayloadRow,
