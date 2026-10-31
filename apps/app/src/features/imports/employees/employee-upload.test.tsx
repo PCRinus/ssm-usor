@@ -146,15 +146,47 @@ describe('photographs over the caps until they are shrunk', () => {
         ],
       },
     });
-    await within(dialog).findByTestId('employee-upload-chosen');
-    expect(within(dialog).getByTestId('employee-upload-limits').textContent).toContain(
-      'cam 1 MB din 1 GB'
+    expect((await within(dialog).findByTestId('employee-upload-chosen')).textContent).toContain(
+      'cam 1 MB'
     );
     await userEvent.click(within(dialog).getByTestId('employee-upload-submit'));
     expect((await within(dialog).findByTestId('import-upload-error')).textContent).toBe(
       'Fotografia „IMG_4001.jpg” are peste 25 MB și nu am putut-o micșora. Salveaz-o mai mică sau fotografiaz-o din nou, apoi alege fotografiile din nou.'
     );
     expect(requestsTo('/imports', 'POST')).toEqual([]);
+  });
+});
+
+describe('how much fits in one import', () => {
+  it('leaves the caps out while the selection is far below them', async () => {
+    mockUpload();
+    const dialog = await openDialog('employees-import-found');
+    await within(dialog).findByTestId('employee-upload-chosen');
+    expect(within(dialog).queryByTestId('employee-upload-limits')).toBeNull();
+    expect(
+      within(dialog)
+        .getByRole('link', { name: 'Ajutor: ce fotografiezi' })
+        .getAttribute('data-help-topic')
+    ).toBe('import.ce-fotografiezi');
+  });
+
+  it('shows how much of each cap is used once the selection nears one', async () => {
+    mockUpload({
+      found: () => {
+        const found = foundOf([1]);
+        found.items[0]!.sheets[0]!.sizeBytes = 900 * 1024 ** 2;
+        return found;
+      },
+    });
+    const dialog = await openDialog('employees-import-found');
+    const meters = await within(dialog).findByTestId('employee-upload-limits');
+    expect(meters.textContent).toContain('1 din 500 de fotografii și pagini');
+    expect(meters.textContent).toContain('din 1 GB');
+    expect(
+      within(dialog)
+        .getByRole('link', { name: 'Ajutor: cât intră într-un import' })
+        .getAttribute('data-help-topic')
+    ).toBe('import.limite');
   });
 });
 
@@ -301,7 +333,6 @@ describe('the chosen photographs', () => {
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Scoate IMG_1.jpg' }));
     expect(chosenTitle(dialog)).toBe('2 fotografii de citit');
-    expect(within(dialog).getByTestId('employee-upload-limits').textContent).toMatch(/^2 din/);
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Deschide IMG_2.jpg' }));
     const preview = await screen.findByTestId('photo-preview');

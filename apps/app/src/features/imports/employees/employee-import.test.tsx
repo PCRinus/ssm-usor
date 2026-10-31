@@ -216,9 +216,6 @@ describe("the client's Angajați tab", () => {
         '2 fotografii de citit'
       )
     );
-    expect(within(dialog).getByTestId('employee-upload-limits').textContent).toContain(
-      '2 din 500 de fotografii și pagini'
-    );
     expect(within(dialog).queryByTestId('employee-upload-found')).toBeNull();
   });
 });

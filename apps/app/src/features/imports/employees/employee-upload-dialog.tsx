@@ -17,15 +17,14 @@ import {
   Camera,
   FileText,
   FolderUp,
-  Layers,
   LoaderCircle,
   Plus,
   Upload,
-  UsersRound,
   X,
 } from 'lucide-react';
 import { type FormEvent, type ReactNode, useRef, useState } from 'react';
 
+import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
 import { useRefuseStrayDrops } from '@/features/client-files/use-file-drop';
@@ -55,6 +54,8 @@ import { FoundSheetView, FoundStrip, FoundThumb } from './found-strip';
 const limits = importLimits.employees;
 const formats = ['JPG', 'PNG', 'HEIC', 'PDF scanat'];
 const shownThumbs = 15;
+// Far below the caps the meters only repeat the count and size the card already shows.
+const metersFrom = 0.8;
 
 const setAsideReasons: Record<SetAsideFile['reason'], string> = {
   unsupported: 'nu e o fotografie sau o scanare',
@@ -148,8 +149,10 @@ function UploadForm({
   });
   const over = totals.overFiles || totals.overBytes;
   const bytesLabel = `${totals.estimated ? 'cam ' : ''}${sizeLabel(totals.bytes)}`;
-  const positionNames = (positions.data?.items ?? []).map((position) => position.name);
-  const noPosts = positions.isSuccess && positionNames.length === 0;
+  const noPosts = positions.isSuccess && (positions.data?.items ?? []).length === 0;
+  const nearLimits =
+    totals.pages >= metersFrom * limits.scannedPages ||
+    totals.bytes >= metersFrom * limits.totalBytes;
   useRefuseStrayDrops();
 
   async function add(picked: Promise<PickedFile[]> | PickedFile[]) {
@@ -225,9 +228,10 @@ function UploadForm({
           <DialogHeader>
             <DialogTitle>Angajați din fișele de instruire</DialogTitle>
             <DialogDescription>
-              Încarcă fotografiile fișelor individuale de instruire ale angajaților de la{' '}
-              {client.legalName}. Le citim și îți propunem angajații și instruirile lor. Nu creăm
-              niciun angajat până nu confirmi, după verificare.
+              <span className="block">
+                Citim fișele de instruire de la {client.legalName} și îți propunem angajații.
+              </span>
+              <span className="block">Nu creăm niciun angajat până nu confirmi.</span>
             </DialogDescription>
           </DialogHeader>
           <DialogBody className="mt-4 grid gap-3.5">
@@ -317,7 +321,7 @@ function UploadForm({
                   </Button>
                 </div>
                 <div
-                  className="flex flex-wrap justify-center gap-1.5"
+                  className="flex flex-wrap items-center justify-center gap-1.5"
                   aria-label="Fișiere pe care le citim"
                 >
                   {formats.map((format) => (
@@ -328,12 +332,8 @@ function UploadForm({
                       {format}
                     </span>
                   ))}
+                  <HelpLink topic="import.ce-fotografiezi" label="Ajutor: ce fotografiezi" />
                 </div>
-                <p className="max-w-xl text-xs leading-relaxed text-muted-foreground">
-                  Arhivele ZIP le deschidem aici, înainte de încărcare. Într-un import intră până la{' '}
-                  {limits.scannedPages} de fotografii sau pagini PDF, cel mult 25 MB un fișier și 1
-                  GB în total. Fotografiile le micșorăm înainte de încărcare.
-                </p>
                 <input
                   ref={filesInput}
                   type="file"
@@ -410,38 +410,36 @@ function UploadForm({
               title="Puse deoparte, nu le citim"
             />
             <UploadProgress phase={phase} onRetry={retry} onContinue={continueWithout} />
-            <Hint icon={Layers}>
-              Clientul are mai mulți angajați decât încap? Fă mai multe importuri, cu fișele
-              fiecărei persoane în același import. Un import făcut mai târziu completează angajații
-              creați de cel dinainte.
-            </Hint>
-            {positionNames.length > 0 && (
-              <Hint icon={BriefcaseBusiness}>
-                Postul scris pe fișă îl potrivim cu posturile clientului: {listJoin(positionNames)}.
-                Unde nu se potrivește exact, îți propunem cel mai apropiat post și hotărăști o
-                singură dată pentru toți cei cu același post.
-              </Hint>
-            )}
           </DialogBody>
-          <DialogFooter className="mt-6 items-center sm:justify-between">
-            <div
-              className="grid min-w-[min(100%,18rem)] flex-1 gap-4 sm:grid-cols-2"
-              aria-label="Cât intră într-un import"
-              data-testid="employee-upload-limits"
-            >
-              <Meter
-                value={totals.pages}
-                max={limits.scannedPages}
-                label={`${totals.pages}`}
-                of={`din ${limits.scannedPages} de fotografii și pagini`}
-              />
-              <Meter
-                value={totals.bytes}
-                max={limits.totalBytes}
-                label={bytesLabel}
-                of="din 1 GB"
-              />
-            </div>
+          <DialogFooter
+            className={cn(
+              'mt-6 items-center',
+              nearLimits ? 'sm:justify-between' : 'sm:justify-end'
+            )}
+          >
+            {nearLimits && (
+              <div className="flex min-w-[min(100%,18rem)] flex-1 items-center gap-3">
+                <div
+                  className="grid flex-1 gap-4 sm:grid-cols-2"
+                  aria-label="Cât intră într-un import"
+                  data-testid="employee-upload-limits"
+                >
+                  <Meter
+                    value={totals.pages}
+                    max={limits.scannedPages}
+                    label={`${totals.pages}`}
+                    of={`din ${limits.scannedPages} de fotografii și pagini`}
+                  />
+                  <Meter
+                    value={totals.bytes}
+                    max={limits.totalBytes}
+                    label={bytesLabel}
+                    of="din 1 GB"
+                  />
+                </div>
+                <HelpLink topic="import.limite" label="Ajutor: cât intră într-un import" />
+              </div>
+            )}
             <div className="flex gap-2">
               <Button type="button" variant="outline" disabled={busy} onClick={leave}>
                 Renunță
@@ -458,15 +456,6 @@ function UploadForm({
         </form>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function Hint({ icon: Icon, children }: { icon: typeof Layers; children: ReactNode }) {
-  return (
-    <p className="grid grid-cols-[1rem_minmax(0,1fr)] gap-2.5 text-sm leading-relaxed text-muted-foreground">
-      <Icon className="mt-0.5 size-4" aria-hidden="true" />
-      <span>{children}</span>
-    </p>
   );
 }
 
@@ -669,13 +658,6 @@ function ChosenPhotos({
           </li>
         )}
       </ul>
-      <p className="grid grid-cols-[1rem_minmax(0,1fr)] gap-2.5 border-t px-3 py-2.5 text-[13px] leading-relaxed text-muted-foreground">
-        <UsersRound className="mt-0.5 size-4" aria-hidden="true" />
-        <span>
-          După citire grupăm fotografiile pe persoane. O fișă poate avea 2 sau 3 fotografii, față,
-          verso și continuare, în orice ordine. Ține fotografiile unei persoane în același import.
-        </span>
-      </p>
       <PhotoPreviewDialog
         photos={photos}
         current={previewing}
