@@ -122,41 +122,46 @@ const page = (
   },
 });
 
-const proposal = toEmployeeProposal({
-  pages: [
-    page(
-      1,
-      { lastName: 'Popescu', firstName: 'Ion', cnp },
-      { birthDate: '1990-01-01', jobTitle: 'Vânzător', hiredAt: '2015-03-02' },
-      [
-        {
-          domain: 'ssm',
-          phase: 'introductory_general',
-          annualTest: false,
-          heldOn: '2015-03-02',
-          durationMinutes: 480,
-          trainerName: 'Vasile Georgescu',
-          trainerJobTitle: 'Inspector SSM',
-          verifierName: 'Elena Marin',
-          verifierJobTitle: 'Administrator',
-          material: 'Legislația SSM',
-          supplementaryReason: null,
-          traineeSignature: 'present',
-          trainerSignature: 'present',
-          verifierSignature: 'present',
-        },
-      ]
-    ),
-    page(
-      2,
-      { lastName: 'Ionescu', firstName: 'Maria' },
-      { jobTitle: 'Vânzătoare', hiredAt: '2019-01-07' }
-    ),
-  ],
-  client: { jobPositions: [{ id: positionId, name: 'Vânzător' }], workplaces: [], employees: [] },
-  themes: () => null,
-  today: '2026-10-31',
-});
+const sheetPages = [
+  page(
+    1,
+    { lastName: 'Popescu', firstName: 'Ion', cnp },
+    { birthDate: '1990-01-01', jobTitle: 'Vânzător', hiredAt: '2015-03-02' },
+    [
+      {
+        domain: 'ssm',
+        phase: 'introductory_general',
+        annualTest: false,
+        heldOn: '2015-03-02',
+        durationMinutes: 480,
+        trainerName: 'Vasile Georgescu',
+        trainerJobTitle: 'Inspector SSM',
+        verifierName: 'Elena Marin',
+        verifierJobTitle: 'Administrator',
+        material: 'Legislația SSM',
+        supplementaryReason: null,
+        traineeSignature: 'present',
+        trainerSignature: 'present',
+        verifierSignature: 'present',
+      },
+    ]
+  ),
+  page(
+    2,
+    { lastName: 'Ionescu', firstName: 'Maria' },
+    { jobTitle: 'Vânzătoare', hiredAt: '2019-01-07' }
+  ),
+];
+
+const proposalOf = (pages: SheetPageInput[]) =>
+  toEmployeeProposal({
+    pages,
+    client: { jobPositions: [{ id: positionId, name: 'Vânzător' }], workplaces: [], employees: [] },
+    themes: () => null,
+    today: '2026-10-31',
+  });
+
+const proposal = proposalOf(sheetPages);
 
 const checkedPopescu = {
   people: { 'person-1': { state: 'checked' } },
@@ -934,6 +939,29 @@ describe('POST /imports/{importId}/confirm for an employee import', () => {
     expect(syncTrainingRows).toHaveBeenCalledWith({}, applied.training_record_ids);
     expect(syncResultRows).toHaveBeenCalledWith({}, applied.test_result_ids);
     expect(sent).toEqual([{ type: 'copy', importId }]);
+  });
+
+  it("gives a person only their own pages of a PDF that holds other people's sheets", async () => {
+    const scanned = proposalOf(
+      sheetPages.map((each, index) => ({
+        ...each,
+        fileId: fileId(9),
+        page: index + 1,
+        label: `Fise/Scanate.pdf (pagina ${index + 1})`,
+      }))
+    );
+    mockUpstream(({ url }) => {
+      if (url.pathname === '/rest/v1/imports') {
+        return Response.json(importRow({ proposal: scanned }));
+      }
+      if (url.pathname === '/rest/v1/rpc/apply_employee_import') return Response.json(applied);
+    });
+    const response = await request(`/imports/${importId}/confirm`, 'POST', { version: 4 });
+
+    expect(response.status).toBe(200);
+    expect(callsTo('/rest/v1/rpc/apply_employee_import')[0]!.body).toMatchObject({
+      p_payload: { files: [{ employee_key: 'person-1', import_file_id: fileId(9), page: 1 }] },
+    });
   });
 
   it('confirms though the signed sheets could not be brought up to date', async () => {

@@ -9,6 +9,7 @@ import {
 import { strToU8, zipSync } from 'fflate';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { sha256 } from '../../lib/docx';
 import type { ImportMessage } from '../../lib/env';
 import { cleanUpImports } from './cleanup';
 import {
@@ -110,6 +111,7 @@ class World {
   files = new Map<string, ImportFileRow & Record<string, unknown>>();
   objects = new Map<string, Uint8Array>();
   clientFiles = new Map<string, Uint8Array>();
+  pageImages = new Map<string, { sizeBytes: number; sha256: string }>();
   usage: { fileId: string | null; step: string; input: number; cost: number }[] = [];
   sent: { id: string; body: ImportMessage; attempts: number; delaySeconds?: number }[] = [];
   failCopyAfter: number | null = null;
@@ -206,6 +208,9 @@ class World {
       client: async () => null,
       employeeImportClient: async () => this.sheetClient,
       trainingThemes: async () => () => this.themeDefaults,
+      keepPageImage: async (fileId, page, image) => {
+        this.pageImages.set(`${fileId}:${page}`, image);
+      },
       folderCopies: async () =>
         [...this.files.values()]
           .filter((file) => file.state !== 'other_company' && file.state !== 'failed')
@@ -1018,6 +1023,7 @@ describe('a scan', () => {
     };
     expect(Object.keys(prepared.readings)).toHaveLength(11);
     expect(prepared.readings[`${longScan.path} (pagina 12)`]).toBeDefined();
+    expect(world.pageImages.size).toBe(0);
   });
 
   it('reads the pages of a scan whose step was sent twice only once', async () => {
@@ -1386,6 +1392,16 @@ describe('an employee import', () => {
       ].sort()
     );
     expect(extractor.pdfPageImage).toHaveBeenCalledTimes(2);
+    const pageImage = strToU8('jpeg-page');
+    for (const page of [1, 2]) {
+      expect(world.objects.get(pdf.storage_path.replace(/\.pdf$/, `.page-${page}.jpg`))).toEqual(
+        pageImage
+      );
+    }
+    expect(Object.fromEntries(world.pageImages)).toEqual({
+      [`${pdf.id}:1`]: { sizeBytes: pageImage.length, sha256: await sha256(pageImage) },
+      [`${pdf.id}:2`]: { sizeBytes: pageImage.length, sha256: await sha256(pageImage) },
+    });
     expect(
       modelRequests.filter((request) =>
         request.images.includes(`data:image/jpeg;base64,${btoa('upright jpeg-popescu-1')}`)

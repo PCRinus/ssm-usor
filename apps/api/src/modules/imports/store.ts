@@ -80,6 +80,11 @@ export interface ImportStore {
   client(clientId: string): Promise<ExistingClient | null>;
   employeeImportClient(clientId: string): Promise<EmployeeImportClient>;
   trainingThemes(row: ImportRow, today: string): Promise<TrainingThemes>;
+  keepPageImage(
+    fileId: string,
+    page: number,
+    image: { sizeBytes: number; sha256: string }
+  ): Promise<void>;
   folderCopies(importId: string): Promise<{ source_path: string; target_path: string }[]>;
   markCopied(importId: string): Promise<void>;
   uncopiedImports(confirmedBefore: string): Promise<string[]>;
@@ -212,6 +217,16 @@ export function importStore(admin: AdminClient): ImportStore {
         createdBy: row.created_by,
         today,
       }),
+
+    async keepPageImage(fileId, page, image) {
+      const { error } = await admin
+        .from('import_page_images')
+        .upsert(
+          { import_file_id: fileId, page, size_bytes: image.sizeBytes, sha256: image.sha256 },
+          { onConflict: 'import_file_id,page' }
+        );
+      if (error) throw fromDatabaseError(error, 'keep import page image');
+    },
 
     async folderCopies(importId) {
       const { data, error } = await admin.rpc('import_folder_copies', { p_import_id: importId });

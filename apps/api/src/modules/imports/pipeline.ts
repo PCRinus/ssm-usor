@@ -202,6 +202,10 @@ const pageReadingPathOf = (file: Pick<ImportFileRow, 'storage_path'>, page: numb
 
 const pageReadingName = /^[0-9a-f-]{36}\.page-\d+\.json$/;
 
+// import_folder_copies in the database names a page's image the same way.
+const pageImagePathOf = (file: Pick<ImportFileRow, 'storage_path'>, page: number) =>
+  `${basePathOf(file)}.page-${page}.jpg`;
+
 // Null for the step that sorts a scan and sends its pages; a batch's first page otherwise.
 const scanClaimPathOf = (file: Pick<ImportFileRow, 'storage_path'>, firstPage: number | null) =>
   `${basePathOf(file)}.${firstPage === null ? 'scan' : `scan-${firstPage}`}.json`;
@@ -753,6 +757,9 @@ export async function scanPages(
     for (const page of pages) {
       if (read.has(page)) continue;
       const picture = await image(page);
+      if (row.kind === 'employees' && !isImage(file)) {
+        await keepPageImage(deps, file, page, picture.bytes);
+      }
       const reading = await readPage(pageLabel(file, page), dataUrl(picture.bytes, picture.type));
       await deps.objects.write(
         pageReadingPathOf(file, page),
@@ -764,6 +771,21 @@ export async function scanPages(
   } catch (error) {
     await failScan(deps, file, error);
   }
+}
+
+// Kept before the page's reading, so a page read always has the image its employee's file
+// becomes (ADR 032).
+async function keepPageImage(
+  deps: PipelineDeps,
+  file: ImportFileRow,
+  page: number,
+  bytes: Uint8Array
+) {
+  await deps.objects.write(pageImagePathOf(file, page), bytes, 'image/jpeg');
+  await deps.store.keepPageImage(file.id, page, {
+    sizeBytes: bytes.byteLength,
+    sha256: await sha256(bytes),
+  });
 }
 
 async function documentPageReader(deps: PipelineDeps, row: ImportRow, file: ImportFileRow) {
