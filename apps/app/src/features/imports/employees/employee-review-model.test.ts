@@ -611,6 +611,11 @@ describe('the employee a person completes', () => {
       fields: { employeeNumber: { value: null } },
     });
     expect(tags(rehired.context(asNew), 'lazar')).toEqual(['Post de hotărât']);
+
+    const aside = withPersonChange(emptyChanges(), 'lazar', () => ({ state: 'set_aside' }));
+    expect(tags(rehired.context(aside), 'lazar')).toEqual([]);
+    const view = peopleViews(rehired.context(aside)).find((each) => each.person.id === 'lazar');
+    expect(view?.decisions).toEqual([]);
   });
 
   it('completes an employee once: two people proposed as one are both asked', () => {

@@ -599,6 +599,8 @@ const testName = (row: SheetRow) =>
 
 export function decisionsOf(context: ReviewContext, person: Person): Decision[] {
   const decisions: Decision[] = [];
+  // Confirming neither creates nor completes a person set aside, so nothing of theirs is asked.
+  if (stateOf(context, person.id) === 'set_aside') return decisions;
   const { proposal, changes } = context;
   const change = changes.people[person.id];
   const match = matchOf(changes, person);
