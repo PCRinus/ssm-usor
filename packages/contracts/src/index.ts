@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { billingSmsUsageSchema } from './billing';
+import { billingCreditsUsageSchema, billingSmsUsageSchema } from './billing';
 import { missingDocumentDataSchema } from './documents';
 import { creditsShortSchema } from './imports';
 import { membershipSchema } from './organizations';
@@ -92,9 +92,10 @@ export const meResponseSchema = z.object({
     .optional(),
   // Null for an organization without a subscription, which has full access indefinitely.
   subscription: subscriptionSummarySchema.nullable().optional(),
-  // The same count as GET /billing, for the bar and the plan badge on every page; that route asks
-  // Stripe for the owner's amounts. Null without a subscription, or when it could not be read.
+  // The same counts as GET /billing, for the bar and the plan badge on every page; that route asks
+  // Stripe for the owner's amounts. Null without a subscription, or when they could not be read.
   smsThisMonth: billingSmsUsageSchema.nullable().optional(),
+  creditsThisMonth: billingCreditsUsageSchema.nullable().optional(),
 });
 
 export type MeResponse = z.infer<typeof meResponseSchema>;

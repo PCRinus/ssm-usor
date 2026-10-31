@@ -25,6 +25,7 @@ const trialRow = {
   trial_ends_at: '2026-11-25T10:00:00+00:00',
   access_until: '2026-11-25T10:00:00+00:00',
   stripe_subscription_id: null as string | null,
+  created_at: '2026-10-26T10:00:00+00:00',
 };
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -50,6 +51,9 @@ function mockUpstream({
       return Response.json(
         url.searchParams.get('organization_id') === `eq.${organization.id}` ? subscription : null
       );
+    }
+    if (url.pathname === '/rest/v1/rpc/credit_balance') {
+      return Response.json({ granted: 0, used: 640, shortfall: 0, balance: 860, gift_left: 8640 });
     }
     if (url.pathname === '/rest/v1/rpc/sms_period_usage') {
       return Response.json({ used: 252, overage: 0, granted: 0 });
@@ -132,6 +136,7 @@ describe('GET /me', () => {
       impersonation: null,
       subscription: null,
       smsThisMonth: null,
+      creditsThisMonth: null,
     });
   });
 
@@ -191,16 +196,19 @@ describe('GET /me', () => {
       sms_cap_factor: 3,
     };
 
-    it('counts them as the Abonament tab does, for the bar on every page', async () => {
+    it('counts them, and the credits, as the Abonament tab does, for the bar on every page', async () => {
       mockUpstream({ subscription: paidRow });
 
       const response = await request('/me');
 
-      expect(meResponseSchema.parse(await response.json()).smsThisMonth).toMatchObject({
-        used: 252,
-        included: 300,
-        cap: 900,
-        state: 'near',
+      const me = meResponseSchema.parse(await response.json());
+      expect(me.smsThisMonth).toMatchObject({ used: 252, included: 300, cap: 900, state: 'near' });
+      expect(me.creditsThisMonth).toMatchObject({
+        used: 640,
+        included: 1500,
+        left: 860,
+        giftLeft: 8640,
+        state: 'ok',
       });
     });
 
@@ -209,7 +217,9 @@ describe('GET /me', () => {
 
       const response = await request('/me');
 
-      expect(meResponseSchema.parse(await response.json()).smsThisMonth?.state).toBe('none');
+      const me = meResponseSchema.parse(await response.json());
+      expect(me.smsThisMonth?.state).toBe('none');
+      expect(me.creditsThisMonth).toMatchObject({ included: 300, period: 'trial' });
     });
 
     it('leaves the count out instead of failing the page when it cannot be read', async () => {
@@ -219,7 +229,9 @@ describe('GET /me', () => {
       const response = await request('/me', {}, { ...env, SUPABASE_SECRET_KEY: undefined });
 
       expect(response.status).toBe(200);
-      expect(meResponseSchema.parse(await response.json()).smsThisMonth).toBeNull();
+      const me = meResponseSchema.parse(await response.json());
+      expect(me.smsThisMonth).toBeNull();
+      expect(me.creditsThisMonth).toBeNull();
     });
   });
 
@@ -248,6 +260,7 @@ describe('GET /me', () => {
       impersonation: null,
       subscription: null,
       smsThisMonth: null,
+      creditsThisMonth: null,
     });
   });
 

@@ -261,6 +261,57 @@ export type MeResponseSmsThisMonth = {
   state: MeResponseSmsThisMonthState;
 } | null;
 
+export type MeResponseCreditsThisMonthPeriod =
+  (typeof MeResponseCreditsThisMonthPeriod)[keyof typeof MeResponseCreditsThisMonthPeriod];
+
+export const MeResponseCreditsThisMonthPeriod = {
+  trial: 'trial',
+  month: 'month',
+} as const;
+
+export type MeResponseCreditsThisMonthState =
+  (typeof MeResponseCreditsThisMonthState)[keyof typeof MeResponseCreditsThisMonthState];
+
+export const MeResponseCreditsThisMonthState = {
+  ok: 'ok',
+  near: 'near',
+  out: 'out',
+  negative: 'negative',
+  unlimited: 'unlimited',
+} as const;
+
+/**
+ * @nullable
+ */
+export type MeResponseCreditsThisMonth = {
+  /** @minimum 0 */
+  used: number;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  included: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  allowance: number | null;
+  /** @minimum 0 */
+  granted: number;
+  /** @minimum 0 */
+  shortfall: number;
+  /** @nullable */
+  left: number | null;
+  /** @minimum 0 */
+  giftLeft: number;
+  /** @minimum 0 */
+  giftPending: number;
+  period: MeResponseCreditsThisMonthPeriod;
+  periodStart: string;
+  periodEnd: string;
+  state: MeResponseCreditsThisMonthState;
+} | null;
+
 export interface MeResponse {
   user: MeResponseUser;
   /** @nullable */
@@ -273,6 +324,8 @@ export interface MeResponse {
   subscription?: MeResponseSubscription;
   /** @nullable */
   smsThisMonth?: MeResponseSmsThisMonth;
+  /** @nullable */
+  creditsThisMonth?: MeResponseCreditsThisMonth;
 }
 
 export interface SupportIdentity {
