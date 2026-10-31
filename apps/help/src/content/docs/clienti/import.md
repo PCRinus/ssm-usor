@@ -108,7 +108,7 @@ Citirea documentelor și a fotografiilor se socotește în credite. Un credit î
 
 La prima plată primești, o singură dată, creditele de bun venit, ca să-ți aduci toți clienții în aplicație: 2.500 cu Start sau 10.000 cu Profesional. Ele nu expiră și se folosesc după cele ale lunii. Dacă treci de la Start la Profesional, primești pe loc diferența de credite a lunii și, dacă aveai deja cadoul de la Start, diferența de cadou.
 
-Înainte să pornești un import, fereastra de încărcare îți arată cât folosește și câte credite îți mai rămân luna aceasta și din cadoul de bun venit.
+Înainte să pornești un import, fereastra de încărcare îți arată cât folosește și câte credite îți mai rămân luna aceasta și din cadoul de bun venit. Câte mai ai vezi oricând și pe pagina **Abonament**, în bara creditelor (vezi [Creditele pentru import](/organizatie/abonament/#creditele-pentru-import)).
 
 ### Când nu ajung creditele
 
