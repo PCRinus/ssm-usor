@@ -11,7 +11,7 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useRouteContext } from '@tanstack/react-router';
+import { useNavigate, useRouteContext, useRouter } from '@tanstack/react-router';
 import {
   BadgeCheck,
   CalendarCheck,
@@ -28,6 +28,7 @@ import { type ReactNode, useState } from 'react';
 import {
   type ApiErrorResponse,
   confirmImport,
+  getGetClientQueryKey,
   getListImportsQueryKey,
   type ImportDetail,
 } from '@/api/generated/api';
@@ -122,6 +123,7 @@ export function EmployeeConfirmDialog({
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const router = useRouter();
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const summary = confirmSummary(context);
@@ -160,8 +162,11 @@ export function EmployeeConfirmDialog({
         queryClient.invalidateQueries({
           predicate: ({ queryKey }) => String(queryKey[0]).startsWith('/employees'),
         }),
+        queryClient.refetchQueries({ queryKey: getGetClientQueryKey(clientId) }),
       ]);
       await navigate({ to: '/clients/$clientId/employees', params: { clientId } });
+      // The client's header reads its route's loader, which keeps the client it loaded.
+      await router.invalidate();
     } catch (cause) {
       const body =
         cause instanceof ApiHttpError

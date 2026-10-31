@@ -91,6 +91,7 @@ function mockEmployeeImport({
   confirm,
 }: Options = {}) {
   let version = detail.version;
+  let confirmed = false;
   mockApi((init, url) => {
     const method = init?.method ?? 'GET';
     if (url.pathname === `/imports/${importId}` && method === 'GET') {
@@ -101,13 +102,17 @@ function mockEmployeeImport({
       return Response.json({ version });
     }
     if (url.pathname === `/imports/${importId}/confirm`) {
+      confirmed = true;
       return confirm?.() ?? Response.json({ clientId, fileCount: 0, employeeIds: [] });
     }
     if (url.pathname === `/imports/${importId}/source`) {
       return Response.json({}, { status: 404 });
     }
     if (url.pathname === '/imports') return Response.json({ items: open });
-    if (url.pathname === `/clients/${clientId}`) return Response.json({ client, canDelete: false });
+    if (url.pathname === `/clients/${clientId}`) {
+      const currentEmployeeCount = confirmed ? 1 : client.currentEmployeeCount;
+      return Response.json({ client: { ...client, currentEmployeeCount }, canDelete: false });
+    }
     if (url.pathname === `/clients/${clientId}/job-positions`) {
       return Response.json({ items: positions });
     }
@@ -352,6 +357,7 @@ describe('confirming', () => {
     const card = await screen.findByTestId('employees-imported');
     expect(card.textContent).toContain('Un angajat creat din fișe');
     expect(card.textContent).toContain('Lazăr Radu a fost completat');
+    await waitFor(() => expect(screen.getByTestId('client-employee-count').textContent).toBe('1'));
   });
 
   it('says whose value the client refused, as the review names it', async () => {
