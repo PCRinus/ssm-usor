@@ -6633,7 +6633,12 @@ export type Database = {
         Returns: number;
       };
       create_employee_invitation_at_address: {
-        Args: { p_address: string; p_channel: string; p_client_id: string; p_employee_id: string };
+        Args: {
+          p_address: string;
+          p_channel: string;
+          p_client_id: string;
+          p_employee_id: string;
+        };
         Returns: {
           accepted_at: string | null;
           address: string;
