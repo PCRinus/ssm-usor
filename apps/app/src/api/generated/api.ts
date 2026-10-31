@@ -7510,6 +7510,18 @@ export type ClientFileListResponseItemsItemUploadedBy = {
   fullName: string | null;
 } | null;
 
+/**
+ * @nullable
+ */
+export type ClientFileListResponseItemsItemImportKind =
+  | (typeof ClientFileListResponseItemsItemImportKind)[keyof typeof ClientFileListResponseItemsItemImportKind]
+  | null;
+
+export const ClientFileListResponseItemsItemImportKind = {
+  client: 'client',
+  employees: 'employees',
+} as const;
+
 export type ClientFileListResponseItemsItem = {
   id: string;
   name: string;
@@ -7531,6 +7543,8 @@ export type ClientFileListResponseItemsItem = {
   importId: string | null;
   /** @nullable */
   importPath: string | null;
+  /** @nullable */
+  importKind: ClientFileListResponseItemsItemImportKind;
   /** @nullable */
   importRead: boolean | null;
   /** @nullable */
@@ -7576,6 +7590,17 @@ export type ClientFileResponseFileUploadedBy = {
   fullName: string | null;
 } | null;
 
+/**
+ * @nullable
+ */
+export type ClientFileResponseFileImportKind =
+  (typeof ClientFileResponseFileImportKind)[keyof typeof ClientFileResponseFileImportKind] | null;
+
+export const ClientFileResponseFileImportKind = {
+  client: 'client',
+  employees: 'employees',
+} as const;
+
 export type ClientFileResponseFile = {
   id: string;
   name: string;
@@ -7597,6 +7622,8 @@ export type ClientFileResponseFile = {
   importId: string | null;
   /** @nullable */
   importPath: string | null;
+  /** @nullable */
+  importKind: ClientFileResponseFileImportKind;
   /** @nullable */
   importRead: boolean | null;
   /** @nullable */

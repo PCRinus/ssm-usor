@@ -754,6 +754,7 @@ describe('the import folder', () => {
     name: name.replace(/\.[^.]+$/, ''),
     originalFileName: name,
     importId,
+    importKind: 'client',
     importPath: path,
     importRead: read,
     importReason: read ? null : 'Fișierul este protejat cu parolă.',
@@ -811,6 +812,29 @@ describe('the import folder', () => {
     await waitFor(() => expect(saved).toHaveLength(1));
     expect(saved[0]!.type).toBe('application/zip');
     expect(saved[0]!.size).toBeGreaterThan(3 * 4);
+  });
+
+  it("shows the scanned sheets of an employee import among the client's files as a folder of their own", async () => {
+    mockApi({
+      items: [
+        {
+          ...imported('66666666-6666-4666-8666-666666666666', 'Fise scanate.pdf', null),
+          importKind: 'employees',
+        },
+      ],
+    });
+    mount();
+
+    const folder = await screen.findByTestId('client-import-folder');
+    expect(within(folder).getByTestId('client-import-folder-title').textContent).toBe(
+      'Fișe importate pe 27.10.2026 · un fișier'
+    );
+    expect(folder.textContent).toContain(
+      'Fișele scanate din care au fost transcrise instruirile. Fiecare angajat are la fișierele sale doar paginile lui.'
+    );
+    expect(
+      within(folder).getByTestId('client-import-folder-toggle').getAttribute('aria-label')
+    ).toBe('Deschide fișele importate');
   });
 
   it("shows an employee's sheet photographs from an import as an open folder of their own", async () => {

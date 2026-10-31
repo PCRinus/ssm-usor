@@ -10555,6 +10555,11 @@
                   "type": "string",
                   "nullable": true
                 },
+                "importKind": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["client", "employees", null]
+                },
                 "importRead": {
                   "type": "boolean",
                   "nullable": true
@@ -10586,6 +10591,7 @@
                 "canChange",
                 "importId",
                 "importPath",
+                "importKind",
                 "importRead",
                 "importReason",
                 "createdAt",
@@ -10683,6 +10689,11 @@
                 "type": "string",
                 "nullable": true
               },
+              "importKind": {
+                "type": "string",
+                "nullable": true,
+                "enum": ["client", "employees", null]
+              },
               "importRead": {
                 "type": "boolean",
                 "nullable": true
@@ -10714,6 +10725,7 @@
               "canChange",
               "importId",
               "importPath",
+              "importKind",
               "importRead",
               "importReason",
               "createdAt",
