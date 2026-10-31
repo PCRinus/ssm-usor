@@ -16,7 +16,7 @@ import {
   LoaderCircle,
   X,
 } from 'lucide-react';
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 
 import {
   getListImportsQueryKey,
@@ -34,15 +34,14 @@ import {
   filesLabel,
   importErrorMessage,
   isRunning,
-  isUploadStalled,
   pagesLabel,
   uploadedWhen,
-  uploadStallsAt,
   uploadSummary,
 } from './import-format';
 import { ImportThumbnail } from './import-thumbnail';
 import { ReadSetAsideButton } from './read-set-aside-button';
 import { useImport } from './use-import';
+import { useUploadStalled } from './use-upload-stalled';
 
 type ImportFile = ImportDetailFilesItem;
 
@@ -104,17 +103,6 @@ export function ImportLoader({
     );
   }
   return children(query.data.import);
-}
-
-function useUploadStalled(detail: ImportDetail) {
-  const [now, setNow] = useState(Date.now);
-  const stalled = isUploadStalled(detail, now);
-  useEffect(() => {
-    if (detail.status !== 'uploading' || stalled) return;
-    const timer = setTimeout(() => setNow(Date.now()), uploadStallsAt(detail) - Date.now());
-    return () => clearTimeout(timer);
-  }, [detail, stalled]);
-  return stalled;
 }
 
 function title(detail: ImportDetail, stalled: boolean) {

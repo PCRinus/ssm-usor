@@ -10,8 +10,9 @@ import type { ImportDetail } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
 
 import { AbandonImportDialog } from '../abandon-import-dialog';
-import { isRunning, isUploadStalled, photosLabel, uploadedWhen } from '../import-format';
+import { isRunning, photosLabel, uploadedWhen } from '../import-format';
 import { ImportThumbnail } from '../import-thumbnail';
+import { useUploadStalled } from '../use-upload-stalled';
 
 type ImportFile = ImportDetail['files'][number];
 
@@ -66,7 +67,7 @@ export function EmployeeProcessing({
   const [abandoning, setAbandoning] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const running = isRunning(detail.status);
-  const stalled = isUploadStalled(detail);
+  const stalled = useUploadStalled(detail);
   const reached = reachedStep(detail);
   const files = detail.files;
   const read = files.filter((file) => file.state === 'read').length;
@@ -79,11 +80,13 @@ export function EmployeeProcessing({
       ? 'Importul s-a oprit'
       : detail.status === 'abandoned'
         ? 'Import oprit'
-        : detail.status === 'uploading'
-          ? stalled
-            ? 'Încărcarea nu s-a terminat'
-            : 'Se încarcă fotografiile'
-          : 'Citim fișele';
+        : detail.status === 'confirmed'
+          ? 'Import confirmat'
+          : detail.status === 'uploading'
+            ? stalled
+              ? 'Încărcarea nu s-a terminat'
+              : 'Se încarcă fotografiile'
+            : 'Citim fișele';
 
   return (
     <div className="grid gap-6" data-testid="employee-processing">
