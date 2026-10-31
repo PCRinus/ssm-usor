@@ -6547,7 +6547,6 @@ export type Database = {
           isSetofReturn: true;
         };
       };
-      administered_client_ids: { Args: never; Returns: string[] };
       answer_test_attempt: {
         Args: {
           p_attempt_id: string;
@@ -6912,10 +6911,6 @@ export type Database = {
         Args: { p_item: Json; p_keys: Json; p_name: string };
         Returns: string;
       };
-      is_client_administrator: {
-        Args: { p_client_id: string };
-        Returns: boolean;
-      };
       is_draft_document_path: { Args: { p_path: string }; Returns: boolean };
       is_instruction_module_path: { Args: { p_path: string }; Returns: boolean };
       is_organization_owner: { Args: never; Returns: boolean };
@@ -7215,8 +7210,6 @@ export type Database = {
           isSetofReturn: false;
         };
       };
-      participant_client_ids: { Args: never; Returns: string[] };
-      participant_employee_ids: { Args: never; Returns: string[] };
       portal_material: {
         Args: {
           p_domain: Database['public']['Enums']['training_domain'];

@@ -15,7 +15,7 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
-import { type Participation, participationOf } from '../../lib/participant';
+import { createPortalReadClient, type Participation, participationOf } from '../../lib/participant';
 import { recordSlots, requestColumns, signatureColumns } from '../signing/record-slots';
 import { testStatusColumns, toEmployeeTests } from '../tests/status';
 import {
@@ -40,8 +40,8 @@ import type {
   setPortalLanguageRoute,
 } from './routes';
 
-// Policies choose the rows a participant reads, not the columns: every select here names its
-// columns, so the CNP, the specialist's notes and the provider's bank and terms never leave.
+// Read with the secret key: every select names its columns, so the CNP, the specialist's notes and
+// the provider's bank and terms never leave.
 const trainingStatusColumns =
   'training_status(ssm_state, ssm_due_on, ssm_last_periodic_on, ssm_interval_months, ssm_interval_source, psi_state, psi_due_on, psi_last_periodic_on, psi_interval_months, psi_interval_source)';
 
@@ -64,8 +64,8 @@ function ownEmployee(participation: Participation): EmployeeRef {
   return { clientId: participation.clientId, employeeId: participation.employeeId };
 }
 
-// Checked here and not left to the policies: an account that is also a member of the
-// organization reads every employee through the members' policies.
+// The reads take the secret key, so this is the only check between an employee participant and
+// the rest of the client's employees.
 function administrator(c: Context<ApiEnv>, participantId: string) {
   const participation = participationOf(c, participantId);
   if (participation.kind !== 'client_administrator') {
@@ -150,10 +150,8 @@ async function trainingRecords(
 
 // A missing employee row answers 404 inside loadSheetFacts, which the readiness reads.
 const sheets = (c: Context<ApiEnv>, { clientId, employeeId }: EmployeeRef) =>
-  trainingSheetReadiness(createDataClient(c), clientId, employeeId);
+  trainingSheetReadiness(createPortalReadClient(c), clientId, employeeId);
 
-// Storage lets only members read the templates. The participant reads the template's registry
-// row through their own policy, so the path the secret key reads is one they may use.
 const sheet = (
   c: Context<ApiEnv>,
   employee: EmployeeRef,
@@ -162,7 +160,7 @@ const sheet = (
 ) =>
   drawTrainingSheet(
     c,
-    createDataClient(c),
+    createPortalReadClient(c),
     { ...employee, domain, sequence },
     createAdminFileStore(c).readTemplate
   );
@@ -219,7 +217,7 @@ export const listPortalTrainingRecords: RouteHandler<
 > = async (c) => {
   const { participantId } = c.req.valid('param');
   const employee = ownEmployee(participationOf(c, participantId));
-  return c.json(await trainingRecords(createDataClient(c), employee), 200);
+  return c.json(await trainingRecords(createPortalReadClient(c), employee), 200);
 };
 
 export const getPortalEmployeeData: RouteHandler<
@@ -229,7 +227,7 @@ export const getPortalEmployeeData: RouteHandler<
   const { participantId } = c.req.valid('param');
   const participation = participationOf(c, participantId);
   const { clientId, employeeId } = ownEmployee(participation);
-  const db = createDataClient(c);
+  const db = createPortalReadClient(c);
   const [employee, organization] = await Promise.all([
     db
       .from('employees')
@@ -300,7 +298,7 @@ export const listPortalClientEmployees: RouteHandler<
 > = async (c) => {
   const { participantId } = c.req.valid('param');
   const { clientId } = administrator(c, participantId);
-  const { data, error } = await createDataClient(c)
+  const { data, error } = await createPortalReadClient(c)
     .from('employees')
     .select(employeeListColumns)
     .eq('client_id', clientId)
@@ -333,7 +331,7 @@ export const listPortalResponsiblePersons: RouteHandler<
 > = async (c) => {
   const { participantId } = c.req.valid('param');
   const { clientId } = administrator(c, participantId);
-  const { data, error } = await createDataClient(c)
+  const { data, error } = await createPortalReadClient(c)
     .from('client_responsible_persons')
     .select(responsiblePersonColumns)
     .eq('client_id', clientId)
@@ -362,7 +360,7 @@ export const listPortalEmployeeTrainingRecords: RouteHandler<
 > = async (c) => {
   const { participantId, employeeId } = c.req.valid('param');
   const employee = administeredEmployee(c, participantId, employeeId);
-  return c.json(await trainingRecords(createDataClient(c), employee), 200);
+  return c.json(await trainingRecords(createPortalReadClient(c), employee), 200);
 };
 
 export const getPortalEmployeeTrainingSheets: RouteHandler<

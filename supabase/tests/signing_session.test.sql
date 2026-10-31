@@ -183,7 +183,7 @@ select throws_ok(
 
 select pg_temp.act_as('dddddddd-0000-4000-8000-000000000001');
 select is(
-  (select count(*)::int from public.agreement_signatures), 1, 'the employee reads the evidence on their own agreement'
+  (select count(*)::int from public.agreement_signatures), 1, 'the employee reads the evidence of the signature they gave'
 );
 
 select pg_temp.act_as('dddddddd-0000-4000-8000-000000000004');
@@ -193,7 +193,7 @@ select is(
 
 select pg_temp.act_as('dddddddd-0000-4000-8000-000000000002');
 select is(
-  (select count(*)::int from public.agreement_signatures), 1, 'the client administrator reads the client''s'
+  (select count(*)::int from public.agreement_signatures), 0, 'the client administrator reads none of the client''s'
 );
 
 select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000001');

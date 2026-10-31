@@ -5,7 +5,8 @@ import { endTime, startTime } from 'hono/timing';
 
 import type { Database } from '../database.types';
 import { assertWritable } from './access';
-import { createDataClient, fromDatabaseError } from './db';
+import { createAdminClient } from './admin-db';
+import { createDataClient, type DataClient, fromDatabaseError } from './db';
 import type { ApiEnv } from './env';
 import { ApiError } from './errors';
 
@@ -68,4 +69,14 @@ export function participationOf(c: Context<ApiEnv>, participantId: string): Part
     .find((candidate) => candidate.participantId === participantId);
   if (!participation) throw new ApiError('not_found', 'This participation is not yours.');
   return participation;
+}
+
+// A participant's token reads none of a client's tables, since policies cannot hide columns from
+// it (ADR 022). The portal reads with the secret key once requireParticipant has checked the
+// participation, so every read filters by that participation's client and names its columns.
+export function createPortalReadClient(c: Context<ApiEnv>): DataClient {
+  if (!c.get('participations')) {
+    throw new Error('createPortalReadClient runs only after requireParticipant.');
+  }
+  return createAdminClient(c);
 }

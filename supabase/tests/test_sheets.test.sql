@@ -133,18 +133,17 @@ select is_empty($$ select * from public.test_sheets $$, 'another organization re
 
 select pg_temp.act_as('dddddddd-0000-4000-8000-000000000001');
 
-select results_eq(
+select is_empty(
   $$ select test_result_id from public.test_sheets $$,
-  $$ values ('7e7e7e7e-0000-4000-8000-000000000001'::uuid) $$,
-  'the employee reads their own test sheet only'
+  'the employee reads no test sheet, not even their own: the portal reads through the API'
 );
 
 select pg_temp.act_as('dddddddd-0000-4000-8000-000000000003');
 
 select results_eq(
   $$ select count(*)::integer from public.test_sheets $$,
-  $$ values (2) $$,
-  'the client administrator reads the client''s test sheets'
+  $$ values (0) $$,
+  'nor does the client administrator'
 );
 
 
@@ -191,8 +190,8 @@ select pg_temp.act_as('dddddddd-0000-4000-8000-000000000001');
 
 select results_eq(
   $$ select slot::text from public.signature_requests order by slot $$,
-  $$ values ('examiner'), ('trainee') $$,
-  'the employee reads the requests on their own test sheet'
+  $$ values ('trainee') $$,
+  'the employee reads only the request on their own test sheet addressed to them'
 );
 
 select pg_temp.act_as('dddddddd-0000-4000-8000-000000000002');

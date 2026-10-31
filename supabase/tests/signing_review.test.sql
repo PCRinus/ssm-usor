@@ -224,9 +224,9 @@ select is(
 
 
 select pg_temp.act_as('dddddddd-0000-4000-8000-000000000001');
-select is(
-  (select signer_name from public.training_signatures where request_id = '9a9a9a9a-0000-4000-8000-000000000002'),
-  'Semnatar', 'the employee reads who signed their record'
+select is_empty(
+  $$ select signer_name from public.training_signatures where request_id = '9a9a9a9a-0000-4000-8000-000000000002' $$,
+  'the employee reads no one else''s signature on their record: the portal reads it through the API'
 );
 select throws_ok(
   $$ select address from public.training_signatures $$,

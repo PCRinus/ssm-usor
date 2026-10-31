@@ -776,9 +776,8 @@ employee (`P0002`, `participant_not_found` or `attempt_not_found`, otherwise):
 | `finish_test_attempt(attempt, address, agent)`                                     | Scores and finishes: a question counts only when the options chosen are exactly the correct ones, and `passed` is a score of at least 70% of `total`, seven of ten. A pass inserts the test result while the test still awaits the employee, so an attempt left open across a paper pass gives no second one.                                                                                                                                                |
 | `test_study_card(participant, domain, test)`                                       | The explanations of the test's active questions, for the study card.                                                                                                                                                                                                                                                                                                                                                                                         |
 
-Members read their organization's attempts and participants their own employee's, each finished
-question marked right or wrong but never which option is correct. The client administrator
-reads none.
+Members read their organization's attempts, each finished question marked right or wrong but
+never which option is correct; the portal shows an employee their own through the API.
 
 ### Test results
 
@@ -800,8 +799,8 @@ PSI", else the trainer and job title of the employee's latest introductory gener
 the domain, which for occupational safety is the specialist. A member records a paper result
 (only `source = 'paper'`, for an active client) and updates `taken_on`, `material` and the
 examiner; a portal result changes only in its examiner and is not deleted (`TST06`,
-`result_from_attempt`). Members read their organization's results, participants their own, the
-client administrator the client's. Once the examiner has signed the result's test sheet,
+`result_from_attempt`). Members read their organization's results; the portal shows an employee
+their own and the client administrator the client's, through the API. Once the examiner has signed the result's test sheet,
 electronically or on paper, its examiner no longer changes (`TST07`, `examiner_signed`); before
 that, a change of examiner voids the pending examiner request with `signer_changed`
 ([test sheets](#test-sheets)).
@@ -1644,8 +1643,8 @@ A **participant** is a person of a client who signs in to the portal
 ([ADR 022](architecture/adr-022-participants-and-the-portal.md)): an `employee` or the
 `client_administrator` (`participant_kind`). A participant is not a member: the account has no
 row in `organization_members`, so `current_organization_id()` is null and every members' policy
-yields nothing. They read through policies of their own and write only their test attempts, through the
-functions of [Knowledge tests](#knowledge-tests). One account may hold
+yields nothing. Their token reads none of a client's tables either (below) and writes only their
+test attempts, through the functions of [Knowledge tests](#knowledge-tests). One account may hold
 a membership and participations at once; the app's routes act on the membership, the portal's
 on the participations.
 
@@ -1695,31 +1694,16 @@ A client, employee or invitation that is not the caller's raises `P0002` with
 `client_not_found`, `employee_not_found` or `invitation_not_found`; a caller without a
 membership `42501`.
 
-The participant policies, all `select` for `authenticated`, are built on `security definer`
-helpers that read the caller's active participations: `participant_client_ids()`,
-`participant_employee_ids()` (the employee rows of either kind) and `administered_client_ids()`,
-each an array compared as `column = any ((select …)::uuid[])` so it is read once per query and
-an index can serve it. `is_client_administrator(client)` answers the same for one client.
-
-| Table                        | An employee reads                       | An administrator also reads  |
-| ---------------------------- | --------------------------------------- | ---------------------------- |
-| `clients`                    | their clients                           |                              |
-| `organizations`              | the provider of their clients           |                              |
-| `employees`                  | their own row                           | every employee of the client |
-| `training_records`           | their own                               | the client's                 |
-| `trainings`                  | the trainings they attended             | the client's                 |
-| `job_positions`              | their own position                      | the client's                 |
-| `client_workplaces`          | every workplace of their clients        |                              |
-| `client_fire_safety`         | their clients' row (training intervals) |                              |
-| `client_responsible_persons` |                                         | the client's                 |
-| `document_templates`         | the built-in per-employee templates     |                              |
-| `client_participants`        | their own participations                |                              |
-
-The workplaces are all the client's because a sheet names the workplace only at a client with
-more than one. `employee_training_status` is a security-invoker view, so it follows the rows
-above; `document_template_versions` follows its templates, the two training sheets and the
-signing agreement (`20261018110000_signing_agreement_policy.sql`). Storage has no participant policy
-yet: a template file read for a participant needs the API's secret key or a policy of its own.
+**What a participant's token reads.** Only their own `client_participants` rows, and, as any
+signer, the signature requests addressed to them and the signatures they gave
+([who reads what](#who-reads-what)). A policy chooses rows, not columns, and members share the
+`authenticated` role, so a participant policy on a client's tables would let the token select
+every column straight from PostgREST: the CNP, the blood group, the specialist's notes, the
+provider's bank account. The portal's routes read with the API's secret key instead, once
+`requireParticipant` has resolved the caller's participations through `current_participations()`,
+each read filtered by that participation's client (and employee) and naming the columns the screen
+shows (`20261101194000_participants_read_through_the_api.sql`, ADR 022's amendment of
+2026-11-01). A new table gets no participant policy; a new portal screen is a new API read.
 
 ### The phone in E.164
 
@@ -1844,8 +1828,8 @@ active participant for `employee` and an active client administrator of the clie
 (`SIG10`, `agreement_signer_not_party`); and the session as for a training signature (`SIG09`).
 After the insert a trigger moves the agreement on: `storage_path` and `employee_signed_at`, or
 `storage_path`, `employer_signed_at`, `signed_at` and `signed_electronically`. Any update, delete
-or truncate raises `SIG06`. Members read their organization's, participants the ones on their own
-agreement, administrators the client's; nobody but the secret key writes.
+or truncate raises `SIG06`. Members read their organization's and signers their own; nobody but
+the secret key writes.
 
 **The evidence columns participants cannot read.** On `training_signatures` and
 `agreement_signatures`, `authenticated` has `SELECT` on the columns that say who signed what and
@@ -1973,19 +1957,17 @@ They insert requests naming only `organization_id`, `client_id`, `training_recor
 `signer_account_id` (the column grant), `pending` and issued by themselves, for an active client,
 write the agreements, and change the rest only through the functions above.
 
-| Table                         | Anyone reads                   | An employee participant reads              | An administrator also reads |
-| ----------------------------- | ------------------------------ | ------------------------------------------ | --------------------------- |
-| `signature_requests`          | the requests addressed to them | those on their own records and test sheets | the client's                |
-| `training_signatures`         | their own signatures           | those on their own records                 | the client's                |
-| `test_sheets`                 |                                | their own                                  | the client's                |
-| `test_sheet_signatures`       | their own signatures           | those on their own test sheets             | the client's                |
-| `employee_signing_agreements` |                                | their own                                  | the client's                |
-| `agreement_signatures`        | their own signatures           | those on their own agreement               | the client's                |
-| `signed_sheets`               |                                | their own                                  | the client's                |
-| `signed_sheet_rows`           |                                | the rows of their own sheets               | the client's                |
+| Table                   | Any signer reads, member or participant |
+| ----------------------- | --------------------------------------- |
+| `signature_requests`    | the requests addressed to them          |
+| `training_signatures`   | their own signatures                    |
+| `test_sheet_signatures` | their own signatures                    |
+| `agreement_signatures`  | their own signatures                    |
 
-"Them" is the real signed-in user, as in the other participant policies; the two evidence tables
-only in the columns above. Errors, raised with these SQLSTATEs:
+"Them" is the real signed-in user; the evidence tables only in the columns above. Participants
+read nothing else here: the portal shows an employee their records, sheets, agreement and the
+signatures on them, and the client administrator the client's, through the API
+([participants](#participants)). Errors, raised with these SQLSTATEs:
 
 - `SIG01` the record is signed: `record_signed` for a change to what it prints,
   `record_has_signatures` for a delete

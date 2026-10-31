@@ -1,5 +1,5 @@
 begin;
-select plan(88);
+select plan(89);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -292,6 +292,8 @@ select is(
   'starting again returns the attempt in progress'
 );
 
+select pg_temp.act_as_postgres();
+
 select results_eq(
   $$ select total::integer, jsonb_array_length(questions), finished_at is null, score is null, language from public.test_attempts where id = (select id from attempt_ids where name = 'failed') $$,
   $$ values (10, 10, true, true, 'ro') $$,
@@ -309,6 +311,10 @@ select ok(
    from public.test_attempts a where a.id = (select id from attempt_ids where name = 'failed')),
   'the attempt in progress carries no key'
 );
+
+select pg_temp.act_as('dddddddd-0000-4000-8000-000000000001');
+
+select is((select count(*)::integer from public.test_attempts), 0, 'a participant reads no attempt, not even their own');
 
 select throws_ok(
   $$ select * from public.test_attempt_keys $$,
@@ -351,6 +357,8 @@ from (
   where k.name = 'failed' and a.name = 'failed'
 ) as k;
 
+select pg_temp.act_as_postgres();
+
 select is(
   (select a.questions -> 0 -> 'chosen' from public.test_attempts a where a.id = (select id from attempt_ids where name = 'failed')),
   (select to_jsonb(array[(select min(n) from generate_series(0, 3) as n where not n = any (k.correct))]) from answer_keys k where k.name = 'failed' and k.place = 0),
@@ -378,6 +386,8 @@ select results_eq(
   'a sitting answered all wrong fails'
 );
 
+select pg_temp.act_as_postgres();
+
 select ok(
   (select bool_and(
      q.value ? 'correct' and q.value ? 'explanation'
@@ -393,6 +403,8 @@ select is(
   0,
   'a failed attempt gives no result'
 );
+
+select pg_temp.act_as('dddddddd-0000-4000-8000-000000000001');
 
 select throws_ok(
   $$ select public.answer_test_attempt((select id from attempt_ids where name = 'failed'), 0, '{0}') $$,
@@ -475,6 +487,8 @@ select results_eq(
   'a sitting answered with its key passes, whatever the bank became'
 );
 
+select pg_temp.act_as_postgres();
+
 select results_eq(
   $$ select source::text, test::text, taken_on = (select today from day), material, grade, examiner_name, examiner_job_title
      from public.test_results where attempt_id = (select id from attempt_ids where name = 'passed') $$,
@@ -485,16 +499,16 @@ select results_eq(
 select is(
   (select count(*)::integer from public.test_attempts where employee_id = 'e1e1e1e1-0000-4000-8000-000000000001'),
   2,
-  'the participant reads their own attempts'
+  'the employee has both attempts'
 );
 
-select pg_temp.act_as('dddddddd-0000-4000-8000-000000000003');
-
 select results_eq(
-  $$ select psi_state::text, psi_awaiting_test::text from public.employee_test_status $$,
+  $$ select psi_state::text, psi_awaiting_test::text from public.employee_test_status where employee_id = 'e1e1e1e1-0000-4000-8000-000000000003' $$,
   $$ values ('annual_due', 'annual') $$,
   'twelve months after the last fire-safety pass, the annual test is due'
 );
+
+select pg_temp.act_as('dddddddd-0000-4000-8000-000000000003');
 
 insert into attempt_ids
 select 'annual', (public.start_test_attempt('9e9e9e9e-0000-4000-8000-000000000003', 'psi', 'annual')).id;
@@ -512,6 +526,8 @@ select results_eq(
   $$ values (7, true) $$,
   'seven of ten is a pass'
 );
+
+select pg_temp.act_as_postgres();
 
 select results_eq(
   $$ select material, examiner_name, examiner_job_title from public.test_results where attempt_id = (select id from attempt_ids where name = 'annual') $$,
@@ -545,6 +561,8 @@ select results_eq(
   $$ values (true) $$,
   'an attempt left open across a paper pass still finishes'
 );
+
+select pg_temp.act_as_postgres();
 
 select is(
   (select count(*)::integer from public.test_results where attempt_id = (select id from attempt_ids where name = 'overtaken')),
@@ -599,16 +617,16 @@ select pg_temp.act_as('dddddddd-0000-4000-8000-000000000001');
 
 select is(
   (select count(*)::integer from public.test_results),
-  2,
-  'a participant reads their own results'
+  0,
+  'a participant reads no result, not even their own'
 );
 
 select pg_temp.act_as('dddddddd-0000-4000-8000-000000000004');
 
 select results_eq(
   $$ select (select count(*)::integer from public.test_results), (select count(*)::integer from public.test_attempts) $$,
-  $$ values (4, 0) $$,
-  'the client administrator reads the client''s results and no attempt'
+  $$ values (0, 0) $$,
+  'the client administrator reads no result and no attempt'
 );
 
 select pg_temp.act_as('dddddddd-0000-4000-8000-000000000005');
@@ -664,10 +682,10 @@ select set_eq(
 
 select pg_temp.act_as('dddddddd-0000-4000-8000-000000000001');
 
-select results_eq(
-  $$ select employee_id::text, ssm_state::text from public.employee_test_status $$,
-  $$ values ('e1e1e1e1-0000-4000-8000-000000000001', 'passed') $$,
-  'a participant reads their own test state'
+select is(
+  (select count(*)::integer from public.employee_test_status),
+  0,
+  'a participant reads no test state, not even their own'
 );
 
 select throws_ok(

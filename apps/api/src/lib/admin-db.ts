@@ -10,8 +10,9 @@ import { ApiError } from './errors';
 const secretKeySchema = z.string().startsWith('sb_secret_').min(16);
 
 // A client holding the secret key, which bypasses row-level security. It exists for
-// work done on behalf of nobody signed in. Import it only in the modules that need it;
-// everything acting for a user goes through createDataClient.
+// work done on behalf of nobody signed in, for the signing flow's evidence and for the portal's
+// reads (createPortalReadClient). Import it only in the modules that need it; everything else
+// acting for a user goes through createDataClient.
 export function createAdminClient(c: Context<ApiEnv>) {
   return adminClient(c.env, c.req.raw.signal);
 }

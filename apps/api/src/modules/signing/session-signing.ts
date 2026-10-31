@@ -17,7 +17,7 @@ import { adminClient } from '../../lib/admin-db';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
-import { type Participation, participationOf } from '../../lib/participant';
+import { createPortalReadClient, type Participation, participationOf } from '../../lib/participant';
 import { createPdfConverter } from '../../lib/pdf';
 import { checkToSign } from '../../lib/signed-attributes';
 import { createSigner } from '../../lib/signer';
@@ -246,9 +246,15 @@ export const createPortalSigningSession: RouteHandler<
   const { participantId } = c.req.valid('param');
   const participation = participationOf(c, participantId);
   const { requestIds, agreementEmployeeIds = [] } = c.req.valid('json');
-  const db = createDataClient(c);
-  await pendingRequests(db, c.get('user').id, requestIds, { clientId: participation.clientId });
-  const agreements = await awaitedAgreements(c, db, participation, agreementEmployeeIds);
+  await pendingRequests(createDataClient(c), c.get('user').id, requestIds, {
+    clientId: participation.clientId,
+  });
+  const agreements = await awaitedAgreements(
+    c,
+    createPortalReadClient(c),
+    participation,
+    agreementEmployeeIds
+  );
   const items: Item[] = [
     ...agreements,
     ...requestIds.map((requestId): Item => ({ kind: 'request', requestId })),

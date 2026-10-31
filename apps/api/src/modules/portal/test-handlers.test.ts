@@ -521,7 +521,7 @@ describe('POST /portal/participants/{participantId}/test-attempts/{attemptId}/fi
 describe('GET /portal/participants/{participantId}/tests/results/{resultId}/sheet', () => {
   const resultId = '7e7e7e7e-0000-4000-8000-000000000001';
 
-  it("reads only the employee's own result, as the participant", async () => {
+  it("reads only the employee's own result of the participation's client", async () => {
     mockUpstream();
     const response = await request(own(`/tests/results/${resultId}/sheet`));
     expect(response.status).toBe(404);
@@ -529,7 +529,9 @@ describe('GET /portal/participants/{participantId}/tests/results/{resultId}/shee
     const query = new URL(String(read![0])).searchParams;
     expect(query.get('employee_id')).toBe(`eq.${employeeId}`);
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
-    expect(new Headers(read![1]?.headers).get('Authorization')).toBe('Bearer user-token');
+    expect(new Headers(read![1]?.headers).get('Authorization')).toBe(
+      `Bearer ${env.SUPABASE_SECRET_KEY}`
+    );
   });
 
   it("reads any employee's result of the client for the client administrator", async () => {

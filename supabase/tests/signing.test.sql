@@ -504,7 +504,7 @@ select throws_ok(
   '42501', null, 'nor a row of one'
 );
 
-create temp table seen (who text, requests integer, signatures integer, agreements integer, sheets integer, sheet_rows integer);
+create temp table seen (who text, requests integer, signatures integer, agreements integer, sheets integer, sheet_rows integer, not_theirs integer);
 grant all on seen to authenticated;
 
 create or replace function pg_temp.record_seen(p_who text)
@@ -515,7 +515,9 @@ returns void language sql as $$
     (select count(*) from public.training_signatures),
     (select count(*) from public.employee_signing_agreements),
     (select count(*) from public.signed_sheets),
-    (select count(*) from public.signed_sheet_rows);
+    (select count(*) from public.signed_sheet_rows),
+    (select count(*) from public.signature_requests where signer_account_id is distinct from auth.uid())
+      + (select count(*) from public.training_signatures where signer_account_id is distinct from auth.uid());
 $$;
 
 select pg_temp.record_seen('member');
@@ -541,19 +543,19 @@ select results_eq(
   'another organization reads only its own'
 );
 select results_eq(
-  $$ select requests, signatures, agreements, sheets, sheet_rows from seen where who = 'employee' $$,
-  $$ values (7, 3, 1, 1, 1) $$,
-  'an employee reads the requests and signatures on their own records, their agreement and their sheet'
+  $$ select requests, signatures, agreements, sheets, sheet_rows, not_theirs from seen where who = 'employee' $$,
+  $$ values (2, 1, 0, 0, 0, 0) $$,
+  'an employee reads only the requests addressed to them and their own signature, no agreement and no sheet: the portal reads through the API'
 );
 select results_eq(
-  $$ select requests, signatures, agreements, sheets, sheet_rows from seen where who = 'other employee' $$,
-  $$ values (3, 0, 1, 0, 0) $$,
-  'another employee reads none of the first one''s'
+  $$ select requests, signatures, agreements, sheets, sheet_rows, not_theirs from seen where who = 'other employee' $$,
+  $$ values (2, 0, 0, 0, 0, 0) $$,
+  'another employee likewise'
 );
 select results_eq(
-  $$ select requests, signatures, agreements, sheets, sheet_rows from seen where who = 'administrator' $$,
-  $$ values (10, 3, 2, 1, 1) $$,
-  'the client administrator reads the client''s'
+  $$ select requests, signatures, agreements, sheets, sheet_rows, not_theirs from seen where who = 'administrator' $$,
+  $$ values (1, 0, 0, 0, 0, 0) $$,
+  'the client administrator reads only the request addressed to them, none of the client''s'
 );
 select results_eq(
   $$ select requests, signatures, agreements, sheets, sheet_rows from seen where who = 'stranger' $$,

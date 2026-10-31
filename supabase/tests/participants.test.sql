@@ -1,5 +1,5 @@
 begin;
-select plan(100);
+select plan(93);
 
 insert into auth.users (id, instance_id, aud, role, email, phone, encrypted_password, email_confirmed_at, phone_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -86,6 +86,13 @@ insert into public.participant_invitations (id, organization_id, client_id, kind
   ('99999999-0000-4000-8000-000000000005', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'employee', 'e1e1e1e1-0000-4000-8000-000000000005', 'email', 'arch@example.com');
 
 update public.clients set archived_at = now() where id = 'c1c1c1c1-0000-4000-8000-000000000003';
+update public.employees
+set cnp = case id when 'e1e1e1e1-0000-4000-8000-000000000001' then '1880314350014' else '2900101350016' end,
+    birth_date = '1988-03-14', blood_group = 'A(II)', rh_factor = '+',
+    home_address = 'Str. Lungă 12, Timișoara', notes = 'Nota specialistului'
+where id in ('e1e1e1e1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000002');
+update public.trainings set notes = 'Nota specialistului' where id = 'a1a1a1a1-0000-4000-8000-000000000001';
+update public.organizations set iban = 'RO49AAAA1B31007593840000', bank_name = 'Banca' where id = '11111111-0000-4000-8000-000000000001';
 
 create or replace function pg_temp.act_as(user_id text)
 returns void language sql as $$
@@ -115,6 +122,63 @@ returns void language sql security definer as $$
   set last_sent_at = now() - interval '11 minutes'
   where address = p_address and accepted_at is null and revoked_at is null;
 $$;
+
+create or replace function pg_temp.readable_client_rows()
+returns table (relation text, row_count integer) language sql as $$
+  select 'clients', count(*)::integer from public.clients
+  union all select 'organizations', count(*)::integer from public.organizations
+  union all select 'employees', count(*)::integer from public.employees
+  union all select 'training_records', count(*)::integer from public.training_records
+  union all select 'trainings', count(*)::integer from public.trainings
+  union all select 'job_positions', count(*)::integer from public.job_positions
+  union all select 'client_workplaces', count(*)::integer from public.client_workplaces
+  union all select 'client_fire_safety', count(*)::integer from public.client_fire_safety
+  union all select 'client_responsible_persons', count(*)::integer from public.client_responsible_persons
+  union all select 'document_templates', count(*)::integer from public.document_templates
+  union all select 'signature_requests', count(*)::integer from public.signature_requests
+  union all select 'training_signatures', count(*)::integer from public.training_signatures
+  union all select 'employee_signing_agreements', count(*)::integer from public.employee_signing_agreements
+  union all select 'agreement_signatures', count(*)::integer from public.agreement_signatures
+  union all select 'signed_sheets', count(*)::integer from public.signed_sheets
+  union all select 'signed_sheet_rows', count(*)::integer from public.signed_sheet_rows
+  union all select 'test_attempts', count(*)::integer from public.test_attempts
+  union all select 'test_results', count(*)::integer from public.test_results
+  union all select 'test_sheets', count(*)::integer from public.test_sheets
+  union all select 'test_sheet_signatures', count(*)::integer from public.test_sheet_signatures
+  union all select 'employee_training_status', count(*)::integer from public.employee_training_status
+  union all select 'employee_test_status', count(*)::integer from public.employee_test_status
+  union all select 'participant_invitations', count(*)::integer from public.participant_invitations;
+$$;
+
+create or replace function pg_temp.check_no_private_columns(p_who text)
+returns setof text language plpgsql as $f$
+begin
+  return next is_empty(
+    $$ select cnp, birth_date, blood_group, rh_factor, home_address, notes, email, phone from public.employees $$,
+    p_who || ' selects no employee''s CNP, birth date, blood group, address, notes or contact'
+  );
+  return next is_empty(
+    $$ select notes from public.trainings $$,
+    p_who || ' selects no training''s notes'
+  );
+  return next is_empty(
+    $$ select iban, bank_name, terms_accepted_by from public.organizations $$,
+    p_who || ' selects no provider''s bank account or terms'
+  );
+  return next throws_ok(
+    $$ select client_ip, user_agent, address from public.training_signatures $$,
+    '42501', null, p_who || ' selects no training signature''s address, IP or browser'
+  );
+  return next throws_ok(
+    $$ select client_ip, user_agent, address from public.agreement_signatures $$,
+    '42501', null, p_who || ' selects no agreement signature''s address, IP or browser'
+  );
+  return next throws_ok(
+    $$ select client_ip, user_agent, address from public.test_sheet_signatures $$,
+    '42501', null, p_who || ' selects no test sheet signature''s address, IP or browser'
+  );
+end;
+$f$;
 
 
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000002');
@@ -294,62 +358,12 @@ select results_eq(
        ('Org A', 'Client Two', 'employee', 'e1e1e1e1-0000-4000-8000-000000000004'::uuid, 'Popescu Ion', null::text) $$,
   'the participant has one participation per client'
 );
-select results_eq(
-  $$ select id from public.employees order by id $$,
-  $$ values ('e1e1e1e1-0000-4000-8000-000000000001'::uuid), ('e1e1e1e1-0000-4000-8000-000000000004'::uuid) $$,
-  'an employee reads their own rows only'
+select is_empty(
+  $$ select * from pg_temp.readable_client_rows() where row_count > 0 $$,
+  'an employee reads no row of the client''s data, not even their own: the portal reads through the API'
 );
-select results_eq(
-  $$ select training_id, employee_id from public.training_records order by training_id $$,
-  $$ values ('a1a1a1a1-0000-4000-8000-000000000001'::uuid, 'e1e1e1e1-0000-4000-8000-000000000001'::uuid),
-            ('a1a1a1a1-0000-4000-8000-000000000003'::uuid, 'e1e1e1e1-0000-4000-8000-000000000004'::uuid) $$,
-  'their own training records only'
-);
-select results_eq(
-  $$ select id from public.trainings order by id $$,
-  $$ values ('a1a1a1a1-0000-4000-8000-000000000001'::uuid), ('a1a1a1a1-0000-4000-8000-000000000003'::uuid) $$,
-  'the trainings they attended only'
-);
-select results_eq(
-  $$ select legal_name from public.clients order by legal_name $$,
-  $$ values ('Client One'), ('Client Two') $$,
-  'their clients only'
-);
-select results_eq(
-  $$ select name from public.organizations $$,
-  $$ values ('Org A') $$,
-  'the provider of their clients only'
-);
-select results_eq(
-  $$ select id from public.job_positions order by id $$,
-  $$ values ('b1b1b1b1-0000-4000-8000-000000000001'::uuid), ('b1b1b1b1-0000-4000-8000-000000000003'::uuid) $$,
-  'their own job positions only'
-);
-select results_eq(
-  $$ select name from public.client_workplaces order by name $$,
-  $$ values ('Atelier'), ('Birou'), ('Depozit') $$,
-  'the workplaces of their clients, which a sheet counts'
-);
-select results_eq(
-  $$ select client_id from public.client_fire_safety $$,
-  $$ values ('c1c1c1c1-0000-4000-8000-000000000001'::uuid) $$,
-  'the fire-safety intervals of their clients'
-);
-select is((select count(*)::int from public.client_responsible_persons), 0, 'no responsible persons');
-select ok(
-  (select bool_and(type_key in ('signing_agreement', 'training_sheet_ssm', 'training_sheet_psi'))
-     and count(distinct type_key) filter (where type_key in ('signing_agreement', 'training_sheet_ssm')) = 2
-   from public.document_templates),
-  'the per-employee templates, the sheets and the signing agreement, and no other'
-);
-select results_eq(
-  $$ select employee_id, ssm_state::text from public.employee_training_status order by employee_id $$,
-  $$ values ('e1e1e1e1-0000-4000-8000-000000000001'::uuid, 'current'), ('e1e1e1e1-0000-4000-8000-000000000004'::uuid, 'current') $$,
-  'their own training state'
-);
-select is((select count(*)::int from public.participant_invitations), 0, 'no invitations');
+select * from pg_temp.check_no_private_columns('an employee');
 select is((select count(*)::int from public.client_participants), 2, 'their own participations');
-select is(public.is_client_administrator('c1c1c1c1-0000-4000-8000-000000000001'), false, 'an employee is not a client administrator');
 
 select throws_ok(
   $$ insert into public.employees (organization_id, client_id, job_position_id, last_name, first_name, job_title, hired_at)
@@ -391,7 +405,7 @@ select throws_ok(
 select pg_temp.act_as_postgres();
 select results_eq(
   $$ select notes from public.employees where id = 'e1e1e1e1-0000-4000-8000-000000000001' $$,
-  $$ values (null::text) $$,
+  $$ values ('Nota specialistului') $$,
   'and changes nothing it reads'
 );
 select results_eq(
@@ -409,15 +423,9 @@ select results_eq(
   $$ values ('Client One', 'employee', 'Ionescu Ana') $$,
   'as the employee it was sent for'
 );
-select results_eq(
-  $$ select id from public.employees $$,
-  $$ values ('e1e1e1e1-0000-4000-8000-000000000002'::uuid) $$,
-  'who reads only their own row'
-);
-select results_eq(
-  $$ select name from public.job_positions $$,
-  $$ values ('Contabil') $$,
-  'and only their own position'
+select is_empty(
+  $$ select * from pg_temp.readable_client_rows() where row_count > 0 $$,
+  'who reads no row of the client''s data either'
 );
 select is(
   public.set_participant_language(pg_temp.participant_id('dddddddd-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001'), 'ro'),
@@ -448,31 +456,16 @@ select is(public.accept_participant_invitations(), 0, 'an invitation of an archi
 select pg_temp.act_as('dddddddd-0000-4000-8000-000000000003');
 
 select is(public.accept_participant_invitations(), 1, 'the client administrator accepts');
-select is(public.is_client_administrator('c1c1c1c1-0000-4000-8000-000000000001'), true, 'and administers the client');
-select is(public.is_client_administrator('c1c1c1c1-0000-4000-8000-000000000002'), false, 'and no other');
 select results_eq(
-  $$ select id from public.employees order by id $$,
-  $$ values ('e1e1e1e1-0000-4000-8000-000000000001'::uuid), ('e1e1e1e1-0000-4000-8000-000000000002'::uuid),
-            ('e1e1e1e1-0000-4000-8000-000000000003'::uuid), ('e1e1e1e1-0000-4000-8000-000000000006'::uuid) $$,
-  'an administrator reads every employee of the client and none of another'
+  $$ select client_name, kind::text from public.current_participations() $$,
+  $$ values ('Client One', 'client_administrator') $$,
+  'and administers the client'
 );
-select is((select count(*)::int from public.training_records), 3, 'their training records');
-select results_eq(
-  $$ select id from public.trainings order by id $$,
-  $$ values ('a1a1a1a1-0000-4000-8000-000000000001'::uuid), ('a1a1a1a1-0000-4000-8000-000000000002'::uuid) $$,
-  'the client''s trainings'
+select is_empty(
+  $$ select * from pg_temp.readable_client_rows() where row_count > 0 $$,
+  'an administrator reads no row of the client''s data: the portal reads through the API'
 );
-select results_eq(
-  $$ select name from public.job_positions order by name $$,
-  $$ values ('Contabil'), ('Sudor') $$,
-  'the client''s positions'
-);
-select results_eq(
-  $$ select full_name from public.client_responsible_persons $$,
-  $$ values ('Maria Pop') $$,
-  'and the client''s responsible persons'
-);
-select is((select count(*)::int from public.employee_training_status), 4, 'and their training states');
+select * from pg_temp.check_no_private_columns('an administrator');
 select is(
   public.record_participant_notice((select participant_id from public.current_participations()), '2026-10-17'),
   true,
@@ -500,7 +493,7 @@ select is((select count(*)::int from public.client_participants), 4, 'and the pa
 
 select pg_temp.act_as('dddddddd-0000-4000-8000-000000000006');
 select is(public.accept_participant_invitations(), 1, 'an employee who will be revoked accepts');
-select is((select count(*)::int from public.training_records), 2, 'and reads their records');
+select is((select count(*)::int from public.current_participations()), 1, 'and has their participation');
 
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
 select is(
