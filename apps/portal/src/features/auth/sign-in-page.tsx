@@ -26,7 +26,10 @@ const unreachableMessage = msg`Cererea nu a putut fi trimisă. Verifică conexiu
 const requestFailures: Record<Exclude<CodeRequestResult, 'requested'>, MessageDescriptor> = {
   unreachable: unreachableMessage,
   'challenge-failed': msg`Verificarea de securitate nu a reușit. Reîncarcă pagina și încearcă din nou.`,
+  'sms-refused': msg`Nu îți putem trimite acum codul prin SMS la acest număr. Dacă ai primit invitația și pe email, intră cu adresa de email. Altfel, spune-i specialistului SSM să-ți adauge o adresă de email.`,
 };
+
+const foreignNumberMessage = msg`Codurile prin SMS pleacă doar spre numere din România (+40). Intră cu adresa de email la care ai primit invitația sau spune-i specialistului SSM să-ți adauge una.`;
 
 type Target = { address: SignInAddress; shown: string };
 
@@ -81,6 +84,11 @@ export function SignInPage() {
     if (!parsed.ok) {
       setRequesting(false);
       setAddressError(parsed.message);
+      return;
+    }
+    if ('phone' in parsed.address && !parsed.address.phone.startsWith('+40')) {
+      setRequesting(false);
+      setAddressError(foreignNumberMessage);
       return;
     }
     setAddressError(null);

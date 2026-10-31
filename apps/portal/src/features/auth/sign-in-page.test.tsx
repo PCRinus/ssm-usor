@@ -61,15 +61,15 @@ describe('signing in with a code', () => {
     });
   });
 
-  it('asks for an SMS code at a foreign number in its own country', async () => {
+  it('says a foreign number gets no SMS, without asking Supabase', async () => {
     const client = fakeAuthClient();
     await requestCode(client, '+373 69 123 456');
 
-    expect(await screen.findByTestId('sign-in-code-sent')).toBeTruthy();
-    expect(client.signInWithOtp).toHaveBeenCalledWith({
-      phone: '+37369123456',
-      options: { shouldCreateUser: false, captchaToken: 'turnstile-token-1' },
-    });
+    expect((await screen.findByTestId('sign-in-address-error')).textContent).toContain(
+      'Codurile prin SMS pleacă doar spre numere din România (+40).'
+    );
+    expect(screen.queryByTestId('sign-in-code')).toBeNull();
+    expect(client.signInWithOtp).not.toHaveBeenCalled();
   });
 
   it('refuses a number too short for its country', async () => {
@@ -77,14 +77,43 @@ describe('signing in with a code', () => {
     await requestCode(client, '0721 234');
 
     expect((await screen.findByTestId('sign-in-address-error')).textContent).toContain(
-      'prefixul țării'
+      'de exemplu 0721 234 567'
     );
     expect(client.signInWithOtp).not.toHaveBeenCalled();
   });
 
   it.each([
-    ['an address nobody invited', { message: 'Signups not allowed for otp', status: 422 }],
-    ['a number the SMS hook refuses', { message: 'Error sending SMS', status: 500 }],
+    [
+      'the SMS hook refuses',
+      { message: 'Codes are not texted during a trial; sign in with your email.', status: 403 },
+    ],
+    ['the code cannot be texted', { message: 'Error sending SMS', status: 500 }],
+  ])('says the code cannot go by SMS when %s, and asks for the email', async (_case, error) => {
+    const client = fakeAuthClient();
+    client.signInWithOtp.mockResolvedValue({ error } as never);
+    await requestCode(client, '0721 234 567');
+
+    expect((await screen.findByTestId('sign-in-address-error')).textContent).toBe(
+      'Nu îți putem trimite acum codul prin SMS la acest număr. Dacă ai primit invitația și pe email, intră cu adresa de email. Altfel, spune-i specialistului SSM să-ți adauge o adresă de email.'
+    );
+    expect(screen.queryByTestId('sign-in-code')).toBeNull();
+  });
+
+  it('keeps the same answer for an email address whatever Supabase answers', async () => {
+    const client = fakeAuthClient();
+    client.signInWithOtp.mockResolvedValue({
+      error: { message: 'Error sending email', status: 500 },
+    } as never);
+    await requestCode(client, 'ana@example.ro');
+
+    expect((await screen.findByTestId('sign-in-code-sent')).textContent).toMatch(sameAnswer);
+  });
+
+  it.each([
+    [
+      'an address nobody invited',
+      { message: 'Signups not allowed for otp', code: 'otp_disabled', status: 422 },
+    ],
     ['a rate limit', { message: 'Too many requests', status: 429 }],
   ])('answers %s exactly like a known address', async (_case, error) => {
     const client = fakeAuthClient();

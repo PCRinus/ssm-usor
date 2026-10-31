@@ -25,7 +25,7 @@ export async function parseSignInAddress(input: string): Promise<ParsedAddress> 
   if (!phone) {
     return {
       ok: false,
-      message: msg`Numărul nu pare scris corect. Scrie-l cu 0 în față, de exemplu 0721 234 567, sau cu prefixul țării, de exemplu +373 69 123 456.`,
+      message: msg`Numărul nu pare scris corect. Scrie-l cu 0 în față, de exemplu 0721 234 567.`,
     };
   }
   return { ok: true, address: { phone }, shown: phone };

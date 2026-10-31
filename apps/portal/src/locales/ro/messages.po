@@ -367,6 +367,10 @@ msgstr "Caută după nume"
 msgid "Caută un angajat după nume"
 msgstr "Caută un angajat după nume"
 
+#: src/features/signing/sms-refusal-notice.tsx
+msgid "Ce ai bifat rămâne aici și te așteaptă."
+msgstr "Ce ai bifat rămâne aici și te așteaptă."
+
 #: src/features/signing/signing-page.tsx
 msgid "Ce semnează codul"
 msgstr "Ce semnează codul"
@@ -452,6 +456,34 @@ msgstr "Codul nu este corect sau a expirat. Verifică-l sau cere un cod nou."
 msgid "Codul nu este corect. Verifică-l și scrie-l din nou."
 msgstr "Codul nu este corect. Verifică-l și scrie-l din nou."
 
+#: src/features/signing/sms-refusal-notice.tsx
+msgid "Codul vine prin SMS, dar {organizationName} nu trimite încă SMS-uri."
+msgstr "Codul vine prin SMS, dar {organizationName} nu trimite încă SMS-uri."
+
+#: src/features/signing/sms-refusal-notice.tsx
+msgid "Codul vine prin SMS, iar SMS-urile pentru coduri s-au terminat luna aceasta."
+msgstr "Codul vine prin SMS, iar SMS-urile pentru coduri s-au terminat luna aceasta."
+
+#: src/features/signing/sms-refusal-notice.tsx
+msgid "Codul vine prin SMS, iar SMS-urile pentru coduri s-au terminat luna aceasta. Pornesc din nou pe {resumes}."
+msgstr "Codul vine prin SMS, iar SMS-urile pentru coduri s-au terminat luna aceasta. Pornesc din nou pe {resumes}."
+
+#: src/features/signing/sms-refusal-notice.tsx
+msgid "Codul vine prin SMS, iar SMS-urile pleacă doar spre numere din România (+40)."
+msgstr "Codul vine prin SMS, iar SMS-urile pleacă doar spre numere din România (+40)."
+
+#: src/features/signing/sms-refusal-notice.tsx
+msgid "Codul vine prin SMS, iar SMS-urile sunt oprite deocamdată."
+msgstr "Codul vine prin SMS, iar SMS-urile sunt oprite deocamdată."
+
+#: src/features/signing/sms-refusal-notice.tsx
+msgid "Codul vine prin SMS, iar SMS-urile sunt oprite până pe {resumes}."
+msgstr "Codul vine prin SMS, iar SMS-urile sunt oprite până pe {resumes}."
+
+#: src/features/auth/sign-in-page.tsx
+msgid "Codurile prin SMS pleacă doar spre numere din România (+40). Intră cu adresa de email la care ai primit invitația sau spune-i specialistului SSM să-ți adauge una."
+msgstr "Codurile prin SMS pleacă doar spre numere din România (+40). Intră cu adresa de email la care ai primit invitația sau spune-i specialistului SSM să-ți adauge una."
+
 #: src/lib/labels.ts
 msgid "Conducător al locului de muncă"
 msgstr "Conducător al locului de muncă"
@@ -517,6 +549,14 @@ msgstr "Cum folosim datele tale"
 #: src/features/auth/sign-in-page.tsx
 msgid "Dacă adresa este cunoscută, un cod este pe drum spre <0>{0}</0>"
 msgstr "Dacă adresa este cunoscută, un cod este pe drum spre <0>{0}</0>"
+
+#: src/features/signing/sms-refusal-notice.tsx
+msgid "Dacă îi dai o adresă de email sau un număr din România, codul ajunge la tine și semnezi chiar azi."
+msgstr "Dacă îi dai o adresă de email sau un număr din România, codul ajunge la tine și semnezi chiar azi."
+
+#: src/features/signing/sms-refusal-notice.tsx
+msgid "Dacă îi dai o adresă de email, codul vine pe email și semnezi chiar azi."
+msgstr "Dacă îi dai o adresă de email, codul vine pe email și semnezi chiar azi."
 
 #: src/features/my-data/my-data-page.tsx
 msgid "Data și locul nașterii"
@@ -1038,6 +1078,18 @@ msgstr "Nu am putut verifica testele. Reîncarcă pagina."
 msgid "Nu avem o adresă de email sau un telefon la care să-ți trimitem codul. Spune-i specialistului."
 msgstr "Nu avem o adresă de email sau un telefon la care să-ți trimitem codul. Spune-i specialistului."
 
+#: src/features/auth/sign-in-page.tsx
+msgid "Nu îți putem trimite acum codul prin SMS la acest număr. Dacă ai primit invitația și pe email, intră cu adresa de email. Altfel, spune-i specialistului SSM să-ți adauge o adresă de email."
+msgstr "Nu îți putem trimite acum codul prin SMS la acest număr. Dacă ai primit invitația și pe email, intră cu adresa de email. Altfel, spune-i specialistului SSM să-ți adauge o adresă de email."
+
+#: src/features/signing/sms-refusal-notice.tsx
+msgid "Nu îți putem trimite codul acum."
+msgstr "Nu îți putem trimite codul acum."
+
+#: src/features/signing/sms-refusal-notice.tsx
+msgid "Nu îți putem trimite un cod nou acum."
+msgstr "Nu îți putem trimite un cod nou acum."
+
 #: src/features/signing/signing-messages.ts
 msgid "Nu mai așteaptă semnătura ta: a fost semnat, anulat sau modificat între timp."
 msgstr "Nu mai așteaptă semnătura ta: a fost semnat, anulat sau modificat între timp."
@@ -1051,8 +1103,8 @@ msgid "Nu s-a semnat nimic. Vezi mai jos de ce."
 msgstr "Nu s-a semnat nimic. Vezi mai jos de ce."
 
 #: src/features/auth/sign-in-address.ts
-msgid "Numărul nu pare scris corect. Scrie-l cu 0 în față, de exemplu 0721 234 567, sau cu prefixul țării, de exemplu +373 69 123 456."
-msgstr "Numărul nu pare scris corect. Scrie-l cu 0 în față, de exemplu 0721 234 567, sau cu prefixul țării, de exemplu +373 69 123 456."
+msgid "Numărul nu pare scris corect. Scrie-l cu 0 în față, de exemplu 0721 234 567."
+msgstr "Numărul nu pare scris corect. Scrie-l cu 0 în față, de exemplu 0721 234 567."
 
 #: src/features/my-data/my-data-page.tsx
 msgid "Nume și prenume"
@@ -1093,6 +1145,10 @@ msgstr "Persoane responsabile"
 #: src/features/employees/employee-page.tsx
 msgid "Poate a fost scos din evidența companiei."
 msgstr "Poate a fost scos din evidența companiei."
+
+#: src/features/signing/sms-refusal-notice.tsx
+msgid "Poate și ridica limita de SMS-uri, ca să-l primești prin SMS."
+msgstr "Poate și ridica limita de SMS-uri, ca să-l primești prin SMS."
 
 #: src/app/portal-footer.tsx
 msgid "Politica de confidențialitate"
@@ -1427,6 +1483,10 @@ msgstr "Specialistul trebuie să completeze mai întâi reprezentantul legal al 
 msgid "Specialistul trebuie să-ți adauge mai întâi un email sau un telefon, unde primești codurile de semnare."
 msgstr "Specialistul trebuie să-ți adauge mai întâi un email sau un telefon, unde primești codurile de semnare."
 
+#: src/features/signing/sms-refusal-notice.tsx
+msgid "Spune-i specialistului SSM de la {organizationName}"
+msgstr "Spune-i specialistului SSM de la {organizationName}"
+
 #: src/features/my-data/provider-box.tsx
 msgid "Spune-i specialistului SSM: {name}"
 msgstr "Spune-i specialistului SSM: {name}"
@@ -1434,6 +1494,10 @@ msgstr "Spune-i specialistului SSM: {name}"
 #: src/features/my-data/provider-box.tsx
 msgid "Spune-i specialistului SSM: {name}, <0>{phone}</0>."
 msgstr "Spune-i specialistului SSM: {name}, <0>{phone}</0>."
+
+#: src/features/signing/sms-refusal-notice.tsx
+msgid "Spune-i specialistului SSM."
+msgstr "Spune-i specialistului SSM."
 
 #: src/lib/labels.ts
 msgid "SSM"

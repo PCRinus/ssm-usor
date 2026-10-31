@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -562,6 +562,80 @@ describe('the signing screen', () => {
     await screen.findByTestId('signing-items');
     await user.click(screen.getByTestId('signing-send'));
     expect((await screen.findByTestId('signing-send-error')).textContent).toContain(text);
+  });
+
+  it.each([
+    [
+      'sms_cap_reached',
+      'Codul vine prin SMS, iar SMS-urile sunt oprite până pe 14 noiembrie 2026. Spune-i specialistului SSM de la Prevenție Vest S.R.L. Dacă îi dai o adresă de email, codul vine pe email și semnezi chiar azi. Poate și ridica limita de SMS-uri, ca să-l primești prin SMS.',
+    ],
+    [
+      'sms_allowance_reached',
+      'Codul vine prin SMS, iar SMS-urile pentru coduri s-au terminat luna aceasta. Pornesc din nou pe 14 noiembrie 2026. Spune-i specialistului SSM de la Prevenție Vest S.R.L. Dacă îi dai o adresă de email, codul vine pe email și semnezi chiar azi.',
+    ],
+  ])(
+    'says calmly that the code cannot be texted now (%s), and holds the request back',
+    async (reason, text) => {
+      vi.mocked(createPortalSigningSession).mockRejectedValueOnce(
+        refusal(reason, 'Refused.', { resumesAt: '2026-11-13T23:00:00.000Z' })
+      );
+      const user = userEvent.setup();
+      mountPortal(signedIn(), '/semneaza');
+      await screen.findByTestId('signing-items');
+      await user.click(screen.getByTestId('signing-send'));
+
+      const notice = await screen.findByTestId('signing-sms-refused');
+      expect(notice).toHaveProperty('role', 'status');
+      expect(notice.textContent).toContain('Nu îți putem trimite codul acum.');
+      expect(notice.textContent).toContain(text);
+      expect(notice.textContent).toContain('Ce ai bifat rămâne aici și te așteaptă.');
+      expect(screen.queryByTestId('signing-send-error')).toBeNull();
+      expect(screen.getByTestId('signing-send')).toHaveProperty('disabled', true);
+      expect(screen.getAllByTestId('signing-item-check')[0]!.getAttribute('data-state')).toBe(
+        'checked'
+      );
+    }
+  );
+
+  it.each([
+    ['sms_trial', 'dar Prevenție Vest S.R.L. nu trimite încă SMS-uri. Spune-i specialistului SSM.'],
+    ['sms_foreign_number', 'doar spre numere din România (+40)'],
+  ])('words %s when the code would be texted', async (reason, text) => {
+    vi.mocked(createPortalSigningSession).mockRejectedValueOnce(refusal(reason));
+    const user = userEvent.setup();
+    mountPortal(signedIn(), '/semneaza');
+    await screen.findByTestId('signing-items');
+    await user.click(screen.getByTestId('signing-send'));
+
+    const notice = await screen.findByTestId('signing-sms-refused');
+    expect(notice.getAttribute('data-reason')).toBe(reason);
+    expect(notice.textContent).toContain(text);
+    expect(notice.textContent).not.toContain('ridica limita');
+  });
+
+  it('says a new code cannot be texted while the one sent still works', async () => {
+    vi.mocked(createPortalSigningSession)
+      .mockResolvedValueOnce({ ...session, channel: 'sms', addressHint: '+40 7** *** *01' })
+      .mockRejectedValueOnce(
+        refusal('sms_cap_reached', 'Refused.', { resumesAt: '2026-11-13T23:00:00.000Z' })
+      );
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      mountPortal(signedIn(), '/semneaza');
+      await screen.findByTestId('signing-items');
+      await user.click(screen.getByTestId('signing-send'));
+      await screen.findByTestId('signing-code');
+      await act(() => vi.advanceTimersByTimeAsync(61_000));
+      await user.click(screen.getByTestId('signing-resend'));
+
+      const notice = await screen.findByTestId('signing-resend-sms-refused');
+      expect(notice.textContent).toContain('Nu îți putem trimite un cod nou acum.');
+      expect(notice.textContent).not.toContain('Ce ai bifat');
+      expect(screen.getByTestId('signing-code')).toHaveProperty('disabled', false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it.each([
