@@ -15,7 +15,7 @@ import {
 } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
-import { adminClient } from '../../lib/admin-db';
+import { createLastingAdminClient } from '../../lib/admin-db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { adminFileStore } from '../../lib/files';
@@ -87,7 +87,7 @@ export type SignedSheetContext = {
  * caller has gone.
  */
 export function signedSheetContext(c: Context<ApiEnv>): SignedSheetContext {
-  const db = adminClient(c.env);
+  const db = createLastingAdminClient(c);
   const files = adminFileStore(c.env);
   return {
     store: supabaseSheetStore(db),

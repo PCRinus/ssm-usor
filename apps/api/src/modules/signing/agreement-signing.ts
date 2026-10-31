@@ -1,7 +1,7 @@
 import type { SigningAgreementParty, SigningAgreementState } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
-import { adminClient } from '../../lib/admin-db';
+import { type AdminClient, createLastingAdminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
@@ -60,7 +60,7 @@ async function sha256(bytes: Uint8Array) {
 async function drawn(c: Context<ApiEnv>, ids: { clientId: string; employeeId: string }) {
   const agreement = await signingAgreementDocx(
     c,
-    adminClient(c.env),
+    createLastingAdminClient(c),
     ids,
     signedSheetContext(c).files.readTemplate
   );
@@ -107,7 +107,7 @@ type ClientOfAgreement = { organization_id: string; archived_at: string | null }
 // Before the employee signs, there may be no agreement row: the client is read through the
 // employee, which also checks the employee is the client's.
 async function clientOfEmployee(
-  admin: ReturnType<typeof adminClient>,
+  admin: AdminClient,
   clientId: string,
   employeeId: string
 ): Promise<ClientOfAgreement> {
@@ -137,7 +137,7 @@ export async function signAgreement(
   input: AgreementSigning
 ): Promise<SigningAgreementState> {
   const { clientId, employeeId, party, signer, session } = input;
-  const admin = adminClient(c.env);
+  const admin = createLastingAdminClient(c);
   const read = await admin
     .from('employee_signing_agreements')
     .select(

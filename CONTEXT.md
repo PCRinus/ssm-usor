@@ -42,6 +42,8 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **First-intervention leader** (_șef echipă de primă intervenție_): the responsible-person role of the person who leads a client's first-intervention team, the staff on duty who act with the extinguishers and evacuate people and goods when a fire starts. ADR 018. Avoid: fire warden, emergency team leader.
 
+**Audit log** (_jurnalul de audit_): the record of who wrote what in the tables that hold personal data or legally binding records: the account, the member it acted as during an impersonation, the table and row, and the names of the changed columns, never their personal values. Support reads it; nobody changes it. ADR 033. Avoid: history, which is what an owner's view of it would be called, and activity log.
+
 ## Work
 
 **Job position** (_post de lucru_): a post at a client as occupational safety sees it: a kind of work with its own risks, equipment and training. Belongs to the client and exists whether or not anyone holds it. An employee is assigned to one. ADR 006. Avoid: job title, role, function, occupation, and "loc de muncă", which the source documents use for three different things.

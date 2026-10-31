@@ -108,6 +108,41 @@ Writes made during an impersonation carry the target's organization but the admi
 id in `created_by`. The API routes and the banner for starting and ending impersonations are a
 follow-up; the schema, policies, and pgTAP tests already cover the mechanism.
 
+The row is the record of the impersonation, so the admin writes it once and then only ends it
+([ADR 033](architecture/adr-033-audit-log.md)): `authenticated` inserts only `admin_user_id`,
+`target_user_id`, `reason` and `expires_at`, so `started_at` is always `now()`, and updates only
+`ended_at`, which a trigger stamps with the moment of ending; an ended row is not changed again
+(`IMS01`), and nothing is deleted. `impersonations_expiry_within_two_hours` holds `expires_at` to
+at most two hours after `started_at`, the column's default, for every writer.
+
+## Audit log
+
+`audit.events` records who wrote what in the tables that hold personal data or legally binding
+records ([ADR 033](architecture/adr-033-audit-log.md)): one event per row inserted, updated or
+deleted, with the table, the row's key, its organization, the names of the changed columns
+(`changed_columns`; the filled ones on an insert, none on a delete), and for a few columns per
+table that say nothing about a person, such as a state, a role or a stage, the `[old, new]`
+values in `details`. Never the value of a personal field: the event says `cnp` changed, not what
+it was. ADR 033 lists the audited tables and the kept columns, and why the others are left out.
+
+| Column                  | Notes                                                                                                                                                 |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `action`                | `insert`, `update`, `delete`, `impersonation_started`, `impersonation_ended` or `client_deleted`.                                                     |
+| `actor_id`              | The account that acted: `auth.uid()` on a user's token; on the secret key, the account the API names in `x-audit-actor`; null for the service or SQL. |
+| `impersonating_user_id` | The member the actor was acting as during an impersonation.                                                                                           |
+| `source`                | `user`, `api` (secret key with an actor), `service` (secret key without one) or `database`.                                                           |
+| `transaction_id`        | Groups the events of one request.                                                                                                                     |
+
+`audit.record_changes()` runs as three statement-level triggers (`audit_insert`, `audit_update`,
+`audit_delete`) per audited table, with transition tables, so a bulk statement writes its events
+in one insert. The header is believed only when the request's `role` is `service_role`, which
+only the secret key reaches; a user's token sending it is recorded as the user. The schema is not
+exposed by PostgREST and no API role has a privilege on it; support reads it with SQL. Events
+are never changed or deleted: `AUD01` on any update, delete or truncate, whoever runs it.
+`delete_archived_client` records one `client_deleted` event naming the client, and sets
+`audit.suppressed` for its own transaction so the rows it deletes record nothing. How long
+events are kept is not decided, and nothing deletes them.
+
 ## Clients
 
 `clients` stores the client companies of an organization, and its leads (ADR 007):

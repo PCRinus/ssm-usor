@@ -472,7 +472,7 @@ const readAgreementTemplate = () =>
   );
 
 const employeeDigest = () =>
-  agreementDigest({ env: signingEnv } as Context<ApiEnv>, {
+  agreementDigest({ env: signingEnv, get: () => undefined } as unknown as Context<ApiEnv>, {
     clientId,
     employeeId,
     party: 'employee',

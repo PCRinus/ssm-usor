@@ -13,7 +13,7 @@ import {
 } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
-import { adminClient } from '../../lib/admin-db';
+import { createLastingAdminClient } from '../../lib/admin-db';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
@@ -166,7 +166,7 @@ async function createSession(
 ) {
   const accountId = c.get('user').id;
   await createSigningIdentities(c);
-  const admin = adminClient(c.env);
+  const admin = createLastingAdminClient(c);
   const contact = await signerContact(admin, { accountId, ...signer });
   if (!contact) {
     throw new ApiError(
@@ -364,7 +364,7 @@ type RequestForSigning = {
 // the secret key's, as no policy lets a signer write a signature, and the database's checks on
 // the evidence decide whether it stands.
 async function signRequest(c: Context<ApiEnv>, requestId: string, signing: Signing) {
-  const admin = adminClient(c.env);
+  const admin = createLastingAdminClient(c);
   const { session } = signing;
   const request = await admin
     .from('signature_requests')
@@ -382,7 +382,7 @@ async function signRequest(c: Context<ApiEnv>, requestId: string, signing: Signi
 }
 
 async function signRecordRequest(c: Context<ApiEnv>, request: RequestForSigning, signing: Signing) {
-  const admin = adminClient(c.env);
+  const admin = createLastingAdminClient(c);
   const { session } = signing;
   const requestId = request.id;
   const recordId = request.training_record_id!;
@@ -460,7 +460,7 @@ async function signTestSheetRequest(
   request: RequestForSigning,
   signing: Signing
 ) {
-  const admin = adminClient(c.env);
+  const admin = createLastingAdminClient(c);
   const { session } = signing;
   const slot = request.slot as TestSheetSignerSlot;
   const read = await admin
@@ -533,7 +533,7 @@ async function signTestSheetRequest(
 async function agreementStates(c: Context<ApiEnv>, employeeIds: string[]) {
   const states = new Map<string, SigningAgreementState>();
   if (employeeIds.length === 0) return states;
-  const { data, error } = await adminClient(c.env)
+  const { data, error } = await createLastingAdminClient(c)
     .from('employee_signing_agreements')
     .select('employee_id, state')
     .in('employee_id', [...new Set(employeeIds)]);
@@ -543,7 +543,7 @@ async function agreementStates(c: Context<ApiEnv>, employeeIds: string[]) {
 }
 
 async function memberName(c: Context<ApiEnv>, accountId: string) {
-  const { data, error } = await adminClient(c.env)
+  const { data, error } = await createLastingAdminClient(c)
     .from('profiles')
     .select('full_name')
     .eq('user_id', accountId)
@@ -578,7 +578,7 @@ async function signSession(
     place: participation ? 'portal' : 'app',
     participantId: participation?.participantId ?? null,
   });
-  const { data: items, error } = await adminClient(c.env)
+  const { data: items, error } = await createLastingAdminClient(c)
     .from('signing_session_items')
     .select('request_id, agreement_employee_id, agreement_party, agreement_digest')
     .eq('session_id', session.id)

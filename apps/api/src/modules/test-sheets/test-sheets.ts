@@ -12,7 +12,7 @@ import {
 import { buildTestSheetData, testSheetTypeKey } from '@ssm-usor/document-engine';
 import type { Context } from 'hono';
 
-import { type AdminClient, adminClient } from '../../lib/admin-db';
+import { type AdminClient, createLastingAdminClient } from '../../lib/admin-db';
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
@@ -62,7 +62,7 @@ export type TestSheetDeps = {
 };
 
 export const testSheetDeps = (c: Context<ApiEnv>): TestSheetDeps => ({
-  admin: adminClient(c.env),
+  admin: createLastingAdminClient(c),
   sheets: signedSheetContext(c),
 });
 

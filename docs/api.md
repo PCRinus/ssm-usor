@@ -740,7 +740,12 @@ Routes acting for a signed-in user need only the publishable key. The waitlist a
 signed in, so it uses `createAdminClient(c)` from `src/lib/admin-db.ts`, which holds
 `SUPABASE_SECRET_KEY` and bypasses row-level security. Import that client only in a module
 with the same need; never reach for it to work around a policy. The invitations module is the
-second, for the three things listed below.
+second, for the three things listed below. Inside a request, `createAdminClient(c)` and
+`createLastingAdminClient(c)` (for a write that must finish when the caller disconnects, as
+the signing evidence) send the signed-in account's id in `x-audit-actor`, which the audit log
+names as the actor of the write ([ADR 033](architecture/adr-033-audit-log.md)); build a
+secret-key client for a user only through them, never with `adminClient(env)`, which names
+nobody and is for the queues and the webhook.
 Supabase owns its Auth schema; business tables live in SQL migrations
 and are protected by row-level security. User-editable `user_metadata` never grants permissions.
 
