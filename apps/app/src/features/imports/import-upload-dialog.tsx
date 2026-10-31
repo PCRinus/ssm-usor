@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { type FormEvent, type ReactNode, useRef, useState } from 'react';
 
+import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useRefuseStrayDrops } from '@/features/client-files/use-file-drop';
 
@@ -176,8 +177,10 @@ function UploadForm({
               {client ? 'Completează din documentație' : 'Client nou din documente'}
             </DialogTitle>
             <DialogDescription>
-              Încarcă documentația SSM și PSI a unei singure firme. O citim și îți propunem datele
-              clientului. Nu salvăm nimic până nu le verifici.
+              <span className="block">
+                Citim documentația SSM și PSI a firmei și îți propunem datele clientului.
+              </span>
+              <span className="block">Nu salvăm nimic până nu le verifici.</span>
             </DialogDescription>
           </DialogHeader>
           <DialogBody className="mt-4 grid gap-4">
@@ -245,7 +248,7 @@ function UploadForm({
                   </Button>
                 </div>
                 <div
-                  className="flex flex-wrap justify-center gap-1.5"
+                  className="flex flex-wrap items-center justify-center gap-1.5"
                   aria-label="Fișiere pe care le citim"
                 >
                   {formats.map((format) => (
@@ -256,10 +259,8 @@ function UploadForm({
                       {format}
                     </span>
                   ))}
+                  <HelpLink topic="import.client" label="Ajutor: ce documente încarci" />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Arhivele ZIP le deschidem aici, înainte de încărcare.
-                </p>
                 <input
                   ref={filesInput}
                   type="file"
