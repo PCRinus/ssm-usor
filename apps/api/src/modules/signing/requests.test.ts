@@ -8,6 +8,7 @@ import {
   env,
   fetchMock,
   mockUpstream,
+  organizationId,
   sendSignatureRequestEmail,
   sendSignatureRequestSms,
   type UpstreamRoute,
@@ -415,6 +416,45 @@ describe('requests issued when a training is saved', () => {
     expect(response.status).toBe(201);
     const [stamp] = callsTo('/rest/v1/signature_requests', 'PATCH');
     expect(stamp!.url.searchParams.get('id')!.split(',')).toHaveLength(4);
+  });
+
+  it('logs each texted notice against the organization, uncounted', async () => {
+    upstream();
+
+    await save();
+
+    const claims = callsTo('/rest/v1/rpc/claim_sms_send', 'POST');
+    expect(claims.map((claim) => claim.body)).toEqual([
+      expect.objectContaining({ p_kind: 'signature_request', p_organization_id: organizationId }),
+      expect.objectContaining({ p_kind: 'signature_request', p_organization_id: organizationId }),
+    ]);
+  });
+
+  it('skips the texted notices during a trial without a plan, emails the rest and stamps only those', async () => {
+    upstream({
+      'GET /rest/v1/subscriptions': () => ({
+        organization_id: organizationId,
+        plan: 'profesional',
+        status: 'trialing',
+        created_at: '2026-10-01T00:00:00Z',
+        trial_ends_at: '2099-01-01T00:00:00Z',
+        stripe_subscription_id: null,
+        stripe_customer_id: null,
+        tester_allowances: false,
+        first_paid_at: null,
+        billing_anchor_at: null,
+        current_period_end: null,
+        sms_cap_factor: 3,
+      }),
+    });
+
+    const response = await save();
+
+    expect(response.status).toBe(201);
+    expect(sendSignatureRequestSms).not.toHaveBeenCalled();
+    expect(sendSignatureRequestEmail).toHaveBeenCalledTimes(2);
+    const [stamp] = callsTo('/rest/v1/signature_requests', 'PATCH');
+    expect(stamp!.url.searchParams.get('id')!.split(',')).toHaveLength(3);
   });
 
   it('answers 409 when the training is signed and the edit changes what it prints', async () => {

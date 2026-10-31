@@ -213,26 +213,22 @@ export function usageLimits(
     status: string;
     stripe_subscription_id: string | null;
     trial_ends_at: string | null;
-    trial_sms: boolean;
     employee_packs: number;
     extra_members: number;
   } | null,
   now: Date
 ) {
-  if (!row || row.plan === 'enterprise') return { employees: null, members: null, sms: null };
+  if (!row || row.plan === 'enterprise') return { employees: null, members: null };
   const inTrial =
     row.status === 'trialing' && row.trial_ends_at !== null && new Date(row.trial_ends_at) > now;
   if (inTrial) {
     const trial = billingPlans.profesional;
-    // A trial sends no SMS; a plan chosen during it, or a tester's trial given SMS, does.
-    const sms = row.stripe_subscription_id || row.trial_sms ? trial.monthlySms : 0;
-    return { employees: trial.includedEmployees, members: trial.includedMembers, sms };
+    return { employees: trial.includedEmployees, members: trial.includedMembers };
   }
   const terms = billingPlans[row.plan as PaidPlan];
   return {
     employees:
       terms.includedEmployees + row.employee_packs * employeePacks[terms.employeePack].employees,
     members: terms.includedMembers + row.extra_members,
-    sms: terms.monthlySms,
   };
 }

@@ -14,6 +14,7 @@ import {
   type ParticipantKind,
   type PortalLanguage,
   type PortalStanding,
+  type SmsRefusalReason,
   typedInvitationAddress,
 } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
@@ -27,6 +28,7 @@ import {
 } from '../../lib/db';
 import { type ApiEnv, portalOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { smsRefusalError, smsSenderOf } from '../sms-usage/sender';
 import { ensureParticipantAccount } from './account';
 import { fromParticipantError } from './errors';
 import type {
@@ -193,9 +195,20 @@ async function send(
     ...names,
     portalUrl: portalOrigin(c.env),
   };
+  let refusal: SmsRefusalReason | null = null;
   try {
-    if (channel === 'email') await messenger(c, 'email').sendParticipantInvitation(message);
-    else await messenger(c, 'sms').sendParticipantInvitation(message);
+    if (channel === 'email') {
+      await messenger(c, 'email').sendParticipantInvitation(message);
+    } else {
+      messenger(c, 'sms');
+      const outcome = await smsSenderOf(c).send({
+        organizationId: invitation.organization_id,
+        kind: 'participant_invitation',
+        to: invitation.address,
+        deliver: (sms) => sms.sendParticipantInvitation(message),
+      });
+      if (!outcome.sent) refusal = outcome.reason;
+    }
   } catch (error) {
     console.error(
       `Participant invitation ${channel} failed: ${error instanceof Error ? error.name : 'unknown'}`
@@ -207,8 +220,15 @@ async function send(
       participantErrorReasons.messageNotSent
     );
   }
+  if (refusal) throw smsRefusalError(refusal);
 
   return toInvitation(invitation);
+}
+
+// Before anything is saved: an SMS invitation that cannot go out is refused, not kept for a resend.
+async function refuseUnsendableSms(c: Context<ApiEnv>, organizationId: string, phone: string) {
+  const refusal = await smsSenderOf(c).gate(organizationId, phone);
+  if (refusal) throw smsRefusalError(refusal);
 }
 
 async function invite(
@@ -223,6 +243,9 @@ async function invite(
   }
 ) {
   messenger(c, args.channel);
+  if (args.channel === 'sms') {
+    await refuseUnsendableSms(c, c.get('membership').organizationId, args.address);
+  }
   const admin = createAdminClient(c);
   return deliver(c, admin, await createInvitation(createDataClient(c), args));
 }
@@ -292,6 +315,9 @@ export const resendParticipantInvitation: RouteHandler<
   const db = createDataClient(c);
   const found = await loadInvitation(db, invitationId);
   messenger(c, found.channel as ParticipantChannel);
+  if (found.channel === 'sms') {
+    await refuseUnsendableSms(c, found.organization_id, found.address);
+  }
   const admin = createAdminClient(c);
   const { error } = await db.rpc('resend_participant_invitation', {
     p_invitation_id: invitationId,
@@ -609,6 +635,8 @@ export const inviteEmployeeParticipants: RouteHandler<
   const names = await senderNames(db, clientId, client.data.organization_id);
   const employeeOf = new Map(employees.data.map((row) => [row.id, row]));
   const admin = createAdminClient(c);
+  const sms = typed.some((row) => row.address?.channel === 'sms') ? smsSenderOf(c) : null;
+  const subscription = sms ? await sms.subscription(client.data.organization_id) : null;
 
   const results: BulkInvitationResult[] = [];
   // One after the other: two rows may share an address, and the database decides between them.
@@ -641,6 +669,13 @@ export const inviteEmployeeParticipants: RouteHandler<
     if (!address) {
       result('failed', participantErrorReasons.invalidAddress);
       continue;
+    }
+    if (sms && address.channel === 'sms') {
+      const refusal = await sms.gate(client.data.organization_id, address.address, subscription);
+      if (refusal) {
+        result('failed', refusal);
+        continue;
+      }
     }
 
     let invitation: InvitationRow;

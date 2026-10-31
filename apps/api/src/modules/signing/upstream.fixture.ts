@@ -55,6 +55,10 @@ export function mockUpstream(routes: Record<string, UpstreamRoute>) {
     '/rest/v1/rpc/current_membership': () => [
       { user_id: user.id, organization_id: organizationId, role: 'specialist' },
     ],
+    'GET /rest/v1/subscriptions': () => [],
+    'POST /rest/v1/rpc/claim_sms_send': () => ({ id: 'sms-1', refusal: null, overage: false }),
+    'PATCH /rest/v1/sms_sends': () => new Response(null, { status: 204 }),
+    'DELETE /rest/v1/sms_sends': () => new Response(null, { status: 204 }),
   };
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));

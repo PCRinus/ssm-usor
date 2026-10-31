@@ -9,7 +9,8 @@ import { localSupabase } from './lib/supabase-cli';
 import { endOfRomanianDay } from './lib/trial-end';
 
 //   pnpm extend-trial --email owner@firma.ro --until 2027-01-31 --reason "Tester, runda 1" --actor mircea
-//   --with-sms   the trial sends SMS, at the full allowance of its plan; without it, none
+//   --tester     the tester switch: 300 signing codes by SMS a month (and, once credits exist, 1,500
+//                credits a month), each stopping at its limit; without it, an ordinary trial
 //   --local      against the local Docker stack instead of SUPABASE_URL and SUPABASE_SECRET_KEY
 // Until the admin area exists (#611), this is how a tester's trial gets a later end (ADR 029).
 
@@ -19,7 +20,7 @@ const { values } = parseArgs({
     until: { type: 'string' },
     reason: { type: 'string' },
     actor: { type: 'string' },
-    'with-sms': { type: 'boolean', default: false },
+    tester: { type: 'boolean', default: false },
     local: { type: 'boolean', default: false },
   },
 });
@@ -43,7 +44,7 @@ try {
     p_until: until.toISOString(),
     p_reason: values.reason,
     p_actor: values.actor,
-    p_with_sms: values['with-sms'],
+    p_tester: values.tester,
   });
   if (error) {
     const known: Record<string, string> = {
@@ -57,7 +58,7 @@ try {
     throw new Error(known[error.code] ?? `${error.code}: ${error.message}`);
   }
   const row = data[0]!;
-  const sms = values['with-sms'] ? 'with SMS' : 'without SMS';
+  const sms = values.tester ? 'as a tester' : 'as an ordinary trial';
   console.log(
     row.started
       ? `"${row.organization_name}" (${row.organization_id}) had no subscription and now starts a trial, ${sms}, that ends ${row.trial_ends_at}.`

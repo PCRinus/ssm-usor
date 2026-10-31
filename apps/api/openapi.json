@@ -17358,16 +17358,63 @@
                 "properties": {
                   "used": {
                     "type": "integer",
-                    "nullable": true,
                     "minimum": 0
                   },
-                  "limit": {
+                  "included": {
                     "type": "integer",
                     "nullable": true,
                     "minimum": 0
+                  },
+                  "allowance": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  },
+                  "granted": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "cap": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  },
+                  "capFactor": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 1
+                  },
+                  "overage": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "periodStart": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date-time"
+                  },
+                  "periodEnd": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date-time"
+                  },
+                  "state": {
+                    "type": "string",
+                    "enum": ["ok", "near", "over", "capped", "stopped", "none"]
                   }
                 },
-                "required": ["used", "limit"]
+                "required": [
+                  "used",
+                  "included",
+                  "allowance",
+                  "granted",
+                  "cap",
+                  "capFactor",
+                  "overage",
+                  "periodStart",
+                  "periodEnd",
+                  "state"
+                ]
               }
             },
             "required": ["employees", "members", "smsThisMonth"]
@@ -18071,6 +18118,29 @@
           }
         },
         "required": ["email"]
+      },
+      "SmsCap": {
+        "type": "object",
+        "properties": {
+          "factor": {
+            "type": "integer"
+          },
+          "cap": {
+            "type": "integer"
+          }
+        },
+        "required": ["factor", "cap"]
+      },
+      "SmsCapRequest": {
+        "type": "object",
+        "properties": {
+          "factor": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 20
+          }
+        },
+        "required": ["factor"]
       },
       "BillingInvoiceLink": {
         "type": "object",
@@ -41623,6 +41693,100 @@
           },
           "409": {
             "description": "The choice does not fit the organization, or the subscription is not in a state for it; see `reason`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/sms-cap": {
+      "put": {
+        "operationId": "updateSmsCap",
+        "summary": "The safety cap on the month's signing codes by SMS",
+        "description": "A multiple of the plan's allowance, from 3 (the default) to 20; codes granted by hand come on top. Past the cap no signing code goes by SMS. Recorded in the subscription's change log.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SmsCapRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The saved cap",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SmsCap"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller is not the owner, or is an admin impersonating one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "No plan is chosen (`no_subscription`) or the plan is Enterprise (`enterprise_plan`)",
             "content": {
               "application/json": {
                 "schema": {

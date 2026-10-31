@@ -26,8 +26,8 @@ on:
         description: Why, for example "Tester, runda 1"
         type: string
         required: true
-      with-sms:
-        description: Send SMS during the trial, at the full allowance of its plan (for a tester whose workers have no email)
+      tester:
+        description: 'Tester: 300 signing codes by SMS a month and 1,500 credits a month, each stopping at its limit (off: an ordinary trial, no SMS)'
         type: boolean
         default: false
 
@@ -51,7 +51,7 @@ jobs:
       UNTIL: ${{ inputs.until }}
       REASON: ${{ inputs.reason }}
       ACTOR: ${{ github.actor }}
-      WITH_SMS: ${{ inputs.with-sms }}
+      TESTER: ${{ inputs.tester }}
     steps:
       - name: Check the branch
         if: inputs.environment == 'production'
@@ -73,5 +73,5 @@ jobs:
         shell: bash
         run: |
           args=(--email="$EMAIL" --until="$UNTIL" --reason="$REASON" --actor="$ACTOR")
-          [[ "$WITH_SMS" == "true" ]] && args+=(--with-sms)
+          [[ "$TESTER" == "true" ]] && args+=(--tester)
           pnpm --filter @ssm-usor/api extend-trial "${args[@]}"

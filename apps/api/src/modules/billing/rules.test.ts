@@ -188,25 +188,26 @@ describe('usage limits', () => {
     status: 'trialing',
     stripe_subscription_id: null as string | null,
     trial_ends_at: '2026-11-08T10:00:00Z',
-    trial_sms: false,
     employee_packs: 2,
     extra_members: 1,
   };
 
-  it("keeps the trial's limits until it ends, without SMS until a plan is chosen", () => {
-    expect(usageLimits(row, now)).toEqual({ employees: 1500, members: 3, sms: 0 });
-    expect(usageLimits({ ...row, stripe_subscription_id: 'sub_1' }, now).sms).toBe(300);
+  it("keeps the trial's limits until it ends, a plan chosen or not", () => {
+    expect(usageLimits(row, now)).toEqual({ employees: 1500, members: 3 });
+    expect(usageLimits({ ...row, stripe_subscription_id: 'sub_1' }, now)).toEqual({
+      employees: 1500,
+      members: 3,
+    });
   });
 
   it("counts the plan's packs and extra members once paid", () => {
     expect(usageLimits({ ...row, status: 'active' }, now)).toEqual({
       employees: 350,
       members: 2,
-      sms: 50,
     });
   });
 
   it('sets no limit without a subscription', () => {
-    expect(usageLimits(null, now)).toEqual({ employees: null, members: null, sms: null });
+    expect(usageLimits(null, now)).toEqual({ employees: null, members: null });
   });
 });

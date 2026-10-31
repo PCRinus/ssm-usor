@@ -69,7 +69,18 @@ describe('GET /billing', () => {
     expect(body.usage).toEqual({
       employees: { used: 120, limit: 1500 },
       members: { used: 1, limit: 3 },
-      smsThisMonth: { used: null, limit: 0 },
+      smsThisMonth: {
+        used: 0,
+        included: 0,
+        allowance: 0,
+        granted: 0,
+        cap: null,
+        capFactor: null,
+        overage: 0,
+        periodStart: null,
+        periodEnd: null,
+        state: 'none',
+      },
     });
     expect(body.catalogue.plans.map((plan) => [plan.key, plan.prices.month])).toEqual([
       ['start', 3900],
@@ -1039,5 +1050,134 @@ describe('the card, the invoice email and the PDFs', () => {
     });
 
     expect((await request('GET', '/billing/invoices/in_1Other/pdf')).status).toBe(404);
+  });
+});
+
+describe('the SMS meter and the safety cap', () => {
+  const specialist = { user_id: owner.id, role: 'specialist', access: 'full' } as const;
+  const meterFake = (smsUsage: { used: number; overage: number; granted: number }) =>
+    createFake({ smsUsage, membership: specialist });
+  const smsOf = async () =>
+    billingOverviewSchema.parse(await (await request('GET', '/billing')).json()).usage.smsThisMonth;
+
+  it("counts a paid plan's signing codes on the subscription's month, near the allowance from 80 %", async () => {
+    const fake = meterFake({ used: 45, overage: 0, granted: 0 });
+    const anchor = new Date((now() - 3 * day) * 1000).toISOString();
+    fake.tables.subscriptions!.push(paidRow(start, { billing_anchor_at: anchor }));
+
+    const sms = await smsOf();
+
+    expect(sms).toMatchObject({
+      used: 45,
+      included: 50,
+      allowance: 50,
+      cap: 150,
+      capFactor: 3,
+      overage: 0,
+      periodStart: anchor,
+      state: 'near',
+    });
+    const counted = fake.calls.find(
+      (call) => call.url.pathname === '/rest/v1/rpc/sms_period_usage'
+    );
+    expect(JSON.parse(counted!.body!)).toMatchObject({
+      p_organization_id: organizationId,
+      p_period_start: anchor,
+    });
+  });
+
+  it('adds the codes granted by hand to what is included and to the cap, and shows the overage', async () => {
+    meterFake({ used: 60, overage: 5, granted: 5 }).tables.subscriptions!.push(paidRow(start));
+
+    expect(await smsOf()).toMatchObject({
+      used: 60,
+      included: 55,
+      cap: 155,
+      overage: 5,
+      state: 'over',
+    });
+  });
+
+  it('says capped at the cap the owner raised', async () => {
+    meterFake({ used: 300, overage: 250, granted: 0 }).tables.subscriptions!.push(
+      paidRow(start, { sms_cap_factor: 6 })
+    );
+
+    expect(await smsOf()).toMatchObject({ cap: 300, capFactor: 6, state: 'capped' });
+  });
+
+  it('stops a plan chosen during the trial at its own allowance until the first payment, on a month ending with the trial', async () => {
+    const trialEnd = new Date((now() + 5 * day) * 1000).toISOString();
+    meterFake({ used: 50, overage: 0, granted: 0 }).tables.subscriptions!.push(
+      paidRow(start, {
+        status: 'trialing',
+        trial_ends_at: trialEnd,
+        access_until: trialEnd,
+        first_paid_at: null,
+      })
+    );
+
+    expect(await smsOf()).toMatchObject({
+      included: 50,
+      cap: null,
+      capFactor: null,
+      periodEnd: trialEnd,
+      state: 'stopped',
+    });
+  });
+
+  it("gives a tester's trial Profesional's codes with a hard stop", async () => {
+    meterFake({ used: 12, overage: 0, granted: 0 }).tables.subscriptions!.push(
+      subscriptionRow({ tester_allowances: true })
+    );
+
+    expect(await smsOf()).toMatchObject({ used: 12, included: 300, cap: null, state: 'ok' });
+  });
+
+  it('sets no limit without a subscription', async () => {
+    meterFake({ used: 7, overage: 0, granted: 0 });
+
+    expect(await smsOf()).toMatchObject({ used: 7, included: null, cap: null, state: 'ok' });
+  });
+
+  it('lets the owner raise the cap, and records it', async () => {
+    const fake = createFake();
+    fake.tables.subscriptions!.push(paidRow(start));
+
+    const response = await request('PUT', '/billing/sms-cap', { factor: 6 });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ factor: 6, cap: 300 });
+    expect(row(fake).sms_cap_factor).toBe(6);
+    expect(fake.tables.subscription_changes).toEqual([
+      expect.objectContaining({
+        source: 'owner',
+        change: 'sms_cap',
+        details: expect.objectContaining({ actor: owner.id, sms_cap_factor: { from: 3, to: 6 } }),
+      }),
+    ]);
+  });
+
+  it.each([2, 21, 4.5])('refuses a factor of %s', async (factor) => {
+    createFake().tables.subscriptions!.push(paidRow(start));
+
+    expect((await request('PUT', '/billing/sms-cap', { factor })).status).toBe(400);
+  });
+
+  it('keeps the cap for the owner', async () => {
+    createFake({
+      membership: { user_id: owner.id, role: 'specialist', access: 'full' },
+    }).tables.subscriptions!.push(paidRow(start));
+
+    expect((await request('PUT', '/billing/sms-cap', { factor: 6 })).status).toBe(403);
+  });
+
+  it('answers 409 while no plan is chosen', async () => {
+    createFake().tables.subscriptions!.push(subscriptionRow());
+
+    const response = await request('PUT', '/billing/sms-cap', { factor: 6 });
+
+    expect(response.status).toBe(409);
+    expect(await reasonOf(response)).toBe('no_subscription');
   });
 });

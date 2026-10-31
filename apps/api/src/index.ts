@@ -3,6 +3,7 @@ import type { ApiEnv } from './lib/env';
 import { consumeRegenerationBatch } from './modules/documents/regeneration-queue';
 import { scheduledImportCleanUp } from './modules/imports/cleanup';
 import { consumeImportBatch, consumeImportDeadLetters } from './modules/imports/queue';
+import { scheduledOverageReports } from './modules/sms-usage/overage';
 
 const app = createApp();
 
@@ -16,5 +17,8 @@ export default {
     if (batch.queue.startsWith('ssm-usor-import')) return consumeImportBatch(batch, env);
     return consumeRegenerationBatch(batch, env);
   },
-  scheduled: (_controller, env, context) => context.waitUntil(scheduledImportCleanUp(env)),
+  scheduled: (_controller, env, context) =>
+    context.waitUntil(
+      Promise.allSettled([scheduledImportCleanUp(env), scheduledOverageReports(env)])
+    ),
 } satisfies ExportedHandler<ApiEnv['Bindings']>;

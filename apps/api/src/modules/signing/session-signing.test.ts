@@ -557,6 +557,37 @@ describe('POST /portal/participants/{participantId}/signing-sessions', () => {
     expect(session!.body).toMatchObject({ p_place: 'portal', p_participant_id: participantId });
   });
 
+  it('counts the texted code against the organization of the participation', async () => {
+    participantUpstream('employee');
+
+    await send(path, { requestIds: [requestA], agreementEmployeeIds: [] });
+
+    const [claim] = callsTo('/rest/v1/rpc/claim_sms_send', 'POST');
+    expect(claim!.body).toMatchObject({
+      p_organization_id: organizationId,
+      p_kind: 'signing_code',
+    });
+    expect(claim!.secret).toBe(true);
+    expect(callsTo('/rest/v1/sms_sends', 'PATCH')).toHaveLength(1);
+  });
+
+  it.each(['sms_cap_reached', 'sms_allowance_reached'])(
+    'answers 409 with %s when no code may be texted to a signer without email, and keeps no session',
+    async (refusal) => {
+      participantUpstream('employee', {
+        'POST /rest/v1/rpc/claim_sms_send': () => ({ id: null, refusal, overage: false }),
+        'DELETE /rest/v1/signing_sessions': () => new Response(null, { status: 204 }),
+      });
+
+      const response = await send(path, { requestIds: [requestA], agreementEmployeeIds: [] });
+
+      expect(response.status).toBe(409);
+      expect(await response.json()).toMatchObject({ reason: refusal });
+      expect(sendSigningCodeSms).not.toHaveBeenCalled();
+      expect(callsTo('/rest/v1/signing_sessions', 'DELETE')).toHaveLength(1);
+    }
+  );
+
   it('refuses an agreement of a client without a legal representative, sending nothing', async () => {
     participantUpstream('employee', agreementSources({ legal_representative_name: null }));
 

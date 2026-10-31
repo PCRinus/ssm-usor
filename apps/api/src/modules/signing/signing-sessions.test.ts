@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { SmsSender } from '../sms-usage/sender';
 import {
   createSigningSession,
   type NewSigningSession,
   type SigningCodeMessage,
+  SigningCodeRefused,
   signingCodeSender,
   type SigningSession,
   type SigningSessionStore,
@@ -12,6 +14,7 @@ import {
 } from './signing-sessions';
 
 const accountId = '1e8b36cc-d87a-4318-9af2-acb1f6156112';
+const organizationId = '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d';
 const now = new Date('2026-10-18T09:30:00.000Z');
 const seconds = (count: number) => new Date(now.getTime() + count * 1000);
 
@@ -67,6 +70,7 @@ const start = (overrides: Partial<Parameters<typeof createSigningSession>[1]> = 
     { store: memory.store, send },
     {
       accountId,
+      organizationId,
       place: 'app',
       participantId: null,
       channel: 'email',
@@ -127,6 +131,7 @@ describe('createSigningSession', () => {
       { store: memory.store, send },
       {
         accountId,
+        organizationId,
         place: 'app',
         participantId: null,
         channel: 'email',
@@ -146,6 +151,7 @@ describe('createSigningSession', () => {
       { store: memory.store, send },
       {
         accountId,
+        organizationId,
         place: 'app',
         participantId: null,
         channel: 'email',
@@ -193,6 +199,19 @@ describe('createSigningSession', () => {
     expect(memory.sessions.size).toBe(0);
     await expect(start({}, seconds(1))).resolves.toBeDefined();
   });
+
+  it.each(['sms_allowance_reached', 'sms_cap_reached', 'sms_trial'])(
+    'answers 409 with the reason when the SMS is refused (%s), and keeps no session',
+    async (reason) => {
+      send.mockRejectedValueOnce(new SigningCodeRefused(reason));
+
+      await expect(start({ channel: 'sms', address: '+40722123456' })).rejects.toMatchObject({
+        code: 'conflict',
+        reason,
+      });
+      expect(memory.sessions.size).toBe(0);
+    }
+  );
 });
 
 describe('verifySigningCode', () => {
@@ -366,13 +385,24 @@ describe('the stores', () => {
   it('sends the code over the binding of its channel', async () => {
     const sendEmail = vi.fn().mockResolvedValue({ id: 'm1' });
     const sendSms = vi.fn().mockResolvedValue({ id: 's1' });
+    const smsSend = vi.fn(async (input: Parameters<SmsSender['send']>[0]) => ({
+      sent: true as const,
+      id: 'row-1',
+      overage: false,
+      receipt: await input.deliver({ sendSigningCode: sendSms } as never),
+    }));
     const sender = signingCodeSender({
-      MAIL: { sendSigningCode: sendEmail } as never,
-      SMS: { sendSigningCode: sendSms } as never,
+      mail: { sendSigningCode: sendEmail } as never,
+      sms: { send: smsSend },
     });
 
-    await sender({ channel: 'email', to: 'ion@example.ro', code: '123456', expiresInMinutes: 10 });
-    await sender({ channel: 'sms', to: '+40722123456', code: '123456', expiresInMinutes: 10 });
+    const message = { organizationId, code: '123456', expiresInMinutes: 10 };
+    await sender({ ...message, channel: 'email', to: 'ion@example.ro' });
+    await sender({ ...message, channel: 'sms', to: '+40722123456' });
+
+    expect(smsSend).toHaveBeenCalledWith(
+      expect.objectContaining({ organizationId, kind: 'signing_code', to: '+40722123456' })
+    );
 
     expect(sendEmail).toHaveBeenCalledWith({
       to: 'ion@example.ro',
@@ -384,5 +414,22 @@ describe('the stores', () => {
       code: '123456',
       expiresInMinutes: 10,
     });
+  });
+
+  it('turns a refused SMS into a refusal the session answers with', async () => {
+    const sender = signingCodeSender({
+      mail: undefined,
+      sms: { send: async () => ({ sent: false, reason: 'sms_cap_reached' }) },
+    });
+
+    await expect(
+      sender({
+        organizationId,
+        channel: 'sms',
+        to: '+40722123456',
+        code: '123456',
+        expiresInMinutes: 10,
+      })
+    ).rejects.toMatchObject({ name: 'SigningCodeRefused', reason: 'sms_cap_reached' });
   });
 });

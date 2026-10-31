@@ -158,7 +158,7 @@ describe('the Abonament tab', () => {
     expect(within(card).getByTestId('plan-amount').textContent).toContain('83,49 €');
     expect(card.textContent).toContain('2 pachete de câte 50 de angajați');
     expect(screen.getByTestId('meter-employees').textContent).toContain('312 din 350');
-    expect(screen.getByTestId('meter-sms').textContent).toContain('50 incluse');
+    expect(screen.getByTestId('meter-sms').textContent).toContain('0 din 50');
     expect(screen.getByTestId('payment-card-number').textContent).toBe('Visa •••• 4242');
 
     const user = userEvent.setup();

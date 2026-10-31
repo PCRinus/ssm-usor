@@ -53,6 +53,7 @@ export function plainTrial(row: SubscriptionRow): SubscriptionFields {
     employee_packs: 0,
     extra_members: 0,
     current_period_end: null,
+    billing_anchor_at: null,
   };
 }
 
@@ -76,6 +77,7 @@ export function stateFromStripe(
     employee_packs: chosen.choice.employeePacks,
     extra_members: chosen.choice.extraMembers,
     current_period_end: iso(planItem.current_period_end),
+    billing_anchor_at: iso(subscription.billing_cycle_anchor),
   };
   const retrying = previous?.status === 'past_due' && previous.access_until !== null;
 
