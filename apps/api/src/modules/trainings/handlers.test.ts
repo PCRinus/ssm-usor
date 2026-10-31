@@ -195,6 +195,11 @@ const send = (method: string, path: string, body: unknown) =>
     body: JSON.stringify(body),
   });
 
+const sheetRow = ({ certified, voided = false }: { certified: boolean; voided?: boolean }) => ({
+  voided_at: voided ? '2026-10-20T09:00:00Z' : null,
+  signed_sheets: { certified_at: certified ? '2026-10-19T09:00:00Z' : null },
+});
+
 const trainingsPath = `/clients/${clientId}/trainings`;
 const trainingPath = `${trainingsPath}/${trainingId}`;
 
@@ -247,6 +252,7 @@ describe('GET /clients/{clientId}/trainings', () => {
           ...training,
           signed: false,
           hasSignatures: true,
+          printed: false,
           attendeeCount: 2,
           attendees: [
             { employeeId, lastName: 'Popescu', firstName: 'Ion' },
@@ -258,10 +264,30 @@ describe('GET /clients/{clientId}/trainings', () => {
     const query = searchOf('/rest/v1/trainings');
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
     expect(query.get('select')).toContain(
-      'training_records(employees(id,last_name,first_name),training_signatures(method,voided_at),signed_sheet_rows!signed_sheet_rows_record_of_client(id))'
+      'training_records(employees(id,last_name,first_name),training_signatures(method,voided_at),signed_sheet_rows!signed_sheet_rows_record_of_client(voided_at,signed_sheets!signed_sheet_rows_sheet_of_client(certified_at)))'
     );
     expect(query.get('order')).toBe('held_on.desc,created_at.desc,id.asc');
     expect(query.get('domain')).toBeNull();
+  });
+
+  it('marks a training from paper printed on a certified sheet', async () => {
+    mockUpstream({
+      trainings: () =>
+        Response.json([
+          {
+            ...trainingRow,
+            source: 'paper',
+            training_records: recordRows.map(({ employees }, index) => ({
+              employees,
+              training_signatures: [],
+              signed_sheet_rows: index === 0 ? [sheetRow({ certified: true })] : [],
+            })),
+          },
+        ]),
+    });
+    const response = await request(trainingsPath);
+    const [item] = trainingListResponseSchema.parse(await response.json()).items;
+    expect(item).toMatchObject({ signed: false, hasSignatures: true, printed: true });
   });
 
   it('filters by domain and phase', async () => {
@@ -562,12 +588,13 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-records', () =
           training: { ...training, phase: 'periodic' },
           signed: false,
           hasSignatures: false,
+          printed: false,
         },
       ],
     });
     const query = searchOf('/rest/v1/training_records');
     expect(query.get('select')).toContain(
-      'trainings!inner(id,client_id,domain,phase,held_on,duration_minutes,material,trainer_name,trainer_job_title,verifier_name,verifier_job_title,supplementary_reason,source,themes_revision_id,notes,created_at,updated_at,training_records(training_signatures(method,voided_at),signed_sheet_rows!signed_sheet_rows_record_of_client(id)))'
+      'trainings!inner(id,client_id,domain,phase,held_on,duration_minutes,material,trainer_name,trainer_job_title,verifier_name,verifier_job_title,supplementary_reason,source,themes_revision_id,notes,created_at,updated_at,training_records(training_signatures(method,voided_at),signed_sheet_rows!signed_sheet_rows_record_of_client(voided_at,signed_sheets!signed_sheet_rows_sheet_of_client(certified_at))))'
     );
     expect(query.get('employee_id')).toBe(`eq.${employeeId}`);
     expect(query.get('trainings.domain')).toBe('eq.ssm');
@@ -585,7 +612,7 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-records', () =
           signed_sheet_rows: [],
         },
       ],
-      { signed: true, hasSignatures: true },
+      { signed: true, hasSignatures: true, printed: false },
     ],
     [
       'only voided and paper signatures',
@@ -598,38 +625,72 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-records', () =
           signed_sheet_rows: [],
         },
       ],
-      { signed: false, hasSignatures: true },
+      { signed: false, hasSignatures: true, printed: false },
     ],
     [
       'a row on a stored sheet',
       [
         {
           training_signatures: [],
-          signed_sheet_rows: [{ id: 'f2f2f2f2-0000-4000-8000-000000000002' }],
+          signed_sheet_rows: [sheetRow({ certified: false })],
         },
       ],
-      { signed: false, hasSignatures: true },
+      { signed: false, hasSignatures: true, printed: false },
     ],
-  ])("gives each record its training's signing state, with %s", async (_, records, signing) => {
-    mockUpstream({
-      employees: () => Response.json([{ id: employeeId }]),
-      records: () =>
-        Response.json([
-          {
-            id: 'f1f1f1f1-0000-4000-8000-000000000001',
-            occupation: 'Sudor',
-            admitted_on: null,
-            admitted_by_name: null,
-            admitted_by_job_title: null,
-            trainings: { ...trainingRow, training_records: records },
-          },
-        ]),
-    });
-    const response = await request(recordsPath);
-    expect(response.status).toBe(200);
-    const [item] = employeeTrainingRecordListResponseSchema.parse(await response.json()).items;
-    expect(item).toMatchObject(signing);
-  });
+    [
+      "an app training's row on a certified sheet",
+      [{ training_signatures: [], signed_sheet_rows: [sheetRow({ certified: true })] }],
+      { signed: false, hasSignatures: true, printed: false },
+    ],
+    [
+      "a paper training's row on a certified sheet",
+      [
+        { training_signatures: [], signed_sheet_rows: [] },
+        { training_signatures: [], signed_sheet_rows: [sheetRow({ certified: true })] },
+      ],
+      { signed: false, hasSignatures: true, printed: true },
+      'paper',
+    ],
+    [
+      "a paper training's row on a sheet not yet certified",
+      [{ training_signatures: [], signed_sheet_rows: [sheetRow({ certified: false })] }],
+      { signed: false, hasSignatures: true, printed: false },
+      'paper',
+    ],
+    [
+      "a paper training's voided row on a certified sheet",
+      [
+        {
+          training_signatures: [],
+          signed_sheet_rows: [sheetRow({ certified: true, voided: true })],
+        },
+      ],
+      { signed: false, hasSignatures: true, printed: false },
+      'paper',
+    ],
+  ])(
+    "gives each record its training's signing state, with %s",
+    async (_, records, signing, source = 'app') => {
+      mockUpstream({
+        employees: () => Response.json([{ id: employeeId }]),
+        records: () =>
+          Response.json([
+            {
+              id: 'f1f1f1f1-0000-4000-8000-000000000001',
+              occupation: 'Sudor',
+              admitted_on: null,
+              admitted_by_name: null,
+              admitted_by_job_title: null,
+              trainings: { ...trainingRow, source, training_records: records },
+            },
+          ]),
+      });
+      const response = await request(recordsPath);
+      expect(response.status).toBe(200);
+      const [item] = employeeTrainingRecordListResponseSchema.parse(await response.json()).items;
+      expect(item).toMatchObject(signing);
+    }
+  );
 
   it('answers 404 for an employee of another client', async () => {
     mockUpstream({ employees: () => Response.json([]) });

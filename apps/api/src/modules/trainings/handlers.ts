@@ -4,6 +4,7 @@ import type {
   TrainingDetail,
   TrainingDomain,
   TrainingRequest,
+  TrainingSource,
 } from '@ssm-usor/contracts';
 import { proposalEmployeeIds } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
@@ -34,22 +35,26 @@ import type {
 import { toAdmission, toTraining, trainingColumns } from './training-rows';
 
 const signingColumns =
-  'training_signatures(method, voided_at), signed_sheet_rows!signed_sheet_rows_record_of_client(id)';
+  'training_signatures(method, voided_at), signed_sheet_rows!signed_sheet_rows_record_of_client(voided_at, signed_sheets!signed_sheet_rows_sheet_of_client(certified_at))';
 
 const recordColumns = `id, occupation, admitted_on, admitted_by_name, admitted_by_job_title, employees(id, last_name, first_name), ${signingColumns}`;
 
 type RecordSigning = {
   training_signatures: { method: string; voided_at: string | null }[] | null;
-  signed_sheet_rows: { id: string }[] | null;
+  signed_sheet_rows:
+    { voided_at: string | null; signed_sheets: { certified_at: string | null } }[] | null;
 };
 
-function signingOf(records: RecordSigning[]) {
+// `printed` is the rule of training_record_is_printed, by which the database refuses the change.
+function signingOf(source: TrainingSource, records: RecordSigning[]) {
   const signatures = records.flatMap((record) => record.training_signatures ?? []);
+  const sheetRows = records.flatMap((record) => record.signed_sheet_rows ?? []);
   return {
     signed: signatures.some((each) => each.method === 'electronic' && each.voided_at === null),
-    hasSignatures:
-      signatures.length > 0 ||
-      records.some((record) => (record.signed_sheet_rows ?? []).length > 0),
+    hasSignatures: signatures.length > 0 || sheetRows.length > 0,
+    printed:
+      source === 'paper' &&
+      sheetRows.some((row) => row.voided_at === null && row.signed_sheets.certified_at !== null),
   };
 }
 
@@ -85,7 +90,7 @@ async function loadTraining(db: DataClient, clientId: string, trainingId: string
   const { training_records: records, ...training } = data;
   return {
     ...toTraining(training),
-    ...signingOf(records as unknown as RecordSigning[]),
+    ...signingOf(training.source, records as unknown as RecordSigning[]),
     signers: await slotSignersOf(
       db,
       records.map((record) => record.id)
@@ -231,7 +236,7 @@ export const listTrainings: RouteHandler<typeof listTrainingsRoute, ApiEnv> = as
     {
       items: data.map(({ training_records: records, ...training }) => ({
         ...toTraining(training),
-        ...signingOf(records as unknown as RecordSigning[]),
+        ...signingOf(training.source, records as unknown as RecordSigning[]),
         attendeeCount: records.length,
         attendees: records
           .map(({ employees: employee }) => ({
@@ -364,7 +369,7 @@ export const listEmployeeTrainingRecords: RouteHandler<
           occupation: record.occupation,
           admission: toAdmission(record),
           training: toTraining(training),
-          ...signingOf(records as unknown as RecordSigning[]),
+          ...signingOf(training.source, records as unknown as RecordSigning[]),
         };
       }),
     },

@@ -2254,6 +2254,7 @@ export type TrainingListResponseItemsItem = {
   attendees: TrainingListResponseItemsItemAttendeesItem[];
   signed: boolean;
   hasSignatures: boolean;
+  printed: boolean;
 };
 
 export interface TrainingListResponse {
@@ -2413,6 +2414,7 @@ export type TrainingResponseTraining = {
   records: TrainingResponseTrainingRecordsItem[];
   signed: boolean;
   hasSignatures: boolean;
+  printed: boolean;
   signers: TrainingResponseTrainingSigners;
 };
 
@@ -2654,6 +2656,7 @@ export type EmployeeTrainingRecordListResponseItemsItem = {
   training: EmployeeTrainingRecordListResponseItemsItemTraining;
   signed: boolean;
   hasSignatures: boolean;
+  printed: boolean;
 };
 
 export interface EmployeeTrainingRecordListResponse {

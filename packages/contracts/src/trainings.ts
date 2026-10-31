@@ -216,10 +216,13 @@ export type TrainingAttendee = z.infer<typeof trainingAttendeeSchema>;
 
 // The training's signing state (ADR 023), over all its records: `signed` while any carries a live
 // electronic signature, which freezes the training; `hasSignatures` once any carries a signature
-// row, voided and paper ones included, or sits on a stored sheet, which keeps it from deletion.
+// row, voided and paper ones included, or sits on a stored sheet, which keeps it from deletion;
+// `printed` when a training from paper is printed as text on a live row of a certified sheet,
+// which freezes it too.
 const trainingSigningSchema = {
   signed: z.boolean(),
   hasSignatures: z.boolean(),
+  printed: z.boolean(),
 };
 
 export const trainingListItemSchema = trainingSchema.extend({

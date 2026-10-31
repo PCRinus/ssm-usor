@@ -2834,6 +2834,9 @@
                 },
                 "hasSignatures": {
                   "type": "boolean"
+                },
+                "printed": {
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -2855,7 +2858,8 @@
                 "attendeeCount",
                 "attendees",
                 "signed",
-                "hasSignatures"
+                "hasSignatures",
+                "printed"
               ]
             }
           }
@@ -3077,6 +3081,9 @@
               "hasSignatures": {
                 "type": "boolean"
               },
+              "printed": {
+                "type": "boolean"
+              },
               "signers": {
                 "type": "object",
                 "properties": {
@@ -3118,6 +3125,7 @@
               "records",
               "signed",
               "hasSignatures",
+              "printed",
               "signers"
             ]
           }
@@ -3419,9 +3427,20 @@
                 },
                 "hasSignatures": {
                   "type": "boolean"
+                },
+                "printed": {
+                  "type": "boolean"
                 }
               },
-              "required": ["id", "occupation", "admission", "training", "signed", "hasSignatures"]
+              "required": [
+                "id",
+                "occupation",
+                "admission",
+                "training",
+                "signed",
+                "hasSignatures",
+                "printed"
+              ]
             }
           }
         },
