@@ -231,7 +231,10 @@ function UploadForm({
               <span className="block">
                 Citim fișele de instruire de la {client.legalName} și îți propunem angajații.
               </span>
-              <span className="block">Nu creăm niciun angajat până nu confirmi.</span>
+              <span className="block">
+                Nu creăm niciun angajat până nu confirmi.{' '}
+                <HelpLink topic="import.angajati">Află mai mult</HelpLink>
+              </span>
             </DialogDescription>
           </DialogHeader>
           <DialogBody className="mt-4 grid gap-3.5">
@@ -321,7 +324,7 @@ function UploadForm({
                   </Button>
                 </div>
                 <div
-                  className="flex flex-wrap items-center justify-center gap-1.5"
+                  className="flex flex-wrap justify-center gap-1.5"
                   aria-label="Fișiere pe care le citim"
                 >
                   {formats.map((format) => (
@@ -332,7 +335,6 @@ function UploadForm({
                       {format}
                     </span>
                   ))}
-                  <HelpLink topic="import.ce-fotografiezi" label="Ajutor: ce fotografiezi" />
                 </div>
                 <input
                   ref={filesInput}

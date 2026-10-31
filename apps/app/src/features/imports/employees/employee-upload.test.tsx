@@ -164,10 +164,8 @@ describe('how much fits in one import', () => {
     await within(dialog).findByTestId('employee-upload-chosen');
     expect(within(dialog).queryByTestId('employee-upload-limits')).toBeNull();
     expect(
-      within(dialog)
-        .getByRole('link', { name: 'Ajutor: ce fotografiezi' })
-        .getAttribute('data-help-topic')
-    ).toBe('import.ce-fotografiezi');
+      within(dialog).getByRole('link', { name: 'Află mai mult' }).getAttribute('data-help-topic')
+    ).toBe('import.angajati');
   });
 
   it('shows how much of each cap is used once the selection nears one', async () => {
