@@ -114,6 +114,24 @@
           "retryAfterSeconds": {
             "type": "integer",
             "minimum": 1
+          },
+          "credits": {
+            "type": "object",
+            "properties": {
+              "needed": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "left": {
+                "type": "integer"
+              },
+              "renewsAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              }
+            },
+            "required": ["needed", "left", "renewsAt"]
           }
         },
         "required": ["error", "message"]
@@ -11591,6 +11609,9 @@
           "usage": {
             "$ref": "#/components/schemas/ImportUsage"
           },
+          "credits": {
+            "$ref": "#/components/schemas/ImportCredits"
+          },
           "employees": {
             "$ref": "#/components/schemas/EmployeeImportReview"
           },
@@ -13892,6 +13913,7 @@
           "changes",
           "blockers",
           "proposalDroppedAt",
+          "credits",
           "employees",
           "proposal"
         ]
@@ -13965,6 +13987,28 @@
           }
         },
         "required": ["costUsd", "inputTokens", "cachedInputTokens", "outputTokens"]
+      },
+      "ImportCredits": {
+        "type": "object",
+        "nullable": true,
+        "properties": {
+          "used": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "atStart": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "scannedPages": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "refunded": {
+            "type": "boolean"
+          }
+        },
+        "required": ["used", "atStart", "scannedPages", "refunded"]
       },
       "EmployeeImportReview": {
         "type": "object",
@@ -15606,6 +15650,11 @@
                 "sha256": {
                   "type": "string",
                   "pattern": "^[0-9a-f]{64}$"
+                },
+                "pages": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000
                 }
               },
               "required": ["uploadPath", "mimeType", "sizeBytes", "sha256"]
@@ -17415,9 +17464,78 @@
                   "periodEnd",
                   "state"
                 ]
+              },
+              "creditsThisMonth": {
+                "type": "object",
+                "properties": {
+                  "used": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "included": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  },
+                  "allowance": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  },
+                  "granted": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "shortfall": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "left": {
+                    "type": "integer",
+                    "nullable": true
+                  },
+                  "giftLeft": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "giftPending": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "period": {
+                    "type": "string",
+                    "enum": ["trial", "month"]
+                  },
+                  "periodStart": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "periodEnd": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "state": {
+                    "type": "string",
+                    "enum": ["ok", "near", "out", "negative", "unlimited"]
+                  }
+                },
+                "required": [
+                  "used",
+                  "included",
+                  "allowance",
+                  "granted",
+                  "shortfall",
+                  "left",
+                  "giftLeft",
+                  "giftPending",
+                  "period",
+                  "periodStart",
+                  "periodEnd",
+                  "state"
+                ]
               }
             },
-            "required": ["employees", "members", "smsThisMonth"]
+            "required": ["employees", "members", "smsThisMonth", "creditsThisMonth"]
           },
           "catalogue": {
             "type": "object",
@@ -17465,6 +17583,12 @@
                     "monthlySms": {
                       "type": "integer"
                     },
+                    "monthlyCredits": {
+                      "type": "integer"
+                    },
+                    "welcomeCredits": {
+                      "type": "integer"
+                    },
                     "employeePack": {
                       "type": "string",
                       "enum": [
@@ -17489,6 +17613,8 @@
                     "includedMembers",
                     "maxMembers",
                     "monthlySms",
+                    "monthlyCredits",
+                    "welcomeCredits",
                     "employeePack",
                     "maxEmployeePacks"
                   ]
@@ -38887,7 +39013,7 @@
       "post": {
         "operationId": "startImport",
         "summary": "Start reading the uploaded files",
-        "description": "Files whose upload never arrived are dropped; with none left the answer is `422` with `import_empty`. The import moves to `preparing` and one message per file goes to the import queue. `409` with `import_not_uploading` once started; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.",
+        "description": "Files whose upload never arrived are dropped; with none left the answer is `422` with `import_empty`. The import's known part is charged in credits (ADR 030): 25 for a client import and one per photograph, every photograph and PDF page the browser counted for an employee import. When what is left does not cover it, `409` with `credits_insufficient` and `credits` (`needed`, `left`, `renewsAt`), and nothing starts. The import moves to `preparing` and one message per file goes to the import queue. `409` with `import_not_uploading` once started; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.",
         "security": [
           {
             "bearerAuth": []
@@ -38956,7 +39082,7 @@
             }
           },
           "409": {
-            "description": "The import has started already",
+            "description": "The import has started already, or the credits left do not cover it",
             "content": {
               "application/json": {
                 "schema": {
@@ -39463,7 +39589,7 @@
       "post": {
         "operationId": "splitImport",
         "summary": "Import another company's files on their own",
-        "description": "Takes files the sorting found to be about another company, as `otherCompanies` lists them, into a new import for a new client, without uploading them again, and starts reading it. Every file must be `other_company` (else `422` with `import_not_other_company`), and none already split from this import into one not abandoned (`409` with `import_already_split`).",
+        "description": "Takes files the sorting found to be about another company, as `otherCompanies` lists them, into a new import for a new client, without uploading them again, and starts reading it. Every file must be `other_company` (else `422` with `import_not_other_company`), and none already split from this import into one not abandoned (`409` with `import_already_split`). The new import is a client import of its own and starts on 25 credits and one per photograph, refused as the start is with `409` and `credits_insufficient`.",
         "security": [
           {
             "bearerAuth": []
@@ -39542,7 +39668,7 @@
             }
           },
           "409": {
-            "description": "Split already, or the import is abandoned",
+            "description": "Split already, the import is abandoned, or the credits left do not cover it",
             "content": {
               "application/json": {
                 "schema": {

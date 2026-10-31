@@ -9,6 +9,8 @@ import type {
 import type { Database, Json } from '../../database.types';
 import type { AdminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
+import { creditsStore } from '../credits/store';
+import { importCharges } from '../credits/usage';
 import { clientTrainingThemes, employeeImportClient } from './employees';
 
 type Tables = Database['public']['Tables'];
@@ -50,6 +52,7 @@ export type ImportFileRow = Pick<
   | 'is_scan'
   | 'text_path'
   | 'derived_path'
+  | 'declared_pages'
 >;
 
 export type ImportUpdate = Tables['imports']['Update'];
@@ -60,7 +63,7 @@ const importColumns =
   'id, organization_id, kind, client_id, into_existing_client, status, company_name, company_cui, proposal, files_copied_at, created_by';
 
 export const importFileColumns =
-  'id, import_id, upload_path, original_file_name, mime_type, size_bytes, sha256, storage_path, state, document_kind, reason, company_name, company_cui, page_count, is_scan, text_path, derived_path';
+  'id, import_id, upload_path, original_file_name, mime_type, size_bytes, sha256, storage_path, state, document_kind, reason, company_name, company_cui, page_count, is_scan, text_path, derived_path, declared_pages';
 
 export interface ImportStore {
   getImport(importId: string): Promise<ImportRow | null>;
@@ -76,6 +79,10 @@ export interface ImportStore {
     usage: Usage,
     cost: number
   ): Promise<void>;
+  // One credit, once, whatever the queue delivers again (ADR 030).
+  chargeScannedPage(row: ImportRow, fileId: string, page: number): Promise<void>;
+  // False when the credits left do not cover the pages counted past what the start was charged.
+  settleSheetPages(row: ImportRow, extra: number): Promise<boolean>;
   provider(organizationId: string): Promise<ProviderIdentity>;
   client(clientId: string): Promise<ExistingClient | null>;
   employeeImportClient(clientId: string): Promise<EmployeeImportClient>;
@@ -111,6 +118,7 @@ export class ImportLimitError extends Error {
 }
 
 export function importStore(admin: AdminClient): ImportStore {
+  const charges = importCharges(creditsStore(admin));
   return {
     async getImport(importId) {
       const { data, error } = await admin
@@ -165,6 +173,11 @@ export function importStore(admin: AdminClient): ImportStore {
       });
       if (error) throw fromDatabaseError(error, 'record import usage');
     },
+
+    chargeScannedPage: (row, fileId, page) =>
+      charges.scannedPage(row.organization_id, row.id, fileId, page),
+
+    settleSheetPages: (row, extra) => charges.settlePages(row.organization_id, row.id, extra),
 
     async provider(organizationId) {
       const [organization, members] = await Promise.all([

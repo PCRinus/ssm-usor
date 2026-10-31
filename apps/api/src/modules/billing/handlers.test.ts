@@ -54,7 +54,8 @@ describe('GET /billing', () => {
     const fake = createFake({
       membership: { user_id: owner.id, role: 'specialist', access: 'full' },
     });
-    fake.tables.subscriptions!.push(subscriptionRow());
+    const trial = subscriptionRow();
+    fake.tables.subscriptions!.push(trial);
 
     const response = await request('GET', '/billing');
 
@@ -81,10 +82,31 @@ describe('GET /billing', () => {
         periodEnd: null,
         state: 'none',
       },
+      creditsThisMonth: {
+        used: 0,
+        included: 300,
+        allowance: 300,
+        granted: 0,
+        shortfall: 0,
+        left: 300,
+        giftLeft: 0,
+        giftPending: 0,
+        period: 'trial',
+        periodStart: trial.created_at,
+        periodEnd: trial.trial_ends_at,
+        state: 'ok',
+      },
     });
-    expect(body.catalogue.plans.map((plan) => [plan.key, plan.prices.month])).toEqual([
-      ['start', 3900],
-      ['profesional', 14900],
+    expect(
+      body.catalogue.plans.map((plan) => [
+        plan.key,
+        plan.prices.month,
+        plan.monthlyCredits,
+        plan.welcomeCredits,
+      ])
+    ).toEqual([
+      ['start', 3900, 300, 2500],
+      ['profesional', 14900, 1500, 10000],
     ]);
   });
 
@@ -1050,6 +1072,126 @@ describe('the card, the invoice email and the PDFs', () => {
     });
 
     expect((await request('GET', '/billing/invoices/in_1Other/pdf')).status).toBe(404);
+  });
+});
+
+describe('the credits meter', () => {
+  const specialist = { user_id: owner.id, role: 'specialist', access: 'full' } as const;
+  const meterFake = (credits: Partial<Fake['credits']> = {}) =>
+    createFake({
+      credits: { granted: 0, used: 0, shortfall: 0, gift_left: 0, ...credits },
+      membership: specialist,
+    });
+  const creditsOf = async () =>
+    billingOverviewSchema.parse(await (await request('GET', '/billing')).json()).usage
+      .creditsThisMonth;
+  const balanceAsked = (fake: Fake) =>
+    JSON.parse(
+      fake.calls.find((call) => call.url.pathname === '/rest/v1/rpc/credit_balance')!.body!
+    ) as Record<string, unknown>;
+
+  it("counts a paid plan's credits on the subscription's month, with the gift and last month's shortfall", async () => {
+    const fake = meterFake({ used: 120, granted: 50, shortfall: 4, gift_left: 2500 });
+    const anchor = new Date((now() - 3 * day) * 1000).toISOString();
+    fake.tables.subscriptions!.push(paidRow(start, { billing_anchor_at: anchor }));
+
+    expect(await creditsOf()).toMatchObject({
+      used: 120,
+      included: 350,
+      allowance: 300,
+      granted: 50,
+      shortfall: 4,
+      left: 226,
+      giftLeft: 2500,
+      giftPending: 0,
+      period: 'month',
+      periodStart: anchor,
+      state: 'ok',
+    });
+    expect(balanceAsked(fake)).toMatchObject({
+      p_organization_id: organizationId,
+      p_period_start: anchor,
+      p_allowance: 300,
+      p_previous_end: anchor,
+      p_previous_allowance: 300,
+    });
+  });
+
+  it('gives Profesional its 1,500 a month', async () => {
+    meterFake({ used: 1300 }).tables.subscriptions!.push(paidRow(pro));
+
+    expect(await creditsOf()).toMatchObject({ included: 1500, left: 200, state: 'near' });
+  });
+
+  it('says negative below zero, which the next month makes up', async () => {
+    meterFake({ used: 340 }).tables.subscriptions!.push(paidRow(start));
+
+    expect(await creditsOf()).toMatchObject({ left: -40, giftLeft: 0, state: 'negative' });
+  });
+
+  it('says out at zero, and counts the gift as left', async () => {
+    meterFake({ used: 300 }).tables.subscriptions!.push(paidRow(start));
+    expect(await creditsOf()).toMatchObject({ left: 0, state: 'out' });
+
+    meterFake({ used: 300, gift_left: 40 }).tables.subscriptions!.push(paidRow(start));
+    expect(await creditsOf()).toMatchObject({ left: 0, giftLeft: 40, state: 'near' });
+  });
+
+  it('keeps a plan chosen during the trial at the trial’s 300, and names the gift its first payment brings', async () => {
+    const trialEnd = new Date((now() + 5 * day) * 1000).toISOString();
+    const fake = meterFake({ used: 100 });
+    fake.tables.subscriptions!.push(
+      paidRow(pro, {
+        status: 'trialing',
+        trial_ends_at: trialEnd,
+        access_until: trialEnd,
+        first_paid_at: null,
+      })
+    );
+
+    expect(await creditsOf()).toMatchObject({
+      included: 300,
+      left: 200,
+      giftPending: 10000,
+      period: 'trial',
+      periodEnd: trialEnd,
+    });
+    expect(balanceAsked(fake)).toMatchObject({ p_previous_start: null });
+  });
+
+  it("gives a tester's trial Profesional's credits a month and no gift", async () => {
+    const fake = meterFake({ used: 12 });
+    const trial = subscriptionRow({
+      tester_allowances: true,
+      created_at: new Date((now() - 40 * day) * 1000).toISOString(),
+    });
+    fake.tables.subscriptions!.push(trial);
+
+    const credits = await creditsOf();
+
+    expect(credits).toMatchObject({
+      included: 1500,
+      left: 1488,
+      giftPending: 0,
+      period: 'month',
+    });
+    expect(new Date(credits.periodStart) > new Date(trial.created_at as string)).toBe(true);
+    expect(balanceAsked(fake)).toMatchObject({
+      p_previous_start: trial.created_at,
+      p_previous_end: credits.periodStart,
+      p_previous_allowance: 1500,
+    });
+  });
+
+  it('sets no limit without a subscription', async () => {
+    meterFake({ used: 70 });
+
+    expect(await creditsOf()).toMatchObject({
+      used: 70,
+      included: null,
+      left: null,
+      state: 'unlimited',
+    });
   });
 });
 

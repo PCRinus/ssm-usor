@@ -123,6 +123,14 @@ export const ApiErrorResponseMissingItem = {
   documentsfire_own_instructions: 'documents.fire_own_instructions',
 } as const;
 
+export type ApiErrorResponseCredits = {
+  /** @minimum 0 */
+  needed: number;
+  left: number;
+  /** @nullable */
+  renewsAt: string | null;
+};
+
 export interface ApiErrorResponse {
   error: ApiErrorResponseError;
   message: string;
@@ -133,6 +141,7 @@ export interface ApiErrorResponse {
   attemptsLeft?: number;
   /** @minimum 1 */
   retryAfterSeconds?: number;
+  credits?: ApiErrorResponseCredits;
 }
 
 export interface PortalNoticeRequest {

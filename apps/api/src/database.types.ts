@@ -1110,6 +1110,122 @@ export type Database = {
           },
         ];
       };
+      credit_entries: {
+        Row: {
+          actor: string | null;
+          created_at: string;
+          credits: number;
+          gift_credits: number;
+          id: number;
+          import_file_id: string | null;
+          import_id: string | null;
+          key: string | null;
+          kind: Database['public']['Enums']['credit_entry_kind'];
+          organization_id: string;
+          page: number | null;
+          reason: string | null;
+        };
+        Insert: {
+          actor?: string | null;
+          created_at?: string;
+          credits: number;
+          gift_credits?: number;
+          id?: never;
+          import_file_id?: string | null;
+          import_id?: string | null;
+          key?: string | null;
+          kind: Database['public']['Enums']['credit_entry_kind'];
+          organization_id: string;
+          page?: number | null;
+          reason?: string | null;
+        };
+        Update: {
+          actor?: string | null;
+          created_at?: string;
+          credits?: number;
+          gift_credits?: number;
+          id?: never;
+          import_file_id?: string | null;
+          import_id?: string | null;
+          key?: string | null;
+          kind?: Database['public']['Enums']['credit_entry_kind'];
+          organization_id?: string;
+          page?: number | null;
+          reason?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'credit_entries_import_file_id_fkey';
+            columns: ['import_file_id'];
+            isOneToOne: false;
+            referencedRelation: 'import_files';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'credit_entries_import_id_fkey';
+            columns: ['import_id'];
+            isOneToOne: false;
+            referencedRelation: 'imports';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'credit_entries_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'credit_entries_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      credit_periods: {
+        Row: {
+          allowance: number;
+          created_at: string;
+          organization_id: string;
+          period_end: string;
+          period_start: string;
+          shortfall: number;
+        };
+        Insert: {
+          allowance: number;
+          created_at?: string;
+          organization_id: string;
+          period_end: string;
+          period_start: string;
+          shortfall?: number;
+        };
+        Update: {
+          allowance?: number;
+          created_at?: string;
+          organization_id?: string;
+          period_end?: string;
+          period_start?: string;
+          shortfall?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'credit_periods_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'credit_periods_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       document_generations: {
         Row: {
           client_id: string;
@@ -2565,6 +2681,7 @@ export type Database = {
           company_name: string | null;
           cost_usd: number;
           created_at: string;
+          declared_pages: number | null;
           derived_path: string | null;
           derived_sha256: string | null;
           derived_size_bytes: number | null;
@@ -2595,6 +2712,7 @@ export type Database = {
           company_name?: string | null;
           cost_usd?: number;
           created_at?: string;
+          declared_pages?: number | null;
           derived_path?: string | null;
           derived_sha256?: string | null;
           derived_size_bytes?: number | null;
@@ -2625,6 +2743,7 @@ export type Database = {
           company_name?: string | null;
           cost_usd?: number;
           created_at?: string;
+          declared_pages?: number | null;
           derived_path?: string | null;
           derived_sha256?: string | null;
           derived_size_bytes?: number | null;
@@ -6762,6 +6881,30 @@ export type Database = {
         };
         Returns: boolean;
       };
+      charge_credits: {
+        Args: {
+          p_allowance: number;
+          p_credits: number;
+          p_import_file_id: string;
+          p_import_id: string;
+          p_key: string;
+          p_kind: Database['public']['Enums']['credit_entry_kind'];
+          p_organization_id: string;
+          p_page: number;
+          p_period_end: string;
+          p_period_start: string;
+          p_previous_allowance: number;
+          p_previous_end: string;
+          p_previous_start: string;
+          p_require: boolean;
+        };
+        Returns: {
+          balance: number;
+          charged: number;
+          gift_left: number;
+          refused: boolean;
+        }[];
+      };
       check_participant_invitation: {
         Args: {
           p_address: string;
@@ -6903,6 +7046,35 @@ export type Database = {
           code_sent_at: string;
           expires_at: string;
           retry_after_seconds: number;
+        }[];
+      };
+      credit_balance: {
+        Args: {
+          p_allowance: number;
+          p_organization_id: string;
+          p_period_end: string;
+          p_period_start: string;
+          p_previous_allowance: number;
+          p_previous_end: string;
+          p_previous_start: string;
+        };
+        Returns: {
+          balance: number;
+          gift_left: number;
+          granted: number;
+          shortfall: number;
+          used: number;
+        }[];
+      };
+      credit_period_counts: {
+        Args: {
+          p_organization_id: string;
+          p_period_end: string;
+          p_period_start: string;
+        };
+        Returns: {
+          granted: number;
+          used: number;
         }[];
       };
       current_employee_count: {
@@ -7052,6 +7224,25 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      give_back_import_credits: {
+        Args: { p_credits: number; p_import_id: string; p_key: string };
+        Returns: number;
+      };
+      grant_credits: {
+        Args: {
+          p_actor: string;
+          p_allowance: number;
+          p_credits: number;
+          p_organization_id: string;
+          p_period_end: string;
+          p_period_start: string;
+          p_previous_allowance: number;
+          p_previous_end: string;
+          p_previous_start: string;
+          p_reason: string;
+        };
+        Returns: number;
+      };
       grant_signing_codes: {
         Args: {
           p_actor: string;
@@ -7061,6 +7252,10 @@ export type Database = {
           p_period_start: string;
           p_reason: string;
         };
+        Returns: number;
+      };
+      grant_welcome_gift: {
+        Args: { p_credits: number; p_organization_id: string };
         Returns: number;
       };
       import_add_key: {
@@ -7275,6 +7470,16 @@ export type Database = {
           role: Database['public']['Enums']['organization_role'];
         }[];
       };
+      open_credit_period: {
+        Args: {
+          p_allowance: number;
+          p_organization_id: string;
+          p_period_end: string;
+          p_period_start: string;
+          p_shortfall: number;
+        };
+        Returns: undefined;
+      };
       organization_employee_states: {
         Args: { p_organization_id: string };
         Returns: {
@@ -7424,6 +7629,7 @@ export type Database = {
         };
         Returns: boolean;
       };
+      refund_import_credits: { Args: { p_import_id: string }; Returns: number };
       refuse_archived_client: {
         Args: { p_client_id: string };
         Returns: undefined;
@@ -7823,6 +8029,8 @@ export type Database = {
       billing_document_kind: 'invoice' | 'proforma';
       billing_interval: 'month' | 'year';
       client_stage: 'lead' | 'client';
+      credit_entry_kind:
+        'import_start' | 'import_pages' | 'scanned_page' | 'refund' | 'grant' | 'gift';
       document_group: 'documentation_set' | 'other' | 'fire_safety_set';
       document_revision_status: 'draft' | 'issued' | 'superseded';
       employee_status: 'active' | 'terminated';
@@ -8031,6 +8239,14 @@ export const Constants = {
       billing_document_kind: ['invoice', 'proforma'],
       billing_interval: ['month', 'year'],
       client_stage: ['lead', 'client'],
+      credit_entry_kind: [
+        'import_start',
+        'import_pages',
+        'scanned_page',
+        'refund',
+        'grant',
+        'gift',
+      ],
       document_group: ['documentation_set', 'other', 'fire_safety_set'],
       document_revision_status: ['draft', 'issued', 'superseded'],
       employee_status: ['active', 'terminated'],

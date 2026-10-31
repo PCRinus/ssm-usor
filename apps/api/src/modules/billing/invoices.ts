@@ -5,6 +5,8 @@ import type { AdminClient } from '../../lib/admin-db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { adminFileStore } from '../../lib/files';
+import { creditsStore } from '../credits/store';
+import { grantWelcomeGift } from '../credits/usage';
 import { createOblioClient, type OblioClient, type OblioDocument } from './oblio';
 import {
   type OblioDocuments,
@@ -169,6 +171,11 @@ export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
       change: 'first_payment',
       details: { stripe_invoice: invoice.id },
     });
+  }
+  // Every paid invoice, not only the one that marked the first payment: a retried event whose
+  // first delivery stopped between the two writes still brings the gift, which is granted once.
+  if (subscription) {
+    await grantWelcomeGift(creditsStore(deps.db), await loadSubscription(deps.db, organizationId));
   }
 
   let row =

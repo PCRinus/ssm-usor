@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
 import type { ApiEnv, ImportMessage } from '../../lib/env';
+import { creditsUpstream } from '../credits/upstream.fixture';
 
 const user = {
   id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
@@ -162,6 +163,8 @@ function mockUpstream(handler: Handler = () => undefined) {
     }
     const custom = handler(call);
     if (custom) return custom;
+    const credits = creditsUpstream(call);
+    if (credits) return credits;
     throw new Error(`Unexpected upstream request: ${method} ${url}`);
   });
 }
@@ -535,6 +538,119 @@ describe('POST /imports/{importId}/start', () => {
   });
 });
 
+describe('the credits an import starts on', () => {
+  const day = 86_400_000;
+  const anchor = new Date(Date.now() - 3 * day).toISOString();
+  const paidStart = {
+    organization_id: organizationId,
+    plan: 'start',
+    status: 'active',
+    created_at: new Date(Date.now() - 60 * day).toISOString(),
+    trial_ends_at: null,
+    stripe_subscription_id: 'sub_1Test',
+    stripe_customer_id: 'cus_1Test',
+    tester_allowances: false,
+    first_paid_at: new Date(Date.now() - 30 * day).toISOString(),
+    billing_anchor_at: anchor,
+    current_period_end: null,
+    sms_cap_factor: 3,
+  };
+  const files = [
+    fileRow(1),
+    fileRow(2, {
+      mime_type: 'application/pdf',
+      upload_path: 'Dosar/Scan.pdf',
+      storage_path: storagePath(importId, 2, 'pdf'),
+    }),
+    fileRow(3, {
+      mime_type: 'image/jpeg',
+      upload_path: 'Dosar/Poza.jpg',
+      storage_path: storagePath(importId, 3, 'jpg'),
+    }),
+    fileRow(4, {
+      mime_type: 'image/heic',
+      upload_path: 'Dosar/Poza.heic',
+      storage_path: storagePath(importId, 4, 'heic'),
+    }),
+  ];
+
+  function starting(charge: Record<string, unknown>) {
+    let status = 'uploading';
+    mockUpstream(({ url, method }) => {
+      if (url.pathname === '/rest/v1/subscriptions') return Response.json([paidStart]);
+      if (url.pathname === '/rest/v1/rpc/charge_credits') return Response.json(charge);
+      if (url.pathname === '/rest/v1/imports' && method === 'PATCH') {
+        status = status === 'uploading' ? 'preparing' : 'uploading';
+        return Response.json([{ id: importId }]);
+      }
+      if (url.pathname === '/rest/v1/imports') return Response.json(importRow({ status }));
+      if (url.pathname === '/rest/v1/import_files' && method === 'GET') return Response.json(files);
+      if (url.pathname === '/rest/v1/import_files') return new Response(null, { status: 204 });
+      if (url.pathname === '/storage/v1/object/list/imports') {
+        return Response.json(
+          files.map((file) => ({
+            name: file.storage_path.split('/').at(-1),
+            metadata: { size: 1000 },
+          }))
+        );
+      }
+    });
+  }
+
+  it("charges a client import's known part, 25 and one per photograph, on the subscription's month", async () => {
+    starting({ charged: 27, refused: false, balance: 100, gift_left: 0 });
+
+    const response = await request(`/imports/${importId}/start`, 'POST');
+
+    expect(response.status).toBe(200);
+    const charge = callsTo('/rest/v1/rpc/charge_credits')[0]!;
+    expect(charge.admin).toBe(true);
+    expect(charge.body).toMatchObject({
+      p_organization_id: organizationId,
+      p_kind: 'import_start',
+      p_credits: 27,
+      p_import_id: importId,
+      p_key: `start:${importId}`,
+      p_require: true,
+      p_period_start: anchor,
+      p_allowance: 300,
+      p_previous_end: anchor,
+      p_previous_allowance: 300,
+    });
+    expect(sent).toHaveLength(4);
+  });
+
+  it('refuses to start without the credits, saying what it needs, what is left and when they renew', async () => {
+    starting({ charged: 0, refused: true, balance: -4, gift_left: 10 });
+
+    const response = await request(`/imports/${importId}/start`, 'POST');
+
+    expect(response.status).toBe(409);
+    const body = (await response.json()) as { credits: { renewsAt: string } };
+    expect(body).toMatchObject({
+      reason: 'credits_insufficient',
+      credits: { needed: 27, left: 6, renewsAt: expect.any(String) },
+    });
+    expect(new Date(body.credits.renewsAt) > new Date()).toBe(true);
+    expect(callsTo('/rest/v1/import_files', 'PATCH')).toEqual([]);
+    expect(callsTo('/rest/v1/imports', 'PATCH')).toEqual([]);
+    expect(sent).toEqual([]);
+  });
+
+  it('takes the charge back when the import cannot be queued, so the next start is charged anew', async () => {
+    starting({ charged: 27, refused: false, balance: 100, gift_left: 0 });
+    queue.sendBatch.mockRejectedValueOnce(new Error('queue down'));
+
+    const response = await request(`/imports/${importId}/start`, 'POST');
+
+    expect(response.status).toBe(503);
+    const released = callsTo('/rest/v1/credit_entries', 'DELETE')[0]!;
+    expect(released.admin).toBe(true);
+    expect(released.url.searchParams.get('key')).toBe(`eq.start:${importId}`);
+    expect(released.url.searchParams.get('kind')).toBe('eq.import_start');
+  });
+});
+
 describe('PUT /imports/{importId}/changes', () => {
   it('answers a save on an old version as a conflict', async () => {
     mockUpstream(({ url }) => {
@@ -642,6 +758,50 @@ describe('GET /imports/{importId}', () => {
       import: { proposal: unknown };
     };
     expect(body.import.proposal).toBeNull();
+  });
+
+  describe('credits', () => {
+    const creditsWith = async (entries: { kind: string; credits: number }[]) => {
+      mockUpstream(({ url }) => {
+        if (url.pathname === '/rest/v1/imports')
+          return Response.json(importRow({ status: 'ready' }));
+        if (url.pathname === '/rest/v1/import_files') return Response.json([]);
+        if (url.pathname === '/rest/v1/credit_entries') {
+          return Response.json(entries.map((entry) => ({ import_id: importId, ...entry })));
+        }
+      });
+      const body = (await (await request(`/imports/${importId}`)).json()) as {
+        import: { credits: unknown };
+      };
+      return body.import.credits;
+    };
+    const scans = Array.from({ length: 9 }, () => ({ kind: 'scanned_page', credits: -1 }));
+
+    it('says what the import used: its start and each scanned page found', async () => {
+      expect(await creditsWith([{ kind: 'import_start', credits: -25 }, ...scans])).toEqual({
+        used: 34,
+        atStart: 25,
+        scannedPages: 9,
+        refunded: false,
+      });
+      const read = callsTo('/rest/v1/credit_entries')[0]!;
+      expect(read.admin).toBe(true);
+      expect(read.url.searchParams.get('import_id')).toBe(`in.(${importId})`);
+    });
+
+    it('says nothing was used once everything was given back', async () => {
+      expect(
+        await creditsWith([
+          { kind: 'import_start', credits: -25 },
+          ...scans,
+          { kind: 'refund', credits: 34 },
+        ])
+      ).toEqual({ used: 0, atStart: 25, scannedPages: 9, refunded: true });
+    });
+
+    it('serves no credits before the import started', async () => {
+      expect(await creditsWith([])).toBeNull();
+    });
   });
 
   describe('usage', () => {

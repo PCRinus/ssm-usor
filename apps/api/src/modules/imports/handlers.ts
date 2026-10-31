@@ -2,10 +2,12 @@ import type { RouteHandler } from '@hono/zod-openapi';
 import {
   clientConflictReasons,
   confirmedListed,
+  type CreditsShort,
   type EmployeeImportPeople,
   type FoundSheet,
   type ImportChanges,
   importChangesSchema,
+  importCredits,
   type ImportDetail,
   importErrorReasons,
   importFileExtensions,
@@ -39,6 +41,8 @@ import {
 import type { ApiEnv, ImportMessage, ImportQueue } from '../../lib/env';
 import { ApiError, type BrokenConstraint } from '../../lib/errors';
 import { createAdminFileStore, createFileStore } from '../../lib/files';
+import { creditsStore } from '../credits/store';
+import { importCharges, importCreditsOf } from '../credits/usage';
 import { romanianDay } from '../documents/context';
 import { uninvitedOfImports } from '../participants/handlers';
 import {
@@ -66,6 +70,7 @@ import {
   loadPrepared,
   type PreparedPages,
   sendAll,
+  startCreditsOf,
   textPathOf,
   tooMuchText,
 } from './pipeline';
@@ -531,6 +536,10 @@ function peopleIdsOf(value: unknown) {
   return { people };
 }
 
+// The ledger is the secret key's alone; the import was found under the caller's token first.
+const creditsOfImport = async (c: Context<ApiEnv>, importId: string) =>
+  importCreditsOf(await creditsStore(createAdminClient(c)).importEntries([importId]));
+
 export const getImport: RouteHandler<typeof getImportRoute, ApiEnv> = async (c) => {
   const { importId } = c.req.valid('param');
   const db = createDataClient(c);
@@ -566,6 +575,7 @@ export const getImport: RouteHandler<typeof getImportRoute, ApiEnv> = async (c) 
     proposalDroppedAt: row.proposal_dropped_at,
     proposal: visible ? stored.proposal : null,
     employees: null,
+    credits: await creditsOfImport(c, row.id),
     ...(adminToolsAllowed(c) ? { usage: usageOf(row) } : {}),
   };
   return c.json({ import: detail }, 200);
@@ -604,6 +614,7 @@ async function employeeImportDetail(c: Context<ApiEnv>, db: DataClient, row: Fou
     proposalDroppedAt: row.proposal_dropped_at,
     proposal: null,
     employees: proposal && states ? { proposal, changes, states } : null,
+    credits: await creditsOfImport(c, row.id),
     ...(adminToolsAllowed(c) ? { usage: usageOf(row) } : {}),
   };
 }
@@ -702,6 +713,7 @@ export const registerImportFiles: RouteHandler<typeof registerImportFilesRoute, 
         mime_type: file.mimeType,
         size_bytes: file.sizeBytes,
         sha256: file.sha256,
+        declared_pages: file.mimeType === 'application/pdf' ? (file.pages ?? null) : null,
       }))
     )
     .select('id, upload_path, storage_path');
@@ -721,12 +733,23 @@ export const registerImportFiles: RouteHandler<typeof registerImportFilesRoute, 
   );
 };
 
+const creditsShort = (short: CreditsShort) =>
+  new ApiError(
+    'conflict',
+    `The import needs ${short.needed} credits to start, and ${short.left} are left.`,
+    undefined,
+    importErrorReasons.creditsInsufficient,
+    undefined,
+    { credits: short }
+  );
+
 async function beginReading(
   c: Context<ApiEnv>,
   admin: AdminClient,
   queue: ImportQueue,
   importId: string,
-  organizationId: string
+  organizationId: string,
+  kind: ImportKind
 ) {
   const files = await listFilesOf(admin, importId);
   const objects = createAdminFileStore(c);
@@ -773,6 +796,13 @@ async function beginReading(
       importErrorReasons.empty
     );
   }
+  const charges = importCharges(creditsStore(admin));
+  const needed = arrived.reduce(
+    (total, file) => total + startCreditsOf(file, kind),
+    kind === 'client' ? importCredits.clientReading : 0
+  );
+  const charge = await charges.start(organizationId, importId, needed);
+  if (!charge.started) throw creditsShort(charge.short);
   const marked = await admin
     .from('import_files')
     .update({ state: 'uploaded' })
@@ -801,6 +831,11 @@ async function beginReading(
       .update({ status: 'uploading' })
       .eq('id', importId)
       .eq('status', 'preparing');
+    await charges
+      .releaseStart(importId)
+      .catch((release: unknown) =>
+        console.error(`The start of import ${importId} stays charged: ${describe(release)}`)
+      );
     throw unavailable();
   }
 }
@@ -813,7 +848,14 @@ export const startImport: RouteHandler<typeof startImportRoute, ApiEnv> = async 
   if (row.status !== 'uploading') {
     throw conflict('The reading has started already.', importErrorReasons.notUploading);
   }
-  await beginReading(c, createAdminClient(c), queue, importId, c.get('membership').organizationId);
+  await beginReading(
+    c,
+    createAdminClient(c),
+    queue,
+    importId,
+    c.get('membership').organizationId,
+    row.kind
+  );
   return c.json({ import: await summaryOf(db, importId) }, 200);
 };
 
@@ -1199,7 +1241,14 @@ export const splitImport: RouteHandler<typeof splitImportRoute, ApiEnv> = async 
       copied.push(file.target_path);
       await objects.copyImportObject(file.source_path, file.target_path, 'imports');
     }
-    await beginReading(c, admin, queue, split.import_id, c.get('membership').organizationId);
+    await beginReading(
+      c,
+      admin,
+      queue,
+      split.import_id,
+      c.get('membership').organizationId,
+      'client'
+    );
   } catch (error) {
     // Abandoned instead of deleted when anything is left: its file rows are what the daily clean-up
     // finds the objects by, and an abandoned split no longer holds its files.
@@ -1337,7 +1386,7 @@ async function offeredSheets(db: DataClient, clientId: string) {
     db
       .from('import_files')
       .select(
-        'id, upload_path, imports!inner(id, kind, status, client_id, confirmed_at, files_copied_at), client_file:client_files!import_files_client_file_id_fkey!inner(id, storage_path, original_file_name, mime_type, size_bytes, sha256)'
+        'id, upload_path, page_count, imports!inner(id, kind, status, client_id, confirmed_at, files_copied_at), client_file:client_files!import_files_client_file_id_fkey!inner(id, storage_path, original_file_name, mime_type, size_bytes, sha256)'
       )
       .eq('state', 'for_employees')
       .eq('imports.kind', 'client')
@@ -1370,6 +1419,7 @@ async function offeredSheets(db: DataClient, clientId: string) {
     .map((file) => ({
       id: file.id,
       uploadPath: file.upload_path,
+      pageCount: file.page_count,
       importId: file.imports.id,
       confirmedAt: file.imports.confirmed_at!,
       clientFile: file.client_file,
@@ -1430,6 +1480,8 @@ async function copyFoundSheets(
         mime_type: sheet.clientFile.mime_type,
         size_bytes: sheet.clientFile.size_bytes,
         sha256: sheet.clientFile.sha256,
+        declared_pages:
+          sheet.clientFile.mime_type === 'application/pdf' ? (sheet.pageCount ?? null) : null,
         source_file_id: sheet.id,
       }))
     )
