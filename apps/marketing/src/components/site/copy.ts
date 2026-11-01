@@ -118,14 +118,14 @@ export const steps = {
   label: 'Pașii',
   items: [
     {
-      tab: 'Adaugi clientul',
-      title: 'Adaugi clientul.',
-      text: 'Scrii CUI-ul și datele firmei se completează singure. Adaugi angajații și postul fiecăruia. Evaluarea riscurilor, echipamentul de protecție și instrucțiunile le faci o dată pe post, nu pentru fiecare om.',
+      tab: 'Aduci clientul',
+      title: 'Aduci clientul, cu tot cu dosarul lui.',
+      text: 'Încarci documentația pe care o ai și fotografiile fișelor, iar firma, posturile și angajații intră în aplicație. Pentru un client nou, scrii CUI-ul și datele firmei se completează singure.',
       visual: {
         kind: 'desktop',
         shot: {
-          screen: 'employees',
-          alt: 'Lista de angajați ai unui client, cu starea instruirilor și a testelor',
+          screen: 'importReview',
+          alt: 'Verificarea datelor preluate din dosarul unui client: cinci secțiuni gata, o alegere de făcut și o secțiune de verificat',
         },
       },
     },
@@ -162,6 +162,108 @@ export const steps = {
       },
     },
   ] satisfies Step[],
+};
+
+export type ImportMarkName = 'documents' | 'sheets' | 'kept' | 'review';
+
+export interface TrainingSheet {
+  name: string;
+  mark: string;
+  job: string;
+  place: string;
+  signature: 'badea' | 'coman' | 'dobre';
+  rows: [date: string, duration: string][];
+}
+
+export const importSection = {
+  title: 'Încarci dosarul vechi. Nu scrii nimic de la capăt.',
+  intro:
+    'Încarci documentația unui client și fotografiile fișelor de instruire. Datele firmei, posturile și angajații intră în aplicație cu instruirile lor, iar tu verifici totul înainte să se salveze.',
+  stageLabel: 'Fișele de instruire de pe hârtie devin lista de angajați din aplicație',
+  shotAlt:
+    'Angajații unui client, creați din fișele de instruire, cu instruirile SSM și PSI și testele de pe fișe',
+  outcomes: [
+    {
+      mark: 'documents',
+      title: 'Clientul, din documentația lui',
+      text: 'Datele firmei, punctele de lucru, posturile și persoanele cu atribuții, preluate din dosarul pe care îl ai.',
+    },
+    {
+      mark: 'sheets',
+      title: 'Angajații, din fișele de instruire',
+      text: 'Fotografiezi fișele de pe hârtie, în orice ordine. Fiecare angajat apare cu instruirile și testele lui.',
+    },
+    {
+      mark: 'kept',
+      title: 'Nicio instruire de refăcut',
+      text: 'Ce s-a făcut pe hârtie rămâne făcut. Nu reiei instruirea la angajare și nici testul.',
+    },
+    {
+      mark: 'review',
+      title: 'Tu ai ultimul cuvânt',
+      text: 'Vezi de unde vine fiecare valoare și o corectezi înainte să confirmi.',
+    },
+  ] satisfies { mark: ImportMarkName; title: string; text: string }[],
+  note: 'La prima plată primești credite pentru importul clienților pe care îi ai deja.',
+  sheet: {
+    unit: 'Unitatea',
+    company: 'Brutăria Spicul Auriu SRL',
+    title: ['FIȘĂ INDIVIDUALĂ DE INSTRUIRE PRIVIND', 'SECURITATEA ȘI SĂNĂTATEA ÎN MUNCĂ'],
+    name: 'Numele și prenumele',
+    mark: 'Legitimație, marca',
+    job: 'Funcția',
+    place: 'Locul de muncă',
+    periodic: 'Instruirea periodică',
+    columns: [
+      'Data instruirii',
+      'Durata',
+      'Semnătura celui instruit',
+      'Semnătura celui care a instruit',
+    ],
+  },
+  // Back to front: the last one lies on top.
+  sheets: [
+    {
+      name: 'Dobre Cristian',
+      mark: '37',
+      job: 'patiser',
+      place: 'laborator',
+      signature: 'dobre',
+      rows: [
+        ['15.11.2024', '2 ore'],
+        ['15.05.2025', '2 ore'],
+        ['15.11.2025', '2 ore'],
+        ['15.05.2026', '2 ore'],
+      ],
+    },
+    {
+      name: 'Coman Daniela',
+      mark: '12',
+      job: 'patiser',
+      place: 'laborator',
+      signature: 'coman',
+      rows: [
+        ['20.02.2025', '2 ore'],
+        ['20.08.2025', '2 ore'],
+        ['20.02.2026', '2 ore'],
+        ['20.08.2026', '2 ore'],
+      ],
+    },
+    {
+      name: 'Badea Ion',
+      mark: '5',
+      job: 'brutar',
+      place: 'secția panificație',
+      signature: 'badea',
+      rows: [
+        ['18.06.2024', '2 ore'],
+        ['18.12.2024', '2 ore'],
+        ['18.06.2025', '2 ore'],
+        ['18.12.2025', '2 ore'],
+        ['18.06.2026', '2 ore'],
+      ],
+    },
+  ] satisfies TrainingSheet[],
 };
 
 export const day = {
