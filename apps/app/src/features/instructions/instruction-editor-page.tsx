@@ -271,9 +271,8 @@ export function InstructionEditorPage({
           <div className="flex justify-start">{back}</div>
           <h1 className="text-lg font-semibold">{module.title}</h1>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Acest fișier are o așezare în pagină pe care editorul din aplicație nu o poate afișa.
-            Descarcă-l, modifică-l în Word și încarcă-l din nou; documentele îl anexează așa cum
-            este.
+            Acest fișier are o așezare în pagină pe care editorul din aplicație nu o poate afișa. Îl
+            poți descărca și citi în Word; documentele îl anexează așa cum este.
           </p>
           <Button className="w-fit" variant="outline" onClick={() => void download()}>
             <Download aria-hidden="true" />

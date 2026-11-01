@@ -201,7 +201,6 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /equipment-suggestions`                                           | Verified user with a membership       | `{ "items": [ … ] }`, risks or items typed before; `?field=risk                                                                                                                                    | item&query=` |
 | `GET /instruction-modules`                                             | Verified user with a membership       | `{ "items": [ … ] }`, by domain, group and title; `?archived=true` lists the archived ones instead; `?domain=`                                                                                     |
 | `POST /instruction-modules`                                            | Verified user with a membership       | `201 { "module": { … } }`, started from the skeleton                                                                                                                                               |
-| `POST /instruction-modules/upload`                                     | Verified user with a membership       | `201 { "module": { … } }` from the `.docx` in the body; `?title=&group=&domain=`                                                                                                                   |
 | `GET /instruction-modules/{moduleId}`                                  | Verified user with a membership       | `{ "module": { … } }`                                                                                                                                                                              |
 | `PATCH /instruction-modules/{moduleId}`                                | Verified user with a membership       | `{ "module": { … } }` after renaming, regrouping, moving domain, archiving or restoring                                                                                                            |
 | `GET /instruction-modules/{moduleId}/file-link`                        | Verified user with a membership       | `{ "url", "fileName", "expiresAt" }`, a one-minute link to the current file                                                                                                                        |
@@ -575,7 +574,8 @@ recently used first, at most twenty; it filters in the Worker, so a typed `%` or
 character, not a PostgREST operator.
 
 The instruction library ([ADR 012](architecture/adr-012-own-instructions.md)) is the
-organization's own instructions, one Word file each, kept as their author made them. Each
+organization's own instructions, one Word file each, written in the app (ADR 034 removed the
+upload). Each
 module has a `domain`, `ssm` or `psi` (ADR 012's amendment of 2026-10-11): which set's own
 instructions annex it, 3.2 or 2.1. `GET /instruction-modules` lists the modules in use by
 domain, group and title, each with its current version (`number`, `sha256`, `sizeBytes`,
@@ -583,10 +583,7 @@ domain, group and title, each with its current version (`number`, `sha256`, `siz
 `appliedCount`, how many current positions across the organization's clients apply it;
 `?archived=true` lists the archived ones instead, and `?domain=` one domain's only. `POST
 /instruction-modules` starts a module from the skeleton the app ships, in the house style
-with the Labour Inspection's headings; `POST /instruction-modules/upload` takes the bytes of
-a `.docx` as the body, one file per request, sweeps its fonts to the house font and nothing
-else, and titles it after `?title=` or the first line of the file, in `?group=` or a work
-activity; both take a `domain`, `ssm` when left out. A title the library already has, of
+with the Labour Inspection's headings, in the `domain` given, `ssm` when left out. A title the library already has, of
 either domain, answers `409` with the reason
 `instruction_module_title_taken`. `PUT …/file` stores the body as the next version, which is
 what the editor saves; versions are never replaced, so documents generated before keep

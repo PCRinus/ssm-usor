@@ -10,7 +10,7 @@ export {
   type TemplateSet,
   type TemplateSource,
 } from './citations';
-export { countArticles, firstLine, sweepFonts } from './modules';
+export { countArticles } from './modules';
 export * from './render';
 export {
   buildSigningAgreementData,

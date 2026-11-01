@@ -1,43 +1,9 @@
 import PizZip from 'pizzip';
 
-import { isTextPart } from './text';
-
-// An instruction module is a Word file kept as its author made it (ADR 012). These helpers
-// read what the app needs from one and apply the one change it makes: the fonts.
-
-const houseFont = 'Arial';
-
 const paragraphPattern = /<w:p[ >][\s\S]*?<\/w:p>/g;
-const textPattern = /<w:t(?: [^>]*)?>([^<]*)<\/w:t>/g;
-
-const decode = (text: string) =>
-  text
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&amp;/g, '&');
 
 function paragraphs(zip: PizZip) {
   return zip.file('word/document.xml')?.asText().match(paragraphPattern) ?? [];
-}
-
-function textOf(paragraph: string) {
-  let line = '';
-  paragraph.replace(textPattern, (_, text: string) => {
-    line += decode(text);
-    return '';
-  });
-  return line.trim();
-}
-
-/** The first line of text, which an uploaded file usually spends on its title. */
-export function firstLine(source: Uint8Array): string | null {
-  for (const paragraph of paragraphs(new PizZip(source))) {
-    const text = textOf(paragraph);
-    if (text) return text;
-  }
-  return null;
 }
 
 /**
@@ -73,33 +39,4 @@ export function countArticles(source: Uint8Array): number {
     if (numId) counts.set(numId, (counts.get(numId) ?? 0) + 1);
   }
   return Math.max(0, ...counts.values());
-}
-
-/**
- * Every font the file names becomes the house font, so the editor, which serves only that
- * one, shows no notice on a document that annexes the module. Nothing else in the file
- * changes.
- */
-export function sweepFonts(source: Uint8Array): Uint8Array {
-  const zip = new PizZip(source);
-  for (const name of Object.keys(zip.files)) {
-    if (!(isTextPart(name) || /^word\/(styles|numbering|fontTable)\.xml$/.test(name))) continue;
-    const xml = zip.file(name)!.asText();
-    const swept = xml
-      .replace(
-        /<w:rFonts [^>]*\/>/g,
-        `<w:rFonts w:ascii="${houseFont}" w:hAnsi="${houseFont}" w:cs="${houseFont}" w:eastAsia="${houseFont}"/>`
-      )
-      .replace(/<w:font w:name="[^"]*"/g, `<w:font w:name="${houseFont}"`);
-    if (swept !== xml) zip.file(name, swept);
-  }
-  for (const name of Object.keys(zip.files).filter((file) =>
-    /^word\/theme\/theme\d*\.xml$/.test(file)
-  )) {
-    const xml = zip.file(name)!.asText();
-    // The theme's font pair is what runs without a font of their own fall back to.
-    const swept = xml.replace(/<a:latin typeface="[^"]*"/g, `<a:latin typeface="${houseFont}"`);
-    if (swept !== xml) zip.file(name, swept);
-  }
-  return zip.generate({ type: 'uint8array', compression: 'DEFLATE' });
 }

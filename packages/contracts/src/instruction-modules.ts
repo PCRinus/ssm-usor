@@ -82,15 +82,6 @@ export const createInstructionModuleRequestSchema = z.object({
 
 export type CreateInstructionModuleRequest = z.infer<typeof createInstructionModuleRequestSchema>;
 
-/** The title and the group proposed for an uploaded file travel as query parameters, since the body is the file. */
-export const uploadInstructionModuleQuerySchema = z.object({
-  title: title.optional(),
-  group: instructionModuleGroupSchema.default('work_activity'),
-  domain: domainOrSsm,
-});
-
-export type UploadInstructionModuleQuery = z.infer<typeof uploadInstructionModuleQuerySchema>;
-
 export const updateInstructionModuleRequestSchema = z.object({
   title: title.optional(),
   group: instructionModuleGroupSchema.optional(),

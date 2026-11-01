@@ -224,13 +224,6 @@ const sendFile = (path: string, method: string, bytes: Uint8Array) =>
     env
   );
 
-async function bytesOf(body: BodyInit | null | undefined) {
-  if (body instanceof Blob) return new Uint8Array(await body.arrayBuffer());
-  if (body instanceof Uint8Array) return body;
-  if (body instanceof ArrayBuffer) return new Uint8Array(body);
-  throw new Error(`Unexpected upload body: ${Object.prototype.toString.call(body)}`);
-}
-
 function docxWith(paragraphs: string[]) {
   const zip = new PizZip();
   zip.file(
@@ -369,81 +362,6 @@ describe('POST /instruction-modules', () => {
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
       'instruction_module_title_taken'
     );
-  });
-});
-
-describe('POST /instruction-modules/upload', () => {
-  it('takes the title from the first line, sweeps the fonts and counts the articles', async () => {
-    mockUpstream({
-      modules: (init, url) =>
-        isGet(init) && url.searchParams.get('id') ? Response.json([welding]) : undefined,
-      versions: (init) => (isGet(init) ? Response.json([]) : undefined),
-    });
-    const response = await sendFile(
-      '/instruction-modules/upload?group=work_equipment',
-      'POST',
-      docxWith(['Instrucțiuni pentru aparatul de sudură', 'Art', 'Art', 'Art'])
-    );
-    expect(response.status).toBe(201);
-    expect(sent('/rest/v1/instruction_modules', 'POST')).toMatchObject({
-      title: 'Instrucțiuni pentru aparatul de sudură',
-      module_group: 'work_equipment',
-    });
-    expect(sent('/rest/v1/instruction_module_versions', 'POST')).toMatchObject({
-      article_count: 3,
-    });
-    const stored = calls(
-      `/storage/v1/object/instruction-modules/${organizationId}/${weldingId}/1.docx`,
-      'POST'
-    )[0]![1];
-    const xml = new PizZip(await bytesOf(stored?.body)).file('word/document.xml')!.asText();
-    expect(xml).toContain('w:ascii="Arial"');
-    expect(xml).not.toContain('Calibri');
-  });
-
-  it('prefers a title given with the upload', async () => {
-    mockUpstream({
-      modules: (init, url) =>
-        isGet(init) && url.searchParams.get('id') ? Response.json([welding]) : undefined,
-      versions: (init) => (isGet(init) ? Response.json([]) : undefined),
-    });
-    await sendFile(
-      `/instruction-modules/upload?title=${encodeURIComponent('Sudură')}`,
-      'POST',
-      docxWith(['Whatever the file says'])
-    );
-    expect(sent('/rest/v1/instruction_modules', 'POST')).toMatchObject({
-      title: 'Sudură',
-      module_group: 'work_activity',
-      domain: 'ssm',
-    });
-  });
-
-  it('takes the domain of an uploaded file from the query', async () => {
-    mockUpstream({
-      modules: (init, url) =>
-        isGet(init) && url.searchParams.get('id') ? Response.json([hotWork]) : undefined,
-      versions: (init) => (isGet(init) ? Response.json([]) : undefined),
-    });
-    await sendFile(
-      '/instruction-modules/upload?domain=psi',
-      'POST',
-      docxWith(['Lucrul cu foc deschis', 'Art'])
-    );
-    expect(sent('/rest/v1/instruction_modules', 'POST')).toMatchObject({
-      title: 'Lucrul cu foc deschis',
-      domain: 'psi',
-    });
-  });
-
-  it('refuses a body that is not a Word document', async () => {
-    mockUpstream();
-    const response = await sendFile(
-      '/instruction-modules/upload',
-      'POST',
-      new Uint8Array([1, 2, 3])
-    );
-    expect(response.status).toBe(400);
   });
 });
 

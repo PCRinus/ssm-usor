@@ -163,7 +163,6 @@ function mockApi({
     [fitter.id]: { items: [], needsInstructions: null },
   } as Record<string, unknown>,
   create = (() => Response.json({ module: welding }, { status: 201 })) as Route,
-  upload = (() => Response.json({ module: welding }, { status: 201 })) as Route,
   update = ((init, url) =>
     Response.json({
       module: { ...ladders, id: url.pathname.split('/')[2], ...JSON.parse(String(init?.body)) },
@@ -203,7 +202,6 @@ function mockApi({
         ),
       });
     }
-    if (pathname === '/instruction-modules/upload') return upload(init, url);
     const moduleMatch = pathname.match(/^\/instruction-modules\/([^/]+)(?:\/(file-link|file))?$/);
     if (moduleMatch) {
       const [, moduleId, part] = moduleMatch;
@@ -340,20 +338,6 @@ describe('the instruction library', () => {
     expect(screen.getByTestId('editor-state').textContent).toBe('Versiunea 1');
   });
 
-  it('uploads several files, one request each', async () => {
-    mockApi();
-    mount();
-    const user = userEvent.setup();
-    await screen.findAllByTestId('instruction-row');
-    const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-    await user.upload(screen.getByTestId('instruction-file-input'), [
-      new File([new Uint8Array([80, 75, 3, 4])], 'Scari.docx', { type: docxType }),
-      new File([new Uint8Array([80, 75, 3, 4])], 'Birouri.docx', { type: docxType }),
-    ]);
-    await waitFor(() => expect(requests('/instruction-modules/upload', 'POST')).toHaveLength(2));
-    expect(await screen.findByTestId('instruction-uploaded')).toBeTruthy();
-  });
-
   it('lists the fire-safety modules on their own tab', async () => {
     mockApi();
     const runtime = mount();
@@ -399,33 +383,6 @@ describe('the instruction library', () => {
     await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
     expect(group.closest('[data-open]')?.getAttribute('data-open')).toBe('false');
     await waitFor(() => expect(screen.queryByTestId('nav-instructions-group')).toBeNull());
-  });
-
-  it('uploads into the domain of the open tab', async () => {
-    mockApi();
-    mount();
-    const user = userEvent.setup();
-    await screen.findAllByTestId('instruction-row');
-    const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-    await user.upload(screen.getByTestId('instruction-file-input'), [
-      new File([new Uint8Array([80, 75, 3, 4])], 'Scari.docx', { type: docxType }),
-    ]);
-    await waitFor(() => expect(requests('/instruction-modules/upload', 'POST')).toHaveLength(1));
-    await user.click(fireTabLink());
-    const fireTab = await screen.findByTestId('instruction-library-psi');
-    const input = within(fireTab).getByTestId('instruction-file-input');
-    const click = vi.spyOn(input, 'click').mockImplementation(() => {});
-    await user.click(within(fireTab).getByTestId('instruction-upload'));
-    expect(click).toHaveBeenCalledOnce();
-    await user.upload(input, [
-      new File([new Uint8Array([80, 75, 3, 4])], 'Foc.docx', { type: docxType }),
-    ]);
-    await waitFor(() => expect(requests('/instruction-modules/upload', 'POST')).toHaveLength(2));
-    const domains = fetchMock.mock.calls
-      .map(([input]) => new URL(String(input)))
-      .filter((address) => address.pathname === '/instruction-modules/upload')
-      .map((address) => address.searchParams.get('domain'));
-    expect(domains).toEqual(['ssm', 'psi']);
   });
 
   it("writes a module of the open tab's domain", async () => {

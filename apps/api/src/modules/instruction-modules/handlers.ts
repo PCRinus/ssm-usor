@@ -5,12 +5,7 @@ import type {
   InstructionModule,
   InstructionModuleGroup,
 } from '@ssm-usor/contracts';
-import {
-  countArticles,
-  firstLine,
-  instructionModuleSkeleton,
-  sweepFonts,
-} from '@ssm-usor/document-engine';
+import { countArticles, instructionModuleSkeleton } from '@ssm-usor/document-engine';
 import type { Context } from 'hono';
 
 import type { Database } from '../../database.types';
@@ -36,7 +31,6 @@ import type {
   listPositionInstructionsRoute,
   saveInstructionModuleFileRoute,
   updateInstructionModuleRoute,
-  uploadInstructionModuleRoute,
 } from './routes';
 
 // The database holds the rules of the library (ADR 012): one title per organization, no
@@ -253,31 +247,6 @@ export const createInstructionModule: RouteHandler<
     actorOf(c),
     body,
     instructionModuleSkeleton()
-  );
-  return c.json({ module }, 201);
-};
-
-export const uploadInstructionModule: RouteHandler<
-  typeof uploadInstructionModuleRoute,
-  ApiEnv
-> = async (c) => {
-  const query = c.req.valid('query');
-  // The body is the file itself, not JSON, so it is read here rather than validated above.
-  const uploaded = new Uint8Array(await c.req.arrayBuffer());
-  requireDocx(uploaded);
-  const bytes = sweepFonts(uploaded);
-  const title = (query.title ?? firstLine(bytes) ?? '').slice(0, 200).trim();
-  if (title.length < 2) {
-    throw new ApiError('validation_error', 'The file has no first line to take a title from.', [
-      { path: 'title', message: 'Give the module a title.' },
-    ]);
-  }
-  const module = await createModule(
-    createDataClient(c),
-    createFileStore(c),
-    actorOf(c),
-    { title, group: query.group, domain: query.domain },
-    bytes
   );
   return c.json({ module }, 201);
 };

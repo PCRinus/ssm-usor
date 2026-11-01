@@ -10,7 +10,6 @@ import {
   listPositionInstructions,
   saveInstructionModuleFile,
   updateInstructionModule,
-  uploadInstructionModule,
 } from './handlers';
 import {
   applyPositionInstructionsRoute,
@@ -23,13 +22,11 @@ import {
   listPositionInstructionsRoute,
   saveInstructionModuleFileRoute,
   updateInstructionModuleRoute,
-  uploadInstructionModuleRoute,
 } from './routes';
 
 export const instructionModulesRouter = createRouter()
   .openapi(listInstructionModulesRoute, listInstructionModules)
   .openapi(createInstructionModuleRoute, createInstructionModule)
-  .openapi(uploadInstructionModuleRoute, uploadInstructionModule)
   .openapi(getInstructionModuleRoute, getInstructionModule)
   .openapi(updateInstructionModuleRoute, updateInstructionModule)
   .openapi(instructionModuleFileLinkRoute, getInstructionModuleFileLink)

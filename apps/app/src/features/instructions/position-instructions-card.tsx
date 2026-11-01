@@ -68,7 +68,7 @@ const domainCopy = {
     pickDescription:
       'Bifează instrucțiunile din bibliotecă care privesc postul. Instrucțiunile proprii ale clientului le anexează, iar tematica de instruire le citează.',
     libraryEmpty:
-      'Nu ai încă instrucțiuni proprii SSM. Încarcă-le sau scrie-le în Instrucțiuni proprii, apoi alege-le aici.',
+      'Nu ai încă instrucțiuni proprii SSM. Scrie-le în Instrucțiuni proprii, apoi alege-le aici.',
     copyTitle: 'Copiază instrucțiunile de la alt post',
     copyDescription:
       'Instrucțiunile celuilalt post se adaugă la ale acestuia; cele deja aplicate rămân.',
@@ -85,7 +85,7 @@ const domainCopy = {
     pickDescription:
       'Bifează instrucțiunile PSI din bibliotecă care privesc postul. Instrucțiunile proprii PSI ale clientului le anexează, iar tematica de instruire PSI le citează.',
     libraryEmpty:
-      'Nu ai încă instrucțiuni proprii PSI. Încarcă-le sau scrie-le în Instrucțiuni proprii, apoi alege-le aici.',
+      'Nu ai încă instrucțiuni proprii PSI. Scrie-le în Instrucțiuni proprii, apoi alege-le aici.',
     copyTitle: 'Copiază instrucțiunile PSI de la alt post',
     copyDescription:
       'Instrucțiunile PSI ale celuilalt post se adaugă la ale acestuia; cele deja aplicate rămân.',

@@ -13,7 +13,6 @@ import {
   positionInstructionsQuerySchema,
   positionInstructionsResponseSchema,
   updateInstructionModuleRequestSchema,
-  uploadInstructionModuleQuerySchema,
 } from '@ssm-usor/contracts';
 
 import { requireAuth } from '../../lib/auth';
@@ -98,27 +97,6 @@ export const createInstructionModuleRoute = createRoute({
   responses: {
     201: { description: 'The module', content: moduleContent },
     400: { description: 'Invalid request body', content: errorContent },
-    409: { description: 'The title is taken', content: errorContent },
-    ...membershipErrors,
-  },
-});
-
-export const uploadInstructionModuleRoute = createRoute({
-  method: 'post',
-  path: '/instruction-modules/upload',
-  operationId: 'uploadInstructionModule',
-  summary: 'Add a module from a Word file',
-  description:
-    'Takes the bytes of a `.docx`, up to 15 MB, as the body. The file is kept as it is apart from its fonts, which become the house font. The title is the `title` query parameter, else the first line of the file; the group is `group`, else a work activity; the domain is `domain`, else occupational safety. One file per request: the app uploads several by calling this once each.',
-  security: bearerSecurity,
-  middleware: [requireAuth, requireMembership] as const,
-  request: { query: uploadInstructionModuleQuerySchema, body: docxBody },
-  responses: {
-    201: { description: 'The module', content: moduleContent },
-    400: {
-      description: 'Invalid query, or the body is not a Word document',
-      content: errorContent,
-    },
     409: { description: 'The title is taken', content: errorContent },
     ...membershipErrors,
   },

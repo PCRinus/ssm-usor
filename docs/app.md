@@ -1173,12 +1173,9 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   in the section navigation the client and organization pages use; `/instructions` opens the
   SSM tab. A tab lists `GET /instruction-modules?domain=` by group and title, each module with
   its version and how many articles the file numbers, and how many current positions apply it;
-  "Arată arhiva" lists the archived ones of the domain instead.
-  "Încarcă fișiere" takes several `.docx` files and posts each to
-  `POST /instruction-modules/upload` with the tab's `domain`, which titles it after its first
-  line, or the file name when it has none, and puts it in the work activities group; a notice
-  then says to correct titles, groups and domains from the row menu, which also archives and
-  restores. "Scrie o instrucțiune" asks for a title, a group and a domain, the tab's by default,
+  "Arată arhiva" lists the archived ones of the domain instead. The row menu corrects a
+  module's title, group and domain, and archives and restores it. There is no upload of Word
+  files (ADR 034). "Scrie o instrucțiune" asks for a title, a group and a domain, the tab's by default,
   starts the module from the skeleton and opens it. "Titlu, grup și domeniu" changes them, and a
   changed domain moves the module to the other tab; the
   domain of a module a current position applies is shown read-only with how many positions
@@ -1189,7 +1186,7 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   `GET …/file-link`; "Înapoi" leads to the tab of the module's domain. Saving sends the bytes to `PUT …/file` as the next version and keeps
   what the editor shows, so nothing is fetched again; the badge names the version. An archived
   module opens in view mode. The header names the domain beside the group. A file the editor
-  cannot lay out is offered for download, to be fixed in Word and uploaded again.
+  cannot lay out is offered for download, to be read in Word.
 - On a job position's page, after the equipment card, two cards that differ only in their
   title, their domain and their wording: "Instrucțiuni specifice SSM" (`#instructions`) and
   "Instrucțiuni specifice PSI" (`#fire-instructions`), the second deciding the fire-safety
