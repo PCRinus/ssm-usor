@@ -250,6 +250,19 @@ function uniquePath(path: string, taken: Set<string>) {
   }
 }
 
+const byName = new Intl.Collator('ro', { numeric: true });
+
+// Folder by folder: compared whole, the slash would sort "Fișe/…" after "Fișe 2/…".
+function byPath(a: { path: string }, b: { path: string }) {
+  const left = a.path.split('/');
+  const right = b.path.split('/');
+  for (let at = 0; at < Math.min(left.length, right.length); at += 1) {
+    const order = byName.compare(left[at]!, right[at]!);
+    if (order !== 0) return order;
+  }
+  return left.length - right.length;
+}
+
 export async function openPicked(picked: PickedFile[], kind: ImportKind = 'client') {
   const added = nothingFound();
   for (const { path, blob } of picked) {
@@ -267,6 +280,8 @@ export async function openPicked(picked: PickedFile[], kind: ImportKind = 'clien
       if (file.mimeType === 'application/pdf') file.pages = await countPdfPages(file.blob);
     }
   }
+  added.files.sort(byPath);
+  added.setAside.sort(byPath);
   return added;
 }
 

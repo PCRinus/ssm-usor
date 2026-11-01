@@ -309,24 +309,24 @@ describe('the chosen photographs', () => {
       photo('IMG_3.HEIC', 'image/heic'),
     ]);
 
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Deschide IMG_2.jpg' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Deschide IMG_3.HEIC' }));
     const preview = await screen.findByTestId('photo-preview');
-    expect(within(preview).getByRole('heading').textContent).toBe('IMG_2.jpg');
+    expect(within(preview).getByRole('heading').textContent).toBe('IMG_3.HEIC');
     expect(within(preview).getByTestId('photo-preview-position').textContent).toBe('2 din 3');
     const shown = within(preview).getByTestId<HTMLImageElement>('photo-preview-image').src;
     expect(shown).toMatch(/^blob:photo-/);
-
-    await userEvent.click(within(preview).getByTestId('photo-preview-next'));
-    expect(within(preview).getByRole('heading').textContent).toBe('IMG_3.HEIC');
-    expect(within(preview).getByTestId('photo-preview-next')).toHaveProperty('disabled', true);
-    expect(revoked).toContain(shown);
     fireEvent.error(within(preview).getByTestId('photo-preview-image'));
     expect(within(preview).getByTestId('photo-preview-note').textContent).toContain('HEIC');
 
-    await userEvent.keyboard('{ArrowLeft}{ArrowLeft}');
+    await userEvent.click(within(preview).getByTestId('photo-preview-next'));
     expect(within(preview).getByRole('heading').textContent).toBe(
       'WhatsApp Image 2026-10-30 at 09.12.01.jpeg'
     );
+    expect(within(preview).getByTestId('photo-preview-next')).toHaveProperty('disabled', true);
+    expect(revoked).toContain(shown);
+
+    await userEvent.keyboard('{ArrowLeft}{ArrowLeft}');
+    expect(within(preview).getByRole('heading').textContent).toBe('IMG_2.jpg');
     expect(within(preview).getByTestId('photo-preview-previous')).toHaveProperty('disabled', true);
 
     await userEvent.keyboard('{Escape}');

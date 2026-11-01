@@ -79,8 +79,8 @@ describe('choosing the files of an import', () => {
     ]);
 
     expect(selection.files.map((file) => file.path)).toEqual([
-      'Dosar SSM/Decizie numire.docx',
       'arhiva.zip/Plan.doc',
+      'Dosar SSM/Decizie numire.docx',
     ]);
     expect(selection.setAside).toEqual([]);
     expect(selection.systemFiles).toEqual([
@@ -135,6 +135,31 @@ describe('choosing the files of an import', () => {
     expect(removeGroup(second, 'Decizie (2).docx').files.map((file) => file.path)).toEqual([
       'Decizie.docx',
     ]);
+  });
+
+  it('lists a pick in name order, numbers by their value and each folder before a longer name', async () => {
+    const selection = await addToSelection(emptySelection, [
+      { path: 'Fișe 2/1.jpg', blob: blob() },
+      { path: 'Fișe/2.2.jpg', blob: blob() },
+      { path: 'Fișe/1.10.jpg', blob: blob() },
+      { path: 'Fișe/1.2.jpg', blob: blob() },
+      { path: 'Fișe/fișa 10.pdf', blob: blob() },
+      { path: 'Fișe/Fișa 9.pdf', blob: blob() },
+      { path: 'Fișe/gol.pdf', blob: new Blob([]) },
+      { path: 'Fișe/fără nume.pdf', blob: new Blob([]) },
+    ]);
+    const later = await addToSelection(selection, [{ path: 'Anexă.pdf', blob: blob() }]);
+
+    expect(later.files.map((file) => file.path)).toEqual([
+      'Fișe/1.2.jpg',
+      'Fișe/1.10.jpg',
+      'Fișe/2.2.jpg',
+      'Fișe/Fișa 9.pdf',
+      'Fișe/fișa 10.pdf',
+      'Fișe 2/1.jpg',
+      'Anexă.pdf',
+    ]);
+    expect(later.setAside.map((file) => file.path)).toEqual(['Fișe/fără nume.pdf', 'Fișe/gol.pdf']);
   });
 
   it('stops opening a zip that holds more than one import takes', async () => {
@@ -198,8 +223,8 @@ describe('choosing the files of an import', () => {
     ]);
 
     expect(selection.files.map((file) => file.path)).toEqual([
-      'mac.zip/Fișă.pdf',
       'mac.zip/Brută/Decizie.pdf',
+      'mac.zip/Fișă.pdf',
       'windows.zip/Fișă.pdf',
       'windows.zip/îngrijitor.pdf',
     ]);
@@ -266,9 +291,9 @@ describe('choosing the photographs of an employee import', () => {
       'employees'
     );
     expect(employees.files.map((file) => file.path)).toEqual([
+      'fise.zip/IMG_4002.jpg',
       'IMG_4001.jpg',
       'scan.png',
-      'fise.zip/IMG_4002.jpg',
     ]);
     expect(employees.setAside).toEqual([]);
 
