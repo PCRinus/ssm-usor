@@ -1,6 +1,6 @@
 # ADR 034: Own instructions as text the app owns, written in a guided form and read from an imported pack
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-02
 
 ## Context
