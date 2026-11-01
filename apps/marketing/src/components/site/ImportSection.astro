@@ -55,6 +55,8 @@ import TrainingSheets from './TrainingSheets.astro';
     border-radius: 24px;
     background: var(--lime-soft);
     overflow: hidden;
+    /* Skipped until near the viewport, so the handwriting font is not fetched with the hero's. */
+    content-visibility: auto;
   }
   .stage > :global(.browser) {
     position: absolute;
