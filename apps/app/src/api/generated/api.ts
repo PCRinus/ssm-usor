@@ -11206,7 +11206,7 @@ export type CreateOrganizationRequestTermsVersion =
   (typeof CreateOrganizationRequestTermsVersion)[keyof typeof CreateOrganizationRequestTermsVersion];
 
 export const CreateOrganizationRequestTermsVersion = {
-  '2026-10-26': '2026-10-26',
+  '2026-11-01': '2026-11-01',
 } as const;
 
 export interface CreateOrganizationRequest {
@@ -12214,7 +12214,7 @@ export type AcceptInvitationRequestTermsVersion =
   (typeof AcceptInvitationRequestTermsVersion)[keyof typeof AcceptInvitationRequestTermsVersion];
 
 export const AcceptInvitationRequestTermsVersion = {
-  '2026-10-26': '2026-10-26',
+  '2026-11-01': '2026-11-01',
 } as const;
 
 export interface AcceptInvitationRequest {
@@ -12241,7 +12241,7 @@ export type JoinWithInvitationRequestTermsVersion =
   (typeof JoinWithInvitationRequestTermsVersion)[keyof typeof JoinWithInvitationRequestTermsVersion];
 
 export const JoinWithInvitationRequestTermsVersion = {
-  '2026-10-26': '2026-10-26',
+  '2026-11-01': '2026-11-01',
 } as const;
 
 export interface JoinWithInvitationRequest {

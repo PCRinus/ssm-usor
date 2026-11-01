@@ -17370,7 +17370,7 @@
           },
           "termsVersion": {
             "type": "string",
-            "enum": ["2026-10-26"]
+            "enum": ["2026-11-01"]
           },
           "acceptsSpecialClauses": {
             "type": "boolean",
@@ -18814,7 +18814,7 @@
           },
           "termsVersion": {
             "type": "string",
-            "enum": ["2026-10-26"]
+            "enum": ["2026-11-01"]
           }
         },
         "required": ["token", "fullName", "password", "termsVersion"]
@@ -18834,7 +18834,7 @@
           },
           "termsVersion": {
             "type": "string",
-            "enum": ["2026-10-26"]
+            "enum": ["2026-11-01"]
           }
         },
         "required": ["token", "termsVersion"]
