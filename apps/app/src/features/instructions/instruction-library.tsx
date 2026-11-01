@@ -212,8 +212,8 @@ export function InstructionLibrary({
               )}
             </div>
           ) : (
-            <Table>
-              <TableHeader>
+            <Table className="max-sm:block">
+              <TableHeader className="max-sm:sr-only">
                 <TableRow>
                   <TableHead>Titlu</TableHead>
                   <TableHead>Categorie</TableHead>
@@ -224,7 +224,7 @@ export function InstructionLibrary({
                   </TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody className="max-sm:block">
                 {items.map((module) => (
                   <TableRow
                     key={module.id}
@@ -236,8 +236,9 @@ export function InstructionLibrary({
                         state: { openedFromList: true },
                       })
                     )}
+                    className="cursor-pointer max-sm:grid max-sm:grid-cols-[auto_minmax(0,1fr)_auto] max-sm:gap-y-1 max-sm:py-3"
                   >
-                    <TableCell className="font-medium whitespace-normal">
+                    <TableCell className="font-medium whitespace-normal max-sm:col-span-2 max-sm:row-start-1 max-sm:p-0">
                       <Link
                         to="/instructions/$moduleId"
                         params={{ moduleId: module.id }}
@@ -248,16 +249,22 @@ export function InstructionLibrary({
                         {module.title}
                       </Link>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="max-sm:col-span-2 max-sm:row-start-2 max-sm:p-0">
                       <Badge variant="outline">{groupLabels[module.group]}</Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground" data-testid="instruction-version">
+                    <TableCell
+                      className="text-muted-foreground max-sm:col-start-1 max-sm:row-start-3 max-sm:p-0"
+                      data-testid="instruction-version"
+                    >
                       {`v${module.version.number} · ${articleCountLabel(module.version.articleCount).toLowerCase()}`}
                     </TableCell>
-                    <TableCell className="text-muted-foreground" data-testid="instruction-applied">
+                    <TableCell
+                      className="text-muted-foreground max-sm:col-start-2 max-sm:row-start-3 max-sm:p-0 max-sm:whitespace-normal max-sm:before:px-1.5 max-sm:before:content-['·'_/_'']"
+                      data-testid="instruction-applied"
+                    >
                       {positionCountLabel(module.appliedCount)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="max-sm:col-start-3 max-sm:row-span-3 max-sm:row-start-1 max-sm:p-0">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button

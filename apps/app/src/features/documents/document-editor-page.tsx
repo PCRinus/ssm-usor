@@ -241,14 +241,17 @@ export function DocumentEditorView({
   }
 
   const actions = (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2 max-sm:flex-1">
       <Badge variant={editable ? 'secondary' : 'default'} data-testid="editor-state">
         {document.draft
           ? `Ciornă · rev. ${document.draft.revision}`
           : `Emis · rev. ${revision.revision}`}
       </Badge>
       {editable && (
-        <span data-testid="editor-saved-state" className="text-xs text-muted-foreground">
+        <span
+          data-testid="editor-saved-state"
+          className="text-xs text-muted-foreground max-sm:sr-only"
+        >
           {dirty ? 'Modificări nesalvate' : 'Salvat'}
         </span>
       )}
@@ -256,10 +259,11 @@ export function DocumentEditorView({
         variant="outline"
         size="sm"
         data-testid="editor-download"
+        className="max-sm:ml-auto"
         onClick={() => void download()}
       >
         <Download aria-hidden="true" />
-        Descarcă
+        <span className="max-sm:sr-only">Descarcă</span>
       </Button>
       <Button
         variant="outline"
@@ -269,7 +273,7 @@ export function DocumentEditorView({
         onClick={() => void printShown()}
       >
         <Printer aria-hidden="true" />
-        {printing ? 'Se pregătește…' : 'Tipărește'}
+        <span className="max-sm:sr-only">{printing ? 'Se pregătește…' : 'Tipărește'}</span>
       </Button>
       {canStartDraft && (
         <Button

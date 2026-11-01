@@ -1,4 +1,5 @@
 import '@docx-editor.dev/core/styles/editor.css';
+import './document-editor.css';
 
 import { packagedFonts } from '@docx-editor.dev/fonts';
 import { DocxEditor, type DocxEditorRef, useDocumentSearch } from '@docx-editor.dev/react';
@@ -133,7 +134,7 @@ export default function DocumentEditor({
       fonts={fonts}
       renderTitleBarLeft={() => back}
       renderTitleBarRight={() => (
-        <div className="flex items-center gap-2">
+        <div data-editor-title-actions className="flex flex-wrap items-center gap-2">
           {editable && <UnfilledNavigator />}
           {actions}
         </div>
