@@ -1,3 +1,13 @@
+export {
+  type AnnexBlock,
+  type AnnexBody,
+  type AnnexPageCount,
+  type AnnexParagraph,
+  annexParagraphs,
+  appendAnnexes,
+  renderAnnex,
+} from './annex';
+export { annexTemplate } from './annex-template';
 export { type AnnexDomain, annexTitlePage } from './annex-title';
 export {
   type ActKind,

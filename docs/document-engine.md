@@ -527,6 +527,63 @@ page was added on 2026-10-11 while Docker was down, by copying the `ssm` page an
 texts for the ones its definition names; the builder makes both from the definitions the next
 time it runs.
 
+### The annex template
+
+Since [ADR 034](architecture/adr-034-own-instructions-as-app-text.md) a module is a body of
+headings and articles held as data (`instructionBodySchema` in `@ssm-usor/contracts`), and the
+engine prints it as an annex in the house style. `renderAnnex(domain, body, data)` returns one
+annex as its own Word file, from the template `annexTemplate(domain)` of `src/annex-template.ts`
+(base64, like the title page; never stored, made again from the version's body):
+
+- **A title page**: "ANEXA N", "la Instrucțiunile proprii în domeniul securității și sănătății
+  în muncă" (`psi`: "… situațiilor de urgență"), "I.P.S.S.M. Title" (`psi`: "I.P.S.U. Title")
+  and "versiunea din …", centred low on the page.
+- **The text**, from the next page: headings in bold; "Art. N." in bold before an article's
+  first paragraph, articles numbered by their place; later paragraphs under it; a paragraph
+  that opens with a marker ("a)", "1.", "–", "•") hangs from it, one tier deeper for each kind
+  of marker its article met before ("a)" under "1."); Arial 10 justified. A paragraph style
+  per kind (`AnnexHeading`, `AnnexArticle`, `AnnexParagraph`, `AnnexItem1`–`3`, `AnnexActs`)
+  carries the look, so the sweep's left alignment does not reach it and an appended annex
+  brings it along. After the last article, "Acte normative avute în vedere: …": Legea nr.
+  319/2006 and H.G. nr. 1425/2006, or for `psi` Legea nr. 307/2006 and the general norms of
+  O.M.A.I. nr. 163/2007.
+- **The header of every page** is the box of document details of 3.2 (`psi`: 2.1, with the
+  fire-safety technician), checked equal to it by a test; its second row reads "Anexa N la
+  Instrucțiunile proprii …:", the bold "I.P.S.S.M. Title" and "· versiunea din …", and its page
+  box "Anexa N" over "Pag. X din Y", counted within the annex, the title page being page 1.
+- **The branding line** closes every page, switched by `branding`.
+
+`data` is the own instructions' header data (`issueDate`, `provider`, `client`, `branding`,
+for `psi` `fireSafetyTechnician`) with the annex's `number`, `title` and `versionDate`; the
+engine adds `paragraphs`, the loop `annexParagraphs(body)` makes. A missing value is an error,
+as for any template. The PDF of the own instructions converts each annex as its own file, so
+each counts its own pages.
+
+`appendAnnexes(common, annexes)` is the Word download: the common part, then each rendered
+annex as a section of its own with its header and footer copied in, its pages numbered again
+from 1 and the styles the common part lacks. Word counts a section's pages with the field
+`SECTIONPAGES`, but LibreOffice, which converts and previews the files, prints it as the number
+saved in the file (checked on 2026-11-02: every annex page read "din 1"). So by default every
+box of the downloaded file, the common part's included, prints "Pag. X" alone, where
+`NUMPAGES` would count the annexes into the common part's total; `{ pageCount: 'section' }`
+writes `SECTIONPAGES` instead. LibreOffice also adds an empty page before a section that
+restarts at 1 on an even page; Word does not.
+
+```sh
+pnpm --filter @ssm-usor/document-engine build-annex
+```
+
+`tools/import/build_annex.py` reads `tools/import/annex.ro.json`: per domain the header's code,
+name, who prepared it and the two lines naming the annex, the lines of the title page and the
+"Acte normative" line. It builds the box with the import's `build_header` and the branding
+with `add_branding`, through LibreOffice, then the sweep. `tools/annex-samples.ts` holds an
+invented annex per domain for the tests and previews. The annex tests convert through the
+converter when `GOTENBERG_URL` is set:
+
+```sh
+GOTENBERG_URL=http://localhost:3300 pnpm --filter @ssm-usor/document-engine test
+```
+
 ## Knowledge tests
 
 The three knowledge tests ([ADR 024](architecture/adr-024-knowledge-tests.md)), `test_hiring`

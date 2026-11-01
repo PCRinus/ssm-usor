@@ -1,0 +1,36 @@
+{
+  "ssm": {
+    "header": {
+      "code": "IPSSM",
+      "title": "Instrucțiuni proprii în domeniul securității și sănătății în muncă",
+      "annexOf": "Anexa {{number}} la Instrucțiunile proprii în domeniul securității și sănătății în muncă:",
+      "annexTitle": "I.P.S.S.M. {{title}}"
+    },
+    "lines": [
+      { "text": "ANEXA {{number}}", "bold": true, "size": 12, "above": 130, "below": 6 },
+      {
+        "text": "la Instrucțiunile proprii în domeniul securității și sănătății în muncă",
+        "below": 36
+      },
+      { "text": "I.P.S.S.M. {{title}}", "bold": true, "size": 12, "below": 6 },
+      { "text": "versiunea din {{versionDate}}", "below": 0 }
+    ],
+    "acts": "Acte normative avute în vedere: Legea nr. 319/2006 a securității și sănătății în muncă și Normele metodologice de aplicare a prevederilor acesteia, aprobate prin H.G. nr. 1425/2006."
+  },
+  "psi": {
+    "header": {
+      "code": "IPSU",
+      "title": "Instrucțiuni proprii în domeniul situațiilor de urgență",
+      "preparedBy": "fireSafetyTechnician",
+      "annexOf": "Anexa {{number}} la Instrucțiunile proprii în domeniul situațiilor de urgență:",
+      "annexTitle": "I.P.S.U. {{title}}"
+    },
+    "lines": [
+      { "text": "ANEXA {{number}}", "bold": true, "size": 12, "above": 130, "below": 6 },
+      { "text": "la Instrucțiunile proprii în domeniul situațiilor de urgență", "below": 36 },
+      { "text": "I.P.S.U. {{title}}", "bold": true, "size": 12, "below": 6 },
+      { "text": "versiunea din {{versionDate}}", "below": 0 }
+    ],
+    "acts": "Acte normative avute în vedere: Legea nr. 307/2006 privind apărarea împotriva incendiilor și Normele generale de apărare împotriva incendiilor, aprobate prin O.M.A.I. nr. 163/2007."
+  }
+}

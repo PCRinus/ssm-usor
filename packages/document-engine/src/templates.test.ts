@@ -14,6 +14,7 @@ import {
   trainingSheetFormSample,
   trainingSheetSamples,
 } from '../tools/training-sheet-samples';
+import { annexTemplate } from './annex-template';
 import { annexTitlePage } from './annex-title';
 import { renderDocument, templatePlaceholders } from './render';
 import { documentText } from './text';
@@ -78,6 +79,13 @@ describe('built-in templates', () => {
   it.each(typesetFiles)('%s carries nothing of the client it was made from', (name) => {
     expect(documentText(read(name))).not.toMatch(originals);
   });
+
+  it.each(['ssm', 'psi'] as const)(
+    'the %s annex template carries nothing of a client',
+    (domain) => {
+      expect(documentText(annexTemplate(domain))).not.toMatch(originals);
+    }
+  );
 });
 
 // Written by us and not imported (ADR 007), so they are kept apart from the provider's pack.
