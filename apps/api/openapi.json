@@ -692,7 +692,7 @@
           "text": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 600
+            "maxLength": 1200
           },
           "where": {
             "type": "string",

@@ -491,7 +491,7 @@ export interface UpdateFeature {
   title: string;
   /**
    * @minLength 1
-   * @maxLength 600
+   * @maxLength 1200
    */
   text: string;
   /**
