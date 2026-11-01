@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-10-01
+- Amended by [ADR 034](adr-034-own-instructions-as-app-text.md) (proposed 2026-11-02): a module's "Art. 1–N" is an exact count of its articles, no longer counted from a Word list.
 
 ## Context
 

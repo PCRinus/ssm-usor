@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-09-25
+- Superseded in part by [ADR 034](adr-034-own-instructions-as-app-text.md) (proposed 2026-11-02): a module becomes a body of articles the app owns, written in a guided form and printed as an annex by the engine; the upload, the Word editor and the module files go.
 
 ## Context
 
