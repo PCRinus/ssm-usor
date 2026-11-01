@@ -274,7 +274,7 @@ export const faq = {
     },
     {
       q: 'Am mulți clienți. Trebuie să îi introduc pe toți de la zero?',
-      a: 'Nu. Încarci documentația pe care o ai deja, iar pentru angajați fotografii ale fișelor de instruire. Aplicația le citește și îți propune clientul și angajații lui, cu instruirile de pe fișe. Verifici propunerea, iar abia după ce o confirmi se salvează ceva. Importul folosește credite din planul tău. Pe un client nou îl poți adăuga și pe rând, iar CUI-ul completează datele firmei.',
+      a: 'Nu. Încarci documentația pe care o ai deja și fotografiile fișelor de instruire. Aplicația preia din ele datele firmei, posturile și angajații, cu instruirile lor. Nu se salvează nimic până nu verifici și confirmi, iar instruirile făcute pe hârtie nu se refac.',
     },
     {
       q: 'Cum evaluați riscurile?',
