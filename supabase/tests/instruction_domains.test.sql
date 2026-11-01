@@ -29,7 +29,7 @@ select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001', '{"provider":"emai
 insert into public.instruction_modules (id, organization_id, title, module_group) values
   ('a0a0a0a0-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'Scări metalice', 'work_equipment');
 insert into public.instruction_modules (id, organization_id, title, module_group, domain) values
-  ('a0a0a0a0-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'Lucrul cu foc deschis', 'work_activity', 'psi');
+  ('a0a0a0a0-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'Lucrul cu foc deschis', 'hazardous_work', 'psi');
 
 select is(
   (select domain::text from public.instruction_modules where id = 'a0a0a0a0-0000-4000-8000-000000000001'),
@@ -72,18 +72,18 @@ select is(
 );
 
 select throws_ok(
-  $$ update public.instruction_modules set domain = 'ssm' where id = 'a0a0a0a0-0000-4000-8000-000000000002' $$,
+  $$ update public.instruction_modules set domain = 'ssm', module_group = 'work_activity' where id = 'a0a0a0a0-0000-4000-8000-000000000002' $$,
   'INS07',
   null,
   'the domain of a module a current position applies does not change'
 );
 
 select lives_ok(
-  $$ update public.instruction_modules set domain = 'psi' where id = 'a0a0a0a0-0000-4000-8000-000000000001' $$,
+  $$ update public.instruction_modules set domain = 'psi', module_group = 'installation_equipment' where id = 'a0a0a0a0-0000-4000-8000-000000000001' $$,
   'the domain of a module nobody applies does'
 );
 
-update public.instruction_modules set domain = 'ssm' where id = 'a0a0a0a0-0000-4000-8000-000000000001';
+update public.instruction_modules set domain = 'ssm', module_group = 'work_equipment' where id = 'a0a0a0a0-0000-4000-8000-000000000001';
 
 select lives_ok(
   $$ insert into public.job_position_instructions (organization_id, client_id, job_position_id, module_id)
@@ -137,17 +137,17 @@ select lives_ok(
 );
 
 select lives_ok(
-  $$ update public.instruction_modules set domain = 'ssm' where id = 'a0a0a0a0-0000-4000-8000-000000000002' $$,
+  $$ update public.instruction_modules set domain = 'ssm', module_group = 'work_activity' where id = 'a0a0a0a0-0000-4000-8000-000000000002' $$,
   'a module nobody applies any more changes its domain'
 );
 
-update public.instruction_modules set domain = 'psi' where id = 'a0a0a0a0-0000-4000-8000-000000000002';
+update public.instruction_modules set domain = 'psi', module_group = 'hazardous_work' where id = 'a0a0a0a0-0000-4000-8000-000000000002';
 insert into public.job_position_instructions (organization_id, client_id, job_position_id, module_id, domain)
 values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'f1f1f1f1-0000-4000-8000-000000000002', 'a0a0a0a0-0000-4000-8000-000000000002', 'psi');
 update public.job_positions set archived_at = now() where id = 'f1f1f1f1-0000-4000-8000-000000000002';
 
 select lives_ok(
-  $$ update public.instruction_modules set domain = 'ssm' where id = 'a0a0a0a0-0000-4000-8000-000000000002' $$,
+  $$ update public.instruction_modules set domain = 'ssm', module_group = 'work_activity' where id = 'a0a0a0a0-0000-4000-8000-000000000002' $$,
   'an archived position does not hold the domain of the module it applied'
 );
 

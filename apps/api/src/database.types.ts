@@ -2967,39 +2967,36 @@ export type Database = {
       instruction_module_versions: {
         Row: {
           article_count: number;
+          body: Json;
           created_at: string;
           created_by: string | null;
-          docx_path: string;
           id: string;
           module_id: string;
           number: number;
           organization_id: string;
-          sha256: string;
-          size_bytes: number;
+          text_hash: string;
         };
         Insert: {
           article_count?: number;
+          body: Json;
           created_at?: string;
           created_by?: string | null;
-          docx_path: string;
           id?: string;
           module_id: string;
           number: number;
           organization_id: string;
-          sha256: string;
-          size_bytes: number;
+          text_hash: string;
         };
         Update: {
           article_count?: number;
+          body?: Json;
           created_at?: string;
           created_by?: string | null;
-          docx_path?: string;
           id?: string;
           module_id?: string;
           number?: number;
           organization_id?: string;
-          sha256?: string;
-          size_bytes?: number;
+          text_hash?: string;
         };
         Relationships: [
           {
@@ -7282,8 +7279,9 @@ export type Database = {
         Args: { p_item: Json; p_keys: Json; p_name: string };
         Returns: string;
       };
+      instruction_article_count: { Args: { p_body: Json }; Returns: number };
       is_draft_document_path: { Args: { p_path: string }; Returns: boolean };
-      is_instruction_module_path: { Args: { p_path: string }; Returns: boolean };
+      is_instruction_body: { Args: { p_body: Json }; Returns: boolean };
       is_organization_owner: { Args: never; Returns: boolean };
       is_platform_admin: { Args: never; Returns: boolean };
       is_readable_client_file_path: {
@@ -8078,7 +8076,13 @@ export type Database = {
         | 'abandoned'
         | 'failed';
       instruction_domain: 'ssm' | 'psi';
-      instruction_module_group: 'work_activity' | 'work_equipment' | 'protective_equipment';
+      instruction_module_group:
+        | 'work_activity'
+        | 'work_equipment'
+        | 'protective_equipment'
+        | 'premises_activity'
+        | 'installation_equipment'
+        | 'hazardous_work';
       knowledge_test: 'hiring' | 'annual';
       organization_role: 'owner' | 'specialist';
       participant_kind: 'employee' | 'client_administrator';
@@ -8298,7 +8302,14 @@ export const Constants = {
         'failed',
       ],
       instruction_domain: ['ssm', 'psi'],
-      instruction_module_group: ['work_activity', 'work_equipment', 'protective_equipment'],
+      instruction_module_group: [
+        'work_activity',
+        'work_equipment',
+        'protective_equipment',
+        'premises_activity',
+        'installation_equipment',
+        'hazardous_work',
+      ],
       knowledge_test: ['hiring', 'annual'],
       organization_role: ['owner', 'specialist'],
       participant_kind: ['employee', 'client_administrator'],
