@@ -1,0 +1,361 @@
+---
+import { importSection } from './copy';
+
+type Signer = 'badea' | 'coman' | 'dobre' | 'instructor';
+
+const strokes: Record<Signer, { line: string; heavy: string }> = {
+  badea: {
+    line: 'M7 17C6 12 7 7 9 3C14 1 16 5 11 8C17 8 17 14 8 15C12 14 14 9 16 12C17 15 19 14 21 10C21 15 23 15 25 11C25 6 27 4 27 9C27 14 28 15 31 12C32 10 34 10 34 13C34 15 36 15 38 11C38 15 40 15 43 11C47 8 51 10 47 15C42 19 22 19 4 19',
+    heavy: 'M9 3C14 1 16 5 11 8C17 8 17 14 8 15',
+  },
+  instructor: {
+    line: 'M5 13C4 18 13 18 12 13C11 9 4 8 8 4C10 2 14 3 14 6M13 11C17 6 18 14 20 11C22 8 23 13 25 10C27 7 28 12 31 9C33 6 34 13 37 10L45 8M24 16C33 14 45 13 57 9M50 4C50 8 49 12 47 16',
+    heavy: 'M5 13C4 18 13 18 12 13C11 9 4 8 8 4',
+  },
+  coman: {
+    line: 'M6 9C5 4 14 3 15 8C16 13 9 17 5 16C3 15 5 10 9 11C13 12 15 14 18 12C20 10 21 8 23 11C24 14 26 13 27 10C28 13 30 13 32 10C33 13 35 13 37 9C38 6 40 6 39 10C38 14 41 14 44 11L52 9M15 19C26 18 38 18 49 15',
+    heavy: 'M6 9C5 4 14 3 15 8C16 13 9 17 5 16',
+  },
+  dobre: {
+    line: 'M9 4C8 9 7 13 6 17M6 15C3 11 5 4 11 5C16 6 13 11 9 11C13 11 16 15 18 11C20 7 20 13 22 13C24 13 25 9 27 10C28 12 26 14 29 13C31 12 31 9 33 9C33 12 34 14 37 11C39 9 40 10 41 12C44 14 49 9 56 6M28 18C36 17 44 14 50 11',
+    heavy: 'M6 15C3 11 5 4 11 5C16 6 13 11 9 11',
+  },
+};
+
+// No two signatures on a sheet are drawn alike, as no hand signs twice the same way.
+const jitter = [
+  [-3, 1.0, 0.0],
+  [2, 0.94, 1.5],
+  [-1, 1.05, -1.0],
+  [4, 0.97, 0.8],
+  [-4, 1.02, -0.5],
+  [1, 0.92, 1.2],
+] as const;
+
+function signature(who: Signer, k: number) {
+  const [rotate, scale, shift] = jitter[(k + who.length) % jitter.length]!;
+  return {
+    href: `#sheet-sig-${who}`,
+    transform: `translate(${30 + shift} 11) rotate(${rotate}) scale(${scale} ${2 - scale}) translate(-30 -11)`,
+  };
+}
+
+const { sheet, sheets } = importSection;
+---
+
+<div class="sheets" aria-hidden="true">
+  <svg class="defs" width="0" height="0">
+    <defs>
+      {Object.entries(strokes).map(([who, stroke]) => (
+        <g
+          id={`sheet-sig-${who}`}
+          fill="none"
+          stroke="#27408b"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d={stroke.line} stroke-width="1.05" />
+          <path d={stroke.heavy} stroke-width="1.7" opacity="0.55" />
+        </g>
+      ))}
+    </defs>
+  </svg>
+  {sheets.map((paper, index) => (
+    <div class={`sheet s${index + 1}`}>
+      <div class="fld unit">
+        <span class="lab">{sheet.unit}</span>
+        <i>
+          <span class="hand">{sheet.company}</span>
+        </i>
+      </div>
+      <div class="ttl">
+        {sheet.title[0]}
+        <br />
+        {sheet.title[1]}
+      </div>
+      <div class="fld">
+        <span class="lab">{sheet.name}</span>
+        <i>
+          <span class="hand">{paper.name}</span>
+        </i>
+      </div>
+      <div class="fld">
+        <span class="lab">{sheet.mark}</span>
+        <i>
+          <span class="hand num">{paper.mark}</span>
+        </i>
+      </div>
+      <div class="fld">
+        <span class="lab">{sheet.job}</span>
+        <i>
+          <span class="hand">{paper.job}</span>
+        </i>
+      </div>
+      <div class="fld">
+        <span class="lab">{sheet.place}</span>
+        <i>
+          <span class="hand">{paper.place}</span>
+        </i>
+      </div>
+      <div class="sub">{sheet.periodic}</div>
+      <table>
+        <colgroup>
+          <col style="width: 33%" />
+          <col style="width: 15%" />
+          <col style="width: 26%" />
+          <col style="width: 26%" />
+        </colgroup>
+        <thead>
+          <tr>
+            {sheet.columns.map((column) => (
+              <th>{column}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {paper.rows.map(([date, duration], k) => (
+            <tr>
+              <td class="hand">{date}</td>
+              <td class="hand">{duration}</td>
+              {[signature(paper.signature, k), signature('instructor', k + 3)].map((sig) => (
+                <td>
+                  <svg class="sig" viewBox="0 0 60 22" preserveAspectRatio="xMidYMid meet">
+                    <use href={sig.href} transform={sig.transform} />
+                  </svg>
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  ))}
+</div>
+
+<style is:global>
+  .sheets {
+    position: absolute;
+    top: 40px;
+    left: 36px;
+    z-index: 2;
+    width: 420px;
+    height: 480px;
+  }
+  .sheets .sheet {
+    position: absolute;
+    width: 262px;
+    height: 370px;
+    padding: 18px 18px 16px;
+    border-radius: 3px;
+    background: linear-gradient(168deg, #fffdf7 0%, #fbf7ec 55%, #f1ead8 100%);
+    box-shadow:
+      0 1px 1px rgba(60, 50, 30, 0.18),
+      0 22px 34px -16px rgba(24, 52, 46, 0.45);
+    color: #2b2a26;
+    font-family: Tinos, 'Times New Roman', Times, 'Liberation Serif', serif;
+    line-height: 1.55;
+    overflow: hidden;
+  }
+  .sheets .sheet::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      115deg,
+      rgba(255, 255, 255, 0.35),
+      rgba(255, 255, 255, 0) 40%,
+      rgba(0, 0, 0, 0.04) 100%
+    );
+    pointer-events: none;
+  }
+  .sheets .s1 {
+    top: 34px;
+    left: 0;
+    transform: rotate(-9deg);
+  }
+  .sheets .s2 {
+    top: 14px;
+    left: 56px;
+    transform: rotate(-2.5deg);
+  }
+  .sheets .s3 {
+    top: 46px;
+    left: 128px;
+    transform: rotate(5deg);
+  }
+  .sheets .ttl {
+    margin-top: 8px;
+    font-size: 8.6px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.25;
+    text-align: center;
+  }
+  .sheets .fld {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 15px;
+    margin-top: 3px;
+    font-size: 8px;
+    white-space: nowrap;
+  }
+  .sheets .fld.unit {
+    margin-top: 0;
+    font-size: 7.5px;
+  }
+  .sheets .lab {
+    flex: none;
+    padding-bottom: 0.5px;
+    line-height: 1;
+  }
+  .sheets .fld i {
+    position: relative;
+    flex: 1;
+    align-self: stretch;
+    min-width: 0;
+    border-bottom: 0.8px dotted #8a8578;
+    font-style: normal;
+  }
+  .sheets .fld.unit i {
+    flex: 0 1 150px;
+  }
+  .sheets .hand {
+    color: #27408b;
+    font-family: var(--font-bad-script);
+    font-size: 12.5px;
+    font-weight: 400;
+    line-height: 1.1;
+  }
+  /* Set on the dotted line by the script's baseline, not the box: the descenders hang below it. */
+  .sheets .fld i .hand {
+    position: absolute;
+    bottom: calc(2px - 0.17em);
+    left: 4px;
+    font-size: 10.5px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .sheets .fld i .hand.num {
+    bottom: calc(2px + 0.1em);
+  }
+  .sheets .sub {
+    margin-top: 9px;
+    font-size: 7.6px;
+    font-weight: 700;
+  }
+  .sheets table {
+    width: 100%;
+    margin-top: 4px;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .sheets th {
+    padding: 2px 3px;
+    border: 0.8px solid #5c594f;
+    font-size: 6.4px;
+    font-weight: 700;
+    line-height: 1.15;
+    text-align: left;
+    vertical-align: top;
+  }
+  .sheets td {
+    height: 21px;
+    padding: 0 3px;
+    border: 0.8px solid #5c594f;
+    overflow: hidden;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  .sheets td.hand {
+    font-size: 11.5px;
+    letter-spacing: -0.01em;
+  }
+  .sheets .defs {
+    position: absolute;
+  }
+  .sheets .sig {
+    display: block;
+    width: 100%;
+    height: 17px;
+    overflow: visible;
+  }
+
+  @media (max-width: 1080px) {
+    .sheets {
+      top: 28px;
+      left: 50%;
+      margin-left: -210px;
+    }
+  }
+  @media (max-width: 760px) {
+    .sheets {
+      top: 22px;
+      left: 50%;
+      width: 300px;
+      height: 300px;
+      margin-left: -150px;
+    }
+    .sheets .sheet {
+      width: 196px;
+      height: 277px;
+      padding: 13px 13px 12px;
+    }
+    .sheets .s1 {
+      top: 26px;
+      left: 0;
+    }
+    .sheets .s2 {
+      top: 8px;
+      left: 42px;
+    }
+    .sheets .s3 {
+      top: 32px;
+      left: 96px;
+    }
+    .sheets .ttl {
+      margin-top: 6px;
+      font-size: 6.4px;
+    }
+    .sheets .fld {
+      gap: 3px;
+      height: 11.5px;
+      margin-top: 2px;
+      font-size: 6px;
+    }
+    .sheets .fld.unit {
+      font-size: 5.6px;
+    }
+    .sheets .fld.unit i {
+      flex-basis: 112px;
+    }
+    .sheets .hand {
+      font-size: 9.6px;
+    }
+    .sheets .fld i .hand {
+      bottom: calc(1.1px - 0.17em);
+      left: 3px;
+      font-size: 8px;
+    }
+    .sheets .fld i .hand.num {
+      bottom: calc(1.1px + 0.1em);
+    }
+    .sheets .sub {
+      margin-top: 7px;
+      font-size: 5.8px;
+    }
+    .sheets th {
+      padding: 1.5px 2px;
+      font-size: 4.8px;
+    }
+    .sheets td {
+      height: 15.5px;
+    }
+    .sheets td.hand {
+      font-size: 8.8px;
+    }
+    .sheets .sig {
+      height: 12.5px;
+    }
+  }
+</style>

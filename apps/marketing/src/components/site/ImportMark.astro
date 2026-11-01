@@ -1,0 +1,163 @@
+---
+import type { ImportMarkName } from './copy';
+
+interface Props {
+  mark: ImportMarkName;
+  class?: string;
+}
+
+const { mark, class: className, ...rest } = Astro.props;
+---
+
+<svg class={className} viewBox="0 0 68 68" aria-hidden="true" {...rest}>
+  <circle cx="34" cy="34" r="33" fill="#eaf2d6" />
+  {mark === 'documents' && (
+    <>
+      <rect
+        x="20"
+        y="12"
+        width="28"
+        height="22"
+        rx="3"
+        fill="#ffffff"
+        stroke="#18342e"
+        stroke-width="1.6"
+      />
+      <path
+        d="M25 18h18M25 23h18M25 28h11"
+        stroke="#9fb39c"
+        stroke-width="2"
+        stroke-linecap="round"
+      />
+      <path
+        d="M12 27a4 4 0 0 1 4-4h9l4 4h22a4 4 0 0 1 4 4v18a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4z"
+        fill="#ffffff"
+        stroke="#18342e"
+        stroke-width="1.6"
+        stroke-linejoin="round"
+      />
+      <path d="M18 38h17" stroke="#9fb39c" stroke-width="2" stroke-linecap="round" />
+      <circle cx="49" cy="50" r="9" fill="#18342e" stroke="#eaf2d6" stroke-width="2" />
+      <path
+        d="M46 55V44.5h6V55M44.2 55h9.6"
+        fill="none"
+        stroke="#b6d86f"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+      <path
+        d="M48 47.5h.01M50 47.5h.01M48 50.5h.01M50 50.5h.01"
+        stroke="#b6d86f"
+        stroke-width="1.6"
+        stroke-linecap="round"
+      />
+    </>
+  )}
+  {mark === 'sheets' && (
+    <>
+      <g transform="rotate(-7 31 33)">
+        <rect
+          x="18"
+          y="14"
+          width="27"
+          height="36"
+          rx="3"
+          fill="#ffffff"
+          stroke="#18342e"
+          stroke-width="1.6"
+        />
+        <path
+          d="M23 21h17M23 26.5h17M23 32h17M23 37.5h11"
+          stroke="#9fb39c"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+      </g>
+      <path
+        d="M11 18v-5a2 2 0 0 1 2-2h5M45 11h5a2 2 0 0 1 2 2v5M11 45v5a2 2 0 0 0 2 2h5"
+        fill="none"
+        stroke="#18342e"
+        stroke-width="2"
+        stroke-linecap="round"
+      />
+      <circle cx="49" cy="50" r="9" fill="#b6d86f" stroke="#ffffff" stroke-width="2" />
+      <circle cx="49" cy="47.6" r="2.3" fill="none" stroke="#18342e" stroke-width="1.6" />
+      <path
+        d="M44.8 54.6a4.4 4.4 0 0 1 8.4 0"
+        fill="none"
+        stroke="#18342e"
+        stroke-width="1.6"
+        stroke-linecap="round"
+      />
+    </>
+  )}
+  {mark === 'kept' && (
+    <>
+      <rect
+        x="18"
+        y="13"
+        width="32"
+        height="42"
+        rx="4"
+        fill="#ffffff"
+        stroke="#18342e"
+        stroke-width="1.6"
+      />
+      <path d="M23 20h22" stroke="#18342e" stroke-width="1.6" stroke-linecap="round" />
+      {[27, 34, 41].map((y) => (
+        <>
+          <path d={`M23 ${y}h9`} stroke="#9fb39c" stroke-width="2" stroke-linecap="round" />
+          <path
+            d={`M36 ${y}c1.5-2 2.5 1.5 4 0s2-1.6 3.5-.3`}
+            fill="none"
+            stroke="#18342e"
+            stroke-width="1.4"
+            stroke-linecap="round"
+          />
+        </>
+      ))}
+      <circle cx="49" cy="50" r="9" fill="#18342e" stroke="#eaf2d6" stroke-width="2" />
+      <path
+        d="M45 50l2.6 2.6 4.6-4.8"
+        fill="none"
+        stroke="#b6d86f"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </>
+  )}
+  {mark === 'review' && (
+    <>
+      <rect
+        x="14"
+        y="13"
+        width="32"
+        height="42"
+        rx="4"
+        fill="#ffffff"
+        stroke="#18342e"
+        stroke-width="1.6"
+      />
+      <path
+        d="M19 21h22M19 27h22M19 39h22M19 45h12"
+        stroke="#9fb39c"
+        stroke-width="2"
+        stroke-linecap="round"
+      />
+      <rect x="17.5" y="30" width="25" height="6" rx="2" fill="#b6d86f" />
+      <path d="M20.5 33h19" stroke="#18342e" stroke-width="2" stroke-linecap="round" />
+      <circle
+        cx="47"
+        cy="44"
+        r="8"
+        fill="#ffffff"
+        fill-opacity=".85"
+        stroke="#18342e"
+        stroke-width="2.4"
+      />
+      <path d="M52.8 49.8l5 5" stroke="#18342e" stroke-width="3" stroke-linecap="round" />
+    </>
+  )}
+</svg>

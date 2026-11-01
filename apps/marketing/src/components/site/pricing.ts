@@ -141,10 +141,7 @@ export const paymentFacts = {
 
 export const comingSoon = {
   title: 'În curând',
-  items: [
-    'Completarea automată a documentelor, cu inteligență artificială',
-    'Semnătură electronică calificată, plătită doar când o folosești',
-  ],
+  items: ['Semnătură electronică calificată, plătită doar când o folosești'],
 };
 
 /** `true` is included, `false` is not, a string is shown as written. */

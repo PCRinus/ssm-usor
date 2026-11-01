@@ -1,0 +1,154 @@
+---
+import BrowserFrame from './BrowserFrame.astro';
+import { importSection } from './copy';
+import ImportMark from './ImportMark.astro';
+import { screens } from './screens';
+import TrainingSheets from './TrainingSheets.astro';
+---
+
+<section class="sec" id="import">
+  <div class="wrap">
+    <h2>{importSection.title}</h2>
+    <p class="intro">{importSection.intro}</p>
+    <figure class="stage" aria-label={importSection.stageLabel}>
+      <TrainingSheets />
+      <BrowserFrame
+        src={screens.importEmployees}
+        alt={importSection.shotAlt}
+        address="app.ssmusor.ro"
+        sizes="(max-width: 760px) 520px, 780px"
+        widths={[520, 780, 1040, 1280]}
+      />
+    </figure>
+    <ul class="outcomes">
+      {importSection.outcomes.map((outcome) => (
+        <li>
+          <ImportMark class="mark" mark={outcome.mark} />
+          <div>
+            <b>{outcome.title}</b>
+            <span>{outcome.text}</span>
+          </div>
+        </li>
+      ))}
+    </ul>
+    <p class="note">{importSection.note}</p>
+  </div>
+</section>
+
+<style>
+  .sec {
+    padding: 0 0 104px;
+  }
+  h2 {
+    max-width: 22ch;
+  }
+  .intro {
+    max-width: 58ch;
+    margin-top: 16px;
+    color: var(--ink-2);
+    font-size: 18px;
+  }
+  .stage {
+    position: relative;
+    height: 560px;
+    margin: 48px 0 0;
+    border-radius: 24px;
+    background: var(--lime-soft);
+    overflow: hidden;
+    /* Skipped until near the viewport, so the handwriting font is not fetched with the hero's. */
+    content-visibility: auto;
+  }
+  .stage > :global(.browser) {
+    position: absolute;
+    top: 52px;
+    left: 430px;
+    width: 780px;
+  }
+  .outcomes {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 32px;
+    margin-top: 48px;
+  }
+  .outcomes li {
+    display: grid;
+    gap: 16px;
+    align-content: start;
+  }
+  .mark {
+    display: block;
+    width: 60px;
+    height: 60px;
+  }
+  .outcomes b {
+    display: block;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .outcomes span {
+    display: block;
+    margin-top: 4px;
+    color: var(--ink-2);
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .note {
+    max-width: 68ch;
+    margin-top: 28px;
+    color: var(--ink-2);
+    font-size: 15px;
+  }
+
+  @media (max-width: 1080px) {
+    .stage {
+      height: 720px;
+    }
+    .stage > :global(.browser) {
+      top: 330px;
+      left: 32px;
+      z-index: 3;
+    }
+    .outcomes {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 760px) {
+    .sec {
+      padding-bottom: 64px;
+    }
+    .intro {
+      font-size: 16px;
+    }
+    .stage {
+      height: 600px;
+      margin-top: 32px;
+      border-radius: 18px;
+    }
+    .stage > :global(.browser) {
+      top: 286px;
+      left: 20px;
+      width: 520px;
+    }
+    .outcomes {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 22px;
+      margin-top: 36px;
+    }
+    .outcomes li {
+      grid-template-columns: 52px minmax(0, 1fr);
+      gap: 14px;
+      align-items: center;
+    }
+    .mark {
+      width: 52px;
+      height: 52px;
+    }
+    .outcomes b {
+      font-size: 16px;
+    }
+    .outcomes span {
+      font-size: 15px;
+    }
+  }
+</style>
