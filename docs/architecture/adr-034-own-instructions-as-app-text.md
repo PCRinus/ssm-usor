@@ -252,6 +252,7 @@ A part that fails shows its reason and **Citește din nou**, which sends its mes
 
 - **The risk evaluations of the pack** and the risk library. They will get a decision of their own.
 - **Pictures and tables in a module**, and any formatting in a body. Tracked in #768.
+- **Checking the imported text and proposing fixes**: diacritics, typos, clear wording, text copied from a manual, the client's name. The import keeps the pack's words as they are. Tracked in #770.
 - **Uploading a Word file as a module.**
 - **Splitting an instruction's equipment sections into modules of their own.**
 - **Remembering the themes' map of posts to instructions** when the pack's instructions cannot be read, to apply once the modules exist.
