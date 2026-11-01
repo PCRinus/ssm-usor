@@ -8,6 +8,7 @@ import {
   whereLabel,
 } from './dialect.js';
 import { isLucideIcon } from './icons.js';
+import { tooLong, updateLimits } from './limits.js';
 import type { ParseError, UpdateSections } from './types.js';
 
 interface FeatureDraft {
@@ -134,12 +135,39 @@ export class SectionCollector {
       return;
     }
     if (feature.title === '') return;
+    const text = feature.text.join(' ');
+    this.checkLength(
+      feature.line,
+      `The title of "${feature.title}"`,
+      feature.title,
+      'featureTitle'
+    );
+    this.checkLength(feature.line, `The text of "${feature.title}"`, text, 'featureText');
+    if (feature.where !== null) {
+      this.checkLength(
+        feature.line,
+        `"${whereLabel}" of "${feature.title}"`,
+        feature.where,
+        'featureWhere'
+      );
+    }
     this.sections.features.push({
       title: feature.title,
-      text: feature.text.join(' '),
+      text,
       where: feature.where,
       icon: feature.icon,
     });
+  }
+
+  private checkLength(
+    line: number,
+    what: string,
+    value: string,
+    limit: 'featureTitle' | 'featureText' | 'featureWhere'
+  ): void {
+    if (value.length > updateLimits[limit]) {
+      this.error(line, tooLong(what, value.length, updateLimits[limit]));
+    }
   }
 
   private error(line: number, message: string): void {

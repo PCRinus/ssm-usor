@@ -6,7 +6,7 @@ export const releaseTagSchema = z.string().regex(/^\d{4}\.\d{2}\.\d{2}(\.\d+)?$/
 export const updateFeatureSchema = z
   .object({
     title: z.string().min(1).max(160),
-    text: z.string().min(1).max(600),
+    text: z.string().min(1).max(1200),
     where: z.string().max(200).nullable(),
     // A lucide icon name.
     icon: z

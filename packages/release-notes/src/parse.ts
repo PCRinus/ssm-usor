@@ -1,4 +1,5 @@
 import { blockTitle, foldKey, hasItems, type Line, sectionOf, toLines } from './dialect.js';
+import { tooLong, updateLimits } from './limits.js';
 import { SectionCollector } from './sections.js';
 import type { ParseError, PullRequestBlockResult, ReleaseBodyResult } from './types.js';
 
@@ -15,6 +16,7 @@ export function parseReleaseBody(body: string): ReleaseBodyResult {
   let headline: { line: number; text: string } | null = null;
   let firstSection: number | null = null;
   const lead: string[] = [];
+  let leadLine: number | null = null;
 
   for (const line of region) {
     const { token } = line;
@@ -55,6 +57,7 @@ export function parseReleaseBody(body: string): ReleaseBodyResult {
         errors.push({ line: line.number, message: 'Text before the # headline.' });
       }
     } else {
+      if (token.kind === 'text') leadLine ??= line.number;
       acceptLeadLine(line, lead, errors);
     }
   }
@@ -74,6 +77,19 @@ export function parseReleaseBody(body: string): ReleaseBodyResult {
       message: `The release has a headline but no items under ${knownSections}.`,
     });
   }
+  const leadText = lead.length > 0 ? lead.join(' ') : null;
+  if (headline !== null && headline.text.length > updateLimits.headline) {
+    errors.push({
+      line: headline.line,
+      message: tooLong('The headline', headline.text.length, updateLimits.headline),
+    });
+  }
+  if (leadLine !== null && leadText !== null && leadText.length > updateLimits.lead) {
+    errors.push({
+      line: leadLine,
+      message: tooLong('The lead', leadText.length, updateLimits.lead),
+    });
+  }
   if (errors.length > 0 || headline === null) return invalid(errors);
 
   const source = region
@@ -84,7 +100,7 @@ export function parseReleaseBody(body: string): ReleaseBodyResult {
     kind: 'update',
     update: {
       headline: headline.text,
-      lead: lead.length > 0 ? lead.join(' ') : null,
+      lead: leadText,
       ...collector.sections,
     },
     source,
