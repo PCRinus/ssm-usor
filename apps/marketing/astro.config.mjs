@@ -44,7 +44,7 @@ export default defineConfig({
       fallbacks: ['Inter Tight Fallback', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       optimizedFallbacks: false,
     },
-    // The handwriting on the training sheets; latin-ext carries ș and ț with the comma below.
+    // latin-ext carries ș and ț with the comma below.
     {
       provider: fontProviders.google(),
       name: 'Bad Script',
