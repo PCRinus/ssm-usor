@@ -191,19 +191,19 @@ describe('starting an import from the client list', () => {
       files: { uploadPath: string; mimeType: string; sha256: string; sizeBytes: number }[];
     };
     expect(registered.files.map((file) => [file.uploadPath, file.mimeType])).toEqual([
+      ['Contract prestari SSM 2019.pdf', 'application/pdf'],
       [
         'dosar-ssm-spicul-auriu.zip/Decizie 1 organizare SSM 2024.docx',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       ],
-      ['Contract prestari SSM 2019.pdf', 'application/pdf'],
     ]);
     expect(registered.files[1]!.sha256).toMatch(/^[0-9a-f]{64}$/);
     expect(vi.mocked(uploadImportObject).mock.calls.map(([path, , type]) => [path, type])).toEqual([
+      [`org/${importId}/1`, 'application/pdf'],
       [
-        `org/${importId}/1`,
+        `org/${importId}/2`,
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       ],
-      [`org/${importId}/2`, 'application/pdf'],
     ]);
     expect(requestsTo(`/imports/${importId}/start`, 'POST')).toHaveLength(1);
     expect(await screen.findByTestId('import-processing')).toBeTruthy();

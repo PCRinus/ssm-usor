@@ -8,6 +8,7 @@ import {
 } from '@ssm-usor/contracts';
 import { unzipSync } from 'fflate';
 
+import { comparePaths } from './path-order';
 import { zipNameFixes } from './zip-names';
 
 export type PickedFile = {
@@ -250,6 +251,8 @@ function uniquePath(path: string, taken: Set<string>) {
   }
 }
 
+const byPath = (a: { path: string }, b: { path: string }) => comparePaths(a.path, b.path);
+
 export async function openPicked(picked: PickedFile[], kind: ImportKind = 'client') {
   const added = nothingFound();
   for (const { path, blob } of picked) {
@@ -267,6 +270,8 @@ export async function openPicked(picked: PickedFile[], kind: ImportKind = 'clien
       if (file.mimeType === 'application/pdf') file.pages = await countPdfPages(file.blob);
     }
   }
+  added.files.sort(byPath);
+  added.setAside.sort(byPath);
   return added;
 }
 
