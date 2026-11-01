@@ -4,7 +4,7 @@ import { Progress } from '@ssm-usor/ui/components/progress';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { Check, X } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
@@ -13,6 +13,7 @@ import { AbandonImportDialog } from '../abandon-import-dialog';
 import { refundedSentence } from '../import-credits';
 import { isRunning, uploadedWhen } from '../import-format';
 import { ImportThumbnail } from '../import-thumbnail';
+import { inPathOrder } from '../path-order';
 import { ImportFileView, PhotoPreviewDialog } from '../photo-preview-dialog';
 import { useUploadStalled } from '../use-upload-stalled';
 import { onlyPhotos, sheetFilesLabel } from './review-format';
@@ -82,7 +83,7 @@ export function EmployeeProcessing({
   const running = isRunning(detail.status);
   const stalled = useUploadStalled(detail);
   const reached = reachedStep(detail);
-  const files = detail.files;
+  const files = useMemo(() => inPathOrder(detail.files), [detail.files]);
   const photos = onlyPhotos(files);
   const filesText = sheetFilesLabel(files);
   const read = files.filter((file) => file.state === 'read').length;

@@ -8,6 +8,7 @@ import {
 } from '@ssm-usor/contracts';
 import { unzipSync } from 'fflate';
 
+import { comparePaths } from './path-order';
 import { zipNameFixes } from './zip-names';
 
 export type PickedFile = {
@@ -250,18 +251,7 @@ function uniquePath(path: string, taken: Set<string>) {
   }
 }
 
-const byName = new Intl.Collator('ro', { numeric: true });
-
-// Folder by folder: compared whole, the slash would sort "Fișe/…" after "Fișe 2/…".
-function byPath(a: { path: string }, b: { path: string }) {
-  const left = a.path.split('/');
-  const right = b.path.split('/');
-  for (let at = 0; at < Math.min(left.length, right.length); at += 1) {
-    const order = byName.compare(left[at]!, right[at]!);
-    if (order !== 0) return order;
-  }
-  return left.length - right.length;
-}
+const byPath = (a: { path: string }, b: { path: string }) => comparePaths(a.path, b.path);
 
 export async function openPicked(picked: PickedFile[], kind: ImportKind = 'client') {
   const added = nothingFound();

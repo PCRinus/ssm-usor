@@ -16,7 +16,7 @@ import {
   LoaderCircle,
   X,
 } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 
 import {
   getListImportsQueryKey,
@@ -40,6 +40,7 @@ import {
   uploadSummary,
 } from './import-format';
 import { ImportThumbnail } from './import-thumbnail';
+import { inPathOrder } from './path-order';
 import { ReadSetAsideButton } from './read-set-aside-button';
 import { useImport } from './use-import';
 import { useUploadStalled } from './use-upload-stalled';
@@ -137,7 +138,7 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
   const stalled = useUploadStalled(detail);
   const running = isRunning(detail.status);
   const open = !['confirmed', 'abandoned'].includes(detail.status);
-  const files = detail.files;
+  const files = useMemo(() => inPathOrder(detail.files), [detail.files]);
   const failed = files.filter((file) => file.state === 'failed');
   const sorted = reachedStep(detail) >= 2;
   const documents = files.filter((file) => file.state === 'read' && !file.isScan);
