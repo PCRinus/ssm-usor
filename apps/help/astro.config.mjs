@@ -70,7 +70,7 @@ const areas = [
   ['Primii pași', 'primii-pasi'],
   ['Clienți potențiali și contracte', 'clienti-potentiali'],
   ['Clienți', 'clienti'],
-  ['Instrucțiuni', 'instructiuni'],
+  ['Instrucțiuni proprii', 'instructiuni'],
   ['Riscuri', 'riscuri'],
   ['Teste', 'teste'],
   ['Semnături și participanți', 'semnaturi'],

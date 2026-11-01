@@ -270,9 +270,12 @@ const bodies = (pathname: string, method: string) =>
 const mount = (path = '/instructions') => mountApp(authFixture(makeSession()).client, path);
 
 const fireTabLink = () =>
-  within(screen.getByRole('navigation', { name: 'Secțiunile bibliotecii' })).getByRole('link', {
-    name: 'Instrucțiuni PSI',
-  });
+  within(screen.getByRole('navigation', { name: 'Secțiunile instrucțiunilor proprii' })).getByRole(
+    'link',
+    {
+      name: 'IPSU',
+    }
+  );
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -381,8 +384,8 @@ describe('the instruction library', () => {
     const group = await screen.findByTestId('nav-instructions-group');
     const entries = within(group).getAllByTestId('nav-sub-entry');
     expect(entries.map((entry) => [entry.textContent, entry.getAttribute('href')])).toEqual([
-      ['Instrucțiuni SSM', '/instructions/ssm'],
-      ['Instrucțiuni PSI', '/instructions/psi'],
+      ['IPSSM', '/instructions/ssm'],
+      ['IPSU', '/instructions/psi'],
     ]);
     await waitFor(() => expect(entries[0]!.getAttribute('aria-current')).toBe('page'));
 

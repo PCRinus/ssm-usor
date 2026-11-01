@@ -202,8 +202,8 @@ export function InstructionLibrary({
               <BookOpenText className="size-8 text-muted-foreground" aria-hidden="true" />
               <p className="text-sm font-medium">
                 {showArchived
-                  ? `Nicio instrucțiune ${label} arhivată`
-                  : `Nicio instrucțiune ${label} în bibliotecă`}
+                  ? `Nicio instrucțiune proprie ${label} arhivată`
+                  : `Nicio instrucțiune proprie ${label} încă`}
               </p>
               {!showArchived && (
                 <p className="max-w-md text-center text-sm text-muted-foreground">

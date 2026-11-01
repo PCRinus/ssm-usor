@@ -107,7 +107,7 @@ const navigation = [
   { to: '/signatures', label: 'Semnături', icon: Signature, ownerOnly: false },
   {
     to: '/instructions',
-    label: 'Instrucțiuni',
+    label: 'Instrucțiuni proprii',
     icon: BookOpenText,
     ownerOnly: false,
     children: instructionSections,

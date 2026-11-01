@@ -116,7 +116,7 @@ export const fileReasons = {
   blankForm: 'Formular sau registru necompletat.',
   genericText: 'Text general, fără date despre client.',
   ownInstructions:
-    'Instrucțiuni proprii: aplicația le alcătuiește din biblioteca de instrucțiuni. Le citim doar dacă ceri.',
+    'Instrucțiuni proprii: aplicația le alcătuiește din biblioteca ta de instrucțiuni proprii. Le citim doar dacă ceri.',
   trainingMaterial:
     'Material de instruire introductiv-generală: text general, nu conține date despre client. Îl citim doar dacă ceri.',
   noClientData: 'Nu conține date despre client.',

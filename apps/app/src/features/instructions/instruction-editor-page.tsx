@@ -142,10 +142,10 @@ export function InstructionEditorPage({
         to={module?.domain === 'psi' ? '/instructions/psi' : '/instructions/ssm'}
         data-testid="editor-back"
         onClick={backToList}
-        aria-label={pinned ? 'Înapoi' : 'Înapoi la bibliotecă'}
+        aria-label={pinned ? 'Înapoi' : 'Înapoi la instrucțiunile proprii'}
       >
         <ArrowLeft aria-hidden="true" />
-        <span className="hidden sm:inline">{pinned ? 'Înapoi' : 'Instrucțiuni'}</span>
+        <span className="hidden sm:inline">{pinned ? 'Înapoi' : 'Instrucțiuni proprii'}</span>
       </Link>
     </Button>
   );
