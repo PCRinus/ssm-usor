@@ -18,7 +18,7 @@ catalog:
   '@lingui/core': 6.9.1
   '@lingui/format-po': 6.9.1
   '@lingui/react': 6.9.1
-  '@lingui/vite-plugin': 6.9.1
+  '@lingui/vite-plugin': 6.10.1
   libphonenumber-js: 1.13.14
 
 # miniflare (under wrangler) and @scalar/json-magic (under orval) pin undici 7.29.1 exactly, which
