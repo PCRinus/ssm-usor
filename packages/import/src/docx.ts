@@ -12,16 +12,16 @@ const parser = new XMLParser({
   htmlEntities: true,
 });
 
-type XmlNode = Record<string, unknown>;
+export type XmlNode = Record<string, unknown>;
 
-const tagOf = (node: XmlNode) => Object.keys(node).find((key) => key !== ':@') ?? '';
+export const tagOf = (node: XmlNode) => Object.keys(node).find((key) => key !== ':@') ?? '';
 
-const childrenOf = (node: XmlNode) => {
+export const childrenOf = (node: XmlNode) => {
   const children = node[tagOf(node)];
   return Array.isArray(children) ? (children as XmlNode[]) : [];
 };
 
-function textOf(node: XmlNode): string {
+export function textOf(node: XmlNode): string {
   const tag = tagOf(node);
   switch (tag) {
     // Only a run's text is the document's: whitespace between tags is the file's indentation.
@@ -48,7 +48,7 @@ function textOf(node: XmlNode): string {
   }
 }
 
-const squash = (text: string) => text.replace(/\s+/g, ' ').trim();
+export const squash = (text: string) => text.replace(/\s+/g, ' ').trim();
 
 function render(nodes: XmlNode[], lines: string[]) {
   for (const node of nodes) {
@@ -90,14 +90,14 @@ export class DocxReadError extends Error {
 // deflate bomb can take in a 128 MiB Worker.
 const maxTextBytes = 16 * 1024 * 1024;
 
-export function docxToText(bytes: Uint8Array): string {
+export function unzipDocx(bytes: Uint8Array, parts: RegExp): Record<string, Uint8Array> {
   let files: Record<string, Uint8Array>;
   let textBytes = 0;
   try {
     // Only the text parts are inflated; images would cost a Worker's memory for nothing.
     files = unzipSync(bytes, {
       filter: (file) => {
-        if (!textPart.test(file.name)) return false;
+        if (!parts.test(file.name)) return false;
         textBytes += file.originalSize;
         if (textBytes > maxTextBytes) {
           throw new DocxReadError('The Word document is too large to read.');
@@ -109,12 +109,17 @@ export function docxToText(bytes: Uint8Array): string {
     if (error instanceof DocxReadError) throw error;
     throw new DocxReadError('The file is not a Word document.', { cause: error });
   }
-  const parts = Object.keys(files)
-    .filter((name) => textPart.test(name))
-    .sort((a, b) => partOrder(a) - partOrder(b) || a.localeCompare(b, 'en', { numeric: true }));
-  if (!parts.includes('word/document.xml')) {
+  if (!files['word/document.xml']) {
     throw new DocxReadError('The file is not a Word document.');
   }
+  return files;
+}
+
+export function docxToText(bytes: Uint8Array): string {
+  const files = unzipDocx(bytes, textPart);
+  const parts = Object.keys(files).sort(
+    (a, b) => partOrder(a) - partOrder(b) || a.localeCompare(b, 'en', { numeric: true })
+  );
   const seen = new Set<string>();
   const blocks: string[] = [];
   for (const part of parts) {

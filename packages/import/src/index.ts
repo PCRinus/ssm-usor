@@ -15,6 +15,7 @@ export {
   withChecks,
 } from './checks';
 export { DocxReadError, docxToText } from './docx';
+export { type PrintedNumber } from './docx-numbering';
 export {
   type BloodType,
   checkCnp,
@@ -70,6 +71,12 @@ export {
   type ReasoningEffort,
 } from './gateway';
 export { groupHeldTrainings, type HeldRow, type HeldTraining } from './held-trainings';
+export {
+  type DocxParagraph,
+  type InstructionsDocx,
+  paragraphLine,
+  readInstructionsDocx,
+} from './instructions-docx';
 export {
   contained,
   editDistance,
