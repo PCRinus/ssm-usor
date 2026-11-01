@@ -183,7 +183,7 @@ export function InstructionEditorPage({
   }
 
   const actions = (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2 max-sm:flex-1">
       <Badge variant={editable ? 'secondary' : 'default'} data-testid="editor-state">
         {pinned
           ? `Versiunea ${loaded.number}`
@@ -196,7 +196,10 @@ export function InstructionEditorPage({
         {articleCountLabel(module.version.articleCount).toLowerCase()}
       </span>
       {editable && (
-        <span data-testid="editor-saved-state" className="text-xs text-muted-foreground">
+        <span
+          data-testid="editor-saved-state"
+          className="text-xs text-muted-foreground max-sm:sr-only"
+        >
           {dirty ? 'Modificări nesalvate' : 'Salvat'}
         </span>
       )}
@@ -204,10 +207,11 @@ export function InstructionEditorPage({
         variant="outline"
         size="sm"
         data-testid="editor-download"
+        className="max-sm:ml-auto"
         onClick={() => void download()}
       >
         <Download aria-hidden="true" />
-        Descarcă
+        <span className="max-sm:sr-only">Descarcă</span>
       </Button>
       {editable && (
         <Button

@@ -1,0 +1,12 @@
+/* The editor styles its title row inline and offers no class or prop for it, so the row is
+   found through the actions, which are ours, rather than through the editor's own markup. */
+@media (width < 40rem) {
+  :has(> [data-editor-title-actions]) {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+
+  [data-editor-title-actions] {
+    flex-basis: 100%;
+  }
+}
