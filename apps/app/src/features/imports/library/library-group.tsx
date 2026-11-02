@@ -10,7 +10,6 @@ import {
   isExpired,
   type LibraryPart,
   partDescription,
-  partDomains,
   partLabels,
   partOrder,
   statusLabels,
@@ -111,7 +110,7 @@ export function LibraryGroup({ detail }: { detail: ImportDetail }) {
       ) : (
         <ul className="divide-y overflow-hidden rounded-xl border bg-card shadow-xs">
           {parts.map((part) => {
-            const domain = partDomains[part.part];
+            const domain = part.domain;
             const Icon = icons[domain];
             return (
               <li key={part.part}>

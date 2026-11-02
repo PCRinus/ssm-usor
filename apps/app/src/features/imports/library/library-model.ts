@@ -55,11 +55,6 @@ export const partLabels: Record<PartName, string> = {
   instructions_psi: 'IPSU',
 };
 
-export const partDomains: Record<PartName, InstructionDomain> = {
-  instructions_ssm: 'ssm',
-  instructions_psi: 'psi',
-};
-
 export const partOrder: readonly PartName[] = ['instructions_ssm', 'instructions_psi'];
 
 export const statusLabels: Record<PartStatus, string> = {
