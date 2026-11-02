@@ -648,6 +648,21 @@ function ReviewNotices({ review }: { review: LibraryReview }) {
       </Notice>
     );
   }
+  if (review.closed) {
+    return (
+      <Notice
+        variant="destructive"
+        data-testid="library-review-closed"
+        action={
+          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+            Reîncarcă pagina
+          </Button>
+        }
+      >
+        {review.closed}
+      </Notice>
+    );
+  }
   if (review.error) {
     return (
       <Notice

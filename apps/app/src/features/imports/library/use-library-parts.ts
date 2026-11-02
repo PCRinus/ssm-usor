@@ -47,6 +47,8 @@ const savedByOthers =
   'Altcineva a modificat instrucțiunile între timp, așa că schimbarea ta nu a fost salvată. Reîncarcă pagina și fă-o din nou.';
 const notReady =
   'Instrucțiunile nu mai pot fi modificate: au fost confirmate sau citite din nou între timp. Reîncarcă pagina.';
+const expired =
+  'Propunerea a expirat la 14 zile după crearea clientului, așa că schimbarea ta nu a mai fost salvată, iar instrucțiunile nu mai pot fi confirmate.';
 
 const withoutEmpty = (changes: LibraryChanges): LibraryChanges => ({
   instructions: Object.fromEntries(
@@ -57,6 +59,8 @@ const withoutEmpty = (changes: LibraryChanges): LibraryChanges => ({
 type Snapshot = {
   changes: LibraryChanges;
   conflict: boolean;
+  // Why no save can succeed any more, so none is offered again.
+  closed: string | null;
   error: string | null;
   pending: number;
 };
@@ -78,7 +82,7 @@ export class LibraryReviewStore {
     private readonly queryClient: QueryClient
   ) {
     const changes = changesOf(initial.changes);
-    this.snapshot = { changes, conflict: false, error: null, pending: 0 };
+    this.snapshot = { changes, conflict: false, closed: null, error: null, pending: 0 };
     this.version = initial.version;
     this.sent = changes;
   }
@@ -96,7 +100,7 @@ export class LibraryReviewStore {
   }
 
   setInstruction = (key: string, change: (current: InstructionChange) => InstructionChange) => {
-    if (this.snapshot.conflict) return;
+    if (this.snapshot.conflict || this.snapshot.closed) return;
     const current = this.snapshot.changes;
     const next = withoutEmpty({
       instructions: {
@@ -109,7 +113,7 @@ export class LibraryReviewStore {
   };
 
   retry = () => {
-    if (this.snapshot.conflict) return;
+    if (this.snapshot.conflict || this.snapshot.closed) return;
     this.set({ error: null });
     this.save(this.snapshot.changes);
   };
@@ -118,7 +122,7 @@ export class LibraryReviewStore {
     this.set({ pending: this.snapshot.pending + 1 });
     this.queue = this.queue.then(async () => {
       try {
-        if (this.snapshot.conflict) return;
+        if (this.snapshot.conflict || this.snapshot.closed) return;
         const saved = await saveImportLibraryPartChanges(
           this.importId,
           this.part,
@@ -143,7 +147,8 @@ export class LibraryReviewStore {
       } catch (cause) {
         const reason = reasonOf(cause);
         if (reason === importErrorReasons.changed) this.set({ conflict: true });
-        else if (reason === importErrorReasons.partNotReady) this.set({ error: notReady });
+        else if (reason === importErrorReasons.partNotReady) this.set({ closed: notReady });
+        else if (reason === importErrorReasons.partExpired) this.set({ closed: expired });
         else this.set({ error: importErrorMessage(cause, saveFailed) });
       } finally {
         this.set({ pending: this.snapshot.pending - 1 });
@@ -157,11 +162,12 @@ export class LibraryReviewStore {
 
   flush = async (): Promise<{ version: number } | { error: string }> => {
     await this.queue;
-    if (this.unsaved && !this.snapshot.conflict) {
+    if (this.unsaved && !this.snapshot.conflict && !this.snapshot.closed) {
       this.retry();
       await this.queue;
     }
     if (this.snapshot.conflict) return { error: savedByOthers };
+    if (this.snapshot.closed) return { error: this.snapshot.closed };
     if (this.unsaved) return { error: this.snapshot.error ?? saveFailed };
     return { version: this.version };
   };
@@ -197,13 +203,14 @@ export function useLibraryReview(importId: string, part: LibraryPart) {
   const stores = use(LibraryReviewStoresContext);
   if (!stores) throw new Error('useLibraryReview needs ImportReviewScope around it');
   const store = stores.storeFor(importId, part);
-  const { changes, conflict, error, pending } = useSyncExternalStore(
+  const { changes, conflict, closed, error, pending } = useSyncExternalStore(
     store.subscribe,
     store.getSnapshot
   );
   return {
     changes,
     conflict,
+    closed,
     error,
     saving: pending > 0,
     setInstruction: store.setInstruction,
