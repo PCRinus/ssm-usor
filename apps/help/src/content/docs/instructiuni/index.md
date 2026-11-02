@@ -62,9 +62,10 @@ Fiecare secțiune e un card. Sus e titlul ei, pe care îl schimbi direct, și c�
 
 - **Meniul secțiunii**, cele trei puncte de lângă titlu, mută secțiunea mai sus sau mai jos cu toate articolele ei, adaugă o secțiune dedesubt sau o șterge. Dacă ai șters o secțiune din greșeală, apeși **Anulează** în mesajul care apare.
 - **Meniul articolului**, cele trei puncte de lângă articol, îl mută mai sus sau mai jos, adaugă un articol dedesubt sau îl șterge. Cu **Începe o secțiune după acest articol**, articolele de sub el trec într-o secțiune nouă, căreia îi scrii titlul.
-- **Articol nou**, sub articolele unei secțiuni, adaugă unul la sfârșitul ei. **Adaugă o secțiune**, după ultima secțiune, adaugă una la sfârșitul instrucțiunii.
+- **Articol nou**, sub articolele unei secțiuni, adaugă unul la sfârșitul ei.
+- **Adaugă o secțiune**, după ultima secțiune, arată secțiunile din structura propusă care lipsesc din instrucțiune, fiecare cu ce scrii în ea. Una aleasă de acolo intră la locul ei din structură, nu la sfârșit, iar pagina te duce la ea. **Secțiune nouă**, din aceeași listă, adaugă o secțiune fără titlu la sfârșitul instrucțiunii. Pe telefon, lista se deschide de jos.
 
-O secțiune în care nu ai scris niciun articol are marginea punctată și eticheta **Goală: nu se tipărește**. Cardul ei arată ce să scrii acolo, cu butoanele **Scrie primul articol** și, unde avem un model, **Arată un exemplu**.
+O secțiune în care nu ai scris niciun articol are marginea punctată și eticheta **Goală: nu se tipărește**. Cardul ei arată ce să scrii acolo, cu butoanele **Scrie primul articol** și, unde avem un model, **Arată un exemplu**. La salvare, o secțiune din structura propusă rămasă goală nu se păstrează; o readuci oricând din **Adaugă o secțiune**.
 
 Cât timp instrucțiunea nu are niciun articol, deasupra secțiunilor apare „Ai deja textul într-un document?”, cu butonul **Lipește text**: textul se împarte în articole, pe secțiuni, ca la [Lipește text](#lipește-text).
 

@@ -247,6 +247,50 @@ export function addSection(
   return [...blocks.slice(0, end), heading, articleBlock(), ...blocks.slice(end)];
 }
 
+// A heading stands for a section of the guide when it came from it, even renamed, or when its
+// title reads as the section's.
+function guidePlace(heading: DraftHeading, guide: readonly GuidedSection[]) {
+  const title = foldText(heading.text);
+  return guide.findIndex(
+    (section) => section.key === heading.section?.key || foldText(section.heading) === title
+  );
+}
+
+export function missingSections(blocks: readonly DraftBlock[], category: InstructionCategory) {
+  const guide = guidedTemplates[category];
+  const present = new Set(
+    blocks.flatMap((block) => (block.kind === 'heading' ? [guidePlace(block, guide)] : []))
+  );
+  return guide.filter((_, index) => !present.has(index));
+}
+
+export function addGuidedSection(
+  blocks: readonly DraftBlock[],
+  category: InstructionCategory,
+  section: GuidedSection
+) {
+  const guide = guidedTemplates[category];
+  const place = guide.findIndex((each) => each.key === section.key);
+  const heading = headingBlock(section.heading, section);
+  let before: { id: string; place: number } | null = null;
+  let after: { id: string; place: number } | null = null;
+  for (const block of blocks) {
+    if (block.kind !== 'heading') continue;
+    const at = guidePlace(block, guide);
+    if (at < 0) continue;
+    if (at < place && (before === null || at >= before.place)) before = { id: block.id, place: at };
+    if (at > place && (after === null || at < after.place)) after = { id: block.id, place: at };
+  }
+  if (before || !after) {
+    return { blocks: addSection(blocks, before?.id ?? null, heading), headingId: heading.id };
+  }
+  const at = blocks.findIndex((block) => block.id === after.id);
+  return {
+    blocks: [...blocks.slice(0, at), heading, articleBlock(), ...blocks.slice(at)],
+    headingId: heading.id,
+  };
+}
+
 export function insertHeadingAfter(
   blocks: readonly DraftBlock[],
   articleId: string,

@@ -1,19 +1,45 @@
-import { type InstructionCategory, splitInstruction, type SplitResult } from '@ssm-usor/contracts';
+import {
+  type GuidedSection,
+  type InstructionCategory,
+  splitInstruction,
+  type SplitResult,
+} from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
+import {
+  Drawer,
+  DrawerBody,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from '@ssm-usor/ui/components/drawer';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
+import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { ArrowDown, ArrowUp, Heading, Lightbulb, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronDown,
+  Heading,
+  Lightbulb,
+  ListPlus,
+  MoreHorizontal,
+  Plus,
+  Trash2,
+  X,
+} from 'lucide-react';
 import {
   type ClipboardEvent,
   type ReactNode,
@@ -25,8 +51,10 @@ import {
 } from 'react';
 
 import { Notice } from '@/components/notice';
+import { scrollAndPoint } from '@/features/missing-data/focus';
 
 import {
+  addGuidedSection,
   addSection,
   articleBlock,
   articleNumbers,
@@ -41,6 +69,7 @@ import {
   insertAfter,
   insertHeadingAfter,
   isEmptyArticle,
+  missingSections,
   moveBlock,
   moveSection,
   printedIds,
@@ -151,6 +180,33 @@ function MenuItem({
   );
 }
 
+function SuggestionText({ title, hint }: { title: string; hint?: string }) {
+  return (
+    <span className="grid min-w-0 gap-0.5 text-left">
+      <span className="font-medium text-foreground">{title}</span>
+      {hint && <span className="text-[13px] leading-snug text-muted-foreground">{hint}</span>}
+    </span>
+  );
+}
+
+const suggestionsLabel = 'Din structura propusă';
+
+const addSectionClass =
+  'h-12 w-full border-dashed bg-transparent font-semibold shadow-none dark:bg-transparent';
+
+const addSectionLabel = (
+  <>
+    <Plus aria-hidden="true" />
+    Adaugă o secțiune
+    <ChevronDown aria-hidden="true" className="text-muted-foreground" />
+  </>
+);
+
+const pickerRowClass =
+  'flex min-h-14 w-full items-start gap-2.5 rounded-lg px-2.5 py-3 outline-none hover:bg-muted focus-visible:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50';
+
+const pickerIconClass = 'mt-0.5 size-4 shrink-0 text-muted-foreground';
+
 export function InstructionBlocks({
   blocks,
   category,
@@ -170,15 +226,43 @@ export function InstructionBlocks({
   // Headings whose sections show their boxes while still empty, once the member writes in them.
   const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set());
   const [focusTarget, setFocusTarget] = useState<{ id: string } | null>(null);
+  const [revealed, setRevealed] = useState<{ id: string } | null>(null);
+  const [picking, setPicking] = useState(false);
+  const phone = useIsMobile();
+  const suggested = missingSections(blocks, category);
 
   useEffect(() => {
     if (focusTarget) document.getElementById(fieldId(focusTarget.id))?.focus();
   }, [focusTarget]);
 
+  useEffect(() => {
+    if (!revealed) return;
+    const card = document.querySelector<HTMLElement>(`[data-heading-id="${revealed.id}"]`);
+    return card ? scrollAndPoint(card) : undefined;
+  }, [revealed]);
+
   const focusBlock = (id: string) => setFocusTarget({ id });
   // A menu keeps focus inside it until it has closed, then hands it back to its trigger.
   const focusAfterMenu = useRef<string | null>(null);
+  // A section of the guide added from the menu gets the focus on its first button, given only
+  // once the menu has closed and released it. The page then scrolls to the section itself.
+  const revealAfterMenu = useRef<string | null>(null);
+  function focusRevealed() {
+    const id = revealAfterMenu.current;
+    revealAfterMenu.current = null;
+    if (id === null) return false;
+    const button = document.querySelector<HTMLElement>(
+      `[data-heading-id="${id}"] [data-testid="instruction-section-write-first"]`
+    );
+    if (!button) return false;
+    button.focus({ preventScroll: true });
+    return true;
+  }
   function closeMenu(event: Event) {
+    if (focusRevealed()) {
+      event.preventDefault();
+      return;
+    }
     const id = focusAfterMenu.current;
     focusAfterMenu.current = null;
     if (id === null) return;
@@ -229,6 +313,13 @@ export function InstructionBlocks({
     const heading = headingBlock();
     onChange(addSection(blocks, headingId, heading));
     return heading.id;
+  }
+
+  function addSuggested(section: GuidedSection) {
+    const added = addGuidedSection(blocks, category, section);
+    revealAfterMenu.current = added.headingId;
+    onChange(added.blocks);
+    setRevealed({ id: added.headingId });
   }
 
   function sectionAfterArticle(articleId: string) {
@@ -429,6 +520,7 @@ export function InstructionBlocks({
           <section
             key={heading?.id ?? 'lead'}
             data-testid="instruction-section"
+            data-heading-id={heading?.id}
             data-empty={empty || undefined}
             aria-label={heading ? title || 'Secțiune fără titlu' : 'Articole fără secțiune'}
             className={cn(
@@ -576,15 +668,127 @@ export function InstructionBlocks({
           </section>
         );
       })}
-      <Button
-        variant="outline"
-        className="h-12 w-full border-dashed bg-transparent font-semibold shadow-none dark:bg-transparent"
-        data-testid="instruction-add-section"
-        onClick={() => focusBlock(newSectionAfter(null))}
-      >
-        <Plus aria-hidden="true" />
-        Adaugă o secțiune
-      </Button>
+      {suggested.length === 0 ? (
+        <Button
+          variant="outline"
+          className={addSectionClass}
+          data-testid="instruction-add-section"
+          onClick={() => focusBlock(newSectionAfter(null))}
+        >
+          <Plus aria-hidden="true" />
+          Adaugă o secțiune
+        </Button>
+      ) : phone ? (
+        <>
+          <Button
+            variant="outline"
+            className={addSectionClass}
+            data-testid="instruction-add-section"
+            aria-haspopup="dialog"
+            aria-expanded={picking}
+            onClick={() => setPicking(true)}
+          >
+            {addSectionLabel}
+          </Button>
+          <Drawer open={picking} onOpenChange={setPicking}>
+            <DrawerContent
+              data-testid="instruction-section-picker"
+              className="h-auto max-h-[85dvh] bg-card"
+              finalFocus={() => {
+                if (focusRevealed()) return false;
+                const id = focusAfterMenu.current;
+                focusAfterMenu.current = null;
+                return id === null || (document.getElementById(fieldId(id)) ?? true);
+              }}
+            >
+              <DrawerHeader className="justify-between pt-2 pr-2 pb-0">
+                <DrawerTitle className="text-[17px] font-semibold">Adaugă o secțiune</DrawerTitle>
+                <DrawerClose
+                  aria-label="Închide"
+                  className="grid size-11 place-items-center rounded-[10px] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                >
+                  <X aria-hidden="true" className="size-5" />
+                </DrawerClose>
+              </DrawerHeader>
+              <DrawerBody className="px-2 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
+                <p className="px-2.5 pt-2 pb-1 text-xs text-muted-foreground">{suggestionsLabel}</p>
+                {suggested.map((section) => (
+                  <button
+                    key={section.key}
+                    type="button"
+                    data-testid="instruction-suggested-section"
+                    className={pickerRowClass}
+                    onClick={() => {
+                      addSuggested(section);
+                      setPicking(false);
+                    }}
+                  >
+                    <ListPlus aria-hidden="true" className={pickerIconClass} />
+                    <SuggestionText title={section.heading} hint={section.hint} />
+                  </button>
+                ))}
+                <div className="my-1 h-px bg-border" />
+                <button
+                  type="button"
+                  data-testid="instruction-add-blank-section"
+                  className={pickerRowClass}
+                  onClick={() => {
+                    focusAfterMenu.current = newSectionAfter(null);
+                    setPicking(false);
+                  }}
+                >
+                  <Plus aria-hidden="true" className={pickerIconClass} />
+                  <SuggestionText title="Secțiune nouă" hint="Îi scrii tu titlul." />
+                </button>
+              </DrawerBody>
+            </DrawerContent>
+          </Drawer>
+        </>
+      ) : (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(addSectionClass, 'data-[state=open]:border-solid')}
+              data-testid="instruction-add-section"
+            >
+              {addSectionLabel}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            data-testid="instruction-section-picker"
+            align="center"
+            className="w-[min(28rem,calc(100vw-2rem))]"
+            onCloseAutoFocus={closeMenu}
+          >
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+              {suggestionsLabel}
+            </DropdownMenuLabel>
+            {suggested.map((section) => (
+              <DropdownMenuItem
+                key={section.key}
+                data-testid="instruction-suggested-section"
+                className="items-start gap-2.5 py-2"
+                onSelect={() => addSuggested(section)}
+              >
+                <ListPlus aria-hidden="true" className="mt-0.5" />
+                <SuggestionText title={section.heading} hint={section.hint} />
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              data-testid="instruction-add-blank-section"
+              className="items-start gap-2.5 py-2"
+              onSelect={() => {
+                focusAfterMenu.current = newSectionAfter(null);
+              }}
+            >
+              <Plus aria-hidden="true" className="mt-0.5" />
+              <SuggestionText title="Secțiune nouă" hint="Îi scrii tu titlul." />
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </div>
   );
 }
