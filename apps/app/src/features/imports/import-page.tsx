@@ -7,13 +7,14 @@ import type { ImportDetail } from '@/api/generated/api';
 
 import { ImportLoader, ProcessingView } from './import-processing-page';
 import { ConfirmedImportHub } from './library/confirmed-hub';
+import { hasInstructionsParts } from './library/library-model';
 import { LibraryTaskPage } from './library/library-task-page';
 import { ReviewHub } from './review-hub';
 import type { SectionId } from './review-model';
 import { ReviewSectionPage } from './review-section-page';
 
 const hasLibraryTasks = (detail: ImportDetail) =>
-  detail.status === 'confirmed' && detail.libraryParts.length > 0;
+  detail.status === 'confirmed' && hasInstructionsParts(detail.libraryParts);
 
 export function ImportPage({ importId }: { importId: string }) {
   return (

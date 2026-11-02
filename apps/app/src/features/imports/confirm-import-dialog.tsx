@@ -40,6 +40,7 @@ import { Notice } from '@/components/notice';
 import { CreditsUsedLine } from './credits-notices';
 import { importErrorMessage } from './import-format';
 import { leaveImportNotice } from './import-notice';
+import { hasInstructionsParts } from './library/library-model';
 import {
   type FieldState,
   formatFieldValue,
@@ -158,7 +159,7 @@ export function ConfirmImportDialog({
             String(queryKey[0]).startsWith(`/clients/${result.clientId}`),
         }),
       ]);
-      if (detail.libraryParts.length > 0) {
+      if (hasInstructionsParts(detail.libraryParts)) {
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: getGetImportQueryKey(detail.id) }),
           queryClient.invalidateQueries({
@@ -264,7 +265,7 @@ export function ConfirmImportDialog({
                 <span>{folderSentence(detail)}</span>
               </p>
             )}
-            {detail.libraryParts.length > 0 && (
+            {hasInstructionsParts(detail.libraryParts) && (
               <p className="flex items-start gap-2" data-testid="import-confirm-library">
                 <BookOpenCheck className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                 <span>

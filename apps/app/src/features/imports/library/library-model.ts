@@ -51,6 +51,9 @@ export type LibraryChanges = { instructions: Record<string, InstructionChange> }
 export const isInstructionsLibraryPart = (part: ImportLibraryPart): part is LibraryPart =>
   isInstructionsPart(part.part);
 
+export const hasInstructionsParts = (parts: readonly { part: ImportLibraryPart['part'] }[]) =>
+  parts.some((part) => isInstructionsPart(part.part));
+
 export const partOfDomain: Record<InstructionDomain, PartName> = {
   ssm: 'instructions_ssm',
   su: 'instructions_su',

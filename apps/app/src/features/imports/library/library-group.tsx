@@ -7,6 +7,7 @@ import { Notice } from '@/components/notice';
 
 import { Tag } from '../review-parts';
 import {
+  hasInstructionsParts,
   isExpired,
   isInstructionsLibraryPart,
   type LibraryPart,
@@ -68,7 +69,7 @@ export function PartStatusTag({ part }: { part: LibraryPart }) {
 }
 
 export function LibraryGroup({ detail }: { detail: ImportDetail }) {
-  const known = detail.libraryParts.length > 0;
+  const known = hasInstructionsParts(detail.libraryParts);
   const query = useLibraryParts(detail.id, known);
   if (!known) return null;
   const clientConfirmed = detail.status === 'confirmed';
