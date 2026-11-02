@@ -106,7 +106,7 @@ each. All four are the secret key's alone.
 (`import_start`, an import's known part; `import_pages`, an employee import's pages settled on
 the extractor's count; `scanned_page`; `refund`; `grant`; `gift`; and, since
 `20261102130100_import_library_parts`, `library_part`, one reading of an import's own
-instructions, and `library_part_refund`, its credits given back), `credits` (negative for what
+instructions or risk evaluations, and `library_part_refund`, its credits given back), `credits` (negative for what
 an import used, positive for what is given back or added), `gift_credits`, the part of it taken
 from or added to the welcome gift, the `import_id`, `import_file_id` and `page` it concerns (set
 null when the import is deleted: the credits stay used), a unique `key` per import step,
@@ -1620,16 +1620,20 @@ The change functions take only ids the list would still give, and return those t
 [ADR 034](architecture/adr-034-own-instructions-as-app-text.md), "Where it sits in the import")
 holds what a client import proposes for the organization's own libraries, one row per
 `(import_id, part)`, deleted with the import. `part` is `import_library_part`:
-`instructions_ssm` or `instructions_su`, an enum open to other libraries.
+`instructions_ssm` or `instructions_su`, or, since `20261102180000_risk_evaluations_library_part`,
+`risk_evaluations` ([ADR 036](architecture/adr-036-risk-library-and-import.md)), the pack's risk
+assessment and prevention plan read for the risk library and the client's evaluation sheets.
+`import_library_part_domain(part)` answers the instruction domain an instructions part reads, and
+null for `risk_evaluations`, which has none.
 
-| Column                                                             | Notes                                                                                                                                                                                                   |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `status`                                                           | `import_library_part_status`: `reading` (_se citește_), `to_review` (_de verificat_), `nothing_new` (_nimic nou_), `failed` (_nu s-a putut citi_), `confirmed` (_confirmat_), which is final (`ILP07`). |
-| `attempt`                                                          | 1, then one more for each "Citește din nou"; the credits' key and the queue message name it.                                                                                                            |
-| `failure_reason`, `failed_at`                                      | In Romanian, for members; together with `failed`.                                                                                                                                                       |
-| `proposal`, `changes`, `version`                                   | What the reading proposed (`InstructionsProposal` of `packages/import`), the member's changes, and the count of their saves. Dropped with the import's proposal.                                        |
-| `input_tokens`, `cached_input_tokens`, `output_tokens`, `cost_usd` | The part's model requests; the import's totals include them, under the step `instructions` of `usage_by_step`.                                                                                          |
-| `read_at`, `confirmed_at`, `confirmed_by`, `proposal_dropped_at`   | When it was read and confirmed, and by whom; when its proposal was dropped.                                                                                                                             |
+| Column                                                             | Notes                                                                                                                                                                                                        |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `status`                                                           | `import_library_part_status`: `reading` (_se citește_), `to_review` (_de verificat_), `nothing_new` (_nimic nou_), `failed` (_nu s-a putut citi_), `confirmed` (_confirmat_), which is final (`ILP07`).      |
+| `attempt`                                                          | 1, then one more for each "Citește din nou"; the credits' key and the queue message name it.                                                                                                                 |
+| `failure_reason`, `failed_at`                                      | In Romanian, for members; together with `failed`.                                                                                                                                                            |
+| `proposal`, `changes`, `version`                                   | What the reading proposed (`InstructionsProposal`, or `RisksProposal` for `risk_evaluations`, of `packages/import`), the member's changes, and the count of their saves. Dropped with the import's proposal. |
+| `input_tokens`, `cached_input_tokens`, `output_tokens`, `cost_usd` | The part's model requests; the import's totals include them, under the step `instructions` of `usage_by_step`, or `risks` for `risk_evaluations`.                                                            |
+| `read_at`, `confirmed_at`, `confirmed_by`, `proposal_dropped_at`   | When it was read and confirmed, and by whom; when its proposal was dropped.                                                                                                                                  |
 
 A part is not confirmed after 14 days from its client's confirmation: it has expired. Members read
 the parts of the imports they read; only the secret key writes them, the usage through
@@ -1641,8 +1645,8 @@ which find the import as `lock_visible_import` does (`P0002`):
   version; `ILP01` for a part not ready, `ILP02` for a stale version.
 - `retry_import_library_part(import, part)` sends a failed part of a ready or confirmed import
   back to `reading` under its next attempt, which it returns (`ILP06` otherwise).
-- `apply_instruction_import(import, part, expected version, payload)` confirms a part in one
-  transaction. It refuses a part before its client is confirmed (`ILP03`), past its 14 days
+- `apply_instruction_import(import, part, expected version, payload)` confirms an instructions
+  part in one transaction (`22023` for `risk_evaluations`). It refuses a part before its client is confirmed (`ILP03`), past its 14 days
   (`ILP04`), not ready (`ILP01`) or stale (`ILP02`). The payload, built by the API from the
   proposal and the changes, each object refusing a field it does not name (`22023`):
 
@@ -1660,8 +1664,42 @@ client's active posts it names (`22023` for another), skipping a post that appli
 so the posts' decisions follow their links as usual. Everything carries the member as
 `created_by`, and the function returns `{"created": [ids], "used": [ids], "links": n}`.
 
+`apply_risk_import(import, part, expected version, payload)` (`20261102180100_apply_risk_import`)
+confirms the `risk_evaluations` part the same way, with the same checks and codes (`22023` for
+another part), as its owner and within the import's organization. The payload, built by
+`riskImportPayload` of `packages/import`:
+
+```text
+{
+  "entries": [{ "key", "name", "means_of_production", "work_environment", "exposure",
+                "factors": [factor] }],
+  "evaluations": [{ "sheet", "kind", "job_position_id", "name", "mode",
+                    "means_of_production", "work_environment", "exposure",
+                    "factors": [factor + "source"] }]
+}
+factor: { "key", "component", "group", "description", "gravity_class", "probability_class",
+          "measures": [{ "kind", "description" }], "actions", "deadline",
+          "responsible_person", "observations" }
+source: null | { "entry", "factor" } | { "profile_factor_id" }
+```
+
+Each of `entries` becomes a library entry with its texts and factors, their measures and plan
+fields as defaults; a name any entry has, archived ones included, is refused with `ILP05`, naming
+it. Each of `evaluations` is written to the client's evaluation of its active post
+(`job_position_id`), its sensitive groups, or the `other` one of its `name`, ignoring case,
+created when missing, which moves the client's sensitive groups state to evaluated as usual. Only
+the evaluation's empty texts are filled, the exposure while it is still "8 h / schimb". `mode`
+`append` adds the factors after its own, `replace` deletes its own first; a post left as it is
+is not in the payload (`22023` for any other mode). Each factor points, by
+`source_profile_factor_id`, at the factor of an entry the payload creates, named by their keys,
+or at a factor of an active entry (`22023` for an archived one or another organization's). The
+classes and lengths are the tables' checks (`23514`), and an archived client is refused by its
+trigger. Everything carries the member as `created_by`, and the function returns
+`{"created": [entry ids], "evaluations": [evaluation ids], "factors": n}`.
+
 **A part's credits.** The API charges a part's reading when it sends the request,
-`charge_credits` with `library_part`, 25 credits for SSM and 10 for PSI, the key
+`charge_credits` with `library_part`, 25 credits for SSM, 10 for SU and 15 for the risk
+evaluations, the key
 `library_part_charge_key(import, part, attempt)`, and never refuses it. When a part goes from
 `reading` to `failed`, the trigger `import_library_parts_refund_credits` gives back that
 attempt's charge (`refund_library_part_credits`): a part fails before its request is sent or on
