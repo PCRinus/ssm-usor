@@ -33,17 +33,22 @@ import type {
   listEvaluationProfilesRoute,
   removeEvaluationProfileFactorRoute,
   removeEvaluationProfileRoute,
-  renameEvaluationProfileRoute,
   saveRiskEvaluationAsProfileRoute,
   updateEvaluationProfileFactorRoute,
+  updateEvaluationProfileRoute,
 } from './routes';
 
 type Tables = Database['public']['Tables'];
 
-type ProfileRow = Pick<
-  Tables['evaluation_profiles']['Row'],
-  'id' | 'name' | 'created_at' | 'updated_at'
->;
+// Read through the list view, whose columns the generated types make all nullable.
+type ProfileRow = {
+  id: string;
+  name: string;
+  archived_at: string | null;
+  in_use: boolean;
+  created_at: string;
+  updated_at: string;
+};
 
 type FullProfileRow = ProfileRow & {
   evaluation_profile_factors: (RiskFactorFields & {
@@ -52,6 +57,7 @@ type FullProfileRow = ProfileRow & {
 };
 
 type SummaryRow = ProfileRow & {
+  client_count: number;
   evaluation_profile_factors: Pick<RiskFactorFields, 'gravity_class' | 'probability_class'>[];
 };
 
@@ -68,10 +74,11 @@ type LinkedFactorRow = {
 const linkedFactorColumns =
   'evaluation_profile_factors!inner(profile_id), risk_evaluations!inner(id, client_id, kind, name, job_positions(id, name, archived_at), clients!risk_evaluations_client_id_fkey(legal_name, archived_at))';
 
-const profileColumns = `id, name, created_at, updated_at, evaluation_profile_factors(${riskFactorFieldColumns}, evaluation_profile_measures(${preventionMeasureFieldColumns}))`;
+const profileFieldColumns = 'id, name, archived_at, in_use, created_at, updated_at';
 
-const summaryColumns =
-  'id, name, created_at, updated_at, evaluation_profile_factors(gravity_class, probability_class)';
+const profileColumns = `${profileFieldColumns}, evaluation_profile_factors(${riskFactorFieldColumns}, evaluation_profile_measures(${preventionMeasureFieldColumns}))`;
+
+const summaryColumns = `${profileFieldColumns}, client_count, evaluation_profile_factors(gravity_class, probability_class)`;
 
 const collator = new Intl.Collator('ro');
 
@@ -84,6 +91,8 @@ function toProfile(row: FullProfileRow): EvaluationProfile {
     name: row.name,
     factors,
     globalRiskLevel: evaluationGlobalRiskLevel(factors),
+    archivedAt: row.archived_at,
+    inUse: row.in_use,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -94,6 +103,9 @@ function toSummary(row: SummaryRow): EvaluationProfileSummary {
     id: row.id,
     name: row.name,
     ...factorTotals(row.evaluation_profile_factors),
+    archivedAt: row.archived_at,
+    inUse: row.in_use,
+    clientCount: row.client_count,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -113,9 +125,25 @@ const nameTaken = () =>
     'evaluation_profile_name_taken'
   );
 
+const inUse = () =>
+  new ApiError(
+    'conflict',
+    'Evaluarea este folosită la clienți, așa că nu se poate șterge. O poți arhiva.',
+    undefined,
+    'evaluation_profile_in_use'
+  );
+
+const profileArchived = () =>
+  new ApiError(
+    'conflict',
+    'Evaluarea este arhivată. Reactiveaz-o ca să o aplici.',
+    undefined,
+    'evaluation_profile_archived'
+  );
+
 async function loadProfile(db: DataClient, profileId: string) {
   const { data, error } = await db
-    .from('evaluation_profiles')
+    .from('evaluation_profile_list')
     .select(profileColumns)
     .eq('id', profileId)
     .returns<FullProfileRow[]>()
@@ -139,10 +167,11 @@ export const listEvaluationProfiles: RouteHandler<
   typeof listEvaluationProfilesRoute,
   ApiEnv
 > = async (c) => {
-  const { data, error } = await createDataClient(c)
-    .from('evaluation_profiles')
-    .select(summaryColumns)
-    .returns<SummaryRow[]>();
+  const { archived } = c.req.valid('query');
+  const query = createDataClient(c).from('evaluation_profile_list').select(summaryColumns);
+  const { data, error } = await (
+    archived === 'true' ? query.not('archived_at', 'is', null) : query.is('archived_at', null)
+  ).returns<SummaryRow[]>();
   if (error) throw fromDatabaseError(error, 'list evaluation profiles');
   const items = data
     .map(toSummary)
@@ -177,21 +206,30 @@ export const getEvaluationProfile: RouteHandler<typeof getEvaluationProfileRoute
   return c.json({ profile: await loadProfile(createDataClient(c), profileId) }, 200);
 };
 
-export const renameEvaluationProfile: RouteHandler<
-  typeof renameEvaluationProfileRoute,
+export const updateEvaluationProfile: RouteHandler<
+  typeof updateEvaluationProfileRoute,
   ApiEnv
 > = async (c) => {
   const { profileId } = c.req.valid('param');
-  const { name } = c.req.valid('json');
+  const body = c.req.valid('json');
   const db = createDataClient(c);
-  const { data, error } = await db
-    .from('evaluation_profiles')
-    .update({ name })
-    .eq('id', profileId)
-    .select('id');
-  if (error?.code === '23505') throw nameTaken();
-  if (error) throw fromDatabaseError(error, 'rename evaluation profile');
-  if (data.length === 0) throw noSuchProfile();
+  const changes: Tables['evaluation_profiles']['Update'] = {};
+  if (body.name !== undefined) changes.name = body.name;
+  if (body.archived !== undefined) {
+    changes.archived_at = body.archived ? new Date().toISOString() : null;
+  }
+  if (Object.keys(changes).length === 0) {
+    await findProfile(db, profileId);
+  } else {
+    const { data, error } = await db
+      .from('evaluation_profiles')
+      .update(changes)
+      .eq('id', profileId)
+      .select('id');
+    if (error?.code === '23505') throw nameTaken();
+    if (error) throw fromDatabaseError(error, 'update evaluation profile');
+    if (data.length === 0) throw noSuchProfile();
+  }
   return c.json({ profile: await loadProfile(db, profileId) }, 200);
 };
 
@@ -205,6 +243,7 @@ export const removeEvaluationProfile: RouteHandler<
     .delete()
     .eq('id', profileId)
     .select('id');
+  if (error?.code === 'RSK04') throw inUse();
   if (error) throw fromDatabaseError(error, 'delete evaluation profile');
   if (data.length === 0) throw noSuchProfile();
   return c.body(null, 204);
@@ -342,6 +381,7 @@ export const applyEvaluationProfile: RouteHandler<
     p_evaluation_id: evaluationId,
     p_profile_id: profileId,
   });
+  if (error?.code === 'RSK03') throw profileArchived();
   if (error?.code === 'RSK02') {
     throw new ApiError('validation_error', 'Apply a profile of your library.', [
       { path: 'profileId', message: 'Choose a profile of your library.' },

@@ -87,6 +87,8 @@ const rhythm = {
 const officeProfile = {
   id: profileId,
   name: 'Lucrător de birou',
+  archived_at: null,
+  in_use: true,
   created_at: stamp,
   updated_at: stamp,
   evaluation_profile_factors: [electrocution, rhythm],
@@ -122,6 +124,7 @@ const fetchMock = vi.fn<typeof fetch>();
 
 function mockUpstream(
   handlers: {
+    list?: Handler;
     profiles?: Handler;
     factors?: Handler;
     evaluations?: Handler;
@@ -142,6 +145,9 @@ function mockUpstream(
       }
       if (url.pathname.endsWith('/apply_evaluation_profile')) return Response.json(2);
     }
+    if (url.pathname === '/rest/v1/evaluation_profile_list' && isGet(init)) {
+      return handlers.list?.(init, url) ?? Response.json([officeProfile]);
+    }
     if (url.pathname === '/rest/v1/evaluation_profiles') {
       const custom = handlers.profiles?.(init, url);
       if (custom) return custom;
@@ -150,7 +156,6 @@ function mockUpstream(
         return Response.json([{ id: profileId }]);
       }
       if (url.searchParams.get('select') === 'id') return Response.json([{ id: profileId }]);
-      return Response.json([officeProfile]);
     }
     if (url.pathname === '/rest/v1/evaluation_profile_factors') {
       const custom = handlers.factors?.(init, url);
@@ -223,30 +228,32 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('GET /evaluation-profiles', () => {
-  it('lists the library by name, with counts and global levels', async () => {
+  const summary = (
+    id: string,
+    name: string,
+    fields: { clientCount: number; inUse: boolean; archivedAt?: string },
+    factors: { gravity_class: number; probability_class: number }[]
+  ) => ({
+    id,
+    name,
+    archived_at: fields.archivedAt ?? null,
+    in_use: fields.inUse,
+    client_count: fields.clientCount,
+    created_at: stamp,
+    updated_at: stamp,
+    evaluation_profile_factors: factors,
+  });
+
+  it('lists the active library by name, with counts, global levels and usage', async () => {
     mockUpstream({
-      profiles: (init) =>
-        isGet(init)
-          ? Response.json([
-              {
-                id: otherProfileId,
-                name: 'Șofer',
-                created_at: stamp,
-                updated_at: stamp,
-                evaluation_profile_factors: [],
-              },
-              {
-                id: profileId,
-                name: 'Lucrător de birou',
-                created_at: stamp,
-                updated_at: stamp,
-                evaluation_profile_factors: [
-                  { gravity_class: 5, probability_class: 2 },
-                  { gravity_class: 2, probability_class: 4 },
-                ],
-              },
-            ])
-          : undefined,
+      list: () =>
+        Response.json([
+          summary(otherProfileId, 'Șofer', { clientCount: 0, inUse: true }, []),
+          summary(profileId, 'Lucrător de birou', { clientCount: 3, inUse: true }, [
+            { gravity_class: 5, probability_class: 2 },
+            { gravity_class: 2, probability_class: 4 },
+          ]),
+        ]),
     });
     const response = await request('/evaluation-profiles');
     expect(response.status).toBe(200);
@@ -257,11 +264,38 @@ describe('GET /evaluation-profiles', () => {
         item.factorCount,
         item.unacceptableFactorCount,
         item.globalRiskLevel,
+        item.clientCount,
+        item.inUse,
+        item.archivedAt,
       ])
     ).toEqual([
-      ['Lucrător de birou', 2, 1, 3.33],
-      ['Șofer', 0, 0, null],
+      ['Lucrător de birou', 2, 1, 3.33, 3, true, null],
+      ['Șofer', 0, 0, null, 0, true, null],
     ]);
+    const [read] = calls('evaluation_profile_list', 'GET');
+    const params = new URL(String(read![0])).searchParams;
+    expect(params.get('archived_at')).toBe('is.null');
+    expect(calls('risk_factors', 'GET')).toHaveLength(0);
+  });
+
+  it('lists only the archived entries when asked for the archive', async () => {
+    mockUpstream({
+      list: () =>
+        Response.json([
+          summary(
+            profileId,
+            'Lucrător de birou',
+            { clientCount: 0, inUse: false, archivedAt: stamp },
+            []
+          ),
+        ]),
+    });
+    const response = await request('/evaluation-profiles?archived=true');
+    expect(response.status).toBe(200);
+    const { items } = evaluationProfileListResponseSchema.parse(await response.json());
+    expect(items.map((item) => item.archivedAt)).toEqual([stamp]);
+    const [read] = calls('evaluation_profile_list', 'GET');
+    expect(new URL(String(read![0])).searchParams.get('archived_at')).toBe('not.is.null');
   });
 });
 
@@ -312,10 +346,11 @@ describe('GET /evaluation-profiles/{profileId}', () => {
     ]);
     expect(profile.globalRiskLevel).toBe(3.33);
     expect(profile.factors.map((factor) => factor.sourceProfile)).toEqual([null, null]);
+    expect(profile).toMatchObject({ archivedAt: null, inUse: true });
   });
 
   it('answers 404 for a profile outside the organization', async () => {
-    mockUpstream({ profiles: () => Response.json([]) });
+    mockUpstream({ list: () => Response.json([]) });
     expect((await request(profilePath)).status).toBe(404);
   });
 });
@@ -420,6 +455,16 @@ describe('PATCH /evaluation-profiles/{profileId}', () => {
     });
     expect((await request(profilePath, 'PATCH', { name: 'Birou' })).status).toBe(404);
   });
+
+  it('archives a profile clients use, and restores it', async () => {
+    mockUpstream();
+    expect((await request(profilePath, 'PATCH', { archived: true })).status).toBe(200);
+    const archived = sent('evaluation_profiles', 'PATCH') as { archived_at: string };
+    expect(Object.keys(archived)).toEqual(['archived_at']);
+    expect(Number.isNaN(Date.parse(archived.archived_at))).toBe(false);
+    expect((await request(profilePath, 'PATCH', { archived: false })).status).toBe(200);
+    expect(sent('evaluation_profiles', 'PATCH', 1)).toEqual({ archived_at: null });
+  });
 });
 
 describe('DELETE /evaluation-profiles/{profileId}', () => {
@@ -434,6 +479,23 @@ describe('DELETE /evaluation-profiles/{profileId}', () => {
       profiles: (init) => (init?.method === 'DELETE' ? Response.json([]) : undefined),
     });
     expect((await request(profilePath, 'DELETE')).status).toBe(404);
+  });
+
+  it('answers 409 with the reason for a profile clients use', async () => {
+    mockUpstream({
+      profiles: (init) =>
+        init?.method === 'DELETE'
+          ? Response.json(
+              { code: 'RSK04', message: 'The evaluation profile is in use by clients.' },
+              { status: 400 }
+            )
+          : undefined,
+    });
+    const response = await request(profilePath, 'DELETE');
+    expect(response.status).toBe(409);
+    const body = apiErrorResponseSchema.parse(await response.json());
+    expect(body.reason).toBe('evaluation_profile_in_use');
+    expect(body.message).toContain('O poți arhiva');
   });
 });
 
@@ -572,5 +634,19 @@ describe('POST …/risk-evaluations/{evaluationId}/factors/apply-profile', () =>
     });
     expect(response.status).toBe(409);
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
+  });
+
+  it('answers 409 for an archived profile', async () => {
+    mockUpstream({
+      rpc: () =>
+        Response.json({ code: 'RSK03', message: 'The profile is archived.' }, { status: 400 }),
+    });
+    const response = await request(`${evaluationPath}/factors/apply-profile`, 'POST', {
+      profileId,
+    });
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
+      'evaluation_profile_archived'
+    );
   });
 });

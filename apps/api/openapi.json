@@ -6570,6 +6570,14 @@
                   "minimum": 1,
                   "maximum": 7
                 },
+                "archivedAt": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date-time"
+                },
+                "inUse": {
+                  "type": "boolean"
+                },
                 "createdAt": {
                   "type": "string",
                   "format": "date-time"
@@ -6585,16 +6593,23 @@
                 "unacceptableFactorCount": {
                   "type": "integer",
                   "minimum": 0
+                },
+                "clientCount": {
+                  "type": "integer",
+                  "minimum": 0
                 }
               },
               "required": [
                 "id",
                 "name",
                 "globalRiskLevel",
+                "archivedAt",
+                "inUse",
                 "createdAt",
                 "updatedAt",
                 "factorCount",
-                "unacceptableFactorCount"
+                "unacceptableFactorCount",
+                "clientCount"
               ]
             }
           }
@@ -6619,6 +6634,14 @@
                 "nullable": true,
                 "minimum": 1,
                 "maximum": 7
+              },
+              "archivedAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "inUse": {
+                "type": "boolean"
               },
               "createdAt": {
                 "type": "string",
@@ -6741,7 +6764,16 @@
                 }
               }
             },
-            "required": ["id", "name", "globalRiskLevel", "createdAt", "updatedAt", "factors"]
+            "required": [
+              "id",
+              "name",
+              "globalRiskLevel",
+              "archivedAt",
+              "inUse",
+              "createdAt",
+              "updatedAt",
+              "factors"
+            ]
           }
         },
         "required": ["profile"]
@@ -6822,6 +6854,19 @@
           }
         },
         "required": ["items"]
+      },
+      "UpdateEvaluationProfileRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "archived": {
+            "type": "boolean"
+          }
+        }
       },
       "ApplyEvaluationProfileResponse": {
         "type": "object",
@@ -32612,10 +32657,22 @@
       "get": {
         "operationId": "listEvaluationProfiles",
         "summary": "List the organization's evaluation profiles",
-        "description": "The risk library (ADR 015) by name, each profile without its factors but with `factorCount`, `unacceptableFactorCount` and `globalRiskLevel`.",
+        "description": "The risk library (ADR 015) by name, each profile without its factors but with `factorCount`, `unacceptableFactorCount`, `globalRiskLevel`, `clientCount` (the clients its usage lists) and `inUse` (ADR 036). Archived profiles are left out unless `archived=true`, which lists only them.",
         "security": [
           {
             "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["true", "false"],
+              "default": "false"
+            },
+            "required": false,
+            "name": "archived",
+            "in": "query"
           }
         ],
         "responses": {
@@ -32625,6 +32682,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/EvaluationProfileListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -32859,8 +32926,9 @@
         }
       },
       "patch": {
-        "operationId": "renameEvaluationProfile",
-        "summary": "Rename an evaluation profile",
+        "operationId": "updateEvaluationProfile",
+        "summary": "Rename, archive or restore an evaluation profile",
+        "description": "An archived profile keeps its page, its factors and its usage, and is refused by `applyEvaluationProfile` until restored. Archiving is allowed while clients use the profile, since they hold copies (ADR 036). Names stay unique across active and archived profiles.",
         "security": [
           {
             "bearerAuth": []
@@ -32882,7 +32950,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EvaluationProfileNameRequest"
+                "$ref": "#/components/schemas/UpdateEvaluationProfileRequest"
               }
             }
           }
@@ -32972,8 +33040,8 @@
       },
       "delete": {
         "operationId": "removeEvaluationProfile",
-        "summary": "Delete an evaluation profile with its factors",
-        "description": "The factors it gave evaluations stay in them, as the client’s; their `sourceProfile` becomes null.",
+        "summary": "Delete an evaluation profile no client uses",
+        "description": "Refused while any client’s factor, archived posts’ and clients’ included, points at one of its factors (reason `evaluation_profile_in_use`): such a profile is archived instead (ADR 036).",
         "security": [
           {
             "bearerAuth": []
@@ -33026,6 +33094,16 @@
           },
           "404": {
             "description": "The profile does not exist in this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Clients use the profile (reason `evaluation_profile_in_use`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -33373,7 +33451,7 @@
       "delete": {
         "operationId": "removeEvaluationProfileFactor",
         "summary": "Remove a profile's risk factor",
-        "description": "Answers with the whole profile.",
+        "description": "Allowed while clients use the profile: their copies of the factor stay and their `sourceProfile` becomes null. Answers with the whole profile.",
         "security": [
           {
             "bearerAuth": []
@@ -33689,7 +33767,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`)",
+            "description": "The client is archived (reason `client_archived`), or the profile is (reason `evaluation_profile_archived`)",
             "content": {
               "application/json": {
                 "schema": {

@@ -2,11 +2,13 @@ import { createRoute, z } from '@hono/zod-openapi';
 import {
   applyEvaluationProfileRequestSchema,
   applyEvaluationProfileResponseSchema,
+  evaluationProfileListQuerySchema,
   evaluationProfileListResponseSchema,
   evaluationProfileNameRequestSchema,
   evaluationProfileResponseSchema,
   evaluationProfileUsageResponseSchema,
   riskFactorRequestSchema,
+  updateEvaluationProfileRequestSchema,
 } from '@ssm-usor/contracts';
 
 import { requireAuth } from '../../lib/auth';
@@ -55,9 +57,10 @@ export const listEvaluationProfilesRoute = createRoute({
   operationId: 'listEvaluationProfiles',
   summary: "List the organization's evaluation profiles",
   description:
-    'The risk library (ADR 015) by name, each profile without its factors but with `factorCount`, `unacceptableFactorCount` and `globalRiskLevel`.',
+    'The risk library (ADR 015) by name, each profile without its factors but with `factorCount`, `unacceptableFactorCount`, `globalRiskLevel`, `clientCount` (the clients its usage lists) and `inUse` (ADR 036). Archived profiles are left out unless `archived=true`, which lists only them.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
+  request: { query: evaluationProfileListQuerySchema },
   responses: {
     200: {
       description: 'The profiles',
@@ -69,6 +72,7 @@ export const listEvaluationProfilesRoute = createRoute({
         },
       },
     },
+    400: { description: 'Invalid query', content: errorContent },
     ...membershipErrors,
   },
 });
@@ -109,14 +113,28 @@ export const getEvaluationProfileRoute = createRoute({
   },
 });
 
-export const renameEvaluationProfileRoute = createRoute({
+export const updateEvaluationProfileRoute = createRoute({
   method: 'patch',
   path: '/evaluation-profiles/{profileId}',
-  operationId: 'renameEvaluationProfile',
-  summary: 'Rename an evaluation profile',
+  operationId: 'updateEvaluationProfile',
+  summary: 'Rename, archive or restore an evaluation profile',
+  description:
+    'An archived profile keeps its page, its factors and its usage, and is refused by `applyEvaluationProfile` until restored. Archiving is allowed while clients use the profile, since they hold copies (ADR 036). Names stay unique across active and archived profiles.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
-  request: { params: profileParams, body: nameBody },
+  request: {
+    params: profileParams,
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: updateEvaluationProfileRequestSchema.meta({
+            id: 'UpdateEvaluationProfileRequest',
+          }),
+        },
+      },
+    },
+  },
   responses: {
     200: { description: 'The profile after the change', content: profileContent },
     400: { description: 'Invalid path or body', content: errorContent },
@@ -130,9 +148,9 @@ export const removeEvaluationProfileRoute = createRoute({
   method: 'delete',
   path: '/evaluation-profiles/{profileId}',
   operationId: 'removeEvaluationProfile',
-  summary: 'Delete an evaluation profile with its factors',
+  summary: 'Delete an evaluation profile no client uses',
   description:
-    'The factors it gave evaluations stay in them, as the client’s; their `sourceProfile` becomes null.',
+    'Refused while any client’s factor, archived posts’ and clients’ included, points at one of its factors (reason `evaluation_profile_in_use`): such a profile is archived instead (ADR 036).',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: profileParams },
@@ -140,6 +158,10 @@ export const removeEvaluationProfileRoute = createRoute({
     204: { description: 'Deleted' },
     400: { description: 'Invalid path', content: errorContent },
     404: noSuchProfile,
+    409: {
+      description: 'Clients use the profile (reason `evaluation_profile_in_use`)',
+      content: errorContent,
+    },
     ...membershipErrors,
   },
 });
@@ -212,7 +234,8 @@ export const removeEvaluationProfileFactorRoute = createRoute({
   path: '/evaluation-profiles/{profileId}/factors/{factorId}',
   operationId: 'removeEvaluationProfileFactor',
   summary: "Remove a profile's risk factor",
-  description: 'Answers with the whole profile.',
+  description:
+    'Allowed while clients use the profile: their copies of the factor stay and their `sourceProfile` becomes null. Answers with the whole profile.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: factorParams },
@@ -288,7 +311,8 @@ export const applyEvaluationProfileRoute = createRoute({
       content: errorContent,
     },
     409: {
-      description: 'The client is archived (reason `client_archived`)',
+      description:
+        'The client is archived (reason `client_archived`), or the profile is (reason `evaluation_profile_archived`)',
       content: errorContent,
     },
     ...membershipErrors,
