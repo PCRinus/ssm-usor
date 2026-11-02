@@ -318,6 +318,56 @@ export const helpTopics = {
     path: '/clienti/detalii/puncte-de-lucru/',
     anchor: 'suprafața-utilă',
   },
+  'evaluari-de-risc.aplicare': { path: '/evaluari-de-risc/', anchor: 'aplicarea-la-o-fișă' },
+  'evaluari-de-risc.arhivare': { path: '/evaluari-de-risc/', anchor: 'arhivarea-și-ștergerea' },
+  'evaluari-de-risc.biblioteca': { path: '/evaluari-de-risc/', anchor: 'biblioteca' },
+  'evaluari-de-risc.ce-este': { path: '/evaluari-de-risc/', anchor: 'ce-este-o-evaluare-de-risc' },
+  'evaluari-de-risc.clase': {
+    path: '/evaluari-de-risc/',
+    anchor: 'gravitatea-probabilitatea-și-nivelul-de-risc',
+  },
+  'evaluari-de-risc.copiere': {
+    path: '/evaluari-de-risc/',
+    anchor: 'factorii-altei-fișe-a-clientului',
+  },
+  'evaluari-de-risc.documente': {
+    path: '/evaluari-de-risc/',
+    anchor: 'ce-cer-documentele-9-și-10',
+  },
+  'evaluari-de-risc.evaluare-noua': { path: '/evaluari-de-risc/', anchor: 'o-evaluare-nouă' },
+  'evaluari-de-risc.factori': { path: '/evaluari-de-risc/', anchor: 'factorii-de-risc' },
+  'evaluari-de-risc.fisa': { path: '/evaluari-de-risc/', anchor: 'fișa-de-evaluare-a-unui-client' },
+  'evaluari-de-risc.grupuri-sensibile': {
+    path: '/evaluari-de-risc/',
+    anchor: 'grupurile-sensibile',
+  },
+  'evaluari-de-risc.in-afara-posturilor': {
+    path: '/evaluari-de-risc/',
+    anchor: 'fișele-în-afara-posturilor',
+  },
+  'evaluari-de-risc.masuri': { path: '/evaluari-de-risc/', anchor: 'măsurile-de-prevenire' },
+  'evaluari-de-risc.nivel-global': { path: '/evaluari-de-risc/', anchor: 'nivelul-de-risc-global' },
+  'evaluari-de-risc.pagina-evaluarii': {
+    path: '/evaluari-de-risc/',
+    anchor: 'pagina-unei-evaluări-din-bibliotecă',
+  },
+  'evaluari-de-risc.plan': {
+    path: '/evaluari-de-risc/',
+    anchor: 'câmpurile-planului-de-prevenire',
+  },
+  'evaluari-de-risc.provenienta': {
+    path: '/evaluari-de-risc/',
+    anchor: 'factorii-veniți-din-bibliotecă',
+  },
+  'evaluari-de-risc.salvare': {
+    path: '/evaluari-de-risc/',
+    anchor: 'salvarea-unei-fișe-în-bibliotecă',
+  },
+  'evaluari-de-risc.sistemul-de-munca': { path: '/evaluari-de-risc/', anchor: 'sistemul-de-muncă' },
+  'evaluari-de-risc.utilizare': {
+    path: '/evaluari-de-risc/',
+    anchor: 'unde-este-folosită-o-evaluare',
+  },
   'import.angajat-existent': {
     path: '/clienti/import/',
     anchor: 'un-angajat-pe-care-clientul-îl-are-deja',
