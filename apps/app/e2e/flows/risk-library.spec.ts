@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 
+import { workshopEvaluation } from '../../../api/src/modules/documents/risk-evaluations.fixture';
 import {
   cleanUp,
   createAccount,
@@ -39,6 +40,16 @@ test("a client's evaluated post becomes a profile that evaluates another client'
     .single();
   if (second.error) throw second.error;
   const secondPosition = await createJobPosition(organizationId, second.data.id, 'Mecanic');
+  const turnerPosition = await createJobPosition(organizationId, second.data.id, 'Strungar');
+  const turnerSheet = await admin.from('risk_evaluations').insert({
+    organization_id: organizationId,
+    client_id: second.data.id,
+    kind: 'job_position',
+    job_position_id: turnerPosition,
+    means_of_production: 'Strungul și sculele clientului.',
+    exposure: '4 h / zi',
+  });
+  if (turnerSheet.error) throw turnerSheet.error;
 
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
@@ -82,6 +93,12 @@ test("a client's evaluated post becomes a profile that evaluates another client'
     `Toți cei ${factorCount} factori sunt în evaluarea Lucrător în atelier din bibliotecă.`
   );
   await expect(page.getByTestId('risk-factor-origin')).toHaveCount(0);
+  await expect(page.getByTestId('work-system-means')).toHaveText(
+    workshopEvaluation.meansOfProduction
+  );
+  await expect(page.getByTestId('work-system-environment')).toHaveText(
+    workshopEvaluation.workEnvironment
+  );
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
 
   await page.goto('/evaluari-de-risc');
@@ -94,6 +111,22 @@ test("a client's evaluated post becomes a profile that evaluates another client'
   await expect(usage).toHaveCount(2);
   await expect(usage.nth(0)).toContainText('S.C. AL DOILEA CLIENT E2E S.R.L.');
   await expect(usage.nth(1).getByTestId('risk-profile-usage-open')).toHaveText('Lăcătuș mecanic');
+  await expect(page.getByTestId('risk-factors-card')).toContainText(
+    'Termenele și responsabilii din plan se copiază în fișă ca valori implicite'
+  );
+  const workSystem = page.getByTestId('work-system-card');
+  await expect(workSystem.getByTestId('work-system-means')).toHaveText(
+    workshopEvaluation.meansOfProduction
+  );
+  await workSystem.getByTestId('work-system-edit').click();
+  await page.getByTestId('work-system-workEnvironment').fill('Hală nouă, ventilată mecanic.');
+  await page.getByTestId('work-system-exposure-input').fill('6 h / zi');
+  await page.getByTestId('work-system-save').click();
+  await expect(workSystem.getByTestId('work-system-environment')).toHaveText(
+    'Hală nouă, ventilată mecanic.'
+  );
+  await expect(workSystem.getByTestId('work-system-exposure')).toHaveText('6 h / zi');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
   await page.getByTestId('risk-factor-row').first().getByTestId('risk-factor-actions').click();
   await page.getByTestId('risk-factor-remove').click();
   await page.getByTestId('risk-factor-remove-confirm').click();
@@ -103,6 +136,24 @@ test("a client's evaluated post becomes a profile that evaluates another client'
   await page.goto(`/clienti/${second.data.id}/posturi/${secondPosition}/fisa-de-evaluare`);
   await expect(page.getByTestId('risk-factor-row')).toHaveCount(factorCount);
   await expect(page.getByTestId('risk-factor-origin')).toHaveCount(factorCount - 1);
+  await expect(page.getByTestId('work-system-environment')).toHaveText(
+    workshopEvaluation.workEnvironment
+  );
+
+  await page.goto(`/clienti/${second.data.id}/posturi/${turnerPosition}/fisa-de-evaluare`);
+  await page.getByTestId('risk-factors-apply-profile').click();
+  await page
+    .getByTestId('apply-profile-dialog')
+    .getByTestId('apply-profile-option')
+    .filter({ hasText: 'Lucrător în atelier' })
+    .click();
+  await page.getByTestId('apply-profile-confirm').click();
+  await expect(page.getByTestId('risk-factor-row')).toHaveCount(factorCount - 1);
+  await expect(page.getByTestId('work-system-means')).toHaveText('Strungul și sculele clientului.');
+  await expect(page.getByTestId('work-system-environment')).toHaveText(
+    'Hală nouă, ventilată mecanic.'
+  );
+  await expect(page.getByTestId('work-system-exposure')).toHaveText('4 h / zi');
 
   const refused = await admin
     .from('evaluation_profiles')
