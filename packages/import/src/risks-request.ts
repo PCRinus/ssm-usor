@@ -269,7 +269,6 @@ export function risksRequest(
   };
 }
 
-// The sheets with no rows the first answer left for later, eight to a request.
 export function retypeBatches(input: RisksRequestInput, answer: RisksAnswer): string[][] {
   const numbered = numberRows(input.files);
   const unrowed = answer.sheets.filter(

@@ -240,7 +240,6 @@ function partSegments(
 
 const measureText = (text: string) => text.replace(/^[\s/:;,.]+|[\s/]+$/gu, '').slice(0, 2000);
 
-// ADR 036: split on the pack's own labels, else at the model's start words.
 export function sheetMeasures(
   text: string,
   parts: readonly { kind: PreventionMeasureKind; startWords: string }[]
@@ -276,12 +275,26 @@ const planKinds = [
   ['other', 'other'],
 ] as const;
 
-const personName = /\p{Lu}\p{Ll}+(?:[\s-]+\p{Lu}\p{Ll}+)*\s+\p{Lu}{3,}(?:[\s-]+\p{Lu}{3,})*\b/u;
+const personName = /\p{Lu}\p{Ll}+(?:[\s-]+\p{Lu}\p{Ll}+)*\s+(\p{Lu}{3,})(?![\p{L}.])/gu;
+
+// "Responsabil SSM" is a role: a surname in capitals is never one of these.
+const acronyms = new Set([
+  'SSM',
+  'PSI',
+  'ISU',
+  'ITM',
+  'SRL',
+  'PFA',
+  'IGSU',
+  'ISCIR',
+  'PRAM',
+  'RSVTI',
+]);
 
 // A plan's deadlines and people are roles ("Cond. loc muncă", "Administrator"); a name such as
 // "Ramona CIMPEAN" or one of the client's people is a person.
 export function namesPerson(text: string, people: readonly string[]) {
-  if (personName.test(text)) return true;
+  for (const match of text.matchAll(personName)) if (!acronyms.has(match[1]!)) return true;
   const folded = ` ${foldName(text)} `;
   return people.some((person) => {
     const name = foldName(person);

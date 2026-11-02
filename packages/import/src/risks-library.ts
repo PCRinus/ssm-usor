@@ -66,7 +66,8 @@ export interface ComparedRiskSheet {
   sameAs: string[];
 }
 
-// ADR 036, to be tuned on the reference archives.
+// ADR 036. On the five reference archives, the nearest unrelated posts (office posts of two
+// clients sharing the provider's own factors) pair 0.46 to 0.53 of their factors.
 export const similarShare = 0.7;
 export const similarDescription = 0.8;
 

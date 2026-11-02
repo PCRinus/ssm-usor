@@ -293,6 +293,7 @@ describe('the helpers', () => {
     expect(namesPerson('Ramona Barbara CIMPEAN', [])).toBe(true);
     expect(namesPerson('Administrator, Maria Ionescu', ['Maria Ionescu'])).toBe(true);
     expect(namesPerson('Cond. loc munca; Serv. Extern', [])).toBe(false);
+    expect(namesPerson('Responsabil SSM,SU; Cond loc munca', [])).toBe(false);
     expect(namesPerson('Administrator SC BRUTĂRIA SRL', [])).toBe(false);
   });
 });
