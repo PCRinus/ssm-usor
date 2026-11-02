@@ -16,6 +16,7 @@ import { RiskEvaluationPending } from '@/features/risk-evaluations/risk-evaluati
 import { RiskFactorsCard } from '@/features/risk-evaluations/risk-factors-card';
 import { RiskResultCard } from '@/features/risk-evaluations/risk-result-card';
 import { useFactorListView } from '@/features/risk-evaluations/use-factor-list-view';
+import { WorkSystemCard } from '@/features/risk-evaluations/work-system-card';
 
 import { ProfileNameDialog } from './profile-name-dialog';
 import { type ProfileNaming, useProfileRenaming } from './profile-naming';
@@ -23,7 +24,7 @@ import type { EvaluationProfile } from './profile-schema';
 import { ProfileUsageCard } from './profile-usage-card';
 import { RemoveProfileDialog } from './remove-profile-dialog';
 import { useProfileArchiving } from './use-profile-archiving';
-import { useProfileFactorStore } from './use-profile-cache';
+import { useProfileFactorStore, useProfileWorkSystemStore } from './use-profile-cache';
 
 export function EvaluationProfilePage({
   profileId,
@@ -45,6 +46,7 @@ export function EvaluationProfilePage({
 function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: string }) {
   const navigate = useNavigate();
   const store = useProfileFactorStore(profile);
+  const workSystemStore = useProfileWorkSystemStore(profile);
   const renaming = useProfileRenaming();
   const [naming, setNaming] = useState<ProfileNaming | null>(null);
   const [removing, setRemoving] = useState(false);
@@ -127,12 +129,19 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
         </Notice>
       )}
       <RiskResultCard id="result" evaluation={profile} view={view} />
+      <WorkSystemCard
+        id="work-system"
+        workSystem={{ ...profile, kind: 'library', workTask: null, exposedPersons: null }}
+        store={workSystemStore}
+        readOnly={false}
+      />
       <RiskFactorsCard
         id="factors"
         factors={profile.factors}
         store={store}
         readOnly={false}
         view={view}
+        description="Termenele și responsabilii din plan se copiază în fișă ca valori implicite; le schimbi acolo pentru fiecare client."
         empty="Evaluarea nu are încă factori de risc."
         removalConsequence="nu vor mai fi în evaluare. Fișele în care ai aplicat-o își păstrează copiile."
         editorContext={profile.name}

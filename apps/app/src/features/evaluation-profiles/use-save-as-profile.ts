@@ -21,7 +21,7 @@ export function useSaveAsProfile(clientId: string) {
   return (evaluation: RiskEvaluation): ProfileNaming => ({
     title: 'Salvează în bibliotecă',
     description:
-      'Factorii fișei, cu clasele, măsurile și câmpurile planului, se copiază într-o evaluare nouă din bibliotecă, pe care o poți aplica la alți clienți. Ce schimbi apoi în fișă sau în bibliotecă nu trece dintr-una în alta.',
+      'Factorii fișei, cu clasele, măsurile și câmpurile planului, și sistemul ei de muncă se copiază într-o evaluare nouă din bibliotecă, pe care o poți aplica la alți clienți. Ce schimbi apoi în fișă sau în bibliotecă nu trece dintr-una în alta.',
     defaultName: evaluationTitle(evaluation),
     submitLabel: 'Salvează în bibliotecă',
     pendingLabel: 'Se salvează…',

@@ -107,7 +107,8 @@ export function ApplyProfileDialog({
             Factorii evaluării alese, cu clasele, măsurile și câmpurile planului, se adaugă după cei
             pe care{' '}
             <span className="font-medium text-foreground">{evaluationTitle(evaluation)}</span> îi
-            are deja. Ajustează apoi clasele la acest client.
+            are deja. Sistemul de muncă al evaluării completează doar câmpurile goale ale fișei.
+            Ajustează apoi clasele la acest client.
           </DialogDescription>
         </DialogHeader>
         <div className="mt-4 grid gap-4">

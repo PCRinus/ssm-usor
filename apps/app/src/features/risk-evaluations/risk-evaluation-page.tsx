@@ -59,6 +59,7 @@ import { useFactorListView } from './use-factor-list-view';
 import { useLibraryNudge } from './use-library-nudge';
 import { useStartEvaluation } from './use-start-evaluation';
 import { WorkSystemCard } from './work-system-card';
+import { useEvaluationWorkSystemStore } from './work-system-store';
 
 const clientRoute = getRouteApi('/_authenticated/clienti/$clientId');
 const positionRoute = getRouteApi('/_authenticated/clienti/$clientId/posturi/$jobPositionId');
@@ -233,6 +234,7 @@ function RiskEvaluationView({
   const saveAsProfile = useSaveAsProfile(evaluation.clientId);
   const nudge = useLibraryNudge(evaluation, readOnly);
   const store = useEvaluationFactorStore(evaluation);
+  const workSystemStore = useEvaluationWorkSystemStore(evaluation);
   const view = useFactorListView(evaluation.factors, sections.factors);
   const saveToLibrary = () => setNaming(saveAsProfile(evaluation));
   return (
@@ -269,7 +271,8 @@ function RiskEvaluationView({
       <RiskResultCard id={sections.result} evaluation={evaluation} view={view} />
       <WorkSystemCard
         id={sections.workSystem}
-        evaluation={evaluation}
+        workSystem={evaluation}
+        store={workSystemStore}
         position={position}
         readOnly={readOnly}
       />

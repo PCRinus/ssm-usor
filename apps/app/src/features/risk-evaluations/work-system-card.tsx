@@ -3,10 +3,8 @@ import { defaultExposure } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
-import { useRouteContext } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
-import { useUpdateRiskEvaluation } from '@/api/generated/api';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { EditAction, Fact, FactList, FormActions, SectionCard } from '@/components/section-card';
@@ -15,33 +13,48 @@ import { useRevealErrors } from '@/components/use-reveal-errors';
 import { employeeCountLabel, type JobPosition } from '@/features/job-positions/job-position-schema';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 
-import { evaluationFailure, failureReason } from './evaluation-failure';
+import { failureReason } from './evaluation-failure';
 import {
   evaluationNameSchema,
-  type RiskEvaluation,
+  libraryWorkSystemFormSchema,
   toWorkSystemForm,
-  toWorkSystemRequest,
+  type WorkSystem,
   workSystemFormSchema,
   type WorkSystemFormValues,
 } from './risk-evaluation-schema';
-import { useEvaluationCache } from './use-evaluation-cache';
+import type { WorkSystemStore } from './work-system-store';
 
 const multiline = (text: string | null) =>
   text && <span className="whitespace-pre-line">{text}</span>;
 
+const isClientLevel = (kind: WorkSystem['kind']) => kind === 'sensitive_groups' || kind === 'other';
+
+const descriptions: Partial<Record<WorkSystem['kind'], string>> = {
+  job_position:
+    'Sarcina de muncă și persoanele expuse se iau din post: activitățile și angajații lui.',
+  library: 'Când aplici evaluarea, aceste texte completează doar câmpurile goale ale fișei.',
+};
+
+const formSchemas: Partial<Record<WorkSystem['kind'], typeof workSystemFormSchema>> = {
+  other: workSystemFormSchema.extend({ name: evaluationNameSchema }),
+  library: libraryWorkSystemFormSchema,
+};
+
 export function WorkSystemCard({
   id,
-  evaluation,
+  workSystem,
+  store,
   position,
   readOnly,
 }: {
   id: string;
-  evaluation: RiskEvaluation;
+  workSystem: WorkSystem;
+  store: WorkSystemStore;
   position?: JobPosition;
   readOnly: boolean;
 }) {
   const { editing, editRef, open, close } = useInPlaceEdit();
-  const clientLevel = evaluation.kind !== 'job_position';
+  const clientLevel = isClientLevel(workSystem.kind);
 
   return (
     <SectionCard
@@ -49,31 +62,28 @@ export function WorkSystemCard({
       headingLevel={3}
       data-testid="work-system-card"
       title="Sistemul de muncă"
-      description={
-        !clientLevel &&
-        'Sarcina de muncă și persoanele expuse se iau din post: activitățile și angajații lui.'
-      }
+      description={descriptions[workSystem.kind]}
       action={
         !readOnly &&
         !editing && <EditAction ref={editRef} data-testid="work-system-edit" onClick={open} />
       }
     >
       {editing && !readOnly ? (
-        <WorkSystemForm evaluation={evaluation} onClose={close} />
+        <WorkSystemForm workSystem={workSystem} store={store} onClose={close} />
       ) : (
         <FactList>
-          {evaluation.kind === 'other' && (
+          {workSystem.kind === 'other' && (
             <Fact label="Denumire" testId="work-system-name">
-              {evaluation.name}
+              {workSystem.name}
             </Fact>
           )}
           {clientLevel ? (
             <>
               <Fact label="Persoane expuse" testId="work-system-exposed-persons">
-                {evaluation.exposedPersons}
+                {workSystem.exposedPersons}
               </Fact>
               <Fact label="Sarcina de muncă" wide testId="work-system-work-task">
-                {multiline(evaluation.workTask)}
+                {multiline(workSystem.workTask)}
               </Fact>
             </>
           ) : (
@@ -87,13 +97,13 @@ export function WorkSystemCard({
             )
           )}
           <Fact label="Mijloace de producție" wide testId="work-system-means">
-            {multiline(evaluation.meansOfProduction)}
+            {multiline(workSystem.meansOfProduction)}
           </Fact>
           <Fact label="Mediul de muncă" wide testId="work-system-environment">
-            {multiline(evaluation.workEnvironment)}
+            {multiline(workSystem.workEnvironment)}
           </Fact>
           <Fact label="Expunere" testId="work-system-exposure">
-            {evaluation.exposure}
+            {workSystem.exposure}
           </Fact>
         </FactList>
       )}
@@ -102,41 +112,30 @@ export function WorkSystemCard({
 }
 
 function WorkSystemForm({
-  evaluation,
+  workSystem,
+  store,
   onClose,
 }: {
-  evaluation: RiskEvaluation;
+  workSystem: WorkSystem;
+  store: WorkSystemStore;
   onClose: () => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
   const savedToast = useSavedToast();
-  const cache = useEvaluationCache(evaluation.clientId);
-  const update = useUpdateRiskEvaluation({ request: apiRequest });
-  const schema =
-    evaluation.kind === 'other'
-      ? workSystemFormSchema.extend({ name: evaluationNameSchema })
-      : workSystemFormSchema;
   const form = useForm<WorkSystemFormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: toWorkSystemForm(evaluation),
+    resolver: zodResolver(formSchemas[workSystem.kind] ?? workSystemFormSchema),
+    defaultValues: toWorkSystemForm(workSystem),
   });
   const formRef = useRevealErrors(form);
-  const { errors, isDirty } = form.formState;
-  const busy = update.isPending;
-  const clientLevel = evaluation.kind !== 'job_position';
+  const { errors, isDirty, isSubmitting: busy } = form.formState;
+  const clientLevel = isClientLevel(workSystem.kind);
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      const result = await update.mutateAsync({
-        clientId: evaluation.clientId,
-        evaluationId: evaluation.id,
-        data: toWorkSystemRequest(evaluation.kind, values),
-      });
-      await cache.saved(result.evaluation);
+      await store.save(values);
       savedToast('Sistemul de muncă a fost salvat.');
       onClose();
     } catch (cause) {
-      const message = evaluationFailure(
+      const message = store.failure(
         cause,
         'Nu am putut salva sistemul de muncă. Verifică conexiunea și încearcă din nou.'
       );
@@ -186,7 +185,7 @@ function WorkSystemForm({
       noValidate
       className="grid gap-5 sm:grid-cols-2"
     >
-      {evaluation.kind === 'other' && (
+      {workSystem.kind === 'other' && (
         <Field id="work-system-name" label="Denumire" mark="required" error={errors.name}>
           <Input
             id="work-system-name"
@@ -208,7 +207,7 @@ function WorkSystemForm({
             mark="optional"
             hint="„Min. 3 persoane”, „Vizitatorii punctului de lucru”."
             error={errors.exposedPersons}
-            className={evaluation.kind === 'other' ? undefined : 'sm:col-span-2'}
+            className={workSystem.kind === 'other' ? undefined : 'sm:col-span-2'}
           >
             <Input
               id="work-system-exposedPersons"
@@ -241,8 +240,12 @@ function WorkSystemForm({
       <Field
         id="work-system-exposure"
         label="Expunere"
-        mark="required"
-        hint={`De obicei „${defaultExposure}”.`}
+        mark={workSystem.kind === 'library' ? 'optional' : 'required'}
+        hint={
+          workSystem.kind === 'library'
+            ? 'Lasă gol ca fiecare fișă să-și păstreze expunerea.'
+            : `De obicei „${defaultExposure}”.`
+        }
         error={errors.exposure}
       >
         <Input

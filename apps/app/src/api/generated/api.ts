@@ -4959,6 +4959,12 @@ export type EvaluationProfileResponseProfile = {
   inUse: boolean;
   createdAt: string;
   updatedAt: string;
+  /** @nullable */
+  meansOfProduction: string | null;
+  /** @nullable */
+  workEnvironment: string | null;
+  /** @nullable */
+  exposure: string | null;
   factors: EvaluationProfileResponseProfileFactorsItem[];
 };
 
@@ -5017,6 +5023,24 @@ export interface UpdateEvaluationProfileRequest {
    */
   name?: string;
   archived?: boolean;
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   * @nullable
+   */
+  meansOfProduction?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   * @nullable
+   */
+  workEnvironment?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 120
+   * @nullable
+   */
+  exposure?: string | null;
 }
 
 export type ApplyEvaluationProfileResponseEvaluationKind =
@@ -25597,8 +25621,8 @@ export const getUpdateEvaluationProfileUrl = (profileId: string) => {
 };
 
 /**
- * An archived profile keeps its page, its factors and its usage, and is refused by `applyEvaluationProfile` until restored. Archiving is allowed while clients use the profile, since they hold copies (ADR 036). Names stay unique across active and archived profiles.
- * @summary Rename, archive or restore an evaluation profile
+ * A field left out stays as it is; `null` clears `meansOfProduction`, `workEnvironment` or `exposure`, which a profile may leave empty. An archived profile keeps its page, its factors and its usage, and is refused by `applyEvaluationProfile` until restored. Archiving is allowed while clients use the profile, since they hold copies (ADR 036). Names stay unique across active and archived profiles.
+ * @summary Rename, archive or restore an evaluation profile, or change its work-system texts
  */
 export const updateEvaluationProfile = async (
   profileId: string,
@@ -25681,7 +25705,7 @@ export type UpdateEvaluationProfileMutationVariables = {
 };
 
 /**
- * @summary Rename, archive or restore an evaluation profile
+ * @summary Rename, archive or restore an evaluation profile, or change its work-system texts
  */
 export const useUpdateEvaluationProfile = <
   TError = ErrorType<ApiErrorResponse>,
@@ -26270,7 +26294,7 @@ export const getSaveRiskEvaluationAsProfileUrl = (clientId: string, evaluationId
 };
 
 /**
- * A new profile named `name` with copies of the evaluation’s factors, their classes, measures and plan fields, in their order. The work system texts stay with the evaluation. Each factor without a `sourceProfile` gets the new profile as its own; one copied from another profile keeps that. An archived client’s evaluation can be saved too, and its factors stay as they were.
+ * A new profile named `name` with copies of the evaluation’s factors, their classes, measures and plan fields, in their order, and its work-system texts. Each factor without a `sourceProfile` gets the new profile as its own; one copied from another profile keeps that. An archived client’s evaluation can be saved too, and its factors stay as they were.
  * @summary Save a risk evaluation as a profile of the library
  */
 export const saveRiskEvaluationAsProfile = async (
@@ -26390,7 +26414,7 @@ export const getApplyEvaluationProfileUrl = (clientId: string, evaluationId: str
 };
 
 /**
- * Adds copies of the profile’s factors, with their classes, measures and plan fields, after the factors the evaluation already has, each with the profile as its `sourceProfile`. `addedFactorCount` says how many. Later changes to the profile do not reach the copies.
+ * Adds copies of the profile’s factors, with their classes, measures and plan fields, after the factors the evaluation already has, each with the profile as its `sourceProfile`. `addedFactorCount` says how many. The profile’s work-system texts fill only the evaluation’s empty ones, the exposure while it is still "8 h / schimb", and never overwrite a text. Later changes to the profile do not reach the copies.
  * @summary Copy the factors of a profile into a risk evaluation
  */
 export const applyEvaluationProfile = async (

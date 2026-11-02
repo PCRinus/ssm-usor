@@ -99,6 +99,9 @@ function makeProfile(fields: Partial<EvaluationProfile> & Pick<EvaluationProfile
     id: uuid(),
     archivedAt: null,
     inUse: false,
+    meansOfProduction: null,
+    workEnvironment: null,
+    exposure: null,
     createdAt: stamp,
     updatedAt: stamp,
     ...fields,
@@ -272,6 +275,11 @@ function mockApi({
             ...profile,
             ...(body.name === undefined ? {} : { name: String(body.name) }),
             ...(body.archived === undefined ? {} : { archivedAt: body.archived ? stamp : null }),
+            ...Object.fromEntries(
+              (['meansOfProduction', 'workEnvironment', 'exposure'] as const)
+                .filter((field) => body[field] !== undefined)
+                .map((field) => [field, body[field] as string | null])
+            ),
           });
         }
         return Response.json({ profile });
@@ -493,6 +501,52 @@ describe('a profile page', () => {
     expect(screen.queryByTestId('risk-factors-copy')).toBeNull();
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
     expect(within(breadcrumb).getByText('Lucrător de birou')).toBeTruthy();
+  });
+
+  it('says above the factors that their plan fields are defaults', async () => {
+    mockApi();
+    mount(`/evaluari-de-risc/${office.id}`);
+    const card = await screen.findByTestId('risk-factors-card');
+    expect(
+      within(card).getByText(
+        'Termenele și responsabilii din plan se copiază în fișă ca valori implicite; le schimbi acolo pentru fiecare client.'
+      )
+    ).toBeTruthy();
+  });
+
+  it('shows and edits the work system in the evaluation page’s card, its exposure left empty', async () => {
+    const workshop = makeProfile({
+      name: 'Strungar',
+      meansOfProduction: 'Strung, polizor',
+      exposure: '6 h / zi',
+    });
+    mockApi({ profiles: [workshop] });
+    mount(`/evaluari-de-risc/${workshop.id}`);
+    const card = await screen.findByTestId('work-system-card');
+    expect(
+      within(card).getByText(
+        'Când aplici evaluarea, aceste texte completează doar câmpurile goale ale fișei.'
+      )
+    ).toBeTruthy();
+    expect(within(card).getByTestId('work-system-means').textContent).toBe('Strung, polizor');
+    expect(within(card).getByTestId('work-system-environment').textContent).toBe('—');
+    expect(within(card).getByTestId('work-system-exposure').textContent).toBe('6 h / zi');
+    expect(within(card).queryByTestId('work-system-exposed-persons')).toBeNull();
+
+    const user = userEvent.setup();
+    await user.click(within(card).getByTestId('work-system-edit'));
+    expect(screen.queryByTestId('work-system-workTask')).toBeNull();
+    await user.type(screen.getByTestId('work-system-workEnvironment'), 'Hală ventilată');
+    await user.clear(screen.getByTestId('work-system-exposure-input'));
+    await user.click(screen.getByTestId('work-system-save'));
+    await waitFor(() =>
+      expect(requests(`/evaluation-profiles/${workshop.id}`, 'PATCH')).toEqual([
+        { meansOfProduction: 'Strung, polizor', workEnvironment: 'Hală ventilată', exposure: null },
+      ])
+    );
+    const saved = await screen.findByTestId('work-system-environment');
+    expect(saved.textContent).toBe('Hală ventilată');
+    expect(screen.getByTestId('work-system-exposure').textContent).toBe('—');
   });
 
   it('adds a factor with the evaluation page’s dialog', async () => {

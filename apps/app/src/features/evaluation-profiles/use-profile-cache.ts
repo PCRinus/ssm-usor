@@ -7,10 +7,13 @@ import {
   getListEvaluationProfilesQueryKey,
   useCreateEvaluationProfileFactor,
   useRemoveEvaluationProfileFactor,
+  useUpdateEvaluationProfile,
   useUpdateEvaluationProfileFactor,
 } from '@/api/generated/api';
 import type { FactorStore } from '@/features/risk-evaluations/factor-store';
+import { toLibraryWorkSystemRequest } from '@/features/risk-evaluations/risk-evaluation-schema';
 import { invalidateEvaluations } from '@/features/risk-evaluations/use-evaluation-cache';
+import type { WorkSystemStore } from '@/features/risk-evaluations/work-system-store';
 
 import { type EvaluationProfile, profileFailure } from './profile-schema';
 
@@ -80,6 +83,23 @@ export function useProfileFactorStore(profile: EvaluationProfile): FactorStore {
       await Promise.all([cache.saved(result.profile), cache.linksChanged(profile.id)]);
     },
     refresh: () => cache.refresh(profile.id),
+    failure: profileFailure,
+  };
+}
+
+export function useProfileWorkSystemStore(profile: EvaluationProfile): WorkSystemStore {
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const cache = useProfileCache();
+  const update = useUpdateEvaluationProfile({ request: apiRequest });
+
+  return {
+    save: async (values) => {
+      const result = await update.mutateAsync({
+        profileId: profile.id,
+        data: toLibraryWorkSystemRequest(values),
+      });
+      await cache.saved(result.profile);
+    },
     failure: profileFailure,
   };
 }

@@ -260,16 +260,40 @@ export const workSystemFormSchema = z.object({
     .max(120, 'Expunerea are cel mult 120 de caractere.'),
 });
 
+// A library entry may leave its exposure empty, so applying it keeps the evaluation's.
+export const libraryWorkSystemFormSchema = workSystemFormSchema.extend({
+  exposure: optionalText(120, 'Expunerea'),
+});
+
 export type WorkSystemFormValues = z.infer<typeof workSystemFormSchema>;
 
-export function toWorkSystemForm(evaluation: RiskEvaluation): WorkSystemFormValues {
+/** The work system of a client's evaluation, or of an entry of the library (`library`). */
+export interface WorkSystem {
+  kind: RiskEvaluation['kind'] | 'library';
+  name: string | null;
+  meansOfProduction: string | null;
+  workEnvironment: string | null;
+  exposure: string | null;
+  workTask: string | null;
+  exposedPersons: string | null;
+}
+
+export function toWorkSystemForm(workSystem: WorkSystem): WorkSystemFormValues {
   return {
-    name: evaluation.name ?? '',
-    workTask: evaluation.workTask ?? '',
-    exposedPersons: evaluation.exposedPersons ?? '',
-    meansOfProduction: evaluation.meansOfProduction ?? '',
-    workEnvironment: evaluation.workEnvironment ?? '',
-    exposure: evaluation.exposure,
+    name: workSystem.name ?? '',
+    workTask: workSystem.workTask ?? '',
+    exposedPersons: workSystem.exposedPersons ?? '',
+    meansOfProduction: workSystem.meansOfProduction ?? '',
+    workEnvironment: workSystem.workEnvironment ?? '',
+    exposure: workSystem.exposure ?? '',
+  };
+}
+
+export function toLibraryWorkSystemRequest(values: WorkSystemFormValues) {
+  return {
+    meansOfProduction: orNull(values.meansOfProduction),
+    workEnvironment: orNull(values.workEnvironment),
+    exposure: orNull(values.exposure),
   };
 }
 
