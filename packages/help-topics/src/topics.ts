@@ -379,6 +379,10 @@ export const helpTopics = {
   'import.cnp': { path: '/clienti/import/', anchor: 'cnp-ul-de-pe-fișă' },
   'import.confirmare': { path: '/clienti/import/', anchor: 'crearea-angajaților' },
   'import.dupa-import': { path: '/clienti/import/', anchor: 'după-import' },
+  'import.evaluari-de-risc': {
+    path: '/clienti/import/',
+    anchor: 'evaluările-de-risc-din-documentație',
+  },
   'import.fara-reinstruire': {
     path: '/clienti/import/',
     anchor: 'nicio-instruire-și-niciun-test-de-refăcut',

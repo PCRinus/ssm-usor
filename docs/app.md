@@ -188,6 +188,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/clienti/import/$importId/fisiere.tsx`                          | `/clienti/import/:importId/fisiere`                    | "Fișierele importului": the files by what the reading made of them, from the review.                                                                                                                       |
 | `routes/_authenticated/clienti/import/$importId/$section.tsx`                         | `/clienti/import/:importId/:section`                   | One section of the review; the loader names the breadcrumb after it.                                                                                                                                       |
 | `routes/_authenticated/clienti/import/$importId/instructiuni/$domain.tsx`             | `/clienti/import/:importId/instructiuni/:domain`       | A library task of the import, IPSSM (`ssm`) or IPSU (`su`) (ADR 034); the loader names the breadcrumb after it.                                                                                            |
+| `routes/_authenticated/clienti/import/$importId/evaluari-de-risc.tsx`                 | `/clienti/import/:importId/evaluari-de-risc`           | The import's risk evaluations task (ADR 036): one card per sheet of the pack, confirmed after the client.                                                                                                  |
 | `routes/_authenticated/clienti/$clientId.tsx`                                         | `/clienti/:id`                                         | Client layout: loads the client through `GET /clients/{clientId}`, shows its summary card and section tabs, returns the breadcrumb label from its loader.                                                  |
 | `routes/_authenticated/clienti/$clientId/index.tsx`                                   | `/clienti/:id`                                         | Redirects to the details.                                                                                                                                                                                  |
 | `routes/_authenticated/clienti/$clientId/detalii.tsx`                                 | `/clienti/:id/detalii`                                 | "Detalii": one card per kind of data, each edited in place: the company, the legal representative, the workplaces, the contact, and the owners' notes for an owner.                                        |
@@ -1013,6 +1014,23 @@ their tab bars read.
   (`confirmed-hub.tsx`), and the client's "Detalii" links back while a part is neither confirmed
   nor expired (`GET /imports?clientId=&status=confirmed`). A failed part offers "Citește din
   nou" (`POST …/retry`).
+- The import's risk evaluations ([ADR 036](architecture/adr-036-risk-library-and-import.md),
+  `risks-task-page.tsx`, `risk-sheet-card.tsx`, `risks-model.ts`). After the instructions the hub
+  shows the group "Evaluări de risc" with one task, "Fișe de evaluare", for the part
+  `risk_evaluations`, with the same states. The task, `/clienti/import/:importId/evaluari-de-risc`,
+  says above its cards how many sheets are left to decide and how many factors to look at, and
+  gives each sheet of the proposal a card of decision rows (`decision-row.tsx`, shared with the
+  instructions): its posts with the picker, or "Doar în bibliotecă" for a heading that names
+  none; for a post that has factors, "Adaugă după cei existenți", "Înlocuiește" or "Lasă cum e";
+  the library choice ("Adaugă în bibliotecă" or "Nu adăuga" for a new sheet, "Ce diferă" with
+  "Folosește ce ai" or "Adaugă ca nouă" for a similar one, a similar one asked until picked); the
+  entry's name; the work-system texts; and the factors, folded to those with a flag or a missing
+  class, grouped by component, each with its tick, classes, computed level, measures, plan fields
+  and flags as chips. "Modifică" opens the client sheet's factor editor on the proposed factor,
+  whose save becomes the factor's change, and ticks it; ticking a factor without its classes
+  opens the editor. Rows the reading joined to no sheet or factor are listed at the end. Saving
+  and confirming are as the instructions'; `409 evaluation_profile_name_taken` marks the names
+  and `422 import_incomplete` the factors its issues name.
 - The employee import ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)),
   in `src/features/imports/employees/`. The client's Angajați tab offers three ways: "Adaugă
   angajat", "Importă din fișele găsite în documentație (N fotografii)" while `GET
