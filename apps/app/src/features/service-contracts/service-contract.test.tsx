@@ -802,7 +802,7 @@ describe('the contract of a client', () => {
     expect(requests(`/clients/${leadId}/service-contract`, 'GET')).toHaveLength(0);
   });
 
-  it('sends the old /other-documents/contract address to /contract/edit', async () => {
+  it('sends the old /alte-documente/contract address to /contract/editare', async () => {
     mockApi({ client, get: () => Response.json(state({ document: contractDocument() })) });
     const runtime = mount(`/clienti/${leadId}/alte-documente/contract`);
     await waitFor(() =>
