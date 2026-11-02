@@ -283,7 +283,7 @@ export const library = {
     {
       icon: 'instructions',
       title: 'Instrucțiuni proprii',
-      text: 'Le scrii sau le încarci o dată și le legi de posturile la care se aplică.',
+      text: 'Le scrii o dată sau le preiei din dosarul vechi și le legi de posturi.',
     },
     {
       icon: 'risk',
