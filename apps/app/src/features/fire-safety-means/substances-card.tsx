@@ -27,7 +27,7 @@ import {
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
-import { MoreHorizontal, Plus } from 'lucide-react';
+import { ExternalLink, MoreHorizontal, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -42,6 +42,7 @@ import { rowClickProps } from '@/components/data-table/row-click';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { DecisionBadge } from '@/features/job-positions/decision-badge';
+import { portalPage } from '@/features/legislation/legislation-labels';
 import { useFocusRequest } from '@/features/missing-data/focus';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 
@@ -77,6 +78,9 @@ const stateBadge = (state: FireSubstancesState, count: number) =>
     : state === 'none'
       ? 'Nu se utilizează'
       : substanceCountLabel(count);
+
+// The act's page on legislatie.just.ro, as in packages/document-engine/templates/legal-acts.json.
+const omai163PortalId = 80730;
 
 export function SubstancesCard({
   clientId,
@@ -172,7 +176,24 @@ export function SubstancesCard({
           )}
         </span>
       }
-      description="Lista substanțelor periculoase (OMAI 163/2007) se cere fiecărui client, oricâți angajați are. Produsele de curățenie, carburanții, vopselele, diluanții și buteliile de gaz sunt substanțe clasificate."
+      description={
+        <>
+          Lista substanțelor periculoase se cere fiecărui client, oricâți angajați are (
+          <a
+            href={portalPage(omai163PortalId)}
+            target="_blank"
+            rel="noreferrer"
+            data-testid="fire-substances-law"
+            className="inline-flex items-center gap-1 underline underline-offset-4"
+          >
+            OMAI 163/2007
+            <ExternalLink className="size-3.5" aria-label="(se deschide pe Portalul Legislativ)" />
+          </a>
+          , {'art.\u00a018\u00a0lit.\u00a0p)'} și{' '}
+          {'art.\u00a020\u00a0alin.\u00a0(3)\u00a0lit.\u00a0g)'}). Produsele de curățenie,
+          carburanții, vopselele, diluanții și buteliile de gaz sunt substanțe clasificate.
+        </>
+      }
     >
       {error && (
         <Notice variant="destructive" data-testid="fire-substances-error">

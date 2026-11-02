@@ -872,6 +872,22 @@ describe('client dangerous substances', () => {
     ).toBeTruthy();
   });
 
+  it('cites the articles that ask for the list and opens the order on the Portal Legislativ', async () => {
+    mockApi({ substancesState: 'undecided' });
+    mount();
+
+    const substances = await card();
+    expect(substances.textContent).toContain(
+      'art.\u00a018\u00a0lit.\u00a0p) și art.\u00a020\u00a0alin.\u00a0(3)\u00a0lit.\u00a0g)'
+    );
+    const law = within(substances).getByTestId('fire-substances-law');
+    expect(law.textContent).toBe('OMAI 163/2007');
+    expect(law.getAttribute('href')).toBe(
+      'https://legislatie.just.ro/Public/DetaliiDocument/80730'
+    );
+    expect(law.getAttribute('target')).toBe('_blank');
+  });
+
   it('declares none without a list', async () => {
     mockApi({ substancesState: 'none' });
     mount();
