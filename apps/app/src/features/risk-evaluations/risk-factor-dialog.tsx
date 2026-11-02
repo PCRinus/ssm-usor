@@ -45,6 +45,7 @@ import type { FactorStore } from './factor-store';
 import { ResponsiblePersonCombobox } from './responsible-person-combobox';
 import {
   componentLabels,
+  type EditableFactor,
   emptyFactorForm,
   factorFormSchema,
   type FactorFormValues,
@@ -60,7 +61,7 @@ import {
 import { riskLevelTint } from './risk-level-tint';
 
 // `null` is closed, 'new' adds a factor, and a factor edits it.
-export type FactorEditing = RiskFactor | 'new' | null;
+export type FactorEditing = EditableFactor | 'new' | null;
 
 // Floated so the legend is an ordinary grid item: a rendered legend sits on the fieldset's top
 // border and cuts it.
@@ -92,7 +93,7 @@ export function RiskFactorDialog({
   context,
   clientId,
 }: {
-  factors: RiskFactor[];
+  factors: Pick<RiskFactor, 'component' | 'group'>[];
   store: FactorStore;
   editing: FactorEditing;
   onClose: () => void;
@@ -188,9 +189,9 @@ function RiskFactorForm({
   phone: boolean;
   context: string | undefined;
   clientId: string | undefined;
-  after: RiskFactor | undefined;
+  after: Pick<RiskFactor, 'component' | 'group'> | undefined;
   store: FactorStore;
-  factor: RiskFactor | null;
+  factor: EditableFactor | null;
   onClose: () => void;
 }) {
   const savedToast = useSavedToast();
@@ -309,11 +310,17 @@ function RiskFactorForm({
   const fields = (
     <div className="grid gap-6 @container">
       <div className="grid gap-5 pt-3 @md:grid-cols-2">
-        <Field id="risk-factor-component" label="Componenta sistemului de muncă" mark="required">
+        <Field
+          id="risk-factor-component"
+          label="Componenta sistemului de muncă"
+          mark="required"
+          error={errors.component}
+        >
           <NativeSelect
             id="risk-factor-component"
             data-testid="risk-factor-component"
             disabled={busy}
+            aria-invalid={Boolean(errors.component)}
             {...form.register('component', {
               onChange: (event: ChangeEvent<HTMLSelectElement>) => {
                 const group = form.getValues('group');
@@ -322,6 +329,7 @@ function RiskFactorForm({
               },
             })}
           >
+            {!component && <NativeSelectOption value="">Alege componenta…</NativeSelectOption>}
             {sheetComponents.map((component) => (
               <NativeSelectOption key={component} value={component}>
                 {componentLabels[component]}

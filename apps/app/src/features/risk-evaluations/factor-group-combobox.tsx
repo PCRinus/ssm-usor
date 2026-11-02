@@ -40,7 +40,7 @@ export function FactorGroupCombobox({
     query: { queryKey: getListRiskFactorSuggestionsQueryKey(typedGroupsParams), staleTime: 30_000 },
   });
   const own = ownGroups(typed.data?.items ?? []);
-  const groups: readonly string[] = workSystemComponentGroups[component];
+  const groups: readonly string[] = component ? workSystemComponentGroups[component] : [];
   const known = [...groups, ...own].map(normalizeSearch);
   return (
     <SearchCombobox

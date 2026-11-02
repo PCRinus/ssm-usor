@@ -169,7 +169,7 @@ const optionalText = (max: number, what: string) =>
 const orNull = (value: string) => (value.trim() === '' ? null : value.trim());
 
 export const factorFormSchema = z.object({
-  component: z.enum(workSystemComponents),
+  component: z.enum(workSystemComponents, { error: 'Alege componenta sistemului de muncă.' }),
   group: z
     .string()
     .trim()
@@ -202,7 +202,19 @@ export const factorFormSchema = z.object({
 
 export type FactorFormValues = z.infer<typeof factorFormSchema>;
 
-export function emptyFactorForm(after?: RiskFactor): FactorFormValues {
+// An imported factor may not know its component or a class yet (ADR 036).
+export type EditableFactor = Pick<
+  RiskFactor,
+  'id' | 'group' | 'description' | 'actions' | 'deadline' | 'responsiblePerson' | 'observations'
+> & {
+  component: WorkSystemComponent | null;
+  gravityClass: number | null;
+  probabilityClass: number | null;
+  measures: { kind: PreventionMeasureKind; description: string }[];
+  sourceProfile?: RiskFactor['sourceProfile'];
+};
+
+export function emptyFactorForm(after?: Pick<RiskFactor, 'component' | 'group'>): FactorFormValues {
   return {
     component: after?.component ?? 'means_of_production',
     group: after?.group ?? '',
@@ -217,13 +229,14 @@ export function emptyFactorForm(after?: RiskFactor): FactorFormValues {
   };
 }
 
-export function toFactorForm(factor: RiskFactor): FactorFormValues {
+export function toFactorForm(factor: EditableFactor): FactorFormValues {
   return {
-    component: factor.component,
+    // Empty while unknown: the select then asks for one, and the schema refuses the empty value.
+    component: (factor.component ?? '') as WorkSystemComponent,
     group: factor.group,
     description: factor.description,
-    gravityClass: String(factor.gravityClass),
-    probabilityClass: String(factor.probabilityClass),
+    gravityClass: factor.gravityClass === null ? '' : String(factor.gravityClass),
+    probabilityClass: factor.probabilityClass === null ? '' : String(factor.probabilityClass),
     measures: factor.measures.map(({ kind, description }) => ({ kind, description })),
     actions: factor.actions ?? '',
     deadline: factor.deadline ?? '',
