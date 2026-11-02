@@ -408,7 +408,7 @@ export function InstructionBlocks({
       {sections.map((section, sectionIndex) => {
         const { heading, articles } = section;
         const written = articles.filter((article) => !isEmptyArticle(article)).length;
-        const empty = heading !== null && written === 0;
+        const empty = heading !== null && written === 0 && !printed.has(heading.id);
         const collapsed = empty && (!opened.has(heading.id) || articles.length === 0);
         const example = heading?.section?.example;
         const title = heading?.text.trim() ?? '';
