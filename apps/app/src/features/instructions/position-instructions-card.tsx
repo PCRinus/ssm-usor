@@ -316,8 +316,8 @@ export function PositionInstructionsCard({
         </EmptyState>
       ) : (
         <>
-          <Table className="max-sm:block">
-            <TableHeader className="max-sm:sr-only">
+          <Table>
+            <TableHeader>
               <TableRow>
                 <TableHead>Instrucțiune</TableHead>
                 <TableHead>Categorie</TableHead>
@@ -328,14 +328,10 @@ export function PositionInstructionsCard({
                 )}
               </TableRow>
             </TableHeader>
-            <TableBody className="max-sm:block">
+            <TableBody>
               {items.map((item) => (
-                <TableRow
-                  key={item.moduleId}
-                  data-testid={testId('row')}
-                  className="max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:gap-x-3 max-sm:gap-y-1 max-sm:py-3"
-                >
-                  <TableCell className="font-medium whitespace-normal max-sm:col-start-1 max-sm:row-start-1 max-sm:p-0">
+                <TableRow key={item.moduleId} data-testid={testId('row')}>
+                  <TableCell className="min-w-40 font-medium whitespace-normal">
                     <Link
                       to="/instructions/$moduleId"
                       params={{ moduleId: item.moduleId }}
@@ -350,11 +346,9 @@ export function PositionInstructionsCard({
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-muted-foreground max-sm:col-start-1 max-sm:row-start-2 max-sm:p-0 max-sm:whitespace-normal">
-                    {groupLabels[item.group]}
-                  </TableCell>
+                  <TableCell className="text-muted-foreground">{groupLabels[item.group]}</TableCell>
                   {!readOnly && (
-                    <TableCell className="max-sm:col-start-2 max-sm:row-span-2 max-sm:row-start-1 max-sm:p-0">
+                    <TableCell>
                       <Button
                         variant="ghost"
                         size="icon"

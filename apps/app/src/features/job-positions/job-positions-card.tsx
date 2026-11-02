@@ -25,7 +25,6 @@ import {
   TableRow,
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
 import { ChevronRight, MoreHorizontal, Plus } from 'lucide-react';
 import { Fragment, useRef, useState } from 'react';
@@ -178,8 +177,8 @@ export function JobPositionsCard({
             : 'Niciun post de lucru încă. Adaugă posturile clientului sau începe cu angajații: fiecare funcție nouă devine un post.'}
         </p>
       ) : (
-        <Table className="max-sm:block">
-          <TableHeader className="max-sm:sr-only">
+        <Table>
+          <TableHeader>
             <TableRow>
               <TableHead>Post</TableHead>
               <TableHead>Categorie de personal</TableHead>
@@ -194,7 +193,7 @@ export function JobPositionsCard({
               </TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="max-sm:block">
+          <TableBody>
             {positions.data.items.map((position) => (
               <TableRow
                 key={position.id}
@@ -206,9 +205,9 @@ export function JobPositionsCard({
                       params: { clientId, jobPositionId: position.id },
                     })
                 )}
-                className="cursor-pointer max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] max-sm:gap-x-3 max-sm:gap-y-2 max-sm:py-3"
+                className="cursor-pointer"
               >
-                <TableCell className="max-sm:col-span-2 max-sm:row-start-1 max-sm:p-0 max-sm:whitespace-normal">
+                <TableCell>
                   <Link
                     to="/clients/$clientId/job-positions/$jobPositionId"
                     params={{ clientId, jobPositionId: position.id }}
@@ -223,7 +222,7 @@ export function JobPositionsCard({
                     </span>
                   )}
                 </TableCell>
-                <TableCell className="max-sm:col-start-1 max-sm:row-start-2 max-sm:p-0">
+                <TableCell>
                   <Badge
                     variant={position.staffCategory === 'execution' ? 'secondary' : 'outline'}
                     title={staffCategoryLabels[position.staffCategory]}
@@ -232,38 +231,21 @@ export function JobPositionsCard({
                     {staffCategoryShortLabels[position.staffCategory]}
                   </Badge>
                 </TableCell>
-                <TableCell
-                  data-testid="job-position-interval-cell"
-                  className="max-sm:col-span-2 max-sm:col-start-2 max-sm:row-start-2 max-sm:p-0 max-sm:whitespace-normal"
-                >
-                  <span className="text-muted-foreground sm:hidden">Instruire </span>
+                <TableCell data-testid="job-position-interval-cell">
                   {position.trainingIntervalMonths ? (
                     intervalLabel(position.trainingIntervalMonths)
                   ) : (
                     <span className="text-muted-foreground">ca restul categoriei</span>
                   )}
                 </TableCell>
-                <TableCell
-                  className={cn(
-                    'text-muted-foreground max-sm:col-start-1 max-sm:row-start-3 max-sm:p-0 max-sm:whitespace-normal',
-                    !position.workZone && 'max-sm:hidden'
-                  )}
-                >
-                  {position.workZone ?? '—'}
-                </TableCell>
+                <TableCell className="text-muted-foreground">{position.workZone ?? '—'}</TableCell>
                 <TableCell
                   data-testid="job-position-employees"
-                  className={cn(
-                    'text-muted-foreground tabular-nums max-sm:row-start-3 max-sm:p-0',
-                    position.workZone
-                      ? 'max-sm:col-span-2 max-sm:col-start-2'
-                      : 'max-sm:col-span-3 max-sm:col-start-1'
-                  )}
+                  className="text-muted-foreground tabular-nums"
                 >
                   {employeeCountLabel(position.employeeCount)}
                 </TableCell>
-                <TableCell className="max-sm:col-start-1 max-sm:row-start-4 max-sm:grid max-sm:justify-items-start max-sm:gap-1 max-sm:p-0">
-                  <span className="text-xs text-muted-foreground sm:hidden">EIP</span>
+                <TableCell>
                   <StateLink
                     clientId={clientId}
                     position={position}
@@ -273,8 +255,7 @@ export function JobPositionsCard({
                     testId="job-position-equipment"
                   />
                 </TableCell>
-                <TableCell className="max-sm:col-span-2 max-sm:col-start-2 max-sm:row-start-4 max-sm:grid max-sm:justify-items-start max-sm:gap-1 max-sm:p-0">
-                  <span className="text-xs text-muted-foreground sm:hidden">Instrucțiuni</span>
+                <TableCell>
                   <span className="grid grid-cols-[auto_auto] items-center justify-start gap-x-1.5 gap-y-1">
                     {(['ssm', 'psi'] as const).map((domain) => (
                       <Fragment key={domain}>
@@ -301,8 +282,7 @@ export function JobPositionsCard({
                     ))}
                   </span>
                 </TableCell>
-                <TableCell className="max-sm:col-span-3 max-sm:col-start-1 max-sm:row-start-5 max-sm:grid max-sm:justify-items-start max-sm:gap-1 max-sm:p-0">
-                  <span className="text-xs text-muted-foreground sm:hidden">Evaluare de risc</span>
+                <TableCell>
                   {evaluations.data ? (
                     <RiskEvaluationLink
                       clientId={clientId}
@@ -313,7 +293,7 @@ export function JobPositionsCard({
                     <span className="text-muted-foreground">—</span>
                   )}
                 </TableCell>
-                <TableCell className="max-sm:col-start-3 max-sm:row-start-1 max-sm:-mt-1.5 max-sm:p-0">
+                <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button

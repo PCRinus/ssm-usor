@@ -39,7 +39,7 @@ import { RemoveProfileDialog } from './remove-profile-dialog';
 import { useProfileCache } from './use-profile-cache';
 
 const columns = [
-  { id: 'name', header: 'Post', className: 'pl-5', skeleton: 'w-48' },
+  { id: 'name', header: 'Post', className: undefined, skeleton: 'w-48' },
   { id: 'factors', header: 'Factori', className: 'text-right', skeleton: 'ml-auto w-8' },
   { id: 'unacceptable', header: 'Inacceptabili', className: 'text-right', skeleton: 'ml-auto w-8' },
   { id: 'level', header: 'Nivel global', className: 'text-right', skeleton: 'ml-auto w-10' },
@@ -141,7 +141,7 @@ export function RiskLibrary({ userId }: { userId: string }) {
                       {column.header}
                     </TableHead>
                   ))}
-                  <TableHead className="w-12 pr-3">
+                  <TableHead className="w-12">
                     <span className="sr-only">Acțiuni</span>
                   </TableHead>
                 </TableRow>
@@ -192,7 +192,7 @@ function ProfileRow({
   const level = profile.globalRiskLevel;
   return (
     <TableRow data-testid="risk-profile-row" {...rowClickProps(onOpen)}>
-      <TableCell className="min-w-48 pl-5 font-medium whitespace-normal">
+      <TableCell className="min-w-48 font-medium whitespace-normal">
         <Link
           to="/risks/$profileId"
           params={{ profileId: profile.id }}
@@ -231,7 +231,7 @@ function ProfileRow({
       <TableCell className="pl-6 text-muted-foreground tabular-nums">
         {formatRoDate(dateToIso(new Date(profile.updatedAt)))}
       </TableCell>
-      <TableCell className="pr-3 text-right">
+      <TableCell className="text-right">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button

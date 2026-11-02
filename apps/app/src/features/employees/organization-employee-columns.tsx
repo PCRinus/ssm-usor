@@ -18,8 +18,7 @@ export const organizationEmployeeColumns = helper.columns([
     header: 'Angajat',
     enableSorting: true,
     meta: {
-      headerClassName: 'pl-5',
-      cellClassName: 'pl-5 font-medium',
+      cellClassName: 'font-medium',
       skeletonClassName: 'w-40',
     },
     cell: ({ row, getValue }) => (

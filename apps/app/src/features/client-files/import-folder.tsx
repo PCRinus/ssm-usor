@@ -117,11 +117,8 @@ export function ImportFolderRows({
 
   return (
     <>
-      <TableRow
-        data-testid="client-import-folder"
-        className="bg-muted/40 hover:bg-muted/60 max-sm:grid max-sm:grid-cols-1 max-sm:gap-y-2 max-sm:py-3"
-      >
-        <TableCell className="whitespace-normal max-sm:py-0">
+      <TableRow data-testid="client-import-folder" className="bg-muted/40 hover:bg-muted/60">
+        <TableCell className="min-w-56 whitespace-normal">
           <div className="flex min-w-0 items-start gap-2">
             <Button
               variant="ghost"
@@ -151,10 +148,10 @@ export function ImportFolderRows({
             </div>
           </div>
         </TableCell>
-        <TableCell className="text-right align-top tabular-nums max-sm:hidden">
+        <TableCell className="text-right align-top tabular-nums">
           {formatFileSize(bytesOf(files))}
         </TableCell>
-        <TableCell className="align-top max-sm:hidden">
+        <TableCell className="align-top">
           <span className="tabular-nums">{date}</span>
           {uploader && (
             <span className="mt-0.5 block max-w-48 truncate text-xs text-muted-foreground">
@@ -162,7 +159,7 @@ export function ImportFolderRows({
             </span>
           )}
         </TableCell>
-        <TableCell className="align-top max-sm:py-0 max-sm:pl-17">
+        <TableCell className="align-top">
           <Button
             variant="outline"
             size="sm"
@@ -183,12 +180,8 @@ export function ImportFolderRows({
           const depth = folder.path === '' ? 1 : 2;
           return [
             folder.path !== '' && (
-              <TableRow
-                key={`folder-${folder.path}`}
-                data-testid="client-import-subfolder"
-                className="max-sm:grid max-sm:grid-cols-1"
-              >
-                <TableCell className="whitespace-normal">
+              <TableRow key={`folder-${folder.path}`} data-testid="client-import-subfolder">
+                <TableCell className="min-w-56 whitespace-normal">
                   <div className="flex min-w-0 items-center gap-2 pl-6">
                     <Button
                       variant="ghost"
@@ -215,20 +208,21 @@ export function ImportFolderRows({
                     </span>
                   </div>
                 </TableCell>
-                <TableCell className="text-right text-muted-foreground tabular-nums max-sm:hidden">
+                <TableCell className="text-right text-muted-foreground tabular-nums">
                   {formatFileSize(bytesOf(folder.files))}
                 </TableCell>
-                <TableCell className="max-sm:hidden" />
-                <TableCell className="max-sm:hidden" />
+                <TableCell />
+                <TableCell />
               </TableRow>
             ),
             ...(isOpen ? shown.map((file) => renderFile(file, depth)) : []),
             isOpen && folder.files.length > shownPerFolder && (
               <TableRow key={`more-${folder.path}`}>
-                <TableCell colSpan={4} className={cn(depth === 2 ? 'pl-14' : 'pl-8')}>
+                <TableCell colSpan={4}>
                   <Button
                     variant="ghost"
                     size="xs"
+                    className={cn(depth === 2 ? 'ml-12' : 'ml-6')}
                     onClick={() => setShowAll(toggle(showAll, folder.path))}
                   >
                     {all ? <ChevronDown aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}

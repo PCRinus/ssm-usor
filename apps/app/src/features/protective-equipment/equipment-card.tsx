@@ -259,8 +259,8 @@ export function EquipmentCard({
         </EmptyState>
       ) : (
         <>
-          <Table className="max-sm:block">
-            <TableHeader className="max-sm:sr-only">
+          <Table>
+            <TableHeader>
               <TableRow>
                 <TableHead>Risc</TableHead>
                 <TableHead>Articol</TableHead>
@@ -273,34 +273,26 @@ export function EquipmentCard({
                 )}
               </TableRow>
             </TableHeader>
-            <TableBody className="max-sm:block">
+            <TableBody>
               {items.map((entry) => (
                 <TableRow
                   key={entry.id}
                   data-testid="equipment-row"
                   {...rowClickProps(readOnly ? undefined : () => setEditing(entry))}
-                  className={cn(
-                    'max-sm:grid max-sm:grid-cols-[auto_minmax(0,1fr)_auto] max-sm:gap-x-3 max-sm:gap-y-1 max-sm:py-3',
-                    !readOnly && 'cursor-pointer'
-                  )}
+                  className={cn('', !readOnly && 'cursor-pointer')}
                 >
-                  <TableCell className="whitespace-normal max-sm:col-span-2 max-sm:col-start-1 max-sm:row-start-2 max-sm:p-0 max-sm:text-muted-foreground">
-                    {entry.risk}
-                  </TableCell>
-                  <TableCell className="font-medium whitespace-normal max-sm:col-span-2 max-sm:col-start-1 max-sm:row-start-1 max-sm:p-0">
+                  <TableCell className="min-w-40 whitespace-normal">{entry.risk}</TableCell>
+                  <TableCell className="min-w-40 font-medium whitespace-normal">
                     {entry.item}
                   </TableCell>
-                  <TableCell
-                    className="tabular-nums max-sm:col-start-1 max-sm:row-start-3 max-sm:p-0"
-                    data-testid="equipment-quantity-cell"
-                  >
+                  <TableCell className="tabular-nums" data-testid="equipment-quantity-cell">
                     {quantityLabel(entry)}
                   </TableCell>
-                  <TableCell className="text-muted-foreground max-sm:col-start-2 max-sm:row-start-3 max-sm:p-0 max-sm:whitespace-normal">
+                  <TableCell className="text-muted-foreground">
                     {allocationLabels[entry.allocation]}
                   </TableCell>
                   {!readOnly && (
-                    <TableCell className="max-sm:col-start-3 max-sm:row-span-3 max-sm:row-start-1 max-sm:p-0">
+                    <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button

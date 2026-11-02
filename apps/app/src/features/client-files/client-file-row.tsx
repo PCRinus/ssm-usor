@@ -49,12 +49,8 @@ export function FileRow({
   const date = formatUploadDate(file.createdAt);
   const uploader = file.uploadedBy ? (file.uploadedBy.fullName ?? 'Fără nume') : null;
   return (
-    <TableRow
-      data-testid="client-file-row"
-      {...rowClickProps(onOpen)}
-      className="cursor-pointer max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:gap-x-2 max-sm:py-3"
-    >
-      <TableCell className="whitespace-normal max-sm:p-0">
+    <TableRow data-testid="client-file-row" {...rowClickProps(onOpen)} className="cursor-pointer">
+      <TableCell className="min-w-56 whitespace-normal">
         <div
           className="flex min-w-0 items-start gap-3"
           style={depth > 0 ? { paddingLeft: `${depth * 1.5}rem` } : undefined}
@@ -79,17 +75,12 @@ export function FileRow({
                   {file.importReason && <span>{unreadReason(file.importReason)}</span>}
                 </>
               )}
-              <span className="sm:hidden">· {size}</span>
               {showOwnersOnly && file.ownersOnly && (
                 <Badge variant="secondary" data-testid="client-file-owners-only">
                   <Lock aria-hidden="true" />
                   Doar administratori
                 </Badge>
               )}
-              <span className="basis-full sm:hidden">
-                {date}
-                {uploader && `, ${uploader}`}
-              </span>
             </div>
             {file.note && (
               <p
@@ -102,8 +93,8 @@ export function FileRow({
           </div>
         </div>
       </TableCell>
-      <TableCell className="text-right align-top tabular-nums max-sm:hidden">{size}</TableCell>
-      <TableCell className="align-top max-sm:hidden">
+      <TableCell className="text-right align-top tabular-nums">{size}</TableCell>
+      <TableCell className="align-top">
         <span className="tabular-nums">{date}</span>
         {uploader && (
           <span className="mt-0.5 block max-w-48 truncate text-xs text-muted-foreground">
@@ -111,8 +102,8 @@ export function FileRow({
           </span>
         )}
       </TableCell>
-      <TableCell className="align-top max-sm:col-start-2 max-sm:row-start-1 max-sm:p-0">
-        <div className="flex gap-1 max-sm:justify-end">
+      <TableCell className="align-top">
+        <div className="flex gap-1">
           <Button
             variant="ghost"
             size="icon"
