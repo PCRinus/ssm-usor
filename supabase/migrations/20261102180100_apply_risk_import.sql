@@ -381,6 +381,9 @@ begin
       or jsonb_typeof(coalesce(v_item -> 'factors', '[]')) <> 'array' then
       raise exception 'Each library entry has a key of its own and a list of factors.' using errcode = '22023';
     end if;
+    if jsonb_typeof(v_item -> 'name') <> 'string' or btrim(v_item ->> 'name') = '' then
+      raise exception 'Each library entry has a name.' using errcode = '22023';
+    end if;
     if exists (
       select 1 from public.evaluation_profiles p
       where p.organization_id = v_import.organization_id

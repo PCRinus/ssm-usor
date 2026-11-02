@@ -1,5 +1,5 @@
 begin;
-select plan(41);
+select plan(42);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -187,6 +187,12 @@ select throws_ok(
        jsonb_set(pg_temp.payload(), '{entries,0,name}', '"bucătar VECHI"')) $$,
   'ILP05', 'The library already has an evaluation named bucătar VECHI.',
   'a new entry''s name taken by an archived entry is refused, naming it'
+);
+
+select throws_ok(
+  $$ select public.apply_risk_import('10000000-0000-4000-8000-000000000081', 'risk_evaluations', 1,
+       jsonb_set(pg_temp.payload(), '{entries,0,name}', '"  "')) $$,
+  '22023', 'Each library entry has a name.', 'a new entry without a name is refused'
 );
 
 select throws_ok(
