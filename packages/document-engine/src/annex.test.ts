@@ -91,6 +91,31 @@ describe('annexParagraphs', () => {
       [2, { marker: '•', text: 'focul deschis.' }],
     ]);
   });
+
+  it('keeps an alineat at the article’s first tier, never under the letters before it', () => {
+    const tiersOf = (paragraphs: string[]) =>
+      annexParagraphs({ blocks: [{ kind: 'article', paragraphs }] })
+        .slice(1)
+        .map((item) => (item.item1 ? 1 : item.item2 ? 2 : item.item3 ? 3 : 0));
+
+    expect(
+      tiersOf([
+        'Personalul are atribuțiile:',
+        'a) verifică stingătoarele;',
+        'b) ține căile de evacuare libere;',
+        '(2) Atribuțiile de la alin. (1) lit. a) se trec în fișa postului.',
+        'a) la angajare;',
+        'b) la schimbarea postului.',
+      ])
+    ).toEqual([1, 1, 1, 2, 2]);
+    expect(
+      tiersOf([
+        '(1) Spălătoria are un responsabil care:',
+        'a) verifică uscătoarele;',
+        '(2) Responsabilul este numit prin decizie.',
+      ])
+    ).toEqual([2, 1]);
+  });
 });
 
 describe.each([

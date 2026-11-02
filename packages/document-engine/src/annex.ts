@@ -28,8 +28,16 @@ export interface AnnexParagraph {
 
 const marker = /^(\(?\p{Ll}{1,4}\)|\(?\d{1,3}(?:\.\d{1,3})*[.)]|[–—\-•·▪◦●○■►➢✓*])\s+/u;
 
+const alineat = /^\(\d{1,3}\)$/u;
+
 const markerKind = (label: string) =>
-  /\d/u.test(label) ? 'number' : /\p{L}/u.test(label) ? 'letter' : 'bullet';
+  alineat.test(label)
+    ? 'alineat'
+    : /\d/u.test(label)
+      ? 'number'
+      : /\p{L}/u.test(label)
+        ? 'letter'
+        : 'bullet';
 
 const empty: AnnexParagraph = {
   heading: false,
@@ -41,7 +49,8 @@ const empty: AnnexParagraph = {
 };
 
 // A paragraph that opens with a marker hangs from it, one tier deeper for each kind of marker
-// its article met before ("a)" under "1.").
+// its article met before ("a)" under "1."). An alineat ("(2)") divides the article itself, as
+// in the orders the fire-safety annexes copy, so it never hangs under the letters before it.
 export function annexParagraphs(body: AnnexBody): AnnexParagraph[] {
   const paragraphs: AnnexParagraph[] = [];
   let number = 0;
@@ -53,7 +62,7 @@ export function annexParagraphs(body: AnnexBody): AnnexParagraph[] {
     number += 1;
     const [first = '', ...rest] = block.paragraphs;
     paragraphs.push({ ...empty, article: { number, text: first } });
-    const tiers: string[] = [];
+    let tiers: string[] = /^\(1\)\s/u.test(first) ? ['alineat'] : [];
     for (const text of rest) {
       const match = marker.exec(text);
       if (!match) {
@@ -61,7 +70,8 @@ export function annexParagraphs(body: AnnexBody): AnnexParagraph[] {
         continue;
       }
       const kind = markerKind(match[1]!);
-      if (!tiers.includes(kind)) tiers.push(kind);
+      if (kind === 'alineat') tiers = [kind];
+      else if (!tiers.includes(kind)) tiers.push(kind);
       const tier = Math.min(tiers.indexOf(kind) + 1, 3) as 1 | 2 | 3;
       paragraphs.push({
         ...empty,
