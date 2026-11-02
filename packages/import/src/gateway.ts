@@ -20,7 +20,8 @@ export interface CompletionRequest<T> {
   reasoningEffort: ReasoningEffort;
   // Reasoning tokens count toward it.
   maxCompletionTokens: number;
-  metadata: { organizationId: string; importId: string };
+  // `part` names the library part a request reads for (ADR 034), as `instructions_ssm`.
+  metadata: { organizationId: string; importId: string; part?: string };
 }
 
 export interface Completion<T> {

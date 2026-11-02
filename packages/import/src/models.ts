@@ -1,6 +1,8 @@
 // One constant per step, so that moving a step to another model is one change (ADR 030).
 export const sortingModel = 'gpt-6-luna';
 export const readingModel = 'gpt-6.1-terra';
+export const instructionsModel = 'gpt-6.1-terra';
+export const similarityModel = 'gpt-6-luna';
 
 export type ModelId = typeof sortingModel | typeof readingModel;
 
