@@ -15,7 +15,7 @@ export const Route = createFileRoute(
   '/_authenticated/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare'
 )({
   validateSearch: factorListSearch,
-  staticData: { title: 'Evaluare de risc' },
+  staticData: { title: 'Fișa de evaluare' },
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
     const userId = auth.getSnapshot().session?.user.id;
     await queryClient.ensureQueryData(

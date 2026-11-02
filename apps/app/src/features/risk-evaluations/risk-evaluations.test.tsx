@@ -410,7 +410,7 @@ describe("a position's risk evaluation page", () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Sudor' })).toBeTruthy();
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
     expect(within(breadcrumb).getByRole('link', { name: 'Sudor' })).toBeTruthy();
-    expect(within(breadcrumb).getByText('Evaluare de risc')).toBeTruthy();
+    expect(within(breadcrumb).getByText('Fișa de evaluare')).toBeTruthy();
 
     expect(screen.getAllByTestId('risk-factors-tab').map((tab) => tab.textContent)).toEqual([
       'Toți 4',
@@ -814,7 +814,7 @@ describe("a position's risk evaluation page", () => {
     const source = await screen.findByTestId<HTMLSelectElement>('risk-factors-copy-source');
     await waitFor(() => expect(source.options).toHaveLength(3));
     expect([...source.options].map((option) => option.textContent)).toEqual([
-      'Alege o evaluare…',
+      'Alege o fișă…',
       'Sudor (4 factori)',
       'Vizitatori (un factor)',
     ]);
@@ -825,7 +825,7 @@ describe("a position's risk evaluation page", () => {
         { fromEvaluationId: welderEvaluation.id },
       ])
     );
-    expect(await screen.findByText('Evaluarea are acum 4 factori.')).toBeTruthy();
+    expect(await screen.findByText('Fișa are acum 4 factori.')).toBeTruthy();
     expect(screen.getAllByTestId('risk-factor-row')).toHaveLength(4);
   });
 
@@ -1104,7 +1104,7 @@ describe("a client's evaluations outside its positions", () => {
     );
     await userEvent.setup().click(await within(card).findByTestId('sensitive-groups-none'));
     expect((await within(card).findByTestId('client-risk-evaluations-error')).textContent).toBe(
-      'Grupurile sensibile au deja o evaluare; reîncarcă pagina ca s-o vezi.'
+      'Grupurile sensibile au deja o fișă de evaluare; reîncarcă pagina ca s-o vezi.'
     );
   });
 
@@ -1143,7 +1143,7 @@ describe("a client's evaluations outside its positions", () => {
       expect(requests(evaluationsPath, 'POST')).toEqual([{ kind: 'other', name: 'Vizitatori' }])
     );
     expect((await screen.findByTestId('client-risk-evaluation-name-error')).textContent).toBe(
-      'Clientul are deja o evaluare cu această denumire.'
+      'Clientul are deja o fișă de evaluare cu această denumire.'
     );
     expect(screen.getByTestId('client-risk-evaluation-dialog')).toBeTruthy();
   });
@@ -1232,7 +1232,7 @@ describe('the factor list', () => {
 describe('a failed change', () => {
   it('is put down to an archived client only when the API says so', () => {
     expect(evaluationFailure(new ApiHttpError(409, { reason: 'client_archived' }), 'Eroare.')).toBe(
-      'Clientul este arhivat; evaluările lui nu se mai schimbă.'
+      'Clientul este arhivat; fișele lui de evaluare nu se mai schimbă.'
     );
     expect(evaluationFailure(new ApiHttpError(409, { reason: 'other' }), 'Eroare.')).toBe(
       'Eroare.'

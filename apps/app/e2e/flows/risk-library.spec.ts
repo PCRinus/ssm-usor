@@ -65,11 +65,11 @@ test("a client's evaluated post becomes a profile that evaluates another client'
   await page.getByTestId('profile-name').fill('Lucrător în atelier');
   await page.getByTestId('profile-name-submit').click();
   await expect(
-    page.getByText('Profilul „Lucrător în atelier” a fost salvat în biblioteca de riscuri.')
+    page.getByText('Evaluarea „Lucrător în atelier” a fost salvată în bibliotecă.')
   ).toBeVisible();
   await expect(page.getByTestId('risk-library-nudge')).toHaveCount(0);
   await expect(page.getByTestId('risk-factors-origin')).toContainText(
-    'în profilul Lucrător în atelier.'
+    'în evaluarea Lucrător în atelier din bibliotecă.'
   );
 
   await page.goto(`/clienti/${second.data.id}/posturi/${secondPosition}/fisa-de-evaluare`);
@@ -84,11 +84,11 @@ test("a client's evaluated post becomes a profile that evaluates another client'
     .click();
   await dialog.getByTestId('apply-profile-confirm').click();
   await expect(
-    page.getByText(/din „Lucrător în atelier” au fost adăugați în evaluare\./)
+    page.getByText(/din „Lucrător în atelier” au fost adăugați în fișă\./)
   ).toBeVisible();
   await expect(page.getByTestId('risk-factor-row')).toHaveCount(factorCount);
   await expect(page.getByTestId('risk-factors-origin')).toHaveText(
-    `Toți cei ${factorCount} factori sunt în profilul Lucrător în atelier.`
+    `Toți cei ${factorCount} factori sunt în evaluarea Lucrător în atelier din bibliotecă.`
   );
   await expect(page.getByTestId('risk-factor-origin')).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);

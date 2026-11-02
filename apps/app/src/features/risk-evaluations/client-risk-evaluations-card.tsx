@@ -62,7 +62,7 @@ export function ClientRiskEvaluationsCard({
     <SectionCard
       id={clientEvaluationsSection}
       data-testid="client-risk-evaluations-card"
-      title="Evaluări de risc în afara posturilor"
+      title="Fișe de evaluare în afara posturilor"
       description="Grupurile sensibile la riscuri specifice se evaluează ca un post; la fel orice altă categorie de persoane expuse, cum sunt vizitatorii."
       action={
         !readOnly && (
@@ -73,7 +73,7 @@ export function ClientRiskEvaluationsCard({
             onClick={() => setAdding(true)}
           >
             <Plus aria-hidden="true" />
-            Adaugă o evaluare
+            Adaugă o fișă
           </Button>
         )
       }
@@ -98,7 +98,7 @@ export function ClientRiskEvaluationsCard({
             </Button>
           }
         >
-          Nu am putut încărca evaluările clientului.
+          Nu am putut încărca fișele de evaluare ale clientului.
         </Notice>
       ) : (
         <ul className="grid divide-y">
@@ -288,10 +288,10 @@ function AddEvaluationForm({ clientId, onClose }: { clientId: string; onClose: (
     <DialogContent data-testid="client-risk-evaluation-dialog" className="sm:max-w-md">
       <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={pending} noValidate>
         <DialogHeader>
-          <DialogTitle>Adaugă o evaluare</DialogTitle>
+          <DialogTitle>Adaugă o fișă de evaluare</DialogTitle>
           <DialogDescription>
-            Pentru persoane expuse care nu ocupă un post al clientului. Grupurile sensibile au
-            evaluarea lor.
+            Pentru persoane expuse care nu ocupă un post al clientului. Grupurile sensibile au fișa
+            lor.
           </DialogDescription>
         </DialogHeader>
         <div className="mt-5 grid gap-4">

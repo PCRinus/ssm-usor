@@ -215,7 +215,7 @@ describe("a job position's page", () => {
       expect.stringMatching(/^Echipament de protecție/),
       expect.stringMatching(/^Instrucțiuni specifice SSM/),
       expect.stringMatching(/^Instrucțiuni specifice SU/),
-      expect.stringMatching(/^Evaluare de risc/),
+      expect.stringMatching(/^Fișa de evaluare/),
     ]);
   });
 
