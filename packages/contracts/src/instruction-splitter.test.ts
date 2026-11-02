@@ -293,6 +293,41 @@ describe('splitInstruction on pasted text', () => {
     expect(result.articles).toEqual([{ sourceNumber: null }, { sourceNumber: 1 }]);
   });
 
+  it('reads text copied from Word: a label before a tab is the number, other tabs a table row', () => {
+    const result = splitInstruction(
+      [
+        '1.\tLucrătorul verifică scara înainte de folosire:',
+        'a)\ttălpile antiderapante;',
+        '·\tbalamalele și dispozitivul de blocare.',
+        '2.\tScările se folosesc după tabelul de mai jos:',
+        'Înălțime\tLucrători\tAsigurare',
+        'peste 2 m\t2\tcentură',
+      ].join('\n')
+    );
+    expect(result.body.blocks).toEqual([
+      {
+        kind: 'article',
+        paragraphs: [
+          'Lucrătorul verifică scara înainte de folosire:',
+          'a) tălpile antiderapante;',
+          '• balamalele și dispozitivul de blocare.',
+        ],
+      },
+      {
+        kind: 'article',
+        paragraphs: [
+          'Scările se folosesc după tabelul de mai jos:',
+          'Înălțime – Lucrători – Asigurare',
+          'peste 2 m – 2 – centură',
+        ],
+      },
+    ]);
+    expect(result.flags).toEqual([
+      { kind: 'table_row', article: 2 },
+      { kind: 'table_row', article: 2 },
+    ]);
+  });
+
   it('flags an empty text', () => {
     const result = splitInstruction('\n\n  \n');
     expect(result.body.blocks).toEqual([]);

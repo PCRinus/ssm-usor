@@ -72,7 +72,13 @@ function linesToParagraphs(text: string): SplitterParagraph[] {
   const paragraphs: SplitterParagraph[] = [];
   let lastLine = '';
   for (const raw of text.split(/\r\n|[\r\n\u2028\u2029\f]/u)) {
-    const line = collapse(raw);
+    const cells = tabCells(raw);
+    if (cells.length > 1) {
+      paragraphs.push({ text: cells.join('\t'), table: true });
+      lastLine = '';
+      continue;
+    }
+    const line = cells[0] ?? '';
     if (line === '') {
       lastLine = '';
       continue;
@@ -90,6 +96,23 @@ function linesToParagraphs(text: string): SplitterParagraph[] {
     lastLine = line;
   }
   return paragraphs;
+}
+
+const listLabel =
+  /^(?:(?:art(?:icolul|\.)?\s*)?\d{1,4}(?:\.\d{1,3})*[.)]?|\(?[\p{Ll}]{1,4}\)|[–—\-•·▪◦●○■►➢✓*o\uf000-\uf0ff])$/iu;
+
+// Word copies a numbered or bulleted paragraph as its label, a tab, then the text, and a table
+// row as its cells apart by tabs.
+function tabCells(raw: string) {
+  const cells = raw
+    .split('\t')
+    .map(collapse)
+    .filter((cell) => cell !== '');
+  if (cells.length > 1 && listLabel.test(cells[0]!)) {
+    const label = /^[o·\uf000-\uf0ff]$/u.test(cells[0]!) ? '•' : cells[0]!;
+    cells.splice(0, 2, `${label} ${cells[1]!}`);
+  }
+  return cells;
 }
 
 const startsSomething = (line: string) =>

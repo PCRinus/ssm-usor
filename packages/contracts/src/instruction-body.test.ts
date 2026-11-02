@@ -200,4 +200,14 @@ describe('guidedTemplates', () => {
       'Mijloacele de stingere și evacuarea'
     );
   });
+
+  it('gives every section a hint and one example that is a valid article', () => {
+    for (const category of instructionCategories) {
+      for (const section of guidedTemplates[category]) {
+        expect(section.hint, `${category}.${section.key}`).toMatch(/^\p{Lu}.+\.$/u);
+        expect(section.example, `${category}.${section.key}`).toMatch(/^\p{Lu}.+\.$/u);
+        expect(section.example).not.toMatch(/\n/);
+      }
+    }
+  });
 });
