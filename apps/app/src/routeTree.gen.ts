@@ -105,6 +105,7 @@ import { Route as AuthenticatedClientsClientIdEmployeesImportImportIdRouteImport
 import { Route as AuthenticatedClientsClientIdJobPositionsJobPositionIdIndexRouteImport } from './routes/_authenticated/clients/$clientId/job-positions/$jobPositionId/index';
 import { Route as AuthenticatedClientsClientIdJobPositionsJobPositionIdRiskEvaluationRouteImport } from './routes/_authenticated/clients/$clientId/job-positions/$jobPositionId/risk-evaluation';
 import { Route as AuthenticatedClientsClientIdJobPositionsRiskEvaluationsEvaluationIdRouteImport } from './routes/_authenticated/clients/$clientId/job-positions/risk-evaluations.$evaluationId';
+import { Route as AuthenticatedClientsImportImportIdInstructionsDomainRouteImport } from './routes/_authenticated/clients/import/$importId/instructions/$domain';
 import { Route as AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingIndexRouteImport } from './routes/_authenticated/clients/$clientId/employees/$employeeId/training/index';
 import { Route as AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingPsiRouteImport } from './routes/_authenticated/clients/$clientId/employees/$employeeId/training/psi';
 import { Route as AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSsmRouteImport } from './routes/_authenticated/clients/$clientId/employees/$employeeId/training/ssm';
@@ -664,6 +665,12 @@ const AuthenticatedClientsClientIdJobPositionsRiskEvaluationsEvaluationIdRoute =
       getParentRoute: () => AuthenticatedClientsClientIdJobPositionsRoute,
     } as any,
   );
+const AuthenticatedClientsImportImportIdInstructionsDomainRoute =
+  AuthenticatedClientsImportImportIdInstructionsDomainRouteImport.update({
+    id: '/instructions/$domain',
+    path: '/instructions/$domain',
+    getParentRoute: () => AuthenticatedClientsImportImportIdRoute,
+  } as any);
 const AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingIndexRoute =
   AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingIndexRouteImport.update(
     {
@@ -794,6 +801,7 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/employees/import/$importId': typeof AuthenticatedClientsClientIdEmployeesImportImportIdRouteWithChildren;
   '/clients/$clientId/job-positions/$jobPositionId/risk-evaluation': typeof AuthenticatedClientsClientIdJobPositionsJobPositionIdRiskEvaluationRoute;
   '/clients/$clientId/job-positions/risk-evaluations/$evaluationId': typeof AuthenticatedClientsClientIdJobPositionsRiskEvaluationsEvaluationIdRoute;
+  '/clients/import/$importId/instructions/$domain': typeof AuthenticatedClientsImportImportIdInstructionsDomainRoute;
   '/clients/$clientId/employees/$employeeId/': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdIndexRoute;
   '/clients/$clientId/job-positions/$jobPositionId/': typeof AuthenticatedClientsClientIdJobPositionsJobPositionIdIndexRoute;
   '/clients/$clientId/employees/$employeeId/training/psi': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingPsiRoute;
@@ -873,6 +881,7 @@ export interface FileRoutesByTo {
   '/clients/$clientId/employees/$employeeId/edit': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdEditRoute;
   '/clients/$clientId/job-positions/$jobPositionId/risk-evaluation': typeof AuthenticatedClientsClientIdJobPositionsJobPositionIdRiskEvaluationRoute;
   '/clients/$clientId/job-positions/risk-evaluations/$evaluationId': typeof AuthenticatedClientsClientIdJobPositionsRiskEvaluationsEvaluationIdRoute;
+  '/clients/import/$importId/instructions/$domain': typeof AuthenticatedClientsImportImportIdInstructionsDomainRoute;
   '/clients/$clientId/employees/$employeeId': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdIndexRoute;
   '/clients/$clientId/job-positions/$jobPositionId': typeof AuthenticatedClientsClientIdJobPositionsJobPositionIdIndexRoute;
   '/clients/$clientId/employees/$employeeId/training/psi': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingPsiRoute;
@@ -977,6 +986,7 @@ export interface FileRoutesById {
   '/_authenticated/clients/$clientId/employees/import/$importId': typeof AuthenticatedClientsClientIdEmployeesImportImportIdRouteWithChildren;
   '/_authenticated/clients/$clientId/job-positions/$jobPositionId/risk-evaluation': typeof AuthenticatedClientsClientIdJobPositionsJobPositionIdRiskEvaluationRoute;
   '/_authenticated/clients/$clientId/job-positions/risk-evaluations/$evaluationId': typeof AuthenticatedClientsClientIdJobPositionsRiskEvaluationsEvaluationIdRoute;
+  '/_authenticated/clients/import/$importId/instructions/$domain': typeof AuthenticatedClientsImportImportIdInstructionsDomainRoute;
   '/_authenticated/clients/$clientId/employees/$employeeId/': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdIndexRoute;
   '/_authenticated/clients/$clientId/job-positions/$jobPositionId/': typeof AuthenticatedClientsClientIdJobPositionsJobPositionIdIndexRoute;
   '/_authenticated/clients/$clientId/employees/$employeeId/training/psi': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingPsiRoute;
@@ -1079,6 +1089,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/employees/import/$importId'
     | '/clients/$clientId/job-positions/$jobPositionId/risk-evaluation'
     | '/clients/$clientId/job-positions/risk-evaluations/$evaluationId'
+    | '/clients/import/$importId/instructions/$domain'
     | '/clients/$clientId/employees/$employeeId/'
     | '/clients/$clientId/job-positions/$jobPositionId/'
     | '/clients/$clientId/employees/$employeeId/training/psi'
@@ -1158,6 +1169,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/employees/$employeeId/edit'
     | '/clients/$clientId/job-positions/$jobPositionId/risk-evaluation'
     | '/clients/$clientId/job-positions/risk-evaluations/$evaluationId'
+    | '/clients/import/$importId/instructions/$domain'
     | '/clients/$clientId/employees/$employeeId'
     | '/clients/$clientId/job-positions/$jobPositionId'
     | '/clients/$clientId/employees/$employeeId/training/psi'
@@ -1261,6 +1273,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clients/$clientId/employees/import/$importId'
     | '/_authenticated/clients/$clientId/job-positions/$jobPositionId/risk-evaluation'
     | '/_authenticated/clients/$clientId/job-positions/risk-evaluations/$evaluationId'
+    | '/_authenticated/clients/import/$importId/instructions/$domain'
     | '/_authenticated/clients/$clientId/employees/$employeeId/'
     | '/_authenticated/clients/$clientId/job-positions/$jobPositionId/'
     | '/_authenticated/clients/$clientId/employees/$employeeId/training/psi'
@@ -1958,6 +1971,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsClientIdJobPositionsRiskEvaluationsEvaluationIdRouteImport;
       parentRoute: typeof AuthenticatedClientsClientIdJobPositionsRoute;
     };
+    '/_authenticated/clients/import/$importId/instructions/$domain': {
+      id: '/_authenticated/clients/import/$importId/instructions/$domain';
+      path: '/instructions/$domain';
+      fullPath: '/clients/import/$importId/instructions/$domain';
+      preLoaderRoute: typeof AuthenticatedClientsImportImportIdInstructionsDomainRouteImport;
+      parentRoute: typeof AuthenticatedClientsImportImportIdRoute;
+    };
     '/_authenticated/clients/$clientId/employees/$employeeId/training/': {
       id: '/_authenticated/clients/$clientId/employees/$employeeId/training/';
       path: '/training';
@@ -2253,6 +2273,7 @@ interface AuthenticatedClientsImportImportIdRouteChildren {
   AuthenticatedClientsImportImportIdSectionRoute: typeof AuthenticatedClientsImportImportIdSectionRoute;
   AuthenticatedClientsImportImportIdFilesRoute: typeof AuthenticatedClientsImportImportIdFilesRoute;
   AuthenticatedClientsImportImportIdIndexRoute: typeof AuthenticatedClientsImportImportIdIndexRoute;
+  AuthenticatedClientsImportImportIdInstructionsDomainRoute: typeof AuthenticatedClientsImportImportIdInstructionsDomainRoute;
 }
 
 const AuthenticatedClientsImportImportIdRouteChildren: AuthenticatedClientsImportImportIdRouteChildren =
@@ -2263,6 +2284,8 @@ const AuthenticatedClientsImportImportIdRouteChildren: AuthenticatedClientsImpor
       AuthenticatedClientsImportImportIdFilesRoute,
     AuthenticatedClientsImportImportIdIndexRoute:
       AuthenticatedClientsImportImportIdIndexRoute,
+    AuthenticatedClientsImportImportIdInstructionsDomainRoute:
+      AuthenticatedClientsImportImportIdInstructionsDomainRoute,
   };
 
 const AuthenticatedClientsImportImportIdRouteWithChildren =

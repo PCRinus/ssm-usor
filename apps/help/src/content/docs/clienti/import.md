@@ -48,6 +48,8 @@ topics:
     heading: Nicio instruire și niciun test de refăcut
   - id: import.portal
     heading: Portalul și actul adițional după import
+  - id: import.instructiuni-proprii
+    heading: Instrucțiunile proprii din documentație
 sources:
   - docs/architecture/adr-030-import-from-documents.md
   - docs/architecture/adr-032-employees-imported-from-training-sheets.md
@@ -56,6 +58,8 @@ sources:
   - packages/contracts/src/billing.ts
   - docs/architecture/adr-034-own-instructions-as-app-text.md
   - apps/api/src/modules/imports/library.ts
+  - apps/app/src/features/imports/library/*.tsx
+  - apps/app/src/features/imports/library/library-model.ts
   - apps/api/src/modules/credits/usage.ts
   - apps/app/src/features/imports/import-credits.ts
   - apps/app/src/features/imports/credits-notices.tsx
@@ -101,7 +105,7 @@ Sunt două importuri, în această ordine: întâi clientul, din documentația l
 
 Citirea documentelor și a fotografiilor se socotește în credite. Un credit înseamnă o fotografie sau o pagină scanată citită.
 
-- **Importul unui client** folosește 25 de credite pentru citirea documentelor, oricât de lungi ar fi, plus câte unul pentru fiecare fotografie și pagină scanată. Un PDF cu text, salvat din Word de exemplu, intră în cele 25. Care pagini ale unui PDF sunt scanate se află abia la citire, așa că fereastra de încărcare îți spune: „Folosește 25 de credite, plus 1 pentru fiecare pagină scanată.”
+- **Importul unui client** folosește 25 de credite pentru citirea documentelor, oricât de lungi ar fi, plus câte unul pentru fiecare fotografie și pagină scanată. Un PDF cu text, salvat din Word de exemplu, intră în cele 25. Care pagini ale unui PDF sunt scanate se află abia la citire, așa că fereastra de încărcare îți spune: „Folosește 25 de credite, plus 1 pentru fiecare pagină scanată.” Tot ea îți spune că instrucțiunile proprii, dacă le găsim, folosesc încă 25 (IPSSM) și 10 (IPSU).
 - **Importul angajaților** folosește un credit pentru fiecare fotografie și pentru fiecare pagină a unui PDF.
 - **Instrucțiunile proprii** din documentația unui client se citesc separat, pentru biblioteca ta de instrucțiuni proprii: 25 de credite pentru cele SSM și 10 pentru cele PSI, de fiecare dată când le citim. Dacă citirea lor nu reușește, creditele ei îți sunt returnate.
 
@@ -117,7 +121,7 @@ La prima plată primești, o singură dată, creditele de bun venit, ca să-ți 
 
 Un import nou pornește doar dacă creditele rămase acoperă ce se știe dinainte: cele 25 ale citirii și fotografiile, la un client; toate fotografiile și paginile, la angajați. Altfel **Încarcă și citește** rămâne oprit, iar fereastra îți spune câte credite trebuie, câte îți mai rămân și când primești altele. La angajați poți scoate o parte dintre fotografii și le imporți după reînnoire, cu toate fotografiile unei persoane în același import. Dacă ai nevoie de credite mai devreme, scrie-ne la contact@ssmusor.ro și îți adăugăm credite.
 
-Un import pornit nu se oprește din lipsă de credite. Dacă documentele unui client au mai multe pagini scanate decât credite rămase, importul se termină, iar diferența se scade din creditele lunii următoare: cu 4 credite peste, luna următoare pe Start începe cu 296. Înainte să creezi clientul vezi cât a folosit importul, de exemplu „Importul a folosit 34 de credite (25 + 9 pagini scanate)”.
+Un import pornit nu se oprește din lipsă de credite. Dacă documentele unui client au mai multe pagini scanate decât credite rămase, importul se termină, iar diferența se scade din creditele lunii următoare: cu 4 credite peste, luna următoare pe Start începe cu 296. Înainte să creezi clientul vezi cât a folosit importul, de exemplu „Importul a folosit 34 de credite (25 + 9 pagini scanate)” sau, cu instrucțiunile proprii, „Importul a folosit 60 de credite (25 + 35 pentru instrucțiunile proprii)”.
 
 ### Creditele returnate
 
@@ -136,6 +140,26 @@ Nu trebuie să aștepți citirea: importul rămâne în **Clienți**, la **Impor
 Cât timp ai un import pornit de tine care se citește, te așteaptă la verificare sau s-a oprit, în capul paginii apare butonul **Importuri**, lângă **Ghid de configurare**; pe telefon e butonul rotund de lângă ghid, cu numărul importurilor de verificat. Îl deschizi de pe orice pagină și vezi importurile grupate: **De verificat**, cu butonul care te duce la verificare, **Se citesc**, cu cât s-a citit, și **S-au oprit**, cu **Vezi importul**. Un import confirmat sau la care ai renunțat iese din listă, iar butonul dispare când nu mai ai niciunul deschis.
 
 Documentele încărcate rămân la client, în **Alte documente**, într-un folder „Dosar importat pe …”. Fotografiile fișelor de instruire găsite printre ele sunt păstrate pentru importul angajaților.
+
+### Instrucțiunile proprii din documentație
+
+Instrucțiunile proprii din pachet (IPSSM și IPSU) se citesc separat, după ce propunerea clientului e gata, pentru biblioteca ta de [instrucțiuni proprii](/instructiuni/). Pe pagina importului apar sub secțiunile clientului, în grupul **Instrucțiuni proprii**, câte una pentru IPSSM și IPSU, fiecare cu starea ei: _se citește_, _de verificat_, _nimic nou_, _nu s-a putut citi_ sau _confirmat_.
+
+Le poți deschide și verifica de îndată ce sunt citite, dar le confirmi după client, pentru că se aplică la posturile lui: până atunci butonul lor spune **Confirmă întâi clientul**. Nu te țin pe loc: creezi clientul oricând. Dacă mai ai instrucțiuni de confirmat, după crearea clientului te întorci pe pagina importului, iar pagina clientului îți amintește de ele, cu **Verifică instrucțiunile**, până le confirmi. Le poți confirma timp de 14 zile de la crearea clientului; după aceea propunerea expiră.
+
+Ce ai deja în bibliotecă nu ți se cere din nou. Deasupra listei vezi câte sunt, de exemplu „7 instrucțiuni din pachet sunt deja în biblioteca ta”: la confirmare, posturile primesc instrucțiunea ta. Pentru fiecare instrucțiune nouă sau asemănătoare vezi:
+
+- **titlul și categoria** propuse, pe care le poți schimba. Titlul pierde începutul comun („Instrucțiuni proprii … privind”), iar cel din pachet rămâne scris dedesubt. Dacă ai deja o instrucțiune cu același titlu, propunerea adaugă numele clientului în paranteză;
+- **câte articole** are și **posturile** la care se aplică, după tematica de instruire, cu **Alege posturile** ca să le schimbi. Un post pentru care tematica nu spune clar ce instrucțiuni ia rămâne nedecis: îl vezi deasupra listei, cu ce scrie în tematică și de ce nu s-a putut decide, și îl alegi tu;
+- **Sursa**, care deschide fișierul la începutul instrucțiunii, și **Schimbă**, care deschide textul în formularul instrucțiunii, ca să corectezi un articol sau să scoți numele clientului;
+- avertismentele textului, de exemplu când numerotarea nu s-a putut citi sau când textul numește clientul;
+- căsuța care o preia; debifată, instrucțiunea nu intră în bibliotecă și nu se aplică la niciun post.
+
+O instrucțiune **asemănătoare** spune „Ai deja o instrucțiune care spune același lucru: …”. **Ce diferă** îți arată articolele adăugate, cele care lipsesc și cele schimbate, cu cuvintele schimbate marcate. Alegi **Folosește ce ai**, ca posturile să primească instrucțiunea ta așa cum e, sau **Adaugă ca nouă**, ca textul din pachet să intre în bibliotecă separat. Propunerea e „Folosește ce ai”, în afară de cazul în care pachetul are articole pe care instrucțiunea ta nu le are.
+
+Schimbările se salvează pe măsură ce le faci. Când nu e nimic nou, sarcina spune „Nimic nou în pachet”, iar confirmarea doar aplică instrucțiunile tale la posturi. La confirmare, instrucțiunile noi intră în bibliotecă și toate se aplică la posturile alese; un post care o avea deja nu o primește de două ori.
+
+Dacă citirea nu reușește, vezi motivul și **Citește din nou**. O citire nouă folosește din nou creditele ei (25 pentru IPSSM, 10 pentru IPSU), iar clientul și cealaltă parte rămân cum sunt. Totalul importului le arată separat, de exemplu „Importul a folosit 60 de credite (25 + 35 pentru instrucțiunile proprii)”.
 
 ## Importul angajaților din fișe
 

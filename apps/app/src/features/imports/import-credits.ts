@@ -122,7 +122,8 @@ export function usesSentence(
     files.photos === 0
       ? creditsLabel(needed)
       : `${creditsLabel(needed)} (${importCredits.clientReading} + ${photosCount(files.photos)})`;
-  return `Folosește ${known}, plus 1 pentru fiecare pagină scanată.`;
+  const { ssm, psi } = importCredits.ownInstructions;
+  return `Folosește ${known}, plus 1 pentru fiecare pagină scanată. Instrucțiunile proprii, dacă le găsim, folosesc încă ${ssm} (IPSSM) și ${psi} (IPSU).`;
 }
 
 export function leftSentence(balance: CreditsBalance, short: boolean) {
@@ -213,8 +214,14 @@ export function refusalSentence(short: CreditsShort) {
 
 export function usedSentence(credits: ImportCredits, kind: ImportKind) {
   const total = `Importul a folosit ${creditsLabel(credits.used)}`;
-  if (kind === 'employees' || credits.scannedPages === 0 || credits.refunded) return `${total}.`;
-  return `${total} (${credits.atStart} + ${scannedPagesLabel(credits.scannedPages)}).`;
+  const parts = [
+    ...(credits.scannedPages > 0 ? [scannedPagesLabel(credits.scannedPages)] : []),
+    ...(credits.ownInstructions > 0
+      ? [`${credits.ownInstructions} pentru instrucțiunile proprii`]
+      : []),
+  ];
+  if (kind === 'employees' || parts.length === 0 || credits.refunded) return `${total}.`;
+  return `${total} (${[credits.atStart, ...parts].join(' + ')}).`;
 }
 
 export const overSentence = (over: number) =>

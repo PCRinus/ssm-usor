@@ -545,7 +545,7 @@ describe('the credits an import uses', () => {
     await openDialog();
 
     expect((await creditsLine()).textContent).toBe(
-      'Folosește 25 de credite, plus 1 pentru fiecare pagină scanată. Îți mai rămân 1.270 din 1.500 luna aceasta și 7.840 din cadoul de bun venit.'
+      'Folosește 25 de credite, plus 1 pentru fiecare pagină scanată. Instrucțiunile proprii, dacă le găsim, folosesc încă 25 (IPSSM) și 10 (IPSU). Îți mai rămân 1.270 din 1.500 luna aceasta și 7.840 din cadoul de bun venit.'
     );
     expect(screen.queryByTestId('import-credits-short')).toBeNull();
   });
@@ -562,7 +562,7 @@ describe('the credits an import uses', () => {
     const dialog = await openDialog();
 
     expect((await creditsLine()).textContent).toBe(
-      'Folosește 25 de credite, plus 1 pentru fiecare pagină scanată. Îți mai rămân 266 din cele 300 ale perioadei de probă.'
+      'Folosește 25 de credite, plus 1 pentru fiecare pagină scanată. Instrucțiunile proprii, dacă le găsim, folosesc încă 25 (IPSSM) și 10 (IPSU). Îți mai rămân 266 din cele 300 ale perioadei de probă.'
     );
     expect(dialog.textContent).toContain(
       'La prima plată primești și creditele de bun venit, ca să-ți aduci toți clienții în aplicație: 2.500 cu Start sau 10.000 cu Profesional. Nu expiră.'

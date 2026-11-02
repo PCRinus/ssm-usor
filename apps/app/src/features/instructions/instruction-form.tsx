@@ -23,6 +23,7 @@ import {
   useListClients,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { saveFile } from '@/lib/save-file';
 
@@ -256,6 +257,7 @@ export function InstructionForm({
           <Badge variant={module ? 'default' : 'outline'} data-testid="editor-state">
             {module ? `Versiunea ${module.version.number}` : 'Nouă, nesalvată'}
           </Badge>
+          <HelpLink topic="instructiuni.formular" label="Ajutor: scrierea unei instrucțiuni" />
         </div>
         <p className="text-sm text-muted-foreground" data-testid="instruction-form-facts">
           {domainLabels[domain]} · {groupLabels[group]} · {articleCountLabel(count).toLowerCase()}

@@ -10,6 +10,7 @@ import { Notice } from '@/components/notice';
 import { AbandonImportDialog } from './abandon-import-dialog';
 import { ConfirmImportDialog } from './confirm-import-dialog';
 import { filesLabel, uploadSummary, usageLine } from './import-format';
+import { LibraryGroup } from './library/library-group';
 import { anchorOf, type Blocker, sectionIds, sectionLabels, sectionOf } from './review-model';
 import { StatusTag } from './review-parts';
 import {
@@ -234,6 +235,7 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
           {intoExisting ? 'Completează clientul' : 'Creează clientul'}
         </Button>
       </section>
+      <LibraryGroup detail={detail} />
       {detail.usage && (
         <p className="text-xs text-muted-foreground tabular-nums" data-testid="import-usage">
           {usageLine(detail.usage)}

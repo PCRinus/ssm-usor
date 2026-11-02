@@ -56,6 +56,7 @@ export function importDetail(overrides: Record<string, unknown> = {}) {
     blockers: [] as unknown[],
     proposalDroppedAt: null,
     proposal: null,
+    libraryParts: [] as unknown[],
     ...overrides,
   };
 }
@@ -79,6 +80,7 @@ export const summaryOf = (detail: ReturnType<typeof importDetail>) => {
     readyAt: rest.readyAt,
     failedAt: rest.failedAt,
     confirmedAt: rest.confirmedAt,
+    libraryParts: rest.libraryParts,
   };
 };
 

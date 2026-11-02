@@ -229,6 +229,7 @@ export function PositionInstructionsCard({
     <SectionCard
       id={id}
       headingLevel={3}
+      help="instructiuni.aplicare"
       data-testid={testId('card')}
       title={
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1">

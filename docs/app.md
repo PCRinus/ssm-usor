@@ -187,6 +187,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/clients/import/$importId/index.tsx`                                 | `/clients/import/:importId`                                 | The import: its steps and files while it runs, the review hub once the proposal is ready.                                                                                                                   |
 | `routes/_authenticated/clients/import/$importId/files.tsx`                                 | `/clients/import/:importId/files`                           | "Fișierele importului": the files by what the reading made of them, from the review.                                                                                                                        |
 | `routes/_authenticated/clients/import/$importId/$section.tsx`                              | `/clients/import/:importId/:section`                        | One section of the review; the loader names the breadcrumb after it.                                                                                                                                        |
+| `routes/_authenticated/clients/import/$importId/instructions/$domain.tsx`                  | `/clients/import/:importId/instructions/:domain`            | A library task of the import, IPSSM (`ssm`) or IPSU (`psi`) (ADR 034); the loader names the breadcrumb after it.                                                                                            |
 | `routes/_authenticated/clients/$clientId/edit.tsx`                                         | `/clients/:id/edit`                                         | Redirects to the details, for addresses from before the client had them. So do `contact.tsx` (`/clients/:id/contact`), `document-data.tsx` to training, and `other-documents/contract.tsx` to the contract. |
 | `routes/_authenticated/clients/$clientId.tsx`                                              | `/clients/:id`                                              | Client layout: loads the client through `GET /clients/{clientId}`, shows its summary card and section tabs, returns the breadcrumb label from its loader.                                                   |
 | `routes/_authenticated/clients/$clientId/index.tsx`                                        | `/clients/:id`                                              | Redirects to the details.                                                                                                                                                                                   |
@@ -997,6 +998,22 @@ their tab bars read.
   "Modificat de tine". Confirming shows what is created, added, changed and kept, posts
   `/confirm` with the version, and opens the client's "Detalii" with a notice held in memory for
   that one visit (`import-notice.ts`).
+- The library tasks of a client import ([ADR 034](architecture/adr-034-own-instructions-as-app-text.md),
+  `src/features/imports/library/`). Below the client's sections and their confirm, the hub shows
+  the group "Instrucțiuni proprii", one task per part of `GET /imports/{id}/library-parts`
+  (IPSSM, IPSU) with its status, polled every 3 s while a part reads. A task,
+  `/clients/import/:importId/instructions/:domain`, counts the identical instructions, lists the
+  posts the themes left undecided with their quote and why, and gives each new or similar
+  instruction a row: the include tick, title and category, the posts with a picker, its flags,
+  "Sursa" (the source viewer at the cut's first words), "Schimbă" (the instruction form's blocks
+  in a dialog), and for a similar one "Ce diferă" and the choice between "Folosește ce ai" and
+  "Adaugă ca nouă". Every change goes to `PUT …/library-parts/{part}/changes` as the client
+  review's do, one save after another on the version the previous answered. Before the client is
+  confirmed its button reads "Confirmă întâi clientul"; confirming the client with parts returns
+  to the hub, which for a confirmed import shows the client's notice and the group
+  (`confirmed-hub.tsx`), and the client's "Detalii" links back while a part is neither confirmed
+  nor expired (`GET /imports?clientId=&status=confirmed`). A failed part offers "Citește din
+  nou" (`POST …/retry`).
 - The employee import ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)),
   in `src/features/imports/employees/`. The client's Angajați tab offers three ways: "Adaugă
   angajat", "Importă din fișele găsite în documentație (N fotografii)" while `GET
