@@ -33,6 +33,6 @@ export default function SignupConfirmation({
 }
 
 SignupConfirmation.PreviewProps = {
-  confirmUrl: 'https://app.ssmusor.ro/confirm-email?token_hash=exemplu',
+  confirmUrl: 'https://app.ssmusor.ro/confirmare-email?token_hash=exemplu',
   expiresInMinutes: 60,
 } satisfies SignupConfirmationProps;

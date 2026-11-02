@@ -1028,7 +1028,7 @@ describe('the card, the invoice email and the PDFs', () => {
       customer: 'cus_1Test',
       configuration: 'bpc_card',
       'flow_data[type]': 'payment_method_update',
-      return_url: 'https://app.example.ro/organization/subscription',
+      return_url: 'https://app.example.ro/organizatie/abonament',
     });
   });
 

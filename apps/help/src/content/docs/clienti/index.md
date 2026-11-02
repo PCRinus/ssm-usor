@@ -24,7 +24,7 @@ sources:
   - packages/contracts/src/clients.ts
   - apps/api/src/modules/clients/handlers.ts
   - apps/api/src/modules/documents/context.ts
-  - apps/app/src/routes/_authenticated/clients/index.tsx
+  - apps/app/src/routes/_authenticated/clienti/index.tsx
   - apps/app/src/features/clients/client-columns.tsx
   - apps/app/src/features/clients/documentation-badge.tsx
   - apps/app/src/features/clients/client-layout.tsx

@@ -31,5 +31,5 @@ export default function PasswordChanged({ forgotPasswordUrl }: PasswordChangedPr
 }
 
 PasswordChanged.PreviewProps = {
-  forgotPasswordUrl: 'https://app.ssmusor.ro/forgot-password',
+  forgotPasswordUrl: 'https://app.ssmusor.ro/parola-uitata',
 } satisfies PasswordChangedProps;

@@ -48,7 +48,7 @@ export default function OrganizationInvitation({
 }
 
 OrganizationInvitation.PreviewProps = {
-  acceptUrl: 'https://app.ssmusor.ro/accept-invitation?token=exemplu',
+  acceptUrl: 'https://app.ssmusor.ro/invitatie?token=exemplu',
   organizationName: 'Protect SSM Consult',
   inviterName: 'Ana Popescu',
   expiresAt: '2026-09-25T12:00:00.000Z',

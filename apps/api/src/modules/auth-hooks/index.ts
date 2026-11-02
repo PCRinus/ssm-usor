@@ -53,12 +53,12 @@ const emails: Record<
   { path: string; send: (mail: MailService, to: string, url: string) => Promise<unknown> }
 > = {
   recovery: {
-    path: '/reset-password',
+    path: '/resetare-parola',
     send: (mail, to, resetUrl) =>
       mail.sendPasswordReset({ to, resetUrl, expiresInMinutes: OTP_EXPIRY_MINUTES }),
   },
   signup: {
-    path: '/confirm-email',
+    path: '/confirmare-email',
     send: (mail, to, confirmUrl) =>
       mail.sendSignupConfirmation({ to, confirmUrl, expiresInMinutes: OTP_EXPIRY_MINUTES }),
   },
@@ -71,7 +71,7 @@ const notifications: Record<
   { path: string; send: (mail: MailService, to: string, url: string) => Promise<unknown> }
 > = {
   password_changed_notification: {
-    path: '/forgot-password',
+    path: '/parola-uitata',
     send: (mail, to, forgotPasswordUrl) => mail.sendPasswordChanged({ to, forgotPasswordUrl }),
   },
 };

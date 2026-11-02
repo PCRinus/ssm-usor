@@ -10,7 +10,7 @@ const env: MailEnv = {
   MAIL_REPLY_TO: 'contact@ssmusor.ro',
 };
 
-const resetUrl = 'https://app.ssmusor.ro/reset-password?token_hash=abc123';
+const resetUrl = 'https://app.ssmusor.ro/resetare-parola?token_hash=abc123';
 
 async function sendReset(expiresInMinutes = 60) {
   const sent: OutgoingEmail[] = [];

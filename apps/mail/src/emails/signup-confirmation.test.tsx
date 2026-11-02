@@ -10,7 +10,7 @@ const env: MailEnv = {
   MAIL_REPLY_TO: 'contact@ssmusor.ro',
 };
 
-const confirmUrl = 'https://app.ssmusor.ro/confirm-email?token_hash=abc123';
+const confirmUrl = 'https://app.ssmusor.ro/confirmare-email?token_hash=abc123';
 
 async function sendConfirmation() {
   const sent: OutgoingEmail[] = [];

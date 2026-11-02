@@ -10,7 +10,7 @@ const env: MailEnv = {
   MAIL_REPLY_TO: 'contact@ssmusor.ro',
 };
 
-const forgotPasswordUrl = 'https://app.ssmusor.ro/forgot-password';
+const forgotPasswordUrl = 'https://app.ssmusor.ro/parola-uitata';
 
 describe('password changed', () => {
   it('says what happened and gives the way out, in the HTML and in the plain text', async () => {

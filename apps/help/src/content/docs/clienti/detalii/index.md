@@ -34,7 +34,7 @@ sources:
   - apps/api/src/modules/document-data/handlers.ts
   - apps/api/src/modules/documents/site-sheet.ts
   - apps/api/src/modules/service-contracts/context.ts
-  - apps/app/src/routes/_authenticated/clients/$clientId/details.tsx
+  - apps/app/src/routes/_authenticated/clienti/$clientId/detalii.tsx
   - apps/app/src/features/clients/company-card.tsx
   - apps/app/src/features/clients/legal-representative-card.tsx
   - apps/app/src/features/clients/contact-card.tsx

@@ -65,7 +65,7 @@ function setUp(options: { granted?: number; owner?: boolean } = {}) {
         ? null
         : { to: 'olga@prevenireplus.example', organizationName: 'Prevenire Plus SRL' },
     mail: { sendSmsUsageNotice } as unknown as MailService,
-    subscriptionUrl: () => 'https://app.example.ro/organization/subscription',
+    subscriptionUrl: () => 'https://app.example.ro/organizatie/abonament',
   });
   const at = (used: number, row: SmsSubscription | null = paid) => {
     usage.used = used;
@@ -104,7 +104,7 @@ describe('the usage notices', () => {
       overageCents: 10,
       periodStart: '2026-11-13T08:00:00.000Z',
       periodEnd: '2026-12-13T08:00:00.000Z',
-      subscriptionUrl: 'https://app.example.ro/organization/subscription',
+      subscriptionUrl: 'https://app.example.ro/organizatie/abonament',
     });
   });
 

@@ -177,7 +177,7 @@ describe('POST /organization/invitations', () => {
       expiresAt: '2099-01-08T10:00:00.000Z',
     });
     const acceptUrl = new URL(email.acceptUrl);
-    expect(acceptUrl.origin + acceptUrl.pathname).toBe('https://app.example.ro/accept-invitation');
+    expect(acceptUrl.origin + acceptUrl.pathname).toBe('https://app.example.ro/invitatie');
 
     const [hashed, marked] = calls('/rest/v1/organization_invitations', 'PATCH');
     expect(hashed?.body).toEqual({

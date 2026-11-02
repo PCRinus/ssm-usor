@@ -111,7 +111,7 @@ describe('POST /hooks/supabase/send-email', () => {
     expect(await response.json()).toEqual({});
     expect(sendPasswordReset).toHaveBeenCalledWith({
       to: 'ion@example.ro',
-      resetUrl: 'https://app.example.ro/reset-password?token_hash=hash-abc',
+      resetUrl: 'https://app.example.ro/resetare-parola?token_hash=hash-abc',
       expiresInMinutes: 60,
     });
   });
@@ -124,7 +124,7 @@ describe('POST /hooks/supabase/send-email', () => {
     expect(response.status).toBe(200);
     expect(sendSignupConfirmation).toHaveBeenCalledWith({
       to: 'ion@example.ro',
-      confirmUrl: 'https://app.example.ro/confirm-email?token_hash=hash-abc',
+      confirmUrl: 'https://app.example.ro/confirmare-email?token_hash=hash-abc',
       expiresInMinutes: 60,
     });
     expect(sendPasswordReset).not.toHaveBeenCalled();
@@ -143,7 +143,7 @@ describe('POST /hooks/supabase/send-email', () => {
     expect(response.status).toBe(200);
     expect(sendPasswordChanged).toHaveBeenCalledWith({
       to: 'ion@example.ro',
-      forgotPasswordUrl: 'https://app.example.ro/forgot-password',
+      forgotPasswordUrl: 'https://app.example.ro/parola-uitata',
     });
     expect(sendPasswordReset).not.toHaveBeenCalled();
   });
