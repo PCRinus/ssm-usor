@@ -232,11 +232,11 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /risk-factor-suggestions`                                         | Verified user with a membership       | `{ "items": [ … ] }`, groups, plan fields or observations typed before; `?field=&query=`                                                                                                           |
 | `POST …/risk-evaluations/{evaluationId}/save-as-profile`               | Verified user with a membership       | `201 { "profile": { … } }`, a new profile of the library with copies of the evaluation's factors                                                                                                   |
 | `POST …/risk-evaluations/{evaluationId}/factors/apply-profile`         | Verified user with a membership       | `{ "evaluation": { … }, "addedFactorCount" }` after adding copies of a profile's factors                                                                                                           |
-| `GET /evaluation-profiles`                                             | Verified user with a membership       | `{ "items": [ … ] }`, the risk library by name, with counts and global levels                                                                                                                      |
+| `GET /evaluation-profiles`                                             | Verified user with a membership       | `{ "items": [ … ] }`, the risk library by name, with counts, global levels and usage; `archived=true` lists the archive                                                                            |
 | `POST /evaluation-profiles`                                            | Verified user with a membership       | `201 { "profile": { … } }`, an empty profile by `name`                                                                                                                                             |
 | `GET /evaluation-profiles/{profileId}`                                 | Verified user with a membership       | `{ "profile": { … } }` with its factors, measures, levels and global level                                                                                                                         |
-| `PATCH /evaluation-profiles/{profileId}`                               | Verified user with a membership       | `{ "profile": { … } }` after renaming it                                                                                                                                                           |
-| `DELETE /evaluation-profiles/{profileId}`                              | Verified user with a membership       | `204`, with its factors; the copies in evaluations stay                                                                                                                                            |
+| `PATCH /evaluation-profiles/{profileId}`                               | Verified user with a membership       | `{ "profile": { … } }` after renaming, archiving or restoring it                                                                                                                                   |
+| `DELETE /evaluation-profiles/{profileId}`                              | Verified user with a membership       | `204`, with its factors; `409 evaluation_profile_in_use` while clients use it                                                                                                                      |
 | `POST /evaluation-profiles/{profileId}/factors`                        | Verified user with a membership       | `201 { "profile": { … } }` after adding a factor with its measures                                                                                                                                 |
 | `PUT /evaluation-profiles/{profileId}/factors/{factorId}`              | Verified user with a membership       | `{ "profile": { … } }` after replacing a factor and its measures                                                                                                                                   |
 | `DELETE /evaluation-profiles/{profileId}/factors/{factorId}`           | Verified user with a membership       | `{ "profile": { … } }` after removing a factor                                                                                                                                                     |
@@ -678,13 +678,18 @@ organization typed before, in its evaluations and in its risk library alike, as 
 suggestions do. A write under an archived client answers `409` with `client_archived`.
 
 The risk library is the organization's evaluation profiles, each a `name` and factors exactly
-like an evaluation's. `GET /evaluation-profiles` lists them by name without their factors,
-each with `factorCount`, `unacceptableFactorCount` and `globalRiskLevel`; `GET
-/evaluation-profiles/{profileId}` reads one whole, as an evaluation is read. `POST
-/evaluation-profiles` starts an empty one by `name` and `PATCH` renames it; a name the
-library already holds, ignoring case and the spaces around it, answers `409` with
-`evaluation_profile_name_taken` on `name`. `DELETE` removes a profile with its factors;
-nothing refers to a profile, so there is no archive. `POST …/factors`, `PUT
+like an evaluation's. `GET /evaluation-profiles` lists the active ones by name without their
+factors, each with `factorCount`, `unacceptableFactorCount`, `globalRiskLevel`, `clientCount`
+(the clients its usage lists, which leaves out archived posts) and `inUse` (whether any
+client's factor points at it, archived posts and clients included); `archived=true` lists only
+the archived ones. `GET /evaluation-profiles/{profileId}` reads one whole, as an evaluation is
+read, with `archivedAt` and `inUse`. `POST /evaluation-profiles` starts an empty one by `name`
+and `PATCH` renames it (`name`), archives it (`archived: true`) or restores it (`archived:
+false`); a name the library already holds, active or archived, ignoring case and the spaces
+around it, answers `409` with `evaluation_profile_name_taken` on `name`. Archiving is allowed
+in use ([ADR 036](architecture/adr-036-risk-library-and-import.md)). `DELETE` removes a profile
+no client uses with its factors; one in use answers `409` with `evaluation_profile_in_use` and
+a Romanian message that offers archiving. `POST …/factors`, `PUT
 …/factors/{factorId}` and `DELETE …/factors/{factorId}` take the bodies an evaluation's
 factor routes take (`RiskFactorRequest`) and answer with the whole profile. Two routes join
 an evaluation and the library, and nothing links what they copy: `POST
@@ -693,8 +698,8 @@ answers `201` with a new profile holding copies of the evaluation's factors (its
 texts stay behind), also for an archived client's evaluation; `POST
 …/risk-evaluations/{evaluationId}/factors/apply-profile` takes a `profileId` and answers with
 the evaluation, the profile's factors copied after its own, and `addedFactorCount`. A profile
-outside the library answers `400` on `profileId`, an archived client `409` with
-`client_archived`.
+outside the library answers `400` on `profileId`, an archived profile `409` with
+`evaluation_profile_archived`, an archived client `409` with `client_archived`.
 
 A client's files ([ADR 013](architecture/adr-013-client-files.md)) are what the organization
 keeps about a client or a lead without the app writing or reading them; a lead uses the same

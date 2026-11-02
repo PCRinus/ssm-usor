@@ -1065,22 +1065,32 @@ carries it along.
 ### Evaluation profiles
 
 `evaluation_profiles` is the organization's risk library: a `name`, unique within the
-organization ignoring case and the spaces around it, and nothing else; the library starts
+organization ignoring case and the spaces around it, active and archived entries alike, and
+`archived_at`, set while the entry is out of "Aplică din bibliotecă"; the library starts
 empty. `evaluation_profile_factors` and `evaluation_profile_measures` hold a profile's factors
 and their measures with the same columns, checks and enums as `risk_factors` and
 `prevention_measures`, tied to the profile and its organization by composite foreign keys
 and deleted with it. They are tables of their own rather than evaluations without a client:
 every key, trigger and policy on the evaluation tables is the client's (the archived-client
 and lead triggers, the client's foreign keys, the policies that ask for an active client).
-Only the factors copied from a profile refer to it, as provenance, so a profile is deleted,
-not archived.
+Only the factors copied from a profile refer to it, as provenance. A profile is **in use**
+while any client's factor points at one of its factors, archived posts and clients included
+([ADR 036](architecture/adr-036-risk-library-and-import.md)). A trigger refuses deleting one in
+use (`RSK04`), for every caller; deleting one of its factors stays allowed and clears its
+copies' pointers. Archiving is allowed in use, since clients hold copies.
+
+`evaluation_profile_list` is a security-invoker view of the profiles with `client_count`, the
+clients that use one counted as the usage lists them (leaving out archived posts, keeping
+archived clients), and `in_use`, any pointer at all; the API's list and profile reads go
+through it, one grouped read for the whole library.
 
 Each function is one transaction. `save_evaluation_profile_factor` and
 `apply_evaluation_profile` run as the caller. `save_evaluation_profile_factor` is
 `save_risk_factor` for a profile. `apply_evaluation_profile` appends copies of a profile's
 factors and measures after an evaluation's own, each pointing at the factor it was copied from
 by `source_profile_factor_id`, and returns how many; a profile of another organization is
-refused (`RSK02`), and an archived client by its trigger (`CLA01`).
+refused (`RSK02`), an archived profile (`RSK03`), and an archived client by its trigger
+(`CLA01`).
 `save_risk_evaluation_as_profile` runs as its owner, because it writes
 `source_profile_factor_id`, and so checks the caller's organization itself. It creates a
 profile by name with copies of an evaluation's factors and measures in their order, points each
@@ -1088,12 +1098,12 @@ of the evaluation's factors that had no origin at its copy, and returns the prof
 null when the evaluation is not the caller's; a taken name fails on the unique index (`23505`).
 It works for an archived client's evaluation, whose factors it leaves unlinked. The pointer is
 provenance only ([ADR 015](architecture/adr-015-risk-assessment.md), amended 2026-10-05):
-later changes on either side stay there. Deleting a profile or its factor clears it through the
+later changes on either side stay there. Deleting a profile factor clears it through the
 foreign key, which the archived-client trigger on `risk_factors` lets through.
 
 Members read, create, update and delete their organization's profiles and profile factors,
-and create and delete profile measures. Updates are granted on the profile's `name` and on the
-factor's descriptive columns and `sort_order`.
+and create and delete profile measures. Updates are granted on the profile's `name` and
+`archived_at` and on the factor's descriptive columns and `sort_order`.
 
 ## Generated documents
 
