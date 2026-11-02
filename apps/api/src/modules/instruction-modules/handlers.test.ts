@@ -133,6 +133,7 @@ function mockUpstream(
     versions?: Handler;
     positions?: Handler;
     applied?: Handler;
+    create?: Handler;
   } = {}
 ) {
   fetchMock.mockImplementation(async (input, init) => {
@@ -140,6 +141,9 @@ function mockUpstream(
     if (url.pathname === '/auth/v1/user') return Response.json(user);
     if (url.pathname === '/rest/v1/rpc/current_membership') return Response.json([membership]);
     if (url.pathname === '/rest/v1/organizations') return Response.json(organization);
+    if (url.pathname === '/rest/v1/rpc/create_instruction_module') {
+      return handlers.create?.(init, url) ?? Response.json(weldingId);
+    }
     if (url.pathname === '/rest/v1/instruction_modules') {
       const custom = handlers.modules?.(init, url);
       if (custom) return custom;
@@ -301,12 +305,10 @@ describe('GET /instruction-modules', () => {
 });
 
 describe('POST /instruction-modules', () => {
-  it('creates a module with its body as version 1', async () => {
+  it('creates a module with its body as version 1, in one transaction', async () => {
     mockUpstream({
       modules: (init, url) =>
         isGet(init) && url.searchParams.get('id') ? Response.json([welding]) : undefined,
-      versions: (init, url) =>
-        isGet(init) && !url.searchParams.get('id') ? Response.json([]) : undefined,
     });
     const response = await request('/instruction-modules', 'POST', {
       title: 'Sudură oxiacetilenică',
@@ -317,29 +319,21 @@ describe('POST /instruction-modules', () => {
     const created = instructionModuleResponseSchema.parse(await response.json());
     expect(created.module.title).toBe('Sudură oxiacetilenică');
     expect(created.body).toEqual(laddersBody);
-    expect(sent('/rest/v1/instruction_modules', 'POST')).toMatchObject({
-      organization_id: organizationId,
-      title: 'Sudură oxiacetilenică',
-      module_group: 'work_equipment',
-      domain: 'ssm',
-      created_by: user.id,
+    expect(sent('/rest/v1/rpc/create_instruction_module', 'POST')).toEqual({
+      p_title: 'Sudură oxiacetilenică',
+      p_group: 'work_equipment',
+      p_domain: 'ssm',
+      p_body: laddersBody,
+      p_text_hash: laddersHash,
     });
-    expect(sent('/rest/v1/instruction_module_versions', 'POST')).toEqual({
-      organization_id: organizationId,
-      module_id: weldingId,
-      number: 1,
-      body: laddersBody,
-      text_hash: laddersHash,
-      created_by: user.id,
-    });
+    expect(calls('/rest/v1/instruction_modules', 'POST')).toHaveLength(0);
+    expect(calls('/rest/v1/instruction_module_versions', 'POST')).toHaveLength(0);
   });
 
   it('creates a fire-safety module with a fire-safety category', async () => {
     mockUpstream({
       modules: (init, url) =>
         isGet(init) && url.searchParams.get('id') ? Response.json([hotWork]) : undefined,
-      versions: (init, url) =>
-        isGet(init) && !url.searchParams.get('id') ? Response.json([]) : undefined,
     });
     const response = await request('/instruction-modules', 'POST', {
       title: 'Lucrul cu foc deschis',
@@ -349,9 +343,9 @@ describe('POST /instruction-modules', () => {
     });
     expect(response.status).toBe(201);
     expect(instructionModuleResponseSchema.parse(await response.json()).module.domain).toBe('psi');
-    expect(sent('/rest/v1/instruction_modules', 'POST')).toMatchObject({
-      domain: 'psi',
-      module_group: 'hazardous_work',
+    expect(sent('/rest/v1/rpc/create_instruction_module', 'POST')).toMatchObject({
+      p_domain: 'psi',
+      p_group: 'hazardous_work',
     });
   });
 
@@ -367,26 +361,29 @@ describe('POST /instruction-modules', () => {
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
       'instruction_module_category_domain'
     );
-    expect(calls('/rest/v1/instruction_modules', 'POST')).toHaveLength(0);
+    expect(calls('/rest/v1/rpc/create_instruction_module', 'POST')).toHaveLength(0);
   });
 
-  it('refuses a body without an article, and creates nothing', async () => {
+  it('refuses a body without an article, or with a character the database cannot hold', async () => {
     mockUpstream();
-    const response = await request('/instruction-modules', 'POST', {
-      title: 'Birouri noi',
-      group: 'work_activity',
-      body: { blocks: [{ kind: 'heading', text: 'Domeniul de aplicare' }] },
-    });
-    expect(response.status).toBe(400);
-    expect(calls('/rest/v1/instruction_modules', 'POST')).toHaveLength(0);
+    for (const body of [
+      { blocks: [{ kind: 'heading', text: 'Domeniul de aplicare' }] },
+      { blocks: [{ kind: 'article', paragraphs: ['Scara\u0000 se verifică.'] }] },
+      { blocks: [{ kind: 'article', paragraphs: ['Scara \ud800se verifică.'] }] },
+    ]) {
+      const response = await request('/instruction-modules', 'POST', {
+        title: 'Birouri noi',
+        group: 'work_activity',
+        body,
+      });
+      expect(response.status).toBe(400);
+    }
+    expect(calls('/rest/v1/rpc/create_instruction_module', 'POST')).toHaveLength(0);
   });
 
   it('refuses a title the library already has', async () => {
     mockUpstream({
-      modules: (init) =>
-        init?.method === 'POST'
-          ? Response.json({ code: '23505', message: 'duplicate' }, { status: 409 })
-          : undefined,
+      create: () => Response.json({ code: '23505', message: 'duplicate' }, { status: 409 }),
     });
     const response = await request('/instruction-modules', 'POST', {
       title: 'Birouri',

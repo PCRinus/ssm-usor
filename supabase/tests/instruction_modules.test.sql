@@ -1,5 +1,5 @@
 begin;
-select plan(23);
+select plan(27);
 
 -- Fixtures: two organizations with one member and one client each, positions in each.
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -104,6 +104,33 @@ select lives_ok(
   $$ insert into public.instruction_module_versions (organization_id, module_id, number, body, text_hash)
      values ('11111111-0000-4000-8000-000000000001', 'a0a0a0a0-0000-4000-8000-000000000002', 1, pg_temp.body(3), repeat('a', 64)) $$,
   'another module may hold the same text'
+);
+
+select lives_ok(
+  $$ select public.create_instruction_module('Scări metalice', 'work_equipment', 'ssm', pg_temp.body(4), repeat('d', 64)) $$,
+  'a member creates a module with its first version in one call'
+);
+
+select is(
+  (select array[v.number, v.article_count] from public.instruction_module_versions v
+   join public.instruction_modules m on m.id = v.module_id
+   where m.title = 'Scări metalice' and m.organization_id = '11111111-0000-4000-8000-000000000001'
+     and m.created_by = 'aaaaaaaa-0000-4000-8000-000000000001' and v.created_by = m.created_by),
+  array[1, 4],
+  'the module is created in the member''s organization with its body as version 1'
+);
+
+select throws_ok(
+  $$ select public.create_instruction_module('Lift', 'work_equipment', 'ssm', '{"blocks": []}', repeat('d', 64)) $$,
+  '23514',
+  null,
+  'a body the database refuses is refused with the module'
+);
+
+select is(
+  (select count(*)::int from public.instruction_modules where title = 'Lift'),
+  0,
+  'and leaves no module behind to hold the title'
 );
 
 select lives_ok(

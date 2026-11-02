@@ -7061,6 +7061,16 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      create_instruction_module: {
+        Args: {
+          p_body: Json;
+          p_domain: Database['public']['Enums']['instruction_domain'];
+          p_group: Database['public']['Enums']['instruction_module_group'];
+          p_text_hash: string;
+          p_title: string;
+        };
+        Returns: string;
+      };
       create_organization: {
         Args: {
           accepted_terms_version: string;

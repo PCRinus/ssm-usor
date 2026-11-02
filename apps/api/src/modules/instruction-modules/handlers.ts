@@ -85,7 +85,6 @@ const toVersion = (version: VersionRow) => ({
 
 function toModule(row: ModuleRow, appliedCount: number): InstructionModule {
   const version = row.instruction_module_versions[0];
-  // The row is written before its first version; a module caught in between is not one yet.
   if (!version) throw new ApiError('not_found', 'This module has no text yet.');
   return {
     id: row.id,
@@ -222,7 +221,6 @@ const actorOf = (c: Context<ApiEnv>) => ({
 
 async function createModule(
   db: DataClient,
-  actor: { organizationId: string; userId: string },
   fields: {
     title: string;
     group: InstructionModuleGroup;
@@ -231,21 +229,17 @@ async function createModule(
   }
 ) {
   if (!categoryFitsDomain(fields.group, fields.domain)) throw categoryOfOtherDomain();
-  const { data, error } = await db
-    .from('instruction_modules')
-    .insert({
-      organization_id: actor.organizationId,
-      title: fields.title,
-      module_group: fields.group,
-      domain: fields.domain,
-      created_by: actor.userId,
-    })
-    .select('id')
-    .single();
+  const body = spacedBody(fields.body);
+  const { data, error } = await db.rpc('create_instruction_module', {
+    p_title: fields.title,
+    p_group: fields.group,
+    p_domain: fields.domain,
+    p_body: body,
+    p_text_hash: await textHash(body),
+  });
   if (error?.code === '23505') throw titleTaken();
   if (error) throw fromDatabaseError(error, 'create instruction module');
-  await addVersion(db, actor, data.id, fields.body);
-  return readModuleWithBody(db, data.id);
+  return readModuleWithBody(db, data);
 }
 
 export const listInstructionModules: RouteHandler<
@@ -272,7 +266,7 @@ export const createInstructionModule: RouteHandler<
   typeof createInstructionModuleRoute,
   ApiEnv
 > = async (c) => {
-  const created = await createModule(createDataClient(c), actorOf(c), c.req.valid('json'));
+  const created = await createModule(createDataClient(c), c.req.valid('json'));
   return c.json(created, 201);
 };
 

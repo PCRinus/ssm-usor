@@ -39,13 +39,20 @@ export function categoryFitsDomain(category: InstructionCategory, domain: Instru
 export const maxInstructionArticles = 400;
 export const maxInstructionCharacters = 200_000;
 
+// Postgres stores neither a NUL nor a lone surrogate in jsonb.
+const loneSurrogate = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+
 const oneLine = (max: number) =>
   z
     .string()
     .trim()
     .min(1)
     .max(max)
-    .refine((text) => !/[\r\n]/.test(text), 'Un rând, fără treceri la rând nou.');
+    .refine((text) => !/[\r\n]/.test(text), 'Un rând, fără treceri la rând nou.')
+    .refine(
+      (text) => !text.includes('\u0000') && !loneSurrogate.test(text),
+      'Textul are un caracter care nu se poate salva. Șterge-l și scrie din nou rândul.'
+    );
 
 export const instructionHeadingSchema = z.object({
   kind: z.literal('heading'),
