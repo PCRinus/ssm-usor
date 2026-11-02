@@ -17,6 +17,7 @@ import {
 import { ApiHttpError } from '@/api/http';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
+import { roCount } from '@/features/employees/employee-format';
 import { invalidateLibrary } from '@/features/instructions/instruction-schema';
 
 import { creditsLabel } from '../import-credits';
@@ -535,7 +536,7 @@ function confirmSentence(summary: { created: number; used: number; posts: number
   const posts =
     summary.posts === 0
       ? `, fără să ${them} aplicăm la vreun post`
-      : ` și ${them} aplicăm la ${summary.posts === 1 ? 'un post' : `${summary.posts} posturi`}`;
+      : ` și ${them} aplicăm la ${summary.posts === 1 ? 'un post' : roCount(summary.posts, 'post', 'posturi')}`;
   return `Când confirmi, ${parts.join(', ')}${posts}.`;
 }
 
