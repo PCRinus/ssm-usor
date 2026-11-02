@@ -4,6 +4,7 @@ import {
   type InstructionDomain,
   type InstructionModuleGroup,
   maxPageSize,
+  spacedBody,
 } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
@@ -79,6 +80,9 @@ function saveFailure(cause: unknown) {
   }
   if (cause instanceof ApiHttpError && cause.status === 404) {
     return 'Instrucțiunea nu mai există în bibliotecă.';
+  }
+  if (cause instanceof ApiHttpError && cause.status === 409) {
+    return 'Instrucțiunea a fost salvată între timp din altă fereastră. Salvează din nou ca să păstrezi textul de aici, sau reîncarcă pagina ca să vezi ce s-a salvat.';
   }
   if (cause instanceof ApiHttpError && cause.status === 401) {
     return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
@@ -175,7 +179,7 @@ export function InstructionForm({
           module: saved.module,
           body: saved.body,
         });
-        setBaseline(body);
+        setBaseline(spacedBody(saved.body));
         if (saved.changed) {
           toast.success(`Am salvat versiunea ${saved.module.version.number}.`);
         } else {

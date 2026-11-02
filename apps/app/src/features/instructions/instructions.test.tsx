@@ -577,6 +577,41 @@ describe('the module form', () => {
     expect(screen.getByTestId('editor-state').textContent).toBe('Versiunea 2');
   });
 
+  it('keeps the text unsaved when the library answers with another text than the one sent', async () => {
+    mockApi({
+      moduleBody: ladderBody,
+      saveBody: () => Response.json({ module: ladders, body: ladderBody, changed: false }),
+    });
+    mount(`/instructions/${ladders.id}`);
+    const user = userEvent.setup();
+    await screen.findByTestId('instruction-form');
+    await user.type(articleBoxes()[1]!, ' Nici cu unelte.');
+    await user.click(screen.getByTestId('editor-save'));
+    await waitFor(() =>
+      expect(requests(`/instruction-modules/${ladders.id}/body`, 'PUT')).toHaveLength(1)
+    );
+    await waitFor(() => expect(screen.getByTestId('editor-save').textContent).toBe('Salvează'));
+    expect(screen.getByTestId('instruction-save-state').textContent).toBe('Modificări nesalvate.');
+  });
+
+  it('says that another window saved the text meanwhile', async () => {
+    mockApi({
+      saveBody: () =>
+        Response.json(
+          { error: 'conflict', message: 'The module was saved in the meantime; save it again.' },
+          { status: 409 }
+        ),
+    });
+    mount(`/instructions/${ladders.id}`);
+    const user = userEvent.setup();
+    await screen.findByTestId('instruction-form');
+    await user.type(articleBoxes()[0]!, ' Din nou.');
+    await user.click(screen.getByTestId('editor-save'));
+    expect((await screen.findByTestId('instruction-form-error')).textContent).toBe(
+      'Instrucțiunea a fost salvată între timp din altă fereastră. Salvează din nou ca să păstrezi textul de aici, sau reîncarcă pagina ca să vezi ce s-a salvat.'
+    );
+  });
+
   it('refuses to save a text without an article, in words', async () => {
     mockApi();
     mount(`/instructions/${ladders.id}`);
