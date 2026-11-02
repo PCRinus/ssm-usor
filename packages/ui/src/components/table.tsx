@@ -3,13 +3,69 @@
 import { cn } from 'cn';
 import * as React from 'react';
 
+type HiddenEdges = { start: boolean; end: boolean };
+
+// Phones and macOS hide the scrollbar until the user scrolls, so nothing else says a
+// column is cut off.
+function useHiddenEdges(scroller: React.RefObject<HTMLDivElement | null>): HiddenEdges {
+  const [start, setStart] = React.useState(false);
+  const [end, setEnd] = React.useState(false);
+
+  React.useEffect(() => {
+    const element = scroller.current;
+    if (!element) return;
+    const measure = () => {
+      const left = element.scrollLeft;
+      // Zoom gives fractional widths, so a scroller at its end can still be a pixel short.
+      setStart(left > 1);
+      setEnd(element.scrollWidth - element.clientWidth - left > 1);
+    };
+    measure();
+    element.addEventListener('scroll', measure, { passive: true });
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    if (element.firstElementChild) observer.observe(element.firstElementChild);
+    return () => {
+      element.removeEventListener('scroll', measure);
+      observer.disconnect();
+    };
+  }, [scroller]);
+
+  return { start, end };
+}
+
+const edgeShade = 'pointer-events-none absolute inset-y-0 w-4 transition-opacity duration-200';
+
 function Table({ className, ...props }: React.ComponentProps<'table'>) {
+  const scroller = React.useRef<HTMLDivElement>(null);
+  const hidden = useHiddenEdges(scroller);
+
   return (
-    <div data-slot="table-container" className="relative w-full overflow-x-auto">
-      <table
-        data-slot="table"
-        className={cn('w-full caption-bottom text-sm', className)}
-        {...props}
+    // min-w-0: unlike a scroll container, a flex or grid item is otherwise at least as wide
+    // as the table inside it, and the page scrolls sideways instead of the table.
+    <div data-slot="table-frame" className="relative w-full min-w-0">
+      <div ref={scroller} data-slot="table-container" className="relative w-full overflow-x-auto">
+        <table
+          data-slot="table"
+          className={cn('w-full caption-bottom text-sm', className)}
+          {...props}
+        />
+      </div>
+      <div
+        aria-hidden="true"
+        className={cn(
+          edgeShade,
+          'left-0 bg-linear-to-r from-foreground/7 to-transparent',
+          hidden.start ? 'opacity-100' : 'opacity-0'
+        )}
+      />
+      <div
+        aria-hidden="true"
+        className={cn(
+          edgeShade,
+          'right-0 bg-linear-to-l from-foreground/7 to-transparent',
+          hidden.end ? 'opacity-100' : 'opacity-0'
+        )}
       />
     </div>
   );
