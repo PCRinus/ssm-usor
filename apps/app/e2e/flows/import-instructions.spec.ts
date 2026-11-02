@@ -39,7 +39,7 @@ test("a pack's own instructions are reviewed before the client is created, confi
     proposal: await bakeryProposal({ ladders, office }),
   });
 
-  await signIn(page, owner.email, `/clients/import/${importId}`);
+  await signIn(page, owner.email, `/clienti/import/${importId}`);
   const task = page.getByTestId('import-library-task');
   await expect(task).toHaveCount(1);
   await expect(task.getByTestId('library-part-status')).toHaveText('De verificat');
@@ -93,14 +93,14 @@ test("a pack's own instructions are reviewed before the client is created, confi
       .getByTestId('library-instruction-title-input')
   ).toHaveValue('Cuptorul de patiserie');
 
-  await page.goto(`/clients/import/${importId}`);
+  await page.goto(`/clienti/import/${importId}`);
   await page.getByTestId('import-confirm').click();
   await page.getByTestId('import-confirm-dialog').getByTestId('import-confirm-submit').click();
   await expect(page.getByTestId('import-confirmed-hub')).toBeVisible();
-  await expect(page).toHaveURL(new RegExp(`/clients/import/${importId}$`));
+  await expect(page).toHaveURL(new RegExp(`/clienti/import/${importId}$`));
 
   const clientId = await clientOfImport(importId);
-  await page.goto(`/clients/${clientId}/details`);
+  await page.goto(`/clienti/${clientId}/detalii`);
   const reminder = page.getByTestId('client-library-tasks-notice');
   await expect(reminder).toContainText('IPSSM: de verificat');
   await reminder.getByTestId('client-library-tasks-open').click();
@@ -113,21 +113,21 @@ test("a pack's own instructions are reviewed before the client is created, confi
     page.getByTestId('import-library-task').getByTestId('library-part-status')
   ).toHaveText('Confirmat');
 
-  await page.goto('/instructions/ssm');
+  await page.goto('/instructiuni/ssm');
   const library = page.getByTestId('instruction-open');
   await expect(library.filter({ hasText: 'Cuptorul de patiserie' })).toHaveCount(1);
   await expect(library.filter({ hasText: `Scări metalice (${bakery.name})` })).toHaveCount(1);
 
   const seller = await jobPositionId(clientId, 'Vânzător');
-  await page.goto(`/clients/${clientId}/job-positions/${seller}`);
+  await page.goto(`/clienti/${clientId}/posturi/${seller}`);
   const card = page.getByTestId('instructions-card');
   await expect(card.getByTestId('instructions-row')).toHaveCount(1);
   await expect(card.getByTestId('instructions-row')).toContainText('Cuptorul de patiserie');
   const baker = await jobPositionId(clientId, 'Brutar');
-  await page.goto(`/clients/${clientId}/job-positions/${baker}`);
+  await page.goto(`/clienti/${clientId}/posturi/${baker}`);
   await expect(page.getByTestId('instructions-card').getByTestId('instructions-row')).toHaveCount(
     2
   );
-  await page.goto(`/clients/${clientId}/details`);
+  await page.goto(`/clienti/${clientId}/detalii`);
   await expect(page.getByTestId('client-library-tasks-notice')).toHaveCount(0);
 });

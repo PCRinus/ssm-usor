@@ -34,7 +34,7 @@ test('a member finds employees of every client from one page, without typing dia
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
   await page.getByTestId('nav-employees').click();
-  await expect(page).toHaveURL(/\/employees$/);
+  await expect(page).toHaveURL(/\/angajati$/);
   const rows = page.getByTestId('organization-employees-row');
   await expect(rows).toHaveCount(2);
   await expect(page.getByTestId('organization-employees-count')).toHaveText('2 angajați');
@@ -66,9 +66,9 @@ test('a member finds employees of every client from one page, without typing dia
   await expect(rows.first()).toContainText('Țăranu Ștefan');
 
   await rows.first().getByTestId('organization-employees-open').click();
-  await expect(page).toHaveURL(new RegExp(`/clients/${navalId}/employees/`));
+  await expect(page).toHaveURL(new RegExp(`/clienti/${navalId}/angajati/`));
 
-  await page.goto(`/clients/${petromId}/employees`);
+  await page.goto(`/clienti/${petromId}/angajati`);
   await page.getByTestId('employees-search').fill('popesc');
   await expect(page.getByTestId('employees-row')).toHaveCount(1);
   await page.getByTestId('employees-search').fill('stefan');

@@ -63,7 +63,7 @@ test('a specialist records trainings held and follows each employee’s state', 
     });
   }
 
-  await signIn(page, owner.email, `/clients/${clientId}/employees`);
+  await signIn(page, owner.email, `/clienti/${clientId}/angajati`);
   const rows = page.getByTestId('employees-row');
   await expect(rows).toHaveCount(3);
   await page.getByTestId('employees-training-filter-overdue').click();
@@ -74,7 +74,7 @@ test('a specialist records trainings held and follows each employee’s state', 
   await expect(rows.first()).toContainText('Lăcătușu Vasile');
 
   await page.getByTestId('client-section').filter({ hasText: 'Instruiri ținute' }).click();
-  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/trainings$`));
+  await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/instruiri-tinute$`));
   const trainings = page.getByTestId('trainings-row');
   await expect(trainings).toHaveCount(2);
   await page.getByTestId('trainings-record').click();
@@ -101,11 +101,11 @@ test('a specialist records trainings held and follows each employee’s state', 
   const participants = trainings.first().getByTestId('trainings-attendee');
   await expect(participants).toHaveText(['Instruitu Ion', 'Sudoru Maria']);
   await participants.first().click();
-  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/employees/[^/]+/training/ssm$`));
+  await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/angajati/[^/]+/instruire/ssm$`));
   await expect(page.getByTestId('training-state')).toHaveText('La zi');
 
   for (const name of ['Instruitu Ion', 'Sudoru Maria']) {
-    await page.goto(`/clients/${clientId}/employees`);
+    await page.goto(`/clienti/${clientId}/angajati`);
     await page.getByTestId('employees-open').filter({ hasText: name }).click();
     await page.getByTestId('employee-section').filter({ hasText: 'Instruire SSM' }).click();
     await expect(page.getByTestId('training-state')).toHaveText('La zi');
@@ -115,10 +115,10 @@ test('a specialist records trainings held and follows each employee’s state', 
     await expect(records.first()).toContainText('120 min (2 h)');
   }
 
-  await page.goto(`/clients/${clientId}/employees?trainingState=overdue`);
+  await page.goto(`/clienti/${clientId}/angajati?trainingState=overdue`);
   await expect(page.getByText('Niciun angajat în această stare a instruirii')).toBeVisible();
 
-  await page.goto(`/clients/${clientId}/employees`);
+  await page.goto(`/clienti/${clientId}/angajati`);
   await page.getByTestId('employees-open').filter({ hasText: 'Lăcătușu Vasile' }).click();
   await page.getByTestId('employee-section').filter({ hasText: 'Instruire SSM' }).click();
   await expect(page.getByTestId('training-state')).toHaveText('Neinstruit');
@@ -143,7 +143,7 @@ test('a specialist records trainings held and follows each employee’s state', 
   await expect(paperRecord.getByTestId('training-record-paper')).toBeVisible();
   await expect(paperRecord).toContainText('240 min (4 h)');
 
-  await page.goto(`/clients/${clientId}/trainings?domain=ssm`);
+  await page.goto(`/clienti/${clientId}/instruiri-tinute?domain=ssm`);
   await expect(trainings).toHaveCount(3);
   const paperRow = trainings.filter({ hasText: 'Transcris de pe fișa pe hârtie' });
   await expect(paperRow).toHaveCount(1);

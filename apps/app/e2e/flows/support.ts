@@ -842,7 +842,7 @@ export async function signIn(page: Page, email: string, path = '/dashboard') {
 }
 
 export async function signInThroughForm(page: Page, email: string, withPassword = password) {
-  await page.goto('/login');
+  await page.goto('/autentificare');
   await page.getByTestId('login-email').fill(email);
   await page.getByTestId('login-password').fill(withPassword);
   await page.getByTestId('login-submit').click();
@@ -851,5 +851,5 @@ export async function signInThroughForm(page: Page, email: string, withPassword 
 export async function signOut(page: Page) {
   await page.getByTestId('account-menu').click();
   await page.getByTestId('account-sign-out').click();
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/autentificare$/);
 }

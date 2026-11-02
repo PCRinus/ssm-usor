@@ -24,21 +24,21 @@ test('a lead stays out of the clients, and does not exist for a specialist', asy
   await createClientCompany(organizationId, 'S.C. CLIENT SERVIT E2E S.R.L.');
   const leadId = await createLead(organizationId, 'S.C. CLIENT POTENTIAL E2E S.R.L.', '14399840');
 
-  await signIn(page, specialist.email, '/clients');
+  await signIn(page, specialist.email, '/clienti');
   await expect(page.getByTestId('clients-row')).toHaveCount(1);
   await expect(page.getByTestId('clients-row')).toContainText('CLIENT SERVIT');
 
-  await page.goto(`/clients/${leadId}/employees`);
+  await page.goto(`/clienti/${leadId}/angajati`);
   await expect(page.getByTestId('client-not-found')).toBeVisible();
 
-  await page.goto('/clients/new');
+  await page.goto('/clienti/nou');
   await page.getByTestId('client-cui').fill('14399840');
   await page.getByTestId('client-legal-name').fill('Același CUI SRL');
   await page.getByTestId('client-submit').click();
   await expect(page.getByTestId('cui-error')).toContainText('printre clienții potențiali');
 
   await signOut(page);
-  await signIn(page, owner.email, '/clients');
+  await signIn(page, owner.email, '/clienti');
   await expect(page.getByTestId('clients-row')).toHaveCount(1);
   await expect(page.getByTestId('clients-row')).toContainText('CLIENT SERVIT');
 });
@@ -69,7 +69,7 @@ test('an owner adds a lead, keeps notes, and turns it into a client the team the
   await page.getByTestId('client-contact-phone').fill('0722 000 111');
   await page.getByTestId('contact-save').click();
   await expect(page.getByTestId('contact-phone')).toHaveText('0722 000 111');
-  await expect(page).toHaveURL(/\/leads\/[0-9a-f-]+$/);
+  await expect(page).toHaveURL(/\/clienti-potentiali\/[0-9a-f-]+$/);
   await page.getByTestId('owner-notes-body').fill('A cerut ofertă pentru 12 angajați.');
   await page.getByTestId('owner-notes-save').click();
   await expect(page.getByText('Notițele au fost salvate.')).toBeVisible();
@@ -80,29 +80,29 @@ test('an owner adds a lead, keeps notes, and turns it into a client the team the
     'A cerut ofertă pentru 12 angajați.'
   );
 
-  await page.goto('/leads');
+  await page.goto('/clienti-potentiali');
   await expect(page.getByTestId('leads-row')).toContainText('Andrei Pop');
-  await page.goto('/clients');
+  await page.goto('/clienti');
   await expect(page.getByTestId('clients-empty')).toBeVisible();
 
-  await page.goto('/leads');
+  await page.goto('/clienti-potentiali');
   await page.getByTestId('leads-open').click();
   await page.getByTestId('lead-promote').click();
   await expect(page.getByTestId('promote-lead-dialog')).toContainText('nu poate fi anulată');
   await page.getByTestId('promote-lead-confirm').click();
   await expect(page.getByTestId('client-details-page')).toBeVisible();
-  await expect(page).toHaveURL(/\/clients\/[0-9a-f-]+\/details$/);
+  await expect(page).toHaveURL(/\/clienti\/[0-9a-f-]+\/detalii$/);
   await expect(page.getByTestId('owner-notes-body')).toHaveValue(
     'A cerut ofertă pentru 12 angajați.'
   );
-  await page.goto('/leads');
+  await page.goto('/clienti-potentiali');
   await expect(page.getByTestId('leads-empty')).toBeVisible();
 
   await signOut(page);
   await signIn(page, specialist.email);
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByTestId('nav-leads')).toHaveCount(0);
-  await page.goto('/clients');
+  await page.goto('/clienti');
   await page.getByTestId('clients-open').click();
   await expect(page.getByTestId('contact-name')).toHaveText('Andrei Pop');
   await expect(page.getByTestId('owner-notes-card')).toHaveCount(0);
@@ -125,7 +125,7 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
   const leadId = await createLead(organizationId, 'S.C. VIITOR CONTRACT E2E S.R.L.', '14399840');
   const contact = addressOf('contract-contact');
 
-  await signIn(page, owner.email, `/leads/${leadId}`);
+  await signIn(page, owner.email, `/clienti-potentiali/${leadId}`);
 
   // The first contract of the organization: no number to continue from.
   await expect(page.getByTestId('contract-contractNumber')).toHaveValue('');
@@ -142,14 +142,14 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
   await expect(page.getByTestId('contract-generate')).toBeDisabled();
 
   await rows.filter({ hasText: 'Contul bancar și banca' }).click();
-  await expect(page).toHaveURL(/\/organization\/company$/);
+  await expect(page).toHaveURL(/\/organizatie\/date-firma$/);
   await expect(page.getByTestId('company-iban')).toBeFocused();
   await page.getByTestId('company-iban').fill('RO49 AAAA 1B31 0075 9384 0000');
   await page.getByTestId('company-bankName').fill('Banca Transilvania');
   await page.getByTestId('company-details-save').click();
   await expect(page.getByText('Datele firmei au fost salvate.')).toBeVisible();
   await page.getByRole('button', { name: 'Înapoi la contract' }).click();
-  await expect(page).toHaveURL(new RegExp(`/leads/${leadId}$`));
+  await expect(page).toHaveURL(new RegExp(`/clienti-potentiali/${leadId}$`));
 
   // The lead's own card opens on the same page, at the field.
   await rows.filter({ hasText: 'Numărul din Registrul Comerțului' }).click();
@@ -198,7 +198,7 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
   await page.getByTestId('contract-confirm').click();
   await expect(page.getByTestId('contract-issued')).toHaveText('Emis · rev. 1');
 
-  await page.goto('/leads');
+  await page.goto('/clienti-potentiali');
   await expect(page.getByTestId('leads-contract')).toHaveText('Emis');
 
   // Sending needs the PDF, which is made where a converter is configured (CI, or a local
@@ -218,7 +218,7 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
     expect(email!.url).toContain(`cc=${owner.email}`);
     expect(email!.url).toContain('Contract nr. 51 din');
     expect(email!.url).toContain('JVBERi0');
-    await page.goto('/leads');
+    await page.goto('/clienti-potentiali');
     await expect(page.getByTestId('leads-contract')).toHaveText('Trimis');
 
     // The return link, opened by the recipient, who has no account.
@@ -254,10 +254,10 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
     await expect(returnPage.getByTestId('return-received')).toBeVisible();
     await recipient.close();
     const [notice] = await emailsTo(owner.email, 'signed-copy-received');
-    expect(notice!.url).toContain('/leads/');
+    expect(notice!.url).toContain('/clienti-potentiali/');
 
     // Received is not signed: the owner confirms it.
-    await page.goto('/leads');
+    await page.goto('/clienti-potentiali');
     await expect(page.getByTestId('leads-contract')).toHaveText('Primit');
     await page.getByTestId('leads-open').click();
     await page.getByTestId('lead-promote').click();
@@ -266,7 +266,7 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
     await page.getByTestId('contract-signed-confirm').click();
     await expect(page.getByTestId('contract-signed')).toHaveText('Semnat');
     await expect(page.getByTestId('contract-received')).toHaveCount(0);
-    await page.goto('/leads');
+    await page.goto('/clienti-potentiali');
     await expect(page.getByTestId('leads-contract')).toHaveText('Semnat');
   }
 
@@ -290,7 +290,7 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
   expect((await signedCopy).suggestedFilename()).toBe(
     'Contract de prestări servicii - rev. 1 - semnat.pdf'
   );
-  await page.goto('/leads');
+  await page.goto('/clienti-potentiali');
   await expect(page.getByTestId('leads-contract')).toHaveText('Semnat');
 
   await page.getByTestId('leads-open').click();
@@ -307,8 +307,8 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
   await expect(page.getByTestId('documents-empty')).toBeVisible();
 
   await signOut(page);
-  await signIn(page, specialist.email, `/clients/${leadId}/contract`);
-  await expect(page).toHaveURL(new RegExp(`/clients/${leadId}/contract$`));
+  await signIn(page, specialist.email, `/clienti/${leadId}/contract`);
+  await expect(page).toHaveURL(new RegExp(`/clienti/${leadId}/contract$`));
   await expect(page.getByTestId('contract-owners-only')).toBeVisible();
   await expect(page.getByTestId('client-section').filter({ hasText: 'Contract' })).toHaveCount(0);
 });

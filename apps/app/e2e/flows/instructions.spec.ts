@@ -34,7 +34,7 @@ test('an occupational safety module is written from its guided template, saved i
   const organizationId = await createOrganization('Instrucțiuni SSM E2E', owner.id);
   const clientId = await createClientCompany(organizationId, 'S.C. POLIZOARE E2E S.R.L.');
   await completeDocumentData(organizationId, owner.id, clientId);
-  await signIn(page, owner.email, '/instructions/ssm');
+  await signIn(page, owner.email, '/instructiuni/ssm');
 
   await startModule(page, 'Polizor unghiular', 'work_equipment');
   await expect(page.getByTestId('instruction-heading-text')).toHaveCount(9);
@@ -52,7 +52,7 @@ test('an occupational safety module is written from its guided template, saved i
   );
   await page.getByTestId('editor-save').click();
 
-  await expect(page).toHaveURL(/\/instructions\/[0-9a-f-]{36}$/);
+  await expect(page).toHaveURL(/\/instructiuni\/[0-9a-f-]{36}$/);
   await expect(page.getByTestId('editor-state')).toHaveText('Versiunea 1');
   const headings = page.getByTestId('instruction-heading-text');
   await expect(headings).toHaveCount(2);
@@ -89,7 +89,7 @@ test('an occupational safety module is written from its guided template, saved i
   await page.getByTestId('editor-save').click();
   await expect(page.getByTestId('editor-state')).toHaveText('Versiunea 3');
 
-  await page.goto(`/clients/${clientId}/job-positions`);
+  await page.goto(`/clienti/${clientId}/posturi`);
   await page
     .getByTestId('job-position-row')
     .filter({ hasText: 'Lucrător comercial' })
@@ -105,7 +105,7 @@ test('an occupational safety module is written from its guided template, saved i
   await picker.getByTestId('instructions-pick-save').click();
   await expect(page.getByTestId('instructions-state')).toHaveText('2 instrucțiuni');
 
-  await page.goto(`/clients/${clientId}/documents`);
+  await page.goto(`/clienti/${clientId}/documente-ssm`);
   await page.getByTestId('documents-generate').click();
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('3');
@@ -128,7 +128,7 @@ test('a fire-safety module takes a fire-safety category and is grouped by it in 
   const organizationId = await createOrganization('Instrucțiuni SU E2E', owner.id);
   const clientId = await createClientCompany(organizationId, 'S.C. ATELIER SU E2E S.R.L.');
   await completeDocumentData(organizationId, owner.id, clientId);
-  await signIn(page, owner.email, '/instructions/su');
+  await signIn(page, owner.email, '/instructiuni/su');
 
   await page.getByTestId('instruction-write').click();
   const dialog = page.getByTestId('instruction-start-dialog');
@@ -148,12 +148,12 @@ test('a fire-safety module takes a fire-safety category and is grouped by it in 
     'SU · Spații și activități · un articol'
   );
 
-  await page.goto('/instructions/su');
+  await page.goto('/instructiuni/su');
   await expect(page.getByTestId('instruction-row').filter({ hasText: 'Birouri' })).toContainText(
     'Spații și activități'
   );
 
-  await page.goto(`/clients/${clientId}/job-positions`);
+  await page.goto(`/clienti/${clientId}/posturi`);
   await page
     .getByTestId('job-position-row')
     .filter({ hasText: 'Lucrător comercial' })

@@ -4,7 +4,7 @@ test('application domain is reachable before browser checks', async ({ page }) =
   // A successful Worker upload can precede DNS and certificate availability.
   // Probe with Chromium, which is also the client used by the dependent tests.
   await expect(async () => {
-    const response = await page.goto('/login', {
+    const response = await page.goto('/autentificare', {
       waitUntil: 'domcontentloaded',
       timeout: 10_000,
     });

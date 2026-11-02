@@ -49,7 +49,7 @@ test('generating waits for the data the documents print, and says where it is fi
   const owner = await createAccount('documents-missing', 'Dana Documente');
   const organizationId = await createOrganization('Documente lipsă E2E', owner.id);
   const clientId = await createClientCompany(organizationId, 'S.C. FĂRĂ DATE E2E S.R.L.');
-  await signIn(page, owner.email, `/clients/${clientId}/documents`);
+  await signIn(page, owner.email, `/clienti/${clientId}/documente-ssm`);
 
   await expect(page.getByTestId('documents-empty')).toBeVisible();
   await page.getByTestId('documents-generate').click();
@@ -93,7 +93,7 @@ test('generating waits for the data the documents print, and says where it is fi
   ]);
 
   await rows.nth(5).click();
-  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/training$`));
+  await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/instruire$`));
   await expect(page.getByTestId('details-administrative-interval')).toBeFocused();
 });
 
@@ -106,12 +106,12 @@ test('a row leads to its field, and the toast of the save leads back to generati
   await completeDocumentData(organizationId, owner.id, clientId, {
     legal_representative_role: null,
   });
-  await signIn(page, owner.email, `/clients/${clientId}/documents`);
+  await signIn(page, owner.email, `/clienti/${clientId}/documente-ssm`);
 
   await page.getByTestId('documents-generate').click();
   await expect(page.getByTestId('generate-missing-count')).toHaveText('1 dată de completat');
   await page.getByTestId('generate-missing-row').click();
-  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/details$`));
+  await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/detalii$`));
   const role = page.getByTestId('details-representative-role');
   await expect(role).toBeFocused();
   await role.fill('Administrator');
@@ -119,7 +119,7 @@ test('a row leads to its field, and the toast of the save leads back to generati
   await expect(page.getByText('Reprezentantul legal a fost salvat.')).toBeVisible();
 
   await page.getByRole('button', { name: 'Înapoi la generare' }).click();
-  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/documents$`));
+  await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/documente-ssm$`));
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('3');
   await page.getByTestId('generate-submit').click();
@@ -133,7 +133,7 @@ async function generateDocumentation(page: Page, account: string, client: string
   const organizationId = await createOrganization(`Documente ${client}`, owner.id);
   const clientId = await createClientCompany(organizationId, `S.C. ${client} S.R.L.`);
   await completeDocumentData(organizationId, owner.id, clientId);
-  await signIn(page, owner.email, `/clients/${clientId}/documents`);
+  await signIn(page, owner.email, `/clienti/${clientId}/documente-ssm`);
 
   await page.getByTestId('documents-generate').click();
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
@@ -170,7 +170,7 @@ test('with a gap elsewhere in the set the cover is generated again, and a decisi
   await expect(missing).toHaveText([/^Programul instruirii periodice/]);
 
   await missing.click();
-  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/training$`));
+  await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/instruire$`));
   const dayTo = page.getByTestId('details-day-to');
   await expect(dayTo).toBeFocused();
   await expect(dayTo).toHaveAttribute('data-pointed', '');
@@ -179,7 +179,9 @@ test('with a gap elsewhere in the set the cover is generated again, and a decisi
   await expect(page.getByText('Programul de instruire a fost salvat.')).toBeVisible();
 
   await page.getByRole('button', { name: 'Înapoi la document' }).click();
-  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/documents\\?section=decisions`));
+  await expect(page).toHaveURL(
+    new RegExp(`/clienti/${clientId}/documente-ssm\\?section=decisions`)
+  );
   const pointed = page.locator('#document-decision_training');
   await expect(pointed).toHaveAttribute('data-pointed', '');
   await act(page, pointed, 'document-regenerate');
@@ -479,7 +481,7 @@ test('a draft is corrected in the in-app editor, and the correction is still the
   const organizationId = await createOrganization('Editor E2E', owner.id);
   const clientId = await createClientCompany(organizationId, 'S.C. CLIENT EDITOR E2E S.R.L.');
   await completeDocumentData(organizationId, owner.id, clientId);
-  await signIn(page, owner.email, `/clients/${clientId}/documents`);
+  await signIn(page, owner.email, `/clienti/${clientId}/documente-ssm`);
   await page.getByTestId('documents-generate').click();
   await page.getByTestId('generate-submit').click();
   await openDocumentSection(page, '1');
@@ -563,7 +565,7 @@ test("from 10 employees the set includes the decision on the workers' representa
   });
   await evaluateRisks(organizationId, clientId);
   await createInstructionModule(organizationId, owner.id, 'Lucrul cu foc deschis', 'su');
-  await signIn(page, owner.email, `/clients/${clientId}/documents`);
+  await signIn(page, owner.email, `/clienti/${clientId}/documente-ssm`);
   await expect(page.getByTestId('client-employee-count')).toHaveText('10');
   await page.getByTestId('documents-generate').click();
   await expect(page.getByTestId('generate-headcount')).toContainText(
@@ -584,7 +586,7 @@ test("from 10 employees the set includes the decision on the workers' representa
   // One post gets an entry on its page, the other needs none; the list then shows both.
   await rows.nth(1).click();
   await expect(page).toHaveURL(
-    new RegExp(`/clients/${clientId}/job-positions/[0-9a-f-]+#protective-equipment$`)
+    new RegExp(`/clienti/${clientId}/posturi/[0-9a-f-]+#protective-equipment$`)
   );
   await expect(page.getByTestId('job-position-page')).toBeVisible();
   await page.getByTestId('equipment-add').click();
@@ -641,7 +643,7 @@ test("from 10 employees the set includes the decision on the workers' representa
     positions.filter({ hasText: 'Electrician' }).getByTestId('job-position-fire-instructions')
   ).toHaveText('1 instrucțiune');
 
-  await page.goto(`/clients/${clientId}/training`);
+  await page.goto(`/clienti/${clientId}/instruire`);
   await page.getByTestId('responsible-add').click();
   await page.getByTestId('responsible-employee').click();
   await page.getByTestId('responsible-employee-search').fill('vasile');
@@ -650,7 +652,7 @@ test("from 10 employees the set includes the decision on the workers' representa
   await page.getByTestId('responsible-save').click();
   await expect(page.getByText('Persoana a fost adăugată.')).toBeVisible();
 
-  await page.goto(`/clients/${clientId}/documents`);
+  await page.goto(`/clienti/${clientId}/documente-ssm`);
   await page.getByTestId('documents-generate').click();
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('3');

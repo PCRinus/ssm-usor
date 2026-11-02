@@ -38,7 +38,7 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
       jobTitle: 'Lucrător comercial',
     });
   }
-  await signIn(page, owner.email, `/clients/${clientId}/training`);
+  await signIn(page, owner.email, `/clienti/${clientId}/instruire`);
   const card = page.getByTestId('fire-safety-card');
   await expect(card.getByTestId('fire-schedule-facts')).toContainText('Necompletat');
   await card.getByTestId('fire-safety-edit').click();
@@ -177,7 +177,7 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   await expect(means.getByTestId('fire-maintenance-row')).toHaveCount(1);
   await expect(means.getByTestId('fire-building-edit')).toHaveCount(0);
   await expect(page.getByTestId('fire-substance-row')).toHaveCount(1);
-  await page.goto(`/clients/${clientId}/training`);
+  await page.goto(`/clienti/${clientId}/instruire`);
   await expect(card.getByTestId('fire-smoking-place')).toHaveText(
     'În curtea interioară, lângă poarta de acces auto'
   );
@@ -195,7 +195,7 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   await expect(card.getByTestId('fire-smoking-place-input')).toHaveValue('');
   await card.getByRole('button', { name: 'Renunță' }).click();
 
-  await page.goto('/organization/authorizations');
+  await page.goto('/organizatie/abilitari');
   await page.getByTestId('authorizations-fireSafetyTechnicianName').fill('Radu Stan');
   await page.getByTestId('authorizations-fireSafetyTechnicianCertificate').fill('CT 123/2024');
   await page

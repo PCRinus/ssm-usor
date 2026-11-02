@@ -34,7 +34,7 @@ test('a specialist records a training with signers, marks a slot on paper and vo
   expect(listed.ok).toBe(true);
   const [employee] = ((await listed.json()) as { items: { id: string }[] }).items;
 
-  await signIn(page, owner.email, `/clients/${clientId}/employees/${employee!.id}/training/ssm`);
+  await signIn(page, owner.email, `/clienti/${clientId}/angajati/${employee!.id}/instruire/ssm`);
   await page.getByTestId('training-record').first().click();
   const dialog = page.getByTestId('training-dialog');
   await dialog.getByTestId('training-phase').selectOption('periodic');
@@ -80,19 +80,19 @@ test('a specialist records a training with signers, marks a slot on paper and vo
   await expect(record.getByTestId('training-record-delete')).toBeDisabled();
 
   await page.getByTestId('nav-signatures').click();
-  await expect(page).toHaveURL(/\/signatures$/);
+  await expect(page).toHaveURL(/\/semnaturi$/);
   const group = page.getByTestId('signature-requests-client');
   await expect(group).toHaveCount(1);
   await expect(group).toContainText('S.C. CLIENT SEMNĂTURI E2E S.R.L.');
   await expect(group.getByTestId('signature-request')).toHaveCount(2);
   await expect(page.getByTestId('signature-requests-sign')).toBeDisabled();
 
-  await page.goto(`/clients/${clientId}/portal`);
+  await page.goto(`/clienti/${clientId}/portal`);
   await expect(page.getByTestId('client-signature-requests')).toContainText(
     '2 semnături în așteptare'
   );
 
-  await page.goto(`/clients/${clientId}/employees/${employee!.id}/training/ssm`);
+  await page.goto(`/clienti/${clientId}/angajati/${employee!.id}/instruire/ssm`);
   await record.getByTestId('record-signatures-void').click();
   const voiding = page.getByTestId('void-signatures-dialog');
   await voiding.getByTestId('void-signatures-reason').fill('Durata greșită');
@@ -177,7 +177,7 @@ test('a member signs two requests with one code from Semnături', async ({ page 
   await expect(dialog).toBeHidden();
   await expect(page.getByTestId('signature-requests-empty')).toBeVisible();
 
-  await page.goto(`/clients/${clientId}/employees/${employee.id}/training/ssm`);
+  await page.goto(`/clienti/${clientId}/angajati/${employee.id}/instruire/ssm`);
   const record = page.getByTestId('training-record-item').first();
   await expect(record.locator('[data-testid="signature-slot"][data-slot="trainer"]')).toContainText(
     'Semnat electronic'

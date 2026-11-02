@@ -31,7 +31,7 @@ test('a client has the posts its employees fill, and a specialist keeps the list
     lastName: 'Sudoru',
     jobTitle: ' sudor ',
   });
-  await signIn(page, owner.email, `/clients/${clientId}/employees`);
+  await signIn(page, owner.email, `/clienti/${clientId}/angajati`);
   await page.getByRole('link', { name: 'Posturi de lucru' }).click();
 
   const rows = page.getByTestId('job-position-row');
@@ -62,7 +62,7 @@ test('a client has the posts its employees fill, and a specialist keeps the list
   );
   await expect(accountant.getByTestId('job-position-equipment')).toHaveText('De stabilit');
   await accountant.getByTestId('job-position-instructions').click();
-  await expect(page).toHaveURL(/\/job-positions\/[0-9a-f-]+#instructions$/);
+  await expect(page).toHaveURL(/\/posturi\/[0-9a-f-]+#instructions$/);
   await expect(page.getByTestId('client-page')).toBeVisible();
   const instructions = page.getByTestId('instructions-card');
   await expect(instructions).toBeInViewport();
@@ -78,7 +78,7 @@ test('a client has the posts its employees fill, and a specialist keeps the list
     '2 posturi nu au instrucțiunile SU stabilite'
   );
   await accountant.getByTestId('job-position-fire-instructions').click();
-  await expect(page).toHaveURL(/\/job-positions\/[0-9a-f-]+#fire-instructions$/);
+  await expect(page).toHaveURL(/\/posturi\/[0-9a-f-]+#fire-instructions$/);
   await expect(page.getByTestId('fire-instructions-card')).toBeInViewport();
   await expect(page.getByTestId('fire-instructions-state')).toHaveText('De stabilit');
   await page.getByTestId('fire-instructions-decide-none').click();
@@ -141,7 +141,7 @@ test('a new hire goes into a post from the employee form, and can be moved to an
     county_code: 'CJ',
     locality: 'Cluj-Napoca',
   });
-  await signIn(page, owner.email, `/clients/${clientId}/employees/new`);
+  await signIn(page, owner.email, `/clienti/${clientId}/angajati/nou`);
 
   await page.getByTestId('employee-last-name').fill('Electricu');
   await page.getByTestId('employee-first-name').fill('Dan');
@@ -170,7 +170,7 @@ test('a new hire goes into a post from the employee form, and can be moved to an
   await page.getByTestId('employee-commute-minutes').fill('20');
   await page.getByTestId('employee-submit').click();
 
-  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/employees$`));
+  await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/angajati$`));
   const row = page.getByTestId('employees-row').filter({ hasText: 'Electricu' });
   await expect(row).toContainText('Electrician');
 

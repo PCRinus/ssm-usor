@@ -34,9 +34,9 @@ test('the fire-safety set asks for its own data and the first decision number, i
     periodic_training_minutes: null,
   });
   await completeFireSafetyData(organizationId, clientId);
-  await signIn(page, owner.email, `/clients/${clientId}`);
+  await signIn(page, owner.email, `/clienti/${clientId}`);
   await page.getByRole('link', { name: 'Documente SU' }).click();
-  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/fire-safety-documents$`));
+  await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/documente-su$`));
 
   await expect(page.getByTestId('documents-hint')).toBeVisible();
   await expect(page.getByTestId('documents-empty')).toBeVisible();
@@ -167,6 +167,6 @@ test('the fire-safety set asks for its own data and the first decision number, i
   );
 
   await page.getByRole('link', { name: 'Documente SSM' }).click();
-  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/documents$`));
+  await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/documente-ssm$`));
   await expect(page.getByTestId('documents-empty')).toBeVisible();
 });
