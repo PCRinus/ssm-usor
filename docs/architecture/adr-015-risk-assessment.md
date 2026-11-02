@@ -50,6 +50,8 @@ The organization keeps **evaluation profiles**: a name and a set of risk factors
 
 (Amended 2026-10-05. A copy now records its origin per factor: each factor of an evaluation may point to the profile factor it corresponds to. This is provenance only, so the evaluation can say which profile a factor is in, a profile can list the evaluations that use it, and the app can tell a hand-typed evaluation from one built from the library. Copying is unchanged: nothing is inherited, no change on either side reaches the other, and editing a factor in an evaluation keeps its pointer. Applying a profile points each copy at the factor it was copied from; copying from another evaluation of the client carries the pointers along; saving an evaluation as a profile points each of its factors that had no origin at the profile factor made from it, and leaves the others pointing where they did, except under an archived client, whose factors are not changed. Deleting a profile, or a factor of it, clears the pointers. Only these database functions set it; members cannot write it. As first built, nothing linked a copy to where it came from.)
 
+(Amended 2026-11-02 by [ADR 036](adr-036-risk-library-and-import.md). A profile also holds the evaluation's three work-system texts, filled into an evaluation's empty texts on apply; its plan fields are defaults. A profile in use, one that any client's factor points at, can be archived but no longer deleted. The client import reads the pack's evaluations into the library and the client's evaluations.)
+
 ### Readiness
 
 Generation requires: every current position evaluated, with at least one factor; the sensitive groups evaluated; every unacceptable factor with at least one measure; every factor that has measures with a deadline and a person responsible. The generation form names what is missing with a link, as it does for equipment and instructions. A position cannot declare that it needs no evaluation.
@@ -78,6 +80,8 @@ The closing chapter of the general training material (2.2) on the unit's own ris
 ### In the app
 
 The position page gains a card "Evaluare de risc" with the post's state, its global level and the count of factors, opening a page of its own for the evaluation: a list this long does not fit a card. The positions table gains a column for the state. The client-level evaluations sit on the client's document data. The library is a sidebar entry of the organization, "Riscuri", beside "Instrucțiuni". Owners and specialists both edit.
+
+(Amended 2026-11-02 by [ADR 036](adr-036-risk-library-and-import.md). The sidebar entry and the library are "Evaluări de risc"; a client's evaluation shows as "Fișa de evaluare" on the post's page, its own page and the positions table, and the client-level card is "Fișe de evaluare în afara posturilor".)
 
 ### One assessment per client
 

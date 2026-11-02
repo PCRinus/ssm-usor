@@ -1,0 +1,211 @@
+# ADR 036: The risk library as "Evaluări de risc", and evaluations read from an imported pack
+
+- Status: proposed
+- Date: 2026-11-02
+
+## Context
+
+[ADR 015](adr-015-risk-assessment.md) gave each client a **risk evaluation** per post, and each organization a library of **evaluation profiles** that are copied into evaluations. [ADR 034](adr-034-own-instructions-as-app-text.md) reworked the other library, the own instructions, and made the client import read them from a pack. It left the risk evaluations "to a decision of their own". This is that decision.
+
+The risk library as built:
+
+- **Its name says little.** The sidebar reads "Riscuri", the page "Biblioteca de riscuri", an entry is a "profil". "Profil" also names the member's own profile ("Profilul meu"). Mircea's SSM contact, asked what he would call the page, said "Evaluări de risc".
+- **That name is taken on the client's side.** A post's page has a section "Evaluare de risc", its evaluation page is headed "Evaluare de risc", the positions table has a column "Evaluare de risc", and the client-level card is "Evaluări de risc în afara posturilor".
+- **An entry is made by hand only.** "Profil nou" creates an empty profile by name; "Salvează în bibliotecă" copies a client's evaluation. There is no upload, paste or import anywhere, so nothing has to be removed first, as the Word upload was for instructions.
+- **An entry holds factors only.** The work-system texts (means of production, work environment, exposure) live on the client's evaluation alone. The plan fields (actions, deadline, person responsible, observations) are on both the profile's factors and the evaluation's.
+- **Deleting is always allowed**, even while clients use the profile; their factors stay and lose their pointer. An instruction module, which clients link to rather than copy, cannot be archived while it is applied.
+- **The list** shows the name, the factor counts, the global level and the date; it has no usage, no archive and no search.
+- **No help article** covers the library or the evaluation page, though ADR 028 reserved the area.
+
+The client import of [ADR 030](adr-030-import-from-documents.md) already sorts the pack's risk assessment and prevention plan as `risk_assessment` and reads them in the client reading for posts, staff categories and the evaluation team. Their factors, classes and measures are dropped.
+
+The five reference archives, read for this ADR:
+
+- **All five come from one provider and one Word template.** No archive from another provider is available. The reader is built on one layout, and how it fares on others is to be learned in production (#802).
+- **Each post's sheet is one table of seven columns:** component, group, "F3. description", consequence, gravity, probability, level. Gravity, probability and level are bare digits; the component and the group are merged cells, empty on the rows below their first. 381 factor rows in all, 11 to 47 a sheet.
+- **The import's reader keeps the tables.** `docxToText` writes each row as `| a | b | … |`; all 381 rows come out as clean seven-cell rows and the plan's as eleven-cell rows.
+- **The pack's own figures are often wrong.** In 5 % of rows the printed level disagrees with the method's grid; in 9 % the consequence disagrees with the gravity class. A post's stated global level can be stale, and a ranking table can name a post the client does not have.
+- **Copies abound.** The sensitive groups' sheet is often a byte-for-byte copy of a post's. One sheet can cover several job titles. Eight to eighteen identical factors with identical classes recur between clients: the provider works from a library of its own.
+- **Measures sit in two places.** The assessment's measures sheet gives the unacceptable factors' measures as one text, sometimes labelled "Măsuri tehnice: … Măsuri organizatorice: …". The plan has one column per kind for most factors, but names no factor code: 60–85 % of its rows match a factor word for word, a few match none, and one plan was older than its assessment.
+- **The plan's deadlines and people are roles, not names:** "Periodic", "Permanent", "Anual"; "Cond. loc muncă / Serv. extern", "Administrator".
+
+Mircea decided on 2026-11-02:
+
+1. The sidebar entry and the library page are **Evaluări de risc**. The client's side is renamed instead: a post's evaluation is its **Fișa de evaluare**, the name document 9 prints ("Fișa de evaluare a locului de muncă").
+2. The library works like Instrucțiuni proprii: an entry no client uses can be deleted; one that any client uses can only be **archived**. Clients keep copies, not links. The list gains a usage column. Unlinking a client from an entry is #801.
+3. A library entry also holds the **work-system texts**, copied with its factors.
+4. A library entry's plan fields are **defaults**, copied into an evaluation and changed there for the employer.
+5. The import fills **both** the library and the new client's evaluations.
+6. A post that already has factors: **the specialist decides** what happens to it.
+7. The sensitive groups' and other client-level sheets are imported whenever the pack has them.
+8. **PDFs and scans are read too.**
+9. Text written by an earlier provider is imported like the rest, as for instructions.
+10. The import's credits keep today's setup: a flat amount for the reading. The pricing of imports is discussed later.
+11. The quality record and alerts for all imports come **after** this, in one decision of their own (#802).
+
+## Decision
+
+### The names
+
+The library is **Evaluări de risc**: the sidebar entry, the page's title and its breadcrumb. Its subtitle stays: "Posturile pe care le evaluezi o dată și le aplici la orice client." An entry is an **evaluare de risc** of the library, named by its post ("Bucătar"):
+
+- "Profil nou" becomes **Evaluare nouă**; "Aplică un profil" becomes **Aplică din bibliotecă**, and its dialog lists the library's evaluations;
+- "Salvează în bibliotecă", "Unde este folosit" and the factor's origin ("în evaluarea Bucătar din bibliotecă") keep their place with the new noun;
+- every "profil" in the app's text goes.
+
+A client's evaluation is its **Fișa de evaluare**:
+
+- the post page's section and the evaluation page's heading read "Fișa de evaluare";
+- the positions table's column reads "Fișa de evaluare";
+- the client-level card reads "Fișe de evaluare în afara posturilor".
+
+What names the work or the document stays: document 9's title, the setup guide's "Evaluează riscurile posturilor", the missing-data labels and the documents tab.
+
+The addresses follow ADR 035, with no redirects: `/evaluari-de-risc` and `/evaluari-de-risc/$profileId`; a post's `…/posturi/$jobPositionId/fisa-de-evaluare` and a client-level one's `…/posturi/fise-de-evaluare.$evaluationId`.
+
+The code keeps its names: `evaluation_profiles`, `/evaluation-profiles`, `EvaluationProfile*` for the library, `risk_evaluations` for the client's. Renaming tables and routes for a word on screen was rejected; the glossary maps the two.
+
+"Evaluări de risc tip" was rejected by Mircea as reading wrong. "Fișe de evaluare" for the library was rejected because the library is what specialists call evaluations, and "fișă" already names the individual training sheets.
+
+### The library's lifecycle
+
+An entry is **in use** while any client's factor points at one of its factors (ADR 015's provenance, amended 2026-10-05), archived posts and clients included, since their factors still exist.
+
+- **Deleting** is offered only for an entry not in use. For one in use, the menu offers **Arhivează** in its place, and the API refuses a delete with the reason.
+- **Archiving** hides the entry from "Aplică din bibliotecă" and from the import's comparison. It keeps its usage, its page and its factors, and **Reactivează** brings it back. Archiving is allowed in use, unlike an instruction module: a client holds a copy, so nothing a client prints depends on the entry.
+- **The list** gains the column **Folosită la**, "3 clienți": the clients that "Unde este folosit" lists, which leaves out archived posts. And **Arată arhiva**, as on Instrucțiuni proprii.
+- **Names stay unique** across active and archived entries, as today.
+- Deleting a factor of an entry in use is still allowed and clears its pointers, as today; only the whole entry is protected.
+
+That an entry once used can never be deleted is accepted. Unlinking, which would make it deletable again, is #801.
+
+### What an entry holds
+
+An entry gains the evaluation's three work-system texts: **means of production**, **work environment** and **exposure**, all optional. Exposure has no default on an entry.
+
+- **Applying** an entry fills only the evaluation's empty texts and never overwrites one; the exposure counts as empty while it is still the default "8 h / schimb". Two entries applied in turn fill from the first.
+- **Saving** an evaluation into the library copies its texts.
+- **The entry's page** shows them in the same "Sistemul de muncă" card as the evaluation page.
+
+The entry's factors keep their plan fields, which become **defaults**: applying copies them, and the specialist changes them on the client's sheet. The page says so above the factors.
+
+### The evaluations read from the pack
+
+**The library part.** The import gains a third library part, `risk_evaluations`, beside `instructions_ssm` and `instructions_su`. It has no domain: the documents it reads are SSM only, and fire risk lives in the SU data (ADR 019). It is created when sorting finds `risk_assessment` files, runs when the client proposal is ready, and follows the instructions parts' life: its own status, reading, retry and refund, review after the client, confirm on its own, expiry 14 days after the client, tokens and cost on the import and on the part, gateway metadata naming the part.
+
+**The model points, code copies.** One request to GPT-6.1 Terra receives the pack's `risk_assessment` files as the client reading prepared them, with each table row numbered (`R212 | … |`), and the proposed posts. It returns:
+
+- `sheets`: one per evaluation sheet. Each gives its file; the heading as written; its kind, `job_position`, `sensitive_groups` or `other` with the name as written; the proposed posts it evaluates, several when the heading names several; the rows its factor table spans; which cell of a row holds the component, the group, the description, the gravity, the probability and the printed level; and the start and end words of its means of production, work environment and exposure.
+- `measures`: for each row of the assessment's measures sheet, the factor row it belongs to and, where its text mixes kinds without labels, the start words of each kind.
+- `plan`: for each row of the plan, the factor row it belongs to, or none.
+
+Code then copies, never the model:
+
+- each factor row's cells, carrying the merged component and group down from the row above, and dropping the "F3." code;
+- the component, mapped from the label by folded match to the four of the method ("Mijloace de producție", "Sarcina de muncă", …), else flagged;
+- the group and the description as written;
+- the plan row's four measure columns as measures of those kinds, and its actions, deadline, person responsible and observations;
+- a measures-sheet text, split on its "Măsuri tehnice:" labels or at the model's start words, for a factor the plan does not cover;
+- the work-system texts at the quotes' places.
+
+Retyping was rejected for Word files: the answer would be some 25 factors a sheet written out, a long and costly output, and a retyped class or description can drift where a copied one cannot.
+
+**PDFs and scans** have no rows to point at. The same request, for those files, returns each sheet's factors written out with a quote of the row, and every factor read this way is marked **Verifică** in the review. The scanned pages are read as the client import reads them (ADR 030) and charged per page, as there.
+
+**Checks, never corrections.** The classes are the evaluator's judgement (ADR 015), so the import copies them as written and never proposes one:
+
+- a printed level that disagrees with the grid shows both, "în document: 2, după metodă: 3", and the sheet takes the grid's;
+- a consequence that disagrees with the gravity class is shown, since the app prints the class's own wording;
+- a class missing or off the scale leaves the factor unticked until the specialist sets it;
+- a quote not found, a row the model placed in no sheet, and a plan row that matches no factor are listed for review.
+
+**Which posts take which sheet.** A sheet that names several posts applies to each. A heading that matches no proposed post is left undecided with its words shown, and the specialist picks the post or leaves it to the library alone. A `sensitive_groups` sheet becomes the client's sensitive-groups evaluation; an `other` sheet becomes a client-level evaluation by its name ("Vizitatori"). Copies stay copies: a sensitive groups' sheet identical to a post's is still imported for both.
+
+**What counts as already in the library.** The pack is first compared with itself, so identical sheets make one entry. Each sheet is then, against the active entries:
+
+- **identical** when its factors match one-for-one on component, folded description and both classes; it is not offered as a new entry;
+- **similar** when at least 70 % of its factors match an entry's on component with a description word-trigram Jaccard of 0.8 or more; it reads "Ai deja o evaluare asemănătoare: Bucătar", with **Ce diferă**: the factors only in the pack, only in the library, and those with other classes or measures;
+- **new** otherwise.
+
+Measures, plan fields and texts are left out of the match. A taken name is proposed with the client's name after it, "Bucătar (Royal Hotel)", editable, as for instructions.
+
+**The review.** The hub gains a group **Evaluări de risc** with one task. It lists one card per sheet:
+
+- the sheet's heading, kind and posts, with the picker for an undecided one;
+- the factors as a table, each with its tick, component, group, description, gravity and probability selects, computed level, measures, plan fields and flags; **Sursa** shows the row in the file;
+- the library choice: **Adaugă în bibliotecă** for a new sheet, **Folosește ce ai** or **Adaugă ca nouă** for a similar one, and **Nu adăuga** for any; a client-level sheet defaults to Nu adăuga;
+- for a post that already has factors, "Postul are deja o fișă cu 18 factori", and the specialist's choice: **Adaugă după cei existenți**, **Înlocuiește** or **Lasă cum e**, the default.
+
+A plan field that names a person rather than a role is flagged, and is copied to the client's sheet but not into the library.
+
+**Confirming** runs `apply_risk_import` in one transaction, after the client's confirm:
+
+- it creates the chosen library entries, with their factors, measures, plan fields as defaults and texts;
+- it creates each missing evaluation, the sensitive groups' and the other client-level ones included, and fills only their empty texts;
+- it writes the pack's factors, as reviewed, onto each sheet's posts as the post's choice says, with their plan fields as the pack gives them;
+- each factor written to a client points at the matching factor of the entry it was added to or matched, so "Unde este folosit" and the origin read right from the first day;
+- a sensitive groups' evaluation moves the client's sensitive groups state to evaluated, as the database already does when one is created.
+
+Everything carries the confirming member as `created_by`. The client's documents 9 and 10 become ready or behind as the existing triggers say.
+
+**When it runs and its size.** After the client proposal is ready, so the prompt can list the posts, as for instructions. The pack's `risk_assessment` text goes in whole; the five archives need about 30,000 to 70,000 tokens. Word files need a short answer. Retyped PDFs need the long one, read eight sheets at a time, each request after the same files so the later ones hit the prompt cache. Expected cost for a Word pack: $0.05–0.10.
+
+**Credits.** A flat **10 credits** for the reading, charged when the request is sent, refunded on a failure on our side, as the instructions parts are. That follows ADR 034's rule: the dearest reference reading at a credit's cost. The import package step measures the five archives; if the dearest costs more than $0.08, the amount becomes 15. Scanned pages are 1 credit each, as today. The import's total names it: _Importul a folosit 70 de credite (25 + 35 pentru instrucțiunile proprii + 10 pentru evaluările de risc)_.
+
+**Testing.** There is no second provider's archive. Reference answers for the five archives' sheets and factors are written in the import package step, and the reader is measured against them before any change of prompt or model. What an import does on an unfamiliar template is the subject of #802.
+
+### Help
+
+The help site gains the article **Evaluări de risc** in the area ADR 028 reserved as "Riscuri", renamed with the page: the library, an entry's page, applying it, archiving, and a client's Fișa de evaluare with its factors, classes and measures. It names the method's acts: Legea 319/2006, art. 12 (1) a, and H.G. 1425/2006, art. 15 (1) pt. 1 and art. 46, for Mircea to check. The import's article gains a section on the Evaluări de risc task. Each comes with the pull request that completes its feature, with its `## Actualizări` block.
+
+## What is left out
+
+- **Unlinking** a client's evaluation from a library entry: #801.
+- **The quality record and alerts** for every import: #802.
+- **The pricing of imports** as a whole: a full import costs 70 credits plus scanned pages under this ADR; to be discussed later.
+- **Starting an entry from another entry** in the library, as instructions can.
+- **Evaluations by another method** (#259), and an ergonomic study or any non-I.N.C.D.P.M. document in a pack: it is not read.
+- **The pack's ranking table, stated global levels and charts**: the app computes its own.
+- **The assessment's general measures for the workplace**, which no factor carries.
+- **Comparing against archived entries.**
+- **Search and filters** on the library list.
+- **Replacing a library entry with the pack's sheet.** Choosing "Adaugă ca nouă" and archiving the old one does it by hand.
+
+## Consequences
+
+- **Two words for two things.** "Evaluări de risc" is the organization's library; "Fișa de evaluare" is the client's. The glossary maps them to `evaluation_profiles` and `risk_evaluations`, which keep their names.
+- **The library fills itself.** A provider's first import brings its own library with it, so the second client of a kind is cheap from the start.
+- **The first client's documents 9 and 10** can be generated right after an import, where the evaluation was the largest typing job in the product (ADR 015).
+- **The pack's errors are surfaced, not fixed.** A specialist sees every level the grid disagrees with; the app still never chooses a class.
+- **Entries outlive their use.** An entry used once stays, archived at most, until #801.
+- **The import costs more:** about $0.05–0.10 and 10 credits for a Word pack.
+- **The schema changes:** `archived_at` and the three texts on `evaluation_profiles`; the part `risk_evaluations` and `apply_risk_import`; the library part's domain becomes optional; the delete refused in use. `docs/data-model.md`, `docs/api.md` and `docs/app.md` change with it.
+- **The glossary changes:** evaluation profile, risk evaluation and library proposal.
+
+## Order of work
+
+Each step is a pull request in one stack, on this ADR. The clean-up comes first.
+
+1. This ADR, the glossary in `CONTEXT.md`, and notes in ADR 015 and 034.
+2. **The names.** Evaluări de risc and Fișa de evaluare in the app, the addresses, the flow tests and `docs/app.md`; the marketing site's alt text.
+3. **The lifecycle.** `archived_at`, the delete refused in use, the usage count on the list, Arhivează, Reactivează and Arată arhiva; pgTAP and app tests.
+4. **The texts.** The three work-system texts on entries, filled by apply and save, edited on the entry's page.
+5. **The help article** Evaluări de risc.
+6. **`packages/import`.** Numbered rows, the risks request, the copying and its checks, the plan's join, the comparison with the library; the reference answers for the five archives, the measured cost and the credits.
+7. **The database.** The part `risk_evaluations`, the optional domain, `apply_risk_import`, the credits; pgTAP tests.
+8. **The API.** The part's message, retry, proposal, changes and confirm.
+9. **The app.** The hub's Evaluări de risc group and task, its sheet cards and choices; the import's help section and the `## Actualizări` block.
+
+## Defaults taken instead of asking
+
+- **The addresses** `/evaluari-de-risc` and `…/fisa-de-evaluare`, and the code keeping its English names.
+- **"Evaluare nouă", "Aplică din bibliotecă"** and the other strings as listed.
+- **"Folosită la" counts clients**, as "Unde este folosit" lists them; an entry used only by archived posts reads "—" and still cannot be deleted.
+- **Archiving is allowed while in use**, unlike an instruction module, since a client holds a copy.
+- **Applying fills only empty texts.**
+- **Thresholds**: identical on component, folded description and classes; similar at 70 % of factors with a description Jaccard of 0.8. To be tuned on the five archives in step 6.
+- **Defaults on the review card**: a new sheet is added to the library, a client-level one is not, a post with factors is left as it is.
+- **The sheet takes the grid's level**, showing the printed one beside it.
+- **A person named in a plan field** goes to the client only.
+- **PDFs are read eight sheets a request**, and their factors are all marked Verifică.
+- **Credits**: 10, or 15 if the measured dearest reading passes $0.08.
