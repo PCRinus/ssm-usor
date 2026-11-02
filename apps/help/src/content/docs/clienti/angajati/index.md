@@ -79,8 +79,8 @@ Lista unui client e în tabul **Angajați** al clientului. Fiecare rând arată:
 
 - **Angajat**: numele, cu marca dedesubt când există;
 - **Post de lucru**: postul pe care îl ocupă; funcția din contract e pe pagina lui;
-- **Instruire SSM** și **Instruire PSI**: starea instruirii în fiecare domeniu, cu termenul sub ea;
-- **Testare**: starea testării, pe rânduri separate pentru SSM și PSI;
+- **Instruire SSM** și **Instruire SU**: starea instruirii în fiecare domeniu, cu termenul sub ea;
+- **Testare**: starea testării, pe rânduri separate pentru SSM și SU;
 - **Contact**: emailul și telefonul;
 - **Angajat din**: data angajării și, la un fost angajat, data plecării.
 
@@ -100,7 +100,7 @@ Caută după nume sau după marcă. Fiecare cuvânt scris trebuie să se regăse
 
 **Instruire:** și **Testare:** restrâng lista la o stare. Un filtru citește ambele domenii:
 
-- **La zi** înseamnă la zi și în SSM, și în PSI;
+- **La zi** înseamnă la zi și în SSM, și în SU;
 - celelalte stări (**Scadente**, **Depășite**, **Neinstruiți**; **De susținut**, **Anual scadent**, **Fără test**) îi arată pe cei care sunt în acea stare în cel puțin un domeniu.
 
 Astfel, filtrul îți arată pe oricine are ceva de rezolvat, indiferent de domeniu. Când niciun angajat nu e în starea aleasă, lista spune asta și îți oferă **Arată toți angajații**.
@@ -109,11 +109,11 @@ Astfel, filtrul îți arată pe oricine are ceva de rezolvat, indiferent de dome
 
 **Angajați** din meniul lateral strânge într-o singură listă angajații tuturor clienților tăi activi, cu aceleași taburi și filtre. Are în plus coloana clientului și un filtru după client, iar căutarea găsește și după numele clientului. Clienții potențiali și clienții arhivați nu apar aici. Angajații se adaugă tot din pagina fiecărui client.
 
-Când ajungi aici din **Dashboard**, de la cifrele unui domeniu, filtrul citește doar acel domeniu: „La zi” din rândul SSM înseamnă la zi în SSM, oricum ar fi în PSI. Dacă alegi sau ștergi un filtru pe pagină, lista revine la ambele domenii.
+Când ajungi aici din **Dashboard**, de la cifrele unui domeniu, filtrul citește doar acel domeniu: „La zi” din rândul SSM înseamnă la zi în SSM, oricum ar fi în SU. Dacă alegi sau ștergi un filtru pe pagină, lista revine la ambele domenii.
 
 ## Starea instruirii
 
-Fiecare angajat actual are o stare pentru SSM și una pentru PSI. Aplicația o calculează din instruirile înregistrate și din termenul următoarei instruiri; nu o alegi tu și nu se salvează nicăieri, așa că e mereu cea de azi. Zilele sunt ale calendarului din România. Cum se calculează termenul vezi în [Termenul următoarei instruiri](/clienti/angajati/instruire-si-teste/).
+Fiecare angajat actual are o stare pentru SSM și una pentru SU. Aplicația o calculează din instruirile înregistrate și din termenul următoarei instruiri; nu o alegi tu și nu se salvează nicăieri, așa că e mereu cea de azi. Zilele sunt ale calendarului din România. Cum se calculează termenul vezi în [Termenul următoarei instruiri](/clienti/angajati/instruire-si-teste/).
 
 ### Neinstruit
 
@@ -135,11 +135,11 @@ Termenul a trecut. Sub stare vezi „din” și termenul care a trecut. Angajatu
 
 ## Starea testării
 
-Fiecare angajat actual are o stare a testării pentru SSM și una pentru PSI, calculată la fel ca starea instruirii. Ce teste există și când apar vezi în [Testarea](/clienti/angajati/instruire-si-teste/).
+Fiecare angajat actual are o stare a testării pentru SSM și una pentru SU, calculată la fel ca starea instruirii. Ce teste există și când apar vezi în [Testarea](/clienti/angajati/instruire-si-teste/).
 
 ### Fără test
 
-Încă nu e înregistrată instruirea pe care o încheie testul la angajare: cea introductiv-generală pentru SSM, cea la locul de muncă pentru PSI.
+Încă nu e înregistrată instruirea pe care o încheie testul la angajare: cea introductiv-generală pentru SSM, cea la locul de muncă pentru SU.
 
 ### De susținut
 
@@ -151,18 +151,18 @@ Instruirea la angajare e transcrisă de pe fișa pe hârtie, iar testul care a �
 
 ### Promovat
 
-Angajatul a promovat testul. În PSI, starea ține 12 luni de la ultimul test promovat. Filtrul **La zi** de la **Testare:** îi arată pe cei promovați în ambele domenii.
+Angajatul a promovat testul. În SU, starea ține 12 luni de la ultimul test promovat. Filtrul **La zi** de la **Testare:** îi arată pe cei promovați în ambele domenii.
 
 ### Anual scadent
 
-Doar în PSI: au trecut 12 luni de la ultimul test promovat, iar testul anual îl așteaptă pe angajat până îl promovează.
+Doar în SU: au trecut 12 luni de la ultimul test promovat, iar testul anual îl așteaptă pe angajat până îl promovează.
 
 ## De ce contează numărul de angajați
 
 Aplicația numără angajații actuali ai clientului; foștii angajați nu intră în număr. După acest număr se decide ce documente îi trebuie clientului:
 
 - de la 10 angajați, setul SSM cere decizia privind reprezentanții lucrătorilor: unul între 10 și 49 de lucrători, doi între 50 și 100, iar peste 100 numărul din art. 60 alin. (3) (HG 1425/2006, art. 53 alin. (2));
-- de la 10 angajați, setul PSI cuprinde și documentele pe care OMAI 163/2007 le cere doar operatorilor cu cel puțin numărul de salariați al unei întreprinderi mici (art. 20 alin. (1)), adică cel puțin 10 salariați; legea se uită la numărul mediu anual de salariați, iar aplicația numără angajații actuali.
+- de la 10 angajați, setul SU cuprinde și documentele pe care OMAI 163/2007 le cere doar operatorilor cu cel puțin numărul de salariați al unei întreprinderi mici (art. 20 alin. (1)), adică cel puțin 10 salariați; legea se uită la numărul mediu anual de salariați, iar aplicația numără angajații actuali.
 
 Un document generat când clientul avea 10 angajați rămâne în set și dacă numărul scade sub 10. Ține deci lista la zi: un angajat care a plecat și nu e marcat ca atare schimbă ce documente îi cere aplicația clientului.
 
@@ -171,7 +171,7 @@ Un document generat când clientul avea 10 angajați rămâne în set și dacă 
 În capul paginii vezi postul, clientul și dacă e **Angajat actual** sau **Fost angajat**, cu **Modifică** și **Marchează plecarea…** (sau **Reactivează…**). Dedesubt sunt trei taburi:
 
 - **Date**: identificarea, angajarea, contactul, datele pentru fișa de instruire, accesul la portal, actul adițional privind semnarea electronică și fișierele angajatului;
-- **Instruire SSM** și **Instruire PSI**: starea și termenul, testarea, instruirile înregistrate și fișa individuală. Vezi [Instruirea și testele unui angajat](/clienti/angajati/instruire-si-teste/).
+- **Instruire SSM** și **Instruire SU**: starea și termenul, testarea, instruirile înregistrate și fișa individuală. Vezi [Instruirea și testele unui angajat](/clienti/angajati/instruire-si-teste/).
 
 CNP-ul apare ascuns, cu ultimele patru cifre. **Arată** îl afișează întreg până pleci de pe pagină. **Vechime** se calculează din data angajării până azi, iar la un fost angajat până la data plecării.
 

@@ -55,9 +55,9 @@ Cardul **Date firmă** arată denumirea, CUI-ul, numărul din Registrul Comerțu
 
 ## Reprezentantul legal
 
-Persoana care reprezintă legal firma, de obicei administratorul. Numele și funcția lui se tipăresc în deciziile generate, în alte documente din seturile SSM și PSI, cum e fișa obiectivului, și în actul adițional privind semnarea electronică.
+Persoana care reprezintă legal firma, de obicei administratorul. Numele și funcția lui se tipăresc în deciziile generate, în alte documente din seturile SSM și SU, cum e fișa obiectivului, și în actul adițional privind semnarea electronică.
 
-Cât timp lipsește numele sau funcția, seturile de documente SSM și PSI nu se pot genera, iar angajații nu pot primi actul adițional în portal. Contractul de prestări servicii le cere și el.
+Cât timp lipsește numele sau funcția, seturile de documente SSM și SU nu se pot genera, iar angajații nu pot primi actul adițional în portal. Contractul de prestări servicii le cere și el.
 
 ### Numele și prenumele
 
@@ -86,7 +86,7 @@ Ca să-ți fie mai ușor:
 
 Omul cu care vorbești la client. Poate fi altcineva decât reprezentantul legal. Toate câmpurile sunt opționale: **Nume**, între 2 și 160 de caractere, **Email** și **Telefon**.
 
-Fișa obiectivului din setul PSI tipărește telefonul și emailul ca date de contact ale firmei. Dacă persoana de contact e chiar reprezentantul legal, cu același nume, fișa tipărește telefonul și ca telefon de serviciu al administratorului. Contractul de prestări servicii tipărește telefonul.
+Fișa obiectivului din setul SU tipărește telefonul și emailul ca date de contact ale firmei. Dacă persoana de contact e chiar reprezentantul legal, cu același nume, fișa tipărește telefonul și ca telefon de serviciu al administratorului. Contractul de prestări servicii tipărește telefonul.
 
 Persoana de contact nu are acces în portal. Angajații intră în portal cu emailul și telefonul lor, din pagina fiecăruia.
 
@@ -108,8 +108,8 @@ Salvezi cu **Salvează notițele**. Până atunci vezi „Modificări nesalvate�
 
 Când generezi documentele, lista datelor lipsă te trimite aici pentru:
 
-- „Numele reprezentantului legal” și „Funcția reprezentantului legal”, la documentele SSM și PSI;
-- „Datele PSI ale locurilor de muncă”, la documentele PSI (vezi [Datele PSI](/clienti/detalii/puncte-de-lucru/#datele-psi));
+- „Numele reprezentantului legal” și „Funcția reprezentantului legal”, la documentele SSM și SU;
+- „Datele SU ale locurilor de muncă”, la documentele SU (vezi [Datele SU](/clienti/detalii/puncte-de-lucru/#datele-su));
 - numărul din Registrul Comerțului, adresa sediului și reprezentantul legal, la contractul de prestări servicii.
 
 Linkul deschide cardul cu câmpul de completat. După salvare, mesajul de confirmare îți oferă **Înapoi la generare** sau **Înapoi la contract**, ca să revii de unde ai plecat.

@@ -203,7 +203,7 @@ Le alegi din listă sau lași „Necunoscută” și „Necunoscut”. Se tipăr
 
 ### Calificarea și studiile
 
-Text liber, cel mult 160 de caractere fiecare, de exemplu „electrician” și „medii”. Calificarea apare pe ambele fișe, studiile pe fișa PSI.
+Text liber, cel mult 160 de caractere fiecare, de exemplu „electrician” și „medii”. Calificarea apare pe ambele fișe, studiile pe fișa SU.
 
 ### Autorizațiile
 

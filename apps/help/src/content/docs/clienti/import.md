@@ -1,6 +1,6 @@
 ---
 title: Importul din documente și din fișe
-description: Cum aduci în aplicație un client din documentația lui SSM și PSI și angajații lui din fotografiile fișelor individuale de instruire.
+description: Cum aduci în aplicație un client din documentația lui SSM și SU și angajații lui din fotografiile fișelor individuale de instruire.
 topics:
   - id: import.client
     heading: Importul unui client din documente
@@ -97,7 +97,7 @@ sources:
   - supabase/migrations/20261101140000_import_found_sheets.sql
 ---
 
-Un client pe care îl preiei vine cu un dosar: documentația SSM și PSI scrisă de-a lungul anilor și fișele individuale de instruire completate de mână. Aplicația le citește și îți face o propunere. Nu se salvează nimic până nu verifici propunerea și o confirmi.
+Un client pe care îl preiei vine cu un dosar: documentația SSM și SU (în dosarele mai vechi, PSI) scrisă de-a lungul anilor și fișele individuale de instruire completate de mână. Aplicația le citește și îți face o propunere. Nu se salvează nimic până nu verifici propunerea și o confirmi.
 
 Sunt două importuri, în această ordine: întâi clientul, din documentația lui, apoi angajații, din fișele lor.
 
@@ -107,7 +107,7 @@ Citirea documentelor și a fotografiilor se socotește în credite. Un credit î
 
 - **Importul unui client** folosește 25 de credite pentru citirea documentelor, oricât de lungi ar fi, plus câte unul pentru fiecare fotografie și pagină scanată. Un PDF cu text, salvat din Word de exemplu, intră în cele 25. Care pagini ale unui PDF sunt scanate se află abia la citire, așa că fereastra de încărcare îți spune: „Folosește 25 de credite, plus 1 pentru fiecare pagină scanată.” Tot ea îți spune că instrucțiunile proprii, dacă le găsim, folosesc încă 25 (IPSSM) și 10 (IPSU).
 - **Importul angajaților** folosește un credit pentru fiecare fotografie și pentru fiecare pagină a unui PDF.
-- **Instrucțiunile proprii** din documentația unui client se citesc separat, pentru biblioteca ta de instrucțiuni proprii: 25 de credite pentru cele SSM și 10 pentru cele PSI, de fiecare dată când le citim. Dacă citirea lor nu reușește, creditele ei îți sunt returnate.
+- **Instrucțiunile proprii** din documentația unui client se citesc separat, pentru biblioteca ta de instrucțiuni proprii: 25 de credite pentru cele SSM și 10 pentru cele SU, de fiecare dată când le citim. Dacă citirea lor nu reușește, creditele ei îți sunt returnate.
 
 ### Câte credite ai
 
@@ -131,7 +131,7 @@ Dacă un import se oprește înainte să fie gata de verificat, primești înapo
 
 Pornești din **Clienți**, cu **Importă din documente**, pentru un client nou, sau de pe pagina unui client existent, cu **Completează din documentație**. Încarci documentația unei singure firme: fișiere, un folder sau o arhivă ZIP, în PDF, DOC, DOCX, JPG, PNG sau HEIC, cel mult 150 de fișiere și 100 MB în total. Arhiva o deschide aplicația înainte de încărcare, așa că vezi ce intră.
 
-Aplicația pune deoparte ce nu poartă date despre client (coperți, formulare goale, texte de lege), citește restul și îți propune datele firmei, punctele de lucru, posturile, persoanele cu atribuții, programul de instruire, datele PSI și echipamentul de protecție. Le verifici pe secțiuni, cu sursa fiecărei valori la un clic, apoi confirmi. La un client existent, o valoare pe care o ai deja în aplicație nu se schimbă decât dacă alegi tu valoarea din documente.
+Aplicația pune deoparte ce nu poartă date despre client (coperți, formulare goale, texte de lege), citește restul și îți propune datele firmei, punctele de lucru, posturile, persoanele cu atribuții, programul de instruire, datele SU și echipamentul de protecție. Le verifici pe secțiuni, cu sursa fiecărei valori la un clic, apoi confirmi. La un client existent, o valoare pe care o ai deja în aplicație nu se schimbă decât dacă alegi tu valoarea din documente.
 
 Instrucțiunile proprii (IPSSM și IPSU) nu intră în propunerea clientului: le citim separat, pentru biblioteca ta de instrucțiuni proprii, și nu te țin pe loc când creezi clientul.
 
@@ -149,7 +149,7 @@ Le poți deschide și verifica de îndată ce sunt citite, dar le confirmi după
 
 Ce ai deja în bibliotecă nu ți se cere din nou. Deasupra listei vezi câte sunt, de exemplu „7 instrucțiuni din pachet sunt deja în biblioteca ta”: la confirmare, posturile primesc instrucțiunea ta. Pentru fiecare instrucțiune nouă sau asemănătoare vezi:
 
-- **titlul și categoria** propuse, pe care le poți schimba. Titlul pierde începutul comun („Instrucțiuni proprii … privind”), iar unul scris numai cu majuscule e propus cu literă mare doar la început, cu prescurtări ca SSM, PSI sau EIP păstrate; cel din pachet rămâne scris dedesubt. Dacă ai deja o instrucțiune cu același titlu, SSM sau PSI, sau dacă pachetul are două cu același titlu, propunerea adaugă numele clientului în paranteză, iar la nevoie și un număr;
+- **titlul și categoria** propuse, pe care le poți schimba. Titlul pierde începutul comun („Instrucțiuni proprii … privind”), iar unul scris numai cu majuscule e propus cu literă mare doar la început, cu prescurtări ca SSM, SU, PSI sau EIP păstrate; cel din pachet rămâne scris dedesubt. Dacă ai deja o instrucțiune cu același titlu, SSM sau SU, sau dacă pachetul are două cu același titlu, propunerea adaugă numele clientului în paranteză, iar la nevoie și un număr;
 - **câte articole** are și **posturile** la care se aplică, după tematica de instruire, cu **Alege posturile** ca să le schimbi. Un post pentru care tematica nu spune clar ce instrucțiuni ia rămâne nedecis: îl vezi deasupra listei, cu ce scrie în tematică și de ce nu s-a putut decide, și îl alegi tu;
 - **Sursa**, care deschide fișierul la începutul instrucțiunii, și **Schimbă**, care deschide textul în formularul instrucțiunii, ca să corectezi un articol sau să scoți numele clientului;
 - avertismentele textului, de exemplu când numerotarea nu s-a putut citi, când un articol din pachet nu are text și a fost lăsat deoparte sau când textul numește clientul;
@@ -187,7 +187,7 @@ O fotografie găsită se citește și se păstrează la fel ca una încărcată 
 
 Fotografiezi fișele individuale de instruire pe hârtie ale fiecărui angajat:
 
-- fișa SSM și fișa PSI, fiecare cu fața și verso-ul;
+- fișa SSM și fișa SU, fiecare cu fața și verso-ul;
 - fiecare pagină de continuare a tabelului instruirilor periodice;
 - declarația privind traseul de deplasare, dacă e pe o pagină separată.
 
@@ -288,20 +288,20 @@ O durată scrisă în ore, de exemplu „8 ore” sau „1h30”, e citită în 
 
 - o instruire SSM periodică cu altă durată decât 60, 90 sau 120 de minute;
 - o instruire SSM la angajare sau suplimentară mai scurtă de o oră, cât cer normele cel puțin (HG 1425/2006, art. 80¹);
-- o instruire PSI la angajare mai scurtă de 8 ore, cât cer normele (OMAI 712/2005, art. 13 și 18);
-- o instruire PSI periodică mai scurtă de 2 ore (OMAI 712/2005, art. 21);
-- o instruire PSI suplimentară mai scurtă de 15 minute;
+- o instruire SU la angajare mai scurtă de 8 ore, cât cer normele (OMAI 712/2005, art. 13 și 18);
+- o instruire SU periodică mai scurtă de 2 ore (OMAI 712/2005, art. 21);
+- o instruire SU suplimentară mai scurtă de 15 minute;
 - o dată dinaintea angajării.
 
 Se preiau așa dacă nu le schimbi. O instruire cu data în viitor sau fără o valoare obligatorie trebuie corectată.
 
-Testul anual PSI consemnat în tabelul instruirilor periodice devine un rezultat de test, nu o instruire. Dacă nu i s-a citit ziua sau examinatorul, îl ai de completat: alege **Schimbă** pe rândul testului.
+Testul anual SU consemnat în tabelul instruirilor periodice devine un rezultat de test, nu o instruire. Dacă nu i s-a citit ziua sau examinatorul, îl ai de completat: alege **Schimbă** pe rândul testului.
 
 **După import** îți arată cum va arăta instruirea angajatului în aplicație cu alegerile de acum: starea, ultima instruire periodică și testul la angajare. Rândurile mai multor persoane cu același domeniu, același fel, aceeași zi, același instructor, aceeași durată și același material devin o singură instruire în **Instruiri ținute**, cu toți participanții ei. Altfel devin instruiri separate în aceeași zi.
 
 ### Testul la angajare verificat pe fișă
 
-Instruirea la angajare se încheie cu testul. În SSM, rezultatul se consemnează în fișă (HG 1425/2006, art. 89 alin. (1) și (2)); în PSI, cei instruiți sunt verificați pe bază de teste la sfârșitul instructajului introductiv general și înainte de admiterea definitivă la lucru (OMAI 712/2005, art. 14 și 20). Pe fișă, cel care a verificat cunoștințele semnează în rubrica „Verificat”. Când semnătura lui se vede, importul înregistrează testul la angajare ca promovat pe hârtie, cu el ca examinator: testul SSM din blocul fișei SSM, testul PSI din blocul fișei PSI. Testul ia ziua rândului semnat, așa cum o lași după corecturi, și urmează paginile când le muți de la o persoană la alta.
+Instruirea la angajare se încheie cu testul. În SSM, rezultatul se consemnează în fișă (HG 1425/2006, art. 89 alin. (1) și (2)); în SU, cei instruiți sunt verificați pe bază de teste la sfârșitul instructajului introductiv general și înainte de admiterea definitivă la lucru (OMAI 712/2005, art. 14 și 20). Pe fișă, cel care a verificat cunoștințele semnează în rubrica „Verificat”. Când semnătura lui se vede, importul înregistrează testul la angajare ca promovat pe hârtie, cu el ca examinator: testul SSM din blocul fișei SSM, testul SU din blocul fișei SU. Testul ia ziua rândului semnat, așa cum o lași după corecturi, și urmează paginile când le muți de la o persoană la alta.
 
 Când semnătura nu se vede, vezi „Testul la angajare nu a putut fi verificat pe fișă: semnătura nu se vede clar sau lipsește.” Dacă semnătura e pe original, bifează **Testul la angajare: verificat pe fișă** și completează examinatorul, dacă nu s-a citit. Altfel, angajatul ajunge cu testarea în starea **Neverificat pe fișă** (vezi [Starea testării](/clienti/angajati/#starea-testării)), iar rezultatul îl poți înregistra și mai târziu, pe pagina lui.
 
@@ -327,15 +327,15 @@ Instruirile importate poartă eticheta **Transcris de pe fișa pe hârtie** și 
 
 ### Originalele rămân la client
 
-Ce ai în aplicație e o transcriere a fișei, nu un înlocuitor al ei. Fișa de instruire individuală pe hârtie rămâne originalul semnat: o păstrează conducătorul locului de muncă, la client, de la angajare până la încetarea raporturilor de muncă (HG 1425/2006, art. 81 alin. (4) și (5)); de fișa PSI răspunde tot conducătorul locului de muncă (OMAI 712/2005, art. 50). Normele nu prevăd înlocuirea fișei pe hârtie cu o transcriere a ei, așa că originalul rămâne la client.
+Ce ai în aplicație e o transcriere a fișei, nu un înlocuitor al ei. Fișa de instruire individuală pe hârtie rămâne originalul semnat: o păstrează conducătorul locului de muncă, la client, de la angajare până la încetarea raporturilor de muncă (HG 1425/2006, art. 81 alin. (4) și (5)); de fișa SU răspunde tot conducătorul locului de muncă (OMAI 712/2005, art. 50). Normele nu prevăd înlocuirea fișei pe hârtie cu o transcriere a ei, așa că originalul rămâne la client.
 
 ### Nicio instruire și niciun test de refăcut
 
 Angajații importați lucrează deja la client, așa că nu li se cere din nou instruirea la angajare. Instruirea introductiv-generală se face la angajare, la detașarea sau delegarea unui lucrător de la altă firmă și pentru lucrătorul pus la dispoziție de un agent de muncă temporară (HG 1425/2006, art. 83). Schimbarea prestatorului SSM sau transcrierea fișelor nu e niciunul dintre aceste cazuri.
 
-Nici testul la angajare nu li se mai cere: testul care a încheiat o instruire la angajare de pe hârtie s-a dat pe hârtie (HG 1425/2006, art. 89; OMAI 712/2005, art. 14 și 20). Nu apare în portal și nu se numără pe **Dashboard**. Starea testării unui angajat importat e, pe fiecare domeniu, **Promovat**, **Neverificat pe fișă** sau, în PSI, **Anual scadent**; e **Fără test** în domeniul în care fișele nu au instruirea la angajare.
+Nici testul la angajare nu li se mai cere: testul care a încheiat o instruire la angajare de pe hârtie s-a dat pe hârtie (HG 1425/2006, art. 89; OMAI 712/2005, art. 14 și 20). Nu apare în portal și nu se numără pe **Dashboard**. Starea testării unui angajat importat e, pe fiecare domeniu, **Promovat**, **Neverificat pe fișă** sau, în SU, **Anual scadent**; e **Fără test** în domeniul în care fișele nu au instruirea la angajare.
 
-Termenul următoarei instruiri periodice se socotește de la datele de pe fișe. OMAI 712/2005 cere o verificare anuală pe bază de test, consemnată în fișa individuală (art. 30); aplicația o cere la 12 luni de la ultimul test PSI promovat. Dacă fișa nu consemnează niciun test anual, angajatul poate apărea cu testarea PSI **Anual scadent** imediat după import. E o obligație pe care clientul o are cu adevărat.
+Termenul următoarei instruiri periodice se socotește de la datele de pe fișe. OMAI 712/2005 cere o verificare anuală pe bază de test, consemnată în fișa individuală (art. 30); aplicația o cere la 12 luni de la ultimul test SU promovat. Dacă fișa nu consemnează niciun test anual, angajatul poate apărea cu testarea SU **Anual scadent** imediat după import. E o obligație pe care clientul o are cu adevărat.
 
 ### Portalul și actul adițional după import
 

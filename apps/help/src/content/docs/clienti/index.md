@@ -7,7 +7,7 @@ topics:
   - id: clienti.activi-si-arhivati
     heading: Clienți activi și clienți arhivați
   - id: clienti.documentatie
-    heading: Documentația SSM și PSI
+    heading: Documentația SSM și SU
   - id: clienti.pagina-clientului
     heading: Pagina unui client
   - id: clienti.arhivare
@@ -33,7 +33,7 @@ sources:
   - supabase/migrations/20261010150000_client_list_fire_safety.sql
 ---
 
-Un client e o firmă pentru care lucrezi. Pe pagina lui ții tot ce îi privește: datele firmei, angajații, posturile, mijloacele PSI, instruirile și documentele SSM și PSI. Adaugi un client din **Clienți**, cu **Adaugă client**; ce cere formularul găsești în [Adăugarea și modificarea unui client](/clienti/adaugare-si-modificare/).
+Un client e o firmă pentru care lucrezi. Pe pagina lui ții tot ce îi privește: datele firmei, angajații, posturile, mijloacele de apărare împotriva incendiilor, instruirile și documentele SSM și SU. Adaugi un client din **Clienți**, cu **Adaugă client**; ce cere formularul găsești în [Adăugarea și modificarea unui client](/clienti/adaugare-si-modificare/).
 
 ## Lista clienților
 
@@ -42,7 +42,7 @@ Un client e o firmă pentru care lucrezi. Pe pagina lui ții tot ce îi priveșt
 - **Companie**: denumirea, cu localitatea și județul sediului dedesubt;
 - **CUI**: cu prefixul RO când firma e plătitoare de TVA;
 - **Angajați**: câți angajați actuali are clientul; foștii angajați nu intră în număr;
-- **Documentație SSM** și **Documentație PSI**: cât din fiecare set de documente e emis (vezi [Documentația SSM și PSI](#documentația-ssm-și-psi));
+- **Documentație SSM** și **Documentație SU**: cât din fiecare set de documente e emis (vezi [Documentația SSM și SU](#documentația-ssm-și-su));
 - **Adăugat**: ziua în care firma a devenit client, adică ziua în care ai adăugat-o sau, dacă a fost întâi client potențial, ziua în care a devenit client.
 
 Lista e ordonată după denumire și împărțită pe pagini. O poți ordona după oricare dintre coloane. Un clic pe rând deschide pagina clientului, la tabul **Detalii**. Din meniul de la capătul rândului ajungi la **Modifică**, care deschide același tab, și, dacă ești administrator, la **Arhivează…**.
@@ -53,7 +53,7 @@ Clienții potențiali nu apar aici. Au lista lor, **Clienți potențiali**, pe c
 
 Lista arată implicit clienții **Activi**. Un client arhivat trece la **Arhivați**, cu toate datele și documentele lui. Vezi [Arhivarea unui client](#arhivarea-unui-client).
 
-### Documentația SSM și PSI
+### Documentația SSM și SU
 
 Fiecare dintre cele două coloane arată unde se află un set de documente al clientului:
 
@@ -73,8 +73,8 @@ Poți ordona lista după aceste coloane ca să vezi întâi clienții la care ma
 
 - **Detalii**: datele firmei, reprezentantul legal, sediul și punctele de lucru, persoana de contact și, pentru administratori, notițele. Vezi [Detalii](/clienti/detalii/);
 - **Angajați**: angajații clientului, cu instruirea și testarea lor. Vezi [Angajați](/clienti/angajati/);
-- **Posturi de lucru**, **Mijloace PSI**, **Instruire și responsabili** și **Instruiri ținute**: datele din care se întocmesc documentele și evidența instruirilor;
-- **Documente SSM** și **Documente PSI**: cele două seturi de documente;
+- **Posturi de lucru**, **Mijloace de apărare**, **Instruire și responsabili** și **Instruiri ținute**: datele din care se întocmesc documentele și evidența instruirilor;
+- **Documente SSM** și **Documente SU**: cele două seturi de documente;
 - **Contract**: contractul de prestări servicii cu clientul, pe care îl văd doar administratorii;
 - **Alte documente** și **Portal**.
 

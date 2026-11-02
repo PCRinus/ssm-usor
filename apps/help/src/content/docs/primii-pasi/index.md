@@ -13,7 +13,7 @@ sources:
 
 Ajutorul explică fiecare ecran al aplicației: la ce folosește, ce înseamnă câmpurile care cer mai mult decât eticheta lor și ce reguli aplică aplicația când salvezi sau generezi documente. Pentru fiecare regulă găsești și motivul ei, ce vezi când nu e îndeplinită și cum o rezolvi.
 
-Articolele sunt așezate ca meniul aplicației, așa că un articol se află unde ai găsi și ecranul: datele unui client, angajații, posturile, evaluarea riscurilor, documentele SSM și PSI, testele, semnăturile și legislația.
+Articolele sunt așezate ca meniul aplicației, așa că un articol se află unde ai găsi și ecranul: datele unui client, angajații, posturile, evaluarea riscurilor, documentele SSM și SU, testele, semnăturile și legislația.
 
 ## Deschide ajutorul din aplicație
 

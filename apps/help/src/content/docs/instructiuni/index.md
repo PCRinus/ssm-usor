@@ -46,7 +46,7 @@ O instrucțiune are un titlu, o categorie și un text făcut din articole numero
 Biblioteca e în meniul **Instrucțiuni proprii**, cu două taburi:
 
 - **IPSSM**: instrucțiunile de securitate și sănătate în muncă, cu categoriile _Activități_, _Echipamente de muncă_ și _Echipament de protecție_;
-- **IPSU**: instrucțiunile pentru situații de urgență (PSI), cu categoriile _Spații și activități_, _Instalații și echipamente_ și _Lucrări periculoase_.
+- **IPSU**: instrucțiunile pentru situații de urgență (SU), cu categoriile _Spații și activități_, _Instalații și echipamente_ și _Lucrări periculoase_.
 
 Categoria ordonează anexele și grupează lista din care alegi instrucțiunile unui post. Nu se tipărește.
 
@@ -81,13 +81,13 @@ O instrucțiune din bibliotecă se aplică la mai mulți clienți. Dacă textul 
 
 ## Aplicarea la posturi
 
-Pe pagina unui post, cardurile **Instrucțiuni specifice SSM** și **Instrucțiuni specifice PSI** arată ce instrucțiuni privesc postul. Cu **Alege instrucțiunile** bifezi instrucțiunile din bibliotecă, cu **Copiază de la alt post** le iei de la un post asemănător, iar dacă postul nu are nevoie de nimic dincolo de partea comună, alegi **Postul nu necesită instrucțiuni specifice**.
+Pe pagina unui post, cardurile **Instrucțiuni specifice SSM** și **Instrucțiuni specifice SU** arată ce instrucțiuni privesc postul. Cu **Alege instrucțiunile** bifezi instrucțiunile din bibliotecă, cu **Copiază de la alt post** le iei de la un post asemănător, iar dacă postul nu are nevoie de nimic dincolo de partea comună, alegi **Postul nu necesită instrucțiuni specifice**.
 
 Un post nedecis oprește generarea instrucțiunilor proprii ale clientului: documentul are nevoie să știe ce anexează pentru fiecare post.
 
 ## Unde se tipărește
 
-Fiecare instrucțiune aplicată la un post al clientului devine o anexă a instrucțiunilor proprii ale lui: IPSSM în Documente SSM, IPSU în Documente PSI.
+Fiecare instrucțiune aplicată la un post al clientului devine o anexă a instrucțiunilor proprii ale lui: IPSSM în Documente SSM, IPSU în Documente SU.
 
 - **Pagina de titlu.** Anexa începe cu o pagină de titlu: „ANEXA N”, instrucțiunile cărora le aparține, titlul și data versiunii.
 - **Textul.** Pe paginile următoare, articolele cu „Art. N.” îngroșat, titlurile de secțiune și actele normative la sfârșit.
@@ -100,7 +100,7 @@ Tematica de instruire citează fiecare anexă cu articolele ei, „Art. 1–N”
 
 Fiecare salvare care schimbă textul face o versiune nouă, chiar dacă schimbă doar o diacritică, o literă mare sau un semn, ca „< 50 V” în loc de „> 50 V”; cele vechi rămân, ca documentele emise să-și păstreze anexele. O salvare care schimbă doar spațiile dintre cuvinte nu face o versiune nouă.
 
-Un document emis cu o versiune mai veche rămâne în urmă: în Documente SSM sau Documente PSI apare „Instrucțiuni actualizate”, cu instrucțiunea care s-a schimbat. Îl generezi din nou ca să ia versiunea nouă.
+Un document emis cu o versiune mai veche rămâne în urmă: în Documente SSM sau Documente SU apare „Instrucțiuni actualizate”, cu instrucțiunea care s-a schimbat. Îl generezi din nou ca să ia versiunea nouă.
 
 ## Instrucțiunile din documentația importată
 
