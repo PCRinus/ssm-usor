@@ -128,7 +128,7 @@ const navigation = [
   {
     to: '/evaluari-de-risc',
     testId: 'risks',
-    label: 'Riscuri',
+    label: 'Evaluări de risc',
     icon: ShieldAlert,
     ownerOnly: false,
   },

@@ -72,12 +72,12 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
               onClick={() => setRemoving(true)}
             >
               <Trash2 aria-hidden="true" />
-              Șterge profilul…
+              Șterge evaluarea…
             </Button>
           </div>
         </div>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Ce schimbi aici nu ajunge în evaluările în care ai aplicat deja profilul.
+          Ce schimbi aici nu ajunge în fișele de evaluare în care ai aplicat-o deja.
         </p>
       </div>
       <RiskResultCard id="result" evaluation={profile} view={view} />
@@ -87,8 +87,8 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
         store={store}
         readOnly={false}
         view={view}
-        empty="Profilul nu are încă factori de risc."
-        removalConsequence="nu vor mai fi în profil. Evaluările în care l-ai aplicat își păstrează copiile."
+        empty="Evaluarea nu are încă factori de risc."
+        removalConsequence="nu vor mai fi în evaluare. Fișele în care ai aplicat-o își păstrează copiile."
         editorContext={profile.name}
       />
       <ProfileUsageCard profileId={profile.id} userId={userId} />
@@ -105,9 +105,9 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
 export function EvaluationProfileNotFound() {
   return (
     <div data-testid="risk-profile-not-found" className="mx-auto grid max-w-lg gap-5 py-14">
-      <h1 className="text-2xl font-semibold">Profilul nu a fost găsit</h1>
+      <h1 className="text-2xl font-semibold">Evaluarea nu a fost găsită</h1>
       <p className="text-sm leading-relaxed text-muted-foreground">
-        Nu există niciun profil cu acest identificator în biblioteca de riscuri, sau a fost șters.
+        Nu există nicio evaluare cu acest identificator în bibliotecă, sau a fost ștearsă.
       </p>
       <Button asChild className="w-fit">
         <Link to="/evaluari-de-risc">Înapoi la bibliotecă</Link>
@@ -121,14 +121,14 @@ export function EvaluationProfileError({ error }: ErrorComponentProps) {
   const message =
     error instanceof ApiHttpError && error.status === 401
       ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-      : 'Nu am putut încărca profilul. Încearcă din nou.';
+      : 'Nu am putut încărca evaluarea. Încearcă din nou.';
   return (
     <div
       data-testid="risk-profile-error"
       role="alert"
       className="mx-auto grid max-w-lg gap-5 py-14"
     >
-      <h1 className="text-2xl font-semibold">Profilul nu a putut fi încărcat</h1>
+      <h1 className="text-2xl font-semibold">Evaluarea nu a putut fi încărcată</h1>
       <p className="text-sm leading-relaxed text-muted-foreground">{message}</p>
       <Button variant="outline" className="w-fit" onClick={() => void router.invalidate()}>
         Încearcă din nou

@@ -71,16 +71,16 @@ export function RiskLibrary({ userId }: { userId: string }) {
 
   const startProfile = () =>
     setNaming({
-      title: 'Profil nou',
-      description: 'Îi adaugi factorii de risc după ce îl creezi.',
+      title: 'Evaluare nouă',
+      description: 'Îi adaugi factorii de risc după ce o creezi.',
       defaultName: '',
       submitLabel: 'Creează și deschide',
       pendingLabel: 'Se creează…',
-      failure: 'Nu am putut crea profilul. Verifică conexiunea și încearcă din nou.',
+      failure: 'Nu am putut crea evaluarea. Verifică conexiunea și încearcă din nou.',
       submit: async (name) => {
         const { profile } = await create.mutateAsync({ data: { name } });
         await cache.saved(profile);
-        toast.success('Profilul a fost creat.');
+        toast.success('Evaluarea a fost creată.');
         await open(profile.id);
       },
     });
@@ -89,14 +89,14 @@ export function RiskLibrary({ userId }: { userId: string }) {
     <div data-testid="risk-library" className="space-y-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Biblioteca de riscuri</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Evaluări de risc</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Posturile pe care le evaluezi o dată și le aplici la orice client.
           </p>
         </div>
         <Button data-testid="risk-profile-new" onClick={startProfile}>
           <Plus aria-hidden="true" />
-          Profil nou
+          Evaluare nouă
         </Button>
       </div>
       <div className="overflow-hidden rounded-lg border bg-card">
@@ -120,10 +120,10 @@ export function RiskLibrary({ userId }: { userId: string }) {
         ) : profiles.isSuccess && items.length === 0 ? (
           <div data-testid="risk-library-empty" className="px-5 py-16 text-center">
             <Library className="mx-auto mb-4 size-8 text-muted-foreground" aria-hidden="true" />
-            <h3 className="text-base font-medium">Niciun profil încă</h3>
+            <h3 className="text-base font-medium">Nicio evaluare încă</h3>
             <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-              Salvează evaluarea unui post de la un client cu „Salvează în bibliotecă” sau pornește
-              un profil gol cu „Profil nou”.
+              Salvează fișa de evaluare a unui post de la un client cu „Salvează în bibliotecă” sau
+              pornește o evaluare goală cu „Evaluare nouă”.
             </p>
           </div>
         ) : (
@@ -137,7 +137,7 @@ export function RiskLibrary({ userId }: { userId: string }) {
                 </span>
               )}
             </div>
-            <Table data-testid="risk-library-table" aria-label="Profilurile din bibliotecă">
+            <Table data-testid="risk-library-table" aria-label="Evaluările din bibliotecă">
               <TableHeader>
                 <TableRow>
                   {columns.map((column) => (

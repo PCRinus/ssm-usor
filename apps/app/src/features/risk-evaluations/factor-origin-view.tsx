@@ -46,7 +46,7 @@ export function FactorOrigin({ profile }: { profile: RiskFactorSourceProfile }) 
     >
       <LibraryBig aria-hidden="true" className="mt-[0.1875rem] size-3.5 shrink-0" />
       <span className="min-w-0 wrap-anywhere">
-        În profilul <ProfileLink profile={profile} />
+        În evaluarea <ProfileLink profile={profile} /> din bibliotecă
       </span>
     </p>
   );

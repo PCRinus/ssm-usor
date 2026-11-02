@@ -53,13 +53,13 @@ export function RemoveProfileDialog({
         setError(
           profileFailure(
             cause,
-            'Nu am putut șterge profilul. Verifică conexiunea și încearcă din nou.'
+            'Nu am putut șterge evaluarea. Verifică conexiunea și încearcă din nou.'
           )
         );
         return;
       }
     }
-    toast.success('Profilul a fost șters.');
+    toast.success('Evaluarea a fost ștearsă.');
     await afterRemove?.();
     await cache.removed(target.id);
     close();
@@ -70,16 +70,16 @@ export function RemoveProfileDialog({
       {profile && (
         <DialogContent data-testid="risk-profile-remove-dialog" className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Ștergi profilul?</DialogTitle>
+            <DialogTitle>Ștergi evaluarea?</DialogTitle>
             <DialogDescription>
-              <span className="font-medium text-foreground">{profile.name}</span> se șterge din
-              bibliotecă
+              Evaluarea <span className="font-medium text-foreground">{profile.name}</span> se
+              șterge din bibliotecă
               {profile.factorCount === 1
-                ? ', împreună cu factorul său'
+                ? ', împreună cu factorul ei'
                 : profile.factorCount > 1
-                  ? `, împreună cu cei ${factorCountLabel(profile.factorCount).toLowerCase()} ai săi`
+                  ? `, împreună cu cei ${factorCountLabel(profile.factorCount).toLowerCase()} ai ei`
                   : ''}
-              . Evaluările în care l-ai aplicat își păstrează factorii copiați.
+              . Fișele de evaluare în care ai aplicat-o își păstrează factorii copiați.
             </DialogDescription>
           </DialogHeader>
           {error && (
@@ -97,7 +97,7 @@ export function RemoveProfileDialog({
               disabled={remove.isPending}
               onClick={() => void removeProfile(profile)}
             >
-              {remove.isPending ? 'Se șterge…' : 'Șterge profilul'}
+              {remove.isPending ? 'Se șterge…' : 'Șterge evaluarea'}
             </Button>
           </DialogFooter>
         </DialogContent>

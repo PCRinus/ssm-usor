@@ -284,7 +284,7 @@ describe('the risk library', () => {
       'nav-instructions',
       'nav-risks',
     ]);
-    expect(screen.getByTestId('nav-risks').textContent).toBe('Riscuri');
+    expect(screen.getByTestId('nav-risks').textContent).toBe('Evaluări de risc');
     expect(screen.getByTestId('nav-risks').getAttribute('aria-current')).toBe('page');
   });
 
@@ -293,7 +293,7 @@ describe('the risk library', () => {
     mount('/evaluari-de-risc');
     const empty = await screen.findByTestId('risk-library-empty');
     expect(empty.textContent).toContain('Salvează în bibliotecă');
-    expect(empty.textContent).toContain('Profil nou');
+    expect(empty.textContent).toContain('Evaluare nouă');
   });
 
   it('lists the profiles with their factors and global level', async () => {
@@ -310,17 +310,17 @@ describe('the risk library', () => {
       );
     expect(cells(rows[0]!)).toEqual(['2', '1', '3,33']);
     expect(cells(rows[1]!)).toEqual(['0', '0', '—']);
-    expect(screen.getByTestId('risk-library-count').textContent).toBe('2 profiluri');
+    expect(screen.getByTestId('risk-library-count').textContent).toBe('2 evaluări');
   });
 
   it('counts profiles the Romanian way', () => {
     expect([1, 2, 19, 20, 101, 120].map(profileCountLabel)).toEqual([
-      '1 profil',
-      '2 profiluri',
-      '19 profiluri',
-      '20 de profiluri',
-      '101 profiluri',
-      '120 de profiluri',
+      '1 evaluare',
+      '2 evaluări',
+      '19 evaluări',
+      '20 de evaluări',
+      '101 evaluări',
+      '120 de evaluări',
     ]);
   });
 
@@ -356,7 +356,7 @@ describe('the risk library', () => {
     await user.click(await screen.findByTestId('risk-profile-new'));
     await user.type(await screen.findByTestId('profile-name'), 'lucrător de birou');
     await user.click(screen.getByTestId('profile-name-submit'));
-    expect(await screen.findByText(/Biblioteca are deja un profil/)).toBeTruthy();
+    expect(await screen.findByText(/Biblioteca are deja o evaluare/)).toBeTruthy();
     expect(screen.getByTestId('profile-name-dialog')).toBeTruthy();
   });
 
@@ -433,7 +433,7 @@ describe('a profile page', () => {
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('risk-profile-remove'));
     const dialog = await screen.findByTestId('risk-profile-remove-dialog');
-    expect(dialog.textContent).toContain('împreună cu cei 2 factori ai săi');
+    expect(dialog.textContent).toContain('împreună cu cei 2 factori ai ei');
     expect(dialog.textContent).toContain('își păstrează factorii copiați');
     await user.click(within(dialog).getByTestId('risk-profile-remove-confirm'));
     await screen.findByTestId('risk-library');
@@ -481,7 +481,7 @@ describe('a profile page', () => {
     mount(`/evaluari-de-risc/${office.id}`);
     const usage = await screen.findByTestId('risk-profile-usage');
     const clients = await within(usage).findAllByTestId('risk-profile-usage-client');
-    expect(within(usage).getByTestId('risk-profile-usage-count').textContent).toBe('3 evaluări');
+    expect(within(usage).getByTestId('risk-profile-usage-count').textContent).toBe('3 fișe');
     expect(clients).toHaveLength(2);
     expect(within(clients[0]!).getByTestId('risk-profile-usage-archived')).toBeTruthy();
     expect(within(clients[1]!).queryByTestId('risk-profile-usage-archived')).toBeNull();
@@ -492,8 +492,8 @@ describe('a profile page', () => {
         within(row).getByTestId('risk-profile-usage-factors').textContent,
       ])
     ).toEqual([
-      ['Contabil', '2 factori din profil'],
-      ['Vizitatori', 'Un factor din profil'],
+      ['Contabil', '2 factori din această evaluare'],
+      ['Vizitatori', 'Un factor din această evaluare'],
     ]);
     expect(within(rows[0]!).getByTestId('risk-profile-usage-open').getAttribute('href')).toBe(
       accountantEvaluationPath
@@ -507,8 +507,8 @@ describe('a profile page', () => {
     mockApi();
     mount(`/evaluari-de-risc/${office.id}`);
     const empty = await screen.findByTestId('risk-profile-usage-empty');
-    expect(empty.textContent).toContain('nu este folosit încă la niciun client');
-    expect(empty.textContent).toContain('„Aplică un profil”');
+    expect(empty.textContent).toContain('nu este folosită încă la niciun client');
+    expect(empty.textContent).toContain('„Aplică din bibliotecă”');
   });
 
   it('offers to retry when the evaluations using the profile do not load', async () => {
@@ -541,11 +541,11 @@ describe('an evaluation and the library', () => {
     const user = userEvent.setup();
     const nudge = await screen.findByTestId('risk-library-nudge');
     expect(nudge.textContent).toContain(
-      'Factorii nu sunt încă în biblioteca de riscuri a organizației tale (meniul Riscuri).'
+      'Factorii nu sunt încă în biblioteca organizației tale (meniul Evaluări de risc).'
     );
-    expect(within(nudge).getByRole('link', { name: 'meniul Riscuri' }).getAttribute('href')).toBe(
-      '/evaluari-de-risc'
-    );
+    expect(
+      within(nudge).getByRole('link', { name: 'meniul Evaluări de risc' }).getAttribute('href')
+    ).toBe('/evaluari-de-risc');
     expect(screen.queryByTestId('risk-evaluation-save-as-profile')).toBeNull();
     await user.click(within(nudge).getByTestId('risk-library-nudge-save'));
     const dialog = await screen.findByTestId('profile-name-dialog');
@@ -557,9 +557,9 @@ describe('an evaluation and the library', () => {
         requests(`${evaluationsPath}/${accountantEvaluation.id}/save-as-profile`, 'POST')
       ).toEqual([{ name: 'Contabil' }])
     );
-    expect(await screen.findByText(/Profilul „Contabil” a fost salvat/)).toBeTruthy();
+    expect(await screen.findByText(/Evaluarea „Contabil” a fost salvată/)).toBeTruthy();
     expect((await screen.findByTestId('risk-factors-origin')).textContent).toBe(
-      'Factorul este în profilul Contabil.'
+      'Factorul este în evaluarea Contabil din bibliotecă.'
     );
     expect(screen.queryByTestId('risk-library-nudge')).toBeNull();
     expect(screen.getByTestId('risk-evaluation-save-as-profile').textContent).toBe(
@@ -596,7 +596,7 @@ describe('an evaluation and the library', () => {
     });
     mount(accountantEvaluationPath);
     expect((await screen.findByTestId('risk-factors-origin')).textContent).toBe(
-      'Un factor este în profilul Lucrător de birou; celălalt nu este în bibliotecă.'
+      'Un factor este în evaluarea Lucrător de birou; celălalt nu este în bibliotecă.'
     );
     expect(screen.queryByTestId('risk-library-nudge')).toBeNull();
     expect(screen.getByTestId('risk-evaluation-save-as-profile')).toBeTruthy();
@@ -632,7 +632,9 @@ describe('an evaluation and the library', () => {
     });
     mount(accountantEvaluationPath);
     const summary = await screen.findByTestId('risk-factors-origin');
-    expect(summary.textContent).toBe('Ambii factori sunt în profilul Lucrător de birou.');
+    expect(summary.textContent).toBe(
+      'Ambii factori sunt în evaluarea Lucrător de birou din bibliotecă.'
+    );
     expect(within(summary).getByRole('link').getAttribute('href')).toBe(
       `/evaluari-de-risc/${office.id}`
     );
@@ -658,7 +660,7 @@ describe('an evaluation and the library', () => {
     const user = userEvent.setup();
     const [first, second] = await screen.findAllByTestId('risk-factor-row');
     const origin = within(first!).getByTestId('risk-factor-origin');
-    expect(origin.textContent).toBe('În profilul Lucrător de birou');
+    expect(origin.textContent).toBe('În evaluarea Lucrător de birou din bibliotecă');
     expect(within(origin).getByRole('link').getAttribute('href')).toBe(
       `/evaluari-de-risc/${office.id}`
     );
@@ -667,7 +669,7 @@ describe('an evaluation and the library', () => {
     await user.click(await screen.findByTestId('risk-factor-edit'));
     const dialog = await screen.findByTestId('risk-factor-dialog');
     expect(within(dialog).getByTestId('risk-factor-dialog-origin').textContent).toBe(
-      'Factorul este și în profilul „Lucrător de birou”. Ce schimbi aici nu ajunge în profil.'
+      'Factorul este și în evaluarea „Lucrător de birou” din bibliotecă. Ce schimbi aici nu ajunge în bibliotecă.'
     );
   });
 
@@ -676,7 +678,9 @@ describe('an evaluation and the library', () => {
     mount(accountantEvaluationPath);
     await screen.findByTestId('risk-factors-empty');
     expect(screen.queryByTestId('risk-evaluation-save-as-profile')).toBeNull();
-    expect(screen.getByTestId('risk-factors-empty').textContent).toContain('aplică un profil');
+    expect(screen.getByTestId('risk-factors-empty').textContent).toContain(
+      'aplică o evaluare din bibliotecă'
+    );
   });
 
   it('applies a profile with factors, adds its factors after the others and says how many', async () => {
@@ -700,7 +704,7 @@ describe('an evaluation and the library', () => {
       ).toEqual([{ profileId: office.id }])
     );
     expect(
-      await screen.findByText('2 factori din „Lucrător de birou” au fost adăugați în evaluare.')
+      await screen.findByText('2 factori din „Lucrător de birou” au fost adăugați în fișă.')
     ).toBeTruthy();
     await waitFor(() =>
       expect(screen.getByTestId('risk-factors-count').textContent).toBe('3 factori')
@@ -715,7 +719,7 @@ describe('an evaluation and the library', () => {
     await user.click(await screen.findByTestId('risk-factors-apply-profile'));
     const none = await screen.findByTestId('apply-profile-none');
     expect(none.textContent).toContain('Salvează în bibliotecă');
-    expect(within(none).getByRole('link', { name: 'Riscuri' }).getAttribute('href')).toBe(
+    expect(within(none).getByRole('link', { name: 'Evaluări de risc' }).getAttribute('href')).toBe(
       '/evaluari-de-risc'
     );
   });

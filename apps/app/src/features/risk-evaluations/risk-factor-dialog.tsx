@@ -270,10 +270,10 @@ function RiskFactorForm({
       <Title className={phone ? undefined : 'text-lg leading-snug'}>{title}</Title>
       {context && <Description className="truncate">{context}</Description>}
       {factor?.sourceProfile && (
-        // Not a link: leaving for the profile would drop what is typed here.
+        // Not a link: leaving for the library would drop what is typed here.
         <p data-testid="risk-factor-dialog-origin" className="text-sm text-muted-foreground">
-          Factorul este și în profilul „{factor.sourceProfile.name}”. Ce schimbi aici nu ajunge în
-          profil.
+          Factorul este și în evaluarea „{factor.sourceProfile.name}” din bibliotecă. Ce schimbi
+          aici nu ajunge în bibliotecă.
         </p>
       )}
     </div>

@@ -51,21 +51,21 @@ export function originSummary(factors: readonly RiskFactor[]): SummaryPart[] | n
         : total === 2
           ? 'Ambii factori sunt'
           : `Toți cei ${factorCountLabel(total).toLowerCase()} sunt`;
-    return [`${all} în profilul `, first.profile, '.'];
+    return [`${all} în evaluarea `, first.profile, ' din bibliotecă.'];
   }
 
   const parts: SummaryPart[] = [
-    `${first.count === 1 ? 'Un factor este' : `${factorCountLabel(first.count)} sunt`} în profilul `,
+    `${first.count === 1 ? 'Un factor este' : `${factorCountLabel(first.count)} sunt`} în evaluarea `,
     first.profile,
   ];
   others.forEach((share, index) => {
     const separator = index === others.length - 1 ? ' și ' : ', ';
     parts.push(
-      `${separator}${share.count === 1 ? 'unul' : share.count} în profilul `,
+      `${separator}${share.count === 1 ? 'unul' : share.count} în evaluarea `,
       share.profile
     );
   });
-  if (rest === 0) parts.push('.');
+  if (rest === 0) parts.push(' din bibliotecă.');
   else if (rest === 1) parts.push(`; ${total === 2 ? 'celălalt' : 'unul'} nu este în bibliotecă.`);
   else parts.push(`; ceilalți ${rest} nu sunt în bibliotecă.`);
   return parts;

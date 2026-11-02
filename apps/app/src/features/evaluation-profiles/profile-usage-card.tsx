@@ -11,9 +11,9 @@ import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { EvaluationLink } from '@/features/risk-evaluations/evaluation-link';
 import {
-  evaluationCountLabel,
   evaluationTitle,
   factorCountLabel,
+  sheetCountLabel,
 } from '@/features/risk-evaluations/risk-evaluation-schema';
 
 type ProfileUse = EvaluationProfileUsageResponseItemsItem;
@@ -64,7 +64,7 @@ export function ProfileUsageCard({ profileId, userId }: { profileId: string; use
               data-testid="risk-profile-usage-count"
               className="text-sm font-normal text-muted-foreground"
             >
-              {evaluationCountLabel(items.length)}
+              {sheetCountLabel(items.length)}
             </span>
           )}
         </span>
@@ -86,12 +86,12 @@ export function ProfileUsageCard({ profileId, userId }: { profileId: string; use
             </Button>
           }
         >
-          Nu am putut încărca evaluările care folosesc profilul.
+          Nu am putut încărca fișele de evaluare care o folosesc.
         </Notice>
       ) : items.length === 0 ? (
         <p data-testid="risk-profile-usage-empty" className="text-sm text-muted-foreground">
-          Profilul nu este folosit încă la niciun client. Deschide evaluarea unui post și alege
-          „Aplică un profil”.
+          Evaluarea nu este folosită încă la niciun client. Deschide fișa de evaluare a unui post și
+          alege „Aplică din bibliotecă”.
         </p>
       ) : (
         <ul className="grid divide-y">
@@ -130,7 +130,7 @@ export function ProfileUsageCard({ profileId, userId }: { profileId: string; use
                       data-testid="risk-profile-usage-factors"
                       className="text-muted-foreground tabular-nums"
                     >
-                      {factorCountLabel(use.linkedFactorCount)} din profil
+                      {factorCountLabel(use.linkedFactorCount)} din această evaluare
                     </span>
                   </li>
                 ))}

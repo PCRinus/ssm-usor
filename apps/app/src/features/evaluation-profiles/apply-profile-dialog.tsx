@@ -30,10 +30,10 @@ import { GlobalLevel } from './global-level';
 import { profileTotalsLabel } from './profile-schema';
 
 function addedFactorsMessage(added: number, profileName: string) {
-  if (added === 0) return `„${profileName}” nu mai are factori; evaluarea a rămas cum era.`;
+  if (added === 0) return `„${profileName}” nu mai are factori; fișa a rămas cum era.`;
   return added === 1
-    ? `Un factor din „${profileName}” a fost adăugat în evaluare.`
-    : `${factorCountLabel(added)} din „${profileName}” au fost adăugați în evaluare.`;
+    ? `Un factor din „${profileName}” a fost adăugat în fișă.`
+    : `${factorCountLabel(added)} din „${profileName}” au fost adăugați în fișă.`;
 }
 
 export function ApplyProfileDialog({
@@ -82,7 +82,7 @@ export function ApplyProfileDialog({
       setError(
         evaluationFailure(
           cause,
-          'Nu am putut aplica profilul. Verifică conexiunea și încearcă din nou.'
+          'Nu am putut aplica evaluarea. Verifică conexiunea și încearcă din nou.'
         )
       );
     }
@@ -92,11 +92,12 @@ export function ApplyProfileDialog({
     <Dialog open={open} onOpenChange={(next) => !next && !apply.isPending && close()}>
       <DialogContent data-testid="apply-profile-dialog" className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Aplică un profil din bibliotecă</DialogTitle>
+          <DialogTitle>Aplică din bibliotecă</DialogTitle>
           <DialogDescription>
-            Factorii profilului, cu clasele, măsurile și câmpurile planului, se adaugă după cei pe
-            care <span className="font-medium text-foreground">{evaluationTitle(evaluation)}</span>{' '}
-            îi are deja. Ajustează apoi clasele la acest client.
+            Factorii evaluării alese, cu clasele, măsurile și câmpurile planului, se adaugă după cei
+            pe care{' '}
+            <span className="font-medium text-foreground">{evaluationTitle(evaluation)}</span> îi
+            are deja. Ajustează apoi clasele la acest client.
           </DialogDescription>
         </DialogHeader>
         <div className="mt-4 grid gap-4">
@@ -108,19 +109,19 @@ export function ApplyProfileDialog({
           {profiles.isPending ? (
             <Skeleton className="h-24 w-full" />
           ) : profiles.isError ? (
-            <Notice variant="destructive">Nu am putut încărca biblioteca de riscuri.</Notice>
+            <Notice variant="destructive">Nu am putut încărca biblioteca.</Notice>
           ) : sources.length === 0 ? (
             <Notice variant="info" data-testid="apply-profile-none">
-              Biblioteca de riscuri nu are încă profiluri cu factori. Salvează în bibliotecă o
-              evaluare terminată sau pornește un profil din{' '}
+              Biblioteca nu are încă evaluări cu factori. Salvează în bibliotecă o fișă de evaluare
+              terminată sau pornește o evaluare din{' '}
               <Link to="/evaluari-de-risc" className="font-medium underline underline-offset-2">
-                Riscuri
+                Evaluări de risc
               </Link>
               .
             </Notice>
           ) : (
             <fieldset className="grid gap-2">
-              <legend className="mb-2 text-sm font-medium">Profilul aplicat</legend>
+              <legend className="mb-2 text-sm font-medium">Evaluarea aplicată</legend>
               <ul className="grid max-h-[50vh] gap-2 overflow-y-auto">
                 {sources.map((profile) => (
                   <li key={profile.id}>
@@ -163,7 +164,7 @@ export function ApplyProfileDialog({
             disabled={apply.isPending || !chosen}
             onClick={() => void applyProfile()}
           >
-            {apply.isPending ? 'Se aplică…' : 'Aplică profilul'}
+            {apply.isPending ? 'Se aplică…' : 'Aplică evaluarea'}
           </Button>
         </DialogFooter>
       </DialogContent>
