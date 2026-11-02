@@ -105,7 +105,7 @@ The module page replaces the document editor with a **form** (_formularul instru
 
 - an article is a text box labelled "Art. N" that grows with its text;
 - a heading is a one-line field;
-- each block has add, move up, move down and delete;
+- a heading and the articles after it show as one section card; the section and each article have a menu to move, add or delete, and an empty section says it does not print;
 - **Previzualizare** renders the annex as it will print and shows it in the Word viewer, in view mode, as the import's source dialog does.
 
 **"Scrie o instrucțiune"** asks for the title, category and domain. It opens the form already divided into the sections of that category, the **guided template** (_structura propusă_). Each section shows a hint in grey placeholder text. A hint is never saved, never printed and never counted, and a section left empty is not printed. Each section can also show one example article, written by us for illustration, which goes into the module only when the member clicks **Arată un exemplu**. The examples are help text, not a seed: the library still starts empty.
