@@ -43,6 +43,15 @@ export function useProfileCache() {
           queryKey: getGetEvaluationProfileUsageQueryKey(profileId),
         }),
       ]),
+    // An evaluation took copies of its factors: the profile is now in use.
+    applied: (profileId: string) =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: getGetEvaluationProfileQueryKey(profileId) }),
+        queryClient.invalidateQueries({
+          queryKey: getGetEvaluationProfileUsageQueryKey(profileId),
+        }),
+        queryClient.invalidateQueries({ queryKey: listKey }),
+      ]),
     refresh: (profileId: string) =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: getGetEvaluationProfileQueryKey(profileId) }),

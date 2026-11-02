@@ -16,7 +16,7 @@ import { ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
 import { factorCountLabel } from '@/features/risk-evaluations/risk-evaluation-schema';
 
-import { profileFailure } from './profile-schema';
+import { isProfileInUse, profileFailure } from './profile-schema';
 import { useProfileCache } from './use-profile-cache';
 
 interface RemovedProfile {
@@ -49,6 +49,7 @@ export function RemoveProfileDialog({
     try {
       await remove.mutateAsync({ profileId: target.id });
     } catch (cause) {
+      if (isProfileInUse(cause)) await cache.refresh(target.id);
       if (!(cause instanceof ApiHttpError && cause.status === 404)) {
         setError(
           profileFailure(
@@ -79,7 +80,7 @@ export function RemoveProfileDialog({
                 : profile.factorCount > 1
                   ? `, împreună cu cei ${factorCountLabel(profile.factorCount).toLowerCase()} ai ei`
                   : ''}
-              . Fișele de evaluare în care ai aplicat-o își păstrează factorii copiați.
+              . Nu o folosește niciun client.
             </DialogDescription>
           </DialogHeader>
           {error && (

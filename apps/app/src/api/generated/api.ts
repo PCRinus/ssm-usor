@@ -4859,12 +4859,17 @@ export type EvaluationProfileListResponseItemsItem = {
    * @nullable
    */
   globalRiskLevel: number | null;
+  /** @nullable */
+  archivedAt: string | null;
+  inUse: boolean;
   createdAt: string;
   updatedAt: string;
   /** @minimum 0 */
   factorCount: number;
   /** @minimum 0 */
   unacceptableFactorCount: number;
+  /** @minimum 0 */
+  clientCount: number;
 };
 
 export interface EvaluationProfileListResponse {
@@ -4949,6 +4954,9 @@ export type EvaluationProfileResponseProfile = {
    * @nullable
    */
   globalRiskLevel: number | null;
+  /** @nullable */
+  archivedAt: string | null;
+  inUse: boolean;
   createdAt: string;
   updatedAt: string;
   factors: EvaluationProfileResponseProfileFactorsItem[];
@@ -5000,6 +5008,15 @@ export type EvaluationProfileUsageResponseItemsItem = {
 
 export interface EvaluationProfileUsageResponse {
   items: EvaluationProfileUsageResponseItemsItem[];
+}
+
+export interface UpdateEvaluationProfileRequest {
+  /**
+   * @minLength 2
+   * @maxLength 160
+   */
+  name?: string;
+  archived?: boolean;
 }
 
 export type ApplyEvaluationProfileResponseEvaluationKind =
@@ -14520,6 +14537,18 @@ export const ListRiskFactorSuggestionsField = {
   deadline: 'deadline',
   responsiblePerson: 'responsiblePerson',
   observations: 'observations',
+} as const;
+
+export type ListEvaluationProfilesParams = {
+  archived?: ListEvaluationProfilesArchived;
+};
+
+export type ListEvaluationProfilesArchived =
+  (typeof ListEvaluationProfilesArchived)[keyof typeof ListEvaluationProfilesArchived];
+
+export const ListEvaluationProfilesArchived = {
+  true: 'true',
+  false: 'false',
 } as const;
 
 export type GetDocumentReadinessParams = {
@@ -25170,42 +25199,58 @@ export const useUpdateSensitiveGroupsState = <
   return useMutation(getUpdateSensitiveGroupsStateMutationOptions(options), queryClient);
 };
 
-export const getListEvaluationProfilesUrl = () => {
-  return `/evaluation-profiles`;
+export const getListEvaluationProfilesUrl = (params?: ListEvaluationProfilesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/evaluation-profiles?${stringifiedParams}`
+    : `/evaluation-profiles`;
 };
 
 /**
- * The risk library (ADR 015) by name, each profile without its factors but with `factorCount`, `unacceptableFactorCount` and `globalRiskLevel`.
+ * The risk library (ADR 015) by name, each profile without its factors but with `factorCount`, `unacceptableFactorCount`, `globalRiskLevel`, `clientCount` (the clients its usage lists) and `inUse` (ADR 036). Archived profiles are left out unless `archived=true`, which lists only them.
  * @summary List the organization's evaluation profiles
  */
 export const listEvaluationProfiles = async (
+  params?: ListEvaluationProfilesParams,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<EvaluationProfileListResponse> => {
-  return apiFetch<EvaluationProfileListResponse>(getListEvaluationProfilesUrl(), {
+  return apiFetch<EvaluationProfileListResponse>(getListEvaluationProfilesUrl(params), {
     ...options,
     method: 'GET',
   });
 };
 
-export const getListEvaluationProfilesQueryKey = () => {
-  return [`/evaluation-profiles`] as const;
+export const getListEvaluationProfilesQueryKey = (params?: ListEvaluationProfilesParams) => {
+  return [`/evaluation-profiles`, ...(params ? [params] : [])] as const;
 };
 
 export const getListEvaluationProfilesQueryOptions = <
   TData = Awaited<ReturnType<typeof listEvaluationProfiles>>,
   TError = ErrorType<ApiErrorResponse>,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof listEvaluationProfiles>>, TError, TData>
-  >;
-  request?: SecondParameter<typeof apiFetch>;
-}) => {
+>(
+  params?: ListEvaluationProfilesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listEvaluationProfiles>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListEvaluationProfilesQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getListEvaluationProfilesQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listEvaluationProfiles>>> = ({ signal }) =>
-    listEvaluationProfiles({ signal, ...requestOptions });
+    listEvaluationProfiles(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listEvaluationProfiles>>,
@@ -25223,6 +25268,7 @@ export function useListEvaluationProfiles<
   TData = Awaited<ReturnType<typeof listEvaluationProfiles>>,
   TError = ErrorType<ApiErrorResponse>,
 >(
+  params: undefined | ListEvaluationProfilesParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listEvaluationProfiles>>, TError, TData>
@@ -25243,6 +25289,7 @@ export function useListEvaluationProfiles<
   TData = Awaited<ReturnType<typeof listEvaluationProfiles>>,
   TError = ErrorType<ApiErrorResponse>,
 >(
+  params?: ListEvaluationProfilesParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listEvaluationProfiles>>, TError, TData>
@@ -25263,6 +25310,7 @@ export function useListEvaluationProfiles<
   TData = Awaited<ReturnType<typeof listEvaluationProfiles>>,
   TError = ErrorType<ApiErrorResponse>,
 >(
+  params?: ListEvaluationProfilesParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listEvaluationProfiles>>, TError, TData>
@@ -25279,6 +25327,7 @@ export function useListEvaluationProfiles<
   TData = Awaited<ReturnType<typeof listEvaluationProfiles>>,
   TError = ErrorType<ApiErrorResponse>,
 >(
+  params?: ListEvaluationProfilesParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listEvaluationProfiles>>, TError, TData>
@@ -25287,7 +25336,7 @@ export function useListEvaluationProfiles<
   },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListEvaluationProfilesQueryOptions(options);
+  const queryOptions = getListEvaluationProfilesQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -25543,16 +25592,17 @@ export function useGetEvaluationProfile<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export const getRenameEvaluationProfileUrl = (profileId: string) => {
+export const getUpdateEvaluationProfileUrl = (profileId: string) => {
   return `/evaluation-profiles/${profileId}`;
 };
 
 /**
- * @summary Rename an evaluation profile
+ * An archived profile keeps its page, its factors and its usage, and is refused by `applyEvaluationProfile` until restored. Archiving is allowed while clients use the profile, since they hold copies (ADR 036). Names stay unique across active and archived profiles.
+ * @summary Rename, archive or restore an evaluation profile
  */
-export const renameEvaluationProfile = async (
+export const updateEvaluationProfile = async (
   profileId: string,
-  evaluationProfileNameRequest: EvaluationProfileNameRequest,
+  updateEvaluationProfileRequest: UpdateEvaluationProfileRequest,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<EvaluationProfileResponse> => {
   const getHeaders = (
@@ -25574,34 +25624,34 @@ export const renameEvaluationProfile = async (
     }
     return headers;
   };
-  return apiFetch<EvaluationProfileResponse>(getRenameEvaluationProfileUrl(profileId), {
+  return apiFetch<EvaluationProfileResponse>(getUpdateEvaluationProfileUrl(profileId), {
     ...options,
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(evaluationProfileNameRequest),
+    body: JSON.stringify(updateEvaluationProfileRequest),
   });
 };
 
-export const getRenameEvaluationProfileMutationKey = () => ['renameEvaluationProfile'] as const;
+export const getUpdateEvaluationProfileMutationKey = () => ['updateEvaluationProfile'] as const;
 
-export const getRenameEvaluationProfileMutationOptions = <
+export const getUpdateEvaluationProfileMutationOptions = <
   TError = ErrorType<ApiErrorResponse>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof renameEvaluationProfile>>,
+    Awaited<ReturnType<typeof updateEvaluationProfile>>,
     TError,
-    RenameEvaluationProfileMutationVariables,
+    UpdateEvaluationProfileMutationVariables,
     TContext
   >;
   request?: SecondParameter<typeof apiFetch>;
 }): UseMutationOptions<
-  Awaited<ReturnType<typeof renameEvaluationProfile>>,
+  Awaited<ReturnType<typeof updateEvaluationProfile>>,
   TError,
-  RenameEvaluationProfileMutationVariables,
+  UpdateEvaluationProfileMutationVariables,
   TContext
 > => {
-  const mutationKey = getRenameEvaluationProfileMutationKey();
+  const mutationKey = getUpdateEvaluationProfileMutationKey();
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
       ? options
@@ -25609,51 +25659,51 @@ export const getRenameEvaluationProfileMutationOptions = <
     : { mutation: { mutationKey }, request: undefined };
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof renameEvaluationProfile>>,
-    RenameEvaluationProfileMutationVariables
+    Awaited<ReturnType<typeof updateEvaluationProfile>>,
+    UpdateEvaluationProfileMutationVariables
   > = (props) => {
     const { profileId, data } = props ?? {};
 
-    return renameEvaluationProfile(profileId, data, requestOptions);
+    return updateEvaluationProfile(profileId, data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
-export type RenameEvaluationProfileMutationResult = NonNullable<
-  Awaited<ReturnType<typeof renameEvaluationProfile>>
+export type UpdateEvaluationProfileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateEvaluationProfile>>
 >;
-export type RenameEvaluationProfileMutationBody = EvaluationProfileNameRequest;
-export type RenameEvaluationProfileMutationError = ErrorType<ApiErrorResponse>;
-export type RenameEvaluationProfileMutationVariables = {
+export type UpdateEvaluationProfileMutationBody = UpdateEvaluationProfileRequest;
+export type UpdateEvaluationProfileMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateEvaluationProfileMutationVariables = {
   profileId: string;
-  data: EvaluationProfileNameRequest;
+  data: UpdateEvaluationProfileRequest;
 };
 
 /**
- * @summary Rename an evaluation profile
+ * @summary Rename, archive or restore an evaluation profile
  */
-export const useRenameEvaluationProfile = <
+export const useUpdateEvaluationProfile = <
   TError = ErrorType<ApiErrorResponse>,
   TContext = unknown,
 >(
   options?: {
     mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof renameEvaluationProfile>>,
+      Awaited<ReturnType<typeof updateEvaluationProfile>>,
       TError,
-      RenameEvaluationProfileMutationVariables,
+      UpdateEvaluationProfileMutationVariables,
       TContext
     >;
     request?: SecondParameter<typeof apiFetch>;
   },
   queryClient?: QueryClient
 ): UseMutationResult<
-  Awaited<ReturnType<typeof renameEvaluationProfile>>,
+  Awaited<ReturnType<typeof updateEvaluationProfile>>,
   TError,
-  RenameEvaluationProfileMutationVariables,
+  UpdateEvaluationProfileMutationVariables,
   TContext
 > => {
-  return useMutation(getRenameEvaluationProfileMutationOptions(options), queryClient);
+  return useMutation(getUpdateEvaluationProfileMutationOptions(options), queryClient);
 };
 
 export const getRemoveEvaluationProfileUrl = (profileId: string) => {
@@ -25661,8 +25711,8 @@ export const getRemoveEvaluationProfileUrl = (profileId: string) => {
 };
 
 /**
- * The factors it gave evaluations stay in them, as the client’s; their `sourceProfile` becomes null.
- * @summary Delete an evaluation profile with its factors
+ * Refused while any client’s factor, archived posts’ and clients’ included, points at one of its factors (reason `evaluation_profile_in_use`): such a profile is archived instead (ADR 036).
+ * @summary Delete an evaluation profile no client uses
  */
 export const removeEvaluationProfile = async (
   profileId: string,
@@ -25720,7 +25770,7 @@ export type RemoveEvaluationProfileMutationError = ErrorType<ApiErrorResponse>;
 export type RemoveEvaluationProfileMutationVariables = { profileId: string };
 
 /**
- * @summary Delete an evaluation profile with its factors
+ * @summary Delete an evaluation profile no client uses
  */
 export const useRemoveEvaluationProfile = <
   TError = ErrorType<ApiErrorResponse>,
@@ -26123,7 +26173,7 @@ export const getRemoveEvaluationProfileFactorUrl = (profileId: string, factorId:
 };
 
 /**
- * Answers with the whole profile.
+ * Allowed while clients use the profile: their copies of the factor stay and their `sourceProfile` becomes null. Answers with the whole profile.
  * @summary Remove a profile's risk factor
  */
 export const removeEvaluationProfileFactor = async (

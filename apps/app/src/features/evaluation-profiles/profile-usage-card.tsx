@@ -58,7 +58,7 @@ export function ProfileUsageCard({ profileId, userId }: { profileId: string; use
       data-testid="risk-profile-usage"
       title={
         <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          Unde este folosit
+          Unde este folosită
           {usage.isSuccess && items.length > 0 && (
             <span
               data-testid="risk-profile-usage-count"

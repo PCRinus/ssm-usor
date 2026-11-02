@@ -27,7 +27,10 @@ import {
 import { useEvaluationCache } from '@/features/risk-evaluations/use-evaluation-cache';
 
 import { GlobalLevel } from './global-level';
-import { profileTotalsLabel } from './profile-schema';
+import { isProfileArchived, profileTotalsLabel } from './profile-schema';
+import { useProfileCache } from './use-profile-cache';
+
+const activeOnly = { archived: 'false' } as const;
 
 function addedFactorsMessage(added: number, profileName: string) {
   if (added === 0) return `„${profileName}” nu mai are factori; fișa a rămas cum era.`;
@@ -50,9 +53,10 @@ export function ApplyProfileDialog({
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const savedToast = useSavedToast();
   const cache = useEvaluationCache(evaluation.clientId);
-  const profiles = useListEvaluationProfiles({
+  const profileCache = useProfileCache();
+  const profiles = useListEvaluationProfiles(activeOnly, {
     request: apiRequest,
-    query: { queryKey: [...getListEvaluationProfilesQueryKey(), userId], enabled: open },
+    query: { queryKey: [...getListEvaluationProfilesQueryKey(activeOnly), userId], enabled: open },
   });
   const apply = useApplyEvaluationProfile({ request: apiRequest });
   const [selected, setSelected] = useState('');
@@ -75,10 +79,16 @@ export function ApplyProfileDialog({
         evaluationId: evaluation.id,
         data: { profileId: chosen.id },
       });
-      await cache.saved(result.evaluation);
+      await Promise.all([cache.saved(result.evaluation), profileCache.applied(chosen.id)]);
       savedToast(addedFactorsMessage(result.addedFactorCount, chosen.name));
       close();
     } catch (cause) {
+      if (isProfileArchived(cause)) {
+        setSelected('');
+        setError(`„${chosen.name}” a fost arhivată între timp. Alege altă evaluare.`);
+        await profiles.refetch();
+        return;
+      }
       setError(
         evaluationFailure(
           cause,

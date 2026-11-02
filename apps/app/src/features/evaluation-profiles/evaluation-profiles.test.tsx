@@ -10,7 +10,12 @@ import type {
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
-import { type EvaluationProfile, profileCountLabel, profileTotalsLabel } from './profile-schema';
+import {
+  clientCountLabel,
+  type EvaluationProfile,
+  profileCountLabel,
+  profileTotalsLabel,
+} from './profile-schema';
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const sampleClient = {
@@ -92,6 +97,8 @@ function makeProfile(fields: Partial<EvaluationProfile> & Pick<EvaluationProfile
   const factors = fields.factors ?? [];
   return {
     id: uuid(),
+    archivedAt: null,
+    inUse: false,
     createdAt: stamp,
     updatedAt: stamp,
     ...fields,
@@ -100,8 +107,13 @@ function makeProfile(fields: Partial<EvaluationProfile> & Pick<EvaluationProfile
   } satisfies EvaluationProfile;
 }
 
-const office = makeProfile({ name: 'Lucrător de birou', factors: [electrocution, screenWork] });
+const office = makeProfile({
+  name: 'Lucrător de birou',
+  factors: [electrocution, screenWork],
+  inUse: true,
+});
 const driver = makeProfile({ name: 'Șofer' });
+const clientCounts = new Map([[office.id, 3]]);
 
 function makeEvaluation(fields: Partial<RiskEvaluation>): RiskEvaluation {
   const factors = fields.factors ?? [];
@@ -135,6 +147,14 @@ const summaryOf = ({ factors, ...rest }: { factors: RiskFactor[] } & Record<stri
   factorCount: factors.length,
   unacceptableFactorCount: factors.filter((factor) => factor.riskLevel > 3).length,
 });
+
+const profileSummaryOf = (profile: EvaluationProfile) => ({
+  ...summaryOf(profile),
+  clientCount: clientCounts.get(profile.id) ?? 0,
+});
+
+const conflict = (reason: string) =>
+  Response.json({ error: 'conflict', message: 'no', reason }, { status: 409 });
 
 const positionsPath = `/clients/${clientId}/job-positions`;
 const positionsPage = `/clienti/${clientId}/posturi`;
@@ -206,6 +226,7 @@ function mockApi({
     }
     if (pathname === `${evaluationsPath}/${current.id}/factors/apply-profile`) {
       const profile = library.get(String(body.profileId))!;
+      if (profile.archivedAt) return conflict('evaluation_profile_archived');
       current = makeEvaluation({
         ...current,
         factors: [
@@ -225,7 +246,12 @@ function mockApi({
           init
         );
       }
-      return Response.json({ items: [...library.values()].map(summaryOf) });
+      const archived = url.searchParams.get('archived') === 'true';
+      return Response.json({
+        items: [...library.values()]
+          .filter((profile) => (profile.archivedAt !== null) === archived)
+          .map(profileSummaryOf),
+      });
     }
     const usageMatch = pathname.match(/^\/evaluation-profiles\/([^/]+)\/usage$/);
     if (usageMatch) return usage(usageMatch[1]!);
@@ -237,10 +263,17 @@ function mockApi({
       const factorsPath = pathname.endsWith('/factors') || factorId;
       if (!factorsPath) {
         if (method === 'DELETE') {
+          if (profile.inUse) return conflict('evaluation_profile_in_use');
           library.delete(profile.id);
           return new Response(null, { status: 204 });
         }
-        if (method === 'PATCH') return answer({ ...profile, name: String(body.name) });
+        if (method === 'PATCH') {
+          return answer({
+            ...profile,
+            ...(body.name === undefined ? {} : { name: String(body.name) }),
+            ...(body.archived === undefined ? {} : { archivedAt: body.archived ? stamp : null }),
+          });
+        }
         return Response.json({ profile });
       }
       if (factorId && method === 'DELETE') {
@@ -305,12 +338,80 @@ describe('the risk library', () => {
       'Șofer',
     ]);
     const cells = (row: HTMLElement) =>
-      ['risk-profile-factors', 'risk-profile-unacceptable', 'risk-profile-level'].map(
-        (testId) => within(row).getByTestId(testId).textContent
-      );
-    expect(cells(rows[0]!)).toEqual(['2', '1', '3,33']);
-    expect(cells(rows[1]!)).toEqual(['0', '0', '—']);
-    expect(screen.getByTestId('risk-library-count').textContent).toBe('2 evaluări');
+      [
+        'risk-profile-factors',
+        'risk-profile-unacceptable',
+        'risk-profile-level',
+        'risk-profile-clients',
+      ].map((testId) => within(row).getByTestId(testId).textContent);
+    expect(cells(rows[0]!)).toEqual(['2', '1', '3,33', '3 clienți']);
+    expect(cells(rows[1]!)).toEqual(['0', '0', '—', '—']);
+    expect(screen.getByRole('columnheader', { name: 'Folosită la' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('Evaluări în uz2 evaluări');
+    const listed = fetchMock.mock.calls.find(
+      ([input]) => new URL(String(input)).pathname === '/evaluation-profiles'
+    );
+    expect(new URL(String(listed![0])).searchParams.get('archived')).toBe('false');
+  });
+
+  it('counts the clients that use a profile the Romanian way', () => {
+    expect([0, 1, 2, 19, 20, 120].map(clientCountLabel)).toEqual([
+      '—',
+      '1 client',
+      '2 clienți',
+      '19 clienți',
+      '20 de clienți',
+      '120 de clienți',
+    ]);
+  });
+
+  it('offers deleting only a profile no client uses, and archiving in any case', async () => {
+    mockApi();
+    mount('/evaluari-de-risc');
+    const user = userEvent.setup();
+    const [used, unused] = await screen.findAllByTestId('risk-profile-row');
+    await user.click(within(used!).getByTestId('risk-profile-actions'));
+    expect(await screen.findByTestId('risk-profile-archive')).toBeTruthy();
+    expect(screen.queryByTestId('risk-profile-remove')).toBeNull();
+    await user.keyboard('{Escape}');
+    await user.click(within(unused!).getByTestId('risk-profile-actions'));
+    expect(await screen.findByTestId('risk-profile-archive')).toBeTruthy();
+    expect(screen.getByTestId('risk-profile-remove')).toBeTruthy();
+  });
+
+  it('archives a profile in use, shows it in the archive and reactivates it', async () => {
+    mockApi();
+    mount('/evaluari-de-risc');
+    const user = userEvent.setup();
+    const [row] = await screen.findAllByTestId('risk-profile-row');
+    await user.click(within(row!).getByTestId('risk-profile-actions'));
+    await user.click(await screen.findByTestId('risk-profile-archive'));
+    expect(await screen.findByText('„Lucrător de birou” a fost arhivată.')).toBeTruthy();
+    expect(requests(`/evaluation-profiles/${office.id}`, 'PATCH')).toEqual([{ archived: true }]);
+    await waitFor(() =>
+      expect(screen.getAllByTestId('risk-profile-open').map((link) => link.textContent)).toEqual([
+        'Șofer',
+      ])
+    );
+
+    await user.click(screen.getByTestId('risk-library-toggle-archived'));
+    expect(await screen.findByText('Evaluări arhivate')).toBeTruthy();
+    expect(screen.getByTestId('risk-library-toggle-archived').textContent).toBe(
+      'Arată evaluările în uz'
+    );
+    const [archived] = await screen.findAllByTestId('risk-profile-row');
+    expect(within(archived!).getByTestId('risk-profile-clients').textContent).toBe('3 clienți');
+    await user.click(within(archived!).getByTestId('risk-profile-actions'));
+    expect(screen.queryByTestId('risk-profile-remove')).toBeNull();
+    await user.click(await screen.findByTestId('risk-profile-restore'));
+    expect(await screen.findByText('„Lucrător de birou” a fost reactivată.')).toBeTruthy();
+    expect(requests(`/evaluation-profiles/${office.id}`, 'PATCH')).toEqual([
+      { archived: true },
+      { archived: false },
+    ]);
+    expect((await screen.findByTestId('risk-library-empty')).textContent).toBe(
+      'Nicio evaluare arhivată'
+    );
   });
 
   it('counts profiles the Romanian way', () => {
@@ -427,21 +528,58 @@ describe('a profile page', () => {
     expect(screen.getByTestId('risk-factors-count').textContent).toBe('Un factor');
   });
 
-  it('deletes the profile after asking, and goes back to the library', async () => {
-    mockApi();
-    const runtime = mount(`/evaluari-de-risc/${office.id}`);
+  it('deletes a profile no client uses after asking, and goes back to the library', async () => {
+    const unused = makeProfile({ name: 'Casier', factors: [electrocution, screenWork] });
+    mockApi({ profiles: [office, unused] });
+    const runtime = mount(`/evaluari-de-risc/${unused.id}`);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('risk-profile-remove'));
     const dialog = await screen.findByTestId('risk-profile-remove-dialog');
     expect(dialog.textContent).toContain('împreună cu cei 2 factori ai ei');
-    expect(dialog.textContent).toContain('își păstrează factorii copiați');
+    expect(dialog.textContent).toContain('Nu o folosește niciun client.');
     await user.click(within(dialog).getByTestId('risk-profile-remove-confirm'));
     await screen.findByTestId('risk-library');
-    expect(requests(`/evaluation-profiles/${office.id}`, 'DELETE')).toHaveLength(1);
+    expect(requests(`/evaluation-profiles/${unused.id}`, 'DELETE')).toHaveLength(1);
     expect(runtime.router.state.location.pathname).toBe('/evaluari-de-risc');
     expect(
       (await screen.findAllByTestId('risk-profile-open')).map((link) => link.textContent)
-    ).toEqual(['Șofer']);
+    ).toEqual(['Lucrător de birou']);
+  });
+
+  it('says why a profile a client started using meanwhile is not deleted', async () => {
+    mockApi();
+    const ownLibrary = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (input, init) =>
+      new URL(String(input)).pathname === `/evaluation-profiles/${driver.id}` &&
+      init?.method === 'DELETE'
+        ? conflict('evaluation_profile_in_use')
+        : ownLibrary(input, init)
+    );
+    mount(`/evaluari-de-risc/${driver.id}`);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('risk-profile-remove'));
+    const dialog = await screen.findByTestId('risk-profile-remove-dialog');
+    await user.click(within(dialog).getByTestId('risk-profile-remove-confirm'));
+    expect((await screen.findByTestId('risk-profile-remove-error')).textContent).toContain(
+      'Evaluarea este folosită la clienți, așa că nu se poate șterge. O poți arhiva'
+    );
+  });
+
+  it('offers archiving in place of deleting while clients use the profile', async () => {
+    mockApi();
+    mount(`/evaluari-de-risc/${office.id}`);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('risk-profile-archive'));
+    expect(screen.queryByTestId('risk-profile-remove')).toBeNull();
+    const notice = await screen.findByTestId('risk-profile-archived');
+    expect(notice.textContent).toContain('nu apare în „Aplică din bibliotecă”');
+    expect(screen.getByTestId('risk-profile-usage')).toBeTruthy();
+    await user.click(screen.getByTestId('risk-profile-restore'));
+    await waitFor(() => expect(screen.queryByTestId('risk-profile-archived')).toBeNull());
+    expect(requests(`/evaluation-profiles/${office.id}`, 'PATCH')).toEqual([
+      { archived: true },
+      { archived: false },
+    ]);
   });
 
   it('lists the evaluations that use the profile, by client', async () => {
@@ -480,6 +618,7 @@ describe('a profile page', () => {
     });
     mount(`/evaluari-de-risc/${office.id}`);
     const usage = await screen.findByTestId('risk-profile-usage');
+    expect(within(usage).getByRole('heading').textContent).toContain('Unde este folosită');
     const clients = await within(usage).findAllByTestId('risk-profile-usage-client');
     expect(within(usage).getByTestId('risk-profile-usage-count').textContent).toBe('3 fișe');
     expect(clients).toHaveLength(2);
@@ -710,6 +849,23 @@ describe('an evaluation and the library', () => {
       expect(screen.getByTestId('risk-factors-count').textContent).toBe('3 factori')
     );
     expect(screen.getByText('Lucru prelungit la monitor')).toBeTruthy();
+  });
+
+  it('leaves archived profiles out of the choice', async () => {
+    mockApi({
+      profiles: [
+        office,
+        makeProfile({ name: 'Arhivat', factors: [electrocution], archivedAt: stamp }),
+      ],
+    });
+    mount(accountantEvaluationPath);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('risk-factors-apply-profile'));
+    const dialog = await screen.findByTestId('apply-profile-dialog');
+    const options = await within(dialog).findAllByTestId('apply-profile-option');
+    expect(
+      options.map((option) => within(option).getByRole('radio').getAttribute('value'))
+    ).toEqual([office.id]);
   });
 
   it('says how a profile comes to exist when the library has none with factors', async () => {

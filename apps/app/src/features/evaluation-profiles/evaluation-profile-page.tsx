@@ -6,11 +6,12 @@ import {
   useRouteContext,
   useRouter,
 } from '@tanstack/react-router';
-import { PenLine, Trash2 } from 'lucide-react';
+import { Archive, ArchiveRestore, PenLine, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { getGetEvaluationProfileQueryKey, useGetEvaluationProfile } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { Notice } from '@/components/notice';
 import { RiskEvaluationPending } from '@/features/risk-evaluations/risk-evaluation-pending';
 import { RiskFactorsCard } from '@/features/risk-evaluations/risk-factors-card';
 import { RiskResultCard } from '@/features/risk-evaluations/risk-result-card';
@@ -21,6 +22,7 @@ import { type ProfileNaming, useProfileRenaming } from './profile-naming';
 import type { EvaluationProfile } from './profile-schema';
 import { ProfileUsageCard } from './profile-usage-card';
 import { RemoveProfileDialog } from './remove-profile-dialog';
+import { useProfileArchiving } from './use-profile-archiving';
 import { useProfileFactorStore } from './use-profile-cache';
 
 export function EvaluationProfilePage({
@@ -46,7 +48,15 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
   const renaming = useProfileRenaming();
   const [naming, setNaming] = useState<ProfileNaming | null>(null);
   const [removing, setRemoving] = useState(false);
+  const archiving = useProfileArchiving();
+  const [error, setError] = useState<string | null>(null);
   const view = useFactorListView(profile.factors, 'factors');
+  const archived = profile.archivedAt !== null;
+
+  const setArchived = async (next: boolean) => {
+    setError(null);
+    setError(await archiving.setArchived(profile, next));
+  };
 
   return (
     <div data-testid="risk-profile-page" className="grid gap-5">
@@ -65,21 +75,57 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
               <PenLine aria-hidden="true" />
               Redenumește…
             </Button>
-            <Button
-              variant="destructive-outline"
-              size="sm"
-              data-testid="risk-profile-remove"
-              onClick={() => setRemoving(true)}
-            >
-              <Trash2 aria-hidden="true" />
-              Șterge evaluarea…
-            </Button>
+            {archived ? (
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="risk-profile-restore"
+                disabled={archiving.isPending}
+                onClick={() => void setArchived(false)}
+              >
+                <ArchiveRestore aria-hidden="true" />
+                Reactivează
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="risk-profile-archive"
+                disabled={archiving.isPending}
+                onClick={() => void setArchived(true)}
+              >
+                <Archive aria-hidden="true" />
+                Arhivează
+              </Button>
+            )}
+            {!profile.inUse && (
+              <Button
+                variant="destructive-outline"
+                size="sm"
+                data-testid="risk-profile-remove"
+                onClick={() => setRemoving(true)}
+              >
+                <Trash2 aria-hidden="true" />
+                Șterge evaluarea…
+              </Button>
+            )}
           </div>
         </div>
         <p className="max-w-2xl text-sm text-muted-foreground">
           Ce schimbi aici nu ajunge în fișele de evaluare în care ai aplicat-o deja.
         </p>
       </div>
+      {archived && (
+        <Notice variant="info" data-testid="risk-profile-archived">
+          Evaluarea este arhivată: nu apare în „Aplică din bibliotecă”. Fișele în care ai aplicat-o
+          își păstrează factorii. Reactiveaz-o ca să o poți aplica din nou.
+        </Notice>
+      )}
+      {error && (
+        <Notice variant="destructive" data-testid="risk-profile-page-error">
+          {error}
+        </Notice>
+      )}
       <RiskResultCard id="result" evaluation={profile} view={view} />
       <RiskFactorsCard
         id="factors"
