@@ -1,5 +1,5 @@
 begin;
-select plan(52);
+select plan(64);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -32,6 +32,11 @@ insert into public.risk_evaluations (id, organization_id, client_id, kind, name)
   ('e1e1e1e1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'other', 'Birou'),
   ('e1e1e1e1-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'other', 'Depozit'),
   ('e2e2e2e2-0000-4000-8000-000000000001', '22222222-0000-4000-8000-000000000002', 'c2c2c2c2-0000-4000-8000-000000000001', 'other', 'Birou');
+
+insert into public.risk_evaluations (id, organization_id, client_id, kind, name, means_of_production, work_environment, exposure) values
+  ('e1e1e1e1-0000-4000-8000-000000000006', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'other', 'Atelier', null, null, default),
+  ('e1e1e1e1-0000-4000-8000-000000000007', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'other', 'Magazie', 'Rafturi metalice', 'Spațiu neîncălzit', '4 h / zi'),
+  ('e1e1e1e1-0000-4000-8000-000000000008', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'other', 'Curte', null, null, default);
 
 insert into public.risk_factors (id, organization_id, client_id, evaluation_id, component, factor_group, description, gravity_class, probability_class, deadline, responsible_person, sort_order) values
   ('f1f1f1f1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'work_task', 'Suprasolicitare psihică', 'Ritm de muncă intens', 2, 4, null, null, 1),
@@ -469,6 +474,91 @@ select is(
   (select count(*)::int from public.risk_factors where evaluation_id = 'e1e1e1e1-0000-4000-8000-000000000003'),
   2,
   'deleting a profile leaves the factors once copied from it'
+);
+
+select is(
+  (select exposure from public.evaluation_profiles where id = 'a1a1a1a1-0000-4000-8000-000000000008'),
+  null,
+  'a profile has no exposure until one is written'
+);
+
+select lives_ok(
+  $$ update public.evaluation_profiles
+     set means_of_production = 'Strung, polizor', work_environment = 'Hală ventilată', exposure = '6 h / zi'
+     where id = 'a1a1a1a1-0000-4000-8000-000000000001' $$,
+  'a member writes the work-system texts of a profile'
+);
+
+select throws_ok(
+  $$ update public.evaluation_profiles set exposure = '  ' where id = 'a1a1a1a1-0000-4000-8000-000000000001' $$,
+  '23514',
+  null,
+  'a profile''s exposure is a text or nothing'
+);
+
+select is(
+  public.apply_evaluation_profile('e1e1e1e1-0000-4000-8000-000000000006', 'a1a1a1a1-0000-4000-8000-000000000001'),
+  2,
+  'a member applies a profile with texts to an evaluation without any'
+);
+
+select results_eq(
+  $$ select means_of_production, work_environment, exposure from public.risk_evaluations
+     where id in ('e1e1e1e1-0000-4000-8000-000000000006', 'e1e1e1e1-0000-4000-8000-000000000007')
+     order by name $$,
+  $$ values ('Strung, polizor', 'Hală ventilată', '6 h / zi'), ('Rafturi metalice', 'Spațiu neîncălzit', '4 h / zi') $$,
+  'applying fills the empty texts, the exposure still at its default among them'
+);
+
+select is(
+  public.apply_evaluation_profile('e1e1e1e1-0000-4000-8000-000000000007', 'a1a1a1a1-0000-4000-8000-000000000001'),
+  2,
+  'a profile is applied to an evaluation whose texts are written'
+);
+
+select results_eq(
+  $$ select means_of_production, work_environment, exposure from public.risk_evaluations
+     where id = 'e1e1e1e1-0000-4000-8000-000000000007' $$,
+  $$ values ('Rafturi metalice', 'Spațiu neîncălzit', '4 h / zi') $$,
+  'applying never overwrites a text the evaluation has'
+);
+
+update public.evaluation_profiles set means_of_production = 'Aparat de sudură'
+where id = 'a1a1a1a1-0000-4000-8000-000000000008';
+update public.evaluation_profiles set means_of_production = null, exposure = null
+where id = 'a1a1a1a1-0000-4000-8000-000000000001';
+
+select is(
+  public.apply_evaluation_profile('e1e1e1e1-0000-4000-8000-000000000008', 'a1a1a1a1-0000-4000-8000-000000000008'),
+  1,
+  'a member applies a first profile to an evaluation'
+);
+
+select is(
+  public.apply_evaluation_profile('e1e1e1e1-0000-4000-8000-000000000008', 'a1a1a1a1-0000-4000-8000-000000000001'),
+  2,
+  'and a second one after it'
+);
+
+select results_eq(
+  $$ select means_of_production, work_environment, exposure from public.risk_evaluations
+     where id = 'e1e1e1e1-0000-4000-8000-000000000008' $$,
+  $$ values ('Aparat de sudură', 'Hală ventilată', '8 h / schimb') $$,
+  'two profiles applied in turn fill from the first, and one without an exposure leaves the default'
+);
+
+select ok(
+  public.save_risk_evaluation_as_profile('e1e1e1e1-0000-4000-8000-000000000007', 'Magazioner') is not null,
+  'a member saves an evaluation with texts as a profile'
+);
+
+select results_eq(
+  $$ select name, means_of_production, work_environment, exposure from public.evaluation_profiles
+     where name in ('Magazioner', 'Lucrător de birou') order by name $$,
+  $$ values
+       ('Lucrător de birou', null::text, null::text, '8 h / schimb'),
+       ('Magazioner', 'Rafturi metalice', 'Spațiu neîncălzit', '4 h / zi') $$,
+  'saving an evaluation as a profile copies its work-system texts'
 );
 
 select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000002', '{"provider":"email"}');

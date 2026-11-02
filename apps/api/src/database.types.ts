@@ -2065,28 +2065,37 @@ export type Database = {
           archived_at: string | null;
           created_at: string;
           created_by: string | null;
+          exposure: string | null;
           id: string;
+          means_of_production: string | null;
           name: string;
           organization_id: string;
           updated_at: string;
+          work_environment: string | null;
         };
         Insert: {
           archived_at?: string | null;
           created_at?: string;
           created_by?: string | null;
+          exposure?: string | null;
           id?: string;
+          means_of_production?: string | null;
           name: string;
           organization_id: string;
           updated_at?: string;
+          work_environment?: string | null;
         };
         Update: {
           archived_at?: string | null;
           created_at?: string;
           created_by?: string | null;
+          exposure?: string | null;
           id?: string;
+          means_of_production?: string | null;
           name?: string;
           organization_id?: string;
           updated_at?: string;
+          work_environment?: string | null;
         };
         Relationships: [
           {
@@ -6844,11 +6853,14 @@ export type Database = {
           archived_at: string | null;
           client_count: number | null;
           created_at: string | null;
+          exposure: string | null;
           id: string | null;
           in_use: boolean | null;
+          means_of_production: string | null;
           name: string | null;
           organization_id: string | null;
           updated_at: string | null;
+          work_environment: string | null;
         };
         Relationships: [
           {
