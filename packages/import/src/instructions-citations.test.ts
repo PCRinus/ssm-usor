@@ -191,6 +191,23 @@ describe('resolvePositions', () => {
     ]);
   });
 
+  it('reads an article left out for having no text on the number the pack printed', () => {
+    const packed = pack('SSM/3.2._IPSSM.docx', [
+      { common: range(1, 20) },
+      { key: 'cars', number: 'XIII.I', numbers: range(21, 30) },
+      { key: 'office', number: 'XIII.II', numbers: range(31, 40) },
+    ]);
+    const cars = packed.instructions[0]!;
+    cars.articles = cars.articles.filter((item) => item.sourceNumber !== 30);
+    cars.flags = [{ kind: 'empty_article', number: 30 }];
+    expect(outcome([cite('Șofer', 'IPSSM Art. 21 – 29')], packed)).toEqual([
+      { kind: 'undecided', reasons: [{ kind: 'cuts_instruction', instruction: 'cars' }] },
+    ]);
+    expect(outcome([cite('Șofer', 'IPSSM Art. 21 – 30')], packed)).toEqual([
+      { kind: 'resolved', instructions: ['cars'] },
+    ]);
+  });
+
   it('reads a post on the union of its citations, as a periodic training split over months', () => {
     const resolved = resolve([
       cite('Bucătar', 'IPSSM Art. 1 – 10 ; IPSSM 1 Art. 1 – 5', { section: 'periodic' }),

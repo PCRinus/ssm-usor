@@ -25,14 +25,22 @@ import { articleCountLabel } from './instruction-schema';
 
 export type PasteMode = 'replace' | 'append';
 
-const flagTexts: Record<Exclude<SplitFlag['kind'], 'table_row'>, string> = {
+const flagTexts: Record<Exclude<SplitFlag['kind'], 'table_row' | 'empty_article'>, string> = {
   no_numbering: `${splitFlagMessages.no_numbering}: am făcut câte un articol din fiecare paragraf.`,
   no_articles: `${splitFlagMessages.no_articles}.`,
   text_before_first_article: `${splitFlagMessages.text_before_first_article}.`,
 };
 
 function flagLines(flags: readonly SplitFlag[]) {
-  const lines = flags.flatMap((flag) => (flag.kind === 'table_row' ? [] : [flagTexts[flag.kind]]));
+  const lines = flags.flatMap((flag) =>
+    flag.kind === 'table_row' || flag.kind === 'empty_article' ? [] : [flagTexts[flag.kind]]
+  );
+  const empty = flags.flatMap((flag) => (flag.kind === 'empty_article' ? [flag.number] : []));
+  if (empty.length > 0) {
+    lines.push(
+      `${empty.length === 1 ? splitFlagMessages.empty_article : 'Articolele fără text nu au fost preluate'}: ${empty.map((number) => `Art. ${number}`).join(', ')}.`
+    );
+  }
   const tableArticles = [
     ...new Set(flags.flatMap((flag) => (flag.kind === 'table_row' ? [flag.article] : []))),
   ];

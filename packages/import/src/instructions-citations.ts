@@ -346,7 +346,10 @@ export function resolvePositions(input: ResolveInput): ResolvedPosition[] {
   const scoped: Scoped[] = input.instructions.map((instruction) => ({
     instruction,
     scope: scopeOf(instruction, filesByPath.get(instruction.file)),
-    numbers: instruction.articles.map((article, index) => article.sourceNumber ?? index + 1),
+    numbers: [
+      ...instruction.articles.map((article, index) => article.sourceNumber ?? index + 1),
+      ...instruction.flags.flatMap((flag) => (flag.kind === 'empty_article' ? [flag.number] : [])),
+    ],
   }));
   const main = mainFile(input.files, scoped);
   for (const item of scoped) {

@@ -118,6 +118,57 @@ describe('splitInstruction on pasted text', () => {
     });
   });
 
+  it('keeps a chapter heading that follows the title, and drops a chapter that is the title', () => {
+    expect(
+      splitInstruction([
+        paragraph(
+          'Subcapitolul XIII.IV. Instrucțiuni proprii privind folosirea uscătorului de rufe'
+        ),
+        paragraph('CAPITOLUL I. Obiective și domeniu de aplicare :'),
+        paragraph('Uscătorul se folosește numai cu filtrul curățat.', {
+          label: 'Art. 12.',
+          level: 0,
+        }),
+        paragraph('CAPITOLUL II. Reguli la oprire'),
+        paragraph('Ușa se deschide după oprirea tamburului.', { label: 'Art. 13.', level: 0 }),
+      ])
+    ).toMatchObject({
+      title: 'Instrucțiuni proprii privind folosirea uscătorului de rufe',
+      body: {
+        blocks: [
+          { kind: 'heading', text: 'CAPITOLUL I. Obiective și domeniu de aplicare :' },
+          { kind: 'article' },
+          { kind: 'heading', text: 'CAPITOLUL II. Reguli la oprire' },
+          { kind: 'article' },
+        ],
+      },
+    });
+    expect(
+      splitInstruction(
+        'Anexa nr. 1\nINSTRUCȚIUNI DE APĂRARE ÎMPOTRIVA INCENDIILOR ÎN SPĂLĂTORII\nCapitolul I. Scop și domeniu de aplicare\nArt. 1. Spălătoria are stingătoare la intrare.'
+      ).body.blocks[0]
+    ).toEqual({ kind: 'heading', text: 'Capitolul I. Scop și domeniu de aplicare' });
+    expect(
+      splitInstruction(
+        'CAPITOLUL XIII. Instrucțiuni proprii pentru spălătorie\nCapitolul I. Dispoziții generale\nArt. 1. Spălătoria se aerisește zilnic.'
+      )
+    ).toMatchObject({
+      title: 'Instrucțiuni proprii pentru spălătorie',
+      body: { blocks: [{ kind: 'heading', text: 'Capitolul I. Dispoziții generale' }, {}] },
+    });
+  });
+
+  it('leaves out a printed article with no text, and says which', () => {
+    const result = splitInstruction([
+      paragraph('Cuțitele se țin în suport.', { label: 'Art. 43.', level: 0, list: '2' }),
+      paragraph('', { label: 'Art. 44.', level: 0, list: '2' }),
+      paragraph('Plita se curăță rece.', { label: 'Art. 45.', level: 0, list: '2' }),
+    ]);
+    expect(result.articles.map((article) => article.sourceNumber)).toEqual([43, 45]);
+    expect(result.body.blocks).toHaveLength(2);
+    expect(result.flags).toEqual([{ kind: 'empty_article', number: 44 }]);
+  });
+
   it('drops a line that repeats the given title', () => {
     const result = splitInstruction(
       'Scări metalice portabile\nArt. 1. Scara se verifică înainte de folosire.',

@@ -17733,6 +17733,19 @@
                         "properties": {
                           "kind": {
                             "type": "string",
+                            "enum": ["empty_article"]
+                          },
+                          "number": {
+                            "type": "number"
+                          }
+                        },
+                        "required": ["kind", "number"]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
                             "enum": ["end_not_found"]
                           }
                         },

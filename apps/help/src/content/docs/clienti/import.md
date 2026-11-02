@@ -152,7 +152,7 @@ Ce ai deja în bibliotecă nu ți se cere din nou. Deasupra listei vezi câte su
 - **titlul și categoria** propuse, pe care le poți schimba. Titlul pierde începutul comun („Instrucțiuni proprii … privind”), iar cel din pachet rămâne scris dedesubt. Dacă ai deja o instrucțiune cu același titlu, propunerea adaugă numele clientului în paranteză;
 - **câte articole** are și **posturile** la care se aplică, după tematica de instruire, cu **Alege posturile** ca să le schimbi. Un post pentru care tematica nu spune clar ce instrucțiuni ia rămâne nedecis: îl vezi deasupra listei, cu ce scrie în tematică și de ce nu s-a putut decide, și îl alegi tu;
 - **Sursa**, care deschide fișierul la începutul instrucțiunii, și **Schimbă**, care deschide textul în formularul instrucțiunii, ca să corectezi un articol sau să scoți numele clientului;
-- avertismentele textului, de exemplu când numerotarea nu s-a putut citi sau când textul numește clientul;
+- avertismentele textului, de exemplu când numerotarea nu s-a putut citi, când un articol din pachet nu are text și a fost lăsat deoparte sau când textul numește clientul;
 - căsuța care o preia; debifată, instrucțiunea nu intră în bibliotecă și nu se aplică la niciun post.
 
 O instrucțiune **asemănătoare** spune „Ai deja o instrucțiune care spune același lucru: …”. **Ce diferă** îți arată articolele adăugate, cele care lipsesc și cele schimbate, cu cuvintele schimbate marcate. Alegi **Folosește ce ai**, ca posturile să primească instrucțiunea ta așa cum e, sau **Adaugă ca nouă**, ca textul din pachet să intre în bibliotecă separat. Propunerea e „Folosește ce ai”, în afară de cazul în care pachetul are articole pe care instrucțiunea ta nu le are.

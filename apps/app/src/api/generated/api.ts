@@ -11365,6 +11365,10 @@ export type InstructionsProposalInstructionsItemFlagsItem =
       article: number;
     }
   | {
+      kind: 'empty_article';
+      number: number;
+    }
+  | {
       kind: 'end_not_found';
     }
   | {

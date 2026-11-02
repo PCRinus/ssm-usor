@@ -16,13 +16,15 @@ export type SplitFlag =
   | { kind: 'no_numbering' }
   | { kind: 'no_articles' }
   | { kind: 'text_before_first_article' }
-  | { kind: 'table_row'; article: number };
+  | { kind: 'table_row'; article: number }
+  | { kind: 'empty_article'; number: number };
 
 export const splitFlagMessages: Record<SplitFlag['kind'], string> = {
   no_numbering: 'Numerotarea nu s-a putut citi',
   no_articles: 'Nu am găsit niciun articol în text',
   text_before_first_article: 'Textul dinaintea primului articol a devenit un articol',
   table_row: 'Un rând de tabel a devenit paragraf',
+  empty_article: 'Un articol fără text nu a fost preluat',
 };
 
 export interface SplitArticle {
@@ -51,11 +53,12 @@ interface Item {
   row: boolean;
 }
 
-const leadingLabels = [
+const instructionLabels = [
   /^anexa(?:\s+nr\.?)?\s*\d+\s*\.?/iu,
   /^(?:i\.?\s?p\.?\s?s\.?\s?s\.?\s?m|i\.?\s?p\.?\s?s\.?\s?u)\.?(?:\s*(?:nr\.?\s*)?\d+\s*\.?)?(?=\s|$|[-–:])/iu,
-  /^(?:sub)?capitolul\s+[ivxlcdm\d]+(?:\s*\.\s*[ivxlcdm\d]+)*\.?(?=\s|$|[-–:])/iu,
+  /^subcapitolul\s+[ivxlcdm\d]+(?:\s*\.\s*[ivxlcdm\d]+)*\.?(?=\s|$|[-–:])/iu,
 ];
+const chapterLabel = /^capitolul\s+[ivxlcdm\d]+(?:\s*\.\s*[ivxlcdm\d]+)*\.?(?=\s|$|[-–:])/iu;
 
 const typedArticle = /^(?:art\.|art(?=\s)|articolul)\s*(\d{1,4})(?:\s*[.):]|\s+[-–]|(?=\s)|$)\s*/iu;
 const typedNumber = /^(\d{1,4})\s*[.)](?![\d.])\s*/u;
@@ -125,8 +128,8 @@ function wordLabel(label: string) {
   return text;
 }
 
-function stripLabel(text: string) {
-  for (const label of leadingLabels) {
+function stripLabel(text: string, labels: readonly RegExp[]) {
+  for (const label of labels) {
     const match = label.exec(text);
     if (match) return text.slice(match[0].length).replace(/^[\s.:–-]+/u, '');
   }
@@ -138,10 +141,22 @@ function dropLeading(items: Item[], options: SplitOptions) {
   let title: string | null = null;
   let afterLabel = false;
   let at = 0;
+  const titleLike = (text: string) => {
+    const folded = foldText(text);
+    return (
+      (knownTitle.length >= 4 && folded.includes(knownTitle)) ||
+      (/^instructiun/u.test(folded) && !/[.;!?]$/u.test(text))
+    );
+  };
   while (at < items.length) {
     const item = items[at]!;
     if (item.numbered || item.row || typedArticle.test(item.text)) break;
-    const rest = stripLabel(item.text);
+    // A pack's chapter XIII that holds the instructions is a label over them, while the
+    // "Capitolul I. Scop și domeniu de aplicare" an instruction or annex opens with is its text.
+    const chapter: string | null = title === null ? stripLabel(item.text, [chapterLabel]) : null;
+    const rest: string | null =
+      stripLabel(item.text, instructionLabels) ??
+      (chapter !== null && (chapter === '' || titleLike(chapter)) ? chapter : null);
     if (rest !== null) {
       if (title === null && /^\p{Lu}/u.test(rest)) title = rest;
       afterLabel = title === null;
@@ -152,12 +167,7 @@ function dropLeading(items: Item[], options: SplitOptions) {
       at += 1;
       continue;
     }
-    const folded = foldText(item.text);
-    const isTitle =
-      title === null &&
-      ((knownTitle.length >= 4 && folded.includes(knownTitle)) ||
-        (/^instructiun/u.test(folded) && !/[.;!?]$/u.test(item.text)));
-    if (!isTitle) break;
+    if (title !== null || !titleLike(item.text)) break;
     title = item.text;
     at += 1;
     while (
@@ -242,7 +252,7 @@ function headingCandidate(item: Item, articleDepth: number) {
     (!item.numbered || item.numbered.level < articleDepth) &&
     !item.row &&
     !marker.test(item.text) &&
-    item.text.length <= headingLength &&
+    (item.text.length <= headingLength || chapterLabel.test(item.text)) &&
     !sentenceEnd.test(item.text) &&
     /^[\p{Lu}\d]/u.test(item.text)
   );
@@ -351,6 +361,8 @@ export function splitInstruction(
     if (block.paragraphs.length > 0) {
       kept.push(block);
       keptArticles.push(source);
+    } else if (source.sourceNumber !== null) {
+      flags.push({ kind: 'empty_article', number: source.sourceNumber });
     }
   }
   if (keptArticles.length === 0) flags.push({ kind: 'no_articles' });

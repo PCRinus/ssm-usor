@@ -46,6 +46,7 @@ const instructionFlag = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('no_articles') }),
   z.object({ kind: z.literal('text_before_first_article') }),
   z.object({ kind: z.literal('table_row'), article: z.number() }),
+  z.object({ kind: z.literal('empty_article'), number: z.number() }),
   z.object({ kind: z.literal('end_not_found') }),
   z.object({ kind: z.literal('end_extended') }),
   z.object({ kind: z.literal('client_name'), name: z.string() }),

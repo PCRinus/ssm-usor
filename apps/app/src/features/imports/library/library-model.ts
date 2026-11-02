@@ -211,6 +211,8 @@ export function flagText(flag: ProposedInstruction['flags'][number]) {
       return `${splitFlagMessages.text_before_first_article}.`;
     case 'table_row':
       return `Art. ${flag.article} vine dintr-un rând de tabel: celulele lui sunt unite cu o liniuță.`;
+    case 'empty_article':
+      return `Art. ${flag.number} din pachet nu are text, poate doar o imagine, și nu a fost preluat. Articolele de după el au aici numărul cu unu mai mic.`;
     case 'end_not_found':
       return 'Nu am găsit unde se termină: textul merge până unde începe instrucțiunea următoare.';
     case 'end_extended':
