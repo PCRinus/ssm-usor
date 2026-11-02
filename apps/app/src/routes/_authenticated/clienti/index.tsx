@@ -1,0 +1,228 @@
+import {
+  clientListStatuses,
+  type ClientSortKey,
+  clientSortKeys,
+  defaultPageSize,
+  sortOrderSchema,
+} from '@ssm-usor/contracts';
+import { Button } from '@ssm-usor/ui/components/button';
+import { cn } from '@ssm-usor/ui/lib/utils';
+import { keepPreviousData } from '@tanstack/react-query';
+import { createFileRoute, Link, useNavigate, useRouteContext } from '@tanstack/react-router';
+import { Archive, Plus, ScanText, Users } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { z } from 'zod';
+
+import { getListClientsQueryKey, useListClients } from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import type { DataTableSort } from '@/components/data-table/columns';
+import { DataTable } from '@/components/data-table/data-table';
+import { useMe } from '@/features/account/use-me';
+import { useAuth } from '@/features/auth/auth-context';
+import {
+  type ClientArchiveChange,
+  ClientArchiveDialog,
+} from '@/features/clients/client-archive-dialog';
+import { clientColumns, type ClientRow } from '@/features/clients/client-columns';
+import { ClientDeleteDialog, type ClientToDelete } from '@/features/clients/client-delete-dialog';
+import { ImportListCard } from '@/features/imports/import-list-card';
+import { ImportUploadDialog } from '@/features/imports/import-upload-dialog';
+import { StartWays } from '@/features/imports/start-ways';
+
+// Page, sort and the archived view live in the URL; defaults are omitted to keep links short.
+const defaultSort: DataTableSort & { sort: ClientSortKey } = { sort: 'legalName', order: 'asc' };
+
+const searchSchema = z.object({
+  page: z.number().int().min(1).optional().catch(undefined),
+  sort: z.enum(clientSortKeys).optional().catch(undefined),
+  order: sortOrderSchema.optional().catch(undefined),
+  status: z.enum(clientListStatuses).optional().catch(undefined),
+});
+
+const filters = [
+  { status: undefined, label: 'Activi', testId: 'clients-filter-active' },
+  { status: 'archived', label: 'Arhivați', testId: 'clients-filter-archived' },
+] as const;
+
+export const Route = createFileRoute('/_authenticated/clienti/')({
+  validateSearch: searchSchema,
+  component: ClientsPage,
+});
+
+const rowKey = (row: ClientRow) => row.id;
+
+function ClientsPage() {
+  const {
+    page = 1,
+    sort = defaultSort.sort,
+    order = defaultSort.order,
+    status,
+  } = Route.useSearch();
+  const archived = status === 'archived';
+  const navigate = useNavigate({ from: Route.fullPath });
+  const { session } = useAuth();
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const params = { ...(archived ? { status } : {}), page, pageSize: defaultPageSize, sort, order };
+  const clients = useListClients(params, {
+    request: apiRequest,
+    query: {
+      queryKey: [...getListClientsQueryKey(params), session?.user.id],
+      enabled: Boolean(session && apiRequest.baseUrl),
+      placeholderData: keepPreviousData,
+    },
+  });
+  const meta = clients.data ?? { page, pageSize: defaultPageSize, total: 0 };
+  const isOwner = useMe().data?.membership?.role === 'owner';
+  const [archiveChange, setArchiveChange] = useState<ClientArchiveChange | null>(null);
+  const [deleting, setDeleting] = useState<ClientToDelete | null>(null);
+  const columns = useMemo(
+    () =>
+      clientColumns({
+        onArchiveChange: isOwner ? setArchiveChange : undefined,
+        onDelete: setDeleting,
+      }),
+    [isOwner]
+  );
+  const [importing, setImporting] = useState(false);
+
+  return (
+    <div data-testid="clients-page" className="space-y-7">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-3xl font-semibold tracking-tight">Clienți</h1>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" data-testid="clients-import" onClick={() => setImporting(true)}>
+            <ScanText aria-hidden="true" />
+            Importă din documente
+          </Button>
+          <Button asChild>
+            <Link to="/clienti/nou" data-testid="clients-add">
+              <Plus aria-hidden="true" />
+              Adaugă client
+            </Link>
+          </Button>
+        </div>
+      </div>
+      {!archived && <ImportListCard />}
+      <div className="overflow-hidden rounded-lg border bg-card">
+        <div className="flex flex-wrap items-center gap-3 border-b px-5 py-3">
+          <nav aria-label="Filtrează clienții" className="flex gap-1">
+            {filters.map((filter) => {
+              const active = filter.status === status;
+              return (
+                <Link
+                  key={filter.label}
+                  to="/clienti"
+                  search={filter.status ? { status: filter.status } : {}}
+                  data-testid={filter.testId}
+                  aria-current={active ? 'page' : undefined}
+                  replace
+                  className={cn(
+                    'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                    active
+                      ? 'bg-secondary text-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  {filter.label}
+                </Link>
+              );
+            })}
+          </nav>
+          {clients.isSuccess && (
+            <span className="ml-auto text-sm text-muted-foreground" data-testid="clients-count">
+              {meta.total === 1 ? '1 client' : `${meta.total} clienți`}
+            </span>
+          )}
+        </div>
+        <DataTable
+          testId="clients-table"
+          rowTestId="clients-row"
+          label="Lista clienților"
+          columns={columns}
+          data={clients.data?.items}
+          rowKey={rowKey}
+          onRowClick={(client) =>
+            void navigate({ to: '/clienti/$clientId/detalii', params: { clientId: client.id } })
+          }
+          meta={meta}
+          noun={['client', 'clienți']}
+          status={!apiRequest.baseUrl ? 'error' : clients.status}
+          isFetching={clients.isFetching}
+          isPlaceholderData={clients.isPlaceholderData}
+          sort={{ sort, order }}
+          onSortChange={(next) =>
+            void navigate({
+              replace: true,
+              search: (prev) => ({
+                ...prev,
+                sort: next.sort === defaultSort.sort ? undefined : (next.sort as ClientSortKey),
+                order: next.order === defaultSort.order ? undefined : next.order,
+                page: undefined,
+              }),
+            })
+          }
+          onPageChange={(next) =>
+            void navigate({ search: (prev) => ({ ...prev, page: next > 1 ? next : undefined }) })
+          }
+          error={
+            <>
+              <p data-testid="clients-error" role="alert" className="text-sm">
+                {clients.error instanceof ApiHttpError && clients.error.status === 401
+                  ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
+                  : clients.error instanceof ApiHttpError && clients.error.status === 403
+                    ? 'Contul tău nu face parte dintr-o organizație. Contactează administratorul.'
+                    : 'Nu am putut încărca lista clienților. Încearcă din nou.'}
+              </p>
+              {apiRequest.baseUrl && (
+                <Button
+                  data-testid="clients-retry"
+                  variant="outline"
+                  className="mt-4"
+                  disabled={clients.isFetching}
+                  onClick={() => void clients.refetch()}
+                >
+                  Încearcă din nou
+                </Button>
+              )}
+            </>
+          }
+          empty={
+            archived ? (
+              <>
+                <Archive className="mx-auto mb-4 size-8 text-muted-foreground" aria-hidden="true" />
+                <h3 className="text-base font-medium">Niciun client arhivat</h3>
+                <p
+                  data-testid="clients-empty"
+                  className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
+                >
+                  Clienții arhivați vor apărea aici. Îi poți reactiva oricând.
+                </p>
+              </>
+            ) : (
+              <>
+                <Users className="mx-auto mb-4 size-8 text-muted-foreground" aria-hidden="true" />
+                <h3 className="text-base font-medium">Niciun client încă</h3>
+                <p
+                  data-testid="clients-empty"
+                  className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
+                >
+                  Adaugă prima companie pentru a începe să îi organizezi documentele și termenele.
+                </p>
+                <StartWays onImport={() => setImporting(true)} />
+              </>
+            )
+          }
+        />
+      </div>
+      <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
+      <ClientDeleteDialog client={deleting} onClose={() => setDeleting(null)} />
+      <ImportUploadDialog
+        open={importing}
+        onClose={() => setImporting(false)}
+        onStarted={(importId) =>
+          void navigate({ to: '/clienti/import/$importId', params: { importId } })
+        }
+      />
+    </div>
+  );
+}

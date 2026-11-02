@@ -47,7 +47,7 @@ function GoogleCallbackPage() {
         if (user && madeBySignIn(user)) captureAsMember(user.id, 'signed_up', { method: 'google' });
         void (origin.invitation
           ? navigate({
-              to: '/accept-invitation',
+              to: '/invitatie',
               search: { token: origin.invitation },
               replace: true,
             })

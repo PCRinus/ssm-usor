@@ -1,0 +1,120 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { toast } from '@ssm-usor/ui/lib/toast';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import { PublicFrame, PublicFrameAction } from '@/app/public-frame';
+import { Field } from '@/components/form-field';
+import { Notice } from '@/components/notice';
+import { PasswordInput } from '@/components/password-input';
+import { useRevealErrors } from '@/components/use-reveal-errors';
+import { useAuth } from '@/features/auth/auth-context';
+import { isSpentRecoveryLink, newPasswordErrorMessage } from '@/features/auth/auth-errors';
+import {
+  newPasswordHint,
+  resetPasswordSchema,
+  type ResetPasswordValues,
+} from '@/features/auth/password-schema';
+
+// Public: the link in a password reset email lands here. Opening it does nothing; the
+// token is used only when a new password is submitted, because mail scanners open links.
+export const Route = createFileRoute('/resetare-parola')({
+  staticData: { title: 'Resetare parolă' },
+  validateSearch: z.object({ token_hash: z.string().optional() }),
+  component: ResetPasswordPage,
+});
+
+function SpentLink() {
+  return (
+    <PublicFrame
+      testId="reset-password-invalid"
+      title="Linkul nu mai este valabil"
+      description="Linkul de resetare a expirat, a fost deja folosit sau a fost înlocuit de unul mai nou. Cere un link nou și folosește-l în cel mult o oră."
+    >
+      <PublicFrameAction asChild data-testid="reset-request-new">
+        <Link to="/parola-uitata">Cere un link nou</Link>
+      </PublicFrameAction>
+    </PublicFrame>
+  );
+}
+
+function ResetPasswordPage() {
+  const { token_hash: tokenHash } = Route.useSearch();
+  const { auth } = useAuth();
+  const navigate = useNavigate();
+  // The token works once. After it is verified, a rejected password is retried without it.
+  const [verified, setVerified] = useState(false);
+  const [spent, setSpent] = useState(false);
+  const form = useForm<ResetPasswordValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: { password: '' },
+  });
+  const formRef = useRevealErrors(form);
+  const { errors, isSubmitting } = form.formState;
+
+  const onSubmit = form.handleSubmit(async ({ password }) => {
+    if (!verified) {
+      try {
+        await auth.verifyRecovery(tokenHash!);
+        setVerified(true);
+      } catch (cause) {
+        if (isSpentRecoveryLink(cause)) setSpent(true);
+        else form.setError('root.auth', { message: newPasswordErrorMessage(cause) });
+        return;
+      }
+    }
+    try {
+      await auth.updatePassword(password, { acceptCurrent: true });
+    } catch (cause) {
+      form.setError('password', { message: newPasswordErrorMessage(cause) });
+      return;
+    }
+    toast.success('Parola a fost schimbată.');
+    await navigate({ to: '/dashboard', replace: true });
+  });
+
+  if (!tokenHash || spent) return <SpentLink />;
+
+  return (
+    <PublicFrame
+      testId="reset-password-page"
+      title="Alege o parolă nouă"
+      description="După salvare intri direct în aplicație, iar celelalte dispozitive sunt deconectate."
+    >
+      <form
+        ref={formRef}
+        className="grid gap-5"
+        aria-busy={isSubmitting}
+        noValidate
+        onSubmit={(event) => void onSubmit(event)}
+      >
+        <Field
+          id="reset-password"
+          label="Parolă nouă"
+          hint={newPasswordHint}
+          error={errors.password}
+        >
+          <PasswordInput
+            id="reset-password"
+            data-testid="reset-password"
+            autoComplete="new-password"
+            disabled={isSubmitting}
+            aria-invalid={Boolean(errors.password)}
+            aria-describedby={errors.password ? 'reset-password-error' : 'reset-password-hint'}
+            {...form.register('password')}
+          />
+        </Field>
+        {errors.root?.auth && (
+          <Notice variant="destructive" data-testid="reset-error">
+            {errors.root.auth.message}
+          </Notice>
+        )}
+        <PublicFrameAction data-testid="reset-submit" type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Se salvează…' : 'Salvează parola'}
+        </PublicFrameAction>
+      </form>
+    </PublicFrame>
+  );
+}

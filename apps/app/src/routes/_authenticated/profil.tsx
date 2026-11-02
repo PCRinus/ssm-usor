@@ -1,0 +1,186 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Button } from '@ssm-usor/ui/components/button';
+import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
+import { Input } from '@ssm-usor/ui/components/input';
+import { createFileRoute, useRouteContext } from '@tanstack/react-router';
+import { useForm } from 'react-hook-form';
+
+import { getGetMeQueryKey, type MeResponse, useUpdateProfile } from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { Field } from '@/components/form-field';
+import { Notice } from '@/components/notice';
+import { useRevealErrors } from '@/components/use-reveal-errors';
+import { ChangePasswordCard } from '@/features/account/change-password-card';
+import { profileFormSchema, type ProfileFormValues } from '@/features/account/profile-schema';
+import { useMe } from '@/features/account/use-me';
+import { focusSearch, profileFocus, useFocusRequest } from '@/features/missing-data/focus';
+import { useSavedToast } from '@/features/missing-data/saved-toast';
+import { roleLabels } from '@/features/organization/labels';
+
+export const Route = createFileRoute('/_authenticated/profil')({
+  staticData: { title: 'Profilul meu' },
+  validateSearch: focusSearch(profileFocus),
+  component: ProfilePage,
+});
+
+function ProfilePage() {
+  const me = useMe();
+  const { focus } = Route.useSearch();
+  useFocusRequest(focus !== undefined, {
+    ready: !me.isPending,
+    field: focus === 'professional-title' ? 'profile-professional-title' : 'profile-full-name',
+  });
+
+  if (me.isPending) {
+    return (
+      <p role="status" data-testid="profile-loading">
+        Se încarcă profilul…
+      </p>
+    );
+  }
+  if (me.isError) {
+    return (
+      <Notice
+        variant="destructive"
+        action={
+          <Button variant="outline" disabled={me.isFetching} onClick={() => void me.refetch()}>
+            Încearcă din nou
+          </Button>
+        }
+      >
+        Nu am putut încărca profilul.
+      </Notice>
+    );
+  }
+
+  // Keyed by what is saved, so the form starts again from what the server holds.
+  const saved = `${me.data.profile?.fullName ?? ''}|${me.data.profile?.professionalTitle ?? ''}`;
+  return <ProfileForm key={saved} me={me.data} />;
+}
+
+function ProfileForm({ me }: { me: MeResponse }) {
+  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
+  const update = useUpdateProfile({ request: apiRequest });
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileFormSchema),
+    defaultValues: {
+      fullName: me.profile?.fullName ?? '',
+      professionalTitle: me.profile?.professionalTitle ?? '',
+    },
+  });
+  const formRef = useRevealErrors(form);
+  const { errors, isDirty } = form.formState;
+  const busy = update.isPending;
+
+  const onSubmit = form.handleSubmit(async (values) => {
+    try {
+      await update.mutateAsync({
+        data: { fullName: values.fullName, professionalTitle: values.professionalTitle || null },
+      });
+      await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      savedToast('Profilul a fost salvat.');
+    } catch (cause) {
+      form.setError('root.server', {
+        message:
+          cause instanceof ApiHttpError && cause.status === 401
+            ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
+            : 'Nu am putut salva profilul. Verifică conexiunea și încearcă din nou.',
+      });
+    }
+  });
+
+  return (
+    <div data-testid="profile-page" className="grid max-w-2xl gap-6">
+      <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Profilul meu</h1>
+      <Card>
+        <CardHeader>
+          <h2 className="text-lg font-semibold">Date personale</h2>
+        </CardHeader>
+        <CardContent>
+          <form
+            ref={formRef}
+            onSubmit={(event) => void onSubmit(event)}
+            aria-busy={busy}
+            noValidate
+            className="grid gap-5"
+          >
+            <Field
+              id="profile-full-name"
+              label="Nume și prenume"
+              mark="required"
+              error={errors.fullName}
+            >
+              <Input
+                id="profile-full-name"
+                data-testid="profile-full-name"
+                autoComplete="name"
+                disabled={busy}
+                aria-invalid={Boolean(errors.fullName)}
+                aria-describedby={errors.fullName ? 'profile-full-name-error' : undefined}
+                {...form.register('fullName')}
+              />
+            </Field>
+            <Field
+              id="profile-professional-title"
+              label="Titlu profesional"
+              mark="optional"
+              hint="Apare lângă numele tău în documente, de exemplu „Evaluator autorizat”."
+              error={errors.professionalTitle}
+            >
+              <Input
+                id="profile-professional-title"
+                data-testid="profile-professional-title"
+                autoComplete="organization-title"
+                disabled={busy}
+                aria-invalid={Boolean(errors.professionalTitle)}
+                aria-describedby={
+                  errors.professionalTitle
+                    ? 'profile-professional-title-error'
+                    : 'profile-professional-title-hint'
+                }
+                {...form.register('professionalTitle')}
+              />
+            </Field>
+            <Field
+              id="profile-email"
+              label="Adresa de email"
+              hint="Cu această adresă te autentifici. Deocamdată nu poate fi schimbată din aplicație."
+            >
+              <Input
+                id="profile-email"
+                data-testid="profile-email"
+                value={me.user.email ?? ''}
+                readOnly
+                aria-describedby="profile-email-hint"
+                className="bg-muted"
+              />
+            </Field>
+            {errors.root?.server && (
+              <Notice variant="destructive" data-testid="profile-error">
+                {errors.root.server.message}
+              </Notice>
+            )}
+            <div>
+              <Button type="submit" data-testid="profile-save" disabled={busy || !isDirty}>
+                {busy ? 'Se salvează…' : 'Salvează'}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+      {me.user.email && <ChangePasswordCard email={me.user.email} />}
+      {me.membership && (
+        <Card>
+          <CardHeader>
+            <h2 className="text-lg font-semibold">Organizație</h2>
+          </CardHeader>
+          <CardContent className="text-sm">
+            <p className="font-medium">{me.membership.organization.name}</p>
+            <p className="mt-1 text-muted-foreground">Rol: {roleLabels[me.membership.role]}</p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
