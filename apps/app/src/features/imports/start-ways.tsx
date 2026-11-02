@@ -42,7 +42,7 @@ export function StartWays({ onImport }: { onImport: () => void }) {
         <WayContent
           icon={<ScanText className="size-5" />}
           title="Importă din documente"
-          text="Încarci dosarul SSM și PSI pe care îl ai deja, iar noi îți propunem datele."
+          text="Încarci dosarul SSM și SU pe care îl ai deja, iar noi îți propunem datele."
         />
       </button>
     </div>

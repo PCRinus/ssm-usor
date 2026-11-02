@@ -638,7 +638,7 @@ function ServiceContractBody({
             <Fact label="Servicii">
               {[
                 saved.contract.coversOccupationalSafety && 'SSM',
-                saved.contract.coversFireSafety && 'PSI',
+                saved.contract.coversFireSafety && 'SU',
               ]
                 .filter(Boolean)
                 .join(' și ')}
@@ -695,7 +695,7 @@ function ServiceContractBody({
                 'coversOccupationalSafety',
                 'Cuprinde securitatea și sănătatea în muncă (SSM)'
               )}
-              {checkbox('coversFireSafety', 'Cuprinde apărarea împotriva incendiilor (PSI)')}
+              {checkbox('coversFireSafety', 'Cuprinde situațiile de urgență (SU)')}
               {errors.coversOccupationalSafety && (
                 <p role="alert" className="text-sm text-destructive">
                   {errors.coversOccupationalSafety.message}

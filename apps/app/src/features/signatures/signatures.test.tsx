@@ -200,7 +200,7 @@ const testSheetRequest = (overrides: Record<string, unknown> = {}) =>
   request({
     id: '66666666-7777-4888-8999-aaaaaaaaaaaa',
     kind: 'test_sheet',
-    label: 'Fișa de test · Test anual PSI · 15.10.2026',
+    label: 'Fișa de test · Test anual SU · 15.10.2026',
     slot: 'examiner',
     record: null,
     testSheet: {
@@ -861,13 +861,13 @@ describe('the Semnături place', () => {
     expect(rows.map((row) => row.dataset.kind)).toEqual(['training_record', 'test_sheet']);
     const sheet = within(rows[1]!);
     expect(rows[1]!.textContent).toContain(
-      'Fișa de test · Test anual PSI · 15.10.2026 · semnezi ca examinator'
+      'Fișa de test · Test anual SU · 15.10.2026 · semnezi ca examinator'
     );
     expect(sheet.getByTestId('signature-request-employee').textContent).toBe('Popescu Ion');
     expect(sheet.getByTestId('signature-request-employee').getAttribute('href')).toBe(
       `/clients/${clientId}/employees/${employeeId}/training/su`
     );
-    expect(sheet.getByText('PSI')).toBeTruthy();
+    expect(sheet.getByText('SU')).toBeTruthy();
     expect(sheet.getByTestId('signature-request-select').getAttribute('aria-label')).toBe(
       'Alege fișa de test a lui Popescu Ion din 15 oct. 2026'
     );
@@ -945,7 +945,7 @@ describe("the client's pending signatures", () => {
     const [item] = await within(card).findAllByTestId('client-signature-request');
     expect(item!.dataset.kind).toBe('test_sheet');
     const link = within(item!).getByRole('link');
-    expect(link.textContent).toBe('Fișa de test · Test anual PSI · 15.10.2026');
+    expect(link.textContent).toBe('Fișa de test · Test anual SU · 15.10.2026');
     expect(link.getAttribute('href')).toBe(
       `/clients/${clientId}/employees/${employeeId}/training/su`
     );
@@ -1406,7 +1406,7 @@ describe('signing from the Semnături place', () => {
     const items = within(dialog).getAllByTestId('signing-item');
     expect(items.map((item) => item.dataset.kind)).toEqual(['training_record', 'test_sheet']);
     expect(items[1]!.textContent).toBe(
-      'Popescu IonPSIAct adițional nesemnatFișa de test · Test anual PSI · 15.10.2026 · semnezi ca examinatorVELOCE CAFE SRL'
+      'Popescu IonSUAct adițional nesemnatFișa de test · Test anual SU · 15.10.2026 · semnezi ca examinatorVELOCE CAFE SRL'
     );
     await askForCode(user, dialog);
     expect(requests('POST', sessionPath).map((call) => call.body)).toEqual([

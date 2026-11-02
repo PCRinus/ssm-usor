@@ -191,7 +191,7 @@ describe('the question bank', () => {
       within(screen.getByTestId('nav-tests-group'))
         .getAllByTestId('nav-sub-entry')
         .map((link) => link.textContent)
-    ).toEqual(['Teste SSM', 'Teste PSI']);
+    ).toEqual(['Teste SSM', 'Teste SU']);
     expect(
       requests('GET', '/organization/tests/questions')[0]!.url.searchParams.get('domain')
     ).toBe('ssm');

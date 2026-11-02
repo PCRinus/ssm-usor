@@ -207,7 +207,7 @@ function UploadForm({
             </DialogTitle>
             <DialogDescription>
               <span className="block">
-                Citim documentația SSM și PSI a firmei și îți propunem datele clientului.
+                Citim documentația SSM și SU a firmei și îți propunem datele clientului.
               </span>
               <span className="block">
                 Nu salvăm nimic până nu le verifici.{' '}

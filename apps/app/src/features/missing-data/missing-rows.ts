@@ -151,12 +151,12 @@ export const documentPlaces = {
   organization: 'Datele organizației',
   profile: 'Profilul tău',
   clientDetails: 'Detaliile clientului',
-  fireSafetyMeans: 'Mijloacele PSI',
+  fireSafetyMeans: 'Mijloacele de apărare',
   training: 'Instruire și responsabili',
   jobPositions: 'Posturile de lucru',
   riskEvaluations: 'Evaluarea riscurilor',
   documents: 'Documentația SSM',
-  fireSafetyDocuments: 'Documentația PSI',
+  fireSafetyDocuments: 'Documentația SU',
 } as const;
 
 type DocumentPlace = keyof typeof documentPlaces;
@@ -204,7 +204,7 @@ export const documentMissingData: Record<
   'provider.fireSafetyTechnician': {
     place: 'organization',
     label: 'Cadrul tehnic PSI',
-    detail: 'Numele lui apare pe documentele PSI.',
+    detail: 'Numele lui apare pe documentele SU.',
     target: () => to.authorizations('fire-safety-technician'),
   },
   // The technician's own key opens the certificate field once the name is saved.
@@ -276,7 +276,7 @@ export const documentMissingData: Record<
     label: 'Cel puțin un post de lucru',
     detail: ({ set }) =>
       set === 'fire_safety'
-        ? 'Decizia privind instruirea PSI enumeră posturile de lucru ale clientului.'
+        ? 'Decizia privind instruirea în domeniul situațiilor de urgență enumeră posturile de lucru ale clientului.'
         : 'Echipamentul de protecție și instrucțiunile se stabilesc pe posturi.',
     target: ({ clientId }) => to.addPosition(clientId),
   },
@@ -332,7 +332,7 @@ export const documentMissingData: Record<
   ),
   'fire.trainingSchedule': {
     place: 'training',
-    label: 'Programul instruirii PSI',
+    label: 'Programul instruirii SU',
     detail: 'Durata, intervalele pe categorii, prima lună și zilele.',
     target: ({ clientId }) => to.training(clientId, 'fire-training-schedule'),
   },
@@ -351,7 +351,7 @@ export const documentMissingData: Record<
   },
   'fire.workplaces': {
     place: 'clientDetails',
-    label: 'Datele PSI ale locurilor de muncă',
+    label: 'Datele SU ale locurilor de muncă',
     detail:
       'Activitatea, punctul de adunare și textele fișei de la locul de muncă, iar la un spațiu fix și suprafața și norma de dotare.',
     target: ({ clientId }) => to.clientDetails(clientId, 'workplace-fire-data'),
@@ -364,15 +364,15 @@ export const documentMissingData: Record<
   },
   'fire.instructions': {
     place: 'jobPositions',
-    label: 'Instrucțiunile specifice PSI ale posturilor',
-    detail: 'Fiecare post aplică instrucțiuni specifice PSI sau nu are nevoie de ele.',
+    label: 'Instrucțiunile specifice SU ale posturilor',
+    detail: 'Fiecare post aplică instrucțiuni specifice SU sau nu are nevoie de ele.',
     target: ({ clientId }) => to.positions(clientId),
   },
   'documents.fire_own_instructions': {
     place: 'fireSafetyDocuments',
-    label: 'Instrucțiunile proprii PSI, generate înaintea tematicii',
+    label: 'Instrucțiunile proprii SU, generate înaintea tematicii',
     detail:
-      'Tematica PSI citează instrucțiunile specifice pe care le anexează instrucțiunile proprii PSI.',
+      'Tematica SU citează instrucțiunile specifice pe care le anexează instrucțiunile proprii SU.',
     target: ({ clientId }) => to.fireSafetyDocumentSection(clientId, 'own-instructions'),
   },
   'fire.substances': {
@@ -402,8 +402,8 @@ const decisionRows: Record<
   },
   fire_instructions: {
     code: 'fire.instructions',
-    section: 'instrucțiuni PSI',
-    detail: 'Instrucțiunile specifice PSI ale postului, sau că nu are nevoie de ele.',
+    section: 'instrucțiuni SU',
+    detail: 'Instrucțiunile specifice SU ale postului, sau că nu are nevoie de ele.',
     hash: positionSections.fireInstructions,
   },
 };
@@ -596,7 +596,7 @@ export const contractMissingData: Record<
   'provider.fireSafetyTechnician': {
     place: 'authorizations',
     label: 'Cadrul tehnic PSI',
-    detail: 'Numele și certificatul lui, pentru un contract care cuprinde și PSI.',
+    detail: 'Numele și certificatul lui, pentru un contract care cuprinde și SU.',
     target: () => to.authorizations('fire-safety-technician'),
   },
   'client.tradeRegisterNumber': {

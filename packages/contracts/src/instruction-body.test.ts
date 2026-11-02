@@ -174,7 +174,7 @@ describe('spacedBody', () => {
 });
 
 describe('instruction categories', () => {
-  it('keeps the existing SSM groups and adds three PSI ones', () => {
+  it('keeps the existing SSM groups and adds three SU ones', () => {
     for (const group of ['work_activity', 'work_equipment', 'protective_equipment'] as const) {
       expect(instructionCategories).toContain(group);
       expect(categoryDomain(group)).toBe('ssm');

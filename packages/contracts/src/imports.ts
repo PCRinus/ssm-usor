@@ -575,7 +575,7 @@ export const importCreditsSchema = z
     // A client import's scanned pages found and charged, one credit each.
     scannedPages: z.int().min(0),
     // The readings of its own instructions for the library, net of those given back: 25 for SSM
-    // and 10 for PSI each time one is read (ADR 034).
+    // and 10 for SU each time one is read (ADR 034).
     ownInstructions: z.int().min(0),
     // Everything given back, after a failure on our side.
     refunded: z.boolean(),

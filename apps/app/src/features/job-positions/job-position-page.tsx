@@ -40,7 +40,7 @@ const sectionLinks = [
   { hash: positionSections.details, label: 'Postul' },
   { hash: positionSections.equipment, label: 'Echipament de protecție' },
   { hash: positionSections.instructions, label: 'Instrucțiuni SSM' },
-  { hash: positionSections.fireInstructions, label: 'Instrucțiuni PSI' },
+  { hash: positionSections.fireInstructions, label: 'Instrucțiuni SU' },
   { hash: positionSections.riskEvaluation, label: 'Evaluare de risc' },
 ] as const;
 

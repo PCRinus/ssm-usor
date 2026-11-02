@@ -73,14 +73,14 @@ export const documentSetCopy = {
     templatesUnavailable: undefined,
   },
   fire_safety: {
-    tab: 'Documente PSI',
-    heading: 'Documentația PSI',
-    backLabel: 'Înapoi la documentele PSI',
-    name: 'PSI',
+    tab: 'Documente SU',
+    heading: 'Documentația SU',
+    backLabel: 'Înapoi la documentele SU',
+    name: 'SU',
     emptyHint:
-      'Generează documentația ca să obții deciziile, instrucțiunile proprii, tematica de instruire, testele, registrele și celelalte documente PSI, completate cu datele clientului.',
+      'Generează documentația ca să obții deciziile, instrucțiunile proprii, tematica de instruire, testele, registrele și celelalte documente SU, completate cu datele clientului.',
     templatesUnavailable:
-      'Documentele PSI nu pot fi generate încă: șabloanele lor nu sunt disponibile. Nu a fost generat niciun document.',
+      'Documentele SU nu pot fi generate încă: șabloanele lor nu sunt disponibile. Nu a fost generat niciun document.',
   },
 } as const satisfies Record<
   DocumentSet,

@@ -400,7 +400,7 @@ describe('PackLayout', () => {
 
     const panel = screen.getByTestId('pack-empty-panel');
     expect(within(panel).getByRole('heading').textContent).toBe(
-      'Documentația PSI nu este generată încă'
+      'Documentația SU nu este generată încă'
     );
     expect(within(panel).getByTestId('documents-hint').textContent).toBe(
       'Clientul este arhivat, așa că nu i se mai generează documente.'

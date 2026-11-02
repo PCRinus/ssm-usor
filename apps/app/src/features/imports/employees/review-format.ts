@@ -7,8 +7,8 @@ import type { SheetPage } from './employee-review-model';
 export const pageKindLabels: Record<NonNullable<SheetPage['kind']>, string> = {
   ssm_sheet_front: 'Fișa SSM, față',
   ssm_periodic: 'Fișa SSM, periodice',
-  su_sheet_front: 'Fișa PSI, față',
-  su_periodic: 'Fișa PSI, periodice',
+  su_sheet_front: 'Fișa SU, față',
+  su_periodic: 'Fișa SU, periodice',
   commute_declaration: 'Declarația de traseu',
   other: 'Altă pagină',
 };

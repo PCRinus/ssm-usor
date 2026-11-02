@@ -124,7 +124,7 @@ describe('TrainingSheetReadiness', () => {
     mockApi({ su: { ready: false, missing: ['employee.workplace'] } });
     const router = mount('su');
     const notice = await screen.findByTestId('training-sheet-su-missing');
-    expect(notice.textContent).toContain('Fișa PSI nu se poate întocmi încă: 1 dată de completat.');
+    expect(notice.textContent).toContain('Fișa SU nu se poate întocmi încă: 1 dată de completat.');
 
     await userEvent.click(within(notice).getByRole('button', { name: 'Vezi ce lipsește' }));
     await userEvent.click(await screen.findByTestId('training-sheet-missing-row'));

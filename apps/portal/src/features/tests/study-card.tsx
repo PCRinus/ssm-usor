@@ -119,7 +119,7 @@ function MaterialRow({
       <p data-testid="test-material-missing" className="text-sm leading-relaxed text-foreground/80">
         {domain === 'ssm'
           ? t`Materialul de instruire nu este emis încă; îl găsești aici după ce îl emite specialistul.`
-          : t`Instrucțiunile proprii PSI nu sunt emise încă; le găsești aici după ce le emite specialistul.`}
+          : t`Instrucțiunile proprii SU nu sunt emise încă; le găsești aici după ce le emite specialistul.`}
       </p>
     );
   }

@@ -289,15 +289,17 @@ describe('the minimum-extinguisher hint', () => {
     expect(
       extinguisherHint(2, { kind: fixed, floorAreaM2: 450, extinguisherNorm: 'administrative_300' })
     ).toBe(
-      '2 stingătoare · minim orientativ 2 după anexa 6 la Normele generale PSI (OMAI 163/2007)'
+      '2 stingătoare · minim orientativ 2 după anexa 6 la Normele generale de apărare împotriva incendiilor (OMAI 163/2007)'
     );
     expect(
       extinguisherHint(1, { kind: fixed, floorAreaM2: 60, extinguisherNorm: 'commercial_200' })
-    ).toBe('1 stingător · minim orientativ 1 după anexa 6 la Normele generale PSI (OMAI 163/2007)');
+    ).toBe(
+      '1 stingător · minim orientativ 1 după anexa 6 la Normele generale de apărare împotriva incendiilor (OMAI 163/2007)'
+    );
     expect(
       extinguisherHint(0, { kind: fixed, floorAreaM2: 90, extinguisherNorm: 'residential_level' })
     ).toBe(
-      'Niciun stingător · cel puțin unul pe nivel după anexa 6 la Normele generale PSI (OMAI 163/2007)'
+      'Niciun stingător · cel puțin unul pe nivel după anexa 6 la Normele generale de apărare împotriva incendiilor (OMAI 163/2007)'
     );
     expect(
       extinguisherHint(3, { kind: fixed, floorAreaM2: null, extinguisherNorm: 'other_150' })
@@ -309,7 +311,7 @@ describe('the minimum-extinguisher hint', () => {
 
   it('gives no minimum for a space with no norm or a mobile site, whatever it kept', () => {
     expect(extinguisherHint(1, { kind: fixed, floorAreaM2: 80, extinguisherNorm: 'none' })).toBe(
-      '1 stingător · fără normă după anexa 6 la Normele generale PSI (OMAI 163/2007)'
+      '1 stingător · fără normă după anexa 6 la Normele generale de apărare împotriva incendiilor (OMAI 163/2007)'
     );
     expect(
       extinguisherHint(2, {
@@ -317,10 +319,14 @@ describe('the minimum-extinguisher hint', () => {
         floorAreaM2: 450,
         extinguisherNorm: 'commercial_200',
       })
-    ).toBe('2 stingătoare · fără normă după anexa 6 la Normele generale PSI (OMAI 163/2007)');
+    ).toBe(
+      '2 stingătoare · fără normă după anexa 6 la Normele generale de apărare împotriva incendiilor (OMAI 163/2007)'
+    );
     expect(
       extinguisherHint(0, { kind: 'mobile_site', floorAreaM2: null, extinguisherNorm: null })
-    ).toBe('Niciun stingător · fără normă după anexa 6 la Normele generale PSI (OMAI 163/2007)');
+    ).toBe(
+      'Niciun stingător · fără normă după anexa 6 la Normele generale de apărare împotriva incendiilor (OMAI 163/2007)'
+    );
   });
 });
 
@@ -333,7 +339,7 @@ describe('client fire-safety means', () => {
     const tabs = screen.getAllByTestId('client-section').map((tab) => tab.textContent);
     expect(tabs.slice(2, 5)).toEqual([
       'Posturi de lucru',
-      'Mijloace PSI',
+      'Mijloace de apărare',
       'Instruire și responsabili',
     ]);
   });
@@ -355,7 +361,7 @@ describe('client fire-safety means', () => {
     expect(rows[0]!.textContent).toContain('Următorul: 12.03.2027');
     expect(within(rows[1]!).getByTestId('fire-service-overdue').textContent).toContain('depășit');
     expect(within(officeCard).getByTestId('fire-equipment-hint').textContent).toBe(
-      '2 stingătoare · minim orientativ 2 după anexa 6 la Normele generale PSI (OMAI 163/2007)'
+      '2 stingătoare · minim orientativ 2 după anexa 6 la Normele generale de apărare împotriva incendiilor (OMAI 163/2007)'
     );
     expect(within(officeCard).getByTestId('fire-installation-row').textContent).toContain(
       'Centrală în holul de la parter'

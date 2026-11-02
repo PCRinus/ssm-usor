@@ -118,7 +118,7 @@ export type FireEquipmentKind = z.infer<typeof fireEquipmentKindSchema>;
 export const fireEquipmentKindLabels: Record<FireEquipmentKind, string> = {
   extinguisher: 'Stingător',
   sand_box: 'Ladă cu nisip',
-  fire_post: 'Post de intervenție PSI',
+  fire_post: 'Post de intervenție la incendiu',
   fire_blanket: 'Pătură antifoc',
   other: 'Alt mijloc',
 };

@@ -501,7 +501,7 @@ describe('the Legislație page', () => {
     expect(screen.queryByTestId('behind-regenerate')).toBeNull();
   });
 
-  it('groups the documents to update under SSM and PSI', async () => {
+  it('groups the documents to update under SSM and SU', async () => {
     mockApi({ behind: [extinguisherBehind, firstAidBehind] });
     mount();
 
@@ -513,14 +513,14 @@ describe('the Legislație page', () => {
         .getAllByRole('heading', { level: 3 })
         .map((heading) => heading.textContent)
     ).toEqual(['SSMDecizia privind responsabilii cu primul ajutor']);
-    expect(within(su!).getByRole('heading', { level: 2 }).textContent).toBe('Documente PSI');
+    expect(within(su!).getByRole('heading', { level: 2 }).textContent).toBe('Documente SU');
     expect(
       within(su!)
         .getAllByRole('heading', { level: 3 })
         .map((heading) => heading.textContent)
-    ).toEqual(['PSIRegistru de evidență a controlului stingătoarelor de incendiu']);
+    ).toEqual(['SURegistru de evidență a controlului stingătoarelor de incendiu']);
     expect(within(ssm!).getByTestId('behind-type-set').textContent).toBe('SSM');
-    expect(within(su!).getByTestId('behind-type-set').textContent).toBe('PSI');
+    expect(within(su!).getByTestId('behind-type-set').textContent).toBe('SU');
     expect(within(su!).getByRole('link').getAttribute('href')).toBe(
       `/clients/${extinguisherBehind.clients[0]!.clientId}/fire-safety-documents?section=registers&focus=fire_extinguisher_register`
     );

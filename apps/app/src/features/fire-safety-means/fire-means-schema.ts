@@ -63,7 +63,7 @@ export function extinguisherCountLabel(count: number) {
   return tens === 0 || tens >= 20 ? `${count} de stingătoare` : `${count} stingătoare`;
 }
 
-const annexSix = 'anexa 6 la Normele generale PSI (OMAI 163/2007)';
+const annexSix = 'anexa 6 la Normele generale de apărare împotriva incendiilor (OMAI 163/2007)';
 
 // Annex 6 is orientative, so this is a hint beside the count and never a warning.
 export function extinguisherHint(

@@ -75,7 +75,7 @@ test('a client has the posts its employees fill, and a specialist keeps the list
     .getByRole('link', { name: 'Posturi de lucru' })
     .click();
   await expect(page.getByTestId('job-positions-undecided-fire-instructions')).toContainText(
-    '2 posturi nu au instrucțiunile PSI stabilite'
+    '2 posturi nu au instrucțiunile SU stabilite'
   );
   await accountant.getByTestId('job-position-fire-instructions').click();
   await expect(page).toHaveURL(/\/job-positions\/[0-9a-f-]+#fire-instructions$/);

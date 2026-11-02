@@ -302,7 +302,7 @@ function GenerateDocumentsForm({
               </Field>
               <Field
                 id="generate-first-number"
-                label={occupationalSafety ? 'Numărul primei decizii' : 'Numărul primei decizii PSI'}
+                label={occupationalSafety ? 'Numărul primei decizii' : 'Numărul primei decizii SU'}
                 mark="required"
                 hint={
                   occupationalSafety

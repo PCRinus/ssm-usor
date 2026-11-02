@@ -206,7 +206,7 @@ export function FireSafetyMeansPage({
               </Button>
             }
           >
-            Nu am putut încărca mijloacele PSI.
+            Nu am putut încărca mijloacele de apărare împotriva incendiilor.
           </Notice>
         </CardContent>
       </Card>
@@ -373,9 +373,9 @@ export function FireSafetyMeansPage({
               <DialogDescription>
                 <span className="font-medium text-foreground">{deletingName}</span>
                 {deletingWorkplace && ` de la ${deletingWorkplace.name}`} nu va mai apărea în
-                documentele PSI generate de acum înainte.
+                documentele SU generate de acum înainte.
                 {lastExtinguisher &&
-                  ' Este singurul stingător al locului de muncă: fără el, documentele PSI nu se pot genera.'}
+                  ' Este singurul stingător al locului de muncă: fără el, documentele SU nu se pot genera.'}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="mt-2">

@@ -7,7 +7,7 @@ import { fireSafetyMeansFocus, focusSearch } from '@/features/missing-data/focus
 // A client's fire-fighting equipment and installations, per workplace, and its dangerous
 // substances (ADR 018).
 export const Route = createFileRoute('/_authenticated/clients/$clientId/fire-safety-means')({
-  staticData: { title: 'Mijloace PSI' },
+  staticData: { title: 'Mijloace de apărare' },
   validateSearch: focusSearch(fireSafetyMeansFocus),
   component: FireSafetyMeansRoute,
 });

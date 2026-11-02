@@ -101,7 +101,7 @@ function ClientDeleteContent({
           <DialogDescription>
             <span className="font-medium text-foreground">{client.legalName}</span> se șterge cu tot
             ce ține de el: angajații și fișele lor, instruirile și semnăturile, testele, posturile,
-            locurile de muncă, evaluările de risc, datele PSI, documentele, fișierele, accesul la
+            locurile de muncă, evaluările de risc, datele SU, documentele, fișierele, accesul la
             portal și importurile din documentație. Ștergerea nu se poate anula.
           </DialogDescription>
         </DialogHeader>

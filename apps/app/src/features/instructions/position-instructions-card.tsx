@@ -75,21 +75,21 @@ const domainCopy = {
     copyEmpty: 'Niciun alt post al clientului nu aplică instrucțiuni încă.',
   },
   su: {
-    title: 'Instrucțiuni specifice PSI',
+    title: 'Instrucțiuni specifice SU',
     testId: 'fire-instructions',
-    specific: 'instrucțiuni specifice PSI',
-    none: 'Postul nu necesită instrucțiuni specifice PSI dincolo de partea comună. Instrucțiunile proprii PSI nu anexează nimic pentru el.',
+    specific: 'instrucțiuni specifice SU',
+    none: 'Postul nu necesită instrucțiuni specifice SU dincolo de partea comună. Instrucțiunile proprii SU nu anexează nimic pentru el.',
     undecided:
-      'Documentele PSI nu se pot genera până nu alegi ce instrucțiuni PSI din bibliotecă privesc postul, sau spui că nu necesită.',
-    pickTitle: (name: string) => `Instrucțiunile PSI ale postului „${name}”`,
+      'Documentele SU nu se pot genera până nu alegi ce instrucțiuni SU din bibliotecă privesc postul, sau spui că nu necesită.',
+    pickTitle: (name: string) => `Instrucțiunile SU ale postului „${name}”`,
     pickDescription:
-      'Bifează instrucțiunile PSI din bibliotecă care privesc postul. Instrucțiunile proprii PSI ale clientului le anexează, iar tematica de instruire PSI le citează.',
+      'Bifează instrucțiunile SU din bibliotecă care privesc postul. Instrucțiunile proprii SU ale clientului le anexează, iar tematica de instruire SU le citează.',
     libraryEmpty:
-      'Nu ai încă instrucțiuni proprii PSI. Scrie-le în Instrucțiuni proprii, apoi alege-le aici.',
-    copyTitle: 'Copiază instrucțiunile PSI de la alt post',
+      'Nu ai încă instrucțiuni proprii SU. Scrie-le în Instrucțiuni proprii, apoi alege-le aici.',
+    copyTitle: 'Copiază instrucțiunile SU de la alt post',
     copyDescription:
-      'Instrucțiunile PSI ale celuilalt post se adaugă la ale acestuia; cele deja aplicate rămân.',
-    copyEmpty: 'Niciun alt post al clientului nu aplică instrucțiuni PSI încă.',
+      'Instrucțiunile SU ale celuilalt post se adaugă la ale acestuia; cele deja aplicate rămân.',
+    copyEmpty: 'Niciun alt post al clientului nu aplică instrucțiuni SU încă.',
   },
 } satisfies Record<InstructionDomain, unknown>;
 

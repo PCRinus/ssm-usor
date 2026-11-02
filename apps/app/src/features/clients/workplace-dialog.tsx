@@ -373,7 +373,7 @@ function WorkplaceForm({
                 <HelpLink topic="detalii.date-psi" label="Ajutor: Apărare împotriva incendiilor" />
               </div>
               <p className="text-sm text-muted-foreground">
-                Documentele PSI cer câmpurile fără „opțional”. Poți salva și fără ele.
+                Documentele SU cer câmpurile fără „opțional”. Poți salva și fără ele.
               </p>
             </div>
             <Field

@@ -125,8 +125,8 @@ test('a fire-safety module takes a fire-safety category and is grouped by it in 
   page,
 }) => {
   const owner = await createAccount('instructions-su', 'Dana Instrucțiuni');
-  const organizationId = await createOrganization('Instrucțiuni PSI E2E', owner.id);
-  const clientId = await createClientCompany(organizationId, 'S.C. ATELIER PSI E2E S.R.L.');
+  const organizationId = await createOrganization('Instrucțiuni SU E2E', owner.id);
+  const clientId = await createClientCompany(organizationId, 'S.C. ATELIER SU E2E S.R.L.');
   await completeDocumentData(organizationId, owner.id, clientId);
   await signIn(page, owner.email, '/instructions/su');
 
@@ -145,7 +145,7 @@ test('a fire-safety module takes a fire-safety category and is grouped by it in 
   await page.getByTestId('editor-save').click();
   await expect(page.getByTestId('editor-state')).toHaveText('Versiunea 1');
   await expect(page.getByTestId('instruction-form-facts')).toHaveText(
-    'PSI · Spații și activități · un articol'
+    'SU · Spații și activități · un articol'
   );
 
   await page.goto('/instructions/su');

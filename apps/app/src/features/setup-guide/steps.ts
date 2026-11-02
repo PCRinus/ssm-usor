@@ -96,7 +96,7 @@ const onClient = (clientId: string | null, target: (clientId: string) => StepTar
 
 const documentsActions = ({ clientId }: StepContext): StepAction[] => [
   { label: 'Documente SSM', kind: 'open', target: onClient(clientId, to.documents) },
-  { label: 'Documente PSI', kind: 'open', target: onClient(clientId, to.fireSafetyDocuments) },
+  { label: 'Documente SU', kind: 'open', target: onClient(clientId, to.fireSafetyDocuments) },
 ];
 
 export const stepCopy: Record<SetupStepId, StepCopy> = {
@@ -118,7 +118,7 @@ export const stepCopy: Record<SetupStepId, StepCopy> = {
   },
   authorizations: {
     label: 'Adaugă abilitările și cadrul tehnic PSI',
-    sentence: 'Documentele PSI tipăresc cadrul tehnic, iar contractul citează certificatul.',
+    sentence: 'Documentele SU tipăresc cadrul tehnic, iar contractul citează certificatul.',
     actions: ({ missing }) => [
       {
         label: 'Completează abilitările',
@@ -174,17 +174,16 @@ export const stepCopy: Record<SetupStepId, StepCopy> = {
     ],
   },
   'fire-safety-data': {
-    label: 'Completează datele PSI ale clientului',
-    neutralLabel: 'Completează datele PSI ale unui client',
-    sentence:
-      'Programul instruirii PSI, fumatul și deșeurile, pe care le tipăresc documentele PSI.',
+    label: 'Completează datele SU ale clientului',
+    neutralLabel: 'Completează datele SU ale unui client',
+    sentence: 'Programul instruirii SU, fumatul și deșeurile, pe care le tipăresc documentele SU.',
     actions: ({ clientId }) => [
-      { label: 'Completează datele PSI', kind: 'open', target: onClient(clientId, to.training) },
+      { label: 'Completează datele SU', kind: 'open', target: onClient(clientId, to.training) },
     ],
   },
   'generate-sets': {
-    label: 'Generează documentația SSM și PSI',
-    sentence: 'Din datele adăugate generezi setul de documente SSM și pe cel PSI.',
+    label: 'Generează documentația SSM și SU',
+    sentence: 'Din datele adăugate generezi setul de documente SSM și pe cel SU.',
     actions: documentsActions,
   },
   'issue-document': {

@@ -181,7 +181,7 @@ describe('the fire-safety training card', () => {
         },
       ])
     );
-    expect(await screen.findByText('Instruirea PSI a fost salvată.')).toBeTruthy();
+    expect(await screen.findByText('Instruirea SU a fost salvată.')).toBeTruthy();
     expect((await screen.findByTestId('fire-schedule-session')).textContent).toBe(
       'Fiecare instruire durează 2 ore și are loc între zilele 2 și 7 ale lunii.'
     );

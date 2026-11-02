@@ -176,7 +176,7 @@ describe('Acasă', () => {
     const items = within(await screen.findByTestId('home-tests')).getAllByTestId('home-test-item');
     expect(items.map((item) => item.textContent)).toEqual([
       expect.stringContaining('Testul la angajare SSM te așteaptă'),
-      expect.stringContaining('Testul anual PSI este scadent'),
+      expect.stringContaining('Testul anual SU este scadent'),
     ]);
     expect(items.map((item) => item.getAttribute('href'))).toEqual([
       '/instruiri/test/ssm/hiring',
@@ -255,7 +255,7 @@ describe('Instruiri', () => {
     const su = screen.getByTestId('training-tests-su');
     expect(within(su).getByTestId('training-test-state-su').textContent).toBe('Promovat');
     const result = within(su).getByTestId('training-test-result');
-    expect(result.textContent).toContain('Testul la angajare PSI');
+    expect(result.textContent).toContain('Testul la angajare SU');
     expect(result.textContent).toContain('Admis, 3 feb. 2026');
     expect(within(su).getByTestId('training-test-due-su').textContent).toBe(
       'Următorul test anual: 3 feb. 2027'

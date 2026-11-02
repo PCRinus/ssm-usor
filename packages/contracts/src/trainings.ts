@@ -6,7 +6,7 @@ export type TrainingDomain = z.infer<typeof trainingDomainSchema>;
 
 export const trainingDomainLabels: Record<TrainingDomain, string> = {
   ssm: 'SSM',
-  su: 'PSI',
+  su: 'SU',
 };
 
 export const trainingPhases = [
@@ -83,7 +83,7 @@ export const trainingStatusSchema = z.object({
   lastPeriodicOn: z.iso.date().nullable(),
   // Null while undecided.
   intervalMonths: z.int().min(1).nullable(),
-  // A position overrides the client's programme for SSM only; never for PSI (#371).
+  // A position overrides the client's programme for SSM only; never for SU (#371).
   intervalSource: trainingIntervalSourceSchema.nullable(),
 });
 

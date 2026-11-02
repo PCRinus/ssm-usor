@@ -52,10 +52,10 @@ const sections = [
     icon: BriefcaseBusiness,
     ownerOnly: false,
   },
-  // Documente PSI already shows the extinguisher.
+  // Documente SU already shows the extinguisher.
   {
     to: '/clients/$clientId/fire-safety-means',
-    label: 'Mijloace PSI',
+    label: 'Mijloace de apărare',
     icon: Flame,
     ownerOnly: false,
   },
@@ -74,7 +74,7 @@ const sections = [
   { to: '/clients/$clientId/documents', label: 'Documente SSM', icon: FileText, ownerOnly: false },
   {
     to: '/clients/$clientId/fire-safety-documents',
-    label: 'Documente PSI',
+    label: 'Documente SU',
     icon: FireExtinguisher,
     ownerOnly: false,
   },

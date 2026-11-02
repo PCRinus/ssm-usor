@@ -330,7 +330,7 @@ export function JobPositionsCard({
                           params={{ clientId, jobPositionId: position.id }}
                           hash={positionSections.fireInstructions}
                         >
-                          Instrucțiuni PSI
+                          Instrucțiuni SU
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild data-testid="job-position-menu-risk">
@@ -491,7 +491,7 @@ function UndecidedNotice({ clientId, positions }: { clientId: string; positions:
         )}
         {fireInstructions.length > 0 && (
           <li data-testid="job-positions-undecided-fire-instructions">
-            {undecidedSentence(fireInstructions.length, 'instrucțiunile PSI stabilite')}{' '}
+            {undecidedSentence(fireInstructions.length, 'instrucțiunile SU stabilite')}{' '}
             <PositionNames
               clientId={clientId}
               positions={fireInstructions}

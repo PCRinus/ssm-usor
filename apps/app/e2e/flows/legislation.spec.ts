@@ -56,7 +56,7 @@ test('a document behind its template is regenerated for every client from the Le
   ]);
   await expect(navigationTabs.first()).toHaveAttribute('aria-current', 'page');
   const type = page.getByTestId('behind-type').filter({ hasText: title });
-  await expect(type.getByTestId('behind-type-set')).toHaveText('PSI');
+  await expect(type.getByTestId('behind-type-set')).toHaveText('SU');
   await expect(type.getByTestId('behind-client')).toHaveText([
     `${clientName}pe versiunea ${version}`,
   ]);

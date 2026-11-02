@@ -129,7 +129,7 @@ function IntervalFact({
           >
             {domain === 'ssm'
               ? 'din programul de instruire al clientului'
-              : 'din datele de instruire PSI ale clientului'}
+              : 'din datele de instruire SU ale clientului'}
           </Link>
         )}
       </span>

@@ -213,7 +213,7 @@ describe('clients list', () => {
     expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
   });
 
-  it('shows where each client stands with its SSM and its PSI documentation', async () => {
+  it('shows where each client stands with its SSM and its SU documentation', async () => {
     mockApi({
       list: () =>
         Response.json(
@@ -256,7 +256,7 @@ describe('clients list', () => {
     mountApp(authFixture(makeSession()).client, '/clients');
     const [none, working, done] = await screen.findAllByTestId('clients-row');
     expect(screen.getByRole('columnheader', { name: /Documentație SSM/ })).toBeTruthy();
-    expect(screen.getByRole('columnheader', { name: /Documentație PSI/ })).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: /Documentație SU/ })).toBeTruthy();
     expect(screen.queryByRole('columnheader', { name: /Posturi/ })).toBeNull();
     expect(within(none!).getByTestId('clients-documentation').textContent).toBe('Negenerată');
     expect(within(none!).queryByTestId('clients-documentation-progress')).toBeNull();
@@ -714,11 +714,11 @@ describe('client details', () => {
       'Detalii',
       'Angajați',
       'Posturi de lucru',
-      'Mijloace PSI',
+      'Mijloace de apărare',
       'Instruire și responsabili',
       'Instruiri ținute',
       'Documente SSM',
-      'Documente PSI',
+      'Documente SU',
       'Contract',
       'Alte documente',
       'Portal',

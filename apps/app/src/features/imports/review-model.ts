@@ -185,34 +185,34 @@ export const fieldInfo: Record<string, FieldInfo> = {
     write: 'Scrie ziua de sfârșit a instruirii',
   },
   'fireSafety.periodicTrainingHours': {
-    label: 'Durata instruirii periodice PSI',
-    choose: 'Alege durata instruirii periodice PSI',
-    write: 'Scrie durata instruirii periodice PSI',
+    label: 'Durata instruirii periodice SU',
+    choose: 'Alege durata instruirii periodice SU',
+    write: 'Scrie durata instruirii periodice SU',
   },
   'fireSafety.administrativeTrainingIntervalMonths': {
-    label: 'Periodicitate PSI, tehnico-administrativ',
-    choose: 'Alege periodicitatea PSI pentru tehnico-administrativ',
-    write: 'Scrie periodicitatea PSI pentru tehnico-administrativ',
+    label: 'Periodicitate SU, tehnico-administrativ',
+    choose: 'Alege periodicitatea SU pentru tehnico-administrativ',
+    write: 'Scrie periodicitatea SU pentru tehnico-administrativ',
   },
   'fireSafety.workerTrainingIntervalMonths': {
-    label: 'Periodicitate PSI, execuție',
-    choose: 'Alege periodicitatea PSI pentru execuție',
-    write: 'Scrie periodicitatea PSI pentru execuție',
+    label: 'Periodicitate SU, execuție',
+    choose: 'Alege periodicitatea SU pentru execuție',
+    write: 'Scrie periodicitatea SU pentru execuție',
   },
   'fireSafety.trainingFirstMonth': {
-    label: 'Prima lună a instruirii PSI',
-    choose: 'Alege prima lună a instruirii PSI',
-    write: 'Scrie prima lună a instruirii PSI',
+    label: 'Prima lună a instruirii SU',
+    choose: 'Alege prima lună a instruirii SU',
+    write: 'Scrie prima lună a instruirii SU',
   },
   'fireSafety.trainingDayFrom': {
     label: 'Din ziua',
-    choose: 'Alege ziua de început a instruirii PSI',
-    write: 'Scrie ziua de început a instruirii PSI',
+    choose: 'Alege ziua de început a instruirii SU',
+    write: 'Scrie ziua de început a instruirii SU',
   },
   'fireSafety.trainingDayTo': {
     label: 'Până în ziua',
-    choose: 'Alege ziua de sfârșit a instruirii PSI',
-    write: 'Scrie ziua de sfârșit a instruirii PSI',
+    choose: 'Alege ziua de sfârșit a instruirii SU',
+    write: 'Scrie ziua de sfârșit a instruirii SU',
   },
   'fireSafety.smokingPolicy': {
     label: 'Fumatul',
@@ -303,7 +303,7 @@ export const fieldGroups: { section: SectionId; title: string; paths: string[] }
   },
   {
     section: 'fire-safety',
-    title: 'Reguli PSI',
+    title: 'Reguli de apărare împotriva incendiilor',
     paths: [
       'fireSafety.smokingPolicy',
       'fireSafety.smokingPlace',
@@ -315,7 +315,7 @@ export const fieldGroups: { section: SectionId; title: string; paths: string[] }
   },
   {
     section: 'fire-safety',
-    title: 'Programul de instruire PSI',
+    title: 'Programul de instruire SU',
     paths: [
       'fireSafety.periodicTrainingHours',
       'fireSafety.workerTrainingIntervalMonths',
@@ -352,7 +352,7 @@ export function inferenceNote(path: string, inferred: ImportInference | undefine
     case 'no_posts_in_category':
       return `Niciun post nu este în categoria ${categoryOfNotApplicable[path] ?? 'aceasta'}, așa că instruirea periodică nu se aplică. Poți s-o schimbi.`;
     case 'ssm_training_schedule':
-      return 'Preluată din programul de instruire SSM, fiindcă documentele PSI nu o dau. Poți s-o schimbi.';
+      return 'Preluată din programul de instruire SSM, fiindcă documentele SU nu o dau. Poți s-o schimbi.';
     case 'office_work':
       return 'Post de birou fără echipament în documente, așa că nu i-am propus echipament.';
     default:

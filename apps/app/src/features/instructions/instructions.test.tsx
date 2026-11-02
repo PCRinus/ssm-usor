@@ -444,9 +444,9 @@ describe('the instruction library', () => {
     await user.click(await screen.findByTestId('instruction-rename'));
     const domain = screen.getByTestId('instruction-module-domain') as HTMLInputElement;
     expect(domain.readOnly).toBe(true);
-    expect(domain.value).toBe('PSI');
+    expect(domain.value).toBe('SU');
     expect(screen.getByTestId('instruction-module-dialog').textContent).toContain(
-      'Aplicată la un post ca instrucțiune PSI'
+      'Aplicată la un post ca instrucțiune SU'
     );
     await user.click(screen.getByTestId('instruction-module-submit'));
     await waitFor(() =>
@@ -799,7 +799,7 @@ describe('writing a new module', () => {
     expect(runtime.router.history.location.pathname).toBe('/instructions/new');
     expect(screen.getByTestId('editor-state').textContent).toBe('Nouă, nesalvată');
     expect(screen.getByTestId('instruction-form-facts').textContent).toBe(
-      'PSI · Lucrări periculoase · fără articole numerotate'
+      'SU · Lucrări periculoase · fără articole numerotate'
     );
     expect(
       (screen.getAllByTestId('instruction-heading-text') as HTMLInputElement[]).map(
@@ -947,7 +947,7 @@ describe("a job position's instructions", () => {
       within(rows[1]!).getByTestId('job-position-fire-instructions').getAttribute('href')
     ).toBe(`${positionsPath}/${fitter.id}#fire-instructions`);
     expect(screen.getByTestId('job-positions-undecided-fire-instructions').textContent).toBe(
-      'Un post nu are instrucțiunile PSI stabilite: Lăcătuș mecanic.'
+      'Un post nu are instrucțiunile SU stabilite: Lăcătuș mecanic.'
     );
   });
 
@@ -961,11 +961,11 @@ describe("a job position's instructions", () => {
       'Instrucțiuni specifice SSM'
     );
     expect(within(su).getByRole('heading', { level: 3 }).textContent).toContain(
-      'Instrucțiuni specifice PSI'
+      'Instrucțiuni specifice SU'
     );
     expect((await screen.findByTestId('fire-instructions-state')).textContent).toBe('De stabilit');
     expect(screen.getByTestId('fire-instructions-empty').textContent).toContain(
-      'Documentele PSI nu se pot genera'
+      'Documentele SU nu se pot genera'
     );
 
     await user.click(screen.getByTestId('fire-instructions-pick'));
@@ -997,7 +997,7 @@ describe("a job position's instructions", () => {
       ])
     );
     expect((await screen.findByTestId('fire-instructions-none')).textContent).toContain(
-      'nu necesită instrucțiuni specifice PSI'
+      'nu necesită instrucțiuni specifice SU'
     );
     expect(screen.getByTestId('instructions-empty')).toBeTruthy();
   });

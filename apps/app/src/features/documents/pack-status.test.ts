@@ -213,7 +213,7 @@ describe('build pack', () => {
     expect(pack.sections.at(-1)).toMatchObject({
       id: 'other',
       number: null,
-      title: 'Alte documente PSI',
+      title: 'Alte documente SU',
       rows: [{ kind: 'document', key: 'fire_evacuation_plan', title: 'Plan de evacuare' }],
       counts: { update: 0, draft: 1, issued: 0, missing: 0 },
     });

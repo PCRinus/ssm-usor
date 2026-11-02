@@ -152,7 +152,7 @@ describe('TrainingSheetDownload', () => {
     mount('ssm', 'su');
     const ready = await screen.findByRole('button', { name: 'Descarcă fișa SSM' });
     await waitFor(() => expect(ready).toHaveProperty('disabled', false));
-    expect(screen.getByRole('button', { name: 'Descarcă fișa PSI' })).toHaveProperty(
+    expect(screen.getByRole('button', { name: 'Descarcă fișa SU' })).toHaveProperty(
       'disabled',
       true
     );

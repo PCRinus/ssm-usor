@@ -262,7 +262,7 @@ describe('what a person still needs', () => {
   it('names the annual test whose examiner is missing', () => {
     const context = withRows('p3', [annualTest({ heldOn: '2025-03-04' }, { examinerName: null })]);
     expect(decisionsOf(context(), person('pop')).map((decision) => decision.label)).toEqual([
-      'Completează examinatorul testului anual PSI',
+      'Completează examinatorul testului anual SU',
     ]);
   });
 
@@ -449,7 +449,7 @@ describe('hiring tests left unverified', () => {
     expect(untestedDomains(context(), person('lazar'))).toEqual([]);
   });
 
-  it("reads PSI's workplace training, not its periodic one, and SSM's introductory only", () => {
+  it("reads SU's workplace training, not its periodic one, and SSM's introductory only", () => {
     const context = withRows('p3', [
       sheetRow('su-workplace', { domain: 'su', phase: 'workplace', heldOn: '2023-05-02' }),
       sheetRow('ssm-workplace', { phase: 'workplace', heldOn: '2023-05-02' }),

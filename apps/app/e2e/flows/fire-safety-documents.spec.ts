@@ -27,15 +27,15 @@ test('the fire-safety set asks for its own data and the first decision number, i
   page,
 }) => {
   const owner = await createAccount('fire-documents', 'Dana Documente');
-  const organizationId = await createOrganization('Documente PSI E2E', owner.id);
-  const clientId = await createClientCompany(organizationId, 'S.C. CLIENT PSI E2E S.R.L.');
+  const organizationId = await createOrganization('Documente SU E2E', owner.id);
+  const clientId = await createClientCompany(organizationId, 'S.C. CLIENT SU E2E S.R.L.');
   // Without a training schedule the other set cannot be generated; this one does not ask.
   await completeDocumentData(organizationId, owner.id, clientId, {
     periodic_training_minutes: null,
   });
   await completeFireSafetyData(organizationId, clientId);
   await signIn(page, owner.email, `/clients/${clientId}`);
-  await page.getByRole('link', { name: 'Documente PSI' }).click();
+  await page.getByRole('link', { name: 'Documente SU' }).click();
   await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/fire-safety-documents$`));
 
   await expect(page.getByTestId('documents-hint')).toBeVisible();
@@ -46,7 +46,7 @@ test('the fire-safety set asks for its own data and the first decision number, i
     '3Tematica de instruire2 documente, negenerate',
     '4Teste de verificare a cunoștințelor3 documente, negenerate',
     '5Mijloace de apărare și organizarea la locul de muncă3 documente, negenerate',
-    '6Registre și formulare PSI4 documente, negenerate',
+    '6Registre și formulare SU4 documente, negenerate',
   ]);
   await page.getByTestId('documents-generate').click();
   await expect(page.getByTestId('generate-missing-count')).toHaveText('2 date de completat');
@@ -73,9 +73,9 @@ test('the fire-safety set asks for its own data and the first decision number, i
   await openDocumentSection(page, '1');
   const decisions = page.getByTestId('document-row');
   await expect(decisions).toHaveCount(8);
-  await expect(decisions.nth(1)).toContainText('Decizia nr. 4 PSI');
-  await expect(decisions.nth(4)).toContainText('Decizia nr. 7 PSI');
-  await expect(decisions.nth(7)).toContainText('Decizia nr. 10 PSI');
+  await expect(decisions.nth(1)).toContainText('Decizia nr. 4 SU');
+  await expect(decisions.nth(4)).toContainText('Decizia nr. 7 SU');
+  await expect(decisions.nth(7)).toContainText('Decizia nr. 10 SU');
   await openDocumentSection(page, '2');
   await expect(page.getByTestId('document-row')).toHaveCount(2);
   await openDocumentSection(page, '3');
@@ -119,7 +119,7 @@ test('the fire-safety set asks for its own data and the first decision number, i
   for (let index = 1; index <= 10; index++) {
     await createEmployee(organizationId, clientId, {
       firstName: `Angajat${index}`,
-      lastName: 'PSI',
+      lastName: 'SU',
       jobTitle: 'Lucrător comercial',
     });
   }
@@ -134,8 +134,8 @@ test('the fire-safety set asks for its own data and the first decision number, i
   await expect(page.getByText('Au fost generate 6 documente.')).toBeVisible({ timeout: 30_000 });
   await openDocumentSection(page, '1');
   await expect(decisions).toHaveCount(10);
-  await expect(decisions.nth(8)).toContainText('Decizia nr. 11 PSI');
-  await expect(decisions.nth(9)).toContainText('Decizia nr. 12 PSI');
+  await expect(decisions.nth(8)).toContainText('Decizia nr. 11 SU');
+  await expect(decisions.nth(9)).toContainText('Decizia nr. 12 SU');
   await openDocumentSection(page, '5');
   await expect(rows).toHaveCount(4);
   await expect(rows.nth(3)).toContainText('Graficele de întreținere și verificare');

@@ -256,7 +256,7 @@ function TaskContent({
   const intro =
     domain === 'ssm'
       ? `Instrucțiunile proprii SSM din documentația lui ${name}, pentru biblioteca ta.`
-      : `Instrucțiunile proprii PSI din documentația lui ${name}, pentru biblioteca ta.`;
+      : `Instrucțiunile proprii SU din documentația lui ${name}, pentru biblioteca ta.`;
 
   return (
     <SourcePrefetchContext value={prefetchSource}>

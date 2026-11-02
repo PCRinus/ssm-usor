@@ -146,7 +146,7 @@ describe('Acasă', () => {
     const su = await screen.findByTestId('training-summary-su');
     expect(within(su).getByTestId('training-state-su').textContent).toBe('Neinstruit');
     expect(within(su).getByTestId('training-untrained-su').textContent).toBe(
-      'Prima instruire PSI nu a fost încă înregistrată.'
+      'Prima instruire SU nu a fost încă înregistrată.'
     );
     expect(within(su).queryByRole('term')).toBeNull();
     expect(screen.getByTestId('training-summary-sheet-ssm').textContent).toBe(
@@ -290,7 +290,7 @@ describe('Instruiri', () => {
     expect(records[0]!.textContent).toContain(
       'Instructor Radu Stan, Șef de atelier. 1 oră și 30 de minute.'
     );
-    expect(within(records[1]!).getByTestId('training-record-domain').textContent).toBe('PSI');
+    expect(within(records[1]!).getByTestId('training-record-domain').textContent).toBe('SU');
     expect(records[1]!.textContent).toContain('8 ore.');
     expect(records[2]!.textContent).toContain('Instruire la locul de muncă, admis la lucru');
     expect(records[2]!.textContent).toContain('1 oră și 1 minut.');
@@ -375,7 +375,7 @@ describe('Instruiri', () => {
     mountPortal(signedIn(), '/instruiri');
 
     expect((await screen.findByTestId('training-sheet-su-untrained')).textContent).toBe(
-      'Se întocmește după prima instruire PSI.'
+      'Se întocmește după prima instruire SU.'
     );
     expect(screen.queryByTestId('training-sheet-su-open')).toBeNull();
     expect(screen.getByTestId('training-sheet-ssm-open')).toBeTruthy();
@@ -436,7 +436,7 @@ describe('Instruiri', () => {
       undefined,
       expect.objectContaining({ baseUrl: 'http://localhost:8787' })
     );
-    expect(tab.document.title).toBe('Fișa individuală PSI');
+    expect(tab.document.title).toBe('Fișa individuală SU');
     expect(pending.textContent).toBe('Se pregătește fișa…');
     expect(tab.location.replace).toHaveBeenCalledWith('blob:sheet');
     open.mockRestore();

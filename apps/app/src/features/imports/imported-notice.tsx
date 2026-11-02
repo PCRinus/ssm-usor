@@ -67,8 +67,8 @@ export function ImportedNotice({ clientId }: { clientId: string }) {
               ],
               [
                 '/clients/$clientId/fire-safety-documents',
-                'Documentația PSI',
-                'După ce completezi mijloacele PSI și echipa',
+                'Documentația SU',
+                'După ce completezi mijloacele de apărare și echipa',
                 FileText,
               ],
             ] as const

@@ -229,7 +229,7 @@ describe("a client's job positions", () => {
     expect(items.map((item) => item.textContent)).toEqual([
       'Echipament de protecție',
       'Instrucțiuni SSM',
-      'Instrucțiuni PSI',
+      'Instrucțiuni SU',
       'Evaluare de risc',
       'Modifică',
       'Șterge',
@@ -262,7 +262,7 @@ describe("a client's job positions", () => {
     ).toEqual([`${listPath}/${barista.id}#instructions`, `${listPath}/${manager.id}#instructions`]);
     const fireInstructions = screen.getByTestId('job-positions-undecided-fire-instructions');
     expect(fireInstructions.textContent).toBe(
-      'Un post nu are instrucțiunile PSI stabilite: Manager magazin – birou.'
+      'Un post nu are instrucțiunile SU stabilite: Manager magazin – birou.'
     );
     expect(within(fireInstructions).getByRole('link').getAttribute('href')).toBe(
       `${listPath}/${manager.id}#fire-instructions`
@@ -455,7 +455,7 @@ describe("a client's job positions", () => {
     expect(items.map((item) => item.textContent)).toEqual([
       'Echipament de protecție',
       'Instrucțiuni SSM',
-      'Instrucțiuni PSI',
+      'Instrucțiuni SU',
       'Evaluare de risc',
     ]);
   });

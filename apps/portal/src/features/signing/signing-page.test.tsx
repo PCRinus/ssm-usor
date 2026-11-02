@@ -75,7 +75,7 @@ function request(id: string, overrides: Partial<Request> = {}): Request {
 
 const requestA = request('6f0c3e43-0c1b-4f4b-8a1e-0000000000r1');
 const requestB = request('6f0c3e43-0c1b-4f4b-8a1e-0000000000r2', {
-  label: 'Instruire introductiv-generală PSI · 03.02.2026',
+  label: 'Instruire introductiv-generală SU · 03.02.2026',
   record: {
     ...firstRecord,
     id: '6f0c3e43-0c1b-4f4b-8a1e-0000000000a2',

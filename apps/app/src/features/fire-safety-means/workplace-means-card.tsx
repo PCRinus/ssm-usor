@@ -124,7 +124,7 @@ export function WorkplaceMeansCard({
         />
         {equipment.length === 0 ? (
           <p data-testid="fire-equipment-empty" className="text-sm text-muted-foreground">
-            Niciun stingător încă. Documentele PSI cer cel puțin unul la fiecare loc de muncă.
+            Niciun stingător încă. Documentele SU cer cel puțin unul la fiecare loc de muncă.
           </p>
         ) : (
           <Table>

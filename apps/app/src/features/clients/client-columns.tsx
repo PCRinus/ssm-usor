@@ -116,7 +116,7 @@ export function clientColumns({
     documentationColumn('documentation', 'Documentație SSM', 'clients-documentation'),
     documentationColumn(
       'fireSafetyDocumentation',
-      'Documentație PSI',
+      'Documentație SU',
       'clients-fire-safety-documentation'
     ),
     helper.accessor('clientSince', {

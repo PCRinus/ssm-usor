@@ -279,7 +279,7 @@ afterEach(() => {
 });
 
 describe("an employee's training tabs", () => {
-  it('splits the page into Date, Instruire SSM and Instruire PSI, in the tabs and not in the sidebar', async () => {
+  it('splits the page into Date, Instruire SSM and Instruire SU, in the tabs and not in the sidebar', async () => {
     mockApi();
     const runtime = mountApp(authFixture(makeSession()).client, employeePath);
     const user = userEvent.setup();
@@ -287,7 +287,7 @@ describe("an employee's training tabs", () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Popescu Ion' })).toBeTruthy();
     expect(screen.getByTestId('employee-header-client').textContent).toBe('OMV PETROM SA');
     const tabs = screen.getAllByTestId('employee-section');
-    expect(tabs.map((tab) => tab.textContent)).toEqual(['Date', 'Instruire SSM', 'Instruire PSI']);
+    expect(tabs.map((tab) => tab.textContent)).toEqual(['Date', 'Instruire SSM', 'Instruire SU']);
     expect(tabs[0]!.getAttribute('aria-current')).toBe('page');
     expect(screen.queryByTestId('nav-employee-group')).toBeNull();
 
@@ -370,7 +370,7 @@ describe("an employee's training tabs", () => {
     await screen.findByTestId('training-records-empty');
     expect(screen.getByTestId('training-due-on').textContent).toBe('După instruirea la angajare');
     const source = screen.getByTestId('training-interval-source');
-    expect(source.textContent).toBe('din datele de instruire PSI ale clientului');
+    expect(source.textContent).toBe('din datele de instruire SU ale clientului');
     expect(source.getAttribute('href')).toBe(
       `/clients/${clientId}/training?focus=fire-training-schedule`
     );
@@ -615,7 +615,7 @@ describe("a client's trainings held", () => {
     );
     expect(runtime.router.history.length).toBe(historyLength);
     expect((await screen.findByTestId('trainings-empty')).textContent).toContain(
-      'Nicio instruire de tipul „La locul de muncă” în domeniul PSI înregistrată încă.'
+      'Nicio instruire de tipul „La locul de muncă” în domeniul SU înregistrată încă.'
     );
     const asked = requests('GET', trainingsPath).at(-1)!.url.searchParams;
     expect(asked.get('domain')).toBe('su');
@@ -767,7 +767,7 @@ describe('training state in the employee lists', () => {
         .getAllByRole('columnheader')
         .map((header) => header.textContent)
         .filter((text) => text?.startsWith('Instruire'))
-    ).toEqual(['Instruire SSM', 'Instruire PSI']);
+    ).toEqual(['Instruire SSM', 'Instruire SU']);
     const first = within(rows[0]!);
     expect(first.getByTestId('training-status-ssm').dataset.state).toBe('current');
     expect(first.getByTestId('training-status-ssm').textContent).toBe('La zi');
@@ -838,7 +838,7 @@ describe('training state in the employee lists', () => {
     const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
     const cells = within(row!).getAllByRole('cell');
     expect(cells[headers.indexOf('Instruire SSM')]!.textContent).toBe('—');
-    expect(cells[headers.indexOf('Instruire PSI')]!.textContent).toBe('—');
+    expect(cells[headers.indexOf('Instruire SU')]!.textContent).toBe('—');
     expect(screen.queryByTestId('employees-training-filter')).toBeNull();
   });
 
@@ -1215,7 +1215,7 @@ describe('test state in the employee lists', () => {
     const rows = await screen.findAllByTestId('employees-row');
     const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
     expect(headers.filter((text) => text === 'Testare')).toHaveLength(1);
-    expect(headers.indexOf('Testare')).toBe(headers.indexOf('Instruire PSI') + 1);
+    expect(headers.indexOf('Testare')).toBe(headers.indexOf('Instruire SU') + 1);
     expect(within(rows[0]!).getByTestId('test-status-ssm').textContent).toBe('Fără test');
     const second = within(rows[1]!);
     expect(second.getByTestId('test-status-ssm').textContent).toBe('Promovat');

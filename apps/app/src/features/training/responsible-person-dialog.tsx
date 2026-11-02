@@ -355,7 +355,7 @@ function ResponsiblePersonForm({
             id="responsible-workplace"
             label="Loc de muncă"
             mark="optional"
-            hint="Pentru fișa de la locul de muncă din documentele PSI."
+            hint="Pentru fișa de la locul de muncă din documentele SU."
             error={errors.workplaceId}
             className="sm:col-span-2"
           >

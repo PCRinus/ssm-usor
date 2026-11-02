@@ -10,7 +10,7 @@ export const employeeSections = [
   },
   {
     to: '/clients/$clientId/employees/$employeeId/training/su',
-    label: 'Instruire PSI',
+    label: 'Instruire SU',
     icon: Flame,
     exact: false,
   },

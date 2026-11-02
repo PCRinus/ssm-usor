@@ -375,7 +375,7 @@ describe('client workplaces', () => {
 
     const rows = await screen.findAllByTestId('workplace-row');
     expect(within(rows[0]!).getByTestId('workplace-fire-incomplete').textContent).toBe(
-      'Date PSI incomplete'
+      'Date SU incomplete'
     );
     expect(within(rows[1]!).queryByTestId('workplace-fire-incomplete')).toBeNull();
   });

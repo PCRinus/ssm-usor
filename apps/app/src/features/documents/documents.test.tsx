@@ -234,11 +234,11 @@ describe('client documents', () => {
       'Detalii',
       'Angajați',
       'Posturi de lucru',
-      'Mijloace PSI',
+      'Mijloace de apărare',
       'Instruire și responsabili',
       'Instruiri ținute',
       'Documente SSM',
-      'Documente PSI',
+      'Documente SU',
       'Alte documente',
       'Portal',
     ]);

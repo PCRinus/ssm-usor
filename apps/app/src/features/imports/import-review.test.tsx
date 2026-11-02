@@ -235,7 +235,7 @@ describe('the review hub', () => {
       expect.stringContaining('1post de lucru'),
       expect.stringContaining('1responsabil'),
       expect.stringContaining('1angajat'),
-      expect.stringContaining('6mijloace PSI'),
+      expect.stringContaining('6mijloace de apărare'),
     ]);
     expect(dialog.textContent).toContain('Nu preluăm un element de la alt client.');
     await userEvent.click(within(dialog).getByTestId('import-confirm-submit'));
@@ -1406,7 +1406,7 @@ describe('a value the import inferred', () => {
     mockReview(inferredDetail());
     mount('/fire-safety');
 
-    await screen.findByText('Prima lună a instruirii PSI');
+    await screen.findByText('Prima lună a instruirii SU');
     const row = document.getElementById('review-fireSafety-trainingFirstMonth')!;
     expect(row.textContent).toContain('martie');
     expect(within(row).getByTestId('review-inferred').textContent).toContain(

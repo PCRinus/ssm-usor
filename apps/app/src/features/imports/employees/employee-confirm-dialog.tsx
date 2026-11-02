@@ -203,7 +203,7 @@ export function EmployeeConfirmDialog({
 
   const ssmSu = [
     summary.tests.ssm > 0 ? `${summary.tests.ssm} SSM` : null,
-    summary.tests.su > 0 ? `${summary.tests.su} PSI` : null,
+    summary.tests.su > 0 ? `${summary.tests.su} SU` : null,
   ].filter(Boolean);
 
   return (
@@ -315,7 +315,7 @@ export function EmployeeConfirmDialog({
             <Line
               icon={<RotateCcw className="size-4" />}
               label="Nicio instruire și niciun test de refăcut"
-              detail="Testul la angajare verificat pe fișă nu li se mai cere. Următoarea instruire periodică și testul anual PSI se socotesc de la datele de pe fișe."
+              detail="Testul la angajare verificat pe fișă nu li se mai cere. Următoarea instruire periodică și testul anual SU se socotesc de la datele de pe fișe."
             />
           </Group>
           {(summary.noContact.length > 0 ||

@@ -100,12 +100,12 @@ describe('the rows of the generation form', () => {
     });
     expect(groups.map((group) => [group.heading, group.rows.map((row) => row.label)])).toEqual([
       ['Datele organizației', ['Cadrul tehnic PSI', 'Certificatul cadrului tehnic PSI']],
-      ['Detaliile clientului', ['Datele PSI ale locurilor de muncă']],
-      ['Mijloacele PSI', ['Stingătoarele locurilor de muncă']],
+      ['Detaliile clientului', ['Datele SU ale locurilor de muncă']],
+      ['Mijloacele de apărare', ['Stingătoarele locurilor de muncă']],
       [
         'Instruire și responsabili',
         [
-          'Programul instruirii PSI',
+          'Programul instruirii SU',
           'Regula privind fumatul',
           'Deșeurile colectate',
           'Coordonator privind apărarea împotriva incendiilor',
@@ -139,7 +139,7 @@ describe('the rows of the generation form', () => {
     ]);
   });
 
-  it('lead each position undecided about the fire-safety modules to its PSI card', () => {
+  it('lead each position undecided about the fire-safety modules to its SU card', () => {
     const groups = documentMissingGroups({
       missing: ['fire.instructions', 'documents.fire_own_instructions'],
       clientId,
@@ -152,8 +152,8 @@ describe('the rows of the generation form', () => {
       set: 'fire_safety',
     });
     expect(groups.map((group) => [group.heading, group.rows.map((row) => row.label)])).toEqual([
-      ['Posturile de lucru', ['Contabil · instrucțiuni PSI', 'Sudor · instrucțiuni PSI']],
-      ['Documentația PSI', ['Instrucțiunile proprii PSI, generate înaintea tematicii']],
+      ['Posturile de lucru', ['Contabil · instrucțiuni SU', 'Sudor · instrucțiuni SU']],
+      ['Documentația SU', ['Instrucțiunile proprii SU, generate înaintea tematicii']],
     ]);
     expect(hrefs(groups)).toEqual([
       `/clients/${clientId}/job-positions/p-contabil#fire-instructions`,
@@ -311,7 +311,7 @@ describe('the rows of the generation form', () => {
       'Echipamentul de protecție și instrucțiunile se stabilesc pe posturi.'
     );
     expect(detailFor('fire_safety')).toBe(
-      'Decizia privind instruirea PSI enumeră posturile de lucru ale clientului.'
+      'Decizia privind instruirea în domeniul situațiilor de urgență enumeră posturile de lucru ale clientului.'
     );
   });
 

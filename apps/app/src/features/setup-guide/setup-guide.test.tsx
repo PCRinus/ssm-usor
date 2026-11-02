@@ -595,7 +595,7 @@ describe('the steps', () => {
     const actions = within(card).getAllByRole('link');
     expect(actions.map((action) => [action.textContent, action.getAttribute('href')])).toEqual([
       ['Documente SSM', `/clients/${clientId}/documents`],
-      ['Documente PSI', `/clients/${clientId}/fire-safety-documents`],
+      ['Documente SU', `/clients/${clientId}/fire-safety-documents`],
     ]);
   });
 

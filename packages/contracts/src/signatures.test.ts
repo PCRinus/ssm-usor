@@ -30,7 +30,7 @@ describe('signatureRequestLabel', () => {
         test: 'annual',
         takenOn: '2027-10-01',
       })
-    ).toBe('Fișa de test · Test anual PSI · 01.10.2027');
+    ).toBe('Fișa de test · Test anual SU · 01.10.2027');
   });
 });
 
