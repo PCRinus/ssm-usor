@@ -17,6 +17,7 @@ import { importErrorMessage } from '../import-format';
 import {
   changesOf,
   type InstructionChange,
+  isInstructionsLibraryPart,
   type LibraryChanges,
   type LibraryPart,
 } from './library-model';
@@ -139,7 +140,9 @@ export class LibraryReviewStore {
               ? {
                   ...old,
                   parts: old.parts.map((part) =>
-                    part.part === this.part ? { ...part, version: saved.version, changes } : part
+                    part.part === this.part && isInstructionsLibraryPart(part)
+                      ? { ...part, version: saved.version, changes }
+                      : part
                   ),
                 }
               : old

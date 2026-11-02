@@ -1,5 +1,5 @@
 import { textHash } from '@ssm-usor/contracts';
-import { type InstructionsProposal, toProposal } from '@ssm-usor/import';
+import { type InstructionsProposal, type RisksProposal, toProposal } from '@ssm-usor/import';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
@@ -639,5 +639,407 @@ describe('POST /imports/{importId}/library-parts/{part}/retry', () => {
     expect(response.status).toBe(409);
     expect(await response.json()).toMatchObject({ reason: 'import_part_expired' });
     expect(sent).toEqual([]);
+  });
+});
+
+describe('the risk evaluations part', () => {
+  const libraryEntryId = 'e1000000-0000-4000-8000-000000000001';
+  const libraryFactorId = 'e2000000-0000-4000-8000-000000000001';
+  const createdEntryId = 'e1000000-0000-4000-8000-000000000002';
+  const evaluationId = 'e3000000-0000-4000-8000-000000000001';
+
+  type Sheet = RisksProposal['sheets'][number];
+  type Factor = Sheet['factors'][number];
+
+  const factor = (key: string, overrides: Partial<Factor> = {}): Factor => ({
+    key,
+    row: 'R2',
+    source: { file: 'Dosar/Evaluare.docx', start: 0, end: 10 },
+    component: 'means_of_production',
+    writtenComponent: 'MIJLOACE DE PRODUCŢIE',
+    group: 'Factori de risc mecanic',
+    description: 'Prinderea degetelor în malaxorul de aluat pornit.',
+    code: 'F1',
+    consequence: 'ITM / 45-180 zile',
+    gravityClass: 3,
+    probabilityClass: 3,
+    printedLevel: 3,
+    measures: [{ kind: 'technical', description: 'Protecția de la gura malaxorului.' }],
+    measuresFrom: 'plan',
+    actions: 'Revizuirea instrucțiunii.',
+    deadline: 'Periodic',
+    responsiblePerson: 'Administrator',
+    observations: null,
+    flags: [],
+    included: true,
+    level: 3,
+    ...overrides,
+  });
+
+  const sheet = (key: string, overrides: Partial<Sheet> = {}): Sheet => ({
+    key,
+    file: 'Dosar/Evaluare.docx',
+    heading: `SUBCAPITOLUL ${key}`,
+    kind: 'job_position',
+    name: 'BRUTAR',
+    rows: { first: 'R2', last: 'R3' },
+    meansOfProduction: 'Cuptor electric și malaxor de aluat.',
+    workEnvironment: null,
+    exposure: '8h / schimb',
+    flags: [],
+    posts: [{ name: 'Brutar', existingFactors: 0, choice: null }],
+    undecided: false,
+    existing: null,
+    libraryName: 'Brutar (Brutăria Fictivă)',
+    status: 'new',
+    match: null,
+    choice: 'add',
+    sameAs: [],
+    copyOf: null,
+    factors: [],
+    ...overrides,
+  });
+
+  const risks: RisksProposal = {
+    sheets: [
+      sheet('sheet-1', {
+        factors: [
+          factor('sheet-1.1', { responsiblePerson: 'Ion POPESCU' }),
+          factor('sheet-1.2', {
+            description: 'Ridicarea sacilor de făină de 50 kg.',
+            component: 'work_task',
+            probabilityClass: null,
+            included: false,
+            level: null,
+          }),
+        ],
+      }),
+      sheet('sheet-2', {
+        name: 'ȘOFER',
+        posts: [{ name: 'Șofer', existingFactors: 0, choice: null }],
+        libraryName: 'Șofer',
+        status: 'identical',
+        choice: 'use_existing',
+        match: {
+          evaluationId: libraryEntryId,
+          name: 'Șofer',
+          share: 1,
+          pairs: [
+            {
+              factor: 'sheet-2.1',
+              libraryFactor: libraryFactorId,
+              similarity: 1,
+              otherClasses: false,
+              otherMeasures: false,
+            },
+          ],
+          onlyInPack: [],
+          onlyInLibrary: [],
+        },
+        factors: [factor('sheet-2.1', { description: 'Accident rutier la livrare.' })],
+      }),
+      sheet('sheet-3', {
+        kind: 'sensitive_groups',
+        name: 'GRUPURI SENSIBILE',
+        posts: [],
+        existing: { factors: 0, choice: null },
+        libraryName: 'Grupuri sensibile',
+        choice: 'skip',
+        factors: [factor('sheet-3.1')],
+      }),
+    ],
+    unplacedRows: [],
+    unmatchedPlanRows: [],
+    unmatchedMeasureRows: [],
+  };
+
+  const riskRow = (overrides: Record<string, unknown> = {}) =>
+    partRow({ part: 'risk_evaluations', proposal: risks, ...overrides });
+
+  const confirmUpstream =
+    (
+      part: Record<string, unknown>,
+      extra: (call: Call) => Response | undefined = () => undefined
+    ): Handler =>
+    (call) => {
+      const { url, admin } = call;
+      const custom = extra(call);
+      if (custom) return custom;
+      if (url.pathname === '/rest/v1/imports') return Response.json(importRow());
+      if (url.pathname === '/rest/v1/import_library_parts') return Response.json(part);
+      if (url.pathname === '/rest/v1/risk_evaluations') {
+        return Response.json([
+          {
+            kind: 'job_position',
+            job_position_id: bakerId,
+            name: null,
+            risk_factors: [{ count: 3 }],
+          },
+        ]);
+      }
+      if (url.pathname === '/rest/v1/organizations' && admin) {
+        return Response.json({
+          name: 'Serviciul Extern',
+          legal_name: 'SERVICIUL EXTERN S.R.L.',
+          cui: '76543210',
+          legal_representative_name: null,
+          risk_evaluator_name: 'Elena Marinescu',
+          fire_safety_technician_name: null,
+        });
+      }
+      if (url.pathname === '/rest/v1/organization_members' && admin) {
+        return Response.json([{ user_id: user.id }]);
+      }
+      if (url.pathname === '/rest/v1/evaluation_profiles') {
+        return Response.json([{ name: 'Șofer' }]);
+      }
+    };
+
+  it('shows the part with its sheets, their posts and the counts of sheets', async () => {
+    mockUpstream(({ url, admin }) => {
+      if (url.pathname === '/rest/v1/imports') return Response.json(importRow());
+      if (url.pathname === '/rest/v1/import_library_parts') {
+        return Response.json([partRow(), riskRow()]);
+      }
+      if (url.pathname === '/rest/v1/credit_entries' && admin) {
+        return Response.json([
+          { import_id: importId, kind: 'import_start', credits: -25, import_part: null },
+          {
+            import_id: importId,
+            kind: 'library_part',
+            credits: -15,
+            import_part: 'risk_evaluations',
+          },
+        ]);
+      }
+    });
+    const response = await request(parts);
+
+    expect(response.status).toBe(200);
+    const answer = (await response.json()) as { parts: Record<string, unknown>[] };
+    expect(answer.parts[1]).toMatchObject({
+      part: 'risk_evaluations',
+      status: 'to_review',
+      counts: { identical: 1, similar: 0, new: 2, unread: 0 },
+      postReferences: { Brutar: baker!.id, Șofer: driver!.id },
+      credits: 15,
+      changes: null,
+    });
+    expect(answer.parts[1]).not.toHaveProperty('domain');
+    expect(answer.parts[1]!.proposal).toEqual(risks);
+  });
+
+  it('saves the review of the sheets', async () => {
+    mockUpstream(({ url }) => {
+      if (url.pathname === '/rest/v1/import_library_parts') return Response.json(riskRow());
+      if (url.pathname === '/rest/v1/rpc/save_import_library_part_changes') return Response.json(4);
+    });
+    const changes = {
+      sheets: {
+        'sheet-1': {
+          libraryName: 'Brutar de noapte',
+          factors: { 'sheet-1.2': { probabilityClass: 4, included: true } },
+        },
+      },
+    };
+    const response = await request(`${parts}/risk_evaluations/changes`, 'PUT', {
+      version: 3,
+      changes,
+    });
+
+    expect(response.status).toBe(200);
+    expect(callsTo('/rest/v1/rpc/save_import_library_part_changes')[0]!.body).toEqual({
+      p_import_id: importId,
+      p_part: 'risk_evaluations',
+      p_expected_version: 3,
+      p_changes: changes,
+    });
+  });
+
+  it('refuses a sheet or a factor the proposal does not have, and another part’s changes', async () => {
+    mockUpstream(({ url }) =>
+      url.pathname === '/rest/v1/import_library_parts' ? Response.json(riskRow()) : undefined
+    );
+    const unknown = await request(`${parts}/risk_evaluations/changes`, 'PUT', {
+      version: 3,
+      changes: {
+        sheets: {
+          'sheet-9': { library: 'skip' },
+          'sheet-1': { library: 'use_existing', factors: { 'sheet-1.9': { included: false } } },
+        },
+      },
+    });
+    const instructions = await request(`${parts}/risk_evaluations/changes`, 'PUT', {
+      version: 3,
+      changes: { instructions: { 'instruction-1': { included: false } } },
+    });
+
+    expect(unknown.status).toBe(400);
+    expect(await unknown.json()).toMatchObject({
+      issues: [
+        { path: 'changes.sheets.sheet-9', message: 'unknown' },
+        { path: 'changes.sheets.sheet-1.factors.sheet-1.9', message: 'unknown' },
+        { path: 'changes.sheets.sheet-1.library', message: 'no_match' },
+      ],
+    });
+    expect(instructions.status).toBe(400);
+    expect(callsTo('/rest/v1/rpc/save_import_library_part_changes')).toEqual([]);
+  });
+
+  it('confirms the library entries and the client’s sheets in one call, as the member', async () => {
+    const changes = {
+      sheets: {
+        'sheet-1': {
+          postChoices: { [baker!.id]: 'append' },
+          factors: { 'sheet-1.2': { probabilityClass: 4, included: true } },
+        },
+        'sheet-3': { existingChoice: 'replace' },
+      },
+    };
+    mockUpstream(
+      confirmUpstream(riskRow({ changes }), ({ url }) =>
+        url.pathname === '/rest/v1/rpc/apply_risk_import'
+          ? Response.json({ created: [createdEntryId], evaluations: [evaluationId], factors: 5 })
+          : undefined
+      )
+    );
+    const response = await request(`${parts}/risk_evaluations/confirm`, 'POST', { version: 3 });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      createdProfileIds: [createdEntryId],
+      evaluationIds: [evaluationId],
+      factors: 5,
+    });
+    const rpc = callsTo('/rest/v1/rpc/apply_risk_import')[0]!;
+    expect(rpc.admin).toBe(false);
+    const { p_payload: payload, ...rest } = rpc.body as {
+      p_payload: {
+        entries: { key: string; name: string; factors: Record<string, unknown>[] }[];
+        evaluations: Record<string, unknown>[];
+      };
+    };
+    expect(rest).toEqual({
+      p_import_id: importId,
+      p_part: 'risk_evaluations',
+      p_expected_version: 3,
+    });
+    expect(payload.entries).toHaveLength(1);
+    expect(payload.entries[0]).toMatchObject({ key: 'sheet-1', name: 'Brutar (Brutăria Fictivă)' });
+    expect(
+      payload.entries[0]!.factors.map((each) => [
+        each.key,
+        each.probability_class,
+        each.responsible_person,
+      ])
+    ).toEqual([
+      ['sheet-1.1', 3, null],
+      ['sheet-1.2', 4, 'Administrator'],
+    ]);
+    expect(
+      payload.evaluations.map((each) => [
+        each.sheet,
+        each.kind,
+        each.job_position_id,
+        each.mode,
+        (each.factors as { source: unknown }[]).map((item) => item.source),
+      ])
+    ).toEqual([
+      [
+        'sheet-1',
+        'job_position',
+        bakerId,
+        'append',
+        [
+          { entry: 'sheet-1', factor: 'sheet-1.1' },
+          { entry: 'sheet-1', factor: 'sheet-1.2' },
+        ],
+      ],
+      ['sheet-2', 'job_position', driverId, 'append', [{ profile_factor_id: libraryFactorId }]],
+      ['sheet-3', 'sensitive_groups', null, 'replace', [null]],
+    ]);
+  });
+
+  it('leaves a post that already has factors as it is, unless the member chose', async () => {
+    mockUpstream(
+      confirmUpstream(riskRow(), ({ url }) =>
+        url.pathname === '/rest/v1/rpc/apply_risk_import'
+          ? Response.json({ created: [createdEntryId], evaluations: [], factors: 0 })
+          : undefined
+      )
+    );
+    const response = await request(`${parts}/risk_evaluations/confirm`, 'POST', { version: 3 });
+
+    expect(response.status).toBe(200);
+    const rpc = callsTo('/rest/v1/rpc/apply_risk_import')[0]!;
+    const sheets = (
+      rpc.body as { p_payload: { evaluations: { sheet: string }[] } }
+    ).p_payload.evaluations.map((each) => each.sheet);
+    expect(sheets).toEqual(['sheet-2', 'sheet-3']);
+  });
+
+  it('names an unticked factor ticked without its class, and confirms nothing', async () => {
+    const changes = { sheets: { 'sheet-1': { factors: { 'sheet-1.2': { included: true } } } } };
+    mockUpstream(confirmUpstream(riskRow({ changes })));
+    const response = await request(`${parts}/risk_evaluations/confirm`, 'POST', { version: 3 });
+
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({
+      reason: 'import_incomplete',
+      issues: [{ path: 'sheets.sheet-1.factors.sheet-1.2', message: 'incomplete' }],
+    });
+    expect(callsTo('/rest/v1/rpc/apply_risk_import')).toEqual([]);
+  });
+
+  it('names the sheet whose name an entry of the library has, archived ones included', async () => {
+    const changes = { sheets: { 'sheet-1': { libraryName: 'șofer ' } } };
+    mockUpstream(confirmUpstream(riskRow({ changes })));
+    const response = await request(`${parts}/risk_evaluations/confirm`, 'POST', { version: 3 });
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      reason: 'evaluation_profile_name_taken',
+      issues: [{ path: 'sheets.sheet-1.libraryName', message: 'taken' }],
+    });
+    expect(callsTo('/rest/v1/rpc/apply_risk_import')).toEqual([]);
+  });
+
+  it('answers a name taken since as taken', async () => {
+    mockUpstream(
+      confirmUpstream(riskRow(), ({ url }) =>
+        url.pathname === '/rest/v1/rpc/apply_risk_import'
+          ? Response.json(
+              {
+                code: 'ILP05',
+                message: 'The library already has an evaluation named Brutar.',
+                details: null,
+                hint: null,
+              },
+              { status: 400 }
+            )
+          : undefined
+      )
+    );
+    const response = await request(`${parts}/risk_evaluations/confirm`, 'POST', { version: 3 });
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ reason: 'evaluation_profile_name_taken' });
+  });
+
+  it('reads a failed part again with a message of its own', async () => {
+    mockUpstream(({ url }) => {
+      if (url.pathname === '/rest/v1/rpc/retry_import_library_part') return Response.json(2);
+      if (url.pathname === '/rest/v1/imports') return Response.json(importRow());
+      if (url.pathname === '/rest/v1/import_library_parts') {
+        return Response.json(riskRow({ status: 'reading', attempt: 2, proposal: null }));
+      }
+    });
+    const response = await request(`${parts}/risk_evaluations/retry`, 'POST');
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      part: { part: 'risk_evaluations', status: 'reading', attempt: 2, proposal: null },
+    });
+    expect(sent).toEqual([{ type: 'read-risks', importId, attempt: 2 }]);
   });
 });

@@ -213,7 +213,7 @@ function TaskContent({
           }),
       ]);
       toast.success(
-        result.createdModuleIds.length > 0
+        'createdModuleIds' in result && result.createdModuleIds.length > 0
           ? `Am adăugat ${instructionsLabel(result.createdModuleIds.length)} în bibliotecă.`
           : `Ai confirmat ${label}.`
       );

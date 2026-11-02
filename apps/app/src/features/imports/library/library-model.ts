@@ -11,13 +11,14 @@ import {
 import type {
   ImportLibraryPart,
   ImportLibraryPartsResponse,
+  InstructionsLibraryPart,
   InstructionsProposalInstructionsItem,
   InstructionsProposalPositionsItem,
   InstructionsProposalUnreadItem,
 } from '@/api/generated/api';
 import { roCount } from '@/features/employees/employee-format';
 
-export type LibraryPart = ImportLibraryPart & { part: PartName; domain: InstructionDomain };
+export type LibraryPart = InstructionsLibraryPart;
 export type LibraryPost = ImportLibraryPartsResponse['posts'][number];
 export type ProposedInstruction = InstructionsProposalInstructionsItem;
 export type ProposedPosition = InstructionsProposalPositionsItem;
@@ -48,7 +49,7 @@ export type LibraryChanges = { instructions: Record<string, InstructionChange> }
 
 // The risk evaluations' part has a review of its own.
 export const isInstructionsLibraryPart = (part: ImportLibraryPart): part is LibraryPart =>
-  isInstructionsPart(part.part) && part.domain !== null;
+  isInstructionsPart(part.part);
 
 export const partOfDomain: Record<InstructionDomain, PartName> = {
   ssm: 'instructions_ssm',

@@ -8450,6 +8450,7 @@ export type ImportUsageBySteps = {
   reading?: ImportModelUsage;
   scanning?: ImportModelUsage;
   instructions?: ImportModelUsage;
+  risks?: ImportModelUsage;
 };
 
 export interface ImportUsage {
@@ -8481,6 +8482,8 @@ export type ImportCredits = {
   scannedPages: number;
   /** @minimum 0 */
   ownInstructions: number;
+  /** @minimum 0 */
+  riskEvaluations: number;
   refunded: boolean;
 } | null;
 
@@ -11205,30 +11208,10 @@ export type ImportLibraryPartsResponsePostsItem = {
   jobPositionId: string | null;
 };
 
-export type ImportLibraryPartPart =
-  (typeof ImportLibraryPartPart)[keyof typeof ImportLibraryPartPart];
+export type InstructionsLibraryPartStatus =
+  (typeof InstructionsLibraryPartStatus)[keyof typeof InstructionsLibraryPartStatus];
 
-export const ImportLibraryPartPart = {
-  instructions_ssm: 'instructions_ssm',
-  instructions_su: 'instructions_su',
-  risk_evaluations: 'risk_evaluations',
-} as const;
-
-/**
- * @nullable
- */
-export type ImportLibraryPartDomain =
-  (typeof ImportLibraryPartDomain)[keyof typeof ImportLibraryPartDomain] | null;
-
-export const ImportLibraryPartDomain = {
-  ssm: 'ssm',
-  su: 'su',
-} as const;
-
-export type ImportLibraryPartStatus =
-  (typeof ImportLibraryPartStatus)[keyof typeof ImportLibraryPartStatus];
-
-export const ImportLibraryPartStatus = {
+export const InstructionsLibraryPartStatus = {
   reading: 'reading',
   to_review: 'to_review',
   nothing_new: 'nothing_new',
@@ -11236,10 +11219,26 @@ export const ImportLibraryPartStatus = {
   confirmed: 'confirmed',
 } as const;
 
-export type ImportLibraryPartChangesInstructionsCategory =
-  (typeof ImportLibraryPartChangesInstructionsCategory)[keyof typeof ImportLibraryPartChangesInstructionsCategory];
+export type InstructionsLibraryPartPart =
+  (typeof InstructionsLibraryPartPart)[keyof typeof InstructionsLibraryPartPart];
 
-export const ImportLibraryPartChangesInstructionsCategory = {
+export const InstructionsLibraryPartPart = {
+  instructions_ssm: 'instructions_ssm',
+  instructions_su: 'instructions_su',
+} as const;
+
+export type InstructionsLibraryPartDomain =
+  (typeof InstructionsLibraryPartDomain)[keyof typeof InstructionsLibraryPartDomain];
+
+export const InstructionsLibraryPartDomain = {
+  ssm: 'ssm',
+  su: 'su',
+} as const;
+
+export type InstructionsLibraryPartChangesInstructionsCategory =
+  (typeof InstructionsLibraryPartChangesInstructionsCategory)[keyof typeof InstructionsLibraryPartChangesInstructionsCategory];
+
+export const InstructionsLibraryPartChangesInstructionsCategory = {
   work_activity: 'work_activity',
   work_equipment: 'work_equipment',
   protective_equipment: 'protective_equipment',
@@ -11248,10 +11247,10 @@ export const ImportLibraryPartChangesInstructionsCategory = {
   hazardous_work: 'hazardous_work',
 } as const;
 
-export type ImportLibraryPartChangesInstructionsChoice =
-  (typeof ImportLibraryPartChangesInstructionsChoice)[keyof typeof ImportLibraryPartChangesInstructionsChoice];
+export type InstructionsLibraryPartChangesInstructionsChoice =
+  (typeof InstructionsLibraryPartChangesInstructionsChoice)[keyof typeof InstructionsLibraryPartChangesInstructionsChoice];
 
-export const ImportLibraryPartChangesInstructionsChoice = {
+export const InstructionsLibraryPartChangesInstructionsChoice = {
   use_existing: 'use_existing',
   add_new: 'add_new',
 } as const;
@@ -11528,60 +11527,10 @@ export type InstructionsProposal = {
   positions: InstructionsProposalPositionsItem[];
 } | null;
 
-export type ImportLibraryPartChangesInstructionsBodyBlocksItem =
-  | {
-      kind: 'heading';
-      /**
-       * @minLength 1
-       * @maxLength 300
-       */
-      text: string;
-    }
-  | {
-      kind: 'article';
-      /**
-       * @minItems 1
-       * @items.minLength 1
-       * @items.maxLength 20000
-       */
-      paragraphs: string[];
-    };
-
-export type ImportLibraryPartChangesInstructionsBody = {
-  blocks: ImportLibraryPartChangesInstructionsBodyBlocksItem[];
-};
-
-export type ImportLibraryPartChangesInstructions = {
-  [key: string]: {
-    included?: boolean;
-    /**
-     * @minLength 2
-     * @maxLength 200
-     */
-    title?: string;
-    category?: ImportLibraryPartChangesInstructionsCategory;
-    choice?: ImportLibraryPartChangesInstructionsChoice;
-    /**
-     * @maxItems 500
-     * @items.minLength 1
-     * @items.maxLength 100
-     */
-    posts?: string[];
-    body?: ImportLibraryPartChangesInstructionsBody;
-  };
-};
-
 /**
  * @nullable
  */
-export type ImportLibraryPartChanges = {
-  instructions?: ImportLibraryPartChangesInstructions;
-} | null;
-
-/**
- * @nullable
- */
-export type ImportLibraryPartCounts = {
+export type InstructionsLibraryPartCounts = {
   /** @minimum 0 */
   identical: number;
   /** @minimum 0 */
@@ -11592,62 +11541,7 @@ export type ImportLibraryPartCounts = {
   unread: number;
 } | null;
 
-export type ImportLibraryPartPositionPosts = { [key: string]: string | null };
-
-export interface ImportLibraryPart {
-  part: ImportLibraryPartPart;
-  /** @nullable */
-  domain: ImportLibraryPartDomain;
-  status: ImportLibraryPartStatus;
-  /** @minimum 1 */
-  attempt: number;
-  /** @nullable */
-  failureReason: string | null;
-  /** @minimum 0 */
-  version: number;
-  /** @nullable */
-  changes: ImportLibraryPartChanges;
-  /** @nullable */
-  counts: ImportLibraryPartCounts;
-  positionPosts: ImportLibraryPartPositionPosts;
-  /** @nullable */
-  readAt: string | null;
-  /** @nullable */
-  confirmedAt: string | null;
-  /** @nullable */
-  expiresAt: string | null;
-  /** @minimum 0 */
-  credits: number;
-  usage?: ImportModelUsage;
-  proposal: InstructionsProposal | null;
-}
-
-export interface ImportLibraryPartsResponse {
-  parts: ImportLibraryPart[];
-  posts: ImportLibraryPartsResponsePostsItem[];
-}
-
-export type SaveImportLibraryPartChangesRequestChangesInstructionsCategory =
-  (typeof SaveImportLibraryPartChangesRequestChangesInstructionsCategory)[keyof typeof SaveImportLibraryPartChangesRequestChangesInstructionsCategory];
-
-export const SaveImportLibraryPartChangesRequestChangesInstructionsCategory = {
-  work_activity: 'work_activity',
-  work_equipment: 'work_equipment',
-  protective_equipment: 'protective_equipment',
-  premises_activity: 'premises_activity',
-  installation_equipment: 'installation_equipment',
-  hazardous_work: 'hazardous_work',
-} as const;
-
-export type SaveImportLibraryPartChangesRequestChangesInstructionsChoice =
-  (typeof SaveImportLibraryPartChangesRequestChangesInstructionsChoice)[keyof typeof SaveImportLibraryPartChangesRequestChangesInstructionsChoice];
-
-export const SaveImportLibraryPartChangesRequestChangesInstructionsChoice = {
-  use_existing: 'use_existing',
-  add_new: 'add_new',
-} as const;
-
-export type SaveImportLibraryPartChangesRequestChangesInstructionsBodyBlocksItem =
+export type InstructionsLibraryPartChangesInstructionsBodyBlocksItem =
   | {
       kind: 'heading';
       /**
@@ -11666,11 +11560,11 @@ export type SaveImportLibraryPartChangesRequestChangesInstructionsBodyBlocksItem
       paragraphs: string[];
     };
 
-export type SaveImportLibraryPartChangesRequestChangesInstructionsBody = {
-  blocks: SaveImportLibraryPartChangesRequestChangesInstructionsBodyBlocksItem[];
+export type InstructionsLibraryPartChangesInstructionsBody = {
+  blocks: InstructionsLibraryPartChangesInstructionsBodyBlocksItem[];
 };
 
-export type SaveImportLibraryPartChangesRequestChangesInstructions = {
+export type InstructionsLibraryPartChangesInstructions = {
   [key: string]: {
     included?: boolean;
     /**
@@ -11678,21 +11572,732 @@ export type SaveImportLibraryPartChangesRequestChangesInstructions = {
      * @maxLength 200
      */
     title?: string;
-    category?: SaveImportLibraryPartChangesRequestChangesInstructionsCategory;
-    choice?: SaveImportLibraryPartChangesRequestChangesInstructionsChoice;
+    category?: InstructionsLibraryPartChangesInstructionsCategory;
+    choice?: InstructionsLibraryPartChangesInstructionsChoice;
     /**
      * @maxItems 500
      * @items.minLength 1
      * @items.maxLength 100
      */
     posts?: string[];
-    body?: SaveImportLibraryPartChangesRequestChangesInstructionsBody;
+    body?: InstructionsLibraryPartChangesInstructionsBody;
   };
 };
 
-export type SaveImportLibraryPartChangesRequestChanges = {
-  instructions?: SaveImportLibraryPartChangesRequestChangesInstructions;
+/**
+ * @nullable
+ */
+export type InstructionsLibraryPartChanges = {
+  instructions?: InstructionsLibraryPartChangesInstructions;
+} | null;
+
+export type InstructionsLibraryPartPositionPosts = { [key: string]: string | null };
+
+export interface InstructionsLibraryPart {
+  status: InstructionsLibraryPartStatus;
+  /** @minimum 1 */
+  attempt: number;
+  /** @nullable */
+  failureReason: string | null;
+  /** @minimum 0 */
+  version: number;
+  /** @nullable */
+  counts: InstructionsLibraryPartCounts;
+  /** @nullable */
+  readAt: string | null;
+  /** @nullable */
+  confirmedAt: string | null;
+  /** @nullable */
+  expiresAt: string | null;
+  /** @minimum 0 */
+  credits: number;
+  usage?: ImportModelUsage;
+  part: InstructionsLibraryPartPart;
+  domain: InstructionsLibraryPartDomain;
+  /** @nullable */
+  changes: InstructionsLibraryPartChanges;
+  positionPosts: InstructionsLibraryPartPositionPosts;
+  proposal: InstructionsProposal | null;
+}
+
+export type RisksLibraryPartStatus =
+  (typeof RisksLibraryPartStatus)[keyof typeof RisksLibraryPartStatus];
+
+export const RisksLibraryPartStatus = {
+  reading: 'reading',
+  to_review: 'to_review',
+  nothing_new: 'nothing_new',
+  failed: 'failed',
+  confirmed: 'confirmed',
+} as const;
+
+export type RisksLibraryPartPart = (typeof RisksLibraryPartPart)[keyof typeof RisksLibraryPartPart];
+
+export const RisksLibraryPartPart = {
+  risk_evaluations: 'risk_evaluations',
+} as const;
+
+export type RisksLibraryPartChangesSheetsLibrary =
+  (typeof RisksLibraryPartChangesSheetsLibrary)[keyof typeof RisksLibraryPartChangesSheetsLibrary];
+
+export const RisksLibraryPartChangesSheetsLibrary = {
+  add: 'add',
+  use_existing: 'use_existing',
+  add_new: 'add_new',
+  skip: 'skip',
+} as const;
+
+export type RisksLibraryPartChangesSheetsExistingChoice =
+  (typeof RisksLibraryPartChangesSheetsExistingChoice)[keyof typeof RisksLibraryPartChangesSheetsExistingChoice];
+
+export const RisksLibraryPartChangesSheetsExistingChoice = {
+  append: 'append',
+  replace: 'replace',
+  keep: 'keep',
+} as const;
+
+export type RisksLibraryPartChangesSheetsFactorsComponent =
+  (typeof RisksLibraryPartChangesSheetsFactorsComponent)[keyof typeof RisksLibraryPartChangesSheetsFactorsComponent];
+
+export const RisksLibraryPartChangesSheetsFactorsComponent = {
+  executant: 'executant',
+  work_task: 'work_task',
+  means_of_production: 'means_of_production',
+  work_environment: 'work_environment',
+} as const;
+
+export type RisksLibraryPartChangesSheetsFactorsMeasuresItemKind =
+  (typeof RisksLibraryPartChangesSheetsFactorsMeasuresItemKind)[keyof typeof RisksLibraryPartChangesSheetsFactorsMeasuresItemKind];
+
+export const RisksLibraryPartChangesSheetsFactorsMeasuresItemKind = {
+  technical: 'technical',
+  organizational: 'organizational',
+  hygienic_sanitary: 'hygienic_sanitary',
+  other: 'other',
+} as const;
+
+export type RisksProposalSheetsItemKind =
+  (typeof RisksProposalSheetsItemKind)[keyof typeof RisksProposalSheetsItemKind];
+
+export const RisksProposalSheetsItemKind = {
+  job_position: 'job_position',
+  sensitive_groups: 'sensitive_groups',
+  other: 'other',
+} as const;
+
+/**
+ * @nullable
+ */
+export type RisksProposalSheetsItemPostsItemChoice =
+  | (typeof RisksProposalSheetsItemPostsItemChoice)[keyof typeof RisksProposalSheetsItemPostsItemChoice]
+  | null;
+
+export const RisksProposalSheetsItemPostsItemChoice = {
+  append: 'append',
+  replace: 'replace',
+  keep: 'keep',
+} as const;
+
+/**
+ * @nullable
+ */
+export type RisksProposalSheetsItemExistingChoice =
+  | (typeof RisksProposalSheetsItemExistingChoice)[keyof typeof RisksProposalSheetsItemExistingChoice]
+  | null;
+
+export const RisksProposalSheetsItemExistingChoice = {
+  append: 'append',
+  replace: 'replace',
+  keep: 'keep',
+} as const;
+
+/**
+ * @nullable
+ */
+export type RisksProposalSheetsItemStatus =
+  (typeof RisksProposalSheetsItemStatus)[keyof typeof RisksProposalSheetsItemStatus] | null;
+
+export const RisksProposalSheetsItemStatus = {
+  identical: 'identical',
+  similar: 'similar',
+  new: 'new',
+} as const;
+
+/**
+ * @nullable
+ */
+export type RisksProposalSheetsItemChoice =
+  (typeof RisksProposalSheetsItemChoice)[keyof typeof RisksProposalSheetsItemChoice] | null;
+
+export const RisksProposalSheetsItemChoice = {
+  add: 'add',
+  use_existing: 'use_existing',
+  add_new: 'add_new',
+  skip: 'skip',
+} as const;
+
+/**
+ * @nullable
+ */
+export type RisksProposalSheetsItemFactorsItemComponent =
+  | (typeof RisksProposalSheetsItemFactorsItemComponent)[keyof typeof RisksProposalSheetsItemFactorsItemComponent]
+  | null;
+
+export const RisksProposalSheetsItemFactorsItemComponent = {
+  executant: 'executant',
+  work_task: 'work_task',
+  means_of_production: 'means_of_production',
+  work_environment: 'work_environment',
+} as const;
+
+export type RisksProposalSheetsItemFactorsItemMeasuresItemKind =
+  (typeof RisksProposalSheetsItemFactorsItemMeasuresItemKind)[keyof typeof RisksProposalSheetsItemFactorsItemMeasuresItemKind];
+
+export const RisksProposalSheetsItemFactorsItemMeasuresItemKind = {
+  technical: 'technical',
+  organizational: 'organizational',
+  hygienic_sanitary: 'hygienic_sanitary',
+  other: 'other',
+} as const;
+
+/**
+ * @nullable
+ */
+export type RisksProposalSheetsItemFactorsItemMeasuresFrom =
+  | (typeof RisksProposalSheetsItemFactorsItemMeasuresFrom)[keyof typeof RisksProposalSheetsItemFactorsItemMeasuresFrom]
+  | null;
+
+export const RisksProposalSheetsItemFactorsItemMeasuresFrom = {
+  plan: 'plan',
+  sheet: 'sheet',
+} as const;
+
+/**
+ * @nullable
+ */
+export type RisksProposalSheetsItemRows = {
+  first: string;
+  last: string;
+} | null;
+
+export type RisksProposalSheetsItemFlagsItem =
+  | {
+      kind: 'quote_not_found';
+      field: 'meansOfProduction' | 'workEnvironment' | 'exposure';
+    }
+  | {
+      kind: 'text_cut';
+      field: 'meansOfProduction' | 'workEnvironment' | 'exposure';
+    }
+  | {
+      kind: 'file_not_found';
+    }
+  | {
+      kind: 'rows_not_found';
+    }
+  | {
+      kind: 'no_factors';
+    };
+
+export type RisksProposalSheetsItemPostsItem = {
+  name: string;
+  existingFactors: number;
+  /** @nullable */
+  choice: RisksProposalSheetsItemPostsItemChoice;
 };
+
+/**
+ * @nullable
+ */
+export type RisksProposalSheetsItemExisting = {
+  factors: number;
+  /** @nullable */
+  choice: RisksProposalSheetsItemExistingChoice;
+} | null;
+
+export type RisksProposalSheetsItemMatchPairsItem = {
+  factor: string;
+  libraryFactor: string;
+  similarity: number;
+  otherClasses: boolean;
+  otherMeasures: boolean;
+};
+
+/**
+ * @nullable
+ */
+export type RisksProposalSheetsItemMatch = {
+  evaluationId: string;
+  name: string;
+  share: number;
+  pairs: RisksProposalSheetsItemMatchPairsItem[];
+  onlyInPack: string[];
+  onlyInLibrary: string[];
+} | null;
+
+/**
+ * @nullable
+ */
+export type RisksProposalSheetsItemFactorsItemSource = {
+  file: string;
+  start: number;
+  end: number;
+} | null;
+
+export type RisksProposalSheetsItemFactorsItemMeasuresItem = {
+  kind: RisksProposalSheetsItemFactorsItemMeasuresItemKind;
+  description: string;
+};
+
+export type RisksProposalSheetsItemFactorsItemFlagsItem =
+  | {
+      kind: 'level_mismatch';
+      printed: number;
+      grid: number;
+    }
+  | {
+      kind: 'consequence_mismatch';
+      consequence: string;
+      consequenceClass: number;
+    }
+  | {
+      kind: 'class_missing';
+      field: 'gravity' | 'probability';
+      written: string;
+    }
+  | {
+      kind: 'unknown_component';
+      written: string;
+    }
+  | {
+      kind: 'missing_group';
+    }
+  | {
+      kind: 'row_shape';
+      cells: number;
+      expected: number;
+    }
+  | {
+      kind: 'retyped';
+    }
+  | {
+      kind: 'quote_not_found';
+    }
+  | {
+      kind: 'person_named';
+      field: 'actions' | 'deadline' | 'responsiblePerson' | 'observations';
+      text: string;
+    }
+  | {
+      kind: 'measure_kind_guessed';
+    }
+  | {
+      kind: 'measures_cut';
+      count: number;
+    };
+
+export type RisksProposalSheetsItemFactorsItem = {
+  key: string;
+  /** @nullable */
+  row: string | null;
+  /** @nullable */
+  source: RisksProposalSheetsItemFactorsItemSource;
+  /** @nullable */
+  component: RisksProposalSheetsItemFactorsItemComponent;
+  writtenComponent: string;
+  group: string;
+  description: string;
+  /** @nullable */
+  code: string | null;
+  consequence: string;
+  /** @nullable */
+  gravityClass: number | null;
+  /** @nullable */
+  probabilityClass: number | null;
+  /** @nullable */
+  printedLevel: number | null;
+  measures: RisksProposalSheetsItemFactorsItemMeasuresItem[];
+  /** @nullable */
+  measuresFrom: RisksProposalSheetsItemFactorsItemMeasuresFrom;
+  /** @nullable */
+  actions: string | null;
+  /** @nullable */
+  deadline: string | null;
+  /** @nullable */
+  responsiblePerson: string | null;
+  /** @nullable */
+  observations: string | null;
+  flags: RisksProposalSheetsItemFactorsItemFlagsItem[];
+  included: boolean;
+  /** @nullable */
+  level: number | null;
+};
+
+export type RisksProposalSheetsItem = {
+  key: string;
+  file: string;
+  heading: string;
+  kind: RisksProposalSheetsItemKind;
+  name: string;
+  /** @nullable */
+  rows: RisksProposalSheetsItemRows;
+  /** @nullable */
+  meansOfProduction: string | null;
+  /** @nullable */
+  workEnvironment: string | null;
+  /** @nullable */
+  exposure: string | null;
+  flags: RisksProposalSheetsItemFlagsItem[];
+  posts: RisksProposalSheetsItemPostsItem[];
+  undecided: boolean;
+  /** @nullable */
+  existing: RisksProposalSheetsItemExisting;
+  libraryName: string;
+  /** @nullable */
+  status: RisksProposalSheetsItemStatus;
+  /** @nullable */
+  match: RisksProposalSheetsItemMatch;
+  /** @nullable */
+  choice: RisksProposalSheetsItemChoice;
+  sameAs: string[];
+  /** @nullable */
+  copyOf: string | null;
+  factors: RisksProposalSheetsItemFactorsItem[];
+};
+
+export type RisksProposalUnplacedRowsItem = {
+  row: string;
+  file: string;
+  text: string;
+};
+
+export type RisksProposalUnmatchedPlanRowsItem = {
+  row: string;
+  file: string;
+  text: string;
+  post: string;
+  risk: string;
+};
+
+export type RisksProposalUnmatchedMeasureRowsItem = {
+  row: string;
+  file: string;
+  text: string;
+};
+
+/**
+ * @nullable
+ */
+export type RisksProposal = {
+  sheets: RisksProposalSheetsItem[];
+  unplacedRows: RisksProposalUnplacedRowsItem[];
+  unmatchedPlanRows: RisksProposalUnmatchedPlanRowsItem[];
+  unmatchedMeasureRows: RisksProposalUnmatchedMeasureRowsItem[];
+} | null;
+
+/**
+ * @nullable
+ */
+export type RisksLibraryPartCounts = {
+  /** @minimum 0 */
+  identical: number;
+  /** @minimum 0 */
+  similar: number;
+  /** @minimum 0 */
+  new: number;
+  /** @minimum 0 */
+  unread: number;
+} | null;
+
+export type RisksLibraryPartChangesSheetsPostChoices = {
+  [key: string]: 'append' | 'replace' | 'keep';
+};
+
+export type RisksLibraryPartChangesSheetsFactorsMeasuresItem = {
+  kind: RisksLibraryPartChangesSheetsFactorsMeasuresItemKind;
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   */
+  description: string;
+};
+
+export type RisksLibraryPartChangesSheetsFactors = {
+  [key: string]: {
+    included?: boolean;
+    component?: RisksLibraryPartChangesSheetsFactorsComponent;
+    /**
+     * @minLength 1
+     * @maxLength 200
+     */
+    group?: string;
+    /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+    description?: string;
+    /**
+     * @minimum 1
+     * @maximum 7
+     */
+    gravityClass?: number;
+    /**
+     * @minimum 1
+     * @maximum 6
+     */
+    probabilityClass?: number;
+    /** @maxItems 30 */
+    measures?: RisksLibraryPartChangesSheetsFactorsMeasuresItem[];
+    /**
+     * @minLength 1
+     * @maxLength 2000
+     * @nullable
+     */
+    actions?: string | null;
+    /**
+     * @minLength 1
+     * @maxLength 200
+     * @nullable
+     */
+    deadline?: string | null;
+    /**
+     * @minLength 1
+     * @maxLength 200
+     * @nullable
+     */
+    responsiblePerson?: string | null;
+    /**
+     * @minLength 1
+     * @maxLength 1000
+     * @nullable
+     */
+    observations?: string | null;
+  };
+};
+
+export type RisksLibraryPartChangesSheets = {
+  [key: string]: {
+    /**
+     * @minLength 2
+     * @maxLength 160
+     */
+    libraryName?: string;
+    library?: RisksLibraryPartChangesSheetsLibrary;
+    /**
+     * @maxItems 500
+     * @items.minLength 1
+     * @items.maxLength 100
+     */
+    posts?: string[];
+    postChoices?: RisksLibraryPartChangesSheetsPostChoices;
+    existingChoice?: RisksLibraryPartChangesSheetsExistingChoice;
+    /**
+     * @minLength 1
+     * @maxLength 2000
+     * @nullable
+     */
+    meansOfProduction?: string | null;
+    /**
+     * @minLength 1
+     * @maxLength 2000
+     * @nullable
+     */
+    workEnvironment?: string | null;
+    /**
+     * @minLength 1
+     * @maxLength 120
+     */
+    exposure?: string;
+    factors?: RisksLibraryPartChangesSheetsFactors;
+  };
+};
+
+/**
+ * @nullable
+ */
+export type RisksLibraryPartChanges = {
+  sheets?: RisksLibraryPartChangesSheets;
+} | null;
+
+export type RisksLibraryPartPostReferences = { [key: string]: string | null };
+
+export interface RisksLibraryPart {
+  status: RisksLibraryPartStatus;
+  /** @minimum 1 */
+  attempt: number;
+  /** @nullable */
+  failureReason: string | null;
+  /** @minimum 0 */
+  version: number;
+  /** @nullable */
+  counts: RisksLibraryPartCounts;
+  /** @nullable */
+  readAt: string | null;
+  /** @nullable */
+  confirmedAt: string | null;
+  /** @nullable */
+  expiresAt: string | null;
+  /** @minimum 0 */
+  credits: number;
+  usage?: ImportModelUsage;
+  part: RisksLibraryPartPart;
+  /** @nullable */
+  changes: RisksLibraryPartChanges;
+  postReferences: RisksLibraryPartPostReferences;
+  proposal: RisksProposal | null;
+}
+
+export type ImportLibraryPart = InstructionsLibraryPart | RisksLibraryPart;
+
+export interface ImportLibraryPartsResponse {
+  parts: ImportLibraryPart[];
+  posts: ImportLibraryPartsResponsePostsItem[];
+}
+
+export type SaveImportLibraryPartChangesRequestChanges =
+  | {
+      instructions?: {
+        [key: string]: {
+          included?: boolean;
+          /**
+           * @minLength 2
+           * @maxLength 200
+           */
+          title?: string;
+          category?:
+            | 'work_activity'
+            | 'work_equipment'
+            | 'protective_equipment'
+            | 'premises_activity'
+            | 'installation_equipment'
+            | 'hazardous_work';
+          choice?: 'use_existing' | 'add_new';
+          /**
+           * @maxItems 500
+           * @items.minLength 1
+           * @items.maxLength 100
+           */
+          posts?: string[];
+          body?: {
+            blocks: (
+              | {
+                  kind: 'heading';
+                  /**
+                   * @minLength 1
+                   * @maxLength 300
+                   */
+                  text: string;
+                }
+              | {
+                  kind: 'article';
+                  /**
+                   * @minItems 1
+                   * @items.minLength 1
+                   * @items.maxLength 20000
+                   */
+                  paragraphs: string[];
+                }
+            )[];
+          };
+        };
+      };
+    }
+  | {
+      sheets?: {
+        [key: string]: {
+          /**
+           * @minLength 2
+           * @maxLength 160
+           */
+          libraryName?: string;
+          library?: 'add' | 'use_existing' | 'add_new' | 'skip';
+          /**
+           * @maxItems 500
+           * @items.minLength 1
+           * @items.maxLength 100
+           */
+          posts?: string[];
+          postChoices?: { [key: string]: 'append' | 'replace' | 'keep' };
+          existingChoice?: 'append' | 'replace' | 'keep';
+          /**
+           * @minLength 1
+           * @maxLength 2000
+           * @nullable
+           */
+          meansOfProduction?: string | null;
+          /**
+           * @minLength 1
+           * @maxLength 2000
+           * @nullable
+           */
+          workEnvironment?: string | null;
+          /**
+           * @minLength 1
+           * @maxLength 120
+           */
+          exposure?: string;
+          factors?: {
+            [key: string]: {
+              included?: boolean;
+              component?: 'executant' | 'work_task' | 'means_of_production' | 'work_environment';
+              /**
+               * @minLength 1
+               * @maxLength 200
+               */
+              group?: string;
+              /**
+               * @minLength 1
+               * @maxLength 1000
+               */
+              description?: string;
+              /**
+               * @minimum 1
+               * @maximum 7
+               */
+              gravityClass?: number;
+              /**
+               * @minimum 1
+               * @maximum 6
+               */
+              probabilityClass?: number;
+              /** @maxItems 30 */
+              measures?: {
+                kind: 'technical' | 'organizational' | 'hygienic_sanitary' | 'other';
+                /**
+                 * @minLength 1
+                 * @maxLength 2000
+                 */
+                description: string;
+              }[];
+              /**
+               * @minLength 1
+               * @maxLength 2000
+               * @nullable
+               */
+              actions?: string | null;
+              /**
+               * @minLength 1
+               * @maxLength 200
+               * @nullable
+               */
+              deadline?: string | null;
+              /**
+               * @minLength 1
+               * @maxLength 200
+               * @nullable
+               */
+              responsiblePerson?: string | null;
+              /**
+               * @minLength 1
+               * @maxLength 1000
+               * @nullable
+               */
+              observations?: string | null;
+            };
+          };
+        };
+      };
+    };
 
 export interface SaveImportLibraryPartChangesRequest {
   /** @minimum 0 */
@@ -11700,12 +12305,22 @@ export interface SaveImportLibraryPartChangesRequest {
   changes: SaveImportLibraryPartChangesRequestChanges;
 }
 
-export interface ConfirmImportLibraryPartResponse {
+export interface ConfirmInstructionsPartResponse {
   createdModuleIds: string[];
   usedModuleIds: string[];
   /** @minimum 0 */
   links: number;
 }
+
+export interface ConfirmRisksPartResponse {
+  createdProfileIds: string[];
+  evaluationIds: string[];
+  /** @minimum 0 */
+  factors: number;
+}
+
+export type ConfirmImportLibraryPartResponse =
+  ConfirmInstructionsPartResponse | ConfirmRisksPartResponse;
 
 export interface ConfirmImportLibraryPartRequest {
   /** @minimum 0 */
@@ -35639,7 +36254,7 @@ export const getListImportLibraryPartsUrl = (importId: string) => {
 };
 
 /**
- * One part per domain whose own instructions the sorting found (ADR 034), `instructions_ssm` and `instructions_su`, each read by a request of its own once the client proposal is ready: its status (`reading`, `to_review`, `nothing_new`, `failed` with `failureReason`, `confirmed`), the proposal from `to_review` on (null before, and once dropped with the import's, 30 days after the client), the member's changes and the version to save on, the counts of identical, similar, new and unread instructions, `positionPosts` (the client post each post the themes name is, as the changes name posts), `expiresAt` (14 days after the client's confirmation, past which a part is no longer confirmed), and `credits`, its readings net of those given back. `posts` are the posts an instruction can apply to: the client proposal's, by their id, with the job position each became once the client is confirmed, and the client's other active posts by their id. `usage`, the models' cost at list price and tokens, is served outside production and, in production, only to a platform admin. An empty list for an employee import or a pack without own instructions.
+ * One part per domain whose own instructions the sorting found (ADR 034), `instructions_ssm` and `instructions_su`, and `risk_evaluations` when it found a risk assessment (ADR 036), each read by a request of its own once the client proposal is ready: its status (`reading`, `to_review`, `nothing_new`, `failed` with `failureReason`, `confirmed`), the proposal from `to_review` on (null before, and once dropped with the import's, 30 days after the client), the member's changes and the version to save on, the counts of identical, similar, new and unread instructions, `positionPosts` (the client post each post the themes name is, as the changes name posts), `expiresAt` (14 days after the client's confirmation, past which a part is no longer confirmed), and `credits`, its readings net of those given back. `posts` are the posts an instruction can apply to: the client proposal's, by their id, with the job position each became once the client is confirmed, and the client's other active posts by their id. The risk evaluations' part, discriminated by `part`, has no `domain`; its proposal is a `RisksProposal`, its changes are by sheet, its counts are of sheets (`unread`, those with no factor read), and `postReferences` gives, by a post's name as the sheets write it, the client post it is, as the changes name posts. `usage`, the models' cost at list price and tokens, is served outside production and, in production, only to a platform admin. An empty list for an employee import or a pack with neither own instructions nor a risk assessment.
  * @summary A client import's proposals for the library
  */
 export const listImportLibraryParts = async (
@@ -35779,7 +36394,7 @@ export const getSaveImportLibraryPartChangesUrl = (
 };
 
 /**
- * Replaces the part's changes, by the proposed instruction's key: `included` false leaves it out, `title`, `category` (one of the part's domain), `choice` for a similar instruction (`use_existing` or `add_new`), `posts` in place of those the themes give, and `body`, the text edited, held to the body's schema. Before the client is confirmed too. On the `version` the caller read, and answers the next. `400` for a key the proposal does not have or a category of the other domain; `409` with `import_changed` when someone saved since, `import_part_not_ready` when the part is not `to_review` or `nothing_new`, `import_part_expired` 14 days after the client's confirmation.
+ * Replaces the part's changes. An instructions part's are by the proposed instruction's key: `included` false leaves it out, `title`, `category` (one of the part's domain), `choice` for a similar instruction (`use_existing` or `add_new`), `posts` in place of those the themes give, and `body`, the text edited, held to the body's schema. The risk evaluations' are `sheets`, by the sheet's key (`RiskImportChanges`): `libraryName`, `library` (`add`, `use_existing`, `add_new`, `skip`), `posts`, `postChoices` and `existingChoice` (`append`, `replace`, `keep`), the three texts, and `factors` by the factor's key. Before the client is confirmed too. On the `version` the caller read, and answers the next. `400` for a key the proposal does not have, a category of the other domain, `use_existing` for a sheet the library matched none of, or another part's changes; `409` with `import_changed` when someone saved since, `import_part_not_ready` when the part is not `to_review` or `nothing_new`, `import_part_expired` 14 days after the client's confirmation.
  * @summary Save the member's review of a library part
  */
 export const saveImportLibraryPartChanges = async (
@@ -35899,7 +36514,7 @@ export const getConfirmImportLibraryPartUrl = (
 };
 
 /**
- * In one transaction (`apply_instruction_import`): creates a module with its first version for every new instruction and every similar one the member chose to add as new, takes the identical ones and the similar ones kept as they are, and applies each to its posts, skipping a post that applies it already, all as the member. Only after the client is confirmed: `409` with `import_client_unconfirmed` before (the app says "Confirmă întâi clientul"). The client import's own confirm never waits for its parts. `409` with `import_part_expired` 14 days after the client's confirmation, `import_part_not_ready`, `import_changed`, `instruction_title_taken` when a new module's title is an active module's (with `issues` on `instructions.<key>.title`), or `import_outdated` when a post or module the review named is gone. `422` with `import_incomplete` for a category of the other domain.
+ * For the risk evaluations, in one transaction (`apply_risk_import`): creates the chosen library entries with their factors, measures, plan fields as defaults (a person named in one goes to the client only) and texts, creates each missing evaluation of the client, fills only its empty texts, and writes the reviewed factors onto each sheet's posts as the post's choice says, each pointing at the entry's factor it was added to or matched; it answers `createdProfileIds`, `evaluationIds` and `factors`. `409` with `evaluation_profile_name_taken` when a new entry's name is any entry's, archived ones included (with `issues` on `sheets.<key>.libraryName`); `422` with `import_incomplete` for a ticked factor without its component or classes (with `issues` on `sheets.<key>.factors.<key>`). For instructions, in one transaction (`apply_instruction_import`): creates a module with its first version for every new instruction and every similar one the member chose to add as new, takes the identical ones and the similar ones kept as they are, and applies each to its posts, skipping a post that applies it already, all as the member. Only after the client is confirmed: `409` with `import_client_unconfirmed` before (the app says "Confirmă întâi clientul"). The client import's own confirm never waits for its parts. `409` with `import_part_expired` 14 days after the client's confirmation, `import_part_not_ready`, `import_changed`, `instruction_title_taken` when a new module's title is an active module's (with `issues` on `instructions.<key>.title`), or `import_outdated` when a post or module the review named is gone. `422` with `import_incomplete` for a category of the other domain.
  * @summary Confirm a library part
  */
 export const confirmImportLibraryPart = async (
@@ -36021,7 +36636,7 @@ export const getRetryImportLibraryPartUrl = (
 };
 
 /**
- * "Citește din nou": a `failed` part of an import ready for review or confirmed goes back to `reading` under its next `attempt` and its message is sent again; the reading is charged again when its request is sent (25 credits for SSM, 10 for SU), and given back if it fails. The client proposal and the other part are untouched. `409` with `import_part_expired` 14 days after the client was confirmed, when it could no longer be confirmed, and `import_part_not_failed` otherwise; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.
+ * "Citește din nou": a `failed` part of an import ready for review or confirmed goes back to `reading` under its next `attempt` and its message is sent again; the reading is charged again when its request is sent (25 credits for SSM, 10 for SU, 15 for the risk evaluations), and given back if it fails. The client proposal and the other part are untouched. `409` with `import_part_expired` 14 days after the client was confirmed, when it could no longer be confirmed, and `import_part_not_failed` otherwise; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.
  * @summary Read a failed library part again
  */
 export const retryImportLibraryPart = async (
