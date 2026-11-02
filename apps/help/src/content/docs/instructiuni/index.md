@@ -58,6 +58,16 @@ Apeși **Scrie o instrucțiune**, alegi titlul, categoria și domeniul, apoi de 
 
 Structura propusă împarte textul în secțiunile potrivite categoriei. La _Echipamente de muncă_, de exemplu: Domeniul de aplicare, Cine îl poate folosi, Verificări înainte de pornire, În timpul utilizării, Oprire, curățare și întreținere, Ce faci la o defecțiune, Echipament de protecție necesar, Acțiuni interzise, Situații de urgență. Secțiunile sunt o propunere: le poți redenumi, muta sau șterge.
 
+Fiecare secțiune e un card. Sus e titlul ei, pe care îl schimbi direct, și câte articole are; dedesubt sunt articolele, fiecare cu numărul lui. Articolele se numerotează de la 1 în toată instrucțiunea, după locul lor; un articol încă necompletat apare ca „Articol nou” și nu primește număr.
+
+- **Meniul secțiunii**, cele trei puncte de lângă titlu, mută secțiunea mai sus sau mai jos cu toate articolele ei, adaugă o secțiune dedesubt sau o șterge. Dacă ai șters o secțiune din greșeală, apeși **Anulează** în mesajul care apare.
+- **Meniul articolului**, cele trei puncte de lângă articol, îl mută mai sus sau mai jos, adaugă un articol dedesubt sau îl șterge. Cu **Începe o secțiune după acest articol**, articolele de sub el trec într-o secțiune nouă, căreia îi scrii titlul.
+- **Articol nou**, sub articolele unei secțiuni, adaugă unul la sfârșitul ei. **Adaugă o secțiune**, după ultima secțiune, adaugă una la sfârșitul instrucțiunii.
+
+O secțiune în care nu ai scris niciun articol are marginea punctată și eticheta **Goală: nu se tipărește**. Cardul ei arată ce să scrii acolo, cu butoanele **Scrie primul articol** și, unde avem un model, **Arată un exemplu**.
+
+Cât timp instrucțiunea nu are niciun articol, deasupra secțiunilor apare „Ai deja textul într-un document?”, cu butonul **Lipește text**: textul se împarte în articole, pe secțiuni, ca la [Lipește text](#lipește-text).
+
 - **Textul gri** din fiecare căsuță e un îndemn: spune ce să scrii acolo. Nu se salvează și nu se tipărește, iar o secțiune lăsată goală nu apare în anexă.
 - **Arată un exemplu** pune în secțiune un articol scris de noi, ca model. Îl adaptezi sau îl ștergi.
 - Fiecare rând dintr-un articol e un paragraf. Un rând care începe cu „a)”, „1.”, „–” sau „•” se tipărește ca punct al unei enumerări.

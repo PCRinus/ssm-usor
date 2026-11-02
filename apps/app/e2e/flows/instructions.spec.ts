@@ -38,14 +38,24 @@ test('an occupational safety module is written from its guided template, saved i
 
   await startModule(page, 'Polizor unghiular', 'work_equipment');
   await expect(page.getByTestId('instruction-heading-text')).toHaveCount(9);
-  await expect(articles(page).first()).toHaveAttribute(
-    'placeholder',
-    /^Ce echipament de muncă acoperă instrucțiunea/
+  await expect(page.getByTestId('instruction-paste-panel')).toBeVisible();
+  const scope = page.getByRole('region', { name: 'Domeniul de aplicare' });
+  await expect(scope.getByTestId('instruction-section-unprinted')).toHaveText(
+    'Goală: nu se tipărește'
   );
-  await page.getByTestId('instruction-show-example').first().click();
+  await expect(scope.getByTestId('instruction-section-empty')).toContainText(
+    /Ce echipament de muncă acoperă instrucțiunea/
+  );
+  await scope.getByTestId('instruction-show-example').click();
   await expect(articles(page).first()).toHaveValue(/^Prezenta instrucțiune se aplică/);
+  await expect(page.getByTestId('instruction-paste-panel')).toBeHidden();
+  await page
+    .getByRole('region', { name: 'Verificări înainte de pornire' })
+    .getByTestId('instruction-section-write-first')
+    .click();
+  await expect(articles(page).nth(1)).toBeFocused();
   await articles(page)
-    .nth(2)
+    .nth(1)
     .fill('Lucrătorul verifică discul și apărătoarea.\na) discul nu are fisuri;');
   await expect(page.getByTestId('instruction-form-facts')).toHaveText(
     'SSM · Echipamente de muncă · 2 articole'
@@ -142,6 +152,9 @@ test('a fire-safety module takes a fire-safety category and is grouped by it in 
   await startModule(page, 'Birouri', 'premises_activity');
   await expect(page.getByTestId('instruction-acts')).toContainText('Legea nr. 307/2006');
   await page.getByTestId('instruction-show-example').nth(4).click();
+  await page.getByRole('button', { name: 'Acțiuni pentru Art. 1' }).click();
+  await page.getByTestId('instruction-article-add').click();
+  await expect(articles(page).nth(1)).toBeFocused();
   await page.getByTestId('editor-save').click();
   await expect(page.getByTestId('editor-state')).toHaveText('Versiunea 1');
   await expect(page.getByTestId('instruction-form-facts')).toHaveText(

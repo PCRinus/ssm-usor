@@ -1,16 +1,27 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  addSection,
   articleBlock,
   articleNumbers,
   clientPatterns,
   clientsNamedIn,
+  type DraftBlock,
   draftBody,
+  draftSections,
   headingBlock,
+  insertHeadingAfter,
+  moveSection,
+  printedIds,
+  removeSection,
   restoreBlock,
+  restoreBlocks,
   templateBlocks,
   withExample,
 } from './instruction-draft';
+
+const texts = (blocks: readonly DraftBlock[]) =>
+  blocks.map((block) => (block.kind === 'heading' ? `# ${block.text}` : block.text));
 
 describe('draftBody', () => {
   it('drops empty articles and the sections left empty, and keeps a chapter over its sections', () => {
@@ -40,6 +51,105 @@ describe('draftBody', () => {
     const again = withExample(filled, blocks[0]!.id);
     expect(again).toHaveLength(blocks.length + 1);
     expect(again[2]).toMatchObject({ kind: 'article', text: filled[1]!.text });
+  });
+});
+
+describe('sections', () => {
+  const ladder = () => [
+    articleBlock('fără secțiune'),
+    headingBlock('A'),
+    articleBlock('a1'),
+    articleBlock('a2'),
+    headingBlock('B'),
+    articleBlock('b1'),
+    headingBlock('C'),
+  ];
+
+  it('groups the blocks under their headings, the articles before the first one apart', () => {
+    expect(
+      draftSections(ladder()).map(({ heading, articles }) => [
+        heading?.text ?? null,
+        articles.map((article) => article.text),
+      ])
+    ).toEqual([
+      [null, ['fără secțiune']],
+      ['A', ['a1', 'a2']],
+      ['B', ['b1']],
+      ['C', []],
+    ]);
+  });
+
+  it('moves a section with its articles, never above the articles without one', () => {
+    const blocks = ladder();
+    expect(texts(moveSection(blocks, blocks[4]!.id, -1))).toEqual([
+      'fără secțiune',
+      '# B',
+      'b1',
+      '# A',
+      'a1',
+      'a2',
+      '# C',
+    ]);
+    expect(texts(moveSection(blocks, blocks[1]!.id, -1))).toEqual(texts(blocks));
+    expect(texts(moveSection(blocks, blocks[6]!.id, 1))).toEqual(texts(blocks));
+  });
+
+  it('removes a section with its articles and puts it back where it was', () => {
+    const blocks = ladder();
+    const { blocks: rest, removed, neighbours } = removeSection(blocks, blocks[1]!.id);
+    expect(texts(rest)).toEqual(['fără secțiune', '# B', 'b1', '# C']);
+    expect(texts(removed)).toEqual(['# A', 'a1', 'a2']);
+    expect(texts(restoreBlocks(rest, removed, neighbours))).toEqual(texts(blocks));
+  });
+
+  it('starts a section after an article with the articles below it, or with an empty one', () => {
+    const blocks = ladder();
+    const heading = headingBlock();
+    expect(texts(insertHeadingAfter(blocks, blocks[2]!.id, heading))).toEqual([
+      'fără secțiune',
+      '# A',
+      'a1',
+      '# ',
+      'a2',
+      '# B',
+      'b1',
+      '# C',
+    ]);
+    const last = insertHeadingAfter(blocks, blocks[5]!.id, headingBlock('Nouă'));
+    expect(texts(last.slice(5, 8))).toEqual(['b1', '# Nouă', '']);
+  });
+
+  it('adds a section below another, after its articles, or at the end', () => {
+    const blocks = ladder();
+    expect(texts(addSection(blocks, blocks[1]!.id, headingBlock('Nouă')))).toEqual([
+      'fără secțiune',
+      '# A',
+      'a1',
+      'a2',
+      '# Nouă',
+      '',
+      '# B',
+      'b1',
+      '# C',
+    ]);
+    expect(texts(addSection(blocks, null, headingBlock('La sfârșit')).slice(-2))).toEqual([
+      '# La sfârșit',
+      '',
+    ]);
+  });
+
+  it('prints a heading the member wrote over another, not one from the template left empty', () => {
+    const chapter = headingBlock('CAPITOLUL I');
+    const [heading, article] = templateBlocks('protective_equipment');
+    const printed = printedIds([
+      chapter,
+      heading!,
+      article!,
+      headingBlock('Note'),
+      articleBlock('x'),
+    ]);
+    expect(printed.has(chapter.id)).toBe(true);
+    expect(printed.has(heading!.id)).toBe(false);
   });
 });
 

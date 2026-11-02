@@ -17,6 +17,7 @@ import {
 import { ApiHttpError } from '@/api/http';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
+import { roCount } from '@/features/employees/employee-format';
 import { invalidateLibrary } from '@/features/instructions/instruction-schema';
 
 import { creditsLabel } from '../import-credits';
@@ -273,7 +274,7 @@ function TaskContent({
               />
             </div>
             <p className="text-sm text-muted-foreground">
-              {intro} Ce e nou sau asemănător verifici aici; ce ai deja se aplică singur.
+              {intro} {splitSentence(identical.length, rows.length)}
             </p>
           </div>
           {reviewable && <SavingNote saving={review.saving} />}
@@ -392,7 +393,7 @@ function TaskContent({
             ) : (
               <section aria-labelledby="library-rows-heading" className="grid gap-3">
                 <h2 id="library-rows-heading" className="text-lg font-semibold">
-                  De verificat
+                  Ce verifici înainte să confirmi
                   <span className="ml-2 text-sm font-normal text-muted-foreground tabular-nums">
                     {instructionsLabel(rows.length)}
                   </span>
@@ -480,7 +481,7 @@ function TaskContent({
                   ? 'Confirmă întâi clientul'
                   : confirming
                     ? 'Se confirmă…'
-                    : `Confirmă ${label}`}
+                    : 'Confirmă instrucțiunile'}
               </Button>
             </div>
             {confirmError && (
@@ -519,28 +520,42 @@ function confirmSentence(summary: { created: number; used: number; posts: number
   const parts = [
     ...(summary.created > 0
       ? [
-          summary.created === 1
-            ? 'Se adaugă o instrucțiune în bibliotecă'
-            : `Se adaugă ${instructionsLabel(summary.created)} în bibliotecă`,
+          `adăugăm ${summary.created === 1 ? 'o instrucțiune' : instructionsLabel(summary.created)} în bibliotecă`,
         ]
       : []),
     ...(summary.used > 0
       ? [
           summary.used === 1
-            ? 'se folosește una pe care o ai'
-            : `se folosesc ${instructionsLabel(summary.used)} pe care le ai`,
+            ? 'folosim una pe care o ai deja'
+            : `folosim ${instructionsLabel(summary.used)} pe care le ai deja`,
         ]
       : []),
   ];
-  if (parts.length === 0) return 'Nu se adaugă și nu se aplică nicio instrucțiune.';
-  const sentence = parts.join(', ');
+  if (parts.length === 0) return 'Nu adăugăm și nu aplicăm nicio instrucțiune.';
+  const them = summary.created + summary.used === 1 ? 'o' : 'le';
   const posts =
     summary.posts === 0
-      ? ', la niciun post'
-      : summary.posts === 1
-        ? ', la un post'
-        : `, la ${summary.posts} posturi`;
-  return `${sentence.charAt(0).toUpperCase()}${sentence.slice(1)}${posts}.`;
+      ? `, fără să ${them} aplicăm la vreun post`
+      : ` și ${them} aplicăm la ${summary.posts === 1 ? 'un post' : roCount(summary.posts, 'post', 'posturi')}`;
+  return `Când confirmi, ${parts.join(', ')}${posts}.`;
+}
+
+function splitSentence(identical: number, reviewed: number) {
+  if (reviewed === 0) return '';
+  const rest =
+    identical === 0
+      ? reviewed === 1
+        ? 'O verifici mai jos.'
+        : 'Le verifici mai jos.'
+      : reviewed === 1
+        ? 'pe cealaltă o verifici mai jos.'
+        : `pe celelalte ${reviewed} le verifici mai jos.`;
+  if (identical === 0) return rest;
+  const kept =
+    identical === 1
+      ? 'Pe cea pe care o ai deja o aplicăm noi'
+      : `Pe cele ${identical} pe care le ai deja le aplicăm noi`;
+  return `${kept}; ${rest}`;
 }
 
 function StateNotices({

@@ -507,10 +507,22 @@ const ladderBody = {
   ],
 };
 
-const labels = () =>
-  screen.getAllByTestId('instruction-block-label').map((label) => label.textContent);
+const outline = () =>
+  screen
+    .getAllByTestId('instruction-block')
+    .map((block) =>
+      block.dataset.kind === 'heading'
+        ? `§ ${(within(block).getByTestId('instruction-heading-text') as HTMLInputElement).value}`
+        : within(block).getByTestId('instruction-block-label').textContent
+    );
 const articleBoxes = () =>
   screen.getAllByTestId('instruction-article-text') as HTMLTextAreaElement[];
+const sectionCard = (title: string) => screen.getByRole('region', { name: title });
+
+async function choose(user: ReturnType<typeof userEvent.setup>, menu: HTMLElement, item: string) {
+  await user.click(menu);
+  await user.click(await screen.findByTestId(item));
+}
 
 describe('the module form', () => {
   it('opens the current version as headings and articles numbered by place, and saves the next version', async () => {
@@ -522,24 +534,45 @@ describe('the module form', () => {
     expect(screen.getByTestId('instruction-form-facts').textContent).toBe(
       'SSM · Echipamente de muncă · 2 articole'
     );
-    expect(labels()).toEqual(['Titlu de secțiune', 'Art. 1', 'Titlu de secțiune', 'Art. 2']);
+    expect(outline()).toEqual([
+      '§ Verificări înainte de pornire',
+      'Art. 1',
+      '§ Acțiuni interzise',
+      'Art. 2',
+    ]);
     expect(articleBoxes()[0]!.value).toBe('Lucrătorul verifică scara:\na) tălpile;\nb) treptele.');
     expect(screen.getByTestId('instruction-save-state').textContent).toBe(
       'Toate modificările sunt salvate.'
     );
-    expect(screen.getAllByTestId('instruction-show-example')).toHaveLength(2);
+    expect(
+      screen.getAllByTestId('instruction-section-count').map((count) => count.textContent)
+    ).toEqual(['Un articol', 'Un articol']);
+    expect(screen.queryByTestId('instruction-paste-panel')).toBeNull();
 
-    await user.click(screen.getAllByTestId('instruction-block-up')[3]!);
-    expect(labels()).toEqual(['Titlu de secțiune', 'Art. 1', 'Art. 2', 'Titlu de secțiune']);
-    await user.click(screen.getAllByTestId('instruction-block-add')[2]!);
-    await user.click(await screen.findByTestId('instruction-add-article'));
-    await user.type(articleBoxes()[2]!, 'Scara se depozitează{Enter}în spațiul ei.');
-    expect(labels()).toEqual([
-      'Titlu de secțiune',
+    await choose(
+      user,
+      screen.getByRole('button', { name: 'Acțiuni pentru Art. 2' }),
+      'instruction-article-up'
+    );
+    expect(outline()).toEqual([
+      '§ Verificări înainte de pornire',
+      'Art. 1',
+      'Art. 2',
+      '§ Acțiuni interzise',
+    ]);
+    await choose(
+      user,
+      screen.getByRole('button', { name: 'Acțiuni pentru Art. 2' }),
+      'instruction-article-add'
+    );
+    expect(document.activeElement).toBe(articleBoxes()[2]);
+    await user.keyboard('Scara se depozitează{Enter}în spațiul ei.');
+    expect(outline()).toEqual([
+      '§ Verificări înainte de pornire',
       'Art. 1',
       'Art. 2',
       'Art. 3',
-      'Titlu de secțiune',
+      '§ Acțiuni interzise',
     ]);
     expect(screen.getByTestId('instruction-save-state').textContent).toBe('Modificări nesalvate.');
 
@@ -653,15 +686,126 @@ describe('the module form', () => {
     mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
-    await user.click(screen.getAllByTestId('instruction-block-delete')[3]!);
-    expect(labels()).toEqual(['Titlu de secțiune', 'Art. 1', 'Titlu de secțiune']);
+    await choose(
+      user,
+      screen.getByRole('button', { name: 'Acțiuni pentru Art. 2' }),
+      'instruction-article-delete'
+    );
+    expect(outline()).toEqual(['§ Verificări înainte de pornire', 'Art. 1', '§ Acțiuni interzise']);
     await user.type(articleBoxes()[0]!, '{End} Și scara.');
     await user.click(await screen.findByRole('button', { name: 'Anulează' }));
-    expect(labels()).toEqual(['Titlu de secțiune', 'Art. 1', 'Titlu de secțiune', 'Art. 2']);
+    expect(outline()).toEqual([
+      '§ Verificări înainte de pornire',
+      'Art. 1',
+      '§ Acțiuni interzise',
+      'Art. 2',
+    ]);
     expect(articleBoxes().map((box) => box.value)).toEqual([
       'Lucrătorul verifică scara:\na) tălpile;\nb) treptele. Și scara.',
       'Este interzisă urcarea cu sarcini grele.',
     ]);
+  });
+
+  it('moves a section with its articles', async () => {
+    mockApi({ moduleBody: ladderBody });
+    mount(`/instructiuni/${ladders.id}`);
+    const user = userEvent.setup();
+    await screen.findByTestId('instruction-form');
+    const menu = within(sectionCard('Acțiuni interzise')).getByRole('button', {
+      name: 'Acțiuni pentru secțiunea Acțiuni interzise',
+    });
+    await choose(user, menu, 'instruction-section-up');
+    expect(outline()).toEqual([
+      '§ Acțiuni interzise',
+      'Art. 1',
+      '§ Verificări înainte de pornire',
+      'Art. 2',
+    ]);
+    expect(articleBoxes()[0]!.value).toBe('Este interzisă urcarea cu sarcini grele.');
+    await user.click(menu);
+    expect(
+      (await screen.findByTestId('instruction-section-up')).getAttribute('aria-disabled')
+    ).toBe('true');
+  });
+
+  it('deletes a section with its articles and puts it back on undo', async () => {
+    mockApi({ moduleBody: ladderBody });
+    mount(`/instructiuni/${ladders.id}`);
+    const user = userEvent.setup();
+    await screen.findByTestId('instruction-form');
+    await choose(
+      user,
+      screen.getByRole('button', {
+        name: 'Acțiuni pentru secțiunea Verificări înainte de pornire',
+      }),
+      'instruction-section-delete'
+    );
+    expect(outline()).toEqual(['§ Acțiuni interzise', 'Art. 1']);
+    expect(await screen.findByText('Am șters secțiunea.')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Anulează' }));
+    expect(outline()).toEqual([
+      '§ Verificări înainte de pornire',
+      'Art. 1',
+      '§ Acțiuni interzise',
+      'Art. 2',
+    ]);
+  });
+
+  it('starts a new section after an article, taking the articles below it', async () => {
+    mockApi({
+      moduleBody: {
+        blocks: [
+          { kind: 'heading', text: 'Folosirea scării' },
+          { kind: 'article', paragraphs: ['Scara se sprijină pe o suprafață stabilă.'] },
+          { kind: 'article', paragraphs: ['Scara se curăță după folosire.'] },
+          { kind: 'article', paragraphs: ['Scara se depozitează în spațiul ei.'] },
+        ],
+      },
+    });
+    mount(`/instructiuni/${ladders.id}`);
+    const user = userEvent.setup();
+    await screen.findByTestId('instruction-form');
+    await choose(
+      user,
+      screen.getByRole('button', { name: 'Acțiuni pentru Art. 1' }),
+      'instruction-article-start-section'
+    );
+    const headings = screen.getAllByTestId('instruction-heading-text');
+    await waitFor(() => expect(document.activeElement).toBe(headings[1]));
+    await user.keyboard('După folosire');
+    expect(outline()).toEqual([
+      '§ Folosirea scării',
+      'Art. 1',
+      '§ După folosire',
+      'Art. 2',
+      'Art. 3',
+    ]);
+    expect(
+      within(sectionCard('După folosire')).getByTestId('instruction-section-count').textContent
+    ).toBe('2 articole');
+  });
+
+  it('adds a section at the end, empty and not printed until it has an article', async () => {
+    mockApi({ moduleBody: ladderBody });
+    mount(`/instructiuni/${ladders.id}`);
+    const user = userEvent.setup();
+    await screen.findByTestId('instruction-form');
+    await user.click(screen.getByTestId('instruction-add-section'));
+    const headings = screen.getAllByTestId('instruction-heading-text');
+    expect(document.activeElement).toBe(headings[2]);
+    await user.keyboard('Depozitare');
+    const added = sectionCard('Depozitare');
+    expect(added.dataset.empty).toBe('true');
+    expect(within(added).getByTestId('instruction-section-unprinted').textContent).toBe(
+      'Goală: nu se tipărește'
+    );
+    expect(within(added).queryByTestId('instruction-article-text')).toBeNull();
+    await user.keyboard('{Enter}');
+    expect(document.activeElement).toBe(within(added).getByTestId('instruction-article-text'));
+    await user.keyboard('Scara se ține la adăpost.');
+    expect(added.dataset.empty).toBeUndefined();
+    expect(within(added).queryByTestId('instruction-section-unprinted')).toBeNull();
+    expect(outline().at(-1)).toBe('Art. 3');
   });
 
   it('refuses to save a text without an article, in words', async () => {
@@ -724,7 +868,7 @@ describe('the module form', () => {
       'Art. 3. Înălțime – Asigurare',
     ]);
     await user.click(within(dialog).getByTestId('paste-replace'));
-    expect(labels()).toEqual(['Titlu de secțiune', 'Art. 1', 'Art. 2', 'Art. 3']);
+    expect(outline()).toEqual(['§ Folosirea scării', 'Art. 1', 'Art. 2', 'Art. 3']);
     expect(articleBoxes()[2]!.value).toBe('Înălțime – Asigurare');
   });
 
@@ -740,7 +884,7 @@ describe('the module form', () => {
     const offer = await screen.findByTestId('instruction-paste-offer');
     expect(offer.textContent).toContain('Textul lipit se poate împărți în 2 articole.');
     await user.click(within(offer).getByTestId('instruction-paste-split'));
-    expect(labels()).toEqual(['Art. 1', 'Art. 2']);
+    expect(outline()).toEqual(['Art. 1', 'Art. 2']);
     expect(articleBoxes().map((box) => box.value)).toEqual([
       'Scara se verifică.',
       'Scara se curăță.',
@@ -799,7 +943,7 @@ describe('writing a new module', () => {
     expect(runtime.router.history.location.pathname).toBe('/instructiuni/nou');
     expect(screen.getByTestId('editor-state').textContent).toBe('Nouă, nesalvată');
     expect(screen.getByTestId('instruction-form-facts').textContent).toBe(
-      'SU · Lucrări periculoase · fără articole numerotate'
+      'SU · Lucrări periculoase · fără articole încă'
     );
     expect(
       (screen.getAllByTestId('instruction-heading-text') as HTMLInputElement[]).map(
@@ -813,16 +957,32 @@ describe('writing a new module', () => {
       'Acțiuni interzise',
       'Dacă izbucnește un incendiu',
     ]);
-    expect(articleBoxes()[0]!.placeholder).toBe(
-      'Ce lucrare periculoasă acoperă instrucțiunea (sudură, tăiere, lucru cu foc deschis) și unde se execută.'
-    );
+    expect(screen.queryAllByTestId('instruction-article-text')).toHaveLength(0);
+    expect(
+      within(sectionCard('Domeniul de aplicare')).getByText(
+        'Ce lucrare periculoasă acoperă instrucțiunea (sudură, tăiere, lucru cu foc deschis) și unde se execută.'
+      )
+    ).toBeTruthy();
     expect(screen.getByTestId('instruction-acts').textContent).toContain('Legea nr. 307/2006');
+    expect(screen.getByTestId('instruction-save-state').textContent).toBe(
+      'Scrie cel puțin un articol ca să o poți salva.'
+    );
     expect(requests('/instruction-modules', 'POST')).toHaveLength(0);
 
-    await user.click(screen.getAllByTestId('instruction-show-example')[0]!);
+    await user.click(
+      within(sectionCard('Domeniul de aplicare')).getByTestId('instruction-show-example')
+    );
     expect(articleBoxes()[0]!.value).toMatch(/^Prezenta instrucțiune se aplică lucrărilor cu foc/);
-    await user.type(articleBoxes()[4]!, 'Nu se sudează lângă butelii.');
-    expect(labels().filter((label) => label?.startsWith('Art.'))).toEqual(['Art. 1', 'Art. 2']);
+    await user.click(
+      within(sectionCard('Acțiuni interzise')).getByTestId('instruction-section-write-first')
+    );
+    expect(document.activeElement).toBe(articleBoxes()[1]);
+    expect(articleBoxes()[1]!.placeholder).toBe('Ce este interzis la executarea lucrării.');
+    await user.keyboard('Nu se sudează lângă butelii.');
+    expect(outline().filter((label) => label?.startsWith('Art.'))).toEqual(['Art. 1', 'Art. 2']);
+    expect(screen.getByTestId('instruction-save-state').textContent).toBe(
+      'Se adaugă în bibliotecă la prima salvare.'
+    );
 
     await user.click(screen.getByTestId('editor-save'));
     await waitFor(() =>
@@ -845,6 +1005,50 @@ describe('writing a new module', () => {
     await waitFor(() =>
       expect(runtime.router.history.location.pathname).toBe(`/instructiuni/${welding.id}`)
     );
+  });
+
+  it('shows an empty section with its hint, and the paste panel only while there is no article', async () => {
+    mockApi();
+    mount('/instructiuni/ssm');
+    const user = userEvent.setup();
+    await screen.findAllByTestId('instruction-row');
+    await user.click(screen.getByTestId('instruction-write'));
+    const dialog = await screen.findByTestId('instruction-start-dialog');
+    await user.type(within(dialog).getByTestId('instruction-start-title'), 'Activități de birou 2');
+    await user.selectOptions(
+      within(dialog).getByTestId('instruction-start-group'),
+      'work_activity'
+    );
+    await user.click(within(dialog).getByTestId('instruction-start-submit'));
+    await screen.findByTestId('instruction-form');
+
+    const sections = screen.getAllByTestId('instruction-section');
+    expect(sections).toHaveLength(8);
+    expect(sections.every((section) => section.dataset.empty === 'true')).toBe(true);
+    const scope = sectionCard('Domeniul de aplicare');
+    expect(within(scope).getByTestId('instruction-section-unprinted').textContent).toBe(
+      'Goală: nu se tipărește'
+    );
+    expect(within(scope).getByTestId('instruction-section-empty').textContent).toContain(
+      'Ce activitate acoperă instrucțiunea'
+    );
+    expect(screen.getByTestId('instruction-form-facts').textContent).toBe(
+      'SSM · Activități · fără articole încă'
+    );
+    expect(screen.getByTestId('instruction-paste-panel').textContent).toContain(
+      'Ai deja textul într-un document?'
+    );
+    await user.click(screen.getByTestId('instruction-paste-panel-open'));
+    expect(await screen.findByTestId('paste-dialog')).toBeTruthy();
+    await user.keyboard('{Escape}');
+
+    await user.click(within(scope).getByTestId('instruction-section-write-first'));
+    await user.keyboard('Instrucțiunea se aplică lucrului la birou.');
+    expect(screen.queryByTestId('instruction-paste-panel')).toBeNull();
+    expect(scope.dataset.empty).toBeUndefined();
+    await user.clear(within(scope).getByTestId('instruction-article-text'));
+    expect(screen.getByTestId('instruction-paste-panel')).toBeTruthy();
+    expect(within(scope).getByTestId('instruction-article-text')).toBeTruthy();
   });
 
   it('starts from a library module of the same domain as a copy of its text, kept when a later read fails', async () => {
@@ -871,7 +1075,12 @@ describe('writing a new module', () => {
     );
     await user.click(within(dialog).getByTestId('instruction-start-submit'));
     await screen.findByTestId('instruction-form');
-    expect(labels()).toEqual(['Titlu de secțiune', 'Art. 1', 'Titlu de secțiune', 'Art. 2']);
+    expect(outline()).toEqual([
+      '§ Verificări înainte de pornire',
+      'Art. 1',
+      '§ Acțiuni interzise',
+      'Art. 2',
+    ]);
     expect(screen.getByTestId('instruction-form-title').textContent).toBe('Scări – șantier');
 
     await user.type(articleBoxes()[0]!, ' Pe șantier.');

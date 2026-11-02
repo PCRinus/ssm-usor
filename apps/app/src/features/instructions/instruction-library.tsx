@@ -20,7 +20,7 @@ import {
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
-import { BookOpenText, MoreHorizontal, PenLine } from 'lucide-react';
+import { BookOpenText, MoreHorizontal } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -42,7 +42,6 @@ import {
   invalidateLibrary,
   positionCountLabel,
 } from './instruction-schema';
-import { InstructionStartDialog } from './instruction-start-dialog';
 
 export function InstructionLibrary({
   domain,
@@ -61,7 +60,6 @@ export function InstructionLibrary({
   });
   const update = useUpdateInstructionModule({ request: apiRequest });
   const [editing, setEditing] = useState<ModuleEditing>(null);
-  const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function setArchived(module: InstructionModule, archived: boolean) {
@@ -103,20 +101,14 @@ export function InstructionLibrary({
           <h2 className="text-lg font-semibold">
             {showArchived ? 'Instrucțiuni arhivate' : 'Instrucțiuni în uz'}
           </h2>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              data-testid="instruction-toggle-archived"
-              onClick={() => setShowArchived((value) => !value)}
-            >
-              {showArchived ? 'Arată instrucțiunile în uz' : 'Arată arhiva'}
-            </Button>
-            <Button size="sm" data-testid="instruction-write" onClick={() => setStarting(true)}>
-              <PenLine aria-hidden="true" />
-              Scrie o instrucțiune
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            data-testid="instruction-toggle-archived"
+            onClick={() => setShowArchived((value) => !value)}
+          >
+            {showArchived ? 'Arată instrucțiunile în uz' : 'Arată arhiva'}
+          </Button>
         </CardHeader>
         {/* A grid, so the table's scroll box can shrink to the card; a block would widen the page on a phone. */}
         <CardContent className="grid">
@@ -245,20 +237,6 @@ export function InstructionLibrary({
         </CardContent>
       </Card>
       <InstructionModuleDialog editing={editing} onClose={() => setEditing(null)} />
-      <InstructionStartDialog
-        open={starting}
-        initial={{ domain }}
-        userId={userId}
-        onClose={() => setStarting(false)}
-        onSubmit={(values) => {
-          setStarting(false);
-          void navigate({
-            to: '/instructiuni/nou',
-            search: values,
-            state: { openedFromList: true },
-          });
-        }}
-      />
     </div>
   );
 }

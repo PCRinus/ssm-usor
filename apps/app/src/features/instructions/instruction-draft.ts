@@ -71,35 +71,46 @@ export function articleParagraphs(text: string) {
 export const isEmptyArticle = (block: DraftBlock) =>
   block.kind === 'article' && articleParagraphs(block.text).length === 0;
 
-/**
- * What is saved: empty articles go, and so does a heading with no article under it, unless the
- * member wrote it above another heading, as a chapter over its sections.
- */
-export function draftBody(blocks: readonly DraftBlock[]): DraftBody {
-  const filled: { block: InstructionBlock; fromTemplate: boolean }[] = [];
+function keptBlocks(blocks: readonly DraftBlock[]) {
+  const filled: { id: string; block: InstructionBlock; fromTemplate: boolean }[] = [];
   for (const block of blocks) {
     if (block.kind === 'heading') {
       const text = block.text.replace(/\s+/gu, ' ').trim();
       if (text !== '') {
-        filled.push({ block: { kind: 'heading', text }, fromTemplate: block.section !== null });
+        filled.push({
+          id: block.id,
+          block: { kind: 'heading', text },
+          fromTemplate: block.section !== null,
+        });
       }
       continue;
     }
     const paragraphs = articleParagraphs(block.text);
     if (paragraphs.length > 0) {
-      filled.push({ block: { kind: 'article', paragraphs }, fromTemplate: false });
+      filled.push({ id: block.id, block: { kind: 'article', paragraphs }, fromTemplate: false });
     }
   }
-  const kept: InstructionBlock[] = [];
+  const kept: { id: string; block: InstructionBlock }[] = [];
   for (let index = filled.length - 1; index >= 0; index -= 1) {
-    const { block, fromTemplate } = filled[index]!;
-    const next = kept[0];
+    const { id, block, fromTemplate } = filled[index]!;
+    const next = kept[0]?.block;
     const empty = block.kind === 'heading' && next?.kind !== 'article';
     if (empty && (fromTemplate || next === undefined)) continue;
-    kept.unshift(block);
+    kept.unshift({ id, block });
   }
-  return { blocks: kept };
+  return kept;
 }
+
+/**
+ * What is saved: empty articles go, and so does a heading with no article under it, unless the
+ * member wrote it above another heading, as a chapter over its sections.
+ */
+export function draftBody(blocks: readonly DraftBlock[]): DraftBody {
+  return { blocks: keptBlocks(blocks).map(({ block }) => block) };
+}
+
+export const printedIds = (blocks: readonly DraftBlock[]) =>
+  new Set(keptBlocks(blocks).map(({ id }) => id));
 
 export const sameBody = (left: DraftBody, right: DraftBody) =>
   JSON.stringify(left) === JSON.stringify(right);
@@ -147,25 +158,106 @@ export function moveBlock(blocks: readonly DraftBlock[], id: string, by: -1 | 1)
   return next;
 }
 
-export function restoreBlock(
+export type Neighbours = { before: string | null; after: string | null };
+
+export function restoreBlocks(
   blocks: readonly DraftBlock[],
-  block: DraftBlock,
-  neighbours: { before: string | null; after: string | null }
+  removed: readonly DraftBlock[],
+  neighbours: Neighbours
 ): DraftBlock[] {
-  if (blocks.some((each) => each.id === block.id)) return [...blocks];
+  const missing = removed.filter((block) => !blocks.some((each) => each.id === block.id));
+  if (missing.length === 0) return [...blocks];
   const alone = neighbours.before === null && neighbours.after === null;
   // The empty box that stood in for the list the deletion left with nothing.
-  if (alone && blocks.length === 1 && isEmptyArticle(blocks[0]!)) return [block];
+  if (alone && blocks.length === 1 && isEmptyArticle(blocks[0]!)) return missing;
   const after = blocks.findIndex((each) => each.id === neighbours.after);
-  if (after >= 0) return [...blocks.slice(0, after), block, ...blocks.slice(after)];
+  if (after >= 0) return [...blocks.slice(0, after), ...missing, ...blocks.slice(after)];
   const before = blocks.findIndex((each) => each.id === neighbours.before);
-  if (before >= 0) return insertAfter(blocks, blocks[before]!.id, [block]);
-  return neighbours.before === null ? [block, ...blocks] : [...blocks, block];
+  if (before >= 0) return insertAfter(blocks, blocks[before]!.id, missing);
+  return neighbours.before === null ? [...missing, ...blocks] : [...blocks, ...missing];
 }
+
+export const restoreBlock = (
+  blocks: readonly DraftBlock[],
+  block: DraftBlock,
+  neighbours: Neighbours
+) => restoreBlocks(blocks, [block], neighbours);
 
 export function insertAfter(blocks: readonly DraftBlock[], id: string, added: DraftBlock[]) {
   const at = blocks.findIndex((block) => block.id === id);
   return [...blocks.slice(0, at + 1), ...added, ...blocks.slice(at + 1)];
+}
+
+export type DraftSection = {
+  // Null for the articles before the first heading.
+  heading: DraftHeading | null;
+  articles: DraftArticle[];
+};
+
+export function draftSections(blocks: readonly DraftBlock[]): DraftSection[] {
+  const sections: DraftSection[] = [];
+  for (const block of blocks) {
+    if (block.kind === 'heading') sections.push({ heading: block, articles: [] });
+    else if (sections.length === 0) sections.push({ heading: null, articles: [block] });
+    else sections.at(-1)!.articles.push(block);
+  }
+  return sections;
+}
+
+const sectionBlocks = (sections: readonly DraftSection[]): DraftBlock[] =>
+  sections.flatMap(({ heading, articles }) => (heading ? [heading, ...articles] : articles));
+
+export function moveSection(blocks: readonly DraftBlock[], headingId: string, by: -1 | 1) {
+  const sections = draftSections(blocks);
+  const at = sections.findIndex(({ heading }) => heading?.id === headingId);
+  const to = at + by;
+  if (at < 0 || to < 0 || to >= sections.length || sections[to]!.heading === null) {
+    return [...blocks];
+  }
+  [sections[at], sections[to]] = [sections[to]!, sections[at]!];
+  return sectionBlocks(sections);
+}
+
+export function removeSection(blocks: readonly DraftBlock[], headingId: string) {
+  const at = blocks.findIndex((block) => block.id === headingId);
+  if (at < 0) {
+    return {
+      blocks: [...blocks],
+      removed: [] as DraftBlock[],
+      neighbours: { before: null, after: null },
+    };
+  }
+  let end = at + 1;
+  while (end < blocks.length && blocks[end]!.kind !== 'heading') end += 1;
+  return {
+    blocks: [...blocks.slice(0, at), ...blocks.slice(end)],
+    removed: blocks.slice(at, end),
+    neighbours: { before: blocks[at - 1]?.id ?? null, after: blocks[end]?.id ?? null },
+  };
+}
+
+export function addSection(
+  blocks: readonly DraftBlock[],
+  headingId: string | null,
+  heading: DraftHeading
+) {
+  const at = headingId === null ? -1 : blocks.findIndex((block) => block.id === headingId);
+  let end = at < 0 ? blocks.length : at + 1;
+  while (end < blocks.length && blocks[end]!.kind !== 'heading') end += 1;
+  return [...blocks.slice(0, end), heading, articleBlock(), ...blocks.slice(end)];
+}
+
+export function insertHeadingAfter(
+  blocks: readonly DraftBlock[],
+  articleId: string,
+  heading: DraftHeading
+) {
+  const at = blocks.findIndex((block) => block.id === articleId);
+  if (at < 0) return [...blocks];
+  const next = blocks[at + 1];
+  const added =
+    next === undefined || next.kind === 'heading' ? [heading, articleBlock()] : [heading];
+  return insertAfter(blocks, articleId, added);
 }
 
 const companyForms =
