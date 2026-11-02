@@ -54,6 +54,8 @@ sources:
   - docs/architecture/adr-023-advanced-electronic-signature.md
   - packages/contracts/src/imports.ts
   - packages/contracts/src/billing.ts
+  - docs/architecture/adr-034-own-instructions-as-app-text.md
+  - apps/api/src/modules/imports/library.ts
   - apps/api/src/modules/credits/usage.ts
   - apps/app/src/features/imports/import-credits.ts
   - apps/app/src/features/imports/credits-notices.tsx
@@ -101,6 +103,7 @@ Citirea documentelor și a fotografiilor se socotește în credite. Un credit î
 
 - **Importul unui client** folosește 25 de credite pentru citirea documentelor, oricât de lungi ar fi, plus câte unul pentru fiecare fotografie și pagină scanată. Un PDF cu text, salvat din Word de exemplu, intră în cele 25. Care pagini ale unui PDF sunt scanate se află abia la citire, așa că fereastra de încărcare îți spune: „Folosește 25 de credite, plus 1 pentru fiecare pagină scanată.”
 - **Importul angajaților** folosește un credit pentru fiecare fotografie și pentru fiecare pagină a unui PDF.
+- **Instrucțiunile proprii** din documentația unui client se citesc separat, pentru biblioteca ta de instrucțiuni proprii: 25 de credite pentru cele SSM și 10 pentru cele PSI, de fiecare dată când le citim. Dacă citirea lor nu reușește, creditele ei îți sunt returnate.
 
 ### Câte credite ai
 
@@ -124,7 +127,9 @@ Dacă un import se oprește înainte să fie gata de verificat, primești înapo
 
 Pornești din **Clienți**, cu **Importă din documente**, pentru un client nou, sau de pe pagina unui client existent, cu **Completează din documentație**. Încarci documentația unei singure firme: fișiere, un folder sau o arhivă ZIP, în PDF, DOC, DOCX, JPG, PNG sau HEIC, cel mult 150 de fișiere și 100 MB în total. Arhiva o deschide aplicația înainte de încărcare, așa că vezi ce intră.
 
-Aplicația pune deoparte ce nu poartă date despre client (coperți, formulare goale, texte de lege, instrucțiunile proprii), citește restul și îți propune datele firmei, punctele de lucru, posturile, persoanele cu atribuții, programul de instruire, datele PSI și echipamentul de protecție. Le verifici pe secțiuni, cu sursa fiecărei valori la un clic, apoi confirmi. La un client existent, o valoare pe care o ai deja în aplicație nu se schimbă decât dacă alegi tu valoarea din documente.
+Aplicația pune deoparte ce nu poartă date despre client (coperți, formulare goale, texte de lege), citește restul și îți propune datele firmei, punctele de lucru, posturile, persoanele cu atribuții, programul de instruire, datele PSI și echipamentul de protecție. Le verifici pe secțiuni, cu sursa fiecărei valori la un clic, apoi confirmi. La un client existent, o valoare pe care o ai deja în aplicație nu se schimbă decât dacă alegi tu valoarea din documente.
+
+Instrucțiunile proprii (IPSSM și IPSU) nu intră în propunerea clientului: le citim separat, pentru biblioteca ta de instrucțiuni proprii, și nu te țin pe loc când creezi clientul.
 
 Nu trebuie să aștepți citirea: importul rămâne în **Clienți**, la **Importuri din documente**, până creezi clientul sau renunți. Dacă ai pornit tu importul și lucrezi între timp pe altă pagină din aplicație, îți apare o notificare când propunerea e gata, cu **Verifică propunerea**, sau când citirea s-a oprit.
 

@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+import { instructionBodySchema, instructionCategorySchema } from './instruction-body';
+import { type InstructionDomain, instructionDomainSchema } from './instruction-modules';
+
 // Imports from documents (ADR 030). The proposal itself is `@ssm-usor/import`'s schema, which
 // the API's routes add to the answer.
 
@@ -109,6 +112,11 @@ export const importErrorReasons = {
   photosOnly: 'import_photos_only',
   noFoundSheets: 'import_no_found_sheets',
   creditsInsufficient: 'credits_insufficient',
+  clientUnconfirmed: 'import_client_unconfirmed',
+  partNotReady: 'import_part_not_ready',
+  partExpired: 'import_part_expired',
+  partNotFailed: 'import_part_not_failed',
+  titleTaken: 'instruction_title_taken',
 } as const;
 
 /** With `credits_insufficient`: what the import needs to start, and what is left. */
@@ -243,6 +251,32 @@ export const employeeImportPeopleSchema = z.object({
 
 export type EmployeeImportPeople = z.infer<typeof employeeImportPeopleSchema>;
 
+/** A client import's library proposals (ADR 034), one per library and domain. */
+export const importLibraryParts = ['instructions_ssm', 'instructions_psi'] as const;
+
+export type ImportLibraryPart = (typeof importLibraryParts)[number];
+
+export const importLibraryPartSchema = z.enum(importLibraryParts);
+
+export const libraryPartDomains: Record<ImportLibraryPart, InstructionDomain> = {
+  instructions_ssm: 'ssm',
+  instructions_psi: 'psi',
+};
+
+/** Se citește, De verificat, Nimic nou, Nu s-a putut citi, Confirmat. */
+export const importLibraryPartStatuses = [
+  'reading',
+  'to_review',
+  'nothing_new',
+  'failed',
+  'confirmed',
+] as const;
+
+export type ImportLibraryPartStatus = (typeof importLibraryPartStatuses)[number];
+
+/** A library part not confirmed this many days after its client has expired. */
+export const libraryPartDays = 14;
+
 export const importSummarySchema = z.object({
   id: z.uuid(),
   kind: z.enum(importKinds),
@@ -272,6 +306,16 @@ export const importSummarySchema = z.object({
   uninvited: z.int().min(0).nullable(),
   // A listed import still being read: how far its files got. Null otherwise.
   progress: importProgressSchema.nullable(),
+  // A client import's library proposals, which are confirmed after the client: a part neither
+  // confirmed nor expired is a task left on the client's page.
+  libraryParts: z.array(
+    z.object({
+      part: importLibraryPartSchema,
+      status: z.enum(importLibraryPartStatuses),
+      // 14 days after the client's confirmation; null before it.
+      expiresAt: z.iso.datetime({ offset: true }).nullable(),
+    })
+  ),
 });
 
 export type ImportSummary = z.infer<typeof importSummarySchema>;
@@ -311,6 +355,8 @@ export const importFileSchema = z.object({
   state: z.enum(importFileStates),
   // What the sorting took it for, as `@ssm-usor/import`'s `documentKinds` name it.
   documentKind: z.string().nullable(),
+  // Own instructions and training themes: the library part they are read for (ADR 034).
+  documentDomain: instructionDomainSchema.nullable(),
   // In Romanian: why it was set aside or failed.
   reason: z.string().nullable(),
   companyName: z.string().nullable(),
@@ -494,7 +540,7 @@ export const importBlockerSchema = z.object({
 
 export type ImportBlocker = z.infer<typeof importBlockerSchema>;
 
-const modelUsageSchema = z
+export const importModelUsageSchema = z
   .object({
     // At the models' list price.
     costUsd: z.number().min(0),
@@ -504,14 +550,16 @@ const modelUsageSchema = z
   })
   .meta({ id: 'ImportModelUsage' });
 
-export const importUsageSchema = modelUsageSchema
+export const importUsageSchema = importModelUsageSchema
   .extend({
     // The characters of text sent to the reading model; null until the files are sorted.
     readCharacters: z.int().min(0).nullable(),
     bySteps: z.object({
-      sorting: modelUsageSchema.optional(),
-      reading: modelUsageSchema.optional(),
-      scanning: modelUsageSchema.optional(),
+      sorting: importModelUsageSchema.optional(),
+      reading: importModelUsageSchema.optional(),
+      scanning: importModelUsageSchema.optional(),
+      // The library parts' readings and their comparisons with the library (ADR 034).
+      instructions: importModelUsageSchema.optional(),
     }),
   })
   .meta({ id: 'ImportUsage' });
@@ -526,6 +574,9 @@ export const importCreditsSchema = z
     atStart: z.int().min(0),
     // A client import's scanned pages found and charged, one credit each.
     scannedPages: z.int().min(0),
+    // The readings of its own instructions for the library, net of those given back: 25 for SSM
+    // and 10 for PSI each time one is read (ADR 034).
+    ownInstructions: z.int().min(0),
     // Everything given back, after a failure on our side.
     refunded: z.boolean(),
   })
@@ -680,3 +731,109 @@ export const importSourceResponseSchema = z.object({
 });
 
 export type ImportSourceResponse = z.infer<typeof importSourceResponseSchema>;
+
+// A post of the client the instructions apply to: a job position of the client import's
+// proposal by its id ("position-1"), or a job position of the client by its id.
+const postReference = z.string().min(1).max(100);
+
+export const instructionImportChangesSchema = z
+  .object({
+    // By the proposed instruction's key.
+    instructions: z
+      .record(
+        z.string().min(1).max(100),
+        z
+          .object({
+            // False leaves the instruction out of the library and off the posts.
+            included: z.boolean().optional(),
+            title: z.string().trim().min(2).max(200).optional(),
+            category: instructionCategorySchema.optional(),
+            // A similar instruction: the library's module as it is, or the pack's as a new one.
+            choice: z.enum(['use_existing', 'add_new']).optional(),
+            // Every post it applies to, in place of those the training themes give.
+            posts: z.array(postReference).max(500).optional(),
+            // The text the member edited, in place of the one cut from the pack.
+            body: instructionBodySchema.optional(),
+          })
+          .strict()
+      )
+      .default({}),
+  })
+  .strict();
+
+export type InstructionImportChanges = z.infer<typeof instructionImportChangesSchema>;
+
+export const importLibraryPartCountsSchema = z.object({
+  identical: z.int().min(0),
+  similar: z.int().min(0),
+  new: z.int().min(0),
+  // Found in the pack but not cut from it, so not created.
+  unread: z.int().min(0),
+});
+
+/**
+ * A library part besides its proposal (`@ssm-usor/import`'s `InstructionsProposal`, which the API
+ * adds).
+ */
+export const importLibraryPartDetailSchema = z.object({
+  part: importLibraryPartSchema,
+  domain: instructionDomainSchema,
+  status: z.enum(importLibraryPartStatuses),
+  // 1, then one more each time it is read again.
+  attempt: z.int().min(1),
+  // In Romanian, with `failed`.
+  failureReason: z.string().nullable(),
+  version: z.int().min(0),
+  changes: instructionImportChangesSchema.nullable(),
+  // Null before read, and once dropped with the import's proposal.
+  counts: importLibraryPartCountsSchema.nullable(),
+  // By the proposal's position key: the client's post it is, as the changes name posts; null for
+  // a post the themes name that is none of the client's, or that the client import left out.
+  positionPosts: z.record(z.string(), postReference.nullable()),
+  readAt: z.iso.datetime({ offset: true }).nullable(),
+  confirmedAt: z.iso.datetime({ offset: true }).nullable(),
+  // 14 days after the client's confirmation; null before it.
+  expiresAt: z.iso.datetime({ offset: true }).nullable(),
+  // Its readings' credits, net of those given back.
+  credits: z.int().min(0),
+  // A debugging aid, served outside production and to platform admins only.
+  usage: importModelUsageSchema.optional(),
+});
+
+export type ImportLibraryPartDetail = z.infer<typeof importLibraryPartDetailSchema>;
+
+export const importLibraryPostSchema = z.object({
+  // As the changes name it.
+  id: postReference,
+  name: z.string(),
+  // The client's job position once the client is confirmed; null before, or when the client
+  // import left the post out.
+  jobPositionId: z.uuid().nullable(),
+});
+
+export type ImportLibraryPost = z.infer<typeof importLibraryPostSchema>;
+
+export const saveImportLibraryPartChangesRequestSchema = z.object({
+  version: z.int().min(0),
+  changes: instructionImportChangesSchema,
+});
+
+export type SaveImportLibraryPartChangesRequest = z.infer<
+  typeof saveImportLibraryPartChangesRequestSchema
+>;
+
+export const confirmImportLibraryPartRequestSchema = z.object({ version: z.int().min(0) });
+
+export type ConfirmImportLibraryPartRequest = z.infer<typeof confirmImportLibraryPartRequestSchema>;
+
+export const confirmImportLibraryPartResponseSchema = z.object({
+  // The modules created, and those of the library applied as they are.
+  createdModuleIds: z.array(z.uuid()),
+  usedModuleIds: z.array(z.uuid()),
+  // The posts' links added; a post that applied a module already is skipped.
+  links: z.int().min(0),
+});
+
+export type ConfirmImportLibraryPartResponse = z.infer<
+  typeof confirmImportLibraryPartResponseSchema
+>;

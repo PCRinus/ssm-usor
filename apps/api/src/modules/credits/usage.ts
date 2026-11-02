@@ -1,8 +1,11 @@
-import type {
-  BillingCreditsUsage,
-  CreditsShort,
-  CreditsUsageState,
-  ImportCredits,
+import {
+  type BillingCreditsUsage,
+  type CreditsShort,
+  type CreditsUsageState,
+  type ImportCredits,
+  importCredits,
+  type ImportLibraryPart,
+  libraryPartDomains,
 } from '@ssm-usor/contracts';
 
 import type { SmsSubscription } from '../sms-usage/policy';
@@ -60,9 +63,20 @@ export function importCreditsOf(entries: ImportCreditEntry[]): ImportCredits | n
       .filter((entry) => kinds.includes(entry.kind))
       .reduce((total, entry) => total + entry.credits, 0);
   return {
-    used: Math.max(0, -sum(['import_start', 'import_pages', 'scanned_page', 'refund'])),
+    used: Math.max(
+      0,
+      -sum([
+        'import_start',
+        'import_pages',
+        'scanned_page',
+        'refund',
+        'library_part',
+        'library_part_refund',
+      ])
+    ),
     atStart: Math.max(0, -sum(['import_start', 'import_pages'])),
     scannedPages: entries.filter((entry) => entry.kind === 'scanned_page').length,
+    ownInstructions: Math.max(0, -sum(['library_part', 'library_part_refund'])),
     refunded: entries.some((entry) => entry.kind === 'refund'),
   };
 }
@@ -97,6 +111,29 @@ export function importCharges(store: CreditsStore, now: () => Date = () => new D
     },
 
     releaseStart: (importId: string) => store.releaseStart(`start:${importId}`),
+
+    /**
+     * One reading of a library part, when its request is sent, never refused: an import that has
+     * started is never stopped for credits (ADR 030, ADR 034). The key is the database's
+     * `library_part_charge_key`, so a redelivery is charged once and a reading again anew.
+     */
+    async libraryPart(
+      organizationId: string,
+      importId: string,
+      part: ImportLibraryPart,
+      attempt: number
+    ) {
+      await store.charge({
+        organizationId,
+        policy: await policyOf(organizationId),
+        kind: 'library_part',
+        credits: importCredits.ownInstructions[libraryPartDomains[part]],
+        importId,
+        importPart: part,
+        key: `library:${importId}:${part}:${attempt}`,
+        require: false,
+      });
+    },
 
     async scannedPage(organizationId: string, importId: string, fileId: string, page: number) {
       await store.charge({

@@ -3,6 +3,8 @@ import {
   createModelClient,
   type EmployeeImportClient,
   employeeImportProposalSchema,
+  instructionsProposalSchema,
+  type LibraryModule,
   proposalSchema,
   type ThemeDefaults,
 } from '@ssm-usor/import';
@@ -12,6 +14,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { sha256 } from '../../lib/docx';
 import type { ImportMessage } from '../../lib/env';
 import { cleanUpImports } from './cleanup';
+import { libraryReasons } from './library';
 import {
   fileReasons,
   importReasons,
@@ -33,6 +36,7 @@ import {
   type ImportObjectList,
   type ImportRow,
   type ImportStore,
+  type LibraryPartRow,
 } from './store';
 
 const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
@@ -126,6 +130,10 @@ class World {
   settled: number[] = [];
   creditsCoverPages = true;
   themeDefaults: ThemeDefaults | null = null;
+  parts = new Map<string, LibraryPartRow & Record<string, unknown>>();
+  partUsage: { part: string; input: number; cost: number }[] = [];
+  partCharges: string[] = [];
+  library: LibraryModule[] = [];
 
   send(body: ImportMessage, delaySeconds?: number) {
     this.sent.push({ id: `message-${++this.nextMessage}`, body, attempts: 1, delaySeconds });
@@ -170,6 +178,7 @@ class World {
       text_path: null,
       derived_path: null,
       declared_pages: null,
+      document_domain: null,
     });
     this.objects.set(storage, spec.bytes);
     return id;
@@ -212,6 +221,39 @@ class World {
         this.settled.push(extra);
         return extra <= 0 || this.creditsCoverPages;
       },
+      openLibraryParts: async (row, parts) => {
+        for (const part of parts) {
+          const key = `${row.id}:${part}`;
+          if (!this.parts.has(key)) {
+            this.parts.set(key, {
+              import_id: row.id,
+              part,
+              status: 'reading',
+              attempt: 1,
+              proposal: null,
+            });
+          }
+        }
+        return [...this.parts.values()].filter(
+          (part) => part.import_id === row.id && part.status === 'reading'
+        );
+      },
+      getLibraryPart: async (id, part) => this.parts.get(`${id}:${part}`) ?? null,
+      updateLibraryPart: async (id, part, attempt, patch) => {
+        const row = this.parts.get(`${id}:${part}`);
+        if (!row || row.status !== 'reading' || row.attempt !== attempt) return false;
+        Object.assign(row, patch);
+        return true;
+      },
+      recordLibraryPartUsage: async (_id, part, usage, cost) => {
+        this.partUsage.push({ part, input: usage.input, cost });
+      },
+      chargeLibraryPart: async (_row, part, attempt) => {
+        const key = `${part}:${attempt}`;
+        if (!this.partCharges.includes(key)) this.partCharges.push(key);
+      },
+      libraryModules: async (_organizationId, domain) =>
+        this.library.filter((module) => module.domain === domain),
       provider: async () => ({
         name: 'SERVICIUL EXTERN EXEMPLU S.R.L.',
         cui: '76543210',
@@ -240,6 +282,10 @@ class World {
       failStalled: async (reasons) => {
         this.calls.push(`failStalled ${reasons.stalled} | ${reasons.left}`);
         return ['stalled-import'];
+      },
+      failStalledLibraryParts: async (reason) => {
+        this.calls.push(`failStalledLibraryParts ${reason}`);
+        return 1;
       },
       listAbandoned: async () => this.abandoned,
       deleteAbandoned: async (ids) => {
@@ -1242,6 +1288,7 @@ describe('cleanUpImports', () => {
 
     expect(world.calls).toEqual([
       `failStalled ${importReasons.stalled} | ${importReasons.left}`,
+      `failStalledLibraryParts ${libraryReasons.stalled}`,
       'remove 3',
       'remove 0',
       'deleteAbandoned old-import,empty',
@@ -1251,7 +1298,14 @@ describe('cleanUpImports', () => {
     ]);
     expect(world.objects.has(`${folder}/a.page-2.json`)).toBe(false);
     expect(world.objects.has(`${organizationId}/stuck/b.pdf`)).toBe(true);
-    expect(result).toMatchObject({ failed: 1, deleted: 2, dropped: 2, emptied: 1, left: 1 });
+    expect(result).toMatchObject({
+      failed: 1,
+      failedParts: 1,
+      deleted: 2,
+      dropped: 2,
+      emptied: 1,
+      left: 1,
+    });
   });
 });
 
@@ -1617,5 +1671,249 @@ describe('an employee import', () => {
       status: 'failed',
       failure_reason: importReasons.noSheetRead,
     });
+  });
+});
+
+describe('the own instructions', () => {
+  const grinderHeading =
+    'Subcapitolul XIII.I. Instrucțiuni proprii privind utilizarea mașinii de tocat carne la brutăria din curte';
+  const tillHeading =
+    'Subcapitolul XIII.II. Instrucțiuni proprii privind lucrul la casa de marcat și la cântarul electronic din magazin';
+  const grinderEnd = 'Înainte de curățare mașina se oprește și se scoate ștecherul din priză.';
+  const tillEnd = 'Cântarul electronic se verifică metrologic la termenele prevăzute de lege.';
+  const tillFirst =
+    'Casa de marcat se folosește numai de lucrătorii instruiți de furnizorul ei autorizat.';
+  const word = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+  const packFiles: FileSpec[] = [
+    files[0]!,
+    {
+      path: 'Dosar/IPSSM.docx',
+      mime: word,
+      bytes: docx([
+        'Capitolul I. Informații generale',
+        'Art. 1. Prezentele instrucțiuni se aplică tuturor lucrătorilor brutăriei.',
+        grinderHeading,
+        'Art. 2. Mașina de tocat se pornește numai cu capacul de protecție montat și închis.',
+        `Art. 3. ${grinderEnd}`,
+        tillHeading,
+        `Art. 4. ${tillFirst}`,
+        `Art. 5. ${tillEnd}`,
+      ]),
+    },
+    {
+      path: 'Dosar/Tematica.docx',
+      mime: word,
+      bytes: docx(['TEMATICA DE INSTRUIRE', 'FUNCȚIA : BRUTAR', 'IPSSM Art. 1 – 5']),
+    },
+  ];
+
+  const sorting = {
+    files: [
+      { ...answers.sorting.files[0]!, domain: '' },
+      {
+        path: 'Dosar/IPSSM.docx',
+        kind: 'own_instructions',
+        companyName: 'BRUTĂRIA FICTIVĂ S.R.L.',
+        companyCui: '',
+        carriesClientData: true,
+        domain: 'ssm',
+      },
+      {
+        path: 'Dosar/Tematica.docx',
+        kind: 'training_themes',
+        companyName: 'BRUTĂRIA FICTIVĂ S.R.L.',
+        companyCui: '',
+        carriesClientData: true,
+        domain: 'ssm',
+      },
+    ],
+  };
+
+  const instructions = {
+    instructions: [
+      {
+        file: 'Dosar/IPSSM.docx',
+        number: 'XIII.I',
+        title:
+          'Instrucțiuni proprii privind utilizarea mașinii de tocat carne la brutăria din curte',
+        category: 'work_equipment',
+        startWords: grinderHeading,
+        endWords: grinderEnd,
+      },
+      {
+        file: 'Dosar/IPSSM.docx',
+        number: 'XIII.II',
+        title:
+          'Instrucțiuni proprii privind lucrul la casa de marcat și la cântarul electronic din magazin',
+        category: 'work_equipment',
+        startWords: tillHeading,
+        endWords: tillEnd,
+      },
+    ],
+    positions: [
+      {
+        post: 'BRUTAR',
+        variant: '',
+        clientPost: '',
+        section: 'workplace',
+        citation: 'IPSSM Art. 1 – 5',
+        file: 'Dosar/Tematica.docx',
+        quote: 'FUNCȚIA : BRUTAR',
+      },
+    ],
+  };
+
+  const till: LibraryModule = {
+    id: 'b1000000-0000-4000-8000-000000000001',
+    title: 'Lucrul la casa de marcat',
+    category: 'work_equipment',
+    domain: 'ssm',
+    body: {
+      blocks: [
+        { kind: 'article', paragraphs: [tillFirst] },
+        { kind: 'article', paragraphs: [tillEnd] },
+      ],
+    },
+  };
+
+  const packModel =
+    (answer: unknown = instructions): Recorded =>
+    (request) => {
+      if (request.name === 'import_sorting') return sorting;
+      if (request.name === 'import_instructions_ssm') return answer;
+      return defaultModel(request);
+    };
+
+  const part = () => world.parts.get(`${importId}:instructions_ssm`)!;
+
+  it('reads them for the library once the client is ready, apart from the client reading', async () => {
+    world.library = [till];
+    model = packModel();
+    startWith(packFiles);
+    const outcomes = await drain(deps());
+
+    expect(outcomes.every((outcome) => outcome.outcome === 'ack')).toBe(true);
+    expect(world.imports.get(importId)!.status).toBe('ready');
+    expect(world.fileAt('Dosar/IPSSM.docx')).toMatchObject({
+      state: 'set_aside',
+      document_domain: 'ssm',
+      reason: 'Instrucțiuni proprii: le citim pentru biblioteca ta de instrucțiuni proprii.',
+    });
+    expect(world.fileAt('Dosar/Tematica.docx')).toMatchObject({
+      state: 'read',
+      document_domain: 'ssm',
+    });
+    expect(world.fileAt('Dosar/Decizia 1.docx').document_domain).toBeNull();
+    expect(world.parts.has(`${importId}:instructions_psi`)).toBe(false);
+
+    expect(part()).toMatchObject({ status: 'to_review', attempt: 1 });
+    const proposal = instructionsProposalSchema.parse(part().proposal);
+    expect(
+      proposal.instructions.map((instruction) => [
+        instruction.title,
+        instruction.status,
+        instruction.articleCount,
+        instruction.match?.moduleId ?? null,
+      ])
+    ).toEqual([
+      ['Utilizarea mașinii de tocat carne la brutăria din curte', 'new', 2, null],
+      ['Lucrul la casa de marcat și la cântarul electronic din magazin', 'identical', 2, till.id],
+    ]);
+    expect(proposal.positions[0]).toMatchObject({
+      post: 'BRUTAR',
+      resolution: { kind: 'resolved' },
+    });
+
+    const reading = modelRequests.find((request) => request.name === 'client_import')!;
+    const read = modelRequests.find((request) => request.name === 'import_instructions_ssm')!;
+    expect(reading.metadata).toBe(JSON.stringify({ organizationId, importId }));
+    expect(read.metadata).toBe(
+      JSON.stringify({ organizationId, importId, part: 'instructions_ssm' })
+    );
+    expect(read.maxTokens).toBe(16_000);
+    expect(world.partCharges).toEqual(['instructions_ssm:1']);
+    expect(world.partUsage).toEqual([
+      { part: 'instructions_ssm', input: 1000, cost: expect.any(Number) },
+    ]);
+    expect(world.usage.map((usage) => usage.step).sort()).toEqual(['reading', 'sorting']);
+  });
+
+  it('says nothing is new when every instruction is in the library already', async () => {
+    world.library = [till];
+    model = packModel({ ...instructions, instructions: [instructions.instructions[1]!] });
+    startWith(packFiles);
+    await drain(deps());
+
+    expect(part().status).toBe('nothing_new');
+  });
+
+  it('fails the part, not the import, when the answer cannot be used', async () => {
+    model = packModel({ not: 'the schema' });
+    startWith(packFiles);
+    const outcomes = await drain(deps());
+
+    expect(outcomes.every((outcome) => outcome.outcome === 'ack')).toBe(true);
+    expect(world.imports.get(importId)!.status).toBe('ready');
+    expect(part()).toMatchObject({
+      status: 'failed',
+      failure_reason: libraryReasons.modelFailed,
+    });
+    expect(world.partCharges).toEqual(['instructions_ssm:1']);
+  });
+
+  it('reads a retried part under its next attempt, once, and ignores the message of the one before', async () => {
+    model = packModel({ not: 'the schema' });
+    startWith(packFiles);
+    await drain(deps());
+    Object.assign(part(), { status: 'reading', attempt: 2, failure_reason: null });
+    model = packModel();
+    modelRequests = [];
+    world.send({ type: 'read-instructions', importId, part: 'instructions_ssm', attempt: 1 });
+    world.send({ type: 'read-instructions', importId, part: 'instructions_ssm', attempt: 2 });
+    world.send({ type: 'read-instructions', importId, part: 'instructions_ssm', attempt: 2 });
+    await drain(deps());
+
+    expect(part()).toMatchObject({ status: 'to_review', attempt: 2 });
+    expect(world.partCharges).toEqual(['instructions_ssm:1', 'instructions_ssm:2']);
+    expect(
+      modelRequests.filter((request) => request.name === 'import_instructions_ssm')
+    ).toHaveLength(1);
+  });
+
+  it('fails a part whose files are too long for one reading, before anything is charged', async () => {
+    const long = Array.from(
+      { length: 8_200 },
+      (_, index) => `Art. ${index + 1}. ${'x'.repeat(95)}`
+    );
+    model = packModel();
+    startWith([files[0]!, { ...packFiles[1]!, bytes: docx(long) }, packFiles[2]!]);
+    await drain(deps());
+
+    expect(part().status).toBe('failed');
+    expect(part().failure_reason).toMatch(/mai mult decât încap într-o citire \(800\.000\)\.$/);
+    expect(world.partCharges).toEqual([]);
+    expect(modelRequests.some((request) => request.name === 'import_instructions_ssm')).toBe(false);
+  });
+
+  it('fails the part whose step every delivery lost', async () => {
+    world.addImport({ status: 'ready' });
+    world.parts.set(`${importId}:instructions_ssm`, {
+      import_id: importId,
+      part: 'instructions_ssm',
+      status: 'reading',
+      attempt: 1,
+      proposal: null,
+    });
+    const message = {
+      id: 'lost',
+      body: { type: 'read-instructions', importId, part: 'instructions_ssm', attempt: 1 },
+      attempts: 1,
+      ack: vi.fn(),
+      retry: vi.fn(),
+    } satisfies QueueMessage;
+    await consumeImportDeadLetters({ messages: [message] }, {}, deps());
+
+    expect(part()).toMatchObject({ status: 'failed', failure_reason: libraryReasons.failed });
   });
 });

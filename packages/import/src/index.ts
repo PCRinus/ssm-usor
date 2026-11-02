@@ -153,6 +153,7 @@ export {
   type InstructionsTextFile,
   InstructionsTooLargeError,
 } from './instructions-request';
+export { instructionsProposalSchema } from './instructions-schema';
 export {
   contained,
   editDistance,

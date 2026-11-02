@@ -1,6 +1,7 @@
 import type {
   CurrentUser,
   ExtractorService,
+  ImportLibraryPart,
   MailService,
   PdfService,
   SignerService,
@@ -21,7 +22,7 @@ export type RegenerationQueue = {
 
 // `deferred` counts the times a message was sent again while the extractor was unavailable;
 // `owner`, the message that claimed a scan before it was deferred. A scan without `pages` sorts
-// the file and sends its pages.
+// the file and sends its pages. `attempt` is the library part's reading the message is for.
 export type ImportMessage =
   | { type: 'prepare'; importId: string; fileId: string; deferred?: number }
   | { type: 'sort'; importId: string }
@@ -35,7 +36,13 @@ export type ImportMessage =
     }
   | { type: 'read'; importId: string; waits: number; progress?: number }
   | { type: 'check'; importId: string }
-  | { type: 'copy'; importId: string };
+  | { type: 'copy'; importId: string }
+  | {
+      type: 'read-instructions';
+      importId: string;
+      part: ImportLibraryPart;
+      attempt: number;
+    };
 
 export type ImportQueue = {
   send(body: ImportMessage, options?: { delaySeconds?: number }): Promise<unknown>;

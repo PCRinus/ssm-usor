@@ -8029,6 +8029,25 @@ export const ImportSummaryStatus = {
   failed: 'failed',
 } as const;
 
+export type ImportSummaryLibraryPartsItemPart =
+  (typeof ImportSummaryLibraryPartsItemPart)[keyof typeof ImportSummaryLibraryPartsItemPart];
+
+export const ImportSummaryLibraryPartsItemPart = {
+  instructions_ssm: 'instructions_ssm',
+  instructions_psi: 'instructions_psi',
+} as const;
+
+export type ImportSummaryLibraryPartsItemStatus =
+  (typeof ImportSummaryLibraryPartsItemStatus)[keyof typeof ImportSummaryLibraryPartsItemStatus];
+
+export const ImportSummaryLibraryPartsItemStatus = {
+  reading: 'reading',
+  to_review: 'to_review',
+  nothing_new: 'nothing_new',
+  failed: 'failed',
+  confirmed: 'confirmed',
+} as const;
+
 /**
  * @nullable
  */
@@ -8074,6 +8093,13 @@ export type ImportSummaryProgress = {
   scansRead: number;
 } | null;
 
+export type ImportSummaryLibraryPartsItem = {
+  part: ImportSummaryLibraryPartsItemPart;
+  status: ImportSummaryLibraryPartsItemStatus;
+  /** @nullable */
+  expiresAt: string | null;
+};
+
 export interface ImportSummary {
   id: string;
   kind: ImportSummaryKind;
@@ -8113,6 +8139,7 @@ export interface ImportSummary {
   uninvited: number | null;
   /** @nullable */
   progress: ImportSummaryProgress;
+  libraryParts: ImportSummaryLibraryPartsItem[];
 }
 
 export interface ImportSummaryResponse {
@@ -8201,6 +8228,32 @@ export type ImportListResponseItemsItemProgress = {
   scansRead: number;
 } | null;
 
+export type ImportListResponseItemsItemLibraryPartsItemPart =
+  (typeof ImportListResponseItemsItemLibraryPartsItemPart)[keyof typeof ImportListResponseItemsItemLibraryPartsItemPart];
+
+export const ImportListResponseItemsItemLibraryPartsItemPart = {
+  instructions_ssm: 'instructions_ssm',
+  instructions_psi: 'instructions_psi',
+} as const;
+
+export type ImportListResponseItemsItemLibraryPartsItemStatus =
+  (typeof ImportListResponseItemsItemLibraryPartsItemStatus)[keyof typeof ImportListResponseItemsItemLibraryPartsItemStatus];
+
+export const ImportListResponseItemsItemLibraryPartsItemStatus = {
+  reading: 'reading',
+  to_review: 'to_review',
+  nothing_new: 'nothing_new',
+  failed: 'failed',
+  confirmed: 'confirmed',
+} as const;
+
+export type ImportListResponseItemsItemLibraryPartsItem = {
+  part: ImportListResponseItemsItemLibraryPartsItemPart;
+  status: ImportListResponseItemsItemLibraryPartsItemStatus;
+  /** @nullable */
+  expiresAt: string | null;
+};
+
 export type ImportListResponseItemsItem = {
   id: string;
   kind: ImportListResponseItemsItemKind;
@@ -8240,6 +8293,7 @@ export type ImportListResponseItemsItem = {
   uninvited: number | null;
   /** @nullable */
   progress: ImportListResponseItemsItemProgress;
+  libraryParts: ImportListResponseItemsItemLibraryPartsItem[];
 };
 
 export interface ImportListResponse {
@@ -8265,6 +8319,25 @@ export const ImportDetailStatus = {
   confirmed: 'confirmed',
   abandoned: 'abandoned',
   failed: 'failed',
+} as const;
+
+export type ImportDetailLibraryPartsItemPart =
+  (typeof ImportDetailLibraryPartsItemPart)[keyof typeof ImportDetailLibraryPartsItemPart];
+
+export const ImportDetailLibraryPartsItemPart = {
+  instructions_ssm: 'instructions_ssm',
+  instructions_psi: 'instructions_psi',
+} as const;
+
+export type ImportDetailLibraryPartsItemStatus =
+  (typeof ImportDetailLibraryPartsItemStatus)[keyof typeof ImportDetailLibraryPartsItemStatus];
+
+export const ImportDetailLibraryPartsItemStatus = {
+  reading: 'reading',
+  to_review: 'to_review',
+  nothing_new: 'nothing_new',
+  failed: 'failed',
+  confirmed: 'confirmed',
 } as const;
 
 export type ImportDetailFilesItemMimeType =
@@ -8295,6 +8368,18 @@ export const ImportDetailFilesItemState = {
   failed: 'failed',
 } as const;
 
+/**
+ * @nullable
+ */
+export type ImportDetailFilesItemDocumentDomain =
+  | (typeof ImportDetailFilesItemDocumentDomain)[keyof typeof ImportDetailFilesItemDocumentDomain]
+  | null;
+
+export const ImportDetailFilesItemDocumentDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
 export type ImportDetailBlockersItemCode =
   (typeof ImportDetailBlockersItemCode)[keyof typeof ImportDetailBlockersItemCode];
 
@@ -8320,6 +8405,7 @@ export type ImportUsageBySteps = {
   sorting?: ImportModelUsage;
   reading?: ImportModelUsage;
   scanning?: ImportModelUsage;
+  instructions?: ImportModelUsage;
 };
 
 export interface ImportUsage {
@@ -8349,6 +8435,8 @@ export type ImportCredits = {
   atStart: number;
   /** @minimum 0 */
   scannedPages: number;
+  /** @minimum 0 */
+  ownInstructions: number;
   refunded: boolean;
 } | null;
 
@@ -9382,6 +9470,13 @@ export type ImportDetailProgress = {
   scansRead: number;
 };
 
+export type ImportDetailLibraryPartsItem = {
+  part: ImportDetailLibraryPartsItemPart;
+  status: ImportDetailLibraryPartsItemStatus;
+  /** @nullable */
+  expiresAt: string | null;
+};
+
 export type ImportDetailFilesItem = {
   id: string;
   uploadPath: string;
@@ -9392,6 +9487,8 @@ export type ImportDetailFilesItem = {
   state: ImportDetailFilesItemState;
   /** @nullable */
   documentKind: string | null;
+  /** @nullable */
+  documentDomain: ImportDetailFilesItemDocumentDomain;
   /** @nullable */
   reason: string | null;
   /** @nullable */
@@ -10593,6 +10690,7 @@ export interface ImportDetail {
    */
   uninvited: number | null;
   progress: ImportDetailProgress;
+  libraryParts: ImportDetailLibraryPartsItem[];
   /** @minimum 0 */
   version: number;
   files: ImportDetailFilesItem[];
@@ -11050,6 +11148,515 @@ export interface AddFoundSheetsRequest {
    * @maxItems 500
    */
   fileIds?: string[];
+}
+
+export type ImportLibraryPartsResponsePostsItem = {
+  /**
+   * @minLength 1
+   * @maxLength 100
+   */
+  id: string;
+  name: string;
+  /** @nullable */
+  jobPositionId: string | null;
+};
+
+export type ImportLibraryPartPart =
+  (typeof ImportLibraryPartPart)[keyof typeof ImportLibraryPartPart];
+
+export const ImportLibraryPartPart = {
+  instructions_ssm: 'instructions_ssm',
+  instructions_psi: 'instructions_psi',
+} as const;
+
+export type ImportLibraryPartDomain =
+  (typeof ImportLibraryPartDomain)[keyof typeof ImportLibraryPartDomain];
+
+export const ImportLibraryPartDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type ImportLibraryPartStatus =
+  (typeof ImportLibraryPartStatus)[keyof typeof ImportLibraryPartStatus];
+
+export const ImportLibraryPartStatus = {
+  reading: 'reading',
+  to_review: 'to_review',
+  nothing_new: 'nothing_new',
+  failed: 'failed',
+  confirmed: 'confirmed',
+} as const;
+
+export type ImportLibraryPartChangesInstructionsCategory =
+  (typeof ImportLibraryPartChangesInstructionsCategory)[keyof typeof ImportLibraryPartChangesInstructionsCategory];
+
+export const ImportLibraryPartChangesInstructionsCategory = {
+  work_activity: 'work_activity',
+  work_equipment: 'work_equipment',
+  protective_equipment: 'protective_equipment',
+  premises_activity: 'premises_activity',
+  installation_equipment: 'installation_equipment',
+  hazardous_work: 'hazardous_work',
+} as const;
+
+export type ImportLibraryPartChangesInstructionsChoice =
+  (typeof ImportLibraryPartChangesInstructionsChoice)[keyof typeof ImportLibraryPartChangesInstructionsChoice];
+
+export const ImportLibraryPartChangesInstructionsChoice = {
+  use_existing: 'use_existing',
+  add_new: 'add_new',
+} as const;
+
+export type InstructionsProposalDomain =
+  (typeof InstructionsProposalDomain)[keyof typeof InstructionsProposalDomain];
+
+export const InstructionsProposalDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type InstructionsProposalInstructionsItemCategory =
+  (typeof InstructionsProposalInstructionsItemCategory)[keyof typeof InstructionsProposalInstructionsItemCategory];
+
+export const InstructionsProposalInstructionsItemCategory = {
+  work_activity: 'work_activity',
+  work_equipment: 'work_equipment',
+  protective_equipment: 'protective_equipment',
+  premises_activity: 'premises_activity',
+  installation_equipment: 'installation_equipment',
+  hazardous_work: 'hazardous_work',
+} as const;
+
+export type InstructionsProposalInstructionsItemStatus =
+  (typeof InstructionsProposalInstructionsItemStatus)[keyof typeof InstructionsProposalInstructionsItemStatus];
+
+export const InstructionsProposalInstructionsItemStatus = {
+  identical: 'identical',
+  similar: 'similar',
+  new: 'new',
+} as const;
+
+export type InstructionsProposalInstructionsItemMatchDecidedBy =
+  (typeof InstructionsProposalInstructionsItemMatchDecidedBy)[keyof typeof InstructionsProposalInstructionsItemMatchDecidedBy];
+
+export const InstructionsProposalInstructionsItemMatchDecidedBy = {
+  hash: 'hash',
+  overlap: 'overlap',
+  model: 'model',
+} as const;
+
+/**
+ * @nullable
+ */
+export type InstructionsProposalInstructionsItemChoice =
+  | (typeof InstructionsProposalInstructionsItemChoice)[keyof typeof InstructionsProposalInstructionsItemChoice]
+  | null;
+
+export const InstructionsProposalInstructionsItemChoice = {
+  use_existing: 'use_existing',
+  add_new: 'add_new',
+} as const;
+
+export type InstructionsProposalUnreadItemCategory =
+  (typeof InstructionsProposalUnreadItemCategory)[keyof typeof InstructionsProposalUnreadItemCategory];
+
+export const InstructionsProposalUnreadItemCategory = {
+  work_activity: 'work_activity',
+  work_equipment: 'work_equipment',
+  protective_equipment: 'protective_equipment',
+  premises_activity: 'premises_activity',
+  installation_equipment: 'installation_equipment',
+  hazardous_work: 'hazardous_work',
+} as const;
+
+export type InstructionsProposalUnreadItemReason =
+  (typeof InstructionsProposalUnreadItemReason)[keyof typeof InstructionsProposalUnreadItemReason];
+
+export const InstructionsProposalUnreadItemReason = {
+  file_not_found: 'file_not_found',
+  start_not_found: 'start_not_found',
+  no_articles: 'no_articles',
+  too_long: 'too_long',
+} as const;
+
+export type InstructionsProposalPositionsItemCitationsItemSection =
+  (typeof InstructionsProposalPositionsItemCitationsItemSection)[keyof typeof InstructionsProposalPositionsItemCitationsItemSection];
+
+export const InstructionsProposalPositionsItemCitationsItemSection = {
+  workplace: 'workplace',
+  periodic: 'periodic',
+  other: 'other',
+} as const;
+
+export type InstructionsProposalInstructionsItemBodyBlocksItem =
+  | {
+      kind: 'heading';
+      /**
+       * @minLength 1
+       * @maxLength 300
+       */
+      text: string;
+    }
+  | {
+      kind: 'article';
+      /**
+       * @minItems 1
+       * @items.minLength 1
+       * @items.maxLength 20000
+       */
+      paragraphs: string[];
+    };
+
+export type InstructionsProposalInstructionsItemBody = {
+  blocks: InstructionsProposalInstructionsItemBodyBlocksItem[];
+};
+
+export type InstructionsProposalInstructionsItemLocation = {
+  file: string;
+  start: number;
+  end: number;
+  firstParagraph: number;
+  lastParagraph: number;
+};
+
+export type InstructionsProposalInstructionsItemMatchDifferencesItem =
+  | {
+      kind: 'added';
+      article: number;
+    }
+  | {
+      kind: 'removed';
+      libraryArticle: number;
+    }
+  | {
+      kind: 'changed';
+      article: number;
+      libraryArticle: number;
+      words: {
+        text: string;
+        change: 'same' | 'added' | 'removed';
+      }[];
+    };
+
+/**
+ * @nullable
+ */
+export type InstructionsProposalInstructionsItemMatch = {
+  moduleId: string;
+  title: string;
+  similarity: number;
+  decidedBy: InstructionsProposalInstructionsItemMatchDecidedBy;
+  differences: InstructionsProposalInstructionsItemMatchDifferencesItem[];
+} | null;
+
+export type InstructionsProposalInstructionsItemFlagsItem =
+  | {
+      kind: 'no_numbering';
+    }
+  | {
+      kind: 'no_articles';
+    }
+  | {
+      kind: 'text_before_first_article';
+    }
+  | {
+      kind: 'table_row';
+      article: number;
+    }
+  | {
+      kind: 'end_not_found';
+    }
+  | {
+      kind: 'end_extended';
+    }
+  | {
+      kind: 'client_name';
+      name: string;
+    };
+
+export type InstructionsProposalInstructionsItem = {
+  key: string;
+  file: string;
+  number: string;
+  writtenTitle: string;
+  title: string;
+  category: InstructionsProposalInstructionsItemCategory;
+  body: InstructionsProposalInstructionsItemBody;
+  articleCount: number;
+  sourceNumbers: (number | null)[];
+  location: InstructionsProposalInstructionsItemLocation;
+  status: InstructionsProposalInstructionsItemStatus;
+  /** @nullable */
+  match: InstructionsProposalInstructionsItemMatch;
+  /** @nullable */
+  choice: InstructionsProposalInstructionsItemChoice;
+  posts: string[];
+  flags: InstructionsProposalInstructionsItemFlagsItem[];
+  sameAs: string[];
+};
+
+export type InstructionsProposalUnreadItem = {
+  key: string;
+  file: string;
+  number: string;
+  title: string;
+  category: InstructionsProposalUnreadItemCategory;
+  reason: InstructionsProposalUnreadItemReason;
+};
+
+export type InstructionsProposalPositionsItemCitationsItem = {
+  section: InstructionsProposalPositionsItemCitationsItemSection;
+  citation: string;
+  file: string;
+  quote: string;
+};
+
+export type InstructionsProposalPositionsItemResolution =
+  | {
+      kind: 'resolved';
+      instructions: string[];
+    }
+  | {
+      kind: 'undecided';
+      reasons: (
+        | {
+            kind: 'number_twice';
+            scope:
+              | {
+                  kind: 'main';
+                }
+              | {
+                  kind: 'own';
+                  number: number;
+                }
+              | {
+                  kind: 'apart';
+                  file: string;
+                };
+            number: number;
+          }
+        | {
+            kind: 'cuts_instruction';
+            instruction: string;
+          }
+        | {
+            kind: 'number_shared';
+            number: number;
+          }
+        | {
+            kind: 'missing_reference';
+            reference: string;
+          }
+      )[];
+    };
+
+export type InstructionsProposalPositionsItem = {
+  key: string;
+  post: string;
+  variant: string;
+  /** @nullable */
+  clientPost: string | null;
+  citations: InstructionsProposalPositionsItemCitationsItem[];
+  resolution: InstructionsProposalPositionsItemResolution;
+  missing: string[];
+};
+
+/**
+ * @nullable
+ */
+export type InstructionsProposal = {
+  domain: InstructionsProposalDomain;
+  instructions: InstructionsProposalInstructionsItem[];
+  unread: InstructionsProposalUnreadItem[];
+  positions: InstructionsProposalPositionsItem[];
+} | null;
+
+export type ImportLibraryPartChangesInstructionsBodyBlocksItem =
+  | {
+      kind: 'heading';
+      /**
+       * @minLength 1
+       * @maxLength 300
+       */
+      text: string;
+    }
+  | {
+      kind: 'article';
+      /**
+       * @minItems 1
+       * @items.minLength 1
+       * @items.maxLength 20000
+       */
+      paragraphs: string[];
+    };
+
+export type ImportLibraryPartChangesInstructionsBody = {
+  blocks: ImportLibraryPartChangesInstructionsBodyBlocksItem[];
+};
+
+export type ImportLibraryPartChangesInstructions = {
+  [key: string]: {
+    included?: boolean;
+    /**
+     * @minLength 2
+     * @maxLength 200
+     */
+    title?: string;
+    category?: ImportLibraryPartChangesInstructionsCategory;
+    choice?: ImportLibraryPartChangesInstructionsChoice;
+    /**
+     * @maxItems 500
+     * @items.minLength 1
+     * @items.maxLength 100
+     */
+    posts?: string[];
+    body?: ImportLibraryPartChangesInstructionsBody;
+  };
+};
+
+/**
+ * @nullable
+ */
+export type ImportLibraryPartChanges = {
+  instructions?: ImportLibraryPartChangesInstructions;
+} | null;
+
+/**
+ * @nullable
+ */
+export type ImportLibraryPartCounts = {
+  /** @minimum 0 */
+  identical: number;
+  /** @minimum 0 */
+  similar: number;
+  /** @minimum 0 */
+  new: number;
+  /** @minimum 0 */
+  unread: number;
+} | null;
+
+export type ImportLibraryPartPositionPosts = { [key: string]: string | null };
+
+export interface ImportLibraryPart {
+  part: ImportLibraryPartPart;
+  domain: ImportLibraryPartDomain;
+  status: ImportLibraryPartStatus;
+  /** @minimum 1 */
+  attempt: number;
+  /** @nullable */
+  failureReason: string | null;
+  /** @minimum 0 */
+  version: number;
+  /** @nullable */
+  changes: ImportLibraryPartChanges;
+  /** @nullable */
+  counts: ImportLibraryPartCounts;
+  positionPosts: ImportLibraryPartPositionPosts;
+  /** @nullable */
+  readAt: string | null;
+  /** @nullable */
+  confirmedAt: string | null;
+  /** @nullable */
+  expiresAt: string | null;
+  /** @minimum 0 */
+  credits: number;
+  usage?: ImportModelUsage;
+  proposal: InstructionsProposal | null;
+}
+
+export interface ImportLibraryPartsResponse {
+  parts: ImportLibraryPart[];
+  posts: ImportLibraryPartsResponsePostsItem[];
+}
+
+export type SaveImportLibraryPartChangesRequestChangesInstructionsCategory =
+  (typeof SaveImportLibraryPartChangesRequestChangesInstructionsCategory)[keyof typeof SaveImportLibraryPartChangesRequestChangesInstructionsCategory];
+
+export const SaveImportLibraryPartChangesRequestChangesInstructionsCategory = {
+  work_activity: 'work_activity',
+  work_equipment: 'work_equipment',
+  protective_equipment: 'protective_equipment',
+  premises_activity: 'premises_activity',
+  installation_equipment: 'installation_equipment',
+  hazardous_work: 'hazardous_work',
+} as const;
+
+export type SaveImportLibraryPartChangesRequestChangesInstructionsChoice =
+  (typeof SaveImportLibraryPartChangesRequestChangesInstructionsChoice)[keyof typeof SaveImportLibraryPartChangesRequestChangesInstructionsChoice];
+
+export const SaveImportLibraryPartChangesRequestChangesInstructionsChoice = {
+  use_existing: 'use_existing',
+  add_new: 'add_new',
+} as const;
+
+export type SaveImportLibraryPartChangesRequestChangesInstructionsBodyBlocksItem =
+  | {
+      kind: 'heading';
+      /**
+       * @minLength 1
+       * @maxLength 300
+       */
+      text: string;
+    }
+  | {
+      kind: 'article';
+      /**
+       * @minItems 1
+       * @items.minLength 1
+       * @items.maxLength 20000
+       */
+      paragraphs: string[];
+    };
+
+export type SaveImportLibraryPartChangesRequestChangesInstructionsBody = {
+  blocks: SaveImportLibraryPartChangesRequestChangesInstructionsBodyBlocksItem[];
+};
+
+export type SaveImportLibraryPartChangesRequestChangesInstructions = {
+  [key: string]: {
+    included?: boolean;
+    /**
+     * @minLength 2
+     * @maxLength 200
+     */
+    title?: string;
+    category?: SaveImportLibraryPartChangesRequestChangesInstructionsCategory;
+    choice?: SaveImportLibraryPartChangesRequestChangesInstructionsChoice;
+    /**
+     * @maxItems 500
+     * @items.minLength 1
+     * @items.maxLength 100
+     */
+    posts?: string[];
+    body?: SaveImportLibraryPartChangesRequestChangesInstructionsBody;
+  };
+};
+
+export type SaveImportLibraryPartChangesRequestChanges = {
+  instructions?: SaveImportLibraryPartChangesRequestChangesInstructions;
+};
+
+export interface SaveImportLibraryPartChangesRequest {
+  /** @minimum 0 */
+  version: number;
+  changes: SaveImportLibraryPartChangesRequestChanges;
+}
+
+export interface ConfirmImportLibraryPartResponse {
+  createdModuleIds: string[];
+  usedModuleIds: string[];
+  /** @minimum 0 */
+  links: number;
+}
+
+export interface ConfirmImportLibraryPartRequest {
+  /** @minimum 0 */
+  version: number;
+}
+
+export interface ImportLibraryPartResponse {
+  part: ImportLibraryPart;
 }
 
 /**
@@ -34935,6 +35542,478 @@ export const useAddFoundSheets = <TError = ErrorType<ApiErrorResponse>, TContext
   TContext
 > => {
   return useMutation(getAddFoundSheetsMutationOptions(options), queryClient);
+};
+
+export const getListImportLibraryPartsUrl = (importId: string) => {
+  return `/imports/${importId}/library-parts`;
+};
+
+/**
+ * One part per domain whose own instructions the sorting found (ADR 034), `instructions_ssm` and `instructions_psi`, each read by a request of its own once the client proposal is ready: its status (`reading`, `to_review`, `nothing_new`, `failed` with `failureReason`, `confirmed`), the proposal from `to_review` on (null before, and once dropped with the import's, 30 days after the client), the member's changes and the version to save on, the counts of identical, similar, new and unread instructions, `positionPosts` (the client post each post the themes name is, as the changes name posts), `expiresAt` (14 days after the client's confirmation, past which a part is no longer confirmed), and `credits`, its readings net of those given back. `posts` are the posts an instruction can apply to: the client proposal's, by their id, with the job position each became once the client is confirmed, and the client's other active posts by their id. `usage`, the models' cost at list price and tokens, is served outside production and, in production, only to a platform admin. An empty list for an employee import or a pack without own instructions.
+ * @summary A client import's proposals for the library
+ */
+export const listImportLibraryParts = async (
+  importId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ImportLibraryPartsResponse> => {
+  return apiFetch<ImportLibraryPartsResponse>(getListImportLibraryPartsUrl(importId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListImportLibraryPartsQueryKey = (importId: string) => {
+  return [`/imports/${importId}/library-parts`] as const;
+};
+
+export const getListImportLibraryPartsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listImportLibraryParts>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  importId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listImportLibraryParts>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListImportLibraryPartsQueryKey(importId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listImportLibraryParts>>> = ({ signal }) =>
+    listImportLibraryParts(importId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: importId !== null && importId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listImportLibraryParts>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListImportLibraryPartsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listImportLibraryParts>>
+>;
+export type ListImportLibraryPartsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListImportLibraryParts<
+  TData = Awaited<ReturnType<typeof listImportLibraryParts>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  importId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listImportLibraryParts>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listImportLibraryParts>>,
+          TError,
+          Awaited<ReturnType<typeof listImportLibraryParts>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListImportLibraryParts<
+  TData = Awaited<ReturnType<typeof listImportLibraryParts>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  importId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listImportLibraryParts>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listImportLibraryParts>>,
+          TError,
+          Awaited<ReturnType<typeof listImportLibraryParts>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListImportLibraryParts<
+  TData = Awaited<ReturnType<typeof listImportLibraryParts>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  importId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listImportLibraryParts>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary A client import's proposals for the library
+ */
+
+export function useListImportLibraryParts<
+  TData = Awaited<ReturnType<typeof listImportLibraryParts>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  importId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listImportLibraryParts>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListImportLibraryPartsQueryOptions(importId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getSaveImportLibraryPartChangesUrl = (
+  importId: string,
+  part: 'instructions_ssm' | 'instructions_psi'
+) => {
+  return `/imports/${importId}/library-parts/${part}/changes`;
+};
+
+/**
+ * Replaces the part's changes, by the proposed instruction's key: `included` false leaves it out, `title`, `category` (one of the part's domain), `choice` for a similar instruction (`use_existing` or `add_new`), `posts` in place of those the themes give, and `body`, the text edited, held to the body's schema. Before the client is confirmed too. On the `version` the caller read, and answers the next. `400` for a key the proposal does not have or a category of the other domain; `409` with `import_changed` when someone saved since, `import_part_not_ready` when the part is not `to_review` or `nothing_new`.
+ * @summary Save the member's review of a library part
+ */
+export const saveImportLibraryPartChanges = async (
+  importId: string,
+  part: 'instructions_ssm' | 'instructions_psi',
+  saveImportLibraryPartChangesRequest: SaveImportLibraryPartChangesRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SaveImportChangesResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<SaveImportChangesResponse>(getSaveImportLibraryPartChangesUrl(importId, part), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(saveImportLibraryPartChangesRequest),
+  });
+};
+
+export const getSaveImportLibraryPartChangesMutationKey = () =>
+  ['saveImportLibraryPartChanges'] as const;
+
+export const getSaveImportLibraryPartChangesMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveImportLibraryPartChanges>>,
+    TError,
+    SaveImportLibraryPartChangesMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof saveImportLibraryPartChanges>>,
+  TError,
+  SaveImportLibraryPartChangesMutationVariables,
+  TContext
+> => {
+  const mutationKey = getSaveImportLibraryPartChangesMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof saveImportLibraryPartChanges>>,
+    SaveImportLibraryPartChangesMutationVariables
+  > = (props) => {
+    const { importId, part, data } = props ?? {};
+
+    return saveImportLibraryPartChanges(importId, part, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SaveImportLibraryPartChangesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof saveImportLibraryPartChanges>>
+>;
+export type SaveImportLibraryPartChangesMutationBody = SaveImportLibraryPartChangesRequest;
+export type SaveImportLibraryPartChangesMutationError = ErrorType<ApiErrorResponse>;
+export type SaveImportLibraryPartChangesMutationVariables = {
+  importId: string;
+  part: 'instructions_ssm' | 'instructions_psi';
+  data: SaveImportLibraryPartChangesRequest;
+};
+
+/**
+ * @summary Save the member's review of a library part
+ */
+export const useSaveImportLibraryPartChanges = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof saveImportLibraryPartChanges>>,
+      TError,
+      SaveImportLibraryPartChangesMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof saveImportLibraryPartChanges>>,
+  TError,
+  SaveImportLibraryPartChangesMutationVariables,
+  TContext
+> => {
+  return useMutation(getSaveImportLibraryPartChangesMutationOptions(options), queryClient);
+};
+
+export const getConfirmImportLibraryPartUrl = (
+  importId: string,
+  part: 'instructions_ssm' | 'instructions_psi'
+) => {
+  return `/imports/${importId}/library-parts/${part}/confirm`;
+};
+
+/**
+ * In one transaction (`apply_instruction_import`): creates a module with its first version for every new instruction and every similar one the member chose to add as new, takes the identical ones and the similar ones kept as they are, and applies each to its posts, skipping a post that applies it already, all as the member. Only after the client is confirmed: `409` with `import_client_unconfirmed` before (the app says "Confirmă întâi clientul"). The client import's own confirm never waits for its parts. `409` with `import_part_expired` 14 days after the client's confirmation, `import_part_not_ready`, `import_changed`, `instruction_title_taken` when a new module's title is an active module's (with `issues` on `instructions.<key>.title`), or `import_outdated` when a post or module the review named is gone. `422` with `import_incomplete` for a category of the other domain.
+ * @summary Confirm a library part
+ */
+export const confirmImportLibraryPart = async (
+  importId: string,
+  part: 'instructions_ssm' | 'instructions_psi',
+  confirmImportLibraryPartRequest: ConfirmImportLibraryPartRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ConfirmImportLibraryPartResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ConfirmImportLibraryPartResponse>(
+    getConfirmImportLibraryPartUrl(importId, part),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+      body: JSON.stringify(confirmImportLibraryPartRequest),
+    }
+  );
+};
+
+export const getConfirmImportLibraryPartMutationKey = () => ['confirmImportLibraryPart'] as const;
+
+export const getConfirmImportLibraryPartMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmImportLibraryPart>>,
+    TError,
+    ConfirmImportLibraryPartMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof confirmImportLibraryPart>>,
+  TError,
+  ConfirmImportLibraryPartMutationVariables,
+  TContext
+> => {
+  const mutationKey = getConfirmImportLibraryPartMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof confirmImportLibraryPart>>,
+    ConfirmImportLibraryPartMutationVariables
+  > = (props) => {
+    const { importId, part, data } = props ?? {};
+
+    return confirmImportLibraryPart(importId, part, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ConfirmImportLibraryPartMutationResult = NonNullable<
+  Awaited<ReturnType<typeof confirmImportLibraryPart>>
+>;
+export type ConfirmImportLibraryPartMutationBody = ConfirmImportLibraryPartRequest;
+export type ConfirmImportLibraryPartMutationError = ErrorType<ApiErrorResponse>;
+export type ConfirmImportLibraryPartMutationVariables = {
+  importId: string;
+  part: 'instructions_ssm' | 'instructions_psi';
+  data: ConfirmImportLibraryPartRequest;
+};
+
+/**
+ * @summary Confirm a library part
+ */
+export const useConfirmImportLibraryPart = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof confirmImportLibraryPart>>,
+      TError,
+      ConfirmImportLibraryPartMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof confirmImportLibraryPart>>,
+  TError,
+  ConfirmImportLibraryPartMutationVariables,
+  TContext
+> => {
+  return useMutation(getConfirmImportLibraryPartMutationOptions(options), queryClient);
+};
+
+export const getRetryImportLibraryPartUrl = (
+  importId: string,
+  part: 'instructions_ssm' | 'instructions_psi'
+) => {
+  return `/imports/${importId}/library-parts/${part}/retry`;
+};
+
+/**
+ * "Citește din nou": a `failed` part of an import ready for review or confirmed goes back to `reading` under its next `attempt` and its message is sent again; the reading is charged again when its request is sent (25 credits for SSM, 10 for PSI), and given back if it fails. The client proposal and the other part are untouched. `409` with `import_part_not_failed` otherwise; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.
+ * @summary Read a failed library part again
+ */
+export const retryImportLibraryPart = async (
+  importId: string,
+  part: 'instructions_ssm' | 'instructions_psi',
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ImportLibraryPartResponse> => {
+  return apiFetch<ImportLibraryPartResponse>(getRetryImportLibraryPartUrl(importId, part), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getRetryImportLibraryPartMutationKey = () => ['retryImportLibraryPart'] as const;
+
+export const getRetryImportLibraryPartMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof retryImportLibraryPart>>,
+    TError,
+    RetryImportLibraryPartMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof retryImportLibraryPart>>,
+  TError,
+  RetryImportLibraryPartMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRetryImportLibraryPartMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof retryImportLibraryPart>>,
+    RetryImportLibraryPartMutationVariables
+  > = (props) => {
+    const { importId, part } = props ?? {};
+
+    return retryImportLibraryPart(importId, part, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RetryImportLibraryPartMutationResult = NonNullable<
+  Awaited<ReturnType<typeof retryImportLibraryPart>>
+>;
+
+export type RetryImportLibraryPartMutationError = ErrorType<ApiErrorResponse>;
+export type RetryImportLibraryPartMutationVariables = {
+  importId: string;
+  part: 'instructions_ssm' | 'instructions_psi';
+};
+
+/**
+ * @summary Read a failed library part again
+ */
+export const useRetryImportLibraryPart = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof retryImportLibraryPart>>,
+      TError,
+      RetryImportLibraryPartMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof retryImportLibraryPart>>,
+  TError,
+  RetryImportLibraryPartMutationVariables,
+  TContext
+> => {
+  return useMutation(getRetryImportLibraryPartMutationOptions(options), queryClient);
 };
 
 export const getGetServiceContractUrl = (clientId: string) => {

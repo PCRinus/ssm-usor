@@ -13,6 +13,7 @@ import {
   importFileExtensions,
   type ImportFileType,
   type ImportKind,
+  type ImportLibraryPart,
   type ImportLimits,
   importLimits,
   type ImportSourceResponse,
@@ -58,6 +59,7 @@ import {
   storedEmployeeChanges,
   storedEmployeeProposal,
 } from './employees';
+import { libraryPartExpiry } from './library';
 import {
   type ExistingRecords,
   noExistingRecords,
@@ -119,10 +121,14 @@ type ImportRow = Pick<
   clients: { id: string; legal_name: string } | null;
   import_files: { count: number }[];
   last_file: { updated_at: string }[];
+  import_library_parts: {
+    part: ImportLibraryPart;
+    status: Database['public']['Enums']['import_library_part_status'];
+  }[];
 };
 
 const summaryColumns =
-  'id, kind, status, client_id, into_existing_client, company_name, company_cui, source_import_id, failure_reason, created_by, created_at, updated_at, started_at, ready_at, failed_at, confirmed_at, clients!imports_client_in_organization(id, legal_name), import_files(count), last_file:import_files(updated_at)';
+  'id, kind, status, client_id, into_existing_client, company_name, company_cui, source_import_id, failure_reason, created_by, created_at, updated_at, started_at, ready_at, failed_at, confirmed_at, clients!imports_client_in_organization(id, legal_name), import_files(count), last_file:import_files(updated_at), import_library_parts(part, status)';
 
 // The clean-up fails an import uploading or ready with no change to it or its files for 14 days
 // (fail_stalled_imports).
@@ -213,6 +219,11 @@ function toSummary(
     people,
     uninvited,
     progress,
+    libraryParts: (row.import_library_parts ?? []).map((part) => ({
+      part: part.part,
+      status: part.status,
+      expiresAt: libraryPartExpiry(row.confirmed_at),
+    })),
   };
 }
 
@@ -229,7 +240,7 @@ async function summaryOf(db: DataClient, importId: string) {
   return toSummary(data, await creatorNames(db, [data]));
 }
 
-async function findImport(db: DataClient, importId: string) {
+export async function findImport(db: DataClient, importId: string) {
   const { data, error } = await db
     .from('imports')
     .select(detailColumns)
@@ -325,7 +336,7 @@ function usageOf(row: UsageColumns & { read_characters: number | null; usage_by_
       ? (row.usage_by_step as Record<string, UsageColumns | null | undefined>)
       : {};
   const bySteps: ImportUsage['bySteps'] = {};
-  for (const step of ['sorting', 'reading', 'scanning'] as const) {
+  for (const step of ['sorting', 'reading', 'scanning', 'instructions'] as const) {
     const usage = steps[step];
     if (usage && typeof usage === 'object') bySteps[step] = modelUsage(usage);
   }
@@ -336,7 +347,7 @@ function usageOf(row: UsageColumns & { read_characters: number | null; usage_by_
   } satisfies ImportUsage;
 }
 
-function storedProposal(value: unknown) {
+export function storedProposal(value: unknown) {
   if (value === null || typeof value !== 'object') return null;
   const proposal = proposalSchema.safeParse(value);
   if (!proposal.success) return null;
@@ -344,7 +355,7 @@ function storedProposal(value: unknown) {
   return { proposal: proposal.data, registeredCompany: registered ?? null };
 }
 
-function storedChanges(value: unknown): ImportChanges | null {
+export function storedChanges(value: unknown): ImportChanges | null {
   if (value === null) return null;
   const changes = importChangesSchema.safeParse(value);
   return changes.success ? changes.data : null;
@@ -359,6 +370,7 @@ function presentFile(file: ImportFileRow) {
     sizeBytes: file.size_bytes,
     state: file.state,
     documentKind: file.document_kind,
+    documentDomain: file.document_domain,
     reason: file.reason,
     companyName: file.company_name,
     companyCui: file.company_cui,

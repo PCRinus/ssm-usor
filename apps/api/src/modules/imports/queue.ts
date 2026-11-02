@@ -1,3 +1,4 @@
+import { importLibraryPartSchema } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import { adminClient } from '../../lib/admin-db';
@@ -6,6 +7,7 @@ import type { ApiEnv, ImportMessage } from '../../lib/env';
 import { createExtractor } from '../../lib/extractor';
 import { adminFileStore } from '../../lib/files';
 import { lookupCompany } from '../companies/anaf';
+import { failLibraryPart, libraryFailureReason, libraryReasons, readInstructions } from './library';
 import {
   afterPreparing,
   checkImport,
@@ -60,6 +62,12 @@ export const importMessageSchema = z.discriminatedUnion('type', [
   }),
   z.object({ type: z.literal('check'), importId }),
   z.object({ type: z.literal('copy'), importId }),
+  z.object({
+    type: z.literal('read-instructions'),
+    importId,
+    part: importLibraryPartSchema,
+    attempt: z.int().min(1),
+  }),
 ]);
 
 export type QueueMessage = {
@@ -107,6 +115,8 @@ export function runStep(deps: PipelineDeps, message: ImportMessage, messageId: s
       return checkImport(deps, message.importId);
     case 'copy':
       return copyFolder(deps, message.importId);
+    case 'read-instructions':
+      return readInstructions(deps, message.importId, message.part, message.attempt, messageId);
   }
 }
 
@@ -140,6 +150,15 @@ export async function recordFailure(deps: PipelineDeps, message: ImportMessage, 
     }
     case 'copy':
       // The daily clean-up copies again what is left.
+      return;
+    case 'read-instructions':
+      await failLibraryPart(
+        deps,
+        message.importId,
+        message.part,
+        message.attempt,
+        libraryFailureReason(error)
+      );
       return;
   }
 }
@@ -218,7 +237,11 @@ export async function consumeImportDeadLetters(
     }
     const body = parsed.data;
     const reason =
-      body.type === 'prepare' || body.type === 'scan' ? fileReasons.stopped : importReasons.failed;
+      body.type === 'prepare' || body.type === 'scan'
+        ? fileReasons.stopped
+        : body.type === 'read-instructions'
+          ? libraryReasons.failed
+          : importReasons.failed;
     try {
       await recordFailure(deps, body, new ImportFailure(reason));
       message.ack();

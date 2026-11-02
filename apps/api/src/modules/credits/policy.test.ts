@@ -144,9 +144,27 @@ describe("an import's credits", () => {
   it('adds up the start, the pages settled and the scans, net of what was given back', () => {
     expect(
       importCreditsOf([
-        { import_id: 'i', kind: 'import_start', credits: -14 },
-        { import_id: 'i', kind: 'import_pages', credits: 3 },
+        { import_id: 'i', kind: 'import_start', credits: -14, import_part: null },
+        { import_id: 'i', kind: 'import_pages', credits: 3, import_part: null },
       ])
-    ).toEqual({ used: 11, atStart: 11, scannedPages: 0, refunded: false });
+    ).toEqual({ used: 11, atStart: 11, scannedPages: 0, ownInstructions: 0, refunded: false });
+  });
+
+  it('counts the readings of its own instructions apart, net of a reading given back', () => {
+    expect(
+      importCreditsOf([
+        { import_id: 'i', kind: 'import_start', credits: -25, import_part: null },
+        { import_id: 'i', kind: 'scanned_page', credits: -1, import_part: null },
+        { import_id: 'i', kind: 'library_part', credits: -25, import_part: 'instructions_ssm' },
+        { import_id: 'i', kind: 'library_part', credits: -10, import_part: 'instructions_psi' },
+        {
+          import_id: 'i',
+          kind: 'library_part_refund',
+          credits: 10,
+          import_part: 'instructions_psi',
+        },
+        { import_id: 'i', kind: 'library_part', credits: -10, import_part: 'instructions_psi' },
+      ])
+    ).toEqual({ used: 61, atStart: 25, scannedPages: 1, ownInstructions: 35, refunded: false });
   });
 });

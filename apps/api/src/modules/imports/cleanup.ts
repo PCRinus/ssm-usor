@@ -1,4 +1,5 @@
 import type { ApiEnv } from '../../lib/env';
+import { libraryReasons } from './library';
 import { copyFolder, describe, importReasons, type PipelineDeps } from './pipeline';
 import { pipelineDeps } from './queue';
 import type { ImportObjectList } from './store';
@@ -29,6 +30,7 @@ export async function cleanUpImports(deps: PipelineDeps, now = new Date()) {
     stalled: importReasons.stalled,
     left: importReasons.left,
   });
+  const failedParts = await deps.store.failStalledLibraryParts(libraryReasons.stalled);
   const abandoned = await deps.store.listAbandoned();
   const deleted = await deps.store.deleteAbandoned(await removeObjects(deps, abandoned));
   const dropped = await deps.store.dropProposals();
@@ -38,6 +40,7 @@ export async function cleanUpImports(deps: PipelineDeps, now = new Date()) {
     copied,
     uncopied: uncopied.length - copied,
     failed: failed.length,
+    failedParts,
     deleted: deleted.length,
     dropped,
     emptied: marked.length,
@@ -70,6 +73,6 @@ async function removeObjects(deps: PipelineDeps, lists: ImportObjectList[]) {
 export async function scheduledImportCleanUp(env: ApiEnv['Bindings']) {
   const result = await cleanUpImports(pipelineDeps(env));
   console.log(
-    `Import clean-up: ${result.copied} folders copied, ${result.uncopied} not; ${result.failed} imports failed as stalled or left; ${result.deleted} deleted; ${result.dropped} proposals dropped; ${result.emptied} folders emptied; ${result.left} left for tomorrow.`
+    `Import clean-up: ${result.copied} folders copied, ${result.uncopied} not; ${result.failed} imports failed as stalled or left; ${result.failedParts} library parts failed as stalled; ${result.deleted} deleted; ${result.dropped} proposals dropped; ${result.emptied} folders emptied; ${result.left} left for tomorrow.`
   );
 }

@@ -176,19 +176,31 @@ describe('refusing an import the credits do not cover', () => {
 describe('what an import used', () => {
   it('splits a client import into the reading and the scanned pages', () => {
     expect(
-      usedSentence({ used: 34, atStart: 25, scannedPages: 9, refunded: false }, 'client')
+      usedSentence(
+        { used: 34, atStart: 25, scannedPages: 9, ownInstructions: 0, refunded: false },
+        'client'
+      )
     ).toBe('Importul a folosit 34 de credite (25 + 9 pagini scanate).');
     expect(
-      usedSentence({ used: 26, atStart: 25, scannedPages: 1, refunded: false }, 'client')
+      usedSentence(
+        { used: 26, atStart: 25, scannedPages: 1, ownInstructions: 0, refunded: false },
+        'client'
+      )
     ).toBe('Importul a folosit 26 de credite (25 + 1 pagină scanată).');
     expect(
-      usedSentence({ used: 25, atStart: 25, scannedPages: 0, refunded: false }, 'client')
+      usedSentence(
+        { used: 25, atStart: 25, scannedPages: 0, ownInstructions: 0, refunded: false },
+        'client'
+      )
     ).toBe('Importul a folosit 25 de credite.');
   });
 
   it('gives the total of an employee import', () => {
     expect(
-      usedSentence({ used: 98, atStart: 98, scannedPages: 0, refunded: false }, 'employees')
+      usedSentence(
+        { used: 98, atStart: 98, scannedPages: 0, ownInstructions: 0, refunded: false },
+        'employees'
+      )
     ).toBe('Importul a folosit 98 de credite.');
   });
 });
