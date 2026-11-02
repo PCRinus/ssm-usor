@@ -64,13 +64,10 @@ import { Route as AuthenticatedClientiPotentialiLeadIdEditareRouteImport } from 
 import { Route as AuthenticatedClientiClientIdIndexRouteImport } from './routes/_authenticated/clienti/$clientId/index';
 import { Route as AuthenticatedClientiClientIdAlteDocumenteRouteImport } from './routes/_authenticated/clienti/$clientId/alte-documente';
 import { Route as AuthenticatedClientiClientIdAngajatiRouteImport } from './routes/_authenticated/clienti/$clientId/angajati';
-import { Route as AuthenticatedClientiClientIdContactRouteImport } from './routes/_authenticated/clienti/$clientId/contact';
 import { Route as AuthenticatedClientiClientIdContractRouteImport } from './routes/_authenticated/clienti/$clientId/contract';
-import { Route as AuthenticatedClientiClientIdDateDocumenteRouteImport } from './routes/_authenticated/clienti/$clientId/date-documente';
 import { Route as AuthenticatedClientiClientIdDetaliiRouteImport } from './routes/_authenticated/clienti/$clientId/detalii';
 import { Route as AuthenticatedClientiClientIdDocumenteSsmRouteImport } from './routes/_authenticated/clienti/$clientId/documente-ssm';
 import { Route as AuthenticatedClientiClientIdDocumenteSuRouteImport } from './routes/_authenticated/clienti/$clientId/documente-su';
-import { Route as AuthenticatedClientiClientIdEditareRouteImport } from './routes/_authenticated/clienti/$clientId/editare';
 import { Route as AuthenticatedClientiClientIdInstruireRouteImport } from './routes/_authenticated/clienti/$clientId/instruire';
 import { Route as AuthenticatedClientiClientIdInstruiriTinuteRouteImport } from './routes/_authenticated/clienti/$clientId/instruiri-tinute';
 import { Route as AuthenticatedClientiClientIdMijloaceDeAparareRouteImport } from './routes/_authenticated/clienti/$clientId/mijloace-de-aparare';
@@ -84,7 +81,6 @@ import { Route as AuthenticatedOrganizatieAbonamentAlegeRouteImport } from './ro
 import { Route as AuthenticatedTesteBankSsmRouteImport } from './routes/_authenticated/teste/_bank/ssm';
 import { Route as AuthenticatedTesteBankSuRouteImport } from './routes/_authenticated/teste/_bank/su';
 import { Route as AuthenticatedClientiClientIdAlteDocumenteIndexRouteImport } from './routes/_authenticated/clienti/$clientId/alte-documente/index';
-import { Route as AuthenticatedClientiClientIdAlteDocumenteContractRouteImport } from './routes/_authenticated/clienti/$clientId/alte-documente/contract';
 import { Route as AuthenticatedClientiClientIdAngajatiIndexRouteImport } from './routes/_authenticated/clienti/$clientId/angajati/index';
 import { Route as AuthenticatedClientiClientIdAngajatiEmployeeIdRouteImport } from './routes/_authenticated/clienti/$clientId/angajati/$employeeId';
 import { Route as AuthenticatedClientiClientIdAngajatiNouRouteImport } from './routes/_authenticated/clienti/$clientId/angajati/nou';
@@ -417,22 +413,10 @@ const AuthenticatedClientiClientIdAngajatiRoute =
     path: '/angajati',
     getParentRoute: () => AuthenticatedClientiClientIdRoute,
   } as any);
-const AuthenticatedClientiClientIdContactRoute =
-  AuthenticatedClientiClientIdContactRouteImport.update({
-    id: '/contact',
-    path: '/contact',
-    getParentRoute: () => AuthenticatedClientiClientIdRoute,
-  } as any);
 const AuthenticatedClientiClientIdContractRoute =
   AuthenticatedClientiClientIdContractRouteImport.update({
     id: '/contract',
     path: '/contract',
-    getParentRoute: () => AuthenticatedClientiClientIdRoute,
-  } as any);
-const AuthenticatedClientiClientIdDateDocumenteRoute =
-  AuthenticatedClientiClientIdDateDocumenteRouteImport.update({
-    id: '/date-documente',
-    path: '/date-documente',
     getParentRoute: () => AuthenticatedClientiClientIdRoute,
   } as any);
 const AuthenticatedClientiClientIdDetaliiRoute =
@@ -451,12 +435,6 @@ const AuthenticatedClientiClientIdDocumenteSuRoute =
   AuthenticatedClientiClientIdDocumenteSuRouteImport.update({
     id: '/documente-su',
     path: '/documente-su',
-    getParentRoute: () => AuthenticatedClientiClientIdRoute,
-  } as any);
-const AuthenticatedClientiClientIdEditareRoute =
-  AuthenticatedClientiClientIdEditareRouteImport.update({
-    id: '/editare',
-    path: '/editare',
     getParentRoute: () => AuthenticatedClientiClientIdRoute,
   } as any);
 const AuthenticatedClientiClientIdInstruireRoute =
@@ -535,12 +513,6 @@ const AuthenticatedClientiClientIdAlteDocumenteIndexRoute =
   AuthenticatedClientiClientIdAlteDocumenteIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => AuthenticatedClientiClientIdAlteDocumenteRoute,
-  } as any);
-const AuthenticatedClientiClientIdAlteDocumenteContractRoute =
-  AuthenticatedClientiClientIdAlteDocumenteContractRouteImport.update({
-    id: '/contract',
-    path: '/contract',
     getParentRoute: () => AuthenticatedClientiClientIdAlteDocumenteRoute,
   } as any);
 const AuthenticatedClientiClientIdAngajatiIndexRoute =
@@ -760,13 +732,10 @@ export interface FileRoutesByFullPath {
   '/clienti-potentiali/$leadId/editare': typeof AuthenticatedClientiPotentialiLeadIdEditareRoute;
   '/clienti/$clientId/alte-documente': typeof AuthenticatedClientiClientIdAlteDocumenteRouteWithChildren;
   '/clienti/$clientId/angajati': typeof AuthenticatedClientiClientIdAngajatiRouteWithChildren;
-  '/clienti/$clientId/contact': typeof AuthenticatedClientiClientIdContactRoute;
   '/clienti/$clientId/contract': typeof AuthenticatedClientiClientIdContractRouteWithChildren;
-  '/clienti/$clientId/date-documente': typeof AuthenticatedClientiClientIdDateDocumenteRoute;
   '/clienti/$clientId/detalii': typeof AuthenticatedClientiClientIdDetaliiRoute;
   '/clienti/$clientId/documente-ssm': typeof AuthenticatedClientiClientIdDocumenteSsmRouteWithChildren;
   '/clienti/$clientId/documente-su': typeof AuthenticatedClientiClientIdDocumenteSuRouteWithChildren;
-  '/clienti/$clientId/editare': typeof AuthenticatedClientiClientIdEditareRoute;
   '/clienti/$clientId/instruire': typeof AuthenticatedClientiClientIdInstruireRoute;
   '/clienti/$clientId/instruiri-tinute': typeof AuthenticatedClientiClientIdInstruiriTinuteRoute;
   '/clienti/$clientId/mijloace-de-aparare': typeof AuthenticatedClientiClientIdMijloaceDeAparareRoute;
@@ -781,7 +750,6 @@ export interface FileRoutesByFullPath {
   '/clienti-potentiali/$leadId/': typeof AuthenticatedClientiPotentialiLeadIdIndexRoute;
   '/clienti/$clientId/': typeof AuthenticatedClientiClientIdIndexRoute;
   '/organizatie/abonament/': typeof AuthenticatedOrganizatieAbonamentIndexRoute;
-  '/clienti/$clientId/alte-documente/contract': typeof AuthenticatedClientiClientIdAlteDocumenteContractRoute;
   '/clienti/$clientId/angajati/$employeeId': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdRouteWithChildren;
   '/clienti/$clientId/angajati/nou': typeof AuthenticatedClientiClientIdAngajatiNouRoute;
   '/clienti/$clientId/contract/editare': typeof AuthenticatedClientiClientIdContractEditareRoute;
@@ -848,10 +816,7 @@ export interface FileRoutesByTo {
   '/riscuri': typeof AuthenticatedRiscuriIndexRoute;
   '/clienti-potentiali/$leadId/contract': typeof AuthenticatedClientiPotentialiLeadIdContractRoute;
   '/clienti-potentiali/$leadId/editare': typeof AuthenticatedClientiPotentialiLeadIdEditareRoute;
-  '/clienti/$clientId/contact': typeof AuthenticatedClientiClientIdContactRoute;
-  '/clienti/$clientId/date-documente': typeof AuthenticatedClientiClientIdDateDocumenteRoute;
   '/clienti/$clientId/detalii': typeof AuthenticatedClientiClientIdDetaliiRoute;
-  '/clienti/$clientId/editare': typeof AuthenticatedClientiClientIdEditareRoute;
   '/clienti/$clientId/instruire': typeof AuthenticatedClientiClientIdInstruireRoute;
   '/clienti/$clientId/instruiri-tinute': typeof AuthenticatedClientiClientIdInstruiriTinuteRoute;
   '/clienti/$clientId/mijloace-de-aparare': typeof AuthenticatedClientiClientIdMijloaceDeAparareRoute;
@@ -864,7 +829,6 @@ export interface FileRoutesByTo {
   '/clienti-potentiali/$leadId': typeof AuthenticatedClientiPotentialiLeadIdIndexRoute;
   '/clienti/$clientId': typeof AuthenticatedClientiClientIdIndexRoute;
   '/organizatie/abonament': typeof AuthenticatedOrganizatieAbonamentIndexRoute;
-  '/clienti/$clientId/alte-documente/contract': typeof AuthenticatedClientiClientIdAlteDocumenteContractRoute;
   '/clienti/$clientId/angajati/nou': typeof AuthenticatedClientiClientIdAngajatiNouRoute;
   '/clienti/$clientId/contract/editare': typeof AuthenticatedClientiClientIdContractEditareRoute;
   '/clienti/$clientId/documente-ssm/$documentId': typeof AuthenticatedClientiClientIdDocumenteSsmDocumentIdRoute;
@@ -945,13 +909,10 @@ export interface FileRoutesById {
   '/_authenticated/clienti-potentiali/$leadId/editare': typeof AuthenticatedClientiPotentialiLeadIdEditareRoute;
   '/_authenticated/clienti/$clientId/alte-documente': typeof AuthenticatedClientiClientIdAlteDocumenteRouteWithChildren;
   '/_authenticated/clienti/$clientId/angajati': typeof AuthenticatedClientiClientIdAngajatiRouteWithChildren;
-  '/_authenticated/clienti/$clientId/contact': typeof AuthenticatedClientiClientIdContactRoute;
   '/_authenticated/clienti/$clientId/contract': typeof AuthenticatedClientiClientIdContractRouteWithChildren;
-  '/_authenticated/clienti/$clientId/date-documente': typeof AuthenticatedClientiClientIdDateDocumenteRoute;
   '/_authenticated/clienti/$clientId/detalii': typeof AuthenticatedClientiClientIdDetaliiRoute;
   '/_authenticated/clienti/$clientId/documente-ssm': typeof AuthenticatedClientiClientIdDocumenteSsmRouteWithChildren;
   '/_authenticated/clienti/$clientId/documente-su': typeof AuthenticatedClientiClientIdDocumenteSuRouteWithChildren;
-  '/_authenticated/clienti/$clientId/editare': typeof AuthenticatedClientiClientIdEditareRoute;
   '/_authenticated/clienti/$clientId/instruire': typeof AuthenticatedClientiClientIdInstruireRoute;
   '/_authenticated/clienti/$clientId/instruiri-tinute': typeof AuthenticatedClientiClientIdInstruiriTinuteRoute;
   '/_authenticated/clienti/$clientId/mijloace-de-aparare': typeof AuthenticatedClientiClientIdMijloaceDeAparareRoute;
@@ -966,7 +927,6 @@ export interface FileRoutesById {
   '/_authenticated/clienti-potentiali/$leadId/': typeof AuthenticatedClientiPotentialiLeadIdIndexRoute;
   '/_authenticated/clienti/$clientId/': typeof AuthenticatedClientiClientIdIndexRoute;
   '/_authenticated/organizatie/abonament/': typeof AuthenticatedOrganizatieAbonamentIndexRoute;
-  '/_authenticated/clienti/$clientId/alte-documente/contract': typeof AuthenticatedClientiClientIdAlteDocumenteContractRoute;
   '/_authenticated/clienti/$clientId/angajati/$employeeId': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdRouteWithChildren;
   '/_authenticated/clienti/$clientId/angajati/nou': typeof AuthenticatedClientiClientIdAngajatiNouRoute;
   '/_authenticated/clienti/$clientId/contract/editare': typeof AuthenticatedClientiClientIdContractEditareRoute;
@@ -1048,13 +1008,10 @@ export interface FileRouteTypes {
     | '/clienti-potentiali/$leadId/editare'
     | '/clienti/$clientId/alte-documente'
     | '/clienti/$clientId/angajati'
-    | '/clienti/$clientId/contact'
     | '/clienti/$clientId/contract'
-    | '/clienti/$clientId/date-documente'
     | '/clienti/$clientId/detalii'
     | '/clienti/$clientId/documente-ssm'
     | '/clienti/$clientId/documente-su'
-    | '/clienti/$clientId/editare'
     | '/clienti/$clientId/instruire'
     | '/clienti/$clientId/instruiri-tinute'
     | '/clienti/$clientId/mijloace-de-aparare'
@@ -1069,7 +1026,6 @@ export interface FileRouteTypes {
     | '/clienti-potentiali/$leadId/'
     | '/clienti/$clientId/'
     | '/organizatie/abonament/'
-    | '/clienti/$clientId/alte-documente/contract'
     | '/clienti/$clientId/angajati/$employeeId'
     | '/clienti/$clientId/angajati/nou'
     | '/clienti/$clientId/contract/editare'
@@ -1136,10 +1092,7 @@ export interface FileRouteTypes {
     | '/riscuri'
     | '/clienti-potentiali/$leadId/contract'
     | '/clienti-potentiali/$leadId/editare'
-    | '/clienti/$clientId/contact'
-    | '/clienti/$clientId/date-documente'
     | '/clienti/$clientId/detalii'
-    | '/clienti/$clientId/editare'
     | '/clienti/$clientId/instruire'
     | '/clienti/$clientId/instruiri-tinute'
     | '/clienti/$clientId/mijloace-de-aparare'
@@ -1152,7 +1105,6 @@ export interface FileRouteTypes {
     | '/clienti-potentiali/$leadId'
     | '/clienti/$clientId'
     | '/organizatie/abonament'
-    | '/clienti/$clientId/alte-documente/contract'
     | '/clienti/$clientId/angajati/nou'
     | '/clienti/$clientId/contract/editare'
     | '/clienti/$clientId/documente-ssm/$documentId'
@@ -1232,13 +1184,10 @@ export interface FileRouteTypes {
     | '/_authenticated/clienti-potentiali/$leadId/editare'
     | '/_authenticated/clienti/$clientId/alte-documente'
     | '/_authenticated/clienti/$clientId/angajati'
-    | '/_authenticated/clienti/$clientId/contact'
     | '/_authenticated/clienti/$clientId/contract'
-    | '/_authenticated/clienti/$clientId/date-documente'
     | '/_authenticated/clienti/$clientId/detalii'
     | '/_authenticated/clienti/$clientId/documente-ssm'
     | '/_authenticated/clienti/$clientId/documente-su'
-    | '/_authenticated/clienti/$clientId/editare'
     | '/_authenticated/clienti/$clientId/instruire'
     | '/_authenticated/clienti/$clientId/instruiri-tinute'
     | '/_authenticated/clienti/$clientId/mijloace-de-aparare'
@@ -1253,7 +1202,6 @@ export interface FileRouteTypes {
     | '/_authenticated/clienti-potentiali/$leadId/'
     | '/_authenticated/clienti/$clientId/'
     | '/_authenticated/organizatie/abonament/'
-    | '/_authenticated/clienti/$clientId/alte-documente/contract'
     | '/_authenticated/clienti/$clientId/angajati/$employeeId'
     | '/_authenticated/clienti/$clientId/angajati/nou'
     | '/_authenticated/clienti/$clientId/contract/editare'
@@ -1684,25 +1632,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientiClientIdAngajatiRouteImport;
       parentRoute: typeof AuthenticatedClientiClientIdRoute;
     };
-    '/_authenticated/clienti/$clientId/contact': {
-      id: '/_authenticated/clienti/$clientId/contact';
-      path: '/contact';
-      fullPath: '/clienti/$clientId/contact';
-      preLoaderRoute: typeof AuthenticatedClientiClientIdContactRouteImport;
-      parentRoute: typeof AuthenticatedClientiClientIdRoute;
-    };
     '/_authenticated/clienti/$clientId/contract': {
       id: '/_authenticated/clienti/$clientId/contract';
       path: '/contract';
       fullPath: '/clienti/$clientId/contract';
       preLoaderRoute: typeof AuthenticatedClientiClientIdContractRouteImport;
-      parentRoute: typeof AuthenticatedClientiClientIdRoute;
-    };
-    '/_authenticated/clienti/$clientId/date-documente': {
-      id: '/_authenticated/clienti/$clientId/date-documente';
-      path: '/date-documente';
-      fullPath: '/clienti/$clientId/date-documente';
-      preLoaderRoute: typeof AuthenticatedClientiClientIdDateDocumenteRouteImport;
       parentRoute: typeof AuthenticatedClientiClientIdRoute;
     };
     '/_authenticated/clienti/$clientId/detalii': {
@@ -1724,13 +1658,6 @@ declare module '@tanstack/react-router' {
       path: '/documente-su';
       fullPath: '/clienti/$clientId/documente-su';
       preLoaderRoute: typeof AuthenticatedClientiClientIdDocumenteSuRouteImport;
-      parentRoute: typeof AuthenticatedClientiClientIdRoute;
-    };
-    '/_authenticated/clienti/$clientId/editare': {
-      id: '/_authenticated/clienti/$clientId/editare';
-      path: '/editare';
-      fullPath: '/clienti/$clientId/editare';
-      preLoaderRoute: typeof AuthenticatedClientiClientIdEditareRouteImport;
       parentRoute: typeof AuthenticatedClientiClientIdRoute;
     };
     '/_authenticated/clienti/$clientId/instruire': {
@@ -1822,13 +1749,6 @@ declare module '@tanstack/react-router' {
       path: '/';
       fullPath: '/clienti/$clientId/alte-documente/';
       preLoaderRoute: typeof AuthenticatedClientiClientIdAlteDocumenteIndexRouteImport;
-      parentRoute: typeof AuthenticatedClientiClientIdAlteDocumenteRoute;
-    };
-    '/_authenticated/clienti/$clientId/alte-documente/contract': {
-      id: '/_authenticated/clienti/$clientId/alte-documente/contract';
-      path: '/contract';
-      fullPath: '/clienti/$clientId/alte-documente/contract';
-      preLoaderRoute: typeof AuthenticatedClientiClientIdAlteDocumenteContractRouteImport;
       parentRoute: typeof AuthenticatedClientiClientIdAlteDocumenteRoute;
     };
     '/_authenticated/clienti/$clientId/angajati/': {
@@ -2033,14 +1953,11 @@ const AuthenticatedActualizariRouteWithChildren =
   );
 
 interface AuthenticatedClientiClientIdAlteDocumenteRouteChildren {
-  AuthenticatedClientiClientIdAlteDocumenteContractRoute: typeof AuthenticatedClientiClientIdAlteDocumenteContractRoute;
   AuthenticatedClientiClientIdAlteDocumenteIndexRoute: typeof AuthenticatedClientiClientIdAlteDocumenteIndexRoute;
 }
 
 const AuthenticatedClientiClientIdAlteDocumenteRouteChildren: AuthenticatedClientiClientIdAlteDocumenteRouteChildren =
   {
-    AuthenticatedClientiClientIdAlteDocumenteContractRoute:
-      AuthenticatedClientiClientIdAlteDocumenteContractRoute,
     AuthenticatedClientiClientIdAlteDocumenteIndexRoute:
       AuthenticatedClientiClientIdAlteDocumenteIndexRoute,
   };
@@ -2215,13 +2132,10 @@ const AuthenticatedClientiClientIdPosturiRouteWithChildren =
 interface AuthenticatedClientiClientIdRouteChildren {
   AuthenticatedClientiClientIdAlteDocumenteRoute: typeof AuthenticatedClientiClientIdAlteDocumenteRouteWithChildren;
   AuthenticatedClientiClientIdAngajatiRoute: typeof AuthenticatedClientiClientIdAngajatiRouteWithChildren;
-  AuthenticatedClientiClientIdContactRoute: typeof AuthenticatedClientiClientIdContactRoute;
   AuthenticatedClientiClientIdContractRoute: typeof AuthenticatedClientiClientIdContractRouteWithChildren;
-  AuthenticatedClientiClientIdDateDocumenteRoute: typeof AuthenticatedClientiClientIdDateDocumenteRoute;
   AuthenticatedClientiClientIdDetaliiRoute: typeof AuthenticatedClientiClientIdDetaliiRoute;
   AuthenticatedClientiClientIdDocumenteSsmRoute: typeof AuthenticatedClientiClientIdDocumenteSsmRouteWithChildren;
   AuthenticatedClientiClientIdDocumenteSuRoute: typeof AuthenticatedClientiClientIdDocumenteSuRouteWithChildren;
-  AuthenticatedClientiClientIdEditareRoute: typeof AuthenticatedClientiClientIdEditareRoute;
   AuthenticatedClientiClientIdInstruireRoute: typeof AuthenticatedClientiClientIdInstruireRoute;
   AuthenticatedClientiClientIdInstruiriTinuteRoute: typeof AuthenticatedClientiClientIdInstruiriTinuteRoute;
   AuthenticatedClientiClientIdMijloaceDeAparareRoute: typeof AuthenticatedClientiClientIdMijloaceDeAparareRoute;
@@ -2236,20 +2150,14 @@ const AuthenticatedClientiClientIdRouteChildren: AuthenticatedClientiClientIdRou
       AuthenticatedClientiClientIdAlteDocumenteRouteWithChildren,
     AuthenticatedClientiClientIdAngajatiRoute:
       AuthenticatedClientiClientIdAngajatiRouteWithChildren,
-    AuthenticatedClientiClientIdContactRoute:
-      AuthenticatedClientiClientIdContactRoute,
     AuthenticatedClientiClientIdContractRoute:
       AuthenticatedClientiClientIdContractRouteWithChildren,
-    AuthenticatedClientiClientIdDateDocumenteRoute:
-      AuthenticatedClientiClientIdDateDocumenteRoute,
     AuthenticatedClientiClientIdDetaliiRoute:
       AuthenticatedClientiClientIdDetaliiRoute,
     AuthenticatedClientiClientIdDocumenteSsmRoute:
       AuthenticatedClientiClientIdDocumenteSsmRouteWithChildren,
     AuthenticatedClientiClientIdDocumenteSuRoute:
       AuthenticatedClientiClientIdDocumenteSuRouteWithChildren,
-    AuthenticatedClientiClientIdEditareRoute:
-      AuthenticatedClientiClientIdEditareRoute,
     AuthenticatedClientiClientIdInstruireRoute:
       AuthenticatedClientiClientIdInstruireRoute,
     AuthenticatedClientiClientIdInstruiriTinuteRoute:

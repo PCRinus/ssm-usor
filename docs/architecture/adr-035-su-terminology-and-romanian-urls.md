@@ -37,7 +37,7 @@ The English names stay **fire-safety** and **fire** (`fire_decision_technician`,
 
 ### Romanian addresses
 
-Every address of the app is Romanian, written without diacritics. The page files under `apps/app/src/routes` follow, as the router reads addresses from them; the code around them stays English. The domain in an address is `ssm` or `su`. The API's paths, search parameters and the sign-in provider's return address (`/auth/callback`, set in its configuration) stay as they are: no one reads them. Nothing redirects from an old address.
+Every address of the app is Romanian, written without diacritics. The page files under `apps/app/src/routes` follow, as the router reads addresses from them; the code around them stays English. The domain in an address is `ssm` or `su`. The API's paths, search parameters and the sign-in provider's return address (`/auth/callback`, set in its configuration) stay as they are: no one reads them. Nothing redirects from an old address, and the routes that only forwarded older addresses (a client's `edit`, `contact`, `document-data` and `other-documents/contract`) go.
 
 | Before                                                     | After                                                        |
 | ---------------------------------------------------------- | ------------------------------------------------------------ |
@@ -50,10 +50,9 @@ Every address of the app is Romanian, written without diacritics. The page files
 | `/onboarding`                                              | `/configurare`                                               |
 | `/dashboard`                                               | `/dashboard` (the label is the word)                         |
 | `/leads`, `/new`, `/$leadId/edit`                          | `/clienti-potentiali`, `/nou`, `/$leadId/editare`            |
-| `/clients`, `/new`, `/$clientId/edit`                      | `/clienti`, `/nou`, `/$clientId/editare`                     |
+| `/clients`, `/new`                                         | `/clienti`, `/nou`                                           |
 | `/clients/$clientId/details`                               | `/clienti/$clientId/detalii`                                 |
 | `…/contract/edit`                                          | `…/contract/editare`                                         |
-| `…/document-data`                                          | `…/date-documente`                                           |
 | `…/documents`                                              | `…/documente-ssm`                                            |
 | `…/fire-safety-documents`                                  | `…/documente-su`                                             |
 | `…/fire-safety-means`                                      | `…/mijloace-de-aparare`                                      |
@@ -75,7 +74,7 @@ Every address of the app is Romanian, written without diacritics. The page files
 | `/organization/subscription`, `/choose`                    | `/organizatie/abonament`, `/alege`                           |
 | `/profile`                                                 | `/profil`                                                    |
 
-Addresses already Romanian stay: `/actualizari`, `/legislatie` and its tabs, `/setari`, `/contract`, `…/contact`, `…/portal`, `…/import/…`.
+Addresses already Romanian stay: `/actualizari`, `/legislatie` and its tabs, `/setari`, `/contract`, `…/portal`, `…/import/…`.
 
 ### Order
 

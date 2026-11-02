@@ -801,15 +801,6 @@ describe('the contract of a client', () => {
     expect(sections).not.toContain('Contract');
     expect(requests(`/clients/${leadId}/service-contract`, 'GET')).toHaveLength(0);
   });
-
-  it('sends the old /alte-documente/contract address to /contract/editare', async () => {
-    mockApi({ client, get: () => Response.json(state({ document: contractDocument() })) });
-    const runtime = mount(`/clienti/${leadId}/alte-documente/contract`);
-    await waitFor(() =>
-      expect(runtime.router.state.location.pathname).toBe(`/clienti/${leadId}/contract/editare`)
-    );
-    expect(await screen.findByTestId('editor-back')).toBeTruthy();
-  });
 });
 
 describe('who signs the contract for the client', () => {

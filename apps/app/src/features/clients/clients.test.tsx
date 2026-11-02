@@ -671,16 +671,6 @@ describe('client editing', () => {
     expect(runtime.router.state.location.pathname).toBe(`/clienti/${sampleClient.id}/detalii`);
     expect(screen.getByTestId('company-edit')).toBeTruthy();
   });
-
-  it.each(['editare', 'contact'])('sends the old /%s address to the details', async (old) => {
-    mockApi();
-    const runtime = mountApp(
-      authFixture(makeSession()).client,
-      `/clienti/${sampleClient.id}/${old}`
-    );
-    await screen.findByTestId('client-details-page');
-    expect(runtime.router.state.location.pathname).toBe(`/clienti/${sampleClient.id}/detalii`);
-  });
 });
 
 describe('client details', () => {

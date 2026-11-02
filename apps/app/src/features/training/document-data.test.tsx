@@ -158,16 +158,6 @@ describe('client document data', () => {
     expect(screen.queryByTestId('workplaces-card')).toBeNull();
   });
 
-  it('is where the old document data address leads', async () => {
-    mockApi();
-    const runtime = mountApp(
-      authFixture(makeSession()).client,
-      `/clienti/${clientId}/date-documente`
-    );
-    expect(await screen.findByTestId('training-page')).toBeTruthy();
-    expect(runtime.router.state.location.pathname).toBe(`/clienti/${clientId}/instruire`);
-  });
-
   it('previews the training months as the first month and the intervals are chosen', async () => {
     mockApi();
     mount();
