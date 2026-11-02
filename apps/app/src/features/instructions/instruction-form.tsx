@@ -255,7 +255,10 @@ export function InstructionForm({
     <div data-testid="instruction-form" className="grid gap-5">
       <div className="grid gap-3">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <h1 className="text-xl font-semibold tracking-tight" data-testid="instruction-form-title">
+          <h1
+            className="text-2xl font-semibold tracking-tight sm:text-3xl"
+            data-testid="instruction-form-title"
+          >
             {title}
           </h1>
           <Badge variant={module ? 'default' : 'outline'} data-testid="editor-state">
@@ -264,7 +267,8 @@ export function InstructionForm({
           <HelpLink topic="instructiuni.formular" label="Ajutor: scrierea unei instrucțiuni" />
         </div>
         <p className="text-sm text-muted-foreground" data-testid="instruction-form-facts">
-          {domainLabels[domain]} · {groupLabels[group]} · {articleCountLabel(count).toLowerCase()}
+          {domainLabels[domain]} · {groupLabels[group]} ·{' '}
+          {count === 0 ? 'fără articole încă' : articleCountLabel(count).toLowerCase()}
         </p>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -307,11 +311,6 @@ export function InstructionForm({
             </Button>
           )}
         </div>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          Fiecare articol se numerotează după locul lui; titlurile de secțiune nu se numără. Textul
-          gri e doar un îndemn: nu se salvează și nu se tipărește, iar o secțiune lăsată goală nu
-          apare în anexă.
-        </p>
       </div>
 
       {named.length > 0 && (
@@ -327,7 +326,24 @@ export function InstructionForm({
         </Notice>
       )}
 
-      <div className="rounded-lg border bg-card p-4 sm:p-6">
+      {count === 0 && (
+        <section
+          aria-label="Pornește de la un text existent"
+          data-testid="instruction-paste-panel"
+          className="grid gap-3 rounded-xl border border-success-border bg-success px-4 py-3.5 text-success-foreground sm:flex sm:items-center sm:gap-4 sm:px-5 sm:py-4"
+        >
+          <p className="text-sm sm:flex-1">
+            <strong className="font-semibold">Ai deja textul într-un document?</strong> Lipește-l și
+            îl împărțim în articole, pe secțiuni.
+          </p>
+          <Button data-testid="instruction-paste-panel-open" onClick={() => setPasting(true)}>
+            <ClipboardPaste aria-hidden="true" />
+            Lipește text
+          </Button>
+        </section>
+      )}
+
+      <div className="grid gap-3.5">
         <InstructionBlocks
           blocks={blocks}
           category={group}
@@ -338,7 +354,7 @@ export function InstructionForm({
           }}
         />
         <p
-          className="mt-6 border-t pt-4 text-sm text-muted-foreground"
+          className="mt-1.5 rounded-xl border bg-muted/30 px-4 py-3.5 text-sm text-muted-foreground sm:px-5"
           data-testid="instruction-acts"
         >
           După ultimul articol, anexa tipărește singură „Acte normative avute în vedere”:{' '}
@@ -352,11 +368,13 @@ export function InstructionForm({
           role="status"
           data-testid="instruction-save-state"
         >
-          {!module
-            ? 'Se adaugă în bibliotecă la prima salvare.'
-            : dirty
-              ? 'Modificări nesalvate.'
-              : 'Toate modificările sunt salvate.'}
+          {count === 0
+            ? 'Scrie cel puțin un articol ca să o poți salva.'
+            : !module
+              ? 'Se adaugă în bibliotecă la prima salvare.'
+              : dirty
+                ? 'Modificări nesalvate.'
+                : 'Toate modificările sunt salvate.'}
         </p>
         <Button
           data-testid="editor-save"
