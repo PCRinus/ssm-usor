@@ -252,14 +252,36 @@ export const employeeImportPeopleSchema = z.object({
 
 export type EmployeeImportPeople = z.infer<typeof employeeImportPeopleSchema>;
 
-/** A client import's library proposals (ADR 034), one per library and domain. */
-export const importLibraryParts = ['instructions_ssm', 'instructions_su'] as const;
+/**
+ * A client import's library proposals: the own instructions of each domain (ADR 034) and the risk
+ * evaluations (ADR 036).
+ */
+export const importLibraryParts = [
+  'instructions_ssm',
+  'instructions_su',
+  'risk_evaluations',
+] as const;
 
 export type ImportLibraryPart = (typeof importLibraryParts)[number];
 
 export const importLibraryPartSchema = z.enum(importLibraryParts);
 
-export const libraryPartDomains: Record<ImportLibraryPart, InstructionDomain> = {
+export const instructionsParts = ['instructions_ssm', 'instructions_su'] as const;
+
+export type InstructionsPart = (typeof instructionsParts)[number];
+
+export const isInstructionsPart = (part: ImportLibraryPart): part is InstructionsPart =>
+  (instructionsParts as readonly string[]).includes(part);
+
+// The risk evaluations have none: the documents they are read from are SSM only, and fire risk
+// lives in the SU data (ADR 036).
+export const libraryPartDomains: Record<ImportLibraryPart, InstructionDomain | null> = {
+  instructions_ssm: 'ssm',
+  instructions_su: 'su',
+  risk_evaluations: null,
+};
+
+export const instructionsPartDomains: Record<InstructionsPart, InstructionDomain> = {
   instructions_ssm: 'ssm',
   instructions_su: 'su',
 };
@@ -839,7 +861,8 @@ export const importLibraryPartCountsSchema = z.object({
  */
 export const importLibraryPartDetailSchema = z.object({
   part: importLibraryPartSchema,
-  domain: instructionDomainSchema,
+  // Null for the risk evaluations.
+  domain: instructionDomainSchema.nullable(),
   status: z.enum(importLibraryPartStatuses),
   // 1, then one more each time it is read again.
   attempt: z.int().min(1),

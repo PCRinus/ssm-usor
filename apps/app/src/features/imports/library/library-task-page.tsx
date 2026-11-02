@@ -34,6 +34,7 @@ import {
   identicalSentence,
   instructionsLabel,
   isExpired,
+  isInstructionsLibraryPart,
   isReviewable,
   joinNames,
   libraryDay,
@@ -71,7 +72,9 @@ export function LibraryTaskPage({
       </div>
     );
   }
-  const part = query.data?.parts.find((each) => each.part === partOfDomain[domain]);
+  const part = query.data?.parts
+    .filter(isInstructionsLibraryPart)
+    .find((each) => each.part === partOfDomain[domain]);
   return (
     <div className="grid gap-6">
       {query.isError ? (

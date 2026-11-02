@@ -8076,6 +8076,7 @@ export type ImportSummaryLibraryPartsItemPart =
 export const ImportSummaryLibraryPartsItemPart = {
   instructions_ssm: 'instructions_ssm',
   instructions_su: 'instructions_su',
+  risk_evaluations: 'risk_evaluations',
 } as const;
 
 export type ImportSummaryLibraryPartsItemStatus =
@@ -8275,6 +8276,7 @@ export type ImportListResponseItemsItemLibraryPartsItemPart =
 export const ImportListResponseItemsItemLibraryPartsItemPart = {
   instructions_ssm: 'instructions_ssm',
   instructions_su: 'instructions_su',
+  risk_evaluations: 'risk_evaluations',
 } as const;
 
 export type ImportListResponseItemsItemLibraryPartsItemStatus =
@@ -8368,6 +8370,7 @@ export type ImportDetailLibraryPartsItemPart =
 export const ImportDetailLibraryPartsItemPart = {
   instructions_ssm: 'instructions_ssm',
   instructions_su: 'instructions_su',
+  risk_evaluations: 'risk_evaluations',
 } as const;
 
 export type ImportDetailLibraryPartsItemStatus =
@@ -11208,10 +11211,14 @@ export type ImportLibraryPartPart =
 export const ImportLibraryPartPart = {
   instructions_ssm: 'instructions_ssm',
   instructions_su: 'instructions_su',
+  risk_evaluations: 'risk_evaluations',
 } as const;
 
+/**
+ * @nullable
+ */
 export type ImportLibraryPartDomain =
-  (typeof ImportLibraryPartDomain)[keyof typeof ImportLibraryPartDomain];
+  (typeof ImportLibraryPartDomain)[keyof typeof ImportLibraryPartDomain] | null;
 
 export const ImportLibraryPartDomain = {
   ssm: 'ssm',
@@ -11589,6 +11596,7 @@ export type ImportLibraryPartPositionPosts = { [key: string]: string | null };
 
 export interface ImportLibraryPart {
   part: ImportLibraryPartPart;
+  /** @nullable */
   domain: ImportLibraryPartDomain;
   status: ImportLibraryPartStatus;
   /** @minimum 1 */
@@ -35765,7 +35773,7 @@ export function useListImportLibraryParts<
 
 export const getSaveImportLibraryPartChangesUrl = (
   importId: string,
-  part: 'instructions_ssm' | 'instructions_su'
+  part: 'instructions_ssm' | 'instructions_su' | 'risk_evaluations'
 ) => {
   return `/imports/${importId}/library-parts/${part}/changes`;
 };
@@ -35776,7 +35784,7 @@ export const getSaveImportLibraryPartChangesUrl = (
  */
 export const saveImportLibraryPartChanges = async (
   importId: string,
-  part: 'instructions_ssm' | 'instructions_su',
+  part: 'instructions_ssm' | 'instructions_su' | 'risk_evaluations',
   saveImportLibraryPartChangesRequest: SaveImportLibraryPartChangesRequest,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<SaveImportChangesResponse> => {
@@ -35853,7 +35861,7 @@ export type SaveImportLibraryPartChangesMutationBody = SaveImportLibraryPartChan
 export type SaveImportLibraryPartChangesMutationError = ErrorType<ApiErrorResponse>;
 export type SaveImportLibraryPartChangesMutationVariables = {
   importId: string;
-  part: 'instructions_ssm' | 'instructions_su';
+  part: 'instructions_ssm' | 'instructions_su' | 'risk_evaluations';
   data: SaveImportLibraryPartChangesRequest;
 };
 
@@ -35885,7 +35893,7 @@ export const useSaveImportLibraryPartChanges = <
 
 export const getConfirmImportLibraryPartUrl = (
   importId: string,
-  part: 'instructions_ssm' | 'instructions_su'
+  part: 'instructions_ssm' | 'instructions_su' | 'risk_evaluations'
 ) => {
   return `/imports/${importId}/library-parts/${part}/confirm`;
 };
@@ -35896,7 +35904,7 @@ export const getConfirmImportLibraryPartUrl = (
  */
 export const confirmImportLibraryPart = async (
   importId: string,
-  part: 'instructions_ssm' | 'instructions_su',
+  part: 'instructions_ssm' | 'instructions_su' | 'risk_evaluations',
   confirmImportLibraryPartRequest: ConfirmImportLibraryPartRequest,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<ConfirmImportLibraryPartResponse> => {
@@ -35975,7 +35983,7 @@ export type ConfirmImportLibraryPartMutationBody = ConfirmImportLibraryPartReque
 export type ConfirmImportLibraryPartMutationError = ErrorType<ApiErrorResponse>;
 export type ConfirmImportLibraryPartMutationVariables = {
   importId: string;
-  part: 'instructions_ssm' | 'instructions_su';
+  part: 'instructions_ssm' | 'instructions_su' | 'risk_evaluations';
   data: ConfirmImportLibraryPartRequest;
 };
 
@@ -36007,7 +36015,7 @@ export const useConfirmImportLibraryPart = <
 
 export const getRetryImportLibraryPartUrl = (
   importId: string,
-  part: 'instructions_ssm' | 'instructions_su'
+  part: 'instructions_ssm' | 'instructions_su' | 'risk_evaluations'
 ) => {
   return `/imports/${importId}/library-parts/${part}/retry`;
 };
@@ -36018,7 +36026,7 @@ export const getRetryImportLibraryPartUrl = (
  */
 export const retryImportLibraryPart = async (
   importId: string,
-  part: 'instructions_ssm' | 'instructions_su',
+  part: 'instructions_ssm' | 'instructions_su' | 'risk_evaluations',
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<ImportLibraryPartResponse> => {
   return apiFetch<ImportLibraryPartResponse>(getRetryImportLibraryPartUrl(importId, part), {
@@ -36072,7 +36080,7 @@ export type RetryImportLibraryPartMutationResult = NonNullable<
 export type RetryImportLibraryPartMutationError = ErrorType<ApiErrorResponse>;
 export type RetryImportLibraryPartMutationVariables = {
   importId: string;
-  part: 'instructions_ssm' | 'instructions_su';
+  part: 'instructions_ssm' | 'instructions_su' | 'risk_evaluations';
 };
 
 /**

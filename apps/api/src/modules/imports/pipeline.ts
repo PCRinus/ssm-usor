@@ -8,6 +8,7 @@ import {
   type ImportLibraryPart,
   importLimits,
   type InstructionDomain,
+  isInstructionsPart,
   libraryPartDomains,
   type PdfPageText,
 } from '@ssm-usor/contracts';
@@ -1033,12 +1034,9 @@ export async function checkImport(deps: PipelineDeps, importId: string) {
       proposal: asJson({ ...checked, registeredCompany }),
       ready_at: new Date().toISOString(),
     },
-    reading.map((part): ImportMessage => ({
-      type: 'read-instructions',
-      importId,
-      part: part.part,
-      attempt: part.attempt,
-    }))
+    reading.flatMap(({ part, attempt }): ImportMessage[] =>
+      isInstructionsPart(part) ? [{ type: 'read-instructions', importId, part, attempt }] : []
+    )
   );
 }
 

@@ -1,4 +1,4 @@
-import { importLibraryPartSchema } from '@ssm-usor/contracts';
+import { instructionsParts } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import { adminClient } from '../../lib/admin-db';
@@ -65,7 +65,7 @@ export const importMessageSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('read-instructions'),
     importId,
-    part: importLibraryPartSchema,
+    part: z.enum(instructionsParts),
     attempt: z.int().min(1),
   }),
 ]);

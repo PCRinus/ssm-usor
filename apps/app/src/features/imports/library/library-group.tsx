@@ -8,6 +8,7 @@ import { Notice } from '@/components/notice';
 import { Tag } from '../review-parts';
 import {
   isExpired,
+  isInstructionsLibraryPart,
   type LibraryPart,
   partDescription,
   partLabels,
@@ -71,9 +72,9 @@ export function LibraryGroup({ detail }: { detail: ImportDetail }) {
   const query = useLibraryParts(detail.id, known);
   if (!known) return null;
   const clientConfirmed = detail.status === 'confirmed';
-  const parts = [...(query.data?.parts ?? [])].sort(
-    (a, b) => partOrder.indexOf(a.part) - partOrder.indexOf(b.part)
-  );
+  const parts = (query.data?.parts ?? [])
+    .filter(isInstructionsLibraryPart)
+    .sort((a, b) => partOrder.indexOf(a.part) - partOrder.indexOf(b.part));
   const done = parts.filter((part) => part.status === 'confirmed').length;
 
   return (

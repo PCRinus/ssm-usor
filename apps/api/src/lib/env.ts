@@ -1,7 +1,7 @@
 import type {
   CurrentUser,
   ExtractorService,
-  ImportLibraryPart,
+  InstructionsPart,
   MailService,
   PdfService,
   SignerService,
@@ -40,7 +40,7 @@ export type ImportMessage =
   | {
       type: 'read-instructions';
       importId: string;
-      part: ImportLibraryPart;
+      part: InstructionsPart;
       attempt: number;
     };
 

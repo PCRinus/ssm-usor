@@ -1,9 +1,10 @@
 import {
-  type ImportLibraryPart as PartName,
   type InstructionBody,
   instructionCategoriesByDomain,
   type InstructionCategory,
   type InstructionDomain,
+  type InstructionsPart as PartName,
+  isInstructionsPart,
   splitFlagMessages,
 } from '@ssm-usor/contracts';
 
@@ -16,7 +17,7 @@ import type {
 } from '@/api/generated/api';
 import { roCount } from '@/features/employees/employee-format';
 
-export type LibraryPart = ImportLibraryPart;
+export type LibraryPart = ImportLibraryPart & { part: PartName; domain: InstructionDomain };
 export type LibraryPost = ImportLibraryPartsResponse['posts'][number];
 export type ProposedInstruction = InstructionsProposalInstructionsItem;
 export type ProposedPosition = InstructionsProposalPositionsItem;
@@ -44,6 +45,10 @@ export function withChange<K extends keyof InstructionChange>(
 }
 
 export type LibraryChanges = { instructions: Record<string, InstructionChange> };
+
+// The risk evaluations' part has a review of its own.
+export const isInstructionsLibraryPart = (part: ImportLibraryPart): part is LibraryPart =>
+  isInstructionsPart(part.part) && part.domain !== null;
 
 export const partOfDomain: Record<InstructionDomain, PartName> = {
   ssm: 'instructions_ssm',

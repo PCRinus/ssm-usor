@@ -8,6 +8,9 @@ import {
   type ImportLibraryPost,
   type InstructionImportChanges,
   instructionImportChangesSchema,
+  type InstructionsPart,
+  instructionsPartDomains,
+  isInstructionsPart,
   libraryPartDomains,
   textHash,
 } from '@ssm-usor/contracts';
@@ -265,12 +268,12 @@ function partError(error: DatabaseFailure, context: string) {
 function checkedChanges(
   changes: InstructionImportChanges,
   proposal: InstructionsProposal | null,
-  part: ImportLibraryPart
+  part: InstructionsPart
 ) {
   const keys = new Set(proposal?.instructions.map((instruction) => instruction.key) ?? []);
   const issues = Object.entries(changes.instructions).flatMap(([key, change]) => [
     ...(keys.has(key) ? [] : [{ path: `changes.instructions.${key}`, message: 'unknown' }]),
-    ...(change.category && !categoryFitsDomain(change.category, libraryPartDomains[part])
+    ...(change.category && !categoryFitsDomain(change.category, instructionsPartDomains[part])
       ? [{ path: `changes.instructions.${key}.category`, message: 'other_domain' }]
       : []),
   ]);
@@ -285,6 +288,7 @@ export const saveImportLibraryPartChanges: RouteHandler<
 > = async (c) => {
   const { importId, part } = c.req.valid('param');
   const { version, changes } = c.req.valid('json');
+  if (!isInstructionsPart(part)) throw noSuchPart();
   const db = createDataClient(c);
   const current = await partOf(db, importId, part);
   checkedChanges(changes, storedInstructions(current.proposal), part);
@@ -312,7 +316,7 @@ interface LibraryPayload {
 async function libraryPayload(
   proposal: InstructionsProposal,
   changes: InstructionImportChanges | null,
-  part: ImportLibraryPart,
+  part: InstructionsPart,
   posts: ImportLibraryPost[],
   positionPosts: Record<string, string | null>
 ): Promise<{ payload: LibraryPayload; createdKeys: string[] }> {
@@ -351,7 +355,7 @@ async function libraryPayload(
       continue;
     }
     const category = change.category ?? instruction.category;
-    if (!categoryFitsDomain(category, libraryPartDomains[part])) {
+    if (!categoryFitsDomain(category, instructionsPartDomains[part])) {
       issues.push({ path: `instructions.${instruction.key}.category`, message: 'other_domain' });
     }
     const body = change.body ?? instruction.body;
@@ -416,6 +420,7 @@ export const confirmImportLibraryPart: RouteHandler<
 > = async (c) => {
   const { importId, part } = c.req.valid('param');
   const { version } = c.req.valid('json');
+  if (!isInstructionsPart(part)) throw noSuchPart();
   const db = createDataClient(c);
   const row = await findImport(db, importId);
   const current = await partOf(db, importId, part);
@@ -475,6 +480,7 @@ export const retryImportLibraryPart: RouteHandler<
   ApiEnv
 > = async (c) => {
   const { importId, part } = c.req.valid('param');
+  if (!isInstructionsPart(part)) throw noSuchPart();
   const missing = missingImportSettings(c.env);
   if (missing.length > 0) {
     console.error(`Imports are not configured: missing ${missing.join(', ')}.`);

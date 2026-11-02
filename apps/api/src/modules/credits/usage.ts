@@ -5,7 +5,8 @@ import {
   type ImportCredits,
   importCredits,
   type ImportLibraryPart,
-  libraryPartDomains,
+  instructionsPartDomains,
+  isInstructionsPart,
 } from '@ssm-usor/contracts';
 
 import type { SmsSubscription } from '../sms-usage/policy';
@@ -127,7 +128,9 @@ export function importCharges(store: CreditsStore, now: () => Date = () => new D
         organizationId,
         policy: await policyOf(organizationId),
         kind: 'library_part',
-        credits: importCredits.ownInstructions[libraryPartDomains[part]],
+        credits: isInstructionsPart(part)
+          ? importCredits.ownInstructions[instructionsPartDomains[part]]
+          : importCredits.riskEvaluations,
         importId,
         importPart: part,
         key: `library:${importId}:${part}:${attempt}`,

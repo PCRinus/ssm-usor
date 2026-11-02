@@ -1,3 +1,4 @@
+import { type InstructionsPart, isInstructionsPart } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Link, useRouteContext } from '@tanstack/react-router';
 import { BookOpenCheck } from 'lucide-react';
@@ -30,7 +31,10 @@ export function LibraryTasksNotice({ clientId }: { clientId: string }) {
   const [now] = useState(() => Date.now());
   const imports = (confirmed.data?.items ?? []).flatMap((item) => {
     const open = item.libraryParts
-      .filter((part) => isOpenPart(part, now))
+      .filter(
+        (part): part is typeof part & { part: InstructionsPart } =>
+          isInstructionsPart(part.part) && isOpenPart(part, now)
+      )
       .sort((a, b) => partOrder.indexOf(a.part) - partOrder.indexOf(b.part));
     return open.length > 0 ? [{ item, open }] : [];
   });

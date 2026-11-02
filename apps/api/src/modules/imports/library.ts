@@ -1,4 +1,9 @@
-import { type ImportLibraryPart, libraryPartDays, libraryPartDomains } from '@ssm-usor/contracts';
+import {
+  type ImportLibraryPart,
+  type InstructionsPart,
+  instructionsPartDomains,
+  libraryPartDays,
+} from '@ssm-usor/contracts';
 import {
   type CompletionRequest,
   DocxReadError,
@@ -176,7 +181,7 @@ async function answerOf(
 export async function readInstructions(
   deps: PipelineDeps,
   importId: string,
-  part: ImportLibraryPart,
+  part: InstructionsPart,
   attempt: number,
   owner: string
 ) {
@@ -186,7 +191,7 @@ export async function readInstructions(
   if (!current || current.status !== 'reading' || current.attempt !== attempt) return;
   if (!(await claimed(deps, pathOf(row, `${part}.${attempt}.claim.json`), owner))) return;
 
-  const domain = libraryPartDomains[part];
+  const domain = instructionsPartDomains[part];
   const files = (await deps.store.listFiles(importId)).filter(
     (file) => isLibraryFile(file) && file.document_domain === domain
   );

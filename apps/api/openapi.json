@@ -11601,7 +11601,7 @@
               "properties": {
                 "part": {
                   "type": "string",
-                  "enum": ["instructions_ssm", "instructions_su"]
+                  "enum": ["instructions_ssm", "instructions_su", "risk_evaluations"]
                 },
                 "status": {
                   "type": "string",
@@ -11827,7 +11827,7 @@
                     "properties": {
                       "part": {
                         "type": "string",
-                        "enum": ["instructions_ssm", "instructions_su"]
+                        "enum": ["instructions_ssm", "instructions_su", "risk_evaluations"]
                       },
                       "status": {
                         "type": "string",
@@ -12044,7 +12044,7 @@
               "properties": {
                 "part": {
                   "type": "string",
-                  "enum": ["instructions_ssm", "instructions_su"]
+                  "enum": ["instructions_ssm", "instructions_su", "risk_evaluations"]
                 },
                 "status": {
                   "type": "string",
@@ -17349,11 +17349,12 @@
         "properties": {
           "part": {
             "type": "string",
-            "enum": ["instructions_ssm", "instructions_su"]
+            "enum": ["instructions_ssm", "instructions_su", "risk_evaluations"]
           },
           "domain": {
             "type": "string",
-            "enum": ["ssm", "su"]
+            "nullable": true,
+            "enum": ["ssm", "su", null]
           },
           "status": {
             "type": "string",
@@ -42282,7 +42283,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["instructions_ssm", "instructions_su"]
+              "enum": ["instructions_ssm", "instructions_su", "risk_evaluations"]
             },
             "required": true,
             "name": "part",
@@ -42406,7 +42407,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["instructions_ssm", "instructions_su"]
+              "enum": ["instructions_ssm", "instructions_su", "risk_evaluations"]
             },
             "required": true,
             "name": "part",
@@ -42540,7 +42541,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["instructions_ssm", "instructions_su"]
+              "enum": ["instructions_ssm", "instructions_su", "risk_evaluations"]
             },
             "required": true,
             "name": "part",
