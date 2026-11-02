@@ -814,7 +814,7 @@ export const riskImportChangesSchema = z
             existingChoice: z.enum(riskImportExistingChoices).optional(),
             meansOfProduction: riskImportText(2000),
             workEnvironment: riskImportText(2000),
-            exposure: z.string().trim().min(1).max(120).optional(),
+            exposure: riskImportText(120),
             factors: z.record(z.string().min(1).max(100), riskImportFactorChangeSchema).optional(),
           })
           .strict()

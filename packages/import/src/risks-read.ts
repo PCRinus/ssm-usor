@@ -204,6 +204,7 @@ const labelKind = (word: string) =>
 interface Segment {
   kind: PreventionMeasureKind | null;
   text: string;
+  preamble?: boolean;
 }
 
 function labelledSegments(text: string): Segment[] | null {
@@ -230,7 +231,7 @@ function partSegments(
     .sort((a, b) => a.at - b.at);
   if (found.length === 0) return [{ kind: null, text }];
   return [
-    { kind: found[0]!.kind, text: text.slice(0, found[0]!.at) },
+    { kind: null, text: text.slice(0, found[0]!.at), preamble: true },
     ...found.map((part, index) => ({
       kind: part.kind,
       text: text.slice(part.at, found[index + 1]?.at ?? text.length),
@@ -250,17 +251,20 @@ export function sheetMeasures(
   const measures: ProposedMeasure[] = [];
   for (const segment of segments) {
     let kind = segment.kind;
+    // A heading such as "Măsuri propuse:" before the first start words is not a measure.
+    const items = cellItems(segment.text).filter(
+      (item) => !(segment.preamble && /:\s*$/u.test(item))
+    );
+    if (items.length === 0) continue;
     if (kind === null) {
-      const items = cellItems(segment.text);
-      if (items.length === 0) continue;
       const partKind = labelled ? partSegments(segment.text, parts)[0]?.kind : null;
-      kind = partKind ?? (labelled ? null : (parts[0]?.kind ?? null));
+      kind = partKind ?? (labelled || segment.preamble ? null : (parts[0]?.kind ?? null));
       if (kind === null) {
         guessed = true;
         kind = 'organizational';
       }
     }
-    for (const item of cellItems(segment.text)) {
+    for (const item of items) {
       const description = measureText(item);
       if (description !== '') measures.push({ kind, description });
     }

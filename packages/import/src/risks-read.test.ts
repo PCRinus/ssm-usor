@@ -289,6 +289,32 @@ describe('the helpers', () => {
     });
   });
 
+  it('drops a heading before the first start words and guesses the kind of other text there', () => {
+    const parts = [
+      { kind: 'technical' as const, startWords: 'Mănuși la cuptor' },
+      { kind: 'organizational' as const, startWords: 'Instruirea personalului' },
+    ];
+    expect(
+      sheetMeasures('Măsuri propuse: / Mănuși la cuptor. / Instruirea personalului.', parts)
+    ).toEqual({
+      measures: [
+        { kind: 'technical', description: 'Mănuși la cuptor.' },
+        { kind: 'organizational', description: 'Instruirea personalului.' },
+      ],
+      guessed: false,
+    });
+    expect(
+      sheetMeasures('Afișe la intrare. / Mănuși la cuptor. / Instruirea personalului.', parts)
+    ).toEqual({
+      measures: [
+        { kind: 'organizational', description: 'Afișe la intrare.' },
+        { kind: 'technical', description: 'Mănuși la cuptor.' },
+        { kind: 'organizational', description: 'Instruirea personalului.' },
+      ],
+      guessed: true,
+    });
+  });
+
   it('tells a person from a role', () => {
     expect(namesPerson('Ramona Barbara CIMPEAN', [])).toBe(true);
     expect(namesPerson('Administrator, Maria Ionescu', ['Maria Ionescu'])).toBe(true);

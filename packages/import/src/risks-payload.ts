@@ -172,7 +172,7 @@ export function riskImportPayload(input: RiskPayloadInput): {
     return {
       means_of_production: pick(change?.meansOfProduction, sheet.meansOfProduction),
       work_environment: pick(change?.workEnvironment, sheet.workEnvironment),
-      exposure: change?.exposure ?? sheet.exposure,
+      exposure: pick(change?.exposure, sheet.exposure),
     };
   };
 
