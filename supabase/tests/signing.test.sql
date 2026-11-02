@@ -442,8 +442,8 @@ select throws_ok(
 );
 select throws_ok(
   $$ insert into public.signed_sheets (organization_id, client_id, employee_id, domain, sequence, storage_path, digest, row_capacity)
-     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'psi', 1,
-       'signed-sheets/c1c1c1c1-0000-4000-8000-000000000001/e1e1e1e1-0000-4000-8000-000000000001/psi-1/v1-abcd1234.pdf', repeat('d', 64), 8) $$,
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'su', 1,
+       'signed-sheets/c1c1c1c1-0000-4000-8000-000000000001/e1e1e1e1-0000-4000-8000-000000000001/su-1/v1-abcd1234.pdf', repeat('d', 64), 8) $$,
   '23514', 'new row for relation "signed_sheets" violates check constraint "signed_sheets_path_in_organization"',
   'a sheet''s file is under its organization'
 );

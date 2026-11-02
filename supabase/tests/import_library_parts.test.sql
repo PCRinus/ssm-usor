@@ -33,7 +33,7 @@ $$;
 
 insert into public.instruction_modules (id, organization_id, title, module_group, domain) values
   ('eeeeeeee-0000-4000-8000-000000000071', '11111111-0000-4000-8000-000000000071', 'Scări metalice', 'work_equipment', 'ssm'),
-  ('eeeeeeee-0000-4000-8000-000000000072', '11111111-0000-4000-8000-000000000071', 'Birouri', 'premises_activity', 'psi');
+  ('eeeeeeee-0000-4000-8000-000000000072', '11111111-0000-4000-8000-000000000071', 'Birouri', 'premises_activity', 'su');
 
 insert into public.instruction_module_versions (organization_id, module_id, number, body, text_hash) values
   ('11111111-0000-4000-8000-000000000071', 'eeeeeeee-0000-4000-8000-000000000071', 1, pg_temp.body('Scara se verifică.'), repeat('1', 64)),
@@ -55,7 +55,7 @@ insert into public.import_files (import_id, organization_id, upload_path, origin
 insert into public.import_library_parts (import_id, organization_id, part, status, proposal, read_at) values
   ('10000000-0000-4000-8000-000000000071', '11111111-0000-4000-8000-000000000071', 'instructions_ssm', 'to_review', '{"domain": "ssm", "instructions": []}', now());
 insert into public.import_library_parts (import_id, organization_id, part) values
-  ('10000000-0000-4000-8000-000000000071', '11111111-0000-4000-8000-000000000071', 'instructions_psi');
+  ('10000000-0000-4000-8000-000000000071', '11111111-0000-4000-8000-000000000071', 'instructions_su');
 
 create or replace function pg_temp.act_as(user_id text)
 returns void language sql as $$
@@ -149,7 +149,7 @@ select throws_ok(
 );
 
 select throws_ok(
-  $$ select public.save_import_library_part_changes('10000000-0000-4000-8000-000000000071', 'instructions_psi', 0, '{}') $$,
+  $$ select public.save_import_library_part_changes('10000000-0000-4000-8000-000000000071', 'instructions_su', 0, '{}') $$,
   'ILP01', null, 'a part still being read takes no changes'
 );
 
@@ -253,7 +253,7 @@ select throws_ok(
 );
 
 select throws_ok(
-  $$ select public.retry_import_library_part('10000000-0000-4000-8000-000000000071', 'instructions_psi') $$,
+  $$ select public.retry_import_library_part('10000000-0000-4000-8000-000000000071', 'instructions_su') $$,
   'ILP06', null, 'a part still being read is not read again'
 );
 
@@ -270,9 +270,9 @@ set local role service_role;
 select results_eq(
   $$ select charged, refused from public.charge_credits(
        '11111111-0000-4000-8000-000000000071', 'library_part', 10, '10000000-0000-4000-8000-000000000071', null, null,
-       public.library_part_charge_key('10000000-0000-4000-8000-000000000071', 'instructions_psi', 1), false,
+       public.library_part_charge_key('10000000-0000-4000-8000-000000000071', 'instructions_su', 1), false,
        date_trunc('month', now()), date_trunc('month', now()) + interval '1 month', 5,
-       null, null, null, 'instructions_psi') $$,
+       null, null, null, 'instructions_su') $$,
   $$ values (10, false) $$,
   'a part''s reading is charged when sent, never refused, below zero if it must'
 );
@@ -286,26 +286,26 @@ select throws_ok(
 );
 
 select lives_ok(
-  $$ select public.record_library_part_usage('10000000-0000-4000-8000-000000000071', 'instructions_psi', 60000, 1000, 4000, 0.08) $$,
+  $$ select public.record_library_part_usage('10000000-0000-4000-8000-000000000071', 'instructions_su', 60000, 1000, 4000, 0.08) $$,
   'the reading''s usage is recorded'
 );
 
 select results_eq(
   $$ select p.input_tokens, p.cost_usd, i.input_tokens, i.usage_by_step #>> '{instructions,cost_usd}'
      from public.import_library_parts p join public.imports i on i.id = p.import_id
-     where p.part = 'instructions_psi' $$,
+     where p.part = 'instructions_su' $$,
   $$ values (60000::bigint, 0.08::numeric, 60000::bigint, '0.08') $$,
   'on the part and on the import''s totals, under its own step'
 );
 
 update public.import_library_parts
 set status = 'failed', failure_reason = 'Nu am putut citi instrucțiunile.', failed_at = now()
-where part = 'instructions_psi';
+where part = 'instructions_su';
 
 select results_eq(
   $$ select kind::text, credits, import_part::text from public.credit_entries
      where import_id = '10000000-0000-4000-8000-000000000071' order by id $$,
-  $$ values ('library_part', -10, 'instructions_psi'), ('library_part_refund', 10, 'instructions_psi') $$,
+  $$ values ('library_part', -10, 'instructions_su'), ('library_part_refund', 10, 'instructions_su') $$,
   'a reading that fails gets its credits back'
 );
 
@@ -319,13 +319,13 @@ select is(
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000071');
 
 select is(
-  public.retry_import_library_part('10000000-0000-4000-8000-000000000071', 'instructions_psi'),
+  public.retry_import_library_part('10000000-0000-4000-8000-000000000071', 'instructions_su'),
   2,
   'a failed part is read again under its next attempt'
 );
 
 select results_eq(
-  $$ select status::text, failure_reason, failed_at from public.import_library_parts where part = 'instructions_psi' $$,
+  $$ select status::text, failure_reason, failed_at from public.import_library_parts where part = 'instructions_su' $$,
   $$ values ('reading', null::text, null::timestamptz) $$,
   'and reads from the start'
 );
@@ -333,19 +333,19 @@ select results_eq(
 reset role;
 
 update public.import_library_parts
-set status = 'to_review', proposal = '{"domain": "psi", "instructions": []}', read_at = now()
-where part = 'instructions_psi';
+set status = 'to_review', proposal = '{"domain": "su", "instructions": []}', read_at = now()
+where part = 'instructions_su';
 update public.imports set confirmed_at = now() - interval '15 days' where id = '10000000-0000-4000-8000-000000000071';
 
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000071');
 
 select throws_ok(
-  $$ select public.apply_instruction_import('10000000-0000-4000-8000-000000000071', 'instructions_psi', 0, '{}') $$,
+  $$ select public.apply_instruction_import('10000000-0000-4000-8000-000000000071', 'instructions_su', 0, '{}') $$,
   'ILP04', null, 'a part not confirmed 14 days after the client has expired'
 );
 
 select throws_ok(
-  $$ select public.save_import_library_part_changes('10000000-0000-4000-8000-000000000071', 'instructions_psi', 0, '{"instructions": {}}') $$,
+  $$ select public.save_import_library_part_changes('10000000-0000-4000-8000-000000000071', 'instructions_su', 0, '{"instructions": {}}') $$,
   'ILP04', null, 'an expired part takes no more changes'
 );
 
@@ -353,12 +353,12 @@ reset role;
 
 update public.import_library_parts
 set status = 'failed', failure_reason = 'Nu am putut citi instrucțiunile.', failed_at = now()
-where part = 'instructions_psi';
+where part = 'instructions_su';
 
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000071');
 
 select throws_ok(
-  $$ select public.retry_import_library_part('10000000-0000-4000-8000-000000000071', 'instructions_psi') $$,
+  $$ select public.retry_import_library_part('10000000-0000-4000-8000-000000000071', 'instructions_su') $$,
   'ILP04', null, 'and is not read again, which would charge a reading it could never confirm'
 );
 
@@ -366,7 +366,7 @@ reset role;
 
 update public.import_library_parts
 set status = 'to_review', failure_reason = null, failed_at = null
-where part = 'instructions_psi';
+where part = 'instructions_su';
 
 insert into public.imports (id, organization_id, kind, client_id, into_existing_client, status, started_at, ready_at) values
   ('10000000-0000-4000-8000-000000000072', '11111111-0000-4000-8000-000000000071', 'client', 'cccccccc-0000-4000-8000-000000000071', true, 'ready', now(), now()),
@@ -375,7 +375,7 @@ update public.imports set status = 'abandoned', abandoned_at = now() where id = 
 
 insert into public.import_library_parts (import_id, organization_id, part, updated_at) values
   ('10000000-0000-4000-8000-000000000072', '11111111-0000-4000-8000-000000000071', 'instructions_ssm', now() - interval '7 hours'),
-  ('10000000-0000-4000-8000-000000000072', '11111111-0000-4000-8000-000000000071', 'instructions_psi', now() - interval '5 hours'),
+  ('10000000-0000-4000-8000-000000000072', '11111111-0000-4000-8000-000000000071', 'instructions_su', now() - interval '5 hours'),
   ('10000000-0000-4000-8000-000000000073', '11111111-0000-4000-8000-000000000071', 'instructions_ssm', now() - interval '7 hours');
 
 select results_eq(
@@ -391,7 +391,7 @@ select is(public.drop_import_proposals(), 1, 'the 30-day clean-up drops the impo
 select results_eq(
   $$ select part::text, proposal is null and changes is null and proposal_dropped_at is not null, status::text
      from public.import_library_parts where import_id = '10000000-0000-4000-8000-000000000071' order by part $$,
-  $$ values ('instructions_psi', true, 'to_review'), ('instructions_ssm', true, 'confirmed') $$,
+  $$ values ('instructions_ssm', true, 'confirmed'), ('instructions_su', true, 'to_review') $$,
   'and its parts'' with it, keeping their status'
 );
 

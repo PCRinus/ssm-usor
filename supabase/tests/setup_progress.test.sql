@@ -80,7 +80,7 @@ insert into public.document_revisions (organization_id, document_id, revision, s
 insert into public.trainings (id, organization_id, client_id, domain, phase, held_on, duration_minutes, material, trainer_name, trainer_job_title, source, created_by) values
   ('a1a1a1a1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'workplace', '2026-10-01', 120, 'Material', 'Ion POP', 'Șef atelier', 'app', 'bbbbbbbb-0000-4000-8000-000000000001'),
   ('a1a1a1a1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'periodic', '2025-10-01', 120, 'Material', 'Ion POP', 'Șef atelier', 'paper', 'aaaaaaaa-0000-4000-8000-000000000001'),
-  ('a1a1a1a1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 'workplace', '2026-10-01', 120, 'Material', 'Ion POP', 'Șef atelier', 'app', 'dddddddd-0000-4000-8000-000000000001');
+  ('a1a1a1a1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'su', 'workplace', '2026-10-01', 120, 'Material', 'Ion POP', 'Șef atelier', 'app', 'dddddddd-0000-4000-8000-000000000001');
 
 insert into public.training_records (id, organization_id, client_id, training_id, phase, employee_id, occupation) values
   ('7a7a7a7a-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'a1a1a1a1-0000-4000-8000-000000000001', 'workplace', 'e1e1e1e1-0000-4000-8000-000000000001', 'Sudor'),

@@ -29,7 +29,7 @@ select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001', '{"provider":"emai
 insert into public.instruction_modules (id, organization_id, title, module_group) values
   ('a0a0a0a0-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'Scări metalice', 'work_equipment');
 insert into public.instruction_modules (id, organization_id, title, module_group, domain) values
-  ('a0a0a0a0-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'Lucrul cu foc deschis', 'hazardous_work', 'psi');
+  ('a0a0a0a0-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'Lucrul cu foc deschis', 'hazardous_work', 'su');
 
 select is(
   (select domain::text from public.instruction_modules where id = 'a0a0a0a0-0000-4000-8000-000000000001'),
@@ -53,7 +53,7 @@ select throws_ok(
 
 select throws_ok(
   $$ insert into public.job_position_instructions (organization_id, client_id, job_position_id, module_id, domain)
-     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'f1f1f1f1-0000-4000-8000-000000000001', 'a0a0a0a0-0000-4000-8000-000000000001', 'psi') $$,
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'f1f1f1f1-0000-4000-8000-000000000001', 'a0a0a0a0-0000-4000-8000-000000000001', 'su') $$,
   'INS06',
   null,
   'nor an occupational safety module as a fire-safety one'
@@ -61,7 +61,7 @@ select throws_ok(
 
 select lives_ok(
   $$ insert into public.job_position_instructions (organization_id, client_id, job_position_id, module_id, domain)
-     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'f1f1f1f1-0000-4000-8000-000000000001', 'a0a0a0a0-0000-4000-8000-000000000002', 'psi') $$,
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'f1f1f1f1-0000-4000-8000-000000000001', 'a0a0a0a0-0000-4000-8000-000000000002', 'su') $$,
   'a fire-safety module is applied as a fire-safety decision'
 );
 
@@ -79,7 +79,7 @@ select throws_ok(
 );
 
 select lives_ok(
-  $$ update public.instruction_modules set domain = 'psi', module_group = 'installation_equipment' where id = 'a0a0a0a0-0000-4000-8000-000000000001' $$,
+  $$ update public.instruction_modules set domain = 'su', module_group = 'installation_equipment' where id = 'a0a0a0a0-0000-4000-8000-000000000001' $$,
   'the domain of a module nobody applies does'
 );
 
@@ -123,7 +123,7 @@ select is(
 );
 
 delete from public.job_position_instructions
-where job_position_id = 'f1f1f1f1-0000-4000-8000-000000000001' and domain = 'psi';
+where job_position_id = 'f1f1f1f1-0000-4000-8000-000000000001' and domain = 'su';
 
 select is(
   (select array[needs_instructions, needs_fire_instructions] from public.job_positions where id = 'f1f1f1f1-0000-4000-8000-000000000001'),
@@ -141,9 +141,9 @@ select lives_ok(
   'a module nobody applies any more changes its domain'
 );
 
-update public.instruction_modules set domain = 'psi', module_group = 'hazardous_work' where id = 'a0a0a0a0-0000-4000-8000-000000000002';
+update public.instruction_modules set domain = 'su', module_group = 'hazardous_work' where id = 'a0a0a0a0-0000-4000-8000-000000000002';
 insert into public.job_position_instructions (organization_id, client_id, job_position_id, module_id, domain)
-values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'f1f1f1f1-0000-4000-8000-000000000002', 'a0a0a0a0-0000-4000-8000-000000000002', 'psi');
+values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'f1f1f1f1-0000-4000-8000-000000000002', 'a0a0a0a0-0000-4000-8000-000000000002', 'su');
 update public.job_positions set archived_at = now() where id = 'f1f1f1f1-0000-4000-8000-000000000002';
 
 select lives_ok(

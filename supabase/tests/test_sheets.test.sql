@@ -43,7 +43,7 @@ insert into public.test_attempts (id, organization_id, client_id, employee_id, p
 insert into public.test_results (id, organization_id, client_id, employee_id, domain, test, taken_on, material, examiner_name, examiner_job_title, source, attempt_id) values
   ('7e7e7e7e-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'ssm', 'hiring', '2026-10-21', 'Test de verificare a cunoștințelor la angajare (TASSM)', 'Ana SPECIALIST', 'Inspector SSM', 'portal', 'a7a7a7a7-0000-4000-8000-000000000001'),
   ('7e7e7e7e-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000002', 'ssm', 'hiring', '2026-10-21', 'Test de verificare a cunoștințelor la angajare (TASSM)', 'Ana SPECIALIST', 'Inspector SSM', 'portal', 'a7a7a7a7-0000-4000-8000-000000000002'),
-  ('7e7e7e7e-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'psi', 'hiring', '2026-10-21', 'Test de verificare a cunoștințelor la angajare (TASU)', 'Vasile TEHNIC', 'Cadru tehnic PSI', 'paper', null);
+  ('7e7e7e7e-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'su', 'hiring', '2026-10-21', 'Test de verificare a cunoștințelor la angajare (TASU)', 'Vasile TEHNIC', 'Cadru tehnic PSI', 'paper', null);
 
 create or replace function pg_temp.act_as(user_id text)
 returns void language sql as $$

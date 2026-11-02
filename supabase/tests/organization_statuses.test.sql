@@ -60,20 +60,20 @@ select v.id::uuid, v.organization_id::uuid, v.client_id::uuid, v.domain::public.
 from day d, (values
   ('a1a1a1a1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'introductory_general', 790, null, 'app'),
   ('a1a1a1a1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'workplace', 100, null, 'app'),
-  ('a1a1a1a1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 'workplace', 100, null, 'app'),
+  ('a1a1a1a1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'su', 'workplace', 100, null, 'app'),
   ('a1a1a1a1-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'workplace', 400, null, 'app'),
   ('a1a1a1a1-0000-4000-8000-000000000005', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'periodic', 170, null, 'app'),
-  ('a1a1a1a1-0000-4000-8000-000000000006', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 'workplace', 200, null, 'app'),
+  ('a1a1a1a1-0000-4000-8000-000000000006', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'su', 'workplace', 200, null, 'app'),
   ('a1a1a1a1-0000-4000-8000-000000000007', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'workplace', 20, null, 'app'),
-  ('a1a1a1a1-0000-4000-8000-000000000008', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 'workplace', 10, null, 'app'),
+  ('a1a1a1a1-0000-4000-8000-000000000008', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'su', 'workplace', 10, null, 'app'),
   ('a1a1a1a1-0000-4000-8000-000000000009', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'supplementary', 5, 'rules_changed', 'app'),
   ('a1a1a1a1-0000-4000-8000-000000000010', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'ssm', 'workplace', 30, null, 'app'),
-  ('a1a1a1a1-0000-4000-8000-000000000011', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'psi', 'workplace', 30, null, 'app'),
+  ('a1a1a1a1-0000-4000-8000-000000000011', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'su', 'workplace', 30, null, 'app'),
   ('a1a1a1a1-0000-4000-8000-000000000012', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'workplace', 50, null, 'app'),
   ('a1a1a1a1-0000-4000-8000-000000000013', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'ssm', 'workplace', 30, null, 'app'),
-  ('a1a1a1a1-0000-4000-8000-000000000014', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 'introductory_general', 20, null, 'app'),
+  ('a1a1a1a1-0000-4000-8000-000000000014', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'su', 'introductory_general', 20, null, 'app'),
   ('a1a1a1a1-0000-4000-8000-000000000015', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'introductory_general', 300, null, 'paper'),
-  ('a1a1a1a1-0000-4000-8000-000000000016', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 'workplace', 300, null, 'paper'),
+  ('a1a1a1a1-0000-4000-8000-000000000016', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'su', 'workplace', 300, null, 'paper'),
   ('a1a1a1a1-0000-4000-8000-000000000017', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'introductory_general', 40, null, 'app'),
   ('a1a1a1a1-0000-4000-8000-000000000018', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'introductory_general', 40, null, 'paper'),
   ('a2a2a2a2-0000-4000-8000-000000000001', '22222222-0000-4000-8000-000000000002', 'c2c2c2c2-0000-4000-8000-000000000001', 'ssm', 'workplace', 30, null, 'app')
@@ -110,8 +110,8 @@ insert into public.test_results (organization_id, client_id, employee_id, domain
 select '11111111-0000-4000-8000-000000000001', v.client_id::uuid, v.employee_id::uuid, v.domain::public.training_domain, 'hiring', d.today - v.days_ago, 'Test de verificare a cunoștințelor', 'Mihai VECHI', 'Cadru tehnic', 'paper'
 from day d, (values
   ('c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000004', 'ssm', 300),
-  ('c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000004', 'psi', 380),
-  ('c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000005', 'psi', 10),
+  ('c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000004', 'su', 380),
+  ('c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000005', 'su', 10),
   ('c1c1c1c1-0000-4000-8000-000000000002', 'e1e1e1e1-0000-4000-8000-000000000006', 'ssm', 20)
 ) as v (client_id, employee_id, domain, days_ago);
 
@@ -128,10 +128,10 @@ select
   e.id as employee_id,
   t.ssm_state as ssm_training_state,
   t.ssm_due_on as ssm_training_due_on,
-  t.psi_state as psi_training_state,
-  t.psi_due_on as psi_training_due_on,
+  t.su_state as su_training_state,
+  t.su_due_on as su_training_due_on,
   x.ssm_state as ssm_test_state,
-  x.psi_state as psi_test_state
+  x.su_state as su_test_state
 from public.employees e
 join public.clients c on c.id = e.client_id
 join public.employee_training_status t on t.employee_id = e.id
@@ -144,7 +144,7 @@ where e.organization_id = '11111111-0000-4000-8000-000000000001'
 grant select on through_views to authenticated;
 
 create temp table domains (domain public.training_domain);
-insert into domains values (null), ('ssm'), ('psi');
+insert into domains values (null), ('ssm'), ('su');
 grant select on domains to authenticated;
 
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
@@ -169,7 +169,7 @@ select results_eq(
 select is(
   (select array_agg(distinct state order by state)
    from public.organization_employee_states('11111111-0000-4000-8000-000000000001'),
-     lateral (values (ssm_training_state), (psi_training_state)) as v (state)),
+     lateral (values (ssm_training_state), (su_training_state)) as v (state)),
   enum_range(null::public.training_state),
   'the seeded employees reach every training state'
 );
@@ -177,13 +177,13 @@ select is(
 select is(
   (select array_agg(distinct state order by state)
    from public.organization_employee_states('11111111-0000-4000-8000-000000000001'),
-     lateral (values (ssm_test_state), (psi_test_state)) as v (state)),
+     lateral (values (ssm_test_state), (su_test_state)) as v (state)),
   enum_range(null::public.test_state),
   'the seeded employees reach every test state'
 );
 
 select results_eq(
-  $$ select employee_id, ssm_test_state, psi_test_state
+  $$ select employee_id, ssm_test_state, su_test_state
      from public.organization_employee_states('11111111-0000-4000-8000-000000000001')
      where employee_id in ('e1e1e1e1-0000-4000-8000-000000000011', 'e1e1e1e1-0000-4000-8000-000000000012')
      order by 1 $$,
@@ -206,9 +206,9 @@ select results_eq(
      cross join domains d
      join through_views v on case
        when d.domain = 'ssm' then v.ssm_training_state = s.state
-       when d.domain = 'psi' then v.psi_training_state = s.state
-       when s.state = 'current' then v.ssm_training_state = s.state and v.psi_training_state = s.state
-       else s.state in (v.ssm_training_state, v.psi_training_state)
+       when d.domain = 'su' then v.su_training_state = s.state
+       when s.state = 'current' then v.ssm_training_state = s.state and v.su_training_state = s.state
+       else s.state in (v.ssm_training_state, v.su_training_state)
      end
      order by 1, 2, 3 $$,
   'a training state matches one domain, or without one, current in both and the others in either'
@@ -227,9 +227,9 @@ select results_eq(
      cross join domains d
      join through_views v on case
        when d.domain = 'ssm' then v.ssm_test_state = s.state
-       when d.domain = 'psi' then v.psi_test_state = s.state
-       when s.state = 'passed' then v.ssm_test_state = s.state and v.psi_test_state = s.state
-       else s.state in (v.ssm_test_state, v.psi_test_state)
+       when d.domain = 'su' then v.su_test_state = s.state
+       when s.state = 'passed' then v.ssm_test_state = s.state and v.su_test_state = s.state
+       else s.state in (v.ssm_test_state, v.su_test_state)
      end
      order by 1, 2, 3 $$,
   'a test state matches one domain, or without one, passed in both and the others in either'

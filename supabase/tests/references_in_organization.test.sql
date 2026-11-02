@@ -92,7 +92,7 @@ select lives_ok(
 select throws_ok(
   $$ insert into public.test_attempts (organization_id, client_id, employee_id, participant_id, domain, test, questions, total, material_revision_id)
      values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e3e3e3e3-0000-4000-8000-000000000001',
-       '9e9e9e9e-0000-4000-8000-000000000001', 'psi', 'hiring', '[{}]', 1, 'e2e2e2e2-0000-4000-8000-000000000001') $$,
+       '9e9e9e9e-0000-4000-8000-000000000001', 'su', 'hiring', '[{}]', 1, 'e2e2e2e2-0000-4000-8000-000000000001') $$,
   '23503',
   null,
   'a test attempt cannot keep the material of another organization'
