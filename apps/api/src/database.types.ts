@@ -1119,6 +1119,7 @@ export type Database = {
           id: number;
           import_file_id: string | null;
           import_id: string | null;
+          import_part: Database['public']['Enums']['import_library_part'] | null;
           key: string | null;
           kind: Database['public']['Enums']['credit_entry_kind'];
           organization_id: string;
@@ -1133,6 +1134,7 @@ export type Database = {
           id?: never;
           import_file_id?: string | null;
           import_id?: string | null;
+          import_part?: Database['public']['Enums']['import_library_part'] | null;
           key?: string | null;
           kind: Database['public']['Enums']['credit_entry_kind'];
           organization_id: string;
@@ -1147,6 +1149,7 @@ export type Database = {
           id?: never;
           import_file_id?: string | null;
           import_id?: string | null;
+          import_part?: Database['public']['Enums']['import_library_part'] | null;
           key?: string | null;
           kind?: Database['public']['Enums']['credit_entry_kind'];
           organization_id?: string;
@@ -2685,6 +2688,7 @@ export type Database = {
           derived_path: string | null;
           derived_sha256: string | null;
           derived_size_bytes: number | null;
+          document_domain: Database['public']['Enums']['instruction_domain'] | null;
           document_kind: string | null;
           id: string;
           import_id: string;
@@ -2716,6 +2720,7 @@ export type Database = {
           derived_path?: string | null;
           derived_sha256?: string | null;
           derived_size_bytes?: number | null;
+          document_domain?: Database['public']['Enums']['instruction_domain'] | null;
           document_kind?: string | null;
           id?: string;
           import_id: string;
@@ -2747,6 +2752,7 @@ export type Database = {
           derived_path?: string | null;
           derived_sha256?: string | null;
           derived_size_bytes?: number | null;
+          document_domain?: Database['public']['Enums']['instruction_domain'] | null;
           document_kind?: string | null;
           id?: string;
           import_id?: string;
@@ -2787,6 +2793,83 @@ export type Database = {
             columns: ['source_file_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'import_files';
+            referencedColumns: ['id', 'organization_id'];
+          },
+        ];
+      };
+      import_library_parts: {
+        Row: {
+          attempt: number;
+          cached_input_tokens: number;
+          changes: Json | null;
+          confirmed_at: string | null;
+          confirmed_by: string | null;
+          cost_usd: number;
+          created_at: string;
+          failed_at: string | null;
+          failure_reason: string | null;
+          import_id: string;
+          input_tokens: number;
+          organization_id: string;
+          output_tokens: number;
+          part: Database['public']['Enums']['import_library_part'];
+          proposal: Json | null;
+          proposal_dropped_at: string | null;
+          read_at: string | null;
+          status: Database['public']['Enums']['import_library_part_status'];
+          updated_at: string;
+          version: number;
+        };
+        Insert: {
+          attempt?: number;
+          cached_input_tokens?: number;
+          changes?: Json | null;
+          confirmed_at?: string | null;
+          confirmed_by?: string | null;
+          cost_usd?: number;
+          created_at?: string;
+          failed_at?: string | null;
+          failure_reason?: string | null;
+          import_id: string;
+          input_tokens?: number;
+          organization_id: string;
+          output_tokens?: number;
+          part: Database['public']['Enums']['import_library_part'];
+          proposal?: Json | null;
+          proposal_dropped_at?: string | null;
+          read_at?: string | null;
+          status?: Database['public']['Enums']['import_library_part_status'];
+          updated_at?: string;
+          version?: number;
+        };
+        Update: {
+          attempt?: number;
+          cached_input_tokens?: number;
+          changes?: Json | null;
+          confirmed_at?: string | null;
+          confirmed_by?: string | null;
+          cost_usd?: number;
+          created_at?: string;
+          failed_at?: string | null;
+          failure_reason?: string | null;
+          import_id?: string;
+          input_tokens?: number;
+          organization_id?: string;
+          output_tokens?: number;
+          part?: Database['public']['Enums']['import_library_part'];
+          proposal?: Json | null;
+          proposal_dropped_at?: string | null;
+          read_at?: string | null;
+          status?: Database['public']['Enums']['import_library_part_status'];
+          updated_at?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'import_library_parts_import_in_organization';
+            columns: ['import_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'imports';
             referencedColumns: ['id', 'organization_id'];
           },
         ];
@@ -6866,6 +6949,15 @@ export type Database = {
         Args: { p_evaluation_id: string; p_profile_id: string };
         Returns: number;
       };
+      apply_instruction_import: {
+        Args: {
+          p_expected_version: number;
+          p_import_id: string;
+          p_part: Database['public']['Enums']['import_library_part'];
+          p_payload: Json;
+        };
+        Returns: Json;
+      };
       auth_user_id_by_address: {
         Args: { p_address: string; p_channel: string };
         Returns: string;
@@ -6884,6 +6976,7 @@ export type Database = {
           p_credits: number;
           p_import_file_id: string;
           p_import_id: string;
+          p_import_part?: Database['public']['Enums']['import_library_part'];
           p_key: string;
           p_kind: Database['public']['Enums']['credit_entry_kind'];
           p_organization_id: string;
@@ -7188,6 +7281,13 @@ export type Database = {
         Args: { p_left_reason: string; p_stalled_reason: string };
         Returns: string[];
       };
+      fail_stalled_library_parts: {
+        Args: { p_reason: string };
+        Returns: {
+          import_id: string;
+          part: Database['public']['Enums']['import_library_part'];
+        }[];
+      };
       finish_test_attempt: {
         Args: {
           p_attempt_id: string;
@@ -7267,6 +7367,10 @@ export type Database = {
           target_path: string;
         }[];
       };
+      import_library_part_domain: {
+        Args: { p_part: Database['public']['Enums']['import_library_part'] };
+        Returns: Database['public']['Enums']['instruction_domain'];
+      };
       import_patch: {
         Args: { p_columns: string[]; p_current: Json; p_proposed: Json };
         Returns: Json;
@@ -7314,6 +7418,23 @@ export type Database = {
           training_record_id: string;
         }[];
       };
+      library_part_charge_key: {
+        Args: {
+          p_attempt: number;
+          p_import_id: string;
+          p_part: Database['public']['Enums']['import_library_part'];
+        };
+        Returns: string;
+      };
+      link_imported_instruction: {
+        Args: {
+          p_domain: Database['public']['Enums']['instruction_domain'];
+          p_import: Database['public']['Tables']['imports']['Row'];
+          p_item: Json;
+          p_user: string;
+        };
+        Returns: number;
+      };
       list_abandoned_imports: {
         Args: never;
         Returns: {
@@ -7327,6 +7448,40 @@ export type Database = {
           import_id: string;
           paths: string[];
         }[];
+      };
+      lock_library_part: {
+        Args: {
+          p_import_id: string;
+          p_part: Database['public']['Enums']['import_library_part'];
+        };
+        Returns: {
+          attempt: number;
+          cached_input_tokens: number;
+          changes: Json | null;
+          confirmed_at: string | null;
+          confirmed_by: string | null;
+          cost_usd: number;
+          created_at: string;
+          failed_at: string | null;
+          failure_reason: string | null;
+          import_id: string;
+          input_tokens: number;
+          organization_id: string;
+          output_tokens: number;
+          part: Database['public']['Enums']['import_library_part'];
+          proposal: Json | null;
+          proposal_dropped_at: string | null;
+          read_at: string | null;
+          status: Database['public']['Enums']['import_library_part_status'];
+          updated_at: string;
+          version: number;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'import_library_parts';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
       lock_members_as_owner: { Args: never; Returns: string };
       lock_visible_import: {
@@ -7613,6 +7768,17 @@ export type Database = {
         };
         Returns: undefined;
       };
+      record_library_part_usage: {
+        Args: {
+          p_cached_input_tokens: number;
+          p_cost_usd: number;
+          p_import_id: string;
+          p_input_tokens: number;
+          p_output_tokens: number;
+          p_part: Database['public']['Enums']['import_library_part'];
+        };
+        Returns: undefined;
+      };
       record_participant_notice: {
         Args: { p_participant_id: string; p_version: string };
         Returns: boolean;
@@ -7628,6 +7794,14 @@ export type Database = {
         Returns: boolean;
       };
       refund_import_credits: { Args: { p_import_id: string }; Returns: number };
+      refund_library_part_credits: {
+        Args: {
+          p_attempt: number;
+          p_import_id: string;
+          p_part: Database['public']['Enums']['import_library_part'];
+        };
+        Returns: number;
+      };
       refuse_archived_client: {
         Args: { p_client_id: string };
         Returns: undefined;
@@ -7682,6 +7856,13 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      retry_import_library_part: {
+        Args: {
+          p_import_id: string;
+          p_part: Database['public']['Enums']['import_library_part'];
+        };
+        Returns: number;
+      };
       revoke_client_participant: {
         Args: { p_participant_id: string };
         Returns: boolean;
@@ -7716,6 +7897,15 @@ export type Database = {
           p_changes: Json;
           p_expected_version: number;
           p_import_id: string;
+        };
+        Returns: number;
+      };
+      save_import_library_part_changes: {
+        Args: {
+          p_changes: Json;
+          p_expected_version: number;
+          p_import_id: string;
+          p_part: Database['public']['Enums']['import_library_part'];
         };
         Returns: number;
       };
@@ -8028,7 +8218,14 @@ export type Database = {
       billing_interval: 'month' | 'year';
       client_stage: 'lead' | 'client';
       credit_entry_kind:
-        'import_start' | 'import_pages' | 'scanned_page' | 'refund' | 'grant' | 'gift';
+        | 'import_start'
+        | 'import_pages'
+        | 'scanned_page'
+        | 'refund'
+        | 'grant'
+        | 'gift'
+        | 'library_part'
+        | 'library_part_refund';
       document_group: 'documentation_set' | 'other' | 'fire_safety_set';
       document_revision_status: 'draft' | 'issued' | 'superseded';
       employee_status: 'active' | 'terminated';
@@ -8065,6 +8262,8 @@ export type Database = {
         | 'other_company'
         | 'failed';
       import_kind: 'client' | 'employees';
+      import_library_part: 'instructions_ssm' | 'instructions_psi';
+      import_library_part_status: 'reading' | 'to_review' | 'nothing_new' | 'failed' | 'confirmed';
       import_status:
         | 'uploading'
         | 'preparing'
@@ -8250,6 +8449,8 @@ export const Constants = {
         'refund',
         'grant',
         'gift',
+        'library_part',
+        'library_part_refund',
       ],
       document_group: ['documentation_set', 'other', 'fire_safety_set'],
       document_revision_status: ['draft', 'issued', 'superseded'],
@@ -8290,6 +8491,8 @@ export const Constants = {
         'failed',
       ],
       import_kind: ['client', 'employees'],
+      import_library_part: ['instructions_ssm', 'instructions_psi'],
+      import_library_part_status: ['reading', 'to_review', 'nothing_new', 'failed', 'confirmed'],
       import_status: [
         'uploading',
         'preparing',

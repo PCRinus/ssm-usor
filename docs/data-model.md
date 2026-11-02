@@ -104,12 +104,15 @@ each. All four are the secret key's alone.
 `credit_entries` is the ledger of import credits ([ADR 030](architecture/adr-030-import-from-documents.md),
 "Usage is counted in credits"; `20261102110000_import_credits`): the organization, the `kind`
 (`import_start`, an import's known part; `import_pages`, an employee import's pages settled on
-the extractor's count; `scanned_page`; `refund`; `grant`; `gift`), `credits` (negative for what
+the extractor's count; `scanned_page`; `refund`; `grant`; `gift`; and, since
+`20261102130100_import_library_parts`, `library_part`, one reading of an import's own
+instructions, and `library_part_refund`, its credits given back), `credits` (negative for what
 an import used, positive for what is given back or added), `gift_credits`, the part of it taken
 from or added to the welcome gift, the `import_id`, `import_file_id` and `page` it concerns (set
 null when the import is deleted: the credits stay used), a unique `key` per import step,
-scanned page, refund or gift, so a step delivered twice is counted once, and the `reason` and
-`actor` a grant needs. A charge is never below what the floor allows: a scanned page found past
+scanned page, refund or gift, so a step delivered twice is counted once, the `reason` and
+`actor` a grant needs, and the `import_part` a `library_part` entry or its refund is for (null
+for every other kind, by a check). A charge is never below what the floor allows: a scanned page found past
 150 below zero is recorded at nothing. `credit_periods` holds each month that saw a charge or a
 grant, by `(organization, period_start)`: its `period_end`, the largest `allowance` it had (a
 downgrade at the renewal would otherwise hide it) and the `shortfall` carried in from the month
@@ -121,7 +124,8 @@ the plan, which passes the months in.
 `gift_left`; `charge_credits(…)` charges under a lock per organization, the month's credits
 first, then the gift, then below zero down to 150, and with `p_require` refuses, recording
 nothing, unless the balance and the gift cover it all; a key already recorded answers what it
-charged, and an import already refunded is charged nothing more. `give_back_import_credits`
+charged, and an import already refunded is charged nothing more; a `library_part` charge names
+its `p_import_part`. `give_back_import_credits`
 returns an employee import's pages it did not have, to the gift first. `refund_import_credits`
 gives back once everything an import was charged; the trigger `imports_refund_credits` runs it
 when an import fails from any status but `ready` (left after its reading), or is abandoned while
@@ -1370,20 +1374,21 @@ Created by `20261028100000_imports` and `20261028100100_import_functions`; `read
 `import_files` has one row per uploaded file, with `import_id` and `organization_id` by the
 composite key to `imports (id, organization_id)`, deleted with the import:
 
-| Column                                                             | Notes                                                                                                                                                        |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `upload_path`, `original_file_name`                                | Where the file sat in the upload, its folders and its name, and the name alone, up to 1024 and 255 characters.                                               |
-| `mime_type`, `size_bytes`, `sha256`                                | PDF, `.doc`, `.docx`, JPEG, PNG or HEIC (`image/heic` or `image/heif`); 1 byte to 25 MiB, the trigger holding each kind to its own cap.                      |
-| `storage_path`                                                     | Generated as `<organization>/<import>/<id>.<extension>` from the type; unique.                                                                               |
-| `state`                                                            | `import_file_state`: `uploading` until its object is stored, `uploaded`, `prepared`, then `read`, `set_aside`, `for_employees`, `other_company` or `failed`. |
-| `document_kind`, `reason`, `company_name`, `company_cui`           | What the sorting took the file for (a key `packages/import` names), why it was set aside or failed (in Romanian), and the company it names.                  |
-| `page_count`, `is_scan`                                            | From the extractor.                                                                                                                                          |
-| `declared_pages`                                                   | A PDF's pages as the browser counted them for an employee import, which its start is charged for; null for a photograph or when not counted.                 |
-| `text_path`                                                        | The text taken out of it, beside it as `<id>.txt` or `<id>.json`, by a check.                                                                                |
-| `derived_path`, `derived_size_bytes`, `derived_sha256`             | The `.docx` of a `.doc` (`<id>.docx`) or the upright JPEG of a photograph (`<id>.jpg`, a JPEG's `<id>.jpeg`), beside it by a check; the three together.      |
-| `input_tokens`, `cached_input_tokens`, `output_tokens`, `cost_usd` | The requests that read this file on its own, a scan or a photograph; the import's totals include them.                                                       |
-| `client_file_id`                                                   | The client file it became in the import folder; set null if that file is deleted.                                                                            |
-| `source_file_id`                                                   | An employee import's copy of a sheet photograph a confirmed client import found (`for_employees`): that client import's file; set null if that row goes.     |
+| Column                                                             | Notes                                                                                                                                                                           |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `upload_path`, `original_file_name`                                | Where the file sat in the upload, its folders and its name, and the name alone, up to 1024 and 255 characters.                                                                  |
+| `mime_type`, `size_bytes`, `sha256`                                | PDF, `.doc`, `.docx`, JPEG, PNG or HEIC (`image/heic` or `image/heif`); 1 byte to 25 MiB, the trigger holding each kind to its own cap.                                         |
+| `storage_path`                                                     | Generated as `<organization>/<import>/<id>.<extension>` from the type; unique.                                                                                                  |
+| `state`                                                            | `import_file_state`: `uploading` until its object is stored, `uploaded`, `prepared`, then `read`, `set_aside`, `for_employees`, `other_company` or `failed`.                    |
+| `document_kind`, `reason`, `company_name`, `company_cui`           | What the sorting took the file for (a key `packages/import` names), why it was set aside or failed (in Romanian), and the company it names.                                     |
+| `document_domain`                                                  | `instruction_domain` of own instructions and training themes, `ssm` or `psi`, from the sorting: the library part they are read for (ADR 034). Null for other kinds, by a check. |
+| `page_count`, `is_scan`                                            | From the extractor.                                                                                                                                                             |
+| `declared_pages`                                                   | A PDF's pages as the browser counted them for an employee import, which its start is charged for; null for a photograph or when not counted.                                    |
+| `text_path`                                                        | The text taken out of it, beside it as `<id>.txt` or `<id>.json`, by a check.                                                                                                   |
+| `derived_path`, `derived_size_bytes`, `derived_sha256`             | The `.docx` of a `.doc` (`<id>.docx`) or the upright JPEG of a photograph (`<id>.jpg`, a JPEG's `<id>.jpeg`), beside it by a check; the three together.                         |
+| `input_tokens`, `cached_input_tokens`, `output_tokens`, `cost_usd` | The requests that read this file on its own, a scan or a photograph; the import's totals include them.                                                                          |
+| `client_file_id`                                                   | The client file it became in the import folder; set null if that file is deleted.                                                                                               |
+| `source_file_id`                                                   | An employee import's copy of a sheet photograph a confirmed client import found (`for_employees`): that client import's file; set null if that row goes.                        |
 
 `import_page_images` (`20261101170000_employee_sheet_pages`) holds, per `(import_file_id,
 page)`, the `size_bytes` (up to 25 MiB) and `sha256` of the JPEG of a PDF's page an employee
@@ -1595,6 +1600,59 @@ nothing, then, with the ids whose objects the API removed, the change.
   stay.
 
 The change functions take only ids the list would still give, and return those they changed.
+
+**Library proposals.** `import_library_parts` (`20261102130100_import_library_parts`,
+[ADR 034](architecture/adr-034-own-instructions-as-app-text.md), "Where it sits in the import")
+holds what a client import proposes for the organization's own libraries, one row per
+`(import_id, part)`, deleted with the import. `part` is `import_library_part`:
+`instructions_ssm` or `instructions_psi`, an enum open to other libraries.
+
+| Column                                                             | Notes                                                                                                                                                                                                   |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `status`                                                           | `import_library_part_status`: `reading` (_se citește_), `to_review` (_de verificat_), `nothing_new` (_nimic nou_), `failed` (_nu s-a putut citi_), `confirmed` (_confirmat_), which is final (`ILP07`). |
+| `attempt`                                                          | 1, then one more for each "Citește din nou"; the credits' key and the queue message name it.                                                                                                            |
+| `failure_reason`, `failed_at`                                      | In Romanian, for members; together with `failed`.                                                                                                                                                       |
+| `proposal`, `changes`, `version`                                   | What the reading proposed (`InstructionsProposal` of `packages/import`), the member's changes, and the count of their saves. Dropped with the import's proposal.                                        |
+| `input_tokens`, `cached_input_tokens`, `output_tokens`, `cost_usd` | The part's model requests; the import's totals include them, under the step `instructions` of `usage_by_step`.                                                                                          |
+| `read_at`, `confirmed_at`, `confirmed_by`, `proposal_dropped_at`   | When it was read and confirmed, and by whom; when its proposal was dropped.                                                                                                                             |
+
+A part is not confirmed after 14 days from its client's confirmation: it has expired. Members read
+the parts of the imports they read; only the secret key writes them, the usage through
+`record_library_part_usage(import, part, input, cached, output, cost)`. A member's decisions,
+which find the import as `lock_visible_import` does (`P0002`):
+
+- `save_import_library_part_changes(import, part, expected version, changes)` stores the review of
+  a part `to_review` or `nothing_new`, before the client is confirmed too, and returns the next
+  version; `ILP01` for a part not ready, `ILP02` for a stale version.
+- `retry_import_library_part(import, part)` sends a failed part of a ready or confirmed import
+  back to `reading` under its next attempt, which it returns (`ILP06` otherwise).
+- `apply_instruction_import(import, part, expected version, payload)` confirms a part in one
+  transaction. It refuses a part before its client is confirmed (`ILP03`), past its 14 days
+  (`ILP04`), not ready (`ILP01`) or stale (`ILP02`). The payload, built by the API from the
+  proposal and the changes, each object refusing a field it does not name (`22023`):
+
+```text
+{
+  "create": [{ "title", "category", "body", "text_hash", "job_position_ids": [uuid] }],
+  "use": [{ "module_id", "job_position_ids": [uuid] }]
+}
+```
+
+`create` adds a module of the part's domain with its first version, the `text_hash` computed by
+the API as for every version; a title an active module has is refused with `ILP05`, naming it.
+`use` takes an active module of the domain as it is (`22023` otherwise). Each applies to the
+client's active posts it names (`22023` for another), skipping a post that applies it already,
+so the posts' decisions follow their links as usual. Everything carries the member as
+`created_by`, and the function returns `{"created": [ids], "used": [ids], "links": n}`.
+
+**A part's credits.** The API charges a part's reading when it sends the request,
+`charge_credits` with `library_part`, 25 credits for SSM and 10 for PSI, the key
+`library_part_charge_key(import, part, attempt)`, and never refuses it. When a part goes from
+`reading` to `failed`, the trigger `import_library_parts_refund_credits` gives back that
+attempt's charge (`refund_library_part_credits`): a part fails before its request is sent or on
+our side. `fail_stalled_library_parts(reason)` fails a part of a ready or confirmed import still
+`reading` 6 hours after its last change; those of an abandoned or failed import stay as they are
+and go with it. `drop_import_proposals()` drops the parts' proposals with their import's.
 
 **Sheet photographs a client import found.** A confirmed client import keeps the training sheets
 it sorted as `for_employees` as plain files of the client's import folder. An employee import
