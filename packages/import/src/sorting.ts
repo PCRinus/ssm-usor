@@ -1,3 +1,4 @@
+import { type InstructionDomain, instructionDomains } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import { cuiDigits, sameName } from './match';
@@ -26,6 +27,8 @@ export const fileTriageSchema = z.object({
   companyName: z.string().nullable(),
   companyCui: z.string().nullable(),
   carriesClientData: z.boolean(),
+  // Null for every kind but the two the own instructions are read from (ADR 034).
+  domain: z.enum(instructionDomains).nullable(),
 });
 
 export type FileTriage = z.infer<typeof fileTriageSchema>;
@@ -34,11 +37,17 @@ export const sortingSchema = z.object({ files: z.array(fileTriageSchema) });
 
 export type SortingAnswer = z.infer<typeof sortingSchema>;
 
-export const sortingAnswer = answerFormat('import_sorting', sortingSchema);
+export const domainKinds: readonly DocumentKind[] = ['own_instructions', 'training_themes'];
 
-// Own instructions and the general training material are the longest files of a pack and
-// boilerplate: the app builds the first from the provider's library (ADR 012), and the second is
-// the same in every pack. They are read only when the member sends them back (ADR 030).
+export const sortingAnswer = answerFormat('import_sorting', sortingSchema, (answer) => ({
+  files: answer.files.map((file) =>
+    domainKinds.includes(file.kind) ? file : { ...file, domain: null }
+  ),
+}));
+
+// Own instructions and the general training material are the longest files of a pack. The own
+// instructions are read apart, by their own request for the library (ADR 034); the general
+// training material is the same in every pack. Neither goes to the client reading (ADR 030).
 export const setAsideKinds: readonly DocumentKind[] = [
   'cover',
   'blank_form',
@@ -161,4 +170,27 @@ export function sortFiles(
       .sort((a, b) => b.paths.length - a.paths.length)
       .map((group) => ({ company: asCompany(group), paths: group.paths })),
   };
+}
+
+export interface LibraryFiles {
+  instructions: string[];
+  themes: string[];
+}
+
+export function libraryFiles(
+  sorting: Sorting,
+  triages: ReadonlyMap<string, FileTriage>
+): Record<InstructionDomain, LibraryFiles> {
+  const parts: Record<InstructionDomain, LibraryFiles> = {
+    ssm: { instructions: [], themes: [] },
+    psi: { instructions: [], themes: [] },
+  };
+  for (const file of sorting.files) {
+    if (file.outcome === 'other_company') continue;
+    const triage = triages.get(file.path);
+    if (!triage?.domain) continue;
+    if (triage.kind === 'own_instructions') parts[triage.domain].instructions.push(file.path);
+    if (triage.kind === 'training_themes') parts[triage.domain].themes.push(file.path);
+  }
+  return parts;
 }

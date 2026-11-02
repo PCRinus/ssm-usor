@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { type FileTriage, sortFiles, sortingAnswer } from './sorting';
+import { type FileTriage, libraryFiles, sortFiles, sortingAnswer } from './sorting';
 import { provider } from './test/fixtures';
 
 const triage = (
@@ -8,8 +8,9 @@ const triage = (
   kind: FileTriage['kind'],
   companyName: string | null,
   companyCui: string | null,
-  carriesClientData = true
-) => ({ path, triage: { path, kind, companyName, companyCui, carriesClientData } });
+  carriesClientData = true,
+  domain: FileTriage['domain'] = null
+) => ({ path, triage: { path, kind, companyName, companyCui, carriesClientData, domain } });
 
 const pack = [
   triage('Decizia 1.docx', 'decision', 'BRUTĂRIA FICTIVĂ S.R.L.', 'RO 12345674'),
@@ -147,8 +148,70 @@ describe('sortingAnswer', () => {
           companyName: null,
           companyCui: null,
           carriesClientData: false,
+          domain: null,
         },
       ],
+    });
+  });
+
+  it('keeps a domain only for own instructions and training themes', () => {
+    const file = (path: string, kind: string, domain: string) => ({
+      path,
+      kind,
+      companyName: '',
+      companyCui: '',
+      carriesClientData: true,
+      domain,
+    });
+
+    expect(
+      sortingAnswer
+        .parse({
+          files: [
+            file('IPSU.docx', 'own_instructions', 'psi'),
+            file('Tematica.doc', 'training_themes', 'ssm'),
+            file('Decizia.docx', 'decision', 'ssm'),
+            file('IPSSM.docx', 'own_instructions', ''),
+          ],
+        })
+        .files.map((triage) => [triage.path, triage.domain])
+    ).toEqual([
+      ['IPSU.docx', 'psi'],
+      ['Tematica.doc', 'ssm'],
+      ['Decizia.docx', null],
+      ['IPSSM.docx', null],
+    ]);
+  });
+});
+
+describe('libraryFiles', () => {
+  it('gives each domain its own instructions and themes, of the client only', () => {
+    const entries = [
+      triage('SSM/IPSSM.docx', 'own_instructions', 'Brutăria Fictivă', null, true, 'ssm'),
+      triage('PSI/IPSU.docx', 'own_instructions', 'Brutăria Fictivă', null, true, 'psi'),
+      triage('SSM/Tematica.doc', 'training_themes', 'Brutăria Fictivă', null, true, 'ssm'),
+      triage('PSI/Tematica SU.doc', 'training_themes', 'Brutăria Fictivă', null, true, 'psi'),
+      triage('Fara domeniu.docx', 'own_instructions', 'Brutăria Fictivă', null, true, null),
+      triage('Decizia.docx', 'decision', 'Brutăria Fictivă', null),
+      triage(
+        'Vechi/IPSSM.docx',
+        'own_instructions',
+        'ATELIERUL INVENTAT S.R.L.',
+        '11122232',
+        true,
+        'ssm'
+      ),
+      triage('Vechi/Decizia.docx', 'decision', 'ATELIERUL INVENTAT S.R.L.', '11122232'),
+    ];
+    const sorting = sortFiles(entries, {
+      client: { legalName: 'BRUTĂRIA FICTIVĂ S.R.L.', cui: '12345674' },
+    });
+
+    expect(
+      libraryFiles(sorting, new Map(entries.map((entry) => [entry.path, entry.triage])))
+    ).toEqual({
+      ssm: { instructions: ['SSM/IPSSM.docx'], themes: ['SSM/Tematica.doc'] },
+      psi: { instructions: ['PSI/IPSU.docx'], themes: ['PSI/Tematica SU.doc'] },
     });
   });
 });
