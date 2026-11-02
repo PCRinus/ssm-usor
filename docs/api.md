@@ -807,7 +807,7 @@ answers `503` while any is missing. `API_ORIGIN` builds the emailed link and
 An owner's `POST /organization/invitations` takes `{ email, role }`. As the owner, it calls
 `create_organization_invitation`, which creates or renews the invitation. With the secret
 key it then stores the hash of a fresh token, and only after the mail Worker has accepted the
-email, the sent time. The link is `APP_ORIGIN/accept-invitation?token=…` and is never
+email, the sent time. The link is `APP_ORIGIN/invitatie?token=…` and is never
 returned. An address emailed in the last 10 minutes is answered with `409`; a failed send
 with `503`, leaving the sent time so a retry works. The response is the same whether or not
 the address has an account.
@@ -2391,13 +2391,13 @@ handler checks the `webhook-id`, `webhook-timestamp`, and `webhook-signature` he
 accepts several secrets joined with `|` while one is rotated out. Errors use the shape
 Supabase expects, `{ "error": { "http_code", "message" } }`.
 
-Two types that carry a link are handled. `recovery` links to `APP_ORIGIN/reset-password?token_hash=…` and
-`signup` to `APP_ORIGIN/confirm-email?token_hash=…`, ignoring any redirect Supabase was asked
+Two types that carry a link are handled. `recovery` links to `APP_ORIGIN/resetare-parola?token_hash=…` and
+`signup` to `APP_ORIGIN/confirmare-email?token_hash=…`, ignoring any redirect Supabase was asked
 for. The SPA verifies the token when the page's form or button is submitted, so a mail scanner
 opening the link cannot use it up. One notification is handled too:
 `password_changed_notification`, which Supabase sends after any password change once
 `[auth.email.notification.password_changed]` is enabled in `supabase/config.toml`. It carries
-no token, and its one link is the public `APP_ORIGIN/forgot-password`, for an owner who did
+no token, and its one link is the public `APP_ORIGIN/parola-uitata`, for an owner who did
 not make the change. Supabase does not fail the password change when this notice cannot be
 sent. Every other email type is
 answered with `422` and logged, so an email nobody implemented fails loudly instead of never

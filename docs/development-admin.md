@@ -110,7 +110,7 @@ pnpm dev:api
 pnpm dev:app
 ```
 
-Open `http://localhost:5173/login` and enter the credentials above. The dashboard's **Contul tău**
+Open `http://localhost:5173/autentificare` and enter the credentials above. The dashboard's **Contul tău**
 section loads the verified identity from Hono `/me` through the generated Orval client.
 
 Live verification during setup covered seed creation/rerun with the same user ID, browser login,
