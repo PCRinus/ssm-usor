@@ -184,6 +184,18 @@ describe('the posts the themes leave undecided', () => {
       'Postul din tematică nu se potrivește cu niciunul dintre posturile clientului.',
     ]);
   });
+
+  it('quotes a citation it could not read', () => {
+    const unread = position({
+      resolution: {
+        kind: 'undecided',
+        reasons: [{ kind: 'unread_citation', citation: 'IPSSM Subcapitolul XIII.II' }],
+      },
+    });
+    expect(undecidedReasons(unread, () => undefined)).toEqual([
+      'Nu am putut citi citarea din tematică: „IPSSM Subcapitolul XIII.II”.',
+    ]);
+  });
 });
 
 it("shows the source at the instruction's first words", () => {

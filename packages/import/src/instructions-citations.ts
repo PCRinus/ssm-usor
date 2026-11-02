@@ -20,7 +20,8 @@ export type UndecidedReason =
   | { kind: 'number_twice'; scope: NumberingScope; number: number }
   | { kind: 'cuts_instruction'; instruction: string }
   | { kind: 'number_shared'; number: number }
-  | { kind: 'missing_reference'; reference: string };
+  | { kind: 'missing_reference'; reference: string }
+  | { kind: 'unread_citation'; citation: string };
 
 export type PostResolution =
   { kind: 'resolved'; instructions: string[] } | { kind: 'undecided'; reasons: UndecidedReason[] };
@@ -109,6 +110,15 @@ function tokenize(citation: string): Token[] {
   }
   return tokens;
 }
+
+// A citation of another document only ("MISSMIG Art. 1 – 327") rightly names no instruction.
+const citesOtherDocument = (domain: InstructionDomain, citation: string) =>
+  tokenize(citation).some(
+    (token) =>
+      token.kind === 'word' &&
+      token.value !== documentWords[domain] &&
+      (Object.values(documentWords).includes(token.value) || foreignDocuments.has(token.value))
+  );
 
 export function parseCitation(domain: InstructionDomain, citation: string): CitationReference[] {
   const tokens = tokenize(citation);
@@ -375,9 +385,6 @@ export function resolvePositions(input: ResolveInput): ResolvedPosition[] {
   };
 
   return groupPositions(input.positions).map((group, index) => {
-    const references = group.citations.flatMap((citation) =>
-      parseCitation(input.domain, citation.citation)
-    );
     const named = new Set<string>();
     const reasons: UndecidedReason[] = [];
     const missing = new Set<string>();
@@ -386,6 +393,13 @@ export function resolvePositions(input: ResolveInput): ResolvedPosition[] {
         reasons.push(next);
       }
     };
+    const references = group.citations.flatMap(({ citation }) => {
+      const read = parseCitation(input.domain, citation);
+      if (read.length === 0 && !citesOtherDocument(input.domain, citation)) {
+        reason({ kind: 'unread_citation', citation });
+      }
+      return read;
+    });
 
     for (const reference of references) {
       if (reference.kind === 'document') {
@@ -474,5 +488,7 @@ export function undecidedMessage(
       return `Mai multe instrucțiuni din pachet au numărul ${reason.number}.`;
     case 'missing_reference':
       return `${reason.reference} nu există în pachet.`;
+    case 'unread_citation':
+      return `Nu am putut citi citarea „${reason.citation}”.`;
   }
 }

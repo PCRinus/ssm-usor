@@ -18000,6 +18000,19 @@
                                   }
                                 },
                                 "required": ["kind", "reference"]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": ["unread_citation"]
+                                  },
+                                  "citation": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["kind", "citation"]
                               }
                             ]
                           }

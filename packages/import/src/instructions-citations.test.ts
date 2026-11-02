@@ -251,6 +251,15 @@ describe('resolvePositions', () => {
     ]);
   });
 
+  it('leaves a post undecided when a citation names no article, block or chapter it can read', () => {
+    expect(outcome([cite('Bucătar', 'IPSSM Subcapitolul XIII.II')])).toEqual([
+      {
+        kind: 'undecided',
+        reasons: [{ kind: 'unread_citation', citation: 'IPSSM Subcapitolul XIII.II' }],
+      },
+    ]);
+  });
+
   it('keeps apart two entries of one post that the themes tell apart', () => {
     const resolved = resolve([
       cite('Mecanic utilaj', 'IPSSM Art. 1 – 40', { clientPost: 'Mecanic utilaj' }),

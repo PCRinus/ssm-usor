@@ -11452,6 +11452,10 @@ export type InstructionsProposalPositionsItemResolution =
             kind: 'missing_reference';
             reference: string;
           }
+        | {
+            kind: 'unread_citation';
+            citation: string;
+          }
       )[];
     };
 

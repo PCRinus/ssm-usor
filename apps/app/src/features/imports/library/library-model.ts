@@ -266,6 +266,8 @@ export function undecidedReasons(
         return `Art. ${reason.number} se găsește în mai multe instrucțiuni.`;
       case 'missing_reference':
         return `Tematica citează ${reason.reference}, care nu este în pachet.`;
+      case 'unread_citation':
+        return `Nu am putut citi citarea din tematică: „${reason.citation}”.`;
     }
   });
   return reasons.length > 0 ? reasons : ['Citarea din tematică nu ne-a spus ce instrucțiuni ia.'];

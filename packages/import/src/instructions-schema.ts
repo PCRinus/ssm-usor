@@ -19,6 +19,7 @@ const undecidedReason = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('cuts_instruction'), instruction: z.string() }),
   z.object({ kind: z.literal('number_shared'), number: z.number() }),
   z.object({ kind: z.literal('missing_reference'), reference: z.string() }),
+  z.object({ kind: z.literal('unread_citation'), citation: z.string() }),
 ]);
 
 const resolvedPosition = z.object({
