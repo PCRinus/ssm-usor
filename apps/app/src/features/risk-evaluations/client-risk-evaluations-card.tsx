@@ -63,6 +63,7 @@ export function ClientRiskEvaluationsCard({
       id={clientEvaluationsSection}
       data-testid="client-risk-evaluations-card"
       title="Fișe de evaluare în afara posturilor"
+      help="evaluari-de-risc.in-afara-posturilor"
       description="Grupurile sensibile la riscuri specifice se evaluează ca un post; la fel orice altă categorie de persoane expuse, cum sunt vizitatorii."
       action={
         !readOnly && (

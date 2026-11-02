@@ -29,6 +29,7 @@ import {
   useRemoveRiskEvaluation,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
 import { ApplyProfileDialog } from '@/features/evaluation-profiles/apply-profile-dialog';
@@ -201,7 +202,10 @@ function Header({ title, action }: { title: string; action?: ReactNode }) {
     <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
       <div className="grid gap-1">
         <p className="text-sm text-muted-foreground">Fișa de evaluare</p>
-        <h2 className="text-xl font-semibold tracking-tight wrap-anywhere">{title}</h2>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <h2 className="text-xl font-semibold tracking-tight wrap-anywhere">{title}</h2>
+          <HelpLink topic="evaluari-de-risc.fisa" label="Ajutor: fișa de evaluare" />
+        </div>
       </div>
       {action}
     </div>

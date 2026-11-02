@@ -71,6 +71,7 @@ export function PositionRiskEvaluationCard({
     <SectionCard
       id={id}
       headingLevel={3}
+      help="evaluari-de-risc.fisa"
       data-testid="position-risk-card"
       title={
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1">

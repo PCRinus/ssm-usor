@@ -28,6 +28,7 @@ import {
   useListEvaluationProfiles,
 } from '@/api/generated/api';
 import { rowClickProps } from '@/components/data-table/row-click';
+import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { formatGlobalLevel } from '@/features/risk-evaluations/risk-evaluation-schema';
 import { dateToIso, formatRoDate } from '@/lib/dates';
@@ -104,7 +105,10 @@ export function RiskLibrary({ userId }: { userId: string }) {
     <div data-testid="risk-library" className="space-y-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Evaluări de risc</h1>
+          <div className="flex items-center gap-1.5">
+            <h1 className="text-3xl font-semibold tracking-tight">Evaluări de risc</h1>
+            <HelpLink topic="evaluari-de-risc.biblioteca" label="Ajutor: Evaluări de risc" />
+          </div>
           <p className="mt-2 text-sm text-muted-foreground">
             Posturile pe care le evaluezi o dată și le aplici la orice client.
           </p>
