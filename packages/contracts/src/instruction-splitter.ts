@@ -61,7 +61,7 @@ const instructionLabels = [
 const chapterLabel = /^capitolul\s+[ivxlcdm\d]+(?:\s*\.\s*[ivxlcdm\d]+)*\.?(?=\s|$|[-–:])/iu;
 
 const typedArticle = /^(?:art\.|art(?=\s)|articolul)\s*(\d{1,4})(?:\s*[.):]|\s+[-–]|(?=\s)|$)\s*/iu;
-const typedNumber = /^(\d{1,4})\s*[.)](?![\d.])\s*/u;
+const typedNumber = /^(\d{1,4})\s*([.)])(?![\d.])\s*/u;
 const lawCitation =
   /^(?:[Aa]rt(?:\.|icolul)?|ARTICOLUL)\s*\d{1,4}\s+(?:din|al|ale|alin|alineatul|lit|litera|pct|punctul)(?!\p{L})/u;
 const articleLabel = /^(?:(art(?:icolul|\.)?)\s*)?(\d{1,4})\s*[.)]?$/iu;
@@ -252,14 +252,28 @@ function findStarts(items: Item[]): { starts: (Start | null)[]; numbered: boolea
   }
   if (typed.some(Boolean)) return { starts: typed, numbered: true };
   // A bare "1." also opens the points of a list inside an article, which start again from 1.
+  // Such a list may be written "1)" under articles written "1.": its "2)" goes on the list.
   let last: number | null = null;
+  let delimiter: string | null = null;
+  let point: { number: number; delimiter: string } | null = null;
   const bare = items.map((item) => {
     if (item.row) return null;
     const match = typedNumber.exec(item.text);
     if (!match) return null;
     const number = Number(match[1]);
-    if (last !== null && number !== last + 1) return null;
+    const mark = match[2]!;
+    const continuesPoints =
+      mark !== delimiter &&
+      point !== null &&
+      point.delimiter === mark &&
+      point.number + 1 === number;
+    if (last !== null && (number !== last + 1 || continuesPoints)) {
+      point = { number, delimiter: mark };
+      return null;
+    }
     last = number;
+    delimiter = mark;
+    point = null;
     return { number, rest: item.text.slice(match[0].length) };
   });
   return { starts: bare, numbered: bare.some(Boolean) };

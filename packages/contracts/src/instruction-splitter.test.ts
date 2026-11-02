@@ -223,6 +223,21 @@ describe('splitInstruction on pasted text', () => {
     ]);
   });
 
+  it('keeps a list numbered "1)" inside articles numbered "1."', () => {
+    const result = splitInstruction(
+      '1. Înainte de lucru se verifică:\n1) starea sculelor;\n2) echipamentul de protecție.\n2. Se interzice fumatul.\n3. Se curăță locul.'
+    );
+    expect(result.articles.map((article) => article.sourceNumber)).toEqual([1, 2, 3]);
+    expect(result.body.blocks[0]).toEqual({
+      kind: 'article',
+      paragraphs: [
+        'Înainte de lucru se verifică:',
+        '1) starea sculelor;',
+        '2) echipamentul de protecție.',
+      ],
+    });
+  });
+
   it('takes typed bare numbers, and a list inside an article that starts again from 1', () => {
     const result = splitInstruction(
       [
