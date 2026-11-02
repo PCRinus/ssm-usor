@@ -543,7 +543,7 @@ export const retryImportLibraryPartRoute = createRoute({
   operationId: 'retryImportLibraryPart',
   summary: 'Read a failed library part again',
   description:
-    '"Citește din nou": a `failed` part of an import ready for review or confirmed goes back to `reading` under its next `attempt` and its message is sent again; the reading is charged again when its request is sent (25 credits for SSM, 10 for PSI), and given back if it fails. The client proposal and the other part are untouched. `409` with `import_part_expired` 14 days after the client was confirmed, when it could no longer be confirmed, and `import_part_not_failed` otherwise; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.',
+    '"Citește din nou": a `failed` part of an import ready for review or confirmed goes back to `reading` under its next `attempt` and its message is sent again; the reading is charged again when its request is sent (25 credits for SSM, 10 for SU), and given back if it fails. The client proposal and the other part are untouched. `409` with `import_part_expired` 14 days after the client was confirmed, when it could no longer be confirmed, and `import_part_not_failed` otherwise; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: libraryPartParams },
