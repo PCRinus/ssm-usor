@@ -262,7 +262,7 @@ begin
     where e.client_id = p_import.client_id and e.kind = 'sensitive_groups' for update;
   else
     if v_name is null then
-      raise exception 'Another evaluation of a client is named.' using errcode = '22023';
+      raise exception 'An evaluation of kind other needs a name.' using errcode = '22023';
     end if;
     select * into v_evaluation from public.risk_evaluations e
     where e.client_id = p_import.client_id and e.kind = 'other'
