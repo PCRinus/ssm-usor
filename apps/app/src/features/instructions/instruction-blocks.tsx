@@ -251,11 +251,11 @@ export function InstructionBlocks({
     const id = revealAfterMenu.current;
     revealAfterMenu.current = null;
     if (id === null) return false;
-    document
-      .querySelector<HTMLElement>(
-        `[data-heading-id="${id}"] [data-testid="instruction-section-write-first"]`
-      )
-      ?.focus({ preventScroll: true });
+    const button = document.querySelector<HTMLElement>(
+      `[data-heading-id="${id}"] [data-testid="instruction-section-write-first"]`
+    );
+    if (!button) return false;
+    button.focus({ preventScroll: true });
     return true;
   }
   function closeMenu(event: Event) {
