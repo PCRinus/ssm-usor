@@ -147,6 +147,22 @@ export function moveBlock(blocks: readonly DraftBlock[], id: string, by: -1 | 1)
   return next;
 }
 
+export function restoreBlock(
+  blocks: readonly DraftBlock[],
+  block: DraftBlock,
+  neighbours: { before: string | null; after: string | null }
+): DraftBlock[] {
+  if (blocks.some((each) => each.id === block.id)) return [...blocks];
+  const alone = neighbours.before === null && neighbours.after === null;
+  // The empty box that stood in for the list the deletion left with nothing.
+  if (alone && blocks.length === 1 && isEmptyArticle(blocks[0]!)) return [block];
+  const after = blocks.findIndex((each) => each.id === neighbours.after);
+  if (after >= 0) return [...blocks.slice(0, after), block, ...blocks.slice(after)];
+  const before = blocks.findIndex((each) => each.id === neighbours.before);
+  if (before >= 0) return insertAfter(blocks, blocks[before]!.id, [block]);
+  return neighbours.before === null ? [block, ...blocks] : [...blocks, block];
+}
+
 export function insertAfter(blocks: readonly DraftBlock[], id: string, added: DraftBlock[]) {
   const at = blocks.findIndex((block) => block.id === id);
   return [...blocks.slice(0, at + 1), ...added, ...blocks.slice(at + 1)];

@@ -12,7 +12,7 @@ import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { ArrowDown, ArrowUp, Lightbulb, Plus, Trash2 } from 'lucide-react';
-import { type ClipboardEvent, useLayoutEffect, useRef, useState } from 'react';
+import { type ClipboardEvent, type SetStateAction, useLayoutEffect, useRef, useState } from 'react';
 
 import { Notice } from '@/components/notice';
 
@@ -27,6 +27,7 @@ import {
   insertAfter,
   isEmptyArticle,
   moveBlock,
+  restoreBlock,
   sectionStart,
   withExample,
 } from './instruction-draft';
@@ -91,7 +92,7 @@ export function InstructionBlocks({
   blocks: DraftBlock[];
   category: InstructionCategory;
   namedClients: Map<string, ClientName[]>;
-  onChange: (next: DraftBlock[]) => void;
+  onChange: (next: SetStateAction<DraftBlock[]>) => void;
 }) {
   const numbers = articleNumbers(blocks);
   const [offer, setOffer] = useState<PasteOffer | null>(null);
@@ -101,13 +102,17 @@ export function InstructionBlocks({
 
   function remove(index: number) {
     const block = blocks[index]!;
+    const neighbours = {
+      before: blocks[index - 1]?.id ?? null,
+      after: blocks[index + 1]?.id ?? null,
+    };
     const without = blocks.filter((each) => each.id !== block.id);
     onChange(without.length > 0 ? without : [articleBlock()]);
     if (block.kind === 'heading' ? block.text.trim() !== '' : !isEmptyArticle(block)) {
       toast(block.kind === 'heading' ? 'Am șters titlul.' : 'Am șters articolul.', {
         action: {
           label: 'Anulează',
-          onClick: () => onChange([...without.slice(0, index), block, ...without.slice(index)]),
+          onClick: () => onChange((current) => restoreBlock(current, block, neighbours)),
         },
       });
     }

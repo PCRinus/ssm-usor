@@ -7,6 +7,7 @@ import {
   clientsNamedIn,
   draftBody,
   headingBlock,
+  restoreBlock,
   templateBlocks,
   withExample,
 } from './instruction-draft';
@@ -39,6 +40,31 @@ describe('draftBody', () => {
     const again = withExample(filled, blocks[0]!.id);
     expect(again).toHaveLength(blocks.length + 1);
     expect(again[2]).toMatchObject({ kind: 'article', text: filled[1]!.text });
+  });
+});
+
+describe('restoreBlock', () => {
+  it('puts a deleted block back where it was and keeps what changed since', () => {
+    const [first, deleted, last] = [articleBlock('a'), articleBlock('b'), articleBlock('c')];
+    const added = articleBlock('d');
+    const now = [{ ...first!, text: 'a, schimbat' }, last!, added];
+    expect(
+      restoreBlock(now, deleted!, { before: first!.id, after: last!.id }).map((b) => b.text)
+    ).toEqual(['a, schimbat', 'b', 'c', 'd']);
+  });
+
+  it('goes after the block before it when the one after it is gone too', () => {
+    const [first, deleted, last] = [headingBlock('A'), articleBlock('b'), articleBlock('c')];
+    expect(
+      restoreBlock([first!], deleted!, { before: first!.id, after: last!.id }).map((b) => b.text)
+    ).toEqual(['A', 'b']);
+  });
+
+  it('takes the place of the empty box left when it was the only block', () => {
+    const deleted = articleBlock('singurul articol');
+    expect(restoreBlock([articleBlock()], deleted, { before: null, after: null })).toEqual([
+      deleted,
+    ]);
   });
 });
 

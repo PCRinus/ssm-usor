@@ -648,6 +648,22 @@ describe('the module form', () => {
     expect(screen.getByTestId('instruction-save-state').textContent).toBe('Modificări nesalvate.');
   });
 
+  it('puts a deleted article back on undo and keeps what was written since', async () => {
+    mockApi({ moduleBody: ladderBody });
+    mount(`/instructions/${ladders.id}`);
+    const user = userEvent.setup();
+    await screen.findByTestId('instruction-form');
+    await user.click(screen.getAllByTestId('instruction-block-delete')[3]!);
+    expect(labels()).toEqual(['Titlu de secțiune', 'Art. 1', 'Titlu de secțiune']);
+    await user.type(articleBoxes()[0]!, '{End} Și scara.');
+    await user.click(await screen.findByRole('button', { name: 'Anulează' }));
+    expect(labels()).toEqual(['Titlu de secțiune', 'Art. 1', 'Titlu de secțiune', 'Art. 2']);
+    expect(articleBoxes().map((box) => box.value)).toEqual([
+      'Lucrătorul verifică scara:\na) tălpile;\nb) treptele. Și scara.',
+      'Este interzisă urcarea cu sarcini grele.',
+    ]);
+  });
+
   it('refuses to save a text without an article, in words', async () => {
     mockApi();
     mount(`/instructions/${ladders.id}`);
