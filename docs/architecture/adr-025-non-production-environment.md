@@ -104,7 +104,9 @@ The order is: non-production stands up on its new project and is seeded with fak
 5. The production wipe as above, with its check; the administrator seeded; the first release.
 6. The documents of the consequences above.
 
-### Plans: both Supabase projects start on Free, Resend stays on Free
+### Plans: both Supabase projects started on Free, now Pro; Resend stays on Free
+
+(Amended 2026-10-24, with [ADR 027](adr-027-sign-in-with-google.md): the `ssm-usor` Supabase organization is on **Pro**, wanted for production's custom domain, its backups, and to keep a quiet production project from being paused. It keeps a daily backup for seven days, without point-in-time recovery. Both projects stayed in that organization, so non-production is on Pro too and pays its own compute; the transfer to a Free organization described below was not made. What this section says about Free's limits, missing backups and pausing no longer applies to either environment, and log drains are a paid add-on on Pro. It is kept as the record of the first setup.)
 
 Both projects start on Supabase's Free plan; production moves to Pro later, when its use calls for it. Mircea expects non-production to carry more traffic than production at first, and Free's limits (two active projects per account, 500 MB of database, 1 GB of Storage) fit both. What Free costs production is not capacity: it has **no automatic backups**, so until Pro a deletion or a bad migration on production cannot be undone, and it **pauses a project after a week without activity**, which takes the environment down until someone restores it from the dashboard. The legislation cron reaches the database every day and is expected to count as activity; that is to be confirmed on the first quiet week.
 
@@ -114,4 +116,4 @@ Resend's Free plan allows the second sending domain. Its quota (100 emails a day
 
 ## Before the waitlist, outside this ADR
 
-Real client data in production makes some items due that were not: the Twilio account is a trial and can only send to verified numbers; production has no backups until its Supabase organization is on Pro; the legal review (#61) and the processing agreement page (#62) cover what users will enter.
+Real client data in production makes some items due that were not: the Twilio account is a trial and can only send to verified numbers; production had no backups until its Supabase organization moved to Pro, which it has; the legal review (#61) and the processing agreement page (#62) cover what users will enter.
