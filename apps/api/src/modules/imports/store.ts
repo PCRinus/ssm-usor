@@ -127,7 +127,7 @@ export interface ImportStore {
   markCopied(importId: string): Promise<void>;
   uncopiedImports(confirmedBefore: string): Promise<string[]>;
   failStalled(reasons: { stalled: string; left: string }): Promise<string[]>;
-  failStalledLibraryParts(reason: string): Promise<number>;
+  failStalledLibraryParts(reasons: { instructions: string; risks: string }): Promise<number>;
   listAbandoned(): Promise<ImportObjectList[]>;
   // Only the imports whose objects are gone: another list leaves them for the next day.
   deleteAbandoned(importIds: string[]): Promise<string[]>;
@@ -392,8 +392,11 @@ export function importStore(admin: AdminClient): ImportStore {
       return data;
     },
 
-    async failStalledLibraryParts(reason) {
-      const { data, error } = await admin.rpc('fail_stalled_library_parts', { p_reason: reason });
+    async failStalledLibraryParts(reasons) {
+      const { data, error } = await admin.rpc('fail_stalled_library_parts', {
+        p_reason: reasons.instructions,
+        p_risks_reason: reasons.risks,
+      });
       if (error) throw fromDatabaseError(error, 'fail stalled library parts');
       return data.length;
     },

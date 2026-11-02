@@ -522,3 +522,30 @@ $comment$;
 
 revoke all on function public.apply_risk_import(uuid, public.import_library_part, integer, jsonb) from public, anon;
 grant execute on function public.apply_risk_import(uuid, public.import_library_part, integer, jsonb) to authenticated;
+
+drop function public.fail_stalled_library_parts(text);
+
+-- A part the queue stopped reading without recording a failure, with the reason of its library.
+-- Parts of an abandoned or failed import are left as they are, and go with it.
+create function public.fail_stalled_library_parts(p_reason text, p_risks_reason text)
+returns table (import_id uuid, part public.import_library_part)
+language sql
+set search_path = ''
+as $$
+  update public.import_library_parts p
+  set status = 'failed',
+      failure_reason = case when p.part = 'risk_evaluations' then p_risks_reason else p_reason end,
+      failed_at = now()
+  from public.imports i
+  where i.id = p.import_id
+    and i.status in ('ready', 'confirmed')
+    and p.status = 'reading'
+    and p.updated_at < now() - interval '6 hours'
+  returning p.import_id, p.part;
+$$;
+
+comment on function public.fail_stalled_library_parts(text, text) is
+  'Fails the library parts of open or confirmed imports still reading 6 hours after their last change, an instructions part with p_reason and the risk evaluations with p_risks_reason. Returns them.';
+
+revoke all on function public.fail_stalled_library_parts(text, text) from public, anon, authenticated;
+grant execute on function public.fail_stalled_library_parts(text, text) to service_role;

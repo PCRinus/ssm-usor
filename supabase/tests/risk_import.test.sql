@@ -424,7 +424,7 @@ insert into public.import_library_parts (import_id, organization_id, part, updat
   ('10000000-0000-4000-8000-000000000083', '11111111-0000-4000-8000-000000000081', 'risk_evaluations', now() - interval '7 hours');
 
 select results_eq(
-  $$ select import_id, part::text from public.fail_stalled_library_parts('Citirea evaluărilor de risc s-a oprit.') $$,
+  $$ select import_id, part::text from public.fail_stalled_library_parts('Citirea instrucțiunilor s-a oprit.', 'Citirea evaluărilor de risc s-a oprit.') $$,
   $$ values ('10000000-0000-4000-8000-000000000083'::uuid, 'risk_evaluations') $$,
   'a reading stalled for 6 hours fails'
 );

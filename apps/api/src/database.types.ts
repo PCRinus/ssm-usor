@@ -7361,7 +7361,7 @@ export type Database = {
         Returns: string[];
       };
       fail_stalled_library_parts: {
-        Args: { p_reason: string };
+        Args: { p_reason: string; p_risks_reason: string };
         Returns: {
           import_id: string;
           part: Database['public']['Enums']['import_library_part'];

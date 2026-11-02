@@ -14,7 +14,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { sha256 } from '../../lib/docx';
 import type { ImportMessage } from '../../lib/env';
 import { cleanUpImports } from './cleanup';
-import { libraryReasons } from './library';
+import { libraryReasons, riskReasons } from './library';
 import {
   fileReasons,
   importReasons,
@@ -282,8 +282,8 @@ class World {
         this.calls.push(`failStalled ${reasons.stalled} | ${reasons.left}`);
         return ['stalled-import'];
       },
-      failStalledLibraryParts: async (reason) => {
-        this.calls.push(`failStalledLibraryParts ${reason}`);
+      failStalledLibraryParts: async (reasons) => {
+        this.calls.push(`failStalledLibraryParts ${reasons.instructions} ${reasons.risks}`);
         return 1;
       },
       listAbandoned: async () => this.abandoned,
@@ -1287,7 +1287,7 @@ describe('cleanUpImports', () => {
 
     expect(world.calls).toEqual([
       `failStalled ${importReasons.stalled} | ${importReasons.left}`,
-      `failStalledLibraryParts ${libraryReasons.stalled}`,
+      `failStalledLibraryParts ${libraryReasons.stalled} ${riskReasons.stalled}`,
       'remove 3',
       'remove 0',
       'deleteAbandoned old-import,empty',

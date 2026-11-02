@@ -1703,8 +1703,8 @@ evaluations, the key
 `library_part_charge_key(import, part, attempt)`, and never refuses it. When a part goes from
 `reading` to `failed`, the trigger `import_library_parts_refund_credits` gives back that
 attempt's charge (`refund_library_part_credits`): a part fails before its request is sent or on
-our side. `fail_stalled_library_parts(reason)` fails a part of a ready or confirmed import still
-`reading` 6 hours after its last change; those of an abandoned or failed import stay as they are
+our side. `fail_stalled_library_parts(reason, risks reason)` fails a part of a ready or confirmed
+import still `reading` 6 hours after its last change, with the reason of its library; those of an abandoned or failed import stay as they are
 and go with it. `drop_import_proposals()` drops the parts' proposals with their import's.
 
 **Sheet photographs a client import found.** A confirmed client import keeps the training sheets

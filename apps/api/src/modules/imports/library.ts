@@ -48,6 +48,10 @@ export const libraryReasons = {
   stalled: 'Citirea instrucțiunilor proprii s-a oprit înainte să se termine.',
 } as const;
 
+export const riskReasons = {
+  stalled: 'Citirea evaluărilor de risc s-a oprit înainte să se termine.',
+} as const;
+
 export const libraryPartExpiry = (clientConfirmedAt: string | null) =>
   clientConfirmedAt
     ? new Date(Date.parse(clientConfirmedAt) + libraryPartDays * 24 * 60 * 60 * 1000).toISOString()
