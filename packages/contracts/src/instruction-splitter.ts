@@ -62,6 +62,8 @@ const chapterLabel = /^capitolul\s+[ivxlcdm\d]+(?:\s*\.\s*[ivxlcdm\d]+)*\.?(?=\s
 
 const typedArticle = /^(?:art\.|art(?=\s)|articolul)\s*(\d{1,4})(?:\s*[.):]|\s+[-–]|(?=\s)|$)\s*/iu;
 const typedNumber = /^(\d{1,4})\s*[.)](?![\d.])\s*/u;
+const lawCitation =
+  /^(?:[Aa]rt(?:\.|icolul)?|ARTICOLUL)\s*\d{1,4}\s+(?:din|al|ale|alin|alineatul|lit|litera|pct|punctul)(?!\p{L})/u;
 const articleLabel = /^(?:(art(?:icolul|\.)?)\s*)?(\d{1,4})\s*[.)]?$/iu;
 const marker = /^(?:\(?[\p{Ll}]{1,4}\)|\(?\d{1,3}(?:\.\d{1,3})*[.)]|[–—\-•·▪◦●○■►➢✓*])(?=\s)/u;
 const sentenceEnd = /[.;!?,]$/u;
@@ -73,9 +75,21 @@ const wrappedLineLength = 70;
 
 const collapse = (text: string) => text.replace(/\s+/gu, ' ').trim();
 
+// A citation of a law's article that wraps onto a new line ("…prevederile din\nart. 13 din
+// Legea…") goes on its sentence. Packs number articles across the whole document and restart or
+// repeat numbers, so an "Art." line with its own "." or ")" always opens an article.
+function continuesWithCitation(line: string, lastArticle: number | null) {
+  const match = typedArticle.exec(line);
+  if (!match) return false;
+  if (lawCitation.test(line)) return true;
+  if (/\d\s*(?:[.):]|[-–])\s*$/u.test(match[0])) return false;
+  return /^art/u.test(line) || (lastArticle !== null && Number(match[1]) <= lastArticle);
+}
+
 function linesToParagraphs(text: string): SplitterParagraph[] {
   const paragraphs: SplitterParagraph[] = [];
   let lastLine = '';
+  let lastArticle: number | null = null;
   for (const raw of text.split(/\r\n|[\r\n\u2028\u2029\f]/u)) {
     const cells = tabCells(raw);
     if (cells.length > 1) {
@@ -94,10 +108,15 @@ function linesToParagraphs(text: string): SplitterParagraph[] {
       previous !== undefined &&
       lastLine !== '' &&
       !wrappedEnd.test(lastLine) &&
-      !startsSomething(line) &&
-      (/^\p{Ll}/u.test(line) || lastLine.length >= wrappedLineLength);
+      (startsSomething(line)
+        ? continuesWithCitation(line, lastArticle)
+        : /^\p{Ll}/u.test(line) || lastLine.length >= wrappedLineLength);
     if (wrapped) previous.text = `${previous.text} ${line}`;
-    else paragraphs.push({ text: line });
+    else {
+      paragraphs.push({ text: line });
+      const article = lawCitation.test(line) ? null : typedArticle.exec(line);
+      if (article) lastArticle = Number(article[1]);
+    }
     lastLine = line;
   }
   return paragraphs;
@@ -214,7 +233,7 @@ interface Start {
 
 function findStarts(items: Item[]): { starts: (Start | null)[]; numbered: boolean } {
   const typed = items.map((item) => {
-    if (item.numbered || item.row) return null;
+    if (item.numbered || item.row || lawCitation.test(item.text)) return null;
     const match = typedArticle.exec(item.text);
     return match ? { number: Number(match[1]), rest: item.text.slice(match[0].length) } : null;
   });

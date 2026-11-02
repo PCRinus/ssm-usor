@@ -191,6 +191,38 @@ describe('splitInstruction on pasted text', () => {
     });
   });
 
+  it('keeps a cited law article that wraps onto a new line in its sentence', () => {
+    const result = splitInstruction(
+      [
+        'Art. 1. Lucrătorii respectă prevederile din',
+        'art. 13 din Legea nr. 319/2006 privind securitatea.',
+        'Art. 2. Se aplică și cerințele de la',
+        'Art. 1 privind accesul în hală.',
+        'Articolul 7 din Legea nr. 307/2006 prevede verificarea stingătoarelor.',
+        'Scule',
+        'Art. 1. Sculele se verifică zilnic.',
+      ].join('\n')
+    );
+    expect(result.articles.map((article) => article.sourceNumber)).toEqual([1, 2, 1]);
+    expect(result.body.blocks).toEqual([
+      {
+        kind: 'article',
+        paragraphs: [
+          'Lucrătorii respectă prevederile din art. 13 din Legea nr. 319/2006 privind securitatea.',
+        ],
+      },
+      {
+        kind: 'article',
+        paragraphs: [
+          'Se aplică și cerințele de la Art. 1 privind accesul în hală.',
+          'Articolul 7 din Legea nr. 307/2006 prevede verificarea stingătoarelor.',
+        ],
+      },
+      { kind: 'heading', text: 'Scule' },
+      { kind: 'article', paragraphs: ['Sculele se verifică zilnic.'] },
+    ]);
+  });
+
   it('takes typed bare numbers, and a list inside an article that starts again from 1', () => {
     const result = splitInstruction(
       [
@@ -551,6 +583,22 @@ describe('splitInstruction on paragraphs read from Word', () => {
       },
     ]);
     expect(result.articles.map((article) => article.sourceNumber)).toEqual([5, 6]);
+  });
+
+  it('keeps a paragraph that opens with a law citation inside its article', () => {
+    const result = splitInstruction([
+      paragraph('Stingătoarele se verifică anual.', { label: 'Art. 4.', level: 0 }),
+      paragraph('Articolul 7 din Legea nr. 307/2006 prevede verificarea lor.'),
+      paragraph('Hidranții se verifică semestrial.', { label: 'Art. 5.', level: 0 }),
+    ]);
+    expect(result.articles.map((article) => article.sourceNumber)).toEqual([4, 5]);
+    expect(result.body.blocks[0]).toEqual({
+      kind: 'article',
+      paragraphs: [
+        'Stingătoarele se verifică anual.',
+        'Articolul 7 din Legea nr. 307/2006 prevede verificarea lor.',
+      ],
+    });
   });
 
   it('takes the level labelled "Art. N." for the articles when it is not the top one', () => {
