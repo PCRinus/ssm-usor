@@ -22,8 +22,8 @@ const DocumentEditor = lazy(() => import('@/features/documents/document-editor')
 
 type Loaded = { versionId: string; number: number; bytes: Uint8Array; fileName: string };
 
-// Only to read until the module's form replaces it (ADR 034, step 8). `pinnedVersionId` is a
-// version a document annexed, opened from that document.
+// Only to read: the version a document annexed (`pinnedVersionId`), or an archived module as its
+// annex prints.
 export function InstructionEditorPage({
   moduleId,
   userId,
@@ -185,7 +185,8 @@ export function InstructionEditorPage({
         </p>
       ) : (
         <p role="status" className="shrink-0 text-sm text-muted-foreground">
-          Instrucțiunea așa cum se tipărește ca anexă, care poate fi doar citită.
+          Instrucțiunea e arhivată, așa că o poți doar citi, așa cum se tipărește. Reactiveaz-o din
+          bibliotecă ca să o modifici.
         </p>
       )}
       {failed ? (

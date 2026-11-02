@@ -20,7 +20,7 @@ import {
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
-import { BookOpenText, MoreHorizontal } from 'lucide-react';
+import { BookOpenText, MoreHorizontal, PenLine } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -42,6 +42,7 @@ import {
   invalidateLibrary,
   positionCountLabel,
 } from './instruction-schema';
+import { InstructionStartDialog } from './instruction-start-dialog';
 
 export function InstructionLibrary({
   domain,
@@ -60,6 +61,7 @@ export function InstructionLibrary({
   });
   const update = useUpdateInstructionModule({ request: apiRequest });
   const [editing, setEditing] = useState<ModuleEditing>(null);
+  const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function setArchived(module: InstructionModule, archived: boolean) {
@@ -109,6 +111,10 @@ export function InstructionLibrary({
               onClick={() => setShowArchived((value) => !value)}
             >
               {showArchived ? 'Arată instrucțiunile în uz' : 'Arată arhiva'}
+            </Button>
+            <Button size="sm" data-testid="instruction-write" onClick={() => setStarting(true)}>
+              <PenLine aria-hidden="true" />
+              Scrie o instrucțiune
             </Button>
           </div>
         </CardHeader>
@@ -239,6 +245,20 @@ export function InstructionLibrary({
         </CardContent>
       </Card>
       <InstructionModuleDialog editing={editing} onClose={() => setEditing(null)} />
+      <InstructionStartDialog
+        open={starting}
+        initial={{ domain }}
+        userId={userId}
+        onClose={() => setStarting(false)}
+        onSubmit={(values) => {
+          setStarting(false);
+          void navigate({
+            to: '/instructions/new',
+            search: values,
+            state: { openedFromList: true },
+          });
+        }}
+      />
     </div>
   );
 }

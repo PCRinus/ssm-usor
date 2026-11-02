@@ -50,6 +50,19 @@ vi.mock('@/features/documents/document-editor', async () => {
   };
 });
 
+vi.mock('./annex-word-view', async () => {
+  const { useEffect } = await import('react');
+  return {
+    default: function FakeAnnexView({ onReady }: { onReady: () => void }) {
+      useEffect(() => {
+        onReady();
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- once, like the real viewer
+      }, []);
+      return <div data-testid="fake-annex-view" />;
+    },
+  };
+});
+
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const sampleClient = {
   id: clientId,
@@ -182,6 +195,29 @@ function mockApi({
         ...JSON.parse(String(init?.body)),
       },
     })) as Route,
+  saveBody = ((init) =>
+    Response.json({
+      module: { ...ladders, version: { ...version, number: 3 } },
+      body: JSON.parse(String(init?.body)),
+      changed: true,
+    })) as Route,
+  create = ((init) => {
+    const posted = JSON.parse(String(init?.body)) as {
+      title: string;
+      group: string;
+      domain: string;
+      body: unknown;
+    };
+    return Response.json(
+      {
+        module: { ...welding, title: posted.title, group: posted.group, domain: posted.domain },
+        body: posted.body,
+      },
+      { status: 201 }
+    );
+  }) as Route,
+  clients = [sampleClient] as (typeof sampleClient)[],
+  moduleBody = body as unknown,
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(String(input));
@@ -194,6 +230,18 @@ function mockApi({
     if (pathname === `/clients/${clientId}/job-positions`) {
       return Response.json({ items: [welder, fitter] });
     }
+    if (pathname === '/clients') {
+      return Response.json({ items: clients, page: 1, pageSize: 100, total: clients.length });
+    }
+    if (pathname === '/instruction-modules' && method === 'POST') return create(init, url);
+    if (pathname === '/instruction-modules/preview') {
+      return new Response(new Uint8Array([80, 75, 3, 4, 7]), {
+        headers: {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        },
+      });
+    }
+    if (/^\/instruction-modules\/[^/]+\/body$/.test(pathname)) return saveBody(init, url);
     if (pathname === '/instruction-modules') {
       const domain = url.searchParams.get('domain');
       return Response.json({
@@ -227,7 +275,7 @@ function mockApi({
         (item) => item.id === moduleId
       );
       return module
-        ? Response.json({ module, body })
+        ? Response.json({ module, body: moduleBody })
         : Response.json({ error: 'not_found', message: 'no' }, { status: 404 });
     }
     const instructionsMatch = pathname.match(
@@ -440,21 +488,322 @@ describe('the instruction library', () => {
   });
 });
 
-describe('the module page', () => {
-  it('shows the current version as its annex prints, only to read', async () => {
-    mockApi();
+const ladderBody = {
+  blocks: [
+    { kind: 'heading', text: 'Verificări înainte de pornire' },
+    {
+      kind: 'article',
+      paragraphs: ['Lucrătorul verifică scara:', 'a) tălpile;', 'b) treptele.'],
+    },
+    { kind: 'heading', text: 'Acțiuni interzise' },
+    { kind: 'article', paragraphs: ['Este interzisă urcarea cu sarcini grele.'] },
+  ],
+};
+
+const labels = () =>
+  screen.getAllByTestId('instruction-block-label').map((label) => label.textContent);
+const articleBoxes = () =>
+  screen.getAllByTestId('instruction-article-text') as HTMLTextAreaElement[];
+
+describe('the module form', () => {
+  it('opens the current version as headings and articles numbered by place, and saves the next version', async () => {
+    mockApi({ moduleBody: ladderBody });
     mount(`/instructions/${ladders.id}`);
-    const editor = await screen.findByTestId('fake-editor');
-    expect(editor.getAttribute('data-editable')).toBe('false');
+    const user = userEvent.setup();
+    await screen.findByTestId('instruction-form');
     expect(screen.getByTestId('editor-state').textContent).toBe('Versiunea 2');
-    expect(editor.textContent).toContain('SSM · Echipamente de muncă');
-    expect(screen.queryByTestId('editor-save')).toBeNull();
-    const download = fetchMock.mock.calls
-      .map(([input]) => new URL(String(input)))
-      .find((address) => address.pathname === `/instruction-modules/${ladders.id}/download`)!;
-    expect(download.searchParams.get('versionId')).toBeNull();
+    expect(screen.getByTestId('instruction-form-facts').textContent).toBe(
+      'SSM · Echipamente de muncă · 2 articole'
+    );
+    expect(labels()).toEqual(['Titlu de secțiune', 'Art. 1', 'Titlu de secțiune', 'Art. 2']);
+    expect(articleBoxes()[0]!.value).toBe('Lucrătorul verifică scara:\na) tălpile;\nb) treptele.');
+    expect(screen.getByTestId('instruction-save-state').textContent).toBe(
+      'Toate modificările sunt salvate.'
+    );
+    expect(screen.getAllByTestId('instruction-show-example')).toHaveLength(2);
+
+    await user.click(screen.getAllByTestId('instruction-block-up')[3]!);
+    expect(labels()).toEqual(['Titlu de secțiune', 'Art. 1', 'Art. 2', 'Titlu de secțiune']);
+    await user.click(screen.getAllByTestId('instruction-block-add')[2]!);
+    await user.click(await screen.findByTestId('instruction-add-article'));
+    await user.type(articleBoxes()[2]!, 'Scara se depozitează{Enter}în spațiul ei.');
+    expect(labels()).toEqual([
+      'Titlu de secțiune',
+      'Art. 1',
+      'Art. 2',
+      'Art. 3',
+      'Titlu de secțiune',
+    ]);
+    expect(screen.getByTestId('instruction-save-state').textContent).toBe('Modificări nesalvate.');
+
+    await user.click(screen.getByTestId('editor-save'));
+    await waitFor(() =>
+      expect(bodies(`/instruction-modules/${ladders.id}/body`, 'PUT')).toEqual([
+        {
+          blocks: [
+            { kind: 'heading', text: 'Verificări înainte de pornire' },
+            {
+              kind: 'article',
+              paragraphs: ['Lucrătorul verifică scara:', 'a) tălpile;', 'b) treptele.'],
+            },
+            { kind: 'article', paragraphs: ['Este interzisă urcarea cu sarcini grele.'] },
+            { kind: 'article', paragraphs: ['Scara se depozitează', 'în spațiul ei.'] },
+          ],
+        },
+      ])
+    );
+    expect(await screen.findByText('Am salvat versiunea 3.')).toBeTruthy();
+    expect(screen.getByTestId('instruction-save-state').textContent).toBe(
+      'Toate modificările sunt salvate.'
+    );
   });
 
+  it('says so when the saved text folds to the current version', async () => {
+    mockApi({
+      moduleBody: ladderBody,
+      saveBody: (init) =>
+        Response.json({ module: ladders, body: JSON.parse(String(init?.body)), changed: false }),
+    });
+    mount(`/instructions/${ladders.id}`);
+    const user = userEvent.setup();
+    await screen.findByTestId('instruction-form');
+    await user.type(articleBoxes()[1]!, '!');
+    await user.click(screen.getByTestId('editor-save'));
+    expect(
+      await screen.findByText(/^Textul e același cu cel din versiunea 2/, undefined, {
+        timeout: 3000,
+      })
+    ).toBeTruthy();
+    expect(screen.getByTestId('editor-state').textContent).toBe('Versiunea 2');
+  });
+
+  it('refuses to save a text without an article, in words', async () => {
+    mockApi();
+    mount(`/instructions/${ladders.id}`);
+    const user = userEvent.setup();
+    await screen.findByTestId('instruction-form');
+    await user.clear(articleBoxes()[0]!);
+    await user.click(screen.getByTestId('editor-save'));
+    expect(screen.getByTestId('instruction-form-error').textContent).toBe(
+      'Scrie cel puțin un articol înainte să salvezi.'
+    );
+    expect(requests(`/instruction-modules/${ladders.id}/body`, 'PUT')).toHaveLength(0);
+  });
+
+  it("marks an article that names one of the organization's clients, and still saves", async () => {
+    mockApi();
+    mount(`/instructions/${ladders.id}`);
+    const user = userEvent.setup();
+    await screen.findByTestId('instruction-form');
+    await user.type(articleBoxes()[0]!, ' Scara aparține S.C. Veloce Cafe S.R.L.');
+    expect((await screen.findByTestId('instruction-client-named')).textContent).toBe(
+      'Textul numește clientul VELOCE CAFE SRL. Instrucțiunea se aplică și altor clienți.'
+    );
+    expect(screen.getByTestId('instruction-client-mark').textContent).toBe(
+      'Numește clientul VELOCE CAFE SRL.'
+    );
+    await user.click(screen.getByTestId('editor-save'));
+    await waitFor(() =>
+      expect(requests(`/instruction-modules/${ladders.id}/body`, 'PUT')).toHaveLength(1)
+    );
+  });
+
+  it('pastes a whole instruction, shows its articles and flags, and replaces the text', async () => {
+    mockApi();
+    mount(`/instructions/${ladders.id}`);
+    const user = userEvent.setup();
+    await screen.findByTestId('instruction-form');
+    await user.click(screen.getByTestId('instruction-paste'));
+    const dialog = await screen.findByTestId('paste-dialog');
+    await user.click(within(dialog).getByTestId('paste-text'));
+    await user.paste(
+      'Folosirea scării\nScara se sprijină pe o suprafață stabilă.\nSe urcă cu fața la scară.\nÎnălțime\tAsigurare'
+    );
+    await waitFor(() =>
+      expect(within(dialog).getByTestId('paste-summary').textContent).toBe(
+        '3 articole, un titlu de secțiune'
+      )
+    );
+    expect(within(dialog).getByTestId('paste-flags').textContent).toBe(
+      'Numerotarea nu s-a putut citi: am făcut câte un articol din fiecare paragraf.Un rând de tabel a devenit paragraf, cu celulele despărțite de „–”: Art. 3.'
+    );
+    expect(
+      within(dialog)
+        .getAllByTestId('paste-preview-article')
+        .map((article) => article.textContent)
+    ).toEqual([
+      'Art. 1. Scara se sprijină pe o suprafață stabilă.',
+      'Art. 2. Se urcă cu fața la scară.',
+      'Art. 3. Înălțime – Asigurare',
+    ]);
+    await user.click(within(dialog).getByTestId('paste-replace'));
+    expect(labels()).toEqual(['Titlu de secțiune', 'Art. 1', 'Art. 2', 'Art. 3']);
+    expect(articleBoxes()[2]!.value).toBe('Înălțime – Asigurare');
+  });
+
+  it('offers to split several paragraphs pasted into one article', async () => {
+    mockApi();
+    mount(`/instructions/${ladders.id}`);
+    const user = userEvent.setup();
+    await screen.findByTestId('instruction-form');
+    await user.click(screen.getByTestId('instruction-paste'));
+    await user.keyboard('{Escape}');
+    await user.clear(articleBoxes()[0]!);
+    await user.paste('Art. 1. Scara se verifică.\nArt. 2. Scara se curăță.');
+    const offer = await screen.findByTestId('instruction-paste-offer');
+    expect(offer.textContent).toContain('Textul lipit se poate împărți în 2 articole.');
+    await user.click(within(offer).getByTestId('instruction-paste-split'));
+    expect(labels()).toEqual(['Art. 1', 'Art. 2']);
+    expect(articleBoxes().map((box) => box.value)).toEqual([
+      'Scara se verifică.',
+      'Scara se curăță.',
+    ]);
+  });
+
+  it('previews the annex with the text on screen, saved or not', async () => {
+    mockApi();
+    mount(`/instructions/${ladders.id}`);
+    const user = userEvent.setup();
+    await screen.findByTestId('instruction-form');
+    await user.type(articleBoxes()[0]!, ' Nesalvat.');
+    await user.click(screen.getByTestId('instruction-preview'));
+    expect(await screen.findByTestId('fake-annex-view')).toBeTruthy();
+    expect(bodies('/instruction-modules/preview', 'POST')).toEqual([
+      {
+        title: 'Scări metalice',
+        domain: 'ssm',
+        body: {
+          blocks: [
+            {
+              kind: 'article',
+              paragraphs: ['Scara se sprijină pe o suprafață stabilă. Nesalvat.'],
+            },
+          ],
+        },
+      },
+    ]);
+  });
+});
+
+describe('writing a new module', () => {
+  it('asks for the title, domain and category, then opens the guided template; nothing is stored before the first save', async () => {
+    mockApi();
+    const runtime = mount('/instructions/psi');
+    const user = userEvent.setup();
+    await screen.findByTestId('instruction-library-psi');
+    await user.click(screen.getByTestId('instruction-write'));
+    const dialog = await screen.findByTestId('instruction-start-dialog');
+    expect(
+      (within(dialog).getByTestId('instruction-start-domain') as HTMLSelectElement).value
+    ).toBe('psi');
+    expect(
+      [...(within(dialog).getByTestId('instruction-start-group') as HTMLSelectElement).options].map(
+        (option) => option.textContent
+      )
+    ).toEqual(['Spații și activități', 'Instalații și echipamente', 'Lucrări periculoase']);
+    await user.type(within(dialog).getByTestId('instruction-start-title'), 'Sudura în atelier');
+    await user.selectOptions(
+      within(dialog).getByTestId('instruction-start-group'),
+      'hazardous_work'
+    );
+    await user.click(within(dialog).getByTestId('instruction-start-submit'));
+
+    await screen.findByTestId('instruction-form');
+    expect(runtime.router.history.location.pathname).toBe('/instructions/new');
+    expect(screen.getByTestId('editor-state').textContent).toBe('Nouă, nesalvată');
+    expect(screen.getByTestId('instruction-form-facts').textContent).toBe(
+      'PSI · Lucrări periculoase · fără articole numerotate'
+    );
+    expect(
+      (screen.getAllByTestId('instruction-heading-text') as HTMLInputElement[]).map(
+        (heading) => heading.value
+      )
+    ).toEqual([
+      'Domeniul de aplicare',
+      'Înainte de începerea lucrării',
+      'În timpul lucrării',
+      'După terminarea lucrării',
+      'Acțiuni interzise',
+      'Dacă izbucnește un incendiu',
+    ]);
+    expect(articleBoxes()[0]!.placeholder).toBe(
+      'Ce lucrare periculoasă acoperă instrucțiunea (sudură, tăiere, lucru cu foc deschis) și unde se execută.'
+    );
+    expect(screen.getByTestId('instruction-acts').textContent).toContain('Legea nr. 307/2006');
+    expect(requests('/instruction-modules', 'POST')).toHaveLength(0);
+
+    await user.click(screen.getAllByTestId('instruction-show-example')[0]!);
+    expect(articleBoxes()[0]!.value).toMatch(/^Prezenta instrucțiune se aplică lucrărilor cu foc/);
+    await user.type(articleBoxes()[4]!, 'Nu se sudează lângă butelii.');
+    expect(labels().filter((label) => label?.startsWith('Art.'))).toEqual(['Art. 1', 'Art. 2']);
+
+    await user.click(screen.getByTestId('editor-save'));
+    await waitFor(() =>
+      expect(bodies('/instruction-modules', 'POST')).toEqual([
+        {
+          title: 'Sudura în atelier',
+          group: 'hazardous_work',
+          domain: 'psi',
+          body: {
+            blocks: [
+              { kind: 'heading', text: 'Domeniul de aplicare' },
+              { kind: 'article', paragraphs: [expect.stringMatching(/^Prezenta instrucțiune/)] },
+              { kind: 'heading', text: 'Acțiuni interzise' },
+              { kind: 'article', paragraphs: ['Nu se sudează lângă butelii.'] },
+            ],
+          },
+        },
+      ])
+    );
+    await waitFor(() =>
+      expect(runtime.router.history.location.pathname).toBe(`/instructions/${welding.id}`)
+    );
+  });
+
+  it('starts from a library module of the same domain as a copy of its text', async () => {
+    mockApi({ moduleBody: ladderBody });
+    mount('/instructions/ssm');
+    const user = userEvent.setup();
+    await screen.findAllByTestId('instruction-row');
+    await user.click(screen.getByTestId('instruction-write'));
+    const dialog = await screen.findByTestId('instruction-start-dialog');
+    await user.type(within(dialog).getByTestId('instruction-start-title'), 'Scări – șantier');
+    const from = within(dialog).getByTestId('instruction-start-from') as HTMLSelectElement;
+    await waitFor(() =>
+      expect([...from.options].map((option) => option.textContent)).toEqual([
+        'Structura propusă',
+        'Activități de birou',
+        'Scări metalice',
+      ])
+    );
+    await user.selectOptions(from, ladders.id);
+    await waitFor(() =>
+      expect(
+        (within(dialog).getByTestId('instruction-start-group') as HTMLSelectElement).value
+      ).toBe('work_equipment')
+    );
+    await user.click(within(dialog).getByTestId('instruction-start-submit'));
+    await screen.findByTestId('instruction-form');
+    expect(labels()).toEqual(['Titlu de secțiune', 'Art. 1', 'Titlu de secțiune', 'Art. 2']);
+    expect(screen.getByTestId('instruction-form-title').textContent).toBe('Scări – șantier');
+  });
+
+  it('refuses a title the library already has before opening the form', async () => {
+    mockApi();
+    mount('/instructions/ssm');
+    const user = userEvent.setup();
+    await screen.findAllByTestId('instruction-row');
+    await user.click(screen.getByTestId('instruction-write'));
+    const dialog = await screen.findByTestId('instruction-start-dialog');
+    await user.type(within(dialog).getByTestId('instruction-start-title'), 'scări metalice');
+    await user.click(within(dialog).getByTestId('instruction-start-submit'));
+    expect(
+      (await within(dialog).findByTestId('instruction-start-title-error')).textContent
+    ).toContain('Biblioteca are deja o instrucțiune cu acest titlu.');
+  });
+});
+
+describe('the module page', () => {
   it('shows the version a document annexed and leads to the current one', async () => {
     mockApi();
     const annexed = '4d5e6f7a-8b9c-4d0e-9f1a-2b3c4d5e6f7a';

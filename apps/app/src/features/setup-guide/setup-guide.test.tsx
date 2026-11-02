@@ -24,7 +24,7 @@ vi.mock('@/app/observability/posthog', async (importOriginal) => ({
 }));
 
 const clientId = '6f0b7e52-3c1d-4a8e-9b2f-1d4c5e6a7b80';
-const moduleId = '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d';
+const documentId = '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d';
 const organization = { id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10', name: 'Expert SSM Banat SRL' };
 
 const locks: Partial<Record<SetupStepId, SetupLock>> = {
@@ -150,28 +150,6 @@ function mockApi(state: ApiState) {
       });
     }
     if (pathname === '/dashboard/summary') return Response.json(quietSummary);
-    if (pathname === `/instruction-modules/${moduleId}`) {
-      return Response.json({
-        module: {
-          id: moduleId,
-          title: 'Scări metalice',
-          group: 'work_equipment',
-          domain: 'ssm',
-          archivedAt: null,
-          version: {
-            id: '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d',
-            number: 1,
-            sha256: 'a'.repeat(64),
-            sizeBytes: 4321,
-            articleCount: 12,
-            createdAt: '2026-09-26T10:00:00.000Z',
-          },
-          appliedCount: 0,
-          createdAt: '2026-09-26T09:00:00.000Z',
-          updatedAt: '2026-09-26T10:00:00.000Z',
-        },
-      });
-    }
     if (pathname === '/releases') return Response.json({ items: releases });
     if (pathname === '/releases/acknowledge' && method === 'POST') {
       releases = releases.map((release) => ({ ...release, unread: false }));
@@ -643,7 +621,7 @@ describe('the steps', () => {
 describe('when the guide shows', () => {
   it('hides on the document editor pages', async () => {
     mockApi({ guide: founder });
-    mount(`/instructions/${moduleId}`);
+    mount(`/clients/${clientId}/documents/${documentId}`);
     await waitFor(() => expect(calls('/me/setup')).toHaveLength(1));
     expect(await screen.findByTestId('app-logo')).toBeTruthy();
     await expectNoGuide();

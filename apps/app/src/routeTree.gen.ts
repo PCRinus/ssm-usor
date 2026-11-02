@@ -41,6 +41,7 @@ import { Route as AuthenticatedEmployeesIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedInstructionsIndexRouteImport } from './routes/_authenticated/instructions/index';
 import { Route as AuthenticatedInstructionsModuleIdRouteImport } from './routes/_authenticated/instructions/$moduleId';
 import { Route as AuthenticatedInstructionsLibraryRouteImport } from './routes/_authenticated/instructions/_library';
+import { Route as AuthenticatedInstructionsNewRouteImport } from './routes/_authenticated/instructions/new';
 import { Route as AuthenticatedLeadsIndexRouteImport } from './routes/_authenticated/leads/index';
 import { Route as AuthenticatedLeadsLeadIdRouteImport } from './routes/_authenticated/leads/$leadId';
 import { Route as AuthenticatedLeadsNewRouteImport } from './routes/_authenticated/leads/new';
@@ -277,6 +278,12 @@ const AuthenticatedInstructionsModuleIdRoute =
 const AuthenticatedInstructionsLibraryRoute =
   AuthenticatedInstructionsLibraryRouteImport.update({
     id: '/_library',
+    getParentRoute: () => AuthenticatedInstructionsRoute,
+  } as any);
+const AuthenticatedInstructionsNewRoute =
+  AuthenticatedInstructionsNewRouteImport.update({
+    id: '/new',
+    path: '/new',
     getParentRoute: () => AuthenticatedInstructionsRoute,
   } as any);
 const AuthenticatedLeadsIndexRoute = AuthenticatedLeadsIndexRouteImport.update({
@@ -722,6 +729,7 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRouteWithChildren;
   '/clients/new': typeof AuthenticatedClientsNewRoute;
   '/instructions/$moduleId': typeof AuthenticatedInstructionsModuleIdRoute;
+  '/instructions/new': typeof AuthenticatedInstructionsNewRoute;
   '/leads/$leadId': typeof AuthenticatedLeadsLeadIdRouteWithChildren;
   '/leads/new': typeof AuthenticatedLeadsNewRoute;
   '/legislatie/acte': typeof AuthenticatedLegislatieActeRoute;
@@ -813,6 +821,7 @@ export interface FileRoutesByTo {
   '/clients/new': typeof AuthenticatedClientsNewRoute;
   '/instructions/$moduleId': typeof AuthenticatedInstructionsModuleIdRoute;
   '/instructions': typeof AuthenticatedInstructionsIndexRoute;
+  '/instructions/new': typeof AuthenticatedInstructionsNewRoute;
   '/leads/new': typeof AuthenticatedLeadsNewRoute;
   '/legislatie/acte': typeof AuthenticatedLegislatieActeRoute;
   '/legislatie/documente': typeof AuthenticatedLegislatieDocumenteRoute;
@@ -902,6 +911,7 @@ export interface FileRoutesById {
   '/_authenticated/clients/new': typeof AuthenticatedClientsNewRoute;
   '/_authenticated/instructions/$moduleId': typeof AuthenticatedInstructionsModuleIdRoute;
   '/_authenticated/instructions/_library': typeof AuthenticatedInstructionsLibraryRouteWithChildren;
+  '/_authenticated/instructions/new': typeof AuthenticatedInstructionsNewRoute;
   '/_authenticated/leads/$leadId': typeof AuthenticatedLeadsLeadIdRouteWithChildren;
   '/_authenticated/leads/new': typeof AuthenticatedLeadsNewRoute;
   '/_authenticated/legislatie/acte': typeof AuthenticatedLegislatieActeRoute;
@@ -1004,6 +1014,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId'
     | '/clients/new'
     | '/instructions/$moduleId'
+    | '/instructions/new'
     | '/leads/$leadId'
     | '/leads/new'
     | '/legislatie/acte'
@@ -1095,6 +1106,7 @@ export interface FileRouteTypes {
     | '/clients/new'
     | '/instructions/$moduleId'
     | '/instructions'
+    | '/instructions/new'
     | '/leads/new'
     | '/legislatie/acte'
     | '/legislatie/documente'
@@ -1183,6 +1195,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clients/new'
     | '/_authenticated/instructions/$moduleId'
     | '/_authenticated/instructions/_library'
+    | '/_authenticated/instructions/new'
     | '/_authenticated/leads/$leadId'
     | '/_authenticated/leads/new'
     | '/_authenticated/legislatie/acte'
@@ -1495,6 +1508,13 @@ declare module '@tanstack/react-router' {
       path: '';
       fullPath: '/instructions';
       preLoaderRoute: typeof AuthenticatedInstructionsLibraryRouteImport;
+      parentRoute: typeof AuthenticatedInstructionsRoute;
+    };
+    '/_authenticated/instructions/new': {
+      id: '/_authenticated/instructions/new';
+      path: '/new';
+      fullPath: '/instructions/new';
+      preLoaderRoute: typeof AuthenticatedInstructionsNewRouteImport;
       parentRoute: typeof AuthenticatedInstructionsRoute;
     };
     '/_authenticated/leads/': {
@@ -2290,6 +2310,7 @@ const AuthenticatedInstructionsLibraryRouteWithChildren =
 interface AuthenticatedInstructionsRouteChildren {
   AuthenticatedInstructionsModuleIdRoute: typeof AuthenticatedInstructionsModuleIdRoute;
   AuthenticatedInstructionsLibraryRoute: typeof AuthenticatedInstructionsLibraryRouteWithChildren;
+  AuthenticatedInstructionsNewRoute: typeof AuthenticatedInstructionsNewRoute;
   AuthenticatedInstructionsIndexRoute: typeof AuthenticatedInstructionsIndexRoute;
 }
 
@@ -2299,6 +2320,7 @@ const AuthenticatedInstructionsRouteChildren: AuthenticatedInstructionsRouteChil
       AuthenticatedInstructionsModuleIdRoute,
     AuthenticatedInstructionsLibraryRoute:
       AuthenticatedInstructionsLibraryRouteWithChildren,
+    AuthenticatedInstructionsNewRoute: AuthenticatedInstructionsNewRoute,
     AuthenticatedInstructionsIndexRoute: AuthenticatedInstructionsIndexRoute,
   };
 

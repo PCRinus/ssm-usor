@@ -6,12 +6,15 @@ import {
   getGetInstructionModuleQueryOptions,
 } from '@/api/generated/api';
 import { useAuth } from '@/features/auth/auth-context';
-import { InstructionEditorPage } from '@/features/instructions/instruction-editor-page';
+import {
+  InstructionModulePage,
+  InstructionVersionView,
+} from '@/features/instructions/instruction-module-page';
 
 export const Route = createFileRoute('/_authenticated/instructions/$moduleId')({
-  staticData: { title: 'Instrucțiune', fullPage: true, editorPage: true },
+  staticData: { title: 'Instrucțiune' },
   params: { parse: (params) => ({ moduleId: z.uuid().parse(params.moduleId) }) },
-  // A version a document annexed, opened from that document.
+  // A version a document annexed, opened from that document, only to read.
   validateSearch: z.object({ version: z.uuid().optional().catch(undefined) }),
   // The loader warms the module and names the breadcrumb after it.
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
@@ -24,20 +27,22 @@ export const Route = createFileRoute('/_authenticated/instructions/$moduleId')({
     );
     return { crumb: module.title };
   },
-  component: InstructionModulePage,
+  component: InstructionModuleRoute,
 });
 
-function InstructionModulePage() {
+function InstructionModuleRoute() {
   const { moduleId } = Route.useParams();
   const { version } = Route.useSearch();
   const { session } = useAuth();
-  return (
-    <InstructionEditorPage
-      // A different version is a different file to load and show.
-      key={version ?? 'current'}
+  const userId = session?.user.id ?? '';
+  return version ? (
+    <InstructionVersionView
+      key={version}
       moduleId={moduleId}
-      userId={session?.user.id ?? ''}
+      userId={userId}
       pinnedVersionId={version}
     />
+  ) : (
+    <InstructionModulePage key={moduleId} moduleId={moduleId} userId={userId} />
   );
 }
