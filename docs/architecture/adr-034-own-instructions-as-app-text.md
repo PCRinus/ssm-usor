@@ -175,7 +175,7 @@ ADR 012 rejected a page box saying "Pag. 1 din 1" on a title page alone. An anne
 
 ### The instructions read from the pack
 
-**The reader.** For files sorted as own instructions, the reader gives each paragraph Word numbers its number as printed, from the numbering definitions and their restarts, or else from the converter's PDF of the file, which prints them. It also reads the endnotes and footnotes. Step 7 chooses between the two ways on the five packs. Either way the cut keeps the pack's article numbers, which the themes cite.
+**The reader.** For files sorted as own instructions, the reader gives each paragraph Word numbers its number as printed, from the numbering definitions and their restarts, or else from the converter's PDF of the file, which prints them. It also reads the endnotes and footnotes. The reader step (step 9 of the order of work) chooses between the two ways on the five packs. Either way the cut keeps the pack's article numbers, which the themes cite.
 
 **Sorting** gains a domain for `own_instructions` and `training_themes` files, `ssm` or `psi`, which the first 3,000 characters give away ("… securității și sănătății în muncă", "… situațiilor de urgență"). The own instructions stay out of the client reading. Their set-aside reason becomes "Instrucțiuni proprii: le citim pentru biblioteca ta de instrucțiuni proprii".
 
@@ -247,7 +247,7 @@ When nothing is new or similar, the task says "Nimic nou în pachet". Its button
 
 The existing triggers set `needs_instructions` or `needs_fire_instructions`, and the client's 3.2 or IPSU is behind as usual. Everything carries the confirming member as `created_by`.
 
-A part that fails shows its reason and **Citește din nou**, which sends its message again and is charged again; the client proposal and the other part are untouched. Abandoning the import abandons its parts. A part not confirmed 14 days after the client expires, and its proposal goes with the import's 30-day clean-up, as ADR 030 keeps proposals. Every request records its tokens and cost on the import's totals and on its part, and the gateway metadata names the part.
+A part that fails gets its reading back (`library_part_refund`), since it fails before its request is sent or on our side. It shows its reason and **Citește din nou**, which sends its message again and is charged again; the client proposal and the other part are untouched. Abandoning the import abandons its parts. A part not confirmed 14 days after the client expires, and its proposal goes with the import's 30-day clean-up, as ADR 030 keeps proposals. Every request records its tokens and cost on the import's totals and on its part, and the gateway metadata names the part.
 
 ## What is left out
 

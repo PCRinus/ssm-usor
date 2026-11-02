@@ -159,7 +159,7 @@ O instrucțiune **asemănătoare** spune „Ai deja o instrucțiune care spune a
 
 Schimbările se salvează pe măsură ce le faci. Când nu e nimic nou, sarcina spune „Nimic nou în pachet”, iar confirmarea doar aplică instrucțiunile tale la posturi. La confirmare, instrucțiunile noi intră în bibliotecă și toate se aplică la posturile alese; un post care o avea deja nu o primește de două ori.
 
-Dacă citirea nu reușește, vezi motivul și **Citește din nou**. O citire nouă folosește din nou creditele ei (25 pentru IPSSM, 10 pentru IPSU), iar clientul și cealaltă parte rămân cum sunt. Totalul importului le arată separat, de exemplu „Importul a folosit 60 de credite (25 + 35 pentru instrucțiunile proprii)”.
+Dacă citirea nu reușește, vezi motivul și **Citește din nou**. Creditele citirii care nu a reușit îți sunt date înapoi, iar o citire nouă le folosește din nou (25 pentru IPSSM, 10 pentru IPSU), iar clientul și cealaltă parte rămân cum sunt. Totalul importului le arată separat, de exemplu „Importul a folosit 60 de credite (25 + 35 pentru instrucțiunile proprii)”.
 
 ## Importul angajaților din fișe
 
