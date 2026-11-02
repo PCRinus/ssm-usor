@@ -74,10 +74,14 @@ export function PositionRiskEvaluationCard({
       help="evaluari-de-risc.fisa"
       data-testid="position-risk-card"
       title={
-        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span>
           Fișa de evaluare
           {query.data && (
-            <DecisionBadge decision={evaluated || null} data-testid="position-risk-state">
+            <DecisionBadge
+              className="ml-3 align-middle"
+              decision={evaluated || null}
+              data-testid="position-risk-state"
+            >
               {evaluationStateLabel(summary ?? null)}
             </DecisionBadge>
           )}

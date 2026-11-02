@@ -232,10 +232,14 @@ export function PositionInstructionsCard({
       help="instructiuni.aplicare"
       data-testid={testId('card')}
       title={
-        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span>
           {words.title}
           {instructions.data && (
-            <DecisionBadge decision={decision} data-testid={testId('state')}>
+            <DecisionBadge
+              className="ml-3 align-middle"
+              decision={decision}
+              data-testid={testId('state')}
+            >
               {instructionStateLabel({
                 needsInstructions: decision,
                 instructionCount: items.length,
