@@ -150,6 +150,50 @@ describe('cutInstructions', () => {
     expect(cut!.flags).toContainEqual({ kind: 'end_not_found' });
   });
 
+  it.each([
+    [
+      'after an instruction whose end is not found',
+      [
+        { ...grinder, endWords: 'cuvinte care nu se află nicăieri în fișierul acesta' },
+        till,
+        baker,
+      ],
+    ],
+    ['alone', [till]],
+    ['before the instruction that comes first in the file', [till, grinder, baker]],
+  ])(
+    'does not cut over another instruction’s heading for an end the pack repeats, %s',
+    (_, answer) => {
+      const cut = cutInstructions('ssm', [ipssm], answer).instructions.find(
+        (instruction) => instruction.number === 'XIII.II'
+      );
+
+      expect(firstLine(cutText(cut!.location))).toBe(tillHeading);
+      expect(cut!.articles.map((item) => item.sourceNumber)).toEqual([7, 8, 9]);
+      expect(cut!.flags).toEqual([]);
+    }
+  );
+
+  it('does not start an instruction at its line in the table of contents', () => {
+    const file = packFile('SSM/Cuprins.docx', [
+      line('Lucrul cu scara de lemn din depozitul de făină ........ 3'),
+      article(1, 'Sacii se ridică de doi lucrători.'),
+      article(2, sharedEnding),
+      line('Lucrul cu scara de lemn din depozitul de făină'),
+      article(3, 'Scara se sprijină numai pe pardoseala uscată.'),
+      article(4, sharedEnding),
+    ]);
+    const ladder = {
+      ...till,
+      file: file.path,
+      startWords: 'Lucrul cu scara de lemn din depozitul de făină',
+    };
+
+    const [cut] = cutInstructions('ssm', [file], [ladder]).instructions;
+
+    expect(cut!.articles.map((item) => item.sourceNumber)).toEqual([3, 4]);
+  });
+
   it('lists an instruction whose start is not found as unread', () => {
     const lost = {
       ...till,

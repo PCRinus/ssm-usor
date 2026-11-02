@@ -142,13 +142,57 @@ const needlesOf = (entry: { startWords: string; endWords: string }): Needles => 
   end: variants(tokensOf(entry.endWords), 'last'),
 });
 
+const tableOfContentsLine = /(?:\.{3,}|…|_{3,}|\t)\s*\d{1,4}\s*$/u;
+
+// A PSI annex holds subchapters of its own ("Subcapitolul II.I."), so only a heading of the same
+// family as the instruction's own opens another one.
+const headingFamilies = [
+  /^\s*(?:subcapitolul|i[\W_]{0,3}p[\W_]{0,3}s[\W_]{0,3}s[\W_]{0,3}m\b[\s.]*\d)/iu,
+  /^\s*(?:anexa\b|i[\W_]{0,3}p[\W_]{0,3}s[\W_]{0,3}u\b[\s.]*\d)/iu,
+];
+
 interface Layout {
   words: Words;
+  lineOfWord: number[];
+  contentsLines: boolean[];
+  // The family of the nearest instruction heading at or above each line; -1 below none.
+  familyOver: number[];
+  // headingsBefore[family][n]: how many of the first n lines open an instruction of that family.
+  headingsBefore: number[][];
   places: Map<string, number[]>;
+  startPlaces: Map<string, number[]>;
 }
 
-function layoutOf(text: string): Layout {
-  return { words: wordsOf(text), places: new Map() };
+function layoutOf(text: string, starts: number[]): Layout {
+  const words = wordsOf(text);
+  const lines = text.split('\n');
+  const contentsLines = lines.map((line) => tableOfContentsLine.test(line));
+  const headingsBefore = headingFamilies.map(() => [0]);
+  const familyOver: number[] = [];
+  lines.forEach((line, index) => {
+    const family = contentsLines[index]
+      ? -1
+      : headingFamilies.findIndex((pattern) => pattern.test(line));
+    familyOver.push(family === -1 ? (familyOver[index - 1] ?? -1) : family);
+    headingsBefore.forEach((counts, kind) =>
+      counts.push(counts[index]! + (kind === family ? 1 : 0))
+    );
+  });
+  const lineOfWord: number[] = [];
+  let line = 0;
+  for (const offset of words.starts) {
+    while (line + 1 < starts.length && starts[line + 1]! <= offset) line++;
+    lineOfWord.push(line);
+  }
+  return {
+    words,
+    lineOfWord,
+    contentsLines,
+    familyOver,
+    headingsBefore,
+    places: new Map(),
+    startPlaces: new Map(),
+  };
 }
 
 function placesIn(layout: Layout, needle: string[]) {
@@ -161,15 +205,38 @@ function placesIn(layout: Layout, needle: string[]) {
   return places;
 }
 
+// The start quote also matches the instruction's line in a table of contents, which comes first.
+function startPlacesIn(layout: Layout, needle: string[]) {
+  const key = needle.join(' ');
+  let places = layout.startPlaces.get(key);
+  if (!places) {
+    places = placesIn(layout, needle).filter((at) => !layout.contentsLines[layout.lineOfWord[at]!]);
+    layout.startPlaces.set(key, places);
+  }
+  return places;
+}
+
 function lastStart(layout: Layout, needles: string[][], from: number, to: number) {
   for (const needle of needles) {
-    const places = placesIn(layout, needle);
+    const places = startPlacesIn(layout, needle);
     const at = places[firstAtLeast(places, to - needle.length + 1) - 1];
     if (at !== undefined && at >= from) return at;
   }
   return null;
 }
 
+function opensAnotherBetween(layout: Layout, start: number, end: number) {
+  const first = layout.lineOfWord[start]!;
+  const last = layout.lineOfWord[end - 1]!;
+  if (last <= first + 1) return false;
+  const own = layout.familyOver[first]!;
+  return layout.headingsBefore.some(
+    (counts, family) => (own === -1 || own === family) && counts[last]! > counts[first + 1]!
+  );
+}
+
+// A cut over the heading of another instruction took a start quote or an end quote that belongs
+// to a neighbour, often a closing sentence the pack repeats; the next match is tried instead.
 function locate(layout: Layout, needles: Needles, cursor: number) {
   for (const startNeedle of needles.start) {
     for (const endNeedle of needles.end) {
@@ -177,7 +244,8 @@ function locate(layout: Layout, needles: Needles, cursor: number) {
       for (let index = firstAtLeast(ends, cursor); index < ends.length; index++) {
         const end = ends[index]! + endNeedle.length;
         const start = lastStart(layout, [startNeedle], cursor, end);
-        if (start !== null) return { start, end };
+        if (start === null || opensAnotherBetween(layout, start, end)) continue;
+        return { start, end };
       }
     }
   }
@@ -275,7 +343,7 @@ export function cutInstructions(
   }
   for (const file of files) {
     const starts = lineStarts(file.text);
-    const layout = layoutOf(file.text);
+    const layout = layoutOf(file.text, starts);
     const { words } = layout;
     const spans: {
       item: (typeof keyed)[number];
