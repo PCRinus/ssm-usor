@@ -204,6 +204,25 @@ describe('compareWithLibrary', () => {
     expect(result!.title).toBe('Utilizarea scărilor metalice (Brutăria Fictivă)');
   });
 
+  it('takes a title as used by a module of the other domain and by the pack itself', async () => {
+    const psiStore = module('m-psi', 'Depozit', ['Stingătorul stă lângă ușă.'], 'psi');
+
+    const result = await compare(
+      [
+        packed('ssm-1', 'Depozit', ['Paletii se stivuiesc pe cel mult trei rânduri.']),
+        packed('ssm-2', 'depozit', ['Rafturile se ancorează de perete.']),
+        packed('ssm-3', 'Depozit', ['Motostivuitorul circulă cu furcile coborâte.']),
+      ],
+      [psiStore]
+    );
+
+    expect(result.map((item) => item.title)).toEqual([
+      'Depozit (Brutăria Fictivă)',
+      'depozit (Brutăria Fictivă) 2',
+      'Depozit (Brutăria Fictivă) 3',
+    ]);
+  });
+
   it('folds an instruction the pack holds twice into one', async () => {
     const result = await compare(
       [

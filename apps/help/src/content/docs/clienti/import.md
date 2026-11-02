@@ -149,7 +149,7 @@ Le poți deschide și verifica de îndată ce sunt citite, dar le confirmi după
 
 Ce ai deja în bibliotecă nu ți se cere din nou. Deasupra listei vezi câte sunt, de exemplu „7 instrucțiuni din pachet sunt deja în biblioteca ta”: la confirmare, posturile primesc instrucțiunea ta. Pentru fiecare instrucțiune nouă sau asemănătoare vezi:
 
-- **titlul și categoria** propuse, pe care le poți schimba. Titlul pierde începutul comun („Instrucțiuni proprii … privind”), iar cel din pachet rămâne scris dedesubt. Dacă ai deja o instrucțiune cu același titlu, propunerea adaugă numele clientului în paranteză;
+- **titlul și categoria** propuse, pe care le poți schimba. Titlul pierde începutul comun („Instrucțiuni proprii … privind”), iar cel din pachet rămâne scris dedesubt. Dacă ai deja o instrucțiune cu același titlu, SSM sau PSI, sau dacă pachetul are două cu același titlu, propunerea adaugă numele clientului în paranteză, iar la nevoie și un număr;
 - **câte articole** are și **posturile** la care se aplică, după tematica de instruire, cu **Alege posturile** ca să le schimbi. Un post pentru care tematica nu spune clar ce instrucțiuni ia rămâne nedecis: îl vezi deasupra listei, cu ce scrie în tematică și de ce nu s-a putut decide, și îl alegi tu;
 - **Sursa**, care deschide fișierul la începutul instrucțiunii, și **Schimbă**, care deschide textul în formularul instrucțiunii, ca să corectezi un articol sau să scoți numele clientului;
 - avertismentele textului, de exemplu când numerotarea nu s-a putut citi, când un articol din pachet nu are text și a fost lăsat deoparte sau când textul numește clientul;

@@ -221,7 +221,7 @@ export async function readInstructions(
   const answer = await answerOf(deps, row, part, attempt, request);
   const read = readInstructionsAnswer(domain, instructions, answer);
 
-  const library = await deps.store.libraryModules(row.organization_id, domain);
+  const library = await deps.store.libraryModules(row.organization_id);
   const pairs = await pairsToJudge(read, library);
   let judged: Map<string, boolean> | undefined;
   if (pairs.length > 0) {

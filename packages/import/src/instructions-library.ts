@@ -262,7 +262,7 @@ function libraryTrigrams(library: readonly LibraryModule[]) {
 export interface CompareInput {
   domain: InstructionDomain;
   instructions: readonly PackInstruction[];
-  // The organization's active modules; those of the other domain are left out here.
+  // The organization's active modules of both domains: a title is taken across them.
   library: readonly LibraryModule[];
   clientName: string;
   // The model's yes or no for each pair `similarityPairs` gave, by the pair's id.
@@ -297,19 +297,24 @@ export async function similarityPairs(
   return pairs;
 }
 
-const takenTitle = (title: string, library: readonly LibraryModule[]) =>
-  library.some((module) => foldText(module.title) === foldText(title));
+function freeTitle(title: string, clientName: string, taken: ReadonlySet<string>) {
+  if (!taken.has(foldText(title))) return title;
+  const named = `${title} (${clientName})`;
+  let candidate = named;
+  for (let number = 2; taken.has(foldText(candidate)); number++) candidate = `${named} ${number}`;
+  return candidate;
+}
 
 export async function compareWithLibrary(input: CompareInput): Promise<ComparedInstruction[]> {
   const library = input.library.filter((module) => module.domain === input.domain);
   const trigramsOf = libraryTrigrams(library);
+  const taken = new Set(input.library.map((module) => foldText(module.title)));
   const compared: ComparedInstruction[] = [];
   for (const item of await prepare(input.instructions)) {
-    const title = takenTitle(item.instruction.title, library)
-      ? `${item.instruction.title} (${input.clientName})`
-      : item.instruction.title;
-    const base = { key: item.instruction.key, title, sameAs: item.sameAs };
     const identical = await identicalOf(item, library);
+    const title = freeTitle(item.instruction.title, input.clientName, taken);
+    if (!identical) taken.add(foldText(title));
+    const base = { key: item.instruction.key, title, sameAs: item.sameAs };
     if (identical) {
       compared.push({
         ...base,

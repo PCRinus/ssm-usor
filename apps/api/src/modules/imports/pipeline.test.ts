@@ -252,8 +252,7 @@ class World {
         const key = `${part}:${attempt}`;
         if (!this.partCharges.includes(key)) this.partCharges.push(key);
       },
-      libraryModules: async (_organizationId, domain) =>
-        this.library.filter((module) => module.domain === domain),
+      libraryModules: async () => this.library,
       provider: async () => ({
         name: 'SERVICIUL EXTERN EXEMPLU S.R.L.',
         cui: '76543210',
@@ -1837,6 +1836,28 @@ describe('the own instructions', () => {
       { part: 'instructions_ssm', input: 1000, cost: expect.any(Number) },
     ]);
     expect(world.usage.map((usage) => usage.step).sort()).toEqual(['reading', 'sorting']);
+  });
+
+  it('proposes the client’s name after a title a fire-safety module already has', async () => {
+    world.library = [
+      {
+        ...till,
+        id: 'b1000000-0000-4000-8000-000000000002',
+        title: 'Utilizarea mașinii de tocat carne la brutăria din curte',
+        category: 'premises_activity',
+        domain: 'psi',
+        body: { blocks: [{ kind: 'article', paragraphs: ['Stingătorul stă lângă ușă.'] }] },
+      },
+    ];
+    model = packModel();
+    startWith(packFiles);
+    await drain(deps());
+
+    const proposal = instructionsProposalSchema.parse(part().proposal);
+    expect(proposal.instructions[0]).toMatchObject({
+      status: 'new',
+      title: 'Utilizarea mașinii de tocat carne la brutăria din curte (Brutăria Fictivă)',
+    });
   });
 
   it('says nothing is new when every instruction is in the library already', async () => {

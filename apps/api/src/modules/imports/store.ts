@@ -1,4 +1,4 @@
-import type { ImportLibraryPart, InstructionDomain } from '@ssm-usor/contracts';
+import type { ImportLibraryPart } from '@ssm-usor/contracts';
 import type {
   EmployeeImportClient,
   ExistingClient,
@@ -112,8 +112,8 @@ export interface ImportStore {
     cost: number
   ): Promise<void>;
   chargeLibraryPart(row: ImportRow, part: ImportLibraryPart, attempt: number): Promise<void>;
-  // The organization's active modules of the domain, each with its current text.
-  libraryModules(organizationId: string, domain: InstructionDomain): Promise<LibraryModule[]>;
+  // The organization's active modules of both domains, each with its current text.
+  libraryModules(organizationId: string): Promise<LibraryModule[]>;
   provider(organizationId: string): Promise<ProviderIdentity>;
   client(clientId: string): Promise<ExistingClient | null>;
   employeeImportClient(clientId: string): Promise<EmployeeImportClient>;
@@ -267,14 +267,13 @@ export function importStore(admin: AdminClient): ImportStore {
     chargeLibraryPart: (row, part, attempt) =>
       charges.libraryPart(row.organization_id, row.id, part, attempt),
 
-    async libraryModules(organizationId, domain) {
+    async libraryModules(organizationId) {
       const { data, error } = await admin
         .from('instruction_modules')
         .select(
           'id, title, module_group, domain, instruction_module_versions(number, body, text_hash)'
         )
         .eq('organization_id', organizationId)
-        .eq('domain', domain)
         .is('archived_at', null)
         .order('number', { referencedTable: 'instruction_module_versions', ascending: false })
         .limit(1, { referencedTable: 'instruction_module_versions' });
