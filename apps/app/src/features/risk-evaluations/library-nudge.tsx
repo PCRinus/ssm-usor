@@ -14,7 +14,7 @@ export function LibraryNudge({ onSave, onDismiss }: { onSave: () => void; onDism
           <p className="font-medium">
             Factorii nu sunt încă în biblioteca de riscuri a organizației tale (
             <Link
-              to="/riscuri"
+              to="/evaluari-de-risc"
               data-testid="risk-library-nudge-link"
               className="whitespace-nowrap underline underline-offset-4"
             >

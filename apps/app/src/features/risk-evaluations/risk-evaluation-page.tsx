@@ -63,7 +63,7 @@ import { WorkSystemCard } from './work-system-card';
 const clientRoute = getRouteApi('/_authenticated/clienti/$clientId');
 const positionRoute = getRouteApi('/_authenticated/clienti/$clientId/posturi/$jobPositionId');
 const clientLevelRoute = getRouteApi(
-  '/_authenticated/clienti/$clientId/posturi/evaluari-riscuri/$evaluationId'
+  '/_authenticated/clienti/$clientId/posturi/fise-de-evaluare/$evaluationId'
 );
 
 function useReadOnly() {

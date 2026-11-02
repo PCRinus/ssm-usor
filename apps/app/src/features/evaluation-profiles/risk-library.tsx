@@ -63,7 +63,11 @@ export function RiskLibrary({ userId }: { userId: string }) {
   const items = profiles.data?.items ?? [];
 
   const open = (profileId: string) =>
-    navigate({ to: '/riscuri/$profileId', params: { profileId }, state: { openedFromList: true } });
+    navigate({
+      to: '/evaluari-de-risc/$profileId',
+      params: { profileId },
+      state: { openedFromList: true },
+    });
 
   const startProfile = () =>
     setNaming({
@@ -194,7 +198,7 @@ function ProfileRow({
     <TableRow data-testid="risk-profile-row" {...rowClickProps(onOpen)}>
       <TableCell className="min-w-48 font-medium whitespace-normal">
         <Link
-          to="/riscuri/$profileId"
+          to="/evaluari-de-risc/$profileId"
           params={{ profileId: profile.id }}
           state={{ openedFromList: true }}
           data-testid="risk-profile-open"

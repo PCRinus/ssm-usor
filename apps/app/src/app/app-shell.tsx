@@ -125,7 +125,13 @@ const navigation = [
     ownerOnly: false,
     children: instructionSections,
   },
-  { to: '/riscuri', testId: 'risks', label: 'Riscuri', icon: ShieldAlert, ownerOnly: false },
+  {
+    to: '/evaluari-de-risc',
+    testId: 'risks',
+    label: 'Riscuri',
+    icon: ShieldAlert,
+    ownerOnly: false,
+  },
   {
     to: '/teste',
     testId: 'tests',

@@ -113,7 +113,7 @@ export function ApplyProfileDialog({
             <Notice variant="info" data-testid="apply-profile-none">
               Biblioteca de riscuri nu are încă profiluri cu factori. Salvează în bibliotecă o
               evaluare terminată sau pornește un profil din{' '}
-              <Link to="/riscuri" className="font-medium underline underline-offset-2">
+              <Link to="/evaluari-de-risc" className="font-medium underline underline-offset-2">
                 Riscuri
               </Link>
               .

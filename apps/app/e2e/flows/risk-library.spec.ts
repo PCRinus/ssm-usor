@@ -55,7 +55,7 @@ test("a client's evaluated post becomes a profile that evaluates another client'
   await page.getByTestId('nav-risks').click();
   await expect(page.getByTestId('risk-library-empty')).toContainText('Salvează în bibliotecă');
 
-  await page.goto(`/clienti/${firstClient}/posturi/${firstPosition}/evaluare-riscuri`);
+  await page.goto(`/clienti/${firstClient}/posturi/${firstPosition}/fisa-de-evaluare`);
   await expect(page.getByTestId('risk-factor-row').first()).toBeVisible();
   const factorCount = await page.getByTestId('risk-factor-row').count();
   expect(factorCount).toBeGreaterThan(0);
@@ -72,7 +72,7 @@ test("a client's evaluated post becomes a profile that evaluates another client'
     'în profilul Lucrător în atelier.'
   );
 
-  await page.goto(`/clienti/${second.data.id}/posturi/${secondPosition}/evaluare-riscuri`);
+  await page.goto(`/clienti/${second.data.id}/posturi/${secondPosition}/fisa-de-evaluare`);
   await page.getByTestId('risk-evaluation-start').click();
   await expect(page.getByTestId('risk-factors-empty')).toBeVisible();
   await page.setViewportSize({ width: 360, height: 760 });
@@ -93,7 +93,7 @@ test("a client's evaluated post becomes a profile that evaluates another client'
   await expect(page.getByTestId('risk-factor-origin')).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
 
-  await page.goto('/riscuri');
+  await page.goto('/evaluari-de-risc');
   const row = page.getByTestId('risk-profile-row').filter({ hasText: 'Lucrător în atelier' });
   await expect(row.getByTestId('risk-profile-factors')).toHaveText(String(factorCount));
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
@@ -109,7 +109,7 @@ test("a client's evaluated post becomes a profile that evaluates another client'
   await expect(page.getByTestId('risk-factor-row')).toHaveCount(factorCount - 1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
 
-  await page.goto(`/clienti/${second.data.id}/posturi/${secondPosition}/evaluare-riscuri`);
+  await page.goto(`/clienti/${second.data.id}/posturi/${secondPosition}/fisa-de-evaluare`);
   await expect(page.getByTestId('risk-factor-row')).toHaveCount(factorCount);
   await expect(page.getByTestId('risk-factor-origin')).toHaveCount(factorCount - 1);
 });

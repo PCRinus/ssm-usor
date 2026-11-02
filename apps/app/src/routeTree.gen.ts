@@ -23,11 +23,11 @@ import { Route as AuthenticatedActualizariRouteImport } from './routes/_authenti
 import { Route as AuthenticatedClientiRouteImport } from './routes/_authenticated/clienti';
 import { Route as AuthenticatedClientiPotentialiRouteImport } from './routes/_authenticated/clienti-potentiali';
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard';
+import { Route as AuthenticatedEvaluariDeRiscRouteImport } from './routes/_authenticated/evaluari-de-risc';
 import { Route as AuthenticatedInstructiuniRouteImport } from './routes/_authenticated/instructiuni';
 import { Route as AuthenticatedLegislatieRouteImport } from './routes/_authenticated/legislatie';
 import { Route as AuthenticatedOrganizatieRouteImport } from './routes/_authenticated/organizatie';
 import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil';
-import { Route as AuthenticatedRiscuriRouteImport } from './routes/_authenticated/riscuri';
 import { Route as AuthenticatedSemnaturiRouteImport } from './routes/_authenticated/semnaturi';
 import { Route as AuthenticatedSetariRouteImport } from './routes/_authenticated/setari';
 import { Route as AuthenticatedTesteRouteImport } from './routes/_authenticated/teste';
@@ -41,6 +41,8 @@ import { Route as AuthenticatedClientiPotentialiNouRouteImport } from './routes/
 import { Route as AuthenticatedClientiIndexRouteImport } from './routes/_authenticated/clienti/index';
 import { Route as AuthenticatedClientiClientIdRouteImport } from './routes/_authenticated/clienti/$clientId';
 import { Route as AuthenticatedClientiNouRouteImport } from './routes/_authenticated/clienti/nou';
+import { Route as AuthenticatedEvaluariDeRiscIndexRouteImport } from './routes/_authenticated/evaluari-de-risc/index';
+import { Route as AuthenticatedEvaluariDeRiscProfileIdRouteImport } from './routes/_authenticated/evaluari-de-risc/$profileId';
 import { Route as AuthenticatedInstructiuniIndexRouteImport } from './routes/_authenticated/instructiuni/index';
 import { Route as AuthenticatedInstructiuniModuleIdRouteImport } from './routes/_authenticated/instructiuni/$moduleId';
 import { Route as AuthenticatedInstructiuniLibraryRouteImport } from './routes/_authenticated/instructiuni/_library';
@@ -54,8 +56,6 @@ import { Route as AuthenticatedOrganizatieAbilitariRouteImport } from './routes/
 import { Route as AuthenticatedOrganizatieAbonamentRouteImport } from './routes/_authenticated/organizatie/abonament';
 import { Route as AuthenticatedOrganizatieDateFirmaRouteImport } from './routes/_authenticated/organizatie/date-firma';
 import { Route as AuthenticatedOrganizatieEchipaRouteImport } from './routes/_authenticated/organizatie/echipa';
-import { Route as AuthenticatedRiscuriIndexRouteImport } from './routes/_authenticated/riscuri/index';
-import { Route as AuthenticatedRiscuriProfileIdRouteImport } from './routes/_authenticated/riscuri/$profileId';
 import { Route as AuthenticatedTesteIndexRouteImport } from './routes/_authenticated/teste/index';
 import { Route as AuthenticatedTesteBankRouteImport } from './routes/_authenticated/teste/_bank';
 import { Route as AuthenticatedClientiPotentialiLeadIdIndexRouteImport } from './routes/_authenticated/clienti-potentiali/$leadId/index';
@@ -99,8 +99,8 @@ import { Route as AuthenticatedClientiClientIdAngajatiEmployeeIdIndexRouteImport
 import { Route as AuthenticatedClientiClientIdAngajatiEmployeeIdEditareRouteImport } from './routes/_authenticated/clienti/$clientId/angajati/$employeeId_.editare';
 import { Route as AuthenticatedClientiClientIdAngajatiImportImportIdRouteImport } from './routes/_authenticated/clienti/$clientId/angajati/import/$importId';
 import { Route as AuthenticatedClientiClientIdPosturiJobPositionIdIndexRouteImport } from './routes/_authenticated/clienti/$clientId/posturi/$jobPositionId/index';
-import { Route as AuthenticatedClientiClientIdPosturiJobPositionIdEvaluareRiscuriRouteImport } from './routes/_authenticated/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri';
-import { Route as AuthenticatedClientiClientIdPosturiEvaluariRiscuriEvaluationIdRouteImport } from './routes/_authenticated/clienti/$clientId/posturi/evaluari-riscuri.$evaluationId';
+import { Route as AuthenticatedClientiClientIdPosturiJobPositionIdFisaDeEvaluareRouteImport } from './routes/_authenticated/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare';
+import { Route as AuthenticatedClientiClientIdPosturiFiseDeEvaluareEvaluationIdRouteImport } from './routes/_authenticated/clienti/$clientId/posturi/fise-de-evaluare.$evaluationId';
 import { Route as AuthenticatedClientiImportImportIdInstructiuniDomainRouteImport } from './routes/_authenticated/clienti/import/$importId/instructiuni/$domain';
 import { Route as AuthenticatedClientiClientIdAngajatiEmployeeIdInstruireIndexRouteImport } from './routes/_authenticated/clienti/$clientId/angajati/$employeeId/instruire/index';
 import { Route as AuthenticatedClientiClientIdAngajatiEmployeeIdInstruireSsmRouteImport } from './routes/_authenticated/clienti/$clientId/angajati/$employeeId/instruire/ssm';
@@ -179,6 +179,12 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any);
+const AuthenticatedEvaluariDeRiscRoute =
+  AuthenticatedEvaluariDeRiscRouteImport.update({
+    id: '/evaluari-de-risc',
+    path: '/evaluari-de-risc',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any);
 const AuthenticatedInstructiuniRoute =
   AuthenticatedInstructiuniRouteImport.update({
     id: '/instructiuni',
@@ -199,11 +205,6 @@ const AuthenticatedOrganizatieRoute =
 const AuthenticatedProfilRoute = AuthenticatedProfilRouteImport.update({
   id: '/profil',
   path: '/profil',
-  getParentRoute: () => AuthenticatedRoute,
-} as any);
-const AuthenticatedRiscuriRoute = AuthenticatedRiscuriRouteImport.update({
-  id: '/riscuri',
-  path: '/riscuri',
   getParentRoute: () => AuthenticatedRoute,
 } as any);
 const AuthenticatedSemnaturiRoute = AuthenticatedSemnaturiRouteImport.update({
@@ -279,6 +280,18 @@ const AuthenticatedClientiNouRoute = AuthenticatedClientiNouRouteImport.update({
   path: '/nou',
   getParentRoute: () => AuthenticatedClientiRoute,
 } as any);
+const AuthenticatedEvaluariDeRiscIndexRoute =
+  AuthenticatedEvaluariDeRiscIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedEvaluariDeRiscRoute,
+  } as any);
+const AuthenticatedEvaluariDeRiscProfileIdRoute =
+  AuthenticatedEvaluariDeRiscProfileIdRouteImport.update({
+    id: '/$profileId',
+    path: '/$profileId',
+    getParentRoute: () => AuthenticatedEvaluariDeRiscRoute,
+  } as any);
 const AuthenticatedInstructiuniIndexRoute =
   AuthenticatedInstructiuniIndexRouteImport.update({
     id: '/',
@@ -355,18 +368,6 @@ const AuthenticatedOrganizatieEchipaRoute =
     id: '/echipa',
     path: '/echipa',
     getParentRoute: () => AuthenticatedOrganizatieRoute,
-  } as any);
-const AuthenticatedRiscuriIndexRoute =
-  AuthenticatedRiscuriIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedRiscuriRoute,
-  } as any);
-const AuthenticatedRiscuriProfileIdRoute =
-  AuthenticatedRiscuriProfileIdRouteImport.update({
-    id: '/$profileId',
-    path: '/$profileId',
-    getParentRoute: () => AuthenticatedRiscuriRoute,
   } as any);
 const AuthenticatedTesteIndexRoute = AuthenticatedTesteIndexRouteImport.update({
   id: '/',
@@ -623,20 +624,20 @@ const AuthenticatedClientiClientIdPosturiJobPositionIdIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedClientiClientIdPosturiJobPositionIdRoute,
   } as any);
-const AuthenticatedClientiClientIdPosturiJobPositionIdEvaluareRiscuriRoute =
-  AuthenticatedClientiClientIdPosturiJobPositionIdEvaluareRiscuriRouteImport.update(
+const AuthenticatedClientiClientIdPosturiJobPositionIdFisaDeEvaluareRoute =
+  AuthenticatedClientiClientIdPosturiJobPositionIdFisaDeEvaluareRouteImport.update(
     {
-      id: '/evaluare-riscuri',
-      path: '/evaluare-riscuri',
+      id: '/fisa-de-evaluare',
+      path: '/fisa-de-evaluare',
       getParentRoute: () =>
         AuthenticatedClientiClientIdPosturiJobPositionIdRoute,
     } as any,
   );
-const AuthenticatedClientiClientIdPosturiEvaluariRiscuriEvaluationIdRoute =
-  AuthenticatedClientiClientIdPosturiEvaluariRiscuriEvaluationIdRouteImport.update(
+const AuthenticatedClientiClientIdPosturiFiseDeEvaluareEvaluationIdRoute =
+  AuthenticatedClientiClientIdPosturiFiseDeEvaluareEvaluationIdRouteImport.update(
     {
-      id: '/evaluari-riscuri/$evaluationId',
-      path: '/evaluari-riscuri/$evaluationId',
+      id: '/fise-de-evaluare/$evaluationId',
+      path: '/fise-de-evaluare/$evaluationId',
       getParentRoute: () => AuthenticatedClientiClientIdPosturiRoute,
     } as any,
   );
@@ -695,11 +696,11 @@ export interface FileRoutesByFullPath {
   '/clienti': typeof AuthenticatedClientiRouteWithChildren;
   '/clienti-potentiali': typeof AuthenticatedClientiPotentialiRouteWithChildren;
   '/dashboard': typeof AuthenticatedDashboardRoute;
+  '/evaluari-de-risc': typeof AuthenticatedEvaluariDeRiscRouteWithChildren;
   '/instructiuni': typeof AuthenticatedInstructiuniRouteWithChildren;
   '/legislatie': typeof AuthenticatedLegislatieRouteWithChildren;
   '/organizatie': typeof AuthenticatedOrganizatieRouteWithChildren;
   '/profil': typeof AuthenticatedProfilRoute;
-  '/riscuri': typeof AuthenticatedRiscuriRouteWithChildren;
   '/semnaturi': typeof AuthenticatedSemnaturiRoute;
   '/setari': typeof AuthenticatedSetariRoute;
   '/teste': typeof AuthenticatedTesteRouteWithChildren;
@@ -709,6 +710,7 @@ export interface FileRoutesByFullPath {
   '/clienti-potentiali/nou': typeof AuthenticatedClientiPotentialiNouRoute;
   '/clienti/$clientId': typeof AuthenticatedClientiClientIdRouteWithChildren;
   '/clienti/nou': typeof AuthenticatedClientiNouRoute;
+  '/evaluari-de-risc/$profileId': typeof AuthenticatedEvaluariDeRiscProfileIdRoute;
   '/instructiuni/$moduleId': typeof AuthenticatedInstructiuniModuleIdRoute;
   '/instructiuni/nou': typeof AuthenticatedInstructiuniNouRoute;
   '/legislatie/acte': typeof AuthenticatedLegislatieActeRoute;
@@ -718,15 +720,14 @@ export interface FileRoutesByFullPath {
   '/organizatie/abonament': typeof AuthenticatedOrganizatieAbonamentRouteWithChildren;
   '/organizatie/date-firma': typeof AuthenticatedOrganizatieDateFirmaRoute;
   '/organizatie/echipa': typeof AuthenticatedOrganizatieEchipaRoute;
-  '/riscuri/$profileId': typeof AuthenticatedRiscuriProfileIdRoute;
   '/actualizari/': typeof AuthenticatedActualizariIndexRoute;
   '/angajati/': typeof AuthenticatedAngajatiIndexRoute;
   '/clienti-potentiali/': typeof AuthenticatedClientiPotentialiIndexRoute;
   '/clienti/': typeof AuthenticatedClientiIndexRoute;
+  '/evaluari-de-risc/': typeof AuthenticatedEvaluariDeRiscIndexRoute;
   '/instructiuni/': typeof AuthenticatedInstructiuniIndexRoute;
   '/legislatie/': typeof AuthenticatedLegislatieIndexRoute;
   '/organizatie/': typeof AuthenticatedOrganizatieIndexRoute;
-  '/riscuri/': typeof AuthenticatedRiscuriIndexRoute;
   '/teste/': typeof AuthenticatedTesteIndexRoute;
   '/clienti-potentiali/$leadId/contract': typeof AuthenticatedClientiPotentialiLeadIdContractRoute;
   '/clienti-potentiali/$leadId/editare': typeof AuthenticatedClientiPotentialiLeadIdEditareRoute;
@@ -767,8 +768,8 @@ export interface FileRoutesByFullPath {
   '/clienti/import/$importId/': typeof AuthenticatedClientiImportImportIdIndexRoute;
   '/clienti/$clientId/angajati/$employeeId/editare': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdEditareRoute;
   '/clienti/$clientId/angajati/import/$importId': typeof AuthenticatedClientiClientIdAngajatiImportImportIdRouteWithChildren;
-  '/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri': typeof AuthenticatedClientiClientIdPosturiJobPositionIdEvaluareRiscuriRoute;
-  '/clienti/$clientId/posturi/evaluari-riscuri/$evaluationId': typeof AuthenticatedClientiClientIdPosturiEvaluariRiscuriEvaluationIdRoute;
+  '/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare': typeof AuthenticatedClientiClientIdPosturiJobPositionIdFisaDeEvaluareRoute;
+  '/clienti/$clientId/posturi/fise-de-evaluare/$evaluationId': typeof AuthenticatedClientiClientIdPosturiFiseDeEvaluareEvaluationIdRoute;
   '/clienti/import/$importId/instructiuni/$domain': typeof AuthenticatedClientiImportImportIdInstructiuniDomainRoute;
   '/clienti/$clientId/angajati/$employeeId/': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdIndexRoute;
   '/clienti/$clientId/posturi/$jobPositionId/': typeof AuthenticatedClientiClientIdPosturiJobPositionIdIndexRoute;
@@ -796,6 +797,7 @@ export interface FileRoutesByTo {
   '/actualizari/$tag': typeof AuthenticatedActualizariTagRoute;
   '/clienti-potentiali/nou': typeof AuthenticatedClientiPotentialiNouRoute;
   '/clienti/nou': typeof AuthenticatedClientiNouRoute;
+  '/evaluari-de-risc/$profileId': typeof AuthenticatedEvaluariDeRiscProfileIdRoute;
   '/instructiuni/$moduleId': typeof AuthenticatedInstructiuniModuleIdRoute;
   '/instructiuni': typeof AuthenticatedInstructiuniIndexRoute;
   '/instructiuni/nou': typeof AuthenticatedInstructiuniNouRoute;
@@ -805,15 +807,14 @@ export interface FileRoutesByTo {
   '/organizatie/abilitari': typeof AuthenticatedOrganizatieAbilitariRoute;
   '/organizatie/date-firma': typeof AuthenticatedOrganizatieDateFirmaRoute;
   '/organizatie/echipa': typeof AuthenticatedOrganizatieEchipaRoute;
-  '/riscuri/$profileId': typeof AuthenticatedRiscuriProfileIdRoute;
   '/teste': typeof AuthenticatedTesteIndexRoute;
   '/actualizari': typeof AuthenticatedActualizariIndexRoute;
   '/angajati': typeof AuthenticatedAngajatiIndexRoute;
   '/clienti-potentiali': typeof AuthenticatedClientiPotentialiIndexRoute;
   '/clienti': typeof AuthenticatedClientiIndexRoute;
+  '/evaluari-de-risc': typeof AuthenticatedEvaluariDeRiscIndexRoute;
   '/legislatie': typeof AuthenticatedLegislatieIndexRoute;
   '/organizatie': typeof AuthenticatedOrganizatieIndexRoute;
-  '/riscuri': typeof AuthenticatedRiscuriIndexRoute;
   '/clienti-potentiali/$leadId/contract': typeof AuthenticatedClientiPotentialiLeadIdContractRoute;
   '/clienti-potentiali/$leadId/editare': typeof AuthenticatedClientiPotentialiLeadIdEditareRoute;
   '/clienti/$clientId/detalii': typeof AuthenticatedClientiClientIdDetaliiRoute;
@@ -843,8 +844,8 @@ export interface FileRoutesByTo {
   '/clienti/$clientId/posturi': typeof AuthenticatedClientiClientIdPosturiIndexRoute;
   '/clienti/import/$importId': typeof AuthenticatedClientiImportImportIdIndexRoute;
   '/clienti/$clientId/angajati/$employeeId/editare': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdEditareRoute;
-  '/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri': typeof AuthenticatedClientiClientIdPosturiJobPositionIdEvaluareRiscuriRoute;
-  '/clienti/$clientId/posturi/evaluari-riscuri/$evaluationId': typeof AuthenticatedClientiClientIdPosturiEvaluariRiscuriEvaluationIdRoute;
+  '/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare': typeof AuthenticatedClientiClientIdPosturiJobPositionIdFisaDeEvaluareRoute;
+  '/clienti/$clientId/posturi/fise-de-evaluare/$evaluationId': typeof AuthenticatedClientiClientIdPosturiFiseDeEvaluareEvaluationIdRoute;
   '/clienti/import/$importId/instructiuni/$domain': typeof AuthenticatedClientiImportImportIdInstructiuniDomainRoute;
   '/clienti/$clientId/angajati/$employeeId': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdIndexRoute;
   '/clienti/$clientId/posturi/$jobPositionId': typeof AuthenticatedClientiClientIdPosturiJobPositionIdIndexRoute;
@@ -870,11 +871,11 @@ export interface FileRoutesById {
   '/_authenticated/clienti': typeof AuthenticatedClientiRouteWithChildren;
   '/_authenticated/clienti-potentiali': typeof AuthenticatedClientiPotentialiRouteWithChildren;
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute;
+  '/_authenticated/evaluari-de-risc': typeof AuthenticatedEvaluariDeRiscRouteWithChildren;
   '/_authenticated/instructiuni': typeof AuthenticatedInstructiuniRouteWithChildren;
   '/_authenticated/legislatie': typeof AuthenticatedLegislatieRouteWithChildren;
   '/_authenticated/organizatie': typeof AuthenticatedOrganizatieRouteWithChildren;
   '/_authenticated/profil': typeof AuthenticatedProfilRoute;
-  '/_authenticated/riscuri': typeof AuthenticatedRiscuriRouteWithChildren;
   '/_authenticated/semnaturi': typeof AuthenticatedSemnaturiRoute;
   '/_authenticated/setari': typeof AuthenticatedSetariRoute;
   '/_authenticated/teste': typeof AuthenticatedTesteRouteWithChildren;
@@ -884,6 +885,7 @@ export interface FileRoutesById {
   '/_authenticated/clienti-potentiali/nou': typeof AuthenticatedClientiPotentialiNouRoute;
   '/_authenticated/clienti/$clientId': typeof AuthenticatedClientiClientIdRouteWithChildren;
   '/_authenticated/clienti/nou': typeof AuthenticatedClientiNouRoute;
+  '/_authenticated/evaluari-de-risc/$profileId': typeof AuthenticatedEvaluariDeRiscProfileIdRoute;
   '/_authenticated/instructiuni/$moduleId': typeof AuthenticatedInstructiuniModuleIdRoute;
   '/_authenticated/instructiuni/_library': typeof AuthenticatedInstructiuniLibraryRouteWithChildren;
   '/_authenticated/instructiuni/nou': typeof AuthenticatedInstructiuniNouRoute;
@@ -894,16 +896,15 @@ export interface FileRoutesById {
   '/_authenticated/organizatie/abonament': typeof AuthenticatedOrganizatieAbonamentRouteWithChildren;
   '/_authenticated/organizatie/date-firma': typeof AuthenticatedOrganizatieDateFirmaRoute;
   '/_authenticated/organizatie/echipa': typeof AuthenticatedOrganizatieEchipaRoute;
-  '/_authenticated/riscuri/$profileId': typeof AuthenticatedRiscuriProfileIdRoute;
   '/_authenticated/teste/_bank': typeof AuthenticatedTesteBankRouteWithChildren;
   '/_authenticated/actualizari/': typeof AuthenticatedActualizariIndexRoute;
   '/_authenticated/angajati/': typeof AuthenticatedAngajatiIndexRoute;
   '/_authenticated/clienti-potentiali/': typeof AuthenticatedClientiPotentialiIndexRoute;
   '/_authenticated/clienti/': typeof AuthenticatedClientiIndexRoute;
+  '/_authenticated/evaluari-de-risc/': typeof AuthenticatedEvaluariDeRiscIndexRoute;
   '/_authenticated/instructiuni/': typeof AuthenticatedInstructiuniIndexRoute;
   '/_authenticated/legislatie/': typeof AuthenticatedLegislatieIndexRoute;
   '/_authenticated/organizatie/': typeof AuthenticatedOrganizatieIndexRoute;
-  '/_authenticated/riscuri/': typeof AuthenticatedRiscuriIndexRoute;
   '/_authenticated/teste/': typeof AuthenticatedTesteIndexRoute;
   '/_authenticated/clienti-potentiali/$leadId/contract': typeof AuthenticatedClientiPotentialiLeadIdContractRoute;
   '/_authenticated/clienti-potentiali/$leadId/editare': typeof AuthenticatedClientiPotentialiLeadIdEditareRoute;
@@ -944,8 +945,8 @@ export interface FileRoutesById {
   '/_authenticated/clienti/import/$importId/': typeof AuthenticatedClientiImportImportIdIndexRoute;
   '/_authenticated/clienti/$clientId/angajati/$employeeId_/editare': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdEditareRoute;
   '/_authenticated/clienti/$clientId/angajati/import/$importId': typeof AuthenticatedClientiClientIdAngajatiImportImportIdRouteWithChildren;
-  '/_authenticated/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri': typeof AuthenticatedClientiClientIdPosturiJobPositionIdEvaluareRiscuriRoute;
-  '/_authenticated/clienti/$clientId/posturi/evaluari-riscuri/$evaluationId': typeof AuthenticatedClientiClientIdPosturiEvaluariRiscuriEvaluationIdRoute;
+  '/_authenticated/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare': typeof AuthenticatedClientiClientIdPosturiJobPositionIdFisaDeEvaluareRoute;
+  '/_authenticated/clienti/$clientId/posturi/fise-de-evaluare/$evaluationId': typeof AuthenticatedClientiClientIdPosturiFiseDeEvaluareEvaluationIdRoute;
   '/_authenticated/clienti/import/$importId/instructiuni/$domain': typeof AuthenticatedClientiImportImportIdInstructiuniDomainRoute;
   '/_authenticated/clienti/$clientId/angajati/$employeeId/': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdIndexRoute;
   '/_authenticated/clienti/$clientId/posturi/$jobPositionId/': typeof AuthenticatedClientiClientIdPosturiJobPositionIdIndexRoute;
@@ -971,11 +972,11 @@ export interface FileRouteTypes {
     | '/clienti'
     | '/clienti-potentiali'
     | '/dashboard'
+    | '/evaluari-de-risc'
     | '/instructiuni'
     | '/legislatie'
     | '/organizatie'
     | '/profil'
-    | '/riscuri'
     | '/semnaturi'
     | '/setari'
     | '/teste'
@@ -985,6 +986,7 @@ export interface FileRouteTypes {
     | '/clienti-potentiali/nou'
     | '/clienti/$clientId'
     | '/clienti/nou'
+    | '/evaluari-de-risc/$profileId'
     | '/instructiuni/$moduleId'
     | '/instructiuni/nou'
     | '/legislatie/acte'
@@ -994,15 +996,14 @@ export interface FileRouteTypes {
     | '/organizatie/abonament'
     | '/organizatie/date-firma'
     | '/organizatie/echipa'
-    | '/riscuri/$profileId'
     | '/actualizari/'
     | '/angajati/'
     | '/clienti-potentiali/'
     | '/clienti/'
+    | '/evaluari-de-risc/'
     | '/instructiuni/'
     | '/legislatie/'
     | '/organizatie/'
-    | '/riscuri/'
     | '/teste/'
     | '/clienti-potentiali/$leadId/contract'
     | '/clienti-potentiali/$leadId/editare'
@@ -1043,8 +1044,8 @@ export interface FileRouteTypes {
     | '/clienti/import/$importId/'
     | '/clienti/$clientId/angajati/$employeeId/editare'
     | '/clienti/$clientId/angajati/import/$importId'
-    | '/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri'
-    | '/clienti/$clientId/posturi/evaluari-riscuri/$evaluationId'
+    | '/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare'
+    | '/clienti/$clientId/posturi/fise-de-evaluare/$evaluationId'
     | '/clienti/import/$importId/instructiuni/$domain'
     | '/clienti/$clientId/angajati/$employeeId/'
     | '/clienti/$clientId/posturi/$jobPositionId/'
@@ -1072,6 +1073,7 @@ export interface FileRouteTypes {
     | '/actualizari/$tag'
     | '/clienti-potentiali/nou'
     | '/clienti/nou'
+    | '/evaluari-de-risc/$profileId'
     | '/instructiuni/$moduleId'
     | '/instructiuni'
     | '/instructiuni/nou'
@@ -1081,15 +1083,14 @@ export interface FileRouteTypes {
     | '/organizatie/abilitari'
     | '/organizatie/date-firma'
     | '/organizatie/echipa'
-    | '/riscuri/$profileId'
     | '/teste'
     | '/actualizari'
     | '/angajati'
     | '/clienti-potentiali'
     | '/clienti'
+    | '/evaluari-de-risc'
     | '/legislatie'
     | '/organizatie'
-    | '/riscuri'
     | '/clienti-potentiali/$leadId/contract'
     | '/clienti-potentiali/$leadId/editare'
     | '/clienti/$clientId/detalii'
@@ -1119,8 +1120,8 @@ export interface FileRouteTypes {
     | '/clienti/$clientId/posturi'
     | '/clienti/import/$importId'
     | '/clienti/$clientId/angajati/$employeeId/editare'
-    | '/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri'
-    | '/clienti/$clientId/posturi/evaluari-riscuri/$evaluationId'
+    | '/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare'
+    | '/clienti/$clientId/posturi/fise-de-evaluare/$evaluationId'
     | '/clienti/import/$importId/instructiuni/$domain'
     | '/clienti/$clientId/angajati/$employeeId'
     | '/clienti/$clientId/posturi/$jobPositionId'
@@ -1145,11 +1146,11 @@ export interface FileRouteTypes {
     | '/_authenticated/clienti'
     | '/_authenticated/clienti-potentiali'
     | '/_authenticated/dashboard'
+    | '/_authenticated/evaluari-de-risc'
     | '/_authenticated/instructiuni'
     | '/_authenticated/legislatie'
     | '/_authenticated/organizatie'
     | '/_authenticated/profil'
-    | '/_authenticated/riscuri'
     | '/_authenticated/semnaturi'
     | '/_authenticated/setari'
     | '/_authenticated/teste'
@@ -1159,6 +1160,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clienti-potentiali/nou'
     | '/_authenticated/clienti/$clientId'
     | '/_authenticated/clienti/nou'
+    | '/_authenticated/evaluari-de-risc/$profileId'
     | '/_authenticated/instructiuni/$moduleId'
     | '/_authenticated/instructiuni/_library'
     | '/_authenticated/instructiuni/nou'
@@ -1169,16 +1171,15 @@ export interface FileRouteTypes {
     | '/_authenticated/organizatie/abonament'
     | '/_authenticated/organizatie/date-firma'
     | '/_authenticated/organizatie/echipa'
-    | '/_authenticated/riscuri/$profileId'
     | '/_authenticated/teste/_bank'
     | '/_authenticated/actualizari/'
     | '/_authenticated/angajati/'
     | '/_authenticated/clienti-potentiali/'
     | '/_authenticated/clienti/'
+    | '/_authenticated/evaluari-de-risc/'
     | '/_authenticated/instructiuni/'
     | '/_authenticated/legislatie/'
     | '/_authenticated/organizatie/'
-    | '/_authenticated/riscuri/'
     | '/_authenticated/teste/'
     | '/_authenticated/clienti-potentiali/$leadId/contract'
     | '/_authenticated/clienti-potentiali/$leadId/editare'
@@ -1219,8 +1220,8 @@ export interface FileRouteTypes {
     | '/_authenticated/clienti/import/$importId/'
     | '/_authenticated/clienti/$clientId/angajati/$employeeId_/editare'
     | '/_authenticated/clienti/$clientId/angajati/import/$importId'
-    | '/_authenticated/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri'
-    | '/_authenticated/clienti/$clientId/posturi/evaluari-riscuri/$evaluationId'
+    | '/_authenticated/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare'
+    | '/_authenticated/clienti/$clientId/posturi/fise-de-evaluare/$evaluationId'
     | '/_authenticated/clienti/import/$importId/instructiuni/$domain'
     | '/_authenticated/clienti/$clientId/angajati/$employeeId/'
     | '/_authenticated/clienti/$clientId/posturi/$jobPositionId/'
@@ -1345,6 +1346,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport;
       parentRoute: typeof AuthenticatedRoute;
     };
+    '/_authenticated/evaluari-de-risc': {
+      id: '/_authenticated/evaluari-de-risc';
+      path: '/evaluari-de-risc';
+      fullPath: '/evaluari-de-risc';
+      preLoaderRoute: typeof AuthenticatedEvaluariDeRiscRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
     '/_authenticated/instructiuni': {
       id: '/_authenticated/instructiuni';
       path: '/instructiuni';
@@ -1371,13 +1379,6 @@ declare module '@tanstack/react-router' {
       path: '/profil';
       fullPath: '/profil';
       preLoaderRoute: typeof AuthenticatedProfilRouteImport;
-      parentRoute: typeof AuthenticatedRoute;
-    };
-    '/_authenticated/riscuri': {
-      id: '/_authenticated/riscuri';
-      path: '/riscuri';
-      fullPath: '/riscuri';
-      preLoaderRoute: typeof AuthenticatedRiscuriRouteImport;
       parentRoute: typeof AuthenticatedRoute;
     };
     '/_authenticated/semnaturi': {
@@ -1471,6 +1472,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientiNouRouteImport;
       parentRoute: typeof AuthenticatedClientiRoute;
     };
+    '/_authenticated/evaluari-de-risc/': {
+      id: '/_authenticated/evaluari-de-risc/';
+      path: '/';
+      fullPath: '/evaluari-de-risc/';
+      preLoaderRoute: typeof AuthenticatedEvaluariDeRiscIndexRouteImport;
+      parentRoute: typeof AuthenticatedEvaluariDeRiscRoute;
+    };
+    '/_authenticated/evaluari-de-risc/$profileId': {
+      id: '/_authenticated/evaluari-de-risc/$profileId';
+      path: '/$profileId';
+      fullPath: '/evaluari-de-risc/$profileId';
+      preLoaderRoute: typeof AuthenticatedEvaluariDeRiscProfileIdRouteImport;
+      parentRoute: typeof AuthenticatedEvaluariDeRiscRoute;
+    };
     '/_authenticated/instructiuni/': {
       id: '/_authenticated/instructiuni/';
       path: '/';
@@ -1561,20 +1576,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/organizatie/echipa';
       preLoaderRoute: typeof AuthenticatedOrganizatieEchipaRouteImport;
       parentRoute: typeof AuthenticatedOrganizatieRoute;
-    };
-    '/_authenticated/riscuri/': {
-      id: '/_authenticated/riscuri/';
-      path: '/';
-      fullPath: '/riscuri/';
-      preLoaderRoute: typeof AuthenticatedRiscuriIndexRouteImport;
-      parentRoute: typeof AuthenticatedRiscuriRoute;
-    };
-    '/_authenticated/riscuri/$profileId': {
-      id: '/_authenticated/riscuri/$profileId';
-      path: '/$profileId';
-      fullPath: '/riscuri/$profileId';
-      preLoaderRoute: typeof AuthenticatedRiscuriProfileIdRouteImport;
-      parentRoute: typeof AuthenticatedRiscuriRoute;
     };
     '/_authenticated/teste/': {
       id: '/_authenticated/teste/';
@@ -1877,18 +1878,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientiClientIdPosturiJobPositionIdIndexRouteImport;
       parentRoute: typeof AuthenticatedClientiClientIdPosturiJobPositionIdRoute;
     };
-    '/_authenticated/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri': {
-      id: '/_authenticated/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri';
-      path: '/evaluare-riscuri';
-      fullPath: '/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri';
-      preLoaderRoute: typeof AuthenticatedClientiClientIdPosturiJobPositionIdEvaluareRiscuriRouteImport;
+    '/_authenticated/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare': {
+      id: '/_authenticated/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare';
+      path: '/fisa-de-evaluare';
+      fullPath: '/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare';
+      preLoaderRoute: typeof AuthenticatedClientiClientIdPosturiJobPositionIdFisaDeEvaluareRouteImport;
       parentRoute: typeof AuthenticatedClientiClientIdPosturiJobPositionIdRoute;
     };
-    '/_authenticated/clienti/$clientId/posturi/evaluari-riscuri/$evaluationId': {
-      id: '/_authenticated/clienti/$clientId/posturi/evaluari-riscuri/$evaluationId';
-      path: '/evaluari-riscuri/$evaluationId';
-      fullPath: '/clienti/$clientId/posturi/evaluari-riscuri/$evaluationId';
-      preLoaderRoute: typeof AuthenticatedClientiClientIdPosturiEvaluariRiscuriEvaluationIdRouteImport;
+    '/_authenticated/clienti/$clientId/posturi/fise-de-evaluare/$evaluationId': {
+      id: '/_authenticated/clienti/$clientId/posturi/fise-de-evaluare/$evaluationId';
+      path: '/fise-de-evaluare/$evaluationId';
+      fullPath: '/clienti/$clientId/posturi/fise-de-evaluare/$evaluationId';
+      preLoaderRoute: typeof AuthenticatedClientiClientIdPosturiFiseDeEvaluareEvaluationIdRouteImport;
       parentRoute: typeof AuthenticatedClientiClientIdPosturiRoute;
     };
     '/_authenticated/clienti/import/$importId/instructiuni/$domain': {
@@ -2091,14 +2092,14 @@ const AuthenticatedClientiClientIdDocumenteSuRouteWithChildren =
   );
 
 interface AuthenticatedClientiClientIdPosturiJobPositionIdRouteChildren {
-  AuthenticatedClientiClientIdPosturiJobPositionIdEvaluareRiscuriRoute: typeof AuthenticatedClientiClientIdPosturiJobPositionIdEvaluareRiscuriRoute;
+  AuthenticatedClientiClientIdPosturiJobPositionIdFisaDeEvaluareRoute: typeof AuthenticatedClientiClientIdPosturiJobPositionIdFisaDeEvaluareRoute;
   AuthenticatedClientiClientIdPosturiJobPositionIdIndexRoute: typeof AuthenticatedClientiClientIdPosturiJobPositionIdIndexRoute;
 }
 
 const AuthenticatedClientiClientIdPosturiJobPositionIdRouteChildren: AuthenticatedClientiClientIdPosturiJobPositionIdRouteChildren =
   {
-    AuthenticatedClientiClientIdPosturiJobPositionIdEvaluareRiscuriRoute:
-      AuthenticatedClientiClientIdPosturiJobPositionIdEvaluareRiscuriRoute,
+    AuthenticatedClientiClientIdPosturiJobPositionIdFisaDeEvaluareRoute:
+      AuthenticatedClientiClientIdPosturiJobPositionIdFisaDeEvaluareRoute,
     AuthenticatedClientiClientIdPosturiJobPositionIdIndexRoute:
       AuthenticatedClientiClientIdPosturiJobPositionIdIndexRoute,
   };
@@ -2111,7 +2112,7 @@ const AuthenticatedClientiClientIdPosturiJobPositionIdRouteWithChildren =
 interface AuthenticatedClientiClientIdPosturiRouteChildren {
   AuthenticatedClientiClientIdPosturiJobPositionIdRoute: typeof AuthenticatedClientiClientIdPosturiJobPositionIdRouteWithChildren;
   AuthenticatedClientiClientIdPosturiIndexRoute: typeof AuthenticatedClientiClientIdPosturiIndexRoute;
-  AuthenticatedClientiClientIdPosturiEvaluariRiscuriEvaluationIdRoute: typeof AuthenticatedClientiClientIdPosturiEvaluariRiscuriEvaluationIdRoute;
+  AuthenticatedClientiClientIdPosturiFiseDeEvaluareEvaluationIdRoute: typeof AuthenticatedClientiClientIdPosturiFiseDeEvaluareEvaluationIdRoute;
 }
 
 const AuthenticatedClientiClientIdPosturiRouteChildren: AuthenticatedClientiClientIdPosturiRouteChildren =
@@ -2120,8 +2121,8 @@ const AuthenticatedClientiClientIdPosturiRouteChildren: AuthenticatedClientiClie
       AuthenticatedClientiClientIdPosturiJobPositionIdRouteWithChildren,
     AuthenticatedClientiClientIdPosturiIndexRoute:
       AuthenticatedClientiClientIdPosturiIndexRoute,
-    AuthenticatedClientiClientIdPosturiEvaluariRiscuriEvaluationIdRoute:
-      AuthenticatedClientiClientIdPosturiEvaluariRiscuriEvaluationIdRoute,
+    AuthenticatedClientiClientIdPosturiFiseDeEvaluareEvaluationIdRoute:
+      AuthenticatedClientiClientIdPosturiFiseDeEvaluareEvaluationIdRoute,
   };
 
 const AuthenticatedClientiClientIdPosturiRouteWithChildren =
@@ -2262,6 +2263,24 @@ const AuthenticatedClientiPotentialiRouteWithChildren =
     AuthenticatedClientiPotentialiRouteChildren,
   );
 
+interface AuthenticatedEvaluariDeRiscRouteChildren {
+  AuthenticatedEvaluariDeRiscProfileIdRoute: typeof AuthenticatedEvaluariDeRiscProfileIdRoute;
+  AuthenticatedEvaluariDeRiscIndexRoute: typeof AuthenticatedEvaluariDeRiscIndexRoute;
+}
+
+const AuthenticatedEvaluariDeRiscRouteChildren: AuthenticatedEvaluariDeRiscRouteChildren =
+  {
+    AuthenticatedEvaluariDeRiscProfileIdRoute:
+      AuthenticatedEvaluariDeRiscProfileIdRoute,
+    AuthenticatedEvaluariDeRiscIndexRoute:
+      AuthenticatedEvaluariDeRiscIndexRoute,
+  };
+
+const AuthenticatedEvaluariDeRiscRouteWithChildren =
+  AuthenticatedEvaluariDeRiscRoute._addFileChildren(
+    AuthenticatedEvaluariDeRiscRouteChildren,
+  );
+
 interface AuthenticatedInstructiuniLibraryRouteChildren {
   AuthenticatedInstructiuniLibrarySsmRoute: typeof AuthenticatedInstructiuniLibrarySsmRoute;
   AuthenticatedInstructiuniLibrarySuRoute: typeof AuthenticatedInstructiuniLibrarySuRoute;
@@ -2367,19 +2386,6 @@ const AuthenticatedOrganizatieRouteWithChildren =
     AuthenticatedOrganizatieRouteChildren,
   );
 
-interface AuthenticatedRiscuriRouteChildren {
-  AuthenticatedRiscuriProfileIdRoute: typeof AuthenticatedRiscuriProfileIdRoute;
-  AuthenticatedRiscuriIndexRoute: typeof AuthenticatedRiscuriIndexRoute;
-}
-
-const AuthenticatedRiscuriRouteChildren: AuthenticatedRiscuriRouteChildren = {
-  AuthenticatedRiscuriProfileIdRoute: AuthenticatedRiscuriProfileIdRoute,
-  AuthenticatedRiscuriIndexRoute: AuthenticatedRiscuriIndexRoute,
-};
-
-const AuthenticatedRiscuriRouteWithChildren =
-  AuthenticatedRiscuriRoute._addFileChildren(AuthenticatedRiscuriRouteChildren);
-
 interface AuthenticatedTesteBankRouteChildren {
   AuthenticatedTesteBankSsmRoute: typeof AuthenticatedTesteBankSsmRoute;
   AuthenticatedTesteBankSuRoute: typeof AuthenticatedTesteBankSuRoute;
@@ -2414,11 +2420,11 @@ interface AuthenticatedRouteChildren {
   AuthenticatedClientiRoute: typeof AuthenticatedClientiRouteWithChildren;
   AuthenticatedClientiPotentialiRoute: typeof AuthenticatedClientiPotentialiRouteWithChildren;
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute;
+  AuthenticatedEvaluariDeRiscRoute: typeof AuthenticatedEvaluariDeRiscRouteWithChildren;
   AuthenticatedInstructiuniRoute: typeof AuthenticatedInstructiuniRouteWithChildren;
   AuthenticatedLegislatieRoute: typeof AuthenticatedLegislatieRouteWithChildren;
   AuthenticatedOrganizatieRoute: typeof AuthenticatedOrganizatieRouteWithChildren;
   AuthenticatedProfilRoute: typeof AuthenticatedProfilRoute;
-  AuthenticatedRiscuriRoute: typeof AuthenticatedRiscuriRouteWithChildren;
   AuthenticatedSemnaturiRoute: typeof AuthenticatedSemnaturiRoute;
   AuthenticatedSetariRoute: typeof AuthenticatedSetariRoute;
   AuthenticatedTesteRoute: typeof AuthenticatedTesteRouteWithChildren;
@@ -2431,11 +2437,12 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedClientiPotentialiRoute:
     AuthenticatedClientiPotentialiRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedEvaluariDeRiscRoute:
+    AuthenticatedEvaluariDeRiscRouteWithChildren,
   AuthenticatedInstructiuniRoute: AuthenticatedInstructiuniRouteWithChildren,
   AuthenticatedLegislatieRoute: AuthenticatedLegislatieRouteWithChildren,
   AuthenticatedOrganizatieRoute: AuthenticatedOrganizatieRouteWithChildren,
   AuthenticatedProfilRoute: AuthenticatedProfilRoute,
-  AuthenticatedRiscuriRoute: AuthenticatedRiscuriRouteWithChildren,
   AuthenticatedSemnaturiRoute: AuthenticatedSemnaturiRoute,
   AuthenticatedSetariRoute: AuthenticatedSetariRoute,
   AuthenticatedTesteRoute: AuthenticatedTesteRouteWithChildren,

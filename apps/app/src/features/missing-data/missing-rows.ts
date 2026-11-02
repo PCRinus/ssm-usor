@@ -53,7 +53,7 @@ const to = {
     }),
   clientEvaluation: (clientId: string, evaluationId: string) =>
     linkOptions({
-      to: '/clienti/$clientId/posturi/evaluari-riscuri/$evaluationId',
+      to: '/clienti/$clientId/posturi/fise-de-evaluare/$evaluationId',
       params: { clientId, evaluationId },
       hash: evaluationSections.factors,
     }),
@@ -86,7 +86,7 @@ const to = {
   // Before the position is evaluated, the page offers to start.
   positionEvaluation: (clientId: string, jobPositionId: string) =>
     linkOptions({
-      to: '/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri',
+      to: '/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare',
       params: { clientId, jobPositionId },
       hash: evaluationSections.factors,
     }),

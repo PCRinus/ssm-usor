@@ -12,7 +12,7 @@ const profileLinkClass =
 function ProfileLink({ profile }: { profile: RiskFactorSourceProfile }) {
   return (
     <Link
-      to="/riscuri/$profileId"
+      to="/evaluari-de-risc/$profileId"
       params={{ profileId: profile.id }}
       data-testid="risk-factor-origin-link"
       className={profileLinkClass}

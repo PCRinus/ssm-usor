@@ -18,7 +18,7 @@ import { factorListSearch } from '@/features/risk-evaluations/use-factor-list-vi
 // The client-level evaluations live under the positions section, where their card is, so that
 // section stays the current tab.
 export const Route = createFileRoute(
-  '/_authenticated/clienti/$clientId/posturi/evaluari-riscuri/$evaluationId'
+  '/_authenticated/clienti/$clientId/posturi/fise-de-evaluare/$evaluationId'
 )({
   validateSearch: factorListSearch,
   params: { parse: (params) => ({ evaluationId: z.uuid().parse(params.evaluationId) }) },
@@ -43,7 +43,7 @@ export const Route = createFileRoute(
     }
     if (evaluation.jobPosition) {
       throw redirect({
-        to: '/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri',
+        to: '/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare',
         params: { clientId: params.clientId, jobPositionId: evaluation.jobPosition.id },
         replace: true,
       });

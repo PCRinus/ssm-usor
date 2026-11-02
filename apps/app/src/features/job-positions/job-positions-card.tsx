@@ -335,7 +335,7 @@ export function JobPositionsCard({
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild data-testid="job-position-menu-risk">
                         <Link
-                          to="/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri"
+                          to="/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare"
                           params={{ clientId, jobPositionId: position.id }}
                         >
                           Evaluare de risc
@@ -446,7 +446,7 @@ function RiskEvaluationLink({
   return (
     <DecisionBadge asChild decision={(evaluation && evaluation.factorCount > 0) || null}>
       <Link
-        to="/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri"
+        to="/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare"
         params={{ clientId, jobPositionId: position.id }}
         data-testid="job-position-risk"
       >

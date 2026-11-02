@@ -25,12 +25,12 @@ export function useStartEvaluation(clientId: string) {
       await cache.saved(evaluation);
       if (evaluation.jobPosition) {
         await navigate({
-          to: '/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri',
+          to: '/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare',
           params: { clientId, jobPositionId: evaluation.jobPosition.id },
         });
       } else {
         await navigate({
-          to: '/clienti/$clientId/posturi/evaluari-riscuri/$evaluationId',
+          to: '/clienti/$clientId/posturi/fise-de-evaluare/$evaluationId',
           params: { clientId, evaluationId: evaluation.id },
         });
       }
