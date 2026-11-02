@@ -12106,8 +12106,9 @@ export type RisksLibraryPartChangesSheets = {
     /**
      * @minLength 1
      * @maxLength 120
+     * @nullable
      */
-    exposure?: string;
+    exposure?: string | null;
     factors?: RisksLibraryPartChangesSheetsFactors;
   };
 };
@@ -12234,8 +12235,9 @@ export type SaveImportLibraryPartChangesRequestChanges =
           /**
            * @minLength 1
            * @maxLength 120
+           * @nullable
            */
-          exposure?: string;
+          exposure?: string | null;
           factors?: {
             [key: string]: {
               included?: boolean;

@@ -18273,6 +18273,7 @@
                     },
                     "exposure": {
                       "type": "string",
+                      "nullable": true,
                       "minLength": 1,
                       "maxLength": 120
                     },
@@ -19183,6 +19184,7 @@
                         },
                         "exposure": {
                           "type": "string",
+                          "nullable": true,
                           "minLength": 1,
                           "maxLength": 120
                         },
