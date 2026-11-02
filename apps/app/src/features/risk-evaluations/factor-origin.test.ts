@@ -73,7 +73,7 @@ describe('the origin summary of an evaluation', () => {
 
   it('names several profiles, the most used first', () => {
     expect(sentence([factor(driver), ...many(3, office)])).toBe(
-      '3 factori sunt în evaluarea Lucrător de birou și unul în evaluarea Șofer din bibliotecă.'
+      'Toți cei 4 factori sunt din bibliotecă: 3 în evaluarea Lucrător de birou și unul în evaluarea Șofer.'
     );
     expect(
       sentence([...many(2, welder), ...many(8, office), ...many(2, driver), ...many(4, null)])

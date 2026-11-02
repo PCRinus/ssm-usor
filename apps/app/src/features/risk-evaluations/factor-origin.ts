@@ -54,10 +54,16 @@ export function originSummary(factors: readonly RiskFactor[]): SummaryPart[] | n
     return [`${all} în evaluarea `, first.profile, ' din bibliotecă.'];
   }
 
-  const parts: SummaryPart[] = [
-    `${first.count === 1 ? 'Un factor este' : `${factorCountLabel(first.count)} sunt`} în evaluarea `,
-    first.profile,
-  ];
+  const parts: SummaryPart[] =
+    rest === 0
+      ? [
+          `${total === 2 ? 'Ambii factori sunt' : `Toți cei ${factorCountLabel(total).toLowerCase()} sunt`} din bibliotecă: ${first.count === 1 ? 'unul' : first.count} în evaluarea `,
+          first.profile,
+        ]
+      : [
+          `${first.count === 1 ? 'Un factor este' : `${factorCountLabel(first.count)} sunt`} în evaluarea `,
+          first.profile,
+        ];
   others.forEach((share, index) => {
     const separator = index === others.length - 1 ? ' și ' : ', ';
     parts.push(
@@ -65,7 +71,7 @@ export function originSummary(factors: readonly RiskFactor[]): SummaryPart[] | n
       share.profile
     );
   });
-  if (rest === 0) parts.push(' din bibliotecă.');
+  if (rest === 0) parts.push('.');
   else if (rest === 1) parts.push(`; ${total === 2 ? 'celălalt' : 'unul'} nu este în bibliotecă.`);
   else parts.push(`; ceilalți ${rest} nu sunt în bibliotecă.`);
   return parts;
