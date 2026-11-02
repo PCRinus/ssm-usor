@@ -41,8 +41,6 @@ import {
   unitTitle,
 } from './fire-means-schema';
 
-const rowClass =
-  'max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:gap-x-2 max-sm:gap-y-1 max-sm:py-3';
 // The two tables of a card share their date and firm columns, so they read as one register.
 const columns = {
   what: 'w-[32%]',
@@ -50,7 +48,6 @@ const columns = {
   whatAndWhich: 'w-[62%]',
   when: 'w-[19%]',
 };
-const stackedCell = 'max-sm:col-start-1 max-sm:p-0 whitespace-normal';
 
 export function WorkplaceMeansCard({
   workplace,
@@ -130,8 +127,8 @@ export function WorkplaceMeansCard({
             Niciun stingător încă. Documentele PSI cer cel puțin unul la fiecare loc de muncă.
           </p>
         ) : (
-          <Table className="max-sm:block">
-            <TableHeader className="max-sm:sr-only">
+          <Table>
+            <TableHeader>
               <TableRow>
                 <TableHead className={columns.what}>Mijlocul</TableHead>
                 <TableHead className={columns.which}>Identificare</TableHead>
@@ -144,18 +141,18 @@ export function WorkplaceMeansCard({
                 )}
               </TableRow>
             </TableHeader>
-            <TableBody className="max-sm:block">
+            <TableBody>
               {equipment.map((unit) => (
                 <TableRow
                   key={unit.id}
                   data-testid="fire-equipment-row"
                   {...rowClickProps(readOnly ? undefined : () => onEditEquipment(unit))}
-                  className={cn(rowClass, !readOnly && 'cursor-pointer')}
+                  className={cn(!readOnly && 'cursor-pointer')}
                 >
-                  <TableCell className={stackedCell}>
+                  <TableCell className="min-w-40 whitespace-normal">
                     <UnitCell unit={unit} />
                   </TableCell>
-                  <TableCell className={stackedCell}>
+                  <TableCell className="min-w-40 whitespace-normal">
                     <Lines
                       first={unit.label && <span className="font-medium">Nr. {unit.label}</span>}
                       second={[
@@ -166,7 +163,7 @@ export function WorkplaceMeansCard({
                         .join(', ')}
                     />
                   </TableCell>
-                  <TableCell className={stackedCell}>
+                  <TableCell className="min-w-40 whitespace-normal">
                     <ServiceDates
                       last={unit.lastServiceOn}
                       next={unit.nextServiceOn}
@@ -175,11 +172,11 @@ export function WorkplaceMeansCard({
                       today={today}
                     />
                   </TableCell>
-                  <TableCell className={cn(stackedCell, 'text-muted-foreground')}>
+                  <TableCell className="min-w-40 whitespace-normal text-muted-foreground">
                     <Lines first={unit.maintainer} />
                   </TableCell>
                   {!readOnly && (
-                    <TableCell className="max-sm:col-start-2 max-sm:row-span-4 max-sm:row-start-1 max-sm:p-0">
+                    <TableCell>
                       <RowMenu
                         name={unitTitle(unit)}
                         testId="fire-equipment"
@@ -222,8 +219,8 @@ export function WorkplaceMeansCard({
             Nicio instalație. Un spațiu mic poate să nu aibă niciuna.
           </p>
         ) : (
-          <Table className="max-sm:block">
-            <TableHeader className="max-sm:sr-only">
+          <Table>
+            <TableHeader>
               <TableRow>
                 <TableHead className={columns.whatAndWhich}>Instalația</TableHead>
                 <TableHead className={columns.when}>Verificare</TableHead>
@@ -235,15 +232,15 @@ export function WorkplaceMeansCard({
                 )}
               </TableRow>
             </TableHeader>
-            <TableBody className="max-sm:block">
+            <TableBody>
               {installations.map((installation) => (
                 <TableRow
                   key={installation.id}
                   data-testid="fire-installation-row"
                   {...rowClickProps(readOnly ? undefined : () => onEditInstallation(installation))}
-                  className={cn(rowClass, !readOnly && 'cursor-pointer')}
+                  className={cn(!readOnly && 'cursor-pointer')}
                 >
-                  <TableCell className={stackedCell}>
+                  <TableCell className="min-w-40 whitespace-normal">
                     <Lines
                       first={
                         <span className="font-medium">
@@ -253,7 +250,7 @@ export function WorkplaceMeansCard({
                       second={installation.description}
                     />
                   </TableCell>
-                  <TableCell className={stackedCell}>
+                  <TableCell className="min-w-40 whitespace-normal">
                     <ServiceDates
                       last={installation.lastCheckOn}
                       next={installation.nextCheckOn}
@@ -262,11 +259,11 @@ export function WorkplaceMeansCard({
                       today={today}
                     />
                   </TableCell>
-                  <TableCell className={cn(stackedCell, 'text-muted-foreground')}>
+                  <TableCell className="min-w-40 whitespace-normal text-muted-foreground">
                     <Lines first={installation.maintainer} />
                   </TableCell>
                   {!readOnly && (
-                    <TableCell className="max-sm:col-start-2 max-sm:row-span-3 max-sm:row-start-1 max-sm:p-0">
+                    <TableCell>
                       <RowMenu
                         name={fireInstallationKindLabels[installation.kind]}
                         testId="fire-installation"
@@ -309,8 +306,8 @@ export function WorkplaceMeansCard({
               sau coșul de fum. Apar în graficele de întreținere și verificare.
             </p>
           ) : (
-            <Table className="max-sm:block">
-              <TableHeader className="max-sm:sr-only">
+            <Table>
+              <TableHeader>
                 <TableRow>
                   <TableHead className={columns.what}>Ce se verifică</TableHead>
                   <TableHead className={columns.which}>Periodicitatea</TableHead>
@@ -322,21 +319,25 @@ export function WorkplaceMeansCard({
                   )}
                 </TableRow>
               </TableHeader>
-              <TableBody className="max-sm:block">
+              <TableBody>
                 {maintenanceItems.map((item) => (
                   <TableRow
                     key={item.id}
                     data-testid="fire-maintenance-row"
                     {...rowClickProps(readOnly ? undefined : () => onEditMaintenanceItem(item))}
-                    className={cn(rowClass, !readOnly && 'cursor-pointer')}
+                    className={cn(!readOnly && 'cursor-pointer')}
                   >
-                    <TableCell className={cn(stackedCell, 'font-medium')}>{item.subject}</TableCell>
-                    <TableCell className={stackedCell}>{item.intervalLabel}</TableCell>
-                    <TableCell className={cn(stackedCell, 'text-muted-foreground')}>
+                    <TableCell className="min-w-40 font-medium whitespace-normal">
+                      {item.subject}
+                    </TableCell>
+                    <TableCell className="min-w-40 whitespace-normal">
+                      {item.intervalLabel}
+                    </TableCell>
+                    <TableCell className="min-w-40 whitespace-normal text-muted-foreground">
                       {item.checkedBy}
                     </TableCell>
                     {!readOnly && (
-                      <TableCell className="max-sm:col-start-2 max-sm:row-span-3 max-sm:row-start-1 max-sm:p-0">
+                      <TableCell>
                         <RowMenu
                           name={item.subject}
                           testId="fire-maintenance"
@@ -452,7 +453,7 @@ function UnitCell({ unit }: { unit: FireEquipment }) {
 
 function Lines({ first, second }: { first?: ReactNode; second?: string | null }) {
   if (!first && !second) {
-    return <span className="text-muted-foreground max-sm:hidden">—</span>;
+    return <span className="text-muted-foreground">—</span>;
   }
   return (
     <span className="grid gap-0.5">

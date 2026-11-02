@@ -29,8 +29,7 @@ export function leadColumns(
       id: 'legalName',
       header: 'Companie',
       meta: {
-        headerClassName: 'pl-5',
-        cellClassName: 'pl-5 font-medium',
+        cellClassName: 'font-medium',
         skeletonClassName: 'w-48',
       },
       cell: ({ row, getValue }) => (
@@ -113,8 +112,8 @@ export function leadColumns(
       id: 'actions',
       header: () => <span className="sr-only">Acțiuni</span>,
       meta: {
-        headerClassName: 'w-12 pr-3',
-        cellClassName: 'pr-3 text-right',
+        headerClassName: 'w-12',
+        cellClassName: 'text-right',
         skeletonClassName: 'hidden',
       },
       cell: ({ row }) => {

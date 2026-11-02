@@ -270,8 +270,8 @@ export function SubstancesCard({
                   substanțe periculoase.
                 </p>
               ) : (
-                <Table className="max-sm:block">
-                  <TableHeader className="max-sm:sr-only">
+                <Table>
+                  <TableHeader>
                     <TableRow>
                       <TableHead className="w-[46%]">Substanța</TableHead>
                       <TableHead className="w-[24%]">Cantitatea</TableHead>
@@ -283,7 +283,7 @@ export function SubstancesCard({
                       )}
                     </TableRow>
                   </TableHeader>
-                  <TableBody className="max-sm:block">
+                  <TableBody>
                     {items.map((substance) => {
                       const missing = unfilledDetailCount(substance);
                       return (
@@ -291,12 +291,9 @@ export function SubstancesCard({
                           key={substance.id}
                           data-testid="fire-substance-row"
                           {...rowClickProps(readOnly ? undefined : () => setEditing(substance))}
-                          className={cn(
-                            'max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:gap-x-2 max-sm:gap-y-1 max-sm:py-3',
-                            !readOnly && 'cursor-pointer'
-                          )}
+                          className={cn(!readOnly && 'cursor-pointer')}
                         >
-                          <TableCell className="whitespace-normal max-sm:col-start-1 max-sm:p-0">
+                          <TableCell className="min-w-40 whitespace-normal">
                             <span className="grid gap-0.5">
                               <span className="font-medium">{substance.name}</span>
                               <span className="text-xs text-muted-foreground">
@@ -304,13 +301,11 @@ export function SubstancesCard({
                               </span>
                             </span>
                           </TableCell>
-                          <TableCell className="whitespace-normal max-sm:col-start-1 max-sm:p-0">
-                            {substance.quantity}
-                          </TableCell>
+                          <TableCell className="whitespace-normal">{substance.quantity}</TableCell>
                           <TableCell
                             data-testid="fire-substance-details"
                             className={cn(
-                              'whitespace-normal max-sm:col-start-1 max-sm:p-0',
+                              'min-w-40 whitespace-normal',
                               missing > 0 ? 'text-muted-foreground' : undefined
                             )}
                           >
@@ -321,7 +316,7 @@ export function SubstancesCard({
                                 : `${missing} câmpuri de completat în document`}
                           </TableCell>
                           {!readOnly && (
-                            <TableCell className="max-sm:col-start-2 max-sm:row-span-3 max-sm:row-start-1 max-sm:p-0">
+                            <TableCell>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button

@@ -42,8 +42,12 @@ function Table({ className, ...props }: React.ComponentProps<'table'>) {
 
   return (
     // min-w-0: unlike a scroll container, a flex or grid item is otherwise at least as wide
-    // as the table inside it, and the page scrolls sideways instead of the table.
-    <div data-slot="table-frame" className="relative w-full min-w-0">
+    // as the table inside it, and the page scrolls sideways instead of the table. In a card's
+    // padded content the table still spans the card, its outer columns at the card's inset.
+    <div
+      data-slot="table-frame"
+      className="relative w-full min-w-0 [--table-inset:--spacing(5)] in-data-[slot=card-content]:-mx-6 in-data-[slot=card-content]:w-auto in-data-[slot=card-content]:[--table-inset:--spacing(6)]"
+    >
       <div ref={scroller} data-slot="table-container" className="relative w-full overflow-x-auto">
         <table
           data-slot="table"
@@ -113,7 +117,7 @@ function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
     <th
       data-slot="table-head"
       className={cn(
-        'h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+        'h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground first:pl-(--table-inset) last:pr-(--table-inset) [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
         className
       )}
       {...props}
@@ -126,7 +130,7 @@ function TableCell({ className, ...props }: React.ComponentProps<'td'>) {
     <td
       data-slot="table-cell"
       className={cn(
-        'p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+        'p-2 align-middle whitespace-nowrap first:pl-(--table-inset) last:pr-(--table-inset) [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
         className
       )}
       {...props}

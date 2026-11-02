@@ -30,7 +30,7 @@ const columns = helper.columns([
   helper.accessor('name', {
     id: 'name',
     header: 'Act normativ',
-    meta: { headerClassName: 'pl-5', cellClassName: 'pl-5 font-medium', skeletonClassName: 'w-32' },
+    meta: { cellClassName: 'font-medium', skeletonClassName: 'w-32' },
     cell: ({ row, getValue }) =>
       row.original.portalId ? (
         <a

@@ -217,13 +217,13 @@ export function ClientTrainingsPage() {
           >
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-5">Ziua</TableHead>
+                <TableHead>Ziua</TableHead>
                 <TableHead>Instruirea</TableHead>
                 <TableHead>Durata</TableHead>
                 <TableHead>A instruit</TableHead>
                 <TableHead>Participanți</TableHead>
                 <TableHead className="min-w-64">Material</TableHead>
-                <TableHead className="w-12 pr-3">
+                <TableHead className="w-12">
                   <span className="sr-only">Acțiuni</span>
                 </TableHead>
               </TableRow>
@@ -281,7 +281,7 @@ function TrainingRow({
   const lock = locks.edit ?? locks.delete;
   return (
     <TableRow data-testid="trainings-row" className="align-top">
-      <TableCell className="pl-5 whitespace-nowrap tabular-nums">
+      <TableCell className="whitespace-nowrap tabular-nums">
         {formatDate(training.heldOn)}
       </TableCell>
       <TableCell>
@@ -318,7 +318,7 @@ function TrainingRow({
       <TableCell className="max-w-96 whitespace-normal">
         <TrainingMaterial text={training.material} />
       </TableCell>
-      <TableCell className="pr-3 text-right">
+      <TableCell className="text-right">
         {!readOnly && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -211,8 +211,8 @@ export function ClientFilesCard({
             </p>
           )
         ) : (
-          <Table className="max-sm:block">
-            <TableHeader className="max-sm:sr-only">
+          <Table>
+            <TableHeader>
               <TableRow>
                 <TableHead>Nume</TableHead>
                 <TableHead className="text-right">Mărime</TableHead>
@@ -222,7 +222,7 @@ export function ClientFilesCard({
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="max-sm:block">
+            <TableBody>
               {items.filter((file) => !file.importId).map((file) => renderFile(file, 0))}
               {importFolders(items).map(([importId, folderFiles]) => (
                 <ImportFolderRows

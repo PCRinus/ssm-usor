@@ -32,21 +32,23 @@ export function AnnexRow({
   const code = typeKey === 'fire_own_instructions' ? 'I.P.S.U.' : 'I.P.S.S.M.';
   const label = `Anexa ${annex.number}: ${code} ${annex.title}`;
   return (
-    <TableRow data-testid="document-annex" className={packCells.row}>
-      <TableCell className={cn(packCells.title, 'max-md:pl-4 md:pl-8')}>
-        <Link
-          to="/instructions/$moduleId"
-          params={{ moduleId: annex.moduleId }}
-          search={{ version: annex.version.id }}
-          state={{ openedFromList: true }}
-          data-testid="document-annex-title"
-          className="underline-offset-4 hover:underline"
-        >
-          {label}
-        </Link>
-        <span className="block text-xs text-muted-foreground">
-          Versiunea {annex.version.number}
-        </span>
+    <TableRow data-testid="document-annex">
+      <TableCell className={packCells.title}>
+        <div className="pl-5">
+          <Link
+            to="/instructions/$moduleId"
+            params={{ moduleId: annex.moduleId }}
+            search={{ version: annex.version.id }}
+            state={{ openedFromList: true }}
+            data-testid="document-annex-title"
+            className="underline-offset-4 hover:underline"
+          >
+            {label}
+          </Link>
+          <span className="block text-xs text-muted-foreground">
+            Versiunea {annex.version.number}
+          </span>
+        </div>
       </TableCell>
       <TableCell className={packCells.status}>
         {annex.newerVersion && (

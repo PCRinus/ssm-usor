@@ -443,12 +443,7 @@ export function DocumentsCard<Set extends DocumentSet>({
     );
     return (
       <Fragment key={document.id}>
-        <TableRow
-          id={rowId}
-          data-testid="document-row"
-          {...click}
-          className={cn(packCells.row, click.className)}
-        >
+        <TableRow id={rowId} data-testid="document-row" {...click} className={click.className}>
           <TableCell className={packCells.title}>
             <Link
               {...documentLink(set, clientId, document.id)}
@@ -688,7 +683,7 @@ export function DocumentsCard<Set extends DocumentSet>({
               {documentRow(document, title, documentRowId(document.typeKey))}
               {earlier !== undefined && earlier.length > 0 && (
                 <TableRow data-testid="document-earlier">
-                  <TableCell colSpan={4} className="py-1 max-md:block">
+                  <TableCell colSpan={4} className="py-1">
                     <Button
                       variant="ghost"
                       size="sm"

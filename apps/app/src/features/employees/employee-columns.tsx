@@ -31,8 +31,7 @@ export function employeeColumns(onStatusChange?: (change: EmployeeStatusChange) 
       header: 'Angajat',
       enableSorting: true,
       meta: {
-        headerClassName: 'pl-5',
-        cellClassName: 'pl-5 font-medium',
+        cellClassName: 'font-medium',
         skeletonClassName: 'w-40',
       },
       cell: ({ row, getValue }) => (
@@ -97,8 +96,8 @@ export function employeeColumns(onStatusChange?: (change: EmployeeStatusChange) 
       id: 'actions',
       header: () => <span className="sr-only">Acțiuni</span>,
       meta: {
-        headerClassName: 'w-12 pr-3',
-        cellClassName: 'pr-3 text-right',
+        headerClassName: 'w-12',
+        cellClassName: 'text-right',
         skeletonClassName: 'hidden',
       },
       cell: ({ row }) => {

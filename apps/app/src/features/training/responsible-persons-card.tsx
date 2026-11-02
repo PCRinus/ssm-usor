@@ -229,8 +229,8 @@ export function ResponsiblePersonsCard({
                 : 'Nicio persoană responsabilă încă. Începe cu conducătorul locului de muncă. Poți atribui mai multe responsabilități aceleiași persoane.'}
             </p>
           ) : (
-            <Table className="max-sm:block">
-              <TableHeader className="max-sm:sr-only">
+            <Table>
+              <TableHeader>
                 <TableRow>
                   <TableHead>Nume și prenume</TableHead>
                   <TableHead>Funcția</TableHead>
@@ -242,19 +242,16 @@ export function ResponsiblePersonsCard({
                   )}
                 </TableRow>
               </TableHeader>
-              <TableBody className="max-sm:block">
+              <TableBody>
                 {persons.data.items.map((person) => (
                   <TableRow
                     key={person.id}
                     id={personRowId(person.id)}
                     data-testid="responsible-row"
                     {...rowClickProps(readOnly ? undefined : () => setEditing(person))}
-                    className={cn(
-                      'max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:gap-x-2 max-sm:gap-y-1 max-sm:py-3',
-                      !readOnly && 'cursor-pointer'
-                    )}
+                    className={cn(!readOnly && 'cursor-pointer')}
                   >
-                    <TableCell className="font-medium max-sm:p-0 max-sm:whitespace-normal">
+                    <TableCell className="font-medium">
                       {person.fullName}
                       {person.workplaceId && workplaces.data && (
                         <span
@@ -266,7 +263,7 @@ export function ResponsiblePersonsCard({
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground max-sm:col-start-1 max-sm:p-0 max-sm:whitespace-normal">
+                    <TableCell className="text-muted-foreground">
                       {person.jobTitle}
                       {person.employeeJobTitle && person.employeeJobTitle !== person.jobTitle && (
                         <span
@@ -291,7 +288,7 @@ export function ResponsiblePersonsCard({
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className="max-sm:col-start-1 max-sm:p-0 max-sm:pt-1">
+                    <TableCell>
                       <span className="flex flex-wrap gap-1.5">
                         {responsibleRoleOrder
                           .filter((role) => person.roles.includes(role))
@@ -303,7 +300,7 @@ export function ResponsiblePersonsCard({
                       </span>
                     </TableCell>
                     {!readOnly && (
-                      <TableCell className="max-sm:col-start-2 max-sm:row-span-3 max-sm:row-start-1 max-sm:p-0">
+                      <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button

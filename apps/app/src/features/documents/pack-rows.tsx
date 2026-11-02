@@ -15,8 +15,8 @@ import { packCells } from './pack-styles';
 
 export function PackTable({ children }: { children: ReactNode }) {
   return (
-    <Table data-testid="pack-table" className="max-md:block md:table-fixed">
-      <TableHeader className="max-md:hidden">
+    <Table data-testid="pack-table" className="md:table-fixed">
+      <TableHeader>
         <TableRow className="hover:bg-transparent">
           <TableHead className="px-3 text-muted-foreground">Document</TableHead>
           <TableHead className="w-66 px-3 text-muted-foreground">Stare</TableHead>
@@ -26,7 +26,7 @@ export function PackTable({ children }: { children: ReactNode }) {
           </TableHead>
         </TableRow>
       </TableHeader>
-      <TableBody className="max-md:block max-md:border-t">{children}</TableBody>
+      <TableBody>{children}</TableBody>
     </Table>
   );
 }
@@ -39,7 +39,7 @@ export function MissingDocumentRow({
   className?: string;
 }) {
   return (
-    <TableRow data-testid="document-missing" className={cn(packCells.row, className)}>
+    <TableRow data-testid="document-missing" className={className}>
       <TableCell className={cn(packCells.title, 'font-medium text-muted-foreground')}>
         {row.title}
       </TableCell>

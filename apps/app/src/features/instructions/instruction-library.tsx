@@ -178,7 +178,7 @@ export function InstructionLibrary({
                       })
                     )}
                   >
-                    <TableCell className="font-medium whitespace-normal">
+                    <TableCell className="font-medium min-w-40 whitespace-normal">
                       <Link
                         to="/instructions/$moduleId"
                         params={{ moduleId: module.id }}
