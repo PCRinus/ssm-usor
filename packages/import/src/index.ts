@@ -176,6 +176,7 @@ export {
   modelRates,
   noUsage,
   readingModel,
+  risksModel,
   similarityModel,
   sortingModel,
   type Usage,
@@ -203,6 +204,13 @@ export {
   readingSchema,
   toProposal,
 } from './reading';
+export * from './risks-library';
+export * from './risks-payload';
+export * from './risks-proposal';
+export * from './risks-read';
+export * from './risks-request';
+export * from './risks-rows';
+export { risksProposalSchema } from './risks-schema';
 export {
   type SheetDate,
   sheetDate,

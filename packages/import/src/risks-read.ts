@@ -1,0 +1,682 @@
+import {
+  foldText,
+  type PreventionMeasureKind,
+  type RiskEvaluationKind,
+  riskLevel,
+  type WorkSystemComponent,
+} from '@ssm-usor/contracts';
+
+import { findQuotes, foldName } from './match';
+import type { RetypedFactor, RisksAnswer } from './risks-request';
+import {
+  type NumberedRows,
+  numberRows,
+  type RisksTextFile,
+  rowNumber,
+  rowsBetween,
+  type TableRow,
+} from './risks-rows';
+
+export interface ProposedMeasure {
+  kind: PreventionMeasureKind;
+  description: string;
+}
+
+export type PlanField = 'actions' | 'deadline' | 'responsiblePerson' | 'observations';
+
+export type RiskFactorFlag =
+  | { kind: 'level_mismatch'; printed: number; grid: number }
+  // The consequence's wording is that of another gravity class than the one printed.
+  | { kind: 'consequence_mismatch'; consequence: string; consequenceClass: number }
+  | { kind: 'class_missing'; field: 'gravity' | 'probability'; written: string }
+  | { kind: 'unknown_component'; written: string }
+  | { kind: 'missing_group' }
+  | { kind: 'row_shape'; cells: number; expected: number }
+  | { kind: 'retyped' }
+  | { kind: 'quote_not_found' }
+  | { kind: 'person_named'; field: PlanField; text: string }
+  | { kind: 'measure_kind_guessed' }
+  | { kind: 'measures_cut'; count: number };
+
+export interface SourceRow {
+  file: string;
+  // Offsets in the file's text.
+  start: number;
+  end: number;
+}
+
+export interface ReadFactor {
+  key: string;
+  // Null for a factor written out from a file with no rows.
+  row: string | null;
+  source: SourceRow | null;
+  // Null when the label is none of the method's four.
+  component: WorkSystemComponent | null;
+  writtenComponent: string;
+  group: string;
+  // Without its "F3." code.
+  description: string;
+  code: string | null;
+  consequence: string;
+  // Null when missing or off the scale.
+  gravityClass: number | null;
+  probabilityClass: number | null;
+  printedLevel: number | null;
+  measures: ProposedMeasure[];
+  measuresFrom: 'plan' | 'sheet' | null;
+  actions: string | null;
+  deadline: string | null;
+  responsiblePerson: string | null;
+  observations: string | null;
+  flags: RiskFactorFlag[];
+}
+
+export type WorkSystemText = 'meansOfProduction' | 'workEnvironment' | 'exposure';
+
+export type SheetFlag =
+  | { kind: 'quote_not_found'; field: WorkSystemText }
+  | { kind: 'text_cut'; field: WorkSystemText }
+  | { kind: 'file_not_found' }
+  | { kind: 'rows_not_found' }
+  | { kind: 'no_factors' };
+
+export interface ReadSheet {
+  key: string;
+  file: string;
+  heading: string;
+  kind: RiskEvaluationKind;
+  name: string;
+  // The proposal's posts, as the answer named them.
+  posts: string[];
+  rows: { first: string; last: string } | null;
+  meansOfProduction: string | null;
+  workEnvironment: string | null;
+  exposure: string | null;
+  factors: ReadFactor[];
+  flags: SheetFlag[];
+}
+
+export interface LooseRow {
+  row: string;
+  file: string;
+  text: string;
+}
+
+export interface ReadRisks {
+  sheets: ReadSheet[];
+  // Rows written like factors that no sheet spans.
+  unplacedRows: LooseRow[];
+  // Plan and measures rows that the answer and the plan's own words join to no factor.
+  unmatchedPlanRows: (LooseRow & { post: string; risk: string })[];
+  unmatchedMeasureRows: LooseRow[];
+}
+
+const componentStems: [RegExp, WorkSystemComponent][] = [
+  [/^mijlo\w* (de )?productie/, 'means_of_production'],
+  [/^mediu\w* (de )?munca/, 'work_environment'],
+  [/^sarcin\w* (de )?munca/, 'work_task'],
+  [/^executant\w*$/, 'executant'],
+];
+
+export function componentOf(label: string): WorkSystemComponent | null {
+  const folded = foldText(label);
+  return componentStems.find(([stem]) => stem.test(folded))?.[1] ?? null;
+}
+
+const factorCode = /^\s*(F\s*\d{1,3})\s*[.):-]?\s*/iu;
+
+export function splitCode(written: string) {
+  const match = factorCode.exec(written);
+  if (!match) return { code: null, description: written.trim() };
+  return {
+    code: match[1]!.replace(/\s+/g, '').toUpperCase(),
+    description: written.slice(match[0].length).trim(),
+  };
+}
+
+export function classOf(written: string, max: number) {
+  const match = /^\s*(\d)\s*\.?\s*$/u.exec(written);
+  const value = match ? Number(match[1]) : NaN;
+  return value >= 1 && value <= max ? value : null;
+}
+
+// The wording of annex 3's gravity classes, as the packs abbreviate it ("ITM / 3-45 zile",
+// "Invalid. Grad II"); null for one that names none.
+export function consequenceClass(consequence: string): number | null {
+  const folded = foldText(consequence);
+  if (folded === '') return null;
+  if (/\bdeces\b|\bmortal/.test(folded)) return 7;
+  const grade = /\binvalid\w*\s+(?:de\s+)?grad\w*\s+(iii|ii|i|3|2|1)\b/.exec(folded)?.[1];
+  if (grade) return { iii: 4, '3': 4, ii: 5, '2': 5, i: 6, '1': 6 }[grade] ?? null;
+  if (/\b45\s+180\b/.test(folded)) return 3;
+  if (/\b3\s+45\b/.test(folded)) return 2;
+  if (/\bminor|\breversibil|\bneglijabil|\b3\s+zile\b/.test(folded)) return 1;
+  return null;
+}
+
+const placeholder = /^[\s\-–—.,_/x]*$/iu;
+
+// A cell's paragraphs are joined by " / ", and the packs break one measure over several lines of
+// a narrow column ("Instruire asupra / conduitei preventive"): a piece that starts in lower case
+// goes on from the one before it.
+export function cellItems(text: string): string[] {
+  const items: string[] = [];
+  for (const piece of text.split(/(?:\s+\/)+\s+/u)) {
+    const trimmed = piece.trim();
+    if (placeholder.test(trimmed)) continue;
+    const previous = items.at(-1);
+    if (previous !== undefined && (/^\p{Ll}/u.test(trimmed) || /[,(–-]$/u.test(previous))) {
+      items[items.length - 1] = `${previous} ${trimmed}`;
+    } else {
+      items.push(trimmed);
+    }
+  }
+  return items;
+}
+
+export function fieldText(text: string | undefined): string | null {
+  if (text === undefined) return null;
+  const items = cellItems(text);
+  if (items.length === 0) return null;
+  return items
+    .map((item, index) =>
+      index === items.length - 1 || /[.;:!?]$/u.test(item) ? item : `${item};`
+    )
+    .join(' ')
+    .slice(0, 2000);
+}
+
+const maxMeasures = 30;
+
+const measureLabel =
+  /m[ăa]suri(?:le)?\s+(tehnice|organizatorice|igienico[\s-]*sanitare|de\s+alt[ăa]\s+natur[ăa])\s*:/giu;
+
+const labelKinds: [RegExp, PreventionMeasureKind][] = [
+  [/^tehnic/u, 'technical'],
+  [/^organiz/u, 'organizational'],
+  [/^igien/u, 'hygienic_sanitary'],
+  [/^de/u, 'other'],
+];
+
+const labelKind = (word: string) =>
+  labelKinds.find(([pattern]) => pattern.test(word.toLowerCase()))?.[1] ?? 'other';
+
+interface Segment {
+  kind: PreventionMeasureKind | null;
+  text: string;
+}
+
+function labelledSegments(text: string): Segment[] | null {
+  const labels = [...text.matchAll(measureLabel)];
+  if (labels.length === 0) return null;
+  const segments: Segment[] = [{ kind: null, text: text.slice(0, labels[0]!.index) }];
+  labels.forEach((label, index) => {
+    const end = labels[index + 1]?.index ?? text.length;
+    segments.push({
+      kind: labelKind(label[1]!),
+      text: text.slice(label.index + label[0].length, end),
+    });
+  });
+  return segments;
+}
+
+function partSegments(
+  text: string,
+  parts: readonly { kind: PreventionMeasureKind; startWords: string }[]
+): Segment[] {
+  const found = parts
+    .map((part) => ({ kind: part.kind, at: findQuotes(text, part.startWords)[0]?.start }))
+    .filter((part): part is { kind: PreventionMeasureKind; at: number } => part.at !== undefined)
+    .sort((a, b) => a.at - b.at);
+  if (found.length === 0) return [{ kind: null, text }];
+  return [
+    { kind: found[0]!.kind, text: text.slice(0, found[0]!.at) },
+    ...found.map((part, index) => ({
+      kind: part.kind,
+      text: text.slice(part.at, found[index + 1]?.at ?? text.length),
+    })),
+  ];
+}
+
+const measureText = (text: string) => text.replace(/^[\s/:;,.]+|[\s/]+$/gu, '').slice(0, 2000);
+
+// ADR 036: split on the pack's own labels, else at the model's start words.
+export function sheetMeasures(
+  text: string,
+  parts: readonly { kind: PreventionMeasureKind; startWords: string }[]
+): { measures: ProposedMeasure[]; guessed: boolean } {
+  const labelled = labelledSegments(text);
+  const segments = labelled ?? partSegments(text, parts);
+  let guessed = false;
+  const measures: ProposedMeasure[] = [];
+  for (const segment of segments) {
+    let kind = segment.kind;
+    if (kind === null) {
+      const items = cellItems(segment.text);
+      if (items.length === 0) continue;
+      const partKind = labelled ? partSegments(segment.text, parts)[0]?.kind : null;
+      kind = partKind ?? (labelled ? null : (parts[0]?.kind ?? null));
+      if (kind === null) {
+        guessed = true;
+        kind = 'organizational';
+      }
+    }
+    for (const item of cellItems(segment.text)) {
+      const description = measureText(item);
+      if (description !== '') measures.push({ kind, description });
+    }
+  }
+  return { measures, guessed };
+}
+
+const planKinds = [
+  ['technical', 'technical'],
+  ['organizational', 'organizational'],
+  ['hygienicSanitary', 'hygienic_sanitary'],
+  ['other', 'other'],
+] as const;
+
+const personName = /\p{Lu}\p{Ll}+(?:[\s-]+\p{Lu}\p{Ll}+)*\s+\p{Lu}{3,}(?:[\s-]+\p{Lu}{3,})*\b/u;
+
+// A plan's deadlines and people are roles ("Cond. loc muncă", "Administrator"); a name such as
+// "Ramona CIMPEAN" or one of the client's people is a person.
+export function namesPerson(text: string, people: readonly string[]) {
+  if (personName.test(text)) return true;
+  const folded = ` ${foldName(text)} `;
+  return people.some((person) => {
+    const name = foldName(person);
+    return name.includes(' ') && folded.includes(` ${name} `);
+  });
+}
+
+function findAfter(text: string, quote: string, from: number, to: number) {
+  return findQuotes(text.slice(from, to), quote).map((found) => ({
+    start: found.start + from,
+    end: found.end + from,
+  }));
+}
+
+function spanText(
+  text: string,
+  region: { start: number; end: number },
+  span: { startWords: string; endWords: string }
+): string | null | undefined {
+  if (span.startWords.trim() === '') return null;
+  const start = findAfter(text, span.startWords, region.start, region.end)[0];
+  if (!start) return undefined;
+  const endQuote = span.endWords.trim() === '' ? span.startWords : span.endWords;
+  const end = findAfter(text, endQuote, start.start, region.end)[0];
+  if (!end) return undefined;
+  // A quote is matched word by word, so the sentence's closing mark is taken from the file.
+  const closing = /^[.;!?)»”"]*/u.exec(text.slice(end.end, region.end))![0].length;
+  return text.slice(start.start, end.end + closing).trim();
+}
+
+const textLimits: Record<WorkSystemText, number> = {
+  meansOfProduction: 2000,
+  workEnvironment: 2000,
+  exposure: 120,
+};
+
+type AnsweredSheet = RisksAnswer['sheets'][number];
+
+interface Located {
+  answered: AnsweredSheet;
+  key: string;
+  rows: TableRow[];
+  region: { start: number; end: number };
+}
+
+function headingAt(text: string, heading: string, from: number, before: number) {
+  const found = findAfter(text, heading, from, before);
+  return found.at(-1)?.start ?? null;
+}
+
+function locate(answer: RisksAnswer, files: Map<string, RisksTextFile>, numbered: NumberedRows) {
+  const located: Located[] = answer.sheets.map((answered, index) => ({
+    answered,
+    key: `sheet-${index + 1}`,
+    rows:
+      answered.firstRow && answered.lastRow
+        ? rowsBetween(numbered, answered.firstRow, answered.lastRow)
+        : [],
+    region: { start: 0, end: 0 },
+  }));
+  for (const [path, file] of files) {
+    const inFile = located.filter((sheet) => sheet.answered.file === path);
+    let cursor = 0;
+    inFile.forEach((sheet, index) => {
+      const firstRowStart = sheet.rows[0]?.start;
+      const later = inFile.slice(index + 1).find((next) => next.rows[0] !== undefined);
+      const limit = firstRowStart ?? later?.rows[0]?.start ?? file.text.length;
+      const start = headingAt(file.text, sheet.answered.heading, cursor, limit) ?? cursor;
+      sheet.region = { start, end: sheet.rows.at(-1)?.end ?? limit };
+      cursor = Math.max(cursor, sheet.rows.at(-1)?.end ?? start);
+    });
+    inFile.forEach((sheet, index) => {
+      if (sheet.rows.length > 0) return;
+      const next = inFile[index + 1];
+      sheet.region.end = next ? Math.max(next.region.start, sheet.region.start) : file.text.length;
+    });
+  }
+  return located;
+}
+
+const role = (cells: readonly string[], index: number | null, expected: number) => {
+  if (index === null) return '';
+  const offset = cells.length < expected && index > 1 ? expected - cells.length : 0;
+  return cells[index - 1 - offset] ?? '';
+};
+
+const headerWords = /\b(?:clasa|gravitate|probabilitate|nivel)\b/;
+
+function classFlags(
+  factor: Pick<ReadFactor, 'gravityClass' | 'probabilityClass' | 'printedLevel' | 'consequence'>,
+  written: { gravity: string; probability: string }
+): RiskFactorFlag[] {
+  const flags: RiskFactorFlag[] = [];
+  if (factor.gravityClass === null) {
+    flags.push({ kind: 'class_missing', field: 'gravity', written: written.gravity });
+  }
+  if (factor.probabilityClass === null) {
+    flags.push({ kind: 'class_missing', field: 'probability', written: written.probability });
+  }
+  if (factor.gravityClass !== null && factor.probabilityClass !== null) {
+    const grid = riskLevel(factor.gravityClass, factor.probabilityClass);
+    if (factor.printedLevel !== null && factor.printedLevel !== grid) {
+      flags.push({ kind: 'level_mismatch', printed: factor.printedLevel, grid });
+    }
+  }
+  const fromWords = consequenceClass(factor.consequence);
+  if (factor.gravityClass !== null && fromWords !== null && fromWords !== factor.gravityClass) {
+    flags.push({
+      kind: 'consequence_mismatch',
+      consequence: factor.consequence,
+      consequenceClass: fromWords,
+    });
+  }
+  return flags;
+}
+
+function baseFactor(
+  key: string,
+  written: {
+    component: string;
+    group: string;
+    description: string;
+    consequence: string;
+    gravity: string;
+    probability: string;
+    level: string;
+  }
+): ReadFactor {
+  const { code, description } = splitCode(written.description);
+  const component = componentOf(written.component);
+  const factor: ReadFactor = {
+    key,
+    row: null,
+    source: null,
+    component,
+    writtenComponent: written.component,
+    group: written.group.trim(),
+    description,
+    code,
+    consequence: written.consequence.trim(),
+    gravityClass: classOf(written.gravity, 7),
+    probabilityClass: classOf(written.probability, 6),
+    printedLevel: classOf(written.level, 7),
+    measures: [],
+    measuresFrom: null,
+    actions: null,
+    deadline: null,
+    responsiblePerson: null,
+    observations: null,
+    flags: [],
+  };
+  if (component === null) {
+    factor.flags.push({ kind: 'unknown_component', written: written.component });
+  }
+  if (factor.group === '') factor.flags.push({ kind: 'missing_group' });
+  factor.flags.push(...classFlags(factor, written));
+  return factor;
+}
+
+function mostCommon(values: readonly number[]) {
+  const counts = new Map<number, number>();
+  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
+  return [...counts].sort((a, b) => b[1] - a[1] || b[0] - a[0])[0]?.[0] ?? 0;
+}
+
+function copiedFactors(sheet: Located): ReadFactor[] {
+  const { columns } = sheet.answered;
+  const expected = mostCommon(sheet.rows.map((row) => row.cells.length));
+  const factors: ReadFactor[] = [];
+  let component = '';
+  let group = '';
+  for (const row of sheet.rows) {
+    const at = (index: number | null) => role(row.cells, index, expected);
+    const description = at(columns.description);
+    if (!/\p{L}{2,}/u.test(description)) continue;
+    const classes = foldText(`${at(columns.gravity)} ${at(columns.probability)}`);
+    if (headerWords.test(classes)) continue;
+    const writtenComponent = at(columns.component);
+    const writtenGroup = at(columns.group);
+    if (writtenComponent !== '') {
+      if (writtenComponent !== component) group = '';
+      component = writtenComponent;
+    }
+    if (writtenGroup !== '') group = writtenGroup;
+    const factor = baseFactor(`${sheet.key}.${factors.length + 1}`, {
+      component,
+      group,
+      description,
+      consequence: at(columns.consequence),
+      gravity: at(columns.gravity),
+      probability: at(columns.probability),
+      level: at(columns.level),
+    });
+    factor.row = row.id;
+    factor.source = { file: row.file, start: row.start, end: row.end };
+    if (row.cells.length !== expected) {
+      factor.flags.push({ kind: 'row_shape', cells: row.cells.length, expected });
+    }
+    factors.push(factor);
+  }
+  return factors;
+}
+
+function retypedFactors(sheet: Located, text: string): ReadFactor[] {
+  let component = '';
+  let group = '';
+  return sheet.answered.factors.map((written: RetypedFactor, index) => {
+    if (written.component.trim() !== '') {
+      if (written.component !== component) group = '';
+      component = written.component;
+    }
+    if (written.group.trim() !== '') group = written.group;
+    const factor = baseFactor(`${sheet.key}.${index + 1}`, { ...written, component, group });
+    factor.flags.unshift({ kind: 'retyped' });
+    const found = findAfter(text, written.quote, sheet.region.start, sheet.region.end)[0];
+    if (found) factor.source = { file: sheet.answered.file, ...found };
+    else factor.flags.push({ kind: 'quote_not_found' });
+    return factor;
+  });
+}
+
+function setMeasures(factor: ReadFactor, measures: ProposedMeasure[]) {
+  if (measures.length > maxMeasures) {
+    factor.flags.push({ kind: 'measures_cut', count: measures.length });
+  }
+  factor.measures = measures.slice(0, maxMeasures);
+}
+
+const descriptionKey = (text: string) => foldText(splitCode(text).description);
+
+const looksLikeFactor = (cells: readonly string[]) =>
+  cells.some((cell) => /^F\s?\d{1,3}\s*[.)]/u.test(cell)) &&
+  cells.filter((cell) => /^[1-7]$/.test(cell)).length >= 3;
+
+const rowText = (row: TableRow) => `| ${row.cells.join(' | ')} |`;
+
+export interface ReadRisksOptions {
+  // The client's people, whose names in a plan field are a person rather than a role.
+  people?: readonly string[];
+}
+
+export function readRisksAnswer(
+  files: readonly RisksTextFile[],
+  answer: RisksAnswer,
+  options: ReadRisksOptions = {}
+): ReadRisks {
+  const numbered = numberRows(files);
+  const byPath = new Map(files.map((file) => [file.path, file]));
+  const located = locate(answer, byPath, numbered);
+  const people = options.people ?? [];
+
+  const sheets: ReadSheet[] = located.map((sheet) => {
+    const { answered } = sheet;
+    const file = byPath.get(answered.file);
+    const flags: SheetFlag[] = [];
+    if (!file) flags.push({ kind: 'file_not_found' });
+    const factors = !file
+      ? []
+      : sheet.rows.length > 0
+        ? copiedFactors(sheet)
+        : retypedFactors(sheet, file.text);
+    if (file && answered.firstRow !== '' && sheet.rows.length === 0) {
+      flags.push({ kind: 'rows_not_found' });
+    }
+    if (factors.length === 0) flags.push({ kind: 'no_factors' });
+    const texts = {} as Record<WorkSystemText, string | null>;
+    for (const field of ['meansOfProduction', 'workEnvironment', 'exposure'] as const) {
+      const found = file ? spanText(file.text, sheet.region, answered[field]) : null;
+      if (found === undefined) flags.push({ kind: 'quote_not_found', field });
+      let value = found ?? null;
+      if (value !== null && value.length > textLimits[field]) {
+        flags.push({ kind: 'text_cut', field });
+        value = value.slice(0, textLimits[field]).trim();
+      }
+      texts[field] = value;
+    }
+    return {
+      key: sheet.key,
+      file: answered.file,
+      heading: answered.heading,
+      kind: answered.kind,
+      name: answered.name,
+      posts: answered.posts,
+      rows:
+        sheet.rows.length > 0 ? { first: sheet.rows[0]!.id, last: sheet.rows.at(-1)!.id } : null,
+      ...texts,
+      factors,
+      flags,
+    };
+  });
+
+  const factorOfRow = new Map<string, ReadFactor>();
+  for (const sheet of sheets) {
+    for (const factor of sheet.factors) if (factor.row) factorOfRow.set(factor.row, factor);
+  }
+
+  const unmatchedPlanRows: ReadRisks['unmatchedPlanRows'] = [];
+  const planned = new Set<ReadFactor>();
+  const planRows = answer.plan
+    .map((entry) => ({ entry, row: numbered.byId.get(entry.row) }))
+    .filter((item): item is { entry: RisksAnswer['plan'][number]; row: TableRow } => !!item.row)
+    .sort((a, b) => rowNumber(a.row.id)! - rowNumber(b.row.id)!);
+  let post = '';
+  let postTable: unknown = null;
+  for (const { entry, row } of planRows) {
+    const number = rowNumber(row.id)!;
+    const table = answer.planTables.find(
+      (candidate) =>
+        candidate.file === row.file &&
+        (rowNumber(candidate.firstRow) ?? Infinity) <= number &&
+        number <= (rowNumber(candidate.lastRow) ?? -Infinity)
+    );
+    if (!table) continue;
+    const at = (index: number | null) => (index === null ? '' : (row.cells[index - 1] ?? ''));
+    if (table !== postTable) post = '';
+    postTable = table;
+    const writtenPost = fieldText(at(table.columns.post));
+    if (writtenPost) post = writtenPost;
+    const risk = at(table.columns.risk);
+    let factors = entry.factorRows.flatMap((id) => factorOfRow.get(id) ?? []);
+    if (factors.length === 0) {
+      const keys = new Set(cellItems(risk).map(descriptionKey));
+      factors = sheets.flatMap((sheet) =>
+        sheet.factors.filter(
+          (factor) => factor.row === null && keys.has(foldText(factor.description))
+        )
+      );
+    }
+    if (factors.length === 0) {
+      unmatchedPlanRows.push({ row: row.id, file: row.file, text: rowText(row), post, risk });
+      continue;
+    }
+    const measures = planKinds.flatMap(([column, kind]) =>
+      cellItems(at(table.columns[column]))
+        .map(measureText)
+        .filter((description) => description !== '')
+        .map((description) => ({ kind, description }))
+    );
+    const fields: Record<PlanField, string | null> = {
+      actions: fieldText(at(table.columns.actions)),
+      deadline: fieldText(at(table.columns.deadline)),
+      responsiblePerson: fieldText(at(table.columns.responsible)),
+      observations: fieldText(at(table.columns.observations)),
+    };
+    for (const factor of factors) {
+      setMeasures(factor, planned.has(factor) ? [...factor.measures, ...measures] : measures);
+      factor.measuresFrom = 'plan';
+      for (const field of Object.keys(fields) as PlanField[]) {
+        const value = fields[field];
+        if (value === null || factor[field] !== null) continue;
+        factor[field] = value;
+        if (namesPerson(value, people)) {
+          factor.flags.push({ kind: 'person_named', field, text: value });
+        }
+      }
+      planned.add(factor);
+    }
+  }
+
+  const unmatchedMeasureRows: LooseRow[] = [];
+  for (const entry of answer.measures) {
+    const row = numbered.byId.get(entry.row);
+    if (!row) continue;
+    const factor = factorOfRow.get(entry.factorRow);
+    if (!factor) {
+      unmatchedMeasureRows.push({ row: row.id, file: row.file, text: rowText(row) });
+      continue;
+    }
+    if (planned.has(factor)) continue;
+    const column = entry.column ?? row.cells.length;
+    const { measures, guessed } = sheetMeasures(row.cells[column - 1] ?? '', entry.parts);
+    setMeasures(factor, [...factor.measures, ...measures]);
+    factor.measuresFrom = 'sheet';
+    if (guessed && !factor.flags.some((flag) => flag.kind === 'measure_kind_guessed')) {
+      factor.flags.push({ kind: 'measure_kind_guessed' });
+    }
+  }
+
+  const accounted = new Set([
+    ...located.flatMap((sheet) => sheet.rows.map((row) => row.id)),
+    ...answer.measures.map((entry) => entry.row),
+    ...answer.plan.map((entry) => entry.row),
+  ]);
+  const sheetFiles = new Set(answer.sheets.map((sheet) => sheet.file));
+  const unplacedRows = numbered.rows
+    .filter(
+      (row) => sheetFiles.has(row.file) && !accounted.has(row.id) && looksLikeFactor(row.cells)
+    )
+    .map((row) => ({ row: row.id, file: row.file, text: rowText(row) }));
+
+  return { sheets, unplacedRows, unmatchedPlanRows, unmatchedMeasureRows };
+}
+
+// Ticked by default only when the classes and the component are known: the app never chooses a
+// class (ADR 015).
+export const factorComplete = (
+  factor: Pick<ReadFactor, 'component' | 'gravityClass' | 'probabilityClass'>
+) => factor.component !== null && factor.gravityClass !== null && factor.probabilityClass !== null;
