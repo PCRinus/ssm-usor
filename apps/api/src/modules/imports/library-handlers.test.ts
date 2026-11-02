@@ -532,6 +532,43 @@ describe('POST /imports/{importId}/library-parts/{part}/confirm', () => {
     expect(callsTo('/rest/v1/rpc/apply_instruction_import')).toEqual([]);
   });
 
+  it('checks the titles of only the instructions it adds, not one left out', async () => {
+    const changes = {
+      instructions: {
+        'instruction-3': {
+          choice: 'add_new',
+          title: 'Utilizarea mașinii de tocat',
+          included: false,
+        },
+      },
+    };
+    mockUpstream(({ url }) => {
+      if (url.pathname === '/rest/v1/imports') return Response.json(importRow());
+      if (url.pathname === '/rest/v1/import_library_parts') {
+        return Response.json(partRow({ changes }));
+      }
+      if (url.pathname === '/rest/v1/instruction_modules') {
+        return Response.json([{ title: 'Lucrul la casa de marcat' }]);
+      }
+      if (url.pathname === '/rest/v1/rpc/apply_instruction_import') {
+        return Response.json({
+          created: ['d0000000-0000-4000-8000-000000000001'],
+          used: [],
+          links: 1,
+        });
+      }
+    });
+    const response = await request(`${parts}/instructions_ssm/confirm`, 'POST', { version: 3 });
+
+    expect(response.status).toBe(200);
+    const rpc = callsTo('/rest/v1/rpc/apply_instruction_import')[0]!;
+    expect(
+      (rpc.body as { p_payload: { create: { title: string }[] } }).p_payload.create.map(
+        (item) => item.title
+      )
+    ).toEqual(['Utilizarea mașinii de tocat']);
+  });
+
   it('answers a part past its 14 days as expired', async () => {
     mockUpstream(({ url }) => {
       if (url.pathname === '/rest/v1/imports') return Response.json(importRow());

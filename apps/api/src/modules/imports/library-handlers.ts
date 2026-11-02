@@ -315,7 +315,7 @@ async function libraryPayload(
   part: ImportLibraryPart,
   posts: ImportLibraryPost[],
   positionPosts: Record<string, string | null>
-): Promise<LibraryPayload> {
+): Promise<{ payload: LibraryPayload; createdKeys: string[] }> {
   const jobPositionOf = new Map<string, string | null>([
     ...posts.map((post) => [post.id, post.jobPositionId] as const),
     ...posts.flatMap((post) =>
@@ -323,6 +323,7 @@ async function libraryPayload(
     ),
   ]);
   const payload: LibraryPayload = { create: [], use: [] };
+  const createdKeys: string[] = [];
   const issues: { path: string; message: string }[] = [];
   for (const instruction of proposal.instructions) {
     const change = changes?.instructions[instruction.key] ?? {};
@@ -354,6 +355,7 @@ async function libraryPayload(
       issues.push({ path: `instructions.${instruction.key}.category`, message: 'other_domain' });
     }
     const body = change.body ?? instruction.body;
+    createdKeys.push(instruction.key);
     payload.create.push({
       title: (change.title ?? instruction.title).trim(),
       category,
@@ -376,17 +378,15 @@ async function libraryPayload(
       importErrorReasons.outdated
     );
   }
-  return payload;
+  return { payload, createdKeys };
 }
 
 async function takenTitles(
   db: DataClient,
   organizationId: string,
-  payload: LibraryPayload,
-  proposal: InstructionsProposal,
-  changes: InstructionImportChanges | null
+  created: { key: string; title: string }[]
 ) {
-  if (payload.create.length === 0) return;
+  if (created.length === 0) return;
   const { data, error } = await db
     .from('instruction_modules')
     .select('title')
@@ -395,13 +395,9 @@ async function takenTitles(
   if (error) throw fromDatabaseError(error, 'read library titles');
   const seen = new Set(data.map((module) => module.title.trim().toLowerCase()));
   const issues: { path: string; message: string }[] = [];
-  for (const instruction of proposal.instructions) {
-    const change = changes?.instructions[instruction.key] ?? {};
-    const title = (change.title ?? instruction.title).trim();
-    if (!payload.create.some((item) => item.title === title)) continue;
+  for (const { key, title } of created) {
     const folded = title.toLowerCase();
-    if (seen.has(folded))
-      issues.push({ path: `instructions.${instruction.key}.title`, message: 'taken' });
+    if (seen.has(folded)) issues.push({ path: `instructions.${key}.title`, message: 'taken' });
     seen.add(folded);
   }
   if (issues.length > 0) {
@@ -431,14 +427,18 @@ export const confirmImportLibraryPart: RouteHandler<
   if (current.version !== version) throw partError({ code: 'ILP02' }, 'confirm library part');
   const changes = storedPartChanges(current.changes);
   const posts = await postsOf(db, row);
-  const payload = await libraryPayload(
+  const { payload, createdKeys } = await libraryPayload(
     proposal,
     changes,
     part,
     posts,
     positionPostsOf(proposal, row)
   );
-  await takenTitles(db, c.get('membership').organizationId, payload, proposal, changes);
+  await takenTitles(
+    db,
+    c.get('membership').organizationId,
+    payload.create.map((item, index) => ({ key: createdKeys[index]!, title: item.title }))
+  );
   const { data, error } = await db.rpc('apply_instruction_import', {
     p_import_id: importId,
     p_part: part,
