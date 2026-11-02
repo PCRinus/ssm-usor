@@ -169,7 +169,7 @@ ADR 012 rejected a page box saying "Pag. 1 din 1" on a title page alone. An anne
 
 **Issuing.** Each annexed version is rendered from the snapshot into one file. The common part and the annexes are converted in one request and merged into one PDF, as now. Each annex counts its own pages because it is its own file.
 
-**The Word download.** "Descarcă Word" and the Word zip of a set give one file: the common part, then each annex as a section of its own whose page numbers restart. "Pag. X din Y" counted per section needs the Word field for a section's page count (`SECTIONPAGES`). Step 3 checks that the converter renders it. Where it does not, the Word file prints "Pag. X" alone in the annexes; the PDF keeps the full count.
+**The Word download.** "Descarcă Word" and the Word zip of a set give one file: the common part, then each annex as a section of its own whose page numbers restart. "Pag. X din Y" counted per section needs the Word field for a section's page count (`SECTIONPAGES`). LibreOffice, the converter, prints the value saved in the file rather than counting, so every annex page of a merged file read "din 1" (checked when building the annex template). The Word file therefore prints "Pag. X" alone, in the annexes and in the common part, whose total would otherwise count the annexes too; the PDF keeps the full count, each annex being converted as its own file.
 
 **The draft stays the common part.** The draft opened in the document editor stays the common part alone, and the annexes are added when the file is downloaded. Otherwise a client's edit would change a module's text for one binder, and a client-specific wording of a module is a module of its own (ADR 012).
 
@@ -181,7 +181,7 @@ ADR 012 rejected a page box saying "Pag. 1 din 1" on a title page alone. An anne
 
 **The instructions request.** For each domain with own instructions, one request to GPT-6.1 Terra receives that domain's own-instructions files and its training themes. The answer follows a strict schema, with no nullables and numbers as strings like every import answer, and holds:
 
-- `instructions`: one entry per client-specific instruction. That is a subchapter of chapter XIII or XIV, an "I.P.S.S.M. n" block, an annex of the IPSU, or a file when a pack keeps one instruction per file. Each entry gives the file, the number as printed ("2", "XIII.VIII", or ""), the title as written, the category, and `startWords` and `endWords`: its first and last eight to fifteen words, verbatim. The common chapters I–XII, which the app's template replaces, are not listed.
+- `instructions`: one entry per client-specific instruction. That is a subchapter of chapter XIII or XIV, an "I.P.S.S.M. n" block, an annex of the IPSU, or a file when a pack keeps one instruction per file. Each entry gives the file, the number as printed ("2", "XIII.VIII", or ""), the title as written, the category, and `startWords` and `endWords`: its first and last fifteen to twenty-five words, verbatim (ten words were not unique inside some instructions of the reference packs). The common chapters I–XII, which the app's template replaces, are not listed.
 - `positions`: one entry per post the themes name, with the post as written, its citation as written ("IPSSM Art. 1 – 296 ; 331 – 353 ; IPSSM 2. Art. 1 – 16"), and the file and quote.
 
 **The model never retypes the text.** Retyping an IPSSM would be about 146,000 output tokens, some $0.73, more than the rest of the import together, and a retyped legal text can drift where a cut one cannot.
@@ -196,12 +196,13 @@ ADR 012 rejected a page box saying "Pag. 1 din 1" on a title page alone. An anne
 
 The splitter then makes each cut a body. An instruction that holds sections on several pieces of equipment, such as Royal Hotel's "Bucătari" with its coffee machine and slicer, stays one module, its sections as headings.
 
-**Which posts take which instruction.** Code resolves each post's citation, never the model:
+**Which posts take which instruction.** Code resolves each post's citations, never the model. A post is resolved on the union of all its citations, since the periodic chapters split one instruction across months. Each citation is read in its own numbering: a bare "Art." range in the main document's numbering; "IPSSM n." (also written "IPSSM 04." or "I.P.S.S.M. 2") in block n's own articles; "Anexa n" in that IPSU annex's own articles. The introductory "MISSMIG Art. …" is not an IPSSM citation, and a post that cites only it takes nothing.
 
 - **A number** ("IPSSM 2.") names that instruction.
 - **An article range** names every instruction whose articles, as the pack numbers them, all lie inside it.
 - **A range covering only the common part** names none.
-- **An ambiguous citation** names nothing, and the post is left undecided with the themes' quote shown: an article number that occurs twice, or a range that cuts an instruction in half.
+- **An ambiguous citation** names nothing, and the post is left undecided with the themes' quote shown: a range that cuts an instruction in half, or a cited bound printed twice whose copies sit in different instructions. A number printed twice inside one instruction, as two packs do, is not ambiguous.
+- **A cited annex the pack lacks** is dropped; the post is undecided only when nothing else it cites resolves.
 - **A post that takes the whole document** ("IPSSM Art. 1 – 367"), as three of the five packs give every post, takes every instruction.
 
 **When it runs.** The request runs after the client proposal is ready, so that its prompt can list the proposed posts by name. It is capped at 800,000 characters (about 229,000 tokens), below the 272,000 prompt tokens past which the model prices the whole request higher (`modelRates`, since #666); above the cap the domain fails with its size. The reference packs need 110,000–160,000 tokens for SSM and about 60,000 for PSI. Expected cost, at $1 a million input tokens and $5 output, with the answer capped at 16,000 tokens: $0.13–0.19 for SSM, $0.06–0.08 for PSI.
@@ -216,7 +217,7 @@ The pack is first compared with itself: the same instruction twice in a pack bec
 - **Similar** (_asemănătoare_): word-trigram Jaccard of the folded bodies of 0.5 or more against an active module of the same domain. Between 0.25 and 0.5, the pair goes to GPT-6 Luna, in one request per import with the first 2,000 characters of each, for a yes or no on whether they say the same thing (under a cent). Embeddings were rejected: a vector store and a model call per module, for texts of one trade written in the same words.
 - **New** (_nouă_): anything else, proposed ticked.
 
-A similar instruction reads "Ai deja o instrucțiune care spune același lucru: Scări metalice", with **Ce diferă**: the articles added, removed and changed, the changed words marked. Its choice is **Folosește ce ai** (the default) or **Adaugă ca nouă**. A new instruction whose title is taken by a different module is proposed with the client's name after it, "Recepționeri de hotel (Royal Hotel)", editable. Replacing the library's text with the pack's is not offered; the member edits the module afterwards.
+A similar instruction reads "Ai deja o instrucțiune care spune același lucru: Scări metalice", with **Ce diferă**: the articles added, removed and changed, the changed words marked. Its choice is **Folosește ce ai** or **Adaugă ca nouă**. The default is "Folosește ce ai", except when the pack's instruction has articles the library module lacks: then it is "Adaugă ca nouă", so that a post's own articles are not lost (a hotel receptionist's block was 0.95 similar to an office-work module and added the receptionist's duties). The proposed title drops the common lead ("Instrucțiuni proprii în domeniul securității și sănătății în muncă privind …"); the title as written is kept beside it. A new instruction whose title is taken by a different module is proposed with the client's name after it, "Recepționeri de hotel (Royal Hotel)", editable. Replacing the library's text with the pack's is not offered; the member edits the module afterwards.
 
 ### Where it sits in the import
 
@@ -304,10 +305,10 @@ Each step is a pull request in one stack, on this ADR. The clean-up comes first.
 - **A save that changes no word makes no version.**
 - **One instructions request per domain**, with that domain's themes in it, capped at 800,000 characters and 16,000 output tokens; sorting tells the domain.
 - **Credits**: 25 for the SSM instructions and 10 for the PSI ones, charged when the request is sent.
-- **Cutting by the end quote first** and the last start quote before it, an unfound end ending at the next instruction.
+- **Cutting by the end quote first** and the last start quote before it, an unfound end ending at the next instruction; an end quote found inside an instruction runs on to the next one, flagged.
 - **An ambiguous citation leaves the post undecided** rather than guessing.
 - **Thresholds**: Jaccard 0.5 for similar, 0.25–0.5 judged by GPT-6 Luna. To be tuned on the five reference packs in step 10.
-- **"Folosește ce ai" is the default** for a similar instruction, and a taken title gets the client's name.
+- **"Folosește ce ai" is the default** for a similar instruction unless the pack adds articles, and a taken title gets the client's name.
 - **The library tasks** are confirmed after the client, never block it, and expire 14 days after it.
 - **Archived modules are not compared.**
 - **The test modules on hosted are deleted** by the migration, with their positions' links. A draft that annexed one is regenerated before it is issued, and issued PDFs keep their annexes.
