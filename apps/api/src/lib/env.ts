@@ -42,7 +42,8 @@ export type ImportMessage =
       importId: string;
       part: InstructionsPart;
       attempt: number;
-    };
+    }
+  | { type: 'read-risks'; importId: string; attempt: number };
 
 export type ImportQueue = {
   send(body: ImportMessage, options?: { delaySeconds?: number }): Promise<unknown>;

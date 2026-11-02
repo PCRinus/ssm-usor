@@ -7,7 +7,15 @@ import type { ApiEnv, ImportMessage } from '../../lib/env';
 import { createExtractor } from '../../lib/extractor';
 import { adminFileStore } from '../../lib/files';
 import { lookupCompany } from '../companies/anaf';
-import { failLibraryPart, libraryFailureReason, libraryReasons, readInstructions } from './library';
+import {
+  failLibraryPart,
+  libraryFailureReason,
+  libraryReasons,
+  readInstructions,
+  readRiskEvaluations,
+  riskFailureReason,
+  riskReasons,
+} from './library';
 import {
   afterPreparing,
   checkImport,
@@ -68,6 +76,7 @@ export const importMessageSchema = z.discriminatedUnion('type', [
     part: z.enum(instructionsParts),
     attempt: z.int().min(1),
   }),
+  z.object({ type: z.literal('read-risks'), importId, attempt: z.int().min(1) }),
 ]);
 
 export type QueueMessage = {
@@ -117,6 +126,8 @@ export function runStep(deps: PipelineDeps, message: ImportMessage, messageId: s
       return copyFolder(deps, message.importId);
     case 'read-instructions':
       return readInstructions(deps, message.importId, message.part, message.attempt, messageId);
+    case 'read-risks':
+      return readRiskEvaluations(deps, message.importId, message.attempt, messageId);
   }
 }
 
@@ -158,6 +169,15 @@ export async function recordFailure(deps: PipelineDeps, message: ImportMessage, 
         message.part,
         message.attempt,
         libraryFailureReason(error)
+      );
+      return;
+    case 'read-risks':
+      await failLibraryPart(
+        deps,
+        message.importId,
+        'risk_evaluations',
+        message.attempt,
+        riskFailureReason(error)
       );
       return;
   }
@@ -241,7 +261,9 @@ export async function consumeImportDeadLetters(
         ? fileReasons.stopped
         : body.type === 'read-instructions'
           ? libraryReasons.failed
-          : importReasons.failed;
+          : body.type === 'read-risks'
+            ? riskReasons.failed
+            : importReasons.failed;
     try {
       await recordFailure(deps, body, new ImportFailure(reason));
       message.ack();

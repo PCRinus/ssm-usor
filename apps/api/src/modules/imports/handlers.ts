@@ -336,7 +336,7 @@ function usageOf(row: UsageColumns & { read_characters: number | null; usage_by_
       ? (row.usage_by_step as Record<string, UsageColumns | null | undefined>)
       : {};
   const bySteps: ImportUsage['bySteps'] = {};
-  for (const step of ['sorting', 'reading', 'scanning', 'instructions'] as const) {
+  for (const step of ['sorting', 'reading', 'scanning', 'instructions', 'risks'] as const) {
     const usage = steps[step];
     if (usage && typeof usage === 'object') bySteps[step] = modelUsage(usage);
   }

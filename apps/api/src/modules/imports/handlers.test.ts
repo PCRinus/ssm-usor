@@ -783,6 +783,7 @@ describe('GET /imports/{importId}', () => {
         atStart: 25,
         scannedPages: 9,
         ownInstructions: 0,
+        riskEvaluations: 0,
         refunded: false,
       });
       const read = callsTo('/rest/v1/credit_entries')[0]!;
@@ -797,7 +798,14 @@ describe('GET /imports/{importId}', () => {
           ...scans,
           { kind: 'refund', credits: 34 },
         ])
-      ).toEqual({ used: 0, atStart: 25, scannedPages: 9, ownInstructions: 0, refunded: true });
+      ).toEqual({
+        used: 0,
+        atStart: 25,
+        scannedPages: 9,
+        ownInstructions: 0,
+        riskEvaluations: 0,
+        refunded: true,
+      });
     });
 
     it('serves no credits before the import started', async () => {

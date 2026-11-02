@@ -118,6 +118,7 @@ export const importErrorReasons = {
   partExpired: 'import_part_expired',
   partNotFailed: 'import_part_not_failed',
   titleTaken: 'instruction_title_taken',
+  nameTaken: 'evaluation_profile_name_taken',
 } as const;
 
 /** With `credits_insufficient`: what the import needs to start, and what is left. */
@@ -583,6 +584,8 @@ export const importUsageSchema = importModelUsageSchema
       scanning: importModelUsageSchema.optional(),
       // The library parts' readings and their comparisons with the library (ADR 034).
       instructions: importModelUsageSchema.optional(),
+      // The risk evaluations' readings (ADR 036).
+      risks: importModelUsageSchema.optional(),
     }),
   })
   .meta({ id: 'ImportUsage' });
@@ -600,6 +603,8 @@ export const importCreditsSchema = z
     // The readings of its own instructions for the library, net of those given back: 25 for SSM
     // and 10 for SU each time one is read (ADR 034).
     ownInstructions: z.int().min(0),
+    // The readings of its risk evaluations, net of those given back: 15 each time (ADR 036).
+    riskEvaluations: z.int().min(0),
     // Everything given back, after a failure on our side.
     refunded: z.boolean(),
   })
@@ -855,26 +860,15 @@ export const importLibraryPartCountsSchema = z.object({
   unread: z.int().min(0),
 });
 
-/**
- * A library part besides its proposal (`@ssm-usor/import`'s `InstructionsProposal`, which the API
- * adds).
- */
-export const importLibraryPartDetailSchema = z.object({
-  part: importLibraryPartSchema,
-  // Null for the risk evaluations.
-  domain: instructionDomainSchema.nullable(),
+const libraryPartDetailBase = z.object({
   status: z.enum(importLibraryPartStatuses),
   // 1, then one more each time it is read again.
   attempt: z.int().min(1),
   // In Romanian, with `failed`.
   failureReason: z.string().nullable(),
   version: z.int().min(0),
-  changes: instructionImportChangesSchema.nullable(),
   // Null before read, and once dropped with the import's proposal.
   counts: importLibraryPartCountsSchema.nullable(),
-  // By the proposal's position key: the client's post it is, as the changes name posts; null for
-  // a post the themes name that is none of the client's, or that the client import left out.
-  positionPosts: z.record(z.string(), postReference.nullable()),
   readAt: z.iso.datetime({ offset: true }).nullable(),
   confirmedAt: z.iso.datetime({ offset: true }).nullable(),
   // 14 days after the client's confirmation; null before it.
@@ -885,6 +879,38 @@ export const importLibraryPartDetailSchema = z.object({
   usage: importModelUsageSchema.optional(),
 });
 
+/**
+ * An instructions part besides its proposal (`@ssm-usor/import`'s `InstructionsProposal`, which
+ * the API adds).
+ */
+export const instructionsPartDetailSchema = libraryPartDetailBase.extend({
+  part: z.enum(instructionsParts),
+  domain: instructionDomainSchema,
+  changes: instructionImportChangesSchema.nullable(),
+  // By the proposal's position key: the client's post it is, as the changes name posts; null for
+  // a post the themes name that is none of the client's, or that the client import left out.
+  positionPosts: z.record(z.string(), postReference.nullable()),
+});
+
+/**
+ * The risk evaluations' part besides its proposal (`@ssm-usor/import`'s `RisksProposal`, which the
+ * API adds). Its counts are of sheets, `unread` those found with no factor read.
+ */
+export const risksPartDetailSchema = libraryPartDetailBase.extend({
+  part: z.literal('risk_evaluations'),
+  changes: riskImportChangesSchema.nullable(),
+  // By a post's name as the proposal's sheets give it: the client's post it is, as the changes
+  // name posts; null for one the client import left out.
+  postReferences: z.record(z.string(), postReference.nullable()),
+});
+
+export const importLibraryPartDetailSchema = z.discriminatedUnion('part', [
+  instructionsPartDetailSchema,
+  risksPartDetailSchema,
+]);
+
+export type InstructionsPartDetail = z.infer<typeof instructionsPartDetailSchema>;
+export type RisksPartDetail = z.infer<typeof risksPartDetailSchema>;
 export type ImportLibraryPartDetail = z.infer<typeof importLibraryPartDetailSchema>;
 
 export const importLibraryPostSchema = z.object({
@@ -900,7 +926,8 @@ export type ImportLibraryPost = z.infer<typeof importLibraryPostSchema>;
 
 export const saveImportLibraryPartChangesRequestSchema = z.object({
   version: z.int().min(0),
-  changes: instructionImportChangesSchema,
+  // An instructions part's changes, or the risk evaluations' (`sheets`).
+  changes: z.union([instructionImportChangesSchema, riskImportChangesSchema]),
 });
 
 export type SaveImportLibraryPartChangesRequest = z.infer<
@@ -911,13 +938,27 @@ export const confirmImportLibraryPartRequestSchema = z.object({ version: z.int()
 
 export type ConfirmImportLibraryPartRequest = z.infer<typeof confirmImportLibraryPartRequestSchema>;
 
-export const confirmImportLibraryPartResponseSchema = z.object({
+export const confirmInstructionsPartResponseSchema = z.object({
   // The modules created, and those of the library applied as they are.
   createdModuleIds: z.array(z.uuid()),
   usedModuleIds: z.array(z.uuid()),
   // The posts' links added; a post that applied a module already is skipped.
   links: z.int().min(0),
 });
+
+export const confirmRisksPartResponseSchema = z.object({
+  // The library entries created.
+  createdProfileIds: z.array(z.uuid()),
+  // The client's evaluations written, those created among them.
+  evaluationIds: z.array(z.uuid()),
+  // The factors written to the client.
+  factors: z.int().min(0),
+});
+
+export const confirmImportLibraryPartResponseSchema = z.union([
+  confirmInstructionsPartResponseSchema,
+  confirmRisksPartResponseSchema,
+]);
 
 export type ConfirmImportLibraryPartResponse = z.infer<
   typeof confirmImportLibraryPartResponseSchema

@@ -14,6 +14,7 @@ import { fromDatabaseError } from '../../lib/db';
 import { creditsStore } from '../credits/store';
 import { importCharges } from '../credits/usage';
 import { clientTrainingThemes, employeeImportClient } from './employees';
+import { type ClientSheets, clientSheetsOf, type RiskLibrary, riskLibraryOf } from './risk-sheets';
 
 type Tables = Database['public']['Tables'];
 
@@ -114,6 +115,8 @@ export interface ImportStore {
   chargeLibraryPart(row: ImportRow, part: ImportLibraryPart, attempt: number): Promise<void>;
   // The organization's active modules of both domains, each with its current text.
   libraryModules(organizationId: string): Promise<LibraryModule[]>;
+  riskLibrary(organizationId: string): Promise<RiskLibrary>;
+  clientSheets(clientId: string): Promise<ClientSheets>;
   provider(organizationId: string): Promise<ProviderIdentity>;
   client(clientId: string): Promise<ExistingClient | null>;
   employeeImportClient(clientId: string): Promise<EmployeeImportClient>;
@@ -293,6 +296,10 @@ export function importStore(admin: AdminClient): ImportStore {
         ];
       });
     },
+
+    riskLibrary: (organizationId) => riskLibraryOf(admin, organizationId),
+
+    clientSheets: (clientId) => clientSheetsOf(admin, clientId),
 
     async provider(organizationId) {
       const [organization, members] = await Promise.all([

@@ -17,22 +17,40 @@ import {
   libraryTitle,
   ModelAnswerError,
   pairsToJudge,
+  type Proposal,
   proposalSchema,
   proposeInstructions,
+  proposeRisks,
   readInstructionsAnswer,
   readInstructionsDocx,
+  readRisksAnswer,
+  retypeBatches,
+  type RetypedAnswer,
+  retypeRequest,
+  type RisksAnswer,
+  risksCharacters,
+  risksRequest,
+  type RisksTextFile,
+  RisksTooLargeError,
   similarityRequest,
+  withRetyped,
 } from '@ssm-usor/import';
 
 import {
   claimed,
+  dataUrl,
   ImportFailure,
   importReasons,
+  isImage,
   isLibraryFile,
+  isRiskFile,
   isTransient,
   loadPrepared,
+  pageImage,
+  pageLabel,
   type PipelineDeps,
 } from './pipeline';
+import { existingByPostName } from './risk-sheets';
 import { asJson, type ImportFileRow, type ImportRow } from './store';
 
 const number = new Intl.NumberFormat('ro-RO');
@@ -49,6 +67,12 @@ export const libraryReasons = {
 } as const;
 
 export const riskReasons = {
+  noText: 'Nu am găsit textul evaluării riscurilor în fișierele importului.',
+  tooLarge: (characters: number) =>
+    `Evaluarea riscurilor și planul de prevenire au ${number.format(characters)} de caractere, mai mult decât încap într-o citire (${number.format(risksCharacters)}).`,
+  modelRefused: 'Modelul a refuzat să citească evaluarea riscurilor.',
+  modelFailed: 'Modelul nu a dat un răspuns pe care să-l putem folosi pentru evaluarea riscurilor.',
+  failed: 'Citirea evaluărilor de risc s-a oprit din cauza unei erori.',
   stalled: 'Citirea evaluărilor de risc s-a oprit înainte să se termine.',
 } as const;
 
@@ -158,29 +182,50 @@ async function clientOf(deps: PipelineDeps, row: ImportRow) {
   return {
     posts: proposal.success ? proposal.data.jobPositions.map((position) => position.name) : [],
     client: { name: shortClientName(legalName), legalName },
+    people: proposal.success ? clientPeople(proposal.data) : [],
   };
+}
+
+export function clientPeople(proposal: Proposal) {
+  return [
+    ...proposal.client.legalRepresentativeName.options.map((option) => String(option.value)),
+    ...proposal.responsiblePersons.map((person) => person.fullName),
+    ...proposal.employees.map((employee) =>
+      [employee.firstName, employee.lastName].filter(Boolean).join(' ')
+    ),
+  ].filter((name) => name.trim() !== '');
+}
+
+async function keptAnswer<T>(
+  deps: PipelineDeps,
+  row: ImportRow,
+  name: string,
+  ask: () => Promise<T>
+): Promise<T> {
+  const path = pathOf(row, `${name}.json`);
+  const kept = await deps.objects
+    .read(path)
+    .then((bytes) => JSON.parse(decoder.decode(bytes)) as T)
+    .catch(() => null);
+  if (kept) return kept;
+  const answer = await ask();
+  await deps.objects.write(path, encoder.encode(JSON.stringify(answer)), 'application/json');
+  return answer;
 }
 
 // Kept as it came, so a delivery that is retried after the answer, for the comparison, does not
 // send the dearest request again.
-async function answerOf(
+const answerOf = <T>(
   deps: PipelineDeps,
   row: ImportRow,
   part: ImportLibraryPart,
   attempt: number,
-  request: Omit<CompletionRequest<InstructionsAnswer>, 'metadata'>
-) {
-  const path = pathOf(row, `${part}.${attempt}.answer.json`);
-  const kept = await deps.objects
-    .read(path)
-    .then((bytes) => JSON.parse(decoder.decode(bytes)) as InstructionsAnswer)
-    .catch(() => null);
-  if (kept) return kept;
-  await deps.store.chargeLibraryPart(row, part, attempt);
-  const answer = await askForPart(deps, row, part, request);
-  await deps.objects.write(path, encoder.encode(JSON.stringify(answer)), 'application/json');
-  return answer;
-}
+  request: Omit<CompletionRequest<T>, 'metadata'>
+) =>
+  keptAnswer(deps, row, `${part}.${attempt}.answer`, async () => {
+    await deps.store.chargeLibraryPart(row, part, attempt);
+    return askForPart(deps, row, part, request);
+  });
 
 export async function readInstructions(
   deps: PipelineDeps,
@@ -227,7 +272,7 @@ export async function readInstructions(
     }
     throw error;
   }
-  const answer = await answerOf(deps, row, part, attempt, request);
+  const answer = await answerOf<InstructionsAnswer>(deps, row, part, attempt, request);
   const read = readInstructionsAnswer(domain, instructions, answer);
 
   const library = await deps.store.libraryModules(row.organization_id);
@@ -267,6 +312,109 @@ export function libraryFailureReason(error: unknown): string {
   }
   if (error instanceof GatewayError) return importReasons.unavailable;
   return libraryReasons.failed;
+}
+
+const risksPart = 'risk_evaluations' satisfies ImportLibraryPart;
+
+// A Word file keeps its table rows for the request to point at; a PDF's text pages have none,
+// and its scanned pages go as images, charged as the client reading charged them (ADR 036).
+async function risksFile(
+  deps: PipelineDeps,
+  row: ImportRow,
+  file: ImportFileRow
+): Promise<RisksTextFile | null> {
+  const prepared = await loadPrepared(deps.objects, file);
+  const scanned = isImage(file)
+    ? [1]
+    : (prepared.pages?.pages.filter((page) => page.isScan).map((page) => page.number) ?? []);
+  const scans: NonNullable<RisksTextFile['scans']> = [];
+  if (scanned.length > 0) {
+    const image = await pageImage(deps, file);
+    for (const page of scanned) {
+      if (!isImage(file)) await deps.store.chargeScannedPage(row, file.id, page);
+      const picture = await image(page);
+      scans.push({
+        label: pageLabel(file, page),
+        imageUrl: dataUrl(picture.bytes, picture.type),
+      });
+    }
+  }
+  if (prepared.text.trim() === '' && scans.length === 0) return null;
+  return { path: file.upload_path, text: prepared.text, ...(scans.length ? { scans } : {}) };
+}
+
+export async function readRiskEvaluations(
+  deps: PipelineDeps,
+  importId: string,
+  attempt: number,
+  owner: string
+) {
+  const row = await deps.store.getImport(importId);
+  if (!row || (row.status !== 'ready' && row.status !== 'confirmed')) return;
+  const current = await deps.store.getLibraryPart(importId, risksPart);
+  if (!current || current.status !== 'reading' || current.attempt !== attempt) return;
+  if (!(await claimed(deps, pathOf(row, `${risksPart}.${attempt}.claim.json`), owner))) return;
+
+  const files: RisksTextFile[] = [];
+  for (const file of (await deps.store.listFiles(importId)).filter(isRiskFile)) {
+    const read = await risksFile(deps, row, file);
+    if (read) files.push(read);
+  }
+  if (files.length === 0) throw new ImportFailure(riskReasons.noText);
+
+  const { posts, client, people } = await clientOf(deps, row);
+  const provider = await deps.store.provider(row.organization_id);
+  const input = { files, posts };
+  let request;
+  try {
+    request = risksRequest(input);
+  } catch (error) {
+    if (error instanceof RisksTooLargeError) {
+      throw new ImportFailure(riskReasons.tooLarge(error.characters));
+    }
+    throw error;
+  }
+  const first = await answerOf<RisksAnswer>(deps, row, risksPart, attempt, request);
+  const later: RetypedAnswer[] = [];
+  for (const [index, headings] of retypeBatches(input, first).entries()) {
+    later.push(
+      await keptAnswer(deps, row, `${risksPart}.${attempt}.retyped-${index + 1}`, () =>
+        askForPart(deps, row, risksPart, retypeRequest(input, headings))
+      )
+    );
+  }
+  const read = readRisksAnswer(files, withRetyped(first, later), {
+    people: [...people, ...provider.people],
+  });
+
+  const library = await deps.store.riskLibrary(row.organization_id);
+  const existing = row.client_id
+    ? existingByPostName(await deps.store.clientSheets(row.client_id), posts)
+    : undefined;
+  const proposal = proposeRisks({
+    read,
+    posts,
+    library: library.entries,
+    takenNames: library.names,
+    client,
+    existing,
+  });
+  await deps.store.updateLibraryPart(importId, risksPart, attempt, {
+    status: proposal.sheets.some((sheet) => sheet.status === 'new' || sheet.status === 'similar')
+      ? 'to_review'
+      : 'nothing_new',
+    proposal: asJson(proposal),
+    read_at: new Date().toISOString(),
+  });
+}
+
+export function riskFailureReason(error: unknown): string {
+  if (error instanceof ImportFailure) return error.reason;
+  if (error instanceof ModelAnswerError) {
+    return error.reason === 'refused' ? riskReasons.modelRefused : riskReasons.modelFailed;
+  }
+  if (error instanceof GatewayError) return importReasons.unavailable;
+  return riskReasons.failed;
 }
 
 export async function failLibraryPart(

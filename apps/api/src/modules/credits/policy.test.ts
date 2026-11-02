@@ -147,7 +147,14 @@ describe("an import's credits", () => {
         { import_id: 'i', kind: 'import_start', credits: -14, import_part: null },
         { import_id: 'i', kind: 'import_pages', credits: 3, import_part: null },
       ])
-    ).toEqual({ used: 11, atStart: 11, scannedPages: 0, ownInstructions: 0, refunded: false });
+    ).toEqual({
+      used: 11,
+      atStart: 11,
+      scannedPages: 0,
+      ownInstructions: 0,
+      riskEvaluations: 0,
+      refunded: false,
+    });
   });
 
   it('counts the readings of its own instructions apart, net of a reading given back', () => {
@@ -165,6 +172,37 @@ describe("an import's credits", () => {
         },
         { import_id: 'i', kind: 'library_part', credits: -10, import_part: 'instructions_su' },
       ])
-    ).toEqual({ used: 61, atStart: 25, scannedPages: 1, ownInstructions: 35, refunded: false });
+    ).toEqual({
+      used: 61,
+      atStart: 25,
+      scannedPages: 1,
+      ownInstructions: 35,
+      riskEvaluations: 0,
+      refunded: false,
+    });
+  });
+
+  it('counts the readings of the risk evaluations apart from the instructions', () => {
+    expect(
+      importCreditsOf([
+        { import_id: 'i', kind: 'import_start', credits: -25, import_part: null },
+        { import_id: 'i', kind: 'library_part', credits: -25, import_part: 'instructions_ssm' },
+        { import_id: 'i', kind: 'library_part', credits: -15, import_part: 'risk_evaluations' },
+        {
+          import_id: 'i',
+          kind: 'library_part_refund',
+          credits: 15,
+          import_part: 'risk_evaluations',
+        },
+        { import_id: 'i', kind: 'library_part', credits: -15, import_part: 'risk_evaluations' },
+      ])
+    ).toEqual({
+      used: 65,
+      atStart: 25,
+      scannedPages: 0,
+      ownInstructions: 25,
+      riskEvaluations: 15,
+      refunded: false,
+    });
   });
 });

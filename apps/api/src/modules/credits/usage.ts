@@ -59,10 +59,11 @@ export async function creditsUsageOf(
 
 export function importCreditsOf(entries: ImportCreditEntry[]): ImportCredits | null {
   if (!entries.some((entry) => entry.kind === 'import_start')) return null;
-  const sum = (kinds: string[]) =>
+  const sum = (kinds: string[], of: (entry: ImportCreditEntry) => boolean = () => true) =>
     entries
-      .filter((entry) => kinds.includes(entry.kind))
+      .filter((entry) => kinds.includes(entry.kind) && of(entry))
       .reduce((total, entry) => total + entry.credits, 0);
+  const risks = (entry: ImportCreditEntry) => entry.import_part === 'risk_evaluations';
   return {
     used: Math.max(
       0,
@@ -77,7 +78,11 @@ export function importCreditsOf(entries: ImportCreditEntry[]): ImportCredits | n
     ),
     atStart: Math.max(0, -sum(['import_start', 'import_pages'])),
     scannedPages: entries.filter((entry) => entry.kind === 'scanned_page').length,
-    ownInstructions: Math.max(0, -sum(['library_part', 'library_part_refund'])),
+    ownInstructions: Math.max(
+      0,
+      -sum(['library_part', 'library_part_refund'], (entry) => !risks(entry))
+    ),
+    riskEvaluations: Math.max(0, -sum(['library_part', 'library_part_refund'], risks)),
     refunded: entries.some((entry) => entry.kind === 'refund'),
   };
 }

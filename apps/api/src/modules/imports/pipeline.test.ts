@@ -6,6 +6,7 @@ import {
   instructionsProposalSchema,
   type LibraryModule,
   proposalSchema,
+  risksProposalSchema,
   type ThemeDefaults,
 } from '@ssm-usor/import';
 import { strToU8, zipSync } from 'fflate';
@@ -30,6 +31,7 @@ import {
   maxDeferrals,
   type QueueMessage,
 } from './queue';
+import type { ClientSheets, RiskLibrary } from './risk-sheets';
 import {
   type ImportFileRow,
   ImportLimitError,
@@ -134,6 +136,8 @@ class World {
   partUsage: { part: string; input: number; cost: number }[] = [];
   partCharges: string[] = [];
   library: LibraryModule[] = [];
+  riskLibrary: RiskLibrary = { entries: [], names: [] };
+  clientSheets: ClientSheets = { jobPositions: [], sensitiveGroups: 0, other: {} };
 
   send(body: ImportMessage, delaySeconds?: number) {
     this.sent.push({ id: `message-${++this.nextMessage}`, body, attempts: 1, delaySeconds });
@@ -253,6 +257,8 @@ class World {
         if (!this.partCharges.includes(key)) this.partCharges.push(key);
       },
       libraryModules: async () => this.library,
+      riskLibrary: async () => this.riskLibrary,
+      clientSheets: async () => this.clientSheets,
       provider: async () => ({
         name: 'SERVICIUL EXTERN EXEMPLU S.R.L.',
         cui: '76543210',
@@ -1936,5 +1942,294 @@ describe('the own instructions', () => {
     await consumeImportDeadLetters({ messages: [message] }, {}, deps());
 
     expect(part()).toMatchObject({ status: 'failed', failure_reason: libraryReasons.failed });
+  });
+});
+
+describe('the risk evaluations', () => {
+  const word = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  const bakerHeading =
+    'SUBCAPITOLUL V.I. EVALUAREA RISCURILOR PENTRU LOCUL DE MUNCĂ : BRUTĂRIE, POSTUL DE LUCRU : BRUTAR';
+  const sensitiveHeading =
+    'SUBCAPITOLUL V.II. EVALUAREA RISCURILOR PENTRU LOCUL DE MUNCĂ : GRUPURI SENSIBILE';
+  const mixer =
+    '| MIJLOACE DE PRODUCŢIE | Factori de risc mecanic | F1. Prinderea degetelor în malaxorul de aluat pornit. | ITM / 45-180 zile | 3 | 3 | 3 |';
+
+  const assessment: FileSpec = {
+    path: 'Dosar/Evaluarea riscurilor.docx',
+    mime: word,
+    bytes: docx([
+      'BRUTĂRIA FICTIVĂ S.R.L.',
+      bakerHeading,
+      '2. Mijloace de producţie :',
+      'Cuptor electric cu trei vetre și malaxor de aluat.',
+      '| COMPONENTA | FACTORI | FORMA | CONSECINŢA | GRAVITATE | PROBABILITATE | NIVEL |',
+      mixer,
+      '| MIJLOACE DE PRODUCŢIE | Factori de risc mecanic | F2. Tăierea mâinilor cu cuțitul de feliat pâine. | ITM / 3-45 zile | 2 | 5 | 3 |',
+      sensitiveHeading,
+      mixer,
+    ]),
+  };
+
+  const sorting = {
+    files: [
+      answers.sorting.files[0]!,
+      {
+        path: assessment.path,
+        kind: 'risk_assessment',
+        companyName: 'BRUTĂRIA FICTIVĂ S.R.L.',
+        companyCui: '',
+        carriesClientData: true,
+      },
+    ],
+  };
+
+  const documents = {
+    ...answers.documents,
+    jobPositions: [
+      {
+        name: 'Brutar',
+        trainingIntervalMonths: null,
+        workZone: null,
+        managementOnly: false,
+        needsProtectiveEquipment: null,
+        ...quoted(assessment.path, 'POSTUL DE LUCRU : BRUTAR'),
+      },
+    ],
+  };
+
+  const none = { startWords: '', endWords: '' };
+  const columns = {
+    component: 1,
+    group: 2,
+    description: 3,
+    consequence: 4,
+    gravity: 5,
+    probability: 6,
+    level: 7,
+  };
+  const sheet = {
+    file: assessment.path,
+    columns,
+    workEnvironment: none,
+    exposure: none,
+    factors: [],
+  };
+  const risks = {
+    sheets: [
+      {
+        ...sheet,
+        heading: bakerHeading,
+        kind: 'job_position',
+        name: 'BRUTAR',
+        posts: ['Brutar'],
+        firstRow: 'R2',
+        lastRow: 'R3',
+        meansOfProduction: {
+          startWords: 'Cuptor electric cu trei vetre',
+          endWords: 'și malaxor de aluat.',
+        },
+      },
+      {
+        ...sheet,
+        heading: sensitiveHeading,
+        kind: 'sensitive_groups',
+        name: 'GRUPURI SENSIBILE',
+        posts: [],
+        firstRow: 'R4',
+        lastRow: 'R4',
+        meansOfProduction: none,
+      },
+    ],
+    measures: [],
+    planTables: [],
+    plan: [],
+  };
+
+  const packModel =
+    (answer: unknown = risks): Recorded =>
+    (request) => {
+      if (request.name === 'import_sorting') return sorting;
+      if (request.name === 'import_risks') return answer;
+      if (request.name === 'client_import') return documents;
+      return defaultModel(request);
+    };
+
+  const part = () => world.parts.get(`${importId}:risk_evaluations`)!;
+
+  it('reads them once the client is ready, from files the client reading reads too', async () => {
+    model = packModel();
+    startWith([files[0]!, assessment]);
+    const outcomes = await drain(deps());
+
+    expect(outcomes.every((outcome) => outcome.outcome === 'ack')).toBe(true);
+    expect(outcomes.map((outcome) => outcome.type)).toContain('read-risks');
+    expect(world.imports.get(importId)!.status).toBe('ready');
+    expect(world.fileAt(assessment.path)).toMatchObject({
+      state: 'read',
+      document_kind: 'risk_assessment',
+    });
+    expect(world.parts.has(`${importId}:instructions_ssm`)).toBe(false);
+
+    expect(part()).toMatchObject({ status: 'to_review', attempt: 1 });
+    const proposal = risksProposalSchema.parse(part().proposal);
+    expect(
+      proposal.sheets.map((each) => [
+        each.kind,
+        each.posts.map((post) => post.name),
+        each.factors.length,
+        each.status,
+        each.choice,
+      ])
+    ).toEqual([
+      ['job_position', ['Brutar'], 2, 'new', 'add'],
+      ['sensitive_groups', [], 1, 'new', 'skip'],
+    ]);
+    expect(proposal.sheets[0]).toMatchObject({
+      libraryName: 'Brutar',
+      meansOfProduction: 'Cuptor electric cu trei vetre și malaxor de aluat.',
+    });
+
+    const read = modelRequests.find((request) => request.name === 'import_risks')!;
+    expect(read.metadata).toBe(
+      JSON.stringify({ organizationId, importId, part: 'risk_evaluations' })
+    );
+    expect(read.maxTokens).toBe(32_000);
+    expect(world.partCharges).toEqual(['risk_evaluations:1']);
+    expect(world.partUsage).toEqual([
+      { part: 'risk_evaluations', input: 1000, cost: expect.any(Number) },
+    ]);
+  });
+
+  it('finds a sheet the library already has, and says nothing is new when every one is', async () => {
+    world.riskLibrary = {
+      names: ['Brutar'],
+      entries: [
+        {
+          id: 'c1000000-0000-4000-8000-000000000001',
+          name: 'Brutar',
+          factors: [
+            {
+              id: 'c2000000-0000-4000-8000-000000000001',
+              component: 'means_of_production',
+              description: 'Prinderea degetelor în malaxorul de aluat pornit.',
+              gravityClass: 3,
+              probabilityClass: 3,
+              measures: [],
+            },
+            {
+              id: 'c2000000-0000-4000-8000-000000000002',
+              component: 'means_of_production',
+              description: 'Tăierea mâinilor cu cuțitul de feliat pâine.',
+              gravityClass: 2,
+              probabilityClass: 5,
+              measures: [],
+            },
+          ],
+        },
+      ],
+    };
+    model = packModel({ ...risks, sheets: [risks.sheets[0]] });
+    startWith([files[0]!, assessment]);
+    await drain(deps());
+
+    expect(part().status).toBe('nothing_new');
+    const [baker] = risksProposalSchema.parse(part().proposal).sheets;
+    expect(baker).toMatchObject({
+      status: 'identical',
+      choice: 'use_existing',
+      match: { evaluationId: 'c1000000-0000-4000-8000-000000000001' },
+    });
+  });
+
+  it('counts the factors a post of an existing client already has', async () => {
+    world.clientSheets = {
+      jobPositions: [{ id: 'd1000000-0000-4000-8000-000000000001', name: 'BRUTAR', factors: 18 }],
+      sensitiveGroups: 0,
+      other: {},
+    };
+    model = packModel();
+    startWith([files[0]!, assessment]);
+    world.imports.get(importId)!.client_id = 'e1000000-0000-4000-8000-000000000001';
+    await drain(deps());
+
+    const [baker] = risksProposalSchema.parse(part().proposal).sheets;
+    expect(baker!.posts).toEqual([{ name: 'Brutar', existingFactors: 18, choice: 'keep' }]);
+  });
+
+  it('sends a scanned page of the assessment as its image, charged once', async () => {
+    const scan: FileSpec = { ...files[2]!, path: 'Dosar/Scanate/Evaluare.pdf' };
+    model = (request) => {
+      if (request.name === 'import_sorting') {
+        return {
+          files: [
+            {
+              path: scan.path,
+              kind: 'risk_assessment',
+              companyName: 'BRUTĂRIA FICTIVĂ S.R.L.',
+              companyCui: '12345674',
+              carriesClientData: true,
+            },
+          ],
+        };
+      }
+      if (request.name === 'import_risks') return { ...risks, sheets: [] };
+      return defaultModel(request);
+    };
+    startWith([scan]);
+    await drain(deps());
+
+    const read = modelRequests.find((request) => request.name === 'import_risks')!;
+    expect(read.images).toHaveLength(1);
+    expect(world.scanCharges).toHaveLength(1);
+    expect(part().status).toBe('nothing_new');
+  });
+
+  it('fails the part, not the import, when the answer cannot be used', async () => {
+    model = packModel({ not: 'the schema' });
+    startWith([files[0]!, assessment]);
+    const outcomes = await drain(deps());
+
+    expect(outcomes.every((outcome) => outcome.outcome === 'ack')).toBe(true);
+    expect(world.imports.get(importId)!.status).toBe('ready');
+    expect(part()).toMatchObject({ status: 'failed', failure_reason: riskReasons.modelFailed });
+    expect(world.partCharges).toEqual(['risk_evaluations:1']);
+  });
+
+  it('reads a retried part under its next attempt, and ignores the message of the one before', async () => {
+    model = packModel({ not: 'the schema' });
+    startWith([files[0]!, assessment]);
+    await drain(deps());
+    Object.assign(part(), { status: 'reading', attempt: 2, failure_reason: null });
+    model = packModel();
+    modelRequests = [];
+    world.send({ type: 'read-risks', importId, attempt: 1 });
+    world.send({ type: 'read-risks', importId, attempt: 2 });
+    world.send({ type: 'read-risks', importId, attempt: 2 });
+    await drain(deps());
+
+    expect(part()).toMatchObject({ status: 'to_review', attempt: 2 });
+    expect(world.partCharges).toEqual(['risk_evaluations:1', 'risk_evaluations:2']);
+    expect(modelRequests.filter((request) => request.name === 'import_risks')).toHaveLength(1);
+  });
+
+  it('fails the part whose step every delivery lost', async () => {
+    world.addImport({ status: 'ready' });
+    world.parts.set(`${importId}:risk_evaluations`, {
+      import_id: importId,
+      part: 'risk_evaluations',
+      status: 'reading',
+      attempt: 1,
+      proposal: null,
+    });
+    const message = {
+      id: 'lost',
+      body: { type: 'read-risks', importId, attempt: 1 },
+      attempts: 1,
+      ack: vi.fn(),
+      retry: vi.fn(),
+    } satisfies QueueMessage;
+    await consumeImportDeadLetters({ messages: [message] }, {}, deps());
+
+    expect(part()).toMatchObject({ status: 'failed', failure_reason: riskReasons.failed });
   });
 });
