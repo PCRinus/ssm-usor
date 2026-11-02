@@ -74,15 +74,15 @@ import { Route as AuthenticatedClientsClientIdPortalRouteImport } from './routes
 import { Route as AuthenticatedClientsClientIdTrainingRouteImport } from './routes/_authenticated/clients/$clientId/training';
 import { Route as AuthenticatedClientsClientIdTrainingsRouteImport } from './routes/_authenticated/clients/$clientId/trainings';
 import { Route as AuthenticatedClientsImportImportIdRouteImport } from './routes/_authenticated/clients/import/$importId';
-import { Route as AuthenticatedInstructionsLibraryPsiRouteImport } from './routes/_authenticated/instructions/_library/psi';
 import { Route as AuthenticatedInstructionsLibrarySsmRouteImport } from './routes/_authenticated/instructions/_library/ssm';
+import { Route as AuthenticatedInstructionsLibrarySuRouteImport } from './routes/_authenticated/instructions/_library/su';
 import { Route as AuthenticatedLeadsLeadIdIndexRouteImport } from './routes/_authenticated/leads/$leadId/index';
 import { Route as AuthenticatedLeadsLeadIdContractRouteImport } from './routes/_authenticated/leads/$leadId/contract';
 import { Route as AuthenticatedLeadsLeadIdEditRouteImport } from './routes/_authenticated/leads/$leadId/edit';
 import { Route as AuthenticatedOrganizationSubscriptionIndexRouteImport } from './routes/_authenticated/organization/subscription/index';
 import { Route as AuthenticatedOrganizationSubscriptionChooseRouteImport } from './routes/_authenticated/organization/subscription/choose';
-import { Route as AuthenticatedTestsBankPsiRouteImport } from './routes/_authenticated/tests/_bank/psi';
 import { Route as AuthenticatedTestsBankSsmRouteImport } from './routes/_authenticated/tests/_bank/ssm';
+import { Route as AuthenticatedTestsBankSuRouteImport } from './routes/_authenticated/tests/_bank/su';
 import { Route as AuthenticatedClientsClientIdContractIndexRouteImport } from './routes/_authenticated/clients/$clientId/contract/index';
 import { Route as AuthenticatedClientsClientIdContractEditRouteImport } from './routes/_authenticated/clients/$clientId/contract/edit';
 import { Route as AuthenticatedClientsClientIdDocumentsIndexRouteImport } from './routes/_authenticated/clients/$clientId/documents/index';
@@ -107,8 +107,8 @@ import { Route as AuthenticatedClientsClientIdJobPositionsJobPositionIdRiskEvalu
 import { Route as AuthenticatedClientsClientIdJobPositionsRiskEvaluationsEvaluationIdRouteImport } from './routes/_authenticated/clients/$clientId/job-positions/risk-evaluations.$evaluationId';
 import { Route as AuthenticatedClientsImportImportIdInstructionsDomainRouteImport } from './routes/_authenticated/clients/import/$importId/instructions/$domain';
 import { Route as AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingIndexRouteImport } from './routes/_authenticated/clients/$clientId/employees/$employeeId/training/index';
-import { Route as AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingPsiRouteImport } from './routes/_authenticated/clients/$clientId/employees/$employeeId/training/psi';
 import { Route as AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSsmRouteImport } from './routes/_authenticated/clients/$clientId/employees/$employeeId/training/ssm';
+import { Route as AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSuRouteImport } from './routes/_authenticated/clients/$clientId/employees/$employeeId/training/su';
 import { Route as AuthenticatedClientsClientIdEmployeesImportImportIdIndexRouteImport } from './routes/_authenticated/clients/$clientId/employees/import/$importId/index';
 import { Route as AuthenticatedClientsClientIdEmployeesImportImportIdPersonIdRouteImport } from './routes/_authenticated/clients/$clientId/employees/import/$importId/$personId';
 
@@ -473,16 +473,16 @@ const AuthenticatedClientsImportImportIdRoute =
     path: '/import/$importId',
     getParentRoute: () => AuthenticatedClientsRoute,
   } as any);
-const AuthenticatedInstructionsLibraryPsiRoute =
-  AuthenticatedInstructionsLibraryPsiRouteImport.update({
-    id: '/psi',
-    path: '/psi',
-    getParentRoute: () => AuthenticatedInstructionsLibraryRoute,
-  } as any);
 const AuthenticatedInstructionsLibrarySsmRoute =
   AuthenticatedInstructionsLibrarySsmRouteImport.update({
     id: '/ssm',
     path: '/ssm',
+    getParentRoute: () => AuthenticatedInstructionsLibraryRoute,
+  } as any);
+const AuthenticatedInstructionsLibrarySuRoute =
+  AuthenticatedInstructionsLibrarySuRouteImport.update({
+    id: '/su',
+    path: '/su',
     getParentRoute: () => AuthenticatedInstructionsLibraryRoute,
   } as any);
 const AuthenticatedLeadsLeadIdIndexRoute =
@@ -515,16 +515,16 @@ const AuthenticatedOrganizationSubscriptionChooseRoute =
     path: '/choose',
     getParentRoute: () => AuthenticatedOrganizationSubscriptionRoute,
   } as any);
-const AuthenticatedTestsBankPsiRoute =
-  AuthenticatedTestsBankPsiRouteImport.update({
-    id: '/psi',
-    path: '/psi',
-    getParentRoute: () => AuthenticatedTestsBankRoute,
-  } as any);
 const AuthenticatedTestsBankSsmRoute =
   AuthenticatedTestsBankSsmRouteImport.update({
     id: '/ssm',
     path: '/ssm',
+    getParentRoute: () => AuthenticatedTestsBankRoute,
+  } as any);
+const AuthenticatedTestsBankSuRoute =
+  AuthenticatedTestsBankSuRouteImport.update({
+    id: '/su',
+    path: '/su',
     getParentRoute: () => AuthenticatedTestsBankRoute,
   } as any);
 const AuthenticatedClientsClientIdContractIndexRoute =
@@ -680,16 +680,16 @@ const AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingIndexRoute =
         AuthenticatedClientsClientIdEmployeesEmployeeIdRoute,
     } as any,
   );
-const AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingPsiRoute =
-  AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingPsiRouteImport.update({
-    id: '/training/psi',
-    path: '/training/psi',
-    getParentRoute: () => AuthenticatedClientsClientIdEmployeesEmployeeIdRoute,
-  } as any);
 const AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSsmRoute =
   AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSsmRouteImport.update({
     id: '/training/ssm',
     path: '/training/ssm',
+    getParentRoute: () => AuthenticatedClientsClientIdEmployeesEmployeeIdRoute,
+  } as any);
+const AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSuRoute =
+  AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSuRouteImport.update({
+    id: '/training/su',
+    path: '/training/su',
     getParentRoute: () => AuthenticatedClientsClientIdEmployeesEmployeeIdRoute,
   } as any);
 const AuthenticatedClientsClientIdEmployeesImportImportIdIndexRoute =
@@ -771,13 +771,13 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/training': typeof AuthenticatedClientsClientIdTrainingRoute;
   '/clients/$clientId/trainings': typeof AuthenticatedClientsClientIdTrainingsRoute;
   '/clients/import/$importId': typeof AuthenticatedClientsImportImportIdRouteWithChildren;
-  '/instructions/psi': typeof AuthenticatedInstructionsLibraryPsiRoute;
   '/instructions/ssm': typeof AuthenticatedInstructionsLibrarySsmRoute;
+  '/instructions/su': typeof AuthenticatedInstructionsLibrarySuRoute;
   '/leads/$leadId/contract': typeof AuthenticatedLeadsLeadIdContractRoute;
   '/leads/$leadId/edit': typeof AuthenticatedLeadsLeadIdEditRoute;
   '/organization/subscription/choose': typeof AuthenticatedOrganizationSubscriptionChooseRoute;
-  '/tests/psi': typeof AuthenticatedTestsBankPsiRoute;
   '/tests/ssm': typeof AuthenticatedTestsBankSsmRoute;
+  '/tests/su': typeof AuthenticatedTestsBankSuRoute;
   '/clients/$clientId/': typeof AuthenticatedClientsClientIdIndexRoute;
   '/leads/$leadId/': typeof AuthenticatedLeadsLeadIdIndexRoute;
   '/organization/subscription/': typeof AuthenticatedOrganizationSubscriptionIndexRoute;
@@ -804,8 +804,8 @@ export interface FileRoutesByFullPath {
   '/clients/import/$importId/instructions/$domain': typeof AuthenticatedClientsImportImportIdInstructionsDomainRoute;
   '/clients/$clientId/employees/$employeeId/': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdIndexRoute;
   '/clients/$clientId/job-positions/$jobPositionId/': typeof AuthenticatedClientsClientIdJobPositionsJobPositionIdIndexRoute;
-  '/clients/$clientId/employees/$employeeId/training/psi': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingPsiRoute;
   '/clients/$clientId/employees/$employeeId/training/ssm': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSsmRoute;
+  '/clients/$clientId/employees/$employeeId/training/su': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSuRoute;
   '/clients/$clientId/employees/import/$importId/$personId': typeof AuthenticatedClientsClientIdEmployeesImportImportIdPersonIdRoute;
   '/clients/$clientId/employees/$employeeId/training/': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingIndexRoute;
   '/clients/$clientId/employees/import/$importId/': typeof AuthenticatedClientsClientIdEmployeesImportImportIdIndexRoute;
@@ -854,13 +854,13 @@ export interface FileRoutesByTo {
   '/clients/$clientId/portal': typeof AuthenticatedClientsClientIdPortalRoute;
   '/clients/$clientId/training': typeof AuthenticatedClientsClientIdTrainingRoute;
   '/clients/$clientId/trainings': typeof AuthenticatedClientsClientIdTrainingsRoute;
-  '/instructions/psi': typeof AuthenticatedInstructionsLibraryPsiRoute;
   '/instructions/ssm': typeof AuthenticatedInstructionsLibrarySsmRoute;
+  '/instructions/su': typeof AuthenticatedInstructionsLibrarySuRoute;
   '/leads/$leadId/contract': typeof AuthenticatedLeadsLeadIdContractRoute;
   '/leads/$leadId/edit': typeof AuthenticatedLeadsLeadIdEditRoute;
   '/organization/subscription/choose': typeof AuthenticatedOrganizationSubscriptionChooseRoute;
-  '/tests/psi': typeof AuthenticatedTestsBankPsiRoute;
   '/tests/ssm': typeof AuthenticatedTestsBankSsmRoute;
+  '/tests/su': typeof AuthenticatedTestsBankSuRoute;
   '/clients/$clientId': typeof AuthenticatedClientsClientIdIndexRoute;
   '/leads/$leadId': typeof AuthenticatedLeadsLeadIdIndexRoute;
   '/organization/subscription': typeof AuthenticatedOrganizationSubscriptionIndexRoute;
@@ -884,8 +884,8 @@ export interface FileRoutesByTo {
   '/clients/import/$importId/instructions/$domain': typeof AuthenticatedClientsImportImportIdInstructionsDomainRoute;
   '/clients/$clientId/employees/$employeeId': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdIndexRoute;
   '/clients/$clientId/job-positions/$jobPositionId': typeof AuthenticatedClientsClientIdJobPositionsJobPositionIdIndexRoute;
-  '/clients/$clientId/employees/$employeeId/training/psi': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingPsiRoute;
   '/clients/$clientId/employees/$employeeId/training/ssm': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSsmRoute;
+  '/clients/$clientId/employees/$employeeId/training/su': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSuRoute;
   '/clients/$clientId/employees/import/$importId/$personId': typeof AuthenticatedClientsClientIdEmployeesImportImportIdPersonIdRoute;
   '/clients/$clientId/employees/$employeeId/training': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingIndexRoute;
   '/clients/$clientId/employees/import/$importId': typeof AuthenticatedClientsClientIdEmployeesImportImportIdIndexRoute;
@@ -956,13 +956,13 @@ export interface FileRoutesById {
   '/_authenticated/clients/$clientId/training': typeof AuthenticatedClientsClientIdTrainingRoute;
   '/_authenticated/clients/$clientId/trainings': typeof AuthenticatedClientsClientIdTrainingsRoute;
   '/_authenticated/clients/import/$importId': typeof AuthenticatedClientsImportImportIdRouteWithChildren;
-  '/_authenticated/instructions/_library/psi': typeof AuthenticatedInstructionsLibraryPsiRoute;
   '/_authenticated/instructions/_library/ssm': typeof AuthenticatedInstructionsLibrarySsmRoute;
+  '/_authenticated/instructions/_library/su': typeof AuthenticatedInstructionsLibrarySuRoute;
   '/_authenticated/leads/$leadId/contract': typeof AuthenticatedLeadsLeadIdContractRoute;
   '/_authenticated/leads/$leadId/edit': typeof AuthenticatedLeadsLeadIdEditRoute;
   '/_authenticated/organization/subscription/choose': typeof AuthenticatedOrganizationSubscriptionChooseRoute;
-  '/_authenticated/tests/_bank/psi': typeof AuthenticatedTestsBankPsiRoute;
   '/_authenticated/tests/_bank/ssm': typeof AuthenticatedTestsBankSsmRoute;
+  '/_authenticated/tests/_bank/su': typeof AuthenticatedTestsBankSuRoute;
   '/_authenticated/clients/$clientId/': typeof AuthenticatedClientsClientIdIndexRoute;
   '/_authenticated/leads/$leadId/': typeof AuthenticatedLeadsLeadIdIndexRoute;
   '/_authenticated/organization/subscription/': typeof AuthenticatedOrganizationSubscriptionIndexRoute;
@@ -989,8 +989,8 @@ export interface FileRoutesById {
   '/_authenticated/clients/import/$importId/instructions/$domain': typeof AuthenticatedClientsImportImportIdInstructionsDomainRoute;
   '/_authenticated/clients/$clientId/employees/$employeeId/': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdIndexRoute;
   '/_authenticated/clients/$clientId/job-positions/$jobPositionId/': typeof AuthenticatedClientsClientIdJobPositionsJobPositionIdIndexRoute;
-  '/_authenticated/clients/$clientId/employees/$employeeId/training/psi': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingPsiRoute;
   '/_authenticated/clients/$clientId/employees/$employeeId/training/ssm': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSsmRoute;
+  '/_authenticated/clients/$clientId/employees/$employeeId/training/su': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSuRoute;
   '/_authenticated/clients/$clientId/employees/import/$importId/$personId': typeof AuthenticatedClientsClientIdEmployeesImportImportIdPersonIdRoute;
   '/_authenticated/clients/$clientId/employees/$employeeId/training/': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingIndexRoute;
   '/_authenticated/clients/$clientId/employees/import/$importId/': typeof AuthenticatedClientsClientIdEmployeesImportImportIdIndexRoute;
@@ -1059,13 +1059,13 @@ export interface FileRouteTypes {
     | '/clients/$clientId/training'
     | '/clients/$clientId/trainings'
     | '/clients/import/$importId'
-    | '/instructions/psi'
     | '/instructions/ssm'
+    | '/instructions/su'
     | '/leads/$leadId/contract'
     | '/leads/$leadId/edit'
     | '/organization/subscription/choose'
-    | '/tests/psi'
     | '/tests/ssm'
+    | '/tests/su'
     | '/clients/$clientId/'
     | '/leads/$leadId/'
     | '/organization/subscription/'
@@ -1092,8 +1092,8 @@ export interface FileRouteTypes {
     | '/clients/import/$importId/instructions/$domain'
     | '/clients/$clientId/employees/$employeeId/'
     | '/clients/$clientId/job-positions/$jobPositionId/'
-    | '/clients/$clientId/employees/$employeeId/training/psi'
     | '/clients/$clientId/employees/$employeeId/training/ssm'
+    | '/clients/$clientId/employees/$employeeId/training/su'
     | '/clients/$clientId/employees/import/$importId/$personId'
     | '/clients/$clientId/employees/$employeeId/training/'
     | '/clients/$clientId/employees/import/$importId/';
@@ -1142,13 +1142,13 @@ export interface FileRouteTypes {
     | '/clients/$clientId/portal'
     | '/clients/$clientId/training'
     | '/clients/$clientId/trainings'
-    | '/instructions/psi'
     | '/instructions/ssm'
+    | '/instructions/su'
     | '/leads/$leadId/contract'
     | '/leads/$leadId/edit'
     | '/organization/subscription/choose'
-    | '/tests/psi'
     | '/tests/ssm'
+    | '/tests/su'
     | '/clients/$clientId'
     | '/leads/$leadId'
     | '/organization/subscription'
@@ -1172,8 +1172,8 @@ export interface FileRouteTypes {
     | '/clients/import/$importId/instructions/$domain'
     | '/clients/$clientId/employees/$employeeId'
     | '/clients/$clientId/job-positions/$jobPositionId'
-    | '/clients/$clientId/employees/$employeeId/training/psi'
     | '/clients/$clientId/employees/$employeeId/training/ssm'
+    | '/clients/$clientId/employees/$employeeId/training/su'
     | '/clients/$clientId/employees/import/$importId/$personId'
     | '/clients/$clientId/employees/$employeeId/training'
     | '/clients/$clientId/employees/import/$importId';
@@ -1243,13 +1243,13 @@ export interface FileRouteTypes {
     | '/_authenticated/clients/$clientId/training'
     | '/_authenticated/clients/$clientId/trainings'
     | '/_authenticated/clients/import/$importId'
-    | '/_authenticated/instructions/_library/psi'
     | '/_authenticated/instructions/_library/ssm'
+    | '/_authenticated/instructions/_library/su'
     | '/_authenticated/leads/$leadId/contract'
     | '/_authenticated/leads/$leadId/edit'
     | '/_authenticated/organization/subscription/choose'
-    | '/_authenticated/tests/_bank/psi'
     | '/_authenticated/tests/_bank/ssm'
+    | '/_authenticated/tests/_bank/su'
     | '/_authenticated/clients/$clientId/'
     | '/_authenticated/leads/$leadId/'
     | '/_authenticated/organization/subscription/'
@@ -1276,8 +1276,8 @@ export interface FileRouteTypes {
     | '/_authenticated/clients/import/$importId/instructions/$domain'
     | '/_authenticated/clients/$clientId/employees/$employeeId/'
     | '/_authenticated/clients/$clientId/job-positions/$jobPositionId/'
-    | '/_authenticated/clients/$clientId/employees/$employeeId/training/psi'
     | '/_authenticated/clients/$clientId/employees/$employeeId/training/ssm'
+    | '/_authenticated/clients/$clientId/employees/$employeeId/training/su'
     | '/_authenticated/clients/$clientId/employees/import/$importId/$personId'
     | '/_authenticated/clients/$clientId/employees/$employeeId/training/'
     | '/_authenticated/clients/$clientId/employees/import/$importId/';
@@ -1754,18 +1754,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsImportImportIdRouteImport;
       parentRoute: typeof AuthenticatedClientsRoute;
     };
-    '/_authenticated/instructions/_library/psi': {
-      id: '/_authenticated/instructions/_library/psi';
-      path: '/psi';
-      fullPath: '/instructions/psi';
-      preLoaderRoute: typeof AuthenticatedInstructionsLibraryPsiRouteImport;
-      parentRoute: typeof AuthenticatedInstructionsLibraryRoute;
-    };
     '/_authenticated/instructions/_library/ssm': {
       id: '/_authenticated/instructions/_library/ssm';
       path: '/ssm';
       fullPath: '/instructions/ssm';
       preLoaderRoute: typeof AuthenticatedInstructionsLibrarySsmRouteImport;
+      parentRoute: typeof AuthenticatedInstructionsLibraryRoute;
+    };
+    '/_authenticated/instructions/_library/su': {
+      id: '/_authenticated/instructions/_library/su';
+      path: '/su';
+      fullPath: '/instructions/su';
+      preLoaderRoute: typeof AuthenticatedInstructionsLibrarySuRouteImport;
       parentRoute: typeof AuthenticatedInstructionsLibraryRoute;
     };
     '/_authenticated/leads/$leadId/': {
@@ -1803,18 +1803,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOrganizationSubscriptionChooseRouteImport;
       parentRoute: typeof AuthenticatedOrganizationSubscriptionRoute;
     };
-    '/_authenticated/tests/_bank/psi': {
-      id: '/_authenticated/tests/_bank/psi';
-      path: '/psi';
-      fullPath: '/tests/psi';
-      preLoaderRoute: typeof AuthenticatedTestsBankPsiRouteImport;
-      parentRoute: typeof AuthenticatedTestsBankRoute;
-    };
     '/_authenticated/tests/_bank/ssm': {
       id: '/_authenticated/tests/_bank/ssm';
       path: '/ssm';
       fullPath: '/tests/ssm';
       preLoaderRoute: typeof AuthenticatedTestsBankSsmRouteImport;
+      parentRoute: typeof AuthenticatedTestsBankRoute;
+    };
+    '/_authenticated/tests/_bank/su': {
+      id: '/_authenticated/tests/_bank/su';
+      path: '/su';
+      fullPath: '/tests/su';
+      preLoaderRoute: typeof AuthenticatedTestsBankSuRouteImport;
       parentRoute: typeof AuthenticatedTestsBankRoute;
     };
     '/_authenticated/clients/$clientId/contract/': {
@@ -1985,18 +1985,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingIndexRouteImport;
       parentRoute: typeof AuthenticatedClientsClientIdEmployeesEmployeeIdRoute;
     };
-    '/_authenticated/clients/$clientId/employees/$employeeId/training/psi': {
-      id: '/_authenticated/clients/$clientId/employees/$employeeId/training/psi';
-      path: '/training/psi';
-      fullPath: '/clients/$clientId/employees/$employeeId/training/psi';
-      preLoaderRoute: typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingPsiRouteImport;
-      parentRoute: typeof AuthenticatedClientsClientIdEmployeesEmployeeIdRoute;
-    };
     '/_authenticated/clients/$clientId/employees/$employeeId/training/ssm': {
       id: '/_authenticated/clients/$clientId/employees/$employeeId/training/ssm';
       path: '/training/ssm';
       fullPath: '/clients/$clientId/employees/$employeeId/training/ssm';
       preLoaderRoute: typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSsmRouteImport;
+      parentRoute: typeof AuthenticatedClientsClientIdEmployeesEmployeeIdRoute;
+    };
+    '/_authenticated/clients/$clientId/employees/$employeeId/training/su': {
+      id: '/_authenticated/clients/$clientId/employees/$employeeId/training/su';
+      path: '/training/su';
+      fullPath: '/clients/$clientId/employees/$employeeId/training/su';
+      preLoaderRoute: typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSuRouteImport;
       parentRoute: typeof AuthenticatedClientsClientIdEmployeesEmployeeIdRoute;
     };
     '/_authenticated/clients/$clientId/employees/import/$importId/': {
@@ -2070,8 +2070,8 @@ const AuthenticatedClientsClientIdDocumentsRouteWithChildren =
 
 interface AuthenticatedClientsClientIdEmployeesEmployeeIdRouteChildren {
   AuthenticatedClientsClientIdEmployeesEmployeeIdIndexRoute: typeof AuthenticatedClientsClientIdEmployeesEmployeeIdIndexRoute;
-  AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingPsiRoute: typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingPsiRoute;
   AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSsmRoute: typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSsmRoute;
+  AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSuRoute: typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSuRoute;
   AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingIndexRoute: typeof AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingIndexRoute;
 }
 
@@ -2079,10 +2079,10 @@ const AuthenticatedClientsClientIdEmployeesEmployeeIdRouteChildren: Authenticate
   {
     AuthenticatedClientsClientIdEmployeesEmployeeIdIndexRoute:
       AuthenticatedClientsClientIdEmployeesEmployeeIdIndexRoute,
-    AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingPsiRoute:
-      AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingPsiRoute,
     AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSsmRoute:
       AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSsmRoute,
+    AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSuRoute:
+      AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingSuRoute,
     AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingIndexRoute:
       AuthenticatedClientsClientIdEmployeesEmployeeIdTrainingIndexRoute,
   };
@@ -2313,16 +2313,16 @@ const AuthenticatedClientsRouteWithChildren =
   AuthenticatedClientsRoute._addFileChildren(AuthenticatedClientsRouteChildren);
 
 interface AuthenticatedInstructionsLibraryRouteChildren {
-  AuthenticatedInstructionsLibraryPsiRoute: typeof AuthenticatedInstructionsLibraryPsiRoute;
   AuthenticatedInstructionsLibrarySsmRoute: typeof AuthenticatedInstructionsLibrarySsmRoute;
+  AuthenticatedInstructionsLibrarySuRoute: typeof AuthenticatedInstructionsLibrarySuRoute;
 }
 
 const AuthenticatedInstructionsLibraryRouteChildren: AuthenticatedInstructionsLibraryRouteChildren =
   {
-    AuthenticatedInstructionsLibraryPsiRoute:
-      AuthenticatedInstructionsLibraryPsiRoute,
     AuthenticatedInstructionsLibrarySsmRoute:
       AuthenticatedInstructionsLibrarySsmRoute,
+    AuthenticatedInstructionsLibrarySuRoute:
+      AuthenticatedInstructionsLibrarySuRoute,
   };
 
 const AuthenticatedInstructionsLibraryRouteWithChildren =
@@ -2465,14 +2465,14 @@ const AuthenticatedRisksRouteWithChildren =
   AuthenticatedRisksRoute._addFileChildren(AuthenticatedRisksRouteChildren);
 
 interface AuthenticatedTestsBankRouteChildren {
-  AuthenticatedTestsBankPsiRoute: typeof AuthenticatedTestsBankPsiRoute;
   AuthenticatedTestsBankSsmRoute: typeof AuthenticatedTestsBankSsmRoute;
+  AuthenticatedTestsBankSuRoute: typeof AuthenticatedTestsBankSuRoute;
 }
 
 const AuthenticatedTestsBankRouteChildren: AuthenticatedTestsBankRouteChildren =
   {
-    AuthenticatedTestsBankPsiRoute: AuthenticatedTestsBankPsiRoute,
     AuthenticatedTestsBankSsmRoute: AuthenticatedTestsBankSsmRoute,
+    AuthenticatedTestsBankSuRoute: AuthenticatedTestsBankSuRoute,
   };
 
 const AuthenticatedTestsBankRouteWithChildren =
