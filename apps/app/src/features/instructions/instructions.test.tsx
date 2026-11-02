@@ -71,10 +71,12 @@ const sampleClient = {
 const version = {
   id: '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d',
   number: 2,
-  sha256: 'a'.repeat(64),
-  sizeBytes: 4321,
+  textHash: 'a'.repeat(64),
   articleCount: 12,
   createdAt: '2026-09-26T10:00:00.000Z',
+};
+const body = {
+  blocks: [{ kind: 'article', paragraphs: ['Scara se sprijină pe o suprafață stabilă.'] }],
 };
 const ladders = {
   id: '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d',
@@ -92,7 +94,7 @@ const offices = {
   id: '2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e',
   title: 'Activități de birou',
   group: 'work_activity',
-  version: { ...version, number: 1, articleCount: 0 },
+  version: { ...version, number: 1, articleCount: 4 },
   appliedCount: 0,
 };
 const welding = {
@@ -106,7 +108,7 @@ const hotWork = {
   ...ladders,
   id: '4d5e6f7a-8b9c-4d0e-8f1a-2b3c4d5e6f70',
   title: 'Lucrul cu foc deschis',
-  group: 'work_activity',
+  group: 'hazardous_work',
   domain: 'psi',
   version: { ...version, number: 1, articleCount: 7 },
   appliedCount: 1,
@@ -162,7 +164,6 @@ function mockApi({
     [welder.id]: { items: [], needsInstructions: false },
     [fitter.id]: { items: [], needsInstructions: null },
   } as Record<string, unknown>,
-  create = (() => Response.json({ module: welding }, { status: 201 })) as Route,
   update = ((init, url) =>
     Response.json({
       module: { ...ladders, id: url.pathname.split('/')[2], ...JSON.parse(String(init?.body)) },
@@ -194,7 +195,6 @@ function mockApi({
       return Response.json({ items: [welder, fitter] });
     }
     if (pathname === '/instruction-modules') {
-      if (method === 'POST') return create(init, url);
       const domain = url.searchParams.get('domain');
       return Response.json({
         items: (url.searchParams.get('archived') === 'true' ? archived : modules).filter(
@@ -202,33 +202,33 @@ function mockApi({
         ),
       });
     }
-    const moduleMatch = pathname.match(/^\/instruction-modules\/([^/]+)(?:\/(file-link|file))?$/);
+    const moduleMatch = pathname.match(
+      /^\/instruction-modules\/([^/]+)(?:\/(download)|\/versions\/([^/]+))?$/
+    );
     if (moduleMatch) {
-      const [, moduleId, part] = moduleMatch;
-      if (part === 'file-link') {
-        const annexed = url.searchParams.get('versionId');
-        return Response.json({
-          url: 'http://localhost:8787/files/module.docx',
-          fileName: annexed ? 'Scări metalice - versiunea 1.docx' : 'Scări metalice.docx',
-          expiresAt: '2026-09-26T10:01:00.000Z',
-          version: annexed
-            ? { id: annexed, number: 1, createdAt: '2026-09-20T10:00:00.000Z' }
-            : { id: version.id, number: version.number, createdAt: version.createdAt },
+      const [, moduleId, download, versionId] = moduleMatch;
+      if (download) {
+        return new Response(new Uint8Array([80, 75, 3, 4]), {
+          headers: {
+            'Content-Type':
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent('Scări metalice.docx')}`,
+          },
         });
       }
-      if (part === 'file') {
-        return Response.json({ module: { ...ladders, version: { ...version, number: 3 } } });
+      if (versionId) {
+        return Response.json({
+          version: { ...version, id: versionId, number: 1, createdAt: '2026-09-20T10:00:00.000Z' },
+          body,
+        });
       }
       if (method === 'PATCH') return update(init, url);
       const module = [...(modules as (typeof ladders)[]), welding, hotWork].find(
         (item) => item.id === moduleId
       );
       return module
-        ? Response.json({ module })
+        ? Response.json({ module, body })
         : Response.json({ error: 'not_found', message: 'no' }, { status: 404 });
-    }
-    if (pathname === '/files/module.docx') {
-      return new Response(new Uint8Array([80, 75, 3, 4]), { status: 200 });
     }
     const instructionsMatch = pathname.match(
       /\/job-positions\/([^/]+)\/instructions(?:\/(copy))?$|\/job-positions\/([^/]+)\/instructions-decision$/
@@ -301,9 +301,7 @@ describe('the instruction library', () => {
       'v2 · 12 articole'
     );
     expect(within(rows[1]!).getByTestId('instruction-applied').textContent).toBe('2 posturi');
-    expect(within(rows[0]!).getByTestId('instruction-version').textContent).toBe(
-      'v1 · fără articole numerotate'
-    );
+    expect(within(rows[0]!).getByTestId('instruction-version').textContent).toBe('v1 · 4 articole');
   });
 
   it('shows the archive on demand', async () => {
@@ -319,23 +317,6 @@ describe('the instruction library', () => {
     );
     await user.click(screen.getByTestId('instruction-actions'));
     expect(await screen.findByTestId('instruction-restore')).toBeTruthy();
-  });
-
-  it('starts a module from the skeleton and opens it in the editor', async () => {
-    mockApi();
-    mount();
-    const user = userEvent.setup();
-    await user.click(await screen.findByTestId('instruction-write'));
-    await user.type(screen.getByTestId('instruction-module-title'), 'Sudură oxiacetilenică');
-    await user.selectOptions(screen.getByTestId('instruction-module-group'), 'work_equipment');
-    await user.click(screen.getByTestId('instruction-module-submit'));
-    await waitFor(() =>
-      expect(bodies('/instruction-modules', 'POST')).toEqual([
-        { title: 'Sudură oxiacetilenică', group: 'work_equipment', domain: 'ssm' },
-      ])
-    );
-    expect(await screen.findByTestId('fake-editor')).toBeTruthy();
-    expect(screen.getByTestId('editor-state').textContent).toBe('Versiunea 1');
   });
 
   it('lists the fire-safety modules on their own tab', async () => {
@@ -385,23 +366,6 @@ describe('the instruction library', () => {
     await waitFor(() => expect(screen.queryByTestId('nav-instructions-group')).toBeNull());
   });
 
-  it("writes a module of the open tab's domain", async () => {
-    mockApi({ create: () => Response.json({ module: hotWork }, { status: 201 }) });
-    mount('/instructions/psi');
-    const user = userEvent.setup();
-    await user.click(await screen.findByTestId('instruction-write'));
-    expect((screen.getByTestId('instruction-module-domain') as HTMLSelectElement).value).toBe(
-      'psi'
-    );
-    await user.type(screen.getByTestId('instruction-module-title'), 'Lucrul cu foc deschis');
-    await user.click(screen.getByTestId('instruction-module-submit'));
-    await waitFor(() =>
-      expect(bodies('/instruction-modules', 'POST')).toEqual([
-        { title: 'Lucrul cu foc deschis', group: 'work_activity', domain: 'psi' },
-      ])
-    );
-  });
-
   it('moves a module no position applies to the other domain, and shows the domain of an applied one only to read', async () => {
     mockApi();
     mount();
@@ -413,7 +377,7 @@ describe('the instruction library', () => {
     await user.click(screen.getByTestId('instruction-module-submit'));
     await waitFor(() =>
       expect(bodies(`/instruction-modules/${offices.id}`, 'PATCH')).toEqual([
-        { title: 'Activități de birou', group: 'work_activity', domain: 'psi' },
+        { title: 'Activități de birou', group: 'premises_activity', domain: 'psi' },
       ])
     );
 
@@ -432,7 +396,7 @@ describe('the instruction library', () => {
     await user.click(screen.getByTestId('instruction-module-submit'));
     await waitFor(() =>
       expect(bodies(`/instruction-modules/${hotWork.id}`, 'PATCH')).toEqual([
-        { title: 'Lucrul cu foc deschis', group: 'work_activity' },
+        { title: 'Lucrul cu foc deschis', group: 'hazardous_work' },
       ])
     );
   });
@@ -476,52 +440,46 @@ describe('the instruction library', () => {
   });
 });
 
-describe('the module editor', () => {
-  it('opens the current file and saves the next version', async () => {
+describe('the module page', () => {
+  it('shows the current version as its annex prints, only to read', async () => {
     mockApi();
     mount(`/instructions/${ladders.id}`);
-    const user = userEvent.setup();
-    expect(await screen.findByTestId('fake-editor')).toBeTruthy();
+    const editor = await screen.findByTestId('fake-editor');
+    expect(editor.getAttribute('data-editable')).toBe('false');
     expect(screen.getByTestId('editor-state').textContent).toBe('Versiunea 2');
-    expect(screen.getByTestId('fake-editor').textContent).toContain('SSM · Echipamente de muncă');
-    await user.click(screen.getByTestId('fake-type'));
-    expect(screen.getByTestId('editor-saved-state').textContent).toBe('Modificări nesalvate');
-    await user.click(screen.getByTestId('editor-save'));
-    await waitFor(() =>
-      expect(requests(`/instruction-modules/${ladders.id}/file`, 'PUT')).toHaveLength(1)
-    );
-    expect(screen.getByTestId('editor-saved-state').textContent).toBe('Salvat');
+    expect(editor.textContent).toContain('SSM · Echipamente de muncă');
+    expect(screen.queryByTestId('editor-save')).toBeNull();
+    const download = fetchMock.mock.calls
+      .map(([input]) => new URL(String(input)))
+      .find((address) => address.pathname === `/instruction-modules/${ladders.id}/download`)!;
+    expect(download.searchParams.get('versionId')).toBeNull();
   });
 
-  it('shows the version a document annexed, only to read, and leads to the current one', async () => {
+  it('shows the version a document annexed and leads to the current one', async () => {
     mockApi();
     const annexed = '4d5e6f7a-8b9c-4d0e-9f1a-2b3c4d5e6f7a';
     const runtime = mount(`/instructions/${ladders.id}?version=${annexed}`);
     const user = userEvent.setup();
-    const editor = await screen.findByTestId('fake-editor');
-    expect(editor.getAttribute('data-editable')).toBe('false');
+    expect(await screen.findByTestId('fake-editor')).toBeTruthy();
     expect(screen.getByTestId('editor-state').textContent).toBe('Versiunea 1');
-    expect(screen.queryByTestId('editor-save')).toBeNull();
     expect(screen.getByTestId('editor-pinned-version').textContent).toContain(
       'Biblioteca are acum versiunea 2, din 26.09.2026'
     );
-    const link = fetchMock.mock.calls
+    const download = fetchMock.mock.calls
       .map(([input]) => new URL(String(input)))
-      .find((address) => address.pathname === `/instruction-modules/${ladders.id}/file-link`)!;
-    expect(link.searchParams.get('versionId')).toBe(annexed);
+      .find((address) => address.pathname === `/instruction-modules/${ladders.id}/download`)!;
+    expect(download.searchParams.get('versionId')).toBe(annexed);
 
     await user.click(screen.getByTestId('editor-open-current'));
     await waitFor(() => expect(screen.getByTestId('editor-state').textContent).toBe('Versiunea 2'));
     expect(runtime.router.history.location.search).toBe('');
-    expect(screen.getByTestId('fake-editor').getAttribute('data-editable')).toBe('true');
   });
 
-  it('reads an archived module without editing it', async () => {
+  it('marks an archived module', async () => {
     mockApi({ modules: [{ ...ladders, archivedAt: '2026-09-26T11:00:00.000Z' }] });
     mount(`/instructions/${ladders.id}`);
-    const editor = await screen.findByTestId('fake-editor');
-    expect(editor.getAttribute('data-editable')).toBe('false');
-    expect(screen.queryByTestId('editor-save')).toBeNull();
+    await screen.findByTestId('fake-editor');
+    expect(screen.getByTestId('editor-state').textContent).toBe('Arhivată');
   });
 });
 

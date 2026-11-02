@@ -5026,7 +5026,14 @@
                 },
                 "group": {
                   "type": "string",
-                  "enum": ["work_activity", "work_equipment", "protective_equipment"]
+                  "enum": [
+                    "work_activity",
+                    "work_equipment",
+                    "protective_equipment",
+                    "premises_activity",
+                    "installation_equipment",
+                    "hazardous_work"
+                  ]
                 },
                 "domain": {
                   "type": "string",
@@ -5048,24 +5055,20 @@
                       "type": "integer",
                       "minimum": 1
                     },
-                    "sha256": {
+                    "textHash": {
                       "type": "string",
                       "pattern": "^[0-9a-f]{64}$"
                     },
-                    "sizeBytes": {
-                      "type": "integer",
-                      "minimum": 1
-                    },
                     "articleCount": {
                       "type": "integer",
-                      "minimum": 0
+                      "minimum": 1
                     },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
                     }
                   },
-                  "required": ["id", "number", "sha256", "sizeBytes", "articleCount", "createdAt"]
+                  "required": ["id", "number", "textHash", "articleCount", "createdAt"]
                 },
                 "appliedCount": {
                   "type": "integer",
@@ -5113,7 +5116,14 @@
               },
               "group": {
                 "type": "string",
-                "enum": ["work_activity", "work_equipment", "protective_equipment"]
+                "enum": [
+                  "work_activity",
+                  "work_equipment",
+                  "protective_equipment",
+                  "premises_activity",
+                  "installation_equipment",
+                  "hazardous_work"
+                ]
               },
               "domain": {
                 "type": "string",
@@ -5135,24 +5145,20 @@
                     "type": "integer",
                     "minimum": 1
                   },
-                  "sha256": {
+                  "textHash": {
                     "type": "string",
                     "pattern": "^[0-9a-f]{64}$"
                   },
-                  "sizeBytes": {
-                    "type": "integer",
-                    "minimum": 1
-                  },
                   "articleCount": {
                     "type": "integer",
-                    "minimum": 0
+                    "minimum": 1
                   },
                   "createdAt": {
                     "type": "string",
                     "format": "date-time"
                   }
                 },
-                "required": ["id", "number", "sha256", "sizeBytes", "articleCount", "createdAt"]
+                "required": ["id", "number", "textHash", "articleCount", "createdAt"]
               },
               "appliedCount": {
                 "type": "integer",
@@ -5178,9 +5184,56 @@
               "createdAt",
               "updatedAt"
             ]
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "blocks": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": ["heading"]
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 300
+                        }
+                      },
+                      "required": ["kind", "text"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": ["article"]
+                        },
+                        "paragraphs": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 20000
+                          },
+                          "minItems": 1
+                        }
+                      },
+                      "required": ["kind", "paragraphs"]
+                    }
+                  ]
+                }
+              }
+            },
+            "required": ["blocks"]
           }
         },
-        "required": ["module"]
+        "required": ["module", "body"]
       },
       "CreateInstructionModuleRequest": {
         "type": "object",
@@ -5192,15 +5245,132 @@
           },
           "group": {
             "type": "string",
-            "enum": ["work_activity", "work_equipment", "protective_equipment"]
+            "enum": [
+              "work_activity",
+              "work_equipment",
+              "protective_equipment",
+              "premises_activity",
+              "installation_equipment",
+              "hazardous_work"
+            ]
           },
           "domain": {
             "type": "string",
             "enum": ["ssm", "psi"],
             "default": "ssm"
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "blocks": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": ["heading"]
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 300
+                        }
+                      },
+                      "required": ["kind", "text"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": ["article"]
+                        },
+                        "paragraphs": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 20000
+                          },
+                          "minItems": 1
+                        }
+                      },
+                      "required": ["kind", "paragraphs"]
+                    }
+                  ]
+                }
+              }
+            },
+            "required": ["blocks"]
           }
         },
-        "required": ["title", "group"]
+        "required": ["title", "group", "body"]
+      },
+      "InstructionPreviewRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "domain": {
+            "type": "string",
+            "enum": ["ssm", "psi"],
+            "default": "ssm"
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "blocks": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": ["heading"]
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 300
+                        }
+                      },
+                      "required": ["kind", "text"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": ["article"]
+                        },
+                        "paragraphs": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 20000
+                          },
+                          "minItems": 1
+                        }
+                      },
+                      "required": ["kind", "paragraphs"]
+                    }
+                  ]
+                }
+              }
+            },
+            "required": ["blocks"]
+          }
+        },
+        "required": ["title", "body"]
       },
       "UpdateInstructionModuleRequest": {
         "type": "object",
@@ -5212,7 +5382,14 @@
           },
           "group": {
             "type": "string",
-            "enum": ["work_activity", "work_equipment", "protective_equipment"]
+            "enum": [
+              "work_activity",
+              "work_equipment",
+              "protective_equipment",
+              "premises_activity",
+              "installation_equipment",
+              "hazardous_work"
+            ]
           },
           "domain": {
             "type": "string",
@@ -5223,20 +5400,195 @@
           }
         }
       },
-      "InstructionModuleFileLinkResponse": {
+      "SaveInstructionBodyResponse": {
         "type": "object",
         "properties": {
-          "url": {
-            "type": "string",
-            "format": "uri"
+          "module": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 200
+              },
+              "group": {
+                "type": "string",
+                "enum": [
+                  "work_activity",
+                  "work_equipment",
+                  "protective_equipment",
+                  "premises_activity",
+                  "installation_equipment",
+                  "hazardous_work"
+                ]
+              },
+              "domain": {
+                "type": "string",
+                "enum": ["ssm", "psi"]
+              },
+              "archivedAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "version": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "number": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "textHash": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "articleCount": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": ["id", "number", "textHash", "articleCount", "createdAt"]
+              },
+              "appliedCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "group",
+              "domain",
+              "archivedAt",
+              "version",
+              "appliedCount",
+              "createdAt",
+              "updatedAt"
+            ]
           },
-          "fileName": {
-            "type": "string"
+          "body": {
+            "type": "object",
+            "properties": {
+              "blocks": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": ["heading"]
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 300
+                        }
+                      },
+                      "required": ["kind", "text"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": ["article"]
+                        },
+                        "paragraphs": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 20000
+                          },
+                          "minItems": 1
+                        }
+                      },
+                      "required": ["kind", "paragraphs"]
+                    }
+                  ]
+                }
+              }
+            },
+            "required": ["blocks"]
           },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time"
-          },
+          "changed": {
+            "type": "boolean"
+          }
+        },
+        "required": ["module", "body", "changed"]
+      },
+      "InstructionBody": {
+        "type": "object",
+        "properties": {
+          "blocks": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": ["heading"]
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 300
+                    }
+                  },
+                  "required": ["kind", "text"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": ["article"]
+                    },
+                    "paragraphs": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 20000
+                      },
+                      "minItems": 1
+                    }
+                  },
+                  "required": ["kind", "paragraphs"]
+                }
+              ]
+            }
+          }
+        },
+        "required": ["blocks"]
+      },
+      "InstructionModuleVersionResponse": {
+        "type": "object",
+        "properties": {
           "version": {
             "type": "object",
             "properties": {
@@ -5248,15 +5600,70 @@
                 "type": "integer",
                 "minimum": 1
               },
+              "textHash": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "articleCount": {
+                "type": "integer",
+                "minimum": 1
+              },
               "createdAt": {
                 "type": "string",
                 "format": "date-time"
               }
             },
-            "required": ["id", "number", "createdAt"]
+            "required": ["id", "number", "textHash", "articleCount", "createdAt"]
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "blocks": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": ["heading"]
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 300
+                        }
+                      },
+                      "required": ["kind", "text"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": ["article"]
+                        },
+                        "paragraphs": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 20000
+                          },
+                          "minItems": 1
+                        }
+                      },
+                      "required": ["kind", "paragraphs"]
+                    }
+                  ]
+                }
+              }
+            },
+            "required": ["blocks"]
           }
         },
-        "required": ["url", "fileName", "expiresAt", "version"]
+        "required": ["version", "body"]
       },
       "PositionInstructionsResponse": {
         "type": "object",
@@ -5279,7 +5686,14 @@
                 },
                 "group": {
                   "type": "string",
-                  "enum": ["work_activity", "work_equipment", "protective_equipment"]
+                  "enum": [
+                    "work_activity",
+                    "work_equipment",
+                    "protective_equipment",
+                    "premises_activity",
+                    "installation_equipment",
+                    "hazardous_work"
+                  ]
                 },
                 "archivedAt": {
                   "type": "string",
@@ -28484,8 +28898,8 @@
       },
       "post": {
         "operationId": "createInstructionModule",
-        "summary": "Start a module from the skeleton",
-        "description": "A new module whose first version is the skeleton the app ships, in the house style, to be written in the editor, of the `domain` given, an occupational safety one by default. Titles are unique within the organization, ignoring case and across both domains (reason `instruction_module_title_taken`).",
+        "summary": "Create a module with its first version",
+        "description": "A new module of the `domain` given, an occupational safety one by default, whose first version is `body` (ADR 034): a module is stored on its first save, never empty. The category (`group`) is one of the domain's (reason `instruction_module_category_domain`). Titles are unique within the organization, ignoring case and across both domains (reason `instruction_module_title_taken`).",
         "security": [
           {
             "bearerAuth": []
@@ -28503,7 +28917,7 @@
         },
         "responses": {
           "201": {
-            "description": "The module",
+            "description": "The module and its body",
             "content": {
               "application/json": {
                 "schema": {
@@ -28513,7 +28927,7 @@
             }
           },
           "400": {
-            "description": "Invalid request body",
+            "description": "Invalid request body, or a category of the other domain",
             "content": {
               "application/json": {
                 "schema": {
@@ -28575,10 +28989,95 @@
         }
       }
     },
+    "/instruction-modules/preview": {
+      "post": {
+        "operationId": "previewInstruction",
+        "summary": "Render a body as the annex it would print, without saving it",
+        "description": "For the Word viewer while a module is written: the posted title, domain and body rendered by the annex template as annex 1, with the organization as the provider, today's date and a placeholder where a client's name goes. Nothing is stored.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstructionPreviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The Word file",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/instruction-modules/{moduleId}": {
       "get": {
         "operationId": "getInstructionModule",
-        "summary": "Read one module",
+        "summary": "Read one module with its current body",
         "security": [
           {
             "bearerAuth": []
@@ -28597,7 +29096,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The module",
+            "description": "The module and its current body",
             "content": {
               "application/json": {
                 "schema": {
@@ -28670,8 +29169,8 @@
       },
       "patch": {
         "operationId": "updateInstructionModule",
-        "summary": "Rename, regroup, move to the other domain, archive or restore a module",
-        "description": "Archiving is refused while a current position of any client applies the module (reason `instruction_module_applied`); an archived module leaves the pickers and takes no new file. Changing the domain is refused while a current position applies the module (reason `instruction_module_domain_applied`), since the position applied it as part of its decision for the other set.",
+        "summary": "Rename, recategorize, move to the other domain, archive or restore a module",
+        "description": "Archiving is refused while a current position of any client applies the module (reason `instruction_module_applied`); an archived module leaves the pickers and takes no new version. Changing the domain is refused while a current position applies the module (reason `instruction_module_domain_applied`), since the position applied it as part of its decision for the other set. The category after the change must be one of the domain after it (reason `instruction_module_category_domain`): moving a module to the other domain names its new category too.",
         "security": [
           {
             "bearerAuth": []
@@ -28710,7 +29209,7 @@
             }
           },
           "400": {
-            "description": "Invalid path or request body",
+            "description": "Invalid path or request body, or a category of the other domain",
             "content": {
               "application/json": {
                 "schema": {
@@ -28782,11 +29281,126 @@
         }
       }
     },
-    "/instruction-modules/{moduleId}/file-link": {
+    "/instruction-modules/{moduleId}/body": {
+      "put": {
+        "operationId": "saveInstructionBody",
+        "summary": "Save a module's text as its next version",
+        "description": "Stores the body as the next version; nothing changes in place, and documents generated before keep citing the version they annexed. A body whose text folds to the current one (`textHash`: diacritics, case, punctuation and spaces aside) stores nothing and answers `changed: false` with the current version, so that it marks no document behind (ADR 034). Refused on an archived module (reason `instruction_module_archived`).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "moduleId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstructionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The module with its current version and body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaveInstructionBodyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The module does not exist in this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The module is archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/instruction-modules/{moduleId}/versions/{versionId}": {
       "get": {
-        "operationId": "getInstructionModuleFileLink",
-        "summary": "A short-lived link to the file of a version",
-        "description": "A signed link to the Word file of the current version, or of `versionId`, valid for a minute, named after the module. The editor loads it; a download saves it. An earlier version is what a document annexed, and its file name carries its number.",
+        "operationId": "getInstructionModuleVersion",
+        "summary": "Read one version of a module with its body",
+        "description": "An earlier version is what a document annexed; it never changes.",
         "security": [
           {
             "bearerAuth": []
@@ -28807,18 +29421,18 @@
               "type": "string",
               "format": "uuid"
             },
-            "required": false,
+            "required": true,
             "name": "versionId",
-            "in": "query"
+            "in": "path"
           }
         ],
         "responses": {
           "200": {
-            "description": "The link",
+            "description": "The version and its body",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/InstructionModuleFileLinkResponse"
+                  "$ref": "#/components/schemas/InstructionModuleVersionResponse"
                 }
               }
             }
@@ -28886,11 +29500,11 @@
         }
       }
     },
-    "/instruction-modules/{moduleId}/file": {
-      "put": {
-        "operationId": "saveInstructionModuleFile",
-        "summary": "Store the next version of the file",
-        "description": "Takes the bytes of a `.docx`, up to 15 MB, as the body: what the editor saves, or a file uploaded again. Nothing changes in place; every save is the next version, and documents generated before keep citing the one they annexed. Refused on an archived module (reason `instruction_module_archived`).",
+    "/instruction-modules/{moduleId}/download": {
+      "get": {
+        "operationId": "downloadInstructionModule",
+        "summary": "Download a version as the annex it prints",
+        "description": "The current version, or `versionId`, rendered by the annex template as annex 1: its title page, then its text under the header of the own instructions, with the organization as the provider and a placeholder where a client's name goes. A client's revision prints its annexes as in the binder at `GET /documents/{documentId}/revisions/{revisionId}/annexes/{number}`.",
         "security": [
           {
             "bearerAuth": []
@@ -28905,32 +29519,31 @@
             "required": true,
             "name": "moduleId",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "versionId",
+            "in": "query"
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
-              "schema": {
-                "type": "string",
-                "format": "binary"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "The module with its new version",
+            "description": "The Word file, named in `Content-Disposition`",
             "content": {
-              "application/json": {
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
                 "schema": {
-                  "$ref": "#/components/schemas/InstructionModuleResponse"
+                  "type": "string",
+                  "format": "binary"
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid path, or the body is not a Word document",
+            "description": "Invalid path or query",
             "content": {
               "application/json": {
                 "schema": {
@@ -28960,17 +29573,7 @@
             }
           },
           "404": {
-            "description": "The module does not exist in this organization",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The module is archived",
+            "description": "No such module, or no such version of it",
             "content": {
               "application/json": {
                 "schema": {
@@ -36402,7 +37005,7 @@
       "get": {
         "operationId": "getDocumentArchive",
         "summary": "Download one of a client's documentation sets as a zip archive",
-        "description": "Every document of the set named by `set`, numbered in the set's order. `format=docx` takes each document's issued Word file, or its draft while nothing is issued, with the own instructions' annexes as files of their own. `format=pdf` takes the PDFs made at issuing, which hold the annexes, and leaves out documents that have none. `409` with the reason `nothing_to_archive` when no document qualifies.",
+        "description": "Every document of the set named by `set`, numbered in the set's order. `format=docx` takes each document's issued Word file, or its draft while nothing is issued, the own instructions with their annexes appended as sections of their own. `format=pdf` takes the PDFs made at issuing, which hold the annexes, and leaves out documents that have none. `409` with the reason `nothing_to_archive` when no document qualifies.",
         "security": [
           {
             "bearerAuth": []
@@ -36607,6 +37210,245 @@
           },
           "404": {
             "description": "The revision does not exist in the organization, or has no PDF",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{documentId}/revisions/{revisionId}/word": {
+      "get": {
+        "operationId": "getDocumentWord",
+        "summary": "Download a revision's Word file with its annexes",
+        "description": "The revision's Word file, followed for either set's own instructions by each annexed instruction module as a section of its own, rendered from the version the revision annexed (ADR 034), as the PDF holds them. The draft the editor opens stays the common part alone. `409` with the reason `annex_not_in_library` when an annexed version no longer exists: the draft is generated again.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "documentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "revisionId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The Word file, named in `Content-Disposition`",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The revision does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "An annexed version no longer exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{documentId}/revisions/{revisionId}/annexes/{number}": {
+      "get": {
+        "operationId": "getDocumentAnnex",
+        "summary": "Download one annex of a revision as a Word file",
+        "description": "The annex numbered `number` of either set's own instructions, as the binder prints it: its title page and its text under the header of the client's own instructions, rendered from the version the revision annexed.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "documentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "revisionId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "required": true,
+            "name": "number",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The Word file, named in `Content-Disposition`",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The revision does not exist in the organization, or has no such annex",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The annexed version no longer exists",
             "content": {
               "application/json": {
                 "schema": {

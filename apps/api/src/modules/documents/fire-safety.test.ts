@@ -948,7 +948,7 @@ describe('the fire-safety context', () => {
       moduleId: 'a0a0a0a0-0000-4000-8000-000000000004',
       domain: 'psi' as const,
       title: 'Depozitare',
-      group: 'work_activity' as const,
+      group: 'premises_activity' as const,
       version: {
         id: 'b0b0b0b0-0000-4000-8000-000000000004',
         number: 1,
@@ -1265,15 +1265,23 @@ describe('setOfGroup', () => {
 });
 
 describe('the annexes of the fire-safety own instructions', () => {
-  const psi = (moduleId: string, title: string, group: 'work_activity' | 'work_equipment') => ({
+  const psi = (
+    moduleId: string,
+    title: string,
+    group: 'premises_activity' | 'installation_equipment'
+  ) => ({
     moduleId,
     domain: 'psi' as const,
     title,
     group,
     version: { id: `${moduleId.slice(0, -1)}9`, number: 1, createdAt: '2026-10-01T08:00:00+00:00' },
   });
-  const cylinders = psi('a0a0a0a0-0000-4000-8000-000000000005', 'Butelii de gaz', 'work_equipment');
-  const storage = psi('a0a0a0a0-0000-4000-8000-000000000004', 'Depozitare', 'work_activity');
+  const cylinders = psi(
+    'a0a0a0a0-0000-4000-8000-000000000005',
+    'Butelii de gaz',
+    'installation_equipment'
+  );
+  const storage = psi('a0a0a0a0-0000-4000-8000-000000000004', 'Depozitare', 'premises_activity');
 
   it('are the fire-safety modules the positions apply, each once, by group and title', () => {
     const [accountant, welder] = facts.jobPositions;
@@ -1286,8 +1294,8 @@ describe('the annexes of the fire-safety own instructions', () => {
     });
     expect(context.annexes.map((annex) => [annex.number, annex.title, annex.versionDate])).toEqual([
       [1, 'Depozitare', '01.10.2026'],
-      [2, 'Lucrul cu foc deschis', '11.10.2026'],
-      [3, 'Butelii de gaz', '01.10.2026'],
+      [2, 'Butelii de gaz', '01.10.2026'],
+      [3, 'Lucrul cu foc deschis', '11.10.2026'],
     ]);
     expect(context.noAnnexes).toBe(false);
   });

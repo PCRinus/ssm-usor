@@ -70,10 +70,10 @@ The variable exists because `wrangler dev` creates the binding too, with nothing
 `apps/pdf` is not part of `pnpm dev`.
 
 Issuing reads the draft's Word file and, for either set's own instructions (`own_instructions`
-or `fire_own_instructions`, no other type), the files of the module versions its snapshot
-annexes (`annexes[].versionId`, read from `instruction_module_versions` and the
-`instruction-modules` bucket), merges that set's annex title page before each from the same
-snapshot ([document engine](document-engine.md#instruction-modules)), converts them into one PDF, writes it beside the file
+or `fire_own_instructions`, no other type), the bodies of the module versions its snapshot
+annexes (`annexes[].versionId`, read from `instruction_module_versions`), renders each as an
+annex of its own with that set's annex template and the same snapshot
+([document engine](document-engine.md#instruction-modules)), converts them into one PDF, writes it beside the file
 (`…/<revision>.pdf`) while the revision is still a draft, which is what lets the storage
 policies accept it, and then calls `issue_document_revision` with both hashes. From then on
 neither file can be written. When the conversion fails nothing is issued: `503` with the

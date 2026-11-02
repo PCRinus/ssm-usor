@@ -1,39 +1,29 @@
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import { toast } from '@ssm-usor/ui/lib/toast';
-import { Link, useBlocker, useRouteContext } from '@tanstack/react-router';
-import { ArrowLeft, Download, Save } from 'lucide-react';
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { Link, useRouteContext } from '@tanstack/react-router';
+import { ArrowLeft, Download } from 'lucide-react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 
 import {
+  downloadInstructionModule,
   getGetInstructionModuleQueryKey,
-  getInstructionModuleFileLink,
+  getInstructionModuleVersion,
   useGetInstructionModule,
-  useSaveInstructionModuleFile,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { useBackToList } from '@/app/use-back-to-list';
-import { Notice } from '@/components/notice';
-import type { DocumentEditorHandle } from '@/features/documents/document-editor';
 import { editorFrameClassName, saveAs } from '@/features/documents/editor-frame';
 import { EditorPlaceholder } from '@/features/documents/editor-placeholder';
 import { formatRoDate } from '@/lib/dates';
 
-import {
-  articleCountLabel,
-  domainLabels,
-  groupLabels,
-  invalidateLibrary,
-} from './instruction-schema';
+import { articleCountLabel, domainLabels, groupLabels } from './instruction-schema';
 
 const DocumentEditor = lazy(() => import('@/features/documents/document-editor'));
-const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 type Loaded = { versionId: string; number: number; bytes: Uint8Array; fileName: string };
 
-// One instruction module in the editor (ADR 012). Every save is the next version of the
-// file; the versions documents annexed before stay as they were. `pinnedVersionId` is one of
-// those, opened from a document: it is shown as the document annexed it, and only read.
+// Only to read until the module's form replaces it (ADR 034, step 8). `pinnedVersionId` is a
+// version a document annexed, opened from that document.
 export function InstructionEditorPage({
   moduleId,
   userId,
@@ -43,46 +33,45 @@ export function InstructionEditorPage({
   userId: string;
   pinnedVersionId?: string;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { apiRequest } = useRouteContext({ from: '__root__' });
   const backToList = useBackToList();
   const query = useGetInstructionModule(moduleId, {
     request: apiRequest,
     query: { queryKey: [...getGetInstructionModuleQueryKey(moduleId), userId] },
   });
-  const saveFile = useSaveInstructionModuleFile({ request: apiRequest });
-  const editor = useRef<DocumentEditorHandle>(null);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [failedVersionId, setFailedVersionId] = useState<string | null>(null);
   const [readyVersionId, setReadyVersionId] = useState<string | null>(null);
   const [failedEditorVersionId, setFailedEditorVersionId] = useState<string | null>(null);
-  const [dirty, setDirty] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
 
   const module = query.data?.module;
   const versionId = pinnedVersionId ?? module?.version.id;
+  const currentNumber = module?.version.number;
   const pinned = pinnedVersionId !== undefined;
-  const editable = !pinned && module != null && module.archivedAt === null;
   const ready = versionId !== undefined && readyVersionId === versionId;
   const failed = versionId !== undefined && failedEditorVersionId === versionId;
   const loadError = versionId !== undefined && failedVersionId === versionId;
 
-  // The file of the version, once per version: saving loads the next one.
   useEffect(() => {
     if (!versionId || loaded?.versionId === versionId || failedVersionId === versionId) return;
     let cancelled = false;
     void (async () => {
       try {
-        const link = await getInstructionModuleFileLink(
-          moduleId,
-          pinnedVersionId ? { versionId: pinnedVersionId } : undefined,
-          apiRequest
-        );
-        const response = await fetch(link.url);
-        if (!response.ok) throw new Error(`Download failed (${response.status}).`);
-        const bytes = new Uint8Array(await response.arrayBuffer());
-        if (!cancelled) {
-          setLoaded({ versionId, number: link.version.number, bytes, fileName: link.fileName });
-        }
+        const [file, number] = await Promise.all([
+          downloadInstructionModule(
+            moduleId,
+            pinnedVersionId ? { versionId: pinnedVersionId } : undefined,
+            apiRequest
+          ),
+          pinnedVersionId
+            ? getInstructionModuleVersion(moduleId, pinnedVersionId, apiRequest).then(
+                (read) => read.version.number
+              )
+            : currentNumber!,
+        ]);
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const fileName = file instanceof File ? file.name : 'Instrucțiune.docx';
+        if (!cancelled) setLoaded({ versionId, number, bytes, fileName });
       } catch {
         if (!cancelled) setFailedVersionId(versionId);
       }
@@ -90,50 +79,18 @@ export function InstructionEditorPage({
     return () => {
       cancelled = true;
     };
-  }, [apiRequest, moduleId, pinnedVersionId, versionId, loaded?.versionId, failedVersionId]);
+  }, [
+    apiRequest,
+    moduleId,
+    pinnedVersionId,
+    versionId,
+    currentNumber,
+    loaded?.versionId,
+    failedVersionId,
+  ]);
 
-  useBlocker({
-    shouldBlockFn: () =>
-      dirty && !window.confirm('Ai modificări nesalvate. Părăsești pagina fără să le salvezi?'),
-    enableBeforeUnload: () => dirty,
-  });
-
-  async function save() {
-    if (!editable || !dirty || saveFile.isPending) return;
-    setSaveError(null);
-    try {
-      const bytes = await editor.current?.save();
-      if (!bytes) throw new Error('The editor returned no document.');
-      const { module: saved } = await saveFile.mutateAsync({
-        moduleId,
-        data: new Blob([new Uint8Array(bytes)], { type: docxType }),
-      });
-      setDirty(false);
-      // What the editor shows is the new version; nothing to fetch again.
-      setLoaded({
-        versionId: saved.version.id,
-        number: saved.version.number,
-        bytes,
-        fileName: loaded?.fileName ?? '',
-      });
-      setReadyVersionId(saved.version.id);
-      toast.success(`Instrucțiunea a fost salvată ca versiunea ${saved.version.number}.`);
-      await invalidateLibrary(queryClient);
-    } catch (cause) {
-      setSaveError(
-        cause instanceof ApiHttpError && cause.status === 409
-          ? 'Instrucțiunea a fost arhivată între timp. Descarcă fișierul ca să nu pierzi modificările.'
-          : cause instanceof ApiHttpError && cause.status === 401
-            ? 'Sesiunea nu mai este validă. Descarcă fișierul ca să nu pierzi modificările, apoi autentifică-te din nou.'
-            : 'Nu am putut salva instrucțiunea. Verifică conexiunea și încearcă din nou.'
-      );
-    }
-  }
-
-  async function download() {
-    if (!loaded) return;
-    const current = ready ? await editor.current?.save() : null;
-    saveAs(current ?? loaded.bytes, loaded.fileName);
+  function download() {
+    if (loaded) saveAs(loaded.bytes, loaded.fileName);
   }
 
   const back = (
@@ -164,7 +121,7 @@ export function InstructionEditorPage({
         <p className="text-sm leading-relaxed text-muted-foreground">
           {query.isError && query.error instanceof ApiHttpError && query.error.status === 404
             ? 'Instrucțiunea nu există în bibliotecă.'
-            : 'Nu am putut încărca fișierul. Verifică conexiunea și încearcă din nou.'}
+            : 'Nu am putut încărca instrucțiunea. Verifică conexiunea și încearcă din nou.'}
         </p>
         <div className="flex gap-2">
           {back}
@@ -184,46 +141,23 @@ export function InstructionEditorPage({
 
   const actions = (
     <div className="flex flex-wrap items-center gap-2 max-sm:flex-1">
-      <Badge variant={editable ? 'secondary' : 'default'} data-testid="editor-state">
-        {pinned
-          ? `Versiunea ${loaded.number}`
-          : module.archivedAt
-            ? 'Arhivată'
-            : `Versiunea ${module.version.number}`}
+      <Badge variant="default" data-testid="editor-state">
+        {module.archivedAt && !pinned ? 'Arhivată' : `Versiunea ${loaded.number}`}
       </Badge>
       <span className="hidden text-xs text-muted-foreground md:inline">
         {domainLabels[module.domain]} · {groupLabels[module.group]} ·{' '}
         {articleCountLabel(module.version.articleCount).toLowerCase()}
       </span>
-      {editable && (
-        <span
-          data-testid="editor-saved-state"
-          className="text-xs text-muted-foreground max-sm:sr-only"
-        >
-          {dirty ? 'Modificări nesalvate' : 'Salvat'}
-        </span>
-      )}
       <Button
         variant="outline"
         size="sm"
         data-testid="editor-download"
         className="max-sm:ml-auto"
-        onClick={() => void download()}
+        onClick={download}
       >
         <Download aria-hidden="true" />
         <span className="max-sm:sr-only">Descarcă</span>
       </Button>
-      {editable && (
-        <Button
-          size="sm"
-          data-testid="editor-save"
-          disabled={!dirty || saveFile.isPending}
-          onClick={() => void save()}
-        >
-          <Save aria-hidden="true" />
-          {saveFile.isPending ? 'Se salvează…' : 'Salvează'}
-        </Button>
-      )}
     </div>
   );
 
@@ -236,8 +170,8 @@ export function InstructionEditorPage({
           className="shrink-0 text-sm text-muted-foreground"
         >
           {module.version.number > loaded.number
-            ? `Versiunea pe care o anexează documentul, care poate fi doar citită. Biblioteca are acum versiunea ${module.version.number}, din ${formatRoDate(module.version.createdAt.slice(0, 10))}. `
-            : 'Versiunea pe care o anexează documentul, care poate fi doar citită. Este și versiunea curentă din bibliotecă. '}
+            ? `Versiunea pe care o anexează documentul. Biblioteca are acum versiunea ${module.version.number}, din ${formatRoDate(module.version.createdAt.slice(0, 10))}. `
+            : 'Versiunea pe care o anexează documentul. Este și versiunea curentă din bibliotecă. '}
           <Link
             to="/instructions/$moduleId"
             params={{ moduleId }}
@@ -250,17 +184,9 @@ export function InstructionEditorPage({
           </Link>
         </p>
       ) : (
-        !editable && (
-          <p role="status" className="shrink-0 text-sm text-muted-foreground">
-            O instrucțiune arhivată poate fi doar citită. Reactiveaz-o din bibliotecă pentru a o
-            modifica.
-          </p>
-        )
-      )}
-      {saveError && (
-        <Notice variant="destructive" data-testid="editor-save-error">
-          {saveError}
-        </Notice>
+        <p role="status" className="shrink-0 text-sm text-muted-foreground">
+          Instrucțiunea așa cum se tipărește ca anexă, care poate fi doar citită.
+        </p>
       )}
       {failed ? (
         <div
@@ -271,10 +197,9 @@ export function InstructionEditorPage({
           <div className="flex justify-start">{back}</div>
           <h1 className="text-lg font-semibold">{module.title}</h1>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Acest fișier are o așezare în pagină pe care editorul din aplicație nu o poate afișa. Îl
-            poți descărca și citi în Word; documentele îl anexează așa cum este.
+            Instrucțiunea nu a putut fi afișată. O poți descărca și citi în Word.
           </p>
-          <Button className="w-fit" variant="outline" onClick={() => void download()}>
+          <Button className="w-fit" variant="outline" onClick={download}>
             <Download aria-hidden="true" />
             Descarcă fișierul
           </Button>
@@ -288,14 +213,14 @@ export function InstructionEditorPage({
                 key={loaded.versionId}
                 bytes={loaded.bytes}
                 title={module.title}
-                editable={editable}
+                editable={false}
                 back={back}
-                handle={editor}
+                handle={null}
                 actions={actions}
                 onReady={() => setReadyVersionId(loaded.versionId)}
                 onFailed={() => setFailedEditorVersionId(loaded.versionId)}
-                onChange={() => setDirty(true)}
-                onSaveShortcut={() => void save()}
+                onChange={() => {}}
+                onSaveShortcut={() => {}}
               />
             </Suspense>
           </div>

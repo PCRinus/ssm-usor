@@ -6,6 +6,7 @@ import {
   type EquipmentAllocation,
   fireSafetyTypeKeysFromTenEmployees,
   formatTrainingDuration,
+  instructionCategories,
   type InstructionDomain,
   type InstructionModuleGroup,
   isLegalRepresentative,
@@ -846,11 +847,7 @@ export const buildPartialDocumentContext = documentGaps.buildPartial as (
   typeKey: string
 ) => PartialDocumentContext;
 
-const groupOrder: Record<InstructionModuleGroup, number> = {
-  work_activity: 0,
-  work_equipment: 1,
-  protective_equipment: 2,
-};
+const groupOrder = (group: InstructionModuleGroup) => instructionCategories.indexOf(group);
 
 /**
  * The modules of one domain the current positions apply, each once, numbered in group and title
@@ -869,7 +866,7 @@ export function annexedModules(
   return [...modules.values()]
     .sort(
       (a, b) =>
-        groupOrder[a.group] - groupOrder[b.group] ||
+        groupOrder(a.group) - groupOrder(b.group) ||
         collator.compare(a.title, b.title) ||
         a.moduleId.localeCompare(b.moduleId)
     )

@@ -1,8 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  type InstructionDomain,
+  categoryFitsDomain,
+  instructionCategoriesByDomain,
   instructionDomains,
-  instructionModuleGroups,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
@@ -17,13 +17,10 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
+import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
-import {
-  type ApiErrorResponse,
-  useCreateInstructionModule,
-  useUpdateInstructionModule,
-} from '@/api/generated/api';
+import { type ApiErrorResponse, useUpdateInstructionModule } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
@@ -41,79 +38,56 @@ import {
   positionCountLabel,
 } from './instruction-schema';
 
-// `null` is closed, 'new' starts a module from the skeleton, and a module renames it.
-export type ModuleEditing = InstructionModule | 'new' | null;
+// `null` is closed. A module is created with its text, which the module's form writes.
+export type ModuleEditing = InstructionModule | null;
 
 export function InstructionModuleDialog({
   editing,
-  defaultDomain,
   onClose,
-  onSaved,
 }: {
   editing: ModuleEditing;
-  defaultDomain: InstructionDomain;
   onClose: () => void;
-  /** The module as saved, for a caller that goes on to open it. */
-  onSaved?: (module: InstructionModule) => void;
 }) {
   return (
     <Dialog open={editing !== null} onOpenChange={(open) => !open && onClose()}>
-      {editing && (
-        <ModuleForm
-          key={editing === 'new' ? 'new' : editing.id}
-          module={editing === 'new' ? null : editing}
-          defaultDomain={defaultDomain}
-          onSaved={onSaved}
-          onClose={onClose}
-        />
-      )}
+      {editing && <ModuleForm key={editing.id} module={editing} onClose={onClose} />}
     </Dialog>
   );
 }
 
-function ModuleForm({
-  module,
-  defaultDomain,
-  onSaved,
-  onClose,
-}: {
-  module: InstructionModule | null;
-  defaultDomain: InstructionDomain;
-  onSaved?: (module: InstructionModule) => void;
-  onClose: () => void;
-}) {
+function ModuleForm({ module, onClose }: { module: InstructionModule; onClose: () => void }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const create = useCreateInstructionModule({ request: apiRequest });
   const update = useUpdateInstructionModule({ request: apiRequest });
   const form = useForm<ModuleFormValues>({
     resolver: zodResolver(moduleFormSchema),
-    defaultValues: module
-      ? { title: module.title, group: module.group, domain: module.domain }
-      : { title: '', group: 'work_activity', domain: defaultDomain },
+    defaultValues: { title: module.title, group: module.group, domain: module.domain },
   });
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
-  const busy = create.isPending || update.isPending;
+  const busy = update.isPending;
   const group = useWatch({ control: form.control, name: 'group' });
   const domain = useWatch({ control: form.control, name: 'domain' });
   // The API refuses moving a module a current position applies (409); the field says so first.
-  const domainLocked = module !== null && module.appliedCount > 0;
+  const domainLocked = module.appliedCount > 0;
+
+  useEffect(() => {
+    if (!categoryFitsDomain(group, domain)) {
+      form.setValue('group', instructionCategoriesByDomain[domain][0]);
+    }
+  }, [form, group, domain]);
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      const saved = module
-        ? await update.mutateAsync({
-            moduleId: module.id,
-            data: {
-              title: values.title,
-              group: values.group,
-              ...(values.domain === module.domain ? {} : { domain: values.domain }),
-            },
-          })
-        : await create.mutateAsync({ data: values });
+      await update.mutateAsync({
+        moduleId: module.id,
+        data: {
+          title: values.title,
+          group: values.group,
+          ...(values.domain === module.domain ? {} : { domain: values.domain }),
+        },
+      });
       await invalidateLibrary(queryClient);
-      toast.success(module ? 'Instrucțiunea a fost salvată.' : 'Instrucțiunea a fost creată.');
-      onSaved?.(saved.module);
+      toast.success('Instrucțiunea a fost salvată.');
       onClose();
     } catch (cause) {
       const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
@@ -146,11 +120,9 @@ function ModuleForm({
     <DialogContent data-testid="instruction-module-dialog" className="sm:max-w-lg">
       <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
-          <DialogTitle>{module ? 'Modifică instrucțiunea' : 'Scrie o instrucțiune'}</DialogTitle>
+          <DialogTitle>Modifică instrucțiunea</DialogTitle>
           <DialogDescription>
-            {module
-              ? 'Titlul, categoria și domeniul apar în bibliotecă și în documentele care o anexează; textul se modifică din editor.'
-              : 'Instrucțiunea pornește de la un schelet cu capitolele cerute de Inspecția Muncii și se scrie în editor.'}
+            Titlul, categoria și domeniul apar în bibliotecă și în documentele care o anexează.
           </DialogDescription>
         </DialogHeader>
         <div className="mt-5 grid gap-5">
@@ -179,9 +151,9 @@ function ModuleForm({
               aria-describedby="instruction-module-group-hint"
               {...form.register('group')}
             >
-              {instructionModuleGroups.map((group) => (
-                <NativeSelectOption key={group} value={group}>
-                  {groupLabels[group]}
+              {instructionCategoriesByDomain[domain].map((each) => (
+                <NativeSelectOption key={each} value={each}>
+                  {groupLabels[each]}
                 </NativeSelectOption>
               ))}
             </NativeSelect>
@@ -237,7 +209,7 @@ function ModuleForm({
             Renunță
           </Button>
           <Button type="submit" data-testid="instruction-module-submit" disabled={busy}>
-            {busy ? 'Se salvează…' : module ? 'Salvează' : 'Creează și deschide'}
+            {busy ? 'Se salvează…' : 'Salvează'}
           </Button>
         </DialogFooter>
       </form>

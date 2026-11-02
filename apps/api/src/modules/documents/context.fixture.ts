@@ -182,7 +182,7 @@ export const facts: DocumentFacts = {
           moduleId: 'a0a0a0a0-0000-4000-8000-000000000003',
           domain: 'psi',
           title: 'Lucrul cu foc deschis',
-          group: 'work_activity',
+          group: 'hazardous_work',
           version: {
             id: 'b0b0b0b0-0000-4000-8000-000000000003',
             number: 2,

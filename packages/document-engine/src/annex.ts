@@ -1,7 +1,6 @@
 import PizZip from 'pizzip';
 
-import { annexTemplate } from './annex-template';
-import type { AnnexDomain } from './annex-title';
+import { type AnnexDomain, annexTemplate } from './annex-template';
 import { renderDocument, type TemplateData } from './render';
 
 // The shape of `instructionBodySchema` in `@ssm-usor/contracts`, which this package does not

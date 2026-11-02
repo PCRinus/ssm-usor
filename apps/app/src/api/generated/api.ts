@@ -3834,6 +3834,9 @@ export const InstructionModuleListResponseItemsItemGroup = {
   work_activity: 'work_activity',
   work_equipment: 'work_equipment',
   protective_equipment: 'protective_equipment',
+  premises_activity: 'premises_activity',
+  installation_equipment: 'installation_equipment',
+  hazardous_work: 'hazardous_work',
 } as const;
 
 export type InstructionModuleListResponseItemsItemDomain =
@@ -3849,10 +3852,8 @@ export type InstructionModuleListResponseItemsItemVersion = {
   /** @minimum 1 */
   number: number;
   /** @pattern ^[0-9a-f]{64}$ */
-  sha256: string;
+  textHash: string;
   /** @minimum 1 */
-  sizeBytes: number;
-  /** @minimum 0 */
   articleCount: number;
   createdAt: string;
 };
@@ -3886,6 +3887,9 @@ export const InstructionModuleResponseModuleGroup = {
   work_activity: 'work_activity',
   work_equipment: 'work_equipment',
   protective_equipment: 'protective_equipment',
+  premises_activity: 'premises_activity',
+  installation_equipment: 'installation_equipment',
+  hazardous_work: 'hazardous_work',
 } as const;
 
 export type InstructionModuleResponseModuleDomain =
@@ -3901,10 +3905,8 @@ export type InstructionModuleResponseModuleVersion = {
   /** @minimum 1 */
   number: number;
   /** @pattern ^[0-9a-f]{64}$ */
-  sha256: string;
+  textHash: string;
   /** @minimum 1 */
-  sizeBytes: number;
-  /** @minimum 0 */
   articleCount: number;
   createdAt: string;
 };
@@ -3927,8 +3929,32 @@ export type InstructionModuleResponseModule = {
   updatedAt: string;
 };
 
+export type InstructionModuleResponseBodyBlocksItem =
+  | {
+      kind: 'heading';
+      /**
+       * @minLength 1
+       * @maxLength 300
+       */
+      text: string;
+    }
+  | {
+      kind: 'article';
+      /**
+       * @minItems 1
+       * @items.minLength 1
+       * @items.maxLength 20000
+       */
+      paragraphs: string[];
+    };
+
+export type InstructionModuleResponseBody = {
+  blocks: InstructionModuleResponseBodyBlocksItem[];
+};
+
 export interface InstructionModuleResponse {
   module: InstructionModuleResponseModule;
+  body: InstructionModuleResponseBody;
 }
 
 export type CreateInstructionModuleRequestGroup =
@@ -3938,6 +3964,9 @@ export const CreateInstructionModuleRequestGroup = {
   work_activity: 'work_activity',
   work_equipment: 'work_equipment',
   protective_equipment: 'protective_equipment',
+  premises_activity: 'premises_activity',
+  installation_equipment: 'installation_equipment',
+  hazardous_work: 'hazardous_work',
 } as const;
 
 export type CreateInstructionModuleRequestDomain =
@@ -3948,6 +3977,29 @@ export const CreateInstructionModuleRequestDomain = {
   psi: 'psi',
 } as const;
 
+export type CreateInstructionModuleRequestBodyBlocksItem =
+  | {
+      kind: 'heading';
+      /**
+       * @minLength 1
+       * @maxLength 300
+       */
+      text: string;
+    }
+  | {
+      kind: 'article';
+      /**
+       * @minItems 1
+       * @items.minLength 1
+       * @items.maxLength 20000
+       */
+      paragraphs: string[];
+    };
+
+export type CreateInstructionModuleRequestBody = {
+  blocks: CreateInstructionModuleRequestBodyBlocksItem[];
+};
+
 export interface CreateInstructionModuleRequest {
   /**
    * @minLength 2
@@ -3956,6 +4008,48 @@ export interface CreateInstructionModuleRequest {
   title: string;
   group: CreateInstructionModuleRequestGroup;
   domain?: CreateInstructionModuleRequestDomain;
+  body: CreateInstructionModuleRequestBody;
+}
+
+export type InstructionPreviewRequestDomain =
+  (typeof InstructionPreviewRequestDomain)[keyof typeof InstructionPreviewRequestDomain];
+
+export const InstructionPreviewRequestDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type InstructionPreviewRequestBodyBlocksItem =
+  | {
+      kind: 'heading';
+      /**
+       * @minLength 1
+       * @maxLength 300
+       */
+      text: string;
+    }
+  | {
+      kind: 'article';
+      /**
+       * @minItems 1
+       * @items.minLength 1
+       * @items.maxLength 20000
+       */
+      paragraphs: string[];
+    };
+
+export type InstructionPreviewRequestBody = {
+  blocks: InstructionPreviewRequestBodyBlocksItem[];
+};
+
+export interface InstructionPreviewRequest {
+  /**
+   * @minLength 2
+   * @maxLength 200
+   */
+  title: string;
+  domain?: InstructionPreviewRequestDomain;
+  body: InstructionPreviewRequestBody;
 }
 
 export type UpdateInstructionModuleRequestGroup =
@@ -3965,6 +4059,9 @@ export const UpdateInstructionModuleRequestGroup = {
   work_activity: 'work_activity',
   work_equipment: 'work_equipment',
   protective_equipment: 'protective_equipment',
+  premises_activity: 'premises_activity',
+  installation_equipment: 'installation_equipment',
+  hazardous_work: 'hazardous_work',
 } as const;
 
 export type UpdateInstructionModuleRequestDomain =
@@ -3986,18 +4083,144 @@ export interface UpdateInstructionModuleRequest {
   archived?: boolean;
 }
 
-export type InstructionModuleFileLinkResponseVersion = {
+export type SaveInstructionBodyResponseModuleGroup =
+  (typeof SaveInstructionBodyResponseModuleGroup)[keyof typeof SaveInstructionBodyResponseModuleGroup];
+
+export const SaveInstructionBodyResponseModuleGroup = {
+  work_activity: 'work_activity',
+  work_equipment: 'work_equipment',
+  protective_equipment: 'protective_equipment',
+  premises_activity: 'premises_activity',
+  installation_equipment: 'installation_equipment',
+  hazardous_work: 'hazardous_work',
+} as const;
+
+export type SaveInstructionBodyResponseModuleDomain =
+  (typeof SaveInstructionBodyResponseModuleDomain)[keyof typeof SaveInstructionBodyResponseModuleDomain];
+
+export const SaveInstructionBodyResponseModuleDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type SaveInstructionBodyResponseModuleVersion = {
   id: string;
   /** @minimum 1 */
   number: number;
+  /** @pattern ^[0-9a-f]{64}$ */
+  textHash: string;
+  /** @minimum 1 */
+  articleCount: number;
   createdAt: string;
 };
 
-export interface InstructionModuleFileLinkResponse {
-  url: string;
-  fileName: string;
-  expiresAt: string;
-  version: InstructionModuleFileLinkResponseVersion;
+export type SaveInstructionBodyResponseModule = {
+  id: string;
+  /**
+   * @minLength 2
+   * @maxLength 200
+   */
+  title: string;
+  group: SaveInstructionBodyResponseModuleGroup;
+  domain: SaveInstructionBodyResponseModuleDomain;
+  /** @nullable */
+  archivedAt: string | null;
+  version: SaveInstructionBodyResponseModuleVersion;
+  /** @minimum 0 */
+  appliedCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SaveInstructionBodyResponseBodyBlocksItem =
+  | {
+      kind: 'heading';
+      /**
+       * @minLength 1
+       * @maxLength 300
+       */
+      text: string;
+    }
+  | {
+      kind: 'article';
+      /**
+       * @minItems 1
+       * @items.minLength 1
+       * @items.maxLength 20000
+       */
+      paragraphs: string[];
+    };
+
+export type SaveInstructionBodyResponseBody = {
+  blocks: SaveInstructionBodyResponseBodyBlocksItem[];
+};
+
+export interface SaveInstructionBodyResponse {
+  module: SaveInstructionBodyResponseModule;
+  body: SaveInstructionBodyResponseBody;
+  changed: boolean;
+}
+
+export type InstructionBodyBlocksItem =
+  | {
+      kind: 'heading';
+      /**
+       * @minLength 1
+       * @maxLength 300
+       */
+      text: string;
+    }
+  | {
+      kind: 'article';
+      /**
+       * @minItems 1
+       * @items.minLength 1
+       * @items.maxLength 20000
+       */
+      paragraphs: string[];
+    };
+
+export interface InstructionBody {
+  blocks: InstructionBodyBlocksItem[];
+}
+
+export type InstructionModuleVersionResponseVersion = {
+  id: string;
+  /** @minimum 1 */
+  number: number;
+  /** @pattern ^[0-9a-f]{64}$ */
+  textHash: string;
+  /** @minimum 1 */
+  articleCount: number;
+  createdAt: string;
+};
+
+export type InstructionModuleVersionResponseBodyBlocksItem =
+  | {
+      kind: 'heading';
+      /**
+       * @minLength 1
+       * @maxLength 300
+       */
+      text: string;
+    }
+  | {
+      kind: 'article';
+      /**
+       * @minItems 1
+       * @items.minLength 1
+       * @items.maxLength 20000
+       */
+      paragraphs: string[];
+    };
+
+export type InstructionModuleVersionResponseBody = {
+  blocks: InstructionModuleVersionResponseBodyBlocksItem[];
+};
+
+export interface InstructionModuleVersionResponse {
+  version: InstructionModuleVersionResponseVersion;
+  body: InstructionModuleVersionResponseBody;
 }
 
 export type PositionInstructionsResponseDomain =
@@ -4015,6 +4238,9 @@ export const PositionInstructionsResponseItemsItemGroup = {
   work_activity: 'work_activity',
   work_equipment: 'work_equipment',
   protective_equipment: 'protective_equipment',
+  premises_activity: 'premises_activity',
+  installation_equipment: 'installation_equipment',
+  hazardous_work: 'hazardous_work',
 } as const;
 
 export type PositionInstructionsResponseItemsItem = {
@@ -13646,7 +13872,7 @@ export const ListInstructionModulesDomain = {
   psi: 'psi',
 } as const;
 
-export type GetInstructionModuleFileLinkParams = {
+export type DownloadInstructionModuleParams = {
   versionId?: string;
 };
 
@@ -21342,8 +21568,8 @@ export const getCreateInstructionModuleUrl = () => {
 };
 
 /**
- * A new module whose first version is the skeleton the app ships, in the house style, to be written in the editor, of the `domain` given, an occupational safety one by default. Titles are unique within the organization, ignoring case and across both domains (reason `instruction_module_title_taken`).
- * @summary Start a module from the skeleton
+ * A new module of the `domain` given, an occupational safety one by default, whose first version is `body` (ADR 034): a module is stored on its first save, never empty. The category (`group`) is one of the domain's (reason `instruction_module_category_domain`). Titles are unique within the organization, ignoring case and across both domains (reason `instruction_module_title_taken`).
+ * @summary Create a module with its first version
  */
 export const createInstructionModule = async (
   createInstructionModuleRequest: CreateInstructionModuleRequest,
@@ -21422,7 +21648,7 @@ export type CreateInstructionModuleMutationError = ErrorType<ApiErrorResponse>;
 export type CreateInstructionModuleMutationVariables = { data: CreateInstructionModuleRequest };
 
 /**
- * @summary Start a module from the skeleton
+ * @summary Create a module with its first version
  */
 export const useCreateInstructionModule = <
   TError = ErrorType<ApiErrorResponse>,
@@ -21447,12 +21673,119 @@ export const useCreateInstructionModule = <
   return useMutation(getCreateInstructionModuleMutationOptions(options), queryClient);
 };
 
+export const getPreviewInstructionUrl = () => {
+  return `/instruction-modules/preview`;
+};
+
+/**
+ * For the Word viewer while a module is written: the posted title, domain and body rendered by the annex template as annex 1, with the organization as the provider, today's date and a placeholder where a client's name goes. Nothing is stored.
+ * @summary Render a body as the annex it would print, without saving it
+ */
+export const previewInstruction = async (
+  instructionPreviewRequest: InstructionPreviewRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<Blob> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<Blob>(getPreviewInstructionUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(instructionPreviewRequest),
+  });
+};
+
+export const getPreviewInstructionMutationKey = () => ['previewInstruction'] as const;
+
+export const getPreviewInstructionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof previewInstruction>>,
+    TError,
+    PreviewInstructionMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof previewInstruction>>,
+  TError,
+  PreviewInstructionMutationVariables,
+  TContext
+> => {
+  const mutationKey = getPreviewInstructionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof previewInstruction>>,
+    PreviewInstructionMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return previewInstruction(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PreviewInstructionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof previewInstruction>>
+>;
+export type PreviewInstructionMutationBody = InstructionPreviewRequest;
+export type PreviewInstructionMutationError = ErrorType<ApiErrorResponse>;
+export type PreviewInstructionMutationVariables = { data: InstructionPreviewRequest };
+
+/**
+ * @summary Render a body as the annex it would print, without saving it
+ */
+export const usePreviewInstruction = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof previewInstruction>>,
+      TError,
+      PreviewInstructionMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof previewInstruction>>,
+  TError,
+  PreviewInstructionMutationVariables,
+  TContext
+> => {
+  return useMutation(getPreviewInstructionMutationOptions(options), queryClient);
+};
+
 export const getGetInstructionModuleUrl = (moduleId: string) => {
   return `/instruction-modules/${moduleId}`;
 };
 
 /**
- * @summary Read one module
+ * @summary Read one module with its current body
  */
 export const getInstructionModule = async (
   moduleId: string,
@@ -21558,7 +21891,7 @@ export function useGetInstructionModule<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Read one module
+ * @summary Read one module with its current body
  */
 
 export function useGetInstructionModule<
@@ -21588,8 +21921,8 @@ export const getUpdateInstructionModuleUrl = (moduleId: string) => {
 };
 
 /**
- * Archiving is refused while a current position of any client applies the module (reason `instruction_module_applied`); an archived module leaves the pickers and takes no new file. Changing the domain is refused while a current position applies the module (reason `instruction_module_domain_applied`), since the position applied it as part of its decision for the other set.
- * @summary Rename, regroup, move to the other domain, archive or restore a module
+ * Archiving is refused while a current position of any client applies the module (reason `instruction_module_applied`); an archived module leaves the pickers and takes no new version. Changing the domain is refused while a current position applies the module (reason `instruction_module_domain_applied`), since the position applied it as part of its decision for the other set. The category after the change must be one of the domain after it (reason `instruction_module_category_domain`): moving a module to the other domain names its new category too.
+ * @summary Rename, recategorize, move to the other domain, archive or restore a module
  */
 export const updateInstructionModule = async (
   moduleId: string,
@@ -21672,7 +22005,7 @@ export type UpdateInstructionModuleMutationVariables = {
 };
 
 /**
- * @summary Rename, regroup, move to the other domain, archive or restore a module
+ * @summary Rename, recategorize, move to the other domain, archive or restore a module
  */
 export const useUpdateInstructionModule = <
   TError = ErrorType<ApiErrorResponse>,
@@ -21697,185 +22030,19 @@ export const useUpdateInstructionModule = <
   return useMutation(getUpdateInstructionModuleMutationOptions(options), queryClient);
 };
 
-export const getGetInstructionModuleFileLinkUrl = (
-  moduleId: string,
-  params?: GetInstructionModuleFileLinkParams
-) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value));
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0
-    ? `/instruction-modules/${moduleId}/file-link?${stringifiedParams}`
-    : `/instruction-modules/${moduleId}/file-link`;
+export const getSaveInstructionBodyUrl = (moduleId: string) => {
+  return `/instruction-modules/${moduleId}/body`;
 };
 
 /**
- * A signed link to the Word file of the current version, or of `versionId`, valid for a minute, named after the module. The editor loads it; a download saves it. An earlier version is what a document annexed, and its file name carries its number.
- * @summary A short-lived link to the file of a version
+ * Stores the body as the next version; nothing changes in place, and documents generated before keep citing the version they annexed. A body whose text folds to the current one (`textHash`: diacritics, case, punctuation and spaces aside) stores nothing and answers `changed: false` with the current version, so that it marks no document behind (ADR 034). Refused on an archived module (reason `instruction_module_archived`).
+ * @summary Save a module's text as its next version
  */
-export const getInstructionModuleFileLink = async (
+export const saveInstructionBody = async (
   moduleId: string,
-  params?: GetInstructionModuleFileLinkParams,
+  instructionBody: InstructionBody,
   options?: Parameters<typeof apiFetch>[1]
-): Promise<InstructionModuleFileLinkResponse> => {
-  return apiFetch<InstructionModuleFileLinkResponse>(
-    getGetInstructionModuleFileLinkUrl(moduleId, params),
-    {
-      ...options,
-      method: 'GET',
-    }
-  );
-};
-
-export const getGetInstructionModuleFileLinkQueryKey = (
-  moduleId: string,
-  params?: GetInstructionModuleFileLinkParams
-) => {
-  return [`/instruction-modules/${moduleId}/file-link`, ...(params ? [params] : [])] as const;
-};
-
-export const getGetInstructionModuleFileLinkQueryOptions = <
-  TData = Awaited<ReturnType<typeof getInstructionModuleFileLink>>,
-  TError = ErrorType<ApiErrorResponse>,
->(
-  moduleId: string,
-  params?: GetInstructionModuleFileLinkParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleFileLink>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof apiFetch>;
-  }
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getGetInstructionModuleFileLinkQueryKey(moduleId, params);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getInstructionModuleFileLink>>> = ({
-    signal,
-  }) => getInstructionModuleFileLink(moduleId, params, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: moduleId !== null && moduleId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleFileLink>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
-
-export type GetInstructionModuleFileLinkQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getInstructionModuleFileLink>>
->;
-export type GetInstructionModuleFileLinkQueryError = ErrorType<ApiErrorResponse>;
-
-export function useGetInstructionModuleFileLink<
-  TData = Awaited<ReturnType<typeof getInstructionModuleFileLink>>,
-  TError = ErrorType<ApiErrorResponse>,
->(
-  moduleId: string,
-  params: undefined | GetInstructionModuleFileLinkParams,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleFileLink>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getInstructionModuleFileLink>>,
-          TError,
-          Awaited<ReturnType<typeof getInstructionModuleFileLink>>
-        >,
-        'initialData'
-      >;
-    request?: SecondParameter<typeof apiFetch>;
-  },
-  queryClient?: QueryClient
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetInstructionModuleFileLink<
-  TData = Awaited<ReturnType<typeof getInstructionModuleFileLink>>,
-  TError = ErrorType<ApiErrorResponse>,
->(
-  moduleId: string,
-  params?: GetInstructionModuleFileLinkParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleFileLink>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getInstructionModuleFileLink>>,
-          TError,
-          Awaited<ReturnType<typeof getInstructionModuleFileLink>>
-        >,
-        'initialData'
-      >;
-    request?: SecondParameter<typeof apiFetch>;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetInstructionModuleFileLink<
-  TData = Awaited<ReturnType<typeof getInstructionModuleFileLink>>,
-  TError = ErrorType<ApiErrorResponse>,
->(
-  moduleId: string,
-  params?: GetInstructionModuleFileLinkParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleFileLink>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof apiFetch>;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-/**
- * @summary A short-lived link to the file of a version
- */
-
-export function useGetInstructionModuleFileLink<
-  TData = Awaited<ReturnType<typeof getInstructionModuleFileLink>>,
-  TError = ErrorType<ApiErrorResponse>,
->(
-  moduleId: string,
-  params?: GetInstructionModuleFileLinkParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleFileLink>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof apiFetch>;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetInstructionModuleFileLinkQueryOptions(moduleId, params, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-export const getSaveInstructionModuleFileUrl = (moduleId: string) => {
-  return `/instruction-modules/${moduleId}/file`;
-};
-
-/**
- * Takes the bytes of a `.docx`, up to 15 MB, as the body: what the editor saves, or a file uploaded again. Nothing changes in place; every save is the next version, and documents generated before keep citing the one they annexed. Refused on an archived module (reason `instruction_module_archived`).
- * @summary Store the next version of the file
- */
-export const saveInstructionModuleFile = async (
-  moduleId: string,
-  saveInstructionModuleFileBody: Blob,
-  options?: Parameters<typeof apiFetch>[1]
-): Promise<InstructionModuleResponse> => {
+): Promise<SaveInstructionBodyResponse> => {
   const getHeaders = (
     h?: NonNullable<RequestInit['headers']>
   ): Record<string, string | readonly string[]> => {
@@ -21895,37 +22062,34 @@ export const saveInstructionModuleFile = async (
     }
     return headers;
   };
-  return apiFetch<InstructionModuleResponse>(getSaveInstructionModuleFileUrl(moduleId), {
+  return apiFetch<SaveInstructionBodyResponse>(getSaveInstructionBodyUrl(moduleId), {
     ...options,
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      ...getHeaders(options?.headers),
-    },
-    body: saveInstructionModuleFileBody,
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(instructionBody),
   });
 };
 
-export const getSaveInstructionModuleFileMutationKey = () => ['saveInstructionModuleFile'] as const;
+export const getSaveInstructionBodyMutationKey = () => ['saveInstructionBody'] as const;
 
-export const getSaveInstructionModuleFileMutationOptions = <
+export const getSaveInstructionBodyMutationOptions = <
   TError = ErrorType<ApiErrorResponse>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof saveInstructionModuleFile>>,
+    Awaited<ReturnType<typeof saveInstructionBody>>,
     TError,
-    SaveInstructionModuleFileMutationVariables,
+    SaveInstructionBodyMutationVariables,
     TContext
   >;
   request?: SecondParameter<typeof apiFetch>;
 }): UseMutationOptions<
-  Awaited<ReturnType<typeof saveInstructionModuleFile>>,
+  Awaited<ReturnType<typeof saveInstructionBody>>,
   TError,
-  SaveInstructionModuleFileMutationVariables,
+  SaveInstructionBodyMutationVariables,
   TContext
 > => {
-  const mutationKey = getSaveInstructionModuleFileMutationKey();
+  const mutationKey = getSaveInstructionBodyMutationKey();
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
       ? options
@@ -21933,49 +22097,357 @@ export const getSaveInstructionModuleFileMutationOptions = <
     : { mutation: { mutationKey }, request: undefined };
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof saveInstructionModuleFile>>,
-    SaveInstructionModuleFileMutationVariables
+    Awaited<ReturnType<typeof saveInstructionBody>>,
+    SaveInstructionBodyMutationVariables
   > = (props) => {
     const { moduleId, data } = props ?? {};
 
-    return saveInstructionModuleFile(moduleId, data, requestOptions);
+    return saveInstructionBody(moduleId, data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
-export type SaveInstructionModuleFileMutationResult = NonNullable<
-  Awaited<ReturnType<typeof saveInstructionModuleFile>>
+export type SaveInstructionBodyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof saveInstructionBody>>
 >;
-export type SaveInstructionModuleFileMutationBody = Blob;
-export type SaveInstructionModuleFileMutationError = ErrorType<ApiErrorResponse>;
-export type SaveInstructionModuleFileMutationVariables = { moduleId: string; data: Blob };
+export type SaveInstructionBodyMutationBody = InstructionBody;
+export type SaveInstructionBodyMutationError = ErrorType<ApiErrorResponse>;
+export type SaveInstructionBodyMutationVariables = { moduleId: string; data: InstructionBody };
 
 /**
- * @summary Store the next version of the file
+ * @summary Save a module's text as its next version
  */
-export const useSaveInstructionModuleFile = <
-  TError = ErrorType<ApiErrorResponse>,
-  TContext = unknown,
->(
+export const useSaveInstructionBody = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof saveInstructionModuleFile>>,
+      Awaited<ReturnType<typeof saveInstructionBody>>,
       TError,
-      SaveInstructionModuleFileMutationVariables,
+      SaveInstructionBodyMutationVariables,
       TContext
     >;
     request?: SecondParameter<typeof apiFetch>;
   },
   queryClient?: QueryClient
 ): UseMutationResult<
-  Awaited<ReturnType<typeof saveInstructionModuleFile>>,
+  Awaited<ReturnType<typeof saveInstructionBody>>,
   TError,
-  SaveInstructionModuleFileMutationVariables,
+  SaveInstructionBodyMutationVariables,
   TContext
 > => {
-  return useMutation(getSaveInstructionModuleFileMutationOptions(options), queryClient);
+  return useMutation(getSaveInstructionBodyMutationOptions(options), queryClient);
 };
+
+export const getGetInstructionModuleVersionUrl = (moduleId: string, versionId: string) => {
+  return `/instruction-modules/${moduleId}/versions/${versionId}`;
+};
+
+/**
+ * An earlier version is what a document annexed; it never changes.
+ * @summary Read one version of a module with its body
+ */
+export const getInstructionModuleVersion = async (
+  moduleId: string,
+  versionId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<InstructionModuleVersionResponse> => {
+  return apiFetch<InstructionModuleVersionResponse>(
+    getGetInstructionModuleVersionUrl(moduleId, versionId),
+    {
+      ...options,
+      method: 'GET',
+    }
+  );
+};
+
+export const getGetInstructionModuleVersionQueryKey = (moduleId: string, versionId: string) => {
+  return [`/instruction-modules/${moduleId}/versions/${versionId}`] as const;
+};
+
+export const getGetInstructionModuleVersionQueryOptions = <
+  TData = Awaited<ReturnType<typeof getInstructionModuleVersion>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  moduleId: string,
+  versionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleVersion>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetInstructionModuleVersionQueryKey(moduleId, versionId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getInstructionModuleVersion>>> = ({
+    signal,
+  }) => getInstructionModuleVersion(moduleId, versionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      moduleId !== null && moduleId !== undefined && versionId !== null && versionId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleVersion>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetInstructionModuleVersionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getInstructionModuleVersion>>
+>;
+export type GetInstructionModuleVersionQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetInstructionModuleVersion<
+  TData = Awaited<ReturnType<typeof getInstructionModuleVersion>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  moduleId: string,
+  versionId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleVersion>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getInstructionModuleVersion>>,
+          TError,
+          Awaited<ReturnType<typeof getInstructionModuleVersion>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetInstructionModuleVersion<
+  TData = Awaited<ReturnType<typeof getInstructionModuleVersion>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  moduleId: string,
+  versionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleVersion>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getInstructionModuleVersion>>,
+          TError,
+          Awaited<ReturnType<typeof getInstructionModuleVersion>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetInstructionModuleVersion<
+  TData = Awaited<ReturnType<typeof getInstructionModuleVersion>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  moduleId: string,
+  versionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleVersion>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Read one version of a module with its body
+ */
+
+export function useGetInstructionModuleVersion<
+  TData = Awaited<ReturnType<typeof getInstructionModuleVersion>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  moduleId: string,
+  versionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getInstructionModuleVersion>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetInstructionModuleVersionQueryOptions(moduleId, versionId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getDownloadInstructionModuleUrl = (
+  moduleId: string,
+  params?: DownloadInstructionModuleParams
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/instruction-modules/${moduleId}/download?${stringifiedParams}`
+    : `/instruction-modules/${moduleId}/download`;
+};
+
+/**
+ * The current version, or `versionId`, rendered by the annex template as annex 1: its title page, then its text under the header of the own instructions, with the organization as the provider and a placeholder where a client's name goes. A client's revision prints its annexes as in the binder at `GET /documents/{documentId}/revisions/{revisionId}/annexes/{number}`.
+ * @summary Download a version as the annex it prints
+ */
+export const downloadInstructionModule = async (
+  moduleId: string,
+  params?: DownloadInstructionModuleParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<Blob> => {
+  return apiFetch<Blob>(getDownloadInstructionModuleUrl(moduleId, params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getDownloadInstructionModuleQueryKey = (
+  moduleId: string,
+  params?: DownloadInstructionModuleParams
+) => {
+  return [`/instruction-modules/${moduleId}/download`, ...(params ? [params] : [])] as const;
+};
+
+export const getDownloadInstructionModuleQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadInstructionModule>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  moduleId: string,
+  params?: DownloadInstructionModuleParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof downloadInstructionModule>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDownloadInstructionModuleQueryKey(moduleId, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadInstructionModule>>> = ({
+    signal,
+  }) => downloadInstructionModule(moduleId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: moduleId !== null && moduleId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof downloadInstructionModule>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type DownloadInstructionModuleQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadInstructionModule>>
+>;
+export type DownloadInstructionModuleQueryError = ErrorType<ApiErrorResponse>;
+
+export function useDownloadInstructionModule<
+  TData = Awaited<ReturnType<typeof downloadInstructionModule>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  moduleId: string,
+  params: undefined | DownloadInstructionModuleParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof downloadInstructionModule>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof downloadInstructionModule>>,
+          TError,
+          Awaited<ReturnType<typeof downloadInstructionModule>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useDownloadInstructionModule<
+  TData = Awaited<ReturnType<typeof downloadInstructionModule>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  moduleId: string,
+  params?: DownloadInstructionModuleParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof downloadInstructionModule>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof downloadInstructionModule>>,
+          TError,
+          Awaited<ReturnType<typeof downloadInstructionModule>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useDownloadInstructionModule<
+  TData = Awaited<ReturnType<typeof downloadInstructionModule>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  moduleId: string,
+  params?: DownloadInstructionModuleParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof downloadInstructionModule>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Download a version as the annex it prints
+ */
+
+export function useDownloadInstructionModule<
+  TData = Awaited<ReturnType<typeof downloadInstructionModule>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  moduleId: string,
+  params?: DownloadInstructionModuleParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof downloadInstructionModule>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getDownloadInstructionModuleQueryOptions(moduleId, params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export const getListPositionInstructionsUrl = (
   clientId: string,
@@ -30287,7 +30759,7 @@ export const getGetDocumentArchiveUrl = (clientId: string, params?: GetDocumentA
 };
 
 /**
- * Every document of the set named by `set`, numbered in the set's order. `format=docx` takes each document's issued Word file, or its draft while nothing is issued, with the own instructions' annexes as files of their own. `format=pdf` takes the PDFs made at issuing, which hold the annexes, and leaves out documents that have none. `409` with the reason `nothing_to_archive` when no document qualifies.
+ * Every document of the set named by `set`, numbered in the set's order. `format=docx` takes each document's issued Word file, or its draft while nothing is issued, the own instructions with their annexes appended as sections of their own. `format=pdf` takes the PDFs made at issuing, which hold the annexes, and leaves out documents that have none. `409` with the reason `nothing_to_archive` when no document qualifies.
  * @summary Download one of a client's documentation sets as a zip archive
  */
 export const getDocumentArchive = async (
@@ -30592,6 +31064,289 @@ export function useGetDocumentDownload<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getGetDocumentDownloadQueryOptions(documentId, revisionId, params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetDocumentWordUrl = (documentId: string, revisionId: string) => {
+  return `/documents/${documentId}/revisions/${revisionId}/word`;
+};
+
+/**
+ * The revision's Word file, followed for either set's own instructions by each annexed instruction module as a section of its own, rendered from the version the revision annexed (ADR 034), as the PDF holds them. The draft the editor opens stays the common part alone. `409` with the reason `annex_not_in_library` when an annexed version no longer exists: the draft is generated again.
+ * @summary Download a revision's Word file with its annexes
+ */
+export const getDocumentWord = async (
+  documentId: string,
+  revisionId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<Blob> => {
+  return apiFetch<Blob>(getGetDocumentWordUrl(documentId, revisionId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetDocumentWordQueryKey = (documentId: string, revisionId: string) => {
+  return [`/documents/${documentId}/revisions/${revisionId}/word`] as const;
+};
+
+export const getGetDocumentWordQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDocumentWord>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  documentId: string,
+  revisionId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDocumentWord>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDocumentWordQueryKey(documentId, revisionId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDocumentWord>>> = ({ signal }) =>
+    getDocumentWord(documentId, revisionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      documentId !== null &&
+      documentId !== undefined &&
+      revisionId !== null &&
+      revisionId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getDocumentWord>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetDocumentWordQueryResult = NonNullable<Awaited<ReturnType<typeof getDocumentWord>>>;
+export type GetDocumentWordQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetDocumentWord<
+  TData = Awaited<ReturnType<typeof getDocumentWord>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  documentId: string,
+  revisionId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDocumentWord>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDocumentWord>>,
+          TError,
+          Awaited<ReturnType<typeof getDocumentWord>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDocumentWord<
+  TData = Awaited<ReturnType<typeof getDocumentWord>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  documentId: string,
+  revisionId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDocumentWord>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDocumentWord>>,
+          TError,
+          Awaited<ReturnType<typeof getDocumentWord>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDocumentWord<
+  TData = Awaited<ReturnType<typeof getDocumentWord>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  documentId: string,
+  revisionId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDocumentWord>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Download a revision's Word file with its annexes
+ */
+
+export function useGetDocumentWord<
+  TData = Awaited<ReturnType<typeof getDocumentWord>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  documentId: string,
+  revisionId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDocumentWord>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetDocumentWordQueryOptions(documentId, revisionId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetDocumentAnnexUrl = (documentId: string, revisionId: string, number: number) => {
+  return `/documents/${documentId}/revisions/${revisionId}/annexes/${number}`;
+};
+
+/**
+ * The annex numbered `number` of either set's own instructions, as the binder prints it: its title page and its text under the header of the client's own instructions, rendered from the version the revision annexed.
+ * @summary Download one annex of a revision as a Word file
+ */
+export const getDocumentAnnex = async (
+  documentId: string,
+  revisionId: string,
+  number: number,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<Blob> => {
+  return apiFetch<Blob>(getGetDocumentAnnexUrl(documentId, revisionId, number), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetDocumentAnnexQueryKey = (
+  documentId: string,
+  revisionId: string,
+  number: number
+) => {
+  return [`/documents/${documentId}/revisions/${revisionId}/annexes/${number}`] as const;
+};
+
+export const getGetDocumentAnnexQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDocumentAnnex>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  documentId: string,
+  revisionId: string,
+  number: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDocumentAnnex>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDocumentAnnexQueryKey(documentId, revisionId, number);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDocumentAnnex>>> = ({ signal }) =>
+    getDocumentAnnex(documentId, revisionId, number, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      documentId !== null &&
+      documentId !== undefined &&
+      revisionId !== null &&
+      revisionId !== undefined &&
+      number !== null &&
+      number !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getDocumentAnnex>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetDocumentAnnexQueryResult = NonNullable<Awaited<ReturnType<typeof getDocumentAnnex>>>;
+export type GetDocumentAnnexQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetDocumentAnnex<
+  TData = Awaited<ReturnType<typeof getDocumentAnnex>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  documentId: string,
+  revisionId: string,
+  number: number,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDocumentAnnex>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDocumentAnnex>>,
+          TError,
+          Awaited<ReturnType<typeof getDocumentAnnex>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDocumentAnnex<
+  TData = Awaited<ReturnType<typeof getDocumentAnnex>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  documentId: string,
+  revisionId: string,
+  number: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDocumentAnnex>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDocumentAnnex>>,
+          TError,
+          Awaited<ReturnType<typeof getDocumentAnnex>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDocumentAnnex<
+  TData = Awaited<ReturnType<typeof getDocumentAnnex>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  documentId: string,
+  revisionId: string,
+  number: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDocumentAnnex>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Download one annex of a revision as a Word file
+ */
+
+export function useGetDocumentAnnex<
+  TData = Awaited<ReturnType<typeof getDocumentAnnex>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  documentId: string,
+  revisionId: string,
+  number: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDocumentAnnex>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetDocumentAnnexQueryOptions(documentId, revisionId, number, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

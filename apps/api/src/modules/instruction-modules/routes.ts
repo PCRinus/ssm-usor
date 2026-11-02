@@ -3,18 +3,22 @@ import {
   applyInstructionsRequestSchema,
   copyInstructionsRequestSchema,
   createInstructionModuleRequestSchema,
-  instructionModuleFileLinkQuerySchema,
-  instructionModuleFileLinkResponseSchema,
+  instructionBodySchema,
+  instructionModuleDownloadQuerySchema,
   instructionModuleListQuerySchema,
   instructionModuleListResponseSchema,
   instructionModuleResponseSchema,
+  instructionModuleVersionResponseSchema,
+  instructionPreviewRequestSchema,
   instructionsDecisionSchema,
   jobPositionResponseSchema,
   positionInstructionsQuerySchema,
   positionInstructionsResponseSchema,
+  saveInstructionBodyResponseSchema,
   updateInstructionModuleRequestSchema,
 } from '@ssm-usor/contracts';
 
+import { allowWhileReadOnly } from '../../lib/access';
 import { requireAuth } from '../../lib/auth';
 import { requireMembership } from '../../lib/membership';
 import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
@@ -22,10 +26,12 @@ import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openap
 const moduleParams = z.object({ moduleId: z.uuid() });
 const positionParams = z.object({ clientId: z.uuid(), jobPositionId: z.uuid() });
 
-const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-const docxBody = {
-  required: true,
-  content: { [docxType]: { schema: z.string().openapi({ type: 'string', format: 'binary' }) } },
+const versionParams = z.object({ moduleId: z.uuid(), versionId: z.uuid() });
+
+const docxContent = {
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': {
+    schema: z.string().openapi({ type: 'string', format: 'binary' }),
+  },
 };
 
 const noSuchModule = {
@@ -43,6 +49,12 @@ const archivedClient = {
 const moduleContent = {
   'application/json': {
     schema: instructionModuleResponseSchema.meta({ id: 'InstructionModuleResponse' }),
+  },
+};
+const bodyRequest = {
+  required: true,
+  content: {
+    'application/json': { schema: instructionBodySchema.meta({ id: 'InstructionBody' }) },
   },
 };
 const listContent = {
@@ -77,9 +89,9 @@ export const createInstructionModuleRoute = createRoute({
   method: 'post',
   path: '/instruction-modules',
   operationId: 'createInstructionModule',
-  summary: 'Start a module from the skeleton',
+  summary: 'Create a module with its first version',
   description:
-    'A new module whose first version is the skeleton the app ships, in the house style, to be written in the editor, of the `domain` given, an occupational safety one by default. Titles are unique within the organization, ignoring case and across both domains (reason `instruction_module_title_taken`).',
+    "A new module of the `domain` given, an occupational safety one by default, whose first version is `body` (ADR 034): a module is stored on its first save, never empty. The category (`group`) is one of the domain's (reason `instruction_module_category_domain`). Titles are unique within the organization, ignoring case and across both domains (reason `instruction_module_title_taken`).",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -95,8 +107,11 @@ export const createInstructionModuleRoute = createRoute({
     },
   },
   responses: {
-    201: { description: 'The module', content: moduleContent },
-    400: { description: 'Invalid request body', content: errorContent },
+    201: { description: 'The module and its body', content: moduleContent },
+    400: {
+      description: 'Invalid request body, or a category of the other domain',
+      content: errorContent,
+    },
     409: { description: 'The title is taken', content: errorContent },
     ...membershipErrors,
   },
@@ -106,12 +121,12 @@ export const getInstructionModuleRoute = createRoute({
   method: 'get',
   path: '/instruction-modules/{moduleId}',
   operationId: 'getInstructionModule',
-  summary: 'Read one module',
+  summary: 'Read one module with its current body',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: moduleParams },
   responses: {
-    200: { description: 'The module', content: moduleContent },
+    200: { description: 'The module and its current body', content: moduleContent },
     400: { description: 'Invalid path', content: errorContent },
     404: noSuchModule,
     ...membershipErrors,
@@ -122,9 +137,9 @@ export const updateInstructionModuleRoute = createRoute({
   method: 'patch',
   path: '/instruction-modules/{moduleId}',
   operationId: 'updateInstructionModule',
-  summary: 'Rename, regroup, move to the other domain, archive or restore a module',
+  summary: 'Rename, recategorize, move to the other domain, archive or restore a module',
   description:
-    'Archiving is refused while a current position of any client applies the module (reason `instruction_module_applied`); an archived module leaves the pickers and takes no new file. Changing the domain is refused while a current position applies the module (reason `instruction_module_domain_applied`), since the position applied it as part of its decision for the other set.',
+    'Archiving is refused while a current position of any client applies the module (reason `instruction_module_applied`); an archived module leaves the pickers and takes no new version. Changing the domain is refused while a current position applies the module (reason `instruction_module_domain_applied`), since the position applied it as part of its decision for the other set. The category after the change must be one of the domain after it (reason `instruction_module_category_domain`): moving a module to the other domain names its new category too.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -142,7 +157,10 @@ export const updateInstructionModuleRoute = createRoute({
   },
   responses: {
     200: { description: 'The module after the change', content: moduleContent },
-    400: { description: 'Invalid path or request body', content: errorContent },
+    400: {
+      description: 'Invalid path or request body, or a category of the other domain',
+      content: errorContent,
+    },
     404: noSuchModule,
     409: {
       description:
@@ -153,23 +171,48 @@ export const updateInstructionModuleRoute = createRoute({
   },
 });
 
-export const instructionModuleFileLinkRoute = createRoute({
-  method: 'get',
-  path: '/instruction-modules/{moduleId}/file-link',
-  operationId: 'getInstructionModuleFileLink',
-  summary: 'A short-lived link to the file of a version',
+export const saveInstructionBodyRoute = createRoute({
+  method: 'put',
+  path: '/instruction-modules/{moduleId}/body',
+  operationId: 'saveInstructionBody',
+  summary: "Save a module's text as its next version",
   description:
-    'A signed link to the Word file of the current version, or of `versionId`, valid for a minute, named after the module. The editor loads it; a download saves it. An earlier version is what a document annexed, and its file name carries its number.',
+    'Stores the body as the next version; nothing changes in place, and documents generated before keep citing the version they annexed. A body whose text folds to the current one (`textHash`: diacritics, case, punctuation and spaces aside) stores nothing and answers `changed: false` with the current version, so that it marks no document behind (ADR 034). Refused on an archived module (reason `instruction_module_archived`).',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
-  request: { params: moduleParams, query: instructionModuleFileLinkQuerySchema },
+  request: { params: moduleParams, body: bodyRequest },
   responses: {
     200: {
-      description: 'The link',
+      description: 'The module with its current version and body',
       content: {
         'application/json': {
-          schema: instructionModuleFileLinkResponseSchema.meta({
-            id: 'InstructionModuleFileLinkResponse',
+          schema: saveInstructionBodyResponseSchema.meta({ id: 'SaveInstructionBodyResponse' }),
+        },
+      },
+    },
+    400: { description: 'Invalid path or body', content: errorContent },
+    404: noSuchModule,
+    409: { description: 'The module is archived', content: errorContent },
+    ...membershipErrors,
+  },
+});
+
+export const getInstructionModuleVersionRoute = createRoute({
+  method: 'get',
+  path: '/instruction-modules/{moduleId}/versions/{versionId}',
+  operationId: 'getInstructionModuleVersion',
+  summary: 'Read one version of a module with its body',
+  description: 'An earlier version is what a document annexed; it never changes.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: versionParams },
+  responses: {
+    200: {
+      description: 'The version and its body',
+      content: {
+        'application/json': {
+          schema: instructionModuleVersionResponseSchema.meta({
+            id: 'InstructionModuleVersionResponse',
           }),
         },
       },
@@ -180,21 +223,46 @@ export const instructionModuleFileLinkRoute = createRoute({
   },
 });
 
-export const saveInstructionModuleFileRoute = createRoute({
-  method: 'put',
-  path: '/instruction-modules/{moduleId}/file',
-  operationId: 'saveInstructionModuleFile',
-  summary: 'Store the next version of the file',
+export const downloadInstructionModuleRoute = createRoute({
+  method: 'get',
+  path: '/instruction-modules/{moduleId}/download',
+  operationId: 'downloadInstructionModule',
+  summary: 'Download a version as the annex it prints',
   description:
-    'Takes the bytes of a `.docx`, up to 15 MB, as the body: what the editor saves, or a file uploaded again. Nothing changes in place; every save is the next version, and documents generated before keep citing the one they annexed. Refused on an archived module (reason `instruction_module_archived`).',
+    "The current version, or `versionId`, rendered by the annex template as annex 1: its title page, then its text under the header of the own instructions, with the organization as the provider and a placeholder where a client's name goes. A client's revision prints its annexes as in the binder at `GET /documents/{documentId}/revisions/{revisionId}/annexes/{number}`.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
-  request: { params: moduleParams, body: docxBody },
+  request: { params: moduleParams, query: instructionModuleDownloadQuerySchema },
   responses: {
-    200: { description: 'The module with its new version', content: moduleContent },
-    400: { description: 'Invalid path, or the body is not a Word document', content: errorContent },
-    404: noSuchModule,
-    409: { description: 'The module is archived', content: errorContent },
+    200: { description: 'The Word file, named in `Content-Disposition`', content: docxContent },
+    400: { description: 'Invalid path or query', content: errorContent },
+    404: { description: 'No such module, or no such version of it', content: errorContent },
+    ...membershipErrors,
+  },
+});
+
+export const previewInstructionRoute = createRoute({
+  method: 'post',
+  path: '/instruction-modules/preview',
+  operationId: 'previewInstruction',
+  summary: 'Render a body as the annex it would print, without saving it',
+  description:
+    "For the Word viewer while a module is written: the posted title, domain and body rendered by the annex template as annex 1, with the organization as the provider, today's date and a placeholder where a client's name goes. Nothing is stored.",
+  security: bearerSecurity,
+  middleware: [requireAuth, allowWhileReadOnly, requireMembership] as const,
+  request: {
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: instructionPreviewRequestSchema.meta({ id: 'InstructionPreviewRequest' }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: { description: 'The Word file', content: docxContent },
+    400: { description: 'Invalid request body', content: errorContent },
     ...membershipErrors,
   },
 });

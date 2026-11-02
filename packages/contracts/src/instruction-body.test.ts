@@ -12,7 +12,6 @@ import {
   instructionCategoryLabels,
   textHash,
 } from './instruction-body';
-import { instructionModuleGroups } from './instruction-modules';
 
 const body: InstructionBody = {
   blocks: [
@@ -157,7 +156,7 @@ describe('textHash', () => {
 
 describe('instruction categories', () => {
   it('keeps the existing SSM groups and adds three PSI ones', () => {
-    for (const group of instructionModuleGroups) {
+    for (const group of ['work_activity', 'work_equipment', 'protective_equipment'] as const) {
       expect(instructionCategories).toContain(group);
       expect(categoryDomain(group)).toBe('ssm');
     }

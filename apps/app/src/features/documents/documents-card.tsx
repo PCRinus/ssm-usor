@@ -52,9 +52,10 @@ import { Fragment, useRef, useState } from 'react';
 
 import {
   type ApiErrorResponse,
+  getDocumentAnnex,
   getDocumentArchive,
   getDocumentDownload,
-  getInstructionModuleFileLink,
+  getDocumentWord,
   getListClientDocumentsQueryKey,
   getListDocumentsBehindQueryKey,
   useDeleteDocumentDraft,
@@ -309,6 +310,12 @@ export function DocumentsCard<Set extends DocumentSet>({
   ) {
     setError(null);
     try {
+      // Storage holds the common part alone; the API appends the annexes (ADR 034).
+      if (format === 'docx' && revision.annexes.length > 0) {
+        const file = await getDocumentWord(document.id, revision.id, apiRequest);
+        saveFile(file, file instanceof File ? file.name : `${document.title}.docx`);
+        return;
+      }
       const link = await getDocumentDownload(document.id, revision.id, { format }, apiRequest);
       openDownload(apiRequest.baseUrl, link);
     } catch {
@@ -340,15 +347,11 @@ export function DocumentsCard<Set extends DocumentSet>({
     }
   }
 
-  async function downloadAnnex(annex: DocumentAnnex) {
+  async function downloadAnnex(document: ClientDocument, revision: Revision, annex: DocumentAnnex) {
     setError(null);
     try {
-      const link = await getInstructionModuleFileLink(
-        annex.moduleId,
-        { versionId: annex.version.id },
-        apiRequest
-      );
-      openDownload(apiRequest.baseUrl, link);
+      const file = await getDocumentAnnex(document.id, revision.id, annex.number, apiRequest);
+      saveFile(file, file instanceof File ? file.name : `Anexa ${annex.number}.docx`);
     } catch {
       setError(
         `Nu am putut descărca anexa „${annex.title}”. Verifică conexiunea și încearcă din nou.`
@@ -667,7 +670,7 @@ export function DocumentsCard<Set extends DocumentSet>({
             key={annex.version.id}
             annex={annex}
             typeKey={document.typeKey}
-            onDownload={() => void downloadAnnex(annex)}
+            onDownload={() => void downloadAnnex(document, current, annex)}
           />
         ))}
       </Fragment>

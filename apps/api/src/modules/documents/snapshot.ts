@@ -30,22 +30,27 @@ const annexedEntries = (snapshot: Json | null) =>
   );
 
 /**
- * One per entry of `annexedVersionIds`, in its order. A value missing here is not checked:
- * the engine refuses to merge without it.
+ * What each annex merges, in the order of `annexedVersionIds`: the own instructions' header and
+ * the annex's number, title and version date. A value missing here is not checked: the engine
+ * refuses to merge without it.
  */
-export function annexTitlePagesData(snapshot: Json | null): Record<string, unknown>[] {
+export function annexesData(
+  snapshot: Json | null
+): { versionId: string; data: Record<string, unknown> }[] {
   const printed = (snapshot ?? {}) as Record<string, unknown>;
   return annexedEntries(snapshot).map((annex) => ({
-    branding: printed.branding,
-    issueDate: printed.issueDate,
-    provider: printed.provider,
-    client: printed.client,
-    // Only the fire-safety set's page prints it, where the other prints the provider's
-    // representative.
-    fireSafetyTechnician: printed.fireSafetyTechnician,
-    number: annex.number,
-    title: annex.title,
-    versionDate: annex.versionDate,
+    versionId: annex.versionId,
+    data: {
+      branding: printed.branding,
+      issueDate: printed.issueDate,
+      provider: printed.provider,
+      client: printed.client,
+      // Only the fire-safety annex prints it, where the other prints the provider.
+      fireSafetyTechnician: printed.fireSafetyTechnician,
+      number: annex.number,
+      title: annex.title,
+      versionDate: annex.versionDate,
+    },
   }));
 }
 

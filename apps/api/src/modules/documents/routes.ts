@@ -150,13 +150,65 @@ export const getDocumentDownloadRoute = createRoute({
   },
 });
 
+const docxContent = {
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': {
+    schema: z.string().openapi({ type: 'string', format: 'binary' }),
+  },
+};
+
+export const getDocumentWordRoute = createRoute({
+  method: 'get',
+  path: '/documents/{documentId}/revisions/{revisionId}/word',
+  operationId: 'getDocumentWord',
+  summary: "Download a revision's Word file with its annexes",
+  description:
+    "The revision's Word file, followed for either set's own instructions by each annexed instruction module as a section of its own, rendered from the version the revision annexed (ADR 034), as the PDF holds them. The draft the editor opens stays the common part alone. `409` with the reason `annex_not_in_library` when an annexed version no longer exists: the draft is generated again.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: revisionParams },
+  responses: {
+    200: { description: 'The Word file, named in `Content-Disposition`', content: docxContent },
+    400: { description: 'Invalid path', content: errorContent },
+    404: {
+      description: 'The revision does not exist in the organization',
+      content: errorContent,
+    },
+    409: { description: 'An annexed version no longer exists', content: errorContent },
+    ...membershipErrors,
+  },
+});
+
+export const getDocumentAnnexRoute = createRoute({
+  method: 'get',
+  path: '/documents/{documentId}/revisions/{revisionId}/annexes/{number}',
+  operationId: 'getDocumentAnnex',
+  summary: 'Download one annex of a revision as a Word file',
+  description:
+    "The annex numbered `number` of either set's own instructions, as the binder prints it: its title page and its text under the header of the client's own instructions, rendered from the version the revision annexed.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: {
+    params: revisionParams.extend({ number: z.coerce.number().int().min(1) }),
+  },
+  responses: {
+    200: { description: 'The Word file, named in `Content-Disposition`', content: docxContent },
+    400: { description: 'Invalid path', content: errorContent },
+    404: {
+      description: 'The revision does not exist in the organization, or has no such annex',
+      content: errorContent,
+    },
+    409: { description: 'The annexed version no longer exists', content: errorContent },
+    ...membershipErrors,
+  },
+});
+
 export const getDocumentArchiveRoute = createRoute({
   method: 'get',
   path: '/clients/{clientId}/documents/archive',
   operationId: 'getDocumentArchive',
   summary: "Download one of a client's documentation sets as a zip archive",
   description:
-    "Every document of the set named by `set`, numbered in the set's order. `format=docx` takes each document's issued Word file, or its draft while nothing is issued, with the own instructions' annexes as files of their own. `format=pdf` takes the PDFs made at issuing, which hold the annexes, and leaves out documents that have none. `409` with the reason `nothing_to_archive` when no document qualifies.",
+    "Every document of the set named by `set`, numbered in the set's order. `format=docx` takes each document's issued Word file, or its draft while nothing is issued, the own instructions with their annexes appended as sections of their own. `format=pdf` takes the PDFs made at issuing, which hold the annexes, and leaves out documents that have none. `409` with the reason `nothing_to_archive` when no document qualifies.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: clientParams, query: documentArchiveQuerySchema },

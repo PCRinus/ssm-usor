@@ -1,17 +1,21 @@
 import { z } from 'zod';
 
-// The organization's own instructions, one Word file each, which the own instructions
-// document annexes (ADR 012).
+import {
+  instructionBodySchema,
+  instructionCategories,
+  type InstructionCategory,
+  instructionCategorySchema,
+} from './instruction-body';
 
-export const instructionModuleGroups = [
-  'work_activity',
-  'work_equipment',
-  'protective_equipment',
-] as const;
+// The organization's own instructions, each a body of headings and articles that the own
+// instructions document annexes (ADR 012, ADR 034).
 
-export const instructionModuleGroupSchema = z.enum(instructionModuleGroups);
+// The category, called `group` on the wire since ADR 012.
+export const instructionModuleGroups = instructionCategories;
 
-export type InstructionModuleGroup = z.infer<typeof instructionModuleGroupSchema>;
+export const instructionModuleGroupSchema = instructionCategorySchema;
+
+export type InstructionModuleGroup = InstructionCategory;
 
 /**
  * The set whose own instructions annex a module: the occupational safety one (3.2) or the
@@ -30,10 +34,9 @@ const title = z.string().trim().min(2).max(200);
 export const instructionModuleVersionSchema = z.object({
   id: z.uuid(),
   number: z.int().min(1),
-  sha256: z.string().regex(/^[0-9a-f]{64}$/),
-  sizeBytes: z.int().min(1),
-  // The top-level numbered items of the file, what the training themes cite as "Art. 1–N".
-  articleCount: z.int().min(0),
+  textHash: z.string().regex(/^[0-9a-f]{64}$/),
+  // What the training themes cite as "Art. 1–N".
+  articleCount: z.int().min(1),
   createdAt: z.iso.datetime({ offset: true }),
 });
 
@@ -69,23 +72,30 @@ export const instructionModuleListResponseSchema = z.object({
 
 export type InstructionModuleListResponse = z.infer<typeof instructionModuleListResponseSchema>;
 
-export const instructionModuleResponseSchema = z.object({ module: instructionModuleSchema });
+export const instructionModuleResponseSchema = z.object({
+  module: instructionModuleSchema,
+  body: instructionBodySchema,
+});
 
 export type InstructionModuleResponse = z.infer<typeof instructionModuleResponseSchema>;
 
-/** A module written in the app starts from the skeleton. */
+/** A module is created with its first version: nothing is stored before its first save. */
 export const createInstructionModuleRequestSchema = z.object({
   title,
+  // Of the module's domain (`categoryFitsDomain`).
   group: instructionModuleGroupSchema,
   domain: domainOrSsm,
+  body: instructionBodySchema,
 });
 
 export type CreateInstructionModuleRequest = z.infer<typeof createInstructionModuleRequestSchema>;
 
 export const updateInstructionModuleRequestSchema = z.object({
   title: title.optional(),
+  // The category of the domain the module has after the change.
   group: instructionModuleGroupSchema.optional(),
-  // Refused while a position applies the module, whose decision belongs to the other set.
+  // Refused while a position applies the module, whose decision belongs to the other set; a
+  // category of the other domain comes with it.
   domain: instructionDomainSchema.optional(),
   // True archives, false restores.
   archived: z.boolean().optional(),
@@ -93,27 +103,37 @@ export const updateInstructionModuleRequestSchema = z.object({
 
 export type UpdateInstructionModuleRequest = z.infer<typeof updateInstructionModuleRequestSchema>;
 
-export const instructionModuleFileLinkQuerySchema = z.object({
+export const saveInstructionBodyResponseSchema = instructionModuleResponseSchema.extend({
+  // False when the text folds to the current version's: nothing was stored.
+  changed: z.boolean(),
+});
+
+export type SaveInstructionBodyResponse = z.infer<typeof saveInstructionBodyResponseSchema>;
+
+export const instructionModuleVersionResponseSchema = z.object({
+  version: instructionModuleVersionSchema,
+  body: instructionBodySchema,
+});
+
+export type InstructionModuleVersionResponse = z.infer<
+  typeof instructionModuleVersionResponseSchema
+>;
+
+export const instructionModuleDownloadQuerySchema = z.object({
   // Left out, the current version: an earlier one is what a document annexed.
   versionId: z.uuid().optional(),
 });
 
-export type InstructionModuleFileLinkQuery = z.infer<typeof instructionModuleFileLinkQuerySchema>;
+export type InstructionModuleDownloadQuery = z.infer<typeof instructionModuleDownloadQuerySchema>;
 
-export const instructionModuleFileLinkResponseSchema = z.object({
-  url: z.url(),
-  fileName: z.string(),
-  expiresAt: z.iso.datetime({ offset: true }),
-  version: z.object({
-    id: z.uuid(),
-    number: z.int().min(1),
-    createdAt: z.iso.datetime({ offset: true }),
-  }),
+/** The annex as it will print, for a body not saved yet: "Scrie o instrucțiune" saves later. */
+export const instructionPreviewRequestSchema = z.object({
+  title,
+  domain: domainOrSsm,
+  body: instructionBodySchema,
 });
 
-export type InstructionModuleFileLinkResponse = z.infer<
-  typeof instructionModuleFileLinkResponseSchema
->;
+export type InstructionPreviewRequest = z.infer<typeof instructionPreviewRequestSchema>;
 
 export const appliedInstructionSchema = z.object({
   moduleId: z.uuid(),
@@ -175,6 +195,7 @@ export type CopyInstructionsRequest = z.infer<typeof copyInstructionsRequestSche
 /** `reason` values on instruction module errors, so the SPA can word them itself. */
 export const instructionModuleErrorReasons = [
   'instruction_module_title_taken',
+  'instruction_module_category_domain',
   'instruction_module_applied',
   'instruction_module_archived',
   'instruction_module_domain_applied',

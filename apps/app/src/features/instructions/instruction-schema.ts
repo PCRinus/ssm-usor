@@ -1,4 +1,5 @@
 import {
+  instructionCategoryLabels,
   type InstructionDomain,
   instructionDomains,
   type InstructionModuleGroup,
@@ -15,11 +16,7 @@ import type { JobPosition } from '@/features/job-positions/job-position-schema';
 export type InstructionModule = InstructionModuleListResponse['items'][number];
 export type AppliedInstruction = PositionInstructionsResponse['items'][number];
 
-export const groupLabels: Record<InstructionModuleGroup, string> = {
-  work_activity: 'Activități',
-  work_equipment: 'Echipamente de muncă',
-  protective_equipment: 'Echipament de protecție',
-};
+export const groupLabels: Record<InstructionModuleGroup, string> = instructionCategoryLabels;
 
 export const domainLabels: Record<InstructionDomain, string> = { ssm: 'SSM', psi: 'PSI' };
 
@@ -32,10 +29,13 @@ const groupExamples: Record<InstructionModuleGroup, string> = {
   work_activity: 'munca de birou, curățenia, servirea, conducerea autovehiculelor',
   work_equipment: 'o scară, un aparat de sudură, un polizor, o mașină de găurit',
   protective_equipment: 'purtarea unei căști, a mănușilor, a ochelarilor de protecție',
+  premises_activity: 'birourile, spațiile de cazare, un atelier, un depozit',
+  installation_equipment: 'instalația electrică, centrala termică, buteliile de gaz',
+  hazardous_work: 'lucrul cu foc deschis, sudura, lucrul cu substanțe inflamabile',
 };
 
 export function groupHint(group: InstructionModuleGroup) {
-  return `Locul instrucțiunii în bibliotecă și printre anexele instrucțiunilor proprii: întâi activitățile, apoi echipamentele de muncă, apoi echipamentul de protecție. ${groupLabels[group]}: ${groupExamples[group]}.`;
+  return `Locul instrucțiunii în bibliotecă și printre anexele instrucțiunilor proprii, în ordinea categoriilor. ${groupLabels[group]}: ${groupExamples[group]}.`;
 }
 
 /** "Nicio instrucțiune", "O instrucțiune", "3 instrucțiuni", "20 de instrucțiuni". */
@@ -54,7 +54,7 @@ export function positionCountLabel(count: number) {
   return tens === 0 || tens >= 20 ? `${count} de posturi` : `${count} posturi`;
 }
 
-/** "12 articole", counted from the file's numbered list. */
+/** "12 articole", the articles of the module's text. */
 export function articleCountLabel(count: number) {
   if (count === 0) return 'Fără articole numerotate';
   if (count === 1) return 'Un articol';

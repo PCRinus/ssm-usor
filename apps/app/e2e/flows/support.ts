@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
 import { expect, type Page } from '@playwright/test';
+import { type InstructionBody, textHash } from '@ssm-usor/contracts';
 import { createClient } from '@supabase/supabase-js';
 
 import {
@@ -421,51 +422,50 @@ export async function evaluateRisks(organizationId: string, clientId: string) {
   }
 }
 
-const moduleFixtures = {
-  ssm: new URL(
-    '../../../api/scripts/fixtures/instruction-modules/metal-ladders.docx',
-    import.meta.url
-  ),
-  psi: new URL('../../../api/scripts/fixtures/instruction-modules/hot-work.docx', import.meta.url),
-};
+type ModuleFixture = { title: string; group: string; domain: string; body: InstructionBody };
 
-/** A module of the library, from a fixture file the dev seed uses, as its first version. */
+/** The body of the dev seed's module of the domain: "Scări metalice", or "Lucrul cu foc deschis". */
+export async function moduleFixture(domain: 'ssm' | 'psi') {
+  const fixtures = JSON.parse(
+    await readFile(
+      new URL('../../../api/scripts/fixtures/instruction-modules/modules.json', import.meta.url),
+      'utf8'
+    )
+  ) as ModuleFixture[];
+  return fixtures.find((fixture) =>
+    domain === 'psi' ? fixture.domain === 'psi' : fixture.title === 'Scări metalice'
+  )!;
+}
+
+/** A module of the library, with a body the dev seed uses, as its first version. */
 export async function createInstructionModule(
   organizationId: string,
   createdBy: string,
   title: string,
   domain: 'ssm' | 'psi' = 'ssm'
 ) {
-  const bytes = await readFile(moduleFixtures[domain]);
+  const fixture = await moduleFixture(domain);
   const module = await admin
     .from('instruction_modules')
     .insert({
       organization_id: organizationId,
       title,
-      module_group: domain === 'psi' ? 'work_activity' : 'work_equipment',
+      module_group: domain === 'psi' ? 'hazardous_work' : 'work_equipment',
       domain,
       created_by: createdBy,
     })
     .select('id')
     .single();
   if (module.error) throw module.error;
-  const docxPath = `${organizationId}/${module.data.id}/1.docx`;
   const version = await admin.from('instruction_module_versions').insert({
     organization_id: organizationId,
     module_id: module.data.id,
     number: 1,
-    docx_path: docxPath,
-    sha256: createHash('sha256').update(bytes).digest('hex'),
-    size_bytes: bytes.length,
-    article_count: domain === 'psi' ? 7 : 11,
+    body: fixture.body,
+    text_hash: await textHash(fixture.body),
     created_by: createdBy,
   });
   if (version.error) throw version.error;
-  const upload = await admin.storage.from('instruction-modules').upload(docxPath, bytes, {
-    contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    upsert: true,
-  });
-  if (upload.error) throw upload.error;
   return module.data.id;
 }
 

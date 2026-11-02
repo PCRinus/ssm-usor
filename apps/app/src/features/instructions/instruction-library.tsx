@@ -20,7 +20,7 @@ import {
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
-import { BookOpenText, MoreHorizontal, PenLine } from 'lucide-react';
+import { BookOpenText, MoreHorizontal } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -109,10 +109,6 @@ export function InstructionLibrary({
               onClick={() => setShowArchived((value) => !value)}
             >
               {showArchived ? 'Arată instrucțiunile în uz' : 'Arată arhiva'}
-            </Button>
-            <Button size="sm" data-testid="instruction-write" onClick={() => setEditing('new')}>
-              <PenLine aria-hidden="true" />
-              Scrie o instrucțiune
             </Button>
           </div>
         </CardHeader>
@@ -242,20 +238,7 @@ export function InstructionLibrary({
           )}
         </CardContent>
       </Card>
-      <InstructionModuleDialog
-        editing={editing}
-        defaultDomain={domain}
-        onClose={() => setEditing(null)}
-        onSaved={(module) => {
-          if (editing === 'new') {
-            void navigate({
-              to: '/instructions/$moduleId',
-              params: { moduleId: module.id },
-              state: { openedFromList: true },
-            });
-          }
-        }}
-      />
+      <InstructionModuleDialog editing={editing} onClose={() => setEditing(null)} />
     </div>
   );
 }

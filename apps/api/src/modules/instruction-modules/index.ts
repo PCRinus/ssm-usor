@@ -4,11 +4,13 @@ import {
   copyPositionInstructions,
   createInstructionModule,
   decidePositionInstructions,
+  downloadInstructionModule,
   getInstructionModule,
-  getInstructionModuleFileLink,
+  getInstructionModuleVersion,
   listInstructionModules,
   listPositionInstructions,
-  saveInstructionModuleFile,
+  previewInstruction,
+  saveInstructionBody,
   updateInstructionModule,
 } from './handlers';
 import {
@@ -16,21 +18,26 @@ import {
   copyPositionInstructionsRoute,
   createInstructionModuleRoute,
   decidePositionInstructionsRoute,
+  downloadInstructionModuleRoute,
   getInstructionModuleRoute,
-  instructionModuleFileLinkRoute,
+  getInstructionModuleVersionRoute,
   listInstructionModulesRoute,
   listPositionInstructionsRoute,
-  saveInstructionModuleFileRoute,
+  previewInstructionRoute,
+  saveInstructionBodyRoute,
   updateInstructionModuleRoute,
 } from './routes';
 
 export const instructionModulesRouter = createRouter()
   .openapi(listInstructionModulesRoute, listInstructionModules)
   .openapi(createInstructionModuleRoute, createInstructionModule)
+  // Before the routes of one module: `/instruction-modules/preview` is not a module id.
+  .openapi(previewInstructionRoute, previewInstruction)
   .openapi(getInstructionModuleRoute, getInstructionModule)
   .openapi(updateInstructionModuleRoute, updateInstructionModule)
-  .openapi(instructionModuleFileLinkRoute, getInstructionModuleFileLink)
-  .openapi(saveInstructionModuleFileRoute, saveInstructionModuleFile)
+  .openapi(saveInstructionBodyRoute, saveInstructionBody)
+  .openapi(getInstructionModuleVersionRoute, getInstructionModuleVersion)
+  .openapi(downloadInstructionModuleRoute, downloadInstructionModule)
   .openapi(listPositionInstructionsRoute, listPositionInstructions)
   .openapi(applyPositionInstructionsRoute, applyPositionInstructions)
   .openapi(copyPositionInstructionsRoute, copyPositionInstructions)

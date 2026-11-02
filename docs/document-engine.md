@@ -481,51 +481,18 @@ combination above.
 
 ## Instruction modules
 
-An instruction module ([ADR 012](architecture/adr-012-own-instructions.md)) is a Word file the
-provider writes in the app, never merged: the engine only reads what the app needs from one.
-`countArticles` is how many top-level items the file's most used numbered list has, whether
-the paragraphs carry the numbering themselves or through their style, which is the count the
-training themes cite as "Art. 1–N"; a file without a numbered list counts none.
-`instructionModuleSkeleton()` is the file a module written in the app starts from.
+An instruction module ([ADR 012](architecture/adr-012-own-instructions.md),
+[ADR 034](architecture/adr-034-own-instructions-as-app-text.md)) is a body of headings and
+articles held as data (`instructionBodySchema` in `@ssm-usor/contracts`), never a Word file:
+the engine prints it as an annex of the own instructions, 3.2 for `ssm` and 2.1 for `psi`. The
+article count the training themes cite as "Art. 1–N" is the body's article blocks, which the
+database computes; the engine counts nothing. The fixture modules of the dev seed and the flow
+tests are bodies too, in `apps/api/scripts/fixtures/instruction-modules/modules.json`.
 
-The skeleton and the fixture modules of the dev seed and the flow tests are written by
-`tools/import/build_modules.py` from `tools/import/modules.ro.json` (`pnpm --filter
-@ssm-usor/document-engine build-modules`), as plain OOXML without LibreOffice: a module has
-no header, no footer and no page furniture. The skeleton lands in `src/skeleton.ts`, base64
-in a TypeScript module so the API needs no file at run time; the fixtures land in
-`apps/api/scripts/fixtures/instruction-modules/` with an `index.json` naming their titles
-and groups. Their article list is the one the templates keep, "Art. 1." flush left with
-"1." and "a)" tiers under it.
-
-The **annex title page** the PDF of the own instructions prints before each module (ADR 012,
-amended 2026-10-03) is a template, but neither the pack's nor one of `templates/other/`:
-`annexTitlePage(domain)` returns it from `src/annex-title.ts`, base64 like the skeleton, so it
-needs no Storage, no registry and no version in the snapshot. Each set has its page (ADR 012,
-amended 2026-10-11): `ssm`, "la Instrucțiunile proprii în domeniul securității și sănătății în
-muncă" and "I.P.S.S.M." under 3.2's box, and `psi`, "la Instrucțiunile proprii în domeniul
-situațiilor de urgență" and "I.P.S.U." under 2.1's box, which names the fire-safety technician
-where 3.2's names the provider's representative. It is not a document a client
-has, only a page of another document's PDF; it changes with a deploy, and an issued revision
-keeps the one it was issued with inside its stored PDF. The API merges it per annex with
-`branding`, `issueDate`, `provider`, `client` and, for `psi`, `fireSafetyTechnician` from the
-own instructions' snapshot and the annex's `number`, `title` and `versionDate`; a missing value
-is an error, as for any template.
-
-It is built like the covers, through LibreOffice, so that it gets the box of document details
-from the import's own `build_header`, the same as 3.2's and 2.1's pages and checked equal to
-them by a test, and the sweep:
-
-```sh
-pnpm --filter @ssm-usor/document-engine build-annex-title
-```
-
-`tools/import/build_annex_title.py` reads `tools/import/annex-title.ro.json`, a page per
-domain: the header's code and name, who prepared it (`preparedBy`, the provider when left
-out), what replaces "Pag. X din Y" ("Anexa {{number}}"), and the lines of the body, centred in
-the upper third of the page. The typesetting tests run over both with the templates. The `psi`
-page was added on 2026-10-11 while Docker was down, by copying the `ssm` page and swapping its
-texts for the ones its definition names; the builder makes both from the definitions the next
-time it runs.
+The annex template below is not a document a client has, only a part of another document's
+PDF and Word file: it needs no Storage, no registry and no version in the snapshot. It changes
+with a deploy, and an issued revision keeps the one it was issued with inside its stored PDF.
+It replaced the annex title page of ADR 012, which printed before each module's own file.
 
 ### The annex template
 
@@ -533,7 +500,8 @@ Since [ADR 034](architecture/adr-034-own-instructions-as-app-text.md) a module i
 headings and articles held as data (`instructionBodySchema` in `@ssm-usor/contracts`), and the
 engine prints it as an annex in the house style. `renderAnnex(domain, body, data)` returns one
 annex as its own Word file, from the template `annexTemplate(domain)` of `src/annex-template.ts`
-(base64, like the title page; never stored, made again from the version's body):
+(base64 in a TypeScript module, so the API needs no file at run time; never stored, made again
+from the version's body):
 
 - **A title page**: "ANEXA N", "la Instrucțiunile proprii în domeniul securității și sănătății
   în muncă" (`psi`: "… situațiilor de urgență"), "I.P.S.S.M. Title" (`psi`: "I.P.S.U. Title")
@@ -556,10 +524,12 @@ annex as its own Word file, from the template `annexTemplate(domain)` of `src/an
 `data` is the own instructions' header data (`issueDate`, `provider`, `client`, `branding`,
 for `psi` `fireSafetyTechnician`) with the annex's `number`, `title` and `versionDate`; the
 engine adds `paragraphs`, the loop `annexParagraphs(body)` makes. A missing value is an error,
-as for any template. The PDF of the own instructions converts each annex as its own file, so
-each counts its own pages.
+as for any template. The API takes `data` from the own instructions' snapshot (or, for a module
+outside a client's documents, the organization and a placeholder client). The PDF of the own
+instructions converts each annex as its own file, so each counts its own pages.
 
-`appendAnnexes(common, annexes)` is the Word download: the common part, then each rendered
+`appendAnnexes(common, annexes)` is the Word download and the Word zip of a set: the common
+part, then each rendered
 annex as a section of its own with its header and footer copied in, its pages numbered again
 from 1 and the styles the common part lacks. Word counts a section's pages with the field
 `SECTIONPAGES`, but LibreOffice, which converts and previews the files, prints it as the number

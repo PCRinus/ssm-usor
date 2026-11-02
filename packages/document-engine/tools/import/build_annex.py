@@ -180,7 +180,7 @@ def main():
         encoded[domain] = [text[index:index + 100] for index in range(0, len(text), 100)]
     with open('/work/src/annex-template.ts', 'w', encoding='utf8') as file:
         file.write('// Written by tools/import/build_annex.py from tools/import/annex.ro.json.\n\n')
-        file.write("import type { AnnexDomain } from './annex-title';\n\n")
+        file.write("export type AnnexDomain = 'ssm' | 'psi';\n\n")
         file.write('const encoded: Record<AnnexDomain, string> = {\n')
         for domain, lines in encoded.items():
             file.write(f'  {domain}:\n')

@@ -12,6 +12,7 @@ import {
   createInstructionModule,
   createOrganization,
   evaluateRisks,
+  moduleFixture,
   openDocumentSection,
   signIn,
   updateClient,
@@ -281,8 +282,9 @@ test('the own instructions are issued with their annex, which opens in the edito
 }) => {
   await generateDocumentation(page, 'documents-instructions', 'INSTRUCȚIUNI DOCUMENTE E2E');
 
-  // The own instructions annex the module the position applies (ADR 012): issuing converts
-  // the common part and the module's file into the one PDF the revision keeps.
+  // The own instructions annex the module the position applies (ADR 012): issuing renders the
+  // module's body as an annex and converts it with the common part into the one PDF the
+  // revision keeps (ADR 034).
   await openDocumentSection(page, '3');
   const instructions = page
     .getByTestId('document-row')
@@ -300,9 +302,9 @@ test('the own instructions are issued with their annex, which opens in the edito
   expect(wordArchive.name).toMatch(/ - documentația SSM - Word\.zip$/);
   const wordFiles = Object.keys(wordArchive.files);
   expect(wordFiles).toContain('01 Copertă - Deciziile interne - rev. 1 - ciornă.docx');
+  // The annexes are sections of the own instructions' Word file, not files of their own.
   expect(wordFiles.filter((name) => /^\d+ Instrucțiuni proprii de securitate/.test(name))).toEqual([
     expect.stringMatching(/ - rev\. 1\.docx$/),
-    expect.stringMatching(/ - rev\. 1 - Anexa 1 - I\.P\.S\.S\.M\. .*\.docx$/),
   ]);
   for (const bytes of Object.values(wordArchive.files)) {
     expect(Buffer.from(bytes.subarray(0, 2)).toString()).toBe('PK');
@@ -325,7 +327,14 @@ test('the own instructions are issued with their annex, which opens in the edito
   await expect(annex.getByTestId('document-annex-newer')).toHaveCount(0);
   const annexDownload = page.waitForEvent('download');
   await act(page, annex, 'document-annex-download', 'document-annex-actions');
-  expect((await annexDownload).suggestedFilename()).toMatch(/ - versiunea \d+\.docx$/);
+  expect((await annexDownload).suggestedFilename()).toMatch(
+    / - rev\. 1 - Anexa 1 - I\.P\.S\.S\.M\. .*\.docx$/
+  );
+  const wordDownload = page.waitForEvent('download');
+  await act(page, instructions, 'document-download-issued');
+  expect((await wordDownload).suggestedFilename()).toMatch(
+    /^Instrucțiuni proprii de securitate.* - rev\. 1\.docx$/
+  );
   await annex.getByTestId('document-annex-title').click();
   await expect(page.getByTestId('editor-frame')).toHaveAttribute('data-ready', 'true', {
     timeout: 30_000,
@@ -357,21 +366,19 @@ test('the issued training themes fall behind when a cited instruction gets a new
     await fetch(`${process.env.E2E_API_URL}/instruction-modules`, { headers })
   ).json()) as { items: { id: string; title: string }[] };
   const module = modules.items.find((item) => item.title === 'Scări metalice')!;
-  const { readFile } = await import('node:fs/promises');
-  const saved = await fetch(`${process.env.E2E_API_URL}/instruction-modules/${module.id}/file`, {
+  const { body } = await moduleFixture('ssm');
+  const saved = await fetch(`${process.env.E2E_API_URL}/instruction-modules/${module.id}/body`, {
     method: 'PUT',
-    headers: {
-      ...headers,
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    },
-    body: await readFile(
-      new URL(
-        '../../../api/scripts/fixtures/instruction-modules/metal-ladders.docx',
-        import.meta.url
-      )
-    ),
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      blocks: [
+        ...body.blocks,
+        { kind: 'article', paragraphs: ['Scara se depozitează orizontal, pe suporturi.'] },
+      ],
+    }),
   });
   expect(saved.status).toBe(200);
+  expect(((await saved.json()) as { changed: boolean }).changed).toBe(true);
 
   await page.reload();
   await openDocumentSection(page, '4');

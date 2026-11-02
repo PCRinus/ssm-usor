@@ -21,12 +21,7 @@ import {
   type TemplateVersionKind,
   unfilledMark,
 } from '@ssm-usor/contracts';
-import {
-  annexTitlePage,
-  documentText,
-  renderTemplate,
-  TemplateError,
-} from '@ssm-usor/document-engine';
+import { documentText, renderTemplate, TemplateError } from '@ssm-usor/document-engine';
 
 import type { Database, Json } from '../../database.types';
 import { archivedClientError, type DataClient, fromDatabaseError } from '../../lib/db';
@@ -34,6 +29,7 @@ import { maxDocxBytes, requireDocx, sha256 } from '../../lib/docx';
 import { ApiError } from '../../lib/errors';
 import type { FileStore } from '../../lib/files';
 import type { PdfConverter } from '../../lib/pdf';
+import { renderSnapshotAnnexes, withAnnexes } from './annexes';
 import {
   buildDocumentContext,
   decisionNumberOf,
@@ -44,7 +40,7 @@ import {
 import { loadDocumentFacts, loadOwnInstructions, type StoredDocumentFacts } from './facts';
 import { buildFireSafetyContext, fireSafetyDocumentData } from './fire-safety';
 import { setOfGroup, setRules } from './sets';
-import { annexDomainOf, annexedVersionIds, annexTitlePagesData, snapshotAnnexes } from './snapshot';
+import { annexDomainOf, annexedVersionIds, snapshotAnnexes } from './snapshot';
 
 type Tables = Database['public']['Tables'];
 export type RevisionRow = Pick<
@@ -961,7 +957,7 @@ export async function issueDocument(
   // second try.
   let pdfFile: { path: string; hash: string } | null = null;
   if (pdf) {
-    const annexes = await readAnnexes(db, files, document.type_key, draft.data_snapshot);
+    const annexes = await renderSnapshotAnnexes(db, document.type_key, draft.data_snapshot);
     const converted = await pdf.convertDocuments([bytes, ...annexes]);
     const path = pdfPathOf(draft.docx_path);
     await files.writeDocument(path, converted, { replace: true });
@@ -986,7 +982,6 @@ export async function issueDocument(
  */
 export async function printDocument(
   db: DataClient,
-  files: FileStore,
   pdf: PdfConverter,
   documentId: string,
   bytes: Uint8Array
@@ -996,42 +991,12 @@ export async function printDocument(
   // The draft's annexes, or the issued revision's when there is no draft: what the binder
   // holds, printed with the file as shown.
   const revision = newest(document);
-  const annexes = await readAnnexes(db, files, document.type_key, revision?.data_snapshot ?? null);
+  const annexes = await renderSnapshotAnnexes(
+    db,
+    document.type_key,
+    revision?.data_snapshot ?? null
+  );
   return pdf.convertDocuments([bytes, ...annexes]);
-}
-
-/**
- * A module's own file is never written to (ADR 012), so a title page before it is what names
- * it "Anexa N".
- */
-async function readAnnexes(
-  db: DataClient,
-  files: FileStore,
-  typeKey: string,
-  snapshot: Json | null
-) {
-  const domain = annexDomainOf(typeKey);
-  const versionIds = domain ? annexedVersionIds(snapshot) : [];
-  if (!domain || versionIds.length === 0) return [];
-  const titlePages = annexTitlePagesData(snapshot).map(
-    (data) => merge(annexTitlePage(domain), data, `annex_title_page_${domain}`).bytes
-  );
-  const { data, error } = await db
-    .from('instruction_module_versions')
-    .select('id, docx_path')
-    .in('id', versionIds);
-  if (error) throw fromDatabaseError(error, 'read annexed module versions');
-  const paths = new Map(data.map((row) => [row.id, row.docx_path]));
-  const modules = await Promise.all(
-    versionIds.map((versionId) => {
-      const path = paths.get(versionId);
-      // A version row is never deleted, so a missing one is a snapshot from another
-      // organization's module, which the policies keep out of reach.
-      if (!path) throw new ApiError('conflict', 'An annexed instruction is not in the library.');
-      return files.readModule(path);
-    })
-  );
-  return modules.flatMap((module, index) => [titlePages[index]!, module]);
 }
 
 /**
@@ -1345,6 +1310,61 @@ export async function documentDownloadLink(
     expiresInSeconds,
   };
 }
+
+async function readRevision(db: DataClient, documentId: string, revisionId: string) {
+  const { data, error } = await db
+    .from('document_revisions')
+    .select('docx_path, data_snapshot, revision, client_documents(title, period, type_key)')
+    .eq('id', revisionId)
+    .eq('document_id', documentId)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'find document revision');
+  if (!data?.client_documents) {
+    throw new ApiError('not_found', 'This document revision does not exist.');
+  }
+  return { ...data, document: data.client_documents };
+}
+
+export async function documentWordFile(
+  db: DataClient,
+  files: FileStore,
+  documentId: string,
+  revisionId: string
+) {
+  const revision = await readRevision(db, documentId, revisionId);
+  const common = await files.readDocument(revision.docx_path);
+  return {
+    fileName: `${documentFileName(revision.document)} - rev. ${revision.revision}.docx`,
+    bytes: await withAnnexes(db, revision.document.type_key, revision.data_snapshot, common),
+  };
+}
+
+export async function documentAnnexFile(
+  db: DataClient,
+  documentId: string,
+  revisionId: string,
+  number: number
+) {
+  const revision = await readRevision(db, documentId, revisionId);
+  const domain = annexDomainOf(revision.document.type_key);
+  const annex = (snapshotAnnexes(revision.data_snapshot) ?? []).find(
+    (each) => each.number === number
+  );
+  const [bytes] = domain
+    ? await renderSnapshotAnnexes(db, revision.document.type_key, revision.data_snapshot, {
+        number,
+      })
+    : [];
+  if (!domain || !annex || !bytes) {
+    throw new ApiError('not_found', 'This revision has no such annex.');
+  }
+  return {
+    fileName: `${documentFileName(revision.document)} - rev. ${revision.revision} - Anexa ${number} - ${annexCodes[domain]} ${fileNameOf(annex.title)}.docx`,
+    bytes,
+  };
+}
+
+const annexCodes = { ssm: 'I.P.S.S.M.', psi: 'I.P.S.U.' } as const;
 
 // A dated document's year tells its files apart from the other years'.
 export const documentFileName = (document: { title: string; period: number | null }) =>

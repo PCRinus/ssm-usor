@@ -13,7 +13,6 @@ import { ApiError } from './errors';
 
 const templatesBucket = 'document-templates';
 const documentsBucket = 'documents';
-const modulesBucket = 'instruction-modules';
 const clientFilesBucket = 'client-files';
 const billingInvoicesBucket = 'billing-invoices';
 const importsBucket = 'imports';
@@ -99,24 +98,6 @@ function fileStore(
         .from(documentsBucket)
         .createSignedUrl(path, expiresInSeconds);
       if (error || !data) throw fileError('sign document link', error);
-      return data.signedUrl;
-    },
-
-    readModule: (path: string) => read(modulesBucket, path, 'read instruction module'),
-
-    /** The version row must exist first, the policy checks it; a version is never replaced. */
-    async writeModule(path: string, bytes: Uint8Array) {
-      const { error } = await storage
-        .from(modulesBucket)
-        .upload(path, bytes, { contentType: docxType, upsert: false });
-      if (error) throw fileError('write instruction module', error);
-    },
-
-    async moduleLink(path: string, expiresInSeconds = 60) {
-      const { data, error } = await storage
-        .from(modulesBucket)
-        .createSignedUrl(path, expiresInSeconds);
-      if (error || !data) throw fileError('sign instruction module link', error);
       return data.signedUrl;
     },
 

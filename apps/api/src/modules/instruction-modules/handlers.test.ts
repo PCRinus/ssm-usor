@@ -1,13 +1,15 @@
 import {
   apiErrorResponseSchema,
-  instructionModuleFileLinkResponseSchema,
+  type InstructionBody,
   instructionModuleListResponseSchema,
   instructionModuleResponseSchema,
+  instructionModuleVersionResponseSchema,
   jobPositionResponseSchema,
   positionInstructionsResponseSchema,
+  saveInstructionBodyResponseSchema,
+  textHash,
 } from '@ssm-usor/contracts';
-import { instructionModuleSkeleton } from '@ssm-usor/document-engine';
-import PizZip from 'pizzip';
+import { documentText } from '@ssm-usor/document-engine';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
@@ -41,12 +43,23 @@ const officesId = '2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e';
 const weldingId = '3c4d5e6f-7a8b-4c9d-8e1f-2a3b4c5d6e7f';
 const hotWorkId = '6f7a8b9c-0d1e-4f2a-8b3c-4d5e6f7a8b9c';
 
+const laddersBody: InstructionBody = {
+  blocks: [
+    { kind: 'heading', text: 'Înainte de începerea lucrului' },
+    {
+      kind: 'article',
+      paragraphs: ['Înainte de urcare, lucrătorul verifică:', 'a) treptele;', 'b) tălpile.'],
+    },
+    { kind: 'article', paragraphs: ['Scara se sprijină pe o suprafață plană și stabilă.'] },
+  ],
+};
+const laddersHash = await textHash(laddersBody);
+
 const version = {
   id: '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d',
   number: 2,
-  sha256: 'a'.repeat(64),
-  size_bytes: 4321,
-  article_count: 12,
+  text_hash: laddersHash,
+  article_count: 2,
   created_at: '2026-09-26T10:00:00+00:00',
 };
 
@@ -72,10 +85,17 @@ const hotWork = {
   ...ladders,
   id: hotWorkId,
   title: 'Lucrul cu foc deschis',
-  module_group: 'work_activity',
+  module_group: 'hazardous_work',
   domain: 'psi',
 };
 const library = [ladders, offices, welding, hotWork];
+
+const organization = {
+  legal_name: 'PREVENT CONSULT S.R.L.',
+  legal_representative_name: 'Andrei MUNTEANU',
+  legal_representative_role: 'Administrator',
+  fire_safety_technician_name: 'Mihai STANCU',
+};
 
 const welder = {
   id: welderId,
@@ -113,13 +133,13 @@ function mockUpstream(
     versions?: Handler;
     positions?: Handler;
     applied?: Handler;
-    storage?: Handler;
   } = {}
 ) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     if (url.pathname === '/auth/v1/user') return Response.json(user);
     if (url.pathname === '/rest/v1/rpc/current_membership') return Response.json([membership]);
+    if (url.pathname === '/rest/v1/organizations') return Response.json(organization);
     if (url.pathname === '/rest/v1/instruction_modules') {
       const custom = handlers.modules?.(init, url);
       if (custom) return custom;
@@ -136,7 +156,10 @@ function mockUpstream(
       const custom = handlers.versions?.(init, url);
       if (custom) return custom;
       if (init?.method === 'POST') return new Response(null, { status: 201 });
-      return Response.json([{ number: 2 }]);
+      if (url.searchParams.get('select')?.includes('body')) {
+        return Response.json([{ ...version, body: laddersBody }]);
+      }
+      return Response.json([{ number: 2, text_hash: laddersHash }]);
     }
     if (url.pathname === '/rest/v1/job_position_instructions') {
       const custom = handlers.applied?.(init, url);
@@ -176,14 +199,6 @@ function mockUpstream(
         },
       ]);
     }
-    if (url.pathname.startsWith('/storage/v1/object/sign/instruction-modules/')) {
-      return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
-    }
-    if (url.pathname.startsWith('/storage/v1/object/instruction-modules/')) {
-      const custom = handlers.storage?.(init, url);
-      if (custom) return custom;
-      return Response.json({ Key: url.pathname.slice('/storage/v1/object/'.length) });
-    }
     throw new Error(`Unexpected upstream request: ${init?.method ?? 'GET'} ${url}`);
   });
 }
@@ -213,30 +228,12 @@ const request = (path: string, method = 'GET', body?: unknown) =>
 
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
-const sendFile = (path: string, method: string, bytes: Uint8Array) =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: { Authorization: 'Bearer test-access-token', 'Content-Type': docxType },
-      body: new Blob([bytes as BlobPart]),
-    },
-    env
-  );
-
-function docxWith(paragraphs: string[]) {
-  const zip = new PizZip();
-  zip.file(
-    'word/document.xml',
-    `<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${paragraphs
-      .map(
-        (text, index) =>
-          `<w:p><w:pPr>${index > 0 ? '<w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr>' : ''}</w:pPr><w:r><w:rPr><w:rFonts w:ascii="Calibri"/></w:rPr><w:t>${text}</w:t></w:r></w:p>`
-      )
-      .join('')}</w:body></w:document>`
-  );
-  return zip.generate({ type: 'uint8array' });
-}
+const officeBody: InstructionBody = {
+  blocks: [
+    { kind: 'heading', text: 'Domeniul de aplicare' },
+    { kind: 'article', paragraphs: ['Instrucțiunea se aplică personalului din birouri.'] },
+  ],
+};
 
 beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock);
@@ -254,10 +251,16 @@ describe('GET /instruction-modules', () => {
     expect(response.status).toBe(200);
     const { items } = instructionModuleListResponseSchema.parse(await response.json());
     expect(
-      items.map((item) => [item.title, item.group, item.version.number, item.appliedCount])
+      items.map((item) => [
+        item.title,
+        item.group,
+        item.version.number,
+        item.version.articleCount,
+        item.appliedCount,
+      ])
     ).toEqual([
-      ['Birouri', 'work_activity', 1, 0],
-      ['Scări metalice', 'work_equipment', 2, 2],
+      ['Birouri', 'work_activity', 1, 2, 0],
+      ['Scări metalice', 'work_equipment', 2, 2, 2],
     ]);
     const listed = calls('/rest/v1/instruction_modules', 'GET')[0]![0];
     expect(new URL(String(listed)).searchParams.get('archived_at')).toBe('is.null');
@@ -298,19 +301,24 @@ describe('GET /instruction-modules', () => {
 });
 
 describe('POST /instruction-modules', () => {
-  it('starts a module from the skeleton, as version 1 in the module folder', async () => {
+  it('creates a module with its body as version 1', async () => {
     mockUpstream({
       modules: (init, url) =>
         isGet(init) && url.searchParams.get('id') ? Response.json([welding]) : undefined,
-      versions: (init) => (isGet(init) ? Response.json([]) : undefined),
+      versions: (init, url) =>
+        isGet(init) && !url.searchParams.get('select')?.includes('body')
+          ? Response.json([])
+          : undefined,
     });
     const response = await request('/instruction-modules', 'POST', {
       title: 'Sudură oxiacetilenică',
       group: 'work_equipment',
+      body: laddersBody,
     });
     expect(response.status).toBe(201);
-    const { module } = instructionModuleResponseSchema.parse(await response.json());
-    expect(module.title).toBe('Sudură oxiacetilenică');
+    const created = instructionModuleResponseSchema.parse(await response.json());
+    expect(created.module.title).toBe('Sudură oxiacetilenică');
+    expect(created.body).toEqual(laddersBody);
     expect(sent('/rest/v1/instruction_modules', 'POST')).toMatchObject({
       organization_id: organizationId,
       title: 'Sudură oxiacetilenică',
@@ -318,33 +326,63 @@ describe('POST /instruction-modules', () => {
       domain: 'ssm',
       created_by: user.id,
     });
-    const versionRow = sent('/rest/v1/instruction_module_versions', 'POST');
-    expect(versionRow).toMatchObject({
+    expect(sent('/rest/v1/instruction_module_versions', 'POST')).toEqual({
+      organization_id: organizationId,
       module_id: weldingId,
       number: 1,
-      docx_path: `${organizationId}/${weldingId}/1.docx`,
-      size_bytes: instructionModuleSkeleton().length,
-      article_count: 4,
+      body: laddersBody,
+      text_hash: laddersHash,
+      created_by: user.id,
     });
-    expect(
-      calls(`/storage/v1/object/instruction-modules/${organizationId}/${weldingId}/1.docx`, 'POST')
-    ).toHaveLength(1);
   });
 
-  it('starts a fire-safety module when asked', async () => {
+  it('creates a fire-safety module with a fire-safety category', async () => {
     mockUpstream({
       modules: (init, url) =>
         isGet(init) && url.searchParams.get('id') ? Response.json([hotWork]) : undefined,
-      versions: (init) => (isGet(init) ? Response.json([]) : undefined),
+      versions: (init, url) =>
+        isGet(init) && !url.searchParams.get('select')?.includes('body')
+          ? Response.json([])
+          : undefined,
     });
+    const response = await request('/instruction-modules', 'POST', {
+      title: 'Lucrul cu foc deschis',
+      group: 'hazardous_work',
+      domain: 'psi',
+      body: laddersBody,
+    });
+    expect(response.status).toBe(201);
+    expect(instructionModuleResponseSchema.parse(await response.json()).module.domain).toBe('psi');
+    expect(sent('/rest/v1/instruction_modules', 'POST')).toMatchObject({
+      domain: 'psi',
+      module_group: 'hazardous_work',
+    });
+  });
+
+  it('refuses a category of the other domain', async () => {
+    mockUpstream();
     const response = await request('/instruction-modules', 'POST', {
       title: 'Lucrul cu foc deschis',
       group: 'work_activity',
       domain: 'psi',
+      body: laddersBody,
     });
-    expect(response.status).toBe(201);
-    expect(instructionModuleResponseSchema.parse(await response.json()).module.domain).toBe('psi');
-    expect(sent('/rest/v1/instruction_modules', 'POST')).toMatchObject({ domain: 'psi' });
+    expect(response.status).toBe(400);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
+      'instruction_module_category_domain'
+    );
+    expect(calls('/rest/v1/instruction_modules', 'POST')).toHaveLength(0);
+  });
+
+  it('refuses a body without an article, and creates nothing', async () => {
+    mockUpstream();
+    const response = await request('/instruction-modules', 'POST', {
+      title: 'Birouri noi',
+      group: 'work_activity',
+      body: { blocks: [{ kind: 'heading', text: 'Domeniul de aplicare' }] },
+    });
+    expect(response.status).toBe(400);
+    expect(calls('/rest/v1/instruction_modules', 'POST')).toHaveLength(0);
   });
 
   it('refuses a title the library already has', async () => {
@@ -357,11 +395,33 @@ describe('POST /instruction-modules', () => {
     const response = await request('/instruction-modules', 'POST', {
       title: 'Birouri',
       group: 'work_activity',
+      body: officeBody,
     });
     expect(response.status).toBe(409);
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
       'instruction_module_title_taken'
     );
+  });
+});
+
+describe('GET /instruction-modules/{moduleId}', () => {
+  it('reads the module with its current body', async () => {
+    mockUpstream();
+    const response = await request(`/instruction-modules/${laddersId}`);
+    expect(response.status).toBe(200);
+    const read = instructionModuleResponseSchema.parse(await response.json());
+    expect(read.module.version).toEqual({
+      id: version.id,
+      number: 2,
+      textHash: laddersHash,
+      articleCount: 2,
+      createdAt: '2026-09-26T10:00:00+00:00',
+    });
+    expect(read.body).toEqual(laddersBody);
+    const versionRead = new URL(
+      String(calls('/rest/v1/instruction_module_versions', 'GET')[0]![0])
+    );
+    expect(versionRead.searchParams.get('id')).toBe(`eq.${version.id}`);
   });
 });
 
@@ -392,13 +452,29 @@ describe('PATCH /instruction-modules/{moduleId}', () => {
     );
   });
 
-  it('moves a module nobody applies to the other domain', async () => {
+  it('moves a module nobody applies to the other domain with a category of it', async () => {
+    mockUpstream();
+    const response = await request(`/instruction-modules/${laddersId}`, 'PATCH', {
+      domain: 'psi',
+      group: 'installation_equipment',
+    });
+    expect(response.status).toBe(200);
+    expect(sent('/rest/v1/instruction_modules', 'PATCH')).toEqual({
+      domain: 'psi',
+      module_group: 'installation_equipment',
+    });
+  });
+
+  it('refuses a move that keeps a category of the other domain', async () => {
     mockUpstream();
     const response = await request(`/instruction-modules/${laddersId}`, 'PATCH', {
       domain: 'psi',
     });
-    expect(response.status).toBe(200);
-    expect(sent('/rest/v1/instruction_modules', 'PATCH')).toEqual({ domain: 'psi' });
+    expect(response.status).toBe(400);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
+      'instruction_module_category_domain'
+    );
+    expect(calls('/rest/v1/instruction_modules', 'PATCH')).toHaveLength(0);
   });
 
   it('refuses to move a module a position applies to the other domain, and says why', async () => {
@@ -410,6 +486,7 @@ describe('PATCH /instruction-modules/{moduleId}', () => {
     });
     const response = await request(`/instruction-modules/${laddersId}`, 'PATCH', {
       domain: 'psi',
+      group: 'installation_equipment',
     });
     expect(response.status).toBe(409);
     const error = apiErrorResponseSchema.parse(await response.json());
@@ -428,81 +505,146 @@ describe('PATCH /instruction-modules/{moduleId}', () => {
   });
 });
 
-describe('GET /instruction-modules/{moduleId}/file-link', () => {
-  it('signs a link to the current version, named after the module', async () => {
+describe('PUT /instruction-modules/{moduleId}/body', () => {
+  it('stores a changed text as the next version', async () => {
     mockUpstream();
-    const response = await request(`/instruction-modules/${laddersId}/file-link`);
+    const response = await request(`/instruction-modules/${laddersId}/body`, 'PUT', officeBody);
     expect(response.status).toBe(200);
-    const link = instructionModuleFileLinkResponseSchema.parse(await response.json());
-    expect(link.fileName).toBe('Scări metalice.docx');
-    expect(link.url).toContain(`/instruction-modules/${organizationId}/${laddersId}/2.docx`);
-    expect(link.version).toEqual({
-      id: version.id,
-      number: 2,
-      createdAt: '2026-09-26T10:00:00+00:00',
+    expect(saveInstructionBodyResponseSchema.parse(await response.json()).changed).toBe(true);
+    expect(sent('/rest/v1/instruction_module_versions', 'POST')).toMatchObject({
+      module_id: laddersId,
+      number: 3,
+      body: officeBody,
+      text_hash: await textHash(officeBody),
     });
   });
 
-  it('signs a link to the version a document annexed, with its number in the name', async () => {
-    const annexed = '4d5e6f7a-8b9c-4d0e-9f1a-2b3c4d5e6f7a';
+  it('stores nothing when the text folds to the current one, and answers the current version', async () => {
+    mockUpstream();
+    const respaced: InstructionBody = {
+      blocks: laddersBody.blocks.map((block) =>
+        block.kind === 'heading'
+          ? { ...block, text: block.text.toUpperCase() }
+          : { ...block, paragraphs: block.paragraphs.map((text) => text.replace(/ /g, '  ')) }
+      ),
+    };
+    const response = await request(`/instruction-modules/${laddersId}/body`, 'PUT', respaced);
+    expect(response.status).toBe(200);
+    const saved = saveInstructionBodyResponseSchema.parse(await response.json());
+    expect(saved.changed).toBe(false);
+    expect(saved.module.version.number).toBe(2);
+    expect(saved.body).toEqual(laddersBody);
+    expect(calls('/rest/v1/instruction_module_versions', 'POST')).toHaveLength(0);
+  });
+
+  it('answers the current version when the same text landed first', async () => {
     mockUpstream({
-      versions: (init, url) =>
-        url.searchParams.get('id') === `eq.${annexed}` &&
-        url.searchParams.get('module_id') === `eq.${laddersId}`
-          ? Response.json([{ id: annexed, number: 1, created_at: '2026-09-26T09:00:00+00:00' }])
+      versions: (init) =>
+        init?.method === 'POST'
+          ? Response.json({ code: 'INS08', message: 'unchanged' }, { status: 400 })
           : undefined,
     });
-    const response = await request(
-      `/instruction-modules/${laddersId}/file-link?versionId=${annexed}`
-    );
+    const response = await request(`/instruction-modules/${laddersId}/body`, 'PUT', officeBody);
     expect(response.status).toBe(200);
-    const link = instructionModuleFileLinkResponseSchema.parse(await response.json());
-    expect(link.fileName).toBe('Scări metalice - versiunea 1.docx');
-    expect(link.url).toContain(`/instruction-modules/${organizationId}/${laddersId}/1.docx`);
-    expect(link.version.number).toBe(1);
+    expect(saveInstructionBodyResponseSchema.parse(await response.json()).changed).toBe(false);
   });
 
-  it('answers 404 for a version of another module', async () => {
-    mockUpstream({ versions: () => Response.json([]) });
-    const response = await request(
-      `/instruction-modules/${laddersId}/file-link?versionId=${version.id}`
-    );
-    expect(response.status).toBe(404);
-  });
-});
-
-describe('PUT /instruction-modules/{moduleId}/file', () => {
-  it('stores the next version and leaves the earlier one', async () => {
+  it('refuses a body that is not one', async () => {
     mockUpstream();
-    const response = await sendFile(
-      `/instruction-modules/${laddersId}/file`,
-      'PUT',
-      docxWith(['Scări', 'Art'])
-    );
-    expect(response.status).toBe(200);
-    expect(sent('/rest/v1/instruction_module_versions', 'POST')).toMatchObject({
-      number: 3,
-      docx_path: `${organizationId}/${laddersId}/3.docx`,
-      article_count: 1,
+    const response = await request(`/instruction-modules/${laddersId}/body`, 'PUT', {
+      blocks: [{ kind: 'article', paragraphs: ['Rândul unu\nrândul doi'] }],
     });
+    expect(response.status).toBe(400);
+    expect(calls('/rest/v1/instruction_module_versions', 'POST')).toHaveLength(0);
   });
 
-  it('refuses a file on an archived module', async () => {
+  it('refuses a text on an archived module', async () => {
     mockUpstream({
       modules: (init, url) =>
         isGet(init) && url.searchParams.get('id')
           ? Response.json([{ ...ladders, archived_at: '2026-09-26T11:00:00+00:00' }])
           : undefined,
     });
-    const response = await sendFile(
-      `/instruction-modules/${laddersId}/file`,
-      'PUT',
-      docxWith(['Scări'])
-    );
+    const response = await request(`/instruction-modules/${laddersId}/body`, 'PUT', officeBody);
     expect(response.status).toBe(409);
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
       'instruction_module_archived'
     );
+  });
+});
+
+describe('GET /instruction-modules/{moduleId}/versions/{versionId}', () => {
+  it('reads a version a document annexed with its body', async () => {
+    mockUpstream();
+    const response = await request(`/instruction-modules/${laddersId}/versions/${version.id}`);
+    expect(response.status).toBe(200);
+    const read = instructionModuleVersionResponseSchema.parse(await response.json());
+    expect(read.version.number).toBe(2);
+    expect(read.body).toEqual(laddersBody);
+    const versionRead = new URL(
+      String(calls('/rest/v1/instruction_module_versions', 'GET')[0]![0])
+    );
+    expect(versionRead.searchParams.get('module_id')).toBe(`eq.${laddersId}`);
+  });
+
+  it('answers 404 for a version of another module', async () => {
+    mockUpstream({ versions: () => Response.json([]) });
+    const response = await request(`/instruction-modules/${laddersId}/versions/${version.id}`);
+    expect(response.status).toBe(404);
+  });
+});
+
+describe('GET /instruction-modules/{moduleId}/download', () => {
+  it('renders the current version as the annex it prints, named after the module', async () => {
+    mockUpstream();
+    const response = await request(`/instruction-modules/${laddersId}/download`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe(docxType);
+    expect(response.headers.get('Content-Disposition')).toContain(
+      "filename*=UTF-8''Sc%C4%83ri%20metalice.docx"
+    );
+    const text = documentText(new Uint8Array(await response.arrayBuffer()));
+    expect(text).toContain('ANEXA 1');
+    expect(text).toContain('I.P.S.S.M. Scări metalice');
+    expect(text).toContain('versiunea din 26.09.2026');
+    expect(text).toContain('PREVENT CONSULT S.R.L.');
+    expect(text).toContain('Numele clientului');
+    expect(text).toMatch(/Art\. 2\.\s*Scara se sprijină/);
+  });
+
+  it('renders an earlier version with its number in the name', async () => {
+    mockUpstream();
+    const response = await request(
+      `/instruction-modules/${laddersId}/download?versionId=${version.id}`
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Disposition')).toContain('versiunea%202.docx');
+  });
+});
+
+describe('POST /instruction-modules/preview', () => {
+  it('renders a body not saved yet as the annex it would print', async () => {
+    mockUpstream();
+    const response = await request('/instruction-modules/preview', 'POST', {
+      title: 'Lucrul cu foc deschis',
+      domain: 'psi',
+      body: officeBody,
+    });
+    expect(response.status).toBe(200);
+    const text = documentText(new Uint8Array(await response.arrayBuffer()));
+    expect(text).toContain('I.P.S.U. Lucrul cu foc deschis');
+    expect(text).toContain('Mihai STANCU');
+    expect(text).toMatch(/Art\. 1\.\s*Instrucțiunea se aplică personalului din birouri\./);
+    expect(calls('/rest/v1/instruction_module_versions', 'POST')).toHaveLength(0);
+  });
+
+  it('refuses a body that is not one', async () => {
+    mockUpstream();
+    const response = await request('/instruction-modules/preview', 'POST', {
+      title: 'Birouri',
+      body: { blocks: [] },
+    });
+    expect(response.status).toBe(400);
   });
 });
 

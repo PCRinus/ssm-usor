@@ -1,6 +1,6 @@
 // Written by tools/import/build_annex.py from tools/import/annex.ro.json.
 
-import type { AnnexDomain } from './annex-title';
+export type AnnexDomain = 'ssm' | 'psi';
 
 const encoded: Record<AnnexDomain, string> = {
   ssm:

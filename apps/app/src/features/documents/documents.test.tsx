@@ -27,6 +27,8 @@ const sampleClient = {
   archivedAt: null as string | null,
 };
 
+const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
 const revision = (overrides: Record<string, unknown> = {}) => ({
   id: '9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d',
   revision: 1,
@@ -986,14 +988,19 @@ describe('client documents', () => {
       ],
     });
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    vi.stubGlobal(
+      'URL',
+      Object.assign(URL, { createObjectURL: () => 'blob:x', revokeObjectURL: () => {} })
+    );
+    const annexName = 'Instrucțiuni proprii - rev. 1 - Anexa 1 - I.P.S.S.M. Scări metalice.docx';
     const fallback = fetchMock.getMockImplementation()!;
     fetchMock.mockImplementation(async (input, init) =>
-      new URL(String(input)).pathname === `/instruction-modules/${moduleId}/file-link`
-        ? Response.json({
-            url: 'https://files.example.test/signed',
-            fileName: 'Scări metalice - versiunea 1.docx',
-            expiresAt: '2026-10-02T10:01:00.000Z',
-            version: { id: annexed, number: 1, createdAt: '2026-09-26T10:00:00+00:00' },
+      new URL(String(input)).pathname.endsWith('/annexes/1')
+        ? new Response('PK', {
+            headers: {
+              'Content-Type': docxType,
+              'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(annexName)}`,
+            },
           })
         : fallback(input, init)
     );
@@ -1017,12 +1024,70 @@ describe('client documents', () => {
     await user.click(within(annex!).getByTestId('document-annex-actions'));
     await user.click(await screen.findByTestId('document-annex-download'));
     await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
-    const address = new URL((click.mock.contexts[0] as HTMLAnchorElement).href);
-    expect(address.searchParams.get('name')).toBe('Scări metalice - versiunea 1.docx');
-    const link = fetchMock.mock.calls
-      .map(([input]) => new URL(String(input)))
-      .find((url) => url.pathname === `/instruction-modules/${moduleId}/file-link`)!;
-    expect(link.searchParams.get('versionId')).toBe(annexed);
+    expect((click.mock.contexts[0] as HTMLAnchorElement).download).toBe(annexName);
+    expect(
+      fetchMock.mock.calls.some(
+        ([input]) =>
+          new URL(String(input)).pathname ===
+          `/documents/${report.id}/revisions/${revision().id}/annexes/1`
+      )
+    ).toBe(true);
+  });
+
+  it('downloads the Word file of the own instructions with its annexes from the API', async () => {
+    const annex = {
+      number: 1,
+      title: 'Scări metalice',
+      moduleId: 'c1c1c1c1-0000-4000-8000-000000000001',
+      version: {
+        id: 'c1c1c1c1-0000-4000-8000-000000000011',
+        number: 1,
+        createdAt: '2026-09-26T10:00:00+00:00',
+      },
+      newerVersion: null,
+    };
+    mockApi({
+      items: [
+        {
+          ...report,
+          typeKey: 'own_instructions',
+          title: 'Instrucțiuni proprii de securitate și sănătate în muncă',
+          draft: revision({ annexes: [annex] }),
+        },
+      ],
+    });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    vi.stubGlobal(
+      'URL',
+      Object.assign(URL, { createObjectURL: () => 'blob:x', revokeObjectURL: () => {} })
+    );
+    const fallback = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (input, init) =>
+      new URL(String(input)).pathname.endsWith('/word')
+        ? new Response('PK', {
+            headers: {
+              'Content-Type': docxType,
+              'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent('Instrucțiuni - rev. 1.docx')}`,
+            },
+          })
+        : fallback(input, init)
+    );
+    mount();
+    const user = userEvent.setup();
+
+    await openSection(user, '3');
+    const [row] = await screen.findAllByTestId('document-row');
+    await user.click(within(row!).getByTestId('document-actions'));
+    await user.click(await screen.findByTestId('document-download-draft'));
+    await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
+    expect((click.mock.contexts[0] as HTMLAnchorElement).download).toBe(
+      'Instrucțiuni - rev. 1.docx'
+    );
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        new URL(String(input)).pathname.endsWith(`/revisions/${revision().id}/download`)
+      )
+    ).toBe(false);
   });
 
   it('links every document to the editor and marks a draft edited by hand', async () => {

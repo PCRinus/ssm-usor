@@ -1,8 +1,7 @@
-import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { countArticles } from '@ssm-usor/document-engine';
+import { type InstructionBody, instructionBodySchema, textHash } from '@ssm-usor/contracts';
 
 import type { Database } from '../../src/database.types';
 import { officeJobTitles } from './seed-employees';
@@ -10,9 +9,15 @@ import type { SeedClient } from './seed-organization';
 
 type Group = Database['public']['Enums']['instruction_module_group'];
 type Domain = Database['public']['Enums']['instruction_domain'];
-type Fixture = { file: string; title: string; group: Group; domain: Domain };
+type Fixture = { title: string; group: Group; domain: Domain; body: InstructionBody };
 
-const fixturesDir = path.join(import.meta.dirname, '..', 'fixtures', 'instruction-modules');
+const fixturesFile = path.join(
+  import.meta.dirname,
+  '..',
+  'fixtures',
+  'instruction-modules',
+  'modules.json'
+);
 
 const modulesByTitle: Record<string, string[]> = {
   Electrician: ['Scări metalice'],
@@ -44,8 +49,12 @@ export function fireInstructionsFor(jobTitle: string): string[] | 'none' {
   return fireModulesByTitle[jobTitle] ?? 'none';
 }
 
-async function readFixtures(): Promise<Fixture[]> {
-  return JSON.parse(await readFile(path.join(fixturesDir, 'index.json'), 'utf8')) as Fixture[];
+export async function readFixtures(): Promise<Fixture[]> {
+  const fixtures = JSON.parse(await readFile(fixturesFile, 'utf8')) as Fixture[];
+  return fixtures.map((fixture) => ({
+    ...fixture,
+    body: instructionBodySchema.parse(fixture.body),
+  }));
 }
 
 async function seedLibrary(db: SeedClient, organizationId: string, createdBy: string) {
@@ -58,7 +67,6 @@ async function seedLibrary(db: SeedClient, organizationId: string, createdBy: st
   let added = 0;
   for (const fixture of await readFixtures()) {
     if (ids.has(fixture.title)) continue;
-    const bytes = new Uint8Array(await readFile(path.join(fixturesDir, fixture.file)));
     const module = await db
       .from('instruction_modules')
       .insert({
@@ -71,23 +79,15 @@ async function seedLibrary(db: SeedClient, organizationId: string, createdBy: st
       .select('id')
       .single();
     if (module.error) throw new Error(`Could not seed a module: ${module.error.message}`);
-    const docxPath = `${organizationId}/${module.data.id}/1.docx`;
     const version = await db.from('instruction_module_versions').insert({
       organization_id: organizationId,
       module_id: module.data.id,
       number: 1,
-      docx_path: docxPath,
-      sha256: createHash('sha256').update(bytes).digest('hex'),
-      size_bytes: bytes.length,
-      article_count: countArticles(bytes),
+      body: fixture.body,
+      text_hash: await textHash(fixture.body),
       created_by: createdBy,
     });
     if (version.error) throw new Error(`Could not seed a module version: ${version.error.message}`);
-    const upload = await db.storage.from('instruction-modules').upload(docxPath, bytes, {
-      contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      upsert: true,
-    });
-    if (upload.error) throw new Error(`Could not upload a module file: ${upload.error.message}`);
     ids.set(fixture.title, module.data.id);
     added += 1;
   }

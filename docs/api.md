@@ -159,6 +159,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /clients/{clientId}/documents?set=`                               | Verified user with a membership       | `{ "items": [ … ], "lastGeneration" }` of one set, in its order; not paginated                                                                                                                     |
 | `POST /clients/{clientId}/documents/generate?set=`                     | Verified user with a membership       | `201 { "created": [ … ], "skipped": [ … ] }`                                                                                                                                                       |
 | `GET /documents/{documentId}/revisions/{revisionId}/download`          | Verified user with a membership       | `{ "url", "fileName", "expiresInSeconds" }`, a link valid for a minute                                                                                                                             |
+| `GET /documents/{documentId}/revisions/{revisionId}/word`              | Verified user with a membership       | The revision's Word file, the own instructions with their annexes appended as sections                                                                                                             |
+| `GET /documents/{documentId}/revisions/{revisionId}/annexes/{number}`  | Verified user with a membership       | One annex of the revision as the binder prints it, a `.docx`                                                                                                                                       |
 | `POST /documents/{documentId}/regenerate`                              | Verified user with a membership       | `{ "document": { … } }` with its new draft                                                                                                                                                         |
 | `POST /documents/{documentId}/issue`                                   | Verified user with a membership       | `{ "document": { … } }` with its issued revision; the PDF annexes either set's own instructions' modules                                                                                           |
 | `POST /documents/{documentId}/draft`                                   | Verified user with a membership       | `{ "document": { … } }` with a draft copied from its issued revision                                                                                                                               |
@@ -199,12 +201,14 @@ access token in the Authorization header; the publishable API key is not a user 
 | `DELETE …/job-positions/{jobPositionId}/equipment/{entryId}`           | Verified user with a membership       | `204`                                                                                                                                                                                              |
 | `PATCH …/job-positions/{jobPositionId}/protective-equipment`           | Verified user with a membership       | `{ "jobPosition": { … } }` after saying the post needs none (`false`) or taking that back (`null`)                                                                                                 |
 | `GET /equipment-suggestions`                                           | Verified user with a membership       | `{ "items": [ … ] }`, risks or items typed before; `?field=risk                                                                                                                                    | item&query=` |
-| `GET /instruction-modules`                                             | Verified user with a membership       | `{ "items": [ … ] }`, by domain, group and title; `?archived=true` lists the archived ones instead; `?domain=`                                                                                     |
-| `POST /instruction-modules`                                            | Verified user with a membership       | `201 { "module": { … } }`, started from the skeleton                                                                                                                                               |
-| `GET /instruction-modules/{moduleId}`                                  | Verified user with a membership       | `{ "module": { … } }`                                                                                                                                                                              |
-| `PATCH /instruction-modules/{moduleId}`                                | Verified user with a membership       | `{ "module": { … } }` after renaming, regrouping, moving domain, archiving or restoring                                                                                                            |
-| `GET /instruction-modules/{moduleId}/file-link`                        | Verified user with a membership       | `{ "url", "fileName", "expiresAt" }`, a one-minute link to the current file                                                                                                                        |
-| `PUT /instruction-modules/{moduleId}/file`                             | Verified user with a membership       | `{ "module": { … } }` with the body stored as the next version                                                                                                                                     |
+| `GET /instruction-modules`                                             | Verified user with a membership       | `{ "items": [ … ] }`, by domain, category and title; `?archived=true` lists the archived ones instead; `?domain=`                                                                                  |
+| `POST /instruction-modules`                                            | Verified user with a membership       | `201 { "module": { … }, "body": { … } }`, created with its first version                                                                                                                           |
+| `POST /instruction-modules/preview`                                    | Verified user with a membership       | The annex a posted title, domain and body would print, as a `.docx`; nothing stored                                                                                                                |
+| `GET /instruction-modules/{moduleId}`                                  | Verified user with a membership       | `{ "module": { … }, "body": { … } }`, with its current body                                                                                                                                        |
+| `PATCH /instruction-modules/{moduleId}`                                | Verified user with a membership       | `{ "module": { … }, "body": { … } }` after renaming, recategorizing, moving domain, archiving or restoring                                                                                         |
+| `PUT /instruction-modules/{moduleId}/body`                             | Verified user with a membership       | `{ "module", "body", "changed" }`, the body stored as the next version unless its text is unchanged                                                                                                |
+| `GET /instruction-modules/{moduleId}/versions/{versionId}`             | Verified user with a membership       | `{ "version": { … }, "body": { … } }`                                                                                                                                                              |
+| `GET /instruction-modules/{moduleId}/download`                         | Verified user with a membership       | The current version, or `?versionId=`, as the annex it prints, a `.docx`                                                                                                                           |
 | `GET …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | `{ "domain", "items": [ … ], "needsInstructions" }`, one domain's modules and decision; `?domain=`                                                                                                 |
 | `PUT …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | The same, after replacing the set of `domain` with `moduleIds`                                                                                                                                     |
 | `POST …/job-positions/{jobPositionId}/instructions/copy`               | Verified user with a membership       | The same, after adding another position's modules of `domain`                                                                                                                                      |
@@ -573,27 +577,45 @@ or `item`, the distinct values the organization typed before that contain `query
 recently used first, at most twenty; it filters in the Worker, so a typed `%` or `,` is a
 character, not a PostgREST operator.
 
-The instruction library ([ADR 012](architecture/adr-012-own-instructions.md)) is the
-organization's own instructions, one Word file each, written in the app (ADR 034 removed the
-upload). Each
-module has a `domain`, `ssm` or `psi` (ADR 012's amendment of 2026-10-11): which set's own
-instructions annex it, 3.2 or 2.1. `GET /instruction-modules` lists the modules in use by
-domain, group and title, each with its current version (`number`, `sha256`, `sizeBytes`,
-`articleCount`, the top-level items of the file's most used numbered list) and
+The instruction library ([ADR 012](architecture/adr-012-own-instructions.md),
+[ADR 034](architecture/adr-034-own-instructions-as-app-text.md)) is the organization's own
+instructions, each a body of headings and numbered articles that the document engine prints.
+Each module has a `domain`, `ssm` or `psi` (ADR 012's amendment of 2026-10-11): which set's own
+instructions annex it, 3.2 or 2.1, and a category (`group`) of that domain: `work_activity`,
+`work_equipment` or `protective_equipment` for `ssm`, `premises_activity`,
+`installation_equipment` or `hazardous_work` for `psi`; a category of the other domain answers
+`400` with the reason `instruction_module_category_domain`. `GET /instruction-modules` lists the
+modules in use by domain, category and title, each with its current version (`number`,
+`textHash`, `articleCount`, the article blocks of its body, which the training themes cite) and
 `appliedCount`, how many current positions across the organization's clients apply it;
-`?archived=true` lists the archived ones instead, and `?domain=` one domain's only. `POST
-/instruction-modules` starts a module from the skeleton the app ships, in the house style
-with the Labour Inspection's headings, in the `domain` given, `ssm` when left out. A title the library already has, of
-either domain, answers `409` with the reason
-`instruction_module_title_taken`. `PUT …/file` stores the body as the next version, which is
-what the editor saves; versions are never replaced, so documents generated before keep
-citing the one they annexed. `PATCH` renames, regroups, moves to the other domain, archives
-(`archived: true`) or restores; archiving a module a current position applies answers `409`
-with the reason `instruction_module_applied`, moving one to the other domain `409` with
-`instruction_module_domain_applied` (the position applied it as part of its decision for the
-other set), and a file for an archived module answers `409` with
-`instruction_module_archived`. `GET …/file-link` signs a one-minute link to the current file,
-named after the module.
+`?archived=true` lists the archived ones instead, and `?domain=` one domain's only.
+
+Bodies are `instructionBodySchema` of the contracts: `{ "blocks": [ … ] }`, each block `{ "kind":
+"heading", "text" }` or `{ "kind": "article", "paragraphs": [ … ] }`, every string one line, with 1
+to 400 articles and at most 200,000 characters, checked again by the database. `POST
+/instruction-modules` takes `title`, `group`, `domain` (`ssm` when left out) and `body`, and
+creates the module with that body as version 1: nothing is stored before the first save. A
+title the library already has, of either domain, answers `409` with the reason
+`instruction_module_title_taken`. `PUT …/body` takes a body and stores it as the next version;
+versions are never replaced, so documents generated before keep citing the one they annexed.
+A body whose `textHash` (the SHA-256 of the body folded as the import folds text: no
+diacritics, case, punctuation or extra spaces) is the current version's stores nothing and
+answers `changed: false` with the current version, so a save that moved only whitespace marks
+no document behind; the database refuses such a version too (`INS08`). `GET …/versions/{versionId}`
+reads a version a document annexed. `PATCH` renames, recategorizes, moves to the other domain
+(with a category of it), archives (`archived: true`) or restores; archiving a module a current
+position applies answers `409` with the reason `instruction_module_applied`, moving one to the
+other domain `409` with `instruction_module_domain_applied` (the position applied it as part of
+its decision for the other set), and a body for an archived module `409` with
+`instruction_module_archived`.
+
+`GET …/download` renders the current version, or `?versionId=`, with the annex template of
+the module's domain, as annex 1, named after the module (with "versiunea N" for an earlier
+version): the organization as the provider and "Numele clientului" where a client goes. `POST
+/instruction-modules/preview` renders a posted `title`, `domain` and `body` the same way,
+dated today, for the Word viewer while a module is written; it stores nothing and works in
+read-only access. Inside a client's documents, an annex prints as the binder does through
+`GET /documents/{documentId}/revisions/{revisionId}/annexes/{number}`.
 
 A job position decides about each domain apart, and every route below takes the `domain` it
 is about, `ssm` when left out (`?domain=` on `GET`, in the body otherwise); the other domain's
@@ -1854,8 +1876,8 @@ it exists): covers 1.0 and 6.0 list only what the set holds, and decision 6 cite
 only then. `annexes` and `noAnnexes` are what the own instructions 2.1 annex: the `psi` modules
 the current positions apply, each once, by group, title and id, numbered from 1, as the other
 set's `annexes` holds its `ssm` ones; only 2.1 prints them, so an edit in the library marks
-only its draft. Issuing 2.1 merges, like 3.2, an annex title page before each annexed module
-version into one PDF, the fire-safety page naming the technician in its box. It is
+only its draft. Issuing 2.1 renders, like 3.2, each annexed module version as an annex of its
+own and merges them into one PDF, the fire-safety annex naming the technician in its box. It is
 never merged with the occupational safety set's names, so an edit to positions or equipment never
 marks a fire-safety draft; renaming a post, which decision 2 prints in `fire.staff`, does.
 
@@ -1898,7 +1920,13 @@ without an evaluation marks the risk assessment, the prevention plan and the tra
 material; a gap in the provider's or the client's details marks every draft), and otherwise
 waits until the data is complete. All files go through
 `src/lib/files.ts`, as the verified user; downloads are signed links that carry the
-document's title as the file name.
+document's title as the file name. The draft the editor opens is the common part alone, so
+for either set's own instructions `GET …/word` reads the revision's file and appends, with the
+engine's `appendAnnexes`, each version its snapshot annexes, rendered as at issuing, as a
+section whose pages number from 1 (ADR 034); `GET …/annexes/{number}` gives one of them alone.
+An annexed version that no longer exists (the test modules deleted with ADR 034) answers `409`
+with the reason `annex_not_in_library` there, at issuing and in the zip: the draft is generated
+again.
 
 `POST /documents/{documentId}/regenerate` merges one document again from the stored facts. A
 draft is overwritten in place, hand edits included; an issued document gets the next revision
@@ -1922,8 +1950,9 @@ can do all three, as the ADR decided.
 built in the Worker from Storage with `fflate` (stored, not deflated: Word files and PDFs are
 compressed already; names carry the UTF-8 flag, so diacritics survive Windows and macOS). Each
 document is a file numbered in the set's order. `docx` takes the issued revision, or the draft
-while nothing is issued (named "ciornă"), plus the own instructions' annexed module versions as
-files of their own; `pdf` takes only the PDFs made at issuing, which already hold the annexes.
+while nothing is issued (named "ciornă"), plus the own instructions with their annexed module versions
+appended as sections of their own; `pdf` takes only the PDFs made at issuing, which already
+hold the annexes.
 `409` with the reason `nothing_to_archive` when no document qualifies. The archive's name is in
 `Content-Disposition`, which CORS exposes so the SPA can save it under that name.
 
