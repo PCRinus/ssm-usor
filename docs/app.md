@@ -212,7 +212,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/instructiuni/$moduleId.tsx`                                    | `/instructiuni/:moduleId`                              | One module's form; `?version=` a version a document annexed, and an archived module, as the annex prints in the Word viewer, only to read.                                                                 |
 | `routes/_authenticated/evaluari-de-risc.tsx`                                          | `/evaluari-de-risc`                                    | Layout of the risk library (ADR 015, ADR 036), the sidebar entry "Evaluări de risc" after "Instrucțiuni proprii".                                                                                          |
 | `routes/_authenticated/evaluari-de-risc/index.tsx`                                    | `/evaluari-de-risc`                                    | The library "Evaluări de risc": the evaluation profiles by name with their counts, global level and "Folosită la"; "Evaluare nouă", "Arată arhiva", renaming, archiving, deleting an unused one.           |
-| `routes/_authenticated/evaluari-de-risc/$profileId.tsx`                               | `/evaluari-de-risc/:profileId`                         | One profile: its result and its factors, with the evaluation page's cards. Names the breadcrumb after the profile.                                                                                         |
+| `routes/_authenticated/evaluari-de-risc/$profileId.tsx`                               | `/evaluari-de-risc/:profileId`                         | One profile: its result, work system and factors, with the evaluation page's cards. Names the breadcrumb after the profile.                                                                                |
 | `routes/_authenticated/teste.tsx`                                                     | `/teste`                                               | Layout of the question bank (ADR 024), the sidebar entry "Teste" after "Evaluări de risc".                                                                                                                 |
 | `routes/_authenticated/teste/index.tsx`                                               | `/teste`                                               | Opens the SSM tab, `/teste/ssm`.                                                                                                                                                                           |
 | `routes/_authenticated/teste/_bank.tsx`                                               | `/teste/*`                                             | Pathless layout of the bank: the title and one tab per domain.                                                                                                                                             |
@@ -1346,9 +1346,13 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
 - `/evaluari-de-risc/:profileId`: the profile's name with "Redenumește…", "Arhivează" or
   "Reactivează", and "Șterge evaluarea…" only while no client uses it, a line saying that
   changes do not reach the evaluations it was applied to, and for an archived profile a notice
-  that it is out of "Aplică din bibliotecă"; then "Rezultatul evaluării" and "Factori de risc"
-  as on the evaluation page, without a work system: a profile holds factors only. An archived
-  profile stays editable. "Aplică din bibliotecă" lists only active profiles, and says so when
+  that it is out of "Aplică din bibliotecă"; then "Rezultatul evaluării", "Sistemul de muncă"
+  and "Factori de risc" as on the evaluation page. The work-system card is the evaluation's own
+  (`work-system-card.tsx`), saved through a `WorkSystemStore` as the factors card is through a
+  `FactorStore`; on a profile it shows the means of production, the work environment and an
+  optional exposure, and says that applying fills only the sheet's empty fields. The factors
+  card says that the plan's deadlines and people are copied as defaults and changed on each
+  client's sheet. An archived profile stays editable. "Aplică din bibliotecă" lists only active profiles, and says so when
   the one chosen was archived meanwhile. "Unde este folosită" lists `GET /evaluation-profiles/{id}/usage` by client:
   each evaluation with a link and how many of its factors are in the profile, archived clients
   marked. Renaming or deleting the profile, or deleting one of its factors, refreshes every
