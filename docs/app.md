@@ -200,8 +200,8 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/clienti/$clientId/posturi/index.tsx`                           | `/clienti/:id/posturi`                                 | The client's job positions (ADR 006): the posts it employs people in, then the risk evaluations that are not of a position (ADR 015).                                                                      |
 | `routes/_authenticated/clienti/$clientId/posturi/$jobPositionId.tsx`                  | `/clienti/:id/posturi/:jobPositionId`                  | Layout of one position: finds it in the client's list of positions and names the breadcrumb.                                                                                                               |
 | `routes/_authenticated/clienti/$clientId/posturi/$jobPositionId/index.tsx`            | `/clienti/:id/posturi/:jobPositionId`                  | One position with its protective equipment (ADR 011), the instruction modules it applies (ADR 012) and its risk evaluation (ADR 015).                                                                      |
-| `routes/_authenticated/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri.tsx` | `/clienti/:id/posturi/:jobPositionId/evaluare-riscuri` | The position's risk evaluation, read by the position; offers to start one while there is none.                                                                                                             |
-| `routes/_authenticated/clienti/$clientId/posturi/evaluari-riscuri.$evaluationId.tsx`  | `/clienti/:id/posturi/evaluari-riscuri/:evaluationId`  | A risk evaluation that is not of a position: the sensitive groups, or one with a name. A position's evaluation found here redirects to its address under the position.                                     |
+| `routes/_authenticated/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare.tsx` | `/clienti/:id/posturi/:jobPositionId/fisa-de-evaluare` | The position's risk evaluation, read by the position; offers to start one while there is none.                                                                                                             |
+| `routes/_authenticated/clienti/$clientId/posturi/fise-de-evaluare.$evaluationId.tsx`  | `/clienti/:id/posturi/fise-de-evaluare/:evaluationId`  | A risk evaluation that is not of a position: the sensitive groups, or one with a name. A position's evaluation found here redirects to its address under the position.                                     |
 | `routes/_authenticated/angajati/index.tsx`                                            | `/angajati`                                            | "Angajați" (ADR 021), the sidebar entry after "Clienți": every client's employees in one list, with the status, client and state filters, the text search and the sort in the search params.               |
 | `routes/_authenticated/instructiuni.tsx`                                              | `/instructiuni`                                        | Layout of the instruction library (ADR 012), the sidebar entry "Instrucțiuni proprii" (ADR 034) between the clients and the organization.                                                                  |
 | `routes/_authenticated/instructiuni/index.tsx`                                        | `/instructiuni`                                        | Opens the SSM tab, `/instructiuni/ssm`.                                                                                                                                                                    |
@@ -210,10 +210,10 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/instructiuni/_library/su.tsx`                                  | `/instructiuni/su`                                     | The fire-safety modules, the same list for the `su` domain.                                                                                                                                                |
 | `routes/_authenticated/instructiuni/nou.tsx`                                          | `/instructiuni/nou`                                    | A new module's form, from "Scrie o instrucțiune": title, domain, category and an optional module to copy in the search; nothing stored before the first save.                                              |
 | `routes/_authenticated/instructiuni/$moduleId.tsx`                                    | `/instructiuni/:moduleId`                              | One module's form; `?version=` a version a document annexed, and an archived module, as the annex prints in the Word viewer, only to read.                                                                 |
-| `routes/_authenticated/riscuri.tsx`                                                   | `/riscuri`                                             | Layout of the risk library (ADR 015), the sidebar entry "Riscuri" after "Instrucțiuni proprii".                                                                                                            |
-| `routes/_authenticated/riscuri/index.tsx`                                             | `/riscuri`                                             | The library: the evaluation profiles by name with their counts and global level; "Profil nou", renaming, deleting.                                                                                         |
-| `routes/_authenticated/riscuri/$profileId.tsx`                                        | `/riscuri/:profileId`                                  | One profile: its result and its factors, with the evaluation page's cards. Names the breadcrumb after the profile.                                                                                         |
-| `routes/_authenticated/teste.tsx`                                                     | `/teste`                                               | Layout of the question bank (ADR 024), the sidebar entry "Teste" after "Riscuri".                                                                                                                          |
+| `routes/_authenticated/evaluari-de-risc.tsx`                                          | `/evaluari-de-risc`                                    | Layout of the risk library (ADR 015, ADR 036), the sidebar entry "Evaluări de risc" after "Instrucțiuni proprii".                                                                                          |
+| `routes/_authenticated/evaluari-de-risc/index.tsx`                                    | `/evaluari-de-risc`                                    | The library "Evaluări de risc": the evaluation profiles by name with their counts and global level; "Evaluare nouă", renaming, deleting.                                                                   |
+| `routes/_authenticated/evaluari-de-risc/$profileId.tsx`                               | `/evaluari-de-risc/:profileId`                         | One profile: its result and its factors, with the evaluation page's cards. Names the breadcrumb after the profile.                                                                                         |
+| `routes/_authenticated/teste.tsx`                                                     | `/teste`                                               | Layout of the question bank (ADR 024), the sidebar entry "Teste" after "Evaluări de risc".                                                                                                                 |
 | `routes/_authenticated/teste/index.tsx`                                               | `/teste`                                               | Opens the SSM tab, `/teste/ssm`.                                                                                                                                                                           |
 | `routes/_authenticated/teste/_bank.tsx`                                               | `/teste/*`                                             | Pathless layout of the bank: the title and one tab per domain.                                                                                                                                             |
 | `routes/_authenticated/teste/_bank/ssm.tsx`                                           | `/teste/ssm`                                           | "Teste SSM": the hiring test (TASSM) and its questions.                                                                                                                                                    |
@@ -1263,20 +1263,20 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   undecided, each linking to its card; the row menu has both cards, and the notice above the
   table names the positions undecided for each.
 - Risk evaluations ([ADR 015](architecture/adr-015-risk-assessment.md)), in
-  `src/features/risk-evaluations/`. The position page's last card, "Evaluare de risc", reads
+  `src/features/risk-evaluations/`. The position page's last card, "Fișa de evaluare" (ADR 036), reads
   `GET …/job-positions/{id}/risk-evaluation`: without an evaluation it says that generating
   waits for it and offers "Începe evaluarea" (`POST …/risk-evaluations` with the position),
   which opens the new evaluation; with one it gives the global level and whether it is over
-  the acceptable limit, the factor count and the unacceptable count, and "Deschide evaluarea".
-  The positions table has an "Evaluare de risc" column from `GET …/risk-evaluations`:
+  the acceptable limit, the factor count and the unacceptable count, and "Deschide fișa".
+  The positions table has a "Fișa de evaluare" column from `GET …/risk-evaluations`:
   "Neevaluat" and "Fără factori" in amber, otherwise "12 factori · 2,79"; it links to the
-  evaluation page, as does the row menu. Below the table, the card "Evaluări de risc în afara
+  evaluation page, as does the row menu. Below the table, the card "Fișe de evaluare în afara
   posturilor" lists the sensitive groups, with "Începe evaluarea" while they have none, and
-  the evaluations with a name; "Adaugă o evaluare" asks for the name, and a `409` with
+  the evaluations with a name; "Adaugă o fișă" asks for the name, and a `409` with
   `risk_evaluation_name_taken` goes on the field. These evaluations open under
-  `/clienti/:clientId/posturi/evaluari-riscuri/:evaluationId`, so "Posturi de lucru"
+  `/clienti/:clientId/posturi/fise-de-evaluare/:evaluationId`, so "Posturi de lucru"
   stays the current tab.
-- The evaluation page is the same for both: a header with "Șterge evaluarea…", which asks
+- The evaluation page is the same for both: a header with "Fișa de evaluare" above the title and "Șterge fișa…", which asks
   first and returns to the position or to the positions; "Rezultatul evaluării", with the
   global level to two decimals, "Acceptabil" or "Peste limita acceptabilă" (3,50), the counts,
   and each component's share as a percentage and a bar (`componentShares`); "Sistemul de
@@ -1302,8 +1302,8 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   with no class chosen for a new factor, and the level they give as soon as both are chosen;
   the measures as a list of kind and text rows; then the actions, the deadline and the
   person responsible and the observations, each with suggestions. A new factor starts in the
-  component and group of the last one. "Copiază de la altă evaluare" lists the client's
-  other evaluations that have factors and calls `POST …/factors/copy`; "Aplică un profil"
+  component and group of the last one. "Copiază de la altă fișă" lists the client's
+  other evaluations that have factors and calls `POST …/factors/copy`; "Aplică din bibliotecă"
   lists the library's profiles that have factors, with their counts and global level, as a
   radio list, calls `POST …/factors/apply-profile`, and the toast says how many factors were
   added. "Salvează în bibliotecă…" asks for a name (the evaluation's title by default; a
@@ -1315,7 +1315,7 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   (remembered in `localStorage`), and the header's outline "Salvează în bibliotecă…" shows
   whenever the band does not. Once a factor is in a profile (`sourceProfile`), the card's
   description says which profiles hold how many of the factors, with links
-  (`factor-origin.tsx`); a row names its profile ("În profilul …") only when the rows differ,
+  (`factor-origin.tsx`); a row names its profile ("În evaluarea … din bibliotecă") only when the rows differ,
   and the factor dialog says the factor is also in the profile and that edits stay here.
   Every change answers with the whole evaluation, which is written into both ways of reading
   it and refreshes the list and every profile's usage. An archived client gets the page with
@@ -1326,19 +1326,20 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   factor (new or replaced), removing one, refreshing after a failure, and wording a failure.
   `useEvaluationFactorStore` writes through the evaluation's endpoints and cache, and
   `useProfileFactorStore` (`src/features/evaluation-profiles/use-profile-cache.ts`) through the
-  profile's. The page passes the extra ways of adding factors ("Aplică un profil", "Copiază de
-  la altă evaluare") as the card's `tools`, the empty text, and how the removal dialog ends.
+  profile's. The page passes the extra ways of adding factors ("Aplică din bibliotecă", "Copiază de
+  la altă fișă") as the card's `tools`, the empty text, and how the removal dialog ends.
   "Rezultatul evaluării" takes anything with factors and a global level.
-- `/riscuri`: the organization's risk library ([ADR 015](architecture/adr-015-risk-assessment.md)),
-  in `src/features/evaluation-profiles/`, an entry of the sidebar for owners and specialists
-  alike. The list shows `GET /evaluation-profiles` by name, each with "12 factori, 2
+- `/evaluari-de-risc`: the organization's risk library ([ADR 015](architecture/adr-015-risk-assessment.md)),
+  in `src/features/evaluation-profiles/`, "Evaluări de risc" in the sidebar for owners and
+  specialists alike; the interface calls a profile an "evaluare" of the library and a client's
+  evaluation its "fișă de evaluare" (ADR 036). The list shows `GET /evaluation-profiles` by name, each with "12 factori, 2
   inacceptabili" and "Nivel global 2,79", red above 3,50; empty, it says that a profile comes
-  from "Salvează în bibliotecă" on an evaluation or from "Profil nou". "Profil nou" asks for a
+  from "Salvează în bibliotecă" on an evaluation or from "Evaluare nouă". "Evaluare nouă" asks for a
   name, creates an empty profile and opens it; the row menu renames and deletes, after asking
   and saying that the evaluations it was applied to keep their copies. The name dialog
   (`profile-name-dialog.tsx`) is one component for starting, renaming and saving an
   evaluation as a profile.
-- `/riscuri/:profileId`: the profile's name with "Redenumește…" and "Șterge profilul…", a line
+- `/evaluari-de-risc/:profileId`: the profile's name with "Redenumește…" and "Șterge evaluarea…", a line
   saying that changes do not reach the evaluations it was applied to, "Rezultatul evaluării"
   and "Factori de risc" as on the evaluation page, without a work system: a profile holds
   factors only. "Unde este folosit" lists `GET /evaluation-profiles/{id}/usage` by client:
