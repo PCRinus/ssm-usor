@@ -38,6 +38,16 @@ describe('libraryTitle', () => {
     ).toBe('Spatii pentru comert');
   });
 
+  it('writes a title in capitals in sentence case, keeping its diacritics and acronyms', () => {
+    expect(libraryTitle('MĂSURI DE PREVENIRE A ÎMBOLNĂVIRII CU SARS-CoV-2 ÎN SPĂLĂTORIE')).toBe(
+      'Măsuri de prevenire a îmbolnăvirii cu SARS-CoV-2 în spălătorie'
+    );
+    expect(
+      libraryTitle('INSTRUCȚIUNI PROPRII DE SSM PRIVIND UTILIZAREA STIVUITORULUI ISCIR ȘI A EIP')
+    ).toBe('Utilizarea stivuitorului ISCIR și a EIP');
+    expect(libraryTitle('Lucrul cu PSI și EIP')).toBe('Lucrul cu PSI și EIP');
+  });
+
   it('keeps a title without that lead as written', () => {
     expect(libraryTitle('Utilizarea feliatorului')).toBe('Utilizarea feliatorului');
     expect(libraryTitle('Instrucțiuni proprii în domeniul securității în muncă')).toBe(

@@ -82,6 +82,26 @@ export function readInstructionsAnswer(
   return { domain, ...cuts, positions };
 }
 
+const acronym =
+  /^(?:ssm|psi|isu|igsu|eip|iscir|itm|ipssm|ipsu|rsvti|sc|srl|pfa|hg|oug|ue|gpl|pram|pc|tva|anre|dsp|dsv|adr|cnp|ups)$/u;
+
+const keptAsWritten = (word: string) =>
+  acronym.test(word.toLowerCase().replace(/[^\p{L}]/gu, '')) ||
+  /\d/u.test(word) ||
+  /\p{L}\.\p{L}/u.test(word) ||
+  (/\p{Ll}/u.test(word) && (word.match(/\p{Lu}/gu)?.length ?? 0) >= 2);
+
+const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
+function sentenceCase(text: string) {
+  const words = text.split(/\s+/u).filter(Boolean);
+  const plain = words.filter((word) => /\p{L}.*\p{L}/u.test(word) && !keptAsWritten(word));
+  if (plain.length === 0 || plain.some((word) => word !== word.toUpperCase())) return text;
+  return capitalized(
+    words.map((word) => (keptAsWritten(word) ? word : word.toLowerCase())).join(' ')
+  );
+}
+
 const leadEnds = new Set(['munca', 'muncii', 'incendiilor', 'urgenta']);
 const connectors = new Set(['privind', 'pentru', 'la', 'specifice', 'specifica', 'din', 'cadrul']);
 const genitiveLead = /^activitatilor desfasurate (?:in|la) /u;
@@ -93,14 +113,13 @@ export function libraryTitle(written: string) {
   const folded = words.map((word) => foldText(word));
   const subjectEnd = folded.slice(0, 14).findIndex((word) => leadEnds.has(word));
   const leadEnd = subjectEnd !== -1 ? subjectEnd : folded.slice(0, 5).indexOf('privind') - 1;
-  if (!/^instruc/u.test(folded[0] ?? '') || leadEnd < 0) return written.trim();
+  if (!/^instruc/u.test(folded[0] ?? '') || leadEnd < 0) return sentenceCase(written.trim());
   let at = leadEnd + 1;
   while (at < words.length && connectors.has(foldText(words[at]!))) at++;
   if (genitiveLead.test(`${foldText(words.slice(at, at + 3).join(' '))} `)) at += 3;
   const rest = words.slice(at).join(' ');
-  if (rest.length < 3) return written.trim();
-  const sentence = rest === rest.toUpperCase() ? rest.toLowerCase() : rest;
-  return sentence.charAt(0).toUpperCase() + sentence.slice(1);
+  if (rest.length < 3) return sentenceCase(written.trim());
+  return capitalized(sentenceCase(rest));
 }
 
 const packInstructions = (read: ReadInstructions): PackInstruction[] =>
