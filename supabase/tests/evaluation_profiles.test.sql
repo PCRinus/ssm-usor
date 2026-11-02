@@ -1,5 +1,5 @@
 begin;
-select plan(39);
+select plan(52);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -20,6 +20,12 @@ insert into public.clients (id, organization_id, legal_name, cui, archived_at, s
   ('c1c1c1c1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'Archived of A', '22', null, 'client'),
   ('c2c2c2c2-0000-4000-8000-000000000001', '22222222-0000-4000-8000-000000000002', 'Client of B', '5022670', null, 'client');
 
+insert into public.job_positions (id, organization_id, client_id, name) values
+  ('d1d1d1d1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'Sudor');
+
+insert into public.risk_evaluations (id, organization_id, client_id, kind, job_position_id) values
+  ('e1e1e1e1-0000-4000-8000-000000000005', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'job_position', 'd1d1d1d1-0000-4000-8000-000000000001');
+
 insert into public.risk_evaluations (id, organization_id, client_id, kind, name) values
   ('e1e1e1e1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'other', 'Birou'),
   ('e1e1e1e1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'other', 'Birou'),
@@ -39,15 +45,19 @@ insert into public.prevention_measures (organization_id, client_id, factor_id, k
 
 insert into public.evaluation_profiles (id, organization_id, name) values
   ('a1a1a1a1-0000-4000-8000-000000000009', '11111111-0000-4000-8000-000000000001', 'Profil vechi'),
+  ('a1a1a1a1-0000-4000-8000-000000000008', '11111111-0000-4000-8000-000000000001', 'Sudor'),
   ('b2b2b2b2-0000-4000-8000-000000000001', '22222222-0000-4000-8000-000000000002', 'Profil B');
 
 insert into public.evaluation_profile_factors (id, organization_id, profile_id, component, factor_group, description, gravity_class, probability_class, sort_order) values
-  ('a2a2a2a2-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'a1a1a1a1-0000-4000-8000-000000000009', 'work_environment', 'Factori de risc fizic', 'Zgomot', 2, 3, 0);
+  ('a2a2a2a2-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'a1a1a1a1-0000-4000-8000-000000000009', 'work_environment', 'Factori de risc fizic', 'Zgomot', 2, 3, 0),
+  ('a2a2a2a2-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'a1a1a1a1-0000-4000-8000-000000000008', 'means_of_production', 'Factori de risc termic', 'Arsuri', 4, 3, 0);
 
 insert into public.risk_factors (id, organization_id, client_id, evaluation_id, component, factor_group, description, gravity_class, probability_class, sort_order, source_profile_factor_id) values
-  ('f1f1f1f1-0000-4000-8000-000000000005', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'e1e1e1e1-0000-4000-8000-000000000003', 'work_environment', 'Factori de risc fizic', 'Zgomot', 2, 3, 1, 'a2a2a2a2-0000-4000-8000-000000000001');
+  ('f1f1f1f1-0000-4000-8000-000000000005', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'e1e1e1e1-0000-4000-8000-000000000003', 'work_environment', 'Factori de risc fizic', 'Zgomot', 2, 3, 1, 'a2a2a2a2-0000-4000-8000-000000000001'),
+  ('f1f1f1f1-0000-4000-8000-000000000006', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'e1e1e1e1-0000-4000-8000-000000000005', 'means_of_production', 'Factori de risc termic', 'Arsuri', 4, 3, 0, 'a2a2a2a2-0000-4000-8000-000000000002');
 
 update public.clients set archived_at = now() where id = 'c1c1c1c1-0000-4000-8000-000000000003';
+update public.job_positions set archived_at = now() where id = 'd1d1d1d1-0000-4000-8000-000000000001';
 
 create or replace function pg_temp.act_as(user_id text, app_metadata jsonb)
 returns void language sql as $$
@@ -348,12 +358,82 @@ select is(
   'a change to the profile does not reach the copies'
 );
 
-delete from public.evaluation_profiles where name = 'Lucrător de birou';
+select results_eq(
+  $$ select name, client_count, in_use from public.evaluation_profile_list
+     where name in ('Lucrător de birou', 'Birou extins', 'Profil vechi', 'Sudor', 'Lucrător în atelier')
+     order by name $$,
+  $$ values
+       ('Birou extins', 1, true),
+       ('Lucrător de birou', 2, true),
+       ('Lucrător în atelier', 0, false),
+       ('Profil vechi', 1, true),
+       ('Sudor', 0, true) $$,
+  'the list counts the clients using each profile, archived clients but not archived posts, and says whether any factor points at it'
+);
+
+select throws_ok(
+  $$ delete from public.evaluation_profiles where name = 'Lucrător de birou' $$,
+  'RSK04',
+  null,
+  'a profile clients use is not deleted'
+);
+
+select throws_ok(
+  $$ delete from public.evaluation_profiles where id = 'a1a1a1a1-0000-4000-8000-000000000009' $$,
+  'RSK04',
+  null,
+  'a profile used only under an archived client is not deleted either'
+);
+
+select throws_ok(
+  $$ delete from public.evaluation_profiles where id = 'a1a1a1a1-0000-4000-8000-000000000008' $$,
+  'RSK04',
+  null,
+  'a profile used only by an archived post is not deleted either'
+);
+
+select lives_ok(
+  $$ update public.evaluation_profiles set archived_at = now() where name = 'Lucrător de birou' $$,
+  'a member archives a profile clients use'
+);
+
+select throws_ok(
+  $$ select public.apply_evaluation_profile('e1e1e1e1-0000-4000-8000-000000000004', (select id from public.evaluation_profiles where name = 'Lucrător de birou')) $$,
+  'RSK03',
+  null,
+  'an archived profile is not applied'
+);
+
+select throws_ok(
+  $$ insert into public.evaluation_profiles (organization_id, name)
+     values ('11111111-0000-4000-8000-000000000001', 'lucrător de birou') $$,
+  '23505',
+  null,
+  'an archived profile keeps its name taken'
+);
 
 select is(
-  (select count(*)::int from public.risk_factors where evaluation_id = 'e1e1e1e1-0000-4000-8000-000000000002'),
-  3,
-  'deleting a profile leaves its copies in the evaluations'
+  (select client_count from public.evaluation_profile_list where name = 'Lucrător de birou'),
+  2,
+  'an archived profile keeps its usage'
+);
+
+select lives_ok(
+  $$ update public.evaluation_profiles set archived_at = null where name = 'Lucrător de birou' $$,
+  'a member restores an archived profile'
+);
+
+select is(
+  public.apply_evaluation_profile('e1e1e1e1-0000-4000-8000-000000000004', (select id from public.evaluation_profiles where name = 'Lucrător de birou')),
+  2,
+  'a restored profile is applied again'
+);
+
+select lives_ok(
+  $$ delete from public.evaluation_profile_factors
+     where profile_id = (select id from public.evaluation_profiles where name = 'Lucrător de birou')
+       and description = 'Electrocutare prin atingere indirectă' $$,
+  'a factor of a profile clients use can still be deleted'
 );
 
 select results_eq(
@@ -361,23 +441,34 @@ select results_eq(
      from public.risk_factors f
      left join public.evaluation_profile_factors pf on pf.id = f.source_profile_factor_id
      left join public.evaluation_profiles p on p.id = pf.profile_id
-     where f.evaluation_id = 'e1e1e1e1-0000-4000-8000-000000000004' order by f.sort_order $$,
+     where f.evaluation_id = 'e1e1e1e1-0000-4000-8000-000000000002' order by f.sort_order $$,
   $$ values
        ('Lovire de mobilier', 'Birou extins'),
        ('Electrocutare prin atingere indirectă', null::text),
-       ('Ritm de muncă foarte intens', null::text) $$,
-  'deleting a profile clears the origin of its copies, and only theirs'
+       ('Ritm de muncă foarte intens', 'Lucrător de birou') $$,
+  'deleting a profile factor clears the origin of its copies, and only theirs'
 );
 
 select lives_ok(
-  $$ delete from public.evaluation_profiles where id = 'a1a1a1a1-0000-4000-8000-000000000009' $$,
-  'a profile copied into an archived client''s evaluation can be deleted'
+  $$ delete from public.evaluation_profile_factors where id = 'a2a2a2a2-0000-4000-8000-000000000001' $$,
+  'a profile factor copied under an archived client can be deleted'
 );
 
 select is(
   (select source_profile_factor_id from public.risk_factors where id = 'f1f1f1f1-0000-4000-8000-000000000005'),
   null,
-  'deleting a profile clears the origin under an archived client too'
+  'deleting a profile factor clears the origin under an archived client too'
+);
+
+select lives_ok(
+  $$ delete from public.evaluation_profiles where id = 'a1a1a1a1-0000-4000-8000-000000000009' $$,
+  'a profile no client uses any more can be deleted'
+);
+
+select is(
+  (select count(*)::int from public.risk_factors where evaluation_id = 'e1e1e1e1-0000-4000-8000-000000000003'),
+  2,
+  'deleting a profile leaves the factors once copied from it'
 );
 
 select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000002', '{"provider":"email"}');
@@ -386,6 +477,12 @@ select is(
   (select count(*)::int from public.evaluation_profiles) + (select count(*)::int from public.evaluation_profile_factors) + (select count(*)::int from public.evaluation_profile_measures),
   1,
   'a member of another organization reads only their own library'
+);
+
+select results_eq(
+  $$ select name, client_count, in_use from public.evaluation_profile_list $$,
+  $$ values ('Profil B', 0, false) $$,
+  'a member of another organization lists only their own library, without the others'' usage'
 );
 
 select * from finish();

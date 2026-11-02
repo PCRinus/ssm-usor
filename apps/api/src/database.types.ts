@@ -1993,6 +1993,13 @@ export type Database = {
             foreignKeyName: 'evaluation_profile_factors_profile_in_organization';
             columns: ['profile_id', 'organization_id'];
             isOneToOne: false;
+            referencedRelation: 'evaluation_profile_list';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'evaluation_profile_factors_profile_in_organization';
+            columns: ['profile_id', 'organization_id'];
+            isOneToOne: false;
             referencedRelation: 'evaluation_profiles';
             referencedColumns: ['id', 'organization_id'];
           },
@@ -2055,6 +2062,7 @@ export type Database = {
       };
       evaluation_profiles: {
         Row: {
+          archived_at: string | null;
           created_at: string;
           created_by: string | null;
           id: string;
@@ -2063,6 +2071,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          archived_at?: string | null;
           created_at?: string;
           created_by?: string | null;
           id?: string;
@@ -2071,6 +2080,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          archived_at?: string | null;
           created_at?: string;
           created_by?: string | null;
           id?: string;
@@ -6822,6 +6832,34 @@ export type Database = {
           },
           {
             foreignKeyName: 'employees_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      evaluation_profile_list: {
+        Row: {
+          archived_at: string | null;
+          client_count: number | null;
+          created_at: string | null;
+          id: string | null;
+          in_use: boolean | null;
+          name: string | null;
+          organization_id: string | null;
+          updated_at: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'evaluation_profiles_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'evaluation_profiles_organization_id_fkey';
             columns: ['organization_id'];
             isOneToOne: false;
             referencedRelation: 'organizations';
