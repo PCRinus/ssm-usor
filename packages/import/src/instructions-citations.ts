@@ -2,7 +2,7 @@ import { foldText, type InstructionDomain } from '@ssm-usor/contracts';
 
 import { type CutInstruction, type InstructionsFile, printedArticle } from './instructions-cut';
 import type { CitationSection, InstructionsAnswer } from './instructions-request';
-import { sameName } from './match';
+import { foldName } from './match';
 
 // A pack numbers its common part and its subchapters in one sequence ("main"), and restarts
 // the numbers in each block it numbers on its own ("I.P.S.S.M. 2.", "Anexa nr. 1": "own").
@@ -309,7 +309,7 @@ function groupPositions(positions: readonly InstructionsAnswer['positions'][numb
         foldText(known.variant) === variant &&
         (clientPost !== null && known.clientPost !== null
           ? foldText(known.clientPost) === foldText(clientPost)
-          : sameName(known.post, position.post))
+          : foldName(known.post) === foldName(position.post))
     );
     const citation: PostCitation = {
       section: position.section,

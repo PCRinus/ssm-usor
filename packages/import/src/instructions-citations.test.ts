@@ -239,6 +239,18 @@ describe('resolvePositions', () => {
     ]);
   });
 
+  it('keeps apart two posts with close names when the client’s post is not known', () => {
+    const resolved = resolve([
+      cite('Muncitor necalificat la ambalarea produselor solide', 'IPSSM Art. 21 – 30'),
+      cite('Muncitor necalificat la ambalarea produselor lichide', 'IPSSM Art. 31 – 40'),
+    ]);
+
+    expect(resolved.map((position) => position.resolution)).toEqual([
+      { kind: 'resolved', instructions: ['cars'] },
+      { kind: 'resolved', instructions: ['office'] },
+    ]);
+  });
+
   it('keeps apart two entries of one post that the themes tell apart', () => {
     const resolved = resolve([
       cite('Mecanic utilaj', 'IPSSM Art. 1 – 40', { clientPost: 'Mecanic utilaj' }),
