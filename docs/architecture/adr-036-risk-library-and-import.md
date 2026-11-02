@@ -158,7 +158,7 @@ _Note, 2026-11-04, measured on PDFs:_ PROFLEX VEST and ROYAL HOTEL printed to PD
 
 _Note, 2026-11-04, a PDF's measures:_ a factor written out from a PDF took measures only from a plan row of a Word file that repeated its description, so with the plan a PDF too most factors came without any. The requests that write a PDF's factors out now also write each factor's measures by kind and its actions, deadline, person responsible and observations, from the plan's row for the factor, else from its row of the measures sheet, in the document's words, and none where the documents give none; code keeps the limits, the flag on a person named and Verifică, and a factor of a Word file is still pointed at and copied. A factor so written out took up to 300 output tokens, reasoning included (225 to 305 a request where most factors have a plan row, about 150 where few have measures), so a request now holds about 35 counted factors, a third of the limit. Measured against the reference answers, each factor's plan rows read in the Word plan: ROYAL HOTEL's and PROFLEX VEST's assessments and plans as PDFs, 233 factors, took their measures from the right place for 226; of the 79 the documents give none, 72 stayed empty and 7 took a nearby row's; of the 154 with measures, 146 had them with at least 90 % of their words and no others (mean word recall and precision 0.99) and 147 of 151 every kind right; their deadline, person responsible and observations were right for 147 to 148 of 148 and their actions for 143, the misses but one being words the Word plan breaks with a hyphen. The eleven-sheet pack, with no plan, took its 40 measures-sheet texts at recall 0.98 and precision 1.00 and kept 338 of 341 factors empty. Every factor and class stayed right. The first request's cache did not serve these requests, whose answer format differs: the first of them read no cached token on any of the three packs, and every later one read all but about 700 tokens of its prompt from cache (240,843 of 241,500 for the eleven sheets). So the first of them goes alone and the others after it, four at a time. Read so, ROYAL HOTEL cost $0.22, PROFLEX VEST $0.38 and the eleven sheets $0.66 besides their first request: a pack of the archives' size costs $0.20–0.40 read from PDF, above the $0.095 the 15 credits were set by.
 
-**Credits.** A flat **10 credits** for the reading, charged when the request is sent, refunded on a failure on our side, as the instructions parts are. That follows ADR 034's rule: the dearest reference reading at a credit's cost. The import package step measures the five archives; if the dearest costs more than $0.08, the amount becomes 15. Scanned pages are 1 credit each, as today. The import's total names it: _Importul a folosit 70 de credite (25 + 35 pentru instrucțiunile proprii + 10 pentru evaluările de risc)_.
+**Credits.** A flat **15 credits** for the reading, charged when the request is sent, refunded on a failure on our side, as the instructions parts are. That follows ADR 034's rule: the dearest reference reading at a credit's cost. The rule was 10, or 15 if the dearest of the five archives cost more than $0.08; measured in the import package step, the dearest cost $0.095. Scanned pages are 1 credit each, as today. The import's total names it: _Importul a folosit 75 de credite (25 + 35 pentru instrucțiunile proprii + 15 pentru evaluările de risc)_.
 
 **Testing.** There is no second provider's archive. Reference answers for the five archives' sheets and factors are written in the import package step, and the reader is measured against them before any change of prompt or model. What an import does on an unfamiliar template is the subject of #802.
 
@@ -170,7 +170,7 @@ The help site gains the article **Evaluări de risc** in the area ADR 028 reserv
 
 - **Unlinking** a client's evaluation from a library entry: #801.
 - **The quality record and alerts** for every import: #802.
-- **The pricing of imports** as a whole: a full import costs 70 credits plus scanned pages under this ADR; to be discussed later.
+- **The pricing of imports** as a whole: a full import costs 75 credits plus scanned pages under this ADR; to be discussed later.
 - **Starting an entry from another entry** in the library, as instructions can.
 - **Evaluations by another method** (#259), and an ergonomic study or any non-I.N.C.D.P.M. document in a pack: it is not read.
 - **The pack's ranking table, stated global levels and charts**: the app computes its own.
@@ -186,7 +186,7 @@ The help site gains the article **Evaluări de risc** in the area ADR 028 reserv
 - **The first client's documents 9 and 10** can be generated right after an import, where the evaluation was the largest typing job in the product (ADR 015).
 - **The pack's errors are surfaced, not fixed.** A specialist sees every level the grid disagrees with; the app still never chooses a class.
 - **Entries outlive their use.** An entry used once stays, archived at most, until #801.
-- **The import costs more:** about $0.05–0.10 and 10 credits for a Word pack.
+- **The import costs more:** about $0.05–0.10 and 15 credits for a Word pack.
 - **The schema changes:** `archived_at` and the three texts on `evaluation_profiles`; the part `risk_evaluations` and `apply_risk_import`; the library part's domain becomes optional; the delete refused in use. `docs/data-model.md`, `docs/api.md` and `docs/app.md` change with it.
 - **The glossary changes:** evaluation profile, risk evaluation and library proposal.
 
@@ -216,4 +216,4 @@ Each step is a pull request in one stack, on this ADR. The clean-up comes first.
 - **The sheet takes the grid's level**, showing the printed one beside it.
 - **A person named in a plan field** goes to the client only.
 - **PDFs are written out in requests of about 35 factors** as the first answer counts them, each factor with its measures and plan fields, the first request alone (notes of 2026-11-04), and their factors are all marked Verifică.
-- **Credits**: 10, or 15 if the measured dearest reading passes $0.08.
+- **Credits**: 15, since the measured dearest reading, $0.095, passed $0.08.
