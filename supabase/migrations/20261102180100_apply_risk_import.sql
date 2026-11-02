@@ -377,11 +377,11 @@ begin
     perform public.import_payload_keys(v_item, array[
       'key', 'name', 'means_of_production', 'work_environment', 'exposure', 'factors'
     ], 'library entry');
-    if jsonb_typeof(v_item -> 'key') <> 'string' or v_factors_of ? (v_item ->> 'key')
+    if jsonb_typeof(v_item -> 'key') is distinct from 'string' or v_factors_of ? (v_item ->> 'key')
       or jsonb_typeof(coalesce(v_item -> 'factors', '[]')) <> 'array' then
       raise exception 'Each library entry has a key of its own and a list of factors.' using errcode = '22023';
     end if;
-    if jsonb_typeof(v_item -> 'name') <> 'string' or btrim(v_item ->> 'name') = '' then
+    if jsonb_typeof(v_item -> 'name') is distinct from 'string' or btrim(v_item ->> 'name') = '' then
       raise exception 'Each library entry has a name.' using errcode = '22023';
     end if;
     if exists (

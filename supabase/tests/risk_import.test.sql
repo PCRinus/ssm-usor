@@ -1,5 +1,5 @@
 begin;
-select plan(42);
+select plan(43);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -193,6 +193,12 @@ select throws_ok(
   $$ select public.apply_risk_import('10000000-0000-4000-8000-000000000081', 'risk_evaluations', 1,
        jsonb_set(pg_temp.payload(), '{entries,0,name}', '"  "')) $$,
   '22023', 'Each library entry has a name.', 'a new entry without a name is refused'
+);
+
+select throws_ok(
+  $$ select public.apply_risk_import('10000000-0000-4000-8000-000000000081', 'risk_evaluations', 1,
+       pg_temp.payload() #- '{entries,0,key}') $$,
+  '22023', 'Each library entry has a key of its own and a list of factors.', 'nor one without a key'
 );
 
 select throws_ok(
