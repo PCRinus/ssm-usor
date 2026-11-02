@@ -92,7 +92,7 @@ export const instructionBodySchema = z
       context.addIssue({
         code: 'custom',
         path: ['blocks'],
-        message: 'Textul instrucțiunii are cel mult 200.000 de caractere.',
+        message: `Textul instrucțiunii are cel mult ${maxInstructionCharacters.toLocaleString('ro-RO')} de caractere.`,
       });
     }
   });
