@@ -236,11 +236,11 @@ describe('flagLines', () => {
         { kind: 'table_row', article: 23 },
       ])
     ).toEqual([
-      'Art. 16 și Art. 23 au rânduri de tabel făcute paragrafe: celulele lor sunt unite cu o liniuță.',
+      'Art. 16 și art. 23 aveau tabele în document. Le-am trecut ca text, cu celulele despărțite de o liniuță: verifică-le.',
       'Art. 9 din pachet nu are text, poate doar o imagine, și nu a fost preluat. Articolele de după el au aici numărul cu unu mai mic.',
     ]);
     expect(flagLines([{ kind: 'table_row', article: 4 }])).toEqual([
-      'Art. 4 vine dintr-un rând de tabel: celulele lui sunt unite cu o liniuță.',
+      'Art. 4 avea un tabel în document. L-am trecut ca text, cu celulele despărțite de o liniuță: verifică-l.',
     ]);
   });
 });

@@ -58,10 +58,17 @@ test("a pack's own instructions are reviewed before the client is created, confi
   await expect(oven.getByTestId('library-instruction-flags')).toContainText(
     `Textul numește clientul ${bakery.legalName}`
   );
+  await expect(oven.getByTestId('library-instruction-pending')).toHaveText('Gata de confirmat');
+  await expect(oven.getByTestId('library-instruction-library-title')).toHaveText(
+    'Utilizarea cuptorului de patiserie'
+  );
+  await oven.getByTestId('library-instruction-rename').click();
   const title = oven.getByTestId('library-instruction-title-input');
-  await expect(title).toHaveValue('Utilizarea cuptorului de patiserie');
   await title.fill('Cuptorul de patiserie');
   await title.press('Enter');
+  await expect(oven.getByTestId('library-instruction-library-title')).toHaveText(
+    'Cuptorul de patiserie'
+  );
   await expect(page.getByRole('status').filter({ hasText: 'Se salvează…' })).toHaveCount(0);
 
   await oven.getByTestId('library-instruction-pick-posts').click();
@@ -69,29 +76,31 @@ test("a pack's own instructions are reviewed before the client is created, confi
   await expect(picker.getByTestId('library-post-option').first()).toContainText('Nedecis');
   await picker.getByRole('checkbox', { name: 'Vânzător' }).check();
   await picker.getByTestId('library-posts-save').click();
-  await expect(oven.getByTestId('library-instruction-posts')).toHaveText('Brutar și Vânzător');
+  await expect(oven.getByTestId('library-instruction-post')).toHaveText(['Brutar', 'Vânzător']);
 
   const similar = page.locator('[data-testid="library-instruction"][data-status="similar"]');
-  await expect(similar).toContainText(
-    'Ai deja o instrucțiune care spune același lucru: Scări metalice'
+  await expect(similar.getByTestId('library-instruction-similar')).toContainText('Scări metalice');
+  await expect(similar.getByTestId('library-instruction-pending')).toHaveText(
+    'Mai ai de ales ce primesc posturile'
   );
   await similar.getByTestId('library-instruction-compare').click();
   await expect(similar.getByTestId('library-difference')).toHaveCount(1);
   await expect(similar.getByTestId('library-choice-use_existing')).toBeChecked();
   await similar.getByTestId('library-choice-add_new').check();
-  await expect(similar.getByTestId('library-instruction-title-input')).toHaveValue(
+  await expect(similar.getByTestId('library-instruction-library-title')).toHaveText(
     `Scări metalice (${bakery.name})`
   );
+  await expect(similar.getByTestId('library-instruction-pending')).toHaveText('Gata de confirmat');
   await expect(page.getByTestId('library-confirm-summary')).toContainText(
-    'Se adaugă 2 instrucțiuni în bibliotecă, se folosește una pe care o ai, la 3 posturi.'
+    'Când confirmi, adăugăm 2 instrucțiuni în bibliotecă, folosim una pe care o ai deja și le aplicăm la 3 posturi.'
   );
 
   await page.reload();
   await expect(
     page
       .locator('[data-testid="library-instruction"][data-status="new"]')
-      .getByTestId('library-instruction-title-input')
-  ).toHaveValue('Cuptorul de patiserie');
+      .getByTestId('library-instruction-library-title')
+  ).toHaveText('Cuptorul de patiserie');
 
   await page.goto(`/clienti/import/${importId}`);
   await page.getByTestId('import-confirm').click();
@@ -105,7 +114,7 @@ test("a pack's own instructions are reviewed before the client is created, confi
   await expect(reminder).toContainText('IPSSM: de verificat');
   await reminder.getByTestId('client-library-tasks-open').click();
   await page.getByTestId('import-library-task').click();
-  await expect(page.getByTestId('library-confirm')).toHaveText('Confirmă IPSSM');
+  await expect(page.getByTestId('library-confirm')).toHaveText('Confirmă instrucțiunile');
   await page.getByTestId('library-confirm').click();
 
   await expect(page.getByTestId('import-confirmed-hub')).toBeVisible();

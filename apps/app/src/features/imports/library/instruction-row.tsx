@@ -1,21 +1,39 @@
-import { type InstructionCategory, type InstructionDomain } from '@ssm-usor/contracts';
-import { Checkbox } from '@ssm-usor/ui/components/checkbox';
+import {
+  articleCount,
+  type InstructionCategory,
+  type InstructionDomain,
+} from '@ssm-usor/contracts';
+import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { NativeSelect } from '@ssm-usor/ui/components/native-select';
+import { Switch } from '@ssm-usor/ui/components/switch';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { TriangleAlert } from 'lucide-react';
-import { useId, useState } from 'react';
+import {
+  BriefcaseBusiness,
+  Building2,
+  Check,
+  Flame,
+  GitCompare,
+  HardHat,
+  type LucideIcon,
+  Pencil,
+  PlugZap,
+  Plus,
+  TriangleAlert,
+  Wrench,
+} from 'lucide-react';
+import { type ReactNode, useId, useState } from 'react';
 
 import { articleCountLabel, groupLabels } from '@/features/instructions/instruction-schema';
 
-import { EditedTag, LinkButton, SourceButton, Tag } from '../review-parts';
+import { EditedTag, SourceButton, Tag } from '../review-parts';
 import { LibraryDifferences } from './library-differences';
 import {
   categoriesOf,
+  type Choice,
   flagLines,
   type InstructionChange,
-  joinNames,
   type LibraryPost,
   type RowState,
   sourceQuote,
@@ -28,6 +46,99 @@ const titleProblem = (title: string) =>
     : title.trim().length > 200
       ? 'Titlul are cel mult 200 de caractere.'
       : null;
+
+const categoryIcons: Record<InstructionCategory, LucideIcon> = {
+  work_activity: BriefcaseBusiness,
+  work_equipment: Wrench,
+  protective_equipment: HardHat,
+  premises_activity: Building2,
+  installation_equipment: PlugZap,
+  hazardous_work: Flame,
+};
+
+const choices: readonly { value: Choice; label: string; outcome: string }[] = [
+  {
+    value: 'use_existing',
+    label: 'Cea din bibliotecă',
+    outcome: 'Instrucțiunea ta rămâne cum e; textul din pachet nu se adaugă.',
+  },
+  {
+    value: 'add_new',
+    label: 'Cea din pachet',
+    outcome: 'Textul din pachet intră în bibliotecă ca instrucțiune separată.',
+  },
+];
+
+type Tone = 'done' | 'todo' | 'info' | 'warning';
+
+const toneLabels: Record<Tone, string> = {
+  done: 'Gata',
+  todo: 'De ales',
+  info: 'De știut',
+  warning: 'Atenționare',
+};
+
+function StatusDot({ tone }: { tone: Tone }) {
+  return (
+    <span
+      className={cn(
+        'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full sm:mt-0',
+        tone === 'done' && 'border border-success-border bg-success text-success-foreground',
+        tone === 'todo' && 'border border-warning-border bg-warning',
+        tone === 'info' && 'border border-info-border bg-info',
+        tone === 'warning' && 'text-warning-foreground'
+      )}
+    >
+      <span className="sr-only">{toneLabels[tone]}</span>
+      {tone === 'done' && <Check className="size-3" strokeWidth={3} aria-hidden="true" />}
+      {tone === 'todo' && <span className="size-2 rounded-full bg-chart-3" aria-hidden="true" />}
+      {tone === 'info' && <span className="h-0.5 w-2 rounded-full bg-ring" aria-hidden="true" />}
+      {tone === 'warning' && <TriangleAlert className="size-4" aria-hidden="true" />}
+    </span>
+  );
+}
+
+function DecisionRow({
+  tone,
+  label,
+  actions,
+  below,
+  testId,
+  children,
+}: {
+  tone: Tone;
+  label: ReactNode;
+  actions?: ReactNode;
+  below?: ReactNode;
+  testId?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      data-testid={testId}
+      data-tone={tone}
+      className={cn(
+        'grid grid-cols-[1.25rem_minmax(0,1fr)] items-start gap-x-3 gap-y-1 border-t border-border/70 px-4 py-3 sm:min-h-14 sm:grid-cols-[1.25rem_10.5rem_minmax(0,1fr)_auto] sm:items-center sm:gap-x-4 sm:px-5',
+        tone === 'todo' && 'bg-warning/40'
+      )}
+    >
+      <StatusDot tone={tone} />
+      <span className="text-sm font-medium">{label}</span>
+      <div className="col-start-2 grid min-w-0 gap-1 text-sm sm:col-start-auto">{children}</div>
+      {actions && (
+        <div className="col-start-2 mt-2 grid gap-2 sm:col-start-auto sm:mt-0 sm:flex sm:flex-wrap sm:justify-end">
+          {actions}
+        </div>
+      )}
+      {below && <div className="col-start-2 mt-2 min-w-0 sm:col-span-3">{below}</div>}
+    </div>
+  );
+}
+
+function pendingLine(pending: readonly string[]) {
+  if (pending.length > 1) return `Mai ai ${pending.length} lucruri de făcut`;
+  return pending[0] === 'title' ? 'Mai ai de schimbat titlul' : `Mai ai de ales ${pending[0]}`;
+}
 
 export function InstructionRow({
   row,
@@ -54,6 +165,8 @@ export function InstructionRow({
   const { instruction } = row;
   const [title, setTitle] = useState(row.title);
   const [titleError, setTitleError] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState(false);
+  const [changingCategory, setChangingCategory] = useState(false);
   const [comparing, setComparing] = useState(false);
   const similar = instruction.status === 'similar';
   const editable = !readOnly && row.included;
@@ -61,22 +174,55 @@ export function InstructionRow({
     const known = postsById.get(post);
     return known ? [known.name] : [];
   });
-
-  function commitTitle() {
-    const problem = titleProblem(title);
-    setTitleError(problem);
-    if (problem || title.trim() === row.title) return;
-    const next = title.trim();
-    onChange((current) =>
-      withChange(current, 'title', next === instruction.title ? undefined : next)
-    );
-  }
+  const Icon = categoryIcons[row.category];
 
   const shownTitleError =
     titleError ??
     (titleTaken && !row.usesLibrary
       ? 'Biblioteca are deja o instrucțiune cu acest titlu. Schimbă-l ca să o poți adăuga.'
       : null);
+  const titleOpen = editable && (renaming || Boolean(shownTitleError));
+  const choiceOpen = similar && !row.choicePicked;
+  const pending = editable
+    ? [
+        ...(shownTitleError && !row.usesLibrary ? ['title'] : []),
+        ...(choiceOpen ? ['ce primesc posturile'] : []),
+        ...(postNames.length === 0 ? ['posturile'] : []),
+      ]
+    : [];
+  const ask = (open: boolean): Tone => (editable && open ? 'todo' : 'done');
+
+  function commitTitle() {
+    const problem = titleProblem(title);
+    setTitleError(problem);
+    if (problem) return;
+    setRenaming(false);
+    const next = title.trim();
+    if (next === row.title) return;
+    onChange((current) =>
+      withChange(current, 'title', next === instruction.title ? undefined : next)
+    );
+  }
+
+  function pickChoice(choice: Choice) {
+    onChange((current) =>
+      current.choice === choice ? current : withChange(current, 'choice', choice)
+    );
+  }
+
+  function cancelTitle() {
+    setTitle(row.title);
+    setTitleError(null);
+    setRenaming(false);
+  }
+
+  const shownArticles = articleCountLabel(articleCount(row.body)).toLowerCase();
+  const textValue = row.usesLibrary
+    ? 'Rămâne cel din biblioteca ta'
+    : row.edited.body
+      ? `${shownArticles}, modificate de tine`
+      : `${shownArticles}, ca în document`;
+  const flags = flagLines(instruction.flags);
 
   return (
     <article
@@ -85,146 +231,229 @@ export function InstructionRow({
       data-key={instruction.key}
       aria-labelledby={`${id}-title`}
       className={cn(
-        'grid gap-3 rounded-xl border bg-card px-4 py-4 shadow-xs sm:px-5',
-        !row.included && 'bg-muted/40'
+        'overflow-hidden rounded-xl border bg-card shadow-xs',
+        !row.included && 'bg-muted/40 shadow-none'
       )}
     >
-      <div className="grid grid-cols-[1.25rem_minmax(0,1fr)] items-start gap-x-3 gap-y-1 sm:grid-cols-[1.25rem_minmax(0,1fr)_auto]">
-        <Checkbox
-          id={`${id}-included`}
-          className="mt-1"
-          data-testid="library-instruction-included"
-          aria-label={`Preia instrucțiunea ${row.title}`}
-          checked={row.included}
-          disabled={readOnly}
-          onCheckedChange={(checked) =>
-            onChange((current) =>
-              withChange(current, 'included', checked === true ? undefined : false)
-            )
-          }
-        />
-        <div className="grid min-w-0 gap-0.5">
-          <h3
-            id={`${id}-title`}
-            className="text-base leading-snug font-semibold wrap-anywhere"
-            data-testid="library-instruction-title"
-          >
-            {row.usesLibrary && instruction.match ? instruction.match.title : row.title}
-          </h3>
-          <p className="text-[13px] text-muted-foreground">
-            {groupLabels[row.category]} ·{' '}
-            {articleCountLabel(instruction.articleCount).toLowerCase()}
-            {instruction.number && ` · nr. ${instruction.number} în pachet`}
-          </p>
+      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-3 px-4 py-4 sm:flex-nowrap sm:px-5">
+        <span
+          className={cn(
+            'flex size-10 shrink-0 items-center justify-center self-start rounded-[10px] bg-secondary sm:self-center',
+            !row.included && 'text-muted-foreground'
+          )}
+        >
+          <Icon className="size-5" aria-hidden="true" />
+        </span>
+        <div className="grid min-w-0 flex-1 basis-56 gap-0.5">
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <h3
+              id={`${id}-title`}
+              className={cn(
+                'text-base leading-snug font-semibold wrap-anywhere',
+                !row.included && 'text-muted-foreground'
+              )}
+              data-testid="library-instruction-title"
+            >
+              {row.usesLibrary && instruction.match ? instruction.match.title : row.title}
+            </h3>
+            {row.included &&
+              (similar ? <Tag tone="warning">Asemănătoare</Tag> : <Tag tone="info">Nouă</Tag>)}
+            {row.included && row.edited.body && <EditedTag>Modificată de tine</EditedTag>}
+          </div>
+          {row.included ? (
+            <p className="flex flex-wrap gap-x-3.5 text-[13px] text-muted-foreground">
+              {row.usesLibrary && <span>{groupLabels[row.category]}</span>}
+              <span>{articleCountLabel(instruction.articleCount).toLowerCase()}</span>
+              {instruction.number && <span>nr. {instruction.number} din pachet</span>}
+            </p>
+          ) : (
+            <p
+              className="text-[13px] text-muted-foreground"
+              data-testid="library-instruction-left-out"
+            >
+              Nu o incluzi: nu intră în bibliotecă și nu se aplică la niciun post.
+            </p>
+          )}
         </div>
-        <div className="col-start-2 flex flex-wrap gap-1.5 sm:col-start-auto sm:justify-end">
-          {similar ? <Tag tone="warning">Asemănătoare</Tag> : <Tag tone="info">Nouă</Tag>}
-          {row.edited.body && <EditedTag />}
+        <div className="flex w-full items-center gap-4 sm:w-auto sm:shrink-0">
+          {pending.length > 0 ? (
+            <span
+              className="inline-flex items-center gap-2 text-[13px] font-semibold text-warning-foreground"
+              data-testid="library-instruction-pending"
+            >
+              <span
+                className="flex size-4 items-center justify-center rounded-full border border-warning-border bg-warning"
+                aria-hidden="true"
+              >
+                <span className="size-1.5 rounded-full bg-chart-3" />
+              </span>
+              {pendingLine(pending)}
+            </span>
+          ) : (
+            editable && (
+              <span
+                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-success-foreground"
+                data-testid="library-instruction-pending"
+              >
+                <Check className="size-4" aria-hidden="true" />
+                Gata de confirmat
+              </span>
+            )
+          )}
+          <div className="ml-auto flex items-center gap-2.5 sm:border-l sm:border-border/70 sm:pl-4">
+            <Switch
+              id={`${id}-included`}
+              data-testid="library-instruction-included"
+              aria-label={`Inclusă: ${row.title}`}
+              checked={row.included}
+              disabled={readOnly}
+              onCheckedChange={(checked) =>
+                onChange((current) => withChange(current, 'included', checked ? undefined : false))
+              }
+            />
+            <Label htmlFor={`${id}-included`} className="text-[13px]" aria-hidden="true">
+              Inclusă
+            </Label>
+          </div>
         </div>
       </div>
 
-      {!row.included ? (
-        <p
-          className="text-sm text-muted-foreground sm:pl-8"
-          data-testid="library-instruction-left-out"
-        >
-          Nu o preluăm: nu intră în bibliotecă și nu se aplică la niciun post.
-        </p>
-      ) : (
-        <div className="grid gap-3 sm:pl-8">
+      {row.included && (
+        <>
           {similar && instruction.match && (
-            <div
-              className="grid gap-2 rounded-lg border border-warning-border bg-warning/30 px-3 py-3"
-              data-testid="library-instruction-similar"
-            >
-              <p className="text-sm">
-                Ai deja o instrucțiune care spune același lucru:{' '}
-                <strong className="font-semibold">{instruction.match.title}</strong>
-              </p>
-              <div>
-                <LinkButton
-                  data-testid="library-instruction-compare"
-                  aria-expanded={comparing}
-                  onClick={() => setComparing((open) => !open)}
-                >
-                  {comparing ? 'Ascunde ce diferă' : 'Ce diferă'}
-                </LinkButton>
-              </div>
-              {comparing && <LibraryDifferences instruction={instruction} />}
-              <div
-                role="radiogroup"
-                aria-label={`Ce faci cu ${instruction.match.title}`}
-                className="grid gap-2 sm:grid-cols-2"
-              >
-                {(
-                  [
-                    [
-                      'use_existing',
-                      'Folosește ce ai',
-                      `Posturile primesc „${instruction.match.title}” din bibliotecă, așa cum e.`,
-                    ],
-                    [
-                      'add_new',
-                      'Adaugă ca nouă',
-                      'Intră în bibliotecă textul din pachet, ca instrucțiune separată.',
-                    ],
-                  ] as const
-                ).map(([value, label, hint]) => (
-                  <label
-                    key={value}
-                    className="grid cursor-pointer grid-cols-[1rem_minmax(0,1fr)] items-start gap-3 rounded-lg border bg-card px-3 py-2.5"
+            <>
+              <DecisionRow
+                tone="info"
+                label="Seamănă cu"
+                testId="library-instruction-similar"
+                actions={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    data-testid="library-instruction-compare"
+                    aria-expanded={comparing}
+                    onClick={() => setComparing((open) => !open)}
                   >
-                    <input
-                      type="radio"
-                      name={`${id}-choice`}
-                      value={value}
-                      data-testid={`library-choice-${value}`}
-                      className="mt-1 accent-primary"
-                      disabled={readOnly}
-                      checked={row.choice === value}
-                      onChange={() =>
-                        onChange((current) =>
-                          withChange(
-                            current,
-                            'choice',
-                            value === instruction.choice ? undefined : value
-                          )
-                        )
-                      }
-                    />
-                    <span className="grid gap-0.5">
-                      <span className="text-sm font-medium">{label}</span>
-                      <span className="text-xs text-muted-foreground">{hint}</span>
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
+                    <GitCompare aria-hidden="true" />
+                    {comparing ? 'Ascunde ce diferă' : 'Vezi ce diferă'}
+                  </Button>
+                }
+                below={comparing && <LibraryDifferences instruction={instruction} />}
+              >
+                <span>
+                  <strong className="font-semibold">{instruction.match.title}</strong>{' '}
+                  <span className="text-muted-foreground">din biblioteca ta</span>
+                </span>
+              </DecisionRow>
+              <DecisionRow
+                tone={ask(choiceOpen)}
+                label="Ce primesc posturile"
+                actions={
+                  <div
+                    role="radiogroup"
+                    aria-label="Ce primesc posturile"
+                    className="grid grid-cols-2 rounded-lg border border-input bg-secondary p-0.5 sm:inline-flex"
+                  >
+                    {choices.map((choice) => (
+                      <label
+                        key={choice.value}
+                        className="relative inline-flex h-[30px] cursor-pointer items-center justify-center rounded-md px-3.5 text-sm font-medium whitespace-nowrap text-muted-foreground has-checked:bg-card has-checked:font-semibold has-checked:text-foreground has-checked:shadow-xs has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50 has-disabled:cursor-not-allowed"
+                      >
+                        <input
+                          type="radio"
+                          name={`${id}-choice`}
+                          value={choice.value}
+                          data-testid={`library-choice-${choice.value}`}
+                          className="absolute inset-0 m-0 size-full cursor-pointer appearance-none opacity-0 disabled:cursor-not-allowed"
+                          disabled={readOnly}
+                          checked={row.choice === choice.value}
+                          onChange={() => pickChoice(choice.value)}
+                          // A checked radio fires no change, and picking the proposed choice is
+                          // what clears the row's question.
+                          onClick={() => pickChoice(choice.value)}
+                        />
+                        {choice.label}
+                      </label>
+                    ))}
+                  </div>
+                }
+              >
+                <span className={cn(choiceOpen && editable && 'text-warning-foreground')}>
+                  {choices.find((choice) => choice.value === row.choice)?.outcome}
+                </span>
+              </DecisionRow>
+            </>
           )}
 
           {!row.usesLibrary && (
-            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_15rem]">
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${id}-title-input`}>Titlu în bibliotecă</Label>
-                <Input
-                  id={`${id}-title-input`}
-                  data-testid="library-instruction-title-input"
-                  value={title}
-                  disabled={!editable}
-                  aria-invalid={Boolean(shownTitleError)}
-                  aria-describedby={shownTitleError ? `${id}-title-error` : `${id}-written`}
-                  onChange={(event) => {
-                    setTitle(event.target.value);
-                    setTitleError(null);
-                  }}
-                  onBlur={commitTitle}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                      commitTitle();
-                    }
-                  }}
-                />
+            <>
+              <DecisionRow
+                tone={ask(Boolean(shownTitleError))}
+                label={
+                  titleOpen ? (
+                    <Label htmlFor={`${id}-title-input`}>Titlul în bibliotecă</Label>
+                  ) : (
+                    'Titlul în bibliotecă'
+                  )
+                }
+                actions={
+                  editable &&
+                  (titleOpen ? (
+                    <>
+                      <Button type="button" variant="outline" onClick={cancelTitle}>
+                        Renunță
+                      </Button>
+                      <Button
+                        type="button"
+                        data-testid="library-instruction-title-save"
+                        onClick={commitTitle}
+                      >
+                        Salvează titlul
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      data-testid="library-instruction-rename"
+                      onClick={() => {
+                        setTitle(row.title);
+                        setRenaming(true);
+                      }}
+                    >
+                      <Pencil aria-hidden="true" />
+                      Redenumește
+                    </Button>
+                  ))
+                }
+              >
+                {titleOpen ? (
+                  <Input
+                    id={`${id}-title-input`}
+                    data-testid="library-instruction-title-input"
+                    value={title}
+                    autoFocus={renaming}
+                    aria-invalid={Boolean(shownTitleError)}
+                    aria-describedby={shownTitleError ? `${id}-title-error` : `${id}-written`}
+                    onChange={(event) => {
+                      setTitle(event.target.value);
+                      setTitleError(null);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        commitTitle();
+                      } else if (event.key === 'Escape') {
+                        event.preventDefault();
+                        cancelTitle();
+                      }
+                    }}
+                  />
+                ) : (
+                  <span className="wrap-anywhere" data-testid="library-instruction-library-title">
+                    {row.title}
+                  </span>
+                )}
                 {shownTitleError ? (
                   <span
                     id={`${id}-title-error`}
@@ -235,90 +464,156 @@ export function InstructionRow({
                   </span>
                 ) : (
                   instruction.writtenTitle !== row.title && (
-                    <span id={`${id}-written`} className="text-[13px] text-muted-foreground">
-                      În pachet: {instruction.writtenTitle}
+                    <span
+                      id={`${id}-written`}
+                      className="truncate text-[13px] text-muted-foreground"
+                      title={instruction.writtenTitle}
+                    >
+                      Din document: {instruction.writtenTitle}
                     </span>
                   )
                 )}
-              </div>
-              <div className="grid content-start gap-1.5">
-                <Label htmlFor={`${id}-category`}>Categoria</Label>
-                <NativeSelect
-                  id={`${id}-category`}
-                  data-testid="library-instruction-category"
-                  value={row.category}
-                  disabled={!editable}
-                  onChange={(event) => {
-                    const category = event.target.value as InstructionCategory;
-                    onChange((current) =>
-                      withChange(
-                        current,
-                        'category',
-                        category === instruction.category ? undefined : category
-                      )
-                    );
-                  }}
-                >
-                  {categoriesOf(domain).map((category) => (
-                    <option key={category} value={category}>
-                      {groupLabels[category]}
-                    </option>
-                  ))}
-                </NativeSelect>
-              </div>
-            </div>
-          )}
+              </DecisionRow>
 
-          <div className="grid gap-1 text-sm sm:grid-cols-[8rem_minmax(0,1fr)] sm:gap-x-4">
-            <span className="text-muted-foreground">Se aplică la</span>
-            <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span data-testid="library-instruction-posts">
-                {postNames.length > 0 ? (
-                  joinNames(postNames)
+              <DecisionRow
+                tone="done"
+                label={
+                  changingCategory ? (
+                    <Label htmlFor={`${id}-category`}>Categoria</Label>
+                  ) : (
+                    'Categoria'
+                  )
+                }
+                actions={
+                  editable &&
+                  !changingCategory && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      data-testid="library-instruction-change-category"
+                      onClick={() => setChangingCategory(true)}
+                    >
+                      Schimbă categoria
+                    </Button>
+                  )
+                }
+              >
+                {editable && changingCategory ? (
+                  <NativeSelect
+                    id={`${id}-category`}
+                    data-testid="library-instruction-category"
+                    value={row.category}
+                    autoFocus
+                    onBlur={() => setChangingCategory(false)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Escape') setChangingCategory(false);
+                    }}
+                    onChange={(event) => {
+                      const category = event.target.value as InstructionCategory;
+                      setChangingCategory(false);
+                      onChange((current) =>
+                        withChange(
+                          current,
+                          'category',
+                          category === instruction.category ? undefined : category
+                        )
+                      );
+                    }}
+                  >
+                    {categoriesOf(domain).map((category) => (
+                      <option key={category} value={category}>
+                        {groupLabels[category]}
+                      </option>
+                    ))}
+                  </NativeSelect>
                 ) : (
-                  <span className="text-warning-foreground">
-                    niciun post: intră doar în bibliotecă
+                  <span data-testid="library-instruction-category-name">
+                    {groupLabels[row.category]}
                   </span>
                 )}
-              </span>
-              {!readOnly && (
-                <LinkButton data-testid="library-instruction-pick-posts" onClick={onPickPosts}>
-                  {postNames.length > 0 ? 'Schimbă posturile' : 'Alege posturile'}
-                </LinkButton>
-              )}
-            </span>
-          </div>
-
-          {instruction.flags.length > 0 && (
-            <ul className="grid gap-1" data-testid="library-instruction-flags">
-              {flagLines(instruction.flags).map((line) => (
-                <li
-                  key={line}
-                  className="flex items-start gap-2 text-[13px] font-medium text-warning-foreground"
-                >
-                  <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-                  <span>{line}</span>
-                </li>
-              ))}
-            </ul>
+              </DecisionRow>
+            </>
           )}
 
-          <div className="flex flex-wrap gap-x-5 gap-y-2">
-            <SourceButton
-              sources={[{ file: instruction.location.file, quote: sourceQuote(instruction.body) }]}
-              onOpen={onSource}
-            />
-            {!row.usesLibrary && !readOnly && (
-              <LinkButton
-                data-testid="library-instruction-edit-body"
-                aria-label={`Schimbă textul instrucțiunii ${row.title}`}
-                onClick={onEditBody}
+          <DecisionRow
+            tone={ask(postNames.length === 0)}
+            label="Posturile"
+            actions={
+              !readOnly && (
+                <Button
+                  type="button"
+                  variant={postNames.length > 0 ? 'outline' : 'default'}
+                  data-testid="library-instruction-pick-posts"
+                  onClick={onPickPosts}
+                >
+                  {postNames.length === 0 && <Plus aria-hidden="true" />}
+                  {postNames.length > 0 ? 'Schimbă posturile' : 'Alege posturile'}
+                </Button>
+              )
+            }
+          >
+            {postNames.length > 0 ? (
+              <ul className="flex flex-wrap gap-1.5" data-testid="library-instruction-posts">
+                {postNames.map((name) => (
+                  <li
+                    key={name}
+                    className="inline-flex h-7 items-center rounded-full border bg-secondary/60 px-2.5 text-[13px] font-medium"
+                    data-testid="library-instruction-post"
+                  >
+                    {name}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <span
+                className={cn(editable && 'text-warning-foreground')}
+                data-testid="library-instruction-posts"
               >
-                Schimbă
-              </LinkButton>
+                Niciunul încă. Fără posturi, intră doar în bibliotecă.
+              </span>
             )}
-          </div>
-        </div>
+          </DecisionRow>
+
+          <DecisionRow
+            tone={flags.length > 0 ? 'warning' : 'done'}
+            label="Textul"
+            actions={
+              <>
+                <SourceButton
+                  outlined
+                  label="Vezi în document"
+                  sources={[
+                    { file: instruction.location.file, quote: sourceQuote(instruction.body) },
+                  ]}
+                  onOpen={onSource}
+                />
+                {!row.usesLibrary && !readOnly && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    data-testid="library-instruction-edit-body"
+                    aria-label={`Editează textul instrucțiunii ${row.title}`}
+                    onClick={onEditBody}
+                  >
+                    <Pencil aria-hidden="true" />
+                    Editează textul
+                  </Button>
+                )}
+              </>
+            }
+          >
+            <span>{textValue}</span>
+            {flags.length > 0 && (
+              <ul className="grid gap-1" data-testid="library-instruction-flags">
+                {flags.map((line) => (
+                  <li key={line} className="text-[13px] font-medium text-warning-foreground">
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </DecisionRow>
+        </>
       )}
     </article>
   );

@@ -1,6 +1,7 @@
 import { Badge } from '@ssm-usor/ui/components/badge';
+import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { Check, Pencil, ShieldCheck } from 'lucide-react';
+import { Check, FileSearch, Pencil, ShieldCheck } from 'lucide-react';
 import { type ComponentProps, type ReactNode, use, useEffect, useRef } from 'react';
 
 import { type LabelledSource, type SectionStatus, spellingCorrection } from './review-model';
@@ -75,9 +76,9 @@ export function StatusTag({ status }: { status: SectionStatus }) {
   }
 }
 
-export const EditedTag = () => (
+export const EditedTag = ({ children = 'Modificat de tine' }: { children?: ReactNode }) => (
   <Tag tone="muted" icon={<Pencil aria-hidden="true" />} testId="edited-tag">
-    Modificat de tine
+    {children}
   </Tag>
 );
 
@@ -110,29 +111,35 @@ export function SourceButton({
   sources,
   onOpen,
   label = 'Sursa',
+  outlined = false,
 }: {
   sources: LabelledSource[];
   onOpen: () => void;
   label?: string;
+  outlined?: boolean;
 }) {
   const prefetch = use(SourcePrefetchContext);
   const intent = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(intent.current), []);
   if (sources.length === 0) return null;
   const warm = () => prefetch?.(sources[0]!);
-  return (
-    <LinkButton
-      data-testid="review-source"
-      onPointerEnter={() => {
-        clearTimeout(intent.current);
-        intent.current = setTimeout(warm, pointerIntentMs);
-      }}
-      onPointerLeave={() => clearTimeout(intent.current)}
-      onFocus={warm}
-      onClick={onOpen}
-    >
+  const handlers = {
+    'data-testid': 'review-source',
+    onPointerEnter: () => {
+      clearTimeout(intent.current);
+      intent.current = setTimeout(warm, pointerIntentMs);
+    },
+    onPointerLeave: () => clearTimeout(intent.current),
+    onFocus: warm,
+    onClick: onOpen,
+  };
+  return outlined ? (
+    <Button type="button" variant="outline" {...handlers}>
+      <FileSearch aria-hidden="true" />
       {label}
-    </LinkButton>
+    </Button>
+  ) : (
+    <LinkButton {...handlers}>{label}</LinkButton>
   );
 }
 

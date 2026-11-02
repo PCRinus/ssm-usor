@@ -100,6 +100,7 @@ export type RowState = {
   instruction: ProposedInstruction;
   included: boolean;
   choice: Choice | null;
+  choicePicked: boolean;
   // Whether confirming takes the library's module as it is.
   usesLibrary: boolean;
   title: string;
@@ -119,6 +120,7 @@ export function rowState(
     instruction,
     included: change?.included !== false,
     choice,
+    choicePicked: change?.choice !== undefined,
     usesLibrary:
       instruction.status === 'identical' ||
       (instruction.status === 'similar' && choice !== 'add_new'),
@@ -201,6 +203,15 @@ export const unreadReason = (reason: InstructionsProposalUnreadItem['reason']) =
 
 const endSentence = (text: string) => (/[.!?]$/u.test(text) ? text : `${text}.`);
 
+function tableRowsLine(articles: readonly number[]) {
+  const names = joinNames(
+    articles.map((article, index) => `${index === 0 ? 'Art.' : 'art.'} ${article}`)
+  );
+  return articles.length === 1
+    ? `${names} avea un tabel în document. L-am trecut ca text, cu celulele despărțite de o liniuță: verifică-l.`
+    : `${names} aveau tabele în document. Le-am trecut ca text, cu celulele despărțite de o liniuță: verifică-le.`;
+}
+
 export function flagText(flag: ProposedInstruction['flags'][number]) {
   switch (flag.kind) {
     case 'no_numbering':
@@ -210,7 +221,7 @@ export function flagText(flag: ProposedInstruction['flags'][number]) {
     case 'text_before_first_article':
       return `${splitFlagMessages.text_before_first_article}.`;
     case 'table_row':
-      return `Art. ${flag.article} vine dintr-un rând de tabel: celulele lui sunt unite cu o liniuță.`;
+      return tableRowsLine([flag.article]);
     case 'empty_article':
       return `Art. ${flag.number} din pachet nu are text, poate doar o imagine, și nu a fost preluat. Articolele de după el au aici numărul cu unu mai mic.`;
     case 'end_not_found':
@@ -227,12 +238,7 @@ export function flagLines(flags: readonly ProposedInstruction['flags'][number][]
   const rows = flags.flatMap((flag) => (flag.kind === 'table_row' ? [flag.article] : []));
   const articles = [...new Set(rows)];
   const lines = [...new Set(flags.filter((flag) => flag.kind !== 'table_row').map(flagText))];
-  if (rows.length === 1) lines.unshift(flagText({ kind: 'table_row', article: rows[0]! }));
-  else if (rows.length > 1) {
-    lines.unshift(
-      `${joinNames(articles.map((article) => `Art. ${article}`))} ${articles.length === 1 ? 'are' : 'au'} rânduri de tabel făcute paragrafe: celulele lor sunt unite cu o liniuță.`
-    );
-  }
+  if (articles.length > 0) lines.unshift(tableRowsLine(articles));
   return lines;
 }
 
