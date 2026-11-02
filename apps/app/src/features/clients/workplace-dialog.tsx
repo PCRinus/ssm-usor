@@ -370,7 +370,7 @@ function WorkplaceForm({
                 <h3 id="workplace-fire-title" className="font-semibold">
                   Apărare împotriva incendiilor
                 </h3>
-                <HelpLink topic="detalii.date-psi" label="Ajutor: Apărare împotriva incendiilor" />
+                <HelpLink topic="detalii.date-su" label="Ajutor: Apărare împotriva incendiilor" />
               </div>
               <p className="text-sm text-muted-foreground">
                 Documentele SU cer câmpurile fără „opțional”. Poți salva și fără ele.

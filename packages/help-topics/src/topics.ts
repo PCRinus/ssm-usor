@@ -271,8 +271,8 @@ export const helpTopics = {
   'detalii.contact-telefon': { path: '/clienti/detalii/', anchor: 'telefonul' },
   'detalii.date-firma': { path: '/clienti/detalii/', anchor: 'datele-firmei' },
   'detalii.date-lipsa': { path: '/clienti/detalii/', anchor: 'când-documentele-cer-date-de-aici' },
-  'detalii.date-psi': { path: '/clienti/detalii/puncte-de-lucru/', anchor: 'datele-su' },
-  'detalii.date-psi-incomplete': {
+  'detalii.date-su': { path: '/clienti/detalii/puncte-de-lucru/', anchor: 'datele-su' },
+  'detalii.date-su-incomplete': {
     path: '/clienti/detalii/puncte-de-lucru/',
     anchor: 'date-su-incomplete',
   },

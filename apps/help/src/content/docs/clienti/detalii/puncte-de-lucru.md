@@ -16,7 +16,7 @@ topics:
     heading: Când adresa sediului diferă
   - id: detalii.arhivare-punct
     heading: Arhivarea unui punct de lucru
-  - id: detalii.date-psi
+  - id: detalii.date-su
     heading: Datele SU
   - id: detalii.activitate
     heading: Activitatea
@@ -32,7 +32,7 @@ topics:
     heading: Materialele, sursele de aprindere și echipamentele
   - id: detalii.masuri-specifice
     heading: Măsurile specifice
-  - id: detalii.date-psi-incomplete
+  - id: detalii.date-su-incomplete
     heading: Date SU incomplete
 sources:
   - docs/architecture/adr-018-fire-safety-means.md
