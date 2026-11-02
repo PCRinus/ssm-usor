@@ -178,6 +178,19 @@ describe('splitInstruction on pasted text', () => {
     expect(result.body.blocks).toHaveLength(1);
   });
 
+  it('keeps a first article that repeats the given title', () => {
+    const result = splitInstruction(
+      '1. Lucrul la înălțime se execută numai de personal instruit.\n2. Se folosesc centuri.\n3. Se verifică schela.',
+      { title: 'Lucrul la înălțime' }
+    );
+    expect(result.title).toBeNull();
+    expect(result.articles.map((article) => article.sourceNumber)).toEqual([1, 2, 3]);
+    expect(result.body.blocks[0]).toEqual({
+      kind: 'article',
+      paragraphs: ['Lucrul la înălțime se execută numai de personal instruit.'],
+    });
+  });
+
   it('takes typed bare numbers, and a list inside an article that starts again from 1', () => {
     const result = splitInstruction(
       [

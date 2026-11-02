@@ -67,6 +67,8 @@ const marker = /^(?:\(?[\p{Ll}]{1,4}\)|\(?\d{1,3}(?:\.\d{1,3})*[.)]|[–—\-•
 const sentenceEnd = /[.;!?,]$/u;
 const wrappedEnd = /[.;:!?]$/u;
 const headingLength = 120;
+// Annex titles that spell out the kind of premises run past a heading's length.
+const titleLength = 200;
 const wrappedLineLength = 70;
 
 const collapse = (text: string) => text.replace(/\s+/gu, ' ').trim();
@@ -142,11 +144,11 @@ function dropLeading(items: Item[], options: SplitOptions) {
   let afterLabel = false;
   let at = 0;
   const titleLike = (text: string) => {
+    if (startsSomething(text) || sentenceEnd.test(text) || text.length > titleLength) {
+      return false;
+    }
     const folded = foldText(text);
-    return (
-      (knownTitle.length >= 4 && folded.includes(knownTitle)) ||
-      (/^instructiun/u.test(folded) && !/[.;!?]$/u.test(text))
-    );
+    return (knownTitle.length >= 4 && folded.includes(knownTitle)) || /^instructiun/u.test(folded);
   };
   while (at < items.length) {
     const item = items[at]!;
