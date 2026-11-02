@@ -55,7 +55,7 @@ type SavedModule = InstructionModuleResponse['module'];
 
 const actsByDomain: Record<InstructionDomain, string> = {
   ssm: 'Legea nr. 319/2006 și H.G. nr. 1425/2006',
-  psi: 'Legea nr. 307/2006 și normele generale aprobate prin O.M.A.I. nr. 163/2007',
+  su: 'Legea nr. 307/2006 și normele generale aprobate prin O.M.A.I. nr. 163/2007',
 };
 
 const clientParams = { page: 1, pageSize: maxPageSize, sort: 'legalName', order: 'asc' } as const;
@@ -192,7 +192,7 @@ export function InstructionForm({
         leaving.current = true;
         toast.success('Instrucțiunea a fost adăugată în bibliotecă.');
         await navigate({
-          to: '/instructions/$moduleId',
+          to: '/instructiuni/$moduleId',
           params: { moduleId: created.module.id },
           replace: true,
         });

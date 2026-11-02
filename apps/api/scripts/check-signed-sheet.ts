@@ -205,7 +205,7 @@ async function cleanUp() {
     await db.from('signed_sheet_rows').delete().in('signed_sheet_id', ids);
     await db.from('signed_sheets').delete().in('id', ids);
     if (prefix) {
-      for (const folder of ['ssm-1', 'ssm-2', 'psi-1']) {
+      for (const folder of ['ssm-1', 'ssm-2', 'su-1']) {
         const listed = await db.storage.from('documents').list(`${prefix}/${folder}`);
         const paths = (listed.data ?? []).map((file) => `${prefix}/${folder}/${file.name}`);
         if (paths.length > 0) await db.storage.from('documents').remove(paths);
@@ -332,15 +332,15 @@ try {
   const second = (await currentSheetPdf(ctx, employee.id, 'ssm', { sequence: 2 }))!;
   writeFileSync(join(out, 'ssm-2.pdf'), second.pdf);
 
-  const fire = await record(employee, 'psi', 'periodic', '2026-04-10');
+  const fire = await record(employee, 'su', 'periodic', '2026-04-10');
   await placeRecord(ctx, fire);
   await applySignature(ctx, fire, 'trainee', trainee, checked(trainee));
   await applySignature(ctx, fire, 'trainer', trainer, checked(trainer));
-  const firePdf = (await currentSheetPdf(ctx, employee.id, 'psi'))!.pdf;
-  writeFileSync(join(out, 'psi-1.pdf'), firePdf);
+  const firePdf = (await currentSheetPdf(ctx, employee.id, 'su'))!.pdf;
+  writeFileSync(join(out, 'su-1.pdf'), firePdf);
   const fireValidations = await ctx.signer!.validate(new Uint8Array(firePdf).buffer, [chain]);
   console.log(
-    `psi: ${fireValidations.map((each) => `${each.field} ${each.intact && each.modificationsPermitted && each.trusted}`).join(', ')}`
+    `su: ${fireValidations.map((each) => `${each.field} ${each.intact && each.modificationsPermitted && each.trusted}`).join(', ')}`
   );
 
   if (

@@ -145,11 +145,11 @@ export function ClientForm({ lead, newStage }: { lead?: Client; newStage?: Clien
           </Button>
           <Button asChild type="button" variant="ghost" className="h-11">
             {lead ? (
-              <Link to="/leads/$leadId" params={{ leadId: lead.id }}>
+              <Link to="/clienti-potentiali/$leadId" params={{ leadId: lead.id }}>
                 Renunță
               </Link>
             ) : (
-              <Link to={stage === 'lead' ? '/leads' : '/clients'}>Renunță</Link>
+              <Link to={stage === 'lead' ? '/clienti-potentiali' : '/clienti'}>Renunță</Link>
             )}
           </Button>
         </div>

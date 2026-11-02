@@ -51,7 +51,7 @@ export function useClientForm(lead?: Client, newStage: ClientStage = 'client') {
         await queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
         await router.invalidate();
         toast.success('Datele clientului potențial au fost salvate.');
-        await navigate({ to: '/leads/$leadId', params: { leadId: lead.id } });
+        await navigate({ to: '/clienti-potentiali/$leadId', params: { leadId: lead.id } });
         return;
       }
       const created = await create.mutateAsync({ data: toCreateClientRequest(values, stage) });
@@ -60,8 +60,8 @@ export function useClientForm(lead?: Client, newStage: ClientStage = 'client') {
       // A lead opens, because its notes are on its page. The clients list is sorted and
       // paged, so the new row may not be in sight: the toast says it is there.
       await (stage === 'lead'
-        ? navigate({ to: '/leads/$leadId', params: { leadId: created.client.id } })
-        : navigate({ to: '/clients' }));
+        ? navigate({ to: '/clienti-potentiali/$leadId', params: { leadId: created.client.id } })
+        : navigate({ to: '/clienti' }));
     } catch (cause) {
       reportClientSaveError(form, cause, stage);
     }

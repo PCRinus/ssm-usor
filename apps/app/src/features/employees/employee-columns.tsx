@@ -37,7 +37,7 @@ export function employeeColumns(onStatusChange?: (change: EmployeeStatusChange) 
       cell: ({ row, getValue }) => (
         <>
           <Link
-            to="/clients/$clientId/employees/$employeeId"
+            to="/clienti/$clientId/angajati/$employeeId"
             params={{ clientId: row.original.clientId, employeeId: row.original.id }}
             data-testid="employees-open"
             className="hover:underline"
@@ -118,7 +118,7 @@ export function employeeColumns(onStatusChange?: (change: EmployeeStatusChange) 
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild data-testid="employees-edit">
                 <Link
-                  to="/clients/$clientId/employees/$employeeId/edit"
+                  to="/clienti/$clientId/angajati/$employeeId/editare"
                   params={{ clientId: employee.clientId, employeeId: employee.id }}
                 >
                   <Pencil aria-hidden="true" />

@@ -21,11 +21,11 @@
       "coordinator": "Florin Cristian TALOȘ, Administrator",
       "decisions": [
         {
-          "reference": "nr. 5 PSI din 19.01.2026",
+          "reference": "nr. 5 SU din 19.01.2026",
           "title": "Decizia privind organizarea apărării împotriva incendiilor"
         },
         {
-          "reference": "nr. 6 PSI din 19.01.2026",
+          "reference": "nr. 6 SU din 19.01.2026",
           "title": "Decizia privind instruirea în domeniul situațiilor de urgență"
         }
       ],
@@ -201,15 +201,15 @@
       "name": "Florin Cristian TALOȘ"
     },
     "decisionNumbers": {
-      "control": "13 PSI",
-      "instructions": "10 PSI",
-      "openFire": "7 PSI",
-      "organization": "5 PSI",
-      "seasons": "12 PSI",
-      "smoking": "8 PSI",
-      "technician": "9 PSI",
-      "training": "6 PSI",
-      "waste": "11 PSI"
+      "control": "13 SU",
+      "instructions": "10 SU",
+      "openFire": "7 SU",
+      "organization": "5 SU",
+      "seasons": "12 SU",
+      "smoking": "8 SU",
+      "technician": "9 SU",
+      "training": "6 SU",
+      "waste": "11 SU"
     },
     "designated": [
       {
@@ -746,17 +746,17 @@
         {
           "hint": "dacă este organizată și pe baza căror documente",
           "title": "Organizarea alarmării",
-          "value": "da, prin Decizia nr. 5 PSI privind organizarea apărării împotriva incendiilor: Florin Cristian TALOȘ asigură observarea și anunțarea incendiului pe plan intern și prin apel la 112, iar șeful echipei de primă intervenție, Ioana PETRE, anunță 112; fișa de organizare a apărării împotriva incendiilor este afișată la fiecare loc de muncă"
+          "value": "da, prin Decizia nr. 5 SU privind organizarea apărării împotriva incendiilor: Florin Cristian TALOȘ asigură observarea și anunțarea incendiului pe plan intern și prin apel la 112, iar șeful echipei de primă intervenție, Ioana PETRE, anunță 112; fișa de organizare a apărării împotriva incendiilor este afișată la fiecare loc de muncă"
         },
         {
           "hint": "dacă se face periodic (periodicitatea pe categorii de personal), de către cine, dacă este persoană atestată",
           "title": "Instruirea personalului",
-          "value": "da, potrivit Deciziei nr. 6 PSI: personalul administrativ este instruit periodic la 6 luni, câte 2 ore, de cadrul tehnic PSI, Radu STAN, titular al certificatului CT 1234/2024; personalul de execuție este instruit periodic la 3 luni, câte 2 ore, de conducătorii locurilor de muncă (Florin Cristian TALOȘ și Ioana PETRE), cu cadrul tehnic, după caz"
+          "value": "da, potrivit Deciziei nr. 6 SU: personalul administrativ este instruit periodic la 6 luni, câte 2 ore, de cadrul tehnic PSI, Radu STAN, titular al certificatului CT 1234/2024; personalul de execuție este instruit periodic la 3 luni, câte 2 ore, de conducătorii locurilor de muncă (Florin Cristian TALOȘ și Ioana PETRE), cu cadrul tehnic, după caz"
         },
         {
           "hint": "dacă se execută, la ce interval și de către cine",
           "title": "Control intern de prevenire",
-          "value": "da, de persoanele desemnate prin Decizia nr. 5 PSI: șefii locurilor de muncă – zilnic sau pe schimb, la locul de muncă pe care îl conduc; coordonatorul privind apărarea împotriva incendiilor, Florin Cristian TALOȘ – lunar, controlul fiecărui stingător de incendiu"
+          "value": "da, de persoanele desemnate prin Decizia nr. 5 SU: șefii locurilor de muncă – zilnic sau pe schimb, la locul de muncă pe care îl conduc; coordonatorul privind apărarea împotriva incendiilor, Florin Cristian TALOȘ – lunar, controlul fiecărui stingător de incendiu"
         },
         {
           "hint": "dacă există sau dacă este încheiat un contract: obiectul contractului, datele firmei",
@@ -771,27 +771,27 @@
         {
           "hint": "dacă există",
           "title": "Afișare instrucțiuni specifice",
-          "value": "da: instrucțiunile de apărare împotriva incendiilor aprobate prin Decizia nr. 10 PSI se afișează la fiecare loc de muncă"
+          "value": "da: instrucțiunile de apărare împotriva incendiilor aprobate prin Decizia nr. 10 SU se afișează la fiecare loc de muncă"
         },
         {
           "hint": "dacă există și ce documente sunt întocmite",
           "title": "Obligațiile administratorului/conducerii",
-          "value": "da: stabilite prin Decizia nr. 5 PSI privind organizarea apărării împotriva incendiilor"
+          "value": "da: stabilite prin Decizia nr. 5 SU privind organizarea apărării împotriva incendiilor"
         },
         {
           "hint": "dacă există și ce documente sunt întocmite pentru reglementarea lor",
           "title": "Obligațiile cadrului tehnic/inspectorului/personalului din structura cu atribuții de apărare împotriva incendiilor/de protecție civilă",
-          "value": "da: Decizia nr. 9 PSI privind cadrul tehnic PSI, cu obligațiile din anexa ei, și Decizia nr. 5 PSI privind organizarea apărării împotriva incendiilor, pentru coordonator și echipa de primă intervenție"
+          "value": "da: Decizia nr. 9 SU privind cadrul tehnic PSI, cu obligațiile din anexa ei, și Decizia nr. 5 SU privind organizarea apărării împotriva incendiilor, pentru coordonator și echipa de primă intervenție"
         },
         {
           "hint": "reglementările pentru lucrul cu foc deschis, fumat, deșeuri, sezonul rece și perioadele caniculare; căile de acces, de evacuare și de intervenție",
           "title": "Ordinea interioară",
-          "value": "reglementată prin Decizia nr. 7 PSI privind lucrul cu foc deschis, Decizia nr. 8 PSI privind fumatul și Decizia nr. 11 PSI privind colectarea deșeurilor; asigurarea căilor de acces, de evacuare și de intervenție: DE COMPLETAT"
+          "value": "reglementată prin Decizia nr. 7 SU privind lucrul cu foc deschis, Decizia nr. 8 SU privind fumatul și Decizia nr. 11 SU privind colectarea deșeurilor; asigurarea căilor de acces, de evacuare și de intervenție: DE COMPLETAT"
         },
         {
           "hint": "potrivit reglementărilor în domeniu",
           "title": "Documente specifice de apărare împotriva incendiilor",
-          "value": "– Decizia nr. 5 PSI privind organizarea apărării împotriva incendiilor\n– Decizia nr. 6 PSI privind instruirea în domeniul situațiilor de urgență\n– Decizia nr. 7 PSI privind lucrul cu foc deschis\n– Decizia nr. 8 PSI privind fumatul\n– Decizia nr. 9 PSI privind cadrul tehnic PSI\n– Decizia nr. 10 PSI privind instrucțiunile de apărare împotriva incendiilor\n– Decizia nr. 11 PSI privind colectarea deșeurilor\n– Instrucțiuni proprii în domeniul situațiilor de urgență\n– Tematica de instruire în domeniul situațiilor de urgență\n– Test la angajare\n– Test anual\n– Lista mijloacelor de apărare împotriva incendiilor\n– Organizarea apărării împotriva incendiilor la locul de muncă\n– Lista substanțelor periculoase\n– Evidența exercițiilor de intervenție, a controalelor și a permiselor de lucru cu foc\n– Permis de lucru cu foc\n– Registru de evidență a controlului stingătoarelor de incendiu"
+          "value": "– Decizia nr. 5 SU privind organizarea apărării împotriva incendiilor\n– Decizia nr. 6 SU privind instruirea în domeniul situațiilor de urgență\n– Decizia nr. 7 SU privind lucrul cu foc deschis\n– Decizia nr. 8 SU privind fumatul\n– Decizia nr. 9 SU privind cadrul tehnic PSI\n– Decizia nr. 10 SU privind instrucțiunile de apărare împotriva incendiilor\n– Decizia nr. 11 SU privind colectarea deșeurilor\n– Instrucțiuni proprii în domeniul situațiilor de urgență\n– Tematica de instruire în domeniul situațiilor de urgență\n– Test la angajare\n– Test anual\n– Lista mijloacelor de apărare împotriva incendiilor\n– Organizarea apărării împotriva incendiilor la locul de muncă\n– Lista substanțelor periculoase\n– Evidența exercițiilor de intervenție, a controalelor și a permiselor de lucru cu foc\n– Permis de lucru cu foc\n– Registru de evidență a controlului stingătoarelor de incendiu"
         },
         {
           "hint": "potrivit reglementărilor în domeniu",
@@ -1115,12 +1115,12 @@
         "postsText": "Contabil",
         "sessions": [
           {
-            "content": "IPSU art. 1–129; instrucțiunile afișate la locul de muncă (Decizia nr. 10 PSI); organizarea apărării împotriva incendiilor la locul de muncă",
+            "content": "IPSU art. 1–129; instrucțiunile afișate la locul de muncă (Decizia nr. 10 SU); organizarea apărării împotriva incendiilor la locul de muncă",
             "duration": "120 min",
             "month": "FEBRUARIE"
           },
           {
-            "content": "IPSU art. 130–257; instrucțiunile afișate la locul de muncă (Decizia nr. 10 PSI); organizarea apărării împotriva incendiilor la locul de muncă; testare.",
+            "content": "IPSU art. 130–257; instrucțiunile afișate la locul de muncă (Decizia nr. 10 SU); organizarea apărării împotriva incendiilor la locul de muncă; testare.",
             "duration": "120 min",
             "month": "AUGUST"
           }
@@ -1144,22 +1144,22 @@
         "postsText": "Sudor",
         "sessions": [
           {
-            "content": "IPSU art. 1–73; I.P.S.U. Lucrul cu foc deschis, art. 1–7; instrucțiunile afișate la locul de muncă (Decizia nr. 10 PSI); organizarea apărării împotriva incendiilor la locul de muncă",
+            "content": "IPSU art. 1–73; I.P.S.U. Lucrul cu foc deschis, art. 1–7; instrucțiunile afișate la locul de muncă (Decizia nr. 10 SU); organizarea apărării împotriva incendiilor la locul de muncă",
             "duration": "120 min",
             "month": "FEBRUARIE"
           },
           {
-            "content": "IPSU art. 74–146; I.P.S.U. Lucrul cu foc deschis, art. 1–7; instrucțiunile afișate la locul de muncă (Decizia nr. 10 PSI); organizarea apărării împotriva incendiilor la locul de muncă",
+            "content": "IPSU art. 74–146; I.P.S.U. Lucrul cu foc deschis, art. 1–7; instrucțiunile afișate la locul de muncă (Decizia nr. 10 SU); organizarea apărării împotriva incendiilor la locul de muncă",
             "duration": "120 min",
             "month": "MAI"
           },
           {
-            "content": "IPSU art. 147–214; I.P.S.U. Lucrul cu foc deschis, art. 1–7; instrucțiunile afișate la locul de muncă (Decizia nr. 10 PSI); organizarea apărării împotriva incendiilor la locul de muncă",
+            "content": "IPSU art. 147–214; I.P.S.U. Lucrul cu foc deschis, art. 1–7; instrucțiunile afișate la locul de muncă (Decizia nr. 10 SU); organizarea apărării împotriva incendiilor la locul de muncă",
             "duration": "120 min",
             "month": "AUGUST"
           },
           {
-            "content": "IPSU art. 215–257; I.P.S.U. Lucrul cu foc deschis, art. 1–7; instrucțiunile afișate la locul de muncă (Decizia nr. 10 PSI); organizarea apărării împotriva incendiilor la locul de muncă; testare.",
+            "content": "IPSU art. 215–257; I.P.S.U. Lucrul cu foc deschis, art. 1–7; instrucțiunile afișate la locul de muncă (Decizia nr. 10 SU); organizarea apărării împotriva incendiilor la locul de muncă; testare.",
             "duration": "120 min",
             "month": "NOIEMBRIE"
           }

@@ -63,7 +63,7 @@ const own = question(11, {
 });
 const fireAnnual = question(1, {
   id: '00024003-0000-4000-8000-000000000001',
-  domain: 'psi',
+  domain: 'su',
   test: 'annual',
 });
 
@@ -86,7 +86,7 @@ const resultRow = {
 const attemptRow = {
   id: 'a7a7a7a7-0000-4000-8000-000000000001',
   participant_id: '9e9e9e9e-0000-4000-8000-000000000001',
-  domain: 'psi',
+  domain: 'su',
   test: 'hiring',
   started_at: '2026-01-08T09:00:00+00:00',
   finished_at: '2026-01-08T09:10:00+00:00',
@@ -102,11 +102,11 @@ const standing = (overrides: Record<string, unknown> = {}) => ({
     ssm_awaiting_test: 'hiring',
     ssm_last_passed_on: null,
     ssm_hiring_trained_on: '2026-01-05',
-    psi_state: 'none',
-    psi_awaiting_test: null,
-    psi_last_passed_on: null,
-    psi_due_on: null,
-    psi_hiring_trained_on: null,
+    su_state: 'none',
+    su_awaiting_test: null,
+    su_last_passed_on: null,
+    su_due_on: null,
+    su_hiring_trained_on: null,
     ...overrides,
   },
 });
@@ -245,11 +245,11 @@ describe('GET /organization/tests/questions', () => {
 
   it('narrows the list to one test', async () => {
     mockUpstream({ questions: () => Response.json([fireAnnual]) });
-    const response = await request('/organization/tests/questions?domain=psi&test=annual');
+    const response = await request('/organization/tests/questions?domain=su&test=annual');
     const body = testBankResponseSchema.parse(await response.json());
     expect(body.tests.map((test) => test.code)).toEqual(['TPSU']);
     const query = new URL(String(calls('/rest/v1/test_questions')[0]![0])).searchParams;
-    expect(query.get('domain')).toBe('eq.psi');
+    expect(query.get('domain')).toBe('eq.su');
     expect(query.get('test')).toBe('eq.annual');
   });
 
@@ -455,10 +455,10 @@ describe('GET /clients/{clientId}/employees/{employeeId}/tests', () => {
       }),
     ]);
     expect(body.ssm.attempts).toEqual([]);
-    expect(body.psi.attempts).toEqual([
+    expect(body.su.attempts).toEqual([
       {
         id: attemptRow.id,
-        domain: 'psi',
+        domain: 'su',
         test: 'hiring',
         startedAt: attemptRow.started_at,
         finishedAt: attemptRow.finished_at,
@@ -546,15 +546,15 @@ describe('POST /clients/{clientId}/employees/{employeeId}/tests/results', () => 
       employees: () =>
         Response.json(
           standing({
-            psi_state: null,
-            psi_last_passed_on: '2025-01-06',
-            psi_hiring_trained_on: '2025-01-05',
+            su_state: null,
+            su_last_passed_on: '2025-01-06',
+            su_hiring_trained_on: '2025-01-05',
           })
         ),
     });
     const response = await request(`${testsPath}/results`, 'POST', {
       ...paper,
-      domain: 'psi',
+      domain: 'su',
       test: 'annual',
       takenOn: '2026-01-10',
     });
@@ -569,21 +569,21 @@ describe('POST /clients/{clientId}/employees/{employeeId}/tests/results', () => 
       employees: () =>
         Response.json(
           standing({
-            psi_state: 'unverified',
-            psi_last_passed_on: null,
-            psi_hiring_trained_on: '2019-03-05',
+            su_state: 'unverified',
+            su_last_passed_on: null,
+            su_hiring_trained_on: '2019-03-05',
           })
         ),
     });
     const response = await request(`${testsPath}/results`, 'POST', {
       ...paper,
-      domain: 'psi',
+      domain: 'su',
       test: 'annual',
       takenOn: '2025-03-04',
     });
     expect(response.status).toBe(201);
     expect(sent('/rest/v1/test_results', 'POST')).toMatchObject({
-      domain: 'psi',
+      domain: 'su',
       test: 'annual',
       taken_on: '2025-03-04',
       source: 'paper',
@@ -618,29 +618,29 @@ describe('POST /clients/{clientId}/employees/{employeeId}/tests/results', () => 
       employees: () =>
         Response.json(
           standing({
-            psi_state: 'passed',
-            psi_last_passed_on: '2025-03-04',
-            psi_hiring_trained_on: '2019-03-05',
+            su_state: 'passed',
+            su_last_passed_on: '2025-03-04',
+            su_hiring_trained_on: '2019-03-05',
           })
         ),
       results: (init, url) =>
         init?.method === 'POST'
-          ? Response.json({ ...resultRow, domain: 'psi' }, { status: 201 })
+          ? Response.json({ ...resultRow, domain: 'su' }, { status: 201 })
           : url.searchParams.get('test') === 'eq.hiring'
             ? Response.json([])
             : undefined,
     });
     const response = await request(`${testsPath}/results`, 'POST', {
       ...paper,
-      domain: 'psi',
+      domain: 'su',
       takenOn: '2019-03-05',
     });
     expect(response.status).toBe(201);
     const lookup = new URL(String(calls('/rest/v1/test_results')[0]![0])).searchParams;
     expect(lookup.get('employee_id')).toBe(`eq.${employeeId}`);
-    expect(lookup.get('domain')).toBe('eq.psi');
+    expect(lookup.get('domain')).toBe('eq.su');
     expect(sent('/rest/v1/test_results', 'POST')).toMatchObject({
-      domain: 'psi',
+      domain: 'su',
       test: 'hiring',
       taken_on: '2019-03-05',
     });

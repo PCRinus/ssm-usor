@@ -204,7 +204,7 @@
   {
     "title": "Lucrul cu foc deschis",
     "group": "hazardous_work",
-    "domain": "psi",
+    "domain": "su",
     "body": {
       "blocks": [
         { "kind": "heading", "text": "Domeniul de aplicare" },

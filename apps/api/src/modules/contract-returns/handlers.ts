@@ -214,8 +214,8 @@ export const uploadContractReturn: RouteHandler<typeof uploadContractReturnRoute
     // A contract can be drafted for a client too, whose contract has a tab of its own.
     const page =
       found.client.stage === 'client'
-        ? `/clients/${found.client.id}/contract`
-        : `/leads/${found.client.id}`;
+        ? `/clienti/${found.client.id}/contract`
+        : `/clienti-potentiali/${found.client.id}`;
     const leadUrl = new URL(page, appOrigin(c.env)).href;
     try {
       await c.env.MAIL.sendSignedCopyReceived({

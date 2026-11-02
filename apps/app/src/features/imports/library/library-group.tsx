@@ -16,7 +16,7 @@ import {
 } from './library-model';
 import { useLibraryParts } from './use-library-parts';
 
-const icons = { ssm: HardHat, psi: Flame } as const;
+const icons = { ssm: HardHat, su: Flame } as const;
 
 export function PartStatusTag({ part }: { part: LibraryPart }) {
   if (isExpired(part)) {
@@ -115,7 +115,7 @@ export function LibraryGroup({ detail }: { detail: ImportDetail }) {
             return (
               <li key={part.part}>
                 <Link
-                  to="/clients/import/$importId/instructions/$domain"
+                  to="/clienti/import/$importId/instructiuni/$domain"
                   params={{ importId: detail.id, domain }}
                   data-testid="import-library-task"
                   data-part={part.part}

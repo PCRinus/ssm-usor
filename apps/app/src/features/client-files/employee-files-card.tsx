@@ -5,7 +5,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import type { ClientFileEmployee } from './client-file-format';
 import { ClientFilesCard } from './client-files-card';
 
-const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
+const clientRoute = getRouteApi('/_authenticated/clienti/$clientId');
 
 export function EmployeeFilesCard({ employee }: { employee: ClientFileEmployee }) {
   const { client } = clientRoute.useLoaderData();

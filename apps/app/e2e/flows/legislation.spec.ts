@@ -28,7 +28,7 @@ test('a document behind its template is regenerated for every client from the Le
   await nameFireSafetyTechnician(organizationId);
   // The fire-safety set, which one other test generates: while this one runs, every document of
   // the type in the stack is behind.
-  await signIn(page, owner.email, `/clients/${clientId}/fire-safety-documents`);
+  await signIn(page, owner.email, `/clienti/${clientId}/documente-su`);
   await page.getByTestId('documents-generate').click();
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-submit').click();
@@ -56,21 +56,19 @@ test('a document behind its template is regenerated for every client from the Le
   ]);
   await expect(navigationTabs.first()).toHaveAttribute('aria-current', 'page');
   const type = page.getByTestId('behind-type').filter({ hasText: title });
-  await expect(type.getByTestId('behind-type-set')).toHaveText('PSI');
+  await expect(type.getByTestId('behind-type-set')).toHaveText('SU');
   await expect(type.getByTestId('behind-client')).toHaveText([
     `${clientName}pe versiunea ${version}`,
   ]);
 
   await type.getByRole('link', { name: clientName }).click();
-  await expect(page).toHaveURL(
-    new RegExp(`/clients/${clientId}/fire-safety-documents\\?section=registers`)
-  );
+  await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/documente-su\\?section=registers`));
   const pointed = page.locator('#document-fire_extinguisher_register');
   await expect(pointed).toHaveAttribute('data-pointed', '');
   await expect(pointed).toBeInViewport();
   await expect(pointed.getByTestId('document-behind')).toBeVisible();
   await expect(page).toHaveURL(
-    new RegExp(`/clients/${clientId}/fire-safety-documents\\?section=registers$`)
+    new RegExp(`/clienti/${clientId}/documente-su\\?section=registers$`)
   );
   await expect(page.getByTestId('nav-legislatie-group')).toHaveCount(0);
 
@@ -85,7 +83,7 @@ test('a document behind its template is regenerated for every client from the Le
   await expect(page.getByTestId('behind-client')).toHaveCount(0);
   await expect(type).toContainText('Niciun client nu mai are acest document în urmă.');
 
-  await page.goto(`/clients/${clientId}/fire-safety-documents`);
+  await page.goto(`/clienti/${clientId}/documente-su`);
   await openDocumentSection(page, '6');
   await expect(row.getByTestId('document-draft')).toBeVisible();
   await expect(row.getByTestId('document-behind')).toHaveCount(0);
@@ -99,7 +97,7 @@ test('a client whose decision prints missing data fails the regeneration with ro
   const clientName = 'S.C. FĂRĂ ZIUA DE SFÂRȘIT A INSTRUIRII PERIODICE E2E S.R.L.';
   const clientId = await createClientCompany(organizationId, clientName);
   await completeDocumentData(organizationId, owner.id, clientId);
-  await signIn(page, owner.email, `/clients/${clientId}/documents`);
+  await signIn(page, owner.email, `/clienti/${clientId}/documente-ssm`);
   await page.getByTestId('documents-generate').click();
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('3');
@@ -127,7 +125,7 @@ test('a client whose decision prints missing data fails the regeneration with ro
   await expect(rows).toHaveText([/^Programul instruirii periodice/]);
 
   await rows.click();
-  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/training$`));
+  await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/instruire$`));
   const dayTo = page.getByTestId('details-day-to');
   await expect(dayTo).toBeFocused();
   await expect(dayTo).toHaveAttribute('data-pointed', '');
@@ -136,7 +134,9 @@ test('a client whose decision prints missing data fails the regeneration with ro
   await expect(page.getByText('Programul de instruire a fost salvat.')).toBeVisible();
 
   await page.getByRole('button', { name: 'Înapoi la document' }).click();
-  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/documents\\?section=decisions`));
+  await expect(page).toHaveURL(
+    new RegExp(`/clienti/${clientId}/documente-ssm\\?section=decisions`)
+  );
   const pointed = page.locator('#document-decision_training');
   await expect(pointed).toHaveAttribute('data-pointed', '');
   await expect(pointed.getByTestId('document-behind')).toBeVisible();

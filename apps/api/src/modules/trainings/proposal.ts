@@ -22,17 +22,17 @@ export const hiringPlans = {
     workplaceClosing:
       'Demonstrații practice privind activitățile desfășurate, echipamentele de muncă utilizate, utilizarea echipamentului individual de protecție, a mijloacelor de alarmare, intervenție, evacuare și de prim ajutor.',
   },
-  psi: {
+  su: {
     introductoryGeneral:
       'IPSU art. 1–104, 131–139, 150–152, 236–245, 253–257; Legea 307/2006; Legea 481/2004; OMAI 712/2005; modul de acțiune în cazul unei situații de urgență; testare.',
     workplaceOpening:
       'IPSU art. 105–130, 140–149, 153–235, 246–252; instrucțiunile afișate la locul de muncă',
     workplaceClosing:
-      '; organizarea apărării împotriva incendiilor la locul de muncă; OMAI 1184/2006; OMAI 163/2007; OMAI 106/2007; OMAI 187/2010; prezentarea riscurilor de incendiu ale locului de muncă și a planului de evacuare; utilizarea stingătorului (demonstrații practice); deciziile interne PSI.',
+      '; organizarea apărării împotriva incendiilor la locul de muncă; OMAI 1184/2006; OMAI 163/2007; OMAI 106/2007; OMAI 187/2010; prezentarea riscurilor de incendiu ale locului de muncă și a planului de evacuare; utilizarea stingătorului (demonstrații practice); deciziile interne în domeniul situațiilor de urgență.',
   },
 } as const;
 
-export const hiringMinutes: Record<TrainingDomain, number> = { ssm: 240, psi: 480 };
+export const hiringMinutes: Record<TrainingDomain, number> = { ssm: 240, su: 480 };
 
 // The floor of H.G. 1425/2006 art. 80^1.
 const supplementaryMinutes = 60;
@@ -157,7 +157,7 @@ function fireWorkplaceMaterial(facts: ProposalFacts) {
   const decision = record(
     record(record(facts.themes?.snapshot)?.fire)?.decisionNumbers
   )?.instructions;
-  const plan = hiringPlans.psi;
+  const plan = hiringPlans.su;
   const reference = typeof decision === 'string' ? ` (Decizia nr. ${plain(decision)})` : '';
   return {
     material: `${plan.workplaceOpening}${reference}${plan.workplaceClosing}`,

@@ -24,6 +24,7 @@ import { TrainingSheetReadiness } from './training-sheet-readiness';
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const employeeId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
 const employeePath = `/clients/${clientId}/employees/${employeeId}`;
+const employeePage = `/clienti/${clientId}/angajati/${employeeId}`;
 
 type Readiness = { ready: boolean; missing: string[]; stored?: boolean; sequences?: number[] };
 const ready: Readiness = { ready: true, missing: [] };
@@ -32,11 +33,11 @@ const sheetStatus = (readiness: Readiness) => ({ stored: false, sequences: [], .
 
 const fetchMock = vi.fn<typeof fetch>();
 
-function mockApi({ ssm = ready, psi = ready }: { ssm?: Readiness; psi?: Readiness } = {}) {
+function mockApi({ ssm = ready, su = ready }: { ssm?: Readiness; su?: Readiness } = {}) {
   fetchMock.mockImplementation(async (input) => {
     const url = new URL(String(input));
     if (url.pathname === `${employeePath}/training-sheets`)
-      return Response.json({ ssm: sheetStatus(ssm), psi: sheetStatus(psi) });
+      return Response.json({ ssm: sheetStatus(ssm), su: sheetStatus(su) });
     throw new Error(`Unexpected request: ${url}`);
   });
 }
@@ -57,7 +58,7 @@ function mount(...domains: TrainingDomain[]) {
   const root = createRootRouteWithContext<RouterContext>()({ component: () => <Outlet /> });
   const tab = createRoute({
     getParentRoute: () => root,
-    path: '/clients/$clientId/employees/$employeeId/training',
+    path: '/clienti/$clientId/angajati/$employeeId/instruire',
     component: () =>
       domains.map((domain) => (
         <TrainingSheetReadiness
@@ -70,13 +71,13 @@ function mount(...domains: TrainingDomain[]) {
   });
   const edit = createRoute({
     getParentRoute: () => root,
-    path: '/clients/$clientId/employees/$employeeId/edit',
+    path: '/clienti/$clientId/angajati/$employeeId/editare',
     component: () => <h1>Modifică angajatul</h1>,
   });
   const router = createRouter({
     routeTree: root.addChildren([tab, edit]),
     context,
-    history: createMemoryHistory({ initialEntries: [`${employeePath}/training`] }),
+    history: createMemoryHistory({ initialEntries: [`${employeePage}/instruire`] }),
   });
   render(
     <AuthContext.Provider value={auth}>
@@ -111,40 +112,40 @@ describe('TrainingSheetReadiness', () => {
     expect(rows.map((row) => [row.textContent, row.getAttribute('href')])).toEqual([
       [
         'Traseul de deplasareDrumul angajatului între domiciliu și locul de muncă, cerut de fișa SSM.',
-        `${employeePath}/edit?focus=commute-route`,
+        `${employeePage}/editare?focus=commute-route`,
       ],
       [
         'Punctul de lucruClientul are mai multe puncte de lucru active; alege-l pe cel al angajatului.',
-        `${employeePath}/edit?focus=workplace`,
+        `${employeePage}/editare?focus=workplace`,
       ],
     ]);
   });
 
   it('starts the way back to the tab when a row is followed, and closes the dialog', async () => {
-    mockApi({ psi: { ready: false, missing: ['employee.workplace'] } });
-    const router = mount('psi');
-    const notice = await screen.findByTestId('training-sheet-psi-missing');
-    expect(notice.textContent).toContain('Fișa PSI nu se poate întocmi încă: 1 dată de completat.');
+    mockApi({ su: { ready: false, missing: ['employee.workplace'] } });
+    const router = mount('su');
+    const notice = await screen.findByTestId('training-sheet-su-missing');
+    expect(notice.textContent).toContain('Fișa SU nu se poate întocmi încă: 1 dată de completat.');
 
     await userEvent.click(within(notice).getByRole('button', { name: 'Vezi ce lipsește' }));
     await userEvent.click(await screen.findByTestId('training-sheet-missing-row'));
 
     await screen.findByRole('heading', { name: 'Modifică angajatul' });
-    expect(router.state.location.pathname).toBe(`${employeePath}/edit`);
+    expect(router.state.location.pathname).toBe(`${employeePage}/editare`);
     expect(router.state.location.search).toEqual({ focus: 'workplace' });
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(currentWayBack('user-one')).toMatchObject({
       clientId,
       to: 'training-sheet',
       employeeId,
-      domain: 'psi',
+      domain: 'su',
     });
   });
 
   it('shows nothing while the sheet can be drawn up', async () => {
-    mockApi({ psi: { ready: false, missing: ['employee.workplace'] } });
-    mount('ssm', 'psi');
-    await screen.findByTestId('training-sheet-psi-missing');
+    mockApi({ su: { ready: false, missing: ['employee.workplace'] } });
+    mount('ssm', 'su');
+    await screen.findByTestId('training-sheet-su-missing');
     expect(screen.queryByTestId('training-sheet-ssm-missing')).toBeNull();
     expect(screen.getAllByRole('status')).toHaveLength(1);
   });

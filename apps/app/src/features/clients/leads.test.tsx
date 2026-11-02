@@ -134,7 +134,7 @@ afterEach(() => {
 describe('leads', () => {
   it('lists the leads with their contact, asking the API for that stage', async () => {
     mockApi();
-    mount('/leads');
+    mount('/clienti-potentiali');
     const row = await screen.findByTestId('leads-row');
     expect(row.textContent).toContain('VELOCITA URBANA SRL');
     expect(row.textContent).toContain('Andrei Pop');
@@ -151,7 +151,7 @@ describe('leads', () => {
       role: 'specialist',
       list: () => Response.json({ error: 'forbidden', message: 'owners' }, { status: 403 }),
     });
-    mount('/leads');
+    mount('/clienti-potentiali');
     expect((await screen.findByTestId('leads-error')).textContent).toContain(
       'Doar administratorii organizației'
     );
@@ -162,7 +162,7 @@ describe('leads', () => {
 
   it('adds a lead with its contact and opens its page', async () => {
     mockApi();
-    const runtime = mount('/leads/new');
+    const runtime = mount('/clienti-potentiali/nou');
     const user = userEvent.setup();
     await screen.findByTestId('new-lead-page');
     await user.type(screen.getByTestId('client-cui'), '41760933');
@@ -178,7 +178,7 @@ describe('leads', () => {
     await user.click(screen.getByTestId('client-submit'));
 
     await screen.findByTestId('lead-page');
-    expect(runtime.router.state.location.pathname).toBe(`/leads/${leadId}`);
+    expect(runtime.router.state.location.pathname).toBe(`/clienti-potentiali/${leadId}`);
     expect(JSON.parse(String(requests('/clients', 'POST')[0]![1]?.body))).toMatchObject({
       stage: 'lead',
       cui: '41760933',
@@ -191,7 +191,7 @@ describe('leads', () => {
 
   it('shows the contact and keeps the notes of the owners', async () => {
     mockApi({ notes: () => Response.json({ notes: { body: 'Sunat 12.09.', updatedAt: 'x' } }) });
-    mount(`/leads/${leadId}`);
+    mount(`/clienti-potentiali/${leadId}`);
     const user = userEvent.setup();
     const contact = await screen.findByTestId('contact-card');
     expect(within(contact).getByTestId('contact-name').textContent).toBe('Andrei Pop');
@@ -216,7 +216,7 @@ describe('leads', () => {
 
   it('heads the page with the name, the CUI and the declared headcount, and the company below', async () => {
     mockApi();
-    mount(`/leads/${leadId}`);
+    mount(`/clienti-potentiali/${leadId}`);
     const page = await screen.findByTestId('lead-page');
     const header = page.querySelector('header')!;
     expect(within(header).getByRole('heading', { level: 1 }).textContent).toBe(
@@ -256,7 +256,7 @@ describe('leads', () => {
         return Response.json({ client: saved });
       },
     });
-    mount(`/leads/${leadId}`);
+    mount(`/clienti-potentiali/${leadId}`);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('company-edit'));
     const address = screen.getByTestId<HTMLInputElement>('client-address');
@@ -280,7 +280,7 @@ describe('leads', () => {
         return Response.json({ client: saved });
       },
     });
-    const runtime = mount(`/leads/${leadId}`);
+    const runtime = mount(`/clienti-potentiali/${leadId}`);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('contact-edit'));
     await user.type(screen.getByTestId('client-contact-phone'), '0722 000 111');
@@ -302,7 +302,7 @@ describe('leads', () => {
       contactPhone: '0722 000 111',
     });
     expect((await screen.findByTestId('contact-phone')).textContent).toBe('0722 000 111');
-    expect(runtime.router.state.location.pathname).toBe(`/leads/${leadId}`);
+    expect(runtime.router.state.location.pathname).toBe(`/clienti-potentiali/${leadId}`);
     expect(screen.getByTestId('lead-edit')).toBeTruthy();
   });
 
@@ -315,7 +315,7 @@ describe('leads', () => {
         return Response.json({ client: promoted });
       },
     });
-    const runtime = mount(`/leads/${leadId}`);
+    const runtime = mount(`/clienti-potentiali/${leadId}`);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('lead-promote'));
     const dialog = await screen.findByTestId('promote-lead-dialog');
@@ -324,7 +324,7 @@ describe('leads', () => {
     await user.click(screen.getByTestId('promote-lead-confirm'));
 
     await screen.findByTestId('client-details-page');
-    expect(runtime.router.state.location.pathname).toBe(`/clients/${leadId}/details`);
+    expect(runtime.router.state.location.pathname).toBe(`/clienti/${leadId}/detalii`);
     expect(await screen.findByText('VELOCITA URBANA SRL este acum client.')).toBeTruthy();
   });
 
@@ -336,7 +336,7 @@ describe('leads', () => {
           { status: 409 }
         ),
     });
-    mount(`/leads/${leadId}`);
+    mount(`/clienti-potentiali/${leadId}`);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('lead-promote'));
     await user.click(await screen.findByTestId('promote-lead-confirm'));
@@ -348,7 +348,7 @@ describe('leads', () => {
 
   it('archives a lead in words about leads, without asking for its documents', async () => {
     mockApi();
-    mount(`/leads/${leadId}`);
+    mount(`/clienti-potentiali/${leadId}`);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('lead-archive'));
     const dialog = await screen.findByTestId('client-archive-dialog');
@@ -363,7 +363,7 @@ describe('leads', () => {
     mockApi({
       get: () => Response.json({ client: { ...lead, archivedAt: '2026-09-21T08:00:00+00:00' } }),
     });
-    mount(`/leads/${leadId}`);
+    mount(`/clienti-potentiali/${leadId}`);
     expect(await screen.findByTestId('lead-archived-banner')).toBeTruthy();
     expect(screen.getByTestId('lead-restore')).toBeTruthy();
     expect(screen.queryByTestId('lead-promote')).toBeNull();
@@ -373,18 +373,18 @@ describe('leads', () => {
     expect(screen.queryByTestId('owner-notes-save')).toBeNull();
   });
 
-  it('sends the address of a lead under /clients to its own page', async () => {
+  it('sends the address of a lead under /clienti to its own page', async () => {
     mockApi();
-    const runtime = mount(`/clients/${leadId}/employees`);
+    const runtime = mount(`/clienti/${leadId}/angajati`);
     await screen.findByTestId('lead-page');
-    expect(runtime.router.state.location.pathname).toBe(`/leads/${leadId}`);
+    expect(runtime.router.state.location.pathname).toBe(`/clienti-potentiali/${leadId}`);
   });
 
   it('sends the address of a promoted lead to the client', async () => {
     mockApi({ get: () => Response.json({ client: promoted }) });
-    const runtime = mount(`/leads/${leadId}`);
+    const runtime = mount(`/clienti-potentiali/${leadId}`);
     await screen.findByTestId('client-details-page');
-    expect(runtime.router.state.location.pathname).toBe(`/clients/${leadId}/details`);
+    expect(runtime.router.state.location.pathname).toBe(`/clienti/${leadId}/detalii`);
   });
 
   it.each([
@@ -394,7 +394,7 @@ describe('leads', () => {
     'shows the contact of a client to the team, and the notes to an owner: %s',
     async (role, seesNotes) => {
       mockApi({ role, get: () => Response.json({ client: promoted }) });
-      mount(`/clients/${leadId}/details`);
+      mount(`/clienti/${leadId}/detalii`);
       await screen.findByTestId('client-details-page');
       expect(screen.getByTestId('contact-name').textContent).toBe('Andrei Pop');
       if (seesNotes) {
@@ -413,7 +413,7 @@ describe('leads', () => {
       role: 'specialist',
       get: () => Response.json({ error: 'not_found', message: 'none' }, { status: 404 }),
     });
-    mount(`/leads/${leadId}`);
+    mount(`/clienti-potentiali/${leadId}`);
     expect(await screen.findByTestId('lead-not-found')).toBeTruthy();
   });
 });

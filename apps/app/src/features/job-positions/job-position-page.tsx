@@ -31,16 +31,14 @@ import { JobPositionPending } from './job-position-pending';
 import { employeeCountLabel, intervalLabel, staffCategoryLabels } from './job-position-schema';
 import { positionSections } from './position-sections';
 
-const jobPositionRoute = getRouteApi(
-  '/_authenticated/clients/$clientId/job-positions/$jobPositionId'
-);
-const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
+const jobPositionRoute = getRouteApi('/_authenticated/clienti/$clientId/posturi/$jobPositionId');
+const clientRoute = getRouteApi('/_authenticated/clienti/$clientId');
 
 const sectionLinks = [
   { hash: positionSections.details, label: 'Postul' },
   { hash: positionSections.equipment, label: 'Echipament de protecție' },
   { hash: positionSections.instructions, label: 'Instrucțiuni SSM' },
-  { hash: positionSections.fireInstructions, label: 'Instrucțiuni PSI' },
+  { hash: positionSections.fireInstructions, label: 'Instrucțiuni SU' },
   { hash: positionSections.riskEvaluation, label: 'Evaluare de risc' },
 ] as const;
 
@@ -61,7 +59,7 @@ export function JobPositionPage() {
     request: apiRequest,
     query: { queryKey: [...getListEquipmentQueryKey(clientId, jobPositionId), userId], enabled },
   });
-  const instructionsQuery = (domain: 'ssm' | 'psi') => ({
+  const instructionsQuery = (domain: 'ssm' | 'su') => ({
     request: apiRequest,
     query: {
       queryKey: [
@@ -80,8 +78,8 @@ export function JobPositionPage() {
   const fireInstructions = useListPositionInstructions(
     clientId,
     jobPositionId,
-    { domain: 'psi' },
-    instructionsQuery('psi')
+    { domain: 'su' },
+    instructionsQuery('su')
   );
   const riskEvaluation = useGetJobPositionRiskEvaluation(clientId, jobPositionId, {
     request: apiRequest,
@@ -111,7 +109,7 @@ export function JobPositionPage() {
               <li key={hash}>
                 <Button asChild variant="secondary" size="sm">
                   <Link
-                    to="/clients/$clientId/job-positions/$jobPositionId"
+                    to="/clienti/$clientId/posturi/$jobPositionId"
                     params={{ clientId, jobPositionId }}
                     hash={hash}
                     data-testid="job-position-section-link"
@@ -146,7 +144,7 @@ export function JobPositionPage() {
           </Fact>
           <Fact label="Angajați pe post">
             <Link
-              to="/clients/$clientId/employees"
+              to="/clienti/$clientId/angajati"
               params={{ clientId }}
               className="hover:underline"
               data-testid="job-position-employees-link"
@@ -178,7 +176,7 @@ export function JobPositionPage() {
       />
       <PositionInstructionsCard
         id={positionSections.fireInstructions}
-        domain="psi"
+        domain="su"
         clientId={clientId}
         position={position}
         userId={userId}
@@ -209,7 +207,7 @@ export function JobPositionNotFound() {
         Nu există niciun post cu acest identificator la acest client, sau a fost arhivat.
       </p>
       <Button asChild className="w-fit">
-        <Link to="/clients/$clientId/job-positions" params={{ clientId }}>
+        <Link to="/clienti/$clientId/posturi" params={{ clientId }}>
           Înapoi la posturi
         </Link>
       </Button>

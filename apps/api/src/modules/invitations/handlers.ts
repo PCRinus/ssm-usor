@@ -108,7 +108,7 @@ async function sendInvitation(c: Context<ApiEnv>, email: string, role: Organizat
     .eq('id', row.id);
   if (hashed.error) throw fromDatabaseError(hashed.error, 'invitation token');
 
-  const acceptUrl = new URL('/accept-invitation', appOrigin(c.env));
+  const acceptUrl = new URL('/invitatie', appOrigin(c.env));
   acceptUrl.searchParams.set('token', token);
 
   try {

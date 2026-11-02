@@ -105,7 +105,7 @@ export function ClientSignatureRequests({
             >
               <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <Link
-                  to="/clients/$clientId/employees/$employeeId"
+                  to="/clienti/$clientId/angajati/$employeeId"
                   params={{ clientId, employeeId: group.employee.id }}
                   className="font-medium hover:underline"
                 >
@@ -160,8 +160,8 @@ function RequestLink({
     <Link
       to={
         domain === 'ssm'
-          ? '/clients/$clientId/employees/$employeeId/training/ssm'
-          : '/clients/$clientId/employees/$employeeId/training/psi'
+          ? '/clienti/$clientId/angajati/$employeeId/instruire/ssm'
+          : '/clienti/$clientId/angajati/$employeeId/instruire/su'
       }
       params={{ clientId, employeeId }}
       className="hover:underline"

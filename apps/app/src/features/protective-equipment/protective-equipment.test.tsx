@@ -76,8 +76,11 @@ const gloves = {
 };
 
 const positionsPath = `/clients/${clientId}/job-positions`;
+const positionsPage = `/clienti/${clientId}/posturi`;
 const welderPath = `${positionsPath}/${welder.id}`;
+const welderPage = `${positionsPage}/${welder.id}`;
 const fitterPath = `${positionsPath}/${fitter.id}`;
+const fitterPage = `${positionsPage}/${fitter.id}`;
 
 type Route = (init: RequestInit | undefined, url: URL) => Response;
 
@@ -143,7 +146,7 @@ const requests = (pathname: string, method: string) =>
     )
     .map(([, init]) => (init?.body ? (JSON.parse(String(init.body)) as unknown) : null));
 
-const mount = (path = welderPath) => mountApp(authFixture(makeSession()).client, path);
+const mount = (path = welderPage) => mountApp(authFixture(makeSession()).client, path);
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -193,11 +196,11 @@ describe("a job position's page", () => {
     expect(
       screen.getAllByTestId('job-position-section-link').map((link) => link.getAttribute('href'))
     ).toEqual([
-      `${welderPath}#details`,
-      `${welderPath}#protective-equipment`,
-      `${welderPath}#instructions`,
-      `${welderPath}#fire-instructions`,
-      `${welderPath}#risk-evaluation`,
+      `${welderPage}#details`,
+      `${welderPage}#protective-equipment`,
+      `${welderPage}#instructions`,
+      `${welderPage}#fire-instructions`,
+      `${welderPage}#risk-evaluation`,
     ]);
     expect(
       [
@@ -211,7 +214,7 @@ describe("a job position's page", () => {
       'Postul',
       expect.stringMatching(/^Echipament de protecție/),
       expect.stringMatching(/^Instrucțiuni specifice SSM/),
-      expect.stringMatching(/^Instrucțiuni specifice PSI/),
+      expect.stringMatching(/^Instrucțiuni specifice SU/),
       expect.stringMatching(/^Evaluare de risc/),
     ]);
   });
@@ -226,7 +229,7 @@ describe("a job position's page", () => {
         );
       }
     });
-    mount(`${welderPath}#instructions`);
+    mount(`${welderPage}#instructions`);
     await screen.findAllByTestId('equipment-row');
     await waitFor(() => expect(equipmentRowsWhenScrolled.at(-1)).toBe(2));
   });
@@ -249,7 +252,7 @@ describe("a job position's page", () => {
 describe("a job position's equipment", () => {
   it('asks for a decision on an undecided post, and records that it needs none', async () => {
     mockApi();
-    mount(fitterPath);
+    mount(fitterPage);
     const user = userEvent.setup();
     const empty = await screen.findByTestId('equipment-empty');
     expect(empty.textContent).toContain('nu se poate genera');
@@ -290,7 +293,7 @@ describe("a job position's equipment", () => {
 
   it('adds an entry, with no duration for a consumable, and offers what was typed before', async () => {
     mockApi();
-    mount(fitterPath);
+    mount(fitterPage);
     const user = userEvent.setup();
 
     await user.click(await screen.findByTestId('equipment-add'));
@@ -365,7 +368,7 @@ describe("a job position's equipment", () => {
 
   it('copies the entries of another post of the client', async () => {
     mockApi();
-    mount(fitterPath);
+    mount(fitterPage);
     const user = userEvent.setup();
 
     await user.click(await screen.findByTestId('equipment-copy'));
@@ -394,7 +397,7 @@ describe("a job position's equipment", () => {
         ),
       equipment: { [fitter.id]: { items: [], needsProtectiveEquipment: null } },
     });
-    mount(fitterPath);
+    mount(fitterPage);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('equipment-decide-none'));
     expect((await screen.findByTestId('equipment-error')).textContent).toContain(

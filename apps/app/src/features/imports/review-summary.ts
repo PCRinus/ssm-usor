@@ -117,7 +117,7 @@ export function sectionDescription(
         (total, state) => total + ((state.values.rooms as string[] | undefined)?.length ?? 0),
         0
       );
-      return `${count(kept.length, 'punct de lucru', 'puncte de lucru')}${rooms > 0 ? `, cu ${rooms === 1 ? 'o încăpere' : `${rooms} încăperi`} pentru mijloacele PSI` : ''}.${others(['workplaces'], 'puncte de lucru')}`;
+      return `${count(kept.length, 'punct de lucru', 'puncte de lucru')}${rooms > 0 ? `, cu ${rooms === 1 ? 'o încăpere' : `${rooms} încăperi`} pentru mijloacele de apărare împotriva incendiilor` : ''}.${others(['workplaces'], 'puncte de lucru')}`;
     }
     case 'job-positions': {
       const kept = included(proposal, changes, 'jobPositions');
@@ -265,7 +265,7 @@ export function confirmLines(proposal: Proposal, changes: Changes) {
       label: workplaces.length === 1 ? 'punct de lucru' : 'puncte de lucru',
       detail:
         rooms > 0
-          ? `Cu ${rooms === 1 ? 'o încăpere' : `${rooms} încăperi`}, locurile mijloacelor PSI`
+          ? `Cu ${rooms === 1 ? 'o încăpere' : `${rooms} încăperi`}, locurile mijloacelor de apărare împotriva incendiilor`
           : 'Cu adresele din documente',
     });
   }
@@ -303,7 +303,7 @@ export function confirmLines(proposal: Proposal, changes: Changes) {
     lines.push({
       icon: 'flame',
       count: fireMeans + installations,
-      label: fireMeans + installations === 1 ? 'mijloc PSI' : 'mijloace PSI',
+      label: fireMeans + installations === 1 ? 'mijloc de apărare' : 'mijloace de apărare',
       detail: 'Stingătoarele, instalațiile și regulile de fumat și de salubritate',
     });
   }

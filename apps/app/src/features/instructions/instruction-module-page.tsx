@@ -32,7 +32,7 @@ function Unavailable({ notFound, onRetry }: { notFound: boolean; onRetry: () => 
       </p>
       <div className="flex gap-2">
         <Button asChild variant="ghost">
-          <Link to="/instructions/ssm">Instrucțiuni proprii</Link>
+          <Link to="/instructiuni/ssm">Instrucțiuni proprii</Link>
         </Button>
         {!notFound && (
           <Button variant="outline" onClick={onRetry}>
@@ -136,7 +136,7 @@ export function NewInstructionPage({ start, userId }: { start: StartValues; user
         onSubmit={(values) => {
           setEditing(false);
           void navigate({
-            to: '/instructions/new',
+            to: '/instructiuni/nou',
             search: { ...values, ...(start.from ? { from: start.from } : {}) },
             replace: true,
           });

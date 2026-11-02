@@ -35,7 +35,7 @@ const module = (
   id: string,
   title: string,
   articles: string[],
-  domain: 'ssm' | 'psi' = 'ssm'
+  domain: 'ssm' | 'su' = 'ssm'
 ): LibraryModule => ({
   id,
   title,
@@ -184,9 +184,9 @@ describe('compareWithLibrary', () => {
   });
 
   it('compares only with the modules of the instruction’s domain', async () => {
-    const psiLadders = module('m-psi', 'Scări', ladderArticles, 'psi');
+    const suLadders = module('m-su', 'Scări', ladderArticles, 'su');
 
-    const [result] = await compare([packed('ssm-1', 'Scări', ladderArticles)], [psiLadders]);
+    const [result] = await compare([packed('ssm-1', 'Scări', ladderArticles)], [suLadders]);
 
     expect(result!.status).toBe('new');
   });
@@ -205,7 +205,7 @@ describe('compareWithLibrary', () => {
   });
 
   it('takes a title as used by a module of the other domain and by the pack itself', async () => {
-    const psiStore = module('m-psi', 'Depozit', ['Stingătorul stă lângă ușă.'], 'psi');
+    const suStore = module('m-su', 'Depozit', ['Stingătorul stă lângă ușă.'], 'su');
 
     const result = await compare(
       [
@@ -213,7 +213,7 @@ describe('compareWithLibrary', () => {
         packed('ssm-2', 'depozit', ['Rafturile se ancorează de perete.']),
         packed('ssm-3', 'Depozit', ['Motostivuitorul circulă cu furcile coborâte.']),
       ],
-      [psiStore]
+      [suStore]
     );
 
     expect(result.map((item) => item.title)).toEqual([

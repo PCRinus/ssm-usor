@@ -17,8 +17,8 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   page,
 }) => {
   const owner = await createAccount('fire-means-owner', 'Petra Stingător');
-  const organizationId = await createOrganization('Mijloace PSI E2E', owner.id);
-  const clientId = await createClientCompany(organizationId, 'CLIENT MIJLOACE PSI E2E SRL');
+  const organizationId = await createOrganization('Mijloace de apărare E2E', owner.id);
+  const clientId = await createClientCompany(organizationId, 'CLIENT MIJLOACE SU E2E SRL');
   await updateClient(clientId, {
     training_first_month: 2,
     training_day_from: 2,
@@ -38,7 +38,7 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
       jobTitle: 'Lucrător comercial',
     });
   }
-  await signIn(page, owner.email, `/clients/${clientId}/training`);
+  await signIn(page, owner.email, `/clienti/${clientId}/instruire`);
   const card = page.getByTestId('fire-safety-card');
   await expect(card.getByTestId('fire-schedule-facts')).toContainText('Necompletat');
   await card.getByTestId('fire-safety-edit').click();
@@ -56,7 +56,7 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   await card.getByTestId('fire-waste-input').fill('uleiuri uzate');
   await card.getByTestId('fire-waste-contractor-input').fill('Salubris SA');
   await card.getByTestId('fire-safety-save').click();
-  await expect(page.getByText('Instruirea PSI a fost salvată.')).toBeVisible();
+  await expect(page.getByText('Instruirea SU a fost salvată.')).toBeVisible();
   await expect(card.getByTestId('fire-schedule-session')).toHaveText(
     'Fiecare instruire durează 2 ore și are loc între zilele 2 și 7 ale lunii.'
   );
@@ -68,7 +68,7 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
     'În curtea interioară, lângă poarta de acces auto'
   );
 
-  await page.getByTestId('client-section').filter({ hasText: 'Mijloace PSI' }).click();
+  await page.getByTestId('client-section').filter({ hasText: 'Mijloace de apărare' }).click();
   const means = page.getByTestId('fire-means-card');
   await expect(means).toHaveCount(1);
   await expect(means.getByTestId('fire-equipment-empty')).toBeVisible();
@@ -150,10 +150,10 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   await expect(page.getByText('Punctul de lucru a fost salvat.')).toBeVisible();
   await expect(row.getByTestId('workplace-fire-incomplete')).toHaveCount(0);
 
-  await page.getByTestId('client-section').filter({ hasText: 'Mijloace PSI' }).click();
+  await page.getByTestId('client-section').filter({ hasText: 'Mijloace de apărare' }).click();
   await expect(means).toContainText('Gelaterie · Str. Goethe 2, Timișoara, Timiș');
   await expect(means.getByTestId('fire-equipment-hint')).toHaveText(
-    '1 stingător · minim orientativ 3 după anexa 6 la Normele generale PSI (OMAI 163/2007)'
+    '1 stingător · minim orientativ 3 după anexa 6 la Normele generale de apărare împotriva incendiilor (OMAI 163/2007)'
   );
   await page.reload();
   await expect(means.getByTestId('fire-building-facts')).toContainText('P+1E');
@@ -166,9 +166,9 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   await workplace.getByTestId('workplace-save').click();
   await expect(workplace).toHaveCount(0);
   await expect(row.getByTestId('workplace-fire-incomplete')).toHaveCount(0);
-  await page.getByTestId('client-section').filter({ hasText: 'Mijloace PSI' }).click();
+  await page.getByTestId('client-section').filter({ hasText: 'Mijloace de apărare' }).click();
   await expect(means.getByTestId('fire-equipment-hint')).toHaveText(
-    '1 stingător · fără normă după anexa 6 la Normele generale PSI (OMAI 163/2007)'
+    '1 stingător · fără normă după anexa 6 la Normele generale de apărare împotriva incendiilor (OMAI 163/2007)'
   );
 
   await page.reload();
@@ -177,7 +177,7 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   await expect(means.getByTestId('fire-maintenance-row')).toHaveCount(1);
   await expect(means.getByTestId('fire-building-edit')).toHaveCount(0);
   await expect(page.getByTestId('fire-substance-row')).toHaveCount(1);
-  await page.goto(`/clients/${clientId}/training`);
+  await page.goto(`/clienti/${clientId}/instruire`);
   await expect(card.getByTestId('fire-smoking-place')).toHaveText(
     'În curtea interioară, lângă poarta de acces auto'
   );
@@ -185,7 +185,7 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   await card.getByTestId('fire-smoking-select').selectOption('forbidden_everywhere');
   await expect(card.getByTestId('fire-smoking-place-input')).toHaveCount(0);
   await card.getByTestId('fire-safety-save').click();
-  await expect(page.getByText('Instruirea PSI a fost salvată.')).toBeVisible();
+  await expect(page.getByText('Instruirea SU a fost salvată.')).toBeVisible();
   await page.reload();
   await expect(page.getByTestId('fire-smoking')).toHaveText('Interzis în toată unitatea');
   await expect(page.getByTestId('fire-smoking-place')).toHaveCount(0);
@@ -195,7 +195,7 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   await expect(card.getByTestId('fire-smoking-place-input')).toHaveValue('');
   await card.getByRole('button', { name: 'Renunță' }).click();
 
-  await page.goto('/organization/authorizations');
+  await page.goto('/organizatie/abilitari');
   await page.getByTestId('authorizations-fireSafetyTechnicianName').fill('Radu Stan');
   await page.getByTestId('authorizations-fireSafetyTechnicianCertificate').fill('CT 123/2024');
   await page

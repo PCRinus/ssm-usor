@@ -1,0 +1,69 @@
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { useState } from 'react';
+import { z } from 'zod';
+
+import { PublicFrame, PublicFrameAction, PublicFrameLink } from '@/app/public-frame';
+import { Notice } from '@/components/notice';
+import { useAuth } from '@/features/auth/auth-context';
+import { isSpentRecoveryLink } from '@/features/auth/auth-errors';
+
+// Public: the link in a signup confirmation email lands here. Opening it does nothing; the
+// token is used when the button is pressed, because mail scanners open links.
+export const Route = createFileRoute('/confirmare-email')({
+  staticData: { title: 'Confirmă adresa de email' },
+  validateSearch: z.object({ token_hash: z.string().optional() }),
+  component: ConfirmEmailPage,
+});
+
+function ConfirmEmailPage() {
+  const { token_hash: tokenHash } = Route.useSearch();
+  const { auth } = useAuth();
+  const navigate = useNavigate();
+  const [state, setState] = useState<'idle' | 'confirming' | 'spent' | 'failed'>('idle');
+
+  async function confirm() {
+    setState('confirming');
+    try {
+      await auth.confirmEmail(tokenHash!);
+      await navigate({ to: '/configurare', replace: true });
+    } catch (cause) {
+      setState(isSpentRecoveryLink(cause) ? 'spent' : 'failed');
+    }
+  }
+
+  if (!tokenHash || state === 'spent') {
+    return (
+      <PublicFrame
+        testId="confirm-email-invalid"
+        title="Linkul nu mai este valabil"
+        description="Linkul de confirmare a expirat sau a fost deja folosit. Dacă ți-ai confirmat deja adresa, autentifică-te. Altfel, creează contul din nou ca să primești un link nou."
+      >
+        <PublicFrameAction asChild data-testid="confirm-go-login">
+          <Link to="/autentificare">Autentifică-te</Link>
+        </PublicFrameAction>
+        <PublicFrameLink to="/inregistrare">Creează cont</PublicFrameLink>
+      </PublicFrame>
+    );
+  }
+
+  return (
+    <PublicFrame
+      testId="confirm-email-page"
+      title="Confirmă adresa de email"
+      description="Un clic și contul tău este gata. Urmează configurarea organizației."
+    >
+      {state === 'failed' && (
+        <Notice variant="destructive" data-testid="confirm-error">
+          Nu am putut confirma adresa. Verifică conexiunea și încearcă din nou.
+        </Notice>
+      )}
+      <PublicFrameAction
+        data-testid="confirm-submit"
+        disabled={state === 'confirming'}
+        onClick={() => void confirm()}
+      >
+        {state === 'confirming' ? 'Se confirmă…' : 'Confirmă adresa'}
+      </PublicFrameAction>
+    </PublicFrame>
+  );
+}

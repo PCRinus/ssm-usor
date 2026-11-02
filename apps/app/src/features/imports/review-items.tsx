@@ -918,7 +918,7 @@ export function FireMeansSection({ context }: { context: ItemsContext }) {
         list="fireInstallations"
         context={context}
         noun={() => 'instalația'}
-        empty="Documentele nu numesc instalații PSI."
+        empty="Documentele nu numesc instalații de apărare împotriva incendiilor."
         render={(state) => (
           <ItemRow
             key={state.item.id}

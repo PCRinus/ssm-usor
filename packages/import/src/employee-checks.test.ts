@@ -86,22 +86,22 @@ describe('rowFlags', () => {
   });
 
   it('flags a fire-safety training under the hours of O.M.A.I. 712/2005', () => {
-    const psi = { ...base, domain: 'psi' as const };
+    const su = { ...base, domain: 'su' as const };
 
     for (const phase of ['introductory_general', 'workplace'] as const) {
-      expect(rowFlags({ ...psi, phase, durationMinutes: 240 }, context)).toEqual([
+      expect(rowFlags({ ...su, phase, durationMinutes: 240 }, context)).toEqual([
         'unusual_duration',
       ]);
-      expect(rowFlags({ ...psi, phase, durationMinutes: 480 }, context)).toEqual([]);
+      expect(rowFlags({ ...su, phase, durationMinutes: 480 }, context)).toEqual([]);
     }
-    expect(rowFlags({ ...psi, phase: 'periodic', durationMinutes: 60 }, context)).toEqual([
+    expect(rowFlags({ ...su, phase: 'periodic', durationMinutes: 60 }, context)).toEqual([
       'unusual_duration',
     ]);
-    expect(rowFlags({ ...psi, phase: 'periodic', durationMinutes: 120 }, context)).toEqual([]);
-    expect(rowFlags({ ...psi, phase: 'supplementary', durationMinutes: 8 }, context)).toEqual([
+    expect(rowFlags({ ...su, phase: 'periodic', durationMinutes: 120 }, context)).toEqual([]);
+    expect(rowFlags({ ...su, phase: 'supplementary', durationMinutes: 8 }, context)).toEqual([
       'unusual_duration',
     ]);
-    expect(rowFlags({ ...psi, phase: 'supplementary', durationMinutes: 30 }, context)).toEqual([]);
+    expect(rowFlags({ ...su, phase: 'supplementary', durationMinutes: 30 }, context)).toEqual([]);
   });
 
   it('flags a date before the hire date or after today, but not a hiring training', () => {

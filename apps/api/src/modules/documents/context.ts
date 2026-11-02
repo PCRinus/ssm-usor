@@ -906,7 +906,7 @@ export function documentApplies(
 
 /**
  * How much of one of a client's documentation sets is issued, counted over what its tab
- * ("Documente SSM" or "Documente PSI") lists: every built-in document that applies, plus any
+ * ("Documente SSM" or "Documente SU") lists: every built-in document that applies, plus any
  * other the set holds. Training themes waiting for generated own instructions count as not done.
  */
 export function documentationProgress(

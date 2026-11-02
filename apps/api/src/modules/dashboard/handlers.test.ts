@@ -26,10 +26,10 @@ const summaryRow = {
   ssm_due: 5,
   ssm_untrained: 2,
   ssm_current: 30,
-  psi_overdue: 1,
-  psi_due: 4,
-  psi_untrained: 6,
-  psi_current: 29,
+  su_overdue: 1,
+  su_due: 4,
+  su_untrained: 6,
+  su_current: 29,
   employees: 40,
   next_due_on: '2026-11-02',
   next_due_count: 4,
@@ -126,7 +126,7 @@ describe('GET /dashboard/summary', () => {
       },
       trainings: {
         ssm: { overdue: 3, due: 5, untrained: 2, current: 30, total: 40 },
-        psi: { overdue: 1, due: 4, untrained: 6, current: 29, total: 40 },
+        su: { overdue: 1, due: 4, untrained: 6, current: 29, total: 40 },
       },
       nextDue: { on: '2026-11-02', employees: 4 },
       portfolio: {

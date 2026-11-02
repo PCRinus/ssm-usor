@@ -34,8 +34,8 @@ export function PrivacyNoticeText({ participation }: { participation: Participat
         )}{' '}
         <Trans>
           Evidența instruirilor de securitate și sănătate în muncă (SSM) și de situații de urgență
-          (PSI) o ține <strong>{organizationName}</strong>, prestatorul de servicii SSM al
-          companiei, în numele ei.
+          (SU) o ține <strong>{organizationName}</strong>, prestatorul de servicii SSM al companiei,
+          în numele ei.
         </Trans>
       </p>
       {administrator ? (

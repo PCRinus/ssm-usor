@@ -137,7 +137,7 @@ function OnboardingForm({ me }: { me: MeResponse }) {
           duration: 10_000,
           action: {
             label: 'Date firmă',
-            onClick: () => void navigate({ to: '/organization/company' }),
+            onClick: () => void navigate({ to: '/organizatie/date-firma' }),
           },
         }
       );
@@ -187,7 +187,7 @@ function OnboardingForm({ me }: { me: MeResponse }) {
 
   async function signOut() {
     await auth.signOut().catch(() => undefined);
-    await navigate({ to: '/login', replace: true });
+    await navigate({ to: '/autentificare', replace: true });
   }
 
   const pending = invitations.data?.items ?? [];

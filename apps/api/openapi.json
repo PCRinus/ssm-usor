@@ -840,11 +840,11 @@
               "ssm": {
                 "$ref": "#/components/schemas/DashboardTrainingCounts"
               },
-              "psi": {
+              "su": {
                 "$ref": "#/components/schemas/DashboardTrainingCounts"
               }
             },
-            "required": ["ssm", "psi"]
+            "required": ["ssm", "su"]
           },
           "nextDue": {
             "type": "object",
@@ -1843,7 +1843,7 @@
                         "intervalSource"
                       ]
                     },
-                    "psi": {
+                    "su": {
                       "type": "object",
                       "properties": {
                         "state": {
@@ -1881,7 +1881,7 @@
                       ]
                     }
                   },
-                  "required": ["ssm", "psi"]
+                  "required": ["ssm", "su"]
                 },
                 "tests": {
                   "type": "object",
@@ -1912,7 +1912,7 @@
                       },
                       "required": ["state", "awaitingTest", "lastPassedOn", "dueOn"]
                     },
-                    "psi": {
+                    "su": {
                       "type": "object",
                       "properties": {
                         "state": {
@@ -1939,7 +1939,7 @@
                       "required": ["state", "awaitingTest", "lastPassedOn", "dueOn"]
                     }
                   },
-                  "required": ["ssm", "psi"]
+                  "required": ["ssm", "su"]
                 }
               },
               "required": [
@@ -2162,7 +2162,7 @@
                       "intervalSource"
                     ]
                   },
-                  "psi": {
+                  "su": {
                     "type": "object",
                     "properties": {
                       "state": {
@@ -2200,7 +2200,7 @@
                     ]
                   }
                 },
-                "required": ["ssm", "psi"]
+                "required": ["ssm", "su"]
               },
               "tests": {
                 "type": "object",
@@ -2231,7 +2231,7 @@
                     },
                     "required": ["state", "awaitingTest", "lastPassedOn", "dueOn"]
                   },
-                  "psi": {
+                  "su": {
                     "type": "object",
                     "properties": {
                       "state": {
@@ -2258,7 +2258,7 @@
                     "required": ["state", "awaitingTest", "lastPassedOn", "dueOn"]
                   }
                 },
-                "required": ["ssm", "psi"]
+                "required": ["ssm", "su"]
               }
             },
             "required": [
@@ -2718,7 +2718,7 @@
                         "intervalSource"
                       ]
                     },
-                    "psi": {
+                    "su": {
                       "type": "object",
                       "properties": {
                         "state": {
@@ -2756,7 +2756,7 @@
                       ]
                     }
                   },
-                  "required": ["ssm", "psi"]
+                  "required": ["ssm", "su"]
                 },
                 "tests": {
                   "type": "object",
@@ -2787,7 +2787,7 @@
                       },
                       "required": ["state", "awaitingTest", "lastPassedOn", "dueOn"]
                     },
-                    "psi": {
+                    "su": {
                       "type": "object",
                       "properties": {
                         "state": {
@@ -2814,7 +2814,7 @@
                       "required": ["state", "awaitingTest", "lastPassedOn", "dueOn"]
                     }
                   },
-                  "required": ["ssm", "psi"]
+                  "required": ["ssm", "su"]
                 },
                 "client": {
                   "type": "object",
@@ -2886,7 +2886,7 @@
                 },
                 "domain": {
                   "type": "string",
-                  "enum": ["ssm", "psi"]
+                  "enum": ["ssm", "su"]
                 },
                 "phase": {
                   "type": "string",
@@ -3106,7 +3106,7 @@
               },
               "domain": {
                 "type": "string",
-                "enum": ["ssm", "psi"]
+                "enum": ["ssm", "su"]
               },
               "phase": {
                 "type": "string",
@@ -3293,7 +3293,7 @@
         "properties": {
           "domain": {
             "type": "string",
-            "enum": ["ssm", "psi"]
+            "enum": ["ssm", "su"]
           },
           "phase": {
             "type": "string",
@@ -3483,7 +3483,7 @@
                     },
                     "domain": {
                       "type": "string",
-                      "enum": ["ssm", "psi"]
+                      "enum": ["ssm", "su"]
                     },
                     "phase": {
                       "type": "string",
@@ -3631,7 +3631,7 @@
             },
             "required": ["ready", "missing", "stored", "sequences"]
           },
-          "psi": {
+          "su": {
             "type": "object",
             "properties": {
               "ready": {
@@ -3658,7 +3658,7 @@
             "required": ["ready", "missing", "stored", "sequences"]
           }
         },
-        "required": ["ssm", "psi"]
+        "required": ["ssm", "su"]
       },
       "MissingSheetDataResponse": {
         "type": "object",
@@ -3704,7 +3704,7 @@
               "properties": {
                 "domain": {
                   "type": "string",
-                  "enum": ["ssm", "psi"]
+                  "enum": ["ssm", "su"]
                 },
                 "test": {
                   "type": "string",
@@ -3731,7 +3731,7 @@
                       },
                       "domain": {
                         "type": "string",
-                        "enum": ["ssm", "psi"]
+                        "enum": ["ssm", "su"]
                       },
                       "test": {
                         "type": "string",
@@ -3825,7 +3825,7 @@
               },
               "domain": {
                 "type": "string",
-                "enum": ["ssm", "psi"]
+                "enum": ["ssm", "su"]
               },
               "test": {
                 "type": "string",
@@ -3907,7 +3907,7 @@
         "properties": {
           "domain": {
             "type": "string",
-            "enum": ["ssm", "psi"]
+            "enum": ["ssm", "su"]
           },
           "test": {
             "type": "string",
@@ -4059,7 +4059,7 @@
                     },
                     "domain": {
                       "type": "string",
-                      "enum": ["ssm", "psi"]
+                      "enum": ["ssm", "su"]
                     },
                     "test": {
                       "type": "string",
@@ -4158,7 +4158,7 @@
                     },
                     "domain": {
                       "type": "string",
-                      "enum": ["ssm", "psi"]
+                      "enum": ["ssm", "su"]
                     },
                     "test": {
                       "type": "string",
@@ -4202,7 +4202,7 @@
             },
             "required": ["status", "results", "attempts"]
           },
-          "psi": {
+          "su": {
             "type": "object",
             "properties": {
               "status": {
@@ -4246,7 +4246,7 @@
                     },
                     "domain": {
                       "type": "string",
-                      "enum": ["ssm", "psi"]
+                      "enum": ["ssm", "su"]
                     },
                     "test": {
                       "type": "string",
@@ -4345,7 +4345,7 @@
                     },
                     "domain": {
                       "type": "string",
-                      "enum": ["ssm", "psi"]
+                      "enum": ["ssm", "su"]
                     },
                     "test": {
                       "type": "string",
@@ -4390,7 +4390,7 @@
             "required": ["status", "results", "attempts"]
           }
         },
-        "required": ["ssm", "psi"]
+        "required": ["ssm", "su"]
       },
       "TestResultResponse": {
         "type": "object",
@@ -4408,7 +4408,7 @@
               },
               "domain": {
                 "type": "string",
-                "enum": ["ssm", "psi"]
+                "enum": ["ssm", "su"]
               },
               "test": {
                 "type": "string",
@@ -4479,7 +4479,7 @@
         "properties": {
           "domain": {
             "type": "string",
-            "enum": ["ssm", "psi"]
+            "enum": ["ssm", "su"]
           },
           "test": {
             "type": "string",
@@ -5037,7 +5037,7 @@
                 },
                 "domain": {
                   "type": "string",
-                  "enum": ["ssm", "psi"]
+                  "enum": ["ssm", "su"]
                 },
                 "archivedAt": {
                   "type": "string",
@@ -5127,7 +5127,7 @@
               },
               "domain": {
                 "type": "string",
-                "enum": ["ssm", "psi"]
+                "enum": ["ssm", "su"]
               },
               "archivedAt": {
                 "type": "string",
@@ -5256,7 +5256,7 @@
           },
           "domain": {
             "type": "string",
-            "enum": ["ssm", "psi"],
+            "enum": ["ssm", "su"],
             "default": "ssm"
           },
           "body": {
@@ -5319,7 +5319,7 @@
           },
           "domain": {
             "type": "string",
-            "enum": ["ssm", "psi"],
+            "enum": ["ssm", "su"],
             "default": "ssm"
           },
           "body": {
@@ -5393,7 +5393,7 @@
           },
           "domain": {
             "type": "string",
-            "enum": ["ssm", "psi"]
+            "enum": ["ssm", "su"]
           },
           "archived": {
             "type": "boolean"
@@ -5428,7 +5428,7 @@
               },
               "domain": {
                 "type": "string",
-                "enum": ["ssm", "psi"]
+                "enum": ["ssm", "su"]
               },
               "archivedAt": {
                 "type": "string",
@@ -5670,7 +5670,7 @@
         "properties": {
           "domain": {
             "type": "string",
-            "enum": ["ssm", "psi"]
+            "enum": ["ssm", "su"]
           },
           "items": {
             "type": "array",
@@ -5716,7 +5716,7 @@
         "properties": {
           "domain": {
             "type": "string",
-            "enum": ["ssm", "psi"],
+            "enum": ["ssm", "su"],
             "default": "ssm"
           },
           "moduleIds": {
@@ -5739,7 +5739,7 @@
           },
           "domain": {
             "type": "string",
-            "enum": ["ssm", "psi"],
+            "enum": ["ssm", "su"],
             "default": "ssm"
           }
         },
@@ -5750,7 +5750,7 @@
         "properties": {
           "domain": {
             "type": "string",
-            "enum": ["ssm", "psi"],
+            "enum": ["ssm", "su"],
             "default": "ssm"
           },
           "needsInstructions": {
@@ -11523,7 +11523,7 @@
               "properties": {
                 "part": {
                   "type": "string",
-                  "enum": ["instructions_ssm", "instructions_psi"]
+                  "enum": ["instructions_ssm", "instructions_su"]
                 },
                 "status": {
                   "type": "string",
@@ -11749,7 +11749,7 @@
                     "properties": {
                       "part": {
                         "type": "string",
-                        "enum": ["instructions_ssm", "instructions_psi"]
+                        "enum": ["instructions_ssm", "instructions_su"]
                       },
                       "status": {
                         "type": "string",
@@ -11966,7 +11966,7 @@
               "properties": {
                 "part": {
                   "type": "string",
-                  "enum": ["instructions_ssm", "instructions_psi"]
+                  "enum": ["instructions_ssm", "instructions_su"]
                 },
                 "status": {
                   "type": "string",
@@ -12036,7 +12036,7 @@
                 "documentDomain": {
                   "type": "string",
                   "nullable": true,
-                  "enum": ["ssm", "psi", null]
+                  "enum": ["ssm", "su", null]
                 },
                 "reason": {
                   "type": "string",
@@ -15250,8 +15250,8 @@
                       "enum": [
                         "ssm_sheet_front",
                         "ssm_periodic",
-                        "psi_sheet_front",
-                        "psi_periodic",
+                        "su_sheet_front",
+                        "su_periodic",
                         "commute_declaration",
                         "other",
                         null
@@ -15284,7 +15284,7 @@
                           },
                           "domain": {
                             "type": "string",
-                            "enum": ["ssm", "psi"]
+                            "enum": ["ssm", "su"]
                           },
                           "phase": {
                             "type": "string",
@@ -17271,11 +17271,11 @@
         "properties": {
           "part": {
             "type": "string",
-            "enum": ["instructions_ssm", "instructions_psi"]
+            "enum": ["instructions_ssm", "instructions_su"]
           },
           "domain": {
             "type": "string",
-            "enum": ["ssm", "psi"]
+            "enum": ["ssm", "su"]
           },
           "status": {
             "type": "string",
@@ -17470,7 +17470,7 @@
         "properties": {
           "domain": {
             "type": "string",
-            "enum": ["ssm", "psi"]
+            "enum": ["ssm", "su"]
           },
           "instructions": {
             "type": "array",
@@ -20952,7 +20952,7 @@
                 },
                 "domain": {
                   "type": "string",
-                  "enum": ["ssm", "psi"]
+                  "enum": ["ssm", "su"]
                 },
                 "phase": {
                   "type": "string",
@@ -21113,7 +21113,7 @@
                 },
                 "required": ["state", "dueOn", "lastPeriodicOn", "intervalMonths", "intervalSource"]
               },
-              "psi": {
+              "su": {
                 "type": "object",
                 "properties": {
                   "state": {
@@ -21145,7 +21145,7 @@
                 "required": ["state", "dueOn", "lastPeriodicOn", "intervalMonths", "intervalSource"]
               }
             },
-            "required": ["ssm", "psi"]
+            "required": ["ssm", "su"]
           }
         },
         "required": ["items", "training"]
@@ -21278,7 +21278,7 @@
                 },
                 "required": ["state", "dueOn", "lastPeriodicOn", "intervalMonths", "intervalSource"]
               },
-              "psi": {
+              "su": {
                 "type": "object",
                 "properties": {
                   "state": {
@@ -21310,7 +21310,7 @@
                 "required": ["state", "dueOn", "lastPeriodicOn", "intervalMonths", "intervalSource"]
               }
             },
-            "required": ["ssm", "psi"]
+            "required": ["ssm", "su"]
           },
           "client": {
             "type": "object",
@@ -21366,7 +21366,7 @@
             },
             "required": ["ready", "missing", "stored", "sequences"]
           },
-          "psi": {
+          "su": {
             "type": "object",
             "properties": {
               "ready": {
@@ -21393,7 +21393,7 @@
             "required": ["ready", "missing", "stored", "sequences"]
           }
         },
-        "required": ["ssm", "psi"]
+        "required": ["ssm", "su"]
       },
       "PortalClientEmployeesResponse": {
         "type": "object",
@@ -21460,7 +21460,7 @@
                         "intervalSource"
                       ]
                     },
-                    "psi": {
+                    "su": {
                       "type": "object",
                       "properties": {
                         "state": {
@@ -21498,7 +21498,7 @@
                       ]
                     }
                   },
-                  "required": ["ssm", "psi"]
+                  "required": ["ssm", "su"]
                 },
                 "tests": {
                   "type": "object",
@@ -21529,7 +21529,7 @@
                       },
                       "required": ["state", "awaitingTest", "lastPassedOn", "dueOn"]
                     },
-                    "psi": {
+                    "su": {
                       "type": "object",
                       "properties": {
                         "state": {
@@ -21556,7 +21556,7 @@
                       "required": ["state", "awaitingTest", "lastPassedOn", "dueOn"]
                     }
                   },
-                  "required": ["ssm", "psi"]
+                  "required": ["ssm", "su"]
                 }
               },
               "required": [
@@ -21670,7 +21670,7 @@
                     },
                     "domain": {
                       "type": "string",
-                      "enum": ["ssm", "psi"]
+                      "enum": ["ssm", "su"]
                     },
                     "test": {
                       "type": "string",
@@ -21769,7 +21769,7 @@
                     },
                     "domain": {
                       "type": "string",
-                      "enum": ["ssm", "psi"]
+                      "enum": ["ssm", "su"]
                     },
                     "test": {
                       "type": "string",
@@ -21820,7 +21820,7 @@
                   },
                   "domain": {
                     "type": "string",
-                    "enum": ["ssm", "psi"]
+                    "enum": ["ssm", "su"]
                   },
                   "test": {
                     "type": "string",
@@ -21877,7 +21877,7 @@
             },
             "required": ["status", "results", "attempts", "inProgress"]
           },
-          "psi": {
+          "su": {
             "type": "object",
             "properties": {
               "status": {
@@ -21921,7 +21921,7 @@
                     },
                     "domain": {
                       "type": "string",
-                      "enum": ["ssm", "psi"]
+                      "enum": ["ssm", "su"]
                     },
                     "test": {
                       "type": "string",
@@ -22020,7 +22020,7 @@
                     },
                     "domain": {
                       "type": "string",
-                      "enum": ["ssm", "psi"]
+                      "enum": ["ssm", "su"]
                     },
                     "test": {
                       "type": "string",
@@ -22071,7 +22071,7 @@
                   },
                   "domain": {
                     "type": "string",
-                    "enum": ["ssm", "psi"]
+                    "enum": ["ssm", "su"]
                   },
                   "test": {
                     "type": "string",
@@ -22129,7 +22129,7 @@
             "required": ["status", "results", "attempts", "inProgress"]
           }
         },
-        "required": ["ssm", "psi"]
+        "required": ["ssm", "su"]
       },
       "TestStudyCard": {
         "type": "object",
@@ -22173,7 +22173,7 @@
               },
               "domain": {
                 "type": "string",
-                "enum": ["ssm", "psi"]
+                "enum": ["ssm", "su"]
               },
               "test": {
                 "type": "string",
@@ -22254,7 +22254,7 @@
           },
           "domain": {
             "type": "string",
-            "enum": ["ssm", "psi"]
+            "enum": ["ssm", "su"]
           },
           "test": {
             "type": "string",
@@ -22554,7 +22554,7 @@
                     },
                     "domain": {
                       "type": "string",
-                      "enum": ["ssm", "psi"]
+                      "enum": ["ssm", "su"]
                     },
                     "phase": {
                       "type": "string",
@@ -22581,7 +22581,7 @@
                     },
                     "domain": {
                       "type": "string",
-                      "enum": ["ssm", "psi"]
+                      "enum": ["ssm", "su"]
                     },
                     "test": {
                       "type": "string",
@@ -23040,7 +23040,7 @@
                     },
                     "domain": {
                       "type": "string",
-                      "enum": ["ssm", "psi"]
+                      "enum": ["ssm", "su"]
                     },
                     "phase": {
                       "type": "string",
@@ -23145,7 +23145,7 @@
                     },
                     "domain": {
                       "type": "string",
-                      "enum": ["ssm", "psi"]
+                      "enum": ["ssm", "su"]
                     },
                     "test": {
                       "type": "string",
@@ -26243,7 +26243,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["ssm", "psi"]
+              "enum": ["ssm", "su"]
             },
             "required": false,
             "name": "domain",
@@ -26346,7 +26346,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["ssm", "psi"]
+              "enum": ["ssm", "su"]
             },
             "required": false,
             "name": "domain",
@@ -26582,7 +26582,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["ssm", "psi"]
+              "enum": ["ssm", "su"]
             },
             "required": true,
             "name": "domain",
@@ -27071,7 +27071,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["ssm", "psi"]
+              "enum": ["ssm", "su"]
             },
             "required": false,
             "name": "domain",
@@ -27288,7 +27288,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["ssm", "psi"]
+              "enum": ["ssm", "su"]
             },
             "required": true,
             "name": "domain",
@@ -27403,7 +27403,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["ssm", "psi"]
+              "enum": ["ssm", "su"]
             },
             "required": false,
             "name": "domain",
@@ -29847,7 +29847,7 @@
       "get": {
         "operationId": "listInstructionModules",
         "summary": "List the organization's instruction modules",
-        "description": "The library (ADR 012), by domain, group and title, each module with its current version and how many current positions apply it. Archived modules are left out unless `archived=true`, which lists only them; `domain` lists the modules of one set only, `ssm` or `psi`.",
+        "description": "The library (ADR 012), by domain, group and title, each module with its current version and how many current positions apply it. Archived modules are left out unless `archived=true`, which lists only them; `domain` lists the modules of one set only, `ssm` or `su`.",
         "security": [
           {
             "bearerAuth": []
@@ -29867,7 +29867,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["ssm", "psi"]
+              "enum": ["ssm", "su"]
             },
             "required": false,
             "name": "domain",
@@ -30678,7 +30678,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["ssm", "psi"],
+              "enum": ["ssm", "su"],
               "default": "ssm"
             },
             "required": false,
@@ -42057,7 +42057,7 @@
       "get": {
         "operationId": "listImportLibraryParts",
         "summary": "A client import's proposals for the library",
-        "description": "One part per domain whose own instructions the sorting found (ADR 034), `instructions_ssm` and `instructions_psi`, each read by a request of its own once the client proposal is ready: its status (`reading`, `to_review`, `nothing_new`, `failed` with `failureReason`, `confirmed`), the proposal from `to_review` on (null before, and once dropped with the import's, 30 days after the client), the member's changes and the version to save on, the counts of identical, similar, new and unread instructions, `positionPosts` (the client post each post the themes name is, as the changes name posts), `expiresAt` (14 days after the client's confirmation, past which a part is no longer confirmed), and `credits`, its readings net of those given back. `posts` are the posts an instruction can apply to: the client proposal's, by their id, with the job position each became once the client is confirmed, and the client's other active posts by their id. `usage`, the models' cost at list price and tokens, is served outside production and, in production, only to a platform admin. An empty list for an employee import or a pack without own instructions.",
+        "description": "One part per domain whose own instructions the sorting found (ADR 034), `instructions_ssm` and `instructions_su`, each read by a request of its own once the client proposal is ready: its status (`reading`, `to_review`, `nothing_new`, `failed` with `failureReason`, `confirmed`), the proposal from `to_review` on (null before, and once dropped with the import's, 30 days after the client), the member's changes and the version to save on, the counts of identical, similar, new and unread instructions, `positionPosts` (the client post each post the themes name is, as the changes name posts), `expiresAt` (14 days after the client's confirmation, past which a part is no longer confirmed), and `credits`, its readings net of those given back. `posts` are the posts an instruction can apply to: the client proposal's, by their id, with the job position each became once the client is confirmed, and the client's other active posts by their id. `usage`, the models' cost at list price and tokens, is served outside production and, in production, only to a platform admin. An empty list for an employee import or a pack without own instructions.",
         "security": [
           {
             "bearerAuth": []
@@ -42171,7 +42171,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["instructions_ssm", "instructions_psi"]
+              "enum": ["instructions_ssm", "instructions_su"]
             },
             "required": true,
             "name": "part",
@@ -42295,7 +42295,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["instructions_ssm", "instructions_psi"]
+              "enum": ["instructions_ssm", "instructions_su"]
             },
             "required": true,
             "name": "part",
@@ -42410,7 +42410,7 @@
       "post": {
         "operationId": "retryImportLibraryPart",
         "summary": "Read a failed library part again",
-        "description": "\"Citește din nou\": a `failed` part of an import ready for review or confirmed goes back to `reading` under its next `attempt` and its message is sent again; the reading is charged again when its request is sent (25 credits for SSM, 10 for PSI), and given back if it fails. The client proposal and the other part are untouched. `409` with `import_part_expired` 14 days after the client was confirmed, when it could no longer be confirmed, and `import_part_not_failed` otherwise; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.",
+        "description": "\"Citește din nou\": a `failed` part of an import ready for review or confirmed goes back to `reading` under its next `attempt` and its message is sent again; the reading is charged again when its request is sent (25 credits for SSM, 10 for SU), and given back if it fails. The client proposal and the other part are untouched. `409` with `import_part_expired` 14 days after the client was confirmed, when it could no longer be confirmed, and `import_part_not_failed` otherwise; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.",
         "security": [
           {
             "bearerAuth": []
@@ -42429,7 +42429,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["instructions_ssm", "instructions_psi"]
+              "enum": ["instructions_ssm", "instructions_su"]
             },
             "required": true,
             "name": "part",
@@ -46715,7 +46715,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["ssm", "psi"]
+              "enum": ["ssm", "su"]
             },
             "required": true,
             "name": "domain",
@@ -47153,7 +47153,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["ssm", "psi"]
+              "enum": ["ssm", "su"]
             },
             "required": true,
             "name": "domain",
@@ -47470,7 +47470,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["ssm", "psi"]
+              "enum": ["ssm", "su"]
             },
             "required": true,
             "name": "domain",
@@ -47584,7 +47584,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["ssm", "psi"]
+              "enum": ["ssm", "su"]
             },
             "required": true,
             "name": "domain",
@@ -47938,7 +47938,7 @@
         "operationId": "getPortalMaterial",
         "tags": ["portal"],
         "summary": "The material a test closes, as its issued PDF",
-        "description": "The newest issued revision of the client's general training material (`ssm`) or fire-safety own instructions (`psi`), the IPSU with its annexes. 404 with reason `material_not_issued` while there is none.",
+        "description": "The newest issued revision of the client's general training material (`ssm`) or fire-safety own instructions (`su`), the IPSU with its annexes. 404 with reason `material_not_issued` while there is none.",
         "security": [
           {
             "bearerAuth": []
@@ -47957,7 +47957,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["ssm", "psi"]
+              "enum": ["ssm", "su"]
             },
             "required": true,
             "name": "domain",

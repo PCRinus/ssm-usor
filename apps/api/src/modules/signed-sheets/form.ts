@@ -147,7 +147,7 @@ type Box = { chars: number; lines: number };
 // placeholders at 8 pt; the hiring material's is drawn here (`materialPlaceholder`) at 10 pt.
 const tableBoxes: Record<TrainingDomain, Record<string, Box>> = {
   ssm: { occupation: { chars: 14, lines: 3 }, material: { chars: 29, lines: 3 } },
-  psi: { occupation: { chars: 16, lines: 3 }, material: { chars: 33, lines: 3 } },
+  su: { occupation: { chars: 16, lines: 3 }, material: { chars: 33, lines: 3 } },
 };
 const testBoxes: Record<string, Box> = {
   material: { chars: 47, lines: 3 },
@@ -238,7 +238,7 @@ export function rowValues(
   };
   if (rowKey === 'h2') {
     hiring.place = place;
-    if (domain === 'psi') hiring.occupation = record.occupation;
+    if (domain === 'su') hiring.occupation = record.occupation;
   }
   const values = { ...boxed(hiring, hiringBoxes, rowKey), ...note };
   if (rowKey !== 'h2') return values;

@@ -154,7 +154,7 @@ describe('GET /clients/{clientId}/job-positions', () => {
     expect(counts!.get('employees.status')).toBe('neq.terminated');
     expect(counts!.get('employees.archived_at')).toBe('is.null');
     expect(counts!.get('instructions.domain')).toBe('eq.ssm');
-    expect(counts!.get('fire_instructions.domain')).toBe('eq.psi');
+    expect(counts!.get('fire_instructions.domain')).toBe('eq.su');
     expect(
       items.map((item) => [
         item.instructionCount,

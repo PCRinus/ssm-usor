@@ -61,7 +61,7 @@ afterEach(() => {
 describe('profile page', () => {
   it('shows the name, the read-only email, and the organization with the role', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, '/profile');
+    mountApp(authFixture(makeSession()).client, '/profil');
 
     const name = (await screen.findByTestId('profile-full-name')) as HTMLInputElement;
     expect(name.value).toBe('Ana Popescu');
@@ -74,7 +74,7 @@ describe('profile page', () => {
 
   it('saves a new name, confirms with a toast, and updates the account menu', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, '/profile');
+    mountApp(authFixture(makeSession()).client, '/profil');
     const user = userEvent.setup();
 
     const name = await screen.findByTestId('profile-full-name');
@@ -91,7 +91,7 @@ describe('profile page', () => {
 
   it('saves the professional title, and clears it when emptied', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, '/profile');
+    mountApp(authFixture(makeSession()).client, '/profil');
     const user = userEvent.setup();
 
     await user.type(
@@ -119,7 +119,7 @@ describe('profile page', () => {
 
   it('lets an account without a profile name itself', async () => {
     mockApi({ fullName: null });
-    mountApp(authFixture(makeSession()).client, '/profile');
+    mountApp(authFixture(makeSession()).client, '/profil');
     const user = userEvent.setup();
 
     const name = (await screen.findByTestId('profile-full-name')) as HTMLInputElement;
@@ -133,7 +133,7 @@ describe('profile page', () => {
 
   it('rejects a name that is too short without calling the API', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, '/profile');
+    mountApp(authFixture(makeSession()).client, '/profil');
     const user = userEvent.setup();
 
     const name = await screen.findByTestId('profile-full-name');
@@ -149,7 +149,7 @@ describe('profile page', () => {
 
   it('reports a failed save inline and keeps what was typed', async () => {
     mockApi({ failSave: true });
-    mountApp(authFixture(makeSession()).client, '/profile');
+    mountApp(authFixture(makeSession()).client, '/profil');
     const user = userEvent.setup();
 
     const name = (await screen.findByTestId('profile-full-name')) as HTMLInputElement;
@@ -167,7 +167,7 @@ describe('profile page', () => {
 describe('account menu', () => {
   it('shows the name and the organization, and links to the profile and the organization', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, '/profile');
+    mountApp(authFixture(makeSession()).client, '/profil');
     const user = userEvent.setup();
 
     await waitFor(() =>
@@ -179,9 +179,9 @@ describe('account menu', () => {
     expect((await screen.findByTestId('account-menu-organization')).textContent).toBe(
       'Protect SSM'
     );
-    expect(screen.getByTestId('account-profile').getAttribute('href')).toBe('/profile');
+    expect(screen.getByTestId('account-profile').getAttribute('href')).toBe('/profil');
     expect(screen.getByTestId('account-organization-link').getAttribute('href')).toBe(
-      '/organization'
+      '/organizatie'
     );
   });
 
@@ -196,10 +196,7 @@ describe('account menu', () => {
         startedAt: Date.now(),
       })
     );
-    const runtime = mountApp(
-      authFixture(makeSession()).client,
-      '/profile?focus=professional-title'
-    );
+    const runtime = mountApp(authFixture(makeSession()).client, '/profil?focus=professional-title');
     const input = await screen.findByTestId('profile-professional-title');
     await waitFor(() => expect(document.activeElement).toBe(input));
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));

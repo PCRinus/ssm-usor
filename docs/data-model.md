@@ -733,7 +733,7 @@ are kept whatever becomes of the employee: a leaver's sheets stay printable.
 
 | `trainings` column                    | Notes                                                                                                                                   |
 | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `domain`                              | `training_domain`: `ssm` or `psi`.                                                                                                      |
+| `domain`                              | `training_domain`: `ssm` or `su`.                                                                                                       |
 | `phase`                               | `training_phase`: `introductory_general`, `workplace`, `periodic` or `supplementary`.                                                   |
 | `held_on`                             | The day it was held. The API refuses a day after today in Romania.                                                                      |
 | `duration_minutes`, `material`        | 1 to 600 minutes; the material taught as text, 1 to 4000 characters. Kept as saved, whatever the themes they were proposed from become. |
@@ -771,12 +771,12 @@ record is editable and deletable like any fact entered by hand. A signed record 
 each domain, `<domain>_last_periodic_on`, `<domain>_workplace_trained_on`,
 `<domain>_has_hiring_training`, `<domain>_due_on` and `<domain>_state`, then, last,
 `<domain>_interval_months` and `<domain>_interval_source` (`position`, `client` or null; never
-`position` for `psi`). Nothing of it is stored.
+`position` for `su`). Nothing of it is stored.
 
 - The interval runs from the day of the last periodic record, else of the latest workplace
   record, else the hire date. A supplementary record never moves it.
 - The interval is, for `ssm`, the position's `training_interval_months`, else the client's
-  interval for the position's staff category; for `psi`, the `client_fire_safety` interval for
+  interval for the position's staff category; for `su`, the `client_fire_safety` interval for
   the category, which a position cannot override. An undecided interval, or a category the
   client does not train, leaves `due_on` null, and so does the lack of a hiring record: an
   `untrained` employee has no due date.
@@ -798,7 +798,7 @@ held_on)` serves a client's list of trainings.
 
 The **knowledge tests** of [ADR 024](architecture/adr-024-knowledge-tests.md) are three: the
 hiring test of each domain and the fire-safety annual test (`knowledge_test`: `hiring` or
-`annual`; `annual` goes with `psi` only, a check on every table below). Their questions live in
+`annual`; `annual` goes with `su` only, a check on every table below). Their questions live in
 a **question bank**, a sitting of ten of them is a **test attempt** a participant takes in the
 portal, and a pass is a **test result**, from an attempt or from the printed test.
 
@@ -897,18 +897,18 @@ that, a change of examiner voids the pending examiner request with `signer_chang
 
 `employee_test_status` is a view, security invoker, beside `employee_training_status`: one row
 per employee with, for each domain, `<domain>_hiring_trained_on`, `<domain>_last_passed_on`,
-`<domain>_state` and `<domain>_awaiting_test`, and `psi_due_on`. Nothing of it is stored.
+`<domain>_state` and `<domain>_awaiting_test`, and `su_due_on`. Nothing of it is stored.
 
 - The hiring training the test closes is the latest `introductory_general` record for `ssm` and
-  the latest `workplace` record for `psi`, whose one test closes both hiring trainings. On a day
+  the latest `workplace` record for `su`, whose one test closes both hiring trainings. On a day
   with records from the app and from paper, the one from the app counts.
-- Any result in the domain is a pass, an annual one included; `psi_due_on` is twelve months
+- Any result in the domain is a pass, an annual one included; `su_due_on` is twelve months
   after the last.
 - The state (`test_state`) is `none` with neither a pass nor a hiring record; with the record and
   no pass, `pending` when the record's training was held in the app (`trainings.source = 'app'`)
   and `unverified` when it came from paper, whose test the sheet closed but the app could not
   verify ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md));
-  `annual_due` for `psi` once `psi_due_on` is today or past, else `passed`. A terminated
+  `annual_due` for `su` once `su_due_on` is today or past, else `passed`. A terminated
   employee has a null state. `<domain>_awaiting_test` is `hiring` while `pending` and `annual`
   while `annual_due`; `unverified` awaits nothing, so no test in the portal and no count on the
   dashboard.
@@ -928,7 +928,7 @@ Errors, raised with these SQLSTATEs:
 
 `portal_material(participant, domain)`, security definer, answers the caller's own client's
 newest issued revision, with its PDF path, of the general training material (`ssm`) or the
-fire-safety own instructions (`psi`): what the portal shows with a test, read by the API with the
+fire-safety own instructions (`su`): what the portal shows with a test, read by the API with the
 secret key, since a participant reads no document row.
 
 ## Protective equipment
@@ -963,11 +963,11 @@ another position.
 one row per own instruction, with a `title`, unique within the organization among the modules in
 use ignoring case, a `module_group` (the category), a `domain` and `archived_at`. The **domain**
 (`instruction_domain`, ADR 012's amendment of 2026-10-11) says whose own instructions annex the
-module: `ssm`, the default, for the occupational safety set's 3.2, or `psi` for the fire-safety
+module: `ssm`, the default, for the occupational safety set's 3.2, or `su` for the fire-safety
 set's 2.1. There is one library and one title space for both. The category belongs to the
 domain, which a check constraint holds: `work_activity`, `work_equipment` and
 `protective_equipment` for `ssm`; `premises_activity`, `installation_equipment` and
-`hazardous_work` for `psi`. Changing the domain therefore changes the category in the same
+`hazardous_work` for `su`. Changing the domain therefore changes the category in the same
 update.
 
 The text is the module's, held as data: `instruction_module_versions` holds one row per save
@@ -1374,21 +1374,21 @@ Created by `20261028100000_imports` and `20261028100100_import_functions`; `read
 `import_files` has one row per uploaded file, with `import_id` and `organization_id` by the
 composite key to `imports (id, organization_id)`, deleted with the import:
 
-| Column                                                             | Notes                                                                                                                                                                           |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `upload_path`, `original_file_name`                                | Where the file sat in the upload, its folders and its name, and the name alone, up to 1024 and 255 characters.                                                                  |
-| `mime_type`, `size_bytes`, `sha256`                                | PDF, `.doc`, `.docx`, JPEG, PNG or HEIC (`image/heic` or `image/heif`); 1 byte to 25 MiB, the trigger holding each kind to its own cap.                                         |
-| `storage_path`                                                     | Generated as `<organization>/<import>/<id>.<extension>` from the type; unique.                                                                                                  |
-| `state`                                                            | `import_file_state`: `uploading` until its object is stored, `uploaded`, `prepared`, then `read`, `set_aside`, `for_employees`, `other_company` or `failed`.                    |
-| `document_kind`, `reason`, `company_name`, `company_cui`           | What the sorting took the file for (a key `packages/import` names), why it was set aside or failed (in Romanian), and the company it names.                                     |
-| `document_domain`                                                  | `instruction_domain` of own instructions and training themes, `ssm` or `psi`, from the sorting: the library part they are read for (ADR 034). Null for other kinds, by a check. |
-| `page_count`, `is_scan`                                            | From the extractor.                                                                                                                                                             |
-| `declared_pages`                                                   | A PDF's pages as the browser counted them for an employee import, which its start is charged for; null for a photograph or when not counted.                                    |
-| `text_path`                                                        | The text taken out of it, beside it as `<id>.txt` or `<id>.json`, by a check.                                                                                                   |
-| `derived_path`, `derived_size_bytes`, `derived_sha256`             | The `.docx` of a `.doc` (`<id>.docx`) or the upright JPEG of a photograph (`<id>.jpg`, a JPEG's `<id>.jpeg`), beside it by a check; the three together.                         |
-| `input_tokens`, `cached_input_tokens`, `output_tokens`, `cost_usd` | The requests that read this file on its own, a scan or a photograph; the import's totals include them.                                                                          |
-| `client_file_id`                                                   | The client file it became in the import folder; set null if that file is deleted.                                                                                               |
-| `source_file_id`                                                   | An employee import's copy of a sheet photograph a confirmed client import found (`for_employees`): that client import's file; set null if that row goes.                        |
+| Column                                                             | Notes                                                                                                                                                                          |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `upload_path`, `original_file_name`                                | Where the file sat in the upload, its folders and its name, and the name alone, up to 1024 and 255 characters.                                                                 |
+| `mime_type`, `size_bytes`, `sha256`                                | PDF, `.doc`, `.docx`, JPEG, PNG or HEIC (`image/heic` or `image/heif`); 1 byte to 25 MiB, the trigger holding each kind to its own cap.                                        |
+| `storage_path`                                                     | Generated as `<organization>/<import>/<id>.<extension>` from the type; unique.                                                                                                 |
+| `state`                                                            | `import_file_state`: `uploading` until its object is stored, `uploaded`, `prepared`, then `read`, `set_aside`, `for_employees`, `other_company` or `failed`.                   |
+| `document_kind`, `reason`, `company_name`, `company_cui`           | What the sorting took the file for (a key `packages/import` names), why it was set aside or failed (in Romanian), and the company it names.                                    |
+| `document_domain`                                                  | `instruction_domain` of own instructions and training themes, `ssm` or `su`, from the sorting: the library part they are read for (ADR 034). Null for other kinds, by a check. |
+| `page_count`, `is_scan`                                            | From the extractor.                                                                                                                                                            |
+| `declared_pages`                                                   | A PDF's pages as the browser counted them for an employee import, which its start is charged for; null for a photograph or when not counted.                                   |
+| `text_path`                                                        | The text taken out of it, beside it as `<id>.txt` or `<id>.json`, by a check.                                                                                                  |
+| `derived_path`, `derived_size_bytes`, `derived_sha256`             | The `.docx` of a `.doc` (`<id>.docx`) or the upright JPEG of a photograph (`<id>.jpg`, a JPEG's `<id>.jpeg`), beside it by a check; the three together.                        |
+| `input_tokens`, `cached_input_tokens`, `output_tokens`, `cost_usd` | The requests that read this file on its own, a scan or a photograph; the import's totals include them.                                                                         |
+| `client_file_id`                                                   | The client file it became in the import folder; set null if that file is deleted.                                                                                              |
+| `source_file_id`                                                   | An employee import's copy of a sheet photograph a confirmed client import found (`for_employees`): that client import's file; set null if that row goes.                       |
 
 `import_page_images` (`20261101170000_employee_sheet_pages`) holds, per `(import_file_id,
 page)`, the `size_bytes` (up to 25 MiB) and `sha256` of the JPEG of a PDF's page an employee
@@ -1605,7 +1605,7 @@ The change functions take only ids the list would still give, and return those t
 [ADR 034](architecture/adr-034-own-instructions-as-app-text.md), "Where it sits in the import")
 holds what a client import proposes for the organization's own libraries, one row per
 `(import_id, part)`, deleted with the import. `part` is `import_library_part`:
-`instructions_ssm` or `instructions_psi`, an enum open to other libraries.
+`instructions_ssm` or `instructions_su`, an enum open to other libraries.
 
 | Column                                                             | Notes                                                                                                                                                                                                   |
 | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -2208,7 +2208,7 @@ those the employees list shows: not archived, `active`, of an active client (sta
 not archived).
 
 `dashboard_summary` has one row per organization the caller can read: `ssm_overdue`,
-`ssm_due`, `ssm_untrained`, `ssm_current` and the same four for `psi`, from
+`ssm_due`, `ssm_untrained`, `ssm_current` and the same four for `su`, from
 `organization_employee_states`; `employees`; `next_due_on`, the nearest due date of an employee
 current or due in either domain, and `next_due_count`, how many employees it concerns;
 `tests_pending`, employees with a hiring test waiting in either domain; `drafts_to_issue`,

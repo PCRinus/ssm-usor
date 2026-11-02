@@ -131,7 +131,7 @@ function InviteEmployeeForm({
             action={
               <Button asChild variant="outline" size="sm">
                 <Link
-                  to="/clients/$clientId/employees/$employeeId/edit"
+                  to="/clienti/$clientId/angajati/$employeeId/editare"
                   params={{ clientId: employee.clientId, employeeId: employee.id }}
                 >
                   Modifică datele
@@ -188,7 +188,7 @@ function InviteEmployeeForm({
                   sendable.length === 0 && (
                     <Button asChild variant="outline" size="sm">
                       <Link
-                        to="/clients/$clientId/employees/$employeeId/edit"
+                        to="/clienti/$clientId/angajati/$employeeId/editare"
                         params={{ clientId: employee.clientId, employeeId: employee.id }}
                       >
                         Modifică datele

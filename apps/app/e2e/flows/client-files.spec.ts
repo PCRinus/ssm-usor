@@ -15,7 +15,7 @@ test('an owner uploads files to a client, renames one and deletes it', async ({ 
   const owner = await createAccount('files-owner', 'Olga Fișiere');
   const organizationId = await createOrganization('Fisiere E2E', owner.id);
   const clientId = await createClientCompany(organizationId, 'S.C. FISIERE E2E S.R.L.');
-  await signIn(page, owner.email, `/clients/${clientId}/details`);
+  await signIn(page, owner.email, `/clienti/${clientId}/detalii`);
   await page.getByRole('link', { name: 'Alte documente' }).click();
   await expect(page.getByTestId('client-files-empty')).toBeVisible();
 
@@ -73,7 +73,7 @@ test('a paper training sheet uploaded on the employee page is listed there and n
     firstName: 'Ion',
     jobTitle: 'Sudor',
   });
-  await signIn(page, owner.email, `/clients/${clientId}/employees`);
+  await signIn(page, owner.email, `/clienti/${clientId}/angajati`);
   await page.getByTestId('employees-open').click();
   const card = page.getByTestId('employee-files-card');
   await expect(card.getByTestId('client-files-empty')).toBeVisible();
@@ -91,7 +91,7 @@ test('a paper training sheet uploaded on the employee page is listed there and n
   await expect(card.getByTestId('client-file-row')).toHaveCount(1);
   await expect(card.getByTestId('client-file-open')).toHaveText('fisa de instruire 2019');
 
-  await page.goto(`/clients/${clientId}/other-documents`);
+  await page.goto(`/clienti/${clientId}/alte-documente`);
   await expect(page.getByTestId('client-files-empty')).toBeVisible();
   await expect(page.getByTestId('client-file-row')).toHaveCount(0);
 

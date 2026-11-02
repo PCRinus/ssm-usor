@@ -18,7 +18,7 @@ import { leadColumns } from './lead-columns';
 import type { LeadSortKey } from './lead-sort';
 import { PromoteLeadDialog } from './promote-lead-dialog';
 
-const leadsRoute = getRouteApi('/_authenticated/leads/');
+const leadsRoute = getRouteApi('/_authenticated/clienti-potentiali/');
 
 const defaultSort: DataTableSort & { sort: LeadSortKey } = { sort: 'legalName', order: 'asc' };
 
@@ -66,7 +66,7 @@ export function LeadsPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold tracking-tight">Clienți potențiali</h1>
         <Button asChild>
-          <Link to="/leads/new" data-testid="leads-add">
+          <Link to="/clienti-potentiali/nou" data-testid="leads-add">
             <Plus aria-hidden="true" />
             Adaugă client potențial
           </Link>
@@ -80,7 +80,7 @@ export function LeadsPage() {
               return (
                 <Link
                   key={filter.label}
-                  to="/leads"
+                  to="/clienti-potentiali"
                   search={filter.status ? { status: filter.status } : {}}
                   data-testid={filter.testId}
                   aria-current={active ? 'page' : undefined}
@@ -111,7 +111,7 @@ export function LeadsPage() {
           data={leads.data?.items}
           rowKey={rowKey}
           onRowClick={(lead) =>
-            void navigate({ to: '/leads/$leadId', params: { leadId: lead.id } })
+            void navigate({ to: '/clienti-potentiali/$leadId', params: { leadId: lead.id } })
           }
           meta={meta}
           noun={['client potențial', 'clienți potențiali']}
@@ -183,7 +183,7 @@ export function LeadsPage() {
                   client împreună cu notițele și datele salvate.
                 </p>
                 <Button asChild variant="outline" className="mt-5">
-                  <Link to="/leads/new">
+                  <Link to="/clienti-potentiali/nou">
                     <Plus aria-hidden="true" />
                     Adaugă primul client potențial
                   </Link>

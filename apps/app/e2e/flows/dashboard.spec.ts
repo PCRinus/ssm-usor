@@ -45,6 +45,6 @@ test("an owner sees what to do and how the clients' trainings stand, and opens a
   await expect(page.getByTestId('dashboard-portfolio-clients')).toHaveText('1 client activ');
 
   await ssm.getByTestId('dashboard-trainings-ssm-chip-untrained').click();
-  await expect(page).toHaveURL(/\/employees\?trainingState=untrained&domain=ssm$/);
+  await expect(page).toHaveURL(/\/angajati\?trainingState=untrained&domain=ssm$/);
   await expect(page.getByTestId('organization-employees-row')).toHaveCount(1);
 });

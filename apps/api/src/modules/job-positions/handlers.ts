@@ -127,7 +127,7 @@ export async function jobPositionCounts(db: DataClient, clientId: string, jobPos
     .neq('employees.status', 'terminated')
     .is('employees.archived_at', null)
     .eq('instructions.domain', 'ssm')
-    .eq('fire_instructions.domain', 'psi');
+    .eq('fire_instructions.domain', 'su');
   if (jobPositionId) query = query.eq('id', jobPositionId);
   const { data, error } = await query.returns<
     {

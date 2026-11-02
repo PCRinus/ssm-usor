@@ -188,7 +188,7 @@ function EquipmentForm({
         <DialogHeader>
           <DialogTitle>{unit ? 'Modifică echipamentul' : 'Adaugă echipament'}</DialogTitle>
           <DialogDescription>
-            Fiecare stingător se trece separat, cu datele lui de service. Documentele PSI le numără
+            Fiecare stingător se trece separat, cu datele lui de service. Documentele SU le numără
             pe tipuri.
           </DialogDescription>
         </DialogHeader>

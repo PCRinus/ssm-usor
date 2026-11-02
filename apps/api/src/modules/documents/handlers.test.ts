@@ -1028,8 +1028,8 @@ describe('GET /clients/{clientId}/documents', () => {
         )
       ).toEqual([
         { p_organization_id: organizationId, p_domain: 'ssm', p_test: 'hiring' },
-        { p_organization_id: organizationId, p_domain: 'psi', p_test: 'hiring' },
-        { p_organization_id: organizationId, p_domain: 'psi', p_test: 'annual' },
+        { p_organization_id: organizationId, p_domain: 'su', p_test: 'hiring' },
+        { p_organization_id: organizationId, p_domain: 'su', p_test: 'annual' },
       ]);
     });
   });
@@ -1480,17 +1480,13 @@ describe('GET /clients/{clientId}/documents/archive', () => {
     archive({
       documents: () =>
         Response.json([
-          archivedDocument('regs', 'fire_registers', 'Registre PSI', [
-            revision('regs', 1, 'draft'),
-          ]),
+          archivedDocument('regs', 'fire_registers', 'Registre SU', [revision('regs', 1, 'draft')]),
         ]),
     });
     const response = await request(`/clients/${clientId}/documents/archive?set=fire_safety`);
     expect(response.status).toBe(200);
-    expect(response.headers.get('Content-Disposition')).toContain('documentatia PSI - Word.zip');
-    expect(Object.keys(await filesOf(response))).toEqual([
-      '01 Registre PSI - rev. 1 - ciornă.docx',
-    ]);
+    expect(response.headers.get('Content-Disposition')).toContain('documentatia SU - Word.zip');
+    expect(Object.keys(await filesOf(response))).toEqual(['01 Registre SU - rev. 1 - ciornă.docx']);
     expect(
       new URL(String(calls('/rest/v1/client_documents')[0]![0])).searchParams.get('document_group')
     ).toBe('eq.fire_safety_set');
@@ -2312,7 +2308,7 @@ describe('POST /documents/{documentId}/issue', () => {
     expect((await issueWith(vi.fn(), convertDocuments)).status).toBe(200);
     expect(convertedFiles(convertDocuments.mock.calls[0]![0])).toEqual([
       '\u0001\u0002\u0003',
-      { ...annexData(0), page: 'psi', fireSafetyTechnician: technician },
+      { ...annexData(0), page: 'su', fireSafetyTechnician: technician },
     ]);
   });
 
@@ -2993,14 +2989,14 @@ describe('the fire-safety set', () => {
   const fireTemplateRows = [
     {
       type_key: 'fire_registers',
-      title: 'Registre PSI',
+      title: 'Registre SU',
       document_template_versions: [
         { id: 'f2', version: 1, storage_path: 'built-in/fire_registers/one.docx' },
       ],
     },
     {
       type_key: 'fire_cover_registers',
-      title: 'Copertă – Registre PSI',
+      title: 'Copertă – Registre SU',
       document_template_versions: [
         { id: 'f1', version: 1, storage_path: 'built-in/fire_cover_registers/one.docx' },
       ],
@@ -3022,7 +3018,7 @@ describe('the fire-safety set', () => {
     ...documentRow,
     id: fireDocumentId,
     type_key: 'fire_cover_registers',
-    title: 'Copertă – Registre PSI',
+    title: 'Copertă – Registre SU',
     decision_number: null,
     period: null,
     document_group: 'fire_safety_set',
@@ -3159,7 +3155,7 @@ describe('the fire-safety set', () => {
   it('refuses a set it does not know', async () => {
     mockUpstream();
     expect((await request(`/clients/${clientId}/documents?set=other`)).status).toBe(400);
-    expect((await request(`/clients/${clientId}/documents/readiness?set=psi`)).status).toBe(400);
+    expect((await request(`/clients/${clientId}/documents/readiness?set=su`)).status).toBe(400);
     expect((await generate('documentation_set')).status).toBe(400);
   });
 
@@ -3313,15 +3309,15 @@ describe('the fire-safety set', () => {
       fire_decision_waste: 10,
     });
     expect((merged[0]!.fire as { decisionNumbers: unknown }).decisionNumbers).toEqual({
-      organization: '4 PSI',
-      training: '5 PSI',
-      openFire: '6 PSI',
-      smoking: '7 PSI',
-      technician: '8 PSI',
-      instructions: '9 PSI',
-      waste: '10 PSI',
-      seasons: '11 PSI',
-      control: '12 PSI',
+      organization: '4 SU',
+      training: '5 SU',
+      openFire: '6 SU',
+      smoking: '7 SU',
+      technician: '8 SU',
+      instructions: '9 SU',
+      waste: '10 SU',
+      seasons: '11 SU',
+      control: '12 SU',
     });
   });
 
@@ -3776,7 +3772,7 @@ describe('the fire-safety set', () => {
   describe('the training themes', () => {
     const hotWork = {
       module_id: 'a0a0a0a0-0000-4000-8000-000000000007',
-      domain: 'psi',
+      domain: 'su',
       instruction_modules: {
         title: 'Lucrul cu foc deschis',
         module_group: 'hazardous_work',
@@ -3892,7 +3888,7 @@ describe('the fire-safety set', () => {
         versionIds: [hotWorkVersion.id],
       });
       expect(fireThemes.categories[0]!.sessions[0]!.content).toBe(
-        'IPSU art.\u00a01–73; I.P.S.U. Lucrul cu foc deschis, art.\u00a01–7; instrucțiunile afișate la locul de muncă (Decizia nr.\u00a09 PSI); organizarea apărării împotriva incendiilor la locul de muncă'
+        'IPSU art.\u00a01–73; I.P.S.U. Lucrul cu foc deschis, art.\u00a01–7; instrucțiunile afișate la locul de muncă (Decizia nr.\u00a09 SU); organizarea apărării împotriva incendiilor la locul de muncă'
       );
     });
 

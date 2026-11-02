@@ -223,7 +223,7 @@ function EmployeesCard({ participantId }: { participantId: string }) {
 }
 
 const hasState = (item: PortalClientEmployeesResponse['items'][number], state: 'due' | 'overdue') =>
-  item.training.ssm.state === state || item.training.psi.state === state;
+  item.training.ssm.state === state || item.training.su.state === state;
 
 function Count({ value, label, testId }: { value: number; label: string; testId: string }) {
   return (

@@ -608,7 +608,7 @@ def ssm_body():
     ])
 
 
-def psi_hiring(number, title, line, workplace=False):
+def su_hiring(number, title, line, workplace=False):
     key = 'h2' if workplace else 'h1'
     rows = [('Efectuat la data de', f'{{{{hiring.{line}.heldOn}}}}')]
     controls = [('Efectuat la data de', f'{key}_date')]
@@ -648,7 +648,7 @@ def psi_hiring(number, title, line, workplace=False):
     )
 
 
-PSI_PERIODIC_COLUMNS = [
+SU_PERIODIC_COLUMNS = [
     (600, 'Nr. crt.', '{{$index}}'),
     (1100, 'Data', '{{heldOn}}'),
     (1500, 'Specialitatea', '{{occupation}}'),
@@ -659,10 +659,10 @@ PSI_PERIODIC_COLUMNS = [
 ]
 
 
-def psi_body():
-    values = [value for _, _, value in PSI_PERIODIC_COLUMNS]
+def su_body():
+    values = [value for _, _, value in SU_PERIODIC_COLUMNS]
     signed_on_paper_values = [*values[:5], (PAPER_SIGNED, True), values[6]]
-    widths = [width for width, _, _ in PSI_PERIODIC_COLUMNS]
+    widths = [width for width, _, _ in SU_PERIODIC_COLUMNS]
     fields_rows = form_rows('p', list(zip(widths, [
         number_cell,
         dated_cell,
@@ -672,7 +672,7 @@ def psi_body():
         field_cell('sig_trainee', 3),
         field_cell('sig_trainer', 3),
     ])))
-    psi_admission = [
+    su_admission = [
         ('Data', '{{admission.admittedOn}}'),
         ('Numele și prenumele', '{{admission.name}}'),
         ('Funcția (șef secție, atelier, șantier etc.)', '{{admission.jobTitle}}'),
@@ -704,12 +704,12 @@ def psi_body():
             ('Funcția', '{{employee.contractTitle}}'),
         ]),
         heading('Instructaj la angajare'),
-        psi_hiring(1, 'Instructajul introductiv general', 'introductory'),
-        psi_hiring(2, 'Instructajul la locul de muncă', 'workplace', workplace=True),
+        su_hiring(1, 'Instructajul introductiv general', 'introductory'),
+        su_hiring(2, 'Instructajul la locul de muncă', 'workplace', workplace=True),
         paragraph('3. Admis la lucru', bold=True, before=240, after=60, keep=True),
-        paper(fields(psi_admission)),
+        paper(fields(su_admission)),
         form(
-            section('form.h2.paper', fields(psi_admission))
+            section('form.h2.paper', fields(su_admission))
             + section('form.h2.paper', control_fields([
                 ('Data', 'adm_date'),
                 ('Numele și prenumele', 'adm_name'),
@@ -717,9 +717,9 @@ def psi_body():
             ]), inverted=True)
         ),
         heading('Instructaj periodic', page=True, before=0),
-        paper(grid_table(PSI_PERIODIC_COLUMNS,
-                         [('periodic', values), ('blankRows.periodic', [''] * len(PSI_PERIODIC_COLUMNS))])),
-        form(grid_table(PSI_PERIODIC_COLUMNS, [('periodic', signed_on_paper_values)], extra_rows=fields_rows)),
+        paper(grid_table(SU_PERIODIC_COLUMNS,
+                         [('periodic', values), ('blankRows.periodic', [''] * len(SU_PERIODIC_COLUMNS))])),
+        form(grid_table(SU_PERIODIC_COLUMNS, [('periodic', signed_on_paper_values)], extra_rows=fields_rows)),
     ])
 
 
@@ -786,4 +786,4 @@ def write(name, body):
 if __name__ == '__main__':
     write('fisa_instruire_ssm.docx', ssm_body())
     CONTROL_IDS = itertools.count(1)
-    write(os.path.join('fire', 'fisa_instructaj_psi.docx'), psi_body())
+    write(os.path.join('fire', 'fisa_instructaj_su.docx'), su_body())

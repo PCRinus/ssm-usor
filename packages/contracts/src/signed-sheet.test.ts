@@ -26,11 +26,11 @@ describe('sheetFieldNames', () => {
   });
 
   it('gives a fire-safety row the trainee and the trainer only, and no supplementary table', () => {
-    expect(sheetFieldNames('psi', 'p17').signatures).toEqual({
+    expect(sheetFieldNames('su', 'p17').signatures).toEqual({
       trainee: 'p17_sig_trainee',
       trainer: 'p17_sig_trainer',
     });
-    expect(() => sheetFieldNames('psi', 's1')).toThrow();
+    expect(() => sheetFieldNames('su', 's1')).toThrow();
   });
 
   it('refuses a row past the page', () => {
@@ -44,7 +44,7 @@ describe('sheetFieldNames', () => {
       note: 't2_note',
       signatures: {},
     });
-    expect(() => sheetFieldNames('psi', 't1')).toThrow();
+    expect(() => sheetFieldNames('su', 't1')).toThrow();
   });
 
   it('names the hiring rows after their form, the workplace one with its place', () => {
@@ -55,7 +55,7 @@ describe('sheetFieldNames', () => {
       'h1_trainer_job_title',
       'h1_material',
     ]);
-    expect(sheetFieldNames('psi', 'h2').text).toEqual([
+    expect(sheetFieldNames('su', 'h2').text).toEqual([
       'h2_date',
       'h2_place',
       'h2_occupation',
@@ -72,18 +72,18 @@ describe('sheetFieldNames', () => {
       note: null,
       signatures: { admitter: 'adm_sig' },
     });
-    expect(sheetFieldNames('psi', 'adm').signatures).toEqual({});
+    expect(sheetFieldNames('su', 'adm').signatures).toEqual({});
   });
 });
 
 describe('signatureFieldOf', () => {
   it("puts the workplace record's admitter on the admission block", () => {
     expect(signatureFieldOf('ssm', 'h2', 'admitter')).toBe('adm_sig');
-    expect(signatureFieldOf('psi', 'h2', 'admitter')).toBeNull();
+    expect(signatureFieldOf('su', 'h2', 'admitter')).toBeNull();
   });
 
   it('has no field for a slot the form does not print', () => {
-    expect(signatureFieldOf('psi', 'p1', 'verifier')).toBeNull();
+    expect(signatureFieldOf('su', 'p1', 'verifier')).toBeNull();
     expect(signatureFieldOf('ssm', 'p1', 'admitter')).toBeNull();
     expect(signatureFieldOf('ssm', 'h1', 'verifier')).toBe('h1_sig_verifier');
   });
@@ -100,8 +100,8 @@ describe('lockFieldsOf', () => {
   });
 
   it("locks the admission with the workplace training's row", () => {
-    expect(lockFieldsOf('psi', 'h2')).toEqual([
-      ...sheetFieldNames('psi', 'h2').text,
+    expect(lockFieldsOf('su', 'h2')).toEqual([
+      ...sheetFieldNames('su', 'h2').text,
       'adm_name',
       'adm_job_title',
       'adm_date',
@@ -112,7 +112,7 @@ describe('lockFieldsOf', () => {
 describe('row keys', () => {
   it('lists the rows of a sheet, the occupational safety one with both tables and the test block', () => {
     expect(sheetRowKeys('ssm')).toHaveLength(3 + 2 * rowCapacity('ssm') + testRowCapacity);
-    expect(sheetRowKeys('psi')).toHaveLength(3 + rowCapacity('psi'));
+    expect(sheetRowKeys('su')).toHaveLength(3 + rowCapacity('su'));
     expect(sheetRowKeys('ssm').every(isSheetRowKey)).toBe(true);
   });
 

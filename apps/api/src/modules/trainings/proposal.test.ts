@@ -101,11 +101,11 @@ describe('trainingProposal', () => {
 
   it("proposes the category's session from the fire-safety themes, with no verifier", () => {
     expect(
-      trainingProposal({ ...base, domain: 'psi', themes: fireThemes, heldOn: '2026-05-02' })
+      trainingProposal({ ...base, domain: 'su', themes: fireThemes, heldOn: '2026-05-02' })
     ).toEqual({
       durationMinutes: 120,
       material:
-        'IPSU art. 74–146; I.P.S.U. Lucrul cu foc deschis, art. 1–7; instrucțiunile afișate la locul de muncă (Decizia nr. 10 PSI); organizarea apărării împotriva incendiilor la locul de muncă',
+        'IPSU art. 74–146; I.P.S.U. Lucrul cu foc deschis, art. 1–7; instrucțiunile afișate la locul de muncă (Decizia nr. 10 SU); organizarea apărării împotriva incendiilor la locul de muncă',
       trainer: manager,
       verifier: null,
       admittedBy: null,
@@ -115,7 +115,7 @@ describe('trainingProposal', () => {
 
   it('has the fire-safety technician train the technical-administrative staff', () => {
     expect(
-      trainingProposal({ ...base, domain: 'psi', themes: fireThemes, position: accountant }).trainer
+      trainingProposal({ ...base, domain: 'su', themes: fireThemes, position: accountant }).trainer
     ).toEqual(technician);
   });
 
@@ -128,9 +128,9 @@ describe('trainingProposal', () => {
       admittedBy: null,
       themesRevisionId: null,
     });
-    expect(trainingProposal({ ...base, domain: 'psi', phase: 'introductory_general' })).toEqual({
+    expect(trainingProposal({ ...base, domain: 'su', phase: 'introductory_general' })).toEqual({
       durationMinutes: 480,
-      material: hiringPlans.psi.introductoryGeneral,
+      material: hiringPlans.su.introductoryGeneral,
       trainer: technician,
       verifier: null,
       admittedBy: null,
@@ -159,11 +159,11 @@ describe('trainingProposal', () => {
 
   it('names the instructions decision in the fire-safety workplace plan', () => {
     expect(
-      trainingProposal({ ...base, domain: 'psi', phase: 'workplace', themes: fireThemes })
+      trainingProposal({ ...base, domain: 'su', phase: 'workplace', themes: fireThemes })
     ).toMatchObject({
       durationMinutes: 480,
       material: expect.stringContaining(
-        'instrucțiunile afișate la locul de muncă (Decizia nr. 10 PSI); organizarea'
+        'instrucțiunile afișate la locul de muncă (Decizia nr. 10 SU); organizarea'
       ),
       trainer: manager,
       verifier: null,
@@ -202,7 +202,7 @@ describe('trainingProposal', () => {
     expect(
       trainingProposal({
         ...selfTaught,
-        domain: 'psi',
+        domain: 'su',
         themes: fireThemes,
         people: {
           ...selfTaught.people,

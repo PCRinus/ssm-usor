@@ -64,7 +64,7 @@ export function DashboardPage() {
               data-testid="dashboard-greeting"
               className="text-[15px] leading-snug text-dashboard-quiet sm:text-base"
             >
-              {`${greetingAt(now)}${name ? `, ${name}` : ''}. ${summaryLine(todoTotal(data), data.trainings.ssm.overdue + data.trainings.psi.overdue)}`}
+              {`${greetingAt(now)}${name ? `, ${name}` : ''}. ${summaryLine(todoTotal(data), data.trainings.ssm.overdue + data.trainings.su.overdue)}`}
             </p>
           ) : (
             summary.isPending && <Skeleton className="h-6 w-full max-w-[560px]" />
@@ -238,7 +238,7 @@ function DashboardSections({ data, now }: { data: DashboardSummary; now: Date })
         <div className={cn(cardClass, '@container px-4 py-0.5 sm:px-6')}>
           <TrainingRow domain="ssm" counts={trainings.ssm} />
           <div className="border-t border-muted">
-            <TrainingRow domain="psi" counts={trainings.psi} />
+            <TrainingRow domain="su" counts={trainings.su} />
           </div>
           {todo.documentsBehind > 0 && (
             <div className="border-t border-muted py-1.5">

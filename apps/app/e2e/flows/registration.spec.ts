@@ -6,7 +6,7 @@ test.afterAll(cleanUp);
 
 test('the password meter keeps the registration layout steady', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
-  await page.goto('/register');
+  await page.goto('/inregistrare');
 
   const submit = page.getByTestId('register-submit');
   const top = await submit.evaluate((element) => element.getBoundingClientRect().top);
@@ -24,7 +24,7 @@ test('a person registers, confirms their address, and sets up their organization
 }) => {
   const email = addressOf('founder');
 
-  await page.goto('/register');
+  await page.goto('/inregistrare');
   await page.getByTestId('register-email').fill(email);
   await expect(page.getByTestId('register-password-strength')).toContainText('Necompletată');
   await expect(page.getByRole('progressbar', { name: 'Puterea parolei' })).toHaveAttribute(
@@ -48,14 +48,14 @@ test('a person registers, confirms their address, and sets up their organization
   // Supabase handed the confirmation to the API's Send Email hook. Opening the link does
   // not confirm; pressing the button does, and signs the person in.
   const link = await emailedLink(email, 'signup-confirmation');
-  expect(new URL(link).pathname).toBe('/confirm-email');
+  expect(new URL(link).pathname).toBe('/confirmare-email');
   await page.goto(link);
   await page.reload();
   await page.getByTestId('confirm-submit').click();
-  await expect(page).toHaveURL(/\/onboarding$/);
+  await expect(page).toHaveURL(/\/configurare$/);
 
-  await page.goto('/clients');
-  await expect(page).toHaveURL(/\/onboarding$/);
+  await page.goto('/clienti');
+  await expect(page).toHaveURL(/\/configurare$/);
 
   await page.getByTestId('onboarding-full-name').fill('Felicia Fondatoare');
   await page.getByTestId('onboarding-cui').fill('RO1590082');
@@ -75,7 +75,7 @@ test('a person registers, confirms their address, and sets up their organization
   await expect(page.getByTestId('invite-open')).toBeVisible();
   await expect(page.getByTestId('member-row')).toContainText('Administrator');
 
-  await page.goto('/organization/company');
+  await page.goto('/organizatie/date-firma');
   await expect(page.getByTestId('company-cui')).toHaveValue('1590082');
 
   await signOut(page);

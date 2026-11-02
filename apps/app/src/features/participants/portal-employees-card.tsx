@@ -30,7 +30,7 @@ function EmployeeName({
   return (
     <h3 className="text-sm font-semibold">
       <Link
-        to="/clients/$clientId/employees/$employeeId"
+        to="/clienti/$clientId/angajati/$employeeId"
         params={{ clientId, employeeId }}
         className="hover:underline"
       >

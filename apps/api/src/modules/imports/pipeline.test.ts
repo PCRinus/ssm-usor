@@ -1391,7 +1391,7 @@ describe('an employee import', () => {
       fields: { ...noFields, jobTitle: 'Vânzătoare', hiredAt: '2019-01-07' },
     }),
     'Fise/Ionescu.pdf (pagina 2)': sheet({
-      pageKind: 'psi_sheet_front',
+      pageKind: 'su_sheet_front',
       person: { ...noPerson, lastName: 'Ionescu', firstName: 'Maria' },
     }),
   };
@@ -1804,7 +1804,7 @@ describe('the own instructions', () => {
       document_domain: 'ssm',
     });
     expect(world.fileAt('Dosar/Decizia 1.docx').document_domain).toBeNull();
-    expect(world.parts.has(`${importId}:instructions_psi`)).toBe(false);
+    expect(world.parts.has(`${importId}:instructions_su`)).toBe(false);
 
     expect(part()).toMatchObject({ status: 'to_review', attempt: 1 });
     const proposal = instructionsProposalSchema.parse(part().proposal);
@@ -1845,7 +1845,7 @@ describe('the own instructions', () => {
         id: 'b1000000-0000-4000-8000-000000000002',
         title: 'Utilizarea mașinii de tocat carne la brutăria din curte',
         category: 'premises_activity',
-        domain: 'psi',
+        domain: 'su',
         body: { blocks: [{ kind: 'article', paragraphs: ['Stingătorul stă lângă ușă.'] }] },
       },
     ];

@@ -92,7 +92,7 @@ function withPerson(id: string, patch: (person: Record<string, unknown>) => obje
 
 const annualTest = (overrides: Record<string, unknown> = {}, test: Record<string, unknown> = {}) =>
   sheetRow('annual', {
-    domain: 'psi',
+    domain: 'su',
     testOnly: true,
     heldOn: null,
     test: {
@@ -262,7 +262,7 @@ describe('what a person still needs', () => {
   it('names the annual test whose examiner is missing', () => {
     const context = withRows('p3', [annualTest({ heldOn: '2025-03-04' }, { examinerName: null })]);
     expect(decisionsOf(context(), person('pop')).map((decision) => decision.label)).toEqual([
-      'Completează examinatorul testului anual PSI',
+      'Completează examinatorul testului anual SU',
     ]);
   });
 
@@ -425,7 +425,7 @@ describe('the confirm summary', () => {
     const summary = confirmSummary(contextOf(changes));
     expect(summary.rows).toBe(4);
     expect(summary.trainingsHeld).toBe(3);
-    expect(summary.tests).toEqual({ ssm: 1, psi: 0 });
+    expect(summary.tests).toEqual({ ssm: 1, su: 0 });
   });
 });
 
@@ -449,24 +449,24 @@ describe('hiring tests left unverified', () => {
     expect(untestedDomains(context(), person('lazar'))).toEqual([]);
   });
 
-  it("reads PSI's workplace training, not its periodic one, and SSM's introductory only", () => {
+  it("reads SU's workplace training, not its periodic one, and SSM's introductory only", () => {
     const context = withRows('p3', [
-      sheetRow('psi-workplace', { domain: 'psi', phase: 'workplace', heldOn: '2023-05-02' }),
+      sheetRow('su-workplace', { domain: 'su', phase: 'workplace', heldOn: '2023-05-02' }),
       sheetRow('ssm-workplace', { phase: 'workplace', heldOn: '2023-05-02' }),
     ]);
-    expect(untestedDomains(context(), person('pop'))).toEqual(['psi']);
-    const periodicOnly = withRows('p3', [sheetRow('psi-periodic', { domain: 'psi' })]);
+    expect(untestedDomains(context(), person('pop'))).toEqual(['su']);
+    const periodicOnly = withRows('p3', [sheetRow('su-periodic', { domain: 'su' })]);
     expect(untestedDomains(periodicOnly(), person('pop'))).toEqual([]);
   });
 
   it('takes a ticked annual pass as the pass, and counts no one who left', () => {
     const context = withRows('p3', [
-      sheetRow('psi-workplace', { domain: 'psi', phase: 'workplace', heldOn: '2023-05-02' }),
+      sheetRow('su-workplace', { domain: 'su', phase: 'workplace', heldOn: '2023-05-02' }),
       annualTest({ heldOn: '2024-05-02' }),
     ]);
     expect(untestedDomains(context(), person('pop'))).toEqual([]);
     const leaver = withRows('p3', [
-      sheetRow('psi-workplace', { domain: 'psi', phase: 'workplace', heldOn: '2023-05-02' }),
+      sheetRow('su-workplace', { domain: 'su', phase: 'workplace', heldOn: '2023-05-02' }),
     ]);
     const left = withField(emptyChanges(), 'pop', 'leftOn', { value: '2024-01-31' });
     expect(untestedDomains(leaver(left), person('pop'))).toEqual([]);
@@ -495,13 +495,13 @@ describe('the hiring test confirming writes', () => {
     const rows = twoIntroductions().proposal.pages.flatMap((page) => page.rows);
     expect(hiringTestRowIds(rows)).toEqual(new Set(['r1']));
     expect(hiringTestRowIds(rows)).toEqual(packageHiringTestRowIds(rows as never));
-    const psi = [
-      sheetRow('a', { domain: 'psi', phase: 'introductory_general', test: hiringTest }),
-      sheetRow('b', { domain: 'psi', phase: 'workplace', heldOn: '2020-01-01', test: hiringTest }),
-      sheetRow('c', { domain: 'psi', phase: 'workplace', heldOn: null, test: hiringTest }),
+    const su = [
+      sheetRow('a', { domain: 'su', phase: 'introductory_general', test: hiringTest }),
+      sheetRow('b', { domain: 'su', phase: 'workplace', heldOn: '2020-01-01', test: hiringTest }),
+      sheetRow('c', { domain: 'su', phase: 'workplace', heldOn: null, test: hiringTest }),
     ] as unknown as Parameters<typeof hiringTestRowIds>[0];
-    expect(hiringTestRowIds(psi)).toEqual(new Set(['b']));
-    expect(hiringTestRowIds(psi)).toEqual(packageHiringTestRowIds(psi as never));
+    expect(hiringTestRowIds(su)).toEqual(new Set(['b']));
+    expect(hiringTestRowIds(su)).toEqual(packageHiringTestRowIds(su as never));
   });
 
   it('asks nothing of the other rows, and counts one test', () => {
@@ -511,7 +511,7 @@ describe('the hiring test confirming writes', () => {
       }))
     );
     expect(tags(context, 'toma')).not.toContain('Lipsește examinatorul unui test');
-    expect(confirmSummary(context).tests).toEqual({ ssm: 1, psi: 0 });
+    expect(confirmSummary(context).tests).toEqual({ ssm: 1, su: 0 });
   });
 
   it('follows the dates as the member left them', () => {

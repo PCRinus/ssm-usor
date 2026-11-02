@@ -201,24 +201,24 @@ describe('the site sheet', () => {
   it("states the organization from the decisions, and the control decision's intervals from ten employees", () => {
     const { organization } = sheetOf();
     expect(valueOf(organization, 'Instruirea personalului')).toBe(
-      'da, potrivit Deciziei nr.\u00a06 PSI: personalul administrativ este instruit periodic la 6 luni, câte 2 ore, de cadrul tehnic PSI, Radu STAN, titular al certificatului CT 1234/2024; personalul de execuție este instruit periodic la 3 luni, câte 2 ore, de conducătorii locurilor de muncă (Florin Cristian TALOȘ și Ioana PETRE), cu cadrul tehnic, după caz'
+      'da, potrivit Deciziei nr.\u00a06 SU: personalul administrativ este instruit periodic la 6 luni, câte 2 ore, de cadrul tehnic PSI, Radu STAN, titular al certificatului CT 1234/2024; personalul de execuție este instruit periodic la 3 luni, câte 2 ore, de conducătorii locurilor de muncă (Florin Cristian TALOȘ și Ioana PETRE), cu cadrul tehnic, după caz'
     );
     expect(valueOf(organization, 'Control intern de prevenire')).toMatch(
-      /^da, potrivit Deciziei nr.\u00a013 PSI: coordonatorul privind apărarea împotriva incendiilor, Florin Cristian TALOȘ, și cadrul tehnic – trimestrial/
+      /^da, potrivit Deciziei nr.\u00a013 SU: coordonatorul privind apărarea împotriva incendiilor, Florin Cristian TALOȘ, și cadrul tehnic – trimestrial/
     );
     expect(valueOf(organization, 'Serviciu privat pentru situații de urgență')).toBe(
       'nu este cazul'
     );
     expect(valueOf(organization, 'Planuri/exerciții de evacuare din clădire')).toBeNull();
     expect(valueOf(organization, 'Afișare instrucțiuni specifice')).toContain(
-      'Decizia nr.\u00a010 PSI'
+      'Decizia nr.\u00a010 SU'
     );
     expect(valueOf(organization, 'Ordinea interioară')).toBe(
-      'reglementată prin Decizia nr.\u00a07 PSI privind lucrul cu foc deschis, Decizia nr.\u00a08 PSI privind fumatul, Decizia nr.\u00a011 PSI privind colectarea deșeurilor și Decizia nr.\u00a012 PSI privind perioadele caniculare și sezonul rece; asigurarea căilor de acces, de evacuare și de intervenție: DE COMPLETAT'
+      'reglementată prin Decizia nr.\u00a07 SU privind lucrul cu foc deschis, Decizia nr.\u00a08 SU privind fumatul, Decizia nr.\u00a011 SU privind colectarea deșeurilor și Decizia nr.\u00a012 SU privind perioadele caniculare și sezonul rece; asigurarea căilor de acces, de evacuare și de intervenție: DE COMPLETAT'
     );
     const documents = valueOf(organization, 'Documente specifice de apărare împotriva incendiilor');
     expect(documents!.split('\n')).toHaveLength(21);
-    expect(documents).toContain('– Decizia nr.\u00a013 PSI privind controlul propriu');
+    expect(documents).toContain('– Decizia nr.\u00a013 SU privind controlul propriu');
     expect(documents).toContain('– Instrucțiuni proprii în domeniul situațiilor de urgență\n');
     expect(documents).toContain('– Test la angajare\n– Test anual\n');
     expect(documents).toContain('– Registru de evidență a controlului stingătoarelor de incendiu');
@@ -248,7 +248,7 @@ describe('the site sheet', () => {
   it('under ten employees lists only the documents the set holds and the daily and monthly checks', () => {
     const { organization } = sheetOf({ currentEmployeeCount: 4 });
     expect(valueOf(organization, 'Control intern de prevenire')).toBe(
-      'da, de persoanele desemnate prin Decizia nr.\u00a05 PSI: șefii locurilor de muncă – zilnic sau pe schimb, la locul de muncă pe care îl conduc; coordonatorul privind apărarea împotriva incendiilor, Florin Cristian TALOȘ – lunar, controlul fiecărui stingător de incendiu'
+      'da, de persoanele desemnate prin Decizia nr.\u00a05 SU: șefii locurilor de muncă – zilnic sau pe schimb, la locul de muncă pe care îl conduc; coordonatorul privind apărarea împotriva incendiilor, Florin Cristian TALOȘ – lunar, controlul fiecărui stingător de incendiu'
     );
     expect(valueOf(organization, 'Ordinea interioară')).not.toContain('sezonul rece');
     const documents = valueOf(organization, 'Documente specifice de apărare împotriva incendiilor');

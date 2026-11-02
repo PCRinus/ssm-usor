@@ -600,7 +600,7 @@ export interface DashboardTrainingCounts {
 
 export type DashboardSummaryTrainings = {
   ssm: DashboardTrainingCounts;
-  psi: DashboardTrainingCounts;
+  su: DashboardTrainingCounts;
 };
 
 /**
@@ -1340,11 +1340,11 @@ export type EmployeeListResponseItemsItemTrainingSsm = {
 /**
  * @nullable
  */
-export type EmployeeListResponseItemsItemTrainingPsiState =
-  | (typeof EmployeeListResponseItemsItemTrainingPsiState)[keyof typeof EmployeeListResponseItemsItemTrainingPsiState]
+export type EmployeeListResponseItemsItemTrainingSuState =
+  | (typeof EmployeeListResponseItemsItemTrainingSuState)[keyof typeof EmployeeListResponseItemsItemTrainingSuState]
   | null;
 
-export const EmployeeListResponseItemsItemTrainingPsiState = {
+export const EmployeeListResponseItemsItemTrainingSuState = {
   untrained: 'untrained',
   current: 'current',
   due: 'due',
@@ -1354,18 +1354,18 @@ export const EmployeeListResponseItemsItemTrainingPsiState = {
 /**
  * @nullable
  */
-export type EmployeeListResponseItemsItemTrainingPsiIntervalSource =
-  | (typeof EmployeeListResponseItemsItemTrainingPsiIntervalSource)[keyof typeof EmployeeListResponseItemsItemTrainingPsiIntervalSource]
+export type EmployeeListResponseItemsItemTrainingSuIntervalSource =
+  | (typeof EmployeeListResponseItemsItemTrainingSuIntervalSource)[keyof typeof EmployeeListResponseItemsItemTrainingSuIntervalSource]
   | null;
 
-export const EmployeeListResponseItemsItemTrainingPsiIntervalSource = {
+export const EmployeeListResponseItemsItemTrainingSuIntervalSource = {
   position: 'position',
   client: 'client',
 } as const;
 
-export type EmployeeListResponseItemsItemTrainingPsi = {
+export type EmployeeListResponseItemsItemTrainingSu = {
   /** @nullable */
-  state: EmployeeListResponseItemsItemTrainingPsiState;
+  state: EmployeeListResponseItemsItemTrainingSuState;
   /** @nullable */
   dueOn: string | null;
   /** @nullable */
@@ -1376,12 +1376,12 @@ export type EmployeeListResponseItemsItemTrainingPsi = {
    */
   intervalMonths: number | null;
   /** @nullable */
-  intervalSource: EmployeeListResponseItemsItemTrainingPsiIntervalSource;
+  intervalSource: EmployeeListResponseItemsItemTrainingSuIntervalSource;
 };
 
 export type EmployeeListResponseItemsItemTraining = {
   ssm: EmployeeListResponseItemsItemTrainingSsm;
-  psi: EmployeeListResponseItemsItemTrainingPsi;
+  su: EmployeeListResponseItemsItemTrainingSu;
 };
 
 /**
@@ -1425,11 +1425,11 @@ export type EmployeeListResponseItemsItemTestsSsm = {
 /**
  * @nullable
  */
-export type EmployeeListResponseItemsItemTestsPsiState =
-  | (typeof EmployeeListResponseItemsItemTestsPsiState)[keyof typeof EmployeeListResponseItemsItemTestsPsiState]
+export type EmployeeListResponseItemsItemTestsSuState =
+  | (typeof EmployeeListResponseItemsItemTestsSuState)[keyof typeof EmployeeListResponseItemsItemTestsSuState]
   | null;
 
-export const EmployeeListResponseItemsItemTestsPsiState = {
+export const EmployeeListResponseItemsItemTestsSuState = {
   none: 'none',
   pending: 'pending',
   unverified: 'unverified',
@@ -1440,20 +1440,20 @@ export const EmployeeListResponseItemsItemTestsPsiState = {
 /**
  * @nullable
  */
-export type EmployeeListResponseItemsItemTestsPsiAwaitingTest =
-  | (typeof EmployeeListResponseItemsItemTestsPsiAwaitingTest)[keyof typeof EmployeeListResponseItemsItemTestsPsiAwaitingTest]
+export type EmployeeListResponseItemsItemTestsSuAwaitingTest =
+  | (typeof EmployeeListResponseItemsItemTestsSuAwaitingTest)[keyof typeof EmployeeListResponseItemsItemTestsSuAwaitingTest]
   | null;
 
-export const EmployeeListResponseItemsItemTestsPsiAwaitingTest = {
+export const EmployeeListResponseItemsItemTestsSuAwaitingTest = {
   hiring: 'hiring',
   annual: 'annual',
 } as const;
 
-export type EmployeeListResponseItemsItemTestsPsi = {
+export type EmployeeListResponseItemsItemTestsSu = {
   /** @nullable */
-  state: EmployeeListResponseItemsItemTestsPsiState;
+  state: EmployeeListResponseItemsItemTestsSuState;
   /** @nullable */
-  awaitingTest: EmployeeListResponseItemsItemTestsPsiAwaitingTest;
+  awaitingTest: EmployeeListResponseItemsItemTestsSuAwaitingTest;
   /** @nullable */
   lastPassedOn: string | null;
   /** @nullable */
@@ -1462,7 +1462,7 @@ export type EmployeeListResponseItemsItemTestsPsi = {
 
 export type EmployeeListResponseItemsItemTests = {
   ssm: EmployeeListResponseItemsItemTestsSsm;
-  psi: EmployeeListResponseItemsItemTestsPsi;
+  su: EmployeeListResponseItemsItemTestsSu;
 };
 
 export type EmployeeListResponseItemsItem = {
@@ -1594,11 +1594,11 @@ export type EmployeeResponseEmployeeTrainingSsm = {
 /**
  * @nullable
  */
-export type EmployeeResponseEmployeeTrainingPsiState =
-  | (typeof EmployeeResponseEmployeeTrainingPsiState)[keyof typeof EmployeeResponseEmployeeTrainingPsiState]
+export type EmployeeResponseEmployeeTrainingSuState =
+  | (typeof EmployeeResponseEmployeeTrainingSuState)[keyof typeof EmployeeResponseEmployeeTrainingSuState]
   | null;
 
-export const EmployeeResponseEmployeeTrainingPsiState = {
+export const EmployeeResponseEmployeeTrainingSuState = {
   untrained: 'untrained',
   current: 'current',
   due: 'due',
@@ -1608,18 +1608,18 @@ export const EmployeeResponseEmployeeTrainingPsiState = {
 /**
  * @nullable
  */
-export type EmployeeResponseEmployeeTrainingPsiIntervalSource =
-  | (typeof EmployeeResponseEmployeeTrainingPsiIntervalSource)[keyof typeof EmployeeResponseEmployeeTrainingPsiIntervalSource]
+export type EmployeeResponseEmployeeTrainingSuIntervalSource =
+  | (typeof EmployeeResponseEmployeeTrainingSuIntervalSource)[keyof typeof EmployeeResponseEmployeeTrainingSuIntervalSource]
   | null;
 
-export const EmployeeResponseEmployeeTrainingPsiIntervalSource = {
+export const EmployeeResponseEmployeeTrainingSuIntervalSource = {
   position: 'position',
   client: 'client',
 } as const;
 
-export type EmployeeResponseEmployeeTrainingPsi = {
+export type EmployeeResponseEmployeeTrainingSu = {
   /** @nullable */
-  state: EmployeeResponseEmployeeTrainingPsiState;
+  state: EmployeeResponseEmployeeTrainingSuState;
   /** @nullable */
   dueOn: string | null;
   /** @nullable */
@@ -1630,12 +1630,12 @@ export type EmployeeResponseEmployeeTrainingPsi = {
    */
   intervalMonths: number | null;
   /** @nullable */
-  intervalSource: EmployeeResponseEmployeeTrainingPsiIntervalSource;
+  intervalSource: EmployeeResponseEmployeeTrainingSuIntervalSource;
 };
 
 export type EmployeeResponseEmployeeTraining = {
   ssm: EmployeeResponseEmployeeTrainingSsm;
-  psi: EmployeeResponseEmployeeTrainingPsi;
+  su: EmployeeResponseEmployeeTrainingSu;
 };
 
 /**
@@ -1679,11 +1679,11 @@ export type EmployeeResponseEmployeeTestsSsm = {
 /**
  * @nullable
  */
-export type EmployeeResponseEmployeeTestsPsiState =
-  | (typeof EmployeeResponseEmployeeTestsPsiState)[keyof typeof EmployeeResponseEmployeeTestsPsiState]
+export type EmployeeResponseEmployeeTestsSuState =
+  | (typeof EmployeeResponseEmployeeTestsSuState)[keyof typeof EmployeeResponseEmployeeTestsSuState]
   | null;
 
-export const EmployeeResponseEmployeeTestsPsiState = {
+export const EmployeeResponseEmployeeTestsSuState = {
   none: 'none',
   pending: 'pending',
   unverified: 'unverified',
@@ -1694,20 +1694,20 @@ export const EmployeeResponseEmployeeTestsPsiState = {
 /**
  * @nullable
  */
-export type EmployeeResponseEmployeeTestsPsiAwaitingTest =
-  | (typeof EmployeeResponseEmployeeTestsPsiAwaitingTest)[keyof typeof EmployeeResponseEmployeeTestsPsiAwaitingTest]
+export type EmployeeResponseEmployeeTestsSuAwaitingTest =
+  | (typeof EmployeeResponseEmployeeTestsSuAwaitingTest)[keyof typeof EmployeeResponseEmployeeTestsSuAwaitingTest]
   | null;
 
-export const EmployeeResponseEmployeeTestsPsiAwaitingTest = {
+export const EmployeeResponseEmployeeTestsSuAwaitingTest = {
   hiring: 'hiring',
   annual: 'annual',
 } as const;
 
-export type EmployeeResponseEmployeeTestsPsi = {
+export type EmployeeResponseEmployeeTestsSu = {
   /** @nullable */
-  state: EmployeeResponseEmployeeTestsPsiState;
+  state: EmployeeResponseEmployeeTestsSuState;
   /** @nullable */
-  awaitingTest: EmployeeResponseEmployeeTestsPsiAwaitingTest;
+  awaitingTest: EmployeeResponseEmployeeTestsSuAwaitingTest;
   /** @nullable */
   lastPassedOn: string | null;
   /** @nullable */
@@ -1716,7 +1716,7 @@ export type EmployeeResponseEmployeeTestsPsi = {
 
 export type EmployeeResponseEmployeeTests = {
   ssm: EmployeeResponseEmployeeTestsSsm;
-  psi: EmployeeResponseEmployeeTestsPsi;
+  su: EmployeeResponseEmployeeTestsSu;
 };
 
 export type EmployeeResponseEmployee = {
@@ -2112,11 +2112,11 @@ export type OrganizationEmployeeListResponseItemsItemTrainingSsm = {
 /**
  * @nullable
  */
-export type OrganizationEmployeeListResponseItemsItemTrainingPsiState =
-  | (typeof OrganizationEmployeeListResponseItemsItemTrainingPsiState)[keyof typeof OrganizationEmployeeListResponseItemsItemTrainingPsiState]
+export type OrganizationEmployeeListResponseItemsItemTrainingSuState =
+  | (typeof OrganizationEmployeeListResponseItemsItemTrainingSuState)[keyof typeof OrganizationEmployeeListResponseItemsItemTrainingSuState]
   | null;
 
-export const OrganizationEmployeeListResponseItemsItemTrainingPsiState = {
+export const OrganizationEmployeeListResponseItemsItemTrainingSuState = {
   untrained: 'untrained',
   current: 'current',
   due: 'due',
@@ -2126,18 +2126,18 @@ export const OrganizationEmployeeListResponseItemsItemTrainingPsiState = {
 /**
  * @nullable
  */
-export type OrganizationEmployeeListResponseItemsItemTrainingPsiIntervalSource =
-  | (typeof OrganizationEmployeeListResponseItemsItemTrainingPsiIntervalSource)[keyof typeof OrganizationEmployeeListResponseItemsItemTrainingPsiIntervalSource]
+export type OrganizationEmployeeListResponseItemsItemTrainingSuIntervalSource =
+  | (typeof OrganizationEmployeeListResponseItemsItemTrainingSuIntervalSource)[keyof typeof OrganizationEmployeeListResponseItemsItemTrainingSuIntervalSource]
   | null;
 
-export const OrganizationEmployeeListResponseItemsItemTrainingPsiIntervalSource = {
+export const OrganizationEmployeeListResponseItemsItemTrainingSuIntervalSource = {
   position: 'position',
   client: 'client',
 } as const;
 
-export type OrganizationEmployeeListResponseItemsItemTrainingPsi = {
+export type OrganizationEmployeeListResponseItemsItemTrainingSu = {
   /** @nullable */
-  state: OrganizationEmployeeListResponseItemsItemTrainingPsiState;
+  state: OrganizationEmployeeListResponseItemsItemTrainingSuState;
   /** @nullable */
   dueOn: string | null;
   /** @nullable */
@@ -2148,12 +2148,12 @@ export type OrganizationEmployeeListResponseItemsItemTrainingPsi = {
    */
   intervalMonths: number | null;
   /** @nullable */
-  intervalSource: OrganizationEmployeeListResponseItemsItemTrainingPsiIntervalSource;
+  intervalSource: OrganizationEmployeeListResponseItemsItemTrainingSuIntervalSource;
 };
 
 export type OrganizationEmployeeListResponseItemsItemTraining = {
   ssm: OrganizationEmployeeListResponseItemsItemTrainingSsm;
-  psi: OrganizationEmployeeListResponseItemsItemTrainingPsi;
+  su: OrganizationEmployeeListResponseItemsItemTrainingSu;
 };
 
 /**
@@ -2197,11 +2197,11 @@ export type OrganizationEmployeeListResponseItemsItemTestsSsm = {
 /**
  * @nullable
  */
-export type OrganizationEmployeeListResponseItemsItemTestsPsiState =
-  | (typeof OrganizationEmployeeListResponseItemsItemTestsPsiState)[keyof typeof OrganizationEmployeeListResponseItemsItemTestsPsiState]
+export type OrganizationEmployeeListResponseItemsItemTestsSuState =
+  | (typeof OrganizationEmployeeListResponseItemsItemTestsSuState)[keyof typeof OrganizationEmployeeListResponseItemsItemTestsSuState]
   | null;
 
-export const OrganizationEmployeeListResponseItemsItemTestsPsiState = {
+export const OrganizationEmployeeListResponseItemsItemTestsSuState = {
   none: 'none',
   pending: 'pending',
   unverified: 'unverified',
@@ -2212,20 +2212,20 @@ export const OrganizationEmployeeListResponseItemsItemTestsPsiState = {
 /**
  * @nullable
  */
-export type OrganizationEmployeeListResponseItemsItemTestsPsiAwaitingTest =
-  | (typeof OrganizationEmployeeListResponseItemsItemTestsPsiAwaitingTest)[keyof typeof OrganizationEmployeeListResponseItemsItemTestsPsiAwaitingTest]
+export type OrganizationEmployeeListResponseItemsItemTestsSuAwaitingTest =
+  | (typeof OrganizationEmployeeListResponseItemsItemTestsSuAwaitingTest)[keyof typeof OrganizationEmployeeListResponseItemsItemTestsSuAwaitingTest]
   | null;
 
-export const OrganizationEmployeeListResponseItemsItemTestsPsiAwaitingTest = {
+export const OrganizationEmployeeListResponseItemsItemTestsSuAwaitingTest = {
   hiring: 'hiring',
   annual: 'annual',
 } as const;
 
-export type OrganizationEmployeeListResponseItemsItemTestsPsi = {
+export type OrganizationEmployeeListResponseItemsItemTestsSu = {
   /** @nullable */
-  state: OrganizationEmployeeListResponseItemsItemTestsPsiState;
+  state: OrganizationEmployeeListResponseItemsItemTestsSuState;
   /** @nullable */
-  awaitingTest: OrganizationEmployeeListResponseItemsItemTestsPsiAwaitingTest;
+  awaitingTest: OrganizationEmployeeListResponseItemsItemTestsSuAwaitingTest;
   /** @nullable */
   lastPassedOn: string | null;
   /** @nullable */
@@ -2234,7 +2234,7 @@ export type OrganizationEmployeeListResponseItemsItemTestsPsi = {
 
 export type OrganizationEmployeeListResponseItemsItemTests = {
   ssm: OrganizationEmployeeListResponseItemsItemTestsSsm;
-  psi: OrganizationEmployeeListResponseItemsItemTestsPsi;
+  su: OrganizationEmployeeListResponseItemsItemTestsSu;
 };
 
 export type OrganizationEmployeeListResponseItemsItemClient = {
@@ -2286,7 +2286,7 @@ export type TrainingListResponseItemsItemDomain =
 
 export const TrainingListResponseItemsItemDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type TrainingListResponseItemsItemPhase =
@@ -2422,7 +2422,7 @@ export type TrainingResponseTrainingDomain =
 
 export const TrainingResponseTrainingDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type TrainingResponseTrainingPhase =
@@ -2541,7 +2541,7 @@ export type TrainingRequestDomain =
 
 export const TrainingRequestDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type TrainingRequestPhase = (typeof TrainingRequestPhase)[keyof typeof TrainingRequestPhase];
@@ -2689,7 +2689,7 @@ export type EmployeeTrainingRecordListResponseItemsItemTrainingDomain =
 
 export const EmployeeTrainingRecordListResponseItemsItemTrainingDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type EmployeeTrainingRecordListResponseItemsItemTrainingPhase =
@@ -2793,17 +2793,17 @@ export type TrainingSheetsResponseSsm = {
   sequences: number[];
 };
 
-export type TrainingSheetsResponsePsiMissingItem =
-  (typeof TrainingSheetsResponsePsiMissingItem)[keyof typeof TrainingSheetsResponsePsiMissingItem];
+export type TrainingSheetsResponseSuMissingItem =
+  (typeof TrainingSheetsResponseSuMissingItem)[keyof typeof TrainingSheetsResponseSuMissingItem];
 
-export const TrainingSheetsResponsePsiMissingItem = {
+export const TrainingSheetsResponseSuMissingItem = {
   employeecommute_route: 'employee.commute_route',
   employeeworkplace: 'employee.workplace',
 } as const;
 
-export type TrainingSheetsResponsePsi = {
+export type TrainingSheetsResponseSu = {
   ready: boolean;
-  missing: TrainingSheetsResponsePsiMissingItem[];
+  missing: TrainingSheetsResponseSuMissingItem[];
   stored: boolean;
   /** @items.minimum 1 */
   sequences: number[];
@@ -2811,7 +2811,7 @@ export type TrainingSheetsResponsePsi = {
 
 export interface TrainingSheetsResponse {
   ssm: TrainingSheetsResponseSsm;
-  psi: TrainingSheetsResponsePsi;
+  su: TrainingSheetsResponseSu;
 }
 
 export type MissingSheetDataResponseError =
@@ -2849,7 +2849,7 @@ export type TestBankResponseTestsItemDomain =
 
 export const TestBankResponseTestsItemDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type TestBankResponseTestsItemTest =
@@ -2865,7 +2865,7 @@ export type TestBankResponseTestsItemQuestionsItemDomain =
 
 export const TestBankResponseTestsItemQuestionsItemDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type TestBankResponseTestsItemQuestionsItemTest =
@@ -2927,7 +2927,7 @@ export type TestQuestionResponseQuestionDomain =
 
 export const TestQuestionResponseQuestionDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type TestQuestionResponseQuestionTest =
@@ -2976,7 +2976,7 @@ export type CreateTestQuestionRequestDomain =
 
 export const CreateTestQuestionRequestDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type CreateTestQuestionRequestTest =
@@ -3108,7 +3108,7 @@ export type EmployeeTestsResponseSsmResultsItemDomain =
 
 export const EmployeeTestsResponseSsmResultsItemDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type EmployeeTestsResponseSsmResultsItemTest =
@@ -3197,7 +3197,7 @@ export type EmployeeTestsResponseSsmAttemptsItemDomain =
 
 export const EmployeeTestsResponseSsmAttemptsItemDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type EmployeeTestsResponseSsmAttemptsItemTest =
@@ -3235,11 +3235,11 @@ export type EmployeeTestsResponseSsm = {
 /**
  * @nullable
  */
-export type EmployeeTestsResponsePsiStatusState =
-  | (typeof EmployeeTestsResponsePsiStatusState)[keyof typeof EmployeeTestsResponsePsiStatusState]
+export type EmployeeTestsResponseSuStatusState =
+  | (typeof EmployeeTestsResponseSuStatusState)[keyof typeof EmployeeTestsResponseSuStatusState]
   | null;
 
-export const EmployeeTestsResponsePsiStatusState = {
+export const EmployeeTestsResponseSuStatusState = {
   none: 'none',
   pending: 'pending',
   unverified: 'unverified',
@@ -3250,69 +3250,69 @@ export const EmployeeTestsResponsePsiStatusState = {
 /**
  * @nullable
  */
-export type EmployeeTestsResponsePsiStatusAwaitingTest =
-  | (typeof EmployeeTestsResponsePsiStatusAwaitingTest)[keyof typeof EmployeeTestsResponsePsiStatusAwaitingTest]
+export type EmployeeTestsResponseSuStatusAwaitingTest =
+  | (typeof EmployeeTestsResponseSuStatusAwaitingTest)[keyof typeof EmployeeTestsResponseSuStatusAwaitingTest]
   | null;
 
-export const EmployeeTestsResponsePsiStatusAwaitingTest = {
+export const EmployeeTestsResponseSuStatusAwaitingTest = {
   hiring: 'hiring',
   annual: 'annual',
 } as const;
 
-export type EmployeeTestsResponsePsiStatus = {
+export type EmployeeTestsResponseSuStatus = {
   /** @nullable */
-  state: EmployeeTestsResponsePsiStatusState;
+  state: EmployeeTestsResponseSuStatusState;
   /** @nullable */
-  awaitingTest: EmployeeTestsResponsePsiStatusAwaitingTest;
+  awaitingTest: EmployeeTestsResponseSuStatusAwaitingTest;
   /** @nullable */
   lastPassedOn: string | null;
   /** @nullable */
   dueOn: string | null;
 };
 
-export type EmployeeTestsResponsePsiResultsItemDomain =
-  (typeof EmployeeTestsResponsePsiResultsItemDomain)[keyof typeof EmployeeTestsResponsePsiResultsItemDomain];
+export type EmployeeTestsResponseSuResultsItemDomain =
+  (typeof EmployeeTestsResponseSuResultsItemDomain)[keyof typeof EmployeeTestsResponseSuResultsItemDomain];
 
-export const EmployeeTestsResponsePsiResultsItemDomain = {
+export const EmployeeTestsResponseSuResultsItemDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
-export type EmployeeTestsResponsePsiResultsItemTest =
-  (typeof EmployeeTestsResponsePsiResultsItemTest)[keyof typeof EmployeeTestsResponsePsiResultsItemTest];
+export type EmployeeTestsResponseSuResultsItemTest =
+  (typeof EmployeeTestsResponseSuResultsItemTest)[keyof typeof EmployeeTestsResponseSuResultsItemTest];
 
-export const EmployeeTestsResponsePsiResultsItemTest = {
+export const EmployeeTestsResponseSuResultsItemTest = {
   hiring: 'hiring',
   annual: 'annual',
 } as const;
 
-export type EmployeeTestsResponsePsiResultsItemGrade =
-  (typeof EmployeeTestsResponsePsiResultsItemGrade)[keyof typeof EmployeeTestsResponsePsiResultsItemGrade];
+export type EmployeeTestsResponseSuResultsItemGrade =
+  (typeof EmployeeTestsResponseSuResultsItemGrade)[keyof typeof EmployeeTestsResponseSuResultsItemGrade];
 
-export const EmployeeTestsResponsePsiResultsItemGrade = {
+export const EmployeeTestsResponseSuResultsItemGrade = {
   admis: 'admis',
 } as const;
 
 /**
  * @nullable
  */
-export type EmployeeTestsResponsePsiResultsItemExaminer = {
+export type EmployeeTestsResponseSuResultsItemExaminer = {
   name: string;
   jobTitle: string;
 } | null;
 
-export type EmployeeTestsResponsePsiResultsItemSource =
-  (typeof EmployeeTestsResponsePsiResultsItemSource)[keyof typeof EmployeeTestsResponsePsiResultsItemSource];
+export type EmployeeTestsResponseSuResultsItemSource =
+  (typeof EmployeeTestsResponseSuResultsItemSource)[keyof typeof EmployeeTestsResponseSuResultsItemSource];
 
-export const EmployeeTestsResponsePsiResultsItemSource = {
+export const EmployeeTestsResponseSuResultsItemSource = {
   portal: 'portal',
   paper: 'paper',
 } as const;
 
-export type EmployeeTestsResponsePsiResultsItemSheetSignedTrainee =
-  (typeof EmployeeTestsResponsePsiResultsItemSheetSignedTrainee)[keyof typeof EmployeeTestsResponsePsiResultsItemSheetSignedTrainee];
+export type EmployeeTestsResponseSuResultsItemSheetSignedTrainee =
+  (typeof EmployeeTestsResponseSuResultsItemSheetSignedTrainee)[keyof typeof EmployeeTestsResponseSuResultsItemSheetSignedTrainee];
 
-export const EmployeeTestsResponsePsiResultsItemSheetSignedTrainee = {
+export const EmployeeTestsResponseSuResultsItemSheetSignedTrainee = {
   unassigned: 'unassigned',
   pending: 'pending',
   signed: 'signed',
@@ -3320,10 +3320,10 @@ export const EmployeeTestsResponsePsiResultsItemSheetSignedTrainee = {
   void: 'void',
 } as const;
 
-export type EmployeeTestsResponsePsiResultsItemSheetSignedExaminer =
-  (typeof EmployeeTestsResponsePsiResultsItemSheetSignedExaminer)[keyof typeof EmployeeTestsResponsePsiResultsItemSheetSignedExaminer];
+export type EmployeeTestsResponseSuResultsItemSheetSignedExaminer =
+  (typeof EmployeeTestsResponseSuResultsItemSheetSignedExaminer)[keyof typeof EmployeeTestsResponseSuResultsItemSheetSignedExaminer];
 
-export const EmployeeTestsResponsePsiResultsItemSheetSignedExaminer = {
+export const EmployeeTestsResponseSuResultsItemSheetSignedExaminer = {
   unassigned: 'unassigned',
   pending: 'pending',
   signed: 'signed',
@@ -3331,54 +3331,54 @@ export const EmployeeTestsResponsePsiResultsItemSheetSignedExaminer = {
   void: 'void',
 } as const;
 
-export type EmployeeTestsResponsePsiResultsItemSheetSigned = {
-  trainee: EmployeeTestsResponsePsiResultsItemSheetSignedTrainee;
-  examiner: EmployeeTestsResponsePsiResultsItemSheetSignedExaminer;
+export type EmployeeTestsResponseSuResultsItemSheetSigned = {
+  trainee: EmployeeTestsResponseSuResultsItemSheetSignedTrainee;
+  examiner: EmployeeTestsResponseSuResultsItemSheetSignedExaminer;
 };
 
-export type EmployeeTestsResponsePsiResultsItemSheet = {
+export type EmployeeTestsResponseSuResultsItemSheet = {
   available: boolean;
-  signed: EmployeeTestsResponsePsiResultsItemSheetSigned;
+  signed: EmployeeTestsResponseSuResultsItemSheetSigned;
 };
 
-export type EmployeeTestsResponsePsiResultsItem = {
+export type EmployeeTestsResponseSuResultsItem = {
   id: string;
   employeeId: string;
-  domain: EmployeeTestsResponsePsiResultsItemDomain;
-  test: EmployeeTestsResponsePsiResultsItemTest;
+  domain: EmployeeTestsResponseSuResultsItemDomain;
+  test: EmployeeTestsResponseSuResultsItemTest;
   takenOn: string;
   material: string;
-  grade: EmployeeTestsResponsePsiResultsItemGrade;
+  grade: EmployeeTestsResponseSuResultsItemGrade;
   /** @nullable */
-  examiner: EmployeeTestsResponsePsiResultsItemExaminer;
-  source: EmployeeTestsResponsePsiResultsItemSource;
+  examiner: EmployeeTestsResponseSuResultsItemExaminer;
+  source: EmployeeTestsResponseSuResultsItemSource;
   /** @nullable */
   attemptId: string | null;
   createdAt: string;
   updatedAt: string;
-  sheet: EmployeeTestsResponsePsiResultsItemSheet;
+  sheet: EmployeeTestsResponseSuResultsItemSheet;
 };
 
-export type EmployeeTestsResponsePsiAttemptsItemDomain =
-  (typeof EmployeeTestsResponsePsiAttemptsItemDomain)[keyof typeof EmployeeTestsResponsePsiAttemptsItemDomain];
+export type EmployeeTestsResponseSuAttemptsItemDomain =
+  (typeof EmployeeTestsResponseSuAttemptsItemDomain)[keyof typeof EmployeeTestsResponseSuAttemptsItemDomain];
 
-export const EmployeeTestsResponsePsiAttemptsItemDomain = {
+export const EmployeeTestsResponseSuAttemptsItemDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
-export type EmployeeTestsResponsePsiAttemptsItemTest =
-  (typeof EmployeeTestsResponsePsiAttemptsItemTest)[keyof typeof EmployeeTestsResponsePsiAttemptsItemTest];
+export type EmployeeTestsResponseSuAttemptsItemTest =
+  (typeof EmployeeTestsResponseSuAttemptsItemTest)[keyof typeof EmployeeTestsResponseSuAttemptsItemTest];
 
-export const EmployeeTestsResponsePsiAttemptsItemTest = {
+export const EmployeeTestsResponseSuAttemptsItemTest = {
   hiring: 'hiring',
   annual: 'annual',
 } as const;
 
-export type EmployeeTestsResponsePsiAttemptsItem = {
+export type EmployeeTestsResponseSuAttemptsItem = {
   id: string;
-  domain: EmployeeTestsResponsePsiAttemptsItemDomain;
-  test: EmployeeTestsResponsePsiAttemptsItemTest;
+  domain: EmployeeTestsResponseSuAttemptsItemDomain;
+  test: EmployeeTestsResponseSuAttemptsItemTest;
   startedAt: string;
   /** @nullable */
   finishedAt: string | null;
@@ -3393,15 +3393,15 @@ export type EmployeeTestsResponsePsiAttemptsItem = {
   passed: boolean | null;
 };
 
-export type EmployeeTestsResponsePsi = {
-  status: EmployeeTestsResponsePsiStatus;
-  results: EmployeeTestsResponsePsiResultsItem[];
-  attempts: EmployeeTestsResponsePsiAttemptsItem[];
+export type EmployeeTestsResponseSu = {
+  status: EmployeeTestsResponseSuStatus;
+  results: EmployeeTestsResponseSuResultsItem[];
+  attempts: EmployeeTestsResponseSuAttemptsItem[];
 };
 
 export interface EmployeeTestsResponse {
   ssm: EmployeeTestsResponseSsm;
-  psi: EmployeeTestsResponsePsi;
+  su: EmployeeTestsResponseSu;
 }
 
 export type TestResultResponseResultDomain =
@@ -3409,7 +3409,7 @@ export type TestResultResponseResultDomain =
 
 export const TestResultResponseResultDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type TestResultResponseResultTest =
@@ -3469,7 +3469,7 @@ export type PaperTestResultRequestDomain =
 
 export const PaperTestResultRequestDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type PaperTestResultRequestTest =
@@ -3844,7 +3844,7 @@ export type InstructionModuleListResponseItemsItemDomain =
 
 export const InstructionModuleListResponseItemsItemDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type InstructionModuleListResponseItemsItemVersion = {
@@ -3897,7 +3897,7 @@ export type InstructionModuleResponseModuleDomain =
 
 export const InstructionModuleResponseModuleDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type InstructionModuleResponseModuleVersion = {
@@ -3974,7 +3974,7 @@ export type CreateInstructionModuleRequestDomain =
 
 export const CreateInstructionModuleRequestDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type CreateInstructionModuleRequestBodyBlocksItem =
@@ -4016,7 +4016,7 @@ export type InstructionPreviewRequestDomain =
 
 export const InstructionPreviewRequestDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type InstructionPreviewRequestBodyBlocksItem =
@@ -4069,7 +4069,7 @@ export type UpdateInstructionModuleRequestDomain =
 
 export const UpdateInstructionModuleRequestDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export interface UpdateInstructionModuleRequest {
@@ -4100,7 +4100,7 @@ export type SaveInstructionBodyResponseModuleDomain =
 
 export const SaveInstructionBodyResponseModuleDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type SaveInstructionBodyResponseModuleVersion = {
@@ -4228,7 +4228,7 @@ export type PositionInstructionsResponseDomain =
 
 export const PositionInstructionsResponseDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type PositionInstructionsResponseItemsItemGroup =
@@ -4263,7 +4263,7 @@ export type ApplyInstructionsRequestDomain =
 
 export const ApplyInstructionsRequestDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export interface ApplyInstructionsRequest {
@@ -4277,7 +4277,7 @@ export type CopyInstructionsRequestDomain =
 
 export const CopyInstructionsRequestDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export interface CopyInstructionsRequest {
@@ -4290,7 +4290,7 @@ export type InstructionsDecisionDomain =
 
 export const InstructionsDecisionDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export interface InstructionsDecision {
@@ -8034,7 +8034,7 @@ export type ImportSummaryLibraryPartsItemPart =
 
 export const ImportSummaryLibraryPartsItemPart = {
   instructions_ssm: 'instructions_ssm',
-  instructions_psi: 'instructions_psi',
+  instructions_su: 'instructions_su',
 } as const;
 
 export type ImportSummaryLibraryPartsItemStatus =
@@ -8233,7 +8233,7 @@ export type ImportListResponseItemsItemLibraryPartsItemPart =
 
 export const ImportListResponseItemsItemLibraryPartsItemPart = {
   instructions_ssm: 'instructions_ssm',
-  instructions_psi: 'instructions_psi',
+  instructions_su: 'instructions_su',
 } as const;
 
 export type ImportListResponseItemsItemLibraryPartsItemStatus =
@@ -8326,7 +8326,7 @@ export type ImportDetailLibraryPartsItemPart =
 
 export const ImportDetailLibraryPartsItemPart = {
   instructions_ssm: 'instructions_ssm',
-  instructions_psi: 'instructions_psi',
+  instructions_su: 'instructions_su',
 } as const;
 
 export type ImportDetailLibraryPartsItemStatus =
@@ -8377,7 +8377,7 @@ export type ImportDetailFilesItemDocumentDomain =
 
 export const ImportDetailFilesItemDocumentDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type ImportDetailBlockersItemCode =
@@ -8459,8 +8459,8 @@ export type EmployeeImportReviewProposalPagesItemKind =
 export const EmployeeImportReviewProposalPagesItemKind = {
   ssm_sheet_front: 'ssm_sheet_front',
   ssm_periodic: 'ssm_periodic',
-  psi_sheet_front: 'psi_sheet_front',
-  psi_periodic: 'psi_periodic',
+  su_sheet_front: 'su_sheet_front',
+  su_periodic: 'su_periodic',
   commute_declaration: 'commute_declaration',
   other: 'other',
 } as const;
@@ -8483,7 +8483,7 @@ export type EmployeeImportReviewProposalPagesItemRowsItemDomain =
 
 export const EmployeeImportReviewProposalPagesItemRowsItemDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type EmployeeImportReviewProposalPagesItemRowsItemPhase =
@@ -11166,7 +11166,7 @@ export type ImportLibraryPartPart =
 
 export const ImportLibraryPartPart = {
   instructions_ssm: 'instructions_ssm',
-  instructions_psi: 'instructions_psi',
+  instructions_su: 'instructions_su',
 } as const;
 
 export type ImportLibraryPartDomain =
@@ -11174,7 +11174,7 @@ export type ImportLibraryPartDomain =
 
 export const ImportLibraryPartDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type ImportLibraryPartStatus =
@@ -11213,7 +11213,7 @@ export type InstructionsProposalDomain =
 
 export const InstructionsProposalDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type InstructionsProposalInstructionsItemCategory =
@@ -13523,7 +13523,7 @@ export type TestAttemptResponseAttemptDomain =
 
 export const TestAttemptResponseAttemptDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type TestAttemptResponseAttemptTest =
@@ -13578,7 +13578,7 @@ export type TestAttemptOutcomeDomain =
 
 export const TestAttemptOutcomeDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type TestAttemptOutcomeTest =
@@ -13775,7 +13775,7 @@ export type SignatureRequestListResponseItemsItemRecordDomain =
 
 export const SignatureRequestListResponseItemsItemRecordDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type SignatureRequestListResponseItemsItemRecordPhase =
@@ -13805,7 +13805,7 @@ export type SignatureRequestListResponseItemsItemTestSheetDomain =
 
 export const SignatureRequestListResponseItemsItemTestSheetDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type SignatureRequestListResponseItemsItemTestSheetTest =
@@ -14350,7 +14350,7 @@ export type ListOrganizationEmployeesDomain =
 
 export const ListOrganizationEmployeesDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type ListTrainingsParams = {
@@ -14362,7 +14362,7 @@ export type ListTrainingsDomain = (typeof ListTrainingsDomain)[keyof typeof List
 
 export const ListTrainingsDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type ListTrainingsPhase = (typeof ListTrainingsPhase)[keyof typeof ListTrainingsPhase];
@@ -14390,7 +14390,7 @@ export type GetTrainingProposalDomain =
 
 export const GetTrainingProposalDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type GetTrainingProposalPhase =
@@ -14412,7 +14412,7 @@ export type ListEmployeeTrainingRecordsDomain =
 
 export const ListEmployeeTrainingRecordsDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type GetTrainingSheetParams = {
@@ -14428,7 +14428,7 @@ export type GetTrainingSheetDomain =
 
 export const GetTrainingSheetDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type GetTestBankParams = {
@@ -14440,7 +14440,7 @@ export type GetTestBankDomain = (typeof GetTestBankDomain)[keyof typeof GetTestB
 
 export const GetTestBankDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type GetTestBankTest = (typeof GetTestBankTest)[keyof typeof GetTestBankTest];
@@ -14484,7 +14484,7 @@ export type ListInstructionModulesDomain =
 
 export const ListInstructionModulesDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type DownloadInstructionModuleParams = {
@@ -14500,7 +14500,7 @@ export type ListPositionInstructionsDomain =
 
 export const ListPositionInstructionsDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type ListRiskFactorSuggestionsParams = {
@@ -22049,7 +22049,7 @@ export const getListInstructionModulesUrl = (params?: ListInstructionModulesPara
 };
 
 /**
- * The library (ADR 012), by domain, group and title, each module with its current version and how many current positions apply it. Archived modules are left out unless `archived=true`, which lists only them; `domain` lists the modules of one set only, `ssm` or `psi`.
+ * The library (ADR 012), by domain, group and title, each module with its current version and how many current positions apply it. Archived modules are left out unless `archived=true`, which lists only them; `domain` lists the modules of one set only, `ssm` or `su`.
  * @summary List the organization's instruction modules
  */
 export const listInstructionModules = async (
@@ -35557,7 +35557,7 @@ export const getListImportLibraryPartsUrl = (importId: string) => {
 };
 
 /**
- * One part per domain whose own instructions the sorting found (ADR 034), `instructions_ssm` and `instructions_psi`, each read by a request of its own once the client proposal is ready: its status (`reading`, `to_review`, `nothing_new`, `failed` with `failureReason`, `confirmed`), the proposal from `to_review` on (null before, and once dropped with the import's, 30 days after the client), the member's changes and the version to save on, the counts of identical, similar, new and unread instructions, `positionPosts` (the client post each post the themes name is, as the changes name posts), `expiresAt` (14 days after the client's confirmation, past which a part is no longer confirmed), and `credits`, its readings net of those given back. `posts` are the posts an instruction can apply to: the client proposal's, by their id, with the job position each became once the client is confirmed, and the client's other active posts by their id. `usage`, the models' cost at list price and tokens, is served outside production and, in production, only to a platform admin. An empty list for an employee import or a pack without own instructions.
+ * One part per domain whose own instructions the sorting found (ADR 034), `instructions_ssm` and `instructions_su`, each read by a request of its own once the client proposal is ready: its status (`reading`, `to_review`, `nothing_new`, `failed` with `failureReason`, `confirmed`), the proposal from `to_review` on (null before, and once dropped with the import's, 30 days after the client), the member's changes and the version to save on, the counts of identical, similar, new and unread instructions, `positionPosts` (the client post each post the themes name is, as the changes name posts), `expiresAt` (14 days after the client's confirmation, past which a part is no longer confirmed), and `credits`, its readings net of those given back. `posts` are the posts an instruction can apply to: the client proposal's, by their id, with the job position each became once the client is confirmed, and the client's other active posts by their id. `usage`, the models' cost at list price and tokens, is served outside production and, in production, only to a platform admin. An empty list for an employee import or a pack without own instructions.
  * @summary A client import's proposals for the library
  */
 export const listImportLibraryParts = async (
@@ -35691,7 +35691,7 @@ export function useListImportLibraryParts<
 
 export const getSaveImportLibraryPartChangesUrl = (
   importId: string,
-  part: 'instructions_ssm' | 'instructions_psi'
+  part: 'instructions_ssm' | 'instructions_su'
 ) => {
   return `/imports/${importId}/library-parts/${part}/changes`;
 };
@@ -35702,7 +35702,7 @@ export const getSaveImportLibraryPartChangesUrl = (
  */
 export const saveImportLibraryPartChanges = async (
   importId: string,
-  part: 'instructions_ssm' | 'instructions_psi',
+  part: 'instructions_ssm' | 'instructions_su',
   saveImportLibraryPartChangesRequest: SaveImportLibraryPartChangesRequest,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<SaveImportChangesResponse> => {
@@ -35779,7 +35779,7 @@ export type SaveImportLibraryPartChangesMutationBody = SaveImportLibraryPartChan
 export type SaveImportLibraryPartChangesMutationError = ErrorType<ApiErrorResponse>;
 export type SaveImportLibraryPartChangesMutationVariables = {
   importId: string;
-  part: 'instructions_ssm' | 'instructions_psi';
+  part: 'instructions_ssm' | 'instructions_su';
   data: SaveImportLibraryPartChangesRequest;
 };
 
@@ -35811,7 +35811,7 @@ export const useSaveImportLibraryPartChanges = <
 
 export const getConfirmImportLibraryPartUrl = (
   importId: string,
-  part: 'instructions_ssm' | 'instructions_psi'
+  part: 'instructions_ssm' | 'instructions_su'
 ) => {
   return `/imports/${importId}/library-parts/${part}/confirm`;
 };
@@ -35822,7 +35822,7 @@ export const getConfirmImportLibraryPartUrl = (
  */
 export const confirmImportLibraryPart = async (
   importId: string,
-  part: 'instructions_ssm' | 'instructions_psi',
+  part: 'instructions_ssm' | 'instructions_su',
   confirmImportLibraryPartRequest: ConfirmImportLibraryPartRequest,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<ConfirmImportLibraryPartResponse> => {
@@ -35901,7 +35901,7 @@ export type ConfirmImportLibraryPartMutationBody = ConfirmImportLibraryPartReque
 export type ConfirmImportLibraryPartMutationError = ErrorType<ApiErrorResponse>;
 export type ConfirmImportLibraryPartMutationVariables = {
   importId: string;
-  part: 'instructions_ssm' | 'instructions_psi';
+  part: 'instructions_ssm' | 'instructions_su';
   data: ConfirmImportLibraryPartRequest;
 };
 
@@ -35933,18 +35933,18 @@ export const useConfirmImportLibraryPart = <
 
 export const getRetryImportLibraryPartUrl = (
   importId: string,
-  part: 'instructions_ssm' | 'instructions_psi'
+  part: 'instructions_ssm' | 'instructions_su'
 ) => {
   return `/imports/${importId}/library-parts/${part}/retry`;
 };
 
 /**
- * "Citește din nou": a `failed` part of an import ready for review or confirmed goes back to `reading` under its next `attempt` and its message is sent again; the reading is charged again when its request is sent (25 credits for SSM, 10 for PSI), and given back if it fails. The client proposal and the other part are untouched. `409` with `import_part_expired` 14 days after the client was confirmed, when it could no longer be confirmed, and `import_part_not_failed` otherwise; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.
+ * "Citește din nou": a `failed` part of an import ready for review or confirmed goes back to `reading` under its next `attempt` and its message is sent again; the reading is charged again when its request is sent (25 credits for SSM, 10 for SU), and given back if it fails. The client proposal and the other part are untouched. `409` with `import_part_expired` 14 days after the client was confirmed, when it could no longer be confirmed, and `import_part_not_failed` otherwise; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.
  * @summary Read a failed library part again
  */
 export const retryImportLibraryPart = async (
   importId: string,
-  part: 'instructions_ssm' | 'instructions_psi',
+  part: 'instructions_ssm' | 'instructions_su',
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<ImportLibraryPartResponse> => {
   return apiFetch<ImportLibraryPartResponse>(getRetryImportLibraryPartUrl(importId, part), {
@@ -35998,7 +35998,7 @@ export type RetryImportLibraryPartMutationResult = NonNullable<
 export type RetryImportLibraryPartMutationError = ErrorType<ApiErrorResponse>;
 export type RetryImportLibraryPartMutationVariables = {
   importId: string;
-  part: 'instructions_ssm' | 'instructions_psi';
+  part: 'instructions_ssm' | 'instructions_su';
 };
 
 /**

@@ -67,7 +67,7 @@ import {
 } from './store';
 import { stripeCatalogue, stripeFor } from './stripe';
 
-const subscriptionTab = '/organization/subscription';
+const subscriptionTab = '/organizatie/abonament';
 
 function billingOf(c: Context<ApiEnv>): Billing {
   return {

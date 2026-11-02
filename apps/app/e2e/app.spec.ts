@@ -1,20 +1,20 @@
 import { expect, test } from '@playwright/test';
 
 test('login page renders and validates required fields', async ({ page }) => {
-  await page.goto('/login');
+  await page.goto('/autentificare');
   await expect(page.getByTestId('login-page')).toBeVisible();
   await expect(page.getByTestId('login-email')).toBeVisible();
   await expect(page.getByTestId('login-password')).toBeVisible();
   await page.getByTestId('login-submit').click();
   await expect(page.getByTestId('login-email')).toHaveAttribute('aria-invalid', 'true');
   await expect(page.getByTestId('login-password')).toHaveAttribute('aria-invalid', 'true');
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/autentificare$/);
 });
 
 test('login tabs from email to password while keeping the reset link beside its label', async ({
   page,
 }) => {
-  await page.goto('/login');
+  await page.goto('/autentificare');
   const email = page.getByTestId('login-email');
   const password = page.getByTestId('login-password');
   const resetLink = page.getByTestId('login-forgot-password');
@@ -36,6 +36,6 @@ test('login tabs from email to password while keeping the reset link beside its 
 
 test('direct dashboard navigation redirects signed-out users to login', async ({ page }) => {
   await page.goto('/dashboard');
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/autentificare$/);
   await expect(page.getByTestId('login-page')).toBeVisible();
 });

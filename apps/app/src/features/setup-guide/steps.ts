@@ -25,29 +25,29 @@ export const isComplete = (steps: readonly { state: string; canDo: boolean }[]) 
 
 const to = {
   company: (focus?: OrganizationCompanyFocus) =>
-    linkOptions({ to: '/organization/company', search: { focus } }),
+    linkOptions({ to: '/organizatie/date-firma', search: { focus } }),
   authorizations: (focus?: AuthorizationsFocus) =>
-    linkOptions({ to: '/organization/authorizations', search: { focus } }),
-  profile: (focus: ProfileFocus) => linkOptions({ to: '/profile', search: { focus } }),
-  newClient: () => linkOptions({ to: '/clients/new' }),
-  clients: () => linkOptions({ to: '/clients' }),
+    linkOptions({ to: '/organizatie/abilitari', search: { focus } }),
+  profile: (focus: ProfileFocus) => linkOptions({ to: '/profil', search: { focus } }),
+  newClient: () => linkOptions({ to: '/clienti/nou' }),
+  clients: () => linkOptions({ to: '/clienti' }),
   details: (clientId: string) =>
-    linkOptions({ to: '/clients/$clientId/details', params: { clientId } }),
+    linkOptions({ to: '/clienti/$clientId/detalii', params: { clientId } }),
   positions: (clientId: string) =>
-    linkOptions({ to: '/clients/$clientId/job-positions', params: { clientId } }),
+    linkOptions({ to: '/clienti/$clientId/posturi', params: { clientId } }),
   newEmployee: (clientId: string) =>
-    linkOptions({ to: '/clients/$clientId/employees/new', params: { clientId } }),
+    linkOptions({ to: '/clienti/$clientId/angajati/nou', params: { clientId } }),
   training: (clientId: string) =>
-    linkOptions({ to: '/clients/$clientId/training', params: { clientId } }),
+    linkOptions({ to: '/clienti/$clientId/instruire', params: { clientId } }),
   trainings: (clientId: string) =>
-    linkOptions({ to: '/clients/$clientId/trainings', params: { clientId } }),
+    linkOptions({ to: '/clienti/$clientId/instruiri-tinute', params: { clientId } }),
   documents: (clientId: string) =>
-    linkOptions({ to: '/clients/$clientId/documents', params: { clientId } }),
+    linkOptions({ to: '/clienti/$clientId/documente-ssm', params: { clientId } }),
   fireSafetyDocuments: (clientId: string) =>
-    linkOptions({ to: '/clients/$clientId/fire-safety-documents', params: { clientId } }),
+    linkOptions({ to: '/clienti/$clientId/documente-su', params: { clientId } }),
   portal: (clientId: string) =>
-    linkOptions({ to: '/clients/$clientId/portal', params: { clientId } }),
-  signatures: () => linkOptions({ to: '/signatures' }),
+    linkOptions({ to: '/clienti/$clientId/portal', params: { clientId } }),
+  signatures: () => linkOptions({ to: '/semnaturi' }),
 };
 
 export type StepTarget = ReturnType<(typeof to)[keyof typeof to]>;
@@ -96,7 +96,7 @@ const onClient = (clientId: string | null, target: (clientId: string) => StepTar
 
 const documentsActions = ({ clientId }: StepContext): StepAction[] => [
   { label: 'Documente SSM', kind: 'open', target: onClient(clientId, to.documents) },
-  { label: 'Documente PSI', kind: 'open', target: onClient(clientId, to.fireSafetyDocuments) },
+  { label: 'Documente SU', kind: 'open', target: onClient(clientId, to.fireSafetyDocuments) },
 ];
 
 export const stepCopy: Record<SetupStepId, StepCopy> = {
@@ -118,7 +118,7 @@ export const stepCopy: Record<SetupStepId, StepCopy> = {
   },
   authorizations: {
     label: 'Adaugă abilitările și cadrul tehnic PSI',
-    sentence: 'Documentele PSI tipăresc cadrul tehnic, iar contractul citează certificatul.',
+    sentence: 'Documentele SU tipăresc cadrul tehnic, iar contractul citează certificatul.',
     actions: ({ missing }) => [
       {
         label: 'Completează abilitările',
@@ -174,17 +174,16 @@ export const stepCopy: Record<SetupStepId, StepCopy> = {
     ],
   },
   'fire-safety-data': {
-    label: 'Completează datele PSI ale clientului',
-    neutralLabel: 'Completează datele PSI ale unui client',
-    sentence:
-      'Programul instruirii PSI, fumatul și deșeurile, pe care le tipăresc documentele PSI.',
+    label: 'Completează datele SU ale clientului',
+    neutralLabel: 'Completează datele SU ale unui client',
+    sentence: 'Programul instruirii SU, fumatul și deșeurile, pe care le tipăresc documentele SU.',
     actions: ({ clientId }) => [
-      { label: 'Completează datele PSI', kind: 'open', target: onClient(clientId, to.training) },
+      { label: 'Completează datele SU', kind: 'open', target: onClient(clientId, to.training) },
     ],
   },
   'generate-sets': {
-    label: 'Generează documentația SSM și PSI',
-    sentence: 'Din datele adăugate generezi setul de documente SSM și pe cel PSI.',
+    label: 'Generează documentația SSM și SU',
+    sentence: 'Din datele adăugate generezi setul de documente SSM și pe cel SU.',
     actions: documentsActions,
   },
   'issue-document': {

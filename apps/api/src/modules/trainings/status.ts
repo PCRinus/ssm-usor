@@ -11,11 +11,11 @@ export type TrainingStatusRow = Pick<
   | 'ssm_last_periodic_on'
   | 'ssm_interval_months'
   | 'ssm_interval_source'
-  | 'psi_state'
-  | 'psi_due_on'
-  | 'psi_last_periodic_on'
-  | 'psi_interval_months'
-  | 'psi_interval_source'
+  | 'su_state'
+  | 'su_due_on'
+  | 'su_last_periodic_on'
+  | 'su_interval_months'
+  | 'su_interval_source'
 >;
 
 const statusOf = (
@@ -42,12 +42,12 @@ export function toEmployeeTraining(row: TrainingStatusRow | null | undefined): E
       row?.ssm_interval_months,
       row?.ssm_interval_source
     ),
-    psi: statusOf(
-      row?.psi_state,
-      row?.psi_due_on,
-      row?.psi_last_periodic_on,
-      row?.psi_interval_months,
-      row?.psi_interval_source
+    su: statusOf(
+      row?.su_state,
+      row?.su_due_on,
+      row?.su_last_periodic_on,
+      row?.su_interval_months,
+      row?.su_interval_source
     ),
   };
 }

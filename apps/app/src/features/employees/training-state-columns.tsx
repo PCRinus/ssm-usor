@@ -7,7 +7,7 @@ export function trainingStateColumns<TData extends { training: EmployeeTraining 
   const helper = createDataTableColumns<TData>();
   return trainingDomains.map((domain) =>
     helper.display({
-      id: domain === 'ssm' ? 'trainingSsm' : 'trainingPsi',
+      id: domain === 'ssm' ? 'trainingSsm' : 'trainingSu',
       header: `Instruire ${trainingDomainLabels[domain]}`,
       meta: { cellClassName: 'whitespace-nowrap text-sm', skeletonClassName: 'w-20' },
       cell: ({ row }) => <TrainingStateCell training={row.original.training} domain={domain} />,

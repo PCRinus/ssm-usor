@@ -70,7 +70,7 @@ returns jsonb language sql as $$
         "trainer_job_title": "Administrator",
         "records": [{ "employee_key": "p1", "admitted_on": "2015-03-04",
           "admitted_by_name": "Elena Marin", "admitted_by_job_title": "Administrator" }] },
-      { "key": "t3", "domain": "psi", "phase": "periodic", "held_on": "2023-05-10",
+      { "key": "t3", "domain": "su", "phase": "periodic", "held_on": "2023-05-10",
         "duration_minutes": 60, "material": "Stingătoare", "trainer_name": "Vasile Georgescu",
         "trainer_job_title": "Cadru tehnic PSI",
         "records": [{ "employee_key": "p1" }, { "employee_key": "p2" }, { "employee_key": "p3" }] }
@@ -79,10 +79,10 @@ returns jsonb language sql as $$
       { "employee_key": "p1", "domain": "ssm", "test": "hiring", "taken_on": "2015-03-02",
         "material": "Testul la angajare", "examiner_name": "Elena Marin",
         "examiner_job_title": "Administrator" },
-      { "employee_key": "p1", "domain": "psi", "test": "hiring", "taken_on": "2015-03-03",
+      { "employee_key": "p1", "domain": "su", "test": "hiring", "taken_on": "2015-03-03",
         "material": "Testul la angajare", "examiner_name": "Elena Marin",
         "examiner_job_title": "Administrator" },
-      { "employee_key": "p3", "domain": "psi", "test": "annual", "taken_on": "2024-05-10",
+      { "employee_key": "p3", "domain": "su", "test": "annual", "taken_on": "2024-05-10",
         "material": "Testul anual", "examiner_name": "Vasile Georgescu",
         "examiner_job_title": "Cadru tehnic PSI" }
     ],
@@ -460,7 +460,7 @@ select results_eq(
   $$ values
      ('ssm', 'introductory_general', '2015-03-02'::date, 480, 'paper', 'Elena Marin', 2),
      ('ssm', 'workplace', '2015-03-03'::date, 480, 'paper', null::text, 1),
-     ('psi', 'periodic', '2023-05-10'::date, 60, 'paper', null::text, 3) $$,
+     ('su', 'periodic', '2023-05-10'::date, 60, 'paper', null::text, 3) $$,
   'trainings are held from paper, each with the records of all its attendees'
 );
 
@@ -493,8 +493,8 @@ select results_eq(
      order by x.taken_on $$,
   $$ values
      ('ssm', 'hiring', '2015-03-02'::date, 'admis', 'paper', 'Elena Marin'),
-     ('psi', 'hiring', '2015-03-03'::date, 'admis', 'paper', 'Elena Marin'),
-     ('psi', 'annual', '2024-05-10'::date, 'admis', 'paper', 'Vasile Georgescu') $$,
+     ('su', 'hiring', '2015-03-03'::date, 'admis', 'paper', 'Elena Marin'),
+     ('su', 'annual', '2024-05-10'::date, 'admis', 'paper', 'Vasile Georgescu') $$,
   'the paper test results are recorded with their examiner'
 );
 

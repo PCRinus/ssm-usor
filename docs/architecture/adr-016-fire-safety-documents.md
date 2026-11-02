@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-10-06
+- Amended by [ADR 035](adr-035-su-terminology-and-romanian-urls.md) (accepted 2026-11-02): the interface says SU, not PSI, and the tab is _Documente SU_.
 
 ## Context
 

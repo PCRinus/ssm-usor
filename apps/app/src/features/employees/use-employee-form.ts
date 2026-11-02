@@ -123,13 +123,13 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
       if (employee) {
         savedToast('Datele angajatului au fost salvate.');
         await navigate({
-          to: '/clients/$clientId/employees/$employeeId',
+          to: '/clienti/$clientId/angajati/$employeeId',
           params: { clientId, employeeId: employee.id },
         });
       } else {
         // The list it returns to is sorted and paged, so the new row may not be in sight.
         toast.success(`${values.lastName} ${values.firstName} a fost adăugat.`);
-        await navigate({ to: '/clients/$clientId/employees', params: { clientId } });
+        await navigate({ to: '/clienti/$clientId/angajati', params: { clientId } });
       }
     } catch (cause) {
       if (cause instanceof ApiHttpError) {

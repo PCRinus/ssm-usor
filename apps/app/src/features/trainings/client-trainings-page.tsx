@@ -53,12 +53,12 @@ import {
 } from './training-format';
 import { TrainingMaterial } from './training-material';
 
-const route = getRouteApi('/_authenticated/clients/$clientId/trainings');
-const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
+const route = getRouteApi('/_authenticated/clienti/$clientId/instruiri-tinute');
+const clientRoute = getRouteApi('/_authenticated/clienti/$clientId');
 
 const employeeTrainingTabs = {
-  ssm: '/clients/$clientId/employees/$employeeId/training/ssm',
-  psi: '/clients/$clientId/employees/$employeeId/training/psi',
+  ssm: '/clienti/$clientId/angajati/$employeeId/instruire/ssm',
+  su: '/clienti/$clientId/angajati/$employeeId/instruire/su',
 } as const satisfies Record<TrainingDomain, string>;
 
 const domainFilters: { domain: TrainingDomain | undefined; label: string }[] = [
@@ -121,7 +121,7 @@ export function ClientTrainingsPage() {
               return (
                 <Link
                   key={filter.label}
-                  to="/clients/$clientId/trainings"
+                  to="/clienti/$clientId/instruiri-tinute"
                   params={{ clientId }}
                   search={{ ...(filter.domain ? { domain: filter.domain } : {}), phase }}
                   data-testid="trainings-filter-domain"

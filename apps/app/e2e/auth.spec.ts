@@ -61,7 +61,7 @@ test('a session loads the API identity, survives a reload, and signs out', async
   const greeting = page.getByTestId('dashboard-greeting');
 
   const session = await storedSession(email);
-  await page.goto('/login');
+  await page.goto('/autentificare');
   await expect(page.getByTestId('login-page')).toBeVisible();
   await page.evaluate((entries) => {
     for (const [key, value] of entries) localStorage.setItem(key, value);
@@ -92,8 +92,8 @@ test('a session loads the API identity, survives a reload, and signs out', async
   await page.getByTestId('account-menu').click();
   await expect(page.getByRole('menu').getByText(email, { exact: true })).toBeVisible();
   await page.getByTestId('account-sign-out').click();
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/autentificare$/);
   await page.goto('/dashboard');
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/autentificare$/);
   await expect(page.getByTestId('login-page')).toBeVisible();
 });

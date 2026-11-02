@@ -529,7 +529,7 @@ describe('testSheetFileName', () => {
     expect(
       testSheetFileName(
         { last_name: 'Mărgineanu', first_name: 'Ștefan' },
-        { domain: 'psi', test: 'annual', taken_on: '2026-10-21' }
+        { domain: 'su', test: 'annual', taken_on: '2026-10-21' }
       )
     ).toBe('Fisa-de-test-TPSU-Margineanu-Stefan-2026-10-21.pdf');
   });

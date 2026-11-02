@@ -386,7 +386,8 @@ function ServiceContractBody({
   // The types allow a contract with neither revision, and one took the whole page down.
   const document = saved.document?.draft || saved.document?.issued ? saved.document : null;
   const missing = contractMissingGroups(readiness.missing, client);
-  const here = client.stage === 'lead' ? '/leads/$leadId' : '/clients/$clientId/contract';
+  const here =
+    client.stage === 'lead' ? '/clienti-potentiali/$leadId' : '/clienti/$clientId/contract';
   const followMissing = (row: MissingRow) => {
     if (row.target && row.target.to !== here) {
       startWayBack({
@@ -638,7 +639,7 @@ function ServiceContractBody({
             <Fact label="Servicii">
               {[
                 saved.contract.coversOccupationalSafety && 'SSM',
-                saved.contract.coversFireSafety && 'PSI',
+                saved.contract.coversFireSafety && 'SU',
               ]
                 .filter(Boolean)
                 .join(' și ')}
@@ -695,7 +696,7 @@ function ServiceContractBody({
                 'coversOccupationalSafety',
                 'Cuprinde securitatea și sănătatea în muncă (SSM)'
               )}
-              {checkbox('coversFireSafety', 'Cuprinde apărarea împotriva incendiilor (PSI)')}
+              {checkbox('coversFireSafety', 'Cuprinde situațiile de urgență (SU)')}
               {errors.coversOccupationalSafety && (
                 <p role="alert" className="text-sm text-destructive">
                   {errors.coversOccupationalSafety.message}

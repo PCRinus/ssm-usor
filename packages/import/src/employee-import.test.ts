@@ -122,7 +122,7 @@ describe('toEmployeeProposal', () => {
     const proposal = propose();
     const rows = rowsOf(proposal, personNamed(proposal, 'Coman').id);
     const ssm = rows.find((row) => row.domain === 'ssm' && row.phase === 'introductory_general')!;
-    const psi = rows.find((row) => row.domain === 'psi' && row.phase === 'workplace')!;
+    const su = rows.find((row) => row.domain === 'su' && row.phase === 'workplace')!;
 
     expect(ssm.test).toEqual({
       test: 'hiring',
@@ -132,8 +132,8 @@ describe('toEmployeeProposal', () => {
       verified: true,
       inApp: false,
     });
-    expect(psi.test).toMatchObject({ examinerName: 'Barbu Ionuț', verified: true });
-    expect(hiringTestRowIds(rows)).toEqual(new Set([ssm.id, psi.id]));
+    expect(su.test).toMatchObject({ examinerName: 'Barbu Ionuț', verified: true });
+    expect(hiringTestRowIds(rows)).toEqual(new Set([ssm.id, su.id]));
   });
 
   it('keeps the verifier box on a page it could not place, for the member to move', () => {
@@ -286,7 +286,7 @@ describe('toEmployeeProposal', () => {
           fields: { homeAddress: 'Str. Florilor, nr. 12, bl. 3, ap. 5, Dumbrăvița, Timis' },
         }),
         page({
-          pageKind: 'psi_sheet_front',
+          pageKind: 'su_sheet_front',
           person: { lastName: 'Marin', firstName: 'Ioana' },
           fields: { homeAddress: 'Str. Florilor, nr. 12, bl. 5, ap. 3, Dumbrăvița, Timiș' },
         })
@@ -314,7 +314,7 @@ describe('toEmployeeProposal', () => {
           fields: { birthDate: '1990-07-20' },
         }),
         page({
-          pageKind: 'psi_sheet_front',
+          pageKind: 'su_sheet_front',
           person: { lastName: 'Elena', firstName: 'Pop' },
           fields: { birthDate: '1990-07-20' },
         })

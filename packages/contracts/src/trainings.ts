@@ -1,12 +1,12 @@
 import { z } from 'zod';
 
-export const trainingDomains = ['ssm', 'psi'] as const;
+export const trainingDomains = ['ssm', 'su'] as const;
 export const trainingDomainSchema = z.enum(trainingDomains);
 export type TrainingDomain = z.infer<typeof trainingDomainSchema>;
 
 export const trainingDomainLabels: Record<TrainingDomain, string> = {
   ssm: 'SSM',
-  psi: 'PSI',
+  su: 'SU',
 };
 
 export const trainingPhases = [
@@ -83,7 +83,7 @@ export const trainingStatusSchema = z.object({
   lastPeriodicOn: z.iso.date().nullable(),
   // Null while undecided.
   intervalMonths: z.int().min(1).nullable(),
-  // A position overrides the client's programme for SSM only; never for PSI (#371).
+  // A position overrides the client's programme for SSM only; never for SU (#371).
   intervalSource: trainingIntervalSourceSchema.nullable(),
 });
 
@@ -91,7 +91,7 @@ export type TrainingStatus = z.infer<typeof trainingStatusSchema>;
 
 export const employeeTrainingSchema = z.object({
   ssm: trainingStatusSchema,
-  psi: trainingStatusSchema,
+  su: trainingStatusSchema,
 });
 
 export type EmployeeTraining = z.infer<typeof employeeTrainingSchema>;

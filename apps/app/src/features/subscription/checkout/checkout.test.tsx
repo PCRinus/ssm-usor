@@ -90,7 +90,7 @@ const bodyOf = (pathname: string, method: string) =>
   JSON.parse(String(requests(pathname, method).at(-1)?.[1]?.body)) as unknown;
 
 const mount = (search = '') =>
-  mountApp(authFixture(makeSession()).client, `/organization/subscription/choose${search}`);
+  mountApp(authFixture(makeSession()).client, `/organizatie/abonament/alege${search}`);
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -172,7 +172,7 @@ describe('choosing a plan', () => {
       expect.objectContaining({ clientSecret: 'seti_secret_1', redirect: 'if_required' })
     );
     await waitFor(() =>
-      expect(runtime.router.state.location.pathname).toBe('/organization/subscription')
+      expect(runtime.router.state.location.pathname).toBe('/organizatie/abonament')
     );
     expect(await screen.findByText(/Azi nu ai plătit nimic; prima plată e pe/)).toBeTruthy();
   });
@@ -208,7 +208,7 @@ describe('choosing a plan', () => {
     await user.click(submit);
 
     await waitFor(
-      () => expect(runtime.router.state.location.pathname).toBe('/organization/subscription'),
+      () => expect(runtime.router.state.location.pathname).toBe('/organizatie/abonament'),
       { timeout: 8000 }
     );
     expect((await screen.findByTestId('payment-card-number')).textContent).toBe('Visa •••• 4242');
@@ -259,7 +259,7 @@ describe('choosing a plan', () => {
     expect(stripe.confirmPayment).toHaveBeenCalledWith(
       expect.objectContaining({ clientSecret: 'pi_secret_1' })
     );
-    expect(runtime.router.state.location.pathname).toBe('/organization/subscription/choose');
+    expect(runtime.router.state.location.pathname).toBe('/organizatie/abonament/alege');
   });
 
   it('offers the card form again for a plan chosen in the trial whose card never confirmed, and keeps it while the bank confirms', async () => {
@@ -294,7 +294,7 @@ describe('choosing a plan', () => {
     expect(requests('/billing/subscription', 'POST')).toHaveLength(1);
     expect(seenDuringConfirmation).toEqual(['Alege planul', 'card form']);
     await waitFor(() =>
-      expect(runtime.router.state.location.pathname).toBe('/organization/subscription')
+      expect(runtime.router.state.location.pathname).toBe('/organizatie/abonament')
     );
   });
 
@@ -337,7 +337,7 @@ describe('choosing a plan', () => {
     await userEvent.click(submit);
 
     await waitFor(() =>
-      expect(runtime.router.state.location.pathname).toBe('/organization/subscription')
+      expect(runtime.router.state.location.pathname).toBe('/organizatie/abonament')
     );
     expect(await screen.findByText(/Planul ales mai devreme e deja plătit și activ/)).toBeTruthy();
     expect(stripe.confirmSetup).not.toHaveBeenCalled();
@@ -422,7 +422,7 @@ describe('choosing a plan', () => {
       extraMembers: 0,
     });
     await waitFor(() =>
-      expect(runtime.router.state.location.pathname).toBe('/organization/subscription')
+      expect(runtime.router.state.location.pathname).toBe('/organizatie/abonament')
     );
   });
 

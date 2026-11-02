@@ -99,7 +99,7 @@ choice stays cheap to reverse: replacing it touches one screen and no stored dat
    the draft's file through `src/lib/files.ts`, and sets `edited_at` and `edited_by`. The
    storage policies already only accept the file of a draft. A size limit and a check that the
    bytes are a `.docx` belong here.
-2. **SPA**: a full-page route `/clients/:clientId/documents/:documentId`, lazily loaded, that
+2. **SPA**: a full-page route `/clienti/:clientId/documente-ssm/:documentId`, lazily loaded, that
    fetches the draft through the signed link, mounts the editor in `edit` mode for a draft and
    `view` mode for an issued revision, saves with a button and with Ctrl+S, warns before
    leaving with unsaved changes, and offers the download when the editor throws.

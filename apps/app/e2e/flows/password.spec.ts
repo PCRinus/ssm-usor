@@ -22,7 +22,7 @@ test('a recovery link sets a new password, which then replaces the old one', asy
   await createOrganization('Parole forgetful E2E', account.id);
 
   // What the email from the Send Email hook links to. Opening it must not use the token up.
-  const link = `/reset-password?token_hash=${await recoveryTokenHash(account.email)}`;
+  const link = `/resetare-parola?token_hash=${await recoveryTokenHash(account.email)}`;
   await page.goto(link);
   await page.reload();
 
@@ -35,7 +35,7 @@ test('a recovery link sets a new password, which then replaces the old one', asy
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByText('Parola a fost schimbată.')).toBeVisible();
   // Changed from the profile page, the notice goes out as well.
-  expect(await emailedLink(account.email, 'password-changed')).toMatch(/\/forgot-password$/);
+  expect(await emailedLink(account.email, 'password-changed')).toMatch(/\/parola-uitata$/);
   await signOut(page);
 
   await page.goto(link);
@@ -49,7 +49,7 @@ test('a recovery link sets a new password, which then replaces the old one', asy
   await expect(page).toHaveURL(/\/dashboard$/);
 
   // The owner of the account is told, in case it was not them, with the way to a reset.
-  expect(await emailedLink(account.email, 'password-changed')).toMatch(/\/forgot-password$/);
+  expect(await emailedLink(account.email, 'password-changed')).toMatch(/\/parola-uitata$/);
 });
 
 test('the profile page changes the password after checking the current one', async ({ page }) => {
@@ -80,14 +80,14 @@ test('the forgot-password form emails a reset link through the Send Email hook',
   const account = await createAccount('forgot', 'Florin Uituc');
   await createOrganization('Parole forgot E2E', account.id);
 
-  await page.goto('/login');
+  await page.goto('/autentificare');
   await page.getByTestId('login-forgot-password').click();
   await page.getByTestId('forgot-email').fill(account.email);
   await page.getByTestId('forgot-submit').click();
   await expect(page.getByTestId('forgot-password-sent')).toBeVisible();
 
   const link = await emailedLink(account.email, 'password-reset');
-  expect(new URL(link).pathname).toBe('/reset-password');
+  expect(new URL(link).pathname).toBe('/resetare-parola');
   await page.goto(link);
   await page.getByTestId('reset-password').fill(newPassword);
   await page.getByTestId('reset-submit').click();

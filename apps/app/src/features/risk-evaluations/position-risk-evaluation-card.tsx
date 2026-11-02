@@ -58,7 +58,7 @@ export function PositionRiskEvaluationCard({
   const openLink = evaluation && (
     <Button asChild variant="outline" size="sm" data-testid="position-risk-open">
       <Link
-        to="/clients/$clientId/job-positions/$jobPositionId/risk-evaluation"
+        to="/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri"
         params={{ clientId, jobPositionId: position.id }}
       >
         Deschide evaluarea

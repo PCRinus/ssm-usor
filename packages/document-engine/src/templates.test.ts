@@ -71,12 +71,9 @@ describe('built-in templates', () => {
     expect(documentText(read(name))).not.toMatch(originals);
   });
 
-  it.each(['ssm', 'psi'] as const)(
-    'the %s annex template carries nothing of a client',
-    (domain) => {
-      expect(documentText(annexTemplate(domain))).not.toMatch(originals);
-    }
-  );
+  it.each(['ssm', 'su'] as const)('the %s annex template carries nothing of a client', (domain) => {
+    expect(documentText(annexTemplate(domain))).not.toMatch(originals);
+  });
 });
 
 // Written by us and not imported (ADR 007), so they are kept apart from the provider's pack.
@@ -198,15 +195,15 @@ describe('fire-safety set', () => {
   const fire = {
     representativeRoleRunOn: 'administrator',
     decisionNumbers: {
-      organization: '4 PSI',
-      training: '5 PSI',
-      openFire: '6 PSI',
-      smoking: '7 PSI',
-      technician: '8 PSI',
-      instructions: '9 PSI',
-      waste: '10 PSI',
-      seasons: '11 PSI',
-      control: '12 PSI',
+      organization: '4 SU',
+      training: '5 SU',
+      openFire: '6 SU',
+      smoking: '7 SU',
+      technician: '8 SU',
+      instructions: '9 SU',
+      waste: '10 SU',
+      seasons: '11 SU',
+      control: '12 SU',
     },
     schedule: {
       periodicHours: 2,
@@ -254,11 +251,11 @@ describe('fire-safety set', () => {
       decisions: [
         {
           title: 'Decizia privind organizarea apărării împotriva incendiilor',
-          reference: 'nr.\u00a04\u00a0PSI din 19.01.2026',
+          reference: 'nr.\u00a04\u00a0SU din 19.01.2026',
         },
         {
           title: 'Decizia privind instruirea în domeniul situațiilor de urgență',
-          reference: 'nr.\u00a05\u00a0PSI din 19.01.2026',
+          reference: 'nr.\u00a05\u00a0SU din 19.01.2026',
         },
       ],
       coordinator: 'Ion VLAD, Șef magazin',
@@ -674,15 +671,15 @@ describe('fire-safety set', () => {
 
   it('numbers each decision as its place in the binder says', () => {
     const numbers = {
-      'fire/1.1_fire_decision_organization.docx': '4 PSI',
-      'fire/1.2_fire_decision_training.docx': '5 PSI',
-      'fire/1.3_fire_decision_open_fire.docx': '6 PSI',
-      'fire/1.4_fire_decision_smoking.docx': '7 PSI',
-      'fire/1.5_fire_decision_technician.docx': '8 PSI',
-      'fire/1.6_fire_decision_instructions.docx': '9 PSI',
-      'fire/1.7_fire_decision_waste.docx': '10 PSI',
-      'fire/1.8_fire_decision_seasons.docx': '11 PSI',
-      'fire/1.9_fire_decision_control.docx': '12 PSI',
+      'fire/1.1_fire_decision_organization.docx': '4 SU',
+      'fire/1.2_fire_decision_training.docx': '5 SU',
+      'fire/1.3_fire_decision_open_fire.docx': '6 SU',
+      'fire/1.4_fire_decision_smoking.docx': '7 SU',
+      'fire/1.5_fire_decision_technician.docx': '8 SU',
+      'fire/1.6_fire_decision_instructions.docx': '9 SU',
+      'fire/1.7_fire_decision_waste.docx': '10 SU',
+      'fire/1.8_fire_decision_seasons.docx': '11 SU',
+      'fire/1.9_fire_decision_control.docx': '12 SU',
     };
     for (const [name, number] of Object.entries(numbers)) {
       const text = documentText(renderDocument(read(name), stageTwoData));
@@ -834,10 +831,10 @@ describe('fire-safety set', () => {
     );
     expect(forbidden).not.toContain('LOC PENTRU FUMAT');
     expect(documentText(renderDocument(read(sheet), stageTwoData))).toContain(
-      '– fumatul este permis numai în exteriorul clădirilor, în locurile amenajate și marcate „LOC PENTRU FUMAT” (în curtea interioară), conform Deciziei nr. 7 PSI;'
+      '– fumatul este permis numai în exteriorul clădirilor, în locurile amenajate și marcate „LOC PENTRU FUMAT” (în curtea interioară), conform Deciziei nr. 7 SU;'
     );
     expect(documentText(renderDocument(read(sheet), { ...stageTwoData, fire: sparse }))).toContain(
-      '– fumatul este interzis în toate spațiile și pe întreaga incintă a unității, conform Deciziei nr. 7 PSI;'
+      '– fumatul este interzis în toate spațiile și pe întreaga incintă a unității, conform Deciziei nr. 7 SU;'
     );
   });
 
@@ -913,7 +910,7 @@ describe('fire-safety set', () => {
     expect(xml.match(/<w:br w:type="page"\/>/g)).toHaveLength(2);
     const text = documentText(merged);
     expect(text.match(/^INSTRUCȚIUNI DE APĂRARE ÎMPOTRIVA INCENDIILOR$/gm)).toHaveLength(2);
-    expect(text).toContain('ANEXA\nla Decizia nr. 9 PSI din 19.01.2026');
+    expect(text).toContain('ANEXA\nla Decizia nr. 9 SU din 19.01.2026');
     expect(text).toMatch(
       /^Locul de muncă: Depozit \(gelaterie\)\nAdresa: Timișoara, județul Timiș, Str. Lungă 5$/m
     );
@@ -921,9 +918,9 @@ describe('fire-safety set', () => {
     expect(text).toMatch(/^P50\nPulbere\n50 kg, carosabil\n1$/m);
     expect(text).toMatch(/^Total\n3$/m);
     expect(text).toContain(
-      'personalul de execuție la 3 luni, respectiv în lunile februarie, mai, august și noiembrie, conform Deciziei nr. 5 PSI;'
+      'personalul de execuție la 3 luni, respectiv în lunile februarie, mai, august și noiembrie, conform Deciziei nr. 5 SU;'
     );
-    expect(text).toContain('redate în Decizia nr. 8 PSI.');
+    expect(text).toContain('redate în Decizia nr. 8 SU.');
     expect(text).toContain('(Preluare din Legea 307/2006 – art. 19 alin. (1))');
     expect(text).toMatch(/^r¹⁶\)/m);
     expect(text).toContain(
@@ -935,7 +932,7 @@ describe('fire-safety set', () => {
       renderDocument(read(decision), { ...stageTwoData, fire: sparse })
     );
     expect(sparseText).toContain(
-      'Fumatul este interzis în toate spațiile și pe întreaga incintă a S.C. CLIENT DEMO S.R.L., conform Deciziei nr. 7 PSI.'
+      'Fumatul este interzis în toate spațiile și pe întreaga incintă a S.C. CLIENT DEMO S.R.L., conform Deciziei nr. 7 SU.'
     );
     expect(sparseText).not.toContain('LOC PENTRU FUMAT');
     expect(sparseText).not.toContain('Măsuri specifice locului de muncă');
@@ -944,13 +941,13 @@ describe('fire-safety set', () => {
   it('cites decision 9 for the internal controls only while the set holds it', () => {
     const decision = read('fire/1.6_fire_decision_instructions.docx');
     expect(documentText(renderDocument(decision, stageTwoData))).toContain(
-      'a) executarea controalelor interne conform planificării, Decizia nr. 12 PSI;'
+      'a) executarea controalelor interne conform planificării, Decizia nr. 12 SU;'
     );
     const without = documentText(
       renderDocument(decision, { ...stageTwoData, controlDecision: false })
     );
     expect(without).toContain('a) executarea controalelor interne;');
-    expect(without).not.toContain('12 PSI');
+    expect(without).not.toContain('12 SU');
   });
 
   // The engine repeats a list's paragraphs under one numbering: a counted list would count on
@@ -1085,10 +1082,10 @@ describe('fire-safety set', () => {
       'Raport întocmit pentru S.C. CLIENT DEMO S.R.L. în baza prevederilor OMAI 163/2007 – art. 18 lit. c), art. 151 și art. 152 și ale Legii 307/2006 – art. 27 alin. (1) lit. j)'
     );
     expect(text).toContain(
-      '– Decizia privind organizarea apărării împotriva incendiilor, nr.\u00a04\u00a0PSI din 19.01.2026;'
+      '– Decizia privind organizarea apărării împotriva incendiilor, nr.\u00a04\u00a0SU din 19.01.2026;'
     );
     expect(text).toContain(
-      '– Decizia privind instruirea în domeniul situațiilor de urgență, nr.\u00a05\u00a0PSI din 19.01.2026.'
+      '– Decizia privind instruirea în domeniul situațiilor de urgență, nr.\u00a05\u00a0SU din 19.01.2026.'
     );
     expect(text).toContain(
       'Cadrul tehnic PSI\nDan MARIN, certificat seria A nr. 1234/2024, reprezentant al S.C. SERVICIU EXTERN S.R.L.'
@@ -1356,7 +1353,7 @@ describe('fire-safety set', () => {
     expect(text).toContain(
       'CINE EFECTUEAZĂ INSTRUIREA: Ion VLAD – conducătorul locului de muncă sau, după caz, S.C. SERVICIU EXTERN S.R.L. – Dan MARIN (cadru tehnic PSI)'
     );
-    expect(text).toContain('Decizia nr. 9 PSI');
+    expect(text).toContain('Decizia nr. 9 SU');
     expect(text).toMatch(/^NOIEMBRIE\nIPSU Art. 236 – 257; Afișate; Testare.\n120 min$/m);
     const sparseText = documentText(
       renderDocument(read(themes), { ...stageTwoData, fire: sparse, fireThemes: sparseThemes })
@@ -2550,11 +2547,11 @@ describe('the individual training sheets', () => {
       ['training_sheet_ssm', 'fisa_instruire_ssm.docx'],
       ['signing_agreement', 'act_aditional_semnare_electronica.docx'],
       ['test_sheet', 'fisa_test.docx'],
-      ['training_sheet_psi', 'fire/fisa_instructaj_psi.docx'],
+      ['training_sheet_su', 'fire/fisa_instructaj_su.docx'],
     ]);
     for (const entry of perEmployeeEntries) expect(entry).not.toHaveProperty('number');
     for (const entry of sheetEntries) {
-      expect(entry.title).toMatch(/^Fișa individuală de (instruire SSM|instructaj PSI)$/);
+      expect(entry.title).toMatch(/^Fișa individuală de (instruire SSM|instructaj SU)$/);
     }
   });
 
@@ -2571,7 +2568,7 @@ describe('the individual training sheets', () => {
 
   describe.each([
     ['ssm', 'fisa_instruire_ssm.docx'],
-    ['psi', 'fire/fisa_instructaj_psi.docx'],
+    ['su', 'fire/fisa_instructaj_su.docx'],
   ] as const)('%s', (domain, name) => {
     const [recorded, empty] = trainingSheetSamples(domain) as [
       ReturnType<typeof trainingSheetSamples>[number],
@@ -2704,7 +2701,7 @@ describe('the individual training sheets', () => {
   });
 
   it('follows the rubrics of the annex to the general dispositions of OMAI 712/2005', () => {
-    const text = documentText(read('fire/fisa_instructaj_psi.docx'));
+    const text = documentText(read('fire/fisa_instructaj_su.docx'));
     for (const rubric of [
       'FIȘĂ INDIVIDUALĂ',
       'de instructaj în domeniul situațiilor de urgență',

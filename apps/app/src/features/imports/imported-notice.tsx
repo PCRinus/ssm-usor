@@ -31,7 +31,7 @@ export function ImportedNotice({ clientId }: { clientId: string }) {
         action={
           notice.files > 0 && (
             <Button asChild variant="outline" size="sm" className="bg-card">
-              <Link to="/clients/$clientId/other-documents" params={{ clientId }}>
+              <Link to="/clienti/$clientId/alte-documente" params={{ clientId }}>
                 {notice.existing ? 'Vezi dosarul importat' : 'Vezi fișierele'}
               </Link>
             </Button>
@@ -60,15 +60,15 @@ export function ImportedNotice({ clientId }: { clientId: string }) {
           {(
             [
               [
-                '/clients/$clientId/documents',
+                '/clienti/$clientId/documente-ssm',
                 'Documentația SSM',
                 'După ce completezi posturile de lucru',
                 FileCheck,
               ],
               [
-                '/clients/$clientId/fire-safety-documents',
-                'Documentația PSI',
-                'După ce completezi mijloacele PSI și echipa',
+                '/clienti/$clientId/documente-su',
+                'Documentația SU',
+                'După ce completezi mijloacele de apărare și echipa',
                 FileText,
               ],
             ] as const

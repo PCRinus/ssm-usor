@@ -218,7 +218,7 @@ export function WorkplacesCard({
                         data-testid="workplace-fire-incomplete"
                         className="mt-0.5 block text-xs font-normal text-muted-foreground"
                       >
-                        Date PSI incomplete
+                        Date SU incomplete
                       </span>
                     )}
                   </TableCell>

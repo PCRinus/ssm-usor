@@ -65,7 +65,7 @@ const bodies = (pathname: string) =>
     .filter(([input]) => new URL(String(input)).pathname === pathname)
     .map(([, init]) => JSON.parse(init?.body as string));
 
-const path = '/accept-invitation?token=tok-123';
+const path = '/invitatie?token=tok-123';
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -162,7 +162,7 @@ describe('accept invitation: a person without an account', () => {
     await user.type(screen.getByTestId('accept-password'), 'Parola123');
     await user.click(screen.getByTestId('accept-submit'));
 
-    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/login'));
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/autentificare'));
   });
 });
 
@@ -190,7 +190,7 @@ describe('accept invitation: links that cannot be accepted', () => {
 
   it('explains a link without a token, without calling the API', async () => {
     mockApi();
-    mountApp(authFixture().client, '/accept-invitation');
+    mountApp(authFixture().client, '/invitatie');
 
     expect(await screen.findByRole('heading', { name: 'Link de invitație invalid' })).toBeTruthy();
     expect(fetchMock).not.toHaveBeenCalled();
@@ -217,7 +217,7 @@ describe('accept invitation: a person who already has an account', () => {
     await user.click(screen.getByTestId('login-submit'));
 
     await screen.findByTestId('accept-join');
-    expect(runtime.router.state.location.pathname).toBe('/accept-invitation');
+    expect(runtime.router.state.location.pathname).toBe('/invitatie');
     expect(runtime.router.state.location.search).toEqual({ token: 'tok-123' });
   });
 
@@ -229,7 +229,7 @@ describe('accept invitation: a person who already has an account', () => {
     await user.type(await screen.findByTestId('accept-full-name'), 'Ion Ionescu');
     await user.click(screen.getByTestId('accept-join'));
 
-    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/organization/team'));
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/organizatie/echipa'));
     expect(bodies('/invitations/join')).toEqual([
       { token: 'tok-123', termsVersion: '2026-11-01', fullName: 'Ion Ionescu' },
     ]);

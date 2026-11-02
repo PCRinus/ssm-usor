@@ -15,7 +15,7 @@ export const knowledgeTestLabels: Record<KnowledgeTest, string> = {
 /** The tests the law asks for: no annual occupational safety test, no periodic one (ADR 024). */
 export const knowledgeTestsByDomain: Record<TrainingDomain, readonly KnowledgeTest[]> = {
   ssm: ['hiring'],
-  psi: ['hiring', 'annual'],
+  su: ['hiring', 'annual'],
 };
 
 export const isKnowledgeTestOf = (domain: TrainingDomain, test: KnowledgeTest) =>
@@ -23,7 +23,7 @@ export const isKnowledgeTestOf = (domain: TrainingDomain, test: KnowledgeTest) =
 
 export const knowledgeTestCodes = {
   ssm: { hiring: 'TASSM' },
-  psi: { hiring: 'TASU', annual: 'TPSU' },
+  su: { hiring: 'TASU', annual: 'TPSU' },
 } as const;
 
 /** finish_test_attempt writes the same text for a portal pass: the two change together. */
@@ -268,7 +268,7 @@ export type TestStatus = z.infer<typeof testStatusSchema>;
 
 export const employeeTestsSchema = z.object({
   ssm: testStatusSchema,
-  psi: testStatusSchema,
+  su: testStatusSchema,
 });
 
 export type EmployeeTests = z.infer<typeof employeeTestsSchema>;
@@ -280,7 +280,7 @@ export type TestStateFilter = z.infer<typeof testStateFilterSchema>;
 
 export const knowledgeTestTitles = {
   ssm: { hiring: 'Test de verificare a cunoștințelor la angajare (TASSM)' },
-  psi: {
+  su: {
     hiring: 'Test de verificare a cunoștințelor la angajare (TASU)',
     annual: 'Test de verificare a cunoștințelor anual (TPSU)',
   },
@@ -385,7 +385,7 @@ export type EmployeeDomainTests = z.infer<typeof employeeDomainTestsSchema>;
 
 export const employeeTestsResponseSchema = z.object({
   ssm: employeeDomainTestsSchema,
-  psi: employeeDomainTestsSchema,
+  su: employeeDomainTestsSchema,
 });
 
 export type EmployeeTestsResponse = z.infer<typeof employeeTestsResponseSchema>;
@@ -399,7 +399,7 @@ export type PortalDomainTests = z.infer<typeof portalDomainTestsSchema>;
 
 export const portalTestsResponseSchema = z.object({
   ssm: portalDomainTestsSchema,
-  psi: portalDomainTestsSchema,
+  su: portalDomainTestsSchema,
 });
 
 export type PortalTestsResponse = z.infer<typeof portalTestsResponseSchema>;
@@ -407,7 +407,7 @@ export type PortalTestsResponse = z.infer<typeof portalTestsResponseSchema>;
 /** The material a test closes (ADR 024): 2.2 for occupational safety, the IPSU for fire safety. */
 export const portalMaterialTypeKeys: Record<TrainingDomain, string> = {
   ssm: 'general_training_material',
-  psi: 'fire_own_instructions',
+  su: 'fire_own_instructions',
 };
 
 export const testStudyCardSchema = z.object({

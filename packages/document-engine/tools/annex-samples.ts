@@ -99,7 +99,7 @@ export const ssmAnnexSample: AnnexBody = {
   ],
 };
 
-export const psiAnnexSample: AnnexBody = {
+export const suAnnexSample: AnnexBody = {
   blocks: [
     heading('Domeniul de aplicare'),
     article(
@@ -159,7 +159,7 @@ export const ssmAnnexData = {
   versionDate: '14.10.2026',
 };
 
-export const psiAnnexData = {
+export const suAnnexData = {
   ...header,
   fireSafetyTechnician: { name: 'Mihai STANCU', certificate: 'seria B nr. 4321/2025' },
   number: 1,

@@ -56,7 +56,7 @@ beforeEach(() => {
   vi.mocked(useGetPortalTrainingSheets).mockReturnValue(
     queryResult({
       ssm: { ready: true, missing: [], stored: false, sequences: [] },
-      psi: { ready: true, missing: [], stored: false, sequences: [] },
+      su: { ready: true, missing: [], stored: false, sequences: [] },
     })
   );
   mutate.mockReset();
@@ -129,7 +129,7 @@ describe('the switch', () => {
       expect(screen.getByTestId('training-due-ssm').textContent).toBe('12 Mar 2027')
     );
     expect(screen.getByRole('heading', { name: 'Your training' })).toBeTruthy();
-    expect(screen.getByTestId('training-state-psi').textContent).toBe('Overdue');
+    expect(screen.getByTestId('training-state-su').textContent).toBe('Overdue');
     expect(screen.getByTestId('portal-bar-home').textContent).toBe('Home');
     expect(within(header).getByRole('group', { name: 'Language' })).toBeTruthy();
     expect(

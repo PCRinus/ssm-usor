@@ -382,7 +382,7 @@ export type PortalEmployeeData = z.infer<typeof portalEmployeeDataSchema>;
 
 export const portalTrainingSheetsSchema = z.object({
   ssm: trainingSheetReadinessSchema,
-  psi: trainingSheetReadinessSchema,
+  su: trainingSheetReadinessSchema,
 });
 
 export type PortalTrainingSheets = z.infer<typeof portalTrainingSheetsSchema>;

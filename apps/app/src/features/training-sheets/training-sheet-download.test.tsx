@@ -21,6 +21,7 @@ import { TrainingSheetDownload } from './training-sheet-download';
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const employeeId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
 const employeePath = `/clients/${clientId}/employees/${employeeId}`;
+const employeePage = `/clienti/${clientId}/angajati/${employeeId}`;
 
 type Readiness = { ready: boolean; missing: string[]; stored?: boolean; sequences?: number[] };
 const ready: Readiness = { ready: true, missing: [] };
@@ -32,7 +33,7 @@ const saved: { name: string; href: string }[] = [];
 
 function mockApi({
   ssm = ready,
-  psi = ready,
+  su = ready,
   sheet = () =>
     new Response(new Uint8Array([37, 80, 68, 70]), {
       headers: {
@@ -41,11 +42,11 @@ function mockApi({
           'attachment; filename="Fisa-SSM-Popescu-Ion.pdf"; filename*=UTF-8\'\'Fisa-SSM-Popescu-Ion.pdf',
       },
     }),
-}: { ssm?: Readiness; psi?: Readiness; sheet?: () => Response | Promise<Response> } = {}) {
+}: { ssm?: Readiness; su?: Readiness; sheet?: () => Response | Promise<Response> } = {}) {
   fetchMock.mockImplementation(async (input) => {
     const url = new URL(String(input));
     if (url.pathname === `${employeePath}/training-sheets`)
-      return Response.json({ ssm: sheetStatus(ssm), psi: sheetStatus(psi) });
+      return Response.json({ ssm: sheetStatus(ssm), su: sheetStatus(su) });
     if (url.pathname === `${employeePath}/training-sheet`) return sheet();
     throw new Error(`Unexpected request: ${url}`);
   });
@@ -61,7 +62,7 @@ function mount(...domains: TrainingDomain[]) {
   const root = createRootRouteWithContext<RouterContext>()({ component: () => <Outlet /> });
   const employee = createRoute({
     getParentRoute: () => root,
-    path: '/clients/$clientId/employees/$employeeId',
+    path: '/clienti/$clientId/angajati/$employeeId',
     component: () =>
       domains.map((domain) => (
         <TrainingSheetDownload
@@ -75,7 +76,7 @@ function mount(...domains: TrainingDomain[]) {
   const router = createRouter({
     routeTree: root.addChildren([employee]),
     context,
-    history: createMemoryHistory({ initialEntries: [employeePath] }),
+    history: createMemoryHistory({ initialEntries: [employeePage] }),
   });
   render(
     <QueryClientProvider client={queryClient}>
@@ -148,11 +149,11 @@ describe('TrainingSheetDownload', () => {
   });
 
   it('is disabled while data is missing', async () => {
-    mockApi({ psi: { ready: false, missing: ['employee.workplace'] } });
-    mount('ssm', 'psi');
+    mockApi({ su: { ready: false, missing: ['employee.workplace'] } });
+    mount('ssm', 'su');
     const ready = await screen.findByRole('button', { name: 'Descarcă fișa SSM' });
     await waitFor(() => expect(ready).toHaveProperty('disabled', false));
-    expect(screen.getByRole('button', { name: 'Descarcă fișa PSI' })).toHaveProperty(
+    expect(screen.getByRole('button', { name: 'Descarcă fișa SU' })).toHaveProperty(
       'disabled',
       true
     );

@@ -264,14 +264,14 @@ export async function completeFireSafetyData(organizationId: string, clientId: s
       organizationId,
       owner.data.user_id,
       'Lucrul cu foc deschis',
-      'psi'
+      'su'
     );
     const applied = await admin.from('job_position_instructions').insert(
       positions.data.map((position) => ({
         ...base,
         job_position_id: position.id,
         module_id: moduleId,
-        domain: 'psi',
+        domain: 'su',
       }))
     );
     if (applied.error) throw applied.error;
@@ -426,7 +426,7 @@ export async function evaluateRisks(organizationId: string, clientId: string) {
 type ModuleFixture = { title: string; group: string; domain: string; body: InstructionBody };
 
 /** The body of the dev seed's module of the domain: "Scări metalice", or "Lucrul cu foc deschis". */
-export async function moduleFixture(domain: 'ssm' | 'psi') {
+export async function moduleFixture(domain: 'ssm' | 'su') {
   const fixtures = JSON.parse(
     await readFile(
       new URL('../../../api/scripts/fixtures/instruction-modules/modules.json', import.meta.url),
@@ -434,7 +434,7 @@ export async function moduleFixture(domain: 'ssm' | 'psi') {
     )
   ) as ModuleFixture[];
   return fixtures.find((fixture) =>
-    domain === 'psi' ? fixture.domain === 'psi' : fixture.title === 'Scări metalice'
+    domain === 'su' ? fixture.domain === 'su' : fixture.title === 'Scări metalice'
   )!;
 }
 
@@ -443,7 +443,7 @@ export async function createInstructionModule(
   organizationId: string,
   createdBy: string,
   title: string,
-  domain: 'ssm' | 'psi' = 'ssm',
+  domain: 'ssm' | 'su' = 'ssm',
   own?: { body: InstructionBody; group: 'work_activity' | 'work_equipment' }
 ) {
   const fixture = await moduleFixture(domain);
@@ -453,7 +453,7 @@ export async function createInstructionModule(
     .insert({
       organization_id: organizationId,
       title,
-      module_group: own?.group ?? (domain === 'psi' ? 'hazardous_work' : 'work_equipment'),
+      module_group: own?.group ?? (domain === 'su' ? 'hazardous_work' : 'work_equipment'),
       domain,
       created_by: createdBy,
     })
@@ -539,7 +539,7 @@ export async function createLibraryImport(input: {
   const part = await admin.from('import_library_parts').insert({
     import_id: importId,
     organization_id: input.organizationId,
-    part: input.proposal.domain === 'psi' ? 'instructions_psi' : 'instructions_ssm',
+    part: input.proposal.domain === 'su' ? 'instructions_su' : 'instructions_ssm',
     status: input.partStatus ?? 'to_review',
     read_at: failed ? null : now,
     proposal: failed ? null : JSON.parse(JSON.stringify(input.proposal)),
@@ -842,7 +842,7 @@ export async function signIn(page: Page, email: string, path = '/dashboard') {
 }
 
 export async function signInThroughForm(page: Page, email: string, withPassword = password) {
-  await page.goto('/login');
+  await page.goto('/autentificare');
   await page.getByTestId('login-email').fill(email);
   await page.getByTestId('login-password').fill(withPassword);
   await page.getByTestId('login-submit').click();
@@ -851,5 +851,5 @@ export async function signInThroughForm(page: Page, email: string, withPassword 
 export async function signOut(page: Page) {
   await page.getByTestId('account-menu').click();
   await page.getByTestId('account-sign-out').click();
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/autentificare$/);
 }

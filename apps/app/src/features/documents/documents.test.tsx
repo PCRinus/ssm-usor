@@ -180,7 +180,8 @@ const requests = (suffix: string, method: string) =>
       new URL(String(input)).pathname.endsWith(suffix) && (init?.method ?? 'GET') === method
   );
 
-const mount = () => mountApp(authFixture(makeSession()).client, `/clients/${clientId}/documents`);
+const mount = () =>
+  mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/documente-ssm`);
 
 const contentsEntry = async (number: string) =>
   (await screen.findAllByTestId('pack-contents-entry')).find(
@@ -234,11 +235,11 @@ describe('client documents', () => {
       'Detalii',
       'Angajați',
       'Posturi de lucru',
-      'Mijloace PSI',
+      'Mijloace de apărare',
       'Instruire și responsabili',
       'Instruiri ținute',
       'Documente SSM',
-      'Documente PSI',
+      'Documente SU',
       'Alte documente',
       'Portal',
     ]);
@@ -284,9 +285,9 @@ describe('client documents', () => {
     ]);
     expect(rows.map((row) => row.getAttribute('href'))).toEqual([
       null,
-      '/profile?focus=professional-title',
-      `/clients/${clientId}/details?focus=legal-representative-role`,
-      `/clients/${clientId}/training?focus=first-aid`,
+      '/profil?focus=professional-title',
+      `/clienti/${clientId}/detalii?focus=legal-representative-role`,
+      `/clienti/${clientId}/instruire?focus=first-aid`,
     ]);
     expect(places[0]!.textContent).toContain('Le completează proprietarul organizației.');
     expect(screen.queryByTestId('generate-submit')).toBeNull();
@@ -335,7 +336,7 @@ describe('client documents', () => {
     const hint = await screen.findByTestId('generate-evaluator-hint');
     expect(hint.textContent).toContain('te numesc pe tine coordonator');
     expect(within(hint).getByRole('link').getAttribute('href')).toBe(
-      '/organization/authorizations?focus=risk-evaluator'
+      '/organizatie/abilitari?focus=risk-evaluator'
     );
     expect(screen.getByTestId('generate-submit')).toBeTruthy();
   });
@@ -373,7 +374,7 @@ describe('client documents', () => {
     const [place] = await screen.findAllByTestId('generate-missing-place');
     expect(place!.textContent).toBe('Datele organizațieiDenumirea legală');
     expect(within(place!).getByRole('link').getAttribute('href')).toBe(
-      '/organization/company?focus=legal-name'
+      '/organizatie/date-firma?focus=legal-name'
     );
   });
 
@@ -452,9 +453,9 @@ describe('client documents', () => {
     expect(
       rows.map((row) => row.textContent?.split('·')[0]!.trim() + ' · ' + row.getAttribute('href'))
     ).toEqual([
-      `Zidar · /clients/${clientId}/job-positions/p1#protective-equipment`,
-      `Zidar · /clients/${clientId}/job-positions/p1#instructions`,
-      `Sudor · /clients/${clientId}/job-positions/p2#protective-equipment`,
+      `Zidar · /clienti/${clientId}/posturi/p1#protective-equipment`,
+      `Zidar · /clienti/${clientId}/posturi/p1#instructions`,
+      `Sudor · /clienti/${clientId}/posturi/p2#protective-equipment`,
     ]);
     expect(screen.getByTestId('generate-missing-count').textContent).toBe('3 date de completat');
   });
@@ -482,9 +483,7 @@ describe('client documents', () => {
     expect(row.textContent).toBe(
       'Evaluarea grupurilor sensibileEvaluează-le sau declară că clientul nu are lucrători din grupurile sensibile.'
     );
-    expect(row.getAttribute('href')).toBe(
-      `/clients/${clientId}/job-positions#client-risk-evaluations`
-    );
+    expect(row.getAttribute('href')).toBe(`/clienti/${clientId}/posturi#client-risk-evaluations`);
     const action = screen.getByTestId('generate-missing-row-action');
     await user.click(within(action).getByTestId('sensitive-groups-none'));
     await waitFor(() => expect(requests('/sensitive-groups-state', 'PUT')).toHaveLength(1));
@@ -559,7 +558,7 @@ describe('client documents', () => {
     const role = await screen.findByTestId('details-representative-role');
     await waitFor(() => expect(document.activeElement).toBe(role));
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
-    expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/details`);
+    expect(runtime.router.state.location.pathname).toBe(`/clienti/${clientId}/detalii`);
     expect(screen.queryByTestId('generate-documents-dialog')).toBeNull();
 
     await user.type(role, 'Administrator');
@@ -569,7 +568,7 @@ describe('client documents', () => {
     await user.click(screen.getByRole('button', { name: 'Înapoi la generare' }));
     expect(await screen.findByTestId('generate-documents-dialog')).toBeTruthy();
     await waitFor(() =>
-      expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/documents`)
+      expect(runtime.router.state.location.pathname).toBe(`/clienti/${clientId}/documente-ssm`)
     );
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
     await waitFor(() =>
@@ -602,21 +601,21 @@ describe('client documents', () => {
 
   it('offers the way back only while the person came from the form', async () => {
     mockApi({ role: 'specialist' });
-    await saveRepresentative(`/clients/${clientId}/details`);
+    await saveRepresentative(`/clienti/${clientId}/detalii`);
     expect(screen.queryByRole('button', { name: 'Înapoi la generare' })).toBeNull();
   });
 
   it('stops offering the way back an hour after the row was followed', async () => {
     mockApi({ role: 'specialist' });
     wayBackOf({ startedAt: Date.now() - 61 * 60 * 1000 });
-    await saveRepresentative(`/clients/${clientId}/details`);
+    await saveRepresentative(`/clienti/${clientId}/detalii`);
     expect(screen.queryByRole('button', { name: 'Înapoi la generare' })).toBeNull();
   });
 
   it("forgets the way back when another company's pages are opened", async () => {
     mockApi({ role: 'specialist' });
     wayBackOf({ clientId: '7c9e6679-7425-40de-944b-e07fc1f90ae7' });
-    mountApp(authFixture(makeSession()).client, `/clients/${clientId}/details`);
+    mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/detalii`);
     await screen.findByTestId('client-details-page');
     await waitFor(() => expect(sessionStorage.getItem('ssm-usor:way-back')).toBeNull());
   });
@@ -625,7 +624,7 @@ describe('client documents', () => {
     mockApi({ role: 'specialist' });
     wayBackOf();
     const success = vi.spyOn(toast, 'success');
-    await saveRepresentative(`/clients/${clientId}/details`);
+    await saveRepresentative(`/clienti/${clientId}/detalii`);
     expect(screen.getByRole('button', { name: 'Înapoi la generare' })).toBeTruthy();
     expect(success).toHaveBeenCalledWith(
       'Reprezentantul legal a fost salvat.',
@@ -637,7 +636,7 @@ describe('client documents', () => {
     mockApi({ readiness: { ready: false, missing: ['responsible.first_aid'] } });
     const runtime = mountApp(
       authFixture(makeSession()).client,
-      `/clients/${clientId}/documents?focus=generate`
+      `/clienti/${clientId}/documente-ssm?focus=generate`
     );
     expect(await screen.findByTestId('generate-documents-dialog')).toBeTruthy();
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
@@ -668,7 +667,7 @@ describe('client documents', () => {
     });
     const runtime = mountApp(
       authFixture(makeSession()).client,
-      `/clients/${clientId}/documents?section=decisions&focus=decision_first_aid`
+      `/clienti/${clientId}/documente-ssm?section=decisions&focus=decision_first_aid`
     );
 
     const row = await waitFor(() => {
@@ -698,7 +697,7 @@ describe('client documents', () => {
     mockApi({ items: [firstAid, report] });
     const runtime = mountApp(
       authFixture(makeSession()).client,
-      `/clients/${clientId}/documents?section=decisions&focus=decision_first_aid`
+      `/clienti/${clientId}/documente-ssm?section=decisions&focus=decision_first_aid`
     );
     const user = userEvent.setup();
 
@@ -722,7 +721,7 @@ describe('client documents', () => {
     mockApi({ items: [firstAid] });
     const runtime = mountApp(
       authFixture(makeSession()).client,
-      `/clients/${clientId}/documents?section=control-report&focus=control_report`
+      `/clienti/${clientId}/documente-ssm?section=control-report&focus=control_report`
     );
 
     await waitFor(() =>
@@ -1013,7 +1012,7 @@ describe('client documents', () => {
       'Anexa 1: I.P.S.S.M. Scări metalice'
     );
     expect(within(annex!).getByTestId('document-annex-title').getAttribute('href')).toBe(
-      `/instructions/${moduleId}?version=${annexed}`
+      `/instructiuni/${moduleId}?version=${annexed}`
     );
     expect(annex!.textContent).toContain('Versiunea 1');
     expect(annex!.textContent).toContain('26.09.2026');
@@ -1099,7 +1098,7 @@ describe('client documents', () => {
 
     const decision = await openMenu(user, 'primul ajutor');
     expect(within(decision).getByTestId('document-title').getAttribute('href')).toBe(
-      `/clients/${clientId}/documents/${firstAidId}`
+      `/clienti/${clientId}/documente-ssm/${firstAidId}`
     );
     expect(within(decision).getByTestId('document-edited').textContent).toBe('Modificat');
 
@@ -1511,7 +1510,7 @@ describe('client documents', () => {
     );
     await user.click(screen.getByTestId('editor-back'));
     await screen.findAllByTestId('document-row');
-    expect(runtime.router.history.location.pathname).toBe(`/clients/${clientId}/documents`);
+    expect(runtime.router.history.location.pathname).toBe(`/clienti/${clientId}/documente-ssm`);
     expect(runtime.router.history.location.search).toBe('');
     expect(runtime.router.history.length).toBe(2);
   });
@@ -1520,7 +1519,7 @@ describe('client documents', () => {
     mockApi({ items: [firstAid, report] });
     const runtime = mountApp(
       authFixture(makeSession()).client,
-      `/clients/${clientId}/documents/${firstAidId}`
+      `/clienti/${clientId}/documente-ssm/${firstAidId}`
     );
     const user = userEvent.setup();
     // The placeholder's back link is replaced once the editor loads.
@@ -1529,7 +1528,7 @@ describe('client documents', () => {
     );
     await user.click(screen.getByTestId('editor-back'));
     await screen.findAllByTestId('document-row');
-    expect(runtime.router.history.location.pathname).toBe(`/clients/${clientId}/documents`);
+    expect(runtime.router.history.location.pathname).toBe(`/clienti/${clientId}/documente-ssm`);
     expect(runtime.router.history.location.search).toBe('?section=decisions');
     expect(runtime.router.history.length).toBe(2);
   });
@@ -1569,7 +1568,7 @@ describe('client documents', () => {
     await user.click(rows[0]!);
     const role = await screen.findByTestId('details-representative-role');
     await waitFor(() => expect(document.activeElement).toBe(role));
-    expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/details`);
+    expect(runtime.router.state.location.pathname).toBe(`/clienti/${clientId}/detalii`);
     await user.type(role, 'Administrator');
     await user.click(screen.getByTestId('legal-representative-save'));
     await user.click(await screen.findByRole('button', { name: 'Înapoi la document' }));
@@ -1579,7 +1578,7 @@ describe('client documents', () => {
         document.getElementById('document-decision_first_aid')?.hasAttribute('data-pointed')
       ).toBe(true)
     );
-    expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/documents`);
+    expect(runtime.router.state.location.pathname).toBe(`/clienti/${clientId}/documente-ssm`);
     expect(sessionStorage.getItem('ssm-usor:way-back')).toBeNull();
   });
 
@@ -1604,7 +1603,7 @@ describe('client documents', () => {
       'Contabil · echipament de protecțieArticolele postului, sau că nu are nevoie de echipament.',
     ]);
     expect(rows[0]!.getAttribute('href')).toBe(
-      `/clients/${clientId}/job-positions/p-contabil#protective-equipment`
+      `/clienti/${clientId}/posturi/p-contabil#protective-equipment`
     );
   });
 
@@ -1628,7 +1627,7 @@ describe('client documents', () => {
       'Reprezentantul lucrătorilorAles dintre angajații actuali. Decizia îl numește și când clientul are sub 10 angajați.'
     );
     expect(row.getAttribute('href')).toBe(
-      `/clients/${clientId}/training?focus=workers-representative`
+      `/clienti/${clientId}/instruire?focus=workers-representative`
     );
   });
 

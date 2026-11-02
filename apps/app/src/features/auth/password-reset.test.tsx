@@ -40,18 +40,18 @@ afterEach(() => {
 
 describe('forgot password', () => {
   it('is reachable from the login page', async () => {
-    const runtime = mountApp(authFixture().client, '/login');
+    const runtime = mountApp(authFixture().client, '/autentificare');
     const user = userEvent.setup();
 
     await user.click(await screen.findByTestId('login-forgot-password'));
 
     await screen.findByTestId('forgot-password-page');
-    expect(runtime.router.state.location.pathname).toBe('/forgot-password');
+    expect(runtime.router.state.location.pathname).toBe('/parola-uitata');
   });
 
   it('asks Supabase for the email and answers the same for any address', async () => {
     const auth = authFixture();
-    mountApp(auth.client, '/forgot-password');
+    mountApp(auth.client, '/parola-uitata');
     const user = userEvent.setup();
 
     await user.type(await screen.findByTestId('forgot-email'), '  Ion@Example.test ');
@@ -66,7 +66,7 @@ describe('forgot password', () => {
 
   it('validates the address before asking', async () => {
     const auth = authFixture();
-    mountApp(auth.client, '/forgot-password');
+    mountApp(auth.client, '/parola-uitata');
     const user = userEvent.setup();
 
     await user.type(await screen.findByTestId('forgot-email'), 'nu-este-email');
@@ -83,7 +83,7 @@ describe('forgot password', () => {
     auth.client.resetPasswordForEmail.mockResolvedValue({
       error: authError('over_email_send_rate_limit'),
     });
-    mountApp(auth.client, '/forgot-password');
+    mountApp(auth.client, '/parola-uitata');
     const user = userEvent.setup();
 
     await user.type(await screen.findByTestId('forgot-email'), 'ion@example.test');
@@ -93,14 +93,14 @@ describe('forgot password', () => {
   });
 
   it('sends someone already signed in to their profile', async () => {
-    const runtime = mountApp(authFixture(makeSession()).client, '/forgot-password');
+    const runtime = mountApp(authFixture(makeSession()).client, '/parola-uitata');
 
-    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/profile'));
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/profil'));
   });
 });
 
 describe('reset password', () => {
-  const path = '/reset-password?token_hash=hash-abc';
+  const path = '/resetare-parola?token_hash=hash-abc';
 
   function recoveringAuth() {
     const auth = authFixture();
@@ -194,11 +194,11 @@ describe('reset password', () => {
     await screen.findByTestId('reset-password-invalid');
     expect(auth.client.updateUser).not.toHaveBeenCalled();
     await user.click(screen.getByTestId('reset-request-new'));
-    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/forgot-password'));
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/parola-uitata'));
   });
 
   it('explains a link without a token', async () => {
-    mountApp(authFixture().client, '/reset-password');
+    mountApp(authFixture().client, '/resetare-parola');
 
     await screen.findByTestId('reset-password-invalid');
   });
@@ -216,7 +216,7 @@ describe('change password on the profile page', () => {
 
   it('checks the current password, saves the new one, and signs other devices out', async () => {
     const auth = signedIn();
-    mountApp(auth.client, '/profile');
+    mountApp(auth.client, '/profil');
     const user = userEvent.setup();
 
     await user.type(await screen.findByTestId('current-password'), 'ParolaVeche1');
@@ -236,7 +236,7 @@ describe('change password on the profile page', () => {
 
   it('refuses a wrong current password without changing anything', async () => {
     const auth = authFixture(makeSession());
-    mountApp(auth.client, '/profile');
+    mountApp(auth.client, '/profil');
     const user = userEvent.setup();
 
     await user.type(await screen.findByTestId('current-password'), 'Gresita1A');
@@ -252,7 +252,7 @@ describe('change password on the profile page', () => {
   it('asks for a different password when the new one equals the current one', async () => {
     const auth = signedIn();
     auth.client.updateUser.mockResolvedValue({ error: authError('same_password') });
-    mountApp(auth.client, '/profile');
+    mountApp(auth.client, '/profil');
     const user = userEvent.setup();
 
     await user.type(await screen.findByTestId('current-password'), 'ParolaVeche1');
@@ -266,7 +266,7 @@ describe('change password on the profile page', () => {
 
   it('applies the password rules to the new password', async () => {
     const auth = signedIn();
-    mountApp(auth.client, '/profile');
+    mountApp(auth.client, '/profil');
     const user = userEvent.setup();
 
     await user.type(await screen.findByTestId('current-password'), 'ParolaVeche1');

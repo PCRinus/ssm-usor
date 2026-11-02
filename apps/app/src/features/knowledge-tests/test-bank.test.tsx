@@ -9,7 +9,7 @@ import { bankTestFacts } from './test-format';
 
 type Question = {
   id: string;
-  domain: 'ssm' | 'psi';
+  domain: 'ssm' | 'su';
   test: 'hiring' | 'annual';
   position: number;
   text: string;
@@ -75,7 +75,7 @@ const ssmQuestions = (overrides: Question[] = []) => [
 ];
 
 const bankTest = (
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   test: 'hiring' | 'annual',
   code: string,
   questions: Question[]
@@ -89,12 +89,12 @@ const bankTest = (
 });
 
 const fireHiring = builtIn(40, {
-  domain: 'psi',
+  domain: 'su',
   test: 'hiring',
   text: 'Ce faci la auzul alarmei de incendiu?',
 });
 const fireAnnual = builtIn(41, {
-  domain: 'psi',
+  domain: 'su',
   test: 'annual',
   text: 'Cât de des se verifică stingătorul?',
 });
@@ -105,8 +105,8 @@ const bank = (ssm: Question[]) => ({
   passMarkPercent: 70,
   tests: [
     bankTest('ssm', 'hiring', 'TASSM', ssm),
-    bankTest('psi', 'hiring', 'TASU', [fireHiring]),
-    bankTest('psi', 'annual', 'TPSU', [fireAnnual]),
+    bankTest('su', 'hiring', 'TASU', [fireHiring]),
+    bankTest('su', 'annual', 'TPSU', [fireAnnual]),
   ],
 });
 
@@ -154,7 +154,7 @@ const refused = () =>
     { status: 409 }
   );
 
-const mount = (path = '/tests') => mountApp(authFixture(makeSession()).client, path);
+const mount = (path = '/teste') => mountApp(authFixture(makeSession()).client, path);
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -186,12 +186,12 @@ describe('the question bank', () => {
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('nav-tests'));
     await screen.findByTestId('test-bank-ssm');
-    expect(runtime.router.state.location.pathname).toBe('/tests/ssm');
+    expect(runtime.router.state.location.pathname).toBe('/teste/ssm');
     expect(
       within(screen.getByTestId('nav-tests-group'))
         .getAllByTestId('nav-sub-entry')
         .map((link) => link.textContent)
-    ).toEqual(['Teste SSM', 'Teste PSI']);
+    ).toEqual(['Teste SSM', 'Teste SU']);
     expect(
       requests('GET', '/organization/tests/questions')[0]!.url.searchParams.get('domain')
     ).toBe('ssm');
@@ -230,8 +230,8 @@ describe('the question bank', () => {
 
   it('shows the fire-safety hiring and annual tests on their own tab', async () => {
     mockApi();
-    mount('/tests/psi');
-    await screen.findByTestId('test-bank-psi');
+    mount('/teste/su');
+    await screen.findByTestId('test-bank-su');
     const cards = screen.getAllByTestId('test-bank-test');
     expect(cards.map((card) => card.dataset.test)).toEqual(['hiring', 'annual']);
     expect(cards[1]!.textContent).toContain('TPSU');
@@ -239,7 +239,7 @@ describe('the question bank', () => {
 
   it('says beside the question why a built-in cannot be hidden at ten active questions', async () => {
     mockApi({ [`PUT /organization/tests/questions/${uuid(2)}/hidden`]: refused });
-    mount('/tests/ssm');
+    mount('/teste/ssm');
     const user = userEvent.setup();
     const questions = await screen.findAllByTestId('test-question');
     await user.click(within(questions[1]!).getByTestId('test-question-hide'));
@@ -261,7 +261,7 @@ describe('the question bank', () => {
       },
       ssmQuestions([ownQuestion, hiddenOne])
     );
-    mount('/tests/ssm');
+    mount('/teste/ssm');
     const user = userEvent.setup();
     const questions = await screen.findAllByTestId('test-question');
     await user.click(within(questions[1]!).getByTestId('test-question-hide'));
@@ -281,7 +281,7 @@ describe('the question bank', () => {
       'POST /organization/tests/questions': () =>
         Response.json({ question: ownQuestion }, { status: 201 }),
     });
-    mount('/tests/ssm');
+    mount('/teste/ssm');
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('test-question-add'));
     const dialog = within(await screen.findByTestId('test-question-dialog'));
@@ -325,9 +325,9 @@ describe('the question bank', () => {
       'POST /organization/tests/questions': () =>
         Response.json({ question: ownQuestion }, { status: 201 }),
     });
-    mount('/tests/psi');
+    mount('/teste/su');
     const user = userEvent.setup();
-    await screen.findByTestId('test-bank-psi');
+    await screen.findByTestId('test-bank-su');
     await user.click(screen.getAllByTestId('test-question-add')[1]!);
     const dialog = within(await screen.findByTestId('test-question-dialog'));
     expect((dialog.getByTestId('test-question-test') as HTMLSelectElement).value).toBe('annual');
@@ -342,7 +342,7 @@ describe('the question bank', () => {
       },
       ssmQuestions([replacing])
     );
-    mount('/tests/ssm');
+    mount('/teste/ssm');
     const user = userEvent.setup();
     const questions = await screen.findAllByTestId('test-question');
     const own = within(questions[10]!);
@@ -376,7 +376,7 @@ describe('the question bank', () => {
       },
       ssmQuestions([ownQuestion])
     );
-    mount('/tests/ssm');
+    mount('/teste/ssm');
     const user = userEvent.setup();
     const questions = await screen.findAllByTestId('test-question');
     await user.click(within(questions[10]!).getByTestId('test-question-edit'));
@@ -396,7 +396,7 @@ describe('the question bank', () => {
       },
       ssmQuestions([ownQuestion])
     );
-    mount('/tests/ssm');
+    mount('/teste/ssm');
     const user = userEvent.setup();
     const questions = await screen.findAllByTestId('test-question');
     await user.click(within(questions[10]!).getByTestId('test-question-delete'));
@@ -414,7 +414,7 @@ describe('the question bank', () => {
 
   it('previews a question as the employee sees it, the correct options unmarked and the explanation after a wrong answer', async () => {
     mockApi();
-    mount('/tests/ssm');
+    mount('/teste/ssm');
     const user = userEvent.setup();
     const questions = await screen.findAllByTestId('test-question');
     await user.click(within(questions[0]!).getByTestId('test-question-preview'));

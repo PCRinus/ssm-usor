@@ -93,6 +93,7 @@ const registeredOffice = workplace(
 const workshop = workplace('d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f7a', 'Atelier Str. Fabricii 3');
 
 const employeesPath = `/clients/${clientId}/employees`;
+const employeesPage = `/clienti/${clientId}/angajati`;
 
 const page = (items: unknown[], meta: Partial<{ page: number; total: number }> = {}) => ({
   items,
@@ -211,7 +212,7 @@ function mockApi(
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}/training-sheets`) {
       return Response.json({
         ssm: { ready: true, missing: [], stored: false, sequences: [] },
-        psi: { ready: true, missing: [], stored: false, sequences: [] },
+        su: { ready: true, missing: [], stored: false, sequences: [] },
       });
     }
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}/status` && method === 'PATCH') {
@@ -273,7 +274,7 @@ afterEach(() => {
 describe('client employees list', () => {
   it('shows the client header, breadcrumb, and the employees with their status', async () => {
     mockApi({ list: () => Response.json(page([sampleEmployee])) });
-    mountApp(authFixture(makeSession()).client, employeesPath);
+    mountApp(authFixture(makeSession()).client, employeesPage);
     await screen.findByTestId('client-page');
     expect(screen.getByRole('heading', { level: 1, name: 'OMV PETROM SA' })).toBeTruthy();
     expect(screen.getByText('RO1590082')).toBeTruthy();
@@ -308,18 +309,18 @@ describe('client employees list', () => {
 
   it('opens a client from the clients list on its details', async () => {
     mockApi();
-    const runtime = mountApp(authFixture(makeSession()).client, '/clients');
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti');
     await userEvent.setup().click(await screen.findByTestId('clients-open'));
     await screen.findByTestId('client-details-page');
-    expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/details`);
+    expect(runtime.router.state.location.pathname).toBe(`/clienti/${clientId}/detalii`);
     expect(requests(`/clients/${clientId}`)).toHaveLength(1);
   });
 
   it('redirects the bare client path to its details', async () => {
     mockApi();
-    const runtime = mountApp(authFixture(makeSession()).client, `/clients/${clientId}`);
+    const runtime = mountApp(authFixture(makeSession()).client, `/clienti/${clientId}`);
     await screen.findByTestId('client-details-page');
-    expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/details`);
+    expect(runtime.router.state.location.pathname).toBe(`/clienti/${clientId}/detalii`);
   });
 
   it('filters former employees through the status search parameter', async () => {
@@ -333,7 +334,7 @@ describe('client employees list', () => {
           )
         ),
     });
-    const runtime = mountApp(authFixture(makeSession()).client, employeesPath);
+    const runtime = mountApp(authFixture(makeSession()).client, employeesPage);
     await screen.findByTestId('employees-row');
     await userEvent.setup().click(screen.getByTestId('employees-filter-terminated'));
     expect(runtime.router.state.location.search).toEqual({ status: 'terminated' });
@@ -347,7 +348,7 @@ describe('client employees list', () => {
 
   it('does not add filter changes to the browser history', async () => {
     mockApi();
-    const runtime = mountApp(authFixture(makeSession()).client, '/clients');
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti');
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('clients-open'));
     await screen.findByTestId('client-details-page');
@@ -365,7 +366,7 @@ describe('client employees list', () => {
 
     act(() => runtime.router.history.back());
     await screen.findByTestId('client-details-page');
-    expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/details`);
+    expect(runtime.router.state.location.pathname).toBe(`/clienti/${clientId}/detalii`);
   });
 
   it('pages through the list with the page in the URL', async () => {
@@ -380,7 +381,7 @@ describe('client employees list', () => {
           )
         ),
     });
-    const runtime = mountApp(authFixture(makeSession()).client, employeesPath);
+    const runtime = mountApp(authFixture(makeSession()).client, employeesPage);
     const user = userEvent.setup();
     await screen.findByTestId('employees-row');
     expect(screen.getByTestId('employees-count').textContent).toBe('26 angajați');
@@ -400,7 +401,7 @@ describe('client employees list', () => {
 
   it('sorts by one column at a time through the URL', async () => {
     mockApi({ list: () => Response.json(page([sampleEmployee])) });
-    const runtime = mountApp(authFixture(makeSession()).client, `${employeesPath}?page=2`);
+    const runtime = mountApp(authFixture(makeSession()).client, `${employeesPage}?page=2`);
     const user = userEvent.setup();
     await screen.findByTestId('employees-row');
     const nameHeader = screen.getByRole('columnheader', { name: /Angajat$/ });
@@ -432,12 +433,12 @@ describe('client employees list', () => {
 
   it('shows an empty state that leads to the creation page', async () => {
     mockApi();
-    const runtime = mountApp(authFixture(makeSession()).client, employeesPath);
+    const runtime = mountApp(authFixture(makeSession()).client, employeesPage);
     await screen.findByTestId('employees-empty');
     expect(screen.getByTestId('employees-count').textContent).toBe('0 angajați');
     await userEvent.setup().click(screen.getByRole('link', { name: /^Adaugă primul angajat/ }));
     await screen.findByTestId('new-employee-page');
-    expect(runtime.router.state.location.pathname).toBe(`${employeesPath}/new`);
+    expect(runtime.router.state.location.pathname).toBe(`${employeesPage}/nou`);
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
     expect(within(breadcrumb).getByRole('link', { name: 'OMV PETROM SA' })).toBeTruthy();
     expect(within(breadcrumb).getByRole('link', { name: 'Angajați' })).toBeTruthy();
@@ -461,7 +462,7 @@ describe('client employees list', () => {
           : Response.json(page([sampleEmployee]));
       },
     });
-    mountApp(authFixture(makeSession()).client, employeesPath);
+    mountApp(authFixture(makeSession()).client, employeesPage);
     const error = await screen.findByTestId('employees-error');
     expect(error.textContent).toContain('Clientul nu mai există');
     await userEvent.setup().click(screen.getByTestId('employees-retry'));
@@ -472,7 +473,7 @@ describe('client employees list', () => {
     mockApi({
       client: () => Response.json({ error: 'not_found', message: 'none' }, { status: 404 }),
     });
-    mountApp(authFixture(makeSession()).client, employeesPath);
+    mountApp(authFixture(makeSession()).client, employeesPage);
     await screen.findByTestId('client-not-found');
     expect(requests(employeesPath)).toHaveLength(0);
   });
@@ -482,16 +483,16 @@ describe('client employees list', () => {
       client: () =>
         Response.json({ error: 'forbidden', message: 'No membership' }, { status: 403 }),
     });
-    mountApp(authFixture(makeSession()).client, employeesPath);
+    mountApp(authFixture(makeSession()).client, employeesPage);
     const error = await screen.findByTestId('client-error');
     expect(error.textContent).toContain('nu face parte dintr-o organizație');
   });
 
   it('protects the employee pages', async () => {
     mockApi();
-    const runtime = mountApp(authFixture().client, `${employeesPath}/new`);
+    const runtime = mountApp(authFixture().client, `${employeesPage}/nou`);
     await screen.findByTestId('login-page');
-    expect(runtime.router.state.location.pathname).toBe('/login');
+    expect(runtime.router.state.location.pathname).toBe('/autentificare');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
@@ -499,7 +500,7 @@ describe('client employees list', () => {
 describe('employee creation', () => {
   it('validates required fields and formats before contacting the API', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
     const user = userEvent.setup();
     await screen.findByTestId('new-employee-page');
     await user.click(screen.getByTestId('employee-submit'));
@@ -524,7 +525,7 @@ describe('employee creation', () => {
 
   it('prefills the birth date from the CNP and rejects a contradicting one', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
     const user = userEvent.setup();
     await screen.findByTestId('new-employee-page');
     await user.type(screen.getByTestId('employee-cnp'), '1900101 400127');
@@ -547,7 +548,7 @@ describe('employee creation', () => {
 
   it('sends the normalized request and returns to the list', async () => {
     mockApi({ list: () => Response.json(page([sampleEmployee])) });
-    const runtime = mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    const runtime = mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
     const user = userEvent.setup();
     await screen.findByTestId('new-employee-page');
     await user.type(screen.getByTestId('employee-last-name'), 'Popescu');
@@ -562,7 +563,7 @@ describe('employee creation', () => {
     await user.selectOptions(screen.getByTestId('employee-rh-factor'), '+');
     await user.click(screen.getByTestId('employee-submit'));
     await screen.findByTestId('employees-page');
-    expect(runtime.router.state.location.pathname).toBe(employeesPath);
+    expect(runtime.router.state.location.pathname).toBe(employeesPage);
     expect(await screen.findByText('Popescu Ion a fost adăugat.')).toBeTruthy();
     await screen.findByTestId('employees-row');
     const [, init] = requests(employeesPath, 'POST')[0]!;
@@ -596,7 +597,7 @@ describe('employee creation', () => {
 
   it('accepts the minimal form and sends nulls for the rest', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
     const user = userEvent.setup();
     await screen.findByTestId('new-employee-page');
     await user.type(screen.getByTestId('employee-last-name'), 'Popescu');
@@ -634,7 +635,7 @@ describe('employee creation', () => {
             );
       },
     });
-    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
     const user = userEvent.setup();
     await screen.findByTestId('new-employee-page');
     await user.type(screen.getByTestId('employee-last-name'), 'Popescu');
@@ -652,12 +653,13 @@ describe('employee creation', () => {
 
 describe('the employment contract number', () => {
   const detailPath = `${employeesPath}/${sampleEmployee.id}`;
-  const editPath = `${detailPath}/edit`;
+  const detailPage = `${employeesPage}/${sampleEmployee.id}`;
+  const editPage = `${detailPage}/editare`;
   const contractFact = () => screen.getByText('Nr. contract').nextElementSibling?.textContent;
 
   it('is sent with a new employee, trimmed', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
     const user = userEvent.setup();
     await screen.findByTestId('new-employee-page');
     await user.type(screen.getByTestId('employee-last-name'), 'Popescu');
@@ -674,7 +676,7 @@ describe('the employment contract number', () => {
 
   it('refuses more than 50 characters before contacting the API', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
     const user = userEvent.setup();
     await screen.findByTestId('new-employee-page');
     await user.click(screen.getByTestId('employee-contract-number'));
@@ -688,14 +690,14 @@ describe('the employment contract number', () => {
     mockApi({
       detail: () => Response.json({ employee: { ...createdEmployee, contractNumber: '118/2020' } }),
     });
-    mountApp(authFixture(makeSession()).client, detailPath);
+    mountApp(authFixture(makeSession()).client, detailPage);
     await screen.findByTestId('employee-page');
     expect(contractFact()).toBe('118/2020');
   });
 
   it('shows a dash on the employee page when the number is unknown', async () => {
     mockApi({ detail: () => Response.json({ employee: createdEmployee }) });
-    mountApp(authFixture(makeSession()).client, detailPath);
+    mountApp(authFixture(makeSession()).client, detailPage);
     await screen.findByTestId('employee-page');
     expect(contractFact()).toBe('—');
   });
@@ -704,7 +706,7 @@ describe('the employment contract number', () => {
     mockApi({
       detail: () => Response.json({ employee: { ...createdEmployee, contractNumber: '118/2020' } }),
     });
-    mountApp(authFixture(makeSession()).client, editPath);
+    mountApp(authFixture(makeSession()).client, editPage);
     const user = userEvent.setup();
     await screen.findByTestId('edit-employee-page');
     const field = screen.getByTestId<HTMLInputElement>('employee-contract-number');
@@ -719,7 +721,8 @@ describe('the employment contract number', () => {
 
 describe('training sheet fields on employees (ADR 021)', () => {
   const detailPath = `${employeesPath}/${sampleEmployee.id}`;
-  const editPath = `${detailPath}/edit`;
+  const detailPage = `${employeesPage}/${sampleEmployee.id}`;
+  const editPage = `${detailPage}/editare`;
   const withSheet = {
     ...createdEmployee,
     workplace: { id: workshop.id, name: workshop.name },
@@ -739,7 +742,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
 
   it('preselects the only workplace of the client and sends the sheet fields', async () => {
     mockApi({ workplaces: () => Response.json({ items: [registeredOffice] }) });
-    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
     const user = userEvent.setup();
     await screen.findByTestId('new-employee-page');
     await waitFor(() =>
@@ -768,7 +771,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
 
   it('leaves the choice to the person when the client has several workplaces', async () => {
     mockApi({ workplaces: () => Response.json({ items: [registeredOffice, workshop] }) });
-    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
     const user = userEvent.setup();
     await screen.findByTestId('new-employee-page');
     await waitFor(() =>
@@ -805,7 +808,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
         return Response.json({ items });
       },
     });
-    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
     const user = userEvent.setup();
     await screen.findByTestId('new-employee-page');
     await waitFor(() =>
@@ -845,7 +848,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
 
   it('refuses a commute duration outside 1 to 600 minutes before contacting the API', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
     const user = userEvent.setup();
     await screen.findByTestId('new-employee-page');
     await fillRequired(user);
@@ -859,7 +862,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
 
   it('shows the sheet fields on the employee page', async () => {
     mockApi({ detail: () => Response.json({ employee: withSheet }) });
-    mountApp(authFixture(makeSession()).client, detailPath);
+    mountApp(authFixture(makeSession()).client, detailPage);
     const section = (await screen.findByRole('heading', { name: 'Fișa de instruire' }))
       .parentElement!;
     const labels = [...section.querySelectorAll('dt')].map((term) => term.textContent);
@@ -888,7 +891,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
 
   it('prints a dash for each empty sheet field', async () => {
     mockApi({ detail: () => Response.json({ employee: createdEmployee }) });
-    mountApp(authFixture(makeSession()).client, detailPath);
+    mountApp(authFixture(makeSession()).client, detailPage);
     const section = (await screen.findByRole('heading', { name: 'Fișa de instruire' }))
       .parentElement!;
     const value = (label: string) =>
@@ -910,7 +913,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
       detail: () => Response.json({ employee: withSheet }),
       workplaces: () => Response.json({ items: [registeredOffice] }),
     });
-    mountApp(authFixture(makeSession()).client, editPath);
+    mountApp(authFixture(makeSession()).client, editPage);
     const user = userEvent.setup();
     await screen.findByTestId('edit-employee-page');
     await waitFor(() =>
@@ -945,7 +948,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
 
   it('focuses the route a training sheet asked for, and drops the request from the address', async () => {
     mockApi({ detail: () => Response.json({ employee: createdEmployee }) });
-    const runtime = mountApp(authFixture(makeSession()).client, `${editPath}?focus=commute-route`);
+    const runtime = mountApp(authFixture(makeSession()).client, `${editPage}?focus=commute-route`);
     const route = await screen.findByTestId('employee-commute-route');
     await waitFor(() => expect(document.activeElement).toBe(route));
     expect(route.hasAttribute('data-pointed')).toBe(true);
@@ -957,7 +960,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
       detail: () => Response.json({ employee: createdEmployee }),
       workplaces: () => Response.json({ items: [registeredOffice, workshop] }),
     });
-    mountApp(authFixture(makeSession()).client, `${editPath}?focus=workplace`);
+    mountApp(authFixture(makeSession()).client, `${editPage}?focus=workplace`);
     const picker = await screen.findByTestId<HTMLButtonElement>('employee-workplace');
     await waitFor(() => expect(document.activeElement).toBe(picker));
     expect(picker.disabled).toBe(false);
@@ -969,10 +972,10 @@ describe('training sheet fields on employees (ADR 021)', () => {
       clientId,
       to: 'training-sheet',
       employeeId: sampleEmployee.id,
-      domain: 'psi',
+      domain: 'su',
     });
     mockApi({ detail: () => Response.json({ employee: createdEmployee }) });
-    const runtime = mountApp(authFixture(makeSession()).client, `${editPath}?focus=commute-route`);
+    const runtime = mountApp(authFixture(makeSession()).client, `${editPage}?focus=commute-route`);
     const user = userEvent.setup();
     const route = await screen.findByTestId('employee-commute-route');
     await waitFor(() => expect(document.activeElement).toBe(route));
@@ -982,7 +985,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
     expect(await screen.findByText('Datele angajatului au fost salvate.')).toBeTruthy();
     await user.click(await screen.findByRole('button', { name: 'Înapoi la fișă' }));
     await screen.findByTestId('employee-training-tab');
-    expect(runtime.router.state.location.pathname).toBe(`${detailPath}/training/psi`);
+    expect(runtime.router.state.location.pathname).toBe(`${detailPage}/instruire/su`);
   });
 
   it('puts a workplace the API refuses on its field', async () => {
@@ -1003,7 +1006,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
           { status: 400 }
         ),
     });
-    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
     const user = userEvent.setup();
     await screen.findByTestId('new-employee-page');
     await waitFor(() =>
@@ -1039,7 +1042,7 @@ describe('employee status changes', () => {
         });
       },
     });
-    mountApp(authFixture(makeSession()).client, employeesPath);
+    mountApp(authFixture(makeSession()).client, employeesPage);
     const user = userEvent.setup();
     await screen.findByTestId('employees-row');
     await user.click(screen.getByTestId('employees-row-menu'));
@@ -1065,7 +1068,7 @@ describe('employee status changes', () => {
 
   it('picks the leave date from the calendar', async () => {
     mockApi({ list: () => Response.json(page([sampleEmployee])) });
-    mountApp(authFixture(makeSession()).client, employeesPath);
+    mountApp(authFixture(makeSession()).client, employeesPage);
     const user = userEvent.setup();
     await screen.findByTestId('employees-row');
     await user.click(screen.getByTestId('employees-row-menu'));
@@ -1084,7 +1087,7 @@ describe('employee status changes', () => {
 
   it('refuses a leave date before the hire date without calling the API', async () => {
     mockApi({ list: () => Response.json(page([sampleEmployee])) });
-    mountApp(authFixture(makeSession()).client, employeesPath);
+    mountApp(authFixture(makeSession()).client, employeesPage);
     const user = userEvent.setup();
     await screen.findByTestId('employees-row');
     await user.click(screen.getByTestId('employees-row-menu'));
@@ -1115,7 +1118,7 @@ describe('employee status changes', () => {
           : Response.json({ error: 'internal_error', message: 'boom' }, { status: 500 });
       },
     });
-    mountApp(authFixture(makeSession()).client, employeesPath);
+    mountApp(authFixture(makeSession()).client, employeesPage);
     const user = userEvent.setup();
     await screen.findByTestId('employees-row');
     await user.click(screen.getByTestId('employees-row-menu'));
@@ -1141,7 +1144,7 @@ describe('employee status changes', () => {
           )
         ),
     });
-    mountApp(authFixture(makeSession()).client, `${employeesPath}?status=terminated`);
+    mountApp(authFixture(makeSession()).client, `${employeesPage}?status=terminated`);
     const user = userEvent.setup();
     await screen.findByTestId('employees-row');
     await user.click(screen.getByTestId('employees-row-menu'));
@@ -1169,7 +1172,7 @@ describe('employee status changes', () => {
           { status: 409 }
         ),
     });
-    mountApp(authFixture(makeSession()).client, `${employeesPath}?status=terminated`);
+    mountApp(authFixture(makeSession()).client, `${employeesPage}?status=terminated`);
     const user = userEvent.setup();
     await screen.findByTestId('employees-row');
     await user.click(screen.getByTestId('employees-row-menu'));
@@ -1183,7 +1186,7 @@ describe('employee status changes', () => {
 });
 
 describe('employee detail', () => {
-  const detailPath = `${employeesPath}/${sampleEmployee.id}`;
+  const detailPage = `${employeesPage}/${sampleEmployee.id}`;
   const fullEmployee = {
     ...createdEmployee,
     birthPlace: 'Cluj-Napoca',
@@ -1198,10 +1201,10 @@ describe('employee detail', () => {
       list: () => Response.json(page([sampleEmployee])),
       detail: () => Response.json({ employee: fullEmployee }),
     });
-    const runtime = mountApp(authFixture(makeSession()).client, employeesPath);
+    const runtime = mountApp(authFixture(makeSession()).client, employeesPage);
     await userEvent.setup().click(await screen.findByTestId('employees-open'));
     await screen.findByTestId('employee-page');
-    expect(runtime.router.state.location.pathname).toBe(detailPath);
+    expect(runtime.router.state.location.pathname).toBe(detailPage);
     expect(screen.queryByTestId('client-page')).toBeNull();
     expect(screen.getByRole('heading', { level: 1, name: 'Popescu Ion' })).toBeTruthy();
     expect(screen.getByTestId('employee-status').textContent).toBe('Angajat actual');
@@ -1225,7 +1228,7 @@ describe('employee detail', () => {
 
   it('keeps the CNP masked until asked and hides it again', async () => {
     mockApi({ detail: () => Response.json({ employee: fullEmployee }) });
-    mountApp(authFixture(makeSession()).client, detailPath);
+    mountApp(authFixture(makeSession()).client, detailPage);
     const user = userEvent.setup();
     const value = await screen.findByTestId('employee-cnp-value');
     expect(value.textContent).toBe('•••••••••0127');
@@ -1244,7 +1247,7 @@ describe('employee detail', () => {
           employee: { ...createdEmployee, cnp: null, email: null, phone: null, birthDate: null },
         }),
     });
-    mountApp(authFixture(makeSession()).client, detailPath);
+    mountApp(authFixture(makeSession()).client, detailPage);
     await screen.findByTestId('employee-page');
     expect(screen.queryByTestId('employee-cnp-toggle')).toBeNull();
     expect(screen.getAllByText('—').length).toBeGreaterThan(5);
@@ -1266,7 +1269,7 @@ describe('employee detail', () => {
         return Response.json({ employee: { ...fullEmployee, status, terminatedAt: '2026-09-10' } });
       },
     });
-    mountApp(authFixture(makeSession()).client, detailPath);
+    mountApp(authFixture(makeSession()).client, detailPage);
     const user = userEvent.setup();
     await screen.findByTestId('employee-page');
     await user.click(screen.getByTestId('employee-status-action'));
@@ -1284,7 +1287,7 @@ describe('employee detail', () => {
     mockApi({
       detail: () => Response.json({ error: 'not_found', message: 'none' }, { status: 404 }),
     });
-    mountApp(authFixture(makeSession()).client, detailPath);
+    mountApp(authFixture(makeSession()).client, detailPage);
     await screen.findByTestId('employee-not-found');
   });
 });
@@ -1308,7 +1311,7 @@ describe('job positions on employees (ADR 006)', () => {
           ])
         ),
     });
-    mountApp(authFixture(makeSession()).client, `${employeesPath}?sort=jobPosition&order=desc`);
+    mountApp(authFixture(makeSession()).client, `${employeesPage}?sort=jobPosition&order=desc`);
     const row = await screen.findByTestId('employees-row');
     expect(row.textContent).toContain('Sudor autorizat');
     expect(screen.getByRole('columnheader', { name: /Post de lucru/ })).toBeTruthy();
@@ -1318,7 +1321,7 @@ describe('job positions on employees (ADR 006)', () => {
 
   it('adds a post the client lacks from the picker, in the dialog of the section, and hires into it', async () => {
     mockApi({ list: () => Response.json(page([sampleEmployee])) });
-    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
     const user = userEvent.setup();
     await screen.findByTestId('new-employee-page');
     await fillRequired(user);
@@ -1367,7 +1370,7 @@ describe('job positions on employees (ADR 006)', () => {
 
   it('keeps a contract title the person typed, whatever post is chosen after', async () => {
     mockApi({ list: () => Response.json(page([sampleEmployee])) });
-    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
     const user = userEvent.setup();
     await screen.findByTestId('new-employee-page');
     await fillRequired(user);
@@ -1388,7 +1391,7 @@ describe('job positions on employees (ADR 006)', () => {
 
   it('asks for a post before saving', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
     const user = userEvent.setup();
     await screen.findByTestId('new-employee-page');
     await fillRequired(user);
@@ -1407,7 +1410,7 @@ describe('job positions on employees (ADR 006)', () => {
         Response.json({ employee: { ...sampleEmployee, jobTitle: 'Muncitor calificat' } }),
       positions: () => Response.json({ items: [helper, welderPosition] }),
     });
-    mountApp(authFixture(makeSession()).client, `${employeesPath}/${sampleEmployee.id}`);
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/${sampleEmployee.id}`);
     const user = userEvent.setup();
     expect((await screen.findByTestId('employee-job-position')).textContent).toBe('Sudor');
     expect(screen.getByText('Muncitor calificat')).toBeTruthy();
@@ -1436,7 +1439,7 @@ describe('job positions on employees (ADR 006)', () => {
       detail: () => Response.json({ employee: sampleEmployee }),
       positions: () => Response.json({ items: [helper, welderPosition] }),
     });
-    mountApp(authFixture(makeSession()).client, `${employeesPath}/${sampleEmployee.id}`);
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/${sampleEmployee.id}`);
     const user = userEvent.setup();
 
     await user.click(await screen.findByTestId('employee-job-position-change'));
@@ -1461,7 +1464,7 @@ describe('job positions on employees (ADR 006)', () => {
 });
 
 describe('employee editing', () => {
-  const editPath = `${employeesPath}/${sampleEmployee.id}/edit`;
+  const editPage = `${employeesPage}/${sampleEmployee.id}/editare`;
   const stored = {
     ...sampleEmployee,
     cnp: '1900101400127',
@@ -1480,25 +1483,25 @@ describe('employee editing', () => {
       list: () => Response.json(page([sampleEmployee])),
       detail: () => Response.json({ employee: stored }),
     });
-    const runtime = mountApp(authFixture(makeSession()).client, employeesPath);
+    const runtime = mountApp(authFixture(makeSession()).client, employeesPage);
     const user = userEvent.setup();
     await screen.findByTestId('employees-row');
     await user.click(screen.getByTestId('employees-row-menu'));
     await user.click(await screen.findByTestId('employees-edit'));
     await screen.findByTestId('edit-employee-page');
-    expect(runtime.router.state.location.pathname).toBe(editPath);
+    expect(runtime.router.state.location.pathname).toBe(editPage);
   });
 
   it('opens from the employee page with what was entered, contract title and post apart', async () => {
     mockApi({ detail: () => Response.json({ employee: stored }) });
     const runtime = mountApp(
       authFixture(makeSession()).client,
-      `${employeesPath}/${sampleEmployee.id}`
+      `${employeesPage}/${sampleEmployee.id}`
     );
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('employee-edit'));
     await screen.findByTestId('edit-employee-page');
-    expect(runtime.router.state.location.pathname).toBe(editPath);
+    expect(runtime.router.state.location.pathname).toBe(editPage);
     expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('Modifică');
     expect(screen.getByTestId<HTMLInputElement>('employee-last-name').value).toBe(stored.lastName);
     expect(screen.getByTestId<HTMLInputElement>('employee-cnp').value).toBe('1900101400127');
@@ -1510,7 +1513,7 @@ describe('employee editing', () => {
 
   it('saves the correction, keeps the post, and returns to the employee page', async () => {
     mockApi({ detail: () => Response.json({ employee: stored }) });
-    const runtime = mountApp(authFixture(makeSession()).client, editPath);
+    const runtime = mountApp(authFixture(makeSession()).client, editPage);
     const user = userEvent.setup();
     await screen.findByTestId('edit-employee-page');
     const phone = screen.getByTestId('employee-phone');
@@ -1523,7 +1526,7 @@ describe('employee editing', () => {
     await user.click(screen.getByTestId('employee-submit'));
 
     await screen.findByTestId('employee-page');
-    expect(runtime.router.state.location.pathname).toBe(`${employeesPath}/${sampleEmployee.id}`);
+    expect(runtime.router.state.location.pathname).toBe(`${employeesPage}/${sampleEmployee.id}`);
     expect(await screen.findByText('Datele angajatului au fost salvate.')).toBeTruthy();
     const [, init] = requests(`${employeesPath}/${sampleEmployee.id}`, 'PUT')[0]!;
     const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
@@ -1549,7 +1552,7 @@ describe('employee editing', () => {
           { status: 409 }
         ),
     });
-    mountApp(authFixture(makeSession()).client, editPath);
+    mountApp(authFixture(makeSession()).client, editPage);
     const user = userEvent.setup();
     await screen.findByTestId('edit-employee-page');
     await user.click(screen.getByTestId('employee-submit'));
@@ -1574,7 +1577,7 @@ describe('employee editing', () => {
           { status: 400 }
         ),
     });
-    mountApp(authFixture(makeSession()).client, editPath);
+    mountApp(authFixture(makeSession()).client, editPage);
     const user = userEvent.setup();
     await screen.findByTestId('edit-employee-page');
     await user.click(screen.getByTestId('employee-submit'));
@@ -1602,7 +1605,7 @@ describe('employee editing', () => {
           { status: 400 }
         ),
     });
-    mountApp(authFixture(makeSession()).client, editPath);
+    mountApp(authFixture(makeSession()).client, editPage);
     const user = userEvent.setup();
     await screen.findByTestId('edit-employee-page');
     await screen.findByText(/Sudor/);

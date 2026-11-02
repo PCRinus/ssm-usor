@@ -180,7 +180,7 @@ export const facts: DocumentFacts = {
       instructions: [
         {
           moduleId: 'a0a0a0a0-0000-4000-8000-000000000003',
-          domain: 'psi',
+          domain: 'su',
           title: 'Lucrul cu foc deschis',
           group: 'hazardous_work',
           version: {

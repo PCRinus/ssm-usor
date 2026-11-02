@@ -20,7 +20,9 @@ const traineeAccountId = '0f1e2d3c-4b5a-4968-8776-655443322110';
 const fileId = '6b5a4c3d-2e1f-4a0b-9c8d-7e6f5a4b3c2d';
 
 const employeesPath = `/clients/${clientId}/employees`;
+const employeesPage = `/clienti/${clientId}/angajati`;
 const employeePath = `${employeesPath}/${employeeId}`;
+const employeePage = `${employeesPage}/${employeeId}`;
 const trainingsPath = `/clients/${clientId}/trainings`;
 const signaturesPath = `/clients/${clientId}/training-records/${recordId}/signatures`;
 const agreementPath = `${employeePath}/signing-agreement`;
@@ -200,13 +202,13 @@ const testSheetRequest = (overrides: Record<string, unknown> = {}) =>
   request({
     id: '66666666-7777-4888-8999-aaaaaaaaaaaa',
     kind: 'test_sheet',
-    label: 'Fișa de test · Test anual PSI · 15.10.2026',
+    label: 'Fișa de test · Test anual SU · 15.10.2026',
     slot: 'examiner',
     record: null,
     testSheet: {
       id: '77777777-8888-4999-8aaa-bbbbbbbbbbbb',
       resultId: '88888888-9999-4aaa-8bbb-cccccccccccc',
-      domain: 'psi',
+      domain: 'su',
       test: 'annual',
       takenOn: '2026-10-15',
     },
@@ -240,7 +242,7 @@ function mockApi(routes: Partial<Record<string, Handler>> = {}) {
       case `GET ${employeePath}/training-sheets`:
         return Response.json({
           ssm: { ready: true, missing: [], stored: false, sequences: [] },
-          psi: { ready: true, missing: [], stored: false, sequences: [] },
+          su: { ready: true, missing: [], stored: false, sequences: [] },
         });
       case `GET ${employeePath}/participant`:
         return Response.json({ participant: null, invitation: null });
@@ -329,9 +331,9 @@ describe('matchSigner', () => {
 });
 
 describe('signers on the training flow', () => {
-  async function openWorkplaceTraining(domain: 'ssm' | 'psi' = 'ssm') {
+  async function openWorkplaceTraining(domain: 'ssm' | 'su' = 'ssm') {
     const user = userEvent.setup();
-    mount(`${employeePath}/training/${domain}`);
+    mount(`${employeePage}/instruire/${domain}`);
     // The first mount of the describe loads the route and its queries cold; CI needs longer than the default second.
     await screen.findByTestId('training-records-empty', {}, { timeout: 5000 });
     await user.click(screen.getAllByTestId('training-record')[0]!);
@@ -414,7 +416,7 @@ describe('signers on the training flow', () => {
 
   it('offers no verifier or admitter signer on the fire-safety sheet, which has no field for them', async () => {
     mockApi();
-    const { user, dialog } = await openWorkplaceTraining('psi');
+    const { user, dialog } = await openWorkplaceTraining('su');
     await waitFor(() =>
       expect(
         (within(dialog).getByTestId('training-trainer-signer') as HTMLSelectElement).value
@@ -508,7 +510,7 @@ describe("a record's signatures", () => {
           ],
         }),
     });
-    mount(`${employeePath}/training/ssm`);
+    mount(`${employeePage}/instruire/ssm`);
     const block = await screen.findByTestId('record-signatures');
     const slots = within(block).getAllByTestId('signature-slot');
     expect(slots.map((item) => item.textContent)).toEqual([
@@ -539,7 +541,7 @@ describe("a record's signatures", () => {
         [`GET ${employeePath}/training-records`]: () => Response.json({ items: [record(signing)] }),
         [`GET ${signaturesPath}`]: () => Response.json({ recordId, slots: [pendingTrainee] }),
       });
-      mount(`${employeePath}/training/ssm`);
+      mount(`${employeePage}/instruire/ssm`);
       await screen.findByTestId('record-signatures');
       expect(screen.getByTestId('training-record-edit')).toHaveProperty('disabled', signing.signed);
       expect(screen.getByTestId('training-record-delete')).toHaveProperty('disabled', true);
@@ -561,7 +563,7 @@ describe("a record's signatures", () => {
           ],
         }),
     });
-    mount(`${employeePath}/training/ssm`);
+    mount(`${employeePage}/instruire/ssm`);
     const block = await screen.findByTestId('record-signatures');
     expect(
       within(block)
@@ -599,7 +601,7 @@ describe("a record's signatures", () => {
       },
     });
     const user = userEvent.setup();
-    mount(`${employeePath}/training/ssm`);
+    mount(`${employeePage}/instruire/ssm`);
     await screen.findByTestId('record-signatures');
     expect(screen.getByTestId('training-record-edit')).toHaveProperty('disabled', false);
     await user.click(screen.getByTestId('record-signatures-paper'));
@@ -643,7 +645,7 @@ describe("a record's signatures", () => {
       [`POST ${signaturesPath}/void`]: () => conflict('client_archived'),
     });
     const user = userEvent.setup();
-    mount(`${employeePath}/training/ssm`);
+    mount(`${employeePage}/instruire/ssm`);
     await user.click(await screen.findByTestId('record-signatures-void'));
     const dialog = await screen.findByTestId('void-signatures-dialog');
     await user.click(within(dialog).getByTestId('void-signatures-confirm'));
@@ -682,7 +684,7 @@ describe("a record's signatures", () => {
       },
     });
     const user = userEvent.setup();
-    mount(`${employeePath}/training/ssm`);
+    mount(`${employeePage}/instruire/ssm`);
     await user.click(await screen.findByTestId('record-signatures-void'));
     const dialog = await screen.findByTestId('void-signatures-dialog');
     await user.type(within(dialog).getByTestId('void-signatures-reason'), 'Durata greșită');
@@ -705,7 +707,7 @@ describe("a record's signatures", () => {
         Response.json({ training: { ...record().training, records: [] } }),
     });
     const user = userEvent.setup();
-    mount(`${employeePath}/training/ssm`);
+    mount(`${employeePage}/instruire/ssm`);
     await screen.findByTestId('record-signatures');
     await user.click(screen.getByTestId('training-record-delete'));
     await user.click(await screen.findByTestId('training-delete-confirm'));
@@ -735,7 +737,7 @@ describe("a record's signatures", () => {
       [`PUT ${trainingsPath}/${trainingId}`]: () => conflict('record_signed'),
     });
     const user = userEvent.setup();
-    mount(`${employeePath}/training/ssm`);
+    mount(`${employeePage}/instruire/ssm`);
     await screen.findByTestId('record-signatures');
     await user.click(screen.getByTestId('training-record-edit'));
     const dialog = await screen.findByTestId('training-dialog');
@@ -751,7 +753,7 @@ describe("a record's signatures", () => {
     mockApi({
       [`GET ${employeePath}/training-records`]: () => Response.json({ items: [paper] }),
     });
-    mount(`${employeePath}/training/ssm`);
+    mount(`${employeePage}/instruire/ssm`);
     await screen.findByTestId('training-record-item');
     expect(screen.getByTestId('training-record-edit')).toHaveProperty('disabled', true);
     expect(screen.getByTestId('training-record-delete')).toHaveProperty('disabled', true);
@@ -783,7 +785,7 @@ describe("a record's signatures", () => {
       [`PUT ${trainingsPath}/${trainingId}`]: () => conflict('record_signed'),
     });
     const user = userEvent.setup();
-    mount(`${employeePath}/training/ssm`);
+    mount(`${employeePage}/instruire/ssm`);
     await screen.findByTestId('training-record-item');
     await user.click(screen.getByTestId('training-record-edit'));
     const dialog = await screen.findByTestId('training-dialog');
@@ -799,7 +801,7 @@ describe("a record's signatures", () => {
     mockApi({
       [`GET ${employeePath}/training-records`]: () => Response.json({ items: [paper] }),
     });
-    mount(`${employeePath}/training/ssm`);
+    mount(`${employeePage}/instruire/ssm`);
     await screen.findByTestId('training-record-item');
     expect(screen.queryByTestId('record-signatures')).toBeNull();
     expect(requests('GET', signaturesPath)).toHaveLength(0);
@@ -823,7 +825,7 @@ describe('the Semnături place', () => {
         }),
     });
     const user = userEvent.setup();
-    mount('/signatures');
+    mount('/semnaturi');
     expect((await screen.findByTestId('nav-signatures')).textContent).toBe('Semnături');
     const groups = await screen.findAllByTestId('signature-requests-client');
     expect(groups.map((group) => within(group).getByRole('heading').textContent)).toEqual([
@@ -856,18 +858,18 @@ describe('the Semnături place', () => {
     mockApi({
       'GET /me/signature-requests': () => Response.json({ items: [request(), testSheetRequest()] }),
     });
-    mount('/signatures');
+    mount('/semnaturi');
     const rows = await screen.findAllByTestId('signature-request');
     expect(rows.map((row) => row.dataset.kind)).toEqual(['training_record', 'test_sheet']);
     const sheet = within(rows[1]!);
     expect(rows[1]!.textContent).toContain(
-      'Fișa de test · Test anual PSI · 15.10.2026 · semnezi ca examinator'
+      'Fișa de test · Test anual SU · 15.10.2026 · semnezi ca examinator'
     );
     expect(sheet.getByTestId('signature-request-employee').textContent).toBe('Popescu Ion');
     expect(sheet.getByTestId('signature-request-employee').getAttribute('href')).toBe(
-      `/clients/${clientId}/employees/${employeeId}/training/psi`
+      `/clienti/${clientId}/angajati/${employeeId}/instruire/su`
     );
-    expect(sheet.getByText('PSI')).toBeTruthy();
+    expect(sheet.getByText('SU')).toBeTruthy();
     expect(sheet.getByTestId('signature-request-select').getAttribute('aria-label')).toBe(
       'Alege fișa de test a lui Popescu Ion din 15 oct. 2026'
     );
@@ -875,7 +877,7 @@ describe('the Semnături place', () => {
 
   it('says when there is nothing to sign', async () => {
     mockApi();
-    mount('/signatures');
+    mount('/semnaturi');
     expect((await screen.findByTestId('signature-requests-empty')).textContent).toContain(
       'Nu ai nimic de semnat.'
     );
@@ -916,7 +918,7 @@ describe("the client's pending signatures", () => {
         });
       },
     });
-    mount(`/clients/${clientId}/portal`);
+    mount(`/clienti/${clientId}/portal`);
     const card = await screen.findByTestId('client-signature-requests');
     const people = await within(card).findAllByTestId('client-signature-requests-employee');
     expect(within(card).getByRole('heading').textContent).toBe('3 semnături în așteptare');
@@ -940,21 +942,21 @@ describe("the client's pending signatures", () => {
       [`GET /clients/${clientId}/signature-requests`]: () =>
         Response.json({ items: [testSheetRequest({ slot: 'trainee' })] }),
     });
-    mount(`/clients/${clientId}/portal`);
+    mount(`/clienti/${clientId}/portal`);
     const card = await screen.findByTestId('client-signature-requests');
     const [item] = await within(card).findAllByTestId('client-signature-request');
     expect(item!.dataset.kind).toBe('test_sheet');
     const link = within(item!).getByRole('link');
-    expect(link.textContent).toBe('Fișa de test · Test anual PSI · 15.10.2026');
+    expect(link.textContent).toBe('Fișa de test · Test anual SU · 15.10.2026');
     expect(link.getAttribute('href')).toBe(
-      `/clients/${clientId}/employees/${employeeId}/training/psi`
+      `/clienti/${clientId}/angajati/${employeeId}/instruire/su`
     );
     expect(item!.textContent).toContain('Instruit');
   });
 
   it('says so while every request is signed', async () => {
     mockApi();
-    mount(`/clients/${clientId}/portal`);
+    mount(`/clienti/${clientId}/portal`);
     const card = await screen.findByTestId('client-signature-requests');
     expect((await within(card).findByTestId('client-signature-requests-empty')).textContent).toBe(
       'Nicio semnătură în așteptare.'
@@ -964,7 +966,7 @@ describe("the client's pending signatures", () => {
 
   it('is no longer on the trainings tab', async () => {
     mockApi();
-    mount(`/clients/${clientId}/trainings`);
+    mount(`/clienti/${clientId}/instruiri-tinute`);
     await screen.findByTestId('trainings-empty');
     expect(screen.queryByTestId('client-signature-requests')).toBeNull();
     expect(requests('GET', `/clients/${clientId}/signature-requests`)).toHaveLength(0);
@@ -999,7 +1001,7 @@ describe("the employee's signing agreement", () => {
       },
     });
     const user = userEvent.setup();
-    mount(employeePath);
+    mount(employeePage);
     const card = await screen.findByTestId('signing-agreement-card');
     expect((await within(card).findByTestId('signing-agreement-state')).textContent).toBe(
       'Nesemnat'
@@ -1057,7 +1059,7 @@ describe("the employee's signing agreement", () => {
       },
     });
     const user = userEvent.setup();
-    mount(employeePath);
+    mount(employeePage);
     const card = await screen.findByTestId('signing-agreement-card');
     await user.click(await within(card).findByTestId('signing-agreement-paper'));
     const dialog = await screen.findByTestId('signing-agreement-paper-dialog');
@@ -1081,7 +1083,7 @@ describe("the employee's signing agreement", () => {
   it('asks for an email or a phone when the agreement cannot name where the codes go', async () => {
     mockApi({ [`GET ${agreementPath}`]: () => conflict('employee_has_no_address') });
     const user = userEvent.setup();
-    mount(employeePath);
+    mount(employeePage);
     const card = await screen.findByTestId('signing-agreement-card');
     await user.click(await within(card).findByTestId('signing-agreement-download'));
     expect((await within(card).findByTestId('signing-agreement-no-address')).textContent).toContain(
@@ -1123,7 +1125,7 @@ describe("the employee's signing agreement", () => {
           },
         }),
     });
-    mount(employeePath);
+    mount(employeePage);
     const card = await screen.findByTestId('employee-portal-card');
     expect((await within(card).findByTestId('agreement-warning')).textContent).toBe(
       'Act adițional nesemnat'
@@ -1132,7 +1134,7 @@ describe("the employee's signing agreement", () => {
 
   it('does not warn about an employee who has no portal access', async () => {
     mockApi();
-    mount(employeePath);
+    mount(employeePage);
     const card = await screen.findByTestId('employee-portal-card');
     await within(card).findByTestId('participant-none');
     expect(within(card).queryByTestId('agreement-warning')).toBeNull();
@@ -1162,7 +1164,7 @@ describe("the employee's signing agreement", () => {
           }),
         }),
     });
-    mount(employeePath);
+    mount(employeePage);
     const card = await screen.findByTestId('employee-portal-card');
     expect((await within(card).findByTestId('agreement-warning')).textContent).toBe(
       'Act adițional așteaptă angajatorul'
@@ -1181,7 +1183,7 @@ describe("the employee's signing agreement", () => {
           }),
         }),
     });
-    mount(employeePath);
+    mount(employeePage);
     const card = await screen.findByTestId('signing-agreement-card');
     expect((await within(card).findByTestId('signing-agreement-detail')).textContent).toBe(
       'Semnat de angajat pe 1 oct. 2026, așteaptă semnătura administratorului în portal.'
@@ -1202,7 +1204,7 @@ describe("the employee's signing agreement", () => {
       },
     });
     const user = userEvent.setup();
-    mount(employeePath);
+    mount(employeePage);
     const card = await screen.findByTestId('signing-agreement-card');
     expect((await within(card).findByTestId('signing-agreement-detail')).textContent).toBe(
       'Semnat electronic pe 2 oct. 2026.'
@@ -1253,7 +1255,7 @@ describe("the employee's signing agreement", () => {
       },
     });
     const user = userEvent.setup();
-    mount(employeePath);
+    mount(employeePage);
     const card = await screen.findByTestId('signing-agreement-card');
     await user.click(await within(card).findByTestId('signing-agreement-clause'));
     const clause = await screen.findByTestId('signing-agreement-clause-dialog');
@@ -1286,7 +1288,7 @@ describe("the employee's signing agreement", () => {
       [`GET /clients/${clientId}/documents`]: () =>
         Response.json({ items: [], notApplicable: [], lastGeneration: null }),
     });
-    mount(employeePath);
+    mount(employeePage);
     const card = await screen.findByTestId('signing-agreement-card');
     expect((await within(card).findByTestId('signing-agreement-annex')).textContent).toContain(
       'Anexa 13 la regulamentul intern nu este emisă.'
@@ -1302,7 +1304,7 @@ describe("the employee's signing agreement", () => {
           lastGeneration: null,
         }),
     });
-    mount(employeePath);
+    mount(employeePage);
     const card = await screen.findByTestId('signing-agreement-card');
     await within(card).findByTestId('signing-agreement-state');
     await waitFor(() => expect(requests('GET', `/clients/${clientId}/documents`)).toHaveLength(1));
@@ -1332,7 +1334,7 @@ describe('signing from the Semnături place', () => {
   async function openSigning(routes: Partial<Record<string, Handler>>) {
     mockApi({ 'GET /me/signature-requests': () => Response.json({ items: pending }), ...routes });
     const user = userEvent.setup();
-    mount('/signatures');
+    mount('/semnaturi');
     await user.click(await screen.findByTestId('signature-requests-client-select'));
     await user.click(screen.getByTestId('signature-requests-sign'));
     return { user, dialog: await screen.findByTestId('signing-dialog') };
@@ -1406,7 +1408,7 @@ describe('signing from the Semnături place', () => {
     const items = within(dialog).getAllByTestId('signing-item');
     expect(items.map((item) => item.dataset.kind)).toEqual(['training_record', 'test_sheet']);
     expect(items[1]!.textContent).toBe(
-      'Popescu IonPSIAct adițional nesemnatFișa de test · Test anual PSI · 15.10.2026 · semnezi ca examinatorVELOCE CAFE SRL'
+      'Popescu IonSUAct adițional nesemnatFișa de test · Test anual SU · 15.10.2026 · semnezi ca examinatorVELOCE CAFE SRL'
     );
     await askForCode(user, dialog);
     expect(requests('POST', sessionPath).map((call) => call.body)).toEqual([
@@ -1548,7 +1550,7 @@ describe('signing from the Semnături place', () => {
     );
     mockApi({ 'GET /me/signature-requests': () => Response.json({ items: many }) });
     const user = userEvent.setup();
-    mount('/signatures');
+    mount('/semnaturi');
     await user.click(await screen.findByTestId('signature-requests-client-select'));
     expect(screen.getByTestId('signature-requests-limit').textContent).toBe(
       'Ai ales 32 de instruiri. Cu un cod semnezi cel mult 30; debifează 2, iar pe celelalte le semnezi apoi cu alt cod.'
@@ -1584,7 +1586,7 @@ describe('a saved training and its signers', () => {
       [`GET ${trainingsPath}/${trainingId}`]: detail(signers),
     });
     const user = userEvent.setup();
-    mount(`${employeePath}/training/ssm`);
+    mount(`${employeePage}/instruire/ssm`);
     await screen.findByTestId('record-signatures');
     await user.click(screen.getByTestId('training-record-edit'));
     return { user, dialog: await screen.findByTestId('training-dialog') };
@@ -1665,7 +1667,7 @@ describe('a saved training and its signers', () => {
           slots: [slot('trainee', 'void'), slot('trainer', 'void')],
         }),
     });
-    mount(`${employeePath}/training/ssm`);
+    mount(`${employeePage}/instruire/ssm`);
     await screen.findByTestId('record-signatures');
     await waitFor(() =>
       expect(screen.getByTestId('training-record-delete')).toHaveProperty('disabled', true)

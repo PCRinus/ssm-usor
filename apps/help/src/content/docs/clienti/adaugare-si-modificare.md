@@ -127,7 +127,7 @@ Bifează căsuța dacă firma e înregistrată în scopuri de TVA. Căutarea la 
 
 Activitatea principală a firmei, ca un cod de patru cifre. Caută după cod sau după cuvinte din denumirea activității, de exemplu „4711” sau „magazin”, și alege din listă. Lista cuprinde clasele CAEN Rev. 3.
 
-Codul CAEN e opțional. Fișa obiectivului din setul PSI îl tipărește la domeniul de activitate, după activitățile punctelor de lucru, iar contractul de prestări servicii îl tipărește cu denumirea activității.
+Codul CAEN e opțional. Fișa obiectivului din setul SU îl tipărește la domeniul de activitate, după activitățile punctelor de lucru, iar contractul de prestări servicii îl tipărește cu denumirea activității.
 
 ### Numărul din Registrul Comerțului
 

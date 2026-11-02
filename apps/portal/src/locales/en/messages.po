@@ -641,8 +641,8 @@ msgid "Email sau număr de telefon"
 msgstr "Email or phone number"
 
 #: src/features/participation/privacy-notice.tsx
-msgid "Evidența instruirilor de securitate și sănătate în muncă (SSM) și de situații de urgență (PSI) o ține <0>{organizationName}</0>, prestatorul de servicii SSM al companiei, în numele ei."
-msgstr "The records of occupational safety (SSM) and fire safety (PSI) training are kept by <0>{organizationName}</0>, the company's SSM service provider, on its behalf."
+msgid "Evidența instruirilor de securitate și sănătate în muncă (SSM) și de situații de urgență (SU) o ține <0>{organizationName}</0>, prestatorul de servicii SSM al companiei, în numele ei."
+msgstr "The records of occupational safety (SSM) and emergency situations (SU) training are kept by <0>{organizationName}</0>, the company's SSM service provider, on its behalf."
 
 #: src/features/signing/signing-messages.ts
 msgid "examinator"
@@ -689,20 +689,20 @@ msgid "Fișa de test"
 msgstr "Test sheet"
 
 #: src/lib/labels.ts
-msgid "Fișa de test anual PSI"
-msgstr "Annual PSI test sheet"
+msgid "Fișa de test anual SU"
+msgstr "Annual SU test sheet"
 
 #: src/features/tests/test-sheet-line.tsx
 msgid "Fișa de test așteaptă semnătura ta, la Semnături."
 msgstr "The test sheet awaits your signature, under Signatures."
 
 #: src/lib/labels.ts
-msgid "Fișa de test la angajare PSI"
-msgstr "PSI hiring test sheet"
-
-#: src/lib/labels.ts
 msgid "Fișa de test la angajare SSM"
 msgstr "SSM hiring test sheet"
+
+#: src/lib/labels.ts
+msgid "Fișa de test la angajare SU"
+msgstr "SU hiring test sheet"
 
 #: src/features/tests/test-sheet-line.tsx
 msgid "Fișa de test nu este gata încă. Încearcă din nou peste câteva minute."
@@ -824,8 +824,8 @@ msgid "Începe testul"
 msgstr "Start the test"
 
 #: src/features/tests/study-card.tsx
-msgid "Instrucțiunile proprii PSI nu sunt emise încă; le găsești aici după ce le emite specialistul."
-msgstr "The company's own fire-safety instructions are not issued yet; you will find them here once the specialist issues them."
+msgid "Instrucțiunile proprii SU nu sunt emise încă; le găsești aici după ce le emite specialistul."
+msgstr "The company's own SU instructions are not issued yet; you will find them here once the specialist issues them."
 
 #: src/features/signing/signing-messages.ts
 msgid "instructor"
@@ -1215,10 +1215,6 @@ msgstr "Your first {label} training has not been recorded yet."
 msgid "Promovat"
 msgstr "Passed"
 
-#: src/lib/labels.ts
-msgid "PSI"
-msgstr "PSI"
-
 #: src/features/home/home-page.tsx
 #: src/features/my-data/my-data-page.tsx
 msgid "Punct de lucru"
@@ -1516,6 +1512,10 @@ msgstr "The training state of each employee; open one for their training session
 msgid "Studii"
 msgstr "Education"
 
+#: src/lib/labels.ts
+msgid "SU"
+msgstr "SU"
+
 #: src/features/tests/tests-section.tsx
 msgid "Susține testul"
 msgstr "Take the test"
@@ -1541,12 +1541,12 @@ msgid "Testul acesta a fost deja trimis. Întoarce-te la Instruiri pentru rezult
 msgstr "This test was already submitted. Go back to Training for the result."
 
 #: src/lib/labels.ts
-msgid "Testul anual PSI"
-msgstr "Annual PSI test"
+msgid "Testul anual SU"
+msgstr "Annual SU test"
 
 #: src/lib/labels.ts
-msgid "Testul anual PSI este scadent"
-msgstr "The annual PSI test is due"
+msgid "Testul anual SU este scadent"
+msgstr "The annual SU test is due"
 
 #: src/features/tests/tests-section.tsx
 msgid "Testul la angajare apare după ce este înregistrată instruirea introductiv-generală."
@@ -1557,20 +1557,20 @@ msgid "Testul la angajare apare după ce este înregistrată instruirea la locul
 msgstr "The hiring test appears once the workplace training is recorded."
 
 #: src/lib/labels.ts
-msgid "Testul la angajare PSI"
-msgstr "PSI hiring test"
-
-#: src/lib/labels.ts
-msgid "Testul la angajare PSI te așteaptă"
-msgstr "The PSI hiring test awaits you"
-
-#: src/lib/labels.ts
 msgid "Testul la angajare SSM"
 msgstr "SSM hiring test"
 
 #: src/lib/labels.ts
 msgid "Testul la angajare SSM te așteaptă"
 msgstr "The SSM hiring test awaits you"
+
+#: src/lib/labels.ts
+msgid "Testul la angajare SU"
+msgstr "SU hiring test"
+
+#: src/lib/labels.ts
+msgid "Testul la angajare SU te așteaptă"
+msgstr "The SU hiring test awaits you"
 
 #: src/features/tests/study-card.tsx
 msgid "Testul nu are explicații pe scurt."

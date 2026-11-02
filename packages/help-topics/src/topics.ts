@@ -235,7 +235,7 @@ export const helpTopics = {
   'clienti.cui-folosit': { path: '/clienti/adaugare-si-modificare/', anchor: 'cui-folosit-deja' },
   'clienti.cui-invalid': { path: '/clienti/adaugare-si-modificare/', anchor: 'cui-invalid' },
   'clienti.denumire': { path: '/clienti/adaugare-si-modificare/', anchor: 'denumirea' },
-  'clienti.documentatie': { path: '/clienti/', anchor: 'documentația-ssm-și-psi' },
+  'clienti.documentatie': { path: '/clienti/', anchor: 'documentația-ssm-și-su' },
   'clienti.firma-inactiva': { path: '/clienti/adaugare-si-modificare/', anchor: 'firmă-inactivă' },
   'clienti.identificare': { path: '/clienti/adaugare-si-modificare/', anchor: 'identificare' },
   'clienti.inregistrare': { path: '/clienti/adaugare-si-modificare/', anchor: 'înregistrare' },
@@ -271,10 +271,10 @@ export const helpTopics = {
   'detalii.contact-telefon': { path: '/clienti/detalii/', anchor: 'telefonul' },
   'detalii.date-firma': { path: '/clienti/detalii/', anchor: 'datele-firmei' },
   'detalii.date-lipsa': { path: '/clienti/detalii/', anchor: 'când-documentele-cer-date-de-aici' },
-  'detalii.date-psi': { path: '/clienti/detalii/puncte-de-lucru/', anchor: 'datele-psi' },
-  'detalii.date-psi-incomplete': {
+  'detalii.date-su': { path: '/clienti/detalii/puncte-de-lucru/', anchor: 'datele-su' },
+  'detalii.date-su-incomplete': {
     path: '/clienti/detalii/puncte-de-lucru/',
-    anchor: 'date-psi-incomplete',
+    anchor: 'date-su-incomplete',
   },
   'detalii.denumire-punct': { path: '/clienti/detalii/puncte-de-lucru/', anchor: 'denumirea' },
   'detalii.fel-loc-de-munca': {

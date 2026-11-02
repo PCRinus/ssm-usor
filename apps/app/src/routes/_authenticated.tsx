@@ -7,7 +7,7 @@ import { useAuth } from '@/features/auth/auth-context';
 export const Route = createFileRoute('/_authenticated')({
   beforeLoad: async ({ context: { auth } }) => {
     await auth.ready;
-    if (!auth.getSnapshot().session) throw redirect({ to: '/login', replace: true });
+    if (!auth.getSnapshot().session) throw redirect({ to: '/autentificare', replace: true });
   },
   component: AuthenticatedLayout,
 });
@@ -24,6 +24,6 @@ function AuthenticatedLayout() {
 // query instead of leaving a disabled one in the emptied cache.
 function MembershipGate() {
   const me = useMe();
-  if (me.data?.membership === null) return <Navigate to="/onboarding" replace />;
+  if (me.data?.membership === null) return <Navigate to="/configurare" replace />;
   return <AppShell />;
 }

@@ -183,7 +183,7 @@ export function libraryFiles(
 ): Record<InstructionDomain, LibraryFiles> {
   const parts: Record<InstructionDomain, LibraryFiles> = {
     ssm: { instructions: [], themes: [] },
-    psi: { instructions: [], themes: [] },
+    su: { instructions: [], themes: [] },
   };
   for (const file of sorting.files) {
     if (file.outcome === 'other_company') continue;

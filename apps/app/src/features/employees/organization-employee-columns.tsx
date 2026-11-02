@@ -24,7 +24,7 @@ export const organizationEmployeeColumns = helper.columns([
     cell: ({ row, getValue }) => (
       <>
         <Link
-          to="/clients/$clientId/employees/$employeeId"
+          to="/clienti/$clientId/angajati/$employeeId"
           params={{ clientId: row.original.client.id, employeeId: row.original.id }}
           data-testid="organization-employees-open"
           className="hover:underline"
@@ -46,7 +46,7 @@ export const organizationEmployeeColumns = helper.columns([
     meta: { cellClassName: 'max-w-64', skeletonClassName: 'w-36' },
     cell: ({ row, getValue }) => (
       <Link
-        to="/clients/$clientId/details"
+        to="/clienti/$clientId/detalii"
         params={{ clientId: row.original.client.id }}
         data-testid="organization-employees-client"
         className="block truncate hover:underline"

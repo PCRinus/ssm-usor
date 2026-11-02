@@ -28,7 +28,7 @@ function providerParagraph(provider: ProviderIdentity) {
   return [
     `The documents were written by the external safety service ${provider.name} (CUI ${provider.cui})${people}.`,
     'That service and its people appear in most documents and are never the client, nor are they the client’s people.',
-    'Older documents may have been written by an earlier safety service; any SSM or PSI service and its people are never the client either.',
+    'Older documents may have been written by an earlier safety service; any SSM or SU (PSI) service and its people are never the client either.',
   ].join(' ');
 }
 
@@ -47,7 +47,7 @@ export const dataNotInstructions =
 export const sortingCharacters = 3_000;
 
 export const sortingSystemPrompt = (provider: ProviderIdentity) =>
-  `You sort the files of a Romanian occupational safety (SSM) and fire safety (PSI/SU) archive that a safety service keeps for one of its client companies. For each file you get its path and its beginning. ${dataNotInstructions} ${providerParagraph(provider)}
+  `You sort the files of a Romanian occupational safety (SSM) and fire safety (SU/PSI) archive that a safety service keeps for one of its client companies. For each file you get its path and its beginning. ${dataNotInstructions} ${providerParagraph(provider)}
 
 For each file say:
 - kind: what the document is.
@@ -65,7 +65,7 @@ For each file say:
   - other: anything else.
 - companyName and companyCui: the client company the file is about, as written, never the safety service's. "" when the file names none.
 - carriesClientData: whether the file holds facts about the client an importer needs: its identity, addresses and work points, named people and their roles, job positions and their activities and staff categories, training intervals and durations, fire-safety means, protective equipment per position, employees. Generic text that only repeats the client's name in a header does not. A list or register of the client's fire-safety means, protective equipment, workplaces, staff or trainings always carries client data and is never blank_form, generic_text or cover, however short or form-like it looks.
-- domain: for own_instructions and training_themes, which of the two the file is for, as its beginning tells: ssm for occupational safety and health ("… securității și sănătății în muncă", IPSSM, SSM), psi for emergencies and fire safety ("… situațiilor de urgență", IPSU, PSI, SU, apărarea împotriva incendiilor). "" for every other kind.
+- domain: for own_instructions and training_themes, which of the two the file is for, as its beginning tells: ssm for occupational safety and health ("… securității și sănătății în muncă", IPSSM, SSM), su for emergencies and fire safety ("… situațiilor de urgență", IPSU, PSI, SU, apărarea împotriva incendiilor). "" for every other kind.
 
 Give one entry per file, with its path exactly as given.`;
 
@@ -84,7 +84,7 @@ export function sortingMessages(input: {
 
 // The rules are ADR 030's "The rules the model is given"; a change to one belongs there first.
 export const readingSystemPrompt = (provider: ProviderIdentity, client?: ExistingClient) =>
-  `You read the occupational safety (SSM) and fire safety (PSI/SU) documentation that a Romanian external safety service keeps for one client company, and extract what a safety app needs to create the client and generate its documentation again.
+  `You read the occupational safety (SSM) and fire safety (SU/PSI) documentation that a Romanian external safety service keeps for one client company, and extract what a safety app needs to create the client and generate its documentation again.
 
 ${providerParagraph(provider)}${existingClientParagraph(client)}
 
@@ -95,7 +95,7 @@ Sources:
 - An empty string means unknown. Numbers are written as digits, dates as YYYY-MM-DD.
 
 Rules:
-- The safety service's own data (its name, CUI, address and people) and anything about another SSM or PSI service is never proposed as the client's. The service is always the one importing.
+- The safety service's own data (its name, CUI, address and people) and anything about another SSM or SU (PSI) service is never proposed as the client's. The service is always the one importing.
 - Documents are often copied from another client and not every name is replaced. A value that appears only in a passage copied from another company (that company's name next to it, or a post or person no other document of this client mentions) is still given, with "otherCompany" set to that company's name as written. Every other value has "otherCompany" "".
 - Where documents disagree about a single value, give one fact for each value, each with its own file and quote. Do not choose between them.
 - A workplace is an address. Rooms and areas at that address (kitchen, office, warehouse, workshop) are not workplaces; they are where fire-safety means stand.
@@ -114,7 +114,7 @@ What to give:
   - client.contactName, client.contactPhone, client.contactEmail: the person a document names as the client's contact; when none does, the legal representative, with the phone and e-mail given for the client.
   - trainingSchedule.periodicTrainingMinutes (the periodic training's duration in minutes), trainingSchedule.administrativeTrainingIntervalMonths and trainingSchedule.workerTrainingIntervalMonths (the interval in months for technical-administrative staff and for execution staff), trainingSchedule.trainingFirstMonth (the month of the first periodic training, 1 to 12), trainingSchedule.trainingDayFrom and trainingSchedule.trainingDayTo (the days of the month it is held between): from the SSM training decision. When the decision gives no interval for a category, take it from the SSM training themes: in their periodic training chapter, each post's block starts with "FUNCTIA :" and gives its interval after "PERIODICITATE :" ("3 LUNI", "TRIMESTRIAL", "SEMESTRIAL", "LUNAR", "ANUAL"). A category's interval is the one the themes give most of its posts, written as the themes write it, and its quote is a post's "FUNCTIA" line, "…", then its "PERIODICITATE" line ("FUNCTIA : VANZATOR … PERIODICITATE : 3 LUNI").
   - trainingSchedule.administrativeTrainingNotApplicable and trainingSchedule.workerTrainingNotApplicable: "true" when the SSM training decision gives technical-administrative or execution staff no periodic training ("nu se aplică", "nu este cazul"). Such a category has no interval.
-  - fireSafety.periodicTrainingHours, fireSafety.administrativeTrainingIntervalMonths, fireSafety.workerTrainingIntervalMonths, fireSafety.trainingFirstMonth, fireSafety.trainingDayFrom, fireSafety.trainingDayTo: the same from the fire safety (PSI/SU) training decision, the duration in hours, and an interval it does not give from the fire safety training themes, as for SSM. Leave out what the fire safety documents do not give: never copy it from the SSM documents.
+  - fireSafety.periodicTrainingHours, fireSafety.administrativeTrainingIntervalMonths, fireSafety.workerTrainingIntervalMonths, fireSafety.trainingFirstMonth, fireSafety.trainingDayFrom, fireSafety.trainingDayTo: the same from the fire safety (SU/PSI) training decision, the duration in hours, and an interval it does not give from the fire safety training themes, as for SSM. Leave out what the fire safety documents do not give: never copy it from the SSM documents.
   - fireSafety.smokingPolicy: "forbidden_everywhere" when smoking is forbidden on all the premises, "designated_places" when it is allowed in designated places; fireSafety.smokingPlace: where, as written.
   - fireSafety.wasteContractor: the firm that collects the waste. fireSafety.wasteKinds: the kinds of waste collected, as the waste decision lists them, separated by semicolons ("deșeuri menajere; hârtie și carton"). fireSafety.wasteCollectors: who collects the waste at the client, as written ("muncitorii necalificați și șeful de șantier").
   - fireSafety.hasThirdParties: "true" when a document says other firms (tenants, contractors) work on the client's premises, as a self-control decision ("control propriu") that controls them does; "false" when it says none do.
@@ -158,15 +158,15 @@ export function readingMessages(input: {
 // Evaluated on 2026-10-30 with GPT-6.1 Terra, one request per page (ADR 032), and its route,
 // post, qualification and unreadable rules on 2026-10-31 against the same photos; a change to a
 // rule belongs there first.
-export const sheetPageSystemPrompt = `You read ONE photo of a page from a Romanian paper "fișă de instruire individuală" (an individual occupational safety (SSM) or fire safety (PSI, "situații de urgență") training sheet), or a page kept with it, and say what the page is, whom it is about and what it records. Several photos of the same person are read separately; record only what this photo shows, and leave anything it does not show empty, even when you could infer it. ${dataNotInstructions}
+export const sheetPageSystemPrompt = `You read ONE photo of a page from a Romanian paper "fișă de instruire individuală" (an individual occupational safety (SSM) or fire safety (SU, "situații de urgență", in older sheets PSI) training sheet), or a page kept with it, and say what the page is, whom it is about and what it records. Several photos of the same person are read separately; record only what this photo shows, and leave anything it does not show empty, even when you could infer it. ${dataNotInstructions}
 
 pageKind:
 - ssm_sheet_front: the SSM sheet's cover or its first page (personal data, introductory general training, workplace training, admitted to work).
 - ssm_periodic: a page of SSM periodic or supplementary training rows.
-- psi_sheet_front, psi_periodic: the same for the fire safety (PSI/SU) sheet.
+- su_sheet_front, su_periodic: the same for the fire safety (SU/PSI) sheet.
 - commute_declaration: the employee's declaration of the route and time to and from work.
 - other: anything else.
-A periodic page often has no title naming its domain: tell SSM from PSI by the material taught (IPSSM, Legea 319/2006 are SSM; IPSU, PSI, Legea 307/2006, situații de urgență are PSI) or the printed header.
+A periodic page often has no title naming its domain: tell SSM from SU by the material taught (IPSSM, Legea 319/2006 are SSM; IPSU, SU, PSI, Legea 307/2006, situații de urgență are SU) or the printed header.
 
 Rules:
 - Transcribe what is written by hand; never guess. Placeholders and empty lines are not values.
@@ -180,7 +180,7 @@ Rules:
 - admission: "admis la lucru" on a sheet's first page: the day, and the name and job title of who admitted the person.
 - trainings: one row per training recorded on this page. phase: introductory_general, workplace, periodic, or supplementary (instruire suplimentară, with its reason in supplementaryReason when written). annualTest is true for a row of the fire safety periodic table that records the yearly knowledge test (testare, verificare anuală) rather than a training. verifierName and verifierJobTitle: who verified the knowledge ("verificat"), where the row names them.
 - Signatures, for each box of a row: present when the box is signed, absent when it is empty, unclear when you cannot tell. verifierSignature is no_box when the form has no verifier's box for the row.
-- Filled-in but illegible fields go in unreadable, each named in Romanian as the sheet's reader would ("numele de familie al instructorului, la instruirea introductiv-generală PSI"); anything a reviewer should know goes in notes, short and in Romanian. Neither names a field of this answer (never "trainings[0].heldOn" or "hiredAt").`;
+- Filled-in but illegible fields go in unreadable, each named in Romanian as the sheet's reader would ("numele de familie al instructorului, la instruirea introductiv-generală SU"); anything a reviewer should know goes in notes, short and in Romanian. Neither names a field of this answer (never "trainings[0].heldOn" or "hiredAt").`;
 
 export function sheetPageMessages(file: { path: string; imageUrl: string }): ChatMessage[] {
   return [

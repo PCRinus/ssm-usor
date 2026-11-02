@@ -113,7 +113,7 @@ const saves = () =>
     .filter(([input, init]) => String(input).endsWith(detailsPath) && init?.method === 'PUT')
     .map(([, init]) => JSON.parse(String(init?.body)) as unknown);
 
-const mount = () => mountApp(authFixture(makeSession()).client, `/clients/${clientId}/training`);
+const mount = () => mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/instruire`);
 
 async function chooseOption(
   user: ReturnType<typeof userEvent.setup>,
@@ -145,27 +145,17 @@ describe('client document data', () => {
       'Detalii',
       'Angajați',
       'Posturi de lucru',
-      'Mijloace PSI',
+      'Mijloace de apărare',
       'Instruire și responsabili',
       'Instruiri ținute',
       'Documente SSM',
-      'Documente PSI',
+      'Documente SU',
       'Alte documente',
       'Portal',
     ]);
     expect(await screen.findByTestId('training-program-form')).toBeTruthy();
     expect(screen.queryByTestId('legal-representative-card')).toBeNull();
     expect(screen.queryByTestId('workplaces-card')).toBeNull();
-  });
-
-  it('is where the old document data address leads', async () => {
-    mockApi();
-    const runtime = mountApp(
-      authFixture(makeSession()).client,
-      `/clients/${clientId}/document-data`
-    );
-    expect(await screen.findByTestId('training-page')).toBeTruthy();
-    expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/training`);
   });
 
   it('previews the training months as the first month and the intervals are chosen', async () => {
@@ -201,7 +191,7 @@ describe('client document data', () => {
 
   it('saves the representative and the program apart, each over what the other saved', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, `/clients/${clientId}/details`);
+    mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/detalii`);
     const user = userEvent.setup();
 
     // A client created without a representative gets one on its details.
@@ -422,7 +412,7 @@ describe('client document data', () => {
     mockApi({ details: { ...savedDetails, ...change } as DetailsInput });
     const runtime = mountApp(
       authFixture(makeSession()).client,
-      `/clients/${clientId}/training?focus=training-schedule`
+      `/clienti/${clientId}/instruire?focus=training-schedule`
     );
     expect(await screen.findByTestId('training-program-form')).toBeTruthy();
     await waitFor(() => expect(document.activeElement?.id).toBe(field));
@@ -433,7 +423,7 @@ describe('client document data', () => {
     mockApi({ details: savedDetails as DetailsInput });
     const runtime = mountApp(
       authFixture(makeSession()).client,
-      `/clients/${clientId}/details?focus=legal-representative-name`
+      `/clienti/${clientId}/detalii?focus=legal-representative-name`
     );
     const name = await screen.findByTestId('details-representative-name');
     await waitFor(() => expect(document.activeElement).toBe(name));

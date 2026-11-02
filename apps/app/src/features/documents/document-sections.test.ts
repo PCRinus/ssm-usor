@@ -31,7 +31,7 @@ describe('document sections', () => {
       ['3', 'training-themes', 'Tematica de instruire'],
       ['4', 'tests', 'Teste de verificare a cunoștințelor'],
       ['5', 'means', 'Mijloace de apărare și organizarea la locul de muncă'],
-      ['6', 'registers', 'Registre și formulare PSI'],
+      ['6', 'registers', 'Registre și formulare SU'],
       ['7', 'inspectorate', 'Documente pentru inspectorat'],
     ]);
     expect(fireSafetyDocumentSectionIds).toEqual([

@@ -137,7 +137,8 @@ const summaryOf = ({ factors, ...rest }: { factors: RiskFactor[] } & Record<stri
 });
 
 const positionsPath = `/clients/${clientId}/job-positions`;
-const accountantEvaluationPath = `${positionsPath}/${accountant.id}/risk-evaluation`;
+const positionsPage = `/clienti/${clientId}/posturi`;
+const accountantEvaluationPath = `${positionsPage}/${accountant.id}/evaluare-riscuri`;
 const evaluationsPath = `/clients/${clientId}/risk-evaluations`;
 
 type Handler = (init: RequestInit | undefined) => Response;
@@ -274,7 +275,7 @@ afterEach(() => {
 describe('the risk library', () => {
   it('is a sidebar entry beside the instructions', async () => {
     mockApi();
-    mount('/risks');
+    mount('/riscuri');
     await screen.findByTestId('risk-library');
     const entries = [...document.querySelectorAll('[data-testid^="nav-"]')].map((link) =>
       link.getAttribute('data-testid')
@@ -289,7 +290,7 @@ describe('the risk library', () => {
 
   it('explains how profiles come to exist while it is empty', async () => {
     mockApi({ profiles: [] });
-    mount('/risks');
+    mount('/riscuri');
     const empty = await screen.findByTestId('risk-library-empty');
     expect(empty.textContent).toContain('Salvează în bibliotecă');
     expect(empty.textContent).toContain('Profil nou');
@@ -297,7 +298,7 @@ describe('the risk library', () => {
 
   it('lists the profiles with their factors and global level', async () => {
     mockApi();
-    mount('/risks');
+    mount('/riscuri');
     const rows = await screen.findAllByTestId('risk-profile-row');
     expect(rows.map((row) => within(row).getByTestId('risk-profile-open').textContent)).toEqual([
       'Lucrător de birou',
@@ -325,14 +326,14 @@ describe('the risk library', () => {
 
   it('starts a profile by name and opens it', async () => {
     mockApi();
-    const runtime = mount('/risks');
+    const runtime = mount('/riscuri');
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('risk-profile-new'));
     await user.type(await screen.findByTestId('profile-name'), 'Casier');
     await user.click(screen.getByTestId('profile-name-submit'));
     await screen.findByTestId('risk-profile-page');
     expect(requests('/evaluation-profiles', 'POST')).toEqual([{ name: 'Casier' }]);
-    expect(runtime.router.state.location.pathname).toMatch(/^\/risks\/[0-9a-f-]+$/);
+    expect(runtime.router.state.location.pathname).toMatch(/^\/riscuri\/[0-9a-f-]+$/);
     expect(screen.getByRole('heading', { level: 1, name: 'Casier' })).toBeTruthy();
     expect(screen.getByTestId('risk-factors-empty')).toBeTruthy();
   });
@@ -350,7 +351,7 @@ describe('the risk library', () => {
           { status: 409 }
         ),
     });
-    mount('/risks');
+    mount('/riscuri');
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('risk-profile-new'));
     await user.type(await screen.findByTestId('profile-name'), 'lucrător de birou');
@@ -361,7 +362,7 @@ describe('the risk library', () => {
 
   it('renames a profile from its row', async () => {
     mockApi();
-    mount('/risks');
+    mount('/riscuri');
     const user = userEvent.setup();
     const [row] = await screen.findAllByTestId('risk-profile-row');
     await user.click(within(row!).getByTestId('risk-profile-actions'));
@@ -379,7 +380,7 @@ describe('the risk library', () => {
 describe('a profile page', () => {
   it('shows the result and the factors with the evaluation page’s own card', async () => {
     mockApi();
-    mount(`/risks/${office.id}`);
+    mount(`/riscuri/${office.id}`);
     await screen.findByTestId('risk-profile-page');
     expect(screen.getByTestId('risk-global-level').textContent).toBe('3,33');
     expect(screen.getByTestId('risk-result-counts').textContent).toBe(
@@ -395,7 +396,7 @@ describe('a profile page', () => {
 
   it('adds a factor with the evaluation page’s dialog', async () => {
     mockApi();
-    mount(`/risks/${driver.id}`);
+    mount(`/riscuri/${driver.id}`);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('risk-factor-add'));
     await screen.findByTestId('risk-factor-dialog');
@@ -428,7 +429,7 @@ describe('a profile page', () => {
 
   it('deletes the profile after asking, and goes back to the library', async () => {
     mockApi();
-    const runtime = mount(`/risks/${office.id}`);
+    const runtime = mount(`/riscuri/${office.id}`);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('risk-profile-remove'));
     const dialog = await screen.findByTestId('risk-profile-remove-dialog');
@@ -437,7 +438,7 @@ describe('a profile page', () => {
     await user.click(within(dialog).getByTestId('risk-profile-remove-confirm'));
     await screen.findByTestId('risk-library');
     expect(requests(`/evaluation-profiles/${office.id}`, 'DELETE')).toHaveLength(1);
-    expect(runtime.router.state.location.pathname).toBe('/risks');
+    expect(runtime.router.state.location.pathname).toBe('/riscuri');
     expect(
       (await screen.findAllByTestId('risk-profile-open')).map((link) => link.textContent)
     ).toEqual(['Șofer']);
@@ -477,7 +478,7 @@ describe('a profile page', () => {
           ],
         }),
     });
-    mount(`/risks/${office.id}`);
+    mount(`/riscuri/${office.id}`);
     const usage = await screen.findByTestId('risk-profile-usage');
     const clients = await within(usage).findAllByTestId('risk-profile-usage-client');
     expect(within(usage).getByTestId('risk-profile-usage-count').textContent).toBe('3 evaluări');
@@ -498,13 +499,13 @@ describe('a profile page', () => {
       accountantEvaluationPath
     );
     expect(within(rows[1]!).getByTestId('risk-profile-usage-open').getAttribute('href')).toBe(
-      `${positionsPath}/risk-evaluations/${visitorsUse.id}`
+      `${positionsPage}/evaluari-riscuri/${visitorsUse.id}`
     );
   });
 
   it('says how a profile comes to be used while no evaluation uses it', async () => {
     mockApi();
-    mount(`/risks/${office.id}`);
+    mount(`/riscuri/${office.id}`);
     const empty = await screen.findByTestId('risk-profile-usage-empty');
     expect(empty.textContent).toContain('nu este folosit încă la niciun client');
     expect(empty.textContent).toContain('„Aplică un profil”');
@@ -518,7 +519,7 @@ describe('a profile page', () => {
           ? Response.json({ error: 'forbidden', message: 'no' }, { status: 403 })
           : Response.json({ items: [] }),
     });
-    mount(`/risks/${office.id}`);
+    mount(`/riscuri/${office.id}`);
     const user = userEvent.setup();
     const error = await screen.findByTestId('risk-profile-usage-error');
     failing = false;
@@ -528,7 +529,7 @@ describe('a profile page', () => {
 
   it('is not found for a profile the library does not hold', async () => {
     mockApi();
-    mount(`/risks/${uuid()}`);
+    mount(`/riscuri/${uuid()}`);
     expect(await screen.findByTestId('risk-profile-not-found')).toBeTruthy();
   });
 });
@@ -543,7 +544,7 @@ describe('an evaluation and the library', () => {
       'Factorii nu sunt încă în biblioteca de riscuri a organizației tale (meniul Riscuri).'
     );
     expect(within(nudge).getByRole('link', { name: 'meniul Riscuri' }).getAttribute('href')).toBe(
-      '/risks'
+      '/riscuri'
     );
     expect(screen.queryByTestId('risk-evaluation-save-as-profile')).toBeNull();
     await user.click(within(nudge).getByTestId('risk-library-nudge-save'));
@@ -632,7 +633,7 @@ describe('an evaluation and the library', () => {
     mount(accountantEvaluationPath);
     const summary = await screen.findByTestId('risk-factors-origin');
     expect(summary.textContent).toBe('Ambii factori sunt în profilul Lucrător de birou.');
-    expect(within(summary).getByRole('link').getAttribute('href')).toBe(`/risks/${office.id}`);
+    expect(within(summary).getByRole('link').getAttribute('href')).toBe(`/riscuri/${office.id}`);
     expect(screen.queryByTestId('risk-factor-origin')).toBeNull();
   });
 
@@ -656,7 +657,7 @@ describe('an evaluation and the library', () => {
     const [first, second] = await screen.findAllByTestId('risk-factor-row');
     const origin = within(first!).getByTestId('risk-factor-origin');
     expect(origin.textContent).toBe('În profilul Lucrător de birou');
-    expect(within(origin).getByRole('link').getAttribute('href')).toBe(`/risks/${office.id}`);
+    expect(within(origin).getByRole('link').getAttribute('href')).toBe(`/riscuri/${office.id}`);
     expect(within(second!).queryByTestId('risk-factor-origin')).toBeNull();
     await user.click(within(first!).getByTestId('risk-factor-actions'));
     await user.click(await screen.findByTestId('risk-factor-edit'));
@@ -710,6 +711,8 @@ describe('an evaluation and the library', () => {
     await user.click(await screen.findByTestId('risk-factors-apply-profile'));
     const none = await screen.findByTestId('apply-profile-none');
     expect(none.textContent).toContain('Salvează în bibliotecă');
-    expect(within(none).getByRole('link', { name: 'Riscuri' }).getAttribute('href')).toBe('/risks');
+    expect(within(none).getByRole('link', { name: 'Riscuri' }).getAttribute('href')).toBe(
+      '/riscuri'
+    );
   });
 });

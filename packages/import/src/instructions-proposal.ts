@@ -83,7 +83,7 @@ export function readInstructionsAnswer(
 }
 
 const acronym =
-  /^(?:ssm|psi|isu|igsu|eip|iscir|itm|ipssm|ipsu|rsvti|sc|srl|pfa|hg|oug|ue|gpl|pram|pc|tva|anre|dsp|dsv|adr|cnp|ups)$/u;
+  /^(?:ssm|su|isu|igsu|eip|iscir|itm|ipssm|ipsu|rsvti|sc|srl|pfa|hg|oug|ue|gpl|pram|pc|tva|anre|dsp|dsv|adr|cnp|ups)$/u;
 
 const keptAsWritten = (word: string) =>
   acronym.test(word.toLowerCase().replace(/[^\p{L}]/gu, '')) ||

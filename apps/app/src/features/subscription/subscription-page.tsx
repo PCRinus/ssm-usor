@@ -280,7 +280,7 @@ function noticeFor(
   );
   const chooseLink = (label: string, search?: { packs?: number }) => (
     <Button className="font-semibold" asChild>
-      <Link to="/organization/subscription/choose" search={search}>
+      <Link to="/organizatie/abonament/alege" search={search}>
         {label}
       </Link>
     </Button>

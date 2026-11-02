@@ -44,7 +44,7 @@ export interface ResolvedPosition {
   missing: string[];
 }
 
-const documentWords: Record<InstructionDomain, string> = { ssm: 'ipssm', psi: 'ipsu' };
+const documentWords: Record<InstructionDomain, string> = { ssm: 'ipssm', su: 'ipsu' };
 
 const foreignDocuments = new Set([
   'missmig',

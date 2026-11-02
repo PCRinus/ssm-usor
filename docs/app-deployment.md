@@ -262,7 +262,7 @@ are also best-effort. Build, validation, Worker upload, browser installation, an
 on error. A successful deployment with a browser warning does not mean the user flow was verified.
 
 Before either browser project runs, a shared Playwright `app-ready` setup project polls
-`/login` with Chromium for up to five minutes, waiting for DNS, HTTPS, and an HTML response.
+`/autentificare` with Chromium for up to five minutes, waiting for DNS, HTTPS, and an HTML response.
 It runs once per invocation, and a failure prevents the dependent browser tests from running.
 The login and account assertions then run with their normal, shorter timeouts. API health
 checks also poll for availability. If initial DNS or certificate provisioning takes longer,

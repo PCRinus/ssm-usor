@@ -67,7 +67,7 @@ export function ChoosePlanPage({ search }: { search: ChoosePlanSearch }) {
   const isOwner = me.data.membership?.role === 'owner' && !me.data.impersonation;
   const back = (
     <Button variant="outline" asChild>
-      <Link to="/organization/subscription">Înapoi la abonament</Link>
+      <Link to="/organizatie/abonament">Înapoi la abonament</Link>
     </Button>
   );
   if (!isOwner || !owner) {
@@ -191,7 +191,7 @@ function ChoosePlanForm({
           heading={heading}
           picker={picker}
           onBusy={setBusy}
-          onDone={() => void navigate({ to: '/organization/subscription' })}
+          onDone={() => void navigate({ to: '/organizatie/abonament' })}
         />
       </Suspense>
     );
@@ -238,7 +238,7 @@ function ChoosePlanForm({
         inTrial={state.inTrial}
         usage={{ employees, members }}
         onClose={() => setConfirming(null)}
-        onDone={() => void navigate({ to: '/organization/subscription' })}
+        onDone={() => void navigate({ to: '/organizatie/abonament' })}
       />
     </>
   );

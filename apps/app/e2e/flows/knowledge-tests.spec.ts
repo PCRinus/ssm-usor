@@ -58,7 +58,7 @@ test('a specialist keeps ten questions in the bank and records a paper pass', as
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
   await page.getByTestId('nav-tests').click();
-  await expect(page).toHaveURL(/\/tests\/ssm$/);
+  await expect(page).toHaveURL(/\/teste\/ssm$/);
   const card = page.getByTestId('test-bank-test').filter({ hasText: 'TASSM' });
   const facts = card.getByTestId('test-bank-facts');
   await expect(facts).toHaveText('10 întrebări active · se extrag 10 · prag 70 %');
@@ -106,7 +106,7 @@ test('a specialist keeps ten questions in the bank and records a paper pass', as
   await expect(facts).toHaveText('10 întrebări active · se extrag 10 · prag 70 %');
   await expect(card.getByTestId('test-bank-error')).toBeHidden();
 
-  await page.goto(`/clients/${clientId}/employees/${employee.id}/training/ssm`);
+  await page.goto(`/clienti/${clientId}/angajati/${employee.id}/instruire/ssm`);
   const tests = page.getByTestId('employee-tests');
   await expect(tests.getByTestId('tests-state')).toHaveText('De susținut');
   await expect(tests.getByTestId('tests-gap')).toBeVisible();
@@ -126,10 +126,10 @@ test('a specialist keeps ten questions in the bank and records a paper pass', as
     'Examinator: Dan MARIN, Inspector SSM'
   );
 
-  await page.goto(`/clients/${clientId}/employees`);
+  await page.goto(`/clienti/${clientId}/angajati`);
   const row = page.getByTestId('employees-row').filter({ hasText: 'Testatu Ion' });
   await expect(row.getByTestId('test-status-ssm')).toHaveText('Promovat');
-  await expect(row.getByTestId('test-status-psi')).toHaveText('Fără test');
+  await expect(row.getByTestId('test-status-su')).toHaveText('Fără test');
 
   await page.getByTestId('employees-test-filter-none').click();
   await expect(page).toHaveURL(/testState=none/);

@@ -170,7 +170,7 @@ export type PortalTrainingRecordsResponseItemsItemDomain =
 
 export const PortalTrainingRecordsResponseItemsItemDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type PortalTrainingRecordsResponseItemsItemPhase =
@@ -326,11 +326,11 @@ export type PortalTrainingRecordsResponseTrainingSsm = {
 /**
  * @nullable
  */
-export type PortalTrainingRecordsResponseTrainingPsiState =
-  | (typeof PortalTrainingRecordsResponseTrainingPsiState)[keyof typeof PortalTrainingRecordsResponseTrainingPsiState]
+export type PortalTrainingRecordsResponseTrainingSuState =
+  | (typeof PortalTrainingRecordsResponseTrainingSuState)[keyof typeof PortalTrainingRecordsResponseTrainingSuState]
   | null;
 
-export const PortalTrainingRecordsResponseTrainingPsiState = {
+export const PortalTrainingRecordsResponseTrainingSuState = {
   untrained: 'untrained',
   current: 'current',
   due: 'due',
@@ -340,18 +340,18 @@ export const PortalTrainingRecordsResponseTrainingPsiState = {
 /**
  * @nullable
  */
-export type PortalTrainingRecordsResponseTrainingPsiIntervalSource =
-  | (typeof PortalTrainingRecordsResponseTrainingPsiIntervalSource)[keyof typeof PortalTrainingRecordsResponseTrainingPsiIntervalSource]
+export type PortalTrainingRecordsResponseTrainingSuIntervalSource =
+  | (typeof PortalTrainingRecordsResponseTrainingSuIntervalSource)[keyof typeof PortalTrainingRecordsResponseTrainingSuIntervalSource]
   | null;
 
-export const PortalTrainingRecordsResponseTrainingPsiIntervalSource = {
+export const PortalTrainingRecordsResponseTrainingSuIntervalSource = {
   position: 'position',
   client: 'client',
 } as const;
 
-export type PortalTrainingRecordsResponseTrainingPsi = {
+export type PortalTrainingRecordsResponseTrainingSu = {
   /** @nullable */
-  state: PortalTrainingRecordsResponseTrainingPsiState;
+  state: PortalTrainingRecordsResponseTrainingSuState;
   /** @nullable */
   dueOn: string | null;
   /** @nullable */
@@ -362,12 +362,12 @@ export type PortalTrainingRecordsResponseTrainingPsi = {
    */
   intervalMonths: number | null;
   /** @nullable */
-  intervalSource: PortalTrainingRecordsResponseTrainingPsiIntervalSource;
+  intervalSource: PortalTrainingRecordsResponseTrainingSuIntervalSource;
 };
 
 export type PortalTrainingRecordsResponseTraining = {
   ssm: PortalTrainingRecordsResponseTrainingSsm;
-  psi: PortalTrainingRecordsResponseTrainingPsi;
+  su: PortalTrainingRecordsResponseTrainingSu;
 };
 
 export interface PortalTrainingRecordsResponse {
@@ -478,11 +478,11 @@ export type PortalEmployeeDataResponseTrainingSsm = {
 /**
  * @nullable
  */
-export type PortalEmployeeDataResponseTrainingPsiState =
-  | (typeof PortalEmployeeDataResponseTrainingPsiState)[keyof typeof PortalEmployeeDataResponseTrainingPsiState]
+export type PortalEmployeeDataResponseTrainingSuState =
+  | (typeof PortalEmployeeDataResponseTrainingSuState)[keyof typeof PortalEmployeeDataResponseTrainingSuState]
   | null;
 
-export const PortalEmployeeDataResponseTrainingPsiState = {
+export const PortalEmployeeDataResponseTrainingSuState = {
   untrained: 'untrained',
   current: 'current',
   due: 'due',
@@ -492,18 +492,18 @@ export const PortalEmployeeDataResponseTrainingPsiState = {
 /**
  * @nullable
  */
-export type PortalEmployeeDataResponseTrainingPsiIntervalSource =
-  | (typeof PortalEmployeeDataResponseTrainingPsiIntervalSource)[keyof typeof PortalEmployeeDataResponseTrainingPsiIntervalSource]
+export type PortalEmployeeDataResponseTrainingSuIntervalSource =
+  | (typeof PortalEmployeeDataResponseTrainingSuIntervalSource)[keyof typeof PortalEmployeeDataResponseTrainingSuIntervalSource]
   | null;
 
-export const PortalEmployeeDataResponseTrainingPsiIntervalSource = {
+export const PortalEmployeeDataResponseTrainingSuIntervalSource = {
   position: 'position',
   client: 'client',
 } as const;
 
-export type PortalEmployeeDataResponseTrainingPsi = {
+export type PortalEmployeeDataResponseTrainingSu = {
   /** @nullable */
-  state: PortalEmployeeDataResponseTrainingPsiState;
+  state: PortalEmployeeDataResponseTrainingSuState;
   /** @nullable */
   dueOn: string | null;
   /** @nullable */
@@ -514,12 +514,12 @@ export type PortalEmployeeDataResponseTrainingPsi = {
    */
   intervalMonths: number | null;
   /** @nullable */
-  intervalSource: PortalEmployeeDataResponseTrainingPsiIntervalSource;
+  intervalSource: PortalEmployeeDataResponseTrainingSuIntervalSource;
 };
 
 export type PortalEmployeeDataResponseTraining = {
   ssm: PortalEmployeeDataResponseTrainingSsm;
-  psi: PortalEmployeeDataResponseTrainingPsi;
+  su: PortalEmployeeDataResponseTrainingSu;
 };
 
 export type PortalEmployeeDataResponseClient = {
@@ -555,17 +555,17 @@ export type PortalTrainingSheetsResponseSsm = {
   sequences: number[];
 };
 
-export type PortalTrainingSheetsResponsePsiMissingItem =
-  (typeof PortalTrainingSheetsResponsePsiMissingItem)[keyof typeof PortalTrainingSheetsResponsePsiMissingItem];
+export type PortalTrainingSheetsResponseSuMissingItem =
+  (typeof PortalTrainingSheetsResponseSuMissingItem)[keyof typeof PortalTrainingSheetsResponseSuMissingItem];
 
-export const PortalTrainingSheetsResponsePsiMissingItem = {
+export const PortalTrainingSheetsResponseSuMissingItem = {
   employeecommute_route: 'employee.commute_route',
   employeeworkplace: 'employee.workplace',
 } as const;
 
-export type PortalTrainingSheetsResponsePsi = {
+export type PortalTrainingSheetsResponseSu = {
   ready: boolean;
-  missing: PortalTrainingSheetsResponsePsiMissingItem[];
+  missing: PortalTrainingSheetsResponseSuMissingItem[];
   stored: boolean;
   /** @items.minimum 1 */
   sequences: number[];
@@ -573,7 +573,7 @@ export type PortalTrainingSheetsResponsePsi = {
 
 export interface PortalTrainingSheetsResponse {
   ssm: PortalTrainingSheetsResponseSsm;
-  psi: PortalTrainingSheetsResponsePsi;
+  su: PortalTrainingSheetsResponseSu;
 }
 
 export type MissingSheetDataResponseError =
@@ -651,11 +651,11 @@ export type PortalClientEmployeesResponseItemsItemTrainingSsm = {
 /**
  * @nullable
  */
-export type PortalClientEmployeesResponseItemsItemTrainingPsiState =
-  | (typeof PortalClientEmployeesResponseItemsItemTrainingPsiState)[keyof typeof PortalClientEmployeesResponseItemsItemTrainingPsiState]
+export type PortalClientEmployeesResponseItemsItemTrainingSuState =
+  | (typeof PortalClientEmployeesResponseItemsItemTrainingSuState)[keyof typeof PortalClientEmployeesResponseItemsItemTrainingSuState]
   | null;
 
-export const PortalClientEmployeesResponseItemsItemTrainingPsiState = {
+export const PortalClientEmployeesResponseItemsItemTrainingSuState = {
   untrained: 'untrained',
   current: 'current',
   due: 'due',
@@ -665,18 +665,18 @@ export const PortalClientEmployeesResponseItemsItemTrainingPsiState = {
 /**
  * @nullable
  */
-export type PortalClientEmployeesResponseItemsItemTrainingPsiIntervalSource =
-  | (typeof PortalClientEmployeesResponseItemsItemTrainingPsiIntervalSource)[keyof typeof PortalClientEmployeesResponseItemsItemTrainingPsiIntervalSource]
+export type PortalClientEmployeesResponseItemsItemTrainingSuIntervalSource =
+  | (typeof PortalClientEmployeesResponseItemsItemTrainingSuIntervalSource)[keyof typeof PortalClientEmployeesResponseItemsItemTrainingSuIntervalSource]
   | null;
 
-export const PortalClientEmployeesResponseItemsItemTrainingPsiIntervalSource = {
+export const PortalClientEmployeesResponseItemsItemTrainingSuIntervalSource = {
   position: 'position',
   client: 'client',
 } as const;
 
-export type PortalClientEmployeesResponseItemsItemTrainingPsi = {
+export type PortalClientEmployeesResponseItemsItemTrainingSu = {
   /** @nullable */
-  state: PortalClientEmployeesResponseItemsItemTrainingPsiState;
+  state: PortalClientEmployeesResponseItemsItemTrainingSuState;
   /** @nullable */
   dueOn: string | null;
   /** @nullable */
@@ -687,12 +687,12 @@ export type PortalClientEmployeesResponseItemsItemTrainingPsi = {
    */
   intervalMonths: number | null;
   /** @nullable */
-  intervalSource: PortalClientEmployeesResponseItemsItemTrainingPsiIntervalSource;
+  intervalSource: PortalClientEmployeesResponseItemsItemTrainingSuIntervalSource;
 };
 
 export type PortalClientEmployeesResponseItemsItemTraining = {
   ssm: PortalClientEmployeesResponseItemsItemTrainingSsm;
-  psi: PortalClientEmployeesResponseItemsItemTrainingPsi;
+  su: PortalClientEmployeesResponseItemsItemTrainingSu;
 };
 
 /**
@@ -736,11 +736,11 @@ export type PortalClientEmployeesResponseItemsItemTestsSsm = {
 /**
  * @nullable
  */
-export type PortalClientEmployeesResponseItemsItemTestsPsiState =
-  | (typeof PortalClientEmployeesResponseItemsItemTestsPsiState)[keyof typeof PortalClientEmployeesResponseItemsItemTestsPsiState]
+export type PortalClientEmployeesResponseItemsItemTestsSuState =
+  | (typeof PortalClientEmployeesResponseItemsItemTestsSuState)[keyof typeof PortalClientEmployeesResponseItemsItemTestsSuState]
   | null;
 
-export const PortalClientEmployeesResponseItemsItemTestsPsiState = {
+export const PortalClientEmployeesResponseItemsItemTestsSuState = {
   none: 'none',
   pending: 'pending',
   unverified: 'unverified',
@@ -751,20 +751,20 @@ export const PortalClientEmployeesResponseItemsItemTestsPsiState = {
 /**
  * @nullable
  */
-export type PortalClientEmployeesResponseItemsItemTestsPsiAwaitingTest =
-  | (typeof PortalClientEmployeesResponseItemsItemTestsPsiAwaitingTest)[keyof typeof PortalClientEmployeesResponseItemsItemTestsPsiAwaitingTest]
+export type PortalClientEmployeesResponseItemsItemTestsSuAwaitingTest =
+  | (typeof PortalClientEmployeesResponseItemsItemTestsSuAwaitingTest)[keyof typeof PortalClientEmployeesResponseItemsItemTestsSuAwaitingTest]
   | null;
 
-export const PortalClientEmployeesResponseItemsItemTestsPsiAwaitingTest = {
+export const PortalClientEmployeesResponseItemsItemTestsSuAwaitingTest = {
   hiring: 'hiring',
   annual: 'annual',
 } as const;
 
-export type PortalClientEmployeesResponseItemsItemTestsPsi = {
+export type PortalClientEmployeesResponseItemsItemTestsSu = {
   /** @nullable */
-  state: PortalClientEmployeesResponseItemsItemTestsPsiState;
+  state: PortalClientEmployeesResponseItemsItemTestsSuState;
   /** @nullable */
-  awaitingTest: PortalClientEmployeesResponseItemsItemTestsPsiAwaitingTest;
+  awaitingTest: PortalClientEmployeesResponseItemsItemTestsSuAwaitingTest;
   /** @nullable */
   lastPassedOn: string | null;
   /** @nullable */
@@ -773,7 +773,7 @@ export type PortalClientEmployeesResponseItemsItemTestsPsi = {
 
 export type PortalClientEmployeesResponseItemsItemTests = {
   ssm: PortalClientEmployeesResponseItemsItemTestsSsm;
-  psi: PortalClientEmployeesResponseItemsItemTestsPsi;
+  su: PortalClientEmployeesResponseItemsItemTestsSu;
 };
 
 export type PortalClientEmployeesResponseItemsItem = {
@@ -862,7 +862,7 @@ export type PortalTestsResponseSsmResultsItemDomain =
 
 export const PortalTestsResponseSsmResultsItemDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type PortalTestsResponseSsmResultsItemTest =
@@ -951,7 +951,7 @@ export type PortalTestsResponseSsmAttemptsItemDomain =
 
 export const PortalTestsResponseSsmAttemptsItemDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type PortalTestsResponseSsmAttemptsItemTest =
@@ -985,7 +985,7 @@ export type PortalTestsResponseSsmInProgressDomain =
 
 export const PortalTestsResponseSsmInProgressDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type PortalTestsResponseSsmInProgressTest =
@@ -1036,10 +1036,10 @@ export type PortalTestsResponseSsm = {
 /**
  * @nullable
  */
-export type PortalTestsResponsePsiStatusState =
-  (typeof PortalTestsResponsePsiStatusState)[keyof typeof PortalTestsResponsePsiStatusState] | null;
+export type PortalTestsResponseSuStatusState =
+  (typeof PortalTestsResponseSuStatusState)[keyof typeof PortalTestsResponseSuStatusState] | null;
 
-export const PortalTestsResponsePsiStatusState = {
+export const PortalTestsResponseSuStatusState = {
   none: 'none',
   pending: 'pending',
   unverified: 'unverified',
@@ -1050,69 +1050,69 @@ export const PortalTestsResponsePsiStatusState = {
 /**
  * @nullable
  */
-export type PortalTestsResponsePsiStatusAwaitingTest =
-  | (typeof PortalTestsResponsePsiStatusAwaitingTest)[keyof typeof PortalTestsResponsePsiStatusAwaitingTest]
+export type PortalTestsResponseSuStatusAwaitingTest =
+  | (typeof PortalTestsResponseSuStatusAwaitingTest)[keyof typeof PortalTestsResponseSuStatusAwaitingTest]
   | null;
 
-export const PortalTestsResponsePsiStatusAwaitingTest = {
+export const PortalTestsResponseSuStatusAwaitingTest = {
   hiring: 'hiring',
   annual: 'annual',
 } as const;
 
-export type PortalTestsResponsePsiStatus = {
+export type PortalTestsResponseSuStatus = {
   /** @nullable */
-  state: PortalTestsResponsePsiStatusState;
+  state: PortalTestsResponseSuStatusState;
   /** @nullable */
-  awaitingTest: PortalTestsResponsePsiStatusAwaitingTest;
+  awaitingTest: PortalTestsResponseSuStatusAwaitingTest;
   /** @nullable */
   lastPassedOn: string | null;
   /** @nullable */
   dueOn: string | null;
 };
 
-export type PortalTestsResponsePsiResultsItemDomain =
-  (typeof PortalTestsResponsePsiResultsItemDomain)[keyof typeof PortalTestsResponsePsiResultsItemDomain];
+export type PortalTestsResponseSuResultsItemDomain =
+  (typeof PortalTestsResponseSuResultsItemDomain)[keyof typeof PortalTestsResponseSuResultsItemDomain];
 
-export const PortalTestsResponsePsiResultsItemDomain = {
+export const PortalTestsResponseSuResultsItemDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
-export type PortalTestsResponsePsiResultsItemTest =
-  (typeof PortalTestsResponsePsiResultsItemTest)[keyof typeof PortalTestsResponsePsiResultsItemTest];
+export type PortalTestsResponseSuResultsItemTest =
+  (typeof PortalTestsResponseSuResultsItemTest)[keyof typeof PortalTestsResponseSuResultsItemTest];
 
-export const PortalTestsResponsePsiResultsItemTest = {
+export const PortalTestsResponseSuResultsItemTest = {
   hiring: 'hiring',
   annual: 'annual',
 } as const;
 
-export type PortalTestsResponsePsiResultsItemGrade =
-  (typeof PortalTestsResponsePsiResultsItemGrade)[keyof typeof PortalTestsResponsePsiResultsItemGrade];
+export type PortalTestsResponseSuResultsItemGrade =
+  (typeof PortalTestsResponseSuResultsItemGrade)[keyof typeof PortalTestsResponseSuResultsItemGrade];
 
-export const PortalTestsResponsePsiResultsItemGrade = {
+export const PortalTestsResponseSuResultsItemGrade = {
   admis: 'admis',
 } as const;
 
 /**
  * @nullable
  */
-export type PortalTestsResponsePsiResultsItemExaminer = {
+export type PortalTestsResponseSuResultsItemExaminer = {
   name: string;
   jobTitle: string;
 } | null;
 
-export type PortalTestsResponsePsiResultsItemSource =
-  (typeof PortalTestsResponsePsiResultsItemSource)[keyof typeof PortalTestsResponsePsiResultsItemSource];
+export type PortalTestsResponseSuResultsItemSource =
+  (typeof PortalTestsResponseSuResultsItemSource)[keyof typeof PortalTestsResponseSuResultsItemSource];
 
-export const PortalTestsResponsePsiResultsItemSource = {
+export const PortalTestsResponseSuResultsItemSource = {
   portal: 'portal',
   paper: 'paper',
 } as const;
 
-export type PortalTestsResponsePsiResultsItemSheetSignedTrainee =
-  (typeof PortalTestsResponsePsiResultsItemSheetSignedTrainee)[keyof typeof PortalTestsResponsePsiResultsItemSheetSignedTrainee];
+export type PortalTestsResponseSuResultsItemSheetSignedTrainee =
+  (typeof PortalTestsResponseSuResultsItemSheetSignedTrainee)[keyof typeof PortalTestsResponseSuResultsItemSheetSignedTrainee];
 
-export const PortalTestsResponsePsiResultsItemSheetSignedTrainee = {
+export const PortalTestsResponseSuResultsItemSheetSignedTrainee = {
   unassigned: 'unassigned',
   pending: 'pending',
   signed: 'signed',
@@ -1120,10 +1120,10 @@ export const PortalTestsResponsePsiResultsItemSheetSignedTrainee = {
   void: 'void',
 } as const;
 
-export type PortalTestsResponsePsiResultsItemSheetSignedExaminer =
-  (typeof PortalTestsResponsePsiResultsItemSheetSignedExaminer)[keyof typeof PortalTestsResponsePsiResultsItemSheetSignedExaminer];
+export type PortalTestsResponseSuResultsItemSheetSignedExaminer =
+  (typeof PortalTestsResponseSuResultsItemSheetSignedExaminer)[keyof typeof PortalTestsResponseSuResultsItemSheetSignedExaminer];
 
-export const PortalTestsResponsePsiResultsItemSheetSignedExaminer = {
+export const PortalTestsResponseSuResultsItemSheetSignedExaminer = {
   unassigned: 'unassigned',
   pending: 'pending',
   signed: 'signed',
@@ -1131,54 +1131,54 @@ export const PortalTestsResponsePsiResultsItemSheetSignedExaminer = {
   void: 'void',
 } as const;
 
-export type PortalTestsResponsePsiResultsItemSheetSigned = {
-  trainee: PortalTestsResponsePsiResultsItemSheetSignedTrainee;
-  examiner: PortalTestsResponsePsiResultsItemSheetSignedExaminer;
+export type PortalTestsResponseSuResultsItemSheetSigned = {
+  trainee: PortalTestsResponseSuResultsItemSheetSignedTrainee;
+  examiner: PortalTestsResponseSuResultsItemSheetSignedExaminer;
 };
 
-export type PortalTestsResponsePsiResultsItemSheet = {
+export type PortalTestsResponseSuResultsItemSheet = {
   available: boolean;
-  signed: PortalTestsResponsePsiResultsItemSheetSigned;
+  signed: PortalTestsResponseSuResultsItemSheetSigned;
 };
 
-export type PortalTestsResponsePsiResultsItem = {
+export type PortalTestsResponseSuResultsItem = {
   id: string;
   employeeId: string;
-  domain: PortalTestsResponsePsiResultsItemDomain;
-  test: PortalTestsResponsePsiResultsItemTest;
+  domain: PortalTestsResponseSuResultsItemDomain;
+  test: PortalTestsResponseSuResultsItemTest;
   takenOn: string;
   material: string;
-  grade: PortalTestsResponsePsiResultsItemGrade;
+  grade: PortalTestsResponseSuResultsItemGrade;
   /** @nullable */
-  examiner: PortalTestsResponsePsiResultsItemExaminer;
-  source: PortalTestsResponsePsiResultsItemSource;
+  examiner: PortalTestsResponseSuResultsItemExaminer;
+  source: PortalTestsResponseSuResultsItemSource;
   /** @nullable */
   attemptId: string | null;
   createdAt: string;
   updatedAt: string;
-  sheet: PortalTestsResponsePsiResultsItemSheet;
+  sheet: PortalTestsResponseSuResultsItemSheet;
 };
 
-export type PortalTestsResponsePsiAttemptsItemDomain =
-  (typeof PortalTestsResponsePsiAttemptsItemDomain)[keyof typeof PortalTestsResponsePsiAttemptsItemDomain];
+export type PortalTestsResponseSuAttemptsItemDomain =
+  (typeof PortalTestsResponseSuAttemptsItemDomain)[keyof typeof PortalTestsResponseSuAttemptsItemDomain];
 
-export const PortalTestsResponsePsiAttemptsItemDomain = {
+export const PortalTestsResponseSuAttemptsItemDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
-export type PortalTestsResponsePsiAttemptsItemTest =
-  (typeof PortalTestsResponsePsiAttemptsItemTest)[keyof typeof PortalTestsResponsePsiAttemptsItemTest];
+export type PortalTestsResponseSuAttemptsItemTest =
+  (typeof PortalTestsResponseSuAttemptsItemTest)[keyof typeof PortalTestsResponseSuAttemptsItemTest];
 
-export const PortalTestsResponsePsiAttemptsItemTest = {
+export const PortalTestsResponseSuAttemptsItemTest = {
   hiring: 'hiring',
   annual: 'annual',
 } as const;
 
-export type PortalTestsResponsePsiAttemptsItem = {
+export type PortalTestsResponseSuAttemptsItem = {
   id: string;
-  domain: PortalTestsResponsePsiAttemptsItemDomain;
-  test: PortalTestsResponsePsiAttemptsItemTest;
+  domain: PortalTestsResponseSuAttemptsItemDomain;
+  test: PortalTestsResponseSuAttemptsItemTest;
   startedAt: string;
   /** @nullable */
   finishedAt: string | null;
@@ -1193,30 +1193,30 @@ export type PortalTestsResponsePsiAttemptsItem = {
   passed: boolean | null;
 };
 
-export type PortalTestsResponsePsiInProgressDomain =
-  (typeof PortalTestsResponsePsiInProgressDomain)[keyof typeof PortalTestsResponsePsiInProgressDomain];
+export type PortalTestsResponseSuInProgressDomain =
+  (typeof PortalTestsResponseSuInProgressDomain)[keyof typeof PortalTestsResponseSuInProgressDomain];
 
-export const PortalTestsResponsePsiInProgressDomain = {
+export const PortalTestsResponseSuInProgressDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
-export type PortalTestsResponsePsiInProgressTest =
-  (typeof PortalTestsResponsePsiInProgressTest)[keyof typeof PortalTestsResponsePsiInProgressTest];
+export type PortalTestsResponseSuInProgressTest =
+  (typeof PortalTestsResponseSuInProgressTest)[keyof typeof PortalTestsResponseSuInProgressTest];
 
-export const PortalTestsResponsePsiInProgressTest = {
+export const PortalTestsResponseSuInProgressTest = {
   hiring: 'hiring',
   annual: 'annual',
 } as const;
 
-export type PortalTestsResponsePsiInProgressQuestionsItemOptionsItem = {
+export type PortalTestsResponseSuInProgressQuestionsItemOptionsItem = {
   text: string;
 };
 
-export type PortalTestsResponsePsiInProgressQuestionsItem = {
+export type PortalTestsResponseSuInProgressQuestionsItem = {
   questionId: string;
   text: string;
-  options: PortalTestsResponsePsiInProgressQuestionsItemOptionsItem[];
+  options: PortalTestsResponseSuInProgressQuestionsItemOptionsItem[];
   /**
    * @maxItems 4
    * @items.minimum 0
@@ -1228,27 +1228,27 @@ export type PortalTestsResponsePsiInProgressQuestionsItem = {
 /**
  * @nullable
  */
-export type PortalTestsResponsePsiInProgress = {
+export type PortalTestsResponseSuInProgress = {
   id: string;
-  domain: PortalTestsResponsePsiInProgressDomain;
-  test: PortalTestsResponsePsiInProgressTest;
+  domain: PortalTestsResponseSuInProgressDomain;
+  test: PortalTestsResponseSuInProgressTest;
   startedAt: string;
   /** @minimum 1 */
   total: number;
-  questions: PortalTestsResponsePsiInProgressQuestionsItem[];
+  questions: PortalTestsResponseSuInProgressQuestionsItem[];
 } | null;
 
-export type PortalTestsResponsePsi = {
-  status: PortalTestsResponsePsiStatus;
-  results: PortalTestsResponsePsiResultsItem[];
-  attempts: PortalTestsResponsePsiAttemptsItem[];
+export type PortalTestsResponseSu = {
+  status: PortalTestsResponseSuStatus;
+  results: PortalTestsResponseSuResultsItem[];
+  attempts: PortalTestsResponseSuAttemptsItem[];
   /** @nullable */
-  inProgress: PortalTestsResponsePsiInProgress;
+  inProgress: PortalTestsResponseSuInProgress;
 };
 
 export interface PortalTestsResponse {
   ssm: PortalTestsResponseSsm;
-  psi: PortalTestsResponsePsi;
+  su: PortalTestsResponseSu;
 }
 
 /**
@@ -1271,7 +1271,7 @@ export type TestAttemptResponseAttemptDomain =
 
 export const TestAttemptResponseAttemptDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type TestAttemptResponseAttemptTest =
@@ -1326,7 +1326,7 @@ export type TestAttemptOutcomeDomain =
 
 export const TestAttemptOutcomeDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type TestAttemptOutcomeTest =
@@ -1394,7 +1394,7 @@ export type PortalSignatureRequestsResponseItemsItemRecordDomain =
 
 export const PortalSignatureRequestsResponseItemsItemRecordDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type PortalSignatureRequestsResponseItemsItemRecordPhase =
@@ -1472,7 +1472,7 @@ export type PortalSignatureRequestsResponseItemsItemTestSheetDomain =
 
 export const PortalSignatureRequestsResponseItemsItemTestSheetDomain = {
   ssm: 'ssm',
-  psi: 'psi',
+  su: 'su',
 } as const;
 
 export type PortalSignatureRequestsResponseItemsItemTestSheetTest =
@@ -2620,7 +2620,7 @@ export function useGetPortalTrainingSheets<
 
 export const getGetPortalTrainingSheetUrl = (
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalTrainingSheetParams
 ) => {
   const normalizedParams = new URLSearchParams();
@@ -2644,7 +2644,7 @@ export const getGetPortalTrainingSheetUrl = (
  */
 export const getPortalTrainingSheet = async (
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalTrainingSheetParams,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<Blob> => {
@@ -2656,7 +2656,7 @@ export const getPortalTrainingSheet = async (
 
 export const getGetPortalTrainingSheetQueryKey = (
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalTrainingSheetParams
 ) => {
   return [
@@ -2670,7 +2670,7 @@ export const getGetPortalTrainingSheetQueryOptions = <
   TError = ErrorType<ApiErrorResponse | MissingSheetDataResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalTrainingSheetParams,
   options?: {
     query?: Partial<
@@ -2713,7 +2713,7 @@ export function useGetPortalTrainingSheet<
   TError = ErrorType<ApiErrorResponse | MissingSheetDataResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params: undefined | GetPortalTrainingSheetParams,
   options: {
     query: Partial<
@@ -2736,7 +2736,7 @@ export function useGetPortalTrainingSheet<
   TError = ErrorType<ApiErrorResponse | MissingSheetDataResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalTrainingSheetParams,
   options?: {
     query?: Partial<
@@ -2759,7 +2759,7 @@ export function useGetPortalTrainingSheet<
   TError = ErrorType<ApiErrorResponse | MissingSheetDataResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalTrainingSheetParams,
   options?: {
     query?: Partial<
@@ -2778,7 +2778,7 @@ export function useGetPortalTrainingSheet<
   TError = ErrorType<ApiErrorResponse | MissingSheetDataResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalTrainingSheetParams,
   options?: {
     query?: Partial<
@@ -3272,7 +3272,7 @@ export function useGetPortalEmployeeTrainingSheets<
 export const getGetPortalEmployeeTrainingSheetUrl = (
   participantId: string,
   employeeId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalEmployeeTrainingSheetParams
 ) => {
   const normalizedParams = new URLSearchParams();
@@ -3297,7 +3297,7 @@ export const getGetPortalEmployeeTrainingSheetUrl = (
 export const getPortalEmployeeTrainingSheet = async (
   participantId: string,
   employeeId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalEmployeeTrainingSheetParams,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<Blob> => {
@@ -3313,7 +3313,7 @@ export const getPortalEmployeeTrainingSheet = async (
 export const getGetPortalEmployeeTrainingSheetQueryKey = (
   participantId: string,
   employeeId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalEmployeeTrainingSheetParams
 ) => {
   return [
@@ -3328,7 +3328,7 @@ export const getGetPortalEmployeeTrainingSheetQueryOptions = <
 >(
   participantId: string,
   employeeId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalEmployeeTrainingSheetParams,
   options?: {
     query?: Partial<
@@ -3382,7 +3382,7 @@ export function useGetPortalEmployeeTrainingSheet<
 >(
   participantId: string,
   employeeId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params: undefined | GetPortalEmployeeTrainingSheetParams,
   options: {
     query: Partial<
@@ -3406,7 +3406,7 @@ export function useGetPortalEmployeeTrainingSheet<
 >(
   participantId: string,
   employeeId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalEmployeeTrainingSheetParams,
   options?: {
     query?: Partial<
@@ -3430,7 +3430,7 @@ export function useGetPortalEmployeeTrainingSheet<
 >(
   participantId: string,
   employeeId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalEmployeeTrainingSheetParams,
   options?: {
     query?: Partial<
@@ -3450,7 +3450,7 @@ export function useGetPortalEmployeeTrainingSheet<
 >(
   participantId: string,
   employeeId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalEmployeeTrainingSheetParams,
   options?: {
     query?: Partial<
@@ -3743,7 +3743,7 @@ export function useGetPortalTests<
 
 export const getGetPortalTestStudyCardUrl = (
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   test: 'hiring' | 'annual'
 ) => {
   return `/portal/participants/${participantId}/tests/${domain}/${test}/study-card`;
@@ -3755,7 +3755,7 @@ export const getGetPortalTestStudyCardUrl = (
  */
 export const getPortalTestStudyCard = async (
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   test: 'hiring' | 'annual',
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<TestStudyCard> => {
@@ -3767,7 +3767,7 @@ export const getPortalTestStudyCard = async (
 
 export const getGetPortalTestStudyCardQueryKey = (
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   test: 'hiring' | 'annual'
 ) => {
   return [`/portal/participants/${participantId}/tests/${domain}/${test}/study-card`] as const;
@@ -3778,7 +3778,7 @@ export const getGetPortalTestStudyCardQueryOptions = <
   TError = ErrorType<ApiErrorResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   test: 'hiring' | 'annual',
   options?: {
     query?: Partial<
@@ -3821,7 +3821,7 @@ export function useGetPortalTestStudyCard<
   TError = ErrorType<ApiErrorResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   test: 'hiring' | 'annual',
   options: {
     query: Partial<
@@ -3844,7 +3844,7 @@ export function useGetPortalTestStudyCard<
   TError = ErrorType<ApiErrorResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   test: 'hiring' | 'annual',
   options?: {
     query?: Partial<
@@ -3867,7 +3867,7 @@ export function useGetPortalTestStudyCard<
   TError = ErrorType<ApiErrorResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   test: 'hiring' | 'annual',
   options?: {
     query?: Partial<
@@ -3886,7 +3886,7 @@ export function useGetPortalTestStudyCard<
   TError = ErrorType<ApiErrorResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   test: 'hiring' | 'annual',
   options?: {
     query?: Partial<
@@ -3907,7 +3907,7 @@ export function useGetPortalTestStudyCard<
 
 export const getStartPortalTestAttemptUrl = (
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   test: 'hiring' | 'annual'
 ) => {
   return `/portal/participants/${participantId}/tests/${domain}/${test}/attempts`;
@@ -3919,7 +3919,7 @@ export const getStartPortalTestAttemptUrl = (
  */
 export const startPortalTestAttempt = async (
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   test: 'hiring' | 'annual',
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<TestAttemptResponse> => {
@@ -3974,7 +3974,7 @@ export type StartPortalTestAttemptMutationResult = NonNullable<
 export type StartPortalTestAttemptMutationError = ErrorType<ApiErrorResponse>;
 export type StartPortalTestAttemptMutationVariables = {
   participantId: string;
-  domain: 'ssm' | 'psi';
+  domain: 'ssm' | 'su';
   test: 'hiring' | 'annual';
 };
 
@@ -4216,17 +4216,17 @@ export const useFinishPortalTestAttempt = <
   return useMutation(getFinishPortalTestAttemptMutationOptions(options), queryClient);
 };
 
-export const getGetPortalMaterialUrl = (participantId: string, domain: 'ssm' | 'psi') => {
+export const getGetPortalMaterialUrl = (participantId: string, domain: 'ssm' | 'su') => {
   return `/portal/participants/${participantId}/materials/${domain}`;
 };
 
 /**
- * The newest issued revision of the client's general training material (`ssm`) or fire-safety own instructions (`psi`), the IPSU with its annexes. 404 with reason `material_not_issued` while there is none.
+ * The newest issued revision of the client's general training material (`ssm`) or fire-safety own instructions (`su`), the IPSU with its annexes. 404 with reason `material_not_issued` while there is none.
  * @summary The material a test closes, as its issued PDF
  */
 export const getPortalMaterial = async (
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<Blob> => {
   return apiFetch<Blob>(getGetPortalMaterialUrl(participantId, domain), {
@@ -4235,7 +4235,7 @@ export const getPortalMaterial = async (
   });
 };
 
-export const getGetPortalMaterialQueryKey = (participantId: string, domain: 'ssm' | 'psi') => {
+export const getGetPortalMaterialQueryKey = (participantId: string, domain: 'ssm' | 'su') => {
   return [`/portal/participants/${participantId}/materials/${domain}`] as const;
 };
 
@@ -4244,7 +4244,7 @@ export const getGetPortalMaterialQueryOptions = <
   TError = ErrorType<ApiErrorResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPortalMaterial>>, TError, TData>>;
     request?: SecondParameter<typeof apiFetch>;
@@ -4281,7 +4281,7 @@ export function useGetPortalMaterial<
   TError = ErrorType<ApiErrorResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPortalMaterial>>, TError, TData>> &
       Pick<
@@ -4301,7 +4301,7 @@ export function useGetPortalMaterial<
   TError = ErrorType<ApiErrorResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPortalMaterial>>, TError, TData>> &
       Pick<
@@ -4321,7 +4321,7 @@ export function useGetPortalMaterial<
   TError = ErrorType<ApiErrorResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPortalMaterial>>, TError, TData>>;
     request?: SecondParameter<typeof apiFetch>;
@@ -4337,7 +4337,7 @@ export function useGetPortalMaterial<
   TError = ErrorType<ApiErrorResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPortalMaterial>>, TError, TData>>;
     request?: SecondParameter<typeof apiFetch>;

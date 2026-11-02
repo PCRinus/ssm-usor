@@ -25,7 +25,7 @@ import {
   type OrganizationEmployeeRow,
 } from './organization-employee-columns';
 
-const route = getRouteApi('/_authenticated/employees/');
+const route = getRouteApi('/_authenticated/angajati/');
 
 const defaultSort: DataTableSort & { sort: OrganizationEmployeeSortKey } = {
   sort: 'name',
@@ -95,7 +95,7 @@ export function OrganizationEmployeesPage() {
               return (
                 <Link
                   key={filter.label}
-                  to="/employees"
+                  to="/angajati"
                   search={{
                     ...(filter.status ? { status: filter.status } : {}),
                     clientId,
@@ -192,7 +192,7 @@ export function OrganizationEmployeesPage() {
           rowKey={rowKey}
           onRowClick={(employee) =>
             void navigate({
-              to: '/clients/$clientId/employees/$employeeId',
+              to: '/clienti/$clientId/angajati/$employeeId',
               params: { clientId: employee.client.id, employeeId: employee.id },
             })
           }
@@ -310,7 +310,7 @@ export function OrganizationEmployeesPage() {
                 </p>
                 {!status && !clientId && (
                   <Button asChild variant="outline" className="mt-5">
-                    <Link to="/clients">Mergi la clienți</Link>
+                    <Link to="/clienti">Mergi la clienți</Link>
                   </Button>
                 )}
               </>

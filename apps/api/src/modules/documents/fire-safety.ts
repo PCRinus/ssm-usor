@@ -268,7 +268,7 @@ type FireSubstanceContext = {
 } & Record<FireSubstanceDetail, string>;
 
 export type FireContext = {
-  /** "5 PSI": the first decision number plus each decision's ordinal in the binder, minus one. */
+  /** "5 SU": the first decision number plus each decision's ordinal in the binder, minus one. */
   decisionNumbers: Record<FireDecision, string>;
   schedule: {
     periodicHours: number;
@@ -537,8 +537,8 @@ function fireSafetyContextParts(facts: FireSafetySetFacts): ContextParts<FireSaf
     seasonsDecision: () => inSet('fire_decision_seasons'),
     controlDecision: () => inSet('fire_decision_control'),
     installationRegister: () => inSet('fire_installation_register'),
-    annexes: () => annexedModules(facts, 'psi'),
-    noAnnexes: () => annexedModules(facts, 'psi').length === 0,
+    annexes: () => annexedModules(facts, 'su'),
+    noAnnexes: () => annexedModules(facts, 'su').length === 0,
     fireThemes: () => fireThemes(facts),
     knowledgeTests: () =>
       printedTests(facts.testQuestions, ['fire_test_hiring', 'fire_test_annual']),
@@ -603,7 +603,7 @@ const fireDecisionNumbers = (firstDecisionNumber: number) =>
   Object.fromEntries(
     (Object.keys(fireDecisionOrdinals) as FireDecision[]).map((decision) => [
       decision,
-      `${firstDecisionNumber + fireDecisionOrdinals[decision] - 1} PSI`,
+      `${firstDecisionNumber + fireDecisionOrdinals[decision] - 1} SU`,
     ])
   ) as Record<FireDecision, string>;
 
@@ -1074,7 +1074,7 @@ function fireThemes(facts: FireSafetySetFacts): FireThemesContext | undefined {
         const applying = (moduleId: string) =>
           positions.filter((position) =>
             position.instructions.some(
-              (module) => module.domain === 'psi' && module.moduleId === moduleId
+              (module) => module.domain === 'su' && module.moduleId === moduleId
             )
           );
         const modules = ipsu.annexes.flatMap((annex) => {

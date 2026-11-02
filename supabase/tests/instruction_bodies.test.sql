@@ -116,7 +116,7 @@ select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001', '{"provider":"emai
 select lives_ok(
   $$ insert into public.instruction_modules (id, organization_id, title, module_group, domain) values
        ('a0a0a0a0-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'Scări metalice', 'work_equipment', 'ssm'),
-       ('a0a0a0a0-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'Lucrul cu foc deschis', 'hazardous_work', 'psi') $$,
+       ('a0a0a0a0-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'Lucrul cu foc deschis', 'hazardous_work', 'su') $$,
   'a fire-safety module takes a fire-safety category'
 );
 
@@ -130,21 +130,21 @@ select throws_ok(
 
 select throws_ok(
   $$ insert into public.instruction_modules (organization_id, title, module_group, domain)
-     values ('11111111-0000-4000-8000-000000000001', 'Căști', 'protective_equipment', 'psi') $$,
+     values ('11111111-0000-4000-8000-000000000001', 'Căști', 'protective_equipment', 'su') $$,
   '23514',
   null,
   'and a fire-safety module an occupational safety one'
 );
 
 select throws_ok(
-  $$ update public.instruction_modules set domain = 'psi' where id = 'a0a0a0a0-0000-4000-8000-000000000001' $$,
+  $$ update public.instruction_modules set domain = 'su' where id = 'a0a0a0a0-0000-4000-8000-000000000001' $$,
   '23514',
   null,
   'the domain changes only with a category of the other domain'
 );
 
 select lives_ok(
-  $$ update public.instruction_modules set domain = 'psi', module_group = 'installation_equipment'
+  $$ update public.instruction_modules set domain = 'su', module_group = 'installation_equipment'
      where id = 'a0a0a0a0-0000-4000-8000-000000000001' $$,
   'and does with one'
 );

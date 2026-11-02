@@ -20,7 +20,7 @@ const isLowerCaseLetter = (character: string) =>
 
 /**
  * A value typed to stand alone, as it reads inside a sentence: "Mecanic auto" becomes "mecanic
- * auto". A first word in capitals is an acronym and stays: "PSI", "ISU Brașov".
+ * auto". A first word in capitals is an acronym and stays: "SU", "ISU Brașov".
  */
 export function runOn(text: string) {
   const [first, second] = [...text];

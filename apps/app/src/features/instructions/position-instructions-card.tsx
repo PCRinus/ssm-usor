@@ -74,22 +74,22 @@ const domainCopy = {
       'Instrucțiunile celuilalt post se adaugă la ale acestuia; cele deja aplicate rămân.',
     copyEmpty: 'Niciun alt post al clientului nu aplică instrucțiuni încă.',
   },
-  psi: {
-    title: 'Instrucțiuni specifice PSI',
+  su: {
+    title: 'Instrucțiuni specifice SU',
     testId: 'fire-instructions',
-    specific: 'instrucțiuni specifice PSI',
-    none: 'Postul nu necesită instrucțiuni specifice PSI dincolo de partea comună. Instrucțiunile proprii PSI nu anexează nimic pentru el.',
+    specific: 'instrucțiuni specifice SU',
+    none: 'Postul nu necesită instrucțiuni specifice SU dincolo de partea comună. Instrucțiunile proprii SU nu anexează nimic pentru el.',
     undecided:
-      'Documentele PSI nu se pot genera până nu alegi ce instrucțiuni PSI din bibliotecă privesc postul, sau spui că nu necesită.',
-    pickTitle: (name: string) => `Instrucțiunile PSI ale postului „${name}”`,
+      'Documentele SU nu se pot genera până nu alegi ce instrucțiuni SU din bibliotecă privesc postul, sau spui că nu necesită.',
+    pickTitle: (name: string) => `Instrucțiunile SU ale postului „${name}”`,
     pickDescription:
-      'Bifează instrucțiunile PSI din bibliotecă care privesc postul. Instrucțiunile proprii PSI ale clientului le anexează, iar tematica de instruire PSI le citează.',
+      'Bifează instrucțiunile SU din bibliotecă care privesc postul. Instrucțiunile proprii SU ale clientului le anexează, iar tematica de instruire SU le citează.',
     libraryEmpty:
-      'Nu ai încă instrucțiuni proprii PSI. Scrie-le în Instrucțiuni proprii, apoi alege-le aici.',
-    copyTitle: 'Copiază instrucțiunile PSI de la alt post',
+      'Nu ai încă instrucțiuni proprii SU. Scrie-le în Instrucțiuni proprii, apoi alege-le aici.',
+    copyTitle: 'Copiază instrucțiunile SU de la alt post',
     copyDescription:
-      'Instrucțiunile PSI ale celuilalt post se adaugă la ale acestuia; cele deja aplicate rămân.',
-    copyEmpty: 'Niciun alt post al clientului nu aplică instrucțiuni PSI încă.',
+      'Instrucțiunile SU ale celuilalt post se adaugă la ale acestuia; cele deja aplicate rămân.',
+    copyEmpty: 'Niciun alt post al clientului nu aplică instrucțiuni SU încă.',
   },
 } satisfies Record<InstructionDomain, unknown>;
 
@@ -333,7 +333,7 @@ export function PositionInstructionsCard({
                 <TableRow key={item.moduleId} data-testid={testId('row')}>
                   <TableCell className="min-w-40 font-medium whitespace-normal">
                     <Link
-                      to="/instructions/$moduleId"
+                      to="/instructiuni/$moduleId"
                       params={{ moduleId: item.moduleId }}
                       className="hover:underline"
                       data-testid={testId('open')}
@@ -492,7 +492,7 @@ function PickInstructionsDialog({
               data-testid={testId('pick-empty')}
               action={
                 <Button asChild variant="outline">
-                  <Link to={domain === 'psi' ? '/instructions/psi' : '/instructions/ssm'}>
+                  <Link to={domain === 'su' ? '/instructiuni/su' : '/instructiuni/ssm'}>
                     Deschide Instrucțiuni proprii
                   </Link>
                 </Button>
@@ -528,7 +528,7 @@ function PickInstructionsDialog({
                         />
                         <span className="min-w-0 flex-1">{module.title}</span>
                         <Link
-                          to="/instructions/$moduleId"
+                          to="/instructiuni/$moduleId"
                           params={{ moduleId: module.id }}
                           target="_blank"
                           rel="noreferrer"

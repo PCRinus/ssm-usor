@@ -59,7 +59,7 @@ from day d, (values
   ('a1a1a1a1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'supplementary', 5, 'new_equipment'),
   ('a1a1a1a1-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'workplace', 30, null),
   ('a1a1a1a1-0000-4000-8000-000000000005', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'workplace', 100, null),
-  ('a1a1a1a1-0000-4000-8000-000000000006', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 'workplace', 10, null),
+  ('a1a1a1a1-0000-4000-8000-000000000006', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'su', 'workplace', 10, null),
   ('a1a1a1a1-0000-4000-8000-000000000007', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'ssm', 'workplace', 45, null),
   ('a1a1a1a1-0000-4000-8000-000000000008', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'introductory_general', 10, null),
   ('a1a1a1a1-0000-4000-8000-000000000009', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'ssm', 'periodic', 5, null),
@@ -183,7 +183,7 @@ select is(
 );
 
 select is(
-  (select row(s.psi_workplace_trained_on, s.psi_due_on, s.psi_state)::text from pg_temp.status('e1e1e1e1-0000-4000-8000-000000000003') s),
+  (select row(s.su_workplace_trained_on, s.su_due_on, s.su_state)::text from pg_temp.status('e1e1e1e1-0000-4000-8000-000000000003') s),
   (select row(today - 10, (today - 10 + interval '2 months')::date, 'current')::text from day),
   'fire safety takes the fire-safety schedule''s interval for the category, whatever the position says'
 );
@@ -201,13 +201,13 @@ select is(
 );
 
 select is(
-  (select row(s.psi_has_hiring_training, s.psi_state)::text from pg_temp.status('e1e1e1e1-0000-4000-8000-000000000001') s),
+  (select row(s.su_has_hiring_training, s.su_state)::text from pg_temp.status('e1e1e1e1-0000-4000-8000-000000000001') s),
   row(false, 'untrained')::text,
   'the domains are counted apart'
 );
 
 select is(
-  (select row(s.ssm_due_on, s.ssm_state, s.psi_state)::text from pg_temp.status('e1e1e1e1-0000-4000-8000-000000000005') s),
+  (select row(s.ssm_due_on, s.ssm_state, s.su_state)::text from pg_temp.status('e1e1e1e1-0000-4000-8000-000000000005') s),
   (select row((today - 400 + interval '3 months')::date, null::text, null::text)::text from day),
   'a leaver has a due date but no training state'
 );
@@ -219,31 +219,31 @@ select is(
 );
 
 select is(
-  (select row(s.psi_due_on, s.psi_state)::text from pg_temp.status('e1e1e1e1-0000-4000-8000-000000000006') s),
+  (select row(s.su_due_on, s.su_state)::text from pg_temp.status('e1e1e1e1-0000-4000-8000-000000000006') s),
   row(null::date, 'untrained')::text,
   'a client without a fire-safety schedule has no fire-safety due date'
 );
 
 select is(
-  (select row(s.ssm_interval_months, s.ssm_interval_source, s.psi_interval_months, s.psi_interval_source)::text from pg_temp.status('e1e1e1e1-0000-4000-8000-000000000001') s),
+  (select row(s.ssm_interval_months, s.ssm_interval_source, s.su_interval_months, s.su_interval_source)::text from pg_temp.status('e1e1e1e1-0000-4000-8000-000000000001') s),
   row(3, 'client', 2, 'client')::text,
   'an execution position without its own interval takes the client''s, in both domains'
 );
 
 select is(
-  (select row(s.ssm_interval_months, s.ssm_interval_source, s.psi_interval_months, s.psi_interval_source)::text from pg_temp.status('e1e1e1e1-0000-4000-8000-000000000002') s),
+  (select row(s.ssm_interval_months, s.ssm_interval_source, s.su_interval_months, s.su_interval_source)::text from pg_temp.status('e1e1e1e1-0000-4000-8000-000000000002') s),
   row(6, 'client', 6, 'client')::text,
   'a technical-administrative position takes the client''s interval for its category'
 );
 
 select is(
-  (select row(s.ssm_interval_months, s.ssm_interval_source, s.psi_interval_months, s.psi_interval_source)::text from pg_temp.status('e1e1e1e1-0000-4000-8000-000000000003') s),
+  (select row(s.ssm_interval_months, s.ssm_interval_source, s.su_interval_months, s.su_interval_source)::text from pg_temp.status('e1e1e1e1-0000-4000-8000-000000000003') s),
   row(1, 'position', 2, 'client')::text,
   'the position''s own interval is answered as the position''s, and fire safety stays the client''s'
 );
 
 select is(
-  (select row(s.ssm_interval_months, s.ssm_interval_source, s.psi_interval_months, s.psi_interval_source)::text from pg_temp.status('e1e1e1e1-0000-4000-8000-000000000006') s),
+  (select row(s.ssm_interval_months, s.ssm_interval_source, s.su_interval_months, s.su_interval_source)::text from pg_temp.status('e1e1e1e1-0000-4000-8000-000000000006') s),
   row(null::integer, null::text, null::integer, null::text)::text,
   'an undecided interval has no source'
 );

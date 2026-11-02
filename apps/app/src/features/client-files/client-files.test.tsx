@@ -95,6 +95,7 @@ const trainingSheet = {
 
 const filesPath = `/clients/${clientId}/files`;
 const employeePath = `/clients/${clientId}/employees/${employee.id}`;
+const employeePage = `/clienti/${clientId}/angajati/${employee.id}`;
 
 type Handler = (init: RequestInit | undefined, url: URL) => Response;
 
@@ -216,7 +217,7 @@ class FakeXhr {
 
 const pdf = (name: string) => new File(['%PDF-1.7'], name, { type: 'application/pdf' });
 
-const mount = (path = `/clients/${clientId}/other-documents`) =>
+const mount = (path = `/clienti/${clientId}/alte-documente`) =>
   mountApp(authFixture(makeSession()).client, path);
 
 beforeEach(() => {
@@ -637,7 +638,7 @@ describe('the files of an employee', () => {
 
   it('lists only their files on the employee page', async () => {
     mockApi({ items: [trainingSheet] });
-    mount(employeePath);
+    mount(employeePage);
 
     const card = await screen.findByTestId('employee-files-card');
     expect(within(card).getByRole('heading', { level: 2, name: 'Fișiere' })).toBeTruthy();
@@ -653,7 +654,7 @@ describe('the files of an employee', () => {
 
   it('uploads from the employee page for that employee, whom the dialog names', async () => {
     mockApi({ items: [] });
-    mount(employeePath);
+    mount(employeePage);
     const user = userEvent.setup();
 
     const card = await screen.findByTestId('employee-files-card');
@@ -690,7 +691,7 @@ describe('the files of an employee', () => {
         ],
       },
     });
-    mount(employeePath);
+    mount(employeePage);
     const user = userEvent.setup();
 
     const dialog = await openUploadDialog(user);
@@ -708,7 +709,7 @@ describe('the files of an employee', () => {
       company: { ...client, archivedAt: '2026-09-29T10:00:00+00:00' },
       items: [trainingSheet],
     });
-    mount(employeePath);
+    mount(employeePage);
 
     const card = await screen.findByTestId('employee-files-card');
     const [row] = await within(card).findAllByTestId('client-file-row');
@@ -722,7 +723,7 @@ describe('the files of a lead', () => {
   it('are all for owners only, which the card says once instead of on every file', async () => {
     const lead = { ...client, stage: 'lead', promotedAt: null };
     mockApi({ role: 'owner', company: lead, items: [{ ...offer, canChange: true }] });
-    mount(`/clients/${clientId}`);
+    mount(`/clienti/${clientId}`);
 
     const card = await screen.findByTestId('client-files-card');
     expect(screen.getByTestId('lead-page')).toBeTruthy();
@@ -851,7 +852,7 @@ describe('the import folder', () => {
         photo('55555555-5555-4555-8555-555555555555', 'IMG_3111.jpg'),
       ],
     });
-    mount(employeePath);
+    mount(employeePage);
 
     const card = await screen.findByTestId('employee-files-card');
     const folder = await within(card).findByTestId('client-import-folder');
@@ -887,7 +888,7 @@ describe('the import folder', () => {
     });
     const pages = [5, 3, 10, 4, 1, 7, 2, 6].map(page);
     mockApi({ items: pages });
-    mount(employeePath);
+    mount(employeePage);
 
     const card = await screen.findByTestId('employee-files-card');
     await within(card).findByTestId('client-import-folder');

@@ -201,7 +201,7 @@ describe('GET /employees', () => {
               intervalMonths: null,
               intervalSource: null,
             },
-            psi: {
+            su: {
               state: null,
               dueOn: null,
               lastPeriodicOn: null,
@@ -211,7 +211,7 @@ describe('GET /employees', () => {
           },
           tests: {
             ssm: { state: null, awaitingTest: null, lastPassedOn: null, dueOn: null },
-            psi: { state: null, awaitingTest: null, lastPassedOn: null, dueOn: null },
+            su: { state: null, awaitingTest: null, lastPassedOn: null, dueOn: null },
           },
           createdAt: employeeListRow.created_at,
           updatedAt: employeeListRow.updated_at,
@@ -278,8 +278,8 @@ describe('GET /employees', () => {
     ['testState=pending', { p_test_state: 'pending' }],
     ['trainingState=overdue&domain=ssm', { p_training_state: 'overdue', p_domain: 'ssm' }],
     [
-      'trainingState=current&testState=passed&domain=psi',
-      { p_training_state: 'current', p_test_state: 'passed', p_domain: 'psi' },
+      'trainingState=current&testState=passed&domain=su',
+      { p_training_state: 'current', p_test_state: 'passed', p_domain: 'su' },
     ],
   ])('passes %s to the organization-wide states', async (search, args) => {
     mockUpstream();
@@ -376,11 +376,11 @@ describe('GET /employees', () => {
             ssm_last_periodic_on: '2026-05-01',
             ssm_interval_months: 6,
             ssm_interval_source: 'position',
-            psi_state: 'current',
-            psi_due_on: '2027-05-01',
-            psi_last_periodic_on: '2026-05-01',
-            psi_interval_months: 12,
-            psi_interval_source: 'client',
+            su_state: 'current',
+            su_due_on: '2027-05-01',
+            su_last_periodic_on: '2026-05-01',
+            su_interval_months: 12,
+            su_interval_source: 'client',
           },
         ]),
       employee_test_status: () =>
@@ -390,10 +390,10 @@ describe('GET /employees', () => {
             ssm_state: 'pending',
             ssm_awaiting_test: 'hiring',
             ssm_last_passed_on: null,
-            psi_state: 'passed',
-            psi_awaiting_test: null,
-            psi_last_passed_on: '2026-04-01',
-            psi_due_on: '2027-04-01',
+            su_state: 'passed',
+            su_awaiting_test: null,
+            su_last_passed_on: '2026-04-01',
+            su_due_on: '2027-04-01',
           },
         ]),
     });
@@ -411,7 +411,7 @@ describe('GET /employees', () => {
             intervalMonths: 6,
             intervalSource: 'position',
           },
-          psi: {
+          su: {
             state: 'current',
             dueOn: '2027-05-01',
             lastPeriodicOn: '2026-05-01',
@@ -421,7 +421,7 @@ describe('GET /employees', () => {
         },
         tests: {
           ssm: { state: null, awaitingTest: null, lastPassedOn: null, dueOn: null },
-          psi: { state: null, awaitingTest: null, lastPassedOn: null, dueOn: null },
+          su: { state: null, awaitingTest: null, lastPassedOn: null, dueOn: null },
         },
       },
       {
@@ -434,7 +434,7 @@ describe('GET /employees', () => {
             intervalMonths: null,
             intervalSource: null,
           },
-          psi: {
+          su: {
             state: null,
             dueOn: null,
             lastPeriodicOn: null,
@@ -444,7 +444,7 @@ describe('GET /employees', () => {
         },
         tests: {
           ssm: { state: 'pending', awaitingTest: 'hiring', lastPassedOn: null, dueOn: null },
-          psi: {
+          su: {
             state: 'passed',
             awaitingTest: null,
             lastPassedOn: '2026-04-01',
@@ -459,12 +459,12 @@ describe('GET /employees', () => {
     const [training] = upstreamCalls('employee_training_status');
     expect(training!.get('employee_id')).toBe(`in.(${organizationRow.id},${other.id})`);
     expect(training!.get('select')).toBe(
-      'employee_id,ssm_state,ssm_due_on,ssm_last_periodic_on,ssm_interval_months,ssm_interval_source,psi_state,psi_due_on,psi_last_periodic_on,psi_interval_months,psi_interval_source'
+      'employee_id,ssm_state,ssm_due_on,ssm_last_periodic_on,ssm_interval_months,ssm_interval_source,su_state,su_due_on,su_last_periodic_on,su_interval_months,su_interval_source'
     );
     const [tests] = upstreamCalls('employee_test_status');
     expect(tests!.get('employee_id')).toBe(`in.(${organizationRow.id},${other.id})`);
     expect(tests!.get('select')).toBe(
-      'employee_id,ssm_state,ssm_awaiting_test,ssm_last_passed_on,psi_state,psi_awaiting_test,psi_last_passed_on,psi_due_on'
+      'employee_id,ssm_state,ssm_awaiting_test,ssm_last_passed_on,su_state,su_awaiting_test,su_last_passed_on,su_due_on'
     );
   });
 
@@ -543,7 +543,7 @@ describe('GET /employees', () => {
     'status=suspended',
     'trainingState=expired',
     'testState=failed',
-    'domain=su',
+    'domain=fire',
   ])('rejects %s', async (search) => {
     mockUpstream();
     const response = await request(`/employees?${search}`);

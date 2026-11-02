@@ -155,7 +155,7 @@ export const getPortalTests: RouteHandler<typeof getPortalTestsRoute, ApiEnv> = 
       inProgress: resumed ? toTestAttempt(resumed) : null,
     };
   };
-  return c.json({ ssm: ofDomain('ssm'), psi: ofDomain('psi') }, 200);
+  return c.json({ ssm: ofDomain('ssm'), su: ofDomain('su') }, 200);
 };
 
 export const getPortalTestStudyCard: RouteHandler<

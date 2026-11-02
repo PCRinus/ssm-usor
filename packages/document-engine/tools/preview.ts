@@ -205,7 +205,7 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
           extinguisherCount: 9,
           otherEquipment: [
             { kindLabel: 'Ladă cu nisip', count: 1 },
-            { kindLabel: 'Post de intervenție PSI', count: 1 },
+            { kindLabel: 'Pichet de incendiu', count: 1 },
           ],
           installations: [
             { kindLabel: 'Hidranți interiori', description: 'Câte doi pe fiecare nivel' },
@@ -251,15 +251,15 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
   return {
     representativeRoleRunOn: 'administrator',
     decisionNumbers: {
-      organization: '1 PSI',
-      training: '2 PSI',
-      openFire: '3 PSI',
-      smoking: '4 PSI',
-      technician: '5 PSI',
-      instructions: '6 PSI',
-      waste: '7 PSI',
-      seasons: '8 PSI',
-      control: '9 PSI',
+      organization: '1 SU',
+      training: '2 SU',
+      openFire: '3 SU',
+      smoking: '4 SU',
+      technician: '5 SU',
+      instructions: '6 SU',
+      waste: '7 SU',
+      seasons: '8 SU',
+      control: '9 SU',
     },
     schedule: {
       periodicHours: 2,
@@ -478,7 +478,7 @@ function fireThemesSample(people: ReturnType<typeof person>[], long: boolean) {
               intervalLabel: '3 LUNI',
               sessions: ['FEBRUARIE', 'MAI', 'AUGUST', 'NOIEMBRIE'].map((month, index) => ({
                 month,
-                content: `IPSU art.\u00a0${index * 64 + 1}–${index * 64 + 64}; instrucțiunile afișate la locul de muncă (Decizia nr.\u00a06 PSI)${index === 3 ? '; testare.' : ''}`,
+                content: `IPSU art.\u00a0${index * 64 + 1}–${index * 64 + 64}; instrucțiunile afișate la locul de muncă (Decizia nr.\u00a06 SU)${index === 3 ? '; testare.' : ''}`,
                 duration: '120 min',
               })),
             },
@@ -515,7 +515,7 @@ function fireThemesSample(people: ReturnType<typeof person>[], long: boolean) {
           : ['FEBRUARIE', 'MAI', 'AUGUST', 'NOIEMBRIE']
         ).map((month, index, months) => ({
           month,
-          content: `IPSU art.\u00a0${index * 20 + 1}–${index * 20 + 20}; ${modules}instrucțiunile afișate la locul de muncă (Decizia nr.\u00a06 PSI)${index === months.length - 1 ? '; testare.' : ''}`,
+          content: `IPSU art.\u00a0${index * 20 + 1}–${index * 20 + 20}; ${modules}instrucțiunile afișate la locul de muncă (Decizia nr.\u00a06 SU)${index === months.length - 1 ? '; testare.' : ''}`,
           duration: '120 min',
         })),
       },
@@ -543,7 +543,7 @@ function siteSheetSample({
   const row = (title: string, value: string | null, hint: string) => ({ title, value, hint });
   const technicianLabel =
     'Cadru tehnic cu atribuții în domeniul apărării împotriva incendiilor/Inspector de protecție civilă';
-  const decision = (number: number) => `Decizia nr.\u00a0${number} PSI`;
+  const decision = (number: number) => `Decizia nr.\u00a0${number} SU`;
   const building = (filled: boolean, name: string, place: string, extinguishers: string) => ({
     name,
     place,
@@ -699,17 +699,17 @@ function siteSheetSample({
       ? `Clădirea 1 (Punct de lucru Calea Aradului): ${first}\nClădirea 2 (Depozit central): ${gap}`
       : first;
   const documents = [
-    'Decizia nr.\u00a01 PSI privind organizarea apărării împotriva incendiilor',
-    'Decizia nr.\u00a02 PSI privind instruirea în domeniul situațiilor de urgență',
-    'Decizia nr.\u00a03 PSI privind lucrul cu foc deschis',
-    'Decizia nr.\u00a04 PSI privind fumatul',
-    'Decizia nr.\u00a05 PSI privind cadrul tehnic PSI',
-    'Decizia nr.\u00a06 PSI privind instrucțiunile de apărare împotriva incendiilor',
-    'Decizia nr.\u00a07 PSI privind colectarea deșeurilor',
+    'Decizia nr.\u00a01 SU privind organizarea apărării împotriva incendiilor',
+    'Decizia nr.\u00a02 SU privind instruirea în domeniul situațiilor de urgență',
+    'Decizia nr.\u00a03 SU privind lucrul cu foc deschis',
+    'Decizia nr.\u00a04 SU privind fumatul',
+    'Decizia nr.\u00a05 SU privind cadrul tehnic PSI',
+    'Decizia nr.\u00a06 SU privind instrucțiunile de apărare împotriva incendiilor',
+    'Decizia nr.\u00a07 SU privind colectarea deșeurilor',
     ...(long
       ? [
-          'Decizia nr.\u00a08 PSI privind perioadele caniculare și sezonul rece',
-          'Decizia nr.\u00a09 PSI privind controlul propriu',
+          'Decizia nr.\u00a08 SU privind perioadele caniculare și sezonul rece',
+          'Decizia nr.\u00a09 SU privind controlul propriu',
         ]
       : []),
     'Instrucțiunile proprii de apărare împotriva incendiilor',
@@ -916,13 +916,13 @@ function siteSheetSample({
       ),
       row(
         'Instruirea personalului',
-        `da, periodic, potrivit Deciziei nr.\u00a02 PSI: personalul administrativ la 3 luni și personalul de execuție la ${long ? '1 lună' : '3 luni'}, câte 2 ore la fiecare instruire periodică; personalul administrativ este instruit de cadrul tehnic PSI, ${technician}, titular al certificatului seria A nr. 1234/2024; personalul de execuție, de șefii locurilor de muncă (${listed(people.map(({ name }) => name))}), cu cadrul tehnic, după caz`,
+        `da, periodic, potrivit Deciziei nr.\u00a02 SU: personalul administrativ la 3 luni și personalul de execuție la ${long ? '1 lună' : '3 luni'}, câte 2 ore la fiecare instruire periodică; personalul administrativ este instruit de cadrul tehnic PSI, ${technician}, titular al certificatului seria A nr. 1234/2024; personalul de execuție, de șefii locurilor de muncă (${listed(people.map(({ name }) => name))}), cu cadrul tehnic, după caz`,
         'dacă se face periodic (periodicitatea pe categorii de personal), de către cine, dacă este persoană atestată'
       ),
       row(
         'Control intern de prevenire',
         long
-          ? `da, potrivit Deciziei nr.\u00a09 PSI: coordonatorul privind apărarea împotriva incendiilor, ${people[0]!.name}, și cadrul tehnic – trimestrial, pe tot perimetrul și la persoanele juridice care desfășoară activități în spațiile operatorului; coordonatorul – lunar, fiecare stingător; șefii locurilor de muncă – zilnic sau pe schimb; personalul de execuție – zilnic, la terminarea programului; conducerea, cu coordonatorul și cadrul tehnic – anual, în ianuarie`
+          ? `da, potrivit Deciziei nr.\u00a09 SU: coordonatorul privind apărarea împotriva incendiilor, ${people[0]!.name}, și cadrul tehnic – trimestrial, pe tot perimetrul și la persoanele juridice care desfășoară activități în spațiile operatorului; coordonatorul – lunar, fiecare stingător; șefii locurilor de muncă – zilnic sau pe schimb; personalul de execuție – zilnic, la terminarea programului; conducerea, cu coordonatorul și cadrul tehnic – anual, în ianuarie`
           : `da, de persoanele desemnate prin ${decision(1)}: șefii locurilor de muncă – zilnic sau pe schimb, la locul de muncă pe care îl conduc; coordonatorul privind apărarea împotriva incendiilor, ${people[0]!.name} – lunar, controlul fiecărui stingător de incendiu`,
         'dacă se execută, la ce interval și de către cine'
       ),
@@ -985,7 +985,7 @@ function annualReportSample(people: ReturnType<typeof person>[], long: boolean) 
   const [first] = people;
   const decision = (number: number, subject: string) => ({
     title: `Decizia privind ${subject}`,
-    reference: `nr.\u00a0${number}\u00a0PSI din 19.01.2026`,
+    reference: `nr.\u00a0${number}\u00a0SU din 19.01.2026`,
   });
   const subjects = [
     'organizarea apărării împotriva incendiilor',
@@ -1023,7 +1023,7 @@ function annualReportSample(people: ReturnType<typeof person>[], long: boolean) 
             extinguisher('Stingător P50 carosabil – pulbere, 50\u00a0kg', 1, '01.04.2027'),
             extinguisher('Stingător SM9 – spumă mecanică, 9\u00a0l', 2, '—'),
             { what: 'Ladă cu nisip', quantity: '1\u00a0buc.', next: '—' },
-            { what: 'Post de intervenție PSI', quantity: '1\u00a0buc.', next: '—' },
+            { what: 'Pichet de incendiu', quantity: '1\u00a0buc.', next: '—' },
             {
               what: 'Instalație de detectare, semnalizare și avertizare la incendiu',
               quantity: '1 instalație',
@@ -1499,7 +1499,7 @@ const employeeSamples = new Map<string, { label: string; data: Record<string, un
             ? signingAgreementSamples()
             : entry.typeKey === testSheetTypeKey
               ? testSheetSamples()
-              : trainingSheetSamples(entry.typeKey.endsWith('_psi') ? 'psi' : 'ssm'),
+              : trainingSheetSamples(entry.typeKey.endsWith('_su') ? 'su' : 'ssm'),
         ])
     )
 );

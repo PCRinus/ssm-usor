@@ -6,8 +6,8 @@ import { answerFormat, minutes } from './wire';
 export const sheetPageKinds = [
   'ssm_sheet_front',
   'ssm_periodic',
-  'psi_sheet_front',
-  'psi_periodic',
+  'su_sheet_front',
+  'su_periodic',
   'commute_declaration',
   'other',
 ] as const;

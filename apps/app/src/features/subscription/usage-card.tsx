@@ -324,7 +324,7 @@ export function UsageCard({
               )}
               {meter.action && (
                 <Link
-                  to="/organization/subscription/choose"
+                  to="/organizatie/abonament/alege"
                   search={meter.action.search}
                   data-testid={`meter-${meter.key}-action`}
                   className="inline-flex min-h-8 w-fit items-center text-sm font-semibold underline-offset-2 hover:underline"

@@ -21,7 +21,7 @@ export type InstructionModuleGroup = InstructionCategory;
  * The set whose own instructions annex a module: the occupational safety one (3.2) or the
  * fire-safety one (2.1). A position decides about each apart (ADR 012, amendment of 2026-10-11).
  */
-export const instructionDomains = ['ssm', 'psi'] as const;
+export const instructionDomains = ['ssm', 'su'] as const;
 
 export const instructionDomainSchema = z.enum(instructionDomains);
 

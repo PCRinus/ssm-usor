@@ -10,7 +10,7 @@ const received: SignedCopyReceivedProps = {
   clientName: 'S.C. Gelateria Florești S.R.L.',
   contractNumber: 52,
   contractDate: '2026-09-21',
-  leadUrl: 'https://app.ssmusor.ro/leads/lead-1',
+  leadUrl: 'https://app.ssmusor.ro/clienti-potentiali/lead-1',
 };
 
 describe('signed copy received', () => {
@@ -30,7 +30,7 @@ describe('signed copy received', () => {
     expect(email.subject).toBe('Exemplar semnat primit – S.C. Gelateria Florești S.R.L.');
     for (const body of [email.html, email.text]) {
       expect(body).toContain('nr. 52 din 21.09.2026');
-      expect(body).toContain('https://app.ssmusor.ro/leads/lead-1');
+      expect(body).toContain('https://app.ssmusor.ro/clienti-potentiali/lead-1');
       expect(body).toContain('nu este socotit semnat');
     }
   });

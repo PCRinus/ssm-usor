@@ -194,7 +194,7 @@ afterEach(() => {
 describe('clients list', () => {
   it('lists clients from the API with the VAT prefix and registered office', async () => {
     mockApi({ list: () => Response.json(page([listed()])) });
-    mountApp(authFixture(makeSession()).client, '/clients');
+    mountApp(authFixture(makeSession()).client, '/clienti');
     const row = await screen.findByTestId('clients-row');
     expect(within(row).getByText('OMV PETROM SA')).toBeTruthy();
     expect(within(row).queryByText('CAEN 0610')).toBeNull();
@@ -213,7 +213,7 @@ describe('clients list', () => {
     expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
   });
 
-  it('shows where each client stands with its SSM and its PSI documentation', async () => {
+  it('shows where each client stands with its SSM and its SU documentation', async () => {
     mockApi({
       list: () =>
         Response.json(
@@ -253,10 +253,10 @@ describe('clients list', () => {
           ])
         ),
     });
-    mountApp(authFixture(makeSession()).client, '/clients');
+    mountApp(authFixture(makeSession()).client, '/clienti');
     const [none, working, done] = await screen.findAllByTestId('clients-row');
     expect(screen.getByRole('columnheader', { name: /Documentație SSM/ })).toBeTruthy();
-    expect(screen.getByRole('columnheader', { name: /Documentație PSI/ })).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: /Documentație SU/ })).toBeTruthy();
     expect(screen.queryByRole('columnheader', { name: /Posturi/ })).toBeNull();
     expect(within(none!).getByTestId('clients-documentation').textContent).toBe('Negenerată');
     expect(within(none!).queryByTestId('clients-documentation-progress')).toBeNull();
@@ -285,7 +285,7 @@ describe('clients list', () => {
 
   it('sorts by the progress of either documentation set through the API', async () => {
     mockApi({ list: () => Response.json(page([listed()])) });
-    const runtime = mountApp(authFixture(makeSession()).client, '/clients');
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti');
     const user = userEvent.setup();
     await screen.findByTestId('clients-row');
     await user.click(screen.getByTestId('sort-documentation'));
@@ -304,7 +304,7 @@ describe('clients list', () => {
 
   it('shows when each company became a client, newest first on the first click', async () => {
     mockApi({ list: () => Response.json(page([listed()])) });
-    const runtime = mountApp(authFixture(makeSession()).client, '/clients');
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti');
     const row = await screen.findByTestId('clients-row');
     expect(within(row).getByText('18.09.2026')).toBeTruthy();
     await userEvent.setup().click(screen.getByTestId('sort-clientSince'));
@@ -326,7 +326,7 @@ describe('clients list', () => {
             })
           : Response.json(page([sampleClient])),
     });
-    mountApp(authFixture(makeSession()).client, '/clients');
+    mountApp(authFixture(makeSession()).client, '/clienti');
     await screen.findByTestId('clients-row');
     const table = screen.getByRole('table');
     expect(table.getAttribute('aria-busy')).toBeNull();
@@ -342,11 +342,11 @@ describe('clients list', () => {
 
   it('opens a client from anywhere on its row', async () => {
     mockApi({ list: () => Response.json(page([sampleClient])) });
-    const runtime = mountApp(authFixture(makeSession()).client, '/clients');
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti');
     const row = await screen.findByTestId('clients-row');
     await userEvent.setup().click(within(row).getByText('RO1590082'));
     await waitFor(() =>
-      expect(runtime.router.state.location.pathname).toBe(`/clients/${sampleClient.id}/details`)
+      expect(runtime.router.state.location.pathname).toBe(`/clienti/${sampleClient.id}/detalii`)
     );
   });
 
@@ -362,7 +362,7 @@ describe('clients list', () => {
           )
         ),
     });
-    const runtime = mountApp(authFixture(makeSession()).client, '/clients');
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti');
     const user = userEvent.setup();
     await screen.findByTestId('clients-row');
     expect(screen.getByTestId('pager-summary').textContent).toBe('1–25 din 26 de clienți');
@@ -385,13 +385,13 @@ describe('clients list', () => {
 
   it('shows an empty state that leads to the creation page', async () => {
     mockApi();
-    const runtime = mountApp(authFixture(makeSession()).client, '/clients');
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti');
     await screen.findByTestId('clients-empty');
     expect(screen.getByTestId('clients-count').textContent).toBe('0 clienți');
     await userEvent.setup().click(screen.getByRole('link', { name: /^Adaugă primul client/ }));
     await screen.findByTestId('new-client-page');
     await waitFor(() => expect(document.title).toBe('Client nou — Clienți — SSM Ușor'));
-    expect(runtime.router.state.location.pathname).toBe('/clients/new');
+    expect(runtime.router.state.location.pathname).toBe('/clienti/nou');
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
     expect(within(breadcrumb).getByRole('link', { name: 'Clienți' })).toBeTruthy();
     expect(within(breadcrumb).getByText('Client nou')).toBeTruthy();
@@ -399,7 +399,7 @@ describe('clients list', () => {
 
   it('uses the loaded client name and active section in the browser title', async () => {
     mockApi({ me: meAs('owner') });
-    mountApp(authFixture(makeSession()).client, `/clients/${sampleClient.id}/employees`);
+    mountApp(authFixture(makeSession()).client, `/clienti/${sampleClient.id}/angajati`);
     await screen.findByTestId('client-page');
     await waitFor(() => expect(document.title).toBe('Angajați — OMV PETROM SA — SSM Ușor'));
   });
@@ -414,7 +414,7 @@ describe('clients list', () => {
           : Response.json(page([sampleClient]));
       },
     });
-    mountApp(authFixture(makeSession()).client, '/clients');
+    mountApp(authFixture(makeSession()).client, '/clienti');
     const error = await screen.findByTestId('clients-error');
     expect(error.textContent).toContain('nu face parte dintr-o organizație');
     await userEvent.setup().click(screen.getByTestId('clients-retry'));
@@ -423,16 +423,16 @@ describe('clients list', () => {
 
   it('protects the creation page', async () => {
     mockApi();
-    const runtime = mountApp(authFixture().client, '/clients/new');
+    const runtime = mountApp(authFixture().client, '/clienti/nou');
     await screen.findByTestId('login-page');
-    expect(runtime.router.state.location.pathname).toBe('/login');
+    expect(runtime.router.state.location.pathname).toBe('/autentificare');
   });
 });
 
 describe('client section navigation', () => {
   it('shows directional controls only when more sections are offscreen', async () => {
     mockApi({ me: meAs('owner') });
-    mountApp(authFixture(makeSession()).client, `/clients/${sampleClient.id}/employees`);
+    mountApp(authFixture(makeSession()).client, `/clienti/${sampleClient.id}/angajati`);
     const nav = await screen.findByRole('navigation', { name: 'Secțiunile clientului' });
     const viewport = nav.querySelector<HTMLDivElement>('[data-slot="section-nav-viewport"]')!;
     Object.defineProperties(viewport, {
@@ -460,7 +460,7 @@ describe('client section navigation', () => {
 describe('client creation', () => {
   it('validates required fields and formats before contacting the API', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, '/clients/new');
+    mountApp(authFixture(makeSession()).client, '/clienti/nou');
     const user = userEvent.setup();
     await screen.findByTestId('new-client-page');
     await user.click(screen.getByTestId('client-submit'));
@@ -478,7 +478,7 @@ describe('client creation', () => {
 
   it('requires a valid CUI before looking it up', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, '/clients/new');
+    mountApp(authFixture(makeSession()).client, '/clienti/nou');
     const user = userEvent.setup();
     await screen.findByTestId('new-client-page');
     await user.click(screen.getByTestId('client-lookup'));
@@ -488,7 +488,7 @@ describe('client creation', () => {
 
   it('prefills from ANAF, sends the normalized request, and returns to the list', async () => {
     mockApi({ list: () => Response.json(page([sampleClient])) });
-    const runtime = mountApp(authFixture(makeSession()).client, '/clients/new');
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti/nou');
     const user = userEvent.setup();
     await screen.findByTestId('new-client-page');
     await user.type(screen.getByTestId('client-cui'), 'RO 1590082');
@@ -512,7 +512,7 @@ describe('client creation', () => {
     await user.type(screen.getByTestId('client-contact-name'), 'Ana Contact');
     await user.click(screen.getByTestId('client-submit'));
     await screen.findByTestId('clients-page');
-    expect(runtime.router.state.location.pathname).toBe('/clients');
+    expect(runtime.router.state.location.pathname).toBe('/clienti');
     await screen.findByTestId('clients-row');
     const [, init] = requests('/clients', 'POST')[0]!;
     expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
@@ -538,7 +538,7 @@ describe('client creation', () => {
     mockApi({
       lookup: () => Response.json({ error: 'not_found', message: 'none' }, { status: 404 }),
     });
-    mountApp(authFixture(makeSession()).client, '/clients/new');
+    mountApp(authFixture(makeSession()).client, '/clienti/nou');
     const user = userEvent.setup();
     await screen.findByTestId('new-client-page');
     await user.type(screen.getByTestId('client-cui'), '1590082');
@@ -578,7 +578,7 @@ describe('client creation', () => {
 
   it('finds CAEN classes by code prefix and accepts an unclassified four-digit code', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, '/clients/new');
+    mountApp(authFixture(makeSession()).client, '/clienti/nou');
     const user = userEvent.setup();
     await screen.findByTestId('new-client-page');
     await user.click(screen.getByTestId('client-caen'));
@@ -600,7 +600,7 @@ describe('client creation', () => {
 
   it('reports an ANAF outage without blocking the form', async () => {
     mockApi({ lookup: () => new Response('Service Unavailable', { status: 503 }) });
-    mountApp(authFixture(makeSession()).client, '/clients/new');
+    mountApp(authFixture(makeSession()).client, '/clienti/nou');
     const user = userEvent.setup();
     await screen.findByTestId('new-client-page');
     await user.type(screen.getByTestId('client-cui'), '1590082');
@@ -615,14 +615,14 @@ describe('client creation', () => {
     mockApi({
       create: () => Response.json({ error: 'conflict', message: 'duplicate' }, { status: 409 }),
     });
-    const runtime = mountApp(authFixture(makeSession()).client, '/clients/new');
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti/nou');
     const user = userEvent.setup();
     await screen.findByTestId('new-client-page');
     await user.type(screen.getByTestId('client-cui'), '1590082');
     await user.type(screen.getByTestId('client-legal-name'), 'Firma Mea SRL');
     await user.click(screen.getByTestId('client-submit'));
     expect((await screen.findByTestId('cui-error')).textContent).toContain('Există deja');
-    expect(runtime.router.state.location.pathname).toBe('/clients/new');
+    expect(runtime.router.state.location.pathname).toBe('/clienti/nou');
     const cui = screen.getByTestId('client-cui');
     await waitFor(() => expect(document.activeElement).toBe(cui));
     expect(vi.mocked(Element.prototype.scrollIntoView).mock.contexts).toContain(cui);
@@ -645,7 +645,7 @@ describe('client creation', () => {
           : Response.json({ error: 'internal_error', message: 'boom' }, { status: 500 });
       },
     });
-    mountApp(authFixture(makeSession()).client, '/clients/new');
+    mountApp(authFixture(makeSession()).client, '/clienti/nou');
     const user = userEvent.setup();
     await screen.findByTestId('new-client-page');
     await user.type(screen.getByTestId('client-cui'), '1590082');
@@ -663,29 +663,19 @@ describe('client creation', () => {
 describe('client editing', () => {
   it('opens the details from the list menu, where each card edits its own data', async () => {
     mockApi({ list: () => Response.json(page([sampleClient])) });
-    const runtime = mountApp(authFixture(makeSession()).client, '/clients');
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti');
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('clients-row-menu'));
     await user.click(await screen.findByTestId('clients-edit'));
     await screen.findByTestId('client-details-page');
-    expect(runtime.router.state.location.pathname).toBe(`/clients/${sampleClient.id}/details`);
+    expect(runtime.router.state.location.pathname).toBe(`/clienti/${sampleClient.id}/detalii`);
     expect(screen.getByTestId('company-edit')).toBeTruthy();
-  });
-
-  it.each(['edit', 'contact'])('sends the old /%s address to the details', async (old) => {
-    mockApi();
-    const runtime = mountApp(
-      authFixture(makeSession()).client,
-      `/clients/${sampleClient.id}/${old}`
-    );
-    await screen.findByTestId('client-details-page');
-    expect(runtime.router.state.location.pathname).toBe(`/clients/${sampleClient.id}/details`);
   });
 });
 
 describe('client details', () => {
   const clientPath = `/clients/${sampleClient.id}`;
-  const detailsPath = `${clientPath}/details`;
+  const detailsPath = `/clienti/${sampleClient.id}/detalii`;
   const withContact = {
     ...sampleClient,
     contactName: 'Andrei Pop',
@@ -705,7 +695,7 @@ describe('client details', () => {
 
   it('is where a client opens, first among its sections, under a header of name, CUI and headcount', async () => {
     mockApi({ me: meAs('owner') });
-    const runtime = mountApp(authFixture(makeSession()).client, clientPath);
+    const runtime = mountApp(authFixture(makeSession()).client, `/clienti/${sampleClient.id}`);
     const page = await screen.findByTestId('client-details-page');
     expect(runtime.router.state.location.pathname).toBe(detailsPath);
     await waitFor(() => expect(document.title).toBe('Detalii — OMV PETROM SA — SSM Ușor'));
@@ -714,11 +704,11 @@ describe('client details', () => {
       'Detalii',
       'Angajați',
       'Posturi de lucru',
-      'Mijloace PSI',
+      'Mijloace de apărare',
       'Instruire și responsabili',
       'Instruiri ținute',
       'Documente SSM',
-      'Documente PSI',
+      'Documente SU',
       'Contract',
       'Alte documente',
       'Portal',
@@ -1038,7 +1028,7 @@ describe('client archiving', () => {
         return Response.json({ client: archivedClient });
       },
     });
-    mountApp(authFixture(makeSession()).client, '/clients');
+    mountApp(authFixture(makeSession()).client, '/clienti');
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('clients-row-menu'));
     await user.click(await screen.findByTestId('clients-archive'));
@@ -1055,7 +1045,7 @@ describe('client archiving', () => {
 
   it('keeps archiving away from a specialist', async () => {
     mockApi({ me: meAs('specialist'), list: () => Response.json(page([sampleClient])) });
-    mountApp(authFixture(makeSession()).client, '/clients');
+    mountApp(authFixture(makeSession()).client, '/clienti');
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('clients-row-menu'));
     await screen.findByTestId('clients-edit');
@@ -1068,7 +1058,7 @@ describe('client archiving', () => {
       list: (_init, url) =>
         Response.json(page(url.searchParams.get('status') === 'archived' ? [archivedClient] : [])),
     });
-    const runtime = mountApp(authFixture(makeSession()).client, '/clients');
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti');
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('clients-filter-archived'));
     await user.click(await screen.findByTestId('clients-row-menu'));
@@ -1090,7 +1080,7 @@ describe('client archiving', () => {
         return Response.json({ client });
       },
     });
-    mountApp(authFixture(makeSession()).client, `${clientPath}/employees`);
+    mountApp(authFixture(makeSession()).client, `/clienti/${sampleClient.id}/angajati`);
     const user = userEvent.setup();
     const banner = await screen.findByTestId('client-archived-banner');
     expect(banner.textContent).toContain('Client arhivat');
@@ -1105,7 +1095,7 @@ describe('client archiving', () => {
 
   it('tells a specialist who can reactivate it', async () => {
     mockApi({ me: meAs('specialist'), get: () => Response.json({ client: archivedClient }) });
-    mountApp(authFixture(makeSession()).client, `${clientPath}/employees`);
+    mountApp(authFixture(makeSession()).client, `/clienti/${sampleClient.id}/angajati`);
     const banner = await screen.findByTestId('client-archived-banner');
     expect(banner.textContent).toContain('Un administrator al organizației îl poate reactiva.');
     expect(screen.queryByTestId('client-restore')).toBeNull();
@@ -1117,7 +1107,7 @@ describe('client archiving', () => {
 
     it('is offered only where the API says the caller may', async () => {
       mockApi({ me: meAs('owner'), get: archivedResponse(false) });
-      mountApp(authFixture(makeSession()).client, `${clientPath}/employees`);
+      mountApp(authFixture(makeSession()).client, `/clienti/${sampleClient.id}/angajati`);
       await screen.findByTestId('client-restore');
       expect(screen.queryByTestId('client-delete')).toBeNull();
     });
@@ -1128,7 +1118,10 @@ describe('client archiving', () => {
         get: archivedResponse(true),
         list: () => Response.json(page([])),
       });
-      const runtime = mountApp(authFixture(makeSession()).client, `${clientPath}/employees`);
+      const runtime = mountApp(
+        authFixture(makeSession()).client,
+        `/clienti/${sampleClient.id}/angajati`
+      );
       const user = userEvent.setup();
       await user.click(await screen.findByTestId('client-delete'));
       const dialog = await screen.findByTestId('client-delete-dialog');
@@ -1143,7 +1136,7 @@ describe('client archiving', () => {
       expect(confirm.disabled).toBe(false);
       await user.click(confirm);
       expect(await screen.findByText('OMV PETROM SA a fost șters definitiv.')).toBeTruthy();
-      await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/clients'));
+      await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/clienti'));
       expect(runtime.router.state.location.search).toEqual({ status: 'archived' });
       expect(requests(clientPath, 'DELETE')).toHaveLength(1);
     });
@@ -1153,7 +1146,7 @@ describe('client archiving', () => {
         me: meAs('owner'),
         list: () => Response.json(page([listed(archivedClient, { canDelete: false })])),
       });
-      mountApp(authFixture(makeSession()).client, '/clients?status=archived');
+      mountApp(authFixture(makeSession()).client, '/clienti?status=archived');
       const user = userEvent.setup();
       await user.click(await screen.findByTestId('clients-row-menu'));
       await screen.findByTestId('clients-restore');
@@ -1171,7 +1164,7 @@ describe('client archiving', () => {
           return new Response(null, { status: 204 });
         },
       });
-      const runtime = mountApp(authFixture(makeSession()).client, '/clients?status=archived');
+      const runtime = mountApp(authFixture(makeSession()).client, '/clienti?status=archived');
       const user = userEvent.setup();
       await user.click(await screen.findByTestId('clients-row-menu'));
       expect(screen.queryByTestId('clients-restore')).toBeNull();
@@ -1182,7 +1175,7 @@ describe('client archiving', () => {
       expect(await screen.findByText('OMV PETROM SA a fost șters definitiv.')).toBeTruthy();
       await screen.findByTestId('clients-empty');
       expect(requests(clientPath, 'DELETE')).toHaveLength(1);
-      expect(runtime.router.state.location.pathname).toBe('/clients');
+      expect(runtime.router.state.location.pathname).toBe('/clienti');
       expect(runtime.router.state.location.search).toEqual({ status: 'archived' });
     });
 
@@ -1193,7 +1186,7 @@ describe('client archiving', () => {
         delete: () =>
           Response.json({ error: 'forbidden', message: 'Only an admin' }, { status: 403 }),
       });
-      mountApp(authFixture(makeSession()).client, `${clientPath}/employees`);
+      mountApp(authFixture(makeSession()).client, `/clienti/${sampleClient.id}/angajati`);
       const user = userEvent.setup();
       await user.click(await screen.findByTestId('client-delete'));
       await user.type(await screen.findByTestId('client-delete-name'), 'OMV PETROM SA');
@@ -1212,7 +1205,7 @@ describe('client archiving', () => {
     mockApi({
       create: () => Response.json({ error: 'conflict', message: 'taken', reason }, { status: 409 }),
     });
-    mountApp(authFixture(makeSession()).client, '/clients/new');
+    mountApp(authFixture(makeSession()).client, '/clienti/nou');
     const user = userEvent.setup();
     await screen.findByTestId('new-client-page');
     await user.type(screen.getByTestId('client-cui'), '1590082');

@@ -86,7 +86,7 @@ const hotWork = {
   id: hotWorkId,
   title: 'Lucrul cu foc deschis',
   module_group: 'hazardous_work',
-  domain: 'psi',
+  domain: 'su',
 };
 const library = [ladders, offices, welding, hotWork];
 
@@ -287,19 +287,19 @@ describe('GET /instruction-modules', () => {
     );
     expect(both.items.map((item) => [item.title, item.domain])).toEqual([
       ['Scări metalice', 'ssm'],
-      ['Lucrul cu foc deschis', 'psi'],
+      ['Lucrul cu foc deschis', 'su'],
     ]);
     expect(
       new URL(String(calls('/rest/v1/instruction_modules', 'GET')[0]![0])).searchParams.get(
         'domain'
       )
     ).toBeNull();
-    await request('/instruction-modules?domain=psi');
+    await request('/instruction-modules?domain=su');
     expect(
       new URL(String(calls('/rest/v1/instruction_modules', 'GET')[1]![0])).searchParams.get(
         'domain'
       )
-    ).toBe('eq.psi');
+    ).toBe('eq.su');
     expect((await request('/instruction-modules?domain=other')).status).toBe(400);
   });
 });
@@ -338,13 +338,13 @@ describe('POST /instruction-modules', () => {
     const response = await request('/instruction-modules', 'POST', {
       title: 'Lucrul cu foc deschis',
       group: 'hazardous_work',
-      domain: 'psi',
+      domain: 'su',
       body: laddersBody,
     });
     expect(response.status).toBe(201);
-    expect(instructionModuleResponseSchema.parse(await response.json()).module.domain).toBe('psi');
+    expect(instructionModuleResponseSchema.parse(await response.json()).module.domain).toBe('su');
     expect(sent('/rest/v1/rpc/create_instruction_module', 'POST')).toMatchObject({
-      p_domain: 'psi',
+      p_domain: 'su',
       p_group: 'hazardous_work',
     });
   });
@@ -354,7 +354,7 @@ describe('POST /instruction-modules', () => {
     const response = await request('/instruction-modules', 'POST', {
       title: 'Lucrul cu foc deschis',
       group: 'work_activity',
-      domain: 'psi',
+      domain: 'su',
       body: laddersBody,
     });
     expect(response.status).toBe(400);
@@ -448,12 +448,12 @@ describe('PATCH /instruction-modules/{moduleId}', () => {
   it('moves a module nobody applies to the other domain with a category of it', async () => {
     mockUpstream();
     const response = await request(`/instruction-modules/${laddersId}`, 'PATCH', {
-      domain: 'psi',
+      domain: 'su',
       group: 'installation_equipment',
     });
     expect(response.status).toBe(200);
     expect(sent('/rest/v1/instruction_modules', 'PATCH')).toEqual({
-      domain: 'psi',
+      domain: 'su',
       module_group: 'installation_equipment',
     });
   });
@@ -461,7 +461,7 @@ describe('PATCH /instruction-modules/{moduleId}', () => {
   it('refuses a move that keeps a category of the other domain', async () => {
     mockUpstream();
     const response = await request(`/instruction-modules/${laddersId}`, 'PATCH', {
-      domain: 'psi',
+      domain: 'su',
     });
     expect(response.status).toBe(400);
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
@@ -478,7 +478,7 @@ describe('PATCH /instruction-modules/{moduleId}', () => {
           : undefined,
     });
     const response = await request(`/instruction-modules/${laddersId}`, 'PATCH', {
-      domain: 'psi',
+      domain: 'su',
       group: 'installation_equipment',
     });
     expect(response.status).toBe(409);
@@ -648,7 +648,7 @@ describe('POST /instruction-modules/preview', () => {
     mockUpstream();
     const response = await request('/instruction-modules/preview', 'POST', {
       title: 'Lucrul cu foc deschis',
-      domain: 'psi',
+      domain: 'su',
       body: officeBody,
     });
     expect(response.status).toBe(200);
@@ -686,11 +686,11 @@ describe('GET …/instructions', () => {
 
   it("lists the fire-safety modules with the position's fire-safety decision", async () => {
     mockUpstream({ applied: (init) => (isGet(init) ? Response.json([]) : undefined) });
-    const response = await request(`${instructionsPath}?domain=psi`);
+    const response = await request(`${instructionsPath}?domain=su`);
     const body = positionInstructionsResponseSchema.parse(await response.json());
-    expect([body.domain, body.items, body.needsInstructions]).toEqual(['psi', [], null]);
+    expect([body.domain, body.items, body.needsInstructions]).toEqual(['su', [], null]);
     const listed = calls('/rest/v1/job_position_instructions', 'GET')[0]![0];
-    expect(new URL(String(listed)).searchParams.get('domain')).toBe('eq.psi');
+    expect(new URL(String(listed)).searchParams.get('domain')).toBe('eq.su');
   });
 
   it('answers 404 for a position of another client', async () => {
@@ -730,14 +730,14 @@ describe('PUT …/instructions', () => {
           : undefined,
     });
     const response = await request(instructionsPath, 'PUT', {
-      domain: 'psi',
+      domain: 'su',
       moduleIds: [hotWorkId],
     });
     expect(response.status).toBe(200);
     const body = positionInstructionsResponseSchema.parse(await response.json());
-    expect([body.domain, body.needsInstructions]).toEqual(['psi', true]);
+    expect([body.domain, body.needsInstructions]).toEqual(['su', true]);
     expect(sent('/rest/v1/job_position_instructions', 'POST')).toEqual([
-      expect.objectContaining({ module_id: hotWorkId, domain: 'psi' }),
+      expect.objectContaining({ module_id: hotWorkId, domain: 'su' }),
     ]);
     expect(calls('/rest/v1/job_position_instructions', 'DELETE')).toHaveLength(0);
   });
@@ -745,7 +745,7 @@ describe('PUT …/instructions', () => {
   it('refuses a module of the other domain by its title', async () => {
     mockUpstream({ applied: (init) => (isGet(init) ? Response.json([]) : undefined) });
     const response = await request(instructionsPath, 'PUT', {
-      domain: 'psi',
+      domain: 'su',
       moduleIds: [hotWorkId, laddersId],
     });
     expect(response.status).toBe(400);
@@ -835,7 +835,7 @@ describe('PATCH …/instructions-decision', () => {
     const response = await request(
       `/clients/${clientId}/job-positions/${welderId}/instructions-decision`,
       'PATCH',
-      { domain: 'psi', needsInstructions: false }
+      { domain: 'su', needsInstructions: false }
     );
     expect(response.status).toBe(200);
     const { jobPosition } = jobPositionResponseSchema.parse(await response.json());

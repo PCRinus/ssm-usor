@@ -15,6 +15,7 @@ import { formatTime } from './participant-format';
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const employeeId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
 const employeePath = `/clients/${clientId}/employees/${employeeId}`;
+const employeePage = `/clienti/${clientId}/angajati/${employeeId}`;
 const statePath = `${employeePath}/participant`;
 const invitePath = `${employeePath}/participant-invitations`;
 const listPath = `/clients/${clientId}/participants`;
@@ -196,7 +197,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const mountEmployee = () => mountApp(authFixture(makeSession()).client, employeePath);
+const mountEmployee = () => mountApp(authFixture(makeSession()).client, employeePage);
 const portalCard = () => screen.findByTestId('employee-portal-card');
 
 describe("the employee's portal access", () => {
@@ -319,7 +320,7 @@ describe("the employee's portal access", () => {
     const notice = within(dialog).getByTestId('participant-invite-no-address');
     expect(notice.textContent).toContain('nu are email sau telefon');
     expect(within(notice).getByRole('link', { name: 'Modifică datele' }).getAttribute('href')).toBe(
-      `${employeePath}/edit`
+      `${employeePage}/editare`
     );
     expect(within(dialog).queryByTestId('participant-invite-submit')).toBeNull();
   });
@@ -446,7 +447,7 @@ describe("the employee's portal access", () => {
 
 describe("the client's Portal tab", () => {
   const mountPortal = () =>
-    mountApp(authFixture(makeSession()).client, `/clients/${clientId}/portal`);
+    mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/portal`);
   const everyone = () =>
     Response.json({
       participants: [
@@ -485,7 +486,7 @@ describe("the client's Portal tab", () => {
     await waitFor(() => expect(document.title).toBe('Portal — VELOCE CAFE SRL — SSM Ușor'));
     const tabs = screen.getAllByTestId('client-section').map((tab) => tab.textContent);
     expect(tabs.at(-1)).toBe('Portal');
-    expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/portal`);
+    expect(runtime.router.state.location.pathname).toBe(`/clienti/${clientId}/portal`);
 
     const administrators = await within(page).findByTestId('client-administrator-card');
     const rows = within(administrators).getAllByTestId('client-administrator-row');
@@ -504,7 +505,7 @@ describe("the client's Portal tab", () => {
       'Dinu Ana',
       'Vasile Ion',
     ]);
-    expect(people[0]!.querySelector('a')!.getAttribute('href')).toBe(employeePath);
+    expect(people[0]!.querySelector('a')!.getAttribute('href')).toBe(employeePage);
     expect(within(people[0]!).queryByTestId('participant-language')).toBeNull();
     expect(within(people[1]!).getByTestId('participant-language').textContent).toBe(
       ' Folosește portalul în engleză.'
@@ -592,7 +593,7 @@ describe("the client's Portal tab", () => {
 
   it('left the training tab, which no longer shows the administrator', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, `/clients/${clientId}/training`);
+    mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/instruire`);
     await screen.findByTestId('training-page');
     await screen.findByTestId('responsible-persons-card');
     expect(screen.queryByTestId('client-administrator-card')).toBeNull();

@@ -113,7 +113,7 @@ beforeEach(() => {
   vi.mocked(useGetPortalTrainingSheets).mockReturnValue(
     queryResult({
       ssm: { ready: true, missing: [], stored: false, sequences: [] },
-      psi: { ready: true, missing: [], stored: false, sequences: [] },
+      su: { ready: true, missing: [], stored: false, sequences: [] },
     })
   );
   vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [] }));
@@ -160,7 +160,7 @@ describe('Acasă', () => {
       queryResult(
         portalTests({
           ssm: { status: testStatus({ state: 'pending', awaitingTest: 'hiring' }) },
-          psi: {
+          su: {
             status: testStatus({
               state: 'annual_due',
               awaitingTest: 'annual',
@@ -176,11 +176,11 @@ describe('Acasă', () => {
     const items = within(await screen.findByTestId('home-tests')).getAllByTestId('home-test-item');
     expect(items.map((item) => item.textContent)).toEqual([
       expect.stringContaining('Testul la angajare SSM te așteaptă'),
-      expect.stringContaining('Testul anual PSI este scadent'),
+      expect.stringContaining('Testul anual SU este scadent'),
     ]);
     expect(items.map((item) => item.getAttribute('href'))).toEqual([
       '/instruiri/test/ssm/hiring',
-      '/instruiri/test/psi/annual',
+      '/instruiri/test/su/annual',
     ]);
     expect(screen.getByTestId('home-todo')).toBeTruthy();
   });
@@ -216,7 +216,7 @@ describe('Instruiri', () => {
       queryResult(
         portalTests({
           ssm: { status: testStatus({ state: 'pending', awaitingTest: 'hiring' }) },
-          psi: {
+          su: {
             status: testStatus({
               state: 'passed',
               lastPassedOn: '2026-02-03',
@@ -226,7 +226,7 @@ describe('Instruiri', () => {
               {
                 id: '6f0c3e43-0c1b-4f4b-8a1e-0000000e0001',
                 employeeId: participation().employeeId!,
-                domain: 'psi',
+                domain: 'su',
                 test: 'hiring',
                 takenOn: '2026-02-03',
                 material: 'Test de verificare a cunoștințelor la angajare (TASU)',
@@ -252,15 +252,15 @@ describe('Instruiri', () => {
       '/instruiri/test/ssm/hiring'
     );
 
-    const psi = screen.getByTestId('training-tests-psi');
-    expect(within(psi).getByTestId('training-test-state-psi').textContent).toBe('Promovat');
-    const result = within(psi).getByTestId('training-test-result');
-    expect(result.textContent).toContain('Testul la angajare PSI');
+    const su = screen.getByTestId('training-tests-su');
+    expect(within(su).getByTestId('training-test-state-su').textContent).toBe('Promovat');
+    const result = within(su).getByTestId('training-test-result');
+    expect(result.textContent).toContain('Testul la angajare SU');
     expect(result.textContent).toContain('Admis, 3 feb. 2026');
-    expect(within(psi).getByTestId('training-test-due-psi').textContent).toBe(
+    expect(within(su).getByTestId('training-test-due-su').textContent).toBe(
       'Următorul test anual: 3 feb. 2027'
     );
-    expect(within(psi).queryByTestId('training-test-open-psi')).toBeNull();
+    expect(within(su).queryByTestId('training-test-open-su')).toBeNull();
     expect(within(result).getByTestId('training-test-sheet-slots').textContent).toBe(
       'Semnătura ta: semnată. Examinatorul: de semnat.'
     );

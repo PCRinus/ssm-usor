@@ -1,16 +1,16 @@
 import { Flame, HardHat, IdCard } from 'lucide-react';
 
 export const employeeSections = [
-  { to: '/clients/$clientId/employees/$employeeId', label: 'Date', icon: IdCard, exact: true },
+  { to: '/clienti/$clientId/angajati/$employeeId', label: 'Date', icon: IdCard, exact: true },
   {
-    to: '/clients/$clientId/employees/$employeeId/training/ssm',
+    to: '/clienti/$clientId/angajati/$employeeId/instruire/ssm',
     label: 'Instruire SSM',
     icon: HardHat,
     exact: false,
   },
   {
-    to: '/clients/$clientId/employees/$employeeId/training/psi',
-    label: 'Instruire PSI',
+    to: '/clienti/$clientId/angajati/$employeeId/instruire/su',
+    label: 'Instruire SU',
     icon: Flame,
     exact: false,
   },

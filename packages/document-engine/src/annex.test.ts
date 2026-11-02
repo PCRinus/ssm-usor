@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
-import { psiAnnexData, psiAnnexSample, ssmAnnexData, ssmAnnexSample } from '../tools/annex-samples';
+import { ssmAnnexData, ssmAnnexSample, suAnnexData, suAnnexSample } from '../tools/annex-samples';
 import { annexParagraphs, appendAnnexes, renderAnnex } from './annex';
 import { annexTemplate } from './annex-template';
 import { TemplateError, templatePlaceholders } from './render';
@@ -125,11 +125,11 @@ describe.each([
     prefix: 'I.P.S.S.M.',
     of: 'securității și sănătății în muncă',
   },
-  { domain: 'psi' as const, code: 'IPSU', prefix: 'I.P.S.U.', of: 'situațiilor de urgență' },
+  { domain: 'su' as const, code: 'IPSU', prefix: 'I.P.S.U.', of: 'situațiilor de urgență' },
 ])('the $domain annex template', ({ domain, code, prefix, of }) => {
   const template = annexTemplate(domain);
-  const sample = domain === 'ssm' ? ssmAnnexSample : psiAnnexSample;
-  const data = domain === 'ssm' ? ssmAnnexData : psiAnnexData;
+  const sample = domain === 'ssm' ? ssmAnnexSample : suAnnexSample;
+  const data = domain === 'ssm' ? ssmAnnexData : suAnnexData;
   const rendered = renderAnnex(domain, sample, data);
 
   it('asks for the header of the own instructions, the annex and its paragraphs', () => {
@@ -140,7 +140,7 @@ describe.each([
         'client.legalName',
         'client.representativeName',
         'client.representativeRole',
-        ...(domain === 'psi' ? ['fireSafetyTechnician.name'] : []),
+        ...(domain === 'su' ? ['fireSafetyTechnician.name'] : []),
         'issueDate',
         'marker',
         'number',
@@ -209,7 +209,7 @@ describe.each([
       );
       expect(text).toMatch(new RegExp(`Anexa ${data.number}\\|Pag\\. \\d+ din \\d+`));
       expect(part(rendered, name)).toMatch(/<w:instrText[^>]*> PAGE <[\s\S]*> NUMPAGES </);
-      if (domain === 'psi') expect(text).toContain('Cadru tehnic PSI|Mihai STANCU');
+      if (domain === 'su') expect(text).toContain('Cadru tehnic PSI|Mihai STANCU');
     }
   });
 
@@ -346,7 +346,7 @@ async function convert(docx: Uint8Array) {
 describe.skipIf(!converter)('the converter', () => {
   it('prints the sample annexes on their pages: a title page, then the text', async () => {
     expect(pageCount(await convert(renderAnnex('ssm', ssmAnnexSample, ssmAnnexData)))).toBe(3);
-    expect(pageCount(await convert(renderAnnex('psi', psiAnnexSample, psiAnnexData)))).toBe(2);
+    expect(pageCount(await convert(renderAnnex('su', suAnnexSample, suAnnexData)))).toBe(2);
   }, 60_000);
 
   it('opens a common part with annexes appended, each on pages of its own', async () => {

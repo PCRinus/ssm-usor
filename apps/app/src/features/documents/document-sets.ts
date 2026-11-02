@@ -15,12 +15,12 @@ export function documentsLink<Set extends DocumentSet>(
 ) {
   return set === 'fire_safety'
     ? linkOptions({
-        to: '/clients/$clientId/fire-safety-documents',
+        to: '/clienti/$clientId/documente-su',
         params: { clientId },
         search: { section: section as SectionIdOf<'fire_safety'> | undefined },
       })
     : linkOptions({
-        to: '/clients/$clientId/documents',
+        to: '/clienti/$clientId/documente-ssm',
         params: { clientId },
         search: { section: section as SectionIdOf<'occupational_safety'> | undefined },
       });
@@ -29,7 +29,7 @@ export function documentsLink<Set extends DocumentSet>(
 export function documentRowLink(clientId: string, typeKey: string) {
   return documentSetOf(typeKey) === 'fire_safety'
     ? linkOptions({
-        to: '/clients/$clientId/fire-safety-documents',
+        to: '/clienti/$clientId/documente-su',
         params: { clientId },
         search: {
           section: sectionOf(typeKey, 'fire_safety'),
@@ -37,7 +37,7 @@ export function documentRowLink(clientId: string, typeKey: string) {
         },
       })
     : linkOptions({
-        to: '/clients/$clientId/documents',
+        to: '/clienti/$clientId/documente-ssm',
         params: { clientId },
         search: { section: sectionOf(typeKey), focus: typeKey as DocumentTypeKey },
       });
@@ -48,11 +48,11 @@ export const documentRowId = (typeKey: string) => `document-${typeKey}`;
 export function documentLink(set: DocumentSet, clientId: string, documentId: string) {
   return set === 'fire_safety'
     ? linkOptions({
-        to: '/clients/$clientId/fire-safety-documents/$documentId',
+        to: '/clienti/$clientId/documente-su/$documentId',
         params: { clientId, documentId },
       })
     : linkOptions({
-        to: '/clients/$clientId/documents/$documentId',
+        to: '/clienti/$clientId/documente-ssm/$documentId',
         params: { clientId, documentId },
       });
 }
@@ -73,14 +73,14 @@ export const documentSetCopy = {
     templatesUnavailable: undefined,
   },
   fire_safety: {
-    tab: 'Documente PSI',
-    heading: 'Documentația PSI',
-    backLabel: 'Înapoi la documentele PSI',
-    name: 'PSI',
+    tab: 'Documente SU',
+    heading: 'Documentația SU',
+    backLabel: 'Înapoi la documentele SU',
+    name: 'SU',
     emptyHint:
-      'Generează documentația ca să obții deciziile, instrucțiunile proprii, tematica de instruire, testele, registrele și celelalte documente PSI, completate cu datele clientului.',
+      'Generează documentația ca să obții deciziile, instrucțiunile proprii, tematica de instruire, testele, registrele și celelalte documente SU, completate cu datele clientului.',
     templatesUnavailable:
-      'Documentele PSI nu pot fi generate încă: șabloanele lor nu sunt disponibile. Nu a fost generat niciun document.',
+      'Documentele SU nu pot fi generate încă: șabloanele lor nu sunt disponibile. Nu a fost generat niciun document.',
   },
 } as const satisfies Record<
   DocumentSet,

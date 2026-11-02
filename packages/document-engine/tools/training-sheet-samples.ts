@@ -2,7 +2,7 @@
 // apps/api/src/modules/trainings/sheet.ts builds: an employee with every training of the domain
 // recorded, and a new hire with none, whose sheet prints the hiring blocks blank.
 
-export type SheetDomain = 'ssm' | 'psi';
+export type SheetDomain = 'ssm' | 'su';
 
 const blank = (count: number) => Array.from({ length: count }, () => ({}));
 const materialFieldLines = (count: number) =>
@@ -151,8 +151,8 @@ function ssmSample(recorded: boolean) {
   };
 }
 
-function psiSample(recorded: boolean) {
-  const base = { ...ssmSample(recorded), form: paperForm('psi') };
+function suSample(recorded: boolean) {
+  const base = { ...ssmSample(recorded), form: paperForm('su') };
   if (!recorded) {
     return { ...base, blankRows: { periodic: blank(17), supplementary: [], testResults: [] } };
   }
@@ -193,7 +193,7 @@ function psiSample(recorded: boolean) {
 }
 
 export function trainingSheetSamples(domain: SheetDomain) {
-  const sample = domain === 'ssm' ? ssmSample : psiSample;
+  const sample = domain === 'ssm' ? ssmSample : suSample;
   return [
     { label: 'records', data: sample(true) },
     { label: 'empty', data: sample(false) },

@@ -112,7 +112,7 @@ export function EmployeeCombobox({
           <>
             Administratorul nu este completat în Detalii.{' '}
             <Link
-              to="/clients/$clientId/details"
+              to="/clienti/$clientId/detalii"
               params={{ clientId }}
               search={{ focus: 'legal-representative-name' }}
               data-testid="responsible-employee-administrator-missing"

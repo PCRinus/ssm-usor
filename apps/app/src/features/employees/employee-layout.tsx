@@ -20,8 +20,8 @@ import { employeeSections } from './employee-sections';
 import { type EmployeeStatusChange, EmployeeStatusDialog } from './employee-status-dialog';
 import { useEmployee } from './use-employee';
 
-const employeeRoute = getRouteApi('/_authenticated/clients/$clientId/employees/$employeeId');
-const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
+const employeeRoute = getRouteApi('/_authenticated/clienti/$clientId/angajati/$employeeId');
+const clientRoute = getRouteApi('/_authenticated/clienti/$clientId');
 
 export function EmployeeLayout() {
   const { clientId, employeeId } = employeeRoute.useParams();
@@ -45,7 +45,7 @@ export function EmployeeLayout() {
             </HeaderFact>
             <HeaderFact label="Client">
               <Link
-                to="/clients/$clientId/employees"
+                to="/clienti/$clientId/angajati"
                 params={{ clientId }}
                 data-testid="employee-header-client"
                 className="hover:underline"
@@ -68,7 +68,7 @@ export function EmployeeLayout() {
             <>
               <Button asChild variant="outline" size="sm" data-testid="employee-edit">
                 <Link
-                  to="/clients/$clientId/employees/$employeeId/edit"
+                  to="/clienti/$clientId/angajati/$employeeId/editare"
                   params={{ clientId, employeeId }}
                 >
                   <Pencil aria-hidden="true" />
@@ -122,7 +122,7 @@ export function EmployeeNotFound() {
         Nu există niciun angajat cu acest identificator la acest client.
       </p>
       <Button asChild className="w-fit">
-        <Link to="/clients/$clientId/employees" params={{ clientId }}>
+        <Link to="/clienti/$clientId/angajati" params={{ clientId }}>
           Înapoi la angajați
         </Link>
       </Button>

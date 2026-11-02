@@ -495,7 +495,7 @@ describe('a post that is only the running of the firm', () => {
 
 describe('a responsible person’s roles', () => {
   const decision = 'Dosar/Decizia 1.docx';
-  const psi = 'Dosar/PSI/Decizia PSI.docx';
+  const su = 'Dosar/PSI/Decizia PSI.docx';
   const page = 'Dosar/Decizii scanate.pdf (pagina 2)';
   const person = (
     fullName: string,
@@ -512,9 +512,9 @@ describe('a responsible person’s roles', () => {
         { role: 'workplace_manager', file: decision, quote: 'conducător al locului de muncă' },
         { role: 'first_aid', file: decision, quote: 'acordarea primului ajutor' },
       ]),
-      person('CIMPEAN Ramona Barbara', psi, 'CIMPEAN Ramona Barbara', [
-        { role: 'fire_safety_coordinator', file: psi, quote: 'responsabil cu apărarea' },
-        { role: 'first_aid', file: psi, quote: 'cursul de prim ajutor' },
+      person('CIMPEAN Ramona Barbara', su, 'CIMPEAN Ramona Barbara', [
+        { role: 'fire_safety_coordinator', file: su, quote: 'responsabil cu apărarea' },
+        { role: 'first_aid', file: su, quote: 'cursul de prim ajutor' },
       ]),
     ]);
     const scan = readingWith([
@@ -541,14 +541,14 @@ describe('a responsible person’s roles', () => {
       workplace_manager: [{ file: decision, quote: 'conducător al locului de muncă' }],
       first_aid: [
         { file: decision, quote: 'acordarea primului ajutor' },
-        { file: psi, quote: 'cursul de prim ajutor' },
+        { file: su, quote: 'cursul de prim ajutor' },
       ],
-      fire_safety_coordinator: [{ file: psi, quote: 'responsabil cu apărarea' }],
+      fire_safety_coordinator: [{ file: su, quote: 'responsabil cu apărarea' }],
       risk_evaluation_team: [{ file: page, quote: 'echipa de evaluare' }],
     });
     expect(joined!.sources).toEqual([
       { file: decision, quote: 'dna. Cimpean Ramona Barbara' },
-      { file: psi, quote: 'CIMPEAN Ramona Barbara' },
+      { file: su, quote: 'CIMPEAN Ramona Barbara' },
       { file: page, quote: 'Cimpean Ramona' },
     ]);
   });

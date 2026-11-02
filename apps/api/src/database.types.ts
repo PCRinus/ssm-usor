@@ -1757,27 +1757,20 @@ export type Database = {
             client_id: string | null;
             employee_id: string | null;
             organization_id: string | null;
-            psi_awaiting_test: Database['public']['Enums']['knowledge_test'] | null;
-            psi_due_on: string | null;
-            psi_hiring_trained_on: string | null;
-            psi_last_passed_on: string | null;
-            psi_state: Database['public']['Enums']['test_state'] | null;
             ssm_awaiting_test: Database['public']['Enums']['knowledge_test'] | null;
             ssm_hiring_trained_on: string | null;
             ssm_last_passed_on: string | null;
             ssm_state: Database['public']['Enums']['test_state'] | null;
+            su_awaiting_test: Database['public']['Enums']['knowledge_test'] | null;
+            su_due_on: string | null;
+            su_hiring_trained_on: string | null;
+            su_last_passed_on: string | null;
+            su_state: Database['public']['Enums']['test_state'] | null;
           } | null;
           training_status: {
             client_id: string | null;
             employee_id: string | null;
             organization_id: string | null;
-            psi_due_on: string | null;
-            psi_has_hiring_training: boolean | null;
-            psi_interval_months: number | null;
-            psi_interval_source: string | null;
-            psi_last_periodic_on: string | null;
-            psi_state: Database['public']['Enums']['training_state'] | null;
-            psi_workplace_trained_on: string | null;
             ssm_due_on: string | null;
             ssm_has_hiring_training: boolean | null;
             ssm_interval_months: number | null;
@@ -1785,6 +1778,13 @@ export type Database = {
             ssm_last_periodic_on: string | null;
             ssm_state: Database['public']['Enums']['training_state'] | null;
             ssm_workplace_trained_on: string | null;
+            su_due_on: string | null;
+            su_has_hiring_training: boolean | null;
+            su_interval_months: number | null;
+            su_interval_source: string | null;
+            su_last_periodic_on: string | null;
+            su_state: Database['public']['Enums']['training_state'] | null;
+            su_workplace_trained_on: string | null;
           } | null;
         };
         Insert: {
@@ -6610,14 +6610,14 @@ export type Database = {
           next_due_count: number | null;
           next_due_on: string | null;
           organization_id: string | null;
-          psi_current: number | null;
-          psi_due: number | null;
-          psi_overdue: number | null;
-          psi_untrained: number | null;
           ssm_current: number | null;
           ssm_due: number | null;
           ssm_overdue: number | null;
           ssm_untrained: number | null;
+          su_current: number | null;
+          su_due: number | null;
+          su_overdue: number | null;
+          su_untrained: number | null;
           tests_pending: number | null;
         };
         Relationships: [];
@@ -6695,15 +6695,15 @@ export type Database = {
           client_id: string | null;
           employee_id: string | null;
           organization_id: string | null;
-          psi_awaiting_test: Database['public']['Enums']['knowledge_test'] | null;
-          psi_due_on: string | null;
-          psi_hiring_trained_on: string | null;
-          psi_last_passed_on: string | null;
-          psi_state: Database['public']['Enums']['test_state'] | null;
           ssm_awaiting_test: Database['public']['Enums']['knowledge_test'] | null;
           ssm_hiring_trained_on: string | null;
           ssm_last_passed_on: string | null;
           ssm_state: Database['public']['Enums']['test_state'] | null;
+          su_awaiting_test: Database['public']['Enums']['knowledge_test'] | null;
+          su_due_on: string | null;
+          su_hiring_trained_on: string | null;
+          su_last_passed_on: string | null;
+          su_state: Database['public']['Enums']['test_state'] | null;
         };
         Relationships: [
           {
@@ -6762,13 +6762,6 @@ export type Database = {
           client_id: string | null;
           employee_id: string | null;
           organization_id: string | null;
-          psi_due_on: string | null;
-          psi_has_hiring_training: boolean | null;
-          psi_interval_months: number | null;
-          psi_interval_source: string | null;
-          psi_last_periodic_on: string | null;
-          psi_state: Database['public']['Enums']['training_state'] | null;
-          psi_workplace_trained_on: string | null;
           ssm_due_on: string | null;
           ssm_has_hiring_training: boolean | null;
           ssm_interval_months: number | null;
@@ -6776,6 +6769,13 @@ export type Database = {
           ssm_last_periodic_on: string | null;
           ssm_state: Database['public']['Enums']['training_state'] | null;
           ssm_workplace_trained_on: string | null;
+          su_due_on: string | null;
+          su_has_hiring_training: boolean | null;
+          su_interval_months: number | null;
+          su_interval_source: string | null;
+          su_last_periodic_on: string | null;
+          su_state: Database['public']['Enums']['training_state'] | null;
+          su_workplace_trained_on: string | null;
         };
         Relationships: [
           {
@@ -7647,12 +7647,12 @@ export type Database = {
         Args: { p_organization_id: string };
         Returns: {
           employee_id: string;
-          psi_test_state: Database['public']['Enums']['test_state'];
-          psi_training_due_on: string;
-          psi_training_state: Database['public']['Enums']['training_state'];
           ssm_test_state: Database['public']['Enums']['test_state'];
           ssm_training_due_on: string;
           ssm_training_state: Database['public']['Enums']['training_state'];
+          su_test_state: Database['public']['Enums']['test_state'];
+          su_training_due_on: string;
+          su_training_state: Database['public']['Enums']['training_state'];
         }[];
       };
       organization_employees_in_state: {
@@ -8134,15 +8134,15 @@ export type Database = {
           client_id: string | null;
           employee_id: string | null;
           organization_id: string | null;
-          psi_awaiting_test: Database['public']['Enums']['knowledge_test'] | null;
-          psi_due_on: string | null;
-          psi_hiring_trained_on: string | null;
-          psi_last_passed_on: string | null;
-          psi_state: Database['public']['Enums']['test_state'] | null;
           ssm_awaiting_test: Database['public']['Enums']['knowledge_test'] | null;
           ssm_hiring_trained_on: string | null;
           ssm_last_passed_on: string | null;
           ssm_state: Database['public']['Enums']['test_state'] | null;
+          su_awaiting_test: Database['public']['Enums']['knowledge_test'] | null;
+          su_due_on: string | null;
+          su_hiring_trained_on: string | null;
+          su_last_passed_on: string | null;
+          su_state: Database['public']['Enums']['test_state'] | null;
         };
         SetofOptions: {
           from: 'employees';
@@ -8186,13 +8186,6 @@ export type Database = {
           client_id: string | null;
           employee_id: string | null;
           organization_id: string | null;
-          psi_due_on: string | null;
-          psi_has_hiring_training: boolean | null;
-          psi_interval_months: number | null;
-          psi_interval_source: string | null;
-          psi_last_periodic_on: string | null;
-          psi_state: Database['public']['Enums']['training_state'] | null;
-          psi_workplace_trained_on: string | null;
           ssm_due_on: string | null;
           ssm_has_hiring_training: boolean | null;
           ssm_interval_months: number | null;
@@ -8200,6 +8193,13 @@ export type Database = {
           ssm_last_periodic_on: string | null;
           ssm_state: Database['public']['Enums']['training_state'] | null;
           ssm_workplace_trained_on: string | null;
+          su_due_on: string | null;
+          su_has_hiring_training: boolean | null;
+          su_interval_months: number | null;
+          su_interval_source: string | null;
+          su_last_periodic_on: string | null;
+          su_state: Database['public']['Enums']['training_state'] | null;
+          su_workplace_trained_on: string | null;
         };
         SetofOptions: {
           from: 'employees';
@@ -8272,7 +8272,7 @@ export type Database = {
         | 'other_company'
         | 'failed';
       import_kind: 'client' | 'employees';
-      import_library_part: 'instructions_ssm' | 'instructions_psi';
+      import_library_part: 'instructions_ssm' | 'instructions_su';
       import_library_part_status: 'reading' | 'to_review' | 'nothing_new' | 'failed' | 'confirmed';
       import_status:
         | 'uploading'
@@ -8284,7 +8284,7 @@ export type Database = {
         | 'confirmed'
         | 'abandoned'
         | 'failed';
-      instruction_domain: 'ssm' | 'psi';
+      instruction_domain: 'ssm' | 'su';
       instruction_module_group:
         | 'work_activity'
         | 'work_equipment'
@@ -8321,7 +8321,7 @@ export type Database = {
         | 'new_technology';
       test_result_source: 'portal' | 'paper';
       test_state: 'none' | 'pending' | 'unverified' | 'passed' | 'annual_due';
-      training_domain: 'ssm' | 'psi';
+      training_domain: 'ssm' | 'su';
       training_phase: 'introductory_general' | 'workplace' | 'periodic' | 'supplementary';
       training_source: 'app' | 'paper';
       training_state: 'untrained' | 'current' | 'due' | 'overdue';
@@ -8501,7 +8501,7 @@ export const Constants = {
         'failed',
       ],
       import_kind: ['client', 'employees'],
-      import_library_part: ['instructions_ssm', 'instructions_psi'],
+      import_library_part: ['instructions_ssm', 'instructions_su'],
       import_library_part_status: ['reading', 'to_review', 'nothing_new', 'failed', 'confirmed'],
       import_status: [
         'uploading',
@@ -8514,7 +8514,7 @@ export const Constants = {
         'abandoned',
         'failed',
       ],
-      instruction_domain: ['ssm', 'psi'],
+      instruction_domain: ['ssm', 'su'],
       instruction_module_group: [
         'work_activity',
         'work_equipment',
@@ -8554,7 +8554,7 @@ export const Constants = {
       ],
       test_result_source: ['portal', 'paper'],
       test_state: ['none', 'pending', 'unverified', 'passed', 'annual_due'],
-      training_domain: ['ssm', 'psi'],
+      training_domain: ['ssm', 'su'],
       training_phase: ['introductory_general', 'workplace', 'periodic', 'supplementary'],
       training_source: ['app', 'paper'],
       training_state: ['untrained', 'current', 'due', 'overdue'],

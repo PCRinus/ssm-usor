@@ -270,28 +270,28 @@ describe('the fire-safety context', () => {
 
   it('numbers each decision by its place in the binder, from the first number', () => {
     expect(buildFireSafetyContext(facts).fire.decisionNumbers).toEqual({
-      organization: '5 PSI',
-      training: '6 PSI',
-      openFire: '7 PSI',
-      smoking: '8 PSI',
-      technician: '9 PSI',
-      instructions: '10 PSI',
-      waste: '11 PSI',
-      seasons: '12 PSI',
-      control: '13 PSI',
+      organization: '5 SU',
+      training: '6 SU',
+      openFire: '7 SU',
+      smoking: '8 SU',
+      technician: '9 SU',
+      instructions: '10 SU',
+      waste: '11 SU',
+      seasons: '12 SU',
+      control: '13 SU',
     });
     expect(
       buildFireSafetyContext({ ...facts, firstDecisionNumber: 1 }).fire.decisionNumbers
     ).toEqual({
-      organization: '1 PSI',
-      training: '2 PSI',
-      openFire: '3 PSI',
-      smoking: '4 PSI',
-      technician: '5 PSI',
-      instructions: '6 PSI',
-      waste: '7 PSI',
-      seasons: '8 PSI',
-      control: '9 PSI',
+      organization: '1 SU',
+      training: '2 SU',
+      openFire: '3 SU',
+      smoking: '4 SU',
+      technician: '5 SU',
+      instructions: '6 SU',
+      waste: '7 SU',
+      seasons: '8 SU',
+      control: '9 SU',
     });
   });
 
@@ -816,7 +816,7 @@ describe('the fire-safety context', () => {
         ({ from, to }) => `IPSU art.\u00a0${from}–${to}`
       );
     const posted =
-      'instrucțiunile afișate la locul de muncă (Decizia nr.\u00a010 PSI); organizarea apărării împotriva incendiilor la locul de muncă';
+      'instrucțiunile afișate la locul de muncă (Decizia nr.\u00a010 SU); organizarea apărării împotriva incendiilor la locul de muncă';
     const managers = 'Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor de muncă';
     const administrative = ipsu(2);
     const execution = ipsu(4);
@@ -946,7 +946,7 @@ describe('the fire-safety context', () => {
     const [accountant, welder] = facts.jobPositions;
     const storage = {
       moduleId: 'a0a0a0a0-0000-4000-8000-000000000004',
-      domain: 'psi' as const,
+      domain: 'su' as const,
       title: 'Depozitare',
       group: 'premises_activity' as const,
       version: {
@@ -987,7 +987,7 @@ describe('the fire-safety context', () => {
     expect(execution!.posts).toEqual(['Contabil', 'Sudor']);
     expect(execution!.sessions[0]!.content.split('; ').slice(1, 3)).toEqual([
       'I.P.S.U. Lucrul cu foc deschis, art.\u00a01–7',
-      'instrucțiunile afișate la locul de muncă (Decizia nr.\u00a010 PSI)',
+      'instrucțiunile afișate la locul de muncă (Decizia nr.\u00a010 SU)',
     ]);
   });
 
@@ -1199,7 +1199,7 @@ describe('a fire-safety document generated again', () => {
       ...facts,
       jobPositions: facts.jobPositions.map((position) => ({
         ...position,
-        needsFireInstructions: position.instructions.some((module) => module.domain === 'psi')
+        needsFireInstructions: position.instructions.some((module) => module.domain === 'su')
           ? true
           : null,
       })),
@@ -1265,23 +1265,23 @@ describe('setOfGroup', () => {
 });
 
 describe('the annexes of the fire-safety own instructions', () => {
-  const psi = (
+  const su = (
     moduleId: string,
     title: string,
     group: 'premises_activity' | 'installation_equipment'
   ) => ({
     moduleId,
-    domain: 'psi' as const,
+    domain: 'su' as const,
     title,
     group,
     version: { id: `${moduleId.slice(0, -1)}9`, number: 1, createdAt: '2026-10-01T08:00:00+00:00' },
   });
-  const cylinders = psi(
+  const cylinders = su(
     'a0a0a0a0-0000-4000-8000-000000000005',
     'Butelii de gaz',
     'installation_equipment'
   );
-  const storage = psi('a0a0a0a0-0000-4000-8000-000000000004', 'Depozitare', 'premises_activity');
+  const storage = su('a0a0a0a0-0000-4000-8000-000000000004', 'Depozitare', 'premises_activity');
 
   it('are the fire-safety modules the positions apply, each once, by group and title', () => {
     const [accountant, welder] = facts.jobPositions;

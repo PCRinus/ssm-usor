@@ -571,13 +571,13 @@ export function EmployeeForm({
           <Button asChild type="button" variant="ghost" className="h-11">
             {employee ? (
               <Link
-                to="/clients/$clientId/employees/$employeeId"
+                to="/clienti/$clientId/angajati/$employeeId"
                 params={{ clientId, employeeId: employee.id }}
               >
                 Renunță
               </Link>
             ) : (
-              <Link to="/clients/$clientId/employees" params={{ clientId }}>
+              <Link to="/clienti/$clientId/angajati" params={{ clientId }}>
                 Renunță
               </Link>
             )}

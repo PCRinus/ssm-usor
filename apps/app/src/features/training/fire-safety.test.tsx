@@ -112,7 +112,7 @@ const requests = (pathname: string, method: string) =>
     .map(([, init]) => (init?.body ? (JSON.parse(String(init.body)) as unknown) : null));
 
 const mount = (search = '') =>
-  mountApp(authFixture(makeSession()).client, `/clients/${clientId}/training${search}`);
+  mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/instruire${search}`);
 
 const value = (testId: string) => screen.getByTestId<HTMLInputElement>(testId).value;
 
@@ -181,7 +181,7 @@ describe('the fire-safety training card', () => {
         },
       ])
     );
-    expect(await screen.findByText('Instruirea PSI a fost salvată.')).toBeTruthy();
+    expect(await screen.findByText('Instruirea SU a fost salvată.')).toBeTruthy();
     expect((await screen.findByTestId('fire-schedule-session')).textContent).toBe(
       'Fiecare instruire durează 2 ore și are loc între zilele 2 și 7 ale lunii.'
     );

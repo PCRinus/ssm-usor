@@ -60,10 +60,10 @@ import { useLibraryNudge } from './use-library-nudge';
 import { useStartEvaluation } from './use-start-evaluation';
 import { WorkSystemCard } from './work-system-card';
 
-const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
-const positionRoute = getRouteApi('/_authenticated/clients/$clientId/job-positions/$jobPositionId');
+const clientRoute = getRouteApi('/_authenticated/clienti/$clientId');
+const positionRoute = getRouteApi('/_authenticated/clienti/$clientId/posturi/$jobPositionId');
 const clientLevelRoute = getRouteApi(
-  '/_authenticated/clients/$clientId/job-positions/risk-evaluations/$evaluationId'
+  '/_authenticated/clienti/$clientId/posturi/evaluari-riscuri/$evaluationId'
 );
 
 function useReadOnly() {
@@ -115,7 +115,7 @@ export function PositionRiskEvaluationPage() {
       userId={userId}
       readOnly={readOnly}
       afterRemove={{
-        to: '/clients/$clientId/job-positions/$jobPositionId',
+        to: '/clienti/$clientId/posturi/$jobPositionId',
         params: { clientId, jobPositionId },
         hash: positionSections.riskEvaluation,
       }}
@@ -144,7 +144,7 @@ export function ClientRiskEvaluationPage() {
       userId={userId}
       readOnly={readOnly}
       afterRemove={{
-        to: '/clients/$clientId/job-positions',
+        to: '/clienti/$clientId/posturi',
         params: { clientId },
         hash: clientEvaluationsSection,
       }}
@@ -209,11 +209,11 @@ function Header({ title, action }: { title: string; action?: ReactNode }) {
 
 type AfterRemove =
   | {
-      to: '/clients/$clientId/job-positions/$jobPositionId';
+      to: '/clienti/$clientId/posturi/$jobPositionId';
       params: { clientId: string; jobPositionId: string };
       hash: string;
     }
-  | { to: '/clients/$clientId/job-positions'; params: { clientId: string }; hash: string };
+  | { to: '/clienti/$clientId/posturi'; params: { clientId: string }; hash: string };
 
 function RiskEvaluationView({
   evaluation,
@@ -426,7 +426,7 @@ export function RiskEvaluationNotFound() {
         Nu există nicio evaluare de risc cu acest identificator la acest client, sau a fost ștearsă.
       </p>
       <Button asChild className="w-fit">
-        <Link to="/clients/$clientId/job-positions" params={{ clientId }}>
+        <Link to="/clienti/$clientId/posturi" params={{ clientId }}>
           Înapoi la posturi
         </Link>
       </Button>

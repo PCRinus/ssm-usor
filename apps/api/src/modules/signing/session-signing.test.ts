@@ -624,7 +624,7 @@ describe('POST /portal/participants/{participantId}/signing-sessions', () => {
         used: 40,
         included: 50,
         cap: 150,
-        subscriptionUrl: `${signingEnv.APP_ORIGIN}/organization/subscription`,
+        subscriptionUrl: `${signingEnv.APP_ORIGIN}/organizatie/abonament`,
       })
     );
     const [notice] = callsTo('/rest/v1/usage_notices', 'POST');

@@ -132,7 +132,7 @@ const requests = (pathname: string, method = 'GET') =>
       new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
   );
 
-const mount = (path = '/organization') => mountApp(authFixture(makeSession()).client, path);
+const mount = (path = '/organizatie') => mountApp(authFixture(makeSession()).client, path);
 
 async function openInviteDialog() {
   const user = userEvent.setup();
@@ -195,7 +195,7 @@ describe('organization page', () => {
     const runtime = mount();
 
     await screen.findByTestId('onboarding-page');
-    expect(runtime.router.state.location.pathname).toBe('/onboarding');
+    expect(runtime.router.state.location.pathname).toBe('/configurare');
     expect(requests('/organization/members')).toHaveLength(0);
   });
 
@@ -407,7 +407,7 @@ describe('organization sections', () => {
     const runtime = mount();
 
     await screen.findAllByTestId('member-row');
-    expect(runtime.router.state.location.pathname).toBe('/organization/team');
+    expect(runtime.router.state.location.pathname).toBe('/organizatie/echipa');
     expect(screen.getAllByTestId('organization-section').map((link) => link.textContent)).toEqual([
       'Echipă',
       'Date firmă',
@@ -427,13 +427,13 @@ describe('organization sections', () => {
     await screen.findAllByTestId('member-row');
     await user.click(screen.getByRole('link', { name: 'Abilitări' }));
     await screen.findByTestId('authorizations-form');
-    expect(runtime.router.state.location.pathname).toBe('/organization/authorizations');
+    expect(runtime.router.state.location.pathname).toBe('/organizatie/abilitari');
     expect(screen.queryByTestId('member-row')).toBeNull();
   });
 });
 
 describe('company details', () => {
-  const mountCompany = () => mount('/organization/company');
+  const mountCompany = () => mount('/organizatie/date-firma');
 
   it('shows an owner the saved details and replaces them on save, clearing emptied fields', async () => {
     mockApi();
@@ -550,7 +550,7 @@ describe('company details', () => {
     ['bank-account', 'company-bankName'],
   ])('puts the cursor in the field a row asks for with %s', async (focus, field) => {
     mockApi();
-    const runtime = mount(`/organization/company?focus=${focus}`);
+    const runtime = mount(`/organizatie/date-firma?focus=${focus}`);
     const input = await screen.findByTestId(field);
     await waitFor(() => expect(document.activeElement).toBe(input));
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
@@ -558,7 +558,7 @@ describe('company details', () => {
 });
 
 describe('authorizations', () => {
-  const mountAuthorizations = () => mount('/organization/authorizations');
+  const mountAuthorizations = () => mount('/organizatie/abilitari');
 
   it('saves the certificate and the technician for an owner', async () => {
     mockApi();
@@ -710,7 +710,7 @@ describe('authorizations', () => {
 
   it('puts the cursor in the certificate number when a row asks for the certificate', async () => {
     mockApi();
-    const runtime = mount('/organization/authorizations?focus=certificate');
+    const runtime = mount('/organizatie/abilitari?focus=certificate');
     const input = await screen.findByTestId('authorizations-authorizationCertificateNumber');
     await waitFor(() => expect(document.activeElement).toBe(input));
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
@@ -718,7 +718,7 @@ describe('authorizations', () => {
 
   it("puts the cursor in the technician's certificate once the technician is named", async () => {
     mockApi({ savedAuthorizations: { ...authorizations, fireSafetyTechnicianName: 'Radu Stan' } });
-    mount('/organization/authorizations?focus=fire-safety-technician');
+    mount('/organizatie/abilitari?focus=fire-safety-technician');
     const input = await screen.findByTestId('authorizations-fireSafetyTechnicianCertificate');
     await waitFor(() => expect(document.activeElement).toBe(input));
   });

@@ -51,7 +51,7 @@ test('an owner invites a person, who creates an account, joins, and is then mana
   await page.keyboard.press('Escape');
 
   const link = await emailedLink(invitee, 'invitation');
-  expect(new URL(link).pathname).toBe('/accept-invitation');
+  expect(new URL(link).pathname).toBe('/invitatie');
   const theirs = await browser.newContext();
   const guest = await theirs.newPage();
   await guest.goto(link);
@@ -89,7 +89,7 @@ test('an owner invites a person, who creates an account, joins, and is then mana
   await expect(page.getByTestId('member-row')).toHaveCount(1);
 
   await guest.reload();
-  await expect(guest).toHaveURL(/\/onboarding$/);
+  await expect(guest).toHaveURL(/\/configurare$/);
   await expect(guest.getByTestId('onboarding-full-name')).toHaveValue('Ion Invitat');
 
   await signOut(page);
@@ -116,10 +116,10 @@ test('a person who already has an account signs in to accept', async ({ page, br
   await guest.getByTestId('login-email').fill(existing.email);
   await guest.getByTestId('login-password').fill(password);
   await guest.getByTestId('login-submit').click();
-  await expect(guest).toHaveURL(/\/accept-invitation\?token=/);
+  await expect(guest).toHaveURL(/\/invitatie\?token=/);
   await guest.getByTestId('accept-join').click();
 
-  await expect(guest).toHaveURL(/\/organization\/team$/);
+  await expect(guest).toHaveURL(/\/organizatie\/echipa$/);
   await expect(guest.getByRole('heading', { level: 1 })).toHaveText('Al Doilea SSM E2E');
   await expect(guest.getByTestId('invite-open')).toBeVisible();
 });

@@ -330,11 +330,11 @@ describe('ensureSignedSheet', () => {
   });
 
   it('answers the current sheet while it has room, and a continuation once it is full', async () => {
-    const first = await ensureSignedSheet(ctx, employeeId, 'psi');
-    expect(await ensureSignedSheet(ctx, employeeId, 'psi')).toEqual(first);
+    const first = await ensureSignedSheet(ctx, employeeId, 'su');
+    expect(await ensureSignedSheet(ctx, employeeId, 'su')).toEqual(first);
 
-    memory.sheetRows[0]!.rowsUsed = rowCapacity('psi');
-    const next = await ensureSignedSheet(ctx, employeeId, 'psi');
+    memory.sheetRows[0]!.rowsUsed = rowCapacity('su');
+    const next = await ensureSignedSheet(ctx, employeeId, 'su');
     expect(next.sequence).toBe(2);
     expect(drawn[1]!.form.continuation).toBe('Fișa nr. 2, în continuarea fișei nr. 1');
   });
@@ -438,7 +438,7 @@ describe('placeRecord', () => {
     expect((await placeRecord(ctx, supplementary.id)).rowKey).toBe('s1');
     const fire = add(
       sheetRecord('supplementary', '2026-05-18', {
-        domain: 'psi',
+        domain: 'su',
         training: { supplementaryReason: 'after_accident', verifier: null },
       })
     );
@@ -510,13 +510,13 @@ describe('syncTrainingRows', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     await ensureSignedSheet(ctx, employeeId, 'ssm');
     const onSheet = add(sheetRecord('periodic', '2026-04-03'));
-    const fire = add(sheetRecord('periodic', '2026-04-03', { domain: 'psi' }));
+    const fire = add(sheetRecord('periodic', '2026-04-03', { domain: 'su' }));
 
     await syncTrainingRows(ctx, [onSheet.id, fire.id, 'missing']);
 
     expect((await ctx.store.liveRowOf(onSheet.id))?.rowKey).toBe('p1');
     expect(await ctx.store.liveRowOf(fire.id)).toBeNull();
-    expect(memory.sheetRows.filter((sheet) => sheet.domain === 'psi')).toEqual([]);
+    expect(memory.sheetRows.filter((sheet) => sheet.domain === 'su')).toEqual([]);
   });
 });
 
@@ -640,12 +640,12 @@ describe('applySignature', () => {
   });
 
   it('refuses a slot the form has no signature for, and a record without a row', async () => {
-    const fire = add(sheetRecord('periodic', '2026-04-03', { domain: 'psi' }));
+    const fire = add(sheetRecord('periodic', '2026-04-03', { domain: 'su' }));
     await placeRecord(ctx, fire.id);
     await expect(applySignature(ctx, fire.id, 'verifier', trainee, sign)).rejects.toMatchObject({
       reason: 'slot_not_on_sheet',
     });
-    const unplaced = add(sheetRecord('periodic', '2026-05-03', { domain: 'psi' }));
+    const unplaced = add(sheetRecord('periodic', '2026-05-03', { domain: 'su' }));
     await expect(applySignature(ctx, unplaced.id, 'trainee', trainee, sign)).rejects.toMatchObject({
       reason: 'record_not_on_sheet',
     });
@@ -704,7 +704,7 @@ describe('the rows of test results', () => {
   ) => {
     results += 1;
     const result = {
-      ...sheetResult(domain === 'psi' ? 'annual' : 'hiring', takenOn, overrides),
+      ...sheetResult(domain === 'su' ? 'annual' : 'hiring', takenOn, overrides),
       id: `7e7e7e7e-0000-4000-8000-${String(results).padStart(12, '0')}`,
       employeeId,
       domain,
@@ -743,9 +743,9 @@ describe('the rows of test results', () => {
   });
 
   it('fills the next periodic row of the fire-safety sheet, after the trainings before it', async () => {
-    add(sheetRecord('periodic', '2026-02-01', { domain: 'psi' }));
-    await ensureSignedSheet(ctx, employeeId, 'psi');
-    const result = addResult('psi', '2026-05-04', {
+    add(sheetRecord('periodic', '2026-02-01', { domain: 'su' }));
+    await ensureSignedSheet(ctx, employeeId, 'su');
+    const result = addResult('su', '2026-05-04', {
       examiner: { name: 'Radu STAN', jobTitle: 'Cadru tehnic PSI' },
     });
 
@@ -762,11 +762,11 @@ describe('the rows of test results', () => {
   });
 
   it('places the results an employee has when their first sheet is drawn up, among the trainings by date', async () => {
-    const later = add(sheetRecord('periodic', '2026-06-01', { domain: 'psi' }));
-    const result = addResult('psi', '2026-03-01');
-    const earlier = add(sheetRecord('periodic', '2026-02-01', { domain: 'psi' }));
+    const later = add(sheetRecord('periodic', '2026-06-01', { domain: 'su' }));
+    const result = addResult('su', '2026-03-01');
+    const earlier = add(sheetRecord('periodic', '2026-02-01', { domain: 'su' }));
 
-    await ensureSignedSheet(ctx, employeeId, 'psi');
+    await ensureSignedSheet(ctx, employeeId, 'su');
 
     expect(
       memory.rows.map((row) => [row.rowKey, row.trainingRecordId ?? row.testResultId])

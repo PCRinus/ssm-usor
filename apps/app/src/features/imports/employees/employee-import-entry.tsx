@@ -80,7 +80,7 @@ export function EmployeeImportButtons({
       )}
       <Button asChild>
         <Link
-          to="/clients/$clientId/employees/new"
+          to="/clienti/$clientId/angajati/nou"
           params={{ clientId }}
           data-testid="employees-add"
         >
@@ -121,7 +121,7 @@ export function EmployeeStartWays({
       className="mx-auto mt-6 grid max-w-[40rem] gap-3 text-left"
       data-testid="employees-start-ways"
     >
-      <Link to="/clients/$clientId/employees/new" params={{ clientId }} className={wayClass}>
+      <Link to="/clienti/$clientId/angajati/nou" params={{ clientId }} className={wayClass}>
         <WayBadge>
           <PenLine className="size-5" />
         </WayBadge>
@@ -297,7 +297,7 @@ function OpenImportCard({
         </Button>
         <Button asChild size="sm" variant={item.status === 'ready' ? 'default' : 'outline'}>
           <Link
-            to="/clients/$clientId/employees/import/$importId"
+            to="/clienti/$clientId/angajati/import/$importId"
             params={{ clientId, importId: item.id }}
             data-testid="employee-import-open"
           >

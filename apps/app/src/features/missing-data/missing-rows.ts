@@ -36,59 +36,63 @@ import type {
 
 const to = {
   clientDetails: (clientId: string, focus: ClientDetailsFocus) =>
-    linkOptions({ to: '/clients/$clientId/details', params: { clientId }, search: { focus } }),
+    linkOptions({ to: '/clienti/$clientId/detalii', params: { clientId }, search: { focus } }),
   training: (clientId: string, focus: TrainingFocus) =>
-    linkOptions({ to: '/clients/$clientId/training', params: { clientId }, search: { focus } }),
+    linkOptions({ to: '/clienti/$clientId/instruire', params: { clientId }, search: { focus } }),
   fireSafetyMeans: (clientId: string, focus: FireSafetyMeansFocus) =>
     linkOptions({
-      to: '/clients/$clientId/fire-safety-means',
+      to: '/clienti/$clientId/mijloace-de-aparare',
       params: { clientId },
       search: { focus },
     }),
   clientEvaluations: (clientId: string) =>
     linkOptions({
-      to: '/clients/$clientId/job-positions',
+      to: '/clienti/$clientId/posturi',
       params: { clientId },
       hash: clientEvaluationsSection,
     }),
   clientEvaluation: (clientId: string, evaluationId: string) =>
     linkOptions({
-      to: '/clients/$clientId/job-positions/risk-evaluations/$evaluationId',
+      to: '/clienti/$clientId/posturi/evaluari-riscuri/$evaluationId',
       params: { clientId, evaluationId },
       hash: evaluationSections.factors,
     }),
   addPosition: (clientId: string) =>
     linkOptions({
-      to: '/clients/$clientId/job-positions',
+      to: '/clienti/$clientId/posturi',
       params: { clientId },
       search: { focus: 'add-position' as const },
     }),
   positions: (clientId: string) =>
-    linkOptions({ to: '/clients/$clientId/job-positions', params: { clientId } }),
+    linkOptions({ to: '/clienti/$clientId/posturi', params: { clientId } }),
   documentSection: (clientId: string, section: DocumentSectionId) =>
-    linkOptions({ to: '/clients/$clientId/documents', params: { clientId }, search: { section } }),
+    linkOptions({
+      to: '/clienti/$clientId/documente-ssm',
+      params: { clientId },
+      search: { section },
+    }),
   fireSafetyDocumentSection: (clientId: string, section: FireSafetyDocumentSectionId) =>
     linkOptions({
-      to: '/clients/$clientId/fire-safety-documents',
+      to: '/clienti/$clientId/documente-su',
       params: { clientId },
       search: { section },
     }),
   position: (clientId: string, jobPositionId: string, section: PositionSection) =>
     linkOptions({
-      to: '/clients/$clientId/job-positions/$jobPositionId',
+      to: '/clienti/$clientId/posturi/$jobPositionId',
       params: { clientId, jobPositionId },
       hash: section,
     }),
   // Before the position is evaluated, the page offers to start.
   positionEvaluation: (clientId: string, jobPositionId: string) =>
     linkOptions({
-      to: '/clients/$clientId/job-positions/$jobPositionId/risk-evaluation',
+      to: '/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri',
       params: { clientId, jobPositionId },
       hash: evaluationSections.factors,
     }),
   clientContract: (clientId: string) =>
     linkOptions({
-      to: '/clients/$clientId/contract',
+      to: '/clienti/$clientId/contract',
       params: { clientId },
       search: { focus: 'contract-details' as const },
       replace: true,
@@ -97,20 +101,20 @@ const to = {
   // Only the contract card on the same page links here, so it stays one entry of the history.
   lead: (leadId: string, focus: CompanyFocus | ContractFocus) =>
     linkOptions({
-      to: '/leads/$leadId',
+      to: '/clienti-potentiali/$leadId',
       params: { leadId },
       search: { focus },
       replace: true,
       resetScroll: false,
     }),
   organizationCompany: (focus: OrganizationCompanyFocus) =>
-    linkOptions({ to: '/organization/company', search: { focus } }),
+    linkOptions({ to: '/organizatie/date-firma', search: { focus } }),
   authorizations: (focus: AuthorizationsFocus) =>
-    linkOptions({ to: '/organization/authorizations', search: { focus } }),
-  profile: (focus: ProfileFocus) => linkOptions({ to: '/profile', search: { focus } }),
+    linkOptions({ to: '/organizatie/abilitari', search: { focus } }),
+  profile: (focus: ProfileFocus) => linkOptions({ to: '/profil', search: { focus } }),
   employeeEdit: (clientId: string, employeeId: string, focus: EmployeeFocus) =>
     linkOptions({
-      to: '/clients/$clientId/employees/$employeeId/edit',
+      to: '/clienti/$clientId/angajati/$employeeId/editare',
       params: { clientId, employeeId },
       search: { focus },
     }),
@@ -151,12 +155,12 @@ export const documentPlaces = {
   organization: 'Datele organizației',
   profile: 'Profilul tău',
   clientDetails: 'Detaliile clientului',
-  fireSafetyMeans: 'Mijloacele PSI',
+  fireSafetyMeans: 'Mijloacele de apărare',
   training: 'Instruire și responsabili',
   jobPositions: 'Posturile de lucru',
   riskEvaluations: 'Evaluarea riscurilor',
   documents: 'Documentația SSM',
-  fireSafetyDocuments: 'Documentația PSI',
+  fireSafetyDocuments: 'Documentația SU',
 } as const;
 
 type DocumentPlace = keyof typeof documentPlaces;
@@ -204,7 +208,7 @@ export const documentMissingData: Record<
   'provider.fireSafetyTechnician': {
     place: 'organization',
     label: 'Cadrul tehnic PSI',
-    detail: 'Numele lui apare pe documentele PSI.',
+    detail: 'Numele lui apare pe documentele SU.',
     target: () => to.authorizations('fire-safety-technician'),
   },
   // The technician's own key opens the certificate field once the name is saved.
@@ -276,7 +280,7 @@ export const documentMissingData: Record<
     label: 'Cel puțin un post de lucru',
     detail: ({ set }) =>
       set === 'fire_safety'
-        ? 'Decizia privind instruirea PSI enumeră posturile de lucru ale clientului.'
+        ? 'Decizia privind instruirea în domeniul situațiilor de urgență enumeră posturile de lucru ale clientului.'
         : 'Echipamentul de protecție și instrucțiunile se stabilesc pe posturi.',
     target: ({ clientId }) => to.addPosition(clientId),
   },
@@ -332,7 +336,7 @@ export const documentMissingData: Record<
   ),
   'fire.trainingSchedule': {
     place: 'training',
-    label: 'Programul instruirii PSI',
+    label: 'Programul instruirii SU',
     detail: 'Durata, intervalele pe categorii, prima lună și zilele.',
     target: ({ clientId }) => to.training(clientId, 'fire-training-schedule'),
   },
@@ -351,7 +355,7 @@ export const documentMissingData: Record<
   },
   'fire.workplaces': {
     place: 'clientDetails',
-    label: 'Datele PSI ale locurilor de muncă',
+    label: 'Datele SU ale locurilor de muncă',
     detail:
       'Activitatea, punctul de adunare și textele fișei de la locul de muncă, iar la un spațiu fix și suprafața și norma de dotare.',
     target: ({ clientId }) => to.clientDetails(clientId, 'workplace-fire-data'),
@@ -364,15 +368,15 @@ export const documentMissingData: Record<
   },
   'fire.instructions': {
     place: 'jobPositions',
-    label: 'Instrucțiunile specifice PSI ale posturilor',
-    detail: 'Fiecare post aplică instrucțiuni specifice PSI sau nu are nevoie de ele.',
+    label: 'Instrucțiunile specifice SU ale posturilor',
+    detail: 'Fiecare post aplică instrucțiuni specifice SU sau nu are nevoie de ele.',
     target: ({ clientId }) => to.positions(clientId),
   },
   'documents.fire_own_instructions': {
     place: 'fireSafetyDocuments',
-    label: 'Instrucțiunile proprii PSI, generate înaintea tematicii',
+    label: 'Instrucțiunile proprii SU, generate înaintea tematicii',
     detail:
-      'Tematica PSI citează instrucțiunile specifice pe care le anexează instrucțiunile proprii PSI.',
+      'Tematica SU citează instrucțiunile specifice pe care le anexează instrucțiunile proprii SU.',
     target: ({ clientId }) => to.fireSafetyDocumentSection(clientId, 'own-instructions'),
   },
   'fire.substances': {
@@ -402,8 +406,8 @@ const decisionRows: Record<
   },
   fire_instructions: {
     code: 'fire.instructions',
-    section: 'instrucțiuni PSI',
-    detail: 'Instrucțiunile specifice PSI ale postului, sau că nu are nevoie de ele.',
+    section: 'instrucțiuni SU',
+    detail: 'Instrucțiunile specifice SU ale postului, sau că nu are nevoie de ele.',
     hash: positionSections.fireInstructions,
   },
 };
@@ -596,7 +600,7 @@ export const contractMissingData: Record<
   'provider.fireSafetyTechnician': {
     place: 'authorizations',
     label: 'Cadrul tehnic PSI',
-    detail: 'Numele și certificatul lui, pentru un contract care cuprinde și PSI.',
+    detail: 'Numele și certificatul lui, pentru un contract care cuprinde și SU.',
     target: () => to.authorizations('fire-safety-technician'),
   },
   'client.tradeRegisterNumber': {

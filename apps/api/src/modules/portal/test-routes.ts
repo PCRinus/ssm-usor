@@ -199,7 +199,7 @@ export const getPortalMaterialRoute = createRoute({
   tags,
   summary: 'The material a test closes, as its issued PDF',
   description:
-    "The newest issued revision of the client's general training material (`ssm`) or fire-safety own instructions (`psi`), the IPSU with its annexes. 404 with reason `material_not_issued` while there is none.",
+    "The newest issued revision of the client's general training material (`ssm`) or fire-safety own instructions (`su`), the IPSU with its annexes. 404 with reason `material_not_issued` while there is none.",
   security: bearerSecurity,
   middleware: [requireAuth, requireParticipant] as const,
   request: { params: participantParams.extend({ domain: trainingDomainSchema }) },

@@ -74,11 +74,11 @@ const trainingStatus = {
   ssm_last_periodic_on: '2026-04-03',
   ssm_interval_months: 6,
   ssm_interval_source: 'client',
-  psi_state: 'untrained',
-  psi_due_on: null,
-  psi_last_periodic_on: null,
-  psi_interval_months: null,
-  psi_interval_source: null,
+  su_state: 'untrained',
+  su_due_on: null,
+  su_last_periodic_on: null,
+  su_interval_months: null,
+  su_interval_source: null,
 };
 
 const employeeRow = {
@@ -105,10 +105,10 @@ const employeeRow = {
     ssm_state: 'pending',
     ssm_awaiting_test: 'hiring',
     ssm_last_passed_on: null,
-    psi_state: 'none',
-    psi_awaiting_test: null,
-    psi_last_passed_on: null,
-    psi_due_on: null,
+    su_state: 'none',
+    su_awaiting_test: null,
+    su_last_passed_on: null,
+    su_due_on: null,
   },
 };
 
@@ -533,7 +533,7 @@ describe('GET /portal/participants/{participantId}/training-records', () => {
       },
     ]);
     expect(body.training.ssm).toMatchObject({ state: 'current', dueOn: '2027-01-06' });
-    expect(body.training.psi.state).toBe('untrained');
+    expect(body.training.su.state).toBe('untrained');
 
     const query = calls('/rest/v1/training_records')[0]!.url.searchParams;
     expect(query.get('employee_id')).toBe(`eq.${employeeId}`);
@@ -659,7 +659,7 @@ describe('the sheets', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       ssm: { ready: true, missing: [], stored: false, sequences: [] },
-      psi: { ready: true, missing: [], stored: false, sequences: [] },
+      su: { ready: true, missing: [], stored: false, sequences: [] },
     });
   });
 
@@ -672,7 +672,7 @@ describe('the sheets', () => {
     const readiness = await request(own('/sheets'));
     expect(await readiness.json()).toEqual({
       ssm: { ready: true, missing: [], stored: true, sequences: [1] },
-      psi: { ready: true, missing: [], stored: false, sequences: [] },
+      su: { ready: true, missing: [], stored: false, sequences: [] },
     });
 
     const response = await request(own('/sheets/ssm'));
@@ -733,11 +733,11 @@ describe("the client administrator's places", () => {
           position: 'Sudor',
           workplace: 'Atelier',
           training: expect.objectContaining({
-            psi: expect.objectContaining({ state: 'untrained' }),
+            su: expect.objectContaining({ state: 'untrained' }),
           }),
           tests: {
             ssm: { state: 'pending', awaitingTest: 'hiring', lastPassedOn: null, dueOn: null },
-            psi: { state: 'none', awaitingTest: null, lastPassedOn: null, dueOn: null },
+            su: { state: 'none', awaitingTest: null, lastPassedOn: null, dueOn: null },
           },
         },
       ],
@@ -755,7 +755,7 @@ describe("the client administrator's places", () => {
     '/employees',
     `/employees/${colleagueId}/training-records`,
     `/employees/${colleagueId}/sheets`,
-    `/employees/${colleagueId}/sheets/psi`,
+    `/employees/${colleagueId}/sheets/su`,
   ])('answers 403 to an employee for %s', async (path) => {
     mockUpstream();
 

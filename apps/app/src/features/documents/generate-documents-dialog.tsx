@@ -233,7 +233,7 @@ function GenerateDocumentsForm({
                 isOwner && (
                   <Button asChild variant="outline" size="sm">
                     <Link
-                      to="/organization/authorizations"
+                      to="/organizatie/abilitari"
                       search={{ focus: 'risk-evaluator' }}
                       onClick={() => startWayBack({ userId, clientId, to: 'documents' })}
                     >
@@ -302,7 +302,7 @@ function GenerateDocumentsForm({
               </Field>
               <Field
                 id="generate-first-number"
-                label={occupationalSafety ? 'Numărul primei decizii' : 'Numărul primei decizii PSI'}
+                label={occupationalSafety ? 'Numărul primei decizii' : 'Numărul primei decizii SU'}
                 mark="required"
                 hint={
                   occupationalSafety

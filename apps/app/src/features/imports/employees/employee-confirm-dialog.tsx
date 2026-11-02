@@ -173,7 +173,7 @@ export function EmployeeConfirmDialog({
         }),
         queryClient.refetchQueries({ queryKey: getGetClientQueryKey(clientId) }),
       ]);
-      await navigate({ to: '/clients/$clientId/employees', params: { clientId } });
+      await navigate({ to: '/clienti/$clientId/angajati', params: { clientId } });
       // The client's header reads its route's loader, which keeps the client it loaded.
       await router.invalidate();
     } catch (cause) {
@@ -201,9 +201,9 @@ export function EmployeeConfirmDialog({
     }
   }
 
-  const ssmPsi = [
+  const ssmSu = [
     summary.tests.ssm > 0 ? `${summary.tests.ssm} SSM` : null,
-    summary.tests.psi > 0 ? `${summary.tests.psi} PSI` : null,
+    summary.tests.su > 0 ? `${summary.tests.su} SU` : null,
   ].filter(Boolean);
 
   return (
@@ -285,16 +285,16 @@ export function EmployeeConfirmDialog({
                 detail={`${roCount(summary.rows, 'rând', 'rânduri')} de pe fișe, transcrise de pe fișa pe hârtie. Rândurile cu aceeași zi, același instructor și același fel de instruire devin o singură instruire, cu toți participanții ei.`}
               />
             )}
-            {ssmPsi.length > 0 && (
+            {ssmSu.length > 0 && (
               <Line
                 icon={<BadgeCheck className="size-4" />}
-                count={summary.tests.ssm + summary.tests.psi}
+                count={summary.tests.ssm + summary.tests.su}
                 label={count(
-                  summary.tests.ssm + summary.tests.psi,
+                  summary.tests.ssm + summary.tests.su,
                   'test la angajare verificat pe fișă',
                   'teste la angajare verificate pe fișă'
                 )}
-                detail={`${ssmPsi.join(' și ')}. Examinatorul e cel care a semnat pe fișă la verificarea cunoștințelor.`}
+                detail={`${ssmSu.join(' și ')}. Examinatorul e cel care a semnat pe fișă la verificarea cunoștințelor.`}
               />
             )}
             {summary.files > 0 && (
@@ -315,7 +315,7 @@ export function EmployeeConfirmDialog({
             <Line
               icon={<RotateCcw className="size-4" />}
               label="Nicio instruire și niciun test de refăcut"
-              detail="Testul la angajare verificat pe fișă nu li se mai cere. Următoarea instruire periodică și testul anual PSI se socotesc de la datele de pe fișe."
+              detail="Testul la angajare verificat pe fișă nu li se mai cere. Următoarea instruire periodică și testul anual SU se socotesc de la datele de pe fișe."
             />
           </Group>
           {(summary.noContact.length > 0 ||

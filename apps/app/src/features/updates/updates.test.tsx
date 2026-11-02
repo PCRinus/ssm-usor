@@ -66,7 +66,7 @@ const first: Release = {
   publishedAt: '2026-10-23T09:00:00.000Z',
   headline: 'Prima versiune publică',
   lead: 'SSM Ușor se deschide pentru primii clienți.',
-  features: [feature('Documentația SSM și PSI')],
+  features: [feature('Documentația SSM și SU')],
   improvements: [],
   fixes: [],
   unread: false,

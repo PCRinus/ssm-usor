@@ -34,7 +34,7 @@ export type AnnualReportContext = {
   year: number;
   /** The year its measures are proposed for. */
   nextYear: number;
-  /** The decisions of the set, in the binder's order: "nr. 4 PSI din 19.01.2026". */
+  /** The decisions of the set, in the binder's order: "nr. 4 SU din 19.01.2026". */
   decisions: { title: string; reference: string }[];
   /** "Ion VLAD, Șef magazin". */
   coordinator: string;
@@ -169,7 +169,7 @@ export function buildAnnualReport({
       {
         title: document.title,
         reference: [
-          document.decisionNumber !== null && `nr.\u00a0${document.decisionNumber}\u00a0PSI`,
+          document.decisionNumber !== null && `nr.\u00a0${document.decisionNumber}\u00a0SU`,
           date && `din ${printedDate(date)}`,
         ]
           .filter(Boolean)

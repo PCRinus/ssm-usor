@@ -765,7 +765,7 @@ export function toProposal(...readings: Reading[]): Proposal {
       ),
       ...unplaced.map(
         (name) =>
-          `Datele PSI ale locului de muncă «${name}» nu se potrivesc cu niciun punct de lucru și nu au fost preluate.`
+          `Datele SU ale locului de muncă «${name}» nu se potrivesc cu niciun punct de lucru și nu au fost preluate.`
       ),
       ...unplacedPositions.map(
         (name) =>

@@ -26,7 +26,7 @@ export const documentKindLabels: Record<string, string> = {
   training_themes: 'Tematică de instruire',
   training_material: 'Material de instruire',
   risk_assessment: 'Evaluare de riscuri',
-  fire_safety_document: 'Document PSI',
+  fire_safety_document: 'Document SU',
   contract: 'Contract',
   training_sheet: 'Fișă de instruire',
   blank_form: 'Formular necompletat',

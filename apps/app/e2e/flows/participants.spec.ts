@@ -35,7 +35,7 @@ test('a member invites an employee to the portal by email and revokes the invita
   expect(created.status).toBe(201);
   const { employee } = (await created.json()) as { employee: { id: string } };
 
-  await signIn(page, owner.email, `/clients/${clientId}/employees/${employee.id}`);
+  await signIn(page, owner.email, `/clienti/${clientId}/angajati/${employee.id}`);
   const card = page.getByTestId('employee-portal-card');
   await expect(card.getByTestId('participant-none')).toContainText(email);
 
@@ -54,9 +54,9 @@ test('a member invites an employee to the portal by email and revokes the invita
   );
   expect(await emailsTo(email, 'participant-invitation')).toHaveLength(1);
 
-  await page.goto(`/clients/${clientId}/employees`);
+  await page.goto(`/clienti/${clientId}/angajati`);
   await page.getByTestId('client-section').filter({ hasText: 'Portal' }).click();
-  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/portal$`));
+  await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/portal$`));
   const employees = page.getByTestId('portal-employees-card');
   const row = employees.getByTestId('portal-employee-row');
   await expect(row).toHaveCount(1);
@@ -74,7 +74,7 @@ test('a member invites an employee to the portal by email and revokes the invita
   await page.getByTestId('participant-invitation-revoke-dialog-confirm').click();
   await expect(employees.getByTestId('portal-employees-empty')).toBeVisible();
 
-  await page.goto(`/clients/${clientId}/employees/${employee.id}`);
+  await page.goto(`/clienti/${clientId}/angajati/${employee.id}`);
   await expect(card.getByTestId('participant-none')).toBeVisible();
   await expect(card.getByTestId('participant-invite')).toBeVisible();
 });

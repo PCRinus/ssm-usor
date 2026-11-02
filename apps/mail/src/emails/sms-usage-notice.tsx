@@ -249,7 +249,7 @@ SmsUsageNotice.PreviewProps = {
   overageCents: 10,
   periodStart: '2026-10-14T08:00:00.000Z',
   periodEnd: '2026-11-14T08:00:00.000Z',
-  subscriptionUrl: 'https://app.ssmusor.ro/organization/subscription',
+  subscriptionUrl: 'https://app.ssmusor.ro/organizatie/abonament',
 } satisfies SmsUsageNoticeProps;
 
 const figures: CSSProperties = {

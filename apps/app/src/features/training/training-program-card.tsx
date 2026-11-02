@@ -295,7 +295,7 @@ function TrainingProgramSummary({
           <p className="mt-1 text-sm text-muted-foreground">
             Toate posturile urmează intervalul categoriei lor. Poți seta un interval diferit în{' '}
             <Link
-              to="/clients/$clientId/job-positions"
+              to="/clienti/$clientId/posturi"
               params={{ clientId }}
               className="underline underline-offset-4"
             >
@@ -320,7 +320,7 @@ function TrainingProgramSummary({
               Decizia de instruire include doar intervalele pe categorii. Intervalele speciale se
               schimbă din{' '}
               <Link
-                to="/clients/$clientId/job-positions"
+                to="/clienti/$clientId/posturi"
                 params={{ clientId }}
                 className="underline underline-offset-4"
               >

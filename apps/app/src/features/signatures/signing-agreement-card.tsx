@@ -216,7 +216,7 @@ export function SigningAgreementCard({
           action={
             <Button asChild variant="outline" size="sm">
               <Link
-                to="/clients/$clientId/employees/$employeeId/edit"
+                to="/clienti/$clientId/angajati/$employeeId/editare"
                 params={{ clientId: employee.clientId, employeeId: employee.id }}
               >
                 Modifică datele
@@ -234,7 +234,7 @@ export function SigningAgreementCard({
           data-testid="signing-agreement-no-representative"
           action={
             <Button asChild variant="outline" size="sm">
-              <Link to="/clients/$clientId/details" params={{ clientId: employee.clientId }}>
+              <Link to="/clienti/$clientId/detalii" params={{ clientId: employee.clientId }}>
                 Datele clientului
               </Link>
             </Button>
@@ -251,7 +251,7 @@ export function SigningAgreementCard({
           data-testid="signing-agreement-annex"
           action={
             <Button asChild variant="outline" size="sm">
-              <Link to="/clients/$clientId/documents" params={{ clientId: employee.clientId }}>
+              <Link to="/clienti/$clientId/documente-ssm" params={{ clientId: employee.clientId }}>
                 Documente SSM
               </Link>
             </Button>

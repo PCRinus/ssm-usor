@@ -74,7 +74,7 @@ export const listInstructionModulesRoute = createRoute({
   operationId: 'listInstructionModules',
   summary: "List the organization's instruction modules",
   description:
-    'The library (ADR 012), by domain, group and title, each module with its current version and how many current positions apply it. Archived modules are left out unless `archived=true`, which lists only them; `domain` lists the modules of one set only, `ssm` or `psi`.',
+    'The library (ADR 012), by domain, group and title, each module with its current version and how many current positions apply it. Archived modules are left out unless `archived=true`, which lists only them; `domain` lists the modules of one set only, `ssm` or `su`.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { query: instructionModuleListQuerySchema },

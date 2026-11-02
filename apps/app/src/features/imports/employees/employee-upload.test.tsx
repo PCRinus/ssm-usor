@@ -127,7 +127,7 @@ function deferred() {
 }
 
 async function openDialog(button: 'employees-import' | 'employees-import-found') {
-  mountApp(authFixture(makeSession()).client, `/clients/${clientId}/employees`);
+  mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/angajati`);
   await userEvent.click(await screen.findByTestId(button));
   return screen.findByTestId('employee-upload-dialog');
 }

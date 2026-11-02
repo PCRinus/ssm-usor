@@ -101,7 +101,7 @@ const recordRows = [
 const templatesUrl = new URL('../../../../../packages/document-engine/templates/', import.meta.url);
 const templateFiles: Record<string, string> = {
   training_sheet_ssm: 'fisa_instruire_ssm.docx',
-  training_sheet_psi: 'fire/fisa_instructaj_psi.docx',
+  training_sheet_su: 'fire/fisa_instructaj_su.docx',
 };
 
 type Handler = (url: URL) => Response | Promise<Response>;
@@ -120,7 +120,7 @@ const resultRows = [
   },
   {
     test: 'hiring',
-    domain: 'psi',
+    domain: 'su',
     taken_on: '2026-01-07',
     material: 'Test de verificare a cunoștințelor la angajare (TASU)',
     examiner_name: 'Radu STAN',
@@ -234,7 +234,7 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheets', () =>
     expect(response.status).toBe(200);
     expect(trainingSheetsResponseSchema.parse(await response.json())).toEqual({
       ssm: { ready: true, missing: [], stored: false, sequences: [] },
-      psi: { ready: true, missing: [], stored: false, sequences: [] },
+      su: { ready: true, missing: [], stored: false, sequences: [] },
     });
     expect(calls('/rest/v1/training_records')).toHaveLength(0);
     const query = new URL(String(calls('/rest/v1/employees')[0]![0])).searchParams;
@@ -257,7 +257,7 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheets', () =>
         stored: false,
         sequences: [],
       },
-      psi: { ready: false, missing: ['employee.workplace'], stored: false, sequences: [] },
+      su: { ready: false, missing: ['employee.workplace'], stored: false, sequences: [] },
     });
   });
 
@@ -275,14 +275,14 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheets', () =>
       employees: () => Response.json([{ ...employeeRow, commute_route: null }]),
       sheets: () =>
         Response.json([
-          { domain: 'psi', sequence: 1 },
-          { domain: 'psi', sequence: 2 },
+          { domain: 'su', sequence: 1 },
+          { domain: 'su', sequence: 2 },
         ]),
     });
     const body = trainingSheetsResponseSchema.parse(await (await request(sheetsPath)).json());
     expect(body).toEqual({
       ssm: { ready: false, missing: ['employee.commute_route'], stored: false, sequences: [] },
-      psi: { ready: true, missing: [], stored: true, sequences: [1, 2] },
+      su: { ready: true, missing: [], stored: true, sequences: [1, 2] },
     });
     const query = new URL(String(calls('/rest/v1/signed_sheets')[0]![0])).searchParams;
     expect(query.get('employee_id')).toBe(`eq.${employeeId}`);
@@ -395,12 +395,12 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheet', () => 
     expect(missing.status).toBe(404);
   });
 
-  it('merges the fire-safety template for the PSI sheet', async () => {
+  it('merges the fire-safety template for the SU sheet', async () => {
     mockUpstream({ employees: () => Response.json([{ ...employeeRow, commute_route: null }]) });
-    const response = await request(sheetPath('psi'));
+    const response = await request(sheetPath('su'));
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Disposition')).toContain(
-      'filename="Fisa-PSI-Popescu-Ion.pdf"'
+      'filename="Fisa-SU-Popescu-Ion.pdf"'
     );
     const text = documentText(new Uint8Array(convertDocx.mock.calls[0]![0]));
     expect(text).toContain('de instructaj în domeniul situațiilor de urgență');

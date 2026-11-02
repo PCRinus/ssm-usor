@@ -10,7 +10,7 @@ const env: MailEnv = {
   MAIL_REPLY_TO: 'contact@ssmusor.ro',
 };
 
-const acceptUrl = 'https://app.ssmusor.ro/accept-invitation?token=abc123';
+const acceptUrl = 'https://app.ssmusor.ro/invitatie?token=abc123';
 
 async function sendInvitation(inviterName: string | null) {
   const sent: OutgoingEmail[] = [];

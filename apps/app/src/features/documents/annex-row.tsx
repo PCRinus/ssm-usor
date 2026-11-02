@@ -36,7 +36,7 @@ export function AnnexRow({
       <TableCell className={packCells.title}>
         <div className="pl-5">
           <Link
-            to="/instructions/$moduleId"
+            to="/instructiuni/$moduleId"
             params={{ moduleId: annex.moduleId }}
             search={{ version: annex.version.id }}
             state={{ openedFromList: true }}
@@ -78,7 +78,7 @@ export function AnnexRow({
           <DropdownMenuContent align="end">
             <DropdownMenuItem asChild data-testid="document-annex-open">
               <Link
-                to="/instructions/$moduleId"
+                to="/instructiuni/$moduleId"
                 params={{ moduleId: annex.moduleId }}
                 search={{ version: annex.version.id }}
                 state={{ openedFromList: true }}

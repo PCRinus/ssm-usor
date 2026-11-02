@@ -115,10 +115,10 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
           ssm_state: 'pending',
           ssm_awaiting_test: 'hiring',
           ssm_last_passed_on: null,
-          psi_state: 'none',
-          psi_awaiting_test: null,
-          psi_last_passed_on: null,
-          psi_due_on: null,
+          su_state: 'none',
+          su_awaiting_test: null,
+          su_last_passed_on: null,
+          su_due_on: null,
         },
       }),
     results: (_, url) =>
@@ -266,7 +266,7 @@ describe('GET /portal/participants/{participantId}/tests', () => {
       options: [{ text: 'Da' }, { text: 'Nu' }, { text: 'Uneori' }],
       chosen: [0],
     });
-    expect(body.psi.inProgress).toBeNull();
+    expect(body.su.inProgress).toBeNull();
     const [finishedQuery, openQuery] = calls('/rest/v1/test_attempts').map(
       ([input]) => new URL(String(input)).searchParams
     );
@@ -284,16 +284,16 @@ describe('GET /portal/participants/{participantId}/tests', () => {
             ssm_state: 'passed',
             ssm_awaiting_test: null,
             ssm_last_passed_on: '2026-10-20',
-            psi_state: 'none',
-            psi_awaiting_test: null,
-            psi_last_passed_on: null,
-            psi_due_on: null,
+            su_state: 'none',
+            su_awaiting_test: null,
+            su_last_passed_on: null,
+            su_due_on: null,
           },
         }),
     });
     const body = portalTestsResponseSchema.parse(await (await request(own('/tests'))).json());
     expect(body.ssm.inProgress).toBeNull();
-    expect(body.psi.inProgress).toBeNull();
+    expect(body.su.inProgress).toBeNull();
   });
 
   it('answers 404 to a client administrator who is not an employee', async () => {
@@ -330,7 +330,7 @@ describe('GET /portal/participants/{participantId}/tests/{domain}/{test}/study-c
   it('has no material while none is issued, and refuses an annual occupational safety test', async () => {
     mockUpstream({ material: () => Response.json([]) });
     const card = testStudyCardSchema.parse(
-      await (await request(own('/tests/psi/annual/study-card'))).json()
+      await (await request(own('/tests/su/annual/study-card'))).json()
     );
     expect(card.material).toBeNull();
     expect((await request(own('/tests/ssm/annual/study-card'))).status).toBe(400);
@@ -360,7 +360,7 @@ describe('POST /portal/participants/{participantId}/tests/{domain}/{test}/attemp
 
   it('answers 409 when the test does not await the employee', async () => {
     mockUpstream({ start: () => raised('TST05', 'test_not_awaiting') });
-    const response = await request(own('/tests/psi/annual/attempts'), 'POST');
+    const response = await request(own('/tests/su/annual/attempts'), 'POST');
     expect(response.status).toBe(409);
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('test_not_awaiting');
   });
@@ -562,12 +562,12 @@ describe('GET /portal/participants/{participantId}/materials/{domain}', () => {
 
   it('answers 404 with a reason while none is issued', async () => {
     mockUpstream({ material: () => Response.json([]) });
-    const response = await request(own('/materials/psi'));
+    const response = await request(own('/materials/su'));
     expect(response.status).toBe(404);
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('material_not_issued');
     expect(sent('/rest/v1/rpc/portal_material')).toEqual({
       p_participant_id: participantId,
-      p_domain: 'psi',
+      p_domain: 'su',
     });
   });
 });

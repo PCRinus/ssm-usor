@@ -1,6 +1,6 @@
 ---
 title: Instruirea și testele unui angajat
-description: Ce arată taburile Instruire SSM și Instruire PSI ale unui angajat, cum se calculează termenul, când îl așteaptă un test și cum se întocmește fișa individuală.
+description: Ce arată taburile Instruire SSM și Instruire SU ale unui angajat, cum se calculează termenul, când îl așteaptă un test și cum se întocmește fișa individuală.
 topics:
   - id: angajati.instruire
     heading: Taburile de instruire
@@ -63,11 +63,11 @@ sources:
   - supabase/migrations/20261101100100_hiring_test_after_app_training.sql
 ---
 
-Pe pagina unui angajat, **Instruire SSM** și **Instruire PSI** adună tot ce ține de instruirea lui în acel domeniu: starea și termenul, testele, fiecare instruire la care a participat și fișa individuală.
+Pe pagina unui angajat, **Instruire SSM** și **Instruire SU** adună tot ce ține de instruirea lui în acel domeniu: starea și termenul, testele, fiecare instruire la care a participat și fișa individuală.
 
 ## Taburile de instruire
 
-Cele două taburi arată la fel. Sus ai **Descarcă fișa SSM** (sau **PSI**), **Previzualizează** și **Înregistrează o instruire**. Dedesubt:
+Cele două taburi arată la fel. Sus ai **Descarcă fișa SSM** (sau **SU**), **Previzualizează** și **Înregistrează o instruire**. Dedesubt:
 
 - **Starea instruirii**: Neinstruit, La zi, Scadentă sau Depășită (vezi [Starea instruirii](/clienti/angajati/));
 - **Următoarea instruire**: termenul, sau de ce nu există încă unul;
@@ -94,7 +94,7 @@ Câteva cazuri:
 Intervalul vine din locuri diferite în cele două domenii:
 
 - **SSM**: intervalul propriu al postului, dacă postul are unul; altfel, intervalul din programul de instruire al clientului pentru categoria de personal a postului. Sub interval scrie „din postul …” sau „din programul de instruire al clientului”, cu link spre locul unde îl schimbi.
-- **PSI**: întotdeauna intervalul din datele de instruire PSI ale clientului, pentru categoria de personal a postului. Un post nu își poate avea propriul interval PSI.
+- **SU**: întotdeauna intervalul din datele de instruire SU ale clientului, pentru categoria de personal a postului. Un post nu își poate avea propriul interval SU.
 
 În SSM, intervalul se stabilește prin programul de instruire-testare și nu poate depăși 6 luni; pentru personalul tehnico-administrativ, cel mult 12 luni (HG 1425/2006, art. 96 alin. (2), (2¹) și (3)).
 
@@ -120,7 +120,7 @@ Alegi tipul **Periodică suplimentară** și motivul, unul dintre cazurile din H
 - modificarea tehnologiilor existente sau a procedurilor de lucru;
 - introducerea unei noi tehnologii sau proceduri de lucru.
 
-Pe fișa SSM, instruirile suplimentare au tabelul lor. Pe fișa PSI apar în tabelul instruirilor periodice.
+Pe fișa SSM, instruirile suplimentare au tabelul lor. Pe fișa SU apar în tabelul instruirilor periodice.
 
 ### Instruirile de pe fișa pe hârtie
 
@@ -140,7 +140,7 @@ Poți înregistra astfel și instruirile unui fost angajat.
 
 O instruire semnată electronic nu se mai poate modifica și nici șterge: sub butoane vezi de ce. Ca s-o corectezi, anulează întâi semnăturile, cu un motiv. O instruire care are orice semnătură, chiar anulată sau pe hârtie, nu se mai poate șterge, pentru că semnăturile rămân în evidență.
 
-O instruire de pe fișa pe hârtie nu are semnături electronice de anulat. La prima semnătură electronică pe fișa SSM sau PSI a unui angajat, fișa lui tipărește ca text instruirile de pe hârtie ale domeniului, iar o fișă semnată nu se mai schimbă. De atunci, acele instruiri nu se mai pot nici modifica, nici șterge. Verifică deci instruirile preluate de pe hârtie înainte ca angajatul să semneze electronic prima instruire ținută în aplicație.
+O instruire de pe fișa pe hârtie nu are semnături electronice de anulat. La prima semnătură electronică pe fișa SSM sau SU a unui angajat, fișa lui tipărește ca text instruirile de pe hârtie ale domeniului, iar o fișă semnată nu se mai schimbă. De atunci, acele instruiri nu se mai pot nici modifica, nici șterge. Verifică deci instruirile preluate de pe hârtie înainte ca angajatul să semneze electronic prima instruire ținută în aplicație.
 
 ## Testarea
 
@@ -151,14 +151,14 @@ Cardul **Testare** arată starea testării, ce urmează, rezultatele și încerc
 Un test nu se trimite. Îl așteaptă pe angajat de la sine, din momentul în care e îndeplinită condiția:
 
 - **Testul la angajare SSM** (TASSM), după ce înregistrezi instruirea introductiv-generală ținută în aplicație, pe care o încheie (HG 1425/2006, art. 89 alin. (1)).
-- **Testul la angajare PSI** (TASU), după ce înregistrezi instruirea la locul de muncă ținută în aplicație. OMAI 712/2005 cere câte o verificare pe bază de teste: la sfârșitul instructajului introductiv-general (art. 14) și înainte de admiterea definitivă la lucru, după instructajul la locul de muncă (art. 20). Aplicația le acoperă deocamdată cu un singur test, după instruirea la locul de muncă.
-- **Testul anual PSI** (TPSU). OMAI 712/2005 cere o verificare anuală pe bază de test, consemnată în fișa individuală (art. 30); aplicația o cere la 12 luni de la ultimul test PSI promovat, până angajatul îl promovează.
+- **Testul la angajare SU** (TASU), după ce înregistrezi instruirea la locul de muncă ținută în aplicație. OMAI 712/2005 cere câte o verificare pe bază de teste: la sfârșitul instructajului introductiv-general (art. 14) și înainte de admiterea definitivă la lucru, după instructajul la locul de muncă (art. 20). Aplicația le acoperă deocamdată cu un singur test, după instruirea la locul de muncă.
+- **Testul anual SU** (TPSU). OMAI 712/2005 cere o verificare anuală pe bază de test, consemnată în fișa individuală (art. 30); aplicația o cere la 12 luni de la ultimul test SU promovat, până angajatul îl promovează.
 
 În SSM nu există test periodic.
 
 O instruire la angajare preluată de pe fișa pe hârtie s-a încheiat cu testul consemnat pe fișă (HG 1425/2006, art. 89 alin. (2)), așa că testul la angajare nu îl mai așteaptă pe angajat. Dacă cea mai recentă instruire la angajare a domeniului e de pe hârtie și nu e înregistrat niciun test promovat, starea testării e **Neverificat pe fișă**: „Testul la angajare nu a putut fi verificat pe fișă: semnătura nu se vede clar sau lipsește.” Testul nu apare în portal, nu se numără pe **Dashboard** și nu apare niciun avertisment. Dacă originalul arată testul promovat, înregistrează-l ca rezultat de pe hârtie. Importul din fișe face asta singur acolo unde semnătura verificatorului se vede pe fotografie. Dacă după aceea ții în aplicație o nouă instruire la angajare, testul îl așteaptă din nou ca de obicei.
 
-Testul anual PSI nu depinde de unde vine instruirea: e cerut la 12 luni de la ultimul test promovat.
+Testul anual SU nu depinde de unde vine instruirea: e cerut la 12 luni de la ultimul test promovat.
 
 Cât timp testul la angajare nu e promovat, vezi un avertisment pe tab. Aplicația doar semnalează lipsa: nu blochează nimic. Admiterea la lucru rămâne decizia angajatorului.
 
@@ -172,14 +172,14 @@ La **Încercări în portal** vezi fiecare încercare cu scorul ei și dacă a f
 
 Pentru un angajat fără portal, tipărește testul din documentele clientului. După ce l-a completat și l-a promovat, alege **Înregistrează un rezultat de pe hârtie** și completează testul, ziua în care l-a susținut, examinatorul și funcția lui.
 
-Butonul apare cât timp testul la angajare e de susținut sau neverificat pe fișă și, în PSI, pentru testul anual: oricând după primul test promovat, iar la un angajat neverificat pe fișă și fără el, pentru testele anuale consemnate pe fișa pe hârtie. Ziua nu poate fi în viitor. Un test nepromovat nu se înregistrează: contează susținerea următoare.
+Butonul apare cât timp testul la angajare e de susținut sau neverificat pe fișă și, în SU, pentru testul anual: oricând după primul test promovat, iar la un angajat neverificat pe fișă și fără el, pentru testele anuale consemnate pe fișa pe hârtie. Ziua nu poate fi în viitor. Un test nepromovat nu se înregistrează: contează susținerea următoare.
 
 ### Examinatorul
 
 Examinatorul apare pe fișa individuală, în rândul rezultatului. Aplicația îl propune:
 
 - în SSM, pe cel care a ținut instruirea introductiv-generală a angajatului; la un rezultat de pe hârtie, pe specialistul SSM al organizației;
-- în PSI, pe cadrul tehnic PSI al organizației sau, dacă nu e numit, pe cel care a ținut instruirea introductiv-generală.
+- în SU, pe cadrul tehnic PSI al organizației sau, dacă nu e numit, pe cel care a ținut instruirea introductiv-generală.
 
 Dacă nu are pe cine propune, scrie „nenumit încă” și ai **Numește examinatorul**. Îl poți schimba cu **Modifică examinatorul** până când examinatorul semnează fișa de test.
 
@@ -187,7 +187,7 @@ Dacă nu are pe cine propune, scrie „nenumit încă” și ai **Numește exami
 
 Un test promovat în portal are fișa lui de test: un PDF cu întrebările, răspunsurile alese, scorul și calificativul, pe care îl semnează angajatul și examinatorul. Îl găsești sub rezultat. Un rezultat de pe hârtie nu are fișă de test, pentru că testul s-a semnat pe exemplarul tipărit.
 
-Pe fișa individuală SSM, rezultatele apar în blocul „Rezultatele testărilor”. Pe fișa PSI, fiecare test promovat apare ca rând în tabelul instruirilor periodice, de exemplu „Verificare anuală pe bază de test (TPSU): admis”.
+Pe fișa individuală SSM, rezultatele apar în blocul „Rezultatele testărilor”. Pe fișa SU, fiecare test promovat apare ca rând în tabelul instruirilor periodice, de exemplu „Verificare anuală pe bază de test (TPSU): admis”.
 
 ## Fișa individuală de instruire
 
@@ -214,12 +214,12 @@ Atunci vezi pe tab „Fișa SSM nu se poate întocmi încă” și **Vezi ce lip
 
 După prima semnătură electronică, fișa se păstrează semnată, rând cu rând. Când se umple, continuă pe o fișă nouă.
 
-- **Descarcă fișa SSM (copie de citire)**, și la fel pentru PSI, îți dă toate fișele angajatului într-un singur PDF, bun de citit și de tipărit. Copia nu are semnături valabile.
+- **Descarcă fișa SSM (copie de citire)**, și la fel pentru SU, îți dă toate fișele angajatului într-un singur PDF, bun de citit și de tipărit. Copia nu are semnături valabile.
 - **Originalele** îți dă fiecare fișă semnată, cu semnăturile ei verificabile: „Fișa 1”, apoi „Fișa 2 (continuare)” și așa mai departe. Pe acestea le arăți la un control.
 
 ## Semnăturile unei instruiri
 
-Fiecare instruire înregistrată în aplicație are rubrici de semnătură: **Instruit**, **Instructor** și, unde fișa le are, **Verificator** și **Admite la lucru**. Fișa PSI are doar rubricile celui instruit și ale celui care a instruit.
+Fiecare instruire înregistrată în aplicație are rubrici de semnătură: **Instruit**, **Instructor** și, unde fișa le are, **Verificator** și **Admite la lucru**. Fișa SU are doar rubricile celui instruit și ale celui care a instruit.
 
 Angajatul își semnează rubrica din portal, cu un cod primit pe email sau prin SMS. O rubrică semnată de mână o marchezi cu **Marchează semnat pe hârtie**.
 

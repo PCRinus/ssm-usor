@@ -39,8 +39,8 @@ insert into public.employees (id, organization_id, client_id, job_position_id, l
 
 insert into public.trainings (id, organization_id, client_id, domain, phase, held_on, duration_minutes, material, trainer_name, trainer_job_title) values
   ('a1a1a1a1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'introductory_general', '2026-01-05', 240, 'MISSMIG', 'Ana SPECIALIST', 'Inspector SSM'),
-  ('a1a1a1a1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 'introductory_general', '2026-01-05', 480, 'IPSU', 'Mihai VECHI', 'Cadru tehnic PSI'),
-  ('a1a1a1a1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 'workplace', '2026-01-06', 480, 'IPSU', 'Mihai VECHI', 'Cadru tehnic PSI'),
+  ('a1a1a1a1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'su', 'introductory_general', '2026-01-05', 480, 'IPSU', 'Mihai VECHI', 'Cadru tehnic PSI'),
+  ('a1a1a1a1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'su', 'workplace', '2026-01-06', 480, 'IPSU', 'Mihai VECHI', 'Cadru tehnic PSI'),
   ('a1a1a1a1-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'introductory_general', '2026-01-05', 240, 'MISSMIG', 'Ana SPECIALIST', 'Inspector SSM');
 
 insert into public.training_records (organization_id, client_id, training_id, phase, employee_id, occupation)
@@ -55,7 +55,7 @@ join public.trainings t on t.id = v.training_id::uuid;
 
 -- A fire-safety pass more than a year old: the annual test is due.
 insert into public.test_results (organization_id, client_id, employee_id, domain, test, taken_on, material, examiner_name, examiner_job_title, source)
-select '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000003', 'psi', 'hiring', d.today - 400, 'Test de verificare a cunoștințelor la angajare (TASU)', 'Mihai VECHI', 'Cadru tehnic PSI', 'paper'
+select '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000003', 'su', 'hiring', d.today - 400, 'Test de verificare a cunoștințelor la angajare (TASU)', 'Mihai VECHI', 'Cadru tehnic PSI', 'paper'
 from day d;
 
 insert into public.client_participants (id, organization_id, client_id, kind, employee_id, full_name, user_id) values
@@ -92,7 +92,7 @@ $$;
 
 select results_eq(
   $$ select domain::text, test::text, count(*)::integer from public.test_questions where organization_id is null group by 1, 2 order by 1, 2 $$,
-  $$ values ('psi', 'annual', 10), ('psi', 'hiring', 12), ('ssm', 'hiring', 10) $$,
+  $$ values ('ssm', 'hiring', 10), ('su', 'annual', 10), ('su', 'hiring', 12) $$,
   'the built-in questions are seeded: ten, twelve and ten'
 );
 
@@ -172,7 +172,7 @@ select lives_ok(
 );
 
 select throws_ok(
-  $$ update public.test_questions set domain = 'psi' where id = '0a0a0a0a-0000-4000-8000-000000000001' $$,
+  $$ update public.test_questions set domain = 'su' where id = '0a0a0a0a-0000-4000-8000-000000000001' $$,
   '42501', null, 'an own question never moves to another test'
 );
 
@@ -273,7 +273,7 @@ select throws_ok(
 select pg_temp.act_as('dddddddd-0000-4000-8000-000000000001');
 
 select throws_ok(
-  $$ select public.start_test_attempt('9e9e9e9e-0000-4000-8000-000000000001', 'psi', 'annual') $$,
+  $$ select public.start_test_attempt('9e9e9e9e-0000-4000-8000-000000000001', 'su', 'annual') $$,
   'TST05', 'test_not_awaiting', 'the annual test does not await before a fire-safety pass'
 );
 
@@ -503,7 +503,7 @@ select is(
 );
 
 select results_eq(
-  $$ select psi_state::text, psi_awaiting_test::text from public.employee_test_status where employee_id = 'e1e1e1e1-0000-4000-8000-000000000003' $$,
+  $$ select su_state::text, su_awaiting_test::text from public.employee_test_status where employee_id = 'e1e1e1e1-0000-4000-8000-000000000003' $$,
   $$ values ('annual_due', 'annual') $$,
   'twelve months after the last fire-safety pass, the annual test is due'
 );
@@ -511,7 +511,7 @@ select results_eq(
 select pg_temp.act_as('dddddddd-0000-4000-8000-000000000003');
 
 insert into attempt_ids
-select 'annual', (public.start_test_attempt('9e9e9e9e-0000-4000-8000-000000000003', 'psi', 'annual')).id;
+select 'annual', (public.start_test_attempt('9e9e9e9e-0000-4000-8000-000000000003', 'su', 'annual')).id;
 
 select pg_temp.act_as_postgres();
 select pg_temp.keep_key('annual');
@@ -538,7 +538,7 @@ select results_eq(
 select pg_temp.act_as('dddddddd-0000-4000-8000-000000000001');
 
 insert into attempt_ids
-select 'overtaken', (public.start_test_attempt('9e9e9e9e-0000-4000-8000-000000000001', 'psi', 'hiring')).id;
+select 'overtaken', (public.start_test_attempt('9e9e9e9e-0000-4000-8000-000000000001', 'su', 'hiring')).id;
 
 select pg_temp.act_as_postgres();
 select pg_temp.keep_key('overtaken');
@@ -546,7 +546,7 @@ select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
 
 select lives_ok(
   $$ insert into public.test_results (organization_id, client_id, employee_id, domain, test, taken_on, material, examiner_name, examiner_job_title, source)
-     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'psi', 'hiring', (select today from day), 'Test de verificare a cunoștințelor la angajare (TASU)', 'Vasile TEHNIC', 'Cadru tehnic PSI', 'paper') $$,
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'su', 'hiring', (select today from day), 'Test de verificare a cunoștințelor la angajare (TASU)', 'Vasile TEHNIC', 'Cadru tehnic PSI', 'paper') $$,
   'a member records a paper result'
 );
 
@@ -640,7 +640,7 @@ select results_eq(
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
 
 select results_eq(
-  $$ select employee_id::text, ssm_state::text, ssm_awaiting_test::text, psi_state::text, psi_awaiting_test::text
+  $$ select employee_id::text, ssm_state::text, ssm_awaiting_test::text, su_state::text, su_awaiting_test::text
      from public.employee_test_status order by employee_id $$,
   $$ values
        ('e1e1e1e1-0000-4000-8000-000000000001', 'passed', null, 'passed', null),
@@ -651,7 +651,7 @@ select results_eq(
 );
 
 select is(
-  (select psi_due_on from public.employee_test_status where employee_id = 'e1e1e1e1-0000-4000-8000-000000000003'),
+  (select su_due_on from public.employee_test_status where employee_id = 'e1e1e1e1-0000-4000-8000-000000000003'),
   (select (today + interval '12 months')::date from day),
   'the annual test is due twelve months after the last fire-safety pass'
 );
@@ -663,7 +663,7 @@ delete from public.test_results where employee_id = 'e1e1e1e1-0000-4000-8000-000
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
 
 select results_eq(
-  $$ select psi_state::text, psi_awaiting_test::text, psi_hiring_trained_on from public.employee_test_status where employee_id = 'e1e1e1e1-0000-4000-8000-000000000001' $$,
+  $$ select su_state::text, su_awaiting_test::text, su_hiring_trained_on from public.employee_test_status where employee_id = 'e1e1e1e1-0000-4000-8000-000000000001' $$,
   $$ values ('pending', 'hiring', '2026-01-06'::date) $$,
   'the fire-safety hiring test awaits from the workplace training record'
 );
@@ -704,7 +704,7 @@ insert into public.employees (id, organization_id, client_id, job_position_id, l
 
 insert into public.trainings (id, organization_id, client_id, domain, phase, held_on, duration_minutes, material, trainer_name, trainer_job_title, source) values
   ('a1a1a1a1-0000-4000-8000-000000000005', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'introductory_general', '2019-03-04', 480, 'MISSMIG', 'Ana SPECIALIST', 'Inspector SSM', 'paper'),
-  ('a1a1a1a1-0000-4000-8000-000000000006', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 'workplace', '2019-03-05', 480, 'IPSU', 'Mihai VECHI', 'Cadru tehnic PSI', 'paper'),
+  ('a1a1a1a1-0000-4000-8000-000000000006', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'su', 'workplace', '2019-03-05', 480, 'IPSU', 'Mihai VECHI', 'Cadru tehnic PSI', 'paper'),
   ('a1a1a1a1-0000-4000-8000-000000000007', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'introductory_general', '2026-02-02', 240, 'MISSMIG', 'Ana SPECIALIST', 'Inspector SSM', 'app'),
   ('a1a1a1a1-0000-4000-8000-000000000008', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'introductory_general', '2018-01-08', 480, 'MISSMIG', 'Ana SPECIALIST', 'Inspector SSM', 'app');
 
@@ -725,7 +725,7 @@ insert into public.test_results (organization_id, client_id, employee_id, domain
   ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000006', 'ssm', 'hiring', '2019-03-04', 'Test de verificare a cunoștințelor la angajare (TASSM)', 'Ana SPECIALIST', 'Inspector SSM', 'paper');
 
 select results_eq(
-  $$ select ssm_state::text, ssm_awaiting_test::text, ssm_hiring_trained_on, psi_state::text, psi_awaiting_test::text
+  $$ select ssm_state::text, ssm_awaiting_test::text, ssm_hiring_trained_on, su_state::text, su_awaiting_test::text
      from public.employee_test_status where employee_id = 'e1e1e1e1-0000-4000-8000-000000000005' $$,
   $$ values ('unverified', null::text, '2019-03-04'::date, 'unverified', null::text) $$,
   'hiring trainings only from paper and no pass: unverified in both domains, no test awaits'

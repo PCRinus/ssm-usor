@@ -30,6 +30,6 @@ export default function PasswordReset({ resetUrl, expiresInMinutes }: PasswordRe
 }
 
 PasswordReset.PreviewProps = {
-  resetUrl: 'https://app.ssmusor.ro/reset-password?token_hash=exemplu',
+  resetUrl: 'https://app.ssmusor.ro/resetare-parola?token_hash=exemplu',
   expiresInMinutes: 60,
 } satisfies PasswordResetProps;

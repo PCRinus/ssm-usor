@@ -12,13 +12,13 @@ export function EvaluationLink({
 }) {
   return evaluation.jobPosition ? (
     <Link
-      to="/clients/$clientId/job-positions/$jobPositionId/risk-evaluation"
+      to="/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri"
       params={{ clientId: evaluation.clientId, jobPositionId: evaluation.jobPosition.id }}
       {...props}
     />
   ) : (
     <Link
-      to="/clients/$clientId/job-positions/risk-evaluations/$evaluationId"
+      to="/clienti/$clientId/posturi/evaluari-riscuri/$evaluationId"
       params={{ clientId: evaluation.clientId, evaluationId: evaluation.id }}
       {...props}
     />

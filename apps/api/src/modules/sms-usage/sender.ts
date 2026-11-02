@@ -140,7 +140,7 @@ export function smsSenderFor(env: ApiEnv['Bindings'], later: (work: Promise<unkn
     store,
     recipient: (organizationId) => noticeRecipient(db, organizationId),
     mail: env.MAIL,
-    subscriptionUrl: () => new URL('/organization/subscription', appOrigin(env)).href,
+    subscriptionUrl: () => new URL('/organizatie/abonament', appOrigin(env)).href,
   });
   return createSmsSender({
     sms: env.SMS,

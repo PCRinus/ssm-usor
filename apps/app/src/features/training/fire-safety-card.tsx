@@ -86,7 +86,7 @@ export function FireSafetySection({
               </Button>
             }
           >
-            Nu am putut încărca instruirea PSI.
+            Nu am putut încărca instruirea SU.
           </Notice>
         </CardContent>
       </Card>
@@ -137,7 +137,7 @@ function FireSafetyCard({
   return (
     <SectionCard
       data-testid="fire-safety-card"
-      title="Instruire PSI"
+      title="Instruire SU"
       action={
         !readOnly &&
         !editing && (
@@ -339,7 +339,7 @@ function useFireSafetyForm({
       await queryClient.invalidateQueries({
         queryKey: [...getGetClientFireSafetyQueryKey(clientId), userId],
       });
-      savedToast('Instruirea PSI a fost salvată.');
+      savedToast('Instruirea SU a fost salvată.');
       onDone();
     } catch (cause) {
       const status = cause instanceof ApiHttpError ? cause.status : null;
@@ -353,7 +353,7 @@ function useFireSafetyForm({
               ? 'Clientul nu mai există în organizația ta.'
               : status === 401
                 ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-                : 'Nu am putut salva instruirea PSI. Verifică conexiunea și încearcă din nou.',
+                : 'Nu am putut salva instruirea SU. Verifică conexiunea și încearcă din nou.',
       });
     }
   });

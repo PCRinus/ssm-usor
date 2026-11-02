@@ -27,7 +27,7 @@ import {
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
-import { MoreHorizontal, Plus } from 'lucide-react';
+import { ExternalLink, MoreHorizontal, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -64,7 +64,7 @@ const failureMessage = (cause: unknown, fallback: string) => {
     return 'Clientul are substanțe în listă; șterge-le înainte să declari că nu utilizează niciuna.';
   }
   if (status === 409 && reason === 'client_is_lead') {
-    return 'Un client potențial nu are încă date PSI.';
+    return 'Un client potențial nu are încă date SU.';
   }
   if (status === 409) return 'Clientul este arhivat; datele lui nu se mai schimbă.';
   if (status === 404) return 'Substanța nu mai există la acest client; lista a fost reîncărcată.';
@@ -77,6 +77,10 @@ const stateBadge = (state: FireSubstancesState, count: number) =>
     : state === 'none'
       ? 'Nu se utilizează'
       : substanceCountLabel(count);
+
+// The general norms are their own document on the portal, apart from the order that approves them
+// (80730, the act the legislation tracker watches); the anchor is the portal's own for art. 18.
+const listArticlePage = 'https://legislatie.just.ro/Public/DetaliiDocument/80731#id_artA18';
 
 export function SubstancesCard({
   clientId,
@@ -172,7 +176,24 @@ export function SubstancesCard({
           )}
         </span>
       }
-      description="Lista substanțelor periculoase (OMAI 163/2007) se cere fiecărui client, oricâți angajați are. Produsele de curățenie, carburanții, vopselele, diluanții și buteliile de gaz sunt substanțe clasificate."
+      description={
+        <>
+          Lista substanțelor periculoase se cere fiecărui client, oricâți angajați are (
+          <a
+            href={listArticlePage}
+            target="_blank"
+            rel="noreferrer"
+            data-testid="fire-substances-law"
+            className="inline-flex items-center gap-1 underline underline-offset-4"
+          >
+            OMAI 163/2007
+            <ExternalLink className="size-3.5" aria-label="(se deschide pe Portalul Legislativ)" />
+          </a>
+          , {'art.\u00a018\u00a0lit.\u00a0p)'} și{' '}
+          {'art.\u00a020\u00a0alin.\u00a0(3)\u00a0lit.\u00a0g)'}). Produsele de curățenie,
+          carburanții, vopselele, diluanții și buteliile de gaz sunt substanțe clasificate.
+        </>
+      }
     >
       {error && (
         <Notice variant="destructive" data-testid="fire-substances-error">
@@ -238,7 +259,7 @@ export function SubstancesCard({
             <p data-testid="fire-substances-undecided" className="text-sm text-muted-foreground">
               {readOnly
                 ? 'Nu s-a stabilit dacă clientul utilizează substanțe periculoase.'
-                : 'Documentele PSI nu se pot genera până nu alegi una dintre variante.'}
+                : 'Documentele SU nu se pot genera până nu alegi una dintre variante.'}
             </p>
           )}
           {state === 'none' && (
@@ -266,7 +287,7 @@ export function SubstancesCard({
               </div>
               {items.length === 0 ? (
                 <p data-testid="fire-substances-empty" className="text-sm text-muted-foreground">
-                  Nicio substanță încă. Documentele PSI cer cel puțin una când clientul utilizează
+                  Nicio substanță încă. Documentele SU cer cel puțin una când clientul utilizează
                   substanțe periculoase.
                 </p>
               ) : (
@@ -368,9 +389,9 @@ export function SubstancesCard({
               <DialogTitle>Ștergi substanța?</DialogTitle>
               <DialogDescription>
                 <span className="font-medium text-foreground">{deleting.name}</span> nu va mai
-                apărea în documentele PSI generate de acum înainte.
+                apărea în documentele SU generate de acum înainte.
                 {items.length === 1 &&
-                  ' Este singura din listă: fără ea, documentele PSI nu se pot genera până nu adaugi alta sau declari că nu se utilizează substanțe periculoase.'}
+                  ' Este singura din listă: fără ea, documentele SU nu se pot genera până nu adaugi alta sau declari că nu se utilizează substanțe periculoase.'}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="mt-2">

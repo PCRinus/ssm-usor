@@ -303,7 +303,7 @@ export function testIncluded(changes: Changes, row: SheetRow, matched: boolean) 
 
 const testPhases: Record<TrainingDomain, TrainingPhase[]> = {
   ssm: ['introductory_general'],
-  psi: ['workplace', 'introductory_general'],
+  su: ['workplace', 'introductory_general'],
 };
 
 /**
@@ -315,7 +315,7 @@ export function hiringTestRowIds(
   rows: readonly Pick<SheetRow, 'id' | 'domain' | 'phase' | 'heldOn' | 'testOnly' | 'test'>[]
 ): Set<string> {
   const ids = new Set<string>();
-  for (const domain of ['ssm', 'psi'] as const) {
+  for (const domain of ['ssm', 'su'] as const) {
     const phase = testPhases[domain].find((each) =>
       rows.some((row) => row.domain === domain && row.phase === each && !row.testOnly)
     );
@@ -1075,7 +1075,7 @@ export function trainingsByDomain(
   const matched = person !== undefined && isExisting(context, person);
   const tested = testedRows(context, personId);
   const inApp = (row: SheetRow) => matched && row.flags.includes('in_app');
-  return (['ssm', 'psi'] as const).map((domain) => {
+  return (['ssm', 'su'] as const).map((domain) => {
     const own = rows.filter(({ row }) => row.domain === domain);
     const shown = own.filter(({ row }) => !inApp(row));
     const hiring = shown.filter(({ row }) => hiringPhases.has(row.phase) && !row.testOnly);
@@ -1134,7 +1134,7 @@ export const isWritten = (context: ReviewContext, person: Person) =>
 // The phase of the hiring record whose test the app waits for, as `employee_test_due` reads it.
 const testedHiringPhase: Record<TrainingDomain, TrainingPhase> = {
   ssm: 'introductory_general',
-  psi: 'workplace',
+  su: 'workplace',
 };
 
 function endsTerminated(context: ReviewContext, person: Person) {
@@ -1156,7 +1156,7 @@ export function untestedDomains(context: ReviewContext, person: Person): Trainin
   const rows = ownRows(context, person.id).map(({ row }) => row);
   const matched = isExisting(context, person);
   const tested = testedRows(context, person.id);
-  return (['ssm', 'psi'] as const).filter((domain) => {
+  return (['ssm', 'su'] as const).filter((domain) => {
     const own = rows.filter((row) => row.domain === domain);
     const transcribed = own.some(
       (row) =>
@@ -1183,7 +1183,7 @@ export function confirmSummary(context: ReviewContext) {
   const created = written.filter((person) => !isExisting(context, person));
   const held = new Set<string>();
   let rows = 0;
-  const tests = { ssm: 0, psi: 0 };
+  const tests = { ssm: 0, su: 0 };
   const files = new Set<string>();
   const unusual: { person: Person; row: SheetRow }[] = [];
   const untested: { person: Person; domain: TrainingDomain }[] = [];

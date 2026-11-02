@@ -64,9 +64,9 @@ from day d, (values
   ('a1a1a1a1-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 120),
   ('a1a1a1a1-0000-4000-8000-000000000002', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 75),
   ('a1a1a1a1-0000-4000-8000-000000000003', 'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 10),
-  ('a1a1a1a1-0000-4000-8000-000000000004', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 10),
-  ('a1a1a1a1-0000-4000-8000-000000000005', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 200),
-  ('a1a1a1a1-0000-4000-8000-000000000006', 'c1c1c1c1-0000-4000-8000-000000000001', 'psi', 160),
+  ('a1a1a1a1-0000-4000-8000-000000000004', 'c1c1c1c1-0000-4000-8000-000000000001', 'su', 10),
+  ('a1a1a1a1-0000-4000-8000-000000000005', 'c1c1c1c1-0000-4000-8000-000000000001', 'su', 200),
+  ('a1a1a1a1-0000-4000-8000-000000000006', 'c1c1c1c1-0000-4000-8000-000000000001', 'su', 160),
   ('a1a1a1a1-0000-4000-8000-000000000007', 'c1c1c1c1-0000-4000-8000-000000000003', 'ssm', 30)
 ) as v (id, client_id, domain, days_ago);
 
@@ -86,7 +86,7 @@ from (values
 join public.trainings t on t.id = v.training_id::uuid;
 
 insert into public.test_results (organization_id, client_id, employee_id, domain, test, taken_on, material, examiner_name, examiner_job_title, source)
-select '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'psi', 'hiring', d.today - 5, 'Test de verificare a cunoștințelor la angajare (TASU)', 'Mihai VECHI', 'Cadru tehnic PSI', 'paper'
+select '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'su', 'hiring', d.today - 5, 'Test de verificare a cunoștințelor la angajare (TASU)', 'Mihai VECHI', 'Cadru tehnic PSI', 'paper'
 from day d;
 
 insert into public.signature_requests (organization_id, client_id, training_record_id, slot, signer_account_id, issued_at, state, voided_at, void_reason) values
@@ -172,7 +172,7 @@ select results_eq(
 );
 
 select results_eq(
-  $$ select psi_overdue, psi_due, psi_untrained, psi_current from public.dashboard_summary $$,
+  $$ select su_overdue, su_due, su_untrained, su_current from public.dashboard_summary $$,
   $$ values (1, 1, 1, 2) $$,
   'fire safety counts its own states'
 );

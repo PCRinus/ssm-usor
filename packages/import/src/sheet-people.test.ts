@@ -90,7 +90,7 @@ describe('placePages', () => {
       pageKind: 'ssm_sheet_front',
       person: { lastName: 'Coman', firstName: 'Daniela', cnp: cnps.rusu },
     });
-    const byCnp = page({ pageKind: 'psi_sheet_front', person: { cnp: cnps.coman } });
+    const byCnp = page({ pageKind: 'su_sheet_front', person: { cnp: cnps.coman } });
     const placed = placePages(pagesOf(comanFront, namesake, byCnp));
 
     expect(placed.groups).toEqual([['page-1', 'page-3'], ['page-2']]);
@@ -119,7 +119,7 @@ describe('placePages', () => {
 
   it('takes a CNP whose control digit fails for no CNP, so a misread digit splits nobody', () => {
     const misread = page({
-      pageKind: 'psi_sheet_front',
+      pageKind: 'su_sheet_front',
       person: { lastName: 'Coman', firstName: 'Daniela', cnp: `${cnps.coman.slice(0, 12)}4` },
     });
     const placed = placePages(pagesOf(comanFront, misread));

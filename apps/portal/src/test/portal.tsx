@@ -158,7 +158,7 @@ export function trainingRecords(
       },
       {
         id: '6f0c3e43-0c1b-4f4b-8a1e-0000000000a2',
-        domain: 'psi',
+        domain: 'su',
         phase: 'introductory_general',
         heldOn: '2026-02-03',
         durationMinutes: 480,
@@ -174,7 +174,7 @@ export function trainingRecords(
     ],
     training: {
       ssm: trainingStatus(),
-      psi: trainingStatus({ state: 'overdue', dueOn: '2026-08-03', intervalMonths: 12 }),
+      su: trainingStatus({ state: 'overdue', dueOn: '2026-08-03', intervalMonths: 12 }),
     },
     ...overrides,
   };
@@ -220,7 +220,7 @@ export const testStatus = (
 });
 
 export function portalTests(
-  overrides: { ssm?: Partial<PortalDomainTests>; psi?: Partial<PortalDomainTests> } = {}
+  overrides: { ssm?: Partial<PortalDomainTests>; su?: Partial<PortalDomainTests> } = {}
 ): PortalTestsResponse {
   const domain = (domainOverrides: Partial<PortalDomainTests> = {}) => ({
     status: testStatus(),
@@ -231,6 +231,6 @@ export function portalTests(
   });
   return {
     ssm: domain(overrides.ssm) as PortalTestsResponse['ssm'],
-    psi: domain(overrides.psi) as PortalTestsResponse['psi'],
+    su: domain(overrides.su) as PortalTestsResponse['su'],
   };
 }

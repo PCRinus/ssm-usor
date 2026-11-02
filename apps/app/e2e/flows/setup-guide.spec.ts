@@ -37,11 +37,11 @@ test('a new organization’s owner follows the guide to the first client, closes
   await expect(step(page, 'workplaces-positions')).toHaveAttribute('data-state', 'locked');
 
   await step(page, 'client').getByTestId('setup-step-action-0').click();
-  await expect(page).toHaveURL(/\/clients\/new$/);
+  await expect(page).toHaveURL(/\/clienti\/nou$/);
   await page.getByTestId('client-cui').fill('1590082');
   await page.getByTestId('client-legal-name').fill('Alfa Construct SRL');
   await page.getByTestId('client-submit').click();
-  await expect(page).toHaveURL(/\/clients$/);
+  await expect(page).toHaveURL(/\/clienti$/);
 
   await expect(guide(page).getByTestId('setup-guide-count')).toHaveText('5 din 15');
   await expect(step(page, 'client')).toHaveAttribute('data-state', 'done');
@@ -94,7 +94,7 @@ test('a specialist joining a firm with a client sees the firm’s steps as the o
   await expect(step(page, 'professional-title')).toHaveAttribute('data-state', 'next');
   await expect(step(page, 'professional-title').getByTestId('setup-step-action-0')).toHaveAttribute(
     'href',
-    '/profile?focus=professional-title'
+    '/profil?focus=professional-title'
   );
 
   const clientGroup = guide(page).getByTestId('setup-guide-group-client');

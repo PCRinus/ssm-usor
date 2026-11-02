@@ -56,7 +56,7 @@ pnpm dev:app
 
 Open `http://localhost:5173/`. An existing Supabase email/password user can sign in.
 The [development admin guide](development-admin.md) documents the seeded account and how to
-rerun the seed. Registration exists at `/register` but nothing links to it yet; the login
+rerun the seed. Registration exists at `/inregistrare` but nothing links to it yet; the login
 page shows a link only when built with `VITE_REGISTRATION_LINK=true`. Missing configuration produces an unavailable
 screen instead of a broken form.
 
@@ -161,95 +161,94 @@ Routes are file-based under `src/routes`; the TanStack Router Vite plugin genera
 `src/routeTree.gen.ts` from them (also via `pnpm generate:routes`, which CI checks like the
 API client). `src/app/router.ts` builds the router from that tree with the injected context.
 
-| File                                                                                       | Route                                                       | Behavior                                                                                                                                                                                                    |
-| ------------------------------------------------------------------------------------------ | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `routes/index.tsx`                                                                         | `/`                                                         | Redirects to `/dashboard`, which checks the session.                                                                                                                                                        |
-| `routes/login.tsx`                                                                         | `/login`                                                    | Email/password form; an existing session redirects to `/dashboard`.                                                                                                                                         |
-| `routes/accept-invitation.tsx`                                                             | `/accept-invitation`                                        | Public. Where an invitation email lands: create an account, or join with an existing one.                                                                                                                   |
-| `routes/forgot-password.tsx`                                                               | `/forgot-password`                                          | Public. Asks Supabase for a password reset email.                                                                                                                                                           |
-| `routes/reset-password.tsx`                                                                | `/reset-password`                                           | Public. Where a password reset email lands: choose a new password.                                                                                                                                          |
-| `routes/register.tsx`                                                                      | `/register`                                                 | Public and unlinked. Supabase's signup: email and password.                                                                                                                                                 |
-| `routes/confirm-email.tsx`                                                                 | `/confirm-email`                                            | Public. Where a signup confirmation email lands; confirms on a button press.                                                                                                                                |
-| `routes/onboarding.tsx`                                                                    | `/onboarding`                                               | Signed in, outside the shell. An account without an organization creates one.                                                                                                                               |
-| `routes/_authenticated.tsx`                                                                | pathless                                                    | Session guard and the app shell for every protected page.                                                                                                                                                   |
-| `routes/_authenticated/dashboard.tsx`                                                      | `/dashboard`                                                | The Dashboard: what to do, the clients' trainings, the portfolio, and the contracts for owners.                                                                                                             |
-| `routes/_authenticated/organization.tsx`                                                   | `/organization`                                             | The organization's name, the caller's role, and the row of sections.                                                                                                                                        |
-| `routes/_authenticated/organization/index.tsx`                                             | `/organization`                                             | Redirects to the team.                                                                                                                                                                                      |
-| `routes/_authenticated/organization/team.tsx`                                              | `/organization/team`                                        | The members for everyone; invitations, the invite dialog and the row menus for owners.                                                                                                                      |
-| `routes/_authenticated/organization/company.tsx`                                           | `/organization/company`                                     | "Date firmă": what documents print about the provider as a company. Owners edit.                                                                                                                            |
-| `routes/_authenticated/organization/authorizations.tsx`                                    | `/organization/authorizations`                              | "Abilitări": the certificate of authorization, the fire-safety technician and their authorization. Owners edit.                                                                                             |
-| `routes/_authenticated/profile.tsx`                                                        | `/profile`                                                  | The user's name and professional title (editable), email, and organization.                                                                                                                                 |
-| `routes/_authenticated/setari.tsx`                                                         | `/setari`                                                   | "Setări": the account's preferences, as sections; for now "Ghiduri", the setup guide's progress and "Arată ghidul".                                                                                         |
-| `routes/_authenticated/clients.tsx`                                                        | pathless                                                    | Clients section layout carrying the breadcrumb title.                                                                                                                                                       |
-| `routes/_authenticated/clients/index.tsx`                                                  | `/clients`                                                  | Protected, paginated and sortable list of the organization's active clients.                                                                                                                                |
-| `routes/_authenticated/clients/new.tsx`                                                    | `/clients/new`                                              | Protected form that creates a client, with ANAF prefill by CUI.                                                                                                                                             |
-| `routes/_authenticated/clients/import/$importId.tsx`                                       | `/clients/import/:importId`                                 | Layout of an import from documents (ADR 030) carrying the breadcrumb title "Import din documente".                                                                                                          |
-| `routes/_authenticated/clients/import/$importId/index.tsx`                                 | `/clients/import/:importId`                                 | The import: its steps and files while it runs, the review hub once the proposal is ready.                                                                                                                   |
-| `routes/_authenticated/clients/import/$importId/files.tsx`                                 | `/clients/import/:importId/files`                           | "Fișierele importului": the files by what the reading made of them, from the review.                                                                                                                        |
-| `routes/_authenticated/clients/import/$importId/$section.tsx`                              | `/clients/import/:importId/:section`                        | One section of the review; the loader names the breadcrumb after it.                                                                                                                                        |
-| `routes/_authenticated/clients/import/$importId/instructions/$domain.tsx`                  | `/clients/import/:importId/instructions/:domain`            | A library task of the import, IPSSM (`ssm`) or IPSU (`psi`) (ADR 034); the loader names the breadcrumb after it.                                                                                            |
-| `routes/_authenticated/clients/$clientId/edit.tsx`                                         | `/clients/:id/edit`                                         | Redirects to the details, for addresses from before the client had them. So do `contact.tsx` (`/clients/:id/contact`), `document-data.tsx` to training, and `other-documents/contract.tsx` to the contract. |
-| `routes/_authenticated/clients/$clientId.tsx`                                              | `/clients/:id`                                              | Client layout: loads the client through `GET /clients/{clientId}`, shows its summary card and section tabs, returns the breadcrumb label from its loader.                                                   |
-| `routes/_authenticated/clients/$clientId/index.tsx`                                        | `/clients/:id`                                              | Redirects to the details.                                                                                                                                                                                   |
-| `routes/_authenticated/clients/$clientId/details.tsx`                                      | `/clients/:id/details`                                      | "Detalii": one card per kind of data, each edited in place: the company, the legal representative, the workplaces, the contact, and the owners' notes for an owner.                                         |
-| `routes/_authenticated/clients/$clientId/employees.tsx`                                    | pathless                                                    | Employees section layout carrying the breadcrumb title.                                                                                                                                                     |
-| `routes/_authenticated/clients/$clientId/employees/index.tsx`                              | `/clients/:id/employees`                                    | The client's employees with a status filter, the state filters (`trainingState`, `testState`) and a text search (`q`) in the search params.                                                                 |
-| `routes/_authenticated/clients/$clientId/employees/new.tsx`                                | `/clients/:id/employees/new`                                | Form that adds an employee to the client.                                                                                                                                                                   |
-| `routes/_authenticated/clients/$clientId/employees/import/$importId.tsx`                   | `/clients/:id/employees/import/:importId`                   | Layout of an employee import (ADR 032), full page, carrying the breadcrumb "Angajați din fișe" and the store its review saves through.                                                                      |
-| `routes/_authenticated/clients/$clientId/employees/import/$importId/index.tsx`             | `/clients/:id/employees/import/:importId`                   | The employee import: its steps and photographs while it runs, the people hub once it is ready.                                                                                                              |
-| `routes/_authenticated/clients/$clientId/employees/import/$importId/$personId.tsx`         | `/clients/:id/employees/import/:importId/:personId`         | One person of the import, by the proposal's id; the loader names the breadcrumb after them.                                                                                                                 |
-| `routes/_authenticated/clients/$clientId/job-positions/index.tsx`                          | `/clients/:id/job-positions`                                | The client's job positions (ADR 006): the posts it employs people in, then the risk evaluations that are not of a position (ADR 015).                                                                       |
-| `routes/_authenticated/clients/$clientId/job-positions/$jobPositionId.tsx`                 | `/clients/:id/job-positions/:jobPositionId`                 | Layout of one position: finds it in the client's list of positions and names the breadcrumb.                                                                                                                |
-| `routes/_authenticated/clients/$clientId/job-positions/$jobPositionId/index.tsx`           | `/clients/:id/job-positions/:jobPositionId`                 | One position with its protective equipment (ADR 011), the instruction modules it applies (ADR 012) and its risk evaluation (ADR 015).                                                                       |
-| `routes/_authenticated/clients/$clientId/job-positions/$jobPositionId/risk-evaluation.tsx` | `/clients/:id/job-positions/:jobPositionId/risk-evaluation` | The position's risk evaluation, read by the position; offers to start one while there is none.                                                                                                              |
-| `routes/_authenticated/clients/$clientId/job-positions/risk-evaluations.$evaluationId.tsx` | `/clients/:id/job-positions/risk-evaluations/:evaluationId` | A risk evaluation that is not of a position: the sensitive groups, or one with a name. A position's evaluation found here redirects to its address under the position.                                      |
-| `routes/_authenticated/employees/index.tsx`                                                | `/employees`                                                | "Angajați" (ADR 021), the sidebar entry after "Clienți": every client's employees in one list, with the status, client and state filters, the text search and the sort in the search params.                |
-| `routes/_authenticated/instructions.tsx`                                                   | `/instructions`                                             | Layout of the instruction library (ADR 012), the sidebar entry "Instrucțiuni proprii" (ADR 034) between the clients and the organization.                                                                   |
-| `routes/_authenticated/instructions/index.tsx`                                             | `/instructions`                                             | Opens the SSM tab, `/instructions/ssm`.                                                                                                                                                                     |
-| `routes/_authenticated/instructions/_library.tsx`                                          | `/instructions/*`                                           | Pathless layout of the library: the title and the section navigation with one tab per domain.                                                                                                               |
-| `routes/_authenticated/instructions/_library/ssm.tsx`                                      | `/instructions/ssm`                                         | The occupational safety modules by group, writing, correcting and archiving them.                                                                                                                           |
-| `routes/_authenticated/instructions/_library/psi.tsx`                                      | `/instructions/psi`                                         | The fire-safety modules, the same list for the `psi` domain.                                                                                                                                                |
-| `routes/_authenticated/instructions/new.tsx`                                               | `/instructions/new`                                         | A new module's form, from "Scrie o instrucțiune": title, domain, category and an optional module to copy in the search; nothing stored before the first save.                                               |
-| `routes/_authenticated/instructions/$moduleId.tsx`                                         | `/instructions/:moduleId`                                   | One module's form; `?version=` a version a document annexed, and an archived module, as the annex prints in the Word viewer, only to read.                                                                  |
-| `routes/_authenticated/risks.tsx`                                                          | `/risks`                                                    | Layout of the risk library (ADR 015), the sidebar entry "Riscuri" after "Instrucțiuni proprii".                                                                                                             |
-| `routes/_authenticated/risks/index.tsx`                                                    | `/risks`                                                    | The library: the evaluation profiles by name with their counts and global level; "Profil nou", renaming, deleting.                                                                                          |
-| `routes/_authenticated/risks/$profileId.tsx`                                               | `/risks/:profileId`                                         | One profile: its result and its factors, with the evaluation page's cards. Names the breadcrumb after the profile.                                                                                          |
-| `routes/_authenticated/tests.tsx`                                                          | `/tests`                                                    | Layout of the question bank (ADR 024), the sidebar entry "Teste" after "Riscuri".                                                                                                                           |
-| `routes/_authenticated/tests/index.tsx`                                                    | `/tests`                                                    | Opens the SSM tab, `/tests/ssm`.                                                                                                                                                                            |
-| `routes/_authenticated/tests/_bank.tsx`                                                    | `/tests/*`                                                  | Pathless layout of the bank: the title and one tab per domain.                                                                                                                                              |
-| `routes/_authenticated/tests/_bank/ssm.tsx`                                                | `/tests/ssm`                                                | "Teste SSM": the hiring test (TASSM) and its questions.                                                                                                                                                     |
-| `routes/_authenticated/tests/_bank/psi.tsx`                                                | `/tests/psi`                                                | "Teste PSI": the hiring test (TASU) and the annual test (TPSU).                                                                                                                                             |
-| `routes/_authenticated/legislatie.tsx`                                                     | `/legislatie`                                               | Layout of "Legislație" (ADR 017): the title, the last check and the three tabs.                                                                                                                             |
-| `routes/_authenticated/legislatie/index.tsx`                                               | `/legislatie`                                               | Redirects to "Documente de actualizat".                                                                                                                                                                     |
-| `routes/_authenticated/legislatie/documente.tsx`                                           | `/legislatie/documente`                                     | "Documente de actualizat": the documents behind, under SSM and PSI, with bulk regeneration.                                                                                                                 |
-| `routes/_authenticated/legislatie/modificari.tsx`                                          | `/legislatie/modificari`                                    | "Modificări": the legal changes, newest first.                                                                                                                                                              |
-| `routes/_authenticated/legislatie/acte.tsx`                                                | `/legislatie/acte`                                          | "Acte urmărite": the watched acts, sortable, the sort in the search params.                                                                                                                                 |
-| `routes/_authenticated/clients/$clientId/employees/$employeeId_.edit.tsx`                  | `/clients/:id/employees/:employeeId/edit`                   | Corrects an employee in the form that adds one (`employee-form.tsx`). Full page; returns to the employee page. `?focus=commute-route` or `workplace` points at that field.                                  |
-| `routes/_authenticated/clients/$clientId/fire-safety-means.tsx`                            | `/clients/:id/fire-safety-means`                            | "Mijloace PSI" (ADR 018): the fire-fighting equipment and installations of each active workplace, their other periodic checks, the building of each fixed space, and the dangerous substances.              |
-| `routes/_authenticated/clients/$clientId/training.tsx`                                     | `/clients/:id/training`                                     | "Instruire și responsabili": the two training schedules and the responsible persons the generated documents print.                                                                                          |
-| `routes/_authenticated/clients/$clientId/trainings.tsx`                                    | `/clients/:id/trainings`                                    | "Instruiri ținute" (ADR 021), the tab after "Instruire și responsabili": the trainings held at the client, newest first, each naming its participants, with the domain and the phase in the search params.  |
-| `routes/_authenticated/clients/$clientId/documents/index.tsx`                              | `/clients/:id/documents`                                    | "Documente SSM", the client's generated SSM documentation: generating, downloading, regenerating, issuing.                                                                                                  |
-| `routes/_authenticated/clients/$clientId/documents/$documentId.tsx`                        | `/clients/:id/documents/:documentId`                        | One document in the in-app Word editor; a full page.                                                                                                                                                        |
-| `routes/_authenticated/clients/$clientId/fire-safety-documents/index.tsx`                  | `/clients/:id/fire-safety-documents`                        | "Documente PSI", the client's fire-safety set (ADR 016): the same card, sections and actions as "Documente SSM".                                                                                            |
-| `routes/_authenticated/clients/$clientId/fire-safety-documents/$documentId.tsx`            | `/clients/:id/fire-safety-documents/:documentId`            | One fire-safety document in the in-app Word editor; a full page.                                                                                                                                            |
-| `routes/_authenticated/clients/$clientId/employees/$employeeId.tsx`                        | `/clients/:id/employees/:employeeId`                        | Employee layout: loads the employee, names the breadcrumb, and shows the header and the tabs "Date", "Instruire SSM" and "Instruire PSI".                                                                   |
-| `routes/_authenticated/clients/$clientId/employees/$employeeId/index.tsx`                  | `/clients/:id/employees/:employeeId`                        | "Date": the employee record and files, the only page that can reveal the CNP.                                                                                                                               |
-| `routes/_authenticated/clients/$clientId/employees/$employeeId/training/index.tsx`         | `/clients/:id/employees/:employeeId/training`               | Redirects to "Instruire SSM".                                                                                                                                                                               |
-| `routes/_authenticated/clients/$clientId/employees/$employeeId/training/ssm.tsx`           | `/clients/:id/employees/:employeeId/training/ssm`           | "Instruire SSM" (ADR 021): the occupational safety state and records of the employee.                                                                                                                       |
-| `routes/_authenticated/clients/$clientId/employees/$employeeId/training/psi.tsx`           | `/clients/:id/employees/:employeeId/training/psi`           | "Instruire PSI" (ADR 021): the fire-safety state and records of the employee.                                                                                                                               |
-| `routes/_authenticated/clients/$clientId/contract/index.tsx`                               | `/clients/:id/contract`                                     | "Contract", for owners: the client's service contract (ADR 007).                                                                                                                                            |
-| `routes/_authenticated/clients/$clientId/contract/edit.tsx`                                | `/clients/:id/contract/edit`                                | The client's contract in the editor; a full page.                                                                                                                                                           |
-| `routes/_authenticated/clients/$clientId/other-documents.tsx`                              | `/clients/:id/other-documents`                              | Layout of "Alte documente" carrying the breadcrumb title.                                                                                                                                                   |
-| `routes/_authenticated/clients/$clientId/other-documents/index.tsx`                        | `/clients/:id/other-documents`                              | "Alte documente", the client's files (ADR 013): uploading, opening, downloading, renaming, deleting.                                                                                                        |
-| `routes/_authenticated/clients/$clientId/portal.tsx`                                       | `/clients/:id/portal`                                       | "Portal", the last tab (ADR 022, ADR 023): who of the client signs in to the portal, the administrator and the employees, and the signatures the portal is waiting for.                                     |
-| `routes/_authenticated/leads/$leadId/contract.tsx`                                         | `/leads/:id/contract`                                       | A lead's contract in the editor.                                                                                                                                                                            |
-| `routes/_authenticated/leads.tsx`                                                          | pathless                                                    | Leads section layout carrying the breadcrumb title.                                                                                                                                                         |
-| `routes/_authenticated/leads/index.tsx`                                                    | `/leads`                                                    | Owners' list of the organization's leads (ADR 007), active or archived.                                                                                                                                     |
-| `routes/_authenticated/leads/new.tsx`                                                      | `/leads/new`                                                | The client form, adding a lead.                                                                                                                                                                             |
-| `routes/_authenticated/leads/$leadId.tsx`                                                  | pathless                                                    | Loads the lead through `GET /clients/{clientId}`; a promoted one redirects to its client page.                                                                                                              |
-| `routes/_authenticated/leads/$leadId/index.tsx`                                            | `/leads/:id`                                                | The lead: its company, contact, contract, files and the owners' notes, with "Modifică", archive and "Transformă în client" in the header.                                                                   |
-| `routes/_authenticated/leads/$leadId/edit.tsx`                                             | `/leads/:id/edit`                                           | The client form, filled from the lead.                                                                                                                                                                      |
-| `routes/__root.tsx`                                                                        | other paths                                                 | Not-found screen with a link back to the start; route error screen.                                                                                                                                         |
+| File                                                                                  | Route                                                  | Behavior                                                                                                                                                                                                   |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `routes/index.tsx`                                                                    | `/`                                                    | Redirects to `/dashboard`, which checks the session.                                                                                                                                                       |
+| `routes/autentificare.tsx`                                                            | `/autentificare`                                       | Email/password form; an existing session redirects to `/dashboard`.                                                                                                                                        |
+| `routes/invitatie.tsx`                                                                | `/invitatie`                                           | Public. Where an invitation email lands: create an account, or join with an existing one.                                                                                                                  |
+| `routes/parola-uitata.tsx`                                                            | `/parola-uitata`                                       | Public. Asks Supabase for a password reset email.                                                                                                                                                          |
+| `routes/resetare-parola.tsx`                                                          | `/resetare-parola`                                     | Public. Where a password reset email lands: choose a new password.                                                                                                                                         |
+| `routes/inregistrare.tsx`                                                             | `/inregistrare`                                        | Public and unlinked. Supabase's signup: email and password.                                                                                                                                                |
+| `routes/confirmare-email.tsx`                                                         | `/confirmare-email`                                    | Public. Where a signup confirmation email lands; confirms on a button press.                                                                                                                               |
+| `routes/configurare.tsx`                                                              | `/configurare`                                         | Signed in, outside the shell. An account without an organization creates one.                                                                                                                              |
+| `routes/_authenticated.tsx`                                                           | pathless                                               | Session guard and the app shell for every protected page.                                                                                                                                                  |
+| `routes/_authenticated/dashboard.tsx`                                                 | `/dashboard`                                           | The Dashboard: what to do, the clients' trainings, the portfolio, and the contracts for owners.                                                                                                            |
+| `routes/_authenticated/organizatie.tsx`                                               | `/organizatie`                                         | The organization's name, the caller's role, and the row of sections.                                                                                                                                       |
+| `routes/_authenticated/organizatie/index.tsx`                                         | `/organizatie`                                         | Redirects to the team.                                                                                                                                                                                     |
+| `routes/_authenticated/organizatie/echipa.tsx`                                        | `/organizatie/echipa`                                  | The members for everyone; invitations, the invite dialog and the row menus for owners.                                                                                                                     |
+| `routes/_authenticated/organizatie/date-firma.tsx`                                    | `/organizatie/date-firma`                              | "Date firmă": what documents print about the provider as a company. Owners edit.                                                                                                                           |
+| `routes/_authenticated/organizatie/abilitari.tsx`                                     | `/organizatie/abilitari`                               | "Abilitări": the certificate of authorization, the fire-safety technician and their authorization. Owners edit.                                                                                            |
+| `routes/_authenticated/profil.tsx`                                                    | `/profil`                                              | The user's name and professional title (editable), email, and organization.                                                                                                                                |
+| `routes/_authenticated/setari.tsx`                                                    | `/setari`                                              | "Setări": the account's preferences, as sections; for now "Ghiduri", the setup guide's progress and "Arată ghidul".                                                                                        |
+| `routes/_authenticated/clienti.tsx`                                                   | pathless                                               | Clients section layout carrying the breadcrumb title.                                                                                                                                                      |
+| `routes/_authenticated/clienti/index.tsx`                                             | `/clienti`                                             | Protected, paginated and sortable list of the organization's active clients.                                                                                                                               |
+| `routes/_authenticated/clienti/nou.tsx`                                               | `/clienti/nou`                                         | Protected form that creates a client, with ANAF prefill by CUI.                                                                                                                                            |
+| `routes/_authenticated/clienti/import/$importId.tsx`                                  | `/clienti/import/:importId`                            | Layout of an import from documents (ADR 030) carrying the breadcrumb title "Import din documente".                                                                                                         |
+| `routes/_authenticated/clienti/import/$importId/index.tsx`                            | `/clienti/import/:importId`                            | The import: its steps and files while it runs, the review hub once the proposal is ready.                                                                                                                  |
+| `routes/_authenticated/clienti/import/$importId/fisiere.tsx`                          | `/clienti/import/:importId/fisiere`                    | "Fișierele importului": the files by what the reading made of them, from the review.                                                                                                                       |
+| `routes/_authenticated/clienti/import/$importId/$section.tsx`                         | `/clienti/import/:importId/:section`                   | One section of the review; the loader names the breadcrumb after it.                                                                                                                                       |
+| `routes/_authenticated/clienti/import/$importId/instructiuni/$domain.tsx`             | `/clienti/import/:importId/instructiuni/:domain`       | A library task of the import, IPSSM (`ssm`) or IPSU (`su`) (ADR 034); the loader names the breadcrumb after it.                                                                                            |
+| `routes/_authenticated/clienti/$clientId.tsx`                                         | `/clienti/:id`                                         | Client layout: loads the client through `GET /clients/{clientId}`, shows its summary card and section tabs, returns the breadcrumb label from its loader.                                                  |
+| `routes/_authenticated/clienti/$clientId/index.tsx`                                   | `/clienti/:id`                                         | Redirects to the details.                                                                                                                                                                                  |
+| `routes/_authenticated/clienti/$clientId/detalii.tsx`                                 | `/clienti/:id/detalii`                                 | "Detalii": one card per kind of data, each edited in place: the company, the legal representative, the workplaces, the contact, and the owners' notes for an owner.                                        |
+| `routes/_authenticated/clienti/$clientId/angajati.tsx`                                | pathless                                               | Employees section layout carrying the breadcrumb title.                                                                                                                                                    |
+| `routes/_authenticated/clienti/$clientId/angajati/index.tsx`                          | `/clienti/:id/angajati`                                | The client's employees with a status filter, the state filters (`trainingState`, `testState`) and a text search (`q`) in the search params.                                                                |
+| `routes/_authenticated/clienti/$clientId/angajati/nou.tsx`                            | `/clienti/:id/angajati/nou`                            | Form that adds an employee to the client.                                                                                                                                                                  |
+| `routes/_authenticated/clienti/$clientId/angajati/import/$importId.tsx`               | `/clienti/:id/angajati/import/:importId`               | Layout of an employee import (ADR 032), full page, carrying the breadcrumb "Angajați din fișe" and the store its review saves through.                                                                     |
+| `routes/_authenticated/clienti/$clientId/angajati/import/$importId/index.tsx`         | `/clienti/:id/angajati/import/:importId`               | The employee import: its steps and photographs while it runs, the people hub once it is ready.                                                                                                             |
+| `routes/_authenticated/clienti/$clientId/angajati/import/$importId/$personId.tsx`     | `/clienti/:id/angajati/import/:importId/:personId`     | One person of the import, by the proposal's id; the loader names the breadcrumb after them.                                                                                                                |
+| `routes/_authenticated/clienti/$clientId/posturi/index.tsx`                           | `/clienti/:id/posturi`                                 | The client's job positions (ADR 006): the posts it employs people in, then the risk evaluations that are not of a position (ADR 015).                                                                      |
+| `routes/_authenticated/clienti/$clientId/posturi/$jobPositionId.tsx`                  | `/clienti/:id/posturi/:jobPositionId`                  | Layout of one position: finds it in the client's list of positions and names the breadcrumb.                                                                                                               |
+| `routes/_authenticated/clienti/$clientId/posturi/$jobPositionId/index.tsx`            | `/clienti/:id/posturi/:jobPositionId`                  | One position with its protective equipment (ADR 011), the instruction modules it applies (ADR 012) and its risk evaluation (ADR 015).                                                                      |
+| `routes/_authenticated/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri.tsx` | `/clienti/:id/posturi/:jobPositionId/evaluare-riscuri` | The position's risk evaluation, read by the position; offers to start one while there is none.                                                                                                             |
+| `routes/_authenticated/clienti/$clientId/posturi/evaluari-riscuri.$evaluationId.tsx`  | `/clienti/:id/posturi/evaluari-riscuri/:evaluationId`  | A risk evaluation that is not of a position: the sensitive groups, or one with a name. A position's evaluation found here redirects to its address under the position.                                     |
+| `routes/_authenticated/angajati/index.tsx`                                            | `/angajati`                                            | "Angajați" (ADR 021), the sidebar entry after "Clienți": every client's employees in one list, with the status, client and state filters, the text search and the sort in the search params.               |
+| `routes/_authenticated/instructiuni.tsx`                                              | `/instructiuni`                                        | Layout of the instruction library (ADR 012), the sidebar entry "Instrucțiuni proprii" (ADR 034) between the clients and the organization.                                                                  |
+| `routes/_authenticated/instructiuni/index.tsx`                                        | `/instructiuni`                                        | Opens the SSM tab, `/instructiuni/ssm`.                                                                                                                                                                    |
+| `routes/_authenticated/instructiuni/_library.tsx`                                     | `/instructiuni/*`                                      | Pathless layout of the library: the title and the section navigation with one tab per domain.                                                                                                              |
+| `routes/_authenticated/instructiuni/_library/ssm.tsx`                                 | `/instructiuni/ssm`                                    | The occupational safety modules by group, writing, correcting and archiving them.                                                                                                                          |
+| `routes/_authenticated/instructiuni/_library/su.tsx`                                  | `/instructiuni/su`                                     | The fire-safety modules, the same list for the `su` domain.                                                                                                                                                |
+| `routes/_authenticated/instructiuni/nou.tsx`                                          | `/instructiuni/nou`                                    | A new module's form, from "Scrie o instrucțiune": title, domain, category and an optional module to copy in the search; nothing stored before the first save.                                              |
+| `routes/_authenticated/instructiuni/$moduleId.tsx`                                    | `/instructiuni/:moduleId`                              | One module's form; `?version=` a version a document annexed, and an archived module, as the annex prints in the Word viewer, only to read.                                                                 |
+| `routes/_authenticated/riscuri.tsx`                                                   | `/riscuri`                                             | Layout of the risk library (ADR 015), the sidebar entry "Riscuri" after "Instrucțiuni proprii".                                                                                                            |
+| `routes/_authenticated/riscuri/index.tsx`                                             | `/riscuri`                                             | The library: the evaluation profiles by name with their counts and global level; "Profil nou", renaming, deleting.                                                                                         |
+| `routes/_authenticated/riscuri/$profileId.tsx`                                        | `/riscuri/:profileId`                                  | One profile: its result and its factors, with the evaluation page's cards. Names the breadcrumb after the profile.                                                                                         |
+| `routes/_authenticated/teste.tsx`                                                     | `/teste`                                               | Layout of the question bank (ADR 024), the sidebar entry "Teste" after "Riscuri".                                                                                                                          |
+| `routes/_authenticated/teste/index.tsx`                                               | `/teste`                                               | Opens the SSM tab, `/teste/ssm`.                                                                                                                                                                           |
+| `routes/_authenticated/teste/_bank.tsx`                                               | `/teste/*`                                             | Pathless layout of the bank: the title and one tab per domain.                                                                                                                                             |
+| `routes/_authenticated/teste/_bank/ssm.tsx`                                           | `/teste/ssm`                                           | "Teste SSM": the hiring test (TASSM) and its questions.                                                                                                                                                    |
+| `routes/_authenticated/teste/_bank/su.tsx`                                            | `/teste/su`                                            | "Teste PSI": the hiring test (TASU) and the annual test (TPSU).                                                                                                                                            |
+| `routes/_authenticated/legislatie.tsx`                                                | `/legislatie`                                          | Layout of "Legislație" (ADR 017): the title, the last check and the three tabs.                                                                                                                            |
+| `routes/_authenticated/legislatie/index.tsx`                                          | `/legislatie`                                          | Redirects to "Documente de actualizat".                                                                                                                                                                    |
+| `routes/_authenticated/legislatie/documente.tsx`                                      | `/legislatie/documente`                                | "Documente de actualizat": the documents behind, under SSM and PSI, with bulk regeneration.                                                                                                                |
+| `routes/_authenticated/legislatie/modificari.tsx`                                     | `/legislatie/modificari`                               | "Modificări": the legal changes, newest first.                                                                                                                                                             |
+| `routes/_authenticated/legislatie/acte.tsx`                                           | `/legislatie/acte`                                     | "Acte urmărite": the watched acts, sortable, the sort in the search params.                                                                                                                                |
+| `routes/_authenticated/clienti/$clientId/angajati/$employeeId_.editare.tsx`           | `/clienti/:id/angajati/:employeeId/editare`            | Corrects an employee in the form that adds one (`employee-form.tsx`). Full page; returns to the employee page. `?focus=commute-route` or `workplace` points at that field.                                 |
+| `routes/_authenticated/clienti/$clientId/mijloace-de-aparare.tsx`                     | `/clienti/:id/mijloace-de-aparare`                     | "Mijloace PSI" (ADR 018): the fire-fighting equipment and installations of each active workplace, their other periodic checks, the building of each fixed space, and the dangerous substances.             |
+| `routes/_authenticated/clienti/$clientId/instruire.tsx`                               | `/clienti/:id/instruire`                               | "Instruire și responsabili": the two training schedules and the responsible persons the generated documents print.                                                                                         |
+| `routes/_authenticated/clienti/$clientId/instruiri-tinute.tsx`                        | `/clienti/:id/instruiri-tinute`                        | "Instruiri ținute" (ADR 021), the tab after "Instruire și responsabili": the trainings held at the client, newest first, each naming its participants, with the domain and the phase in the search params. |
+| `routes/_authenticated/clienti/$clientId/documente-ssm/index.tsx`                     | `/clienti/:id/documente-ssm`                           | "Documente SSM", the client's generated SSM documentation: generating, downloading, regenerating, issuing.                                                                                                 |
+| `routes/_authenticated/clienti/$clientId/documente-ssm/$documentId.tsx`               | `/clienti/:id/documente-ssm/:documentId`               | One document in the in-app Word editor; a full page.                                                                                                                                                       |
+| `routes/_authenticated/clienti/$clientId/documente-su/index.tsx`                      | `/clienti/:id/documente-su`                            | "Documente PSI", the client's fire-safety set (ADR 016): the same card, sections and actions as "Documente SSM".                                                                                           |
+| `routes/_authenticated/clienti/$clientId/documente-su/$documentId.tsx`                | `/clienti/:id/documente-su/:documentId`                | One fire-safety document in the in-app Word editor; a full page.                                                                                                                                           |
+| `routes/_authenticated/clienti/$clientId/angajati/$employeeId.tsx`                    | `/clienti/:id/angajati/:employeeId`                    | Employee layout: loads the employee, names the breadcrumb, and shows the header and the tabs "Date", "Instruire SSM" and "Instruire PSI".                                                                  |
+| `routes/_authenticated/clienti/$clientId/angajati/$employeeId/index.tsx`              | `/clienti/:id/angajati/:employeeId`                    | "Date": the employee record and files, the only page that can reveal the CNP.                                                                                                                              |
+| `routes/_authenticated/clienti/$clientId/angajati/$employeeId/instruire/index.tsx`    | `/clienti/:id/angajati/:employeeId/instruire`          | Redirects to "Instruire SSM".                                                                                                                                                                              |
+| `routes/_authenticated/clienti/$clientId/angajati/$employeeId/instruire/ssm.tsx`      | `/clienti/:id/angajati/:employeeId/instruire/ssm`      | "Instruire SSM" (ADR 021): the occupational safety state and records of the employee.                                                                                                                      |
+| `routes/_authenticated/clienti/$clientId/angajati/$employeeId/instruire/su.tsx`       | `/clienti/:id/angajati/:employeeId/instruire/su`       | "Instruire PSI" (ADR 021): the fire-safety state and records of the employee.                                                                                                                              |
+| `routes/_authenticated/clienti/$clientId/contract/index.tsx`                          | `/clienti/:id/contract`                                | "Contract", for owners: the client's service contract (ADR 007).                                                                                                                                           |
+| `routes/_authenticated/clienti/$clientId/contract/editare.tsx`                        | `/clienti/:id/contract/editare`                        | The client's contract in the editor; a full page.                                                                                                                                                          |
+| `routes/_authenticated/clienti/$clientId/alte-documente.tsx`                          | `/clienti/:id/alte-documente`                          | Layout of "Alte documente" carrying the breadcrumb title.                                                                                                                                                  |
+| `routes/_authenticated/clienti/$clientId/alte-documente/index.tsx`                    | `/clienti/:id/alte-documente`                          | "Alte documente", the client's files (ADR 013): uploading, opening, downloading, renaming, deleting.                                                                                                       |
+| `routes/_authenticated/clienti/$clientId/portal.tsx`                                  | `/clienti/:id/portal`                                  | "Portal", the last tab (ADR 022, ADR 023): who of the client signs in to the portal, the administrator and the employees, and the signatures the portal is waiting for.                                    |
+| `routes/_authenticated/clienti-potentiali/$leadId/contract.tsx`                       | `/clienti-potentiali/:id/contract`                     | A lead's contract in the editor.                                                                                                                                                                           |
+| `routes/_authenticated/clienti-potentiali.tsx`                                        | pathless                                               | Leads section layout carrying the breadcrumb title.                                                                                                                                                        |
+| `routes/_authenticated/clienti-potentiali/index.tsx`                                  | `/clienti-potentiali`                                  | Owners' list of the organization's leads (ADR 007), active or archived.                                                                                                                                    |
+| `routes/_authenticated/clienti-potentiali/nou.tsx`                                    | `/clienti-potentiali/nou`                              | The client form, adding a lead.                                                                                                                                                                            |
+| `routes/_authenticated/clienti-potentiali/$leadId.tsx`                                | pathless                                               | Loads the lead through `GET /clients/{clientId}`; a promoted one redirects to its client page.                                                                                                             |
+| `routes/_authenticated/clienti-potentiali/$leadId/index.tsx`                          | `/clienti-potentiali/:id`                              | The lead: its company, contact, contract, files and the owners' notes, with "Modifică", archive and "Transformă în client" in the header.                                                                  |
+| `routes/_authenticated/clienti-potentiali/$leadId/editare.tsx`                        | `/clienti-potentiali/:id/editare`                      | The client form, filled from the lead.                                                                                                                                                                     |
+| `routes/__root.tsx`                                                                   | other paths                                            | Not-found screen with a link back to the start; route error screen.                                                                                                                                        |
 
 A route whose breadcrumb label depends on data (the client name) returns `crumb` from its
 loader instead of `staticData.title`; the shell reads either, and prefers the crumb, so a
@@ -294,7 +293,7 @@ Business data and application roles will be added in later steps.
 
 ## Accepting an invitation
 
-`/accept-invitation?token=…` is the second public route. It posts the token to
+`/invitatie?token=…` is the second public route. It posts the token to
 `/invitations/lookup`, which changes nothing, and then shows one of:
 
 - a form for the name and a password when the address has no account. Submitting calls
@@ -304,7 +303,7 @@ Business data and application roles will be added in later steps.
   `?invitation=` and returns here afterwards. It accepts a token only, never a URL, so it
   cannot be used to redirect elsewhere.
 - an accept button when the signed-in account has the invited address, with a name field
-  only if the account has no profile. It calls `/invitations/join` and opens `/organization`.
+  only if the account has no profile. It calls `/invitations/join` and opens `/organizatie`.
 - a request to sign out when the signed-in account has another address.
 - an explanation for an expired, revoked, already accepted, or unknown link.
 
@@ -314,13 +313,13 @@ policy keeps the query string, and so the token, out of requests to other origin
 
 ## Registration and onboarding
 
-[ADR 004](architecture/adr-004-registration-and-onboarding.md). `/register` calls Supabase's
+[ADR 004](architecture/adr-004-registration-and-onboarding.md). `/inregistrare` calls Supabase's
 `signUp` and shows the same "check your email" for any address. Supabase hands the
-confirmation to the API's Send Email hook, which links to `/confirm-email?token_hash=…`. That
-page confirms on its button, never on load, which signs the person in and opens `/onboarding`.
+confirmation to the API's Send Email hook, which links to `/confirmare-email?token_hash=…`. That
+page confirms on its button, never on load, which signs the person in and opens `/configurare`.
 
 An account is not yet a customer. The authenticated layout sends any account whose `/me` says
-`membership: null` to `/onboarding`, whether it just registered, was removed from an
+`membership: null` to `/configurare`, whether it just registered, was removed from an
 organization, or has not accepted its invitation; the shell's pages all need an organization.
 The page sits outside the shell and asks for the person's name, the organization's name, and
 a checkbox accepting the terms and the data processing agreement on the organization's behalf.
@@ -332,10 +331,10 @@ offers to sign out.
 ## Passwords
 
 Password reset is Supabase Auth's own recovery flow; the app adds no token handling of its
-own. `/forgot-password` calls `resetPasswordForEmail` and shows the same confirmation for any
+own. `/parola-uitata` calls `resetPasswordForEmail` and shows the same confirmation for any
 address, so it cannot be used to find out who has an account. Supabase hands the email to
 the API's Send Email hook (see the [API guide](api.md#supabase-auth-emails)), which links to
-`/reset-password?token_hash=…`.
+`/resetare-parola?token_hash=…`.
 
 That page does nothing when opened. On submit it checks the password rules, then calls
 `verifyOtp` with the token, which signs the person in, then `updateUser`, then signs other
@@ -450,10 +449,10 @@ their tab bars read.
   one request, `GET /dashboard/summary`, in `src/features/dashboard/`. A greeting by the hour in
   Bucharest with the first word of the profile's name, the number of things to do and of overdue
   trainings, and the day. **Ce ai de făcut**, the page's one lime panel, holds a tile each for the
-  caller's own signatures (`/signatures`), the drafts to issue (`/clients` least documented
-  first) and the clients missing basic data (red, `/clients`). **Situația clienților** has a row
+  caller's own signatures (`/semnaturi`), the drafts to issue (`/clienti` least documented
+  first) and the clients missing basic data (red, `/clienti`). **Situația clienților** has a row
   for SSM and one for PSI, each with its overdue count, a strip over the four training states
-  and a link per state to `/employees?trainingState=…&domain=…`; under 640 px of card width the
+  and a link per state to `/angajati?trainingState=…&domain=…`; under 640 px of card width the
   strip goes under the count (a container query). A third row counts the documents behind
   (`/legislatie/documente`). A bottom row of cards: **Așteptăm de la angajați** (their pending
   signatures with the age of the oldest, the hiring tests waiting), **Portofoliu** (active
@@ -466,7 +465,7 @@ their tab bars read.
   with the next training due, if any. The bottom row is an auto-fit grid, so what remains shares
   the row; the portfolio alone is capped at 560 px. Nothing grows with the number of clients.
   Its colours are the `--dashboard-*` tokens in `src/styles.css`.
-- `/clients`: the organization's active clients from `GET /clients` on the shared data table,
+- `/clienti`: the organization's active clients from `GET /clients` on the shared data table,
   built to show which still need work. "Companie" has the registered office (locality, county)
   under the name; then "CUI", "Angajați" (current employees), "Documentație SSM" and
   "Documentație PSI", one per documentation set (`DocumentationBadge`: Negenerată and În lucru
@@ -487,13 +486,13 @@ their tab bars read.
   dialog as the client's page and refreshes the list. An archived client's page opens
   read-only under a banner, with "Reactivează…" for an owner and "Șterge definitiv…" when the
   client says `canDelete`.
-- `/clients/new`: the creation form, laid out as full-width sections with their purpose on
+- `/clienti/nou`: the creation form, laid out as full-width sections with their purpose on
   the left and fields on the right. Entering a CUI and pressing **Caută la ANAF** calls `GET /companies/lookup` and prefills the
   name, VAT status, CAEN code, trade register number, and registered office; a missing record
   or an ANAF outage leaves manual entry available. The CAEN field is a searchable combobox
   over the full CAEN Rev. 3 class list from `packages/contracts` (code prefix or words from
   the activity name, diacritics optional); a four-digit code outside the list can still be
-  used. Saving posts to `POST /clients`, invalidates the list, and returns to `/clients`.
+  used. Saving posts to `POST /clients`, invalidates the list, and returns to `/clienti`.
   The list has no search yet. The company name opens the client.
 - Lists share `src/components/data-table/`: a headless TanStack Table (v9) wrapper for
   server-side tables. Columns come from `createDataTableColumns()`, sortable ones use the API
@@ -509,7 +508,7 @@ their tab bars read.
   changes from outside (back, or a "Șterge căutarea" action in the empty state), and keeps a
   space typed after a word. An empty list with a search says that nothing matches and offers
   to clear it, instead of the empty state of a list with no rows at all.
-- `/clients/:id/employees`: the client's employees from `GET /clients/{clientId}/employees`,
+- `/clienti/:id/angajati`: the client's employees from `GET /clients/{clientId}/employees`,
   under a client summary card (name, CUI, main activity, registered office, declared headcount) and section tabs. The list shows
   name and internal number, job title, contact, and hire date (plus the leave date for former
   employees); **Angajați actuali** (the default) and **Foști angajați** (`?status=terminated`)
@@ -523,7 +522,7 @@ their tab bars read.
   date (today by default, not before the hire date) and calls `PATCH …/status`; on the former
   employees tab **Reactivează…** clears it, for undoing a mistake, since a rehire after a gap
   is a new employee. The list is invalidated so the row moves between the two tabs.
-- `/employees`, "Angajați" in the sidebar for every member: the organization's employees from
+- `/angajati`, "Angajați" in the sidebar for every member: the organization's employees from
   `GET /employees`, every active client's in one table with the name and employee number
   (opening the employee under their client), the client (opening its details), the job
   position and the hire date. Above it, the current/former filter, a client combobox over the
@@ -542,7 +541,7 @@ their tab bars read.
   the field's check, the contracts' libphonenumber-based `normalizePhone`, and its message. The
   employee form and the administrator invitation by SMS use it; a client's contact phone stays a
   free-text input.
-- `/clients/:id/employees/:employeeId`: the employee from the detail endpoint, opened from the
+- `/clienti/:id/angajati/:employeeId`: the employee from the detail endpoint, opened from the
   name in the list and rendered without the client summary and tabs
   (`src/features/employees/employee-layout.tsx`). A header carries the name, the post, the
   client and the status, with "Modifică" and the status action, above three tabs: **Date**,
@@ -574,7 +573,7 @@ their tab bars read.
   "Șterge" act on its training held, which with other attendees turns the dialog into the
   attendee checklist and says "Această instruire are N participanți; modificarea îi privește
   pe toți".
-- `/clients/:id/trainings`, "Instruiri ținute", a tab of the client's page after "Instruire
+- `/clienti/:id/instruiri-tinute`, "Instruiri ținute", a tab of the client's page after "Instruire
   și responsabili": the client's trainings held from `GET /clients/{clientId}/trainings`,
   newest first, filtered by domain ("Toate", "SSM", "PSI" links, `?domain=`) and by phase (a
   select, `?phase=`), both replacing the history entry; each row has the day, the phase with its
@@ -603,7 +602,7 @@ their tab bars read.
   "din {date}"; a leaver shows a dash. Chips "Toate / La zi / Scadente / Depășite / Neinstruiți" set
   `?trainingState=` with a replaced history entry and back to page one, and are hidden on the
   former employees.
-- `/clients/:id/employees/new`: the creation form, rendered without the client summary and
+- `/clienti/:id/angajati/nou`: the creation form, rendered without the client summary and
   tabs (`staticData.fullPage`); a disabled first field names the client. Sections: employer, identity
   (name, optional CNP and internal number), employment (job title, hire date), contact, and
   the training-sheet fields (birth date, birth place, address, blood group, Rh, notes). A valid
@@ -612,7 +611,7 @@ their tab bars read.
   invalidates every filtered variant of the list, and returns to it; a duplicate CNP or
   number is shown on its field and an archived client on the form.
 
-- `/clients/:clientId/job-positions`: the "Posturi de lucru" section of a client, second after
+- `/clienti/:clientId/posturi`: the "Posturi de lucru" section of a client, second after
   "Angajați", in `src/features/job-positions/` ([ADR 006](architecture/adr-006-job-positions.md)). The
   card lists `GET /clients/{clientId}/job-positions`: the name with the activities under it,
   the staff category as a badge ("Execuție", "Tehnico-administrativ", the full wording in its
@@ -627,7 +626,7 @@ their tab bars read.
   read-only. The name links to the position's page, as does a click on the row, and an
   "EIP" column says where each post stands with its equipment: "Nedecis" (in amber, since
   it blocks generating), "Nu necesită", or the number of entries.
-- `/clients/:clientId/job-positions/:jobPositionId`: a position's page, full page like an
+- `/clienti/:clientId/posturi/:jobPositionId`: a position's page, full page like an
   employee's, in `src/features/protective-equipment/` ([ADR 011](architecture/adr-011-protective-equipment.md)).
   There is no request for one position: the page reads the client's list, which the section
   already cached, and is not found when the position is not in it. It shows the interval,
@@ -695,7 +694,7 @@ their tab bars read.
   back with `to: 'training-sheet'`, the employee and the domain; the save's toast on the edit
   form then offers "Înapoi la fișă", which opens that training tab. Saving the employee also
   reloads the sheets' readiness.
-- `/clients/:clientId/training`: the "Instruire și responsabili" section of a client, what its
+- `/clienti/:clientId/instruire`: the "Instruire și responsabili" section of a client, what its
   generated documentation prints beyond the registration data (ADR 005), with the
   responsible persons below. The first card holds the periodic training schedule: duration, interval for administrative staff and for workers, first month, and the
   days of the month. It previews the resulting months ("Instruiri în: Februarie, August.")
@@ -743,7 +742,7 @@ their tab bars read.
   seven that generating asks for reads "Date PSI incomplete". `?focus=workplace-fire-data`
   opens the first such workplace at its first empty field, `?focus=add-workplace` the new
   workplace dialog.
-- `/clients/:clientId/fire-safety-means`: "Mijloace PSI", between "Posturi de lucru" and
+- `/clienti/:clientId/mijloace-de-aparare`: "Mijloace PSI", between "Posturi de lucru" and
   "Instruire și responsabili", in `src/features/fire-safety-means/`. One card per active
   workplace, with its activity and address, holds a table of its equipment (the extinguisher's
   code as the trade writes it, "P6", then its agent and capacity; the inventory number,
@@ -769,7 +768,7 @@ their tab bars read.
   whose eight optional texts name the section of the safety data sheet they come from. The
   first choice is disabled while the list has entries. `?focus=fire-substances` points at the
   choice while undecided, and opens the add dialog when the list is chosen but empty.
-- `/clients/:clientId/documents`: the "Documente SSM" section of a client (ADR 005), in
+- `/clienti/:clientId/documente-ssm`: the "Documente SSM" section of a client (ADR 005), in
   `src/features/documents/`. The card is the whole pack (`buildPack` in `pack-status.ts`): every
   document of the set once, in the binder's sections (`documentSections`), under its most
   pressing state: "de actualizat" (its draft's data changed, or it is behind its template or its
@@ -797,7 +796,7 @@ their tab bars read.
   organization, the profile, the client's document data, the client's job positions, whose
   entry names every position still undecided about its equipment or its instructions, each
   row to that card of the position's page, the PSI set's rows to the "Instrucțiuni specifice
-  PSI" card (`#fire-instructions`) of every position undecided for `psi`, and "Evaluarea riscurilor",
+  PSI" card (`#fire-instructions`) of every position undecided for `su`, and "Evaluarea riscurilor",
   a row per evaluation and per thing it lacks, to the factors of its page, or to the
   positions page's client-level evaluations while the sensitive groups are not started; a
   specialist is told that the owner fills in the organization's details). When ready it asks for the date and the first
@@ -842,7 +841,7 @@ their tab bars read.
   replace. A type with no document any more only opens its section. `documentRowLink` builds
   the address with both params; the fire-safety tab below takes the same.
 
-- `/clients/:clientId/documents/:documentId`: one document in the in-app Word editor (ADR 005,
+- `/clienti/:clientId/documente-ssm/:documentId`: one document in the in-app Word editor (ADR 005,
   [the trial](document-editor-trial.md)). The page finds the document in the client's list,
   takes the draft, or the issued revision when there is no draft, fetches its file through
   the signed link, and hands the bytes to `@docx-editor.dev/react`. A draft of an active
@@ -877,7 +876,7 @@ their tab bars read.
   opens for reading with "Modifică" in the title bar, which starts the same draft in place:
   the page loads the new revision and becomes editable.
 
-- `/clients/:clientId/fire-safety-documents`: the "Documente PSI" section, right after "Documente
+- `/clienti/:clientId/documente-su`: the "Documente PSI" section, right after "Documente
   SSM", for every client ([ADR 016](architecture/adr-016-fire-safety-documents.md)). It is the
   same `DocumentsCard`, editor page and generation dialog, given the set: `document-sets.ts`
   holds each set's copy and routes, and `setParams` leaves the occupational safety set's
@@ -909,16 +908,16 @@ their tab bars read.
   the PSI templates are not available yet. The archive dialog counts the drafts of both sets;
   the clients list's "Documentație PSI" counts this set, apart from "Documentație SSM".
 
-- `/leads`: "Clienți potențiali", an entry of the sidebar that only an owner gets. A lead is a
+- `/clienti-potentiali`: "Clienți potențiali", an entry of the sidebar that only an owner gets. A lead is a
   client in an earlier stage (ADR 007), so the pages reuse the clients' parts over the same
   routes of the API: the list is `GET /clients?stage=lead` on the shared data table, with the
   contact and the day it was added, "Activi" and "Arhivați" in the URL, and a row menu with
   "Modifică", "Transformă în client…" and "Arhivează…". A specialist who types the address is
-  told that leads are the owners'; for them `/leads/:id` is the not-found screen, because the
-  API answers `404`. `/leads/new` and `/leads/:id/edit` are `ClientForm` with the lead's
+  told that leads are the owners'; for them `/clienti-potentiali/:id` is the not-found screen, because the
+  API answers `404`. `/clienti-potentiali/nou` and `/clienti-potentiali/:id/editare` are `ClientForm` with the lead's
   wording, the contact section right after the identification, and the lead's page as where
   they return. The contact section is also on the client form, last.
-- `/leads/:id`: the company's summary, the contact (`ContactCard`), and the owners' notes
+- `/clienti-potentiali/:id`: the company's summary, the contact (`ContactCard`), and the owners' notes
   (`OwnerNotesCard`: a text area saved with `PUT …/owner-notes`, "Modificări nesalvate" until
   then, read-only for an archived company). "Arhivează…" opens the clients' archive dialog,
   which for a lead speaks of leads and does not look for draft documents. "Transformă în
@@ -926,8 +925,8 @@ their tab bars read.
   that the notes stay the owners', and that it cannot be undone; then `POST …/promote`, a
   toast, and the client's page. An archived lead shows a banner with "Reactivează…" and
   neither of the other two. The two addresses of one record lead to each other: the client
-  layout redirects a lead to `/leads/:id`, and the lead loader redirects a client to
-  `/clients/:id/details`, so a link kept from before the promotion still works.
+  layout redirects a lead to `/clienti-potentiali/:id`, and the lead loader redirects a client to
+  `/clienti/:id/detalii`, so a link kept from before the promotion still works.
 - The service contract (`src/features/service-contracts`): `ServiceContractCard` is on the lead's page
   and, for a client, in "Contract", a section only an owner gets (a specialist who types
   the address is told what is there and whose it is, and nothing is asked of the API). It is
@@ -959,7 +958,7 @@ their tab bars read.
   `signed`, left out while the contract is still loading so the warning never flashes for a
   signed one.
 - Imports from documents ([ADR 030](architecture/adr-030-import-from-documents.md)), in
-  `src/features/imports/`. "Importă din documente" on `/clients`, beside "Adaugă client", and
+  `src/features/imports/`. "Importă din documente" on `/clienti`, beside "Adaugă client", and
   the empty list's second card open the upload dialog for a new client; "Completează din
   documentație" in a client's header opens it for that client, naming it and its CUI. The
   dialog takes files, a folder (`webkitdirectory`, or a dropped folder read through
@@ -972,19 +971,19 @@ their tab bars read.
   (SHA-256, Web Crypto), creates the import, registers the files in batches of 50, uploads each
   straight to the `imports` bucket with the member's Supabase session (`import-storage.ts`,
   three at a time, one retry), and starts the reading; files that would not go up are offered
-  again or left out. The import's page, `/clients/import/:importId`, polls `GET
+  again or left out. The import's page, `/clienti/import/:importId`, polls `GET
 /imports/{id}` every 3 s while it runs and shows the four steps, the documents read together
   ("În lucru") and the scans one by one, then the files grouped as failed, documents, scans,
   sheets kept for the employee import (thumbnails through `GET …/source`, from the photograph's
   converted JPEG when there is one; a HEIC only once it exists), set aside (with "Citește-l totuși" once the proposal is ready) and another
-  company's, with "Importă-le separat" calling the split. On `/clients`, "Importuri din
+  company's, with "Importă-le separat" calling the split. On `/clienti`, "Importuri din
   documente" lists the open imports above the table, each row reading its own import for the
   step, the files and what waits for the member, and a toast says when one becomes ready.
 - The review of a ready import (`review-*.tsx`). The hub lists the API's `blockers` as links to
   their rows (`blockerLink` words each), an existing client's kept values under "De verificat",
   and the seven sections with a status each ("Alegere necesară", "N date lipsă", "De verificat",
   "Gata"), then the button that creates or completes the client, inert while anything blocks.
-  A section page, `/clients/import/:importId/:section`, puts its choices first as radio groups,
+  A section page, `/clienti/import/:importId/:section`, puts its choices first as radio groups,
   then its values: for a new client by group, each group turning into its form in place on
   "Schimbă" (the client card's own fields and checks for the company and contact data); for an
   existing client (variant E2) as "Se adaugă", "Diferă de aplicație" (the app's value kept, with
@@ -1002,7 +1001,7 @@ their tab bars read.
   `src/features/imports/library/`). Below the client's sections and their confirm, the hub shows
   the group "Instrucțiuni proprii", one task per part of `GET /imports/{id}/library-parts`
   (IPSSM, IPSU) with its status, polled every 3 s while a part reads. A task,
-  `/clients/import/:importId/instructions/:domain`, counts the identical instructions, lists the
+  `/clienti/import/:importId/instructiuni/:domain`, counts the identical instructions, lists the
   posts the themes left undecided with their quote and why, and gives each new or similar
   instruction a row: the include tick, title and category, the posts with a picker, its flags,
   "Sursa" (the source viewer at the cut's first words), "Schimbă" (the instruction form's blocks
@@ -1074,7 +1073,7 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   the way back); `DocumentEditorPage` builds one from the client's list of documents, and
   `ServiceContractEditor` from `GET …/service-contract`, because that list is the
   documentation set only. "Modifică" on an issued contract works as for any document.
-- `/clients/:clientId/other-documents`: "Alte documente", the tab before "Portal", for owners
+- `/clienti/:clientId/alte-documente`: "Alte documente", the tab before "Portal", for owners
   and specialists alike, in `src/features/client-files/` ([ADR 013](architecture/adr-013-client-files.md)).
   `ClientFilesCard` lists `GET /clients/{clientId}/files`: the kind as an icon and a word (PDF,
   Imagine, Word, Excel), the name with the note under it, the size, the day of the upload and
@@ -1092,7 +1091,7 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   the list and the downloads only: no dialog, no drop. The same card is on a lead's page,
   where it says that the files stay the owners' until promotion and has no switch. The card
   lists the client's own files only: an employee's files stay on the employee page.
-- `/clients/:clientId/portal`: "Portal", the last tab of a client, in
+- `/clienti/:clientId/portal`: "Portal", the last tab of a client, in
   `src/features/participants/` ([ADR 022](architecture/adr-022-participants-and-the-portal.md),
   [ADR 023](architecture/adr-023-advanced-electronic-signature.md)). `ClientPortalPage` reads
   `GET /clients/{clientId}/participants` once and, while the client has no administrator in
@@ -1156,20 +1155,20 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   off late may still have stored its file. When all of them were stored the dialog closes and
   one toast says what was uploaded; after any failure it stays open, says how many failed,
   and offers only "Închide".
-- `/clients/:id/contact`: the "Contact" section of a client, with the same two cards. The
+- `/clienti/:id/contact`: the "Contact" section of a client, with the same two cards. The
   notes card is rendered for an owner only, and the API refuses anyone else.
 
-- `/organization`: the organization's name, the caller's role, and a row of sections as on a
-  client's page, each its own route; `/organization` itself redirects to the team, which is
+- `/organizatie`: the organization's name, the caller's role, and a row of sections as on a
+  client's page, each its own route; `/organizatie` itself redirects to the team, which is
   what the page is opened for day to day.
-- `/organization/team` ("Echipă"): the members from `GET /organization/members`. An owner also
+- `/organizatie/echipa` ("Echipă"): the members from `GET /organization/members`. An owner also
   gets the pending invitations with resend and revoke, and the "Invită un membru" dialog with
   a role picker. The API's `reason` on a conflict decides the wording: an address that is
   already a member or was emailed in the last 10 minutes is reported on the email field, the
   20-invitation limit on the form. An owner's members table has a row menu for everyone but
   themselves: switch the role, or remove the member after a confirmation that says what
   stays. Hiding the owner's tools is a courtesy; the API and the database enforce the rule.
-- `/organization/company` ("Date firmă"): what generated documents and contracts print about
+- `/organizatie/date-firma` ("Date firmă"): what generated documents and contracts print about
   the provider as a company (ADR 005, ADR 007), from `GET /organization/company-details`, in
   the sections of the client form: identification, registered office and phone, legal
   representative, bank account. Every member sees it and an owner edits it. "Caută la ANAF"
@@ -1177,20 +1176,20 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   editable because ANAF's registry lags a fresh registration. `PUT` replaces every field, so
   an emptied input clears what was saved. The IBAN is checked as typed, with or without
   spaces, and shown in groups of four once saved.
-- `/organization/authorizations` ("Abilitări"): the certificate of authorization and, in a
+- `/organizatie/abilitari` ("Abilitări"): the certificate of authorization and, in a
   section of its own, the one fire-safety technician (issue #170) with the optional "Autorizație
   ISU" under Legea 307/2006 art. 12² (ADR 019), from
   `GET /organization/authorizations`, with the same rules. The contract card's notice of
   missing data links to whichever of the two sections holds what is missing; the PSI
   generation's rows for the technician and the technician's certificate both open
   `?focus=fire-safety-technician`, at the name until it is saved and at the certificate then.
-- `/instructions`: the organization's instruction library
+- `/instructiuni`: the organization's instruction library
   ([ADR 012](architecture/adr-012-own-instructions.md)), in `src/features/instructions/`, an entry of
   the sidebar for owners and specialists alike, titled "Instrucțiuni proprii"
   ([ADR 034](architecture/adr-034-own-instructions-as-app-text.md)) with a subtitle on what a module
   is for. The page has one tab per domain (amendment of 2026-10-11), "IPSSM" at
-  `/instructions/ssm` and "IPSU" at `/instructions/psi`, the abbreviations the documents print,
-  in the section navigation the client and organization pages use; `/instructions` opens the
+  `/instructiuni/ssm` and "IPSU" at `/instructiuni/su`, the abbreviations the documents print,
+  in the section navigation the client and organization pages use; `/instructiuni` opens the
   SSM tab. A tab lists `GET /instruction-modules?domain=` by category and title, each module
   with its version and its article count, and how many current positions apply it;
   "Arată arhiva" lists the archived ones of the domain instead. The row menu corrects a
@@ -1198,14 +1197,14 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   files (ADR 034). "Scrie o instrucțiune" asks for a title (one the library has is refused
   before the form opens), the domain, the tab's by default, the category, among the domain's,
   and "Pornește de la": the guided template or an active module of the domain, whose category
-  it takes; it opens `/instructions/new` with them in the search. "Titlu, categorie și
+  it takes; it opens `/instructiuni/nou` with them in the search. "Titlu, categorie și
   domeniu" changes them, its categories those of the chosen domain, and a changed domain moves
   the module to the other tab with a category of that domain; the
   domain of a module a current position applies is shown read-only with how many positions
   apply it, and a `409` with `instruction_module_domain_applied` (a position applied it in the
   meantime) goes on the field with the reason. A title the library already has is reported on
   the field. Archiving a module a position applies is refused with the positions counted.
-- `/instructions/:moduleId` and `/instructions/new`: the module's form (ADR 034, "Written in a
+- `/instructiuni/:moduleId` and `/instructiuni/nou`: the module's form (ADR 034, "Written in a
   guided form"), `instruction-form.tsx`, its blocks in order in a card: a heading is a one-line
   field, an article an auto-growing box labelled "Art. N" by its place among the articles that
   hold text (an empty box reads "Articol nou"; headings are not counted), one paragraph a line,
@@ -1275,7 +1274,7 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   posturilor" lists the sensitive groups, with "Începe evaluarea" while they have none, and
   the evaluations with a name; "Adaugă o evaluare" asks for the name, and a `409` with
   `risk_evaluation_name_taken` goes on the field. These evaluations open under
-  `/clients/:clientId/job-positions/risk-evaluations/:evaluationId`, so "Posturi de lucru"
+  `/clienti/:clientId/posturi/evaluari-riscuri/:evaluationId`, so "Posturi de lucru"
   stays the current tab.
 - The evaluation page is the same for both: a header with "Șterge evaluarea…", which asks
   first and returns to the position or to the positions; "Rezultatul evaluării", with the
@@ -1330,7 +1329,7 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   profile's. The page passes the extra ways of adding factors ("Aplică un profil", "Copiază de
   la altă evaluare") as the card's `tools`, the empty text, and how the removal dialog ends.
   "Rezultatul evaluării" takes anything with factors and a global level.
-- `/risks`: the organization's risk library ([ADR 015](architecture/adr-015-risk-assessment.md)),
+- `/riscuri`: the organization's risk library ([ADR 015](architecture/adr-015-risk-assessment.md)),
   in `src/features/evaluation-profiles/`, an entry of the sidebar for owners and specialists
   alike. The list shows `GET /evaluation-profiles` by name, each with "12 factori, 2
   inacceptabili" and "Nivel global 2,79", red above 3,50; empty, it says that a profile comes
@@ -1339,17 +1338,17 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   and saying that the evaluations it was applied to keep their copies. The name dialog
   (`profile-name-dialog.tsx`) is one component for starting, renaming and saving an
   evaluation as a profile.
-- `/risks/:profileId`: the profile's name with "Redenumește…" and "Șterge profilul…", a line
+- `/riscuri/:profileId`: the profile's name with "Redenumește…" and "Șterge profilul…", a line
   saying that changes do not reach the evaluations it was applied to, "Rezultatul evaluării"
   and "Factori de risc" as on the evaluation page, without a work system: a profile holds
   factors only. "Unde este folosit" lists `GET /evaluation-profiles/{id}/usage` by client:
   each evaluation with a link and how many of its factors are in the profile, archived clients
   marked. Renaming or deleting the profile, or deleting one of its factors, refreshes every
   evaluation read, since their links and names change.
-- `/tests`: the question bank ([ADR 024](architecture/adr-024-knowledge-tests.md)), in
+- `/teste`: the question bank ([ADR 024](architecture/adr-024-knowledge-tests.md)), in
   `src/features/knowledge-tests/`, "Teste" in the sidebar for owners and specialists alike, with
-  "Teste SSM" at `/tests/ssm` and "Teste PSI" at `/tests/psi` in the section navigation;
-  `/tests` opens the SSM tab. A tab reads `GET /organization/tests/questions?domain=` and gives
+  "Teste SSM" at `/teste/ssm` and "Teste PSI" at `/teste/su` in the section navigation;
+  `/teste` opens the SSM tab. A tab reads `GET /organization/tests/questions?domain=` and gives
   each test a card: its name and code, "12 întrebări active · se extrag 10 · prag 70 %" (the
   sitting size and the pass mark are shown, never set), and its questions in the printed order,
   the active ones numbered. A question shows its text, its options with the correct ones marked
@@ -1435,7 +1434,7 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   sorts it itself (`watched-act-sort.ts`), acts without a value last, and keeps `sort` and
   `order` in the search params as the clients list does. These dates appear on this page and
   nowhere else.
-- `/profile`: a form for the user's name and optional professional title backed by
+- `/profil`: a form for the user's name and optional professional title backed by
   `PATCH /me/profile`, with the email read-only. The title is printed next to the person's
   name in generated documents; emptying it sends `null`. Saving refreshes `/me`, so the
   account menu follows.

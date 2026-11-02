@@ -8,8 +8,8 @@ test('a member corrects what was entered about a client, one card at a time', as
   const owner = await createAccount('client-edit', 'Clara Client');
   const organizationId = await createOrganization('Clienți E2E', owner.id);
   const clientId = await createClientCompany(organizationId, 'S.C. CLIENT GRESIT E2E S.R.L.');
-  await signIn(page, owner.email, `/clients/${clientId}`);
-  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/details$`));
+  await signIn(page, owner.email, `/clienti/${clientId}`);
+  await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/detalii$`));
 
   await page.getByTestId('company-edit').click();
   await expect(page.getByTestId('client-representative')).toHaveCount(0);
@@ -39,7 +39,7 @@ test('an owner archives a client, finds it among the archived, and restores it',
   const owner = await createAccount('client-archive', 'Olga Owner');
   const organizationId = await createOrganization('Arhivă E2E', owner.id);
   const clientId = await createClientCompany(organizationId, 'S.C. CLIENT ARHIVAT E2E S.R.L.');
-  await signIn(page, owner.email, '/clients');
+  await signIn(page, owner.email, '/clienti');
   await expect(page.getByTestId('clients-documentation')).toHaveText('Negenerată');
   await expect(page.getByTestId('clients-fire-safety-documentation')).toHaveText('Negenerată');
   // The archive action waits for /me to say this is an owner, and the row menu is rebuilt then,
@@ -52,16 +52,16 @@ test('an owner archives a client, finds it among the archived, and restores it',
   await expect(page.getByTestId('clients-empty')).toBeVisible();
 
   // The CUI stays taken, and the form says where the client went.
-  await page.goto('/clients/new');
+  await page.goto('/clienti/nou');
   await page.getByTestId('client-cui').fill('1590082');
   await page.getByTestId('client-legal-name').fill('Același CUI SRL');
   await page.getByTestId('client-submit').click();
   await expect(page.getByTestId('cui-error')).toContainText('Un client arhivat');
 
-  await page.goto('/clients');
+  await page.goto('/clienti');
   await page.getByTestId('clients-filter-archived').click();
   await page.getByTestId('clients-open').click();
-  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/details$`));
+  await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/detalii$`));
   await expect(page.getByTestId('client-archived-banner')).toBeVisible();
   await expect(page.getByTestId('company-card')).toBeVisible();
   await expect(page.getByTestId('company-edit')).toHaveCount(0);

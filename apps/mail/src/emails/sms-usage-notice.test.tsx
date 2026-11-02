@@ -21,7 +21,7 @@ const paid: SmsUsageNoticeProps = {
   overageCents: 10,
   periodStart: '2026-10-14T08:00:00.000Z',
   periodEnd: '2026-11-14T08:00:00.000Z',
-  subscriptionUrl: 'https://app.ssmusor.ro/organization/subscription',
+  subscriptionUrl: 'https://app.ssmusor.ro/organizatie/abonament',
 };
 
 const hardStop: SmsUsageNoticeProps = {
@@ -56,7 +56,7 @@ describe('SMS usage notice', () => {
     for (const body of bodies(email)) {
       expect(body).toContain('Rămase până pe 14.11.2026');
       expect(body).toContain('0,10 € + TVA, pe factura din 14.11.2026');
-      expect(body).toContain('https://app.ssmusor.ro/organization/subscription');
+      expect(body).toContain('https://app.ssmusor.ro/organizatie/abonament');
       expect(body).toContain('o singură dată pe lună');
     }
   });

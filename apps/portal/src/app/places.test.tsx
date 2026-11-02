@@ -53,7 +53,7 @@ vi.mock('@/api/generated/api', async (importOriginal) => ({
 
 const sheetsReady = {
   ssm: { ready: true, missing: [], stored: false, sequences: [] },
-  psi: { ready: true, missing: [], stored: false, sequences: [] },
+  su: { ready: true, missing: [], stored: false, sequences: [] },
 };
 
 const agreementSignedOnPaper = {
@@ -99,9 +99,9 @@ describe('Acasă', () => {
     expect(screen.getByTestId('home-todo').textContent).toContain('Nimic de semnat deocamdată');
     expect(screen.getByTestId('training-state-ssm').textContent).toBe('La zi');
     expect(screen.getByTestId('training-state-ssm').className).toContain('bg-success');
-    expect(screen.getByTestId('training-state-psi').textContent).toBe('Depășită');
+    expect(screen.getByTestId('training-state-su').textContent).toBe('Depășită');
     expect(screen.getByTestId('training-due-ssm').textContent).toBe('12 mar. 2027');
-    expect(screen.getByTestId('training-last-psi').textContent).toBe('3 feb. 2026');
+    expect(screen.getByTestId('training-last-su').textContent).toBe('3 feb. 2026');
     expect(screen.getByTestId('training-summary-link').getAttribute('href')).toBe('/instruiri');
     expect(screen.getByTestId('home-position').parentElement?.textContent).toBe(
       'Tâmplar, marca M-17'
@@ -109,14 +109,14 @@ describe('Acasă', () => {
   });
 
   it('counts the trainings of a domain transcribed from the paper sheet', async () => {
-    const [ssm, psi] = trainingRecords().items;
+    const [ssm, su] = trainingRecords().items;
     vi.mocked(useListPortalTrainingRecords).mockReturnValue(
       queryResult(
         trainingRecords({
           items: [
             { ...ssm!, source: 'paper', slots: [] },
             { ...ssm!, id: '6f0c3e43-0c1b-4f4b-8a1e-0000000000a3', source: 'paper', slots: [] },
-            psi!,
+            su!,
           ],
         })
       )
@@ -126,7 +126,7 @@ describe('Acasă', () => {
     expect((await screen.findByTestId('training-summary-paper-ssm')).textContent).toBe(
       '2 instruiri de pe fișa pe hârtie, semnate acolo.'
     );
-    expect(screen.queryByTestId('training-summary-paper-psi')).toBeNull();
+    expect(screen.queryByTestId('training-summary-paper-su')).toBeNull();
   });
 
   it('says a domain without a training has none recorded yet, and nothing else', async () => {
@@ -136,19 +136,19 @@ describe('Acasă', () => {
           items: [trainingRecords().items[0]!],
           training: {
             ssm: trainingStatus(),
-            psi: trainingStatus({ state: 'untrained', dueOn: null }),
+            su: trainingStatus({ state: 'untrained', dueOn: null }),
           },
         })
       )
     );
     mountPortal(signedIn(), '/');
 
-    const psi = await screen.findByTestId('training-summary-psi');
-    expect(within(psi).getByTestId('training-state-psi').textContent).toBe('Neinstruit');
-    expect(within(psi).getByTestId('training-untrained-psi').textContent).toBe(
-      'Prima instruire PSI nu a fost încă înregistrată.'
+    const su = await screen.findByTestId('training-summary-su');
+    expect(within(su).getByTestId('training-state-su').textContent).toBe('Neinstruit');
+    expect(within(su).getByTestId('training-untrained-su').textContent).toBe(
+      'Prima instruire SU nu a fost încă înregistrată.'
     );
-    expect(within(psi).queryByRole('term')).toBeNull();
+    expect(within(su).queryByRole('term')).toBeNull();
     expect(screen.getByTestId('training-summary-sheet-ssm').textContent).toBe(
       'Fișa individuală SSM, PDF'
     );
@@ -175,7 +175,7 @@ describe('Acasă', () => {
         participations: [participation({ kind: 'client_administrator', employeeId: null })],
       })
     );
-    const employee = (id: string, ssm: string, psi: string) => ({
+    const employee = (id: string, ssm: string, su: string) => ({
       id,
       lastName: 'Pop',
       firstName: id,
@@ -183,7 +183,7 @@ describe('Acasă', () => {
       workplace: null,
       training: {
         ssm: trainingStatus({ state: ssm as 'current' }),
-        psi: trainingStatus({ state: psi as 'current' }),
+        su: trainingStatus({ state: su as 'current' }),
       },
     });
     vi.mocked(useListPortalClientEmployees).mockReturnValue(
@@ -290,7 +290,7 @@ describe('Instruiri', () => {
     expect(records[0]!.textContent).toContain(
       'Instructor Radu Stan, Șef de atelier. 1 oră și 30 de minute.'
     );
-    expect(within(records[1]!).getByTestId('training-record-domain').textContent).toBe('PSI');
+    expect(within(records[1]!).getByTestId('training-record-domain').textContent).toBe('SU');
     expect(records[1]!.textContent).toContain('8 ore.');
     expect(records[2]!.textContent).toContain('Instruire la locul de muncă, admis la lucru');
     expect(records[2]!.textContent).toContain('1 oră și 1 minut.');
@@ -374,10 +374,10 @@ describe('Instruiri', () => {
     );
     mountPortal(signedIn(), '/instruiri');
 
-    expect((await screen.findByTestId('training-sheet-psi-untrained')).textContent).toBe(
-      'Se întocmește după prima instruire PSI.'
+    expect((await screen.findByTestId('training-sheet-su-untrained')).textContent).toBe(
+      'Se întocmește după prima instruire SU.'
     );
-    expect(screen.queryByTestId('training-sheet-psi-open')).toBeNull();
+    expect(screen.queryByTestId('training-sheet-su-open')).toBeNull();
     expect(screen.getByTestId('training-sheet-ssm-open')).toBeTruthy();
   });
 
@@ -400,7 +400,7 @@ describe('Instruiri', () => {
           stored: false,
           sequences: [],
         },
-        psi: { ready: false, missing: ['employee.workplace'], stored: false, sequences: [] },
+        su: { ready: false, missing: ['employee.workplace'], stored: false, sequences: [] },
       })
     );
     mountPortal(signedIn(), '/instruiri');
@@ -408,7 +408,7 @@ describe('Instruiri', () => {
     expect((await screen.findByTestId('training-sheet-ssm-missing')).textContent).toBe(
       'Fișa nu poate fi întocmită încă: lipsesc traseul de deplasare și punctul de lucru; spune-i specialistului.'
     );
-    expect(screen.getByTestId('training-sheet-psi-missing').textContent).toBe(
+    expect(screen.getByTestId('training-sheet-su-missing').textContent).toBe(
       'Fișa nu poate fi întocmită încă: lipsește punctul de lucru; spune-i specialistului.'
     );
     expect(screen.queryByTestId('training-sheet-ssm-open')).toBeNull();
@@ -427,16 +427,16 @@ describe('Instruiri', () => {
     vi.mocked(getPortalTrainingSheet).mockResolvedValue(new Blob(['%PDF']));
     mountPortal(signedIn(), '/instruiri');
 
-    await userEvent.click(await screen.findByTestId('training-sheet-psi-open'));
+    await userEvent.click(await screen.findByTestId('training-sheet-su-open'));
 
     expect(open).toHaveBeenCalledWith('', '_blank');
     expect(getPortalTrainingSheet).toHaveBeenCalledWith(
       participation().participantId,
-      'psi',
+      'su',
       undefined,
       expect.objectContaining({ baseUrl: 'http://localhost:8787' })
     );
-    expect(tab.document.title).toBe('Fișa individuală PSI');
+    expect(tab.document.title).toBe('Fișa individuală SU');
     expect(pending.textContent).toBe('Se pregătește fișa…');
     expect(tab.location.replace).toHaveBeenCalledWith('blob:sheet');
     open.mockRestore();
@@ -544,11 +544,11 @@ describe('Angajați', () => {
             workplace: 'Depozit',
             training: {
               ssm: trainingStatus({ state: 'due', dueOn: '2026-11-01' }),
-              psi: trainingStatus({ state: 'untrained', dueOn: null }),
+              su: trainingStatus({ state: 'untrained', dueOn: null }),
             },
             tests: {
               ssm: testStatus({ state: 'pending', awaitingTest: 'hiring' }),
-              psi: testStatus(),
+              su: testStatus(),
             },
           },
         ],
@@ -564,9 +564,9 @@ describe('Angajați', () => {
     expect(row.textContent).toContain('Șofer, Depozit');
     expect(within(row).getByTestId('employee-state-ssm').textContent).toBe('Scadentă');
     expect(row.textContent).toContain('până la 1 noiembrie 2026');
-    expect(within(row).getByTestId('employee-state-psi').textContent).toBe('Neinstruit');
+    expect(within(row).getByTestId('employee-state-su').textContent).toBe('Neinstruit');
     expect(within(row).getByTestId('employee-test-state-ssm').textContent).toBe('De susținut');
-    expect(within(row).getByTestId('employee-test-state-psi').textContent).toBe('Fără test');
+    expect(within(row).getByTestId('employee-test-state-su').textContent).toBe('Fără test');
     expect(row.getAttribute('href')).toBe('/angajati/6f0c3e43-0c1b-4f4b-8a1e-0000000000e2');
   });
 
@@ -579,8 +579,8 @@ describe('Angajați', () => {
           firstName: name.split(' ')[1]!,
           position: 'Șofer',
           workplace: null,
-          training: { ssm: trainingStatus(), psi: trainingStatus() },
-          tests: { ssm: testStatus(), psi: testStatus() },
+          training: { ssm: trainingStatus(), su: trainingStatus() },
+          tests: { ssm: testStatus(), su: testStatus() },
         })),
       })
     );

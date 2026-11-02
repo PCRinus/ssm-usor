@@ -114,9 +114,9 @@ const hiringRows = (
     trainerName: 'Matei Sorin',
     trainerJobTitle: 'Șef de tură',
     material: 'Instruire la locul de muncă',
-    verifierName: domain === 'psi' ? 'Barbu Ionuț' : null,
-    verifierJobTitle: domain === 'psi' ? 'Cadru tehnic PSI' : null,
-    verifierSignature: domain === 'psi' ? verifierSignature : 'absent',
+    verifierName: domain === 'su' ? 'Barbu Ionuț' : null,
+    verifierJobTitle: domain === 'su' ? 'Cadru tehnic PSI' : null,
+    verifierSignature: domain === 'su' ? verifierSignature : 'absent',
   }),
 ];
 
@@ -154,13 +154,13 @@ export const comanPeriodic = page({
 });
 
 export const comanFire = page({
-  pageKind: 'psi_sheet_front',
+  pageKind: 'su_sheet_front',
   person: { lastName: 'Coman', firstName: 'Daniela' },
   admission,
   trainings: [
-    ...hiringRows('psi', 'present'),
+    ...hiringRows('su', 'present'),
     row({
-      domain: 'psi',
+      domain: 'su',
       heldOn: '2026-03-12',
       durationMinutes: 60,
       annualTest: true,

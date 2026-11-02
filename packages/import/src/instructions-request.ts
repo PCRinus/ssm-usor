@@ -90,7 +90,7 @@ export interface InstructionsAnswer {
 
 const answers = {
   ssm: answerFormat('import_instructions_ssm', answerSchema('ssm')),
-  psi: answerFormat('import_instructions_psi', answerSchema('psi')),
+  su: answerFormat('import_instructions_su', answerSchema('su')),
 };
 
 export const instructionsAnswer = (domain: InstructionDomain): AnswerFormat<InstructionsAnswer> =>
@@ -105,7 +105,7 @@ instructions: every client-specific instruction, in the order it stands in each 
 - An IPSSM is one bound document. Its chapters I to XII (general information, training, conduct, traffic, electrical equipment, first aid, fire, hygiene, vulnerable groups, manual handling, protective equipment) and all their subchapters are the same in every pack, even where they name the client, and are never listed. The client-specific instructions follow them: each subchapter of chapter XIII and of any later chapter ("Subcapitolul XIII.I. Instrucțiuni proprii … privind utilizarea autoturismelor …"), each block numbered on its own ("I.P.S.S.M. 2. Instrucțiuni proprii … privind activitățile desfășurate de recepționeri de hotel"), and a file that holds a single instruction.
 - number: as its heading prints it, without the label: "XIII.VIII" for "Subcapitolul XIII.VIII.", "2" for "I.P.S.S.M. 2.", "" when it has none.
 - category: work_equipment for the use of a machine, tool, appliance, vehicle, lift or other piece of work equipment; protective_equipment for wearing protective equipment; work_activity for an activity, a trade or the work of a post, even when it has sections on the equipment the post uses.`,
-  psi: `The files are the client's own instructions for emergencies and fire safety (IPSU, "Instrucțiuni proprii … în domeniul situațiilor de urgență") and its training themes for emergencies (SU, PSI).
+  su: `The files are the client's own instructions for emergencies and fire safety (IPSU, "Instrucțiuni proprii … în domeniul situațiilor de urgență") and its training themes for emergencies (SU, PSI).
 
 instructions: every client-specific instruction, in the order it stands in each file.
 - An IPSU's body, its articles from 1 to about 190 under chapters I to XXXII, is the same in every pack and is never listed. The client-specific instructions are its annexes ("Anexa nr. 1 INSTRUCȚIUNI DE APĂRARE ÎMPOTRIVA INCENDIILOR SPECIFICE ACTIVITĂȚILOR DESFĂȘURATE ÎN …"), which usually stand in the file's notes, after its body, each numbered from Art. 1 again; and a file that holds a single instruction.
@@ -115,10 +115,10 @@ instructions: every client-specific instruction, in the order it stands in each 
 
 const citationExamples: Record<InstructionDomain, string> = {
   ssm: '"IPSSM Art. 1 – 296 ; 331 – 353 ; IPSSM 2. Art.1 – 16", "I.P.S.S.M. Art. 96 – 166 ; I.P.S.S.M. 1 Art. 1 - 22 ;"',
-  psi: '"IPSU Art. 84 – 104, 114 – 129 ; IPSU Cap. XXV – XXXII ; IPSU Anexa 1"',
+  su: '"IPSU Art. 84 – 104, 114 – 129 ; IPSU Cap. XXV – XXXII ; IPSU Anexa 1"',
 };
 
-const documentName: Record<InstructionDomain, string> = { ssm: 'IPSSM', psi: 'IPSU' };
+const documentName: Record<InstructionDomain, string> = { ssm: 'IPSSM', su: 'IPSU' };
 
 function rulesPrompt(domain: InstructionDomain, posts: string[]) {
   const name = documentName[domain];
