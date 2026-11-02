@@ -15,15 +15,7 @@ const admin = createClient(process.env.E2E_SUPABASE_URL!, process.env.E2E_SUPABA
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-const organizations: string[] = [];
-
-// A profile restricts the deletion of its organization, which `cleanUp` does not know about.
-test.afterAll(async () => {
-  for (const id of organizations) {
-    await admin.from('evaluation_profiles').delete().eq('organization_id', id);
-  }
-  await cleanUp();
-});
+test.afterAll(cleanUp);
 
 // The risk library (ADR 015): an evaluated post saved as a profile and applied to another
 // client's post, which then holds copies the profile no longer reaches.
@@ -32,7 +24,6 @@ test("a client's evaluated post becomes a profile that evaluates another client'
 }) => {
   const owner = await createAccount('risk-library', 'Radu Riscuri');
   const organizationId = await createOrganization('Riscuri E2E', owner.id);
-  organizations.push(organizationId);
   const firstClient = await createClientCompany(organizationId, 'S.C. PRIMUL CLIENT E2E S.R.L.');
   const firstPosition = await createJobPosition(organizationId, firstClient, 'Lăcătuș mecanic');
   await evaluateRisks(organizationId, firstClient);
@@ -112,4 +103,40 @@ test("a client's evaluated post becomes a profile that evaluates another client'
   await page.goto(`/clienti/${second.data.id}/posturi/${secondPosition}/fisa-de-evaluare`);
   await expect(page.getByTestId('risk-factor-row')).toHaveCount(factorCount);
   await expect(page.getByTestId('risk-factor-origin')).toHaveCount(factorCount - 1);
+
+  const refused = await admin
+    .from('evaluation_profiles')
+    .delete()
+    .eq('organization_id', organizationId)
+    .select('id');
+  expect(refused.error?.code).toBe('RSK04');
+
+  await page.goto('/evaluari-de-risc');
+  const used = page.getByTestId('risk-profile-row').filter({ hasText: 'Lucrător în atelier' });
+  await expect(used.getByTestId('risk-profile-clients')).toHaveText('2 clienți');
+  await used.getByTestId('risk-profile-actions').click();
+  await expect(page.getByTestId('risk-profile-remove')).toHaveCount(0);
+  await page.getByTestId('risk-profile-archive').click();
+  await expect(page.getByText('„Lucrător în atelier” a fost arhivată.')).toBeVisible();
+  await expect(page.getByTestId('risk-library-empty')).toBeVisible();
+
+  await page.goto(`/clienti/${second.data.id}/posturi/${secondPosition}/fisa-de-evaluare`);
+  await page.getByTestId('risk-factors-apply-profile').click();
+  await expect(page.getByTestId('apply-profile-none')).toBeVisible();
+  await page.keyboard.press('Escape');
+
+  await page.goto('/evaluari-de-risc');
+  await page.getByTestId('risk-library-toggle-archived').click();
+  await expect(page.getByText('Evaluări arhivate')).toBeVisible();
+  const archived = page.getByTestId('risk-profile-row').filter({ hasText: 'Lucrător în atelier' });
+  await expect(archived.getByTestId('risk-profile-clients')).toHaveText('2 clienți');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  await archived.getByTestId('risk-profile-open').click();
+  await expect(page.getByTestId('risk-profile-archived')).toBeVisible();
+  await expect(page.getByTestId('risk-profile-usage-client')).toHaveCount(2);
+  await expect(page.getByTestId('risk-profile-remove')).toHaveCount(0);
+  await page.getByTestId('risk-profile-restore').click();
+  await expect(page.getByText('„Lucrător în atelier” a fost reactivată.')).toBeVisible();
+  await expect(page.getByTestId('risk-profile-archived')).toHaveCount(0);
+  await expect(page.getByTestId('risk-profile-archive')).toBeVisible();
 });
