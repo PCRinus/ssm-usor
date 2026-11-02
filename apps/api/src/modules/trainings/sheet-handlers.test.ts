@@ -395,7 +395,7 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheet', () => 
     expect(missing.status).toBe(404);
   });
 
-  it('merges the fire-safety template for the PSI sheet', async () => {
+  it('merges the fire-safety template for the SU sheet', async () => {
     mockUpstream({ employees: () => Response.json([{ ...employeeRow, commute_route: null }]) });
     const response = await request(sheetPath('su'));
     expect(response.status).toBe(200);

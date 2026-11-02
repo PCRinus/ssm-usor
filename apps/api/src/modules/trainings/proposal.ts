@@ -28,7 +28,7 @@ export const hiringPlans = {
     workplaceOpening:
       'IPSU art. 105–130, 140–149, 153–235, 246–252; instrucțiunile afișate la locul de muncă',
     workplaceClosing:
-      '; organizarea apărării împotriva incendiilor la locul de muncă; OMAI 1184/2006; OMAI 163/2007; OMAI 106/2007; OMAI 187/2010; prezentarea riscurilor de incendiu ale locului de muncă și a planului de evacuare; utilizarea stingătorului (demonstrații practice); deciziile interne PSI.',
+      '; organizarea apărării împotriva incendiilor la locul de muncă; OMAI 1184/2006; OMAI 163/2007; OMAI 106/2007; OMAI 187/2010; prezentarea riscurilor de incendiu ale locului de muncă și a planului de evacuare; utilizarea stingătorului (demonstrații practice); deciziile interne în domeniul situațiilor de urgență.',
   },
 } as const;
 

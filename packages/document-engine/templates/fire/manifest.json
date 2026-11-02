@@ -167,7 +167,7 @@
       "file": "3.1_fire_training_themes.docx",
       "change": {
         "kind": "correction",
-        "note": "La „LOCUL DE MUNCĂ” sunt numite locurile de muncă ale clientului, nu firma; ultimele rânduri ale fiecărui plan rămân pe aceeași pagină cu totalul, rândul totalului nu mai are „--” la numărul curent, iar capitolul VI al IPSU se numește „Alte obligații privind apărarea împotriva incendiilor”."
+        "note": "Conținutul instruirii la locul de muncă se încheie cu „deciziile interne în domeniul situațiilor de urgență”, în loc de „deciziile interne PSI”."
       }
     },
     {
@@ -345,7 +345,7 @@
     {
       "perEmployee": true,
       "typeKey": "training_sheet_su",
-      "title": "Fișa individuală de instructaj PSI",
+      "title": "Fișa individuală de instructaj SU",
       "file": "fisa_instructaj_su.docx",
       "change": {
         "kind": "layout",

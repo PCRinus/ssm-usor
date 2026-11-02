@@ -39,7 +39,7 @@ describe('a value inside a sentence', () => {
   });
 
   it('keeps an acronym, a single letter and an empty value as they are', () => {
-    expect(runOn('PSI și SSM')).toBe('PSI și SSM');
+    expect(runOn('SU și SSM')).toBe('SU și SSM');
     expect(runOn('ISU Brașov')).toBe('ISU Brașov');
     expect(runOn('A')).toBe('A');
     expect(runOn('A. Vopsitorie')).toBe('A. Vopsitorie');

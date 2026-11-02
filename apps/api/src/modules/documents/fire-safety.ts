@@ -268,7 +268,7 @@ type FireSubstanceContext = {
 } & Record<FireSubstanceDetail, string>;
 
 export type FireContext = {
-  /** "5 PSI": the first decision number plus each decision's ordinal in the binder, minus one. */
+  /** "5 SU": the first decision number plus each decision's ordinal in the binder, minus one. */
   decisionNumbers: Record<FireDecision, string>;
   schedule: {
     periodicHours: number;
@@ -603,7 +603,7 @@ const fireDecisionNumbers = (firstDecisionNumber: number) =>
   Object.fromEntries(
     (Object.keys(fireDecisionOrdinals) as FireDecision[]).map((decision) => [
       decision,
-      `${firstDecisionNumber + fireDecisionOrdinals[decision] - 1} PSI`,
+      `${firstDecisionNumber + fireDecisionOrdinals[decision] - 1} SU`,
     ])
   ) as Record<FireDecision, string>;
 

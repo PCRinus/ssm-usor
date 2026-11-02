@@ -462,7 +462,7 @@ describe('the members’ request lists', () => {
     expect(items).toEqual([
       expect.objectContaining({
         kind: 'test_sheet',
-        label: 'Fișa de test · Test anual PSI · 21.10.2026',
+        label: 'Fișa de test · Test anual SU · 21.10.2026',
         slot: 'examiner',
         employee: { id: employeeId, lastName: 'Popescu', firstName: 'Ion' },
         record: null,

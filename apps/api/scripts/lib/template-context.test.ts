@@ -970,15 +970,15 @@ describe('the fire-safety templates', () => {
 
   it('number the decisions by their places in the binder, from the first number', () => {
     const numbers: Record<string, string> = {
-      fire_decision_organization: '5 PSI',
-      fire_decision_training: '6 PSI',
-      fire_decision_open_fire: '7 PSI',
-      fire_decision_smoking: '8 PSI',
-      fire_decision_technician: '9 PSI',
-      fire_decision_instructions: '10 PSI',
-      fire_decision_waste: '11 PSI',
-      fire_decision_seasons: '12 PSI',
-      fire_decision_control: '13 PSI',
+      fire_decision_organization: '5 SU',
+      fire_decision_training: '6 SU',
+      fire_decision_open_fire: '7 SU',
+      fire_decision_smoking: '8 SU',
+      fire_decision_technician: '9 SU',
+      fire_decision_instructions: '10 SU',
+      fire_decision_waste: '11 SU',
+      fire_decision_seasons: '12 SU',
+      fire_decision_control: '13 SU',
     };
     for (const [typeKey, number] of Object.entries(numbers)) {
       const entry = fireManifest.templates.find((each) => each.typeKey === typeKey)!;
@@ -1016,7 +1016,7 @@ describe('the fire-safety templates', () => {
     expect(large.decisions).toHaveLength(9);
     expect(large.registers).toHaveLength(6);
     expect(large.instructions).toContain(
-      'a) executarea controalelor interne conform planificării, Decizia nr. 13 PSI;'
+      'a) executarea controalelor interne conform planificării, Decizia nr. 13 SU;'
     );
   });
 
@@ -1121,7 +1121,7 @@ describe('the fire-safety templates', () => {
       'în exteriorul clădirilor, în curtea interioară, lângă poarta de acces auto, marcate cu indicatorul „LOC PENTRU FUMAT”'
     );
     expect(documentText(renderDocument(file('fire_workplace_organization'), fewestData))).toContain(
-      '– fumatul este permis numai în exteriorul clădirilor, în locurile amenajate și marcate „LOC PENTRU FUMAT”, conform Deciziei nr. 8 PSI;'
+      '– fumatul este permis numai în exteriorul clădirilor, în locurile amenajate și marcate „LOC PENTRU FUMAT”, conform Deciziei nr. 8 SU;'
     );
     const technician = documentText(renderDocument(file('fire_decision_technician'), data));
     expect(technician).toContain(
@@ -1171,8 +1171,8 @@ describe('the fire-safety templates', () => {
     expect(text).toContain('Locul de muncă: Atelier Ghiroda (atelier de sudură)');
     expect(text).toContain('Stingător tip P50 – Pulbere, 50\u00a0kg, carosabil: 1 buc.;');
     expect(text).toContain('Ladă cu nisip: 1 buc.');
-    expect(text).toContain('redate în Decizia nr. 9 PSI.');
-    expect(text).toContain('conform Deciziei nr. 8 PSI:');
+    expect(text).toContain('redate în Decizia nr. 9 SU.');
+    expect(text).toContain('conform Deciziei nr. 8 SU:');
     expect(text.match(/^Conduita salvatorului cuprinde, în această ordine:$/gm)).toHaveLength(
       facts.workplaces.length
     );
@@ -1291,7 +1291,7 @@ describe('the fire-safety templates', () => {
     );
     expect(text).toContain('pe anul 2025');
     expect(text).toContain(
-      '– Decizia privind organizarea apărării împotriva incendiilor, nr.\u00a05\u00a0PSI din 19.01.2026;'
+      '– Decizia privind organizarea apărării împotriva incendiilor, nr.\u00a05\u00a0SU din 19.01.2026;'
     );
     expect(text).toContain('2.1. Atelier Ghiroda, Ghiroda, județul Timiș, Str. Industriilor 4');
     expect(text).toContain(

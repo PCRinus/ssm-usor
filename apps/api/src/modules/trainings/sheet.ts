@@ -8,6 +8,7 @@ import {
   testGradeLabels,
   testRowCapacity,
   type TrainingDomain,
+  trainingDomainLabels,
   type TrainingPhase,
 } from '@ssm-usor/contracts';
 
@@ -465,5 +466,5 @@ export function trainingSheetFileName(
     .split(/[^A-Za-z0-9]+/)
     .filter(Boolean)
     .map((word) => word[0]!.toUpperCase() + word.slice(1).toLowerCase());
-  return `Fisa-${domain.toUpperCase()}-${words.join('-')}.pdf`;
+  return `Fisa-${trainingDomainLabels[domain]}-${words.join('-')}.pdf`;
 }

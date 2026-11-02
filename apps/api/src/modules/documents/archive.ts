@@ -13,7 +13,7 @@ import {
   readDocuments,
 } from './documents';
 
-const setNames: Record<DocumentSet, string> = { occupational_safety: 'SSM', fire_safety: 'PSI' };
+const setNames: Record<DocumentSet, string> = { occupational_safety: 'SSM', fire_safety: 'SU' };
 
 // A Worker opens at most six connections at once and queues the rest, while each read's timeout
 // already runs: a whole set read at once could time out reads that never started.

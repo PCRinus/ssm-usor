@@ -22,11 +22,11 @@ describe('the annual report', () => {
       decisions: [
         {
           title: 'Decizia privind organizarea apărării împotriva incendiilor',
-          reference: 'nr. 5 PSI din 19.01.2026',
+          reference: 'nr. 5 SU din 19.01.2026',
         },
         {
           title: 'Decizia privind instruirea în domeniul situațiilor de urgență',
-          reference: 'nr. 6 PSI din 19.01.2026',
+          reference: 'nr. 6 SU din 19.01.2026',
         },
       ],
       coordinator: 'Florin Cristian TALOȘ, Administrator',

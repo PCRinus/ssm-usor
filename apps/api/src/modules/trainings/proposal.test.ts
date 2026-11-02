@@ -105,7 +105,7 @@ describe('trainingProposal', () => {
     ).toEqual({
       durationMinutes: 120,
       material:
-        'IPSU art. 74–146; I.P.S.U. Lucrul cu foc deschis, art. 1–7; instrucțiunile afișate la locul de muncă (Decizia nr. 10 PSI); organizarea apărării împotriva incendiilor la locul de muncă',
+        'IPSU art. 74–146; I.P.S.U. Lucrul cu foc deschis, art. 1–7; instrucțiunile afișate la locul de muncă (Decizia nr. 10 SU); organizarea apărării împotriva incendiilor la locul de muncă',
       trainer: manager,
       verifier: null,
       admittedBy: null,
@@ -163,7 +163,7 @@ describe('trainingProposal', () => {
     ).toMatchObject({
       durationMinutes: 480,
       material: expect.stringContaining(
-        'instrucțiunile afișate la locul de muncă (Decizia nr. 10 PSI); organizarea'
+        'instrucțiunile afișate la locul de muncă (Decizia nr. 10 SU); organizarea'
       ),
       trainer: manager,
       verifier: null,
