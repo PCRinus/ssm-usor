@@ -479,7 +479,7 @@ export const saveImportLibraryPartChangesRoute = createRoute({
   operationId: 'saveImportLibraryPartChanges',
   summary: "Save the member's review of a library part",
   description:
-    "Replaces the part's changes, by the proposed instruction's key: `included` false leaves it out, `title`, `category` (one of the part's domain), `choice` for a similar instruction (`use_existing` or `add_new`), `posts` in place of those the themes give, and `body`, the text edited, held to the body's schema. Before the client is confirmed too. On the `version` the caller read, and answers the next. `400` for a key the proposal does not have or a category of the other domain; `409` with `import_changed` when someone saved since, `import_part_not_ready` when the part is not `to_review` or `nothing_new`.",
+    "Replaces the part's changes, by the proposed instruction's key: `included` false leaves it out, `title`, `category` (one of the part's domain), `choice` for a similar instruction (`use_existing` or `add_new`), `posts` in place of those the themes give, and `body`, the text edited, held to the body's schema. Before the client is confirmed too. On the `version` the caller read, and answers the next. `400` for a key the proposal does not have or a category of the other domain; `409` with `import_changed` when someone saved since, `import_part_not_ready` when the part is not `to_review` or `nothing_new`, `import_part_expired` 14 days after the client's confirmation.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -494,7 +494,7 @@ export const saveImportLibraryPartChangesRoute = createRoute({
     200: { description: 'The new version', content: versionContent },
     400: { description: 'Invalid path or body', content: errorContent },
     404: { description: 'No such import, or no such part of it', content: errorContent },
-    409: { description: 'Not ready, or saved since it was read', content: errorContent },
+    409: { description: 'Not ready, expired, or saved since it was read', content: errorContent },
     ...membershipErrors,
   },
 });
@@ -543,7 +543,7 @@ export const retryImportLibraryPartRoute = createRoute({
   operationId: 'retryImportLibraryPart',
   summary: 'Read a failed library part again',
   description:
-    '"Citește din nou": a `failed` part of an import ready for review or confirmed goes back to `reading` under its next `attempt` and its message is sent again; the reading is charged again when its request is sent (25 credits for SSM, 10 for PSI), and given back if it fails. The client proposal and the other part are untouched. `409` with `import_part_not_failed` otherwise; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.',
+    '"Citește din nou": a `failed` part of an import ready for review or confirmed goes back to `reading` under its next `attempt` and its message is sent again; the reading is charged again when its request is sent (25 credits for SSM, 10 for PSI), and given back if it fails. The client proposal and the other part are untouched. `409` with `import_part_expired` 14 days after the client was confirmed, when it could no longer be confirmed, and `import_part_not_failed` otherwise; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: libraryPartParams },
@@ -558,7 +558,7 @@ export const retryImportLibraryPartRoute = createRoute({
     },
     400: { description: 'Invalid path', content: errorContent },
     404: { description: 'No such import, or no such part of it', content: errorContent },
-    409: { description: 'The part has not failed', content: errorContent },
+    409: { description: 'The part has not failed, or it expired', content: errorContent },
     ...membershipErrors,
     503: unavailable,
   },

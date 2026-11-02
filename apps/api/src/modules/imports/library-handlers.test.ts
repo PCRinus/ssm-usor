@@ -587,4 +587,20 @@ describe('POST /imports/{importId}/library-parts/{part}/retry', () => {
     expect(await response.json()).toMatchObject({ reason: 'import_part_not_failed' });
     expect(sent).toEqual([]);
   });
+
+  it('sends nothing for a part past its 14 days', async () => {
+    mockUpstream(({ url }) =>
+      url.pathname === '/rest/v1/rpc/retry_import_library_part'
+        ? Response.json(
+            { code: 'ILP04', message: 'The library part expired.', details: null, hint: null },
+            { status: 400 }
+          )
+        : undefined
+    );
+    const response = await request(`${parts}/instructions_psi/retry`, 'POST');
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ reason: 'import_part_expired' });
+    expect(sent).toEqual([]);
+  });
 });

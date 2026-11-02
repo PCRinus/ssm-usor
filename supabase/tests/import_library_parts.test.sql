@@ -1,5 +1,5 @@
 begin;
-select plan(42);
+select plan(44);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -344,7 +344,29 @@ select throws_ok(
   'ILP04', null, 'a part not confirmed 14 days after the client has expired'
 );
 
+select throws_ok(
+  $$ select public.save_import_library_part_changes('10000000-0000-4000-8000-000000000071', 'instructions_psi', 0, '{"instructions": {}}') $$,
+  'ILP04', null, 'an expired part takes no more changes'
+);
+
 reset role;
+
+update public.import_library_parts
+set status = 'failed', failure_reason = 'Nu am putut citi instrucțiunile.', failed_at = now()
+where part = 'instructions_psi';
+
+select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000071');
+
+select throws_ok(
+  $$ select public.retry_import_library_part('10000000-0000-4000-8000-000000000071', 'instructions_psi') $$,
+  'ILP04', null, 'and is not read again, which would charge a reading it could never confirm'
+);
+
+reset role;
+
+update public.import_library_parts
+set status = 'to_review', failure_reason = null, failed_at = null
+where part = 'instructions_psi';
 
 insert into public.imports (id, organization_id, kind, client_id, into_existing_client, status, started_at, ready_at) values
   ('10000000-0000-4000-8000-000000000072', '11111111-0000-4000-8000-000000000071', 'client', 'cccccccc-0000-4000-8000-000000000071', true, 'ready', now(), now()),
