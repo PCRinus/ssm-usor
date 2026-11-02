@@ -11,33 +11,36 @@ export interface RiskLibrary {
 }
 
 export async function riskLibraryOf(db: DataClient, organizationId: string): Promise<RiskLibrary> {
-  const { data, error } = await db
-    .from('evaluation_profiles')
-    .select(
-      'id, name, archived_at, evaluation_profile_factors(id, component, description, gravity_class, probability_class, sort_order, evaluation_profile_measures(kind, description, sort_order))'
-    )
-    .eq('organization_id', organizationId);
-  if (error) throw fromDatabaseError(error, 'read the risk library');
+  const [named, active] = await Promise.all([
+    db.from('evaluation_profiles').select('name').eq('organization_id', organizationId),
+    db
+      .from('evaluation_profiles')
+      .select(
+        'id, name, evaluation_profile_factors(id, component, description, gravity_class, probability_class, sort_order, evaluation_profile_measures(kind, description, sort_order))'
+      )
+      .eq('organization_id', organizationId)
+      .is('archived_at', null),
+  ]);
+  if (named.error) throw fromDatabaseError(named.error, 'read the risk library');
+  if (active.error) throw fromDatabaseError(active.error, 'read the risk library');
   const bySortOrder = (a: { sort_order: number }, b: { sort_order: number }) =>
     a.sort_order - b.sort_order;
   return {
-    names: data.map((entry) => entry.name),
-    entries: data
-      .filter((entry) => entry.archived_at === null)
-      .map((entry) => ({
-        id: entry.id,
-        name: entry.name,
-        factors: [...entry.evaluation_profile_factors].sort(bySortOrder).map((factor) => ({
-          id: factor.id,
-          component: factor.component,
-          description: factor.description,
-          gravityClass: factor.gravity_class,
-          probabilityClass: factor.probability_class,
-          measures: [...factor.evaluation_profile_measures]
-            .sort(bySortOrder)
-            .map((measure) => ({ kind: measure.kind, description: measure.description })),
-        })),
+    names: named.data.map((entry) => entry.name),
+    entries: active.data.map((entry) => ({
+      id: entry.id,
+      name: entry.name,
+      factors: [...entry.evaluation_profile_factors].sort(bySortOrder).map((factor) => ({
+        id: factor.id,
+        component: factor.component,
+        description: factor.description,
+        gravityClass: factor.gravity_class,
+        probabilityClass: factor.probability_class,
+        measures: [...factor.evaluation_profile_measures]
+          .sort(bySortOrder)
+          .map((measure) => ({ kind: measure.kind, description: measure.description })),
       })),
+    })),
   };
 }
 
