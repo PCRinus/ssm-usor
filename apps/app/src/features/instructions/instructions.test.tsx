@@ -1,7 +1,9 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import type { QueryClient } from '@tanstack/react-query';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getGetInstructionModuleQueryKey } from '@/api/generated/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
@@ -315,6 +317,11 @@ const bodies = (pathname: string, method: string) =>
 
 const mount = (path = '/instructions') => mountApp(authFixture(makeSession()).client, path);
 
+async function refetchModule(queryClient: QueryClient, moduleId: string) {
+  await queryClient.refetchQueries({ queryKey: getGetInstructionModuleQueryKey(moduleId) });
+  await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
+}
+
 const fireTabLink = () =>
   within(screen.getByRole('navigation', { name: 'Secțiunile instrucțiunilor proprii' })).getByRole(
     'link',
@@ -612,6 +619,35 @@ describe('the module form', () => {
     );
   });
 
+  it('keeps the form and its unsaved text when a later read fails or finds the module archived', async () => {
+    mockApi({ moduleBody: ladderBody });
+    const runtime = mount(`/instructions/${ladders.id}`);
+    const user = userEvent.setup();
+    await screen.findByTestId('instruction-form');
+    await user.type(articleBoxes()[1]!, ' Nici cu unelte.');
+    const refetch = () => refetchModule(runtime.queryClient, ladders.id);
+
+    mockApi({
+      modules: [{ ...ladders, archivedAt: '2026-09-26T11:00:00.000Z' }],
+      moduleBody: ladderBody,
+    });
+    await refetch();
+    const read = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (input, init) =>
+      new URL(String(input)).pathname === `/instruction-modules/${ladders.id}`
+        ? Response.json({ error: 'not_found', message: 'no' }, { status: 404 })
+        : read(input, init)
+    );
+    await refetch();
+
+    expect(screen.queryByTestId('editor-unavailable')).toBeNull();
+    expect(screen.queryByTestId('fake-editor')).toBeNull();
+    expect(articleBoxes()[1]!.value).toBe(
+      'Este interzisă urcarea cu sarcini grele. Nici cu unelte.'
+    );
+    expect(screen.getByTestId('instruction-save-state').textContent).toBe('Modificări nesalvate.');
+  });
+
   it('refuses to save a text without an article, in words', async () => {
     mockApi();
     mount(`/instructions/${ladders.id}`);
@@ -795,9 +831,9 @@ describe('writing a new module', () => {
     );
   });
 
-  it('starts from a library module of the same domain as a copy of its text', async () => {
+  it('starts from a library module of the same domain as a copy of its text, kept when a later read fails', async () => {
     mockApi({ moduleBody: ladderBody });
-    mount('/instructions/ssm');
+    const runtime = mount('/instructions/ssm');
     const user = userEvent.setup();
     await screen.findAllByTestId('instruction-row');
     await user.click(screen.getByTestId('instruction-write'));
@@ -821,6 +857,17 @@ describe('writing a new module', () => {
     await screen.findByTestId('instruction-form');
     expect(labels()).toEqual(['Titlu de secțiune', 'Art. 1', 'Titlu de secțiune', 'Art. 2']);
     expect(screen.getByTestId('instruction-form-title').textContent).toBe('Scări – șantier');
+
+    await user.type(articleBoxes()[0]!, ' Pe șantier.');
+    const read = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (input, init) =>
+      new URL(String(input)).pathname === `/instruction-modules/${ladders.id}`
+        ? Response.json({ error: 'not_found', message: 'no' }, { status: 404 })
+        : read(input, init)
+    );
+    await refetchModule(runtime.queryClient, ladders.id);
+    expect(screen.queryByTestId('editor-unavailable')).toBeNull();
+    expect(articleBoxes()[0]!.value).toContain('Pe șantier.');
   });
 
   it('refuses a title the library already has before opening the form', async () => {

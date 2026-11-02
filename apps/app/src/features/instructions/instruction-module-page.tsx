@@ -51,9 +51,15 @@ export function InstructionModulePage({ moduleId, userId }: { moduleId: string; 
     query: { queryKey: [...getGetInstructionModuleQueryKey(moduleId), userId] },
   });
   const [editing, setEditing] = useState(false);
+  // Decided by the first read: a later refetch that fails or finds the module archived must not
+  // take the form and its unsaved text away. Saving says so when the module was archived.
+  const [openedArchived, setOpenedArchived] = useState<boolean | null>(null);
+  if (query.data && openedArchived === null) {
+    setOpenedArchived(Boolean(query.data.module.archivedAt));
+  }
 
-  if (query.isPending) return <Skeleton className="h-96 w-full" />;
-  if (query.isError) {
+  if (!query.data) {
+    if (!query.isError) return <Skeleton className="h-96 w-full" />;
     return (
       <Unavailable
         notFound={query.error instanceof ApiHttpError && query.error.status === 404}
@@ -62,7 +68,9 @@ export function InstructionModulePage({ moduleId, userId }: { moduleId: string; 
     );
   }
   const { module, body } = query.data;
-  if (module.archivedAt) return <InstructionVersionView moduleId={moduleId} userId={userId} />;
+  if (openedArchived ?? module.archivedAt) {
+    return <InstructionVersionView moduleId={moduleId} userId={userId} />;
+  }
   return (
     <>
       <InstructionForm
@@ -96,8 +104,8 @@ export function NewInstructionPage({ start, userId }: { start: StartValues; user
   });
   const [initialBlocks] = useState(() => (start.from ? null : templateBlocks(start.group)));
 
-  if (start.from && source.isPending) return <Skeleton className="h-96 w-full" />;
-  if (start.from && source.isError) {
+  if (start.from && !source.data) {
+    if (!source.isError) return <Skeleton className="h-96 w-full" />;
     return (
       <Unavailable
         notFound={source.error instanceof ApiHttpError && source.error.status === 404}
