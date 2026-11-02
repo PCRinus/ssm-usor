@@ -9,8 +9,8 @@ import {
   trainingSheetTypeKeys,
 } from '@ssm-usor/contracts';
 import {
-  annexTitlePage,
   documentText,
+  renderAnnex,
   renderDocument,
   renderTemplate,
   signingTypeKeys,
@@ -37,7 +37,7 @@ import {
   fireSafetyGapConcerns,
   missingFireSafetyData,
 } from '../../src/modules/documents/fire-safety';
-import { annexTitlePagesData } from '../../src/modules/documents/snapshot';
+import { annexesData } from '../../src/modules/documents/snapshot';
 
 // Lives with the scripts because it reads the repository's files, which the Worker's own
 // code cannot: the templates, merged with the context the API builds.
@@ -353,7 +353,14 @@ describe('the training themes', () => {
   }, 30_000);
 });
 
-describe('the annex title pages', () => {
+const annexBody = {
+  blocks: [
+    { kind: 'heading' as const, text: 'Înainte de începerea lucrului' },
+    { kind: 'article' as const, paragraphs: ['Se verifică locul de muncă.'] },
+  ],
+};
+
+describe('the annexes', () => {
   it('merge from what the own instructions snapshot, one per annexed module', () => {
     const entry = manifest.templates.find((template) => template.typeKey === 'own_instructions')!;
     const { snapshot } = merge(
@@ -361,8 +368,8 @@ describe('the annex title pages', () => {
       documentData(buildDocumentContext(facts), 'own_instructions'),
       'own_instructions'
     );
-    const pages = annexTitlePagesData(snapshot as Json).map((data) =>
-      documentText(renderDocument(annexTitlePage('ssm'), data))
+    const pages = annexesData(snapshot as Json).map(({ data }) =>
+      documentText(renderAnnex('ssm', annexBody, data))
     );
     expect(pages).toHaveLength(2);
     expect(pages[0]).toContain('ANEXA 1');
@@ -381,8 +388,8 @@ describe('the annex title pages', () => {
       { ...buildFireSafetyContext(facts) },
       'fire_own_instructions'
     );
-    const pages = annexTitlePagesData(snapshot as Json).map((data) =>
-      documentText(renderDocument(annexTitlePage('psi'), data))
+    const pages = annexesData(snapshot as Json).map(({ data }) =>
+      documentText(renderAnnex('psi', annexBody, data))
     );
     expect(pages).toHaveLength(1);
     expect(pages[0]).toContain('ANEXA 1');

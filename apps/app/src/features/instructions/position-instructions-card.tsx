@@ -68,7 +68,7 @@ const domainCopy = {
     pickDescription:
       'Bifează instrucțiunile din bibliotecă care privesc postul. Instrucțiunile proprii ale clientului le anexează, iar tematica de instruire le citează.',
     libraryEmpty:
-      'Biblioteca este goală. Încarcă sau scrie instrucțiunile organizației, apoi alege-le aici.',
+      'Nu ai încă instrucțiuni proprii SSM. Scrie-le în Instrucțiuni proprii, apoi alege-le aici.',
     copyTitle: 'Copiază instrucțiunile de la alt post',
     copyDescription:
       'Instrucțiunile celuilalt post se adaugă la ale acestuia; cele deja aplicate rămân.',
@@ -85,7 +85,7 @@ const domainCopy = {
     pickDescription:
       'Bifează instrucțiunile PSI din bibliotecă care privesc postul. Instrucțiunile proprii PSI ale clientului le anexează, iar tematica de instruire PSI le citează.',
     libraryEmpty:
-      'Biblioteca nu are instrucțiuni PSI. Încarcă sau scrie instrucțiunile PSI ale organizației, apoi alege-le aici.',
+      'Nu ai încă instrucțiuni proprii PSI. Scrie-le în Instrucțiuni proprii, apoi alege-le aici.',
     copyTitle: 'Copiază instrucțiunile PSI de la alt post',
     copyDescription:
       'Instrucțiunile PSI ale celuilalt post se adaugă la ale acestuia; cele deja aplicate rămân.',
@@ -229,6 +229,7 @@ export function PositionInstructionsCard({
     <SectionCard
       id={id}
       headingLevel={3}
+      help="instructiuni.aplicare"
       data-testid={testId('card')}
       title={
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -498,7 +499,7 @@ function PickInstructionsDialog({
               action={
                 <Button asChild variant="outline">
                   <Link to={domain === 'psi' ? '/instructions/psi' : '/instructions/ssm'}>
-                    Deschide biblioteca
+                    Deschide Instrucțiuni proprii
                   </Link>
                 </Button>
               }

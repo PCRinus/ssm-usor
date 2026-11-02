@@ -1,4 +1,13 @@
-export { type AnnexDomain, annexTitlePage } from './annex-title';
+export {
+  type AnnexBlock,
+  type AnnexBody,
+  type AnnexPageCount,
+  type AnnexParagraph,
+  annexParagraphs,
+  appendAnnexes,
+  renderAnnex,
+} from './annex';
+export { type AnnexDomain, annexTemplate } from './annex-template';
 export {
   type ActKind,
   type ActName,
@@ -10,7 +19,6 @@ export {
   type TemplateSet,
   type TemplateSource,
 } from './citations';
-export { countArticles, firstLine, sweepFonts } from './modules';
 export * from './render';
 export {
   buildSigningAgreementData,
@@ -23,7 +31,6 @@ export {
   signingRegulationAnnexData,
   signingTypeKeys,
 } from './signing';
-export { instructionModuleSkeleton } from './skeleton';
 export {
   buildTestSheetData,
   type TestSheetData,

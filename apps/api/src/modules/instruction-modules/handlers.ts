@@ -1,24 +1,26 @@
 import type { RouteHandler } from '@hono/zod-openapi';
-import type {
-  AppliedInstruction,
-  InstructionDomain,
-  InstructionModule,
-  InstructionModuleGroup,
-} from '@ssm-usor/contracts';
 import {
-  countArticles,
-  firstLine,
-  instructionModuleSkeleton,
-  sweepFonts,
-} from '@ssm-usor/document-engine';
+  type AppliedInstruction,
+  categoryFitsDomain,
+  type InstructionBody,
+  instructionCategories,
+  type InstructionDomain,
+  type InstructionModule,
+  type InstructionModuleGroup,
+  spacedBody,
+  textHash,
+  unfilledMark,
+} from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
 import type { Database } from '../../database.types';
+import { contentDisposition } from '../../lib/content-disposition';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
-import { requireDocx, sha256 } from '../../lib/docx';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
-import { createFileStore, type FileStore } from '../../lib/files';
+import { renderInstructionAnnex } from '../documents/annexes';
+import { printedDate, romanianDay } from '../documents/context';
+import { fileNameOf } from '../documents/documents';
 import {
   findJobPosition,
   jobPositionColumns,
@@ -30,23 +32,24 @@ import type {
   copyPositionInstructionsRoute,
   createInstructionModuleRoute,
   decidePositionInstructionsRoute,
+  downloadInstructionModuleRoute,
   getInstructionModuleRoute,
-  instructionModuleFileLinkRoute,
+  getInstructionModuleVersionRoute,
   listInstructionModulesRoute,
   listPositionInstructionsRoute,
-  saveInstructionModuleFileRoute,
+  previewInstructionRoute,
+  saveInstructionBodyRoute,
   updateInstructionModuleRoute,
-  uploadInstructionModuleRoute,
 } from './routes';
 
-// The database holds the rules of the library (ADR 012): one title per organization, no
-// archiving a module a position applies, no new file on an archived one, a module applied only
-// in its own domain, and each of the position's two decisions in step with the modules of its
-// domain. The handlers word them.
+// The database holds the rules of the library (ADR 012, ADR 034): one title per organization,
+// a category of the module's domain, no archiving a module a position applies, no new version
+// on an archived one or of an unchanged body, a module applied only in its own domain, and each
+// of the position's two decisions in step with the modules of its domain. The handlers word them.
 
 type VersionRow = Pick<
   Database['public']['Tables']['instruction_module_versions']['Row'],
-  'id' | 'number' | 'sha256' | 'size_bytes' | 'article_count' | 'created_at'
+  'id' | 'number' | 'text_hash' | 'article_count' | 'created_at'
 >;
 
 type ModuleRow = Pick<
@@ -54,45 +57,42 @@ type ModuleRow = Pick<
   'id' | 'title' | 'module_group' | 'domain' | 'archived_at' | 'created_at' | 'updated_at'
 > & { instruction_module_versions: VersionRow[] };
 
-const moduleColumns =
-  'id, title, module_group, domain, archived_at, created_at, updated_at, instruction_module_versions(id, number, sha256, size_bytes, article_count, created_at)';
+const versionColumns = 'id, number, text_hash, article_count, created_at';
 
-const groupOrder: Record<InstructionModuleGroup, number> = {
-  work_activity: 0,
-  work_equipment: 1,
-  protective_equipment: 2,
-};
+const moduleColumns = `id, title, module_group, domain, archived_at, created_at, updated_at, instruction_module_versions(${versionColumns})`;
 
 const collator = new Intl.Collator('ro');
 
 export const byGroupAndTitle = <T extends { group: InstructionModuleGroup; title: string }>(
   a: T,
   b: T
-) => groupOrder[a.group] - groupOrder[b.group] || collator.compare(a.title, b.title);
+) =>
+  instructionCategories.indexOf(a.group) - instructionCategories.indexOf(b.group) ||
+  collator.compare(a.title, b.title);
 
 const domainOrder: Record<InstructionDomain, number> = { ssm: 0, psi: 1 };
 
 const byDomainGroupAndTitle = (a: InstructionModule, b: InstructionModule) =>
   domainOrder[a.domain] - domainOrder[b.domain] || byGroupAndTitle(a, b);
 
+const toVersion = (version: VersionRow) => ({
+  id: version.id,
+  number: version.number,
+  textHash: version.text_hash,
+  articleCount: version.article_count,
+  createdAt: version.created_at,
+});
+
 function toModule(row: ModuleRow, appliedCount: number): InstructionModule {
   const version = row.instruction_module_versions[0];
-  // The row is written before its first version; a module caught in between is not one yet.
-  if (!version) throw new ApiError('not_found', 'This module has no file yet.');
+  if (!version) throw new ApiError('not_found', 'This module has no text yet.');
   return {
     id: row.id,
     title: row.title,
     group: row.module_group,
     domain: row.domain,
     archivedAt: row.archived_at,
-    version: {
-      id: version.id,
-      number: version.number,
-      sha256: version.sha256,
-      sizeBytes: version.size_bytes,
-      articleCount: version.article_count,
-      createdAt: version.created_at,
-    },
+    version: toVersion(version),
     appliedCount,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -117,6 +117,16 @@ const moduleArchived = () =>
 
 const noSuchModule = () =>
   new ApiError('not_found', 'This module does not exist in your organization.');
+
+const noSuchVersion = () => new ApiError('not_found', 'This module has no such version.');
+
+const categoryOfOtherDomain = () =>
+  new ApiError(
+    'validation_error',
+    'The category belongs to the other domain.',
+    [{ path: 'group', message: 'Choose a category of the module’s domain.' }],
+    'instruction_module_category_domain'
+  );
 
 function moduleQuery(db: DataClient) {
   return db
@@ -151,46 +161,57 @@ async function readModule(db: DataClient, moduleId: string) {
 async function readVersion(db: DataClient, moduleId: string, versionId: string) {
   const { data, error } = await db
     .from('instruction_module_versions')
-    .select('id, number, created_at')
+    .select(`${versionColumns}, body`)
     .eq('id', versionId)
     .eq('module_id', moduleId)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'read instruction module version');
-  if (!data) throw new ApiError('not_found', 'This module has no such version.');
-  return { id: data.id, number: data.number, createdAt: data.created_at };
+  if (!data) throw noSuchVersion();
+  return { version: toVersion(data), body: data.body as InstructionBody };
 }
 
+async function readModuleWithBody(db: DataClient, moduleId: string) {
+  const module = await readModule(db, moduleId);
+  const { body } = await readVersion(db, moduleId, module.version.id);
+  return { module, body };
+}
+
+const sameBody = (left: InstructionBody, right: InstructionBody) =>
+  JSON.stringify(spacedBody(left)) === JSON.stringify(spacedBody(right));
+
+/** False when the body differs from the current version's only in whitespace. */
 async function addVersion(
   db: DataClient,
-  files: FileStore,
   actor: { organizationId: string; userId: string },
   moduleId: string,
-  bytes: Uint8Array
+  body: InstructionBody
 ) {
   const latest = await db
     .from('instruction_module_versions')
-    .select('number')
+    .select('number, body')
     .eq('module_id', moduleId)
     .order('number', { ascending: false })
     .limit(1)
     .maybeSingle();
   if (latest.error) throw fromDatabaseError(latest.error, 'read latest module version');
-  const number = (latest.data?.number ?? 0) + 1;
-  // The row before the file: the storage policy accepts only a path a version names.
-  const path = `${actor.organizationId}/${moduleId}/${number}.docx`;
+  if (latest.data && sameBody(latest.data.body as InstructionBody, body)) return false;
+  const spaced = spacedBody(body);
   const { error } = await db.from('instruction_module_versions').insert({
     organization_id: actor.organizationId,
     module_id: moduleId,
-    number,
-    docx_path: path,
-    sha256: await sha256(bytes),
-    size_bytes: bytes.length,
-    article_count: countArticles(bytes),
+    number: (latest.data?.number ?? 0) + 1,
+    body: spaced,
+    text_hash: await textHash(spaced),
     created_by: actor.userId,
   });
   if (error?.code === 'INS05') throw moduleArchived();
+  // Another save of the same text landed first.
+  if (error?.code === 'INS08') return false;
+  if (error?.code === '23505') {
+    throw new ApiError('conflict', 'The module was saved in the meantime; save it again.');
+  }
   if (error) throw fromDatabaseError(error, 'add module version');
-  await files.writeModule(path, bytes);
+  return true;
 }
 
 const actorOf = (c: Context<ApiEnv>) => ({
@@ -200,26 +221,25 @@ const actorOf = (c: Context<ApiEnv>) => ({
 
 async function createModule(
   db: DataClient,
-  files: FileStore,
-  actor: { organizationId: string; userId: string },
-  fields: { title: string; group: InstructionModuleGroup; domain: InstructionDomain },
-  bytes: Uint8Array
+  fields: {
+    title: string;
+    group: InstructionModuleGroup;
+    domain: InstructionDomain;
+    body: InstructionBody;
+  }
 ) {
-  const { data, error } = await db
-    .from('instruction_modules')
-    .insert({
-      organization_id: actor.organizationId,
-      title: fields.title,
-      module_group: fields.group,
-      domain: fields.domain,
-      created_by: actor.userId,
-    })
-    .select('id')
-    .single();
+  if (!categoryFitsDomain(fields.group, fields.domain)) throw categoryOfOtherDomain();
+  const body = spacedBody(fields.body);
+  const { data, error } = await db.rpc('create_instruction_module', {
+    p_title: fields.title,
+    p_group: fields.group,
+    p_domain: fields.domain,
+    p_body: body,
+    p_text_hash: await textHash(body),
+  });
   if (error?.code === '23505') throw titleTaken();
   if (error) throw fromDatabaseError(error, 'create instruction module');
-  await addVersion(db, files, actor, data.id, bytes);
-  return readModule(db, data.id);
+  return readModuleWithBody(db, data);
 }
 
 export const listInstructionModules: RouteHandler<
@@ -246,47 +266,15 @@ export const createInstructionModule: RouteHandler<
   typeof createInstructionModuleRoute,
   ApiEnv
 > = async (c) => {
-  const body = c.req.valid('json');
-  const module = await createModule(
-    createDataClient(c),
-    createFileStore(c),
-    actorOf(c),
-    body,
-    instructionModuleSkeleton()
-  );
-  return c.json({ module }, 201);
-};
-
-export const uploadInstructionModule: RouteHandler<
-  typeof uploadInstructionModuleRoute,
-  ApiEnv
-> = async (c) => {
-  const query = c.req.valid('query');
-  // The body is the file itself, not JSON, so it is read here rather than validated above.
-  const uploaded = new Uint8Array(await c.req.arrayBuffer());
-  requireDocx(uploaded);
-  const bytes = sweepFonts(uploaded);
-  const title = (query.title ?? firstLine(bytes) ?? '').slice(0, 200).trim();
-  if (title.length < 2) {
-    throw new ApiError('validation_error', 'The file has no first line to take a title from.', [
-      { path: 'title', message: 'Give the module a title.' },
-    ]);
-  }
-  const module = await createModule(
-    createDataClient(c),
-    createFileStore(c),
-    actorOf(c),
-    { title, group: query.group, domain: query.domain },
-    bytes
-  );
-  return c.json({ module }, 201);
+  const created = await createModule(createDataClient(c), c.req.valid('json'));
+  return c.json(created, 201);
 };
 
 export const getInstructionModule: RouteHandler<typeof getInstructionModuleRoute, ApiEnv> = async (
   c
 ) => {
   const { moduleId } = c.req.valid('param');
-  return c.json({ module: await readModule(createDataClient(c), moduleId) }, 200);
+  return c.json(await readModuleWithBody(createDataClient(c), moduleId), 200);
 };
 
 export const updateInstructionModule: RouteHandler<
@@ -303,6 +291,12 @@ export const updateInstructionModule: RouteHandler<
   if (body.archived !== undefined) {
     changes.archived_at = body.archived ? new Date().toISOString() : null;
   }
+  if (body.group !== undefined || body.domain !== undefined) {
+    const current = await readModule(db, moduleId);
+    if (!categoryFitsDomain(body.group ?? current.group, body.domain ?? current.domain)) {
+      throw categoryOfOtherDomain();
+    }
+  }
   if (Object.keys(changes).length > 0) {
     const { data, error } = await db
       .from('instruction_modules')
@@ -311,6 +305,8 @@ export const updateInstructionModule: RouteHandler<
       .select('id')
       .maybeSingle();
     if (error?.code === '23505') throw titleTaken();
+    // The category changed with a concurrent move to the other domain.
+    if (error?.code === '23514') throw categoryOfOtherDomain();
     if (error?.code === 'INS04') {
       throw new ApiError(
         'conflict',
@@ -330,53 +326,105 @@ export const updateInstructionModule: RouteHandler<
     if (error) throw fromDatabaseError(error, 'update instruction module');
     if (!data) throw noSuchModule();
   }
-  return c.json({ module: await readModule(db, moduleId) }, 200);
+  return c.json(await readModuleWithBody(db, moduleId), 200);
 };
 
-const fileNameOf = (title: string) =>
-  `${title
-    .replace(/[\\/:*?"<>|]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()}.docx`;
+export const saveInstructionBody: RouteHandler<typeof saveInstructionBodyRoute, ApiEnv> = async (
+  c
+) => {
+  const { moduleId } = c.req.valid('param');
+  const body = c.req.valid('json');
+  const db = createDataClient(c);
+  const module = await readModule(db, moduleId);
+  if (module.archivedAt) throw moduleArchived();
+  const changed = await addVersion(db, actorOf(c), moduleId, body);
+  return c.json({ ...(await readModuleWithBody(db, moduleId)), changed }, 200);
+};
 
-export const getInstructionModuleFileLink: RouteHandler<
-  typeof instructionModuleFileLinkRoute,
+export const getInstructionModuleVersion: RouteHandler<
+  typeof getInstructionModuleVersionRoute,
+  ApiEnv
+> = async (c) => {
+  const { moduleId, versionId } = c.req.valid('param');
+  return c.json(await readVersion(createDataClient(c), moduleId, versionId), 200);
+};
+
+const placeholderClient = {
+  legalName: 'Numele clientului',
+  representativeName: 'Numele reprezentantului',
+  representativeRole: 'Administrator',
+};
+
+// Outside a client's documents there is no client to name.
+async function libraryAnnexData(
+  db: DataClient,
+  organizationId: string,
+  annex: { title: string; versionDate: string }
+) {
+  const { data, error } = await db
+    .from('organizations')
+    .select(
+      'legal_name, legal_representative_name, legal_representative_role, fire_safety_technician_name'
+    )
+    .eq('id', organizationId)
+    .single();
+  if (error) throw fromDatabaseError(error, 'read organization for an annex');
+  const filled = (value: string | null) => value?.trim() || unfilledMark;
+  return {
+    // Every plan carries the line for now (docs/document-branding.md).
+    branding: true,
+    issueDate: printedDate(romanianDay(new Date().toISOString())),
+    provider: {
+      legalName: filled(data.legal_name),
+      representativeName: filled(data.legal_representative_name),
+      representativeRole: filled(data.legal_representative_role),
+    },
+    client: placeholderClient,
+    fireSafetyTechnician: { name: filled(data.fire_safety_technician_name) },
+    number: 1,
+    title: annex.title.trim(),
+    versionDate: annex.versionDate,
+  };
+}
+
+const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+export const downloadInstructionModule: RouteHandler<
+  typeof downloadInstructionModuleRoute,
   ApiEnv
 > = async (c) => {
   const { moduleId } = c.req.valid('param');
   const { versionId } = c.req.valid('query');
   const db = createDataClient(c);
   const module = await readModule(db, moduleId);
-  const version = versionId ? await readVersion(db, moduleId, versionId) : module.version;
-  const expiresInSeconds = 60;
-  const path = `${c.get('membership').organizationId}/${moduleId}/${version.number}.docx`;
-  const fileName = fileNameOf(
+  const { version, body } = await readVersion(db, moduleId, versionId ?? module.version.id);
+  const data = await libraryAnnexData(db, c.get('membership').organizationId, {
+    title: module.title,
+    versionDate: printedDate(romanianDay(version.createdAt)),
+  });
+  const bytes = renderInstructionAnnex(module.domain, body, data);
+  const fileName = `${fileNameOf(
     versionId ? `${module.title} - versiunea ${version.number}` : module.title
-  );
-  return c.json(
-    {
-      url: await createFileStore(c).moduleLink(path, expiresInSeconds),
-      fileName,
-      expiresAt: new Date(Date.now() + expiresInSeconds * 1000).toISOString(),
-      version: { id: version.id, number: version.number, createdAt: version.createdAt },
-    },
-    200
-  );
+  )}.docx`;
+  return c.body(new Uint8Array(bytes), 200, {
+    'Content-Type': docxType,
+    'Content-Disposition': contentDisposition('attachment', fileName),
+  });
 };
 
-export const saveInstructionModuleFile: RouteHandler<
-  typeof saveInstructionModuleFileRoute,
-  ApiEnv
-> = async (c) => {
-  const { moduleId } = c.req.valid('param');
-  // The body is the file itself, not JSON, so it is read here rather than validated above.
-  const bytes = new Uint8Array(await c.req.arrayBuffer());
-  requireDocx(bytes);
+export const previewInstruction: RouteHandler<typeof previewInstructionRoute, ApiEnv> = async (
+  c
+) => {
+  const { title, domain, body } = c.req.valid('json');
   const db = createDataClient(c);
-  const module = await readModule(db, moduleId);
-  if (module.archivedAt) throw moduleArchived();
-  await addVersion(db, createFileStore(c), actorOf(c), moduleId, bytes);
-  return c.json({ module: await readModule(db, moduleId) }, 200);
+  const today = printedDate(romanianDay(new Date().toISOString()));
+  const data = await libraryAnnexData(db, c.get('membership').organizationId, {
+    title,
+    versionDate: today,
+  });
+  return c.body(new Uint8Array(renderInstructionAnnex(domain, body, data)), 200, {
+    'Content-Type': docxType,
+  });
 };
 
 type AppliedRow = {

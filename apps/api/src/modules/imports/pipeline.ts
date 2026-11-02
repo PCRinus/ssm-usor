@@ -5,7 +5,10 @@ import {
   type ExtractorService,
   importCredits,
   type ImportKind,
+  type ImportLibraryPart,
   importLimits,
+  type InstructionDomain,
+  libraryPartDomains,
   type PdfPageText,
 } from '@ssm-usor/contracts';
 import {
@@ -17,6 +20,7 @@ import {
   type ExistingClient,
   type FileTriage,
   GatewayError,
+  libraryFiles,
   lookUpRegistrations,
   ModelAnswerError,
   type ModelClient,
@@ -115,8 +119,7 @@ export const fileReasons = {
   coverOrIndex: 'Copertă, etichetă sau cuprins: nu conține date despre client.',
   blankForm: 'Formular sau registru necompletat.',
   genericText: 'Text general, fără date despre client.',
-  ownInstructions:
-    'Instrucțiuni proprii: aplicația le alcătuiește din biblioteca de instrucțiuni. Le citim doar dacă ceri.',
+  ownInstructions: 'Instrucțiuni proprii: le citim pentru biblioteca ta de instrucțiuni proprii.',
   trainingMaterial:
     'Material de instruire introductiv-generală: text general, nu conține date despre client. Îl citim doar dacă ceri.',
   noClientData: 'Nu conține date despre client.',
@@ -467,6 +470,25 @@ async function prepare(deps: PipelineDeps, file: ImportFileRow): Promise<ImportF
   return patch;
 }
 
+// A set-aside file the member sent back to be read is read for the library too.
+const libraryStates = new Set(['set_aside', 'read', 'prepared']);
+
+export const isLibraryFile = (file: ImportFileRow) =>
+  file.document_domain !== null &&
+  libraryStates.has(file.state) &&
+  (file.document_kind === 'own_instructions' || file.document_kind === 'training_themes');
+
+export function libraryPartsOf(files: ImportFileRow[]): ImportLibraryPart[] {
+  const domains = new Set(
+    files
+      .filter((file) => isLibraryFile(file) && file.document_kind === 'own_instructions')
+      .map((file) => file.document_domain)
+  );
+  return (Object.keys(libraryPartDomains) as ImportLibraryPart[]).filter((part) =>
+    domains.has(libraryPartDomains[part])
+  );
+}
+
 const sortedStates = new Set(['prepared', 'read', 'set_aside', 'for_employees', 'other_company']);
 
 function fileCompany(triage: FileTriage | undefined) {
@@ -523,6 +545,12 @@ export async function sortImport(deps: PipelineDeps, importId: string) {
   );
 
   const byPath = new Map(loaded.map((entry) => [entry.file.upload_path, entry]));
+  const domainOf = new Map<string, InstructionDomain>();
+  for (const [domain, parts] of Object.entries(libraryFiles(sorting, triages))) {
+    for (const path of [...parts.instructions, ...parts.themes]) {
+      domainOf.set(path, domain as InstructionDomain);
+    }
+  }
   const kept: TextOfFile[] = [];
   let scannedPages = 0;
   let toRead = 0;
@@ -533,6 +561,7 @@ export async function sortImport(deps: PipelineDeps, importId: string) {
     const patch: ImportFileUpdate = {
       ...fileCompany(triage),
       document_kind: triage?.kind ?? null,
+      document_domain: domainOf.get(outcome.path) ?? null,
       reason: null,
     };
     if (outcome.outcome === 'read') {
@@ -631,7 +660,7 @@ const pagesToRead = (row: Pick<ImportRow, 'kind'>, prepared: PreparedPages) =>
 // A claim is an object created only when absent, so a scan's step or a batch of its pages sent
 // twice (a step retried after sending part of its messages) is paid for once. The owner is the
 // queue message: its own redelivery takes the work up again, which the claim lets through.
-async function claimed(deps: PipelineDeps, path: string, owner: string) {
+export async function claimed(deps: PipelineDeps, path: string, owner: string) {
   const claim = JSON.stringify({ owner });
   if (await deps.objects.create(path, encoder.encode(claim), 'application/json')) return true;
   return decoder.decode(await deps.objects.read(path)) === claim;
@@ -989,11 +1018,28 @@ export async function checkImport(deps: PipelineDeps, importId: string) {
         inactive: found.inactive,
       }
     : null;
-  await deps.store.advance(importId, 'checking', {
-    status: 'ready',
-    proposal: asJson({ ...checked, registeredCompany }),
-    ready_at: new Date().toISOString(),
-  });
+  // The library parts read once the posts they cite are proposed, and never hold up the client
+  // (ADR 034).
+  const reading = await deps.store.openLibraryParts(
+    row,
+    libraryPartsOf(await deps.store.listFiles(importId))
+  );
+  await transition(
+    deps,
+    importId,
+    'checking',
+    {
+      status: 'ready',
+      proposal: asJson({ ...checked, registeredCompany }),
+      ready_at: new Date().toISOString(),
+    },
+    reading.map((part): ImportMessage => ({
+      type: 'read-instructions',
+      importId,
+      part: part.part,
+      attempt: part.attempt,
+    }))
+  );
 }
 
 const pathOrder = new Intl.Collator('ro', { numeric: true });

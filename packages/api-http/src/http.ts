@@ -41,7 +41,11 @@ function apiUrl(baseUrl: string | undefined, path: string) {
   return url;
 }
 
-const fileTypes = ['application/pdf', 'application/zip'];
+const fileTypes = [
+  'application/pdf',
+  'application/zip',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+];
 
 // `filename*` (RFC 8187) is the name with its diacritics; the API sends it beside the ASCII one.
 function fileNameOf(disposition: string | null) {

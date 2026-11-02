@@ -4,36 +4,40 @@ import {
   copyPositionInstructions,
   createInstructionModule,
   decidePositionInstructions,
+  downloadInstructionModule,
   getInstructionModule,
-  getInstructionModuleFileLink,
+  getInstructionModuleVersion,
   listInstructionModules,
   listPositionInstructions,
-  saveInstructionModuleFile,
+  previewInstruction,
+  saveInstructionBody,
   updateInstructionModule,
-  uploadInstructionModule,
 } from './handlers';
 import {
   applyPositionInstructionsRoute,
   copyPositionInstructionsRoute,
   createInstructionModuleRoute,
   decidePositionInstructionsRoute,
+  downloadInstructionModuleRoute,
   getInstructionModuleRoute,
-  instructionModuleFileLinkRoute,
+  getInstructionModuleVersionRoute,
   listInstructionModulesRoute,
   listPositionInstructionsRoute,
-  saveInstructionModuleFileRoute,
+  previewInstructionRoute,
+  saveInstructionBodyRoute,
   updateInstructionModuleRoute,
-  uploadInstructionModuleRoute,
 } from './routes';
 
 export const instructionModulesRouter = createRouter()
   .openapi(listInstructionModulesRoute, listInstructionModules)
   .openapi(createInstructionModuleRoute, createInstructionModule)
-  .openapi(uploadInstructionModuleRoute, uploadInstructionModule)
+  // Before the routes of one module: `/instruction-modules/preview` is not a module id.
+  .openapi(previewInstructionRoute, previewInstruction)
   .openapi(getInstructionModuleRoute, getInstructionModule)
   .openapi(updateInstructionModuleRoute, updateInstructionModule)
-  .openapi(instructionModuleFileLinkRoute, getInstructionModuleFileLink)
-  .openapi(saveInstructionModuleFileRoute, saveInstructionModuleFile)
+  .openapi(saveInstructionBodyRoute, saveInstructionBody)
+  .openapi(getInstructionModuleVersionRoute, getInstructionModuleVersion)
+  .openapi(downloadInstructionModuleRoute, downloadInstructionModule)
   .openapi(listPositionInstructionsRoute, listPositionInstructions)
   .openapi(applyPositionInstructionsRoute, applyPositionInstructions)
   .openapi(copyPositionInstructionsRoute, copyPositionInstructions)

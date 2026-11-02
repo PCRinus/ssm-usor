@@ -187,6 +187,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/clients/import/$importId/index.tsx`                                 | `/clients/import/:importId`                                 | The import: its steps and files while it runs, the review hub once the proposal is ready.                                                                                                                   |
 | `routes/_authenticated/clients/import/$importId/files.tsx`                                 | `/clients/import/:importId/files`                           | "Fișierele importului": the files by what the reading made of them, from the review.                                                                                                                        |
 | `routes/_authenticated/clients/import/$importId/$section.tsx`                              | `/clients/import/:importId/:section`                        | One section of the review; the loader names the breadcrumb after it.                                                                                                                                        |
+| `routes/_authenticated/clients/import/$importId/instructions/$domain.tsx`                  | `/clients/import/:importId/instructions/:domain`            | A library task of the import, IPSSM (`ssm`) or IPSU (`psi`) (ADR 034); the loader names the breadcrumb after it.                                                                                            |
 | `routes/_authenticated/clients/$clientId/edit.tsx`                                         | `/clients/:id/edit`                                         | Redirects to the details, for addresses from before the client had them. So do `contact.tsx` (`/clients/:id/contact`), `document-data.tsx` to training, and `other-documents/contract.tsx` to the contract. |
 | `routes/_authenticated/clients/$clientId.tsx`                                              | `/clients/:id`                                              | Client layout: loads the client through `GET /clients/{clientId}`, shows its summary card and section tabs, returns the breadcrumb label from its loader.                                                   |
 | `routes/_authenticated/clients/$clientId/index.tsx`                                        | `/clients/:id`                                              | Redirects to the details.                                                                                                                                                                                   |
@@ -203,13 +204,14 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/clients/$clientId/job-positions/$jobPositionId/risk-evaluation.tsx` | `/clients/:id/job-positions/:jobPositionId/risk-evaluation` | The position's risk evaluation, read by the position; offers to start one while there is none.                                                                                                              |
 | `routes/_authenticated/clients/$clientId/job-positions/risk-evaluations.$evaluationId.tsx` | `/clients/:id/job-positions/risk-evaluations/:evaluationId` | A risk evaluation that is not of a position: the sensitive groups, or one with a name. A position's evaluation found here redirects to its address under the position.                                      |
 | `routes/_authenticated/employees/index.tsx`                                                | `/employees`                                                | "Angajați" (ADR 021), the sidebar entry after "Clienți": every client's employees in one list, with the status, client and state filters, the text search and the sort in the search params.                |
-| `routes/_authenticated/instructions.tsx`                                                   | `/instructions`                                             | Layout of the instruction library (ADR 012), the sidebar entry between the clients and the organization.                                                                                                    |
+| `routes/_authenticated/instructions.tsx`                                                   | `/instructions`                                             | Layout of the instruction library (ADR 012), the sidebar entry "Instrucțiuni proprii" (ADR 034) between the clients and the organization.                                                                   |
 | `routes/_authenticated/instructions/index.tsx`                                             | `/instructions`                                             | Opens the SSM tab, `/instructions/ssm`.                                                                                                                                                                     |
 | `routes/_authenticated/instructions/_library.tsx`                                          | `/instructions/*`                                           | Pathless layout of the library: the title and the section navigation with one tab per domain.                                                                                                               |
-| `routes/_authenticated/instructions/_library/ssm.tsx`                                      | `/instructions/ssm`                                         | The occupational safety modules by group, uploading files, starting one from the skeleton, archiving.                                                                                                       |
+| `routes/_authenticated/instructions/_library/ssm.tsx`                                      | `/instructions/ssm`                                         | The occupational safety modules by group, writing, correcting and archiving them.                                                                                                                           |
 | `routes/_authenticated/instructions/_library/psi.tsx`                                      | `/instructions/psi`                                         | The fire-safety modules, the same list for the `psi` domain.                                                                                                                                                |
-| `routes/_authenticated/instructions/$moduleId.tsx`                                         | `/instructions/:moduleId`                                   | One module in the in-app Word editor; a full page. Every save is the next version.                                                                                                                          |
-| `routes/_authenticated/risks.tsx`                                                          | `/risks`                                                    | Layout of the risk library (ADR 015), the sidebar entry "Riscuri" after "Instrucțiuni".                                                                                                                     |
+| `routes/_authenticated/instructions/new.tsx`                                               | `/instructions/new`                                         | A new module's form, from "Scrie o instrucțiune": title, domain, category and an optional module to copy in the search; nothing stored before the first save.                                               |
+| `routes/_authenticated/instructions/$moduleId.tsx`                                         | `/instructions/:moduleId`                                   | One module's form; `?version=` a version a document annexed, and an archived module, as the annex prints in the Word viewer, only to read.                                                                  |
+| `routes/_authenticated/risks.tsx`                                                          | `/risks`                                                    | Layout of the risk library (ADR 015), the sidebar entry "Riscuri" after "Instrucțiuni proprii".                                                                                                             |
 | `routes/_authenticated/risks/index.tsx`                                                    | `/risks`                                                    | The library: the evaluation profiles by name with their counts and global level; "Profil nou", renaming, deleting.                                                                                          |
 | `routes/_authenticated/risks/$profileId.tsx`                                               | `/risks/:profileId`                                         | One profile: its result and its factors, with the evaluation page's cards. Names the breadcrumb after the profile.                                                                                          |
 | `routes/_authenticated/tests.tsx`                                                          | `/tests`                                                    | Layout of the question bank (ADR 024), the sidebar entry "Teste" after "Riscuri".                                                                                                                           |
@@ -440,7 +442,7 @@ The sidebar collapses to icons on desktop and uses a Sheet on mobile; selecting 
 mobile navigation link closes the Sheet. An entry of `navigation` may have `children`, its
 page's tabs: while the entry's route is open they show under it as sub-entries, the current one
 highlighted instead of the parent, and otherwise they are hidden. The icon rail hides them and
-keeps the parent highlighted. "Instrucțiuni", "Teste" and "Legislație" have children, from
+keeps the parent highlighted. "Instrucțiuni proprii", "Teste" and "Legislație" have children, from
 `instruction-sections.ts`, `test-bank-sections.ts` and `legislation-sections.ts`, the same lists
 their tab bars read.
 
@@ -801,7 +803,9 @@ their tab bars read.
   specialist is told that the owner fills in the organization's details). When ready it asks for the date and the first
   decision number, filled in from the last generation. A row's menu groups its downloads and
   printing under a label for each revision ("Ciorna · rev. N", "Documentul emis · rev. N", each
-  the group's accessible name, since both hold a "Descarcă Word"), and offers "Generează din
+  the group's accessible name, since both hold a "Descarcă Word"; for a revision with annexes it
+  saves `GET …/word`, the common part with the annexes appended, and an annex row's own
+  "Descarcă Word" `GET …/annexes/{number}`, ADR 034), and offers "Generează din
   nou", "Emite", and "Șterge ciorna", each behind a confirmation that says what is lost or
   locked. An issued document without a draft also has "Modifică documentul emis", which asks nothing: it starts a draft from the issued file
   (`POST /documents/{documentId}/draft`) and opens it in the editor. Regenerating such a
@@ -994,6 +998,22 @@ their tab bars read.
   "Modificat de tine". Confirming shows what is created, added, changed and kept, posts
   `/confirm` with the version, and opens the client's "Detalii" with a notice held in memory for
   that one visit (`import-notice.ts`).
+- The library tasks of a client import ([ADR 034](architecture/adr-034-own-instructions-as-app-text.md),
+  `src/features/imports/library/`). Below the client's sections and their confirm, the hub shows
+  the group "Instrucțiuni proprii", one task per part of `GET /imports/{id}/library-parts`
+  (IPSSM, IPSU) with its status, polled every 3 s while a part reads. A task,
+  `/clients/import/:importId/instructions/:domain`, counts the identical instructions, lists the
+  posts the themes left undecided with their quote and why, and gives each new or similar
+  instruction a row: the include tick, title and category, the posts with a picker, its flags,
+  "Sursa" (the source viewer at the cut's first words), "Schimbă" (the instruction form's blocks
+  in a dialog), and for a similar one "Ce diferă" and the choice between "Folosește ce ai" and
+  "Adaugă ca nouă". Every change goes to `PUT …/library-parts/{part}/changes` as the client
+  review's do, one save after another on the version the previous answered. Before the client is
+  confirmed its button reads "Confirmă întâi clientul"; confirming the client with parts returns
+  to the hub, which for a confirmed import shows the client's notice and the group
+  (`confirmed-hub.tsx`), and the client's "Detalii" links back while a part is neither confirmed
+  nor expired (`GET /imports?clientId=&status=confirmed`). A failed part offers "Citește din
+  nou" (`POST …/retry`).
 - The employee import ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)),
   in `src/features/imports/employees/`. The client's Angajați tab offers three ways: "Adaugă
   angajat", "Importă din fișele găsite în documentație (N fotografii)" while `GET
@@ -1166,35 +1186,75 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   `?focus=fire-safety-technician`, at the name until it is saved and at the certificate then.
 - `/instructions`: the organization's instruction library
   ([ADR 012](architecture/adr-012-own-instructions.md)), in `src/features/instructions/`, an entry of
-  the sidebar for owners and specialists alike. The page has one tab per domain (amendment of
-  2026-10-11), "Instrucțiuni SSM" at `/instructions/ssm` and "Instrucțiuni PSI" at
-  `/instructions/psi`, in the section navigation the client and organization pages use;
-  `/instructions` opens the SSM tab. A tab lists `GET /instruction-modules?domain=` by group
-  and title, each module with its version and how many articles the file numbers, and how many
-  current positions apply it; "Arată arhiva" lists the archived ones of the domain instead.
-  "Încarcă fișiere" takes several `.docx` files and posts each to
-  `POST /instruction-modules/upload` with the tab's `domain`, which titles it after its first
-  line, or the file name when it has none, and puts it in the work activities group; a notice
-  then says to correct titles, groups and domains from the row menu, which also archives and
-  restores. "Scrie o instrucțiune" asks for a title, a group and a domain, the tab's by default,
-  starts the module from the skeleton and opens it. "Titlu, grup și domeniu" changes them, and a
-  changed domain moves the module to the other tab; the
+  the sidebar for owners and specialists alike, titled "Instrucțiuni proprii"
+  ([ADR 034](architecture/adr-034-own-instructions-as-app-text.md)) with a subtitle on what a module
+  is for. The page has one tab per domain (amendment of 2026-10-11), "IPSSM" at
+  `/instructions/ssm` and "IPSU" at `/instructions/psi`, the abbreviations the documents print,
+  in the section navigation the client and organization pages use; `/instructions` opens the
+  SSM tab. A tab lists `GET /instruction-modules?domain=` by category and title, each module
+  with its version and its article count, and how many current positions apply it;
+  "Arată arhiva" lists the archived ones of the domain instead. The row menu corrects a
+  module's title, category and domain, and archives and restores it. There is no upload of Word
+  files (ADR 034). "Scrie o instrucțiune" asks for a title (one the library has is refused
+  before the form opens), the domain, the tab's by default, the category, among the domain's,
+  and "Pornește de la": the guided template or an active module of the domain, whose category
+  it takes; it opens `/instructions/new` with them in the search. "Titlu, categorie și
+  domeniu" changes them, its categories those of the chosen domain, and a changed domain moves
+  the module to the other tab with a category of that domain; the
   domain of a module a current position applies is shown read-only with how many positions
   apply it, and a `409` with `instruction_module_domain_applied` (a position applied it in the
   meantime) goes on the field with the reason. A title the library already has is reported on
   the field. Archiving a module a position applies is refused with the positions counted.
-- `/instructions/:moduleId`: the module in the same editor as a document, loaded through
-  `GET …/file-link`; "Înapoi" leads to the tab of the module's domain. Saving sends the bytes to `PUT …/file` as the next version and keeps
-  what the editor shows, so nothing is fetched again; the badge names the version. An archived
-  module opens in view mode. The header names the domain beside the group. A file the editor
-  cannot lay out is offered for download, to be fixed in Word and uploaded again.
+- `/instructions/:moduleId` and `/instructions/new`: the module's form (ADR 034, "Written in a
+  guided form"), `instruction-form.tsx`, its blocks in order in a card: a heading is a one-line
+  field, an article an auto-growing box labelled "Art. N" by its place among the articles that
+  hold text (an empty box reads "Articol nou"; headings are not counted), one paragraph a line,
+  markers such as "a)" or "–" kept as typed. Each block has "Adaugă după" (an article, or a
+  heading with an empty article), up, down and delete (a toast undoes a delete). Enter in a
+  heading goes to the article below. Above the card: the title, the version badge ("Nouă,
+  nesalvată" before the first save), the domain, category and article count, and "Titlu,
+  categorie și domeniu" (the library's dialog, or for a new module the start dialog, which
+  replaces the search), "Lipește text", "Previzualizare" and, once saved, "Descarcă"
+  (`GET …/download`). Below it, the line on the "Acte normative" the annex prints by itself. A
+  sticky bar holds the save state and "Salvează" (also Ctrl or Cmd+S): it checks the body
+  against `instructionBodySchema` (at least one article) and sends `PUT …/body`, saying when
+  `changed` is false that the text folds to the current version; a new module is created by
+  `POST /instruction-modules` with its body and the page moves to its id. What is saved drops
+  empty articles and a heading with no article under it, unless the member wrote it above
+  another heading. Leaving with unsaved changes asks first.
+  - **The guided template.** A new module from the template starts with the category's sections
+    (`guidedTemplates` in `@ssm-usor/contracts`), each a heading over an empty article whose
+    placeholder is the section's hint; "Arată un exemplu" under a section's heading puts its
+    example into the section's empty article, or adds it after the section's last one. A saved
+    heading that reads as a section of the category gets its hint and example back. Started
+    from a module, the form opens a copy of that module's body (`GET /instruction-modules/{id}`).
+  - **"Lipește text"** takes a whole instruction copied from Word or a PDF, runs
+    `splitInstruction` with the module's title and shows the articles and headings it made, the
+    title line it dropped and its flags in words (the numbering not read, table rows made
+    paragraphs, with their articles), then replaces the text or adds it at the end. Pasting
+    several paragraphs into one article box that split into two or more articles offers
+    "Împarte în articole" below the box.
+  - **A client's name.** The form reads the organization's first hundred clients by name
+    (`GET /clients`) and marks an article that names one, folded, without its company form
+    unless the name is one word: the box turns amber with "Numește clientul X." under it, and a
+    notice above says "Textul numește clientul X. Instrucțiunea se aplică și altor clienți."
+    It never blocks the save.
+  - **"Previzualizare"** posts the title, domain and current body, saved or not, to
+    `POST /instruction-modules/preview` and shows the annex in the Word viewer in view mode, in
+    a dialog like the import's source dialog, with "Descarcă previzualizarea".
+  - `?version=` opens the version a document annexed, and an archived module opens, as the annex
+    prints (`GET …/download`), in the editor in view mode, only to read, in a frame of its own
+    height; "Înapoi" leads to the tab of the module's domain. The badge names the version, or
+    "Arhivată"; `?version=` reads its number from `GET …/versions/{versionId}` and says whether
+    the library has a newer one.
 - On a job position's page, after the equipment card, two cards that differ only in their
   title, their domain and their wording: "Instrucțiuni specifice SSM" (`#instructions`) and
   "Instrucțiuni specifice PSI" (`#fire-instructions`), the second deciding the fire-safety
   modules apart (ADR 012, amendment of 2026-10-11). Each reads `GET …/instructions?domain=`
   with the same three states as equipment ("De stabilit", "Nu necesită", the count);
   "Alege instrucțiunile" opens the library's modules of its domain
-  (`GET /instruction-modules?domain=`) as a checklist by group with a search box and a "Vezi"
+  (`GET /instruction-modules?domain=`) as a checklist by category, the PSI ones under their own
+  categories, with a search box and a "Vezi"
   link per module, and saves the set through `PUT …/instructions` with the `domain`; a row's
   cross removes one module the same way; "Copiază de la alt post" adds another position's
   modules of the domain; "Postul nu necesită instrucțiuni specifice" and "Reia decizia" go

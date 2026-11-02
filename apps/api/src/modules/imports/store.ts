@@ -1,6 +1,8 @@
+import type { ImportLibraryPart } from '@ssm-usor/contracts';
 import type {
   EmployeeImportClient,
   ExistingClient,
+  LibraryModule,
   ProviderIdentity,
   TrainingThemes,
   Usage,
@@ -53,7 +55,15 @@ export type ImportFileRow = Pick<
   | 'text_path'
   | 'derived_path'
   | 'declared_pages'
+  | 'document_domain'
 >;
+
+export type LibraryPartRow = Pick<
+  Tables['import_library_parts']['Row'],
+  'import_id' | 'part' | 'status' | 'attempt' | 'proposal'
+>;
+
+export type LibraryPartUpdate = Tables['import_library_parts']['Update'];
 
 export type ImportUpdate = Tables['imports']['Update'];
 export type ImportStep = 'sorting' | 'reading' | 'scanning';
@@ -63,7 +73,9 @@ const importColumns =
   'id, organization_id, kind, client_id, into_existing_client, status, company_name, company_cui, proposal, files_copied_at, created_by';
 
 export const importFileColumns =
-  'id, import_id, upload_path, original_file_name, mime_type, size_bytes, sha256, storage_path, state, document_kind, reason, company_name, company_cui, page_count, is_scan, text_path, derived_path, declared_pages';
+  'id, import_id, upload_path, original_file_name, mime_type, size_bytes, sha256, storage_path, state, document_kind, reason, company_name, company_cui, page_count, is_scan, text_path, derived_path, declared_pages, document_domain';
+
+const libraryPartColumns = 'import_id, part, status, attempt, proposal';
 
 export interface ImportStore {
   getImport(importId: string): Promise<ImportRow | null>;
@@ -83,6 +95,25 @@ export interface ImportStore {
   chargeScannedPage(row: ImportRow, fileId: string, page: number): Promise<void>;
   // False when the credits left do not cover the pages counted past what the start was charged.
   settleSheetPages(row: ImportRow, extra: number): Promise<boolean>;
+  // Adds the parts the import lacks, and answers every part of it still reading.
+  openLibraryParts(row: ImportRow, parts: ImportLibraryPart[]): Promise<LibraryPartRow[]>;
+  getLibraryPart(importId: string, part: ImportLibraryPart): Promise<LibraryPartRow | null>;
+  // Only while the part is reading that attempt; false when it no longer is.
+  updateLibraryPart(
+    importId: string,
+    part: ImportLibraryPart,
+    attempt: number,
+    patch: LibraryPartUpdate
+  ): Promise<boolean>;
+  recordLibraryPartUsage(
+    importId: string,
+    part: ImportLibraryPart,
+    usage: Usage,
+    cost: number
+  ): Promise<void>;
+  chargeLibraryPart(row: ImportRow, part: ImportLibraryPart, attempt: number): Promise<void>;
+  // The organization's active modules of both domains, each with its current text.
+  libraryModules(organizationId: string): Promise<LibraryModule[]>;
   provider(organizationId: string): Promise<ProviderIdentity>;
   client(clientId: string): Promise<ExistingClient | null>;
   employeeImportClient(clientId: string): Promise<EmployeeImportClient>;
@@ -96,6 +127,7 @@ export interface ImportStore {
   markCopied(importId: string): Promise<void>;
   uncopiedImports(confirmedBefore: string): Promise<string[]>;
   failStalled(reasons: { stalled: string; left: string }): Promise<string[]>;
+  failStalledLibraryParts(reason: string): Promise<number>;
   listAbandoned(): Promise<ImportObjectList[]>;
   // Only the imports whose objects are gone: another list leaves them for the next day.
   deleteAbandoned(importIds: string[]): Promise<string[]>;
@@ -178,6 +210,89 @@ export function importStore(admin: AdminClient): ImportStore {
       charges.scannedPage(row.organization_id, row.id, fileId, page),
 
     settleSheetPages: (row, extra) => charges.settlePages(row.organization_id, row.id, extra),
+
+    async openLibraryParts(row, parts) {
+      if (parts.length > 0) {
+        const { error } = await admin.from('import_library_parts').upsert(
+          parts.map((part) => ({ import_id: row.id, organization_id: row.organization_id, part })),
+          { onConflict: 'import_id,part', ignoreDuplicates: true }
+        );
+        if (error) throw fromDatabaseError(error, 'open library parts');
+      }
+      const { data, error } = await admin
+        .from('import_library_parts')
+        .select(libraryPartColumns)
+        .eq('import_id', row.id)
+        .eq('status', 'reading');
+      if (error) throw fromDatabaseError(error, 'list library parts');
+      return data;
+    },
+
+    async getLibraryPart(importId, part) {
+      const { data, error } = await admin
+        .from('import_library_parts')
+        .select(libraryPartColumns)
+        .eq('import_id', importId)
+        .eq('part', part)
+        .maybeSingle();
+      if (error) throw fromDatabaseError(error, 'read library part');
+      return data;
+    },
+
+    async updateLibraryPart(importId, part, attempt, patch) {
+      const { data, error } = await admin
+        .from('import_library_parts')
+        .update(patch)
+        .eq('import_id', importId)
+        .eq('part', part)
+        .eq('attempt', attempt)
+        .eq('status', 'reading')
+        .select('part');
+      if (error) throw fromDatabaseError(error, 'update library part');
+      return data.length > 0;
+    },
+
+    async recordLibraryPartUsage(importId, part, usage, cost) {
+      const { error } = await admin.rpc('record_library_part_usage', {
+        p_import_id: importId,
+        p_part: part,
+        p_input_tokens: usage.input,
+        p_cached_input_tokens: usage.cachedInput,
+        p_output_tokens: usage.output,
+        p_cost_usd: Number(cost.toFixed(6)),
+      });
+      if (error) throw fromDatabaseError(error, 'record library part usage');
+    },
+
+    chargeLibraryPart: (row, part, attempt) =>
+      charges.libraryPart(row.organization_id, row.id, part, attempt),
+
+    async libraryModules(organizationId) {
+      const { data, error } = await admin
+        .from('instruction_modules')
+        .select(
+          'id, title, module_group, domain, instruction_module_versions(number, body, text_hash)'
+        )
+        .eq('organization_id', organizationId)
+        .is('archived_at', null)
+        .order('number', { referencedTable: 'instruction_module_versions', ascending: false })
+        .limit(1, { referencedTable: 'instruction_module_versions' });
+      if (error) throw fromDatabaseError(error, 'read library modules');
+      return data.flatMap((module) => {
+        const current = module.instruction_module_versions[0];
+        if (!current) return [];
+        return [
+          {
+            id: module.id,
+            title: module.title,
+            category: module.module_group,
+            domain: module.domain,
+            body: current.body as unknown as LibraryModule['body'],
+            textHash: current.text_hash,
+          },
+        ];
+      });
+    },
 
     async provider(organizationId) {
       const [organization, members] = await Promise.all([
@@ -275,6 +390,12 @@ export function importStore(admin: AdminClient): ImportStore {
       });
       if (error) throw fromDatabaseError(error, 'fail stalled imports');
       return data;
+    },
+
+    async failStalledLibraryParts(reason) {
+      const { data, error } = await admin.rpc('fail_stalled_library_parts', { p_reason: reason });
+      if (error) throw fromDatabaseError(error, 'fail stalled library parts');
+      return data.length;
     },
 
     async listAbandoned() {

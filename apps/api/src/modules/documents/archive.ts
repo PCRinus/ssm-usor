@@ -1,21 +1,19 @@
-import type { DocumentArchiveFormat, DocumentSet, InstructionDomain } from '@ssm-usor/contracts';
+import type { DocumentArchiveFormat, DocumentSet } from '@ssm-usor/contracts';
 import { type Zippable, zipSync } from 'fflate';
 
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import { ApiError } from '../../lib/errors';
 import type { FileStore } from '../../lib/files';
+import { withAnnexes } from './annexes';
 import {
   documentFileName,
   type DocumentRow,
   fileNameOf,
   inSetOrder,
   readDocuments,
-  type RevisionRow,
 } from './documents';
-import { annexDomainOf, snapshotAnnexes } from './snapshot';
 
 const setNames: Record<DocumentSet, string> = { occupational_safety: 'SSM', fire_safety: 'PSI' };
-const annexCodes: Record<InstructionDomain, string> = { ssm: 'I.P.S.S.M.', psi: 'I.P.S.U.' };
 
 // A Worker opens at most six connections at once and queues the rest, while each read's timeout
 // already runs: a whole set read at once could time out reads that never started.
@@ -34,8 +32,8 @@ function archivedRevision(document: DocumentRow, format: DocumentArchiveFormat) 
 }
 
 /**
- * One file per document of the set, numbered in the binder's order. A Word file's annexes
- * follow it as files of their own: the PDF made at issuing already holds them.
+ * One file per document of the set, numbered in the binder's order. A Word file holds its
+ * annexes, as the PDF made at issuing does.
  */
 export async function documentArchive(
   db: DataClient,
@@ -70,7 +68,6 @@ export async function documentArchive(
     );
   }
 
-  const modulePaths = format === 'docx' ? await annexModulePaths(db, entries) : new Map();
   const digits = Math.max(2, String(entries.length).length);
   const archived = entries.flatMap(({ document, revision }, index): ArchivedFile[] => {
     const name = `${String(index + 1).padStart(digits, '0')} ${documentFileName(document)} - rev. ${revision.revision}`;
@@ -79,17 +76,16 @@ export async function documentArchive(
     }
     const draft = revision.status === 'draft' ? ' - ciornă' : '';
     return [
-      { name: `${name}${draft}.docx`, read: () => files.readDocument(revision.docx_path) },
-      ...annexesOf(document, revision).map((annex) => {
-        const path = modulePaths.get(annex.versionId);
-        // A version row is never deleted, so a missing one is a snapshot from another
-        // organization's module, which the policies keep out of reach.
-        if (!path) throw new ApiError('conflict', 'An annexed instruction is not in the library.');
-        return {
-          name: `${name}${draft} - Anexa ${annex.number} - ${annexCodes[annexDomainOf(document.type_key)!]} ${fileNameOf(annex.title)}.docx`,
-          read: () => files.readModule(path),
-        };
-      }),
+      {
+        name: `${name}${draft}.docx`,
+        read: async () =>
+          withAnnexes(
+            db,
+            document.type_key,
+            revision.data_snapshot,
+            await files.readDocument(revision.docx_path)
+          ),
+      },
     ];
   });
 
@@ -109,25 +105,6 @@ const binderPlace = (document: DocumentRow) => ({
   title: document.title,
   period: document.period,
 });
-
-const annexesOf = (document: DocumentRow, revision: RevisionRow) =>
-  annexDomainOf(document.type_key) ? (snapshotAnnexes(revision.data_snapshot) ?? []) : [];
-
-async function annexModulePaths(
-  db: DataClient,
-  entries: { document: DocumentRow; revision: RevisionRow }[]
-) {
-  const versionIds = entries.flatMap(({ document, revision }) =>
-    annexesOf(document, revision).map((annex) => annex.versionId)
-  );
-  if (versionIds.length === 0) return new Map<string, string>();
-  const { data, error } = await db
-    .from('instruction_module_versions')
-    .select('id, docx_path')
-    .in('id', versionIds);
-  if (error) throw fromDatabaseError(error, 'read annexed module versions');
-  return new Map(data.map((row) => [row.id, row.docx_path]));
-}
 
 async function readAll(reads: (() => Promise<Uint8Array>)[]) {
   const contents: Uint8Array[] = [];

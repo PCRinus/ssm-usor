@@ -12,6 +12,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useRouteContext } from '@tanstack/react-router';
 import {
+  BookOpenCheck,
   BriefcaseBusiness,
   Equal,
   Flame,
@@ -27,7 +28,9 @@ import { type ReactNode, useState } from 'react';
 import {
   type ApiErrorResponse,
   confirmImport,
+  getGetImportQueryKey,
   getListClientsQueryKey,
+  getListImportLibraryPartsQueryKey,
   getListImportsQueryKey,
   type ImportDetail,
 } from '@/api/generated/api';
@@ -155,7 +158,20 @@ export function ConfirmImportDialog({
             String(queryKey[0]).startsWith(`/clients/${result.clientId}`),
         }),
       ]);
-      await navigate({ to: '/clients/$clientId/details', params: { clientId: result.clientId } });
+      if (detail.libraryParts.length > 0) {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: getGetImportQueryKey(detail.id) }),
+          queryClient.invalidateQueries({
+            queryKey: getListImportLibraryPartsQueryKey(detail.id),
+          }),
+        ]);
+        await navigate({ to: '/clients/import/$importId', params: { importId: detail.id } });
+      } else {
+        await navigate({
+          to: '/clients/$clientId/details',
+          params: { clientId: result.clientId },
+        });
+      }
     } catch (cause) {
       const body =
         cause instanceof ApiHttpError
@@ -246,6 +262,15 @@ export function ConfirmImportDialog({
               <p className="flex items-start gap-2">
                 <FolderOpen className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                 <span>{folderSentence(detail)}</span>
+              </p>
+            )}
+            {detail.libraryParts.length > 0 && (
+              <p className="flex items-start gap-2" data-testid="import-confirm-library">
+                <BookOpenCheck className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                <span>
+                  Instrucțiunile proprii din pachet le confirmi după, pe pagina importului, unde te
+                  întorci.
+                </span>
               </p>
             )}
             {left > 0 && (

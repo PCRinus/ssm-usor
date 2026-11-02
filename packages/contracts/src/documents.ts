@@ -599,6 +599,7 @@ export const documentErrorReasons = [
   'nothing_behind',
   'regeneration_running',
   'nothing_to_archive',
+  'annex_not_in_library',
 ] as const;
 
 export const issueDocumentRequestSchema = z.object({

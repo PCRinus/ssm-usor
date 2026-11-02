@@ -5026,7 +5026,14 @@
                 },
                 "group": {
                   "type": "string",
-                  "enum": ["work_activity", "work_equipment", "protective_equipment"]
+                  "enum": [
+                    "work_activity",
+                    "work_equipment",
+                    "protective_equipment",
+                    "premises_activity",
+                    "installation_equipment",
+                    "hazardous_work"
+                  ]
                 },
                 "domain": {
                   "type": "string",
@@ -5048,24 +5055,20 @@
                       "type": "integer",
                       "minimum": 1
                     },
-                    "sha256": {
+                    "textHash": {
                       "type": "string",
                       "pattern": "^[0-9a-f]{64}$"
                     },
-                    "sizeBytes": {
-                      "type": "integer",
-                      "minimum": 1
-                    },
                     "articleCount": {
                       "type": "integer",
-                      "minimum": 0
+                      "minimum": 1
                     },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
                     }
                   },
-                  "required": ["id", "number", "sha256", "sizeBytes", "articleCount", "createdAt"]
+                  "required": ["id", "number", "textHash", "articleCount", "createdAt"]
                 },
                 "appliedCount": {
                   "type": "integer",
@@ -5113,7 +5116,14 @@
               },
               "group": {
                 "type": "string",
-                "enum": ["work_activity", "work_equipment", "protective_equipment"]
+                "enum": [
+                  "work_activity",
+                  "work_equipment",
+                  "protective_equipment",
+                  "premises_activity",
+                  "installation_equipment",
+                  "hazardous_work"
+                ]
               },
               "domain": {
                 "type": "string",
@@ -5135,24 +5145,20 @@
                     "type": "integer",
                     "minimum": 1
                   },
-                  "sha256": {
+                  "textHash": {
                     "type": "string",
                     "pattern": "^[0-9a-f]{64}$"
                   },
-                  "sizeBytes": {
-                    "type": "integer",
-                    "minimum": 1
-                  },
                   "articleCount": {
                     "type": "integer",
-                    "minimum": 0
+                    "minimum": 1
                   },
                   "createdAt": {
                     "type": "string",
                     "format": "date-time"
                   }
                 },
-                "required": ["id", "number", "sha256", "sizeBytes", "articleCount", "createdAt"]
+                "required": ["id", "number", "textHash", "articleCount", "createdAt"]
               },
               "appliedCount": {
                 "type": "integer",
@@ -5178,9 +5184,56 @@
               "createdAt",
               "updatedAt"
             ]
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "blocks": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": ["heading"]
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 300
+                        }
+                      },
+                      "required": ["kind", "text"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": ["article"]
+                        },
+                        "paragraphs": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 20000
+                          },
+                          "minItems": 1
+                        }
+                      },
+                      "required": ["kind", "paragraphs"]
+                    }
+                  ]
+                }
+              }
+            },
+            "required": ["blocks"]
           }
         },
-        "required": ["module"]
+        "required": ["module", "body"]
       },
       "CreateInstructionModuleRequest": {
         "type": "object",
@@ -5192,15 +5245,132 @@
           },
           "group": {
             "type": "string",
-            "enum": ["work_activity", "work_equipment", "protective_equipment"]
+            "enum": [
+              "work_activity",
+              "work_equipment",
+              "protective_equipment",
+              "premises_activity",
+              "installation_equipment",
+              "hazardous_work"
+            ]
           },
           "domain": {
             "type": "string",
             "enum": ["ssm", "psi"],
             "default": "ssm"
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "blocks": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": ["heading"]
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 300
+                        }
+                      },
+                      "required": ["kind", "text"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": ["article"]
+                        },
+                        "paragraphs": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 20000
+                          },
+                          "minItems": 1
+                        }
+                      },
+                      "required": ["kind", "paragraphs"]
+                    }
+                  ]
+                }
+              }
+            },
+            "required": ["blocks"]
           }
         },
-        "required": ["title", "group"]
+        "required": ["title", "group", "body"]
+      },
+      "InstructionPreviewRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "domain": {
+            "type": "string",
+            "enum": ["ssm", "psi"],
+            "default": "ssm"
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "blocks": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": ["heading"]
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 300
+                        }
+                      },
+                      "required": ["kind", "text"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": ["article"]
+                        },
+                        "paragraphs": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 20000
+                          },
+                          "minItems": 1
+                        }
+                      },
+                      "required": ["kind", "paragraphs"]
+                    }
+                  ]
+                }
+              }
+            },
+            "required": ["blocks"]
+          }
+        },
+        "required": ["title", "body"]
       },
       "UpdateInstructionModuleRequest": {
         "type": "object",
@@ -5212,7 +5382,14 @@
           },
           "group": {
             "type": "string",
-            "enum": ["work_activity", "work_equipment", "protective_equipment"]
+            "enum": [
+              "work_activity",
+              "work_equipment",
+              "protective_equipment",
+              "premises_activity",
+              "installation_equipment",
+              "hazardous_work"
+            ]
           },
           "domain": {
             "type": "string",
@@ -5223,20 +5400,195 @@
           }
         }
       },
-      "InstructionModuleFileLinkResponse": {
+      "SaveInstructionBodyResponse": {
         "type": "object",
         "properties": {
-          "url": {
-            "type": "string",
-            "format": "uri"
+          "module": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 200
+              },
+              "group": {
+                "type": "string",
+                "enum": [
+                  "work_activity",
+                  "work_equipment",
+                  "protective_equipment",
+                  "premises_activity",
+                  "installation_equipment",
+                  "hazardous_work"
+                ]
+              },
+              "domain": {
+                "type": "string",
+                "enum": ["ssm", "psi"]
+              },
+              "archivedAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "version": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "number": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "textHash": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "articleCount": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": ["id", "number", "textHash", "articleCount", "createdAt"]
+              },
+              "appliedCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "group",
+              "domain",
+              "archivedAt",
+              "version",
+              "appliedCount",
+              "createdAt",
+              "updatedAt"
+            ]
           },
-          "fileName": {
-            "type": "string"
+          "body": {
+            "type": "object",
+            "properties": {
+              "blocks": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": ["heading"]
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 300
+                        }
+                      },
+                      "required": ["kind", "text"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": ["article"]
+                        },
+                        "paragraphs": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 20000
+                          },
+                          "minItems": 1
+                        }
+                      },
+                      "required": ["kind", "paragraphs"]
+                    }
+                  ]
+                }
+              }
+            },
+            "required": ["blocks"]
           },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time"
-          },
+          "changed": {
+            "type": "boolean"
+          }
+        },
+        "required": ["module", "body", "changed"]
+      },
+      "InstructionBody": {
+        "type": "object",
+        "properties": {
+          "blocks": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": ["heading"]
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 300
+                    }
+                  },
+                  "required": ["kind", "text"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": ["article"]
+                    },
+                    "paragraphs": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 20000
+                      },
+                      "minItems": 1
+                    }
+                  },
+                  "required": ["kind", "paragraphs"]
+                }
+              ]
+            }
+          }
+        },
+        "required": ["blocks"]
+      },
+      "InstructionModuleVersionResponse": {
+        "type": "object",
+        "properties": {
           "version": {
             "type": "object",
             "properties": {
@@ -5248,15 +5600,70 @@
                 "type": "integer",
                 "minimum": 1
               },
+              "textHash": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "articleCount": {
+                "type": "integer",
+                "minimum": 1
+              },
               "createdAt": {
                 "type": "string",
                 "format": "date-time"
               }
             },
-            "required": ["id", "number", "createdAt"]
+            "required": ["id", "number", "textHash", "articleCount", "createdAt"]
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "blocks": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": ["heading"]
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 300
+                        }
+                      },
+                      "required": ["kind", "text"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": ["article"]
+                        },
+                        "paragraphs": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 20000
+                          },
+                          "minItems": 1
+                        }
+                      },
+                      "required": ["kind", "paragraphs"]
+                    }
+                  ]
+                }
+              }
+            },
+            "required": ["blocks"]
           }
         },
-        "required": ["url", "fileName", "expiresAt", "version"]
+        "required": ["version", "body"]
       },
       "PositionInstructionsResponse": {
         "type": "object",
@@ -5279,7 +5686,14 @@
                 },
                 "group": {
                   "type": "string",
-                  "enum": ["work_activity", "work_equipment", "protective_equipment"]
+                  "enum": [
+                    "work_activity",
+                    "work_equipment",
+                    "protective_equipment",
+                    "premises_activity",
+                    "installation_equipment",
+                    "hazardous_work"
+                  ]
                 },
                 "archivedAt": {
                   "type": "string",
@@ -11101,6 +11515,28 @@
               }
             },
             "required": ["files", "prepared", "scans", "scansRead"]
+          },
+          "libraryParts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "part": {
+                  "type": "string",
+                  "enum": ["instructions_ssm", "instructions_psi"]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["reading", "to_review", "nothing_new", "failed", "confirmed"]
+                },
+                "expiresAt": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date-time"
+                }
+              },
+              "required": ["part", "status", "expiresAt"]
+            }
           }
         },
         "required": [
@@ -11123,7 +11559,8 @@
           "expiresAt",
           "people",
           "uninvited",
-          "progress"
+          "progress",
+          "libraryParts"
         ]
       },
       "CreateImportRequest": {
@@ -11304,6 +11741,28 @@
                     }
                   },
                   "required": ["files", "prepared", "scans", "scansRead"]
+                },
+                "libraryParts": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "part": {
+                        "type": "string",
+                        "enum": ["instructions_ssm", "instructions_psi"]
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": ["reading", "to_review", "nothing_new", "failed", "confirmed"]
+                      },
+                      "expiresAt": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "date-time"
+                      }
+                    },
+                    "required": ["part", "status", "expiresAt"]
+                  }
                 }
               },
               "required": [
@@ -11326,7 +11785,8 @@
                 "expiresAt",
                 "people",
                 "uninvited",
-                "progress"
+                "progress",
+                "libraryParts"
               ]
             }
           }
@@ -11499,6 +11959,28 @@
             },
             "required": ["files", "prepared", "scans", "scansRead"]
           },
+          "libraryParts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "part": {
+                  "type": "string",
+                  "enum": ["instructions_ssm", "instructions_psi"]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["reading", "to_review", "nothing_new", "failed", "confirmed"]
+                },
+                "expiresAt": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date-time"
+                }
+              },
+              "required": ["part", "status", "expiresAt"]
+            }
+          },
           "version": {
             "type": "integer",
             "minimum": 0
@@ -11551,6 +12033,11 @@
                   "type": "string",
                   "nullable": true
                 },
+                "documentDomain": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["ssm", "psi", null]
+                },
                 "reason": {
                   "type": "string",
                   "nullable": true
@@ -11583,6 +12070,7 @@
                 "sizeBytes",
                 "state",
                 "documentKind",
+                "documentDomain",
                 "reason",
                 "companyName",
                 "companyCui",
@@ -14044,6 +14532,7 @@
           "people",
           "uninvited",
           "progress",
+          "libraryParts",
           "version",
           "files",
           "otherCompanies",
@@ -14090,6 +14579,9 @@
                 "$ref": "#/components/schemas/ImportModelUsage"
               },
               "scanning": {
+                "$ref": "#/components/schemas/ImportModelUsage"
+              },
+              "instructions": {
                 "$ref": "#/components/schemas/ImportModelUsage"
               }
             }
@@ -14142,11 +14634,15 @@
             "type": "integer",
             "minimum": 0
           },
+          "ownInstructions": {
+            "type": "integer",
+            "minimum": 0
+          },
           "refunded": {
             "type": "boolean"
           }
         },
-        "required": ["used", "atStart", "scannedPages", "refunded"]
+        "required": ["used", "atStart", "scannedPages", "ownInstructions", "refunded"]
       },
       "EmployeeImportReview": {
         "type": "object",
@@ -16735,6 +17231,965 @@
             "maxItems": 500
           }
         }
+      },
+      "ImportLibraryPartsResponse": {
+        "type": "object",
+        "properties": {
+          "parts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportLibraryPart"
+            }
+          },
+          "posts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "name": {
+                  "type": "string"
+                },
+                "jobPositionId": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "uuid"
+                }
+              },
+              "required": ["id", "name", "jobPositionId"]
+            }
+          }
+        },
+        "required": ["parts", "posts"]
+      },
+      "ImportLibraryPart": {
+        "type": "object",
+        "properties": {
+          "part": {
+            "type": "string",
+            "enum": ["instructions_ssm", "instructions_psi"]
+          },
+          "domain": {
+            "type": "string",
+            "enum": ["ssm", "psi"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["reading", "to_review", "nothing_new", "failed", "confirmed"]
+          },
+          "attempt": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "failureReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "changes": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "instructions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "included": {
+                      "type": "boolean"
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 2,
+                      "maxLength": 200
+                    },
+                    "category": {
+                      "type": "string",
+                      "enum": [
+                        "work_activity",
+                        "work_equipment",
+                        "protective_equipment",
+                        "premises_activity",
+                        "installation_equipment",
+                        "hazardous_work"
+                      ]
+                    },
+                    "choice": {
+                      "type": "string",
+                      "enum": ["use_existing", "add_new"]
+                    },
+                    "posts": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100
+                      },
+                      "maxItems": 500
+                    },
+                    "body": {
+                      "type": "object",
+                      "properties": {
+                        "blocks": {
+                          "type": "array",
+                          "items": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": ["heading"]
+                                  },
+                                  "text": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 300
+                                  }
+                                },
+                                "required": ["kind", "text"]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": ["article"]
+                                  },
+                                  "paragraphs": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 20000
+                                    },
+                                    "minItems": 1
+                                  }
+                                },
+                                "required": ["kind", "paragraphs"]
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "required": ["blocks"]
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "default": {}
+              }
+            },
+            "additionalProperties": false
+          },
+          "counts": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "identical": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "similar": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "new": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "unread": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": ["identical", "similar", "new", "unread"]
+          },
+          "positionPosts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "nullable": true,
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          "readAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "confirmedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "credits": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "usage": {
+            "$ref": "#/components/schemas/ImportModelUsage"
+          },
+          "proposal": {
+            "$ref": "#/components/schemas/InstructionsProposal"
+          }
+        },
+        "required": [
+          "part",
+          "domain",
+          "status",
+          "attempt",
+          "failureReason",
+          "version",
+          "changes",
+          "counts",
+          "positionPosts",
+          "readAt",
+          "confirmedAt",
+          "expiresAt",
+          "credits",
+          "proposal"
+        ]
+      },
+      "InstructionsProposal": {
+        "type": "object",
+        "nullable": true,
+        "properties": {
+          "domain": {
+            "type": "string",
+            "enum": ["ssm", "psi"]
+          },
+          "instructions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "file": {
+                  "type": "string"
+                },
+                "number": {
+                  "type": "string"
+                },
+                "writtenTitle": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "category": {
+                  "type": "string",
+                  "enum": [
+                    "work_activity",
+                    "work_equipment",
+                    "protective_equipment",
+                    "premises_activity",
+                    "installation_equipment",
+                    "hazardous_work"
+                  ]
+                },
+                "body": {
+                  "type": "object",
+                  "properties": {
+                    "blocks": {
+                      "type": "array",
+                      "items": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": ["heading"]
+                              },
+                              "text": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 300
+                              }
+                            },
+                            "required": ["kind", "text"]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": ["article"]
+                              },
+                              "paragraphs": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 20000
+                                },
+                                "minItems": 1
+                              }
+                            },
+                            "required": ["kind", "paragraphs"]
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required": ["blocks"]
+                },
+                "articleCount": {
+                  "type": "number"
+                },
+                "sourceNumbers": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "nullable": true
+                  }
+                },
+                "location": {
+                  "type": "object",
+                  "properties": {
+                    "file": {
+                      "type": "string"
+                    },
+                    "start": {
+                      "type": "number"
+                    },
+                    "end": {
+                      "type": "number"
+                    },
+                    "firstParagraph": {
+                      "type": "number"
+                    },
+                    "lastParagraph": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["file", "start", "end", "firstParagraph", "lastParagraph"]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["identical", "similar", "new"]
+                },
+                "match": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "moduleId": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "similarity": {
+                      "type": "number"
+                    },
+                    "decidedBy": {
+                      "type": "string",
+                      "enum": ["hash", "overlap", "model"]
+                    },
+                    "differences": {
+                      "type": "array",
+                      "items": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": ["added"]
+                              },
+                              "article": {
+                                "type": "number"
+                              }
+                            },
+                            "required": ["kind", "article"]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": ["removed"]
+                              },
+                              "libraryArticle": {
+                                "type": "number"
+                              }
+                            },
+                            "required": ["kind", "libraryArticle"]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": ["changed"]
+                              },
+                              "article": {
+                                "type": "number"
+                              },
+                              "libraryArticle": {
+                                "type": "number"
+                              },
+                              "words": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "text": {
+                                      "type": "string"
+                                    },
+                                    "change": {
+                                      "type": "string",
+                                      "enum": ["same", "added", "removed"]
+                                    }
+                                  },
+                                  "required": ["text", "change"]
+                                }
+                              }
+                            },
+                            "required": ["kind", "article", "libraryArticle", "words"]
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required": ["moduleId", "title", "similarity", "decidedBy", "differences"]
+                },
+                "choice": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["use_existing", "add_new", null]
+                },
+                "posts": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "flags": {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": ["no_numbering"]
+                          }
+                        },
+                        "required": ["kind"]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": ["no_articles"]
+                          }
+                        },
+                        "required": ["kind"]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": ["text_before_first_article"]
+                          }
+                        },
+                        "required": ["kind"]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": ["table_row"]
+                          },
+                          "article": {
+                            "type": "number"
+                          }
+                        },
+                        "required": ["kind", "article"]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": ["empty_article"]
+                          },
+                          "number": {
+                            "type": "number"
+                          }
+                        },
+                        "required": ["kind", "number"]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": ["end_not_found"]
+                          }
+                        },
+                        "required": ["kind"]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": ["end_extended"]
+                          }
+                        },
+                        "required": ["kind"]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": ["client_name"]
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["kind", "name"]
+                      }
+                    ]
+                  }
+                },
+                "sameAs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "key",
+                "file",
+                "number",
+                "writtenTitle",
+                "title",
+                "category",
+                "body",
+                "articleCount",
+                "sourceNumbers",
+                "location",
+                "status",
+                "match",
+                "choice",
+                "posts",
+                "flags",
+                "sameAs"
+              ]
+            }
+          },
+          "unread": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "file": {
+                  "type": "string"
+                },
+                "number": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "category": {
+                  "type": "string",
+                  "enum": [
+                    "work_activity",
+                    "work_equipment",
+                    "protective_equipment",
+                    "premises_activity",
+                    "installation_equipment",
+                    "hazardous_work"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": ["file_not_found", "start_not_found", "no_articles", "too_long"]
+                }
+              },
+              "required": ["key", "file", "number", "title", "category", "reason"]
+            }
+          },
+          "positions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "post": {
+                  "type": "string"
+                },
+                "variant": {
+                  "type": "string"
+                },
+                "clientPost": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "citations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "section": {
+                        "type": "string",
+                        "enum": ["workplace", "periodic", "other"]
+                      },
+                      "citation": {
+                        "type": "string"
+                      },
+                      "file": {
+                        "type": "string"
+                      },
+                      "quote": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["section", "citation", "file", "quote"]
+                  }
+                },
+                "resolution": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": ["resolved"]
+                        },
+                        "instructions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": ["kind", "instructions"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": ["undecided"]
+                        },
+                        "reasons": {
+                          "type": "array",
+                          "items": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": ["number_twice"]
+                                  },
+                                  "scope": {
+                                    "oneOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "kind": {
+                                            "type": "string",
+                                            "enum": ["main"]
+                                          }
+                                        },
+                                        "required": ["kind"]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "kind": {
+                                            "type": "string",
+                                            "enum": ["own"]
+                                          },
+                                          "number": {
+                                            "type": "number"
+                                          }
+                                        },
+                                        "required": ["kind", "number"]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "kind": {
+                                            "type": "string",
+                                            "enum": ["apart"]
+                                          },
+                                          "file": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": ["kind", "file"]
+                                      }
+                                    ]
+                                  },
+                                  "number": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": ["kind", "scope", "number"]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": ["cuts_instruction"]
+                                  },
+                                  "instruction": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["kind", "instruction"]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": ["number_shared"]
+                                  },
+                                  "number": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": ["kind", "number"]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": ["missing_reference"]
+                                  },
+                                  "reference": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["kind", "reference"]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": ["unread_citation"]
+                                  },
+                                  "citation": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["kind", "citation"]
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "required": ["kind", "reasons"]
+                    }
+                  ]
+                },
+                "missing": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "key",
+                "post",
+                "variant",
+                "clientPost",
+                "citations",
+                "resolution",
+                "missing"
+              ]
+            }
+          }
+        },
+        "required": ["domain", "instructions", "unread", "positions"]
+      },
+      "SaveImportLibraryPartChangesRequest": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "changes": {
+            "type": "object",
+            "properties": {
+              "instructions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "included": {
+                      "type": "boolean"
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 2,
+                      "maxLength": 200
+                    },
+                    "category": {
+                      "type": "string",
+                      "enum": [
+                        "work_activity",
+                        "work_equipment",
+                        "protective_equipment",
+                        "premises_activity",
+                        "installation_equipment",
+                        "hazardous_work"
+                      ]
+                    },
+                    "choice": {
+                      "type": "string",
+                      "enum": ["use_existing", "add_new"]
+                    },
+                    "posts": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100
+                      },
+                      "maxItems": 500
+                    },
+                    "body": {
+                      "type": "object",
+                      "properties": {
+                        "blocks": {
+                          "type": "array",
+                          "items": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": ["heading"]
+                                  },
+                                  "text": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 300
+                                  }
+                                },
+                                "required": ["kind", "text"]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": ["article"]
+                                  },
+                                  "paragraphs": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 20000
+                                    },
+                                    "minItems": 1
+                                  }
+                                },
+                                "required": ["kind", "paragraphs"]
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "required": ["blocks"]
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "default": {}
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": ["version", "changes"]
+      },
+      "ConfirmImportLibraryPartResponse": {
+        "type": "object",
+        "properties": {
+          "createdModuleIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "usedModuleIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "links": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": ["createdModuleIds", "usedModuleIds", "links"]
+      },
+      "ConfirmImportLibraryPartRequest": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": ["version"]
+      },
+      "ImportLibraryPartResponse": {
+        "type": "object",
+        "properties": {
+          "part": {
+            "$ref": "#/components/schemas/ImportLibraryPart"
+          }
+        },
+        "required": ["part"]
       },
       "ServiceContractResponse": {
         "type": "object",
@@ -28484,8 +29939,8 @@
       },
       "post": {
         "operationId": "createInstructionModule",
-        "summary": "Start a module from the skeleton",
-        "description": "A new module whose first version is the skeleton the app ships, in the house style, to be written in the editor, of the `domain` given, an occupational safety one by default. Titles are unique within the organization, ignoring case and across both domains (reason `instruction_module_title_taken`).",
+        "summary": "Create a module with its first version",
+        "description": "A new module of the `domain` given, an occupational safety one by default, whose first version is `body` (ADR 034): a module is stored on its first save, never empty. The category (`group`) is one of the domain's (reason `instruction_module_category_domain`). Titles are unique within the organization, ignoring case and across both domains (reason `instruction_module_title_taken`).",
         "security": [
           {
             "bearerAuth": []
@@ -28503,11 +29958,106 @@
         },
         "responses": {
           "201": {
-            "description": "The module",
+            "description": "The module and its body",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/InstructionModuleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body, or a category of the other domain",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The title is taken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/instruction-modules/preview": {
+      "post": {
+        "operationId": "previewInstruction",
+        "summary": "Render a body as the annex it would print, without saving it",
+        "description": "For the Word viewer while a module is written: the posted title, domain and body rendered by the annex template as annex 1, with the organization as the provider, today's date and a placeholder where a client's name goes. Nothing is stored.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstructionPreviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The Word file",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
                 }
               }
             }
@@ -28542,143 +30092,6 @@
               }
             }
           },
-          "409": {
-            "description": "The title is taken",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected API error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "A dependency is temporarily unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/instruction-modules/upload": {
-      "post": {
-        "operationId": "uploadInstructionModule",
-        "summary": "Add a module from a Word file",
-        "description": "Takes the bytes of a `.docx`, up to 15 MB, as the body. The file is kept as it is apart from its fonts, which become the house font. The title is the `title` query parameter, else the first line of the file; the group is `group`, else a work activity; the domain is `domain`, else occupational safety. One file per request: the app uploads several by calling this once each.",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 2,
-              "maxLength": 200
-            },
-            "required": false,
-            "name": "title",
-            "in": "query"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "enum": ["work_activity", "work_equipment", "protective_equipment"],
-              "default": "work_activity"
-            },
-            "required": false,
-            "name": "group",
-            "in": "query"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "enum": ["ssm", "psi"],
-              "default": "ssm"
-            },
-            "required": false,
-            "name": "domain",
-            "in": "query"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
-              "schema": {
-                "type": "string",
-                "format": "binary"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "The module",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InstructionModuleResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid query, or the body is not a Word document",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "A valid user access token is required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "The account is not a member of an organization",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The title is taken",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -28705,7 +30118,7 @@
     "/instruction-modules/{moduleId}": {
       "get": {
         "operationId": "getInstructionModule",
-        "summary": "Read one module",
+        "summary": "Read one module with its current body",
         "security": [
           {
             "bearerAuth": []
@@ -28724,7 +30137,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The module",
+            "description": "The module and its current body",
             "content": {
               "application/json": {
                 "schema": {
@@ -28797,8 +30210,8 @@
       },
       "patch": {
         "operationId": "updateInstructionModule",
-        "summary": "Rename, regroup, move to the other domain, archive or restore a module",
-        "description": "Archiving is refused while a current position of any client applies the module (reason `instruction_module_applied`); an archived module leaves the pickers and takes no new file. Changing the domain is refused while a current position applies the module (reason `instruction_module_domain_applied`), since the position applied it as part of its decision for the other set.",
+        "summary": "Rename, recategorize, move to the other domain, archive or restore a module",
+        "description": "Archiving is refused while a current position of any client applies the module (reason `instruction_module_applied`); an archived module leaves the pickers and takes no new version. Changing the domain is refused while a current position applies the module (reason `instruction_module_domain_applied`), since the position applied it as part of its decision for the other set. The category after the change must be one of the domain after it (reason `instruction_module_category_domain`): moving a module to the other domain names its new category too.",
         "security": [
           {
             "bearerAuth": []
@@ -28837,7 +30250,7 @@
             }
           },
           "400": {
-            "description": "Invalid path or request body",
+            "description": "Invalid path or request body, or a category of the other domain",
             "content": {
               "application/json": {
                 "schema": {
@@ -28909,11 +30322,126 @@
         }
       }
     },
-    "/instruction-modules/{moduleId}/file-link": {
+    "/instruction-modules/{moduleId}/body": {
+      "put": {
+        "operationId": "saveInstructionBody",
+        "summary": "Save a module's text as its next version",
+        "description": "Stores the body as the next version; nothing changes in place, and documents generated before keep citing the version they annexed. The body is stored with each run of whitespace made one space; one that differs from the current version only in whitespace stores nothing and answers `changed: false` with the current version, so that it marks no document behind (ADR 034). Refused on an archived module (reason `instruction_module_archived`).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "moduleId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstructionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The module with its current version and body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaveInstructionBodyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The module does not exist in this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The module is archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/instruction-modules/{moduleId}/versions/{versionId}": {
       "get": {
-        "operationId": "getInstructionModuleFileLink",
-        "summary": "A short-lived link to the file of a version",
-        "description": "A signed link to the Word file of the current version, or of `versionId`, valid for a minute, named after the module. The editor loads it; a download saves it. An earlier version is what a document annexed, and its file name carries its number.",
+        "operationId": "getInstructionModuleVersion",
+        "summary": "Read one version of a module with its body",
+        "description": "An earlier version is what a document annexed; it never changes.",
         "security": [
           {
             "bearerAuth": []
@@ -28934,18 +30462,18 @@
               "type": "string",
               "format": "uuid"
             },
-            "required": false,
+            "required": true,
             "name": "versionId",
-            "in": "query"
+            "in": "path"
           }
         ],
         "responses": {
           "200": {
-            "description": "The link",
+            "description": "The version and its body",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/InstructionModuleFileLinkResponse"
+                  "$ref": "#/components/schemas/InstructionModuleVersionResponse"
                 }
               }
             }
@@ -29013,11 +30541,11 @@
         }
       }
     },
-    "/instruction-modules/{moduleId}/file": {
-      "put": {
-        "operationId": "saveInstructionModuleFile",
-        "summary": "Store the next version of the file",
-        "description": "Takes the bytes of a `.docx`, up to 15 MB, as the body: what the editor saves, or a file uploaded again. Nothing changes in place; every save is the next version, and documents generated before keep citing the one they annexed. Refused on an archived module (reason `instruction_module_archived`).",
+    "/instruction-modules/{moduleId}/download": {
+      "get": {
+        "operationId": "downloadInstructionModule",
+        "summary": "Download a version as the annex it prints",
+        "description": "The current version, or `versionId`, rendered by the annex template as annex 1: its title page, then its text under the header of the own instructions, with the organization as the provider and a placeholder where a client's name goes. A client's revision prints its annexes as in the binder at `GET /documents/{documentId}/revisions/{revisionId}/annexes/{number}`.",
         "security": [
           {
             "bearerAuth": []
@@ -29032,32 +30560,31 @@
             "required": true,
             "name": "moduleId",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "versionId",
+            "in": "query"
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
-              "schema": {
-                "type": "string",
-                "format": "binary"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "The module with its new version",
+            "description": "The Word file, named in `Content-Disposition`",
             "content": {
-              "application/json": {
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
                 "schema": {
-                  "$ref": "#/components/schemas/InstructionModuleResponse"
+                  "type": "string",
+                  "format": "binary"
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid path, or the body is not a Word document",
+            "description": "Invalid path or query",
             "content": {
               "application/json": {
                 "schema": {
@@ -29087,17 +30614,7 @@
             }
           },
           "404": {
-            "description": "The module does not exist in this organization",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The module is archived",
+            "description": "No such module, or no such version of it",
             "content": {
               "application/json": {
                 "schema": {
@@ -36529,7 +38046,7 @@
       "get": {
         "operationId": "getDocumentArchive",
         "summary": "Download one of a client's documentation sets as a zip archive",
-        "description": "Every document of the set named by `set`, numbered in the set's order. `format=docx` takes each document's issued Word file, or its draft while nothing is issued, with the own instructions' annexes as files of their own. `format=pdf` takes the PDFs made at issuing, which hold the annexes, and leaves out documents that have none. `409` with the reason `nothing_to_archive` when no document qualifies.",
+        "description": "Every document of the set named by `set`, numbered in the set's order. `format=docx` takes each document's issued Word file, or its draft while nothing is issued, the own instructions with their annexes appended as sections of their own. `format=pdf` takes the PDFs made at issuing, which hold the annexes, and leaves out documents that have none. `409` with the reason `nothing_to_archive` when no document qualifies.",
         "security": [
           {
             "bearerAuth": []
@@ -36734,6 +38251,245 @@
           },
           "404": {
             "description": "The revision does not exist in the organization, or has no PDF",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{documentId}/revisions/{revisionId}/word": {
+      "get": {
+        "operationId": "getDocumentWord",
+        "summary": "Download a revision's Word file with its annexes",
+        "description": "The revision's Word file, followed for either set's own instructions by each annexed instruction module as a section of its own, rendered from the version the revision annexed (ADR 034), as the PDF holds them. The draft the editor opens stays the common part alone. `409` with the reason `annex_not_in_library` when an annexed version no longer exists: the draft is generated again.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "documentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "revisionId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The Word file, named in `Content-Disposition`",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The revision does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "An annexed version no longer exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{documentId}/revisions/{revisionId}/annexes/{number}": {
+      "get": {
+        "operationId": "getDocumentAnnex",
+        "summary": "Download one annex of a revision as a Word file",
+        "description": "The annex numbered `number` of either set's own instructions, as the binder prints it: its title page and its text under the header of the client's own instructions, rendered from the version the revision annexed.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "documentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "revisionId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "required": true,
+            "name": "number",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The Word file, named in `Content-Disposition`",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The revision does not exist in the organization, or has no such annex",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The annexed version no longer exists",
             "content": {
               "application/json": {
                 "schema": {
@@ -40266,6 +42022,473 @@
           },
           "422": {
             "description": "No such found sheet, or past the caps",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Reading imports is not set up on this deployment (reason `import_unavailable`), or a dependency is down",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/imports/{importId}/library-parts": {
+      "get": {
+        "operationId": "listImportLibraryParts",
+        "summary": "A client import's proposals for the library",
+        "description": "One part per domain whose own instructions the sorting found (ADR 034), `instructions_ssm` and `instructions_psi`, each read by a request of its own once the client proposal is ready: its status (`reading`, `to_review`, `nothing_new`, `failed` with `failureReason`, `confirmed`), the proposal from `to_review` on (null before, and once dropped with the import's, 30 days after the client), the member's changes and the version to save on, the counts of identical, similar, new and unread instructions, `positionPosts` (the client post each post the themes name is, as the changes name posts), `expiresAt` (14 days after the client's confirmation, past which a part is no longer confirmed), and `credits`, its readings net of those given back. `posts` are the posts an instruction can apply to: the client proposal's, by their id, with the job position each became once the client is confirmed, and the client's other active posts by their id. `usage`, the models' cost at list price and tokens, is served outside production and, in production, only to a platform admin. An empty list for an employee import or a pack without own instructions.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "importId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The parts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportLibraryPartsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The import does not exist in the organization, or the caller cannot see it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/imports/{importId}/library-parts/{part}/changes": {
+      "put": {
+        "operationId": "saveImportLibraryPartChanges",
+        "summary": "Save the member's review of a library part",
+        "description": "Replaces the part's changes, by the proposed instruction's key: `included` false leaves it out, `title`, `category` (one of the part's domain), `choice` for a similar instruction (`use_existing` or `add_new`), `posts` in place of those the themes give, and `body`, the text edited, held to the body's schema. Before the client is confirmed too. On the `version` the caller read, and answers the next. `400` for a key the proposal does not have or a category of the other domain; `409` with `import_changed` when someone saved since, `import_part_not_ready` when the part is not `to_review` or `nothing_new`, `import_part_expired` 14 days after the client's confirmation.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "importId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["instructions_ssm", "instructions_psi"]
+            },
+            "required": true,
+            "name": "part",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveImportLibraryPartChangesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The new version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaveImportChangesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such import, or no such part of it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready, expired, or saved since it was read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/imports/{importId}/library-parts/{part}/confirm": {
+      "post": {
+        "operationId": "confirmImportLibraryPart",
+        "summary": "Confirm a library part",
+        "description": "In one transaction (`apply_instruction_import`): creates a module with its first version for every new instruction and every similar one the member chose to add as new, takes the identical ones and the similar ones kept as they are, and applies each to its posts, skipping a post that applies it already, all as the member. Only after the client is confirmed: `409` with `import_client_unconfirmed` before (the app says \"Confirmă întâi clientul\"). The client import's own confirm never waits for its parts. `409` with `import_part_expired` 14 days after the client's confirmation, `import_part_not_ready`, `import_changed`, `instruction_title_taken` when a new module's title is an active module's (with `issues` on `instructions.<key>.title`), or `import_outdated` when a post or module the review named is gone. `422` with `import_incomplete` for a category of the other domain.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "importId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["instructions_ssm", "instructions_psi"]
+            },
+            "required": true,
+            "name": "part",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmImportLibraryPartRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The modules created and applied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmImportLibraryPartResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such import, or no such part of it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is not confirmed, the part expired, is not ready or was saved since, a title is taken, or the client changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A value the library refuses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/imports/{importId}/library-parts/{part}/retry": {
+      "post": {
+        "operationId": "retryImportLibraryPart",
+        "summary": "Read a failed library part again",
+        "description": "\"Citește din nou\": a `failed` part of an import ready for review or confirmed goes back to `reading` under its next `attempt` and its message is sent again; the reading is charged again when its request is sent (25 credits for SSM, 10 for PSI), and given back if it fails. The client proposal and the other part are untouched. `409` with `import_part_expired` 14 days after the client was confirmed, when it could no longer be confirmed, and `import_part_not_failed` otherwise; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "importId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["instructions_ssm", "instructions_psi"]
+            },
+            "required": true,
+            "name": "part",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The part, reading",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportLibraryPartResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such import, or no such part of it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The part has not failed, or it expired",
             "content": {
               "application/json": {
                 "schema": {

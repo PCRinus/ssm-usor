@@ -1,5 +1,5 @@
 begin;
-select plan(22);
+select plan(27);
 
 -- Fixtures: two organizations with one member and one client each, positions in each.
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -25,6 +25,14 @@ insert into public.job_positions (id, organization_id, client_id, name) values
   ('f1f1f1f1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Contabil'),
   ('f1f1f1f1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'Frozen'),
   ('f2f2f2f2-0000-4000-8000-000000000001', '22222222-0000-4000-8000-000000000002', 'c2c2c2c2-0000-4000-8000-000000000001', 'Zidar');
+
+create or replace function pg_temp.body(articles int)
+returns jsonb language sql as $$
+  select jsonb_build_object('blocks',
+    jsonb_build_array(jsonb_build_object('kind', 'heading', 'text', 'Domeniul de aplicare'))
+    || (select jsonb_agg(jsonb_build_object('kind', 'article', 'paragraphs', jsonb_build_array('Articolul ' || n || '.')))
+        from generate_series(1, articles) n));
+$$;
 
 create or replace function pg_temp.act_as(user_id text, app_metadata jsonb)
 returns void language sql as $$
@@ -57,39 +65,72 @@ select throws_ok(
 );
 
 select lives_ok(
-  $$ insert into public.instruction_module_versions (id, organization_id, module_id, number, docx_path, sha256, size_bytes, article_count, created_by)
+  $$ insert into public.instruction_module_versions (id, organization_id, module_id, number, body, text_hash, created_by)
      values ('b0b0b0b0-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'a0a0a0a0-0000-4000-8000-000000000001', 1,
-             '11111111-0000-4000-8000-000000000001/a0a0a0a0-0000-4000-8000-000000000001/1.docx',
-             repeat('a', 64), 1234, 12, 'aaaaaaaa-0000-4000-8000-000000000001') $$,
-  'a version names its file under the organization and the module'
+             pg_temp.body(12), repeat('a', 64), 'aaaaaaaa-0000-4000-8000-000000000001') $$,
+  'a version holds the body of the module'
+);
+
+select is(
+  (select article_count from public.instruction_module_versions where id = 'b0b0b0b0-0000-4000-8000-000000000001'),
+  12,
+  'the database counts the articles of the body, never its headings'
 );
 
 select throws_ok(
-  $$ insert into public.instruction_module_versions (organization_id, module_id, number, docx_path, sha256, size_bytes)
-     values ('11111111-0000-4000-8000-000000000001', 'a0a0a0a0-0000-4000-8000-000000000001', 1,
-             '11111111-0000-4000-8000-000000000001/a0a0a0a0-0000-4000-8000-000000000001/1.docx', repeat('b', 64), 10) $$,
+  $$ insert into public.instruction_module_versions (organization_id, module_id, number, body, text_hash)
+     values ('11111111-0000-4000-8000-000000000001', 'a0a0a0a0-0000-4000-8000-000000000001', 1, pg_temp.body(2), repeat('b', 64)) $$,
   '23505',
   null,
-  'a module has one file per version number'
+  'a module has one version per number'
 );
 
 select throws_ok(
-  $$ insert into public.instruction_module_versions (organization_id, module_id, number, docx_path, sha256, size_bytes)
+  $$ insert into public.instruction_module_versions (organization_id, module_id, number, body, text_hash)
+     values ('11111111-0000-4000-8000-000000000001', 'a0a0a0a0-0000-4000-8000-000000000001', 2, pg_temp.body(12), repeat('b', 64)) $$,
+  'INS08',
+  null,
+  'a version whose body is the current one''s is refused'
+);
+
+select lives_ok(
+  $$ insert into public.instruction_module_versions (organization_id, module_id, number, body, text_hash)
      values ('11111111-0000-4000-8000-000000000001', 'a0a0a0a0-0000-4000-8000-000000000001', 2,
-             'elsewhere/2.docx', repeat('b', 64), 10) $$,
+             jsonb_set(pg_temp.body(12), '{blocks,1,paragraphs,0}', '"ARTICOLUL 1 – sănătatea."'), repeat('a', 64)) $$,
+  'a version that changes only diacritics, case or symbols is stored, though it folds to the same text'
+);
+
+select lives_ok(
+  $$ insert into public.instruction_module_versions (organization_id, module_id, number, body, text_hash)
+     values ('11111111-0000-4000-8000-000000000001', 'a0a0a0a0-0000-4000-8000-000000000002', 1, pg_temp.body(3), repeat('a', 64)) $$,
+  'another module may hold the same text'
+);
+
+select lives_ok(
+  $$ select public.create_instruction_module('Scări metalice', 'work_equipment', 'ssm', pg_temp.body(4), repeat('d', 64)) $$,
+  'a member creates a module with its first version in one call'
+);
+
+select is(
+  (select array[v.number, v.article_count] from public.instruction_module_versions v
+   join public.instruction_modules m on m.id = v.module_id
+   where m.title = 'Scări metalice' and m.organization_id = '11111111-0000-4000-8000-000000000001'
+     and m.created_by = 'aaaaaaaa-0000-4000-8000-000000000001' and v.created_by = m.created_by),
+  array[1, 4],
+  'the module is created in the member''s organization with its body as version 1'
+);
+
+select throws_ok(
+  $$ select public.create_instruction_module('Lift', 'work_equipment', 'ssm', '{"blocks": []}', repeat('d', 64)) $$,
   '23514',
   null,
-  'a version cannot name a path outside its folder'
+  'a body the database refuses is refused with the module'
 );
 
-select ok(
-  public.is_instruction_module_path('11111111-0000-4000-8000-000000000001/a0a0a0a0-0000-4000-8000-000000000001/1.docx'),
-  'the storage policy accepts the path a version of the organization names'
-);
-
-select ok(
-  not public.is_instruction_module_path('11111111-0000-4000-8000-000000000001/a0a0a0a0-0000-4000-8000-000000000001/2.docx'),
-  'and refuses a path no version names'
+select is(
+  (select count(*)::int from public.instruction_modules where title = 'Lift'),
+  0,
+  'and leaves no module behind to hold the title'
 );
 
 select lives_ok(
@@ -188,12 +229,11 @@ select throws_ok(
 );
 
 select throws_ok(
-  $$ insert into public.instruction_module_versions (organization_id, module_id, number, docx_path, sha256, size_bytes)
-     values ('11111111-0000-4000-8000-000000000001', 'a0a0a0a0-0000-4000-8000-000000000001', 2,
-             '11111111-0000-4000-8000-000000000001/a0a0a0a0-0000-4000-8000-000000000001/2.docx', repeat('c', 64), 10) $$,
+  $$ insert into public.instruction_module_versions (organization_id, module_id, number, body, text_hash)
+     values ('11111111-0000-4000-8000-000000000001', 'a0a0a0a0-0000-4000-8000-000000000001', 3, pg_temp.body(2), repeat('c', 64)) $$,
   'INS05',
   null,
-  'an archived module takes no new file'
+  'an archived module takes no new version'
 );
 
 select * from finish();

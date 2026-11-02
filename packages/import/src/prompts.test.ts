@@ -33,6 +33,15 @@ describe('sortingMessages', () => {
     );
   });
 
+  it('asks the domain of own instructions and training themes from their beginning', () => {
+    const [system] = sortingMessages({ provider, files: [] });
+
+    expect(system!.content).toContain(
+      '- domain: for own_instructions and training_themes, which of the two the file is for'
+    );
+    expect(system!.content).toContain('"… situațiilor de urgență", IPSU, PSI, SU');
+  });
+
   it('tells the general training material apart from the training themes', () => {
     const [system] = sortingMessages({ provider, files: [] });
 

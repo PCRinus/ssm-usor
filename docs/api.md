@@ -115,6 +115,10 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PUT /imports/{importId}/employee-changes`                             | Verified user with a membership       | `{ "version" }` after saving an employee import's `{ version, changes }`; `409` on a stale version or a client import                                                                              |
 | `GET /clients/{clientId}/found-sheets`                                 | Verified user with a membership       | `{ "items": [ … ], "total" }`, the sheet photographs a client import found that no employee import holds                                                                                           |
 | `POST /imports/{importId}/found-sheets`                                | Verified user with a membership       | `201 { "import": { … } }` after copying found sheets `{ fileIds? }` into an employee import still uploading                                                                                        |
+| `GET /imports/{importId}/library-parts`                                | Verified user with a membership       | `{ "parts": [ … ], "posts": [ … ] }`, a client import's proposals for the library of own instructions, one per domain, and the posts they can apply to                                             |
+| `PUT /imports/{importId}/library-parts/{part}/changes`                 | Verified user with a membership       | `{ "version" }` after saving `{ version, changes }` of a part `to_review` or `nothing_new`; `409` on a stale version                                                                               |
+| `POST /imports/{importId}/library-parts/{part}/confirm`                | Verified user with a membership       | `{ "createdModuleIds", "usedModuleIds", "links" }` after creating and applying the part's modules in one transaction; `409` `import_client_unconfirmed` before the client is confirmed             |
+| `POST /imports/{importId}/library-parts/{part}/retry`                  | Verified user with a membership       | `{ "part": { … } }`, a failed part reading again under its next attempt, charged again                                                                                                             |
 | `GET /files/download`                                                  | Public, by signed Storage link        | The file behind `?source=`, named `?name=`; `?disposition=inline` shows a PDF, a JPEG or a PNG                                                                                                     |
 | `GET /organization/company-details`                                    | Verified user with a membership       | `{ "companyDetails": { … } }`: what documents print about the provider as a company                                                                                                                |
 | `PUT /organization/company-details`                                    | Owner                                 | The company details after replacing them                                                                                                                                                           |
@@ -159,6 +163,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /clients/{clientId}/documents?set=`                               | Verified user with a membership       | `{ "items": [ … ], "lastGeneration" }` of one set, in its order; not paginated                                                                                                                     |
 | `POST /clients/{clientId}/documents/generate?set=`                     | Verified user with a membership       | `201 { "created": [ … ], "skipped": [ … ] }`                                                                                                                                                       |
 | `GET /documents/{documentId}/revisions/{revisionId}/download`          | Verified user with a membership       | `{ "url", "fileName", "expiresInSeconds" }`, a link valid for a minute                                                                                                                             |
+| `GET /documents/{documentId}/revisions/{revisionId}/word`              | Verified user with a membership       | The revision's Word file, the own instructions with their annexes appended as sections                                                                                                             |
+| `GET /documents/{documentId}/revisions/{revisionId}/annexes/{number}`  | Verified user with a membership       | One annex of the revision as the binder prints it, a `.docx`                                                                                                                                       |
 | `POST /documents/{documentId}/regenerate`                              | Verified user with a membership       | `{ "document": { … } }` with its new draft                                                                                                                                                         |
 | `POST /documents/{documentId}/issue`                                   | Verified user with a membership       | `{ "document": { … } }` with its issued revision; the PDF annexes either set's own instructions' modules                                                                                           |
 | `POST /documents/{documentId}/draft`                                   | Verified user with a membership       | `{ "document": { … } }` with a draft copied from its issued revision                                                                                                                               |
@@ -199,13 +205,14 @@ access token in the Authorization header; the publishable API key is not a user 
 | `DELETE …/job-positions/{jobPositionId}/equipment/{entryId}`           | Verified user with a membership       | `204`                                                                                                                                                                                              |
 | `PATCH …/job-positions/{jobPositionId}/protective-equipment`           | Verified user with a membership       | `{ "jobPosition": { … } }` after saying the post needs none (`false`) or taking that back (`null`)                                                                                                 |
 | `GET /equipment-suggestions`                                           | Verified user with a membership       | `{ "items": [ … ] }`, risks or items typed before; `?field=risk                                                                                                                                    | item&query=` |
-| `GET /instruction-modules`                                             | Verified user with a membership       | `{ "items": [ … ] }`, by domain, group and title; `?archived=true` lists the archived ones instead; `?domain=`                                                                                     |
-| `POST /instruction-modules`                                            | Verified user with a membership       | `201 { "module": { … } }`, started from the skeleton                                                                                                                                               |
-| `POST /instruction-modules/upload`                                     | Verified user with a membership       | `201 { "module": { … } }` from the `.docx` in the body; `?title=&group=&domain=`                                                                                                                   |
-| `GET /instruction-modules/{moduleId}`                                  | Verified user with a membership       | `{ "module": { … } }`                                                                                                                                                                              |
-| `PATCH /instruction-modules/{moduleId}`                                | Verified user with a membership       | `{ "module": { … } }` after renaming, regrouping, moving domain, archiving or restoring                                                                                                            |
-| `GET /instruction-modules/{moduleId}/file-link`                        | Verified user with a membership       | `{ "url", "fileName", "expiresAt" }`, a one-minute link to the current file                                                                                                                        |
-| `PUT /instruction-modules/{moduleId}/file`                             | Verified user with a membership       | `{ "module": { … } }` with the body stored as the next version                                                                                                                                     |
+| `GET /instruction-modules`                                             | Verified user with a membership       | `{ "items": [ … ] }`, by domain, category and title; `?archived=true` lists the archived ones instead; `?domain=`                                                                                  |
+| `POST /instruction-modules`                                            | Verified user with a membership       | `201 { "module": { … }, "body": { … } }`, created with its first version                                                                                                                           |
+| `POST /instruction-modules/preview`                                    | Verified user with a membership       | The annex a posted title, domain and body would print, as a `.docx`; nothing stored                                                                                                                |
+| `GET /instruction-modules/{moduleId}`                                  | Verified user with a membership       | `{ "module": { … }, "body": { … } }`, with its current body                                                                                                                                        |
+| `PATCH /instruction-modules/{moduleId}`                                | Verified user with a membership       | `{ "module": { … }, "body": { … } }` after renaming, recategorizing, moving domain, archiving or restoring                                                                                         |
+| `PUT /instruction-modules/{moduleId}/body`                             | Verified user with a membership       | `{ "module", "body", "changed" }`, the body stored as the next version unless its text is unchanged                                                                                                |
+| `GET /instruction-modules/{moduleId}/versions/{versionId}`             | Verified user with a membership       | `{ "version": { … }, "body": { … } }`                                                                                                                                                              |
+| `GET /instruction-modules/{moduleId}/download`                         | Verified user with a membership       | The current version, or `?versionId=`, as the annex it prints, a `.docx`                                                                                                                           |
 | `GET …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | `{ "domain", "items": [ … ], "needsInstructions" }`, one domain's modules and decision; `?domain=`                                                                                                 |
 | `PUT …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | The same, after replacing the set of `domain` with `moduleIds`                                                                                                                                     |
 | `POST …/job-positions/{jobPositionId}/instructions/copy`               | Verified user with a membership       | The same, after adding another position's modules of `domain`                                                                                                                                      |
@@ -574,29 +581,45 @@ or `item`, the distinct values the organization typed before that contain `query
 recently used first, at most twenty; it filters in the Worker, so a typed `%` or `,` is a
 character, not a PostgREST operator.
 
-The instruction library ([ADR 012](architecture/adr-012-own-instructions.md)) is the
-organization's own instructions, one Word file each, kept as their author made them. Each
-module has a `domain`, `ssm` or `psi` (ADR 012's amendment of 2026-10-11): which set's own
-instructions annex it, 3.2 or 2.1. `GET /instruction-modules` lists the modules in use by
-domain, group and title, each with its current version (`number`, `sha256`, `sizeBytes`,
-`articleCount`, the top-level items of the file's most used numbered list) and
+The instruction library ([ADR 012](architecture/adr-012-own-instructions.md),
+[ADR 034](architecture/adr-034-own-instructions-as-app-text.md)) is the organization's own
+instructions, each a body of headings and numbered articles that the document engine prints.
+Each module has a `domain`, `ssm` or `psi` (ADR 012's amendment of 2026-10-11): which set's own
+instructions annex it, 3.2 or 2.1, and a category (`group`) of that domain: `work_activity`,
+`work_equipment` or `protective_equipment` for `ssm`, `premises_activity`,
+`installation_equipment` or `hazardous_work` for `psi`; a category of the other domain answers
+`400` with the reason `instruction_module_category_domain`. `GET /instruction-modules` lists the
+modules in use by domain, category and title, each with its current version (`number`,
+`textHash`, `articleCount`, the article blocks of its body, which the training themes cite) and
 `appliedCount`, how many current positions across the organization's clients apply it;
-`?archived=true` lists the archived ones instead, and `?domain=` one domain's only. `POST
-/instruction-modules` starts a module from the skeleton the app ships, in the house style
-with the Labour Inspection's headings; `POST /instruction-modules/upload` takes the bytes of
-a `.docx` as the body, one file per request, sweeps its fonts to the house font and nothing
-else, and titles it after `?title=` or the first line of the file, in `?group=` or a work
-activity; both take a `domain`, `ssm` when left out. A title the library already has, of
-either domain, answers `409` with the reason
-`instruction_module_title_taken`. `PUT …/file` stores the body as the next version, which is
-what the editor saves; versions are never replaced, so documents generated before keep
-citing the one they annexed. `PATCH` renames, regroups, moves to the other domain, archives
-(`archived: true`) or restores; archiving a module a current position applies answers `409`
-with the reason `instruction_module_applied`, moving one to the other domain `409` with
-`instruction_module_domain_applied` (the position applied it as part of its decision for the
-other set), and a file for an archived module answers `409` with
-`instruction_module_archived`. `GET …/file-link` signs a one-minute link to the current file,
-named after the module.
+`?archived=true` lists the archived ones instead, and `?domain=` one domain's only.
+
+Bodies are `instructionBodySchema` of the contracts: `{ "blocks": [ … ] }`, each block `{ "kind":
+"heading", "text" }` or `{ "kind": "article", "paragraphs": [ … ] }`, every string one line, with 1
+to 400 articles and at most 200,000 characters, checked again by the database. `POST
+/instruction-modules` takes `title`, `group`, `domain` (`ssm` when left out) and `body`, and
+creates the module with that body as version 1: nothing is stored before the first save. A
+title the library already has, of either domain, answers `409` with the reason
+`instruction_module_title_taken`. `PUT …/body` takes a body and stores it as the next version;
+versions are never replaced, so documents generated before keep citing the one they annexed.
+A body whose `textHash` (the SHA-256 of the body folded as the import folds text: no
+diacritics, case, punctuation or extra spaces) is the current version's stores nothing and
+answers `changed: false` with the current version, so a save that moved only whitespace marks
+no document behind; the database refuses such a version too (`INS08`). `GET …/versions/{versionId}`
+reads a version a document annexed. `PATCH` renames, recategorizes, moves to the other domain
+(with a category of it), archives (`archived: true`) or restores; archiving a module a current
+position applies answers `409` with the reason `instruction_module_applied`, moving one to the
+other domain `409` with `instruction_module_domain_applied` (the position applied it as part of
+its decision for the other set), and a body for an archived module `409` with
+`instruction_module_archived`.
+
+`GET …/download` renders the current version, or `?versionId=`, with the annex template of
+the module's domain, as annex 1, named after the module (with "versiunea N" for an earlier
+version): the organization as the provider and "Numele clientului" where a client goes. `POST
+/instruction-modules/preview` renders a posted `title`, `domain` and `body` the same way,
+dated today, for the Word viewer while a module is written; it stores nothing and works in
+read-only access. Inside a client's documents, an annex prints as the binder does through
+`GET /documents/{documentId}/revisions/{revisionId}/annexes/{number}`.
 
 A job position decides about each domain apart, and every route below takes the `domain` it
 is about, `ssm` when left out (`?domain=` on `GET`, in the body otherwise); the other domain's
@@ -1010,6 +1033,14 @@ chosen during the trial brings it only with that first payment.
   fails (the pipeline, the queue's dead letters, the daily clean-up), gets back everything it was
   charged, the gift's part to the gift, by a trigger on `imports`. One that fails from `ready`, left
   after its reading, is not refunded, nor is one the member abandons once started.
+- **Own instructions** ([ADR 034](architecture/adr-034-own-instructions-as-app-text.md)). Each
+  reading of a library part is charged when its request is sent, 25 credits for the SSM
+  instructions and 10 for the PSI ones (`importCredits.ownInstructions`), as `library_part` with
+  the part, under the key `library:<import>:<part>:<attempt>`, and never refused: an import that
+  has started is not stopped for credits. "Citește din nou" reads, and charges, under the next
+  attempt. A part that fails gets that reading back (`library_part_refund`, by a trigger on
+  `import_library_parts`); one whose files are too long fails before it is sent, and is charged
+  nothing. The start's known part does not include it: only sorting finds the own instructions.
 
 `GET /billing` answers `usage.creditsThisMonth` to every member: `used` (the month's credits
 used, net of refunds), `included` (allowance plus `granted`; null where nothing limits them),
@@ -1020,8 +1051,9 @@ first payment), `period` (`trial`, one allowance that does not renew, or `month`
 `included`), `out` (nothing left), `negative` (below zero) or `unlimited`. No amounts in euros.
 
 `GET /imports/{importId}` answers `credits`, null before the import started: `used` (net of what
-was given back), `atStart` (the known part, settled for an employee import), `scannedPages` (a
-client import's scanned pages charged) and `refunded`.
+was given back, the own instructions included), `atStart` (the known part, settled for an
+employee import), `scannedPages` (a client import's scanned pages charged), `ownInstructions`
+(the readings of its own instructions, net of those given back) and `refunded`.
 
 The workflow **Adaugă credite** (`pnpm grant-credits --email --credits --reason --actor`) adds
 credits to the current month of the organization whose owner has the email, through
@@ -1857,8 +1889,8 @@ it exists): covers 1.0 and 6.0 list only what the set holds, and decision 6 cite
 only then. `annexes` and `noAnnexes` are what the own instructions 2.1 annex: the `psi` modules
 the current positions apply, each once, by group, title and id, numbered from 1, as the other
 set's `annexes` holds its `ssm` ones; only 2.1 prints them, so an edit in the library marks
-only its draft. Issuing 2.1 merges, like 3.2, an annex title page before each annexed module
-version into one PDF, the fire-safety page naming the technician in its box. It is
+only its draft. Issuing 2.1 renders, like 3.2, each annexed module version as an annex of its
+own and merges them into one PDF, the fire-safety annex naming the technician in its box. It is
 never merged with the occupational safety set's names, so an edit to positions or equipment never
 marks a fire-safety draft; renaming a post, which decision 2 prints in `fire.staff`, does.
 
@@ -1901,7 +1933,13 @@ without an evaluation marks the risk assessment, the prevention plan and the tra
 material; a gap in the provider's or the client's details marks every draft), and otherwise
 waits until the data is complete. All files go through
 `src/lib/files.ts`, as the verified user; downloads are signed links that carry the
-document's title as the file name.
+document's title as the file name. The draft the editor opens is the common part alone, so
+for either set's own instructions `GET …/word` reads the revision's file and appends, with the
+engine's `appendAnnexes`, each version its snapshot annexes, rendered as at issuing, as a
+section whose pages number from 1 (ADR 034); `GET …/annexes/{number}` gives one of them alone.
+An annexed version that no longer exists (the test modules deleted with ADR 034) answers `409`
+with the reason `annex_not_in_library` there, at issuing and in the zip: the draft is generated
+again.
 
 `POST /documents/{documentId}/regenerate` merges one document again from the stored facts. A
 draft is overwritten in place, hand edits included; an issued document gets the next revision
@@ -1925,8 +1963,9 @@ can do all three, as the ADR decided.
 built in the Worker from Storage with `fflate` (stored, not deflated: Word files and PDFs are
 compressed already; names carry the UTF-8 flag, so diacritics survive Windows and macOS). Each
 document is a file numbered in the set's order. `docx` takes the issued revision, or the draft
-while nothing is issued (named "ciornă"), plus the own instructions' annexed module versions as
-files of their own; `pdf` takes only the PDFs made at issuing, which already hold the annexes.
+while nothing is issued (named "ciornă"), plus the own instructions with their annexed module versions
+appended as sections of their own; `pdf` takes only the PDFs made at issuing, which already
+hold the annexes.
 `409` with the reason `nothing_to_archive` when no document qualifies. The archive's name is in
 `Content-Disposition`, which CORS exposes so the SPA can save it under that name.
 
@@ -2096,20 +2135,23 @@ that step and the file is in the state the step expects, so a message delivered 
 harm. A step that moves the import on and sends the next message takes the move back when the
 send fails, so the retried delivery moves on again.
 
-| Message          | Step                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `prepare` (file) | Reads the original; one whose size is not the declared one fails, its real size recorded, and a real size past the caps (`IMP05`) fails the import. A `.docx` is rendered to text (`docxToText`); a `.doc` is converted by the extractor and its `.docx` kept as the derived file; a PDF's pages are taken with `pdfText`, scans marked; a photograph (HEIC, JPEG or PNG) is converted by the extractor to an upright JPEG, at most 2,000 pixels a side, kept as the derived file (`<id>.jpg`, or `<id>.jpeg` for a JPEG, whose own object is `<id>.jpg`); the sorting and reading steps send the model that JPEG, and the original stays as uploaded. The text goes to `<id>.txt`, the pages to `<id>.json` (a photograph is one scanned page). The stored bytes' hash replaces what the browser declared. When no file is left `uploaded`, the import moves to `sorting`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `sort` (import)  | One GPT-6 Luna request with the first 3,000 characters of every file that has text, then `sortFiles` with the organization as the provider and, for an existing client, the client. Each file gets its kind and company: read, set aside with a reason, kept for the employee import, or another company's. The company most files name is recorded on the import. The characters to read are recorded on the import (`read_characters`) before it fails past 600,000 of them or the scanned pages of the import's kind (150 for a client import, 500 for an employee import). Moves to `reading`, sending one `scan` per file with scanned pages and one `read`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `scan` (file)    | A photograph or a PDF with no text is first sorted from its first page as an image (Luna); a training sheet is kept for the employee import, a cover or blank form set aside. Then one `scan` message per batch of five scanned pages, each a GPT-6.1 Terra request per page (`pdfPageImage`) or photograph, each reading kept in `<id>.page-<n>.json` as it comes, so a retry pays only for what is left. The batch that finds every page read gathers the readings into the file's `.json` and the file becomes `read`. Each step and batch first claims `<id>.scan.json` or `<id>.scan-<first page>.json`, created only when absent, so one sent twice is read once.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `read` (import)  | Comes back every 10 seconds while a scan is unfinished, and gives up after half an hour in which no scanned page was read. Then one Terra request with the text of every file read, and `toProposal` joins it with the scans' readings. Moves to `checking` with that proposal.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `check` (import) | `withChecks` against every file's text, and the proposal's CUIs confirmed with ANAF (`companies/anaf.ts`); what ANAF answered is kept beside the proposal as `registeredCompany`. Moves to `ready`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| employee import  | No sorting request: `sort` sets aside what is not a photograph or a PDF (with a reason), marks the rest scans, fails the import past 500 pages (`import_too_many_scans` reason) or with none, and sends one `scan` per file and one `read`. Every page of a PDF is read as an image, text or not. Each page is one GPT-6.1 Terra request with medium reasoning, the sheet prompt and `sheetPageAnswer`, at most 16,000 output tokens, recorded as `scanning` on its file; a page the model refuses or answers outside the schema twice, or the gateway turns down for good (a `4xx` other than `429`), is kept as unread rather than failing its file, while a busy gateway is retried. A PDF's page image is kept before the page is read, at `<id>.page-<n>.jpg` with its size and hash in `import_page_images`, as the file the page's employee gets. The gathered readings sit in the file's `.json` as `sheets`, by page number. `read` waits for the scans, then moves to `checking`, failing the import when no file was read. `check` builds the proposal with `toEmployeeProposal` from the pages in the order of their paths with numbers compared as numbers, `Scan 2` before `Scan 10`, since the rows keep no upload position (`page-<n>`, labelled as a source's `file`), the client's posts, workplaces and current employees with their trainings and passes, the training themes the app proposes from for a training typed by hand (`trainings/client-facts.ts`, the import's creator as the specialist), and today in Romania, and moves to `ready`. |
-| `copy` (import)  | After confirming: copies each file of the import folder, or each file an employee import made (an employee's photograph or page image, a scanned PDF of the client), from `imports` to `client-files` (`import_folder_copies`), an object already there counting as copied, then sets `files_copied_at`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Message                    | Step                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prepare` (file)           | Reads the original; one whose size is not the declared one fails, its real size recorded, and a real size past the caps (`IMP05`) fails the import. A `.docx` is rendered to text (`docxToText`); a `.doc` is converted by the extractor and its `.docx` kept as the derived file; a PDF's pages are taken with `pdfText`, scans marked; a photograph (HEIC, JPEG or PNG) is converted by the extractor to an upright JPEG, at most 2,000 pixels a side, kept as the derived file (`<id>.jpg`, or `<id>.jpeg` for a JPEG, whose own object is `<id>.jpg`); the sorting and reading steps send the model that JPEG, and the original stays as uploaded. The text goes to `<id>.txt`, the pages to `<id>.json` (a photograph is one scanned page). The stored bytes' hash replaces what the browser declared. When no file is left `uploaded`, the import moves to `sorting`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `sort` (import)            | One GPT-6 Luna request with the first 3,000 characters of every file that has text, then `sortFiles` with the organization as the provider and, for an existing client, the client. Each file gets its kind and company: read, set aside with a reason, kept for the employee import, or another company's. The company most files name is recorded on the import. The characters to read are recorded on the import (`read_characters`) before it fails past 600,000 of them or the scanned pages of the import's kind (150 for a client import, 500 for an employee import). Moves to `reading`, sending one `scan` per file with scanned pages and one `read`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `scan` (file)              | A photograph or a PDF with no text is first sorted from its first page as an image (Luna); a training sheet is kept for the employee import, a cover or blank form set aside. Then one `scan` message per batch of five scanned pages, each a GPT-6.1 Terra request per page (`pdfPageImage`) or photograph, each reading kept in `<id>.page-<n>.json` as it comes, so a retry pays only for what is left. The batch that finds every page read gathers the readings into the file's `.json` and the file becomes `read`. Each step and batch first claims `<id>.scan.json` or `<id>.scan-<first page>.json`, created only when absent, so one sent twice is read once.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `read` (import)            | Comes back every 10 seconds while a scan is unfinished, and gives up after half an hour in which no scanned page was read. Then one Terra request with the text of every file read, and `toProposal` joins it with the scans' readings. Moves to `checking` with that proposal.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `check` (import)           | `withChecks` against every file's text, and the proposal's CUIs confirmed with ANAF (`companies/anaf.ts`); what ANAF answered is kept beside the proposal as `registeredCompany`. Opens a library part for each domain whose own instructions the sorting found (`import_library_parts`, `reading`), then moves to `ready` and sends one `read-instructions` per part still reading, in the same transition.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| employee import            | No sorting request: `sort` sets aside what is not a photograph or a PDF (with a reason), marks the rest scans, fails the import past 500 pages (`import_too_many_scans` reason) or with none, and sends one `scan` per file and one `read`. Every page of a PDF is read as an image, text or not. Each page is one GPT-6.1 Terra request with medium reasoning, the sheet prompt and `sheetPageAnswer`, at most 16,000 output tokens, recorded as `scanning` on its file; a page the model refuses or answers outside the schema twice, or the gateway turns down for good (a `4xx` other than `429`), is kept as unread rather than failing its file, while a busy gateway is retried. A PDF's page image is kept before the page is read, at `<id>.page-<n>.jpg` with its size and hash in `import_page_images`, as the file the page's employee gets. The gathered readings sit in the file's `.json` as `sheets`, by page number. `read` waits for the scans, then moves to `checking`, failing the import when no file was read. `check` builds the proposal with `toEmployeeProposal` from the pages in the order of their paths with numbers compared as numbers, `Scan 2` before `Scan 10`, since the rows keep no upload position (`page-<n>`, labelled as a source's `file`), the client's posts, workplaces and current employees with their trainings and passes, the training themes the app proposes from for a training typed by hand (`trainings/client-facts.ts`, the import's creator as the specialist), and today in Romania, and moves to `ready`. |
+| `read-instructions` (part) | `{ importId, part, attempt }`, for an import `ready` or `confirmed` whose part still reads that attempt; it first claims `<part>.<attempt>.claim.json` in the import's folder. The part's own-instructions files (`document_domain`) are read with Word's own numbers and notes (`readInstructionsDocx`, the converted `.docx` for a `.doc`), a PDF line by line from its text; its training themes as the client reading has them. One GPT-6.1 Terra request (`instructionsRequest`, at most 800,000 characters, else the part fails with its size before anything is charged; 16,000 output tokens) with the client proposal's posts by name, charged as it is sent; its answer is kept at `<part>.<attempt>.answer.json`, so a retried delivery does not send it again. `readInstructionsAnswer` cuts the instructions and resolves the posts' citations; the organization's active modules of the domain are compared with them (`pairsToJudge`), the pairs in between in one GPT-6 Luna request (`similarityRequest`; an answer outside the schema leaves them new), and `proposeInstructions` makes the proposal. The part becomes `to_review`, or `nothing_new` when every instruction is identical to a module.                                                                                                                                                                                                                                                                                                                                                 |
+| `copy` (import)            | After confirming: copies each file of the import folder, or each file an employee import made (an employee's photograph or page image, a scanned PDF of the client), from `imports` to `client-files` (`import_folder_copies`), an object already there counting as copied, then sets `files_copied_at`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 Every model request carries `{ organizationId, importId }` as the gateway's metadata, and its
 tokens and cost go to `record_import_usage` with its step (`sorting` for the pack and a scan's
 first page, `scanning` for a scanned page, `reading` for the documents), on the file for a file's
-own request; a request that failed is recorded with what it used. Each caps its output,
+own request; a request that failed is recorded with what it used. A library part's requests also
+carry `part` (`instructions_ssm`) and go to `record_library_part_usage`, on the part and on the
+import under the step `instructions`. Each caps its output,
 reasoning included (`max_completion_tokens`): 16,000 tokens for sorting a pack or a scan, 64,000
 for reading the documents or a scanned page. An answer cut off at the cap fails at once, with
 the reason an answer outside the schema gets. The provider the prompts name is the
@@ -2125,7 +2167,9 @@ message whose every delivery died unrecorded goes to `ssm-usor-import-dead-lette
 consumer fails the file or the import. A refusal by the extractor, an unreadable Word file or a model
 answer outside the schema twice fails at once. A file's failure marks the file `failed` with a
 reason in Romanian and the import goes on without it; the failure of `sort`, `read` or `check`
-marks the import `failed` with a reason. The copy is not failed: the clean-up copies again.
+marks the import `failed` with a reason. The failure of `read-instructions`, or its dead letter,
+marks only its part `failed`, with a reason in Romanian; the client proposal and the other part
+go on. The copy is not failed: the clean-up copies again.
 
 ### Reviewing and confirming
 
@@ -2143,8 +2187,10 @@ only. `?status=confirmed` lists the last ten confirmed instead, latest confirmat
 `kind=employees` and `clientId` each carries `uninvited`, the current employees it brought who are
 neither participants nor invited (null elsewhere), and the Angajați tab offers to invite the
 people of the latest with someone left. Every summary carries `expiresAt`, when an import `uploading` or `ready` fails untouched,
-14 days after the last change to it or its files, and `people`, an employee import's
-`{ total, toCheck, checked, setAside }` once ready.
+14 days after the last change to it or its files, `people`, an employee import's
+`{ total, toCheck, checked, setAside }` once ready, and `libraryParts`, a client import's library
+parts with their `status` and `expiresAt` (14 days after the client's confirmation): one neither
+confirmed nor expired is a task the client's page links back to.
 
 `POST /imports/{importId}/confirm` on an employee import writes only the people marked checked
 (`toEmployeePayload` with the client's records as the member reads them): `422` with
@@ -2161,14 +2207,15 @@ message copies each employee's files. The answer adds `employeeIds`, the employe
 completed.
 
 `GET /imports/{importId}` returns the summary, the `files` with `state`, `documentKind`,
-`reason`, the company and the page count, `progress` (`files`, `prepared`, `scans`,
+`documentDomain` (`ssm` or `psi` for own instructions and training themes), `reason`, the company and the page count, `progress` (`files`, `prepared`, `scans`,
 `scansRead`), `otherCompanies` (by CUI or name, with their `fileIds`), and from `ready` on the
 `proposal`, `registeredCompany`, the member's `changes`, the `version` and the `blockers`. The
 proposal is null before `ready` and once dropped.
 
 `usage` is a debugging aid, not a member's figure: the models' cost in dollars at list price
 (`costUsd`), `inputTokens`, `cachedInputTokens` and `outputTokens` for the whole import, the
-same four for each step that called a model in `bySteps` (`sorting`, `reading`, `scanning`), and
+same four for each step that called a model in `bySteps` (`sorting`, `reading`, `scanning`,
+`instructions`), and
 `readCharacters`, null until sorted, all as numbers, from the import's bookkeeping columns. It is
 served when `ENVIRONMENT` is not `production` (non-prod and `wrangler dev`, where it is unset) and,
 in production, only to a platform admin, an account whose `app_metadata.role` is `admin`, the
@@ -2271,16 +2318,64 @@ since the documents are read in one request. Item ids may change with the new re
 changes kept would point at the wrong items. `409` with `import_not_ready` or `import_changed`,
 `422` with `import_file_not_set_aside`.
 
+### Library proposals
+
+A client import's own instructions are read for the organization's library
+([ADR 034](architecture/adr-034-own-instructions-as-app-text.md), "Where it sits in the import"),
+one **library part** per domain, `instructions_ssm` (IPSSM) and `instructions_psi` (IPSU), each
+with its status (`reading`, `to_review`, `nothing_new`, `failed`, `confirmed`). Sorting sets the
+own instructions aside from the client reading ("Instrucțiuni proprii: le citim pentru biblioteca
+ta de instrucțiuni proprii") and records each own-instructions or themes file's domain.
+
+`GET /imports/{importId}/library-parts` answers `parts`, each with its `proposal` (the
+`InstructionsProposal` of `packages/import`: the instructions cut from the pack with their
+status `identical`, `similar` or `new`, their library `match`, the `choice` proposed for a
+similar one, their posts by the proposal's position keys and their flags; the instructions found
+but not cut, `unread`; and the posts the themes name, `positions`, resolved or undecided), the
+member's `changes`, the `version`, `counts`, `failureReason`, `attempt`, `expiresAt`, `credits`
+and, as a debugging aid, `usage`. `positionPosts` gives the client's post each position is, by
+the proposal's position key; `posts` lists the posts an instruction can apply to: the client
+proposal's by their id (`position-1`), with `jobPositionId` once the client is confirmed (found
+by the name the confirmed review gave the post, since `apply_client_import` answers no ids for
+it), and the client's other active posts by their own id.
+
+`PUT /imports/{importId}/library-parts/{part}/changes` saves `{ version, changes }` through
+`save_import_library_part_changes`, before the client is confirmed too. `changes.instructions` is
+keyed by the proposed instruction's `key`: `included` (false leaves it out), `title`, `category`
+(of the part's domain), `choice` (`use_existing` or `add_new`, for a similar one), `posts` (post
+ids as `posts` names them, in place of those the themes give) and `body` (the edited text, held
+to the body's schema). A key the proposal does not have or a category of the other domain is
+`400`.
+
+`POST /imports/{importId}/library-parts/{part}/confirm` with `{ version }` builds the payload of
+`apply_instruction_import` from the proposal and the changes: an identical instruction, and a
+similar one the member keeps, takes the library's module as it is (`use`); a new one, or a
+similar one added as new, is created with its title, category and body, whose `text_hash` the
+API computes (`create`). Each goes on its posts' job positions; a post the client import left
+out is skipped. It runs as the member, so the modules, their first versions and the posts' links
+carry them as `created_by`. Before the client import is confirmed it is `409` with
+`import_client_unconfirmed`; the client's own confirm never waits for its parts. Also `409`:
+`import_part_expired` (14 days after the client), `import_part_not_ready`, `import_changed`,
+`instruction_title_taken` (a new module's title is an active module's, with `issues` on
+`instructions.<key>.title`; checked before and by the function, `ILP05`) and `import_outdated`
+(a post or module is gone). `422` `import_incomplete` names a category of the other domain.
+
+`POST /imports/{importId}/library-parts/{part}/retry` sends a `failed` part of an import ready or
+confirmed back to `reading` under its next attempt (`retry_import_library_part`) and sends its
+`read-instructions` message; `409` with `import_part_not_failed` otherwise. When the message
+cannot be sent the part fails again and the answer is `503`.
+
 ### The clean-up
 
 The API Worker's `scheduled` handler runs daily (`41 2 * * *` in production, `11 3 * * *` in
 non-prod). It copies again the folders of imports confirmed more than an hour ago whose copy did
 not finish, then fails, with a reason for members, the imports idle six hours in a step of the
-queue or 14 days uploading or ready (`fail_stalled_imports`). Objects go before the rows that
+queue or 14 days uploading or ready (`fail_stalled_imports`), and the library parts of ready or
+confirmed imports still reading six hours after their last change (`fail_stalled_library_parts`). Objects go before the rows that
 name them: for each import `list_abandoned_imports()` lists (abandoned or failed 14 days ago) it
 removes the paths and the rest of the import's folder (a scan's page readings and claims), then
 `delete_abandoned_imports` deletes only the imports whose objects went. Likewise
-`drop_import_proposals()` (confirmed 30 days ago), `list_import_objects_to_remove()` (proposal
+`drop_import_proposals()` (confirmed 30 days ago, with their library parts' proposals), `list_import_objects_to_remove()` (proposal
 dropped, folder copied) and `mark_import_objects_removed`. An import whose removal failed is
 listed again the next day.
 

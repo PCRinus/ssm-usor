@@ -14,20 +14,12 @@ import {
   trainingSheetFormSample,
   trainingSheetSamples,
 } from '../tools/training-sheet-samples';
-import { annexTitlePage } from './annex-title';
+import { annexTemplate } from './annex-template';
 import { renderDocument, templatePlaceholders } from './render';
 import { documentText } from './text';
 
 const templatesUrl = new URL('../templates/', import.meta.url);
-// Built into the engine rather than kept in `templates/`, and typeset like the rest.
-const annexTitle = 'annex title page';
-const fireAnnexTitle = 'fire annex title page';
-const read = (name: string) =>
-  name === annexTitle
-    ? annexTitlePage('ssm')
-    : name === fireAnnexTitle
-      ? annexTitlePage('psi')
-      : new Uint8Array(readFileSync(new URL(name, templatesUrl)));
+const read = (name: string) => new Uint8Array(readFileSync(new URL(name, templatesUrl)));
 const documentTextOf = (paragraph: string) =>
   [...paragraph.matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g)].map((match) => match[1]).join('');
 
@@ -72,12 +64,19 @@ const questionsOf = (name: string) => {
   return test ? knowledgeTestData(test[0], 10) : {};
 };
 const templateFiles = allTemplateFiles;
-const typesetFiles = [...templateFiles, ...fireFiles, annexTitle, fireAnnexTitle];
+const typesetFiles = [...templateFiles, ...fireFiles];
 
 describe('built-in templates', () => {
   it.each(typesetFiles)('%s carries nothing of the client it was made from', (name) => {
     expect(documentText(read(name))).not.toMatch(originals);
   });
+
+  it.each(['ssm', 'psi'] as const)(
+    'the %s annex template carries nothing of a client',
+    (domain) => {
+      expect(documentText(annexTemplate(domain))).not.toMatch(originals);
+    }
+  );
 });
 
 // Written by us and not imported (ADR 007), so they are kept apart from the provider's pack.
@@ -2311,128 +2310,6 @@ describe('cover_decisions', () => {
     const without = render(false);
     expect(without).not.toContain('Desemnarea reprezentanților');
     expect(without).toContain('grav și iminent.');
-  });
-});
-
-describe('annex title page', () => {
-  const template = annexTitlePage('ssm');
-  const data = {
-    ...shared,
-    provider: { ...shared.provider, representativeRole: 'Administrator' },
-    number: 2,
-    title: 'Scări metalice',
-    versionDate: '26.09.2026',
-  };
-  const headerText = (file: Uint8Array) => {
-    const zip = new PizZip(file);
-    return Object.keys(zip.files)
-      .filter((part) => /word\/header\d*\.xml/.test(part))
-      .map((part) => documentTextOf(zip.file(part)!.asText()));
-  };
-
-  it('asks for the header of the own instructions and the annex', () => {
-    expect(templatePlaceholders(template)).toEqual([
-      'branding',
-      'client.legalName',
-      'client.representativeName',
-      'client.representativeRole',
-      'issueDate',
-      'number',
-      'provider.legalName',
-      'provider.representativeName',
-      'provider.representativeRole',
-      'title',
-      'versionDate',
-    ]);
-  });
-
-  it('names the annex in the body and where the common part numbers its pages', () => {
-    const merged = renderDocument(template, data);
-    const body = new PizZip(merged).file('word/document.xml')!.asText();
-    expect((body.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? []).map(documentTextOf)).toEqual([
-      'ANEXA 2',
-      'la Instrucțiunile proprii în domeniul securității și sănătății în muncă',
-      'I.P.S.S.M. Scări metalice',
-      'versiunea din 26.09.2026',
-    ]);
-    for (const text of headerText(merged)) {
-      expect(text).toContain('Cod document:IPSSM');
-      expect(text).toContain(
-        'Denumire document:Instrucțiuni proprii în domeniul securității și sănătății în muncă'
-      );
-      expect(text).toMatch(/Anexa 2$/);
-      expect(text).not.toContain('Pag.');
-    }
-  });
-
-  it('carries the same box of document details as the common part', () => {
-    const cells = (file: Uint8Array) =>
-      headerText(file)[0]!.replace(/Pag\. .*$|Anexa \{\{number\}\}$/, '');
-    expect(cells(template)).toBe(cells(read('3.2_own_instructions.docx')));
-  });
-
-  it('refuses to render without the annex it introduces', () => {
-    expect(() => renderDocument(template, { ...data, versionDate: undefined })).toThrow(
-      /versionDate/
-    );
-  });
-});
-
-describe('fire-safety annex title page', () => {
-  const template = annexTitlePage('psi');
-  const data = {
-    ...shared,
-    fireSafetyTechnician: { name: 'Dan POP', certificate: 'seria A nr. 1234/2024' },
-    number: 1,
-    title: 'Lucrul cu foc deschis',
-    versionDate: '11.10.2026',
-  };
-  const headerText = (file: Uint8Array) => {
-    const zip = new PizZip(file);
-    return Object.keys(zip.files)
-      .filter((part) => /word\/header\d*\.xml/.test(part))
-      .map((part) => documentTextOf(zip.file(part)!.asText()));
-  };
-
-  it('asks for the header of the fire-safety own instructions and the annex', () => {
-    expect(templatePlaceholders(template)).toEqual([
-      'branding',
-      'client.legalName',
-      'client.representativeName',
-      'client.representativeRole',
-      'fireSafetyTechnician.name',
-      'issueDate',
-      'number',
-      'provider.legalName',
-      'title',
-      'versionDate',
-    ]);
-  });
-
-  it('names the annex of the IPSU in the body and where 2.1 numbers its pages', () => {
-    const merged = renderDocument(template, data);
-    const body = new PizZip(merged).file('word/document.xml')!.asText();
-    expect((body.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? []).map(documentTextOf)).toEqual([
-      'ANEXA 1',
-      'la Instrucțiunile proprii în domeniul situațiilor de urgență',
-      'I.P.S.U. Lucrul cu foc deschis',
-      'versiunea din 11.10.2026',
-    ]);
-    for (const text of headerText(merged)) {
-      expect(text).toContain('Cadru tehnic PSIDan POP');
-      expect(text).toContain('Cod document:IPSU');
-      expect(text).toContain(
-        'Denumire document:Instrucțiuni proprii în domeniul situațiilor de urgență'
-      );
-      expect(text).toMatch(/Anexa 1$/);
-      expect(text).not.toContain('Pag.');
-    }
-  });
-
-  it('carries the same box of document details as the fire-safety own instructions', () => {
-    const cells = (file: Uint8Array) =>
-      headerText(file)[0]!.replace(/Pag\. .*$|Anexa \{\{number\}\}$/, '');
-    expect(cells(template)).toBe(cells(read('fire/2.1_fire_own_instructions.docx')));
   });
 });
 

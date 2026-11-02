@@ -1,0 +1,269 @@
+[
+  {
+    "title": "Scări metalice",
+    "group": "work_equipment",
+    "domain": "ssm",
+    "body": {
+      "blocks": [
+        { "kind": "heading", "text": "Domeniul de aplicare" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Prezenta instrucțiune se aplică lucrătorilor care folosesc scări metalice simple, duble sau extensibile pentru lucrări la înălțime de până la 3 metri."
+          ]
+        },
+        { "kind": "heading", "text": "Cine o poate folosi" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Scara se folosește numai de lucrătorii instruiți, declarați apți medical pentru lucrul la înălțime."
+          ]
+        },
+        { "kind": "heading", "text": "Verificări înainte de folosire" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Înainte de urcare, lucrătorul verifică:",
+            "a) treptele, care nu trebuie să fie îndoite, fisurate sau unse cu ulei;",
+            "b) tălpile antiderapante de la capătul montanților;",
+            "c) dispozitivul care împiedică deschiderea scării duble."
+          ]
+        },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "O scară cu defecte nu se folosește. Se marchează „Defect – nu folosiți” și se anunță conducătorul locului de muncă."
+          ]
+        },
+        { "kind": "heading", "text": "În timpul utilizării" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Scara simplă se sprijină pe o suprafață plană și stabilă, înclinată astfel încât distanța de la perete la baza ei să fie un sfert din lungimea folosită."
+          ]
+        },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Lucrătorul urcă și coboară cu fața spre scară, ținându-se cu ambele mâini. Uneltele se poartă în centura port-scule sau se ridică cu o frânghie."
+          ]
+        },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Pe scară urcă o singură persoană. Lucrătorul nu stă pe ultimele două trepte și nu se apleacă lateral peste montanți."
+          ]
+        },
+        { "kind": "heading", "text": "Acțiuni interzise" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Se interzice:",
+            "– folosirea scării metalice lângă conductoare electrice sub tensiune;",
+            "– mutarea scării cu lucrătorul pe ea;",
+            "– înnădirea a două scări pentru a obține o lungime mai mare."
+          ]
+        },
+        { "kind": "heading", "text": "Situații de urgență" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "La căderea unui lucrător de pe scară, colegii anunță conducătorul locului de muncă, sună la 112 și nu mișcă victima decât dacă locul îi pune viața în pericol."
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "title": "Activități de birou",
+    "group": "work_activity",
+    "domain": "ssm",
+    "body": {
+      "blocks": [
+        { "kind": "heading", "text": "Domeniul de aplicare" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Prezenta instrucțiune se aplică personalului care lucrează în birouri, la calculator și la echipamentele de birou: imprimante, copiatoare, distrugătoare de documente."
+          ]
+        },
+        { "kind": "heading", "text": "Înainte de începerea lucrului" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Lucrătorul verifică starea cablurilor de alimentare și a prelungitoarelor. Un cablu cu izolația deteriorată nu se folosește."
+          ]
+        },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Scaunul se reglează astfel încât coatele să fie la nivelul mesei, iar marginea de sus a ecranului la nivelul ochilor sau puțin sub el."
+          ]
+        },
+        { "kind": "heading", "text": "În timpul lucrului" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "După fiecare oră de lucru la calculator, lucrătorul face o pauză de 5–10 minute în care privește departe și se ridică de pe scaun."
+          ]
+        },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Căile de circulație dintre birouri se păstrează libere. Cablurile nu se trag de-a curmezișul acestora."
+          ]
+        },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Hârtia blocată în imprimantă sau în copiator se scoate numai cu aparatul oprit, după ce cuptorul s-a răcit."
+          ]
+        },
+        { "kind": "heading", "text": "La terminarea lucrului" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "La plecare, lucrătorul oprește calculatorul și echipamentele care nu trebuie să rămână în funcțiune și închide ferestrele."
+          ]
+        },
+        { "kind": "heading", "text": "Acțiuni interzise" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Se interzice:",
+            "• conectarea mai multor prelungitoare în serie;",
+            "• urcarea pe scaune cu rotile sau pe mese pentru a ajunge la rafturile înalte;",
+            "• folosirea aparatelor electrice personale de încălzire fără acordul angajatorului."
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "title": "Activități de curățenie",
+    "group": "work_activity",
+    "domain": "ssm",
+    "body": {
+      "blocks": [
+        { "kind": "heading", "text": "Domeniul de aplicare" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Prezenta instrucțiune se aplică personalului care face curățenie în spații de birouri, grupuri sanitare, holuri și scări."
+          ]
+        },
+        { "kind": "heading", "text": "Înainte de începerea lucrului" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Lucrătorul citește eticheta fiecărui produs de curățenie înainte de folosire și respectă diluția indicată de producător."
+          ]
+        },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Lucrătorul își pune mănușile de protecție și încălțămintea cu talpă antiderapantă."
+          ]
+        },
+        { "kind": "heading", "text": "În timpul lucrului" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Pardoseala udă se semnalizează cu panoul „Atenție, pardoseală alunecoasă” până se usucă."
+          ]
+        },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Produsele de curățenie nu se amestecă între ele. Clorul și produsele acide degajă împreună gaze toxice."
+          ]
+        },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Aspiratorul se scoate din priză trăgând de ștecher, nu de cablu, și numai cu mâinile uscate."
+          ]
+        },
+        { "kind": "heading", "text": "La terminarea lucrului" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Produsele se depozitează în ambalajele originale, închise, în spațiul stabilit, ferit de accesul persoanelor neautorizate."
+          ]
+        },
+        { "kind": "heading", "text": "Situații de urgență" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "La stropirea ochilor cu un produs de curățenie, lucrătorul îi spală cu multă apă cel puțin 15 minute și anunță conducătorul locului de muncă."
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "title": "Lucrul cu foc deschis",
+    "group": "hazardous_work",
+    "domain": "psi",
+    "body": {
+      "blocks": [
+        { "kind": "heading", "text": "Domeniul de aplicare" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Prezenta instrucțiune se aplică lucrărilor de sudură, tăiere, lipire și oricăror lucrări cu flacără deschisă executate în afara locurilor amenajate special pentru ele."
+          ]
+        },
+        { "kind": "heading", "text": "Înainte de începerea lucrării" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Lucrarea se execută numai pe baza permisului de lucru cu foc, semnat de conducătorul locului de muncă."
+          ]
+        },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Se îndepărtează materialele combustibile pe o rază de cel puțin 10 metri. Cele care nu pot fi mutate se acoperă cu prelate din materiale incombustibile."
+          ]
+        },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "La locul lucrării se asigură cel puțin un stingător și o găleată cu apă sau nisip."
+          ]
+        },
+        { "kind": "heading", "text": "În timpul lucrării" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Buteliile de gaze se țin în poziție verticală, asigurate împotriva căderii, la cel puțin 5 metri de flacără."
+          ]
+        },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Lucrarea se oprește imediat dacă apar scântei sau fum în afara zonei pregătite."
+          ]
+        },
+        { "kind": "heading", "text": "După terminarea lucrării" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Locul lucrării și încăperile vecine se supraveghează cel puțin 2 ore după terminare, pentru a descoperi la timp un focar mocnit."
+          ]
+        },
+        { "kind": "heading", "text": "Dacă izbucnește un incendiu" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "La izbucnirea unui incendiu, lucrătorul:",
+            "1. oprește alimentarea cu gaze și cu energie electrică a aparatului;",
+            "2. anunță pompierii la 112 și conducătorul locului de muncă;",
+            "3. încearcă stingerea cu mijloacele din dotare numai dacă nu își pune viața în pericol."
+          ]
+        }
+      ]
+    }
+  }
+]

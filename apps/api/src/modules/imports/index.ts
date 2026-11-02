@@ -16,18 +16,28 @@ import {
   startImport,
 } from './handlers';
 import {
+  confirmImportLibraryPart,
+  listImportLibraryParts,
+  retryImportLibraryPart,
+  saveImportLibraryPartChanges,
+} from './library-handlers';
+import {
   abandonImportRoute,
   addFoundSheetsRoute,
+  confirmImportLibraryPartRoute,
   confirmImportRoute,
   createImportRoute,
   getImportRoute,
   getImportSourceRoute,
   listFoundSheetsRoute,
+  listImportLibraryPartsRoute,
   listImportsRoute,
   readImportFileRoute,
   registerImportFilesRoute,
+  retryImportLibraryPartRoute,
   saveEmployeeImportChangesRoute,
   saveImportChangesRoute,
+  saveImportLibraryPartChangesRoute,
   splitImportRoute,
   startImportRoute,
 } from './routes';
@@ -46,4 +56,8 @@ export const importsRouter = createRouter()
   .openapi(readImportFileRoute, readImportFile)
   .openapi(saveEmployeeImportChangesRoute, saveEmployeeImportChanges)
   .openapi(listFoundSheetsRoute, listFoundSheets)
-  .openapi(addFoundSheetsRoute, addFoundSheets);
+  .openapi(addFoundSheetsRoute, addFoundSheets)
+  .openapi(listImportLibraryPartsRoute, listImportLibraryParts)
+  .openapi(saveImportLibraryPartChangesRoute, saveImportLibraryPartChanges)
+  .openapi(confirmImportLibraryPartRoute, confirmImportLibraryPart)
+  .openapi(retryImportLibraryPartRoute, retryImportLibraryPart);

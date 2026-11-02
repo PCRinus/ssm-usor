@@ -373,7 +373,7 @@ describe('the processing page', () => {
       state: 'set_aside',
       documentKind: 'own_instructions',
       reason:
-        'Instrucțiuni proprii: aplicația le alcătuiește din biblioteca de instrucțiuni. Le citim doar dacă ceri.',
+        'Instrucțiuni proprii: aplicația le alcătuiește din biblioteca ta de instrucțiuni proprii. Le citim doar dacă ceri.',
     });
     mockImport(
       importDetail({
@@ -390,7 +390,9 @@ describe('the processing page', () => {
     mount();
 
     const group = await screen.findByTestId('import-group-set-aside');
-    expect(group.textContent).toContain('aplicația le alcătuiește din biblioteca de instrucțiuni');
+    expect(group.textContent).toContain(
+      'aplicația le alcătuiește din biblioteca ta de instrucțiuni proprii'
+    );
     await userEvent.click(within(group).getByTestId('import-read-set-aside'));
 
     expect(

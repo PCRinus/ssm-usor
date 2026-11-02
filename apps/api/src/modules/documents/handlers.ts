@@ -14,7 +14,9 @@ import {
   attachSignedCopy,
   confirmSignedCopy,
   deleteDraft,
+  documentAnnexFile,
   documentDownloadLink,
+  documentWordFile,
   generateClientDocuments as generate,
   issueDocument as issue,
   listClientDocuments as list,
@@ -37,9 +39,11 @@ import type {
   confirmDocumentSignedCopyRoute,
   deleteDocumentDraftRoute,
   generateClientDocumentsRoute,
+  getDocumentAnnexRoute,
   getDocumentArchiveRoute,
   getDocumentDownloadRoute,
   getDocumentReadinessRoute,
+  getDocumentWordRoute,
   getRegenerationJobRoute,
   issueDocumentRoute,
   listClientDocumentsRoute,
@@ -141,6 +145,31 @@ export const getDocumentDownload: RouteHandler<typeof getDocumentDownloadRoute, 
   return c.json(link, 200);
 };
 
+const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+export const getDocumentWord: RouteHandler<typeof getDocumentWordRoute, ApiEnv> = async (c) => {
+  const { documentId, revisionId } = c.req.valid('param');
+  const file = await documentWordFile(
+    createDataClient(c),
+    createFileStore(c),
+    documentId,
+    revisionId
+  );
+  return c.body(new Uint8Array(file.bytes), 200, {
+    'Content-Type': docxType,
+    'Content-Disposition': contentDisposition('attachment', file.fileName),
+  });
+};
+
+export const getDocumentAnnex: RouteHandler<typeof getDocumentAnnexRoute, ApiEnv> = async (c) => {
+  const { documentId, revisionId, number } = c.req.valid('param');
+  const file = await documentAnnexFile(createDataClient(c), documentId, revisionId, number);
+  return c.body(new Uint8Array(file.bytes), 200, {
+    'Content-Type': docxType,
+    'Content-Disposition': contentDisposition('attachment', file.fileName),
+  });
+};
+
 export const getDocumentArchive: RouteHandler<typeof getDocumentArchiveRoute, ApiEnv> = async (
   c
 ) => {
@@ -228,13 +257,7 @@ export const saveDocumentDraftFile: RouteHandler<
 export const printDocument: RouteHandler<typeof printDocumentRoute, ApiEnv> = async (c) => {
   const { documentId } = c.req.valid('param');
   const bytes = new Uint8Array(await c.req.arrayBuffer());
-  const pdf = await print(
-    createDataClient(c),
-    createFileStore(c),
-    requirePdfConverter(c),
-    documentId,
-    bytes
-  );
+  const pdf = await print(createDataClient(c), requirePdfConverter(c), documentId, bytes);
   return c.body(new Uint8Array(pdf), 200, { 'Content-Type': 'application/pdf' });
 };
 

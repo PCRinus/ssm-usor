@@ -447,7 +447,10 @@ describe('confirming', () => {
 
   it('says what the reading used', async () => {
     mockEmployeeImport({
-      detail: { ...partly(), credits: { used: 98, atStart: 98, scannedPages: 0, refunded: false } },
+      detail: {
+        ...partly(),
+        credits: { used: 98, atStart: 98, scannedPages: 0, ownInstructions: 0, refunded: false },
+      },
     });
     const user = userEvent.setup();
     mount(importPath);

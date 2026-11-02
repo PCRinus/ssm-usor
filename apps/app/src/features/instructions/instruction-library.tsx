@@ -20,15 +20,14 @@ import {
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
-import { BookOpenText, MoreHorizontal, PenLine, Upload } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { BookOpenText, MoreHorizontal, PenLine } from 'lucide-react';
+import { useState } from 'react';
 
 import {
   type ApiErrorResponse,
   getListInstructionModulesQueryKey,
   useListInstructionModules,
   useUpdateInstructionModule,
-  useUploadInstructionModule,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { rowClickProps } from '@/components/data-table/row-click';
@@ -43,6 +42,7 @@ import {
   invalidateLibrary,
   positionCountLabel,
 } from './instruction-schema';
+import { InstructionStartDialog } from './instruction-start-dialog';
 
 export function InstructionLibrary({
   domain,
@@ -59,54 +59,10 @@ export function InstructionLibrary({
     request: apiRequest,
     query: { queryKey: [...getListInstructionModulesQueryKey(params), userId] },
   });
-  const upload = useUploadInstructionModule({ request: apiRequest });
   const update = useUpdateInstructionModule({ request: apiRequest });
-  const fileInput = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState<ModuleEditing>(null);
+  const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [uploaded, setUploaded] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
-
-  async function uploadFiles(files: FileList | null) {
-    if (!files || files.length === 0) return;
-    setError(null);
-    setUploaded([]);
-    setUploading(true);
-    const titles: string[] = [];
-    const failures: string[] = [];
-    for (const file of Array.from(files)) {
-      try {
-        // The file's first line is the title unless it has none; then its name is.
-        const fallback = file.name.replace(/\.docx$/i, '').trim();
-        const { module } = await upload.mutateAsync({
-          data: file,
-          params: { title: fallback.length >= 2 ? undefined : fallback, domain },
-        });
-        titles.push(module.title);
-      } catch (cause) {
-        const body =
-          cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
-        failures.push(
-          body?.reason === 'instruction_module_title_taken'
-            ? `${file.name}: biblioteca are deja o instrucțiune cu acest titlu.`
-            : cause instanceof ApiHttpError && cause.status === 400
-              ? `${file.name}: nu este un document Word (.docx) sau are peste 15 MB.`
-              : `${file.name}: nu a putut fi încărcat.`
-        );
-      }
-    }
-    setUploading(false);
-    setUploaded(titles);
-    if (failures.length > 0) setError(failures.join('\n'));
-    if (titles.length > 0) {
-      toast.success(
-        titles.length === 1
-          ? `„${titles[0]}” a fost adăugată în bibliotecă.`
-          : `${titles.length} instrucțiuni au fost adăugate în bibliotecă.`
-      );
-    }
-    await invalidateLibrary(queryClient);
-  }
 
   async function setArchived(module: InstructionModule, archived: boolean) {
     setError(null);
@@ -142,12 +98,6 @@ export function InstructionLibrary({
           {error}
         </Notice>
       )}
-      {uploaded.length > 0 && (
-        <Notice variant="info" data-testid="instruction-uploaded">
-          Titlul este primul rând al fișierului, iar categoria „Activități”. Le corectezi din meniul
-          rândului, ca și domeniul, cât timp niciun post nu aplică instrucțiunea.
-        </Notice>
-      )}
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
           <h2 className="text-lg font-semibold">
@@ -162,17 +112,7 @@ export function InstructionLibrary({
             >
               {showArchived ? 'Arată instrucțiunile în uz' : 'Arată arhiva'}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              data-testid="instruction-upload"
-              disabled={uploading}
-              onClick={() => fileInput.current?.click()}
-            >
-              <Upload aria-hidden="true" />
-              {uploading ? 'Se încarcă…' : 'Încarcă fișiere'}
-            </Button>
-            <Button size="sm" data-testid="instruction-write" onClick={() => setEditing('new')}>
+            <Button size="sm" data-testid="instruction-write" onClick={() => setStarting(true)}>
               <PenLine aria-hidden="true" />
               Scrie o instrucțiune
             </Button>
@@ -202,13 +142,13 @@ export function InstructionLibrary({
               <BookOpenText className="size-8 text-muted-foreground" aria-hidden="true" />
               <p className="text-sm font-medium">
                 {showArchived
-                  ? `Nicio instrucțiune ${label} arhivată`
-                  : `Nicio instrucțiune ${label} în bibliotecă`}
+                  ? `Nicio instrucțiune proprie ${label} arhivată`
+                  : `Nicio instrucțiune proprie ${label} încă`}
               </p>
               {!showArchived && (
                 <p className="max-w-md text-center text-sm text-muted-foreground">
-                  Încarcă fișierele Word pe care le folosești deja sau scrie una nouă pornind de la
-                  schelet.
+                  Scrie câte o instrucțiune pentru fiecare activitate sau echipament, apoi aplic-o
+                  la posturile clienților tăi.
                 </p>
               )}
             </div>
@@ -304,32 +244,19 @@ export function InstructionLibrary({
           )}
         </CardContent>
       </Card>
-      <input
-        ref={fileInput}
-        type="file"
-        multiple
-        data-testid="instruction-file-input"
-        className="hidden"
-        accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        onChange={(event) => {
-          const { files } = event.target;
-          void uploadFiles(files);
-          // Emptied, so that choosing the same files again is still a change.
-          event.target.value = '';
-        }}
-      />
-      <InstructionModuleDialog
-        editing={editing}
-        defaultDomain={domain}
-        onClose={() => setEditing(null)}
-        onSaved={(module) => {
-          if (editing === 'new') {
-            void navigate({
-              to: '/instructions/$moduleId',
-              params: { moduleId: module.id },
-              state: { openedFromList: true },
-            });
-          }
+      <InstructionModuleDialog editing={editing} onClose={() => setEditing(null)} />
+      <InstructionStartDialog
+        open={starting}
+        initial={{ domain }}
+        userId={userId}
+        onClose={() => setStarting(false)}
+        onSubmit={(values) => {
+          setStarting(false);
+          void navigate({
+            to: '/instructions/new',
+            search: values,
+            state: { openedFromList: true },
+          });
         }}
       />
     </div>

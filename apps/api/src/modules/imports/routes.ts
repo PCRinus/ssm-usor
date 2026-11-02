@@ -1,12 +1,17 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
   addFoundSheetsRequestSchema,
+  confirmImportLibraryPartRequestSchema,
+  confirmImportLibraryPartResponseSchema,
   confirmImportRequestSchema,
   confirmImportResponseSchema,
   createImportRequestSchema,
   employeeReviewSchema,
   foundSheetsResponseSchema,
   importDetailSchema,
+  importLibraryPartDetailSchema,
+  importLibraryPartSchema,
+  importLibraryPostSchema,
   importListResponseSchema,
   importSourceQuerySchema,
   importSourceResponseSchema,
@@ -17,9 +22,14 @@ import {
   saveEmployeeImportChangesRequestSchema,
   saveImportChangesRequestSchema,
   saveImportChangesResponseSchema,
+  saveImportLibraryPartChangesRequestSchema,
   splitImportRequestSchema,
 } from '@ssm-usor/contracts';
-import { employeeImportProposalSchema, proposalSchema } from '@ssm-usor/import';
+import {
+  employeeImportProposalSchema,
+  instructionsProposalSchema,
+  proposalSchema,
+} from '@ssm-usor/import';
 
 import { requireAuth } from '../../lib/auth';
 import { requireMembership } from '../../lib/membership';
@@ -28,6 +38,7 @@ import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openap
 const importParams = z.object({ importId: z.uuid() });
 const clientParams = z.object({ clientId: z.uuid() });
 const importFileParams = z.object({ importId: z.uuid(), fileId: z.uuid() });
+const libraryPartParams = z.object({ importId: z.uuid(), part: importLibraryPartSchema });
 
 const noSuchImport = {
   description: 'The import does not exist in the organization, or the caller cannot see it',
@@ -426,6 +437,128 @@ export const addFoundSheetsRoute = createRoute({
     404: noSuchImport,
     409: { description: 'Not uploading, or not an employee import', content: errorContent },
     422: { description: 'No such found sheet, or past the caps', content: errorContent },
+    ...membershipErrors,
+    503: unavailable,
+  },
+});
+
+const libraryPartContent = importLibraryPartDetailSchema
+  .extend({ proposal: instructionsProposalSchema.nullable() })
+  .meta({ id: 'ImportLibraryPart' });
+
+export const listImportLibraryPartsRoute = createRoute({
+  method: 'get',
+  path: '/imports/{importId}/library-parts',
+  operationId: 'listImportLibraryParts',
+  summary: "A client import's proposals for the library",
+  description:
+    "One part per domain whose own instructions the sorting found (ADR 034), `instructions_ssm` and `instructions_psi`, each read by a request of its own once the client proposal is ready: its status (`reading`, `to_review`, `nothing_new`, `failed` with `failureReason`, `confirmed`), the proposal from `to_review` on (null before, and once dropped with the import's, 30 days after the client), the member's changes and the version to save on, the counts of identical, similar, new and unread instructions, `positionPosts` (the client post each post the themes name is, as the changes name posts), `expiresAt` (14 days after the client's confirmation, past which a part is no longer confirmed), and `credits`, its readings net of those given back. `posts` are the posts an instruction can apply to: the client proposal's, by their id, with the job position each became once the client is confirmed, and the client's other active posts by their id. `usage`, the models' cost at list price and tokens, is served outside production and, in production, only to a platform admin. An empty list for an employee import or a pack without own instructions.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: importParams },
+  responses: {
+    200: {
+      description: 'The parts',
+      content: {
+        'application/json': {
+          schema: z
+            .object({ parts: z.array(libraryPartContent), posts: z.array(importLibraryPostSchema) })
+            .meta({ id: 'ImportLibraryPartsResponse' }),
+        },
+      },
+    },
+    400: { description: 'Invalid path', content: errorContent },
+    404: noSuchImport,
+    ...membershipErrors,
+  },
+});
+
+export const saveImportLibraryPartChangesRoute = createRoute({
+  method: 'put',
+  path: '/imports/{importId}/library-parts/{part}/changes',
+  operationId: 'saveImportLibraryPartChanges',
+  summary: "Save the member's review of a library part",
+  description:
+    "Replaces the part's changes, by the proposed instruction's key: `included` false leaves it out, `title`, `category` (one of the part's domain), `choice` for a similar instruction (`use_existing` or `add_new`), `posts` in place of those the themes give, and `body`, the text edited, held to the body's schema. Before the client is confirmed too. On the `version` the caller read, and answers the next. `400` for a key the proposal does not have or a category of the other domain; `409` with `import_changed` when someone saved since, `import_part_not_ready` when the part is not `to_review` or `nothing_new`, `import_part_expired` 14 days after the client's confirmation.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: {
+    params: libraryPartParams,
+    body: json(
+      saveImportLibraryPartChangesRequestSchema.meta({
+        id: 'SaveImportLibraryPartChangesRequest',
+      })
+    ),
+  },
+  responses: {
+    200: { description: 'The new version', content: versionContent },
+    400: { description: 'Invalid path or body', content: errorContent },
+    404: { description: 'No such import, or no such part of it', content: errorContent },
+    409: { description: 'Not ready, expired, or saved since it was read', content: errorContent },
+    ...membershipErrors,
+  },
+});
+
+export const confirmImportLibraryPartRoute = createRoute({
+  method: 'post',
+  path: '/imports/{importId}/library-parts/{part}/confirm',
+  operationId: 'confirmImportLibraryPart',
+  summary: 'Confirm a library part',
+  description:
+    "In one transaction (`apply_instruction_import`): creates a module with its first version for every new instruction and every similar one the member chose to add as new, takes the identical ones and the similar ones kept as they are, and applies each to its posts, skipping a post that applies it already, all as the member. Only after the client is confirmed: `409` with `import_client_unconfirmed` before (the app says \"Confirmă întâi clientul\"). The client import's own confirm never waits for its parts. `409` with `import_part_expired` 14 days after the client's confirmation, `import_part_not_ready`, `import_changed`, `instruction_title_taken` when a new module's title is an active module's (with `issues` on `instructions.<key>.title`), or `import_outdated` when a post or module the review named is gone. `422` with `import_incomplete` for a category of the other domain.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: {
+    params: libraryPartParams,
+    body: json(
+      confirmImportLibraryPartRequestSchema.meta({ id: 'ConfirmImportLibraryPartRequest' })
+    ),
+  },
+  responses: {
+    200: {
+      description: 'The modules created and applied',
+      content: {
+        'application/json': {
+          schema: confirmImportLibraryPartResponseSchema.meta({
+            id: 'ConfirmImportLibraryPartResponse',
+          }),
+        },
+      },
+    },
+    400: { description: 'Invalid path or body', content: errorContent },
+    404: { description: 'No such import, or no such part of it', content: errorContent },
+    409: {
+      description:
+        'The client is not confirmed, the part expired, is not ready or was saved since, a title is taken, or the client changed',
+      content: errorContent,
+    },
+    422: { description: 'A value the library refuses', content: errorContent },
+    ...membershipErrors,
+  },
+});
+
+export const retryImportLibraryPartRoute = createRoute({
+  method: 'post',
+  path: '/imports/{importId}/library-parts/{part}/retry',
+  operationId: 'retryImportLibraryPart',
+  summary: 'Read a failed library part again',
+  description:
+    '"Citește din nou": a `failed` part of an import ready for review or confirmed goes back to `reading` under its next `attempt` and its message is sent again; the reading is charged again when its request is sent (25 credits for SSM, 10 for PSI), and given back if it fails. The client proposal and the other part are untouched. `409` with `import_part_expired` 14 days after the client was confirmed, when it could no longer be confirmed, and `import_part_not_failed` otherwise; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: libraryPartParams },
+  responses: {
+    200: {
+      description: 'The part, reading',
+      content: {
+        'application/json': {
+          schema: z.object({ part: libraryPartContent }).meta({ id: 'ImportLibraryPartResponse' }),
+        },
+      },
+    },
+    400: { description: 'Invalid path', content: errorContent },
+    404: { description: 'No such import, or no such part of it', content: errorContent },
+    409: { description: 'The part has not failed, or it expired', content: errorContent },
     ...membershipErrors,
     503: unavailable,
   },

@@ -1,5 +1,6 @@
 import { Link, Outlet } from '@tanstack/react-router';
 
+import { HelpLink } from '@/components/help-link';
 import { SectionNav } from '@/components/section-nav';
 
 import { instructionSections } from './instruction-sections';
@@ -8,13 +9,17 @@ export function InstructionLibraryLayout() {
   return (
     <div data-testid="instruction-library" className="grid gap-5">
       <div className="max-w-2xl">
-        <h1 className="text-xl font-semibold tracking-tight">Biblioteca de instrucțiuni</h1>
+        <div className="flex items-center gap-1">
+          <h1 className="text-xl font-semibold tracking-tight">Instrucțiuni proprii</h1>
+          <HelpLink topic="instructiuni.biblioteca" label="Ajutor: Instrucțiuni proprii" />
+        </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          Un fișier Word pentru fiecare activitate sau echipament. Un post aplică instrucțiunile
-          care îl privesc, iar documentele clientului le anexează.
+          Câte o instrucțiune pentru fiecare activitate, echipament de muncă sau categorie de
+          echipament de protecție. O aplici la posturile unui client și se tipărește ca anexă a
+          instrucțiunilor lui proprii.
         </p>
       </div>
-      <SectionNav label="Secțiunile bibliotecii">
+      <SectionNav label="Secțiunile instrucțiunilor proprii">
         {instructionSections.map(({ to, label, icon: Icon }) => (
           <li key={to} className="shrink-0">
             <Link

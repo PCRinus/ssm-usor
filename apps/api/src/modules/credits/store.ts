@@ -27,6 +27,7 @@ export type ImportCreditEntry = {
   import_id: string | null;
   kind: CreditEntryKind;
   credits: number;
+  import_part: Database['public']['Enums']['import_library_part'] | null;
 };
 
 // The generated types take no null for these arguments, though the functions read null as "no
@@ -72,11 +73,15 @@ export function creditsStore(db: AdminClient) {
     async charge(input: {
       organizationId: string;
       policy: CreditPolicy;
-      kind: Extract<CreditEntryKind, 'import_start' | 'import_pages' | 'scanned_page'>;
+      kind: Extract<
+        CreditEntryKind,
+        'import_start' | 'import_pages' | 'scanned_page' | 'library_part'
+      >;
       credits: number;
       importId: string;
       fileId?: string;
       page?: number;
+      importPart?: Database['public']['Enums']['import_library_part'];
       key: string;
       require: boolean;
     }): Promise<Charge> {
@@ -91,6 +96,7 @@ export function creditsStore(db: AdminClient) {
           p_key: input.key,
           p_require: input.require,
           ...periodArgs(input.policy),
+          ...(input.importPart ? { p_import_part: input.importPart } : {}),
         })
         .single();
       if (error) throw fromDatabaseError(error, 'charge credits');
@@ -147,7 +153,7 @@ export function creditsStore(db: AdminClient) {
       if (importIds.length === 0) return [];
       const { data, error } = await db
         .from('credit_entries')
-        .select('import_id, kind, credits')
+        .select('import_id, kind, credits, import_part')
         .in('import_id', importIds);
       if (error) throw fromDatabaseError(error, 'import credits');
       return data;

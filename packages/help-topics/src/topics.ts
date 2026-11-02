@@ -336,6 +336,10 @@ export const helpTopics = {
   'import.fise-gasite': { path: '/clienti/import/', anchor: 'fișele-găsite-în-documentație' },
   'import.fost-angajat': { path: '/clienti/import/', anchor: 'cine-a-plecat-din-firmă' },
   'import.fotografii-neatribuite': { path: '/clienti/import/', anchor: 'fotografiile-neatribuite' },
+  'import.instructiuni-proprii': {
+    path: '/clienti/import/',
+    anchor: 'instrucțiunile-proprii-din-documentație',
+  },
   'import.limite': { path: '/clienti/import/', anchor: 'cât-intră-într-un-import' },
   'import.loc-de-munca': { path: '/clienti/import/', anchor: 'locul-de-muncă' },
   'import.originale': { path: '/clienti/import/', anchor: 'originalele-rămân-la-client' },
@@ -349,6 +353,25 @@ export const helpTopics = {
   'import.test-verificat-pe-fisa': {
     path: '/clienti/import/',
     anchor: 'testul-la-angajare-verificat-pe-fișă',
+  },
+  'instructiuni.aplicare': { path: '/instructiuni/', anchor: 'aplicarea-la-posturi' },
+  'instructiuni.biblioteca': { path: '/instructiuni/', anchor: 'ipssm-și-ipsu' },
+  'instructiuni.ce-este': { path: '/instructiuni/', anchor: 'ce-este-o-instrucțiune-proprie' },
+  'instructiuni.din-import': {
+    path: '/instructiuni/',
+    anchor: 'instrucțiunile-din-documentația-importată',
+  },
+  'instructiuni.formular': { path: '/instructiuni/', anchor: 'scrierea-unei-instrucțiuni' },
+  'instructiuni.lipeste-text': { path: '/instructiuni/', anchor: 'lipește-text' },
+  'instructiuni.nume-client': { path: '/instructiuni/', anchor: 'numele-unui-client-în-text' },
+  'instructiuni.pornire-existenta': {
+    path: '/instructiuni/',
+    anchor: 'pornești-de-la-o-instrucțiune-existentă',
+  },
+  'instructiuni.tiparire': { path: '/instructiuni/', anchor: 'unde-se-tipărește' },
+  'instructiuni.versiuni': {
+    path: '/instructiuni/',
+    anchor: 'versiunile-și-documentele-rămase-în-urmă',
   },
   'organizatie.abonament': { path: '/organizatie/abonament/', anchor: 'pagina-abonament' },
   'organizatie.alegerea-planului': { path: '/organizatie/abonament/', anchor: 'alegerea-planului' },

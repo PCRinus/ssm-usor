@@ -19,7 +19,8 @@ import { sensitiveGroupsEvaluation, workshopEvaluation } from './risk-evaluation
 // client, a decision's number, and the training themes whenever there are any; a template's
 // file is its type key, and some types print more, as their real templates do. A name it prints
 // that the data lacks is refused, as the engine does. A file's text is its bytes read as text. A
-// merged annex title page is its data as JSON, with the set whose page it is.
+// rendered annex is its data as JSON, with its set and its text; a Word file with annexes is
+// the common part's text and the annexes, as JSON.
 vi.mock('@ssm-usor/document-engine', () => {
   const printedBy: Record<string, string[]> = {
     cover_decisions: ['branding', 'provider', 'workersRepresentativeDecision'],
@@ -50,17 +51,28 @@ vi.mock('@ssm-usor/document-engine', () => {
   return {
     TemplateError,
     SigningAgreementDataError: class SigningAgreementDataError extends Error {},
-    annexTitlePage: (domain: string) => new TextEncoder().encode(`annex_title_page:${domain}`),
+    renderAnnex: (
+      domain: string,
+      body: { blocks: { kind: string; text?: string; paragraphs?: string[] }[] },
+      data: Record<string, unknown>
+    ) =>
+      new TextEncoder().encode(
+        JSON.stringify({
+          page: domain,
+          ...data,
+          text: body.blocks.map((block) => block.text ?? block.paragraphs!.join(' ')).join(' | '),
+        })
+      ),
+    appendAnnexes: (common: Uint8Array, annexes: Uint8Array[]) =>
+      new TextEncoder().encode(
+        JSON.stringify({
+          common: new TextDecoder().decode(common),
+          annexes: annexes.map((annex) => JSON.parse(new TextDecoder().decode(annex)) as unknown),
+        })
+      ),
     documentText: (bytes: Uint8Array) => new TextDecoder().decode(bytes),
     renderTemplate: (template: Uint8Array, data: Record<string, unknown>) => {
       const typeKey = new TextDecoder().decode(template);
-      if (typeKey.startsWith('annex_title_page:')) {
-        const page = typeKey.slice('annex_title_page:'.length);
-        return {
-          document: new TextEncoder().encode(JSON.stringify({ page, ...data })),
-          usedNames: [],
-        };
-      }
       const printed = [
         ...new Set([
           'client',
@@ -405,9 +417,6 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
       if (url.pathname.startsWith('/storage/v1/object/sign/document-templates/')) {
         const typeKey = url.pathname.split('/').at(-2)!;
         return new Response(new TextEncoder().encode(typeKey));
-      }
-      if (url.pathname.startsWith('/storage/v1/object/sign/instruction-modules/')) {
-        return new Response(new TextEncoder().encode(url.pathname.split('/').at(-2)));
       }
       return handlers.file?.(init, url) ?? new Response(new Uint8Array([1, 2, 3]));
     }
@@ -1348,12 +1357,27 @@ const ownInstructionsSnapshot = {
   ],
   noAnnexes: false,
 };
+const annexedBodies: Record<string, { blocks: object[] }> = {
+  'v-ladders': {
+    blocks: [{ kind: 'article', paragraphs: ['Scara se verifică.', 'a) treptele;'] }],
+  },
+  'v-offices': {
+    blocks: [
+      { kind: 'heading', text: 'În timpul lucrului' },
+      { kind: 'article', paragraphs: ['Ecranul se așază la nivelul ochilor.'] },
+    ],
+  },
+};
 const annexedModuleVersions = () =>
   Response.json([
-    { id: 'v-offices', docx_path: `${organizationId}/m-offices/1.docx` },
-    { id: 'v-ladders', docx_path: `${organizationId}/m-ladders/2.docx` },
+    { id: 'v-offices', body: annexedBodies['v-offices'] },
+    { id: 'v-ladders', body: annexedBodies['v-ladders'] },
   ]);
-const annexTitlePageData = (index: number) => {
+const annexTexts = [
+  'Scara se verifică. a) treptele;',
+  'În timpul lucrului | Ecranul se așază la nivelul ochilor.',
+];
+const annexData = (index: number) => {
   const { number, title, versionDate } = ownInstructionsSnapshot.annexes[index]!;
   return {
     page: 'ssm',
@@ -1364,6 +1388,7 @@ const annexTitlePageData = (index: number) => {
     number,
     title,
     versionDate,
+    text: annexTexts[index],
   };
 };
 const convertedFiles = (files: ArrayBuffer[]) =>
@@ -1418,7 +1443,7 @@ describe('GET /clients/{clientId}/documents/archive', () => {
       )
     );
 
-  it("holds each document's issued Word file, or its draft, in the set's order, with the annexes", async () => {
+  it("holds each document's issued Word file, or its draft, in the set's order, the own instructions with their annexes", async () => {
     archive();
     const response = await request(`/clients/${clientId}/documents/archive`);
     expect(response.status).toBe(200);
@@ -1429,10 +1454,10 @@ describe('GET /clients/{clientId}/documents/archive', () => {
     expect(await filesOf(response)).toEqual({
       '01 Copertă - Deciziile interne - rev. 1.docx': `${path('cover', 1)}.docx`,
       '02 Decizia privind primul ajutor - rev. 1 - ciornă.docx': `${path('aid', 1)}.docx`,
-      '03 Instrucțiuni proprii SSM - rev. 1.docx': `${path('own', 1)}.docx`,
-      '03 Instrucțiuni proprii SSM - rev. 1 - Anexa 1 - I.P.S.S.M. Scări metalice.docx':
-        'm-ladders',
-      '03 Instrucțiuni proprii SSM - rev. 1 - Anexa 2 - I.P.S.S.M. Birouri.docx': 'm-offices',
+      '03 Instrucțiuni proprii SSM - rev. 1.docx': JSON.stringify({
+        common: `${path('own', 1)}.docx`,
+        annexes: [annexData(0), annexData(1)],
+      }),
     });
     expect(
       new URL(String(calls('/rest/v1/client_documents')[0]![0])).searchParams.get('document_group')
@@ -1487,6 +1512,66 @@ describe('GET /clients/{clientId}/documents/archive', () => {
     const response = await request(`/clients/${clientId}/documents/archive`);
     expect(response.status).toBe(404);
     expect(calls('/rest/v1/client_documents')).toHaveLength(0);
+  });
+});
+
+describe('the Word files of a revision with its annexes', () => {
+  const ownRevision = (snapshot: unknown) => () =>
+    Response.json({
+      docx_path: `${organizationId}/${clientId}/${documentId}/1.docx`,
+      data_snapshot: snapshot,
+      revision: 1,
+      client_documents: {
+        title: 'Instrucțiuni proprii SSM',
+        period: null,
+        type_key: 'own_instructions',
+      },
+    });
+  const mockOwn = (snapshot: unknown = ownInstructionsSnapshot) =>
+    mockUpstream({
+      revisions: ownRevision(snapshot),
+      moduleVersions: annexedModuleVersions,
+      file: () => new Response(new TextEncoder().encode('common part')),
+    });
+
+  it('gives the own instructions with each annex appended, named for the download', async () => {
+    mockOwn();
+    const response = await request(`/documents/${documentId}/revisions/${revisionId}/word`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Disposition')).toContain(
+      encodeURIComponent('Instrucțiuni proprii SSM - rev. 1.docx')
+    );
+    expect(JSON.parse(await response.text())).toEqual({
+      common: 'common part',
+      annexes: [annexData(0), annexData(1)],
+    });
+  });
+
+  it('gives a document that annexes nothing as its file', async () => {
+    mockOwn({ ...ownInstructionsSnapshot, annexes: [], noAnnexes: true });
+    const response = await request(`/documents/${documentId}/revisions/${revisionId}/word`);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('common part');
+    expect(calls('/rest/v1/instruction_module_versions')).toHaveLength(0);
+  });
+
+  it('gives one annex as the binder prints it, and 404 for a number it does not have', async () => {
+    mockOwn();
+    const response = await request(`/documents/${documentId}/revisions/${revisionId}/annexes/2`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Disposition')).toContain(
+      encodeURIComponent('Instrucțiuni proprii SSM - rev. 1 - Anexa 2 - I.P.S.S.M. Birouri.docx')
+    );
+    expect(JSON.parse(await response.text())).toEqual(annexData(1));
+    expect(
+      (await request(`/documents/${documentId}/revisions/${revisionId}/annexes/3`)).status
+    ).toBe(404);
+  });
+
+  it('answers 404 for a revision of another organization', async () => {
+    mockUpstream({ revisions: () => Response.json(null) });
+    const response = await request(`/documents/${documentId}/revisions/${revisionId}/word`);
+    expect(response.status).toBe(404);
   });
 });
 
@@ -2146,7 +2231,7 @@ describe('POST /documents/{documentId}/issue', () => {
     expect(sent.p_pdf_sha256).not.toBe(sent.p_docx_sha256);
   });
 
-  it('annexes the module versions the snapshot names, each after its title page, in one PDF', async () => {
+  it('renders each module version the snapshot names as an annex of its own, in one PDF', async () => {
     mockUpstream({
       documents: () =>
         Response.json({
@@ -2165,21 +2250,33 @@ describe('POST /documents/{documentId}/issue', () => {
     expect(convertDocx).not.toHaveBeenCalled();
     expect(convertedFiles(convertDocuments.mock.calls[0]![0])).toEqual([
       '\u0001\u0002\u0003',
-      annexTitlePageData(0),
-      'm-ladders',
-      annexTitlePageData(1),
-      'm-offices',
+      annexData(0),
+      annexData(1),
     ]);
-    const signed = calls('/storage/v1/object/sign/instruction-modules/', 'POST').map(
-      ([input]) => new URL(String(input)).pathname
-    );
-    expect(signed).toEqual([
-      `/storage/v1/object/sign/instruction-modules/${organizationId}/m-ladders/2.docx`,
-      `/storage/v1/object/sign/instruction-modules/${organizationId}/m-offices/1.docx`,
-    ]);
+    expect(
+      new URL(String(calls('/rest/v1/instruction_module_versions')[0]![0])).searchParams.get('id')
+    ).toBe('in.(v-ladders,v-offices)');
   });
 
-  it('annexes the fire-safety modules of the IPSU after the fire-safety title page', async () => {
+  it('refuses to issue a draft whose annexed version is gone, and asks for it again', async () => {
+    mockUpstream({
+      documents: () =>
+        Response.json({
+          ...documentRow,
+          type_key: 'own_instructions',
+          document_revisions: [{ ...revisionRow, data_snapshot: ownInstructionsSnapshot }],
+        }),
+      moduleVersions: () => Response.json([{ id: 'v-ladders', body: annexedBodies['v-ladders'] }]),
+    });
+    const convertDocuments = vi.fn();
+    const response = await issueWith(vi.fn(), convertDocuments);
+    expect(response.status).toBe(409);
+    expect(((await response.json()) as { reason: string }).reason).toBe('annex_not_in_library');
+    expect(convertDocuments).not.toHaveBeenCalled();
+    expect(calls('/rest/v1/rpc/issue_document_revision')).toHaveLength(0);
+  });
+
+  it('renders the fire-safety modules of the IPSU as fire-safety annexes', async () => {
     const technician = {
       name: 'Dan POP',
       certificate: 'seria A nr. 1234/2024',
@@ -2215,8 +2312,7 @@ describe('POST /documents/{documentId}/issue', () => {
     expect((await issueWith(vi.fn(), convertDocuments)).status).toBe(200);
     expect(convertedFiles(convertDocuments.mock.calls[0]![0])).toEqual([
       '\u0001\u0002\u0003',
-      { ...annexTitlePageData(0), page: 'psi', fireSafetyTechnician: technician },
-      'm-ladders',
+      { ...annexData(0), page: 'psi', fireSafetyTechnician: technician },
     ]);
   });
 
@@ -2734,7 +2830,7 @@ describe('POST /documents/{documentId}/print', () => {
     expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(0);
   });
 
-  it('prints the own instructions with each annexed module after its title page', async () => {
+  it('prints the own instructions with each annexed module as an annex of its own', async () => {
     const ownInstructions = (snapshot: unknown) => () =>
       Response.json({
         ...documentRow,
@@ -2758,10 +2854,8 @@ describe('POST /documents/{documentId}/print', () => {
     expect((await print(docx, bindings)).status).toBe(200);
     expect(convertedFiles(convertDocuments.mock.calls[0]![0])).toEqual([
       new TextDecoder().decode(docx),
-      annexTitlePageData(0),
-      'm-ladders',
-      annexTitlePageData(1),
-      'm-offices',
+      annexData(0),
+      annexData(1),
     ]);
 
     mockUpstream({
@@ -3685,7 +3779,7 @@ describe('the fire-safety set', () => {
       domain: 'psi',
       instruction_modules: {
         title: 'Lucrul cu foc deschis',
-        module_group: 'work_activity',
+        module_group: 'hazardous_work',
         instruction_module_versions: [
           {
             id: 'b0b0b0b0-0000-4000-8000-000000000007',

@@ -4,7 +4,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { InstructionLibrary } from '@/features/instructions/instruction-library';
 
 export const Route = createFileRoute('/_authenticated/instructions/_library/ssm')({
-  staticData: { title: 'SSM' },
+  staticData: { title: 'IPSSM' },
   component: OccupationalSafetyLibrary,
 });
 

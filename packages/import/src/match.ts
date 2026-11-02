@@ -1,19 +1,12 @@
-import { normalizeCui } from '@ssm-usor/contracts';
+import { foldText, normalizeCui } from '@ssm-usor/contracts';
+
+export { foldText };
 
 const marks = /\p{M}/gu;
 const wordCharacter = /[\p{L}\p{N}]/u;
 
 function foldCharacter(character: string) {
   return character.normalize('NFD').toLowerCase().replace(marks, '');
-}
-
-export function foldText(value: string) {
-  return value
-    .normalize('NFD')
-    .toLowerCase()
-    .replace(marks, '')
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .trim();
 }
 
 // I.I. and I.F. need their first dot: a bare "II" is the number of a building ("Hala II").
