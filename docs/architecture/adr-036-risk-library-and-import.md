@@ -1,6 +1,6 @@
 # ADR 036: The risk library as "Evaluări de risc", and evaluations read from an imported pack
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-02
 
 ## Context
