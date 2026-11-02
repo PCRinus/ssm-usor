@@ -14,4 +14,9 @@ describe('formatNumber', () => {
     expect(formatNumber(5, 'ordinal')).toBe('5');
     expect(formatNumber(5, 'none')).toBe('');
   });
+
+  it('writes a letter number past the last one Word prints as digits', () => {
+    expect(formatNumber(780, 'lowerLetter')).toBe('z'.repeat(30));
+    expect(formatNumber(2_000_000_000, 'lowerLetter')).toBe('2000000000');
+  });
 });

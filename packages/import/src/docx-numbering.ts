@@ -104,9 +104,10 @@ function toRoman(value: number) {
   return roman;
 }
 
-// Word counts letters past z as aa, bb, cc rather than as a spreadsheet's aa, ab, ac.
+// Word counts letters past z as aa, bb, cc rather than as a spreadsheet's aa, ab, ac, and stops
+// at 780; a file's start value past it would otherwise build a string of any length.
 function toLetters(value: number) {
-  if (value <= 0) return String(value);
+  if (value <= 0 || value > 780) return String(value);
   return String.fromCharCode(97 + ((value - 1) % 26)).repeat(Math.ceil(value / 26));
 }
 
