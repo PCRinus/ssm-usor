@@ -1,6 +1,8 @@
+import { guidedTemplates } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {
+  addGuidedSection,
   addSection,
   articleBlock,
   articleNumbers,
@@ -11,6 +13,7 @@ import {
   draftSections,
   headingBlock,
   insertHeadingAfter,
+  missingSections,
   moveSection,
   printedIds,
   removeSection,
@@ -199,5 +202,55 @@ describe('client names', () => {
     expect(clientsNamedIn('Angajații Birou S.R.L. poartă ecuson.', patterns)).toEqual([
       { id: '2', legalName: 'BIROU SRL' },
     ]);
+  });
+});
+
+describe('sections of the guide', () => {
+  const guide = guidedTemplates.work_activity;
+  const section = (key: string) => guide.find((each) => each.key === key)!;
+  const titled = (...titles: string[]) =>
+    titles.flatMap((title) => [headingBlock(title), articleBlock(`despre ${title}`)]);
+  const headings = (blocks: readonly DraftBlock[]) =>
+    blocks.flatMap((block) => (block.kind === 'heading' ? [block.text] : []));
+
+  it('offers the sections not yet there, counting one renamed or typed by hand', () => {
+    const renamed = headingBlock('Cui se aplică', section('scope'));
+    const typed = headingBlock('  în timpul LUCRULUI ');
+    const missing = missingSections([renamed, articleBlock('x'), typed], 'work_activity');
+    expect(missing.map((each) => each.key)).not.toContain('scope');
+    expect(missing.map((each) => each.heading)).not.toContain('În timpul lucrului');
+    expect(missing).toHaveLength(guide.length - 2);
+  });
+
+  it('puts a section after the one the guide puts nearest before it', () => {
+    const blocks = titled('Domeniul de aplicare', 'Înainte de începerea lucrului', 'Note');
+    const added = addGuidedSection(blocks, 'work_activity', guide[1]!);
+    expect(headings(added.blocks)).toEqual([
+      'Domeniul de aplicare',
+      guide[1]!.heading,
+      'Înainte de începerea lucrului',
+      'Note',
+    ]);
+    const heading = added.blocks.find((block) => block.id === added.headingId)!;
+    expect(heading.kind === 'heading' && heading.section?.key).toBe(guide[1]!.key);
+  });
+
+  it('follows the guide, not the order the member gave the sections', () => {
+    const blocks = titled('Situații de urgență', 'Domeniul de aplicare', 'În timpul lucrului');
+    const added = addGuidedSection(blocks, 'work_activity', section('qualification'));
+    expect(headings(added.blocks)).toEqual([
+      'Situații de urgență',
+      'Domeniul de aplicare',
+      'Calificarea necesară',
+      'În timpul lucrului',
+    ]);
+  });
+
+  it('puts the first section of the guide before the others, and one with no neighbour at the end', () => {
+    const blocks = [articleBlock('fără secțiune'), ...titled('Note', 'În timpul lucrului')];
+    const first = addGuidedSection(blocks, 'work_activity', guide[0]!);
+    expect(headings(first.blocks)).toEqual(['Note', guide[0]!.heading, 'În timpul lucrului']);
+    const alone = addGuidedSection(titled('Note'), 'work_activity', guide[0]!);
+    expect(texts(alone.blocks)).toEqual(['# Note', 'despre Note', `# ${guide[0]!.heading}`, '']);
   });
 });

@@ -790,7 +790,11 @@ describe('the module form', () => {
     mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
-    await user.click(screen.getByTestId('instruction-add-section'));
+    await choose(
+      user,
+      screen.getByTestId('instruction-add-section'),
+      'instruction-add-blank-section'
+    );
     const headings = screen.getAllByTestId('instruction-heading-text');
     expect(document.activeElement).toBe(headings[2]);
     await user.keyboard('Depozitare');
@@ -806,6 +810,33 @@ describe('the module form', () => {
     expect(added.dataset.empty).toBeUndefined();
     expect(within(added).queryByTestId('instruction-section-unprinted')).toBeNull();
     expect(outline().at(-1)).toBe('Art. 3');
+  });
+
+  it('offers the sections of the guide an instruction lacks, and puts one where the guide does', async () => {
+    mockApi({ moduleBody: ladderBody });
+    mount(`/instructiuni/${ladders.id}`);
+    const user = userEvent.setup();
+    await screen.findByTestId('instruction-form');
+    await user.click(screen.getByTestId('instruction-add-section'));
+    const offered = (await screen.findAllByTestId('instruction-suggested-section')).map(
+      (item) => item.textContent
+    );
+    expect(offered).toHaveLength(7);
+    expect(offered[0]?.startsWith('Domeniul de aplicare')).toBe(true);
+    expect(offered.some((text) => text?.startsWith('Acțiuni interzise'))).toBe(false);
+    await user.click(screen.getByText('În timpul utilizării'));
+    expect(outline()).toEqual([
+      '§ Verificări înainte de pornire',
+      'Art. 1',
+      '§ În timpul utilizării',
+      '§ Acțiuni interzise',
+      'Art. 2',
+    ]);
+    const added = sectionCard('În timpul utilizării');
+    expect(added.dataset.empty).toBe('true');
+    expect(document.activeElement).toBe(
+      within(added).getByTestId('instruction-section-write-first')
+    );
   });
 
   it('refuses to save a text without an article, in words', async () => {
