@@ -4,7 +4,6 @@ import {
   type InstructionDomain,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { NativeSelect } from '@ssm-usor/ui/components/native-select';
 import { Switch } from '@ssm-usor/ui/components/switch';
@@ -12,7 +11,6 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import {
   BriefcaseBusiness,
   Building2,
-  Check,
   Flame,
   GitCompare,
   HardHat,
@@ -20,14 +18,14 @@ import {
   Pencil,
   PlugZap,
   Plus,
-  TriangleAlert,
   Wrench,
 } from 'lucide-react';
-import { type ReactNode, useId, useState } from 'react';
+import { useId, useState } from 'react';
 
 import { articleCountLabel, groupLabels } from '@/features/instructions/instruction-schema';
 
 import { EditedTag, SourceButton, Tag } from '../review-parts';
+import { DecisionRow, PendingNote, RenameRow, Segmented, type Tone } from './decision-row';
 import { LibraryDifferences } from './library-differences';
 import {
   categoriesOf,
@@ -69,72 +67,6 @@ const choices: readonly { value: Choice; label: string; outcome: string }[] = [
   },
 ];
 
-type Tone = 'done' | 'todo' | 'info' | 'warning';
-
-const toneLabels: Record<Tone, string> = {
-  done: 'Gata',
-  todo: 'De ales',
-  info: 'De știut',
-  warning: 'Atenționare',
-};
-
-function StatusDot({ tone }: { tone: Tone }) {
-  return (
-    <span
-      className={cn(
-        'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full sm:mt-0',
-        tone === 'done' && 'border border-success-border bg-success text-success-foreground',
-        tone === 'todo' && 'border border-warning-border bg-warning',
-        tone === 'info' && 'border border-info-border bg-info',
-        tone === 'warning' && 'text-warning-foreground'
-      )}
-    >
-      <span className="sr-only">{toneLabels[tone]}</span>
-      {tone === 'done' && <Check className="size-3" strokeWidth={3} aria-hidden="true" />}
-      {tone === 'todo' && <span className="size-2 rounded-full bg-chart-3" aria-hidden="true" />}
-      {tone === 'info' && <span className="h-0.5 w-2 rounded-full bg-ring" aria-hidden="true" />}
-      {tone === 'warning' && <TriangleAlert className="size-4" aria-hidden="true" />}
-    </span>
-  );
-}
-
-function DecisionRow({
-  tone,
-  label,
-  actions,
-  below,
-  testId,
-  children,
-}: {
-  tone: Tone;
-  label: ReactNode;
-  actions?: ReactNode;
-  below?: ReactNode;
-  testId?: string;
-  children: ReactNode;
-}) {
-  return (
-    <div
-      data-testid={testId}
-      data-tone={tone}
-      className={cn(
-        'grid grid-cols-[1.25rem_minmax(0,1fr)] items-start gap-x-3 gap-y-1 border-t border-border/70 px-4 py-3 sm:min-h-14 sm:grid-cols-[1.25rem_10.5rem_minmax(0,1fr)_auto] sm:items-center sm:gap-x-4 sm:px-5',
-        tone === 'todo' && 'bg-warning/40'
-      )}
-    >
-      <StatusDot tone={tone} />
-      <span className="text-sm font-medium">{label}</span>
-      <div className="col-start-2 grid min-w-0 gap-1 text-sm sm:col-start-auto">{children}</div>
-      {actions && (
-        <div className="col-start-2 mt-2 grid gap-2 sm:col-start-auto sm:mt-0 sm:flex sm:flex-wrap sm:justify-end">
-          {actions}
-        </div>
-      )}
-      {below && <div className="col-start-2 mt-2 min-w-0 sm:col-span-3">{below}</div>}
-    </div>
-  );
-}
-
 function pendingLine(pending: readonly string[]) {
   if (pending.length > 1) return `Mai ai ${pending.length} lucruri de făcut`;
   return pending[0] === 'title' ? 'Mai ai de schimbat titlul' : `Mai ai de ales ${pending[0]}`;
@@ -163,9 +95,6 @@ export function InstructionRow({
 }) {
   const id = useId();
   const { instruction } = row;
-  const [title, setTitle] = useState(row.title);
-  const [titleError, setTitleError] = useState<string | null>(null);
-  const [renaming, setRenaming] = useState(false);
   const [changingCategory, setChangingCategory] = useState(false);
   const [comparing, setComparing] = useState(false);
   const similar = instruction.status === 'similar';
@@ -177,11 +106,9 @@ export function InstructionRow({
   const Icon = categoryIcons[row.category];
 
   const shownTitleError =
-    titleError ??
-    (titleTaken && !row.usesLibrary
+    titleTaken && !row.usesLibrary
       ? 'Biblioteca are deja o instrucțiune cu acest titlu. Schimbă-l ca să o poți adăuga.'
-      : null);
-  const titleOpen = editable && (renaming || Boolean(shownTitleError));
+      : null;
   const choiceOpen = similar && !row.choicePicked;
   const pending = editable
     ? [
@@ -192,28 +119,10 @@ export function InstructionRow({
     : [];
   const ask = (open: boolean): Tone => (editable && open ? 'todo' : 'done');
 
-  function commitTitle() {
-    const problem = titleProblem(title);
-    setTitleError(problem);
-    if (problem) return;
-    setRenaming(false);
-    const next = title.trim();
-    if (next === row.title) return;
-    onChange((current) =>
-      withChange(current, 'title', next === instruction.title ? undefined : next)
-    );
-  }
-
   function pickChoice(choice: Choice) {
     onChange((current) =>
       current.choice === choice ? current : withChange(current, 'choice', choice)
     );
-  }
-
-  function cancelTitle() {
-    setTitle(row.title);
-    setTitleError(null);
-    setRenaming(false);
   }
 
   const shownArticles = articleCountLabel(articleCount(row.body)).toLowerCase();
@@ -276,29 +185,11 @@ export function InstructionRow({
           )}
         </div>
         <div className="flex w-full items-center gap-4 sm:w-auto sm:shrink-0">
-          {pending.length > 0 ? (
-            <span
-              className="inline-flex items-center gap-2 text-[13px] font-semibold text-warning-foreground"
-              data-testid="library-instruction-pending"
-            >
-              <span
-                className="flex size-4 items-center justify-center rounded-full border border-warning-border bg-warning"
-                aria-hidden="true"
-              >
-                <span className="size-1.5 rounded-full bg-chart-3" />
-              </span>
-              {pendingLine(pending)}
-            </span>
-          ) : (
-            editable && (
-              <span
-                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-success-foreground"
-                data-testid="library-instruction-pending"
-              >
-                <Check className="size-4" aria-hidden="true" />
-                Gata de confirmat
-              </span>
-            )
+          {editable && (
+            <PendingNote
+              line={pending.length > 0 ? pendingLine(pending) : null}
+              testId="library-instruction-pending"
+            />
           )}
           <div className="ml-auto flex items-center gap-2.5 sm:border-l sm:border-border/70 sm:pl-4">
             <Switch
@@ -349,33 +240,15 @@ export function InstructionRow({
                 tone={ask(choiceOpen)}
                 label="Ce primesc posturile"
                 actions={
-                  <div
-                    role="radiogroup"
-                    aria-label="Ce primesc posturile"
-                    className="grid grid-cols-2 rounded-lg border border-input bg-secondary p-0.5 sm:inline-flex"
-                  >
-                    {choices.map((choice) => (
-                      <label
-                        key={choice.value}
-                        className="relative inline-flex h-[30px] cursor-pointer items-center justify-center rounded-md px-3.5 text-sm font-medium whitespace-nowrap text-muted-foreground has-checked:bg-card has-checked:font-semibold has-checked:text-foreground has-checked:shadow-xs has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50 has-disabled:cursor-not-allowed"
-                      >
-                        <input
-                          type="radio"
-                          name={`${id}-choice`}
-                          value={choice.value}
-                          data-testid={`library-choice-${choice.value}`}
-                          className="absolute inset-0 m-0 size-full cursor-pointer appearance-none opacity-0 disabled:cursor-not-allowed"
-                          disabled={readOnly}
-                          checked={row.choice === choice.value}
-                          onChange={() => pickChoice(choice.value)}
-                          // A checked radio fires no change, and picking the proposed choice is
-                          // what clears the row's question.
-                          onClick={() => pickChoice(choice.value)}
-                        />
-                        {choice.label}
-                      </label>
-                    ))}
-                  </div>
+                  <Segmented
+                    name={`${id}-choice`}
+                    label="Ce primesc posturile"
+                    options={choices}
+                    value={row.choice}
+                    disabled={readOnly}
+                    testIdPrefix="library-choice"
+                    onPick={pickChoice}
+                  />
                 }
               >
                 <span className={cn(choiceOpen && editable && 'text-warning-foreground')}>
@@ -387,93 +260,21 @@ export function InstructionRow({
 
           {!row.usesLibrary && (
             <>
-              <DecisionRow
-                tone={ask(Boolean(shownTitleError))}
-                label={
-                  titleOpen ? (
-                    <Label htmlFor={`${id}-title-input`}>Titlul în bibliotecă</Label>
-                  ) : (
-                    'Titlul în bibliotecă'
+              <RenameRow
+                label="Titlul în bibliotecă"
+                value={row.title}
+                written={instruction.writtenTitle}
+                error={shownTitleError}
+                editable={editable}
+                validate={titleProblem}
+                testIdPrefix="library-instruction"
+                field="title"
+                onCommit={(next) =>
+                  onChange((current) =>
+                    withChange(current, 'title', next === instruction.title ? undefined : next)
                   )
                 }
-                actions={
-                  editable &&
-                  (titleOpen ? (
-                    <>
-                      <Button type="button" variant="outline" onClick={cancelTitle}>
-                        Renunță
-                      </Button>
-                      <Button
-                        type="button"
-                        data-testid="library-instruction-title-save"
-                        onClick={commitTitle}
-                      >
-                        Salvează titlul
-                      </Button>
-                    </>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      data-testid="library-instruction-rename"
-                      onClick={() => {
-                        setTitle(row.title);
-                        setRenaming(true);
-                      }}
-                    >
-                      <Pencil aria-hidden="true" />
-                      Redenumește
-                    </Button>
-                  ))
-                }
-              >
-                {titleOpen ? (
-                  <Input
-                    id={`${id}-title-input`}
-                    data-testid="library-instruction-title-input"
-                    value={title}
-                    autoFocus={renaming}
-                    aria-invalid={Boolean(shownTitleError)}
-                    aria-describedby={shownTitleError ? `${id}-title-error` : `${id}-written`}
-                    onChange={(event) => {
-                      setTitle(event.target.value);
-                      setTitleError(null);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        commitTitle();
-                      } else if (event.key === 'Escape') {
-                        event.preventDefault();
-                        cancelTitle();
-                      }
-                    }}
-                  />
-                ) : (
-                  <span className="wrap-anywhere" data-testid="library-instruction-library-title">
-                    {row.title}
-                  </span>
-                )}
-                {shownTitleError ? (
-                  <span
-                    id={`${id}-title-error`}
-                    className="text-[13px] text-destructive"
-                    data-testid="library-instruction-title-error"
-                  >
-                    {shownTitleError}
-                  </span>
-                ) : (
-                  instruction.writtenTitle !== row.title && (
-                    <span
-                      id={`${id}-written`}
-                      className="truncate text-[13px] text-muted-foreground"
-                      title={instruction.writtenTitle}
-                    >
-                      Din document: {instruction.writtenTitle}
-                    </span>
-                  )
-                )}
-              </DecisionRow>
+              />
 
               <DecisionRow
                 tone="done"

@@ -649,7 +649,13 @@ function StateNotices({
   }
 }
 
-function ReviewNotices({ review }: { review: LibraryReview }) {
+export function ReviewNotices({
+  review,
+  conflictText = 'Altcineva a modificat instrucțiunile între timp, așa că schimbarea ta nu a fost salvată. Reîncarcă pagina și fă-o din nou.',
+}: {
+  review: Pick<LibraryReview, 'conflict' | 'closed' | 'error' | 'retry'>;
+  conflictText?: string;
+}) {
   if (review.conflict) {
     return (
       <Notice
@@ -661,8 +667,7 @@ function ReviewNotices({ review }: { review: LibraryReview }) {
           </Button>
         }
       >
-        Altcineva a modificat instrucțiunile între timp, așa că schimbarea ta nu a fost salvată.
-        Reîncarcă pagina și fă-o din nou.
+        {conflictText}
       </Notice>
     );
   }

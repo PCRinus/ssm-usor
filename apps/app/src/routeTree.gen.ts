@@ -94,6 +94,7 @@ import { Route as AuthenticatedClientiClientIdPosturiIndexRouteImport } from './
 import { Route as AuthenticatedClientiClientIdPosturiJobPositionIdRouteImport } from './routes/_authenticated/clienti/$clientId/posturi/$jobPositionId';
 import { Route as AuthenticatedClientiImportImportIdIndexRouteImport } from './routes/_authenticated/clienti/import/$importId/index';
 import { Route as AuthenticatedClientiImportImportIdSectionRouteImport } from './routes/_authenticated/clienti/import/$importId/$section';
+import { Route as AuthenticatedClientiImportImportIdEvaluariDeRiscRouteImport } from './routes/_authenticated/clienti/import/$importId/evaluari-de-risc';
 import { Route as AuthenticatedClientiImportImportIdFisiereRouteImport } from './routes/_authenticated/clienti/import/$importId/fisiere';
 import { Route as AuthenticatedClientiClientIdAngajatiEmployeeIdIndexRouteImport } from './routes/_authenticated/clienti/$clientId/angajati/$employeeId/index';
 import { Route as AuthenticatedClientiClientIdAngajatiEmployeeIdEditareRouteImport } from './routes/_authenticated/clienti/$clientId/angajati/$employeeId_.editare';
@@ -594,6 +595,12 @@ const AuthenticatedClientiImportImportIdSectionRoute =
     path: '/$section',
     getParentRoute: () => AuthenticatedClientiImportImportIdRoute,
   } as any);
+const AuthenticatedClientiImportImportIdEvaluariDeRiscRoute =
+  AuthenticatedClientiImportImportIdEvaluariDeRiscRouteImport.update({
+    id: '/evaluari-de-risc',
+    path: '/evaluari-de-risc',
+    getParentRoute: () => AuthenticatedClientiImportImportIdRoute,
+  } as any);
 const AuthenticatedClientiImportImportIdFisiereRoute =
   AuthenticatedClientiImportImportIdFisiereRouteImport.update({
     id: '/fisiere',
@@ -758,6 +765,7 @@ export interface FileRoutesByFullPath {
   '/clienti/$clientId/documente-su/$documentId': typeof AuthenticatedClientiClientIdDocumenteSuDocumentIdRoute;
   '/clienti/$clientId/posturi/$jobPositionId': typeof AuthenticatedClientiClientIdPosturiJobPositionIdRouteWithChildren;
   '/clienti/import/$importId/$section': typeof AuthenticatedClientiImportImportIdSectionRoute;
+  '/clienti/import/$importId/evaluari-de-risc': typeof AuthenticatedClientiImportImportIdEvaluariDeRiscRoute;
   '/clienti/import/$importId/fisiere': typeof AuthenticatedClientiImportImportIdFisiereRoute;
   '/clienti/$clientId/alte-documente/': typeof AuthenticatedClientiClientIdAlteDocumenteIndexRoute;
   '/clienti/$clientId/angajati/': typeof AuthenticatedClientiClientIdAngajatiIndexRoute;
@@ -835,6 +843,7 @@ export interface FileRoutesByTo {
   '/clienti/$clientId/documente-ssm/$documentId': typeof AuthenticatedClientiClientIdDocumenteSsmDocumentIdRoute;
   '/clienti/$clientId/documente-su/$documentId': typeof AuthenticatedClientiClientIdDocumenteSuDocumentIdRoute;
   '/clienti/import/$importId/$section': typeof AuthenticatedClientiImportImportIdSectionRoute;
+  '/clienti/import/$importId/evaluari-de-risc': typeof AuthenticatedClientiImportImportIdEvaluariDeRiscRoute;
   '/clienti/import/$importId/fisiere': typeof AuthenticatedClientiImportImportIdFisiereRoute;
   '/clienti/$clientId/alte-documente': typeof AuthenticatedClientiClientIdAlteDocumenteIndexRoute;
   '/clienti/$clientId/angajati': typeof AuthenticatedClientiClientIdAngajatiIndexRoute;
@@ -935,6 +944,7 @@ export interface FileRoutesById {
   '/_authenticated/clienti/$clientId/documente-su/$documentId': typeof AuthenticatedClientiClientIdDocumenteSuDocumentIdRoute;
   '/_authenticated/clienti/$clientId/posturi/$jobPositionId': typeof AuthenticatedClientiClientIdPosturiJobPositionIdRouteWithChildren;
   '/_authenticated/clienti/import/$importId/$section': typeof AuthenticatedClientiImportImportIdSectionRoute;
+  '/_authenticated/clienti/import/$importId/evaluari-de-risc': typeof AuthenticatedClientiImportImportIdEvaluariDeRiscRoute;
   '/_authenticated/clienti/import/$importId/fisiere': typeof AuthenticatedClientiImportImportIdFisiereRoute;
   '/_authenticated/clienti/$clientId/alte-documente/': typeof AuthenticatedClientiClientIdAlteDocumenteIndexRoute;
   '/_authenticated/clienti/$clientId/angajati/': typeof AuthenticatedClientiClientIdAngajatiIndexRoute;
@@ -1034,6 +1044,7 @@ export interface FileRouteTypes {
     | '/clienti/$clientId/documente-su/$documentId'
     | '/clienti/$clientId/posturi/$jobPositionId'
     | '/clienti/import/$importId/$section'
+    | '/clienti/import/$importId/evaluari-de-risc'
     | '/clienti/import/$importId/fisiere'
     | '/clienti/$clientId/alte-documente/'
     | '/clienti/$clientId/angajati/'
@@ -1111,6 +1122,7 @@ export interface FileRouteTypes {
     | '/clienti/$clientId/documente-ssm/$documentId'
     | '/clienti/$clientId/documente-su/$documentId'
     | '/clienti/import/$importId/$section'
+    | '/clienti/import/$importId/evaluari-de-risc'
     | '/clienti/import/$importId/fisiere'
     | '/clienti/$clientId/alte-documente'
     | '/clienti/$clientId/angajati'
@@ -1210,6 +1222,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clienti/$clientId/documente-su/$documentId'
     | '/_authenticated/clienti/$clientId/posturi/$jobPositionId'
     | '/_authenticated/clienti/import/$importId/$section'
+    | '/_authenticated/clienti/import/$importId/evaluari-de-risc'
     | '/_authenticated/clienti/import/$importId/fisiere'
     | '/_authenticated/clienti/$clientId/alte-documente/'
     | '/_authenticated/clienti/$clientId/angajati/'
@@ -1843,6 +1856,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientiImportImportIdSectionRouteImport;
       parentRoute: typeof AuthenticatedClientiImportImportIdRoute;
     };
+    '/_authenticated/clienti/import/$importId/evaluari-de-risc': {
+      id: '/_authenticated/clienti/import/$importId/evaluari-de-risc';
+      path: '/evaluari-de-risc';
+      fullPath: '/clienti/import/$importId/evaluari-de-risc';
+      preLoaderRoute: typeof AuthenticatedClientiImportImportIdEvaluariDeRiscRouteImport;
+      parentRoute: typeof AuthenticatedClientiImportImportIdRoute;
+    };
     '/_authenticated/clienti/import/$importId/fisiere': {
       id: '/_authenticated/clienti/import/$importId/fisiere';
       path: '/fisiere';
@@ -2180,6 +2200,7 @@ const AuthenticatedClientiClientIdRouteWithChildren =
 
 interface AuthenticatedClientiImportImportIdRouteChildren {
   AuthenticatedClientiImportImportIdSectionRoute: typeof AuthenticatedClientiImportImportIdSectionRoute;
+  AuthenticatedClientiImportImportIdEvaluariDeRiscRoute: typeof AuthenticatedClientiImportImportIdEvaluariDeRiscRoute;
   AuthenticatedClientiImportImportIdFisiereRoute: typeof AuthenticatedClientiImportImportIdFisiereRoute;
   AuthenticatedClientiImportImportIdIndexRoute: typeof AuthenticatedClientiImportImportIdIndexRoute;
   AuthenticatedClientiImportImportIdInstructiuniDomainRoute: typeof AuthenticatedClientiImportImportIdInstructiuniDomainRoute;
@@ -2189,6 +2210,8 @@ const AuthenticatedClientiImportImportIdRouteChildren: AuthenticatedClientiImpor
   {
     AuthenticatedClientiImportImportIdSectionRoute:
       AuthenticatedClientiImportImportIdSectionRoute,
+    AuthenticatedClientiImportImportIdEvaluariDeRiscRoute:
+      AuthenticatedClientiImportImportIdEvaluariDeRiscRoute,
     AuthenticatedClientiImportImportIdFisiereRoute:
       AuthenticatedClientiImportImportIdFisiereRoute,
     AuthenticatedClientiImportImportIdIndexRoute:

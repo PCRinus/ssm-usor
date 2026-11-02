@@ -54,6 +54,16 @@ export const isInstructionsLibraryPart = (part: ImportLibraryPart): part is Libr
 export const hasInstructionsParts = (parts: readonly { part: ImportLibraryPart['part'] }[]) =>
   parts.some((part) => isInstructionsPart(part.part));
 
+export function partsNoun(parts: readonly { part: ImportLibraryPart['part'] }[]) {
+  const names = [
+    ...(hasInstructionsParts(parts) ? ['instrucțiunile proprii'] : []),
+    ...(parts.some((part) => part.part === 'risk_evaluations') ? ['evaluările de risc'] : []),
+  ];
+  if (names.length === 0) return null;
+  const text = names.join(' și ');
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
+}
+
 export const partOfDomain: Record<InstructionDomain, PartName> = {
   ssm: 'instructions_ssm',
   su: 'instructions_su',

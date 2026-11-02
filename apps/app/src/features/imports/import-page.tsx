@@ -7,14 +7,14 @@ import type { ImportDetail } from '@/api/generated/api';
 
 import { ImportLoader, ProcessingView } from './import-processing-page';
 import { ConfirmedImportHub } from './library/confirmed-hub';
-import { hasInstructionsParts } from './library/library-model';
 import { LibraryTaskPage } from './library/library-task-page';
+import { RisksTaskPage } from './library/risks-task-page';
 import { ReviewHub } from './review-hub';
 import type { SectionId } from './review-model';
 import { ReviewSectionPage } from './review-section-page';
 
 const hasLibraryTasks = (detail: ImportDetail) =>
-  detail.status === 'confirmed' && hasInstructionsParts(detail.libraryParts);
+  detail.status === 'confirmed' && detail.libraryParts.length > 0;
 
 export function ImportPage({ importId }: { importId: string }) {
   return (
@@ -78,6 +78,20 @@ export function ImportLibraryPage({
       {(detail) =>
         (detail.status === 'ready' && detail.proposal) || detail.status === 'confirmed' ? (
           <LibraryTaskPage key={`${detail.id}-${domain}`} detail={detail} domain={domain} />
+        ) : (
+          <ProcessingView detail={detail} />
+        )
+      }
+    </ImportLoader>
+  );
+}
+
+export function ImportRisksPage({ importId }: { importId: string }) {
+  return (
+    <ImportLoader importId={importId}>
+      {(detail) =>
+        (detail.status === 'ready' && detail.proposal) || detail.status === 'confirmed' ? (
+          <RisksTaskPage key={detail.id} detail={detail} />
         ) : (
           <ProcessingView detail={detail} />
         )

@@ -7,7 +7,7 @@ import { Notice } from '@/components/notice';
 
 import { CreditsUsedLine } from '../credits-notices';
 import { endSentence, usageLine } from '../import-format';
-import { LibraryGroup } from './library-group';
+import { LibraryGroup, RisksGroup } from './library-group';
 
 export function ConfirmedImportHub({ detail }: { detail: ImportDetail }) {
   const client = detail.client;
@@ -50,6 +50,7 @@ export function ConfirmedImportHub({ detail }: { detail: ImportDetail }) {
         </Notice>
       )}
       <LibraryGroup detail={detail} />
+      <RisksGroup detail={detail} />
       <div className="grid gap-1 text-sm">
         <CreditsUsedLine detail={detail} kind="client" />
         {detail.usage && (

@@ -21,6 +21,9 @@ export type PostsRequest = {
   title: string;
   selected: string[];
   themes: string[];
+  // The instructions' words unless given.
+  description?: string;
+  resetLabel?: string;
 };
 
 export function PostsPickerDialog({
@@ -89,8 +92,8 @@ function PickerContent({
       <DialogHeader>
         <DialogTitle>Posturile pentru „{request.title}”</DialogTitle>
         <DialogDescription>
-          Bifează posturile la care se aplică instrucțiunea. Posturile pe care tematica nu le-a
-          putut decide sunt primele, cu ce scrie în tematică.
+          {request.description ??
+            'Bifează posturile la care se aplică instrucțiunea. Posturile pe care tematica nu le-a putut decide sunt primele, cu ce scrie în tematică.'}
         </DialogDescription>
       </DialogHeader>
       <DialogBody className="mt-4 grid max-h-[60svh] gap-2 overflow-y-auto pr-1">
@@ -143,7 +146,7 @@ function PickerContent({
             data-testid="library-posts-reset"
             onClick={() => onSave(null)}
           >
-            Ca în tematică
+            {request.resetLabel ?? 'Ca în tematică'}
           </Button>
         )}
         <Button variant="outline" onClick={onClose}>
