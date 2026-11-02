@@ -13,7 +13,7 @@ import { EditedTag, LinkButton, SourceButton, Tag } from '../review-parts';
 import { LibraryDifferences } from './library-differences';
 import {
   categoriesOf,
-  flagText,
+  flagLines,
   type InstructionChange,
   joinNames,
   type LibraryPost,
@@ -291,13 +291,13 @@ export function InstructionRow({
 
           {instruction.flags.length > 0 && (
             <ul className="grid gap-1" data-testid="library-instruction-flags">
-              {instruction.flags.map((flag, index) => (
+              {flagLines(instruction.flags).map((line) => (
                 <li
-                  key={`${flag.kind}-${index}`}
+                  key={line}
                   className="flex items-start gap-2 text-[13px] font-medium text-warning-foreground"
                 >
                   <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-                  <span>{flagText(flag)}</span>
+                  <span>{line}</span>
                 </li>
               ))}
             </ul>

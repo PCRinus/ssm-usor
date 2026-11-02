@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   confirmSummary,
+  flagLines,
   identicalSentence,
   isOpenPart,
   type LibraryPart,
@@ -188,4 +189,23 @@ describe('the posts the themes leave undecided', () => {
 it("shows the source at the instruction's first words", () => {
   const long = Array.from({ length: 40 }, (_, index) => `cuvânt${index}`).join(' ');
   expect(sourceQuote(body(long)).split(' ')).toHaveLength(30);
+});
+
+describe('flagLines', () => {
+  it('names the articles a pack’s table rows went into once, beside the other warnings', () => {
+    expect(
+      flagLines([
+        { kind: 'table_row', article: 16 },
+        { kind: 'table_row', article: 16 },
+        { kind: 'empty_article', number: 9 },
+        { kind: 'table_row', article: 23 },
+      ])
+    ).toEqual([
+      'Art. 16 și Art. 23 au rânduri de tabel făcute paragrafe: celulele lor sunt unite cu o liniuță.',
+      'Art. 9 din pachet nu are text, poate doar o imagine, și nu a fost preluat. Articolele de după el au aici numărul cu unu mai mic.',
+    ]);
+    expect(flagLines([{ kind: 'table_row', article: 4 }])).toEqual([
+      'Art. 4 vine dintr-un rând de tabel: celulele lui sunt unite cu o liniuță.',
+    ]);
+  });
 });

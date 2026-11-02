@@ -222,6 +222,20 @@ export function flagText(flag: ProposedInstruction['flags'][number]) {
   }
 }
 
+// The splitter flags every table row; one line per instruction names the articles they went into.
+export function flagLines(flags: readonly ProposedInstruction['flags'][number][]) {
+  const rows = flags.flatMap((flag) => (flag.kind === 'table_row' ? [flag.article] : []));
+  const articles = [...new Set(rows)];
+  const lines = [...new Set(flags.filter((flag) => flag.kind !== 'table_row').map(flagText))];
+  if (rows.length === 1) lines.unshift(flagText({ kind: 'table_row', article: rows[0]! }));
+  else if (rows.length > 1) {
+    lines.unshift(
+      `${joinNames(articles.map((article) => `Art. ${article}`))} ${articles.length === 1 ? 'are' : 'au'} rânduri de tabel făcute paragrafe: celulele lor sunt unite cu o liniuță.`
+    );
+  }
+  return lines;
+}
+
 export function undecidedReasons(
   position: ProposedPosition,
   titleOf: (key: string) => string | undefined
