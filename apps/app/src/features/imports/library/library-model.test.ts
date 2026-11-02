@@ -7,6 +7,8 @@ import {
   isOpenPart,
   type LibraryPart,
   partDescription,
+  pickablePosts,
+  postsByReference,
   type ProposedInstruction,
   type ProposedPosition,
   rowState,
@@ -118,11 +120,32 @@ describe('what confirming does', () => {
     const changes = {
       instructions: { 'i-3': { choice: 'add_new' as const }, 'i-4': { included: false } },
     };
-    expect(confirmSummary(instructions, changes, positionPosts)).toEqual({
+    const posts = [
+      { id: 'position-1', name: 'Brutar', jobPositionId: 'b0000000-0000-4000-8000-000000000001' },
+      { id: 'position-2', name: 'Paznic', jobPositionId: null },
+    ];
+    expect(confirmSummary(instructions, changes, positionPosts, postsByReference(posts))).toEqual({
       created: 2,
       used: 1,
       posts: 2,
     });
+    expect(
+      confirmSummary(
+        instructions,
+        changes,
+        positionPosts,
+        postsByReference(pickablePosts(posts, true))
+      )
+    ).toEqual({ created: 2, used: 1, posts: 1 });
+  });
+
+  it('counts a post named by its job position once', () => {
+    const jobPositionId = 'b0000000-0000-4000-8000-000000000001';
+    const posts = postsByReference([{ id: 'position-1', name: 'Brutar', jobPositionId }]);
+    const changes = { instructions: { 'i-2': { posts: [jobPositionId] } } };
+    expect(
+      confirmSummary([instruction('i-1'), instruction('i-2')], changes, positionPosts, posts).posts
+    ).toBe(1);
   });
 });
 

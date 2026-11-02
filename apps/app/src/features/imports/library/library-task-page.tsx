@@ -41,6 +41,7 @@ import {
   partLabels,
   partOfDomain,
   pickablePosts,
+  postsByReference,
   reviewedInstructions,
   rowState,
   sourceQuote,
@@ -158,10 +159,7 @@ function TaskContent({
     rowState(instruction, review.changes.instructions[instruction.key], part.positionPosts)
   );
   const identical = identicalInstructions(instructions);
-  const postsById = new Map(posts.map((post) => [post.id, post]));
-  for (const post of posts) {
-    if (post.jobPositionId) postsById.set(post.jobPositionId, post);
-  }
+  const postsById = postsByReference(pickablePosts(posts, clientConfirmed));
   const titleOf = (key: string) =>
     instructions.find((instruction) => instruction.key === key)?.title;
   const undecided = undecidedPositions(proposal?.positions ?? []);
@@ -177,7 +175,7 @@ function TaskContent({
     });
     undecidedByPost.set(post, notes);
   }
-  const summary = confirmSummary(instructions, review.changes, part.positionPosts);
+  const summary = confirmSummary(instructions, review.changes, part.positionPosts, postsById);
 
   async function refresh() {
     await queryClient.invalidateQueries({

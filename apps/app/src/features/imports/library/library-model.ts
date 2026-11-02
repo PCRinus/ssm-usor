@@ -283,6 +283,15 @@ export function undecidedPositions(positions: readonly ProposedPosition[]) {
 export const pickablePosts = (posts: readonly LibraryPost[], clientConfirmed: boolean) =>
   clientConfirmed ? posts.filter((post) => post.jobPositionId !== null) : [...posts];
 
+/** A row names a post by its id or, once the client is confirmed, by its job position's. */
+export function postsByReference(posts: readonly LibraryPost[]) {
+  const byReference = new Map(posts.map((post) => [post.id, post]));
+  for (const post of posts) {
+    if (post.jobPositionId) byReference.set(post.jobPositionId, post);
+  }
+  return byReference;
+}
+
 export function joinNames(names: readonly string[]) {
   if (names.length <= 1) return names[0] ?? '';
   return `${names.slice(0, -1).join(', ')} și ${names.at(-1)}`;
@@ -297,10 +306,12 @@ export function sourceQuote(body: InstructionBody) {
 
 export type ConfirmSummary = { created: number; used: number; posts: number };
 
+/** `posts` holds the posts confirming applies to, by `postsByReference`. */
 export function confirmSummary(
   instructions: readonly ProposedInstruction[],
   changes: LibraryChanges,
-  positionPosts: Record<string, string | null>
+  positionPosts: Record<string, string | null>,
+  posts: ReadonlyMap<string, LibraryPost>
 ): ConfirmSummary {
   const summary = { created: 0, used: 0, posts: new Set<string>() };
   for (const instruction of instructions) {
@@ -308,7 +319,10 @@ export function confirmSummary(
     if (!row.included) continue;
     if (row.usesLibrary) summary.used += 1;
     else summary.created += 1;
-    for (const post of row.posts) summary.posts.add(post);
+    for (const reference of row.posts) {
+      const post = posts.get(reference);
+      if (post) summary.posts.add(post.id);
+    }
   }
   return { created: summary.created, used: summary.used, posts: summary.posts.size };
 }
