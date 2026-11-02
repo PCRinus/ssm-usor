@@ -181,7 +181,7 @@ export const importSection = {
     'Încarci documentația unui client și fotografiile fișelor de instruire. Datele firmei, posturile și angajații intră în aplicație cu instruirile lor, iar tu verifici totul înainte să se salveze.',
   stageLabel: 'Fișele de instruire de pe hârtie devin lista de angajați din aplicație',
   shotAlt:
-    'Angajații unui client, creați din fișele de instruire, cu instruirile SSM și PSI și testele de pe fișe',
+    'Angajații unui client, creați din fișele de instruire, cu instruirile SSM și SU și testele de pe fișe',
   outcomes: [
     {
       mark: 'documents',
