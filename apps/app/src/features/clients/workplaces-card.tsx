@@ -204,7 +204,7 @@ export function WorkplacesCard({
                   id={workplaceRowId(workplace.id)}
                   data-testid="workplace-row"
                   {...rowClickProps(readOnly ? undefined : () => setEditing(workplace))}
-                  className={cn('', !readOnly && 'cursor-pointer')}
+                  className={cn(!readOnly && 'cursor-pointer')}
                 >
                   <TableCell className="font-medium">
                     <span className="flex flex-wrap items-center gap-2">

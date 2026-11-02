@@ -291,7 +291,7 @@ export function SubstancesCard({
                           key={substance.id}
                           data-testid="fire-substance-row"
                           {...rowClickProps(readOnly ? undefined : () => setEditing(substance))}
-                          className={cn('', !readOnly && 'cursor-pointer')}
+                          className={cn(!readOnly && 'cursor-pointer')}
                         >
                           <TableCell className="min-w-40 whitespace-normal">
                             <span className="grid gap-0.5">

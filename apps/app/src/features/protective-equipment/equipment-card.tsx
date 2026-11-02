@@ -279,7 +279,7 @@ export function EquipmentCard({
                   key={entry.id}
                   data-testid="equipment-row"
                   {...rowClickProps(readOnly ? undefined : () => setEditing(entry))}
-                  className={cn('', !readOnly && 'cursor-pointer')}
+                  className={cn(!readOnly && 'cursor-pointer')}
                 >
                   <TableCell className="min-w-40 whitespace-normal">{entry.risk}</TableCell>
                   <TableCell className="min-w-40 font-medium whitespace-normal">

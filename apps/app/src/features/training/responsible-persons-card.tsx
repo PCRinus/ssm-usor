@@ -249,7 +249,7 @@ export function ResponsiblePersonsCard({
                     id={personRowId(person.id)}
                     data-testid="responsible-row"
                     {...rowClickProps(readOnly ? undefined : () => setEditing(person))}
-                    className={cn('', !readOnly && 'cursor-pointer')}
+                    className={cn(!readOnly && 'cursor-pointer')}
                   >
                     <TableCell className="font-medium">
                       {person.fullName}
