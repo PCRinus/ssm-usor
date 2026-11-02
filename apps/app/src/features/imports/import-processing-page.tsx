@@ -208,7 +208,7 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
           data-testid="import-confirmed"
           action={
             <Button asChild variant="outline" size="sm">
-              <Link to="/clients/$clientId/details" params={{ clientId: detail.client.id }}>
+              <Link to="/clienti/$clientId/detalii" params={{ clientId: detail.client.id }}>
                 Deschide clientul
               </Link>
             </Button>
@@ -372,7 +372,7 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
         importId={abandoning ? detail.id : null}
         running={running}
         onClose={() => setAbandoning(false)}
-        onAbandoned={() => void navigate({ to: '/clients' })}
+        onAbandoned={() => void navigate({ to: '/clienti' })}
       />
     </div>
   );
@@ -409,7 +409,7 @@ function OtherCompanyNotice({
         action: {
           label: 'Vezi importul',
           onClick: () =>
-            void navigate({ to: '/clients/import/$importId', params: { importId: created.id } }),
+            void navigate({ to: '/clienti/import/$importId', params: { importId: created.id } }),
         },
       });
     } catch (cause) {

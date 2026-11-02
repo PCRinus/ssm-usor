@@ -41,7 +41,7 @@ const watcherCalls = () =>
     return url.pathname === '/imports' && url.searchParams.get('kind') === 'all';
   });
 
-function mount(path = '/profile') {
+function mount(path = '/profil') {
   mockApi((_init, url) =>
     url.pathname === '/imports' ? Response.json({ items: listed }) : undefined
   );
@@ -85,7 +85,7 @@ describe('the import ready notice', () => {
 
     await waitFor(() =>
       expect(runtime.router.state.location.pathname).toBe(
-        `/clients/${clientId}/employees/import/${importId}`
+        `/clienti/${clientId}/angajati/import/${importId}`
       )
     );
     expect(localStorage.getItem(`ssm-usor:import-announced:${importId}`)).not.toBeNull();
@@ -150,7 +150,7 @@ describe('the import ready notice', () => {
       if (url.pathname === '/imports') return Response.json({ items: listed });
       return undefined;
     });
-    const runtime = mountApp(authFixture(makeSession()).client, `/clients/import/${importId}`);
+    const runtime = mountApp(authFixture(makeSession()).client, `/clienti/import/${importId}`);
     await finishReading(runtime, [{ ...listed[0]!, status: 'ready' }]);
 
     await new Promise((resolve) => setTimeout(resolve, 50));

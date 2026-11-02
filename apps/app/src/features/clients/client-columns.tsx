@@ -85,7 +85,7 @@ export function clientColumns({
         return (
           <>
             <Link
-              to="/clients/$clientId/details"
+              to="/clienti/$clientId/detalii"
               params={{ clientId: row.original.id }}
               data-testid="clients-open"
               className="hover:underline"
@@ -180,7 +180,7 @@ export function clientColumns({
               ) : (
                 <>
                   <DropdownMenuItem asChild data-testid="clients-edit">
-                    <Link to="/clients/$clientId/details" params={{ clientId: client.id }}>
+                    <Link to="/clienti/$clientId/detalii" params={{ clientId: client.id }}>
                       <Pencil aria-hidden="true" />
                       Modifică
                     </Link>

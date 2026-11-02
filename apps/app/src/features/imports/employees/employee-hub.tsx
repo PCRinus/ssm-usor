@@ -100,7 +100,7 @@ export function EmployeeHub({
         {nextView ? (
           <Button asChild data-testid="employee-hub-continue">
             <Link
-              to="/clients/$clientId/employees/import/$importId/$personId"
+              to="/clienti/$clientId/angajati/import/$importId/$personId"
               params={{ clientId, importId: detail.id, personId: nextView.person.id }}
             >
               Continuă cu {nextView.name}
@@ -176,7 +176,7 @@ export function EmployeeHub({
         employees
         onClose={() => setAbandoning(false)}
         onAbandoned={() =>
-          void navigate({ to: '/clients/$clientId/employees', params: { clientId } })
+          void navigate({ to: '/clienti/$clientId/angajati', params: { clientId } })
         }
       />
     </div>

@@ -26,18 +26,17 @@ const hrefs = (groups: MissingGroup[]) =>
     group.rows.map((row) => (row.target ? router.buildLocation(row.target).href : null))
   );
 
-const details = `/clients/${clientId}/details?focus=`;
-const training = `/clients/${clientId}/training?focus=`;
+const details = `/clienti/${clientId}/detalii?focus=`;
+const training = `/clienti/${clientId}/instruire?focus=`;
 
 const documentTargets: Record<MissingDocumentData, string> = {
-  'provider.legalName': '/organization/company?focus=legal-name',
-  'provider.representativeName': '/organization/company?focus=representative-name',
-  'provider.representativeRole': '/organization/company?focus=representative-role',
-  'provider.fireSafetyTechnician': '/organization/authorizations?focus=fire-safety-technician',
-  'provider.fireSafetyTechnicianCertificate':
-    '/organization/authorizations?focus=fire-safety-technician',
-  'specialist.name': '/profile?focus=full-name',
-  'specialist.professionalTitle': '/profile?focus=professional-title',
+  'provider.legalName': '/organizatie/date-firma?focus=legal-name',
+  'provider.representativeName': '/organizatie/date-firma?focus=representative-name',
+  'provider.representativeRole': '/organizatie/date-firma?focus=representative-role',
+  'provider.fireSafetyTechnician': '/organizatie/abilitari?focus=fire-safety-technician',
+  'provider.fireSafetyTechnicianCertificate': '/organizatie/abilitari?focus=fire-safety-technician',
+  'specialist.name': '/profil?focus=full-name',
+  'specialist.professionalTitle': '/profil?focus=professional-title',
   'client.representativeName': `${details}legal-representative-name`,
   'client.representativeRole': `${details}legal-representative-role`,
   'client.trainingSchedule': `${training}training-schedule`,
@@ -48,24 +47,24 @@ const documentTargets: Record<MissingDocumentData, string> = {
   'responsible.workers_representative': `${training}workers-representative`,
   'responsible.workers_representatives_two': `${training}workers-representative`,
   'responsible.workers_representative_is_legal_representative': `${training}workers-representative-clash`,
-  'positions.any': `/clients/${clientId}/job-positions?focus=add-position`,
-  'positions.equipment': `/clients/${clientId}/job-positions`,
-  'positions.instructions': `/clients/${clientId}/job-positions`,
-  'positions.risk_evaluation': `/clients/${clientId}/job-positions`,
-  'risk_evaluations.sensitive_groups': `/clients/${clientId}/job-positions#client-risk-evaluations`,
-  'risk_evaluations.measures': `/clients/${clientId}/job-positions`,
-  'risk_evaluations.plan': `/clients/${clientId}/job-positions`,
-  'documents.own_instructions': `/clients/${clientId}/documents?section=own-instructions`,
+  'positions.any': `/clienti/${clientId}/posturi?focus=add-position`,
+  'positions.equipment': `/clienti/${clientId}/posturi`,
+  'positions.instructions': `/clienti/${clientId}/posturi`,
+  'positions.risk_evaluation': `/clienti/${clientId}/posturi`,
+  'risk_evaluations.sensitive_groups': `/clienti/${clientId}/posturi#client-risk-evaluations`,
+  'risk_evaluations.measures': `/clienti/${clientId}/posturi`,
+  'risk_evaluations.plan': `/clienti/${clientId}/posturi`,
+  'documents.own_instructions': `/clienti/${clientId}/documente-ssm?section=own-instructions`,
   'responsible.fire_safety_coordinator': `${training}fire-safety-coordinator`,
   'responsible.fire_intervention_leader': `${training}fire-intervention-leader`,
   'fire.trainingSchedule': `${training}fire-training-schedule`,
   'fire.smokingPolicy': `${training}fire-smoking`,
   'fire.waste': `${training}fire-waste`,
   'fire.workplaces': `${details}workplace-fire-data`,
-  'fire.equipment': `/clients/${clientId}/fire-safety-means?focus=fire-equipment`,
-  'fire.substances': `/clients/${clientId}/fire-safety-means?focus=fire-substances`,
-  'fire.instructions': `/clients/${clientId}/job-positions`,
-  'documents.fire_own_instructions': `/clients/${clientId}/fire-safety-documents?section=own-instructions`,
+  'fire.equipment': `/clienti/${clientId}/mijloace-de-aparare?focus=fire-equipment`,
+  'fire.substances': `/clienti/${clientId}/mijloace-de-aparare?focus=fire-substances`,
+  'fire.instructions': `/clienti/${clientId}/posturi`,
+  'documents.fire_own_instructions': `/clienti/${clientId}/documente-su?section=own-instructions`,
 };
 
 describe('the rows of the generation form', () => {
@@ -133,9 +132,9 @@ describe('the rows of the generation form', () => {
       'Sudor · instrucțiuni',
     ]);
     expect(hrefs(groups)).toEqual([
-      `/clients/${clientId}/job-positions/p-contabil#protective-equipment`,
-      `/clients/${clientId}/job-positions/p-contabil#instructions`,
-      `/clients/${clientId}/job-positions/p-sudor#instructions`,
+      `/clienti/${clientId}/posturi/p-contabil#protective-equipment`,
+      `/clienti/${clientId}/posturi/p-contabil#instructions`,
+      `/clienti/${clientId}/posturi/p-sudor#instructions`,
     ]);
   });
 
@@ -156,9 +155,9 @@ describe('the rows of the generation form', () => {
       ['Documentația SU', ['Instrucțiunile proprii SU, generate înaintea tematicii']],
     ]);
     expect(hrefs(groups)).toEqual([
-      `/clients/${clientId}/job-positions/p-contabil#fire-instructions`,
-      `/clients/${clientId}/job-positions/p-sudor#fire-instructions`,
-      `/clients/${clientId}/fire-safety-documents?section=own-instructions`,
+      `/clienti/${clientId}/posturi/p-contabil#fire-instructions`,
+      `/clienti/${clientId}/posturi/p-sudor#fire-instructions`,
+      `/clienti/${clientId}/documente-su?section=own-instructions`,
     ]);
   });
 
@@ -214,11 +213,11 @@ describe('the rows of the generation form', () => {
       ['e-vizitatori:plan', 'Vizitatori · termene și responsabili'],
     ]);
     expect(hrefs(groups)).toEqual([
-      `/clients/${clientId}/job-positions/p-contabil/risk-evaluation#factors`,
-      `/clients/${clientId}/job-positions/p-sudor/risk-evaluation#factors`,
-      `/clients/${clientId}/job-positions/p-sudor/risk-evaluation#factors`,
-      `/clients/${clientId}/job-positions#client-risk-evaluations`,
-      `/clients/${clientId}/job-positions/risk-evaluations/e-vizitatori#factors`,
+      `/clienti/${clientId}/posturi/p-contabil/evaluare-riscuri#factors`,
+      `/clienti/${clientId}/posturi/p-sudor/evaluare-riscuri#factors`,
+      `/clienti/${clientId}/posturi/p-sudor/evaluare-riscuri#factors`,
+      `/clienti/${clientId}/posturi#client-risk-evaluations`,
+      `/clienti/${clientId}/posturi/evaluari-riscuri/e-vizitatori#factors`,
     ]);
     const sensitiveGroups = groups
       .flatMap((group) => group.rows)
@@ -250,7 +249,7 @@ describe('the rows of the generation form', () => {
       ['e-grupuri:factors', 'Evaluarea grupurilor sensibile'],
     ]);
     expect(hrefs(groups)).toEqual([
-      `/clients/${clientId}/job-positions/risk-evaluations/e-grupuri#factors`,
+      `/clienti/${clientId}/posturi/evaluari-riscuri/e-grupuri#factors`,
     ]);
     expect(groups[0]!.rows[0]!.action).toBeUndefined();
   });
@@ -333,7 +332,7 @@ describe('the rows of the generation form', () => {
   });
 });
 
-const organizationCompany = '/organization/company?focus=';
+const organizationCompany = '/organizatie/date-firma?focus=';
 
 const contractTargets: Record<MissingServiceContractData, { client: string; lead: string }> = {
   'provider.legalName': {
@@ -363,32 +362,32 @@ const contractTargets: Record<MissingServiceContractData, { client: string; lead
     lead: `${organizationCompany}bank-account`,
   },
   'provider.authorizationCertificate': {
-    client: '/organization/authorizations?focus=certificate',
-    lead: '/organization/authorizations?focus=certificate',
+    client: '/organizatie/abilitari?focus=certificate',
+    lead: '/organizatie/abilitari?focus=certificate',
   },
   'provider.fireSafetyTechnician': {
-    client: '/organization/authorizations?focus=fire-safety-technician',
-    lead: '/organization/authorizations?focus=fire-safety-technician',
+    client: '/organizatie/abilitari?focus=fire-safety-technician',
+    lead: '/organizatie/abilitari?focus=fire-safety-technician',
   },
   'client.tradeRegisterNumber': {
     client: `${details}company-trade-register`,
-    lead: `/leads/${clientId}?focus=company-trade-register`,
+    lead: `/clienti-potentiali/${clientId}?focus=company-trade-register`,
   },
   'client.address': {
     client: `${details}company-address`,
-    lead: `/leads/${clientId}?focus=company-address`,
+    lead: `/clienti-potentiali/${clientId}?focus=company-address`,
   },
   'client.representativeName': {
     client: `${details}legal-representative-name`,
-    lead: `/leads/${clientId}?focus=contract-representative-name`,
+    lead: `/clienti-potentiali/${clientId}?focus=contract-representative-name`,
   },
   'client.representativeRole': {
     client: `${details}legal-representative-role`,
-    lead: `/leads/${clientId}?focus=contract-representative-role`,
+    lead: `/clienti-potentiali/${clientId}?focus=contract-representative-role`,
   },
   'contract.details': {
-    client: `/clients/${clientId}/contract?focus=contract-details`,
-    lead: `/leads/${clientId}?focus=contract-details`,
+    client: `/clienti/${clientId}/contract?focus=contract-details`,
+    lead: `/clienti-potentiali/${clientId}?focus=contract-details`,
   },
 };
 
@@ -422,7 +421,7 @@ describe("the rows of the contract's missing data", () => {
 
 describe("the rows of a training sheet's missing data", () => {
   const employeeId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
-  const edit = `/clients/${clientId}/employees/${employeeId}/edit?focus=`;
+  const edit = `/clienti/${clientId}/angajati/${employeeId}/editare?focus=`;
 
   it('lead each code to its field on the edit form, under the employee', () => {
     const groups = trainingSheetMissingGroups({ missing: missingSheetData, clientId, employeeId });

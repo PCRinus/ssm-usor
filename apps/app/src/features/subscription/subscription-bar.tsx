@@ -112,7 +112,7 @@ export function SubscriptionBar({
       action={
         smsBar.link === 'raiseCap' ? (
           <Link
-            to="/organization/subscription"
+            to="/organizatie/abonament"
             search={{ raiseCap: true }}
             data-testid="subscription-bar-action"
             className="inline-flex h-8 shrink-0 items-center rounded-lg bg-primary px-3 font-semibold whitespace-nowrap text-primary-foreground hover:bg-primary/90"

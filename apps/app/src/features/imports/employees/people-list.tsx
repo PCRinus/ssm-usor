@@ -170,7 +170,7 @@ function PersonRow({
         ? `Propus: ${positionName(positions, postId)}`
         : null;
   const link = {
-    to: '/clients/$clientId/employees/import/$importId/$personId',
+    to: '/clienti/$clientId/angajati/import/$importId/$personId',
     params: { clientId, importId: detail.id, personId: person.id },
   } as const;
   return (

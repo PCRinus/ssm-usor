@@ -185,7 +185,8 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const mount = (path = `/leads/${leadId}`) => mountApp(authFixture(makeSession()).client, path);
+const mount = (path = `/clienti-potentiali/${leadId}`) =>
+  mountApp(authFixture(makeSession()).client, path);
 
 describe('the service contract of a lead', () => {
   it('starts from the suggested number and asks for the details before anything else', async () => {
@@ -264,10 +265,10 @@ describe('the service contract of a lead', () => {
         .getAllByTestId('contract-missing-row')
         .map((row) => row.getAttribute('href'))
     ).toEqual([
-      '/organization/company?focus=bank-account',
-      '/organization/authorizations?focus=certificate',
-      `/leads/${leadId}?focus=company-address`,
-      `/leads/${leadId}?focus=contract-representative-role`,
+      '/organizatie/date-firma?focus=bank-account',
+      '/organizatie/abilitari?focus=certificate',
+      `/clienti-potentiali/${leadId}?focus=company-address`,
+      `/clienti-potentiali/${leadId}?focus=contract-representative-role`,
     ]);
     expect(screen.getByTestId('contract-generate')).toHaveProperty('disabled', true);
   });
@@ -325,7 +326,7 @@ describe('the service contract of a lead', () => {
       if (new URL(String(input)).pathname === `/clients/${leadId}/service-contract`) await held;
       return answer(input, init);
     });
-    await runtime.router.navigate({ to: '/clients' });
+    await runtime.router.navigate({ to: '/clienti' });
     await screen.findByTestId('clients-page');
     runtime.router.history.back();
 
@@ -349,7 +350,7 @@ describe('the service contract of a lead', () => {
     expect(await screen.findByText('Contractul a fost generat.')).toBeTruthy();
     expect((await screen.findByTestId('contract-draft')).textContent).toBe('Ciornă · rev. 1');
     expect(screen.getByTestId('contract-open').getAttribute('href')).toBe(
-      `/leads/${leadId}/contract`
+      `/clienti-potentiali/${leadId}/contract`
     );
     await user.click(screen.getByTestId('contract-draft-actions'));
     expect((await screen.findByTestId('contract-generate')).textContent).toContain(
@@ -749,18 +750,18 @@ describe('the contract of a client', () => {
 
   it('is a section of the client for an owner, with the contract and its own editor address', async () => {
     mockApi({ client, get: () => Response.json(state({ document: contractDocument() })) });
-    const runtime = mount(`/clients/${leadId}/contract`);
+    const runtime = mount(`/clienti/${leadId}/contract`);
     await screen.findByTestId('contract-page');
     await waitFor(() => expect(document.title).toBe('Contract — VELOCITA URBANA SRL — SSM Ușor'));
     const sections = screen.getAllByTestId('client-section').map((link) => link.textContent);
     expect(sections.slice(-3)).toEqual(['Contract', 'Alte documente', 'Portal']);
     const open = await screen.findByTestId('contract-open');
-    expect(open.getAttribute('href')).toBe(`/clients/${leadId}/contract/edit`);
+    expect(open.getAttribute('href')).toBe(`/clienti/${leadId}/contract/editare`);
 
     await userEvent.setup().click(open);
     const back = await screen.findByTestId('editor-back');
-    expect(runtime.router.state.location.pathname).toBe(`/clients/${leadId}/contract/edit`);
-    expect(back.getAttribute('href')).toBe(`/clients/${leadId}/contract`);
+    expect(runtime.router.state.location.pathname).toBe(`/clienti/${leadId}/contract/editare`);
+    expect(back.getAttribute('href')).toBe(`/clienti/${leadId}/contract`);
     expect(back.getAttribute('aria-label')).toBe('Înapoi la contract');
   });
 
@@ -774,11 +775,11 @@ describe('the contract of a client', () => {
           })
         ),
     });
-    const runtime = mount(`/clients/${leadId}/contract`);
+    const runtime = mount(`/clienti/${leadId}/contract`);
     const user = userEvent.setup();
     const row = await screen.findByTestId('contract-missing-row');
     expect(row.getAttribute('href')).toBe(
-      `/clients/${leadId}/details?focus=company-trade-register`
+      `/clienti/${leadId}/detalii?focus=company-trade-register`
     );
 
     await user.click(row);
@@ -787,12 +788,12 @@ describe('the contract of a client', () => {
     await user.click(screen.getByTestId('company-save'));
     await user.click(await screen.findByRole('button', { name: 'Înapoi la contract' }));
     await screen.findByTestId('contract-page');
-    expect(runtime.router.state.location.pathname).toBe(`/clients/${leadId}/contract`);
+    expect(runtime.router.state.location.pathname).toBe(`/clienti/${leadId}/contract`);
   });
 
   it('is not offered to a specialist, and asks the API for nothing on their behalf', async () => {
     mockApi({ client, role: 'specialist' });
-    mount(`/clients/${leadId}/contract`);
+    mount(`/clienti/${leadId}/contract`);
     expect((await screen.findByTestId('contract-owners-only')).textContent).toContain(
       'Doar administratorii organizației pot vedea contractul'
     );
@@ -803,9 +804,9 @@ describe('the contract of a client', () => {
 
   it('sends the old /other-documents/contract address to /contract/edit', async () => {
     mockApi({ client, get: () => Response.json(state({ document: contractDocument() })) });
-    const runtime = mount(`/clients/${leadId}/other-documents/contract`);
+    const runtime = mount(`/clienti/${leadId}/alte-documente/contract`);
     await waitFor(() =>
-      expect(runtime.router.state.location.pathname).toBe(`/clients/${leadId}/contract/edit`)
+      expect(runtime.router.state.location.pathname).toBe(`/clienti/${leadId}/contract/editare`)
     );
     expect(await screen.findByTestId('editor-back')).toBeTruthy();
   });
@@ -830,7 +831,7 @@ describe('who signs the contract for the client', () => {
       client,
       get: () => Response.json(unsaved({ name: 'Maria Popescu', role: 'Administrator' })),
     });
-    mount(`/clients/${leadId}/contract`);
+    mount(`/clienti/${leadId}/contract`);
     const user = userEvent.setup();
     const form = await screen.findByTestId('service-contract-form');
     const name = within(form).getByTestId<HTMLInputElement>('contract-clientRepresentativeName');
@@ -879,14 +880,14 @@ describe('who signs the contract for the client', () => {
       },
       details: () => Response.json({ documentDetails: representative }),
     });
-    const runtime = mount(`/clients/${leadId}/details`);
+    const runtime = mount(`/clienti/${leadId}/detalii`);
     const user = userEvent.setup();
     expect((await screen.findByTestId('legal-representative-name')).textContent).toBe(
       'Adnana POPA'
     );
 
     await runtime.router.navigate({
-      to: '/clients/$clientId/contract',
+      to: '/clienti/$clientId/contract',
       params: { clientId: leadId },
     });
     expect((await screen.findByTestId('contract-signer')).textContent).toBe(
@@ -902,7 +903,7 @@ describe('who signs the contract for the client', () => {
     expect(bodyOfSave()).toMatchObject({ clientRepresentativeName: 'Ion Ionescu' });
 
     await runtime.router.navigate({
-      to: '/clients/$clientId/details',
+      to: '/clienti/$clientId/detalii',
       params: { clientId: leadId },
     });
     await waitFor(() =>

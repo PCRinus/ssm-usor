@@ -81,7 +81,7 @@ export function ContactHint() {
 
 const subscriptionLink = (
   <Button asChild variant="outline" size="sm" className="bg-card">
-    <Link to="/organization/subscription" data-testid="import-credits-subscription">
+    <Link to="/organizatie/abonament" data-testid="import-credits-subscription">
       Deschide Abonament
     </Link>
   </Button>

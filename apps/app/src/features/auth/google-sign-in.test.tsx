@@ -68,7 +68,7 @@ afterEach(() => {
 describe('Google button', () => {
   it('is on the registration page and sends Google back to the callback', async () => {
     const auth = authFixture();
-    mountApp(auth.client, '/register');
+    mountApp(auth.client, '/inregistrare');
     const user = userEvent.setup();
 
     await user.click(await screen.findByTestId('google-sign-in'));
@@ -80,7 +80,7 @@ describe('Google button', () => {
   });
 
   it('is not on the login page unless the registration flag is on', async () => {
-    mountApp(authFixture().client, '/login');
+    mountApp(authFixture().client, '/autentificare');
 
     await screen.findByTestId('login-page');
     expect(screen.queryByTestId('google-sign-in')).toBeNull();
@@ -88,7 +88,7 @@ describe('Google button', () => {
 
   it('is on the login page when the registration flag is on', async () => {
     vi.stubEnv('VITE_REGISTRATION_LINK', 'true');
-    mountApp(authFixture().client, '/login');
+    mountApp(authFixture().client, '/autentificare');
 
     expect(await screen.findByTestId('google-sign-in')).toBeTruthy();
   });
@@ -96,7 +96,7 @@ describe('Google button', () => {
   it('says so when Google cannot be opened', async () => {
     const auth = authFixture();
     auth.client.signInWithOAuth.mockResolvedValue({ error: { message: 'offline' } });
-    mountApp(auth.client, '/register');
+    mountApp(auth.client, '/inregistrare');
     const user = userEvent.setup();
 
     await user.click(await screen.findByTestId('google-sign-in'));
@@ -129,7 +129,7 @@ describe('Google callback', () => {
     const runtime = mountApp(auth.client, '/auth/callback?code=code-abc');
 
     await screen.findByTestId('onboarding-page');
-    expect(runtime.router.state.location.pathname).toBe('/onboarding');
+    expect(runtime.router.state.location.pathname).toBe('/configurare');
     expect(screen.getByTestId<HTMLInputElement>('onboarding-full-name').value).toBe(
       'Ioana Marinescu'
     );
@@ -151,7 +151,7 @@ describe('Google callback', () => {
   it('returns to the invitation the sign-in started from', async () => {
     vi.stubEnv('VITE_REGISTRATION_LINK', 'true');
     const auth = authFixture();
-    mountApp(auth.client, '/login?invitation=token-xyz');
+    mountApp(auth.client, '/autentificare?invitation=token-xyz');
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('google-sign-in'));
     disposeRuntimes();
@@ -162,13 +162,13 @@ describe('Google callback', () => {
     });
     const runtime = mountApp(auth.client, '/auth/callback?code=code-abc');
 
-    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/accept-invitation'));
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/invitatie'));
     expect(runtime.router.state.location.search).toEqual({ token: 'token-xyz' });
   });
 
   it('goes back to the page it started from when the person cancels at Google', async () => {
     const auth = authFixture();
-    mountApp(auth.client, '/register');
+    mountApp(auth.client, '/inregistrare');
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('google-sign-in'));
     disposeRuntimes();
@@ -176,7 +176,7 @@ describe('Google callback', () => {
     const runtime = mountApp(auth.client, '/auth/callback?error=access_denied');
 
     await screen.findByTestId('register-page');
-    expect(runtime.router.state.location.pathname).toBe('/register');
+    expect(runtime.router.state.location.pathname).toBe('/inregistrare');
     expect(auth.client.exchangeCodeForSession).not.toHaveBeenCalled();
   });
 
@@ -190,14 +190,14 @@ describe('Google callback', () => {
     mountApp(authFixture().client, '/auth/callback?code=used-code');
 
     await screen.findByTestId('google-callback-failed');
-    expect(screen.getByTestId('google-callback-retry').getAttribute('href')).toBe('/login');
+    expect(screen.getByTestId('google-callback-retry').getAttribute('href')).toBe('/autentificare');
   });
 });
 
 describe('password card for an account made with Google', () => {
   it('offers a link that sets a first password', async () => {
     const auth = authFixture(googleSession());
-    mountApp(auth.client, '/profile');
+    mountApp(auth.client, '/profil');
     const user = userEvent.setup();
 
     await user.click(await screen.findByTestId('set-password-send'));
@@ -209,7 +209,7 @@ describe('password card for an account made with Google', () => {
   });
 
   it('is not offered to an account with a password', async () => {
-    mountApp(authFixture(makeSession()).client, '/profile');
+    mountApp(authFixture(makeSession()).client, '/profil');
 
     await screen.findByTestId('change-password-card');
     expect(screen.queryByTestId('set-password-notice')).toBeNull();

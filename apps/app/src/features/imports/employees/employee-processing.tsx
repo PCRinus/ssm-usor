@@ -293,7 +293,7 @@ export function EmployeeProcessing({
           variant="success"
           action={
             <Button asChild variant="outline" size="sm">
-              <Link to="/clients/$clientId/employees" params={{ clientId }}>
+              <Link to="/clienti/$clientId/angajati" params={{ clientId }}>
                 Vezi angajații
               </Link>
             </Button>
@@ -308,7 +308,7 @@ export function EmployeeProcessing({
         employees
         onClose={() => setAbandoning(false)}
         onAbandoned={() =>
-          void navigate({ to: '/clients/$clientId/employees', params: { clientId } })
+          void navigate({ to: '/clienti/$clientId/angajati', params: { clientId } })
         }
       />
     </div>

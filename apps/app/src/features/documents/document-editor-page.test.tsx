@@ -154,7 +154,7 @@ const saves = () =>
   );
 
 const mount = () =>
-  mountApp(authFixture(makeSession()).client, `/clients/${clientId}/documents/${documentId}`);
+  mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/documente-ssm/${documentId}`);
 
 beforeEach(() => {
   editorMock.fail = false;

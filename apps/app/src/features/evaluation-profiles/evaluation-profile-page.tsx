@@ -96,7 +96,7 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
       <RemoveProfileDialog
         profile={removing ? { ...profile, factorCount: profile.factors.length } : null}
         onClose={() => setRemoving(false)}
-        afterRemove={() => navigate({ to: '/risks' })}
+        afterRemove={() => navigate({ to: '/riscuri' })}
       />
     </div>
   );
@@ -110,7 +110,7 @@ export function EvaluationProfileNotFound() {
         Nu există niciun profil cu acest identificator în biblioteca de riscuri, sau a fost șters.
       </p>
       <Button asChild className="w-fit">
-        <Link to="/risks">Înapoi la bibliotecă</Link>
+        <Link to="/riscuri">Înapoi la bibliotecă</Link>
       </Button>
     </div>
   );

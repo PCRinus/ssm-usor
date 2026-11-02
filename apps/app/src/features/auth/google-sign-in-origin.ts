@@ -1,6 +1,6 @@
 const returnKey = 'ssm-usor.google-sign-in';
 
-export type GoogleSignInOrigin = { from: '/login' | '/register'; invitation?: string };
+export type GoogleSignInOrigin = { from: '/autentificare' | '/inregistrare'; invitation?: string };
 
 // Kept in the tab rather than in `redirectTo`: Supabase accepts only the redirect URLs listed in
 // supabase/config.toml, so the callback's address carries nothing of its own.
@@ -8,7 +8,7 @@ export function rememberGoogleSignInOrigin(origin: GoogleSignInOrigin) {
   try {
     sessionStorage.setItem(returnKey, JSON.stringify(origin));
   } catch {
-    // Without storage the callback falls back to /login and /dashboard.
+    // Without storage the callback falls back to /autentificare and /dashboard.
   }
 }
 
@@ -28,7 +28,7 @@ export function readGoogleSignInOrigin(): GoogleSignInOrigin {
       parsed &&
       typeof parsed === 'object' &&
       'from' in parsed &&
-      (parsed.from === '/login' || parsed.from === '/register')
+      (parsed.from === '/autentificare' || parsed.from === '/inregistrare')
     ) {
       const invitation =
         'invitation' in parsed && typeof parsed.invitation === 'string'
@@ -39,5 +39,5 @@ export function readGoogleSignInOrigin(): GoogleSignInOrigin {
   } catch {
     // Unreadable storage is the same as nothing saved.
   }
-  return { from: '/login' };
+  return { from: '/autentificare' };
 }

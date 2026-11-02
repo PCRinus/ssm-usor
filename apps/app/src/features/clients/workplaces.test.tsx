@@ -127,7 +127,7 @@ const requests = (pathname: string, method: string) =>
     )
     .map(([, init]) => (init?.body ? (JSON.parse(String(init.body)) as unknown) : null));
 
-const mount = () => mountApp(authFixture(makeSession()).client, `/clients/${clientId}/details`);
+const mount = () => mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/detalii`);
 
 async function openRowMenu(user: ReturnType<typeof userEvent.setup>, name: string) {
   const rows = await screen.findAllByTestId('workplace-row');
@@ -518,7 +518,7 @@ describe('client workplaces', () => {
     });
     mountApp(
       authFixture(makeSession()).client,
-      `/clients/${clientId}/details?focus=workplace-fire-data`
+      `/clienti/${clientId}/detalii?focus=workplace-fire-data`
     );
 
     const name = await screen.findByTestId<HTMLInputElement>('workplace-name');
@@ -528,7 +528,7 @@ describe('client workplaces', () => {
 
   it('opens the new workplace dialog for ?focus=add-workplace', async () => {
     mockApi({ items: [] });
-    mountApp(authFixture(makeSession()).client, `/clients/${clientId}/details?focus=add-workplace`);
+    mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/detalii?focus=add-workplace`);
 
     const dialog = await screen.findByTestId('workplace-dialog');
     expect(within(dialog).getByRole('heading', { level: 2 }).textContent).toBe(

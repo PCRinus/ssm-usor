@@ -112,7 +112,7 @@ const requests = (pathname: string, method: string) =>
     .map(([, init]) => (init?.body ? (JSON.parse(String(init.body)) as unknown) : null));
 
 const mount = (search = '') =>
-  mountApp(authFixture(makeSession()).client, `/clients/${clientId}/training${search}`);
+  mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/instruire${search}`);
 
 const value = (testId: string) => screen.getByTestId<HTMLInputElement>(testId).value;
 

@@ -38,7 +38,7 @@ export function useSaveAsProfile(clientId: string) {
         action: {
           label: 'Deschide',
           onClick: () =>
-            void navigate({ to: '/risks/$profileId', params: { profileId: profile.id } }),
+            void navigate({ to: '/riscuri/$profileId', params: { profileId: profile.id } }),
         },
       });
     },

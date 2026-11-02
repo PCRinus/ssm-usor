@@ -172,7 +172,7 @@ export function InstructionLibrary({
                     data-testid="instruction-row"
                     {...rowClickProps(() =>
                       navigate({
-                        to: '/instructions/$moduleId',
+                        to: '/instructiuni/$moduleId',
                         params: { moduleId: module.id },
                         state: { openedFromList: true },
                       })
@@ -180,7 +180,7 @@ export function InstructionLibrary({
                   >
                     <TableCell className="font-medium min-w-40 whitespace-normal">
                       <Link
-                        to="/instructions/$moduleId"
+                        to="/instructiuni/$moduleId"
                         params={{ moduleId: module.id }}
                         state={{ openedFromList: true }}
                         data-testid="instruction-open"
@@ -253,7 +253,7 @@ export function InstructionLibrary({
         onSubmit={(values) => {
           setStarting(false);
           void navigate({
-            to: '/instructions/new',
+            to: '/instructiuni/nou',
             search: values,
             state: { openedFromList: true },
           });

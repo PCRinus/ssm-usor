@@ -395,7 +395,7 @@ function ActionLink({
   }
   return (
     <Button variant={variant} className={className} asChild>
-      <Link to="/organization/subscription/choose" data-testid="subscription-choose">
+      <Link to="/organizatie/abonament/alege" data-testid="subscription-choose">
         {label}
       </Link>
     </Button>

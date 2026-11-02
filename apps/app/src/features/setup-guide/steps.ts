@@ -25,29 +25,29 @@ export const isComplete = (steps: readonly { state: string; canDo: boolean }[]) 
 
 const to = {
   company: (focus?: OrganizationCompanyFocus) =>
-    linkOptions({ to: '/organization/company', search: { focus } }),
+    linkOptions({ to: '/organizatie/date-firma', search: { focus } }),
   authorizations: (focus?: AuthorizationsFocus) =>
-    linkOptions({ to: '/organization/authorizations', search: { focus } }),
-  profile: (focus: ProfileFocus) => linkOptions({ to: '/profile', search: { focus } }),
-  newClient: () => linkOptions({ to: '/clients/new' }),
-  clients: () => linkOptions({ to: '/clients' }),
+    linkOptions({ to: '/organizatie/abilitari', search: { focus } }),
+  profile: (focus: ProfileFocus) => linkOptions({ to: '/profil', search: { focus } }),
+  newClient: () => linkOptions({ to: '/clienti/nou' }),
+  clients: () => linkOptions({ to: '/clienti' }),
   details: (clientId: string) =>
-    linkOptions({ to: '/clients/$clientId/details', params: { clientId } }),
+    linkOptions({ to: '/clienti/$clientId/detalii', params: { clientId } }),
   positions: (clientId: string) =>
-    linkOptions({ to: '/clients/$clientId/job-positions', params: { clientId } }),
+    linkOptions({ to: '/clienti/$clientId/posturi', params: { clientId } }),
   newEmployee: (clientId: string) =>
-    linkOptions({ to: '/clients/$clientId/employees/new', params: { clientId } }),
+    linkOptions({ to: '/clienti/$clientId/angajati/nou', params: { clientId } }),
   training: (clientId: string) =>
-    linkOptions({ to: '/clients/$clientId/training', params: { clientId } }),
+    linkOptions({ to: '/clienti/$clientId/instruire', params: { clientId } }),
   trainings: (clientId: string) =>
-    linkOptions({ to: '/clients/$clientId/trainings', params: { clientId } }),
+    linkOptions({ to: '/clienti/$clientId/instruiri-tinute', params: { clientId } }),
   documents: (clientId: string) =>
-    linkOptions({ to: '/clients/$clientId/documents', params: { clientId } }),
+    linkOptions({ to: '/clienti/$clientId/documente-ssm', params: { clientId } }),
   fireSafetyDocuments: (clientId: string) =>
-    linkOptions({ to: '/clients/$clientId/fire-safety-documents', params: { clientId } }),
+    linkOptions({ to: '/clienti/$clientId/documente-su', params: { clientId } }),
   portal: (clientId: string) =>
-    linkOptions({ to: '/clients/$clientId/portal', params: { clientId } }),
-  signatures: () => linkOptions({ to: '/signatures' }),
+    linkOptions({ to: '/clienti/$clientId/portal', params: { clientId } }),
+  signatures: () => linkOptions({ to: '/semnaturi' }),
 };
 
 export type StepTarget = ReturnType<(typeof to)[keyof typeof to]>;

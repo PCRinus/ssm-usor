@@ -52,7 +52,7 @@ describe('importReadyNotices', () => {
         description: '21 de persoane te așteaptă la verificare.',
         action: 'Verifică persoanele',
         link: {
-          to: '/clients/$clientId/employees/import/$importId',
+          to: '/clienti/$clientId/angajati/import/$importId',
           params: { clientId, importId },
         },
       },
@@ -81,7 +81,7 @@ describe('importReadyNotices', () => {
         title: 'Propunerea pentru Brutăria Spicul Auriu SRL e gata.',
         description: 'Verifică datele înainte să creezi clientul.',
         action: 'Verifică propunerea',
-        link: { to: '/clients/import/$importId', params: { importId } },
+        link: { to: '/clienti/import/$importId', params: { importId } },
       }),
     ]);
     expect(

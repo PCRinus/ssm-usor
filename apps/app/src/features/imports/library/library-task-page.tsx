@@ -98,7 +98,7 @@ export function LibraryTaskPage({
         />
       )}
       <Button asChild variant="outline" className="w-fit">
-        <Link to="/clients/import/$importId" params={{ importId: detail.id }}>
+        <Link to="/clienti/import/$importId" params={{ importId: detail.id }}>
           <ArrowLeft aria-hidden="true" />
           Înapoi la import
         </Link>
@@ -213,7 +213,7 @@ function TaskContent({
           ? `Am adăugat ${instructionsLabel(result.createdModuleIds.length)} în bibliotecă.`
           : `Ai confirmat ${label}.`
       );
-      await navigate({ to: '/clients/import/$importId', params: { importId: detail.id } });
+      await navigate({ to: '/clienti/import/$importId', params: { importId: detail.id } });
     } catch (cause) {
       const body =
         cause instanceof ApiHttpError
@@ -615,7 +615,7 @@ function StateNotices({
           data-testid="library-confirmed"
           action={
             <Button asChild variant="outline" size="sm" className="bg-card">
-              <Link to={part.domain === 'su' ? '/instructions/su' : '/instructions/ssm'}>
+              <Link to={part.domain === 'su' ? '/instructiuni/su' : '/instructiuni/ssm'}>
                 Deschide {label}
               </Link>
             </Button>

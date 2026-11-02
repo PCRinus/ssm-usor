@@ -33,7 +33,7 @@ function EmployeeImportNotFound({ clientId }: { clientId: string }) {
         Nu există niciun import de angajați cu acest identificator la acest client.
       </p>
       <Button asChild className="w-fit">
-        <Link to="/clients/$clientId/employees" params={{ clientId }}>
+        <Link to="/clienti/$clientId/angajati" params={{ clientId }}>
           Înapoi la angajați
         </Link>
       </Button>

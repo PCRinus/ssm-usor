@@ -10,7 +10,7 @@ export const trialBarDays = 7;
 export const contactEmail = 'contact@ssmusor.ro';
 export const pricingUrl = 'https://ssmusor.ro/preturi/';
 // The API sends the Stripe portal back here, so the path is fixed.
-export const subscriptionPath = '/organization/subscription';
+export const subscriptionPath = '/organizatie/abonament';
 
 export const planNames: Record<SubscriptionPlan, string> = {
   start: 'Start',

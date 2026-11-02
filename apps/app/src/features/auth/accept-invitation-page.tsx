@@ -33,7 +33,7 @@ import { useAuth } from './auth-context';
 import { useCaptcha } from './captcha';
 import { newPasswordHint } from './password-schema';
 
-const invitationRoute = getRouteApi('/accept-invitation');
+const invitationRoute = getRouteApi('/invitatie');
 
 const closedMessages: Record<string, { title: string; text: string }> = {
   accepted: {
@@ -156,7 +156,7 @@ export function AcceptInvitationPage() {
       <Frame title={closed.title} description={closed.text}>
         {invitation.status === 'accepted' && (
           <PublicFrameAction asChild data-testid="accept-go-login">
-            <Link to={session ? '/dashboard' : '/login'}>
+            <Link to={session ? '/dashboard' : '/autentificare'}>
               {session ? 'Deschide aplicația' : 'Autentifică-te'}
             </Link>
           </PublicFrameAction>
@@ -211,7 +211,7 @@ export function AcceptInvitationPage() {
           te aducem înapoi aici ca să accepți invitația.
         </p>
         <PublicFrameAction asChild data-testid="accept-login">
-          <Link to="/login" search={{ invitation: token }}>
+          <Link to="/autentificare" search={{ invitation: token }}>
             Autentifică-te ca să accepți
           </Link>
         </PublicFrameAction>
@@ -263,7 +263,7 @@ function CreateAccountForm({ token, invitation, description }: AcceptFormProps) 
       await navigate({ to: '/dashboard', replace: true });
     } catch {
       // The account exists; only the automatic sign-in failed.
-      await navigate({ to: '/login', replace: true });
+      await navigate({ to: '/autentificare', replace: true });
     }
   });
 
@@ -353,7 +353,7 @@ function JoinForm({ token, invitation, description }: AcceptFormProps) {
         },
       });
       await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-      await navigate({ to: '/organization/team', replace: true });
+      await navigate({ to: '/organizatie/echipa', replace: true });
     } catch (cause) {
       form.setError('root.server', { message: acceptMessage(cause) });
     }

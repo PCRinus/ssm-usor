@@ -233,7 +233,7 @@ function GenerateDocumentsForm({
                 isOwner && (
                   <Button asChild variant="outline" size="sm">
                     <Link
-                      to="/organization/authorizations"
+                      to="/organizatie/abilitari"
                       search={{ focus: 'risk-evaluator' }}
                       onClick={() => startWayBack({ userId, clientId, to: 'documents' })}
                     >

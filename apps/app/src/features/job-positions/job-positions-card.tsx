@@ -201,7 +201,7 @@ export function JobPositionsCard({
                 {...rowClickProps(
                   () =>
                     void navigate({
-                      to: '/clients/$clientId/job-positions/$jobPositionId',
+                      to: '/clienti/$clientId/posturi/$jobPositionId',
                       params: { clientId, jobPositionId: position.id },
                     })
                 )}
@@ -209,7 +209,7 @@ export function JobPositionsCard({
               >
                 <TableCell>
                   <Link
-                    to="/clients/$clientId/job-positions/$jobPositionId"
+                    to="/clienti/$clientId/posturi/$jobPositionId"
                     params={{ clientId, jobPositionId: position.id }}
                     data-testid="job-position-open"
                     className="font-medium hover:underline"
@@ -308,7 +308,7 @@ export function JobPositionsCard({
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem asChild data-testid="job-position-menu-equipment">
                         <Link
-                          to="/clients/$clientId/job-positions/$jobPositionId"
+                          to="/clienti/$clientId/posturi/$jobPositionId"
                           params={{ clientId, jobPositionId: position.id }}
                           hash={positionSections.equipment}
                         >
@@ -317,7 +317,7 @@ export function JobPositionsCard({
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild data-testid="job-position-menu-instructions">
                         <Link
-                          to="/clients/$clientId/job-positions/$jobPositionId"
+                          to="/clienti/$clientId/posturi/$jobPositionId"
                           params={{ clientId, jobPositionId: position.id }}
                           hash={positionSections.instructions}
                         >
@@ -326,7 +326,7 @@ export function JobPositionsCard({
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild data-testid="job-position-menu-fire-instructions">
                         <Link
-                          to="/clients/$clientId/job-positions/$jobPositionId"
+                          to="/clienti/$clientId/posturi/$jobPositionId"
                           params={{ clientId, jobPositionId: position.id }}
                           hash={positionSections.fireInstructions}
                         >
@@ -335,7 +335,7 @@ export function JobPositionsCard({
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild data-testid="job-position-menu-risk">
                         <Link
-                          to="/clients/$clientId/job-positions/$jobPositionId/risk-evaluation"
+                          to="/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri"
                           params={{ clientId, jobPositionId: position.id }}
                         >
                           Evaluare de risc
@@ -422,7 +422,7 @@ function StateLink({
   return (
     <DecisionBadge asChild decision={decision}>
       <Link
-        to="/clients/$clientId/job-positions/$jobPositionId"
+        to="/clienti/$clientId/posturi/$jobPositionId"
         params={{ clientId, jobPositionId: position.id }}
         hash={section}
         data-testid={testId}
@@ -446,7 +446,7 @@ function RiskEvaluationLink({
   return (
     <DecisionBadge asChild decision={(evaluation && evaluation.factorCount > 0) || null}>
       <Link
-        to="/clients/$clientId/job-positions/$jobPositionId/risk-evaluation"
+        to="/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri"
         params={{ clientId, jobPositionId: position.id }}
         data-testid="job-position-risk"
       >
@@ -526,7 +526,7 @@ function PositionNames({
         <Fragment key={position.id}>
           {index > 0 && (index === shown.length - 1 && rest === 0 ? ' și ' : ', ')}
           <Link
-            to="/clients/$clientId/job-positions/$jobPositionId"
+            to="/clienti/$clientId/posturi/$jobPositionId"
             params={{ clientId, jobPositionId: position.id }}
             hash={section}
             className="font-medium underline underline-offset-4"

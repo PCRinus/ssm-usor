@@ -333,7 +333,7 @@ export function PositionInstructionsCard({
                 <TableRow key={item.moduleId} data-testid={testId('row')}>
                   <TableCell className="min-w-40 font-medium whitespace-normal">
                     <Link
-                      to="/instructions/$moduleId"
+                      to="/instructiuni/$moduleId"
                       params={{ moduleId: item.moduleId }}
                       className="hover:underline"
                       data-testid={testId('open')}
@@ -492,7 +492,7 @@ function PickInstructionsDialog({
               data-testid={testId('pick-empty')}
               action={
                 <Button asChild variant="outline">
-                  <Link to={domain === 'su' ? '/instructions/su' : '/instructions/ssm'}>
+                  <Link to={domain === 'su' ? '/instructiuni/su' : '/instructiuni/ssm'}>
                     Deschide Instrucțiuni proprii
                   </Link>
                 </Button>
@@ -528,7 +528,7 @@ function PickInstructionsDialog({
                         />
                         <span className="min-w-0 flex-1">{module.title}</span>
                         <Link
-                          to="/instructions/$moduleId"
+                          to="/instructiuni/$moduleId"
                           params={{ moduleId: module.id }}
                           target="_blank"
                           rel="noreferrer"

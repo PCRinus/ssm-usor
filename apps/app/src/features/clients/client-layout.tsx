@@ -40,57 +40,62 @@ import { type ClientArchiveChange, ClientArchiveDialog } from './client-archive-
 import { ClientDeleteDialog, type ClientToDelete } from './client-delete-dialog';
 import { HeaderFact, RecordHeader } from './record-header';
 
-const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
+const clientRoute = getRouteApi('/_authenticated/clienti/$clientId');
 
 // The documents follow the data they print. The service contract is an owner's (ADR 007).
 const sections = [
-  { to: '/clients/$clientId/details', label: 'Detalii', icon: IdCard, ownerOnly: false },
-  { to: '/clients/$clientId/employees', label: 'Angajați', icon: UsersRound, ownerOnly: false },
+  { to: '/clienti/$clientId/detalii', label: 'Detalii', icon: IdCard, ownerOnly: false },
+  { to: '/clienti/$clientId/angajati', label: 'Angajați', icon: UsersRound, ownerOnly: false },
   {
-    to: '/clients/$clientId/job-positions',
+    to: '/clienti/$clientId/posturi',
     label: 'Posturi de lucru',
     icon: BriefcaseBusiness,
     ownerOnly: false,
   },
   // Documente SU already shows the extinguisher.
   {
-    to: '/clients/$clientId/fire-safety-means',
+    to: '/clienti/$clientId/mijloace-de-aparare',
     label: 'Mijloace de apărare',
     icon: Flame,
     ownerOnly: false,
   },
   {
-    to: '/clients/$clientId/training',
+    to: '/clienti/$clientId/instruire',
     label: 'Instruire și responsabili',
     icon: ClipboardList,
     ownerOnly: false,
   },
   {
-    to: '/clients/$clientId/trainings',
+    to: '/clienti/$clientId/instruiri-tinute',
     label: 'Instruiri ținute',
     icon: ClipboardCheck,
     ownerOnly: false,
   },
-  { to: '/clients/$clientId/documents', label: 'Documente SSM', icon: FileText, ownerOnly: false },
   {
-    to: '/clients/$clientId/fire-safety-documents',
+    to: '/clienti/$clientId/documente-ssm',
+    label: 'Documente SSM',
+    icon: FileText,
+    ownerOnly: false,
+  },
+  {
+    to: '/clienti/$clientId/documente-su',
     label: 'Documente SU',
     icon: FireExtinguisher,
     ownerOnly: false,
   },
   {
-    to: '/clients/$clientId/contract',
+    to: '/clienti/$clientId/contract',
     label: 'Contract',
     icon: FileSignature,
     ownerOnly: true,
   },
   {
-    to: '/clients/$clientId/other-documents',
+    to: '/clienti/$clientId/alte-documente',
     label: 'Alte documente',
     icon: FolderOpen,
     ownerOnly: false,
   },
-  { to: '/clients/$clientId/portal', label: 'Portal', icon: Smartphone, ownerOnly: false },
+  { to: '/clienti/$clientId/portal', label: 'Portal', icon: Smartphone, ownerOnly: false },
 ] as const;
 
 export function ClientLayout() {
@@ -216,14 +221,14 @@ export function ClientLayout() {
       <ClientDeleteDialog
         client={deleting}
         onClose={() => setDeleting(null)}
-        onDeleted={() => navigate({ to: '/clients', search: { status: 'archived' } })}
+        onDeleted={() => navigate({ to: '/clienti', search: { status: 'archived' } })}
       />
       <ImportUploadDialog
         open={importing}
         client={client}
         onClose={() => setImporting(false)}
         onStarted={(importId) =>
-          void navigate({ to: '/clients/import/$importId', params: { importId } })
+          void navigate({ to: '/clienti/import/$importId', params: { importId } })
         }
       />
     </div>
@@ -238,7 +243,7 @@ export function ClientNotFound() {
         Nu există niciun client activ cu acest identificator în organizația ta.
       </p>
       <Button asChild className="w-fit">
-        <Link to="/clients">Înapoi la clienți</Link>
+        <Link to="/clienti">Înapoi la clienți</Link>
       </Button>
     </div>
   );

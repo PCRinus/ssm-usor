@@ -315,7 +315,7 @@ const bodies = (pathname: string, method: string) =>
     init?.body ? (JSON.parse(String(init.body)) as unknown) : null
   );
 
-const mount = (path = '/instructions') => mountApp(authFixture(makeSession()).client, path);
+const mount = (path = '/instructiuni') => mountApp(authFixture(makeSession()).client, path);
 
 async function refetchModule(queryClient: QueryClient, moduleId: string) {
   await queryClient.refetchQueries({ queryKey: getGetInstructionModuleQueryKey(moduleId) });
@@ -346,7 +346,7 @@ describe('the instruction library', () => {
     const runtime = mount();
     await screen.findByTestId('instruction-library');
     expect(await screen.findByTestId('instruction-library-ssm')).toBeTruthy();
-    expect(runtime.router.history.location.pathname).toBe('/instructions/ssm');
+    expect(runtime.router.history.location.pathname).toBe('/instructiuni/ssm');
     const rows = await screen.findAllByTestId('instruction-row');
     expect(rows.map((row) => within(row).getByTestId('instruction-open').textContent)).toEqual([
       'Activități de birou',
@@ -388,7 +388,7 @@ describe('the instruction library', () => {
           .map((row) => within(row).getByTestId('instruction-open').textContent)
       ).toEqual(['Lucrul cu foc deschis'])
     );
-    expect(runtime.router.history.location.pathname).toBe('/instructions/su');
+    expect(runtime.router.history.location.pathname).toBe('/instructiuni/su');
     const listed = fetchMock.mock.calls
       .map(([input]) => new URL(String(input)))
       .filter((address) => address.pathname === '/instruction-modules')
@@ -404,13 +404,13 @@ describe('the instruction library', () => {
     const group = await screen.findByTestId('nav-instructions-group');
     const entries = within(group).getAllByTestId('nav-sub-entry');
     expect(entries.map((entry) => [entry.textContent, entry.getAttribute('href')])).toEqual([
-      ['IPSSM', '/instructions/ssm'],
-      ['IPSU', '/instructions/su'],
+      ['IPSSM', '/instructiuni/ssm'],
+      ['IPSU', '/instructiuni/su'],
     ]);
     await waitFor(() => expect(entries[0]!.getAttribute('aria-current')).toBe('page'));
 
     await user.click(entries[1]!);
-    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/instructions/su'));
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/instructiuni/su'));
     expect(entries[1]!.getAttribute('aria-current')).toBe('page');
     expect(entries[0]!.getAttribute('aria-current')).toBeNull();
     expect(await screen.findByTestId('instruction-library-su')).toBeTruthy();
@@ -515,7 +515,7 @@ const articleBoxes = () =>
 describe('the module form', () => {
   it('opens the current version as headings and articles numbered by place, and saves the next version', async () => {
     mockApi({ moduleBody: ladderBody });
-    mount(`/instructions/${ladders.id}`);
+    mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
     expect(screen.getByTestId('editor-state').textContent).toBe('Versiunea 2');
@@ -571,7 +571,7 @@ describe('the module form', () => {
       saveBody: (init) =>
         Response.json({ module: ladders, body: JSON.parse(String(init?.body)), changed: false }),
     });
-    mount(`/instructions/${ladders.id}`);
+    mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
     await user.type(articleBoxes()[1]!, '!');
@@ -589,7 +589,7 @@ describe('the module form', () => {
       moduleBody: ladderBody,
       saveBody: () => Response.json({ module: ladders, body: ladderBody, changed: false }),
     });
-    mount(`/instructions/${ladders.id}`);
+    mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
     await user.type(articleBoxes()[1]!, ' Nici cu unelte.');
@@ -609,7 +609,7 @@ describe('the module form', () => {
           { status: 409 }
         ),
     });
-    mount(`/instructions/${ladders.id}`);
+    mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
     await user.type(articleBoxes()[0]!, ' Din nou.');
@@ -621,7 +621,7 @@ describe('the module form', () => {
 
   it('keeps the form and its unsaved text when a later read fails or finds the module archived', async () => {
     mockApi({ moduleBody: ladderBody });
-    const runtime = mount(`/instructions/${ladders.id}`);
+    const runtime = mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
     await user.type(articleBoxes()[1]!, ' Nici cu unelte.');
@@ -650,7 +650,7 @@ describe('the module form', () => {
 
   it('puts a deleted article back on undo and keeps what was written since', async () => {
     mockApi({ moduleBody: ladderBody });
-    mount(`/instructions/${ladders.id}`);
+    mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
     await user.click(screen.getAllByTestId('instruction-block-delete')[3]!);
@@ -666,7 +666,7 @@ describe('the module form', () => {
 
   it('refuses to save a text without an article, in words', async () => {
     mockApi();
-    mount(`/instructions/${ladders.id}`);
+    mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
     await user.clear(articleBoxes()[0]!);
@@ -679,7 +679,7 @@ describe('the module form', () => {
 
   it("marks an article that names one of the organization's clients, and still saves", async () => {
     mockApi();
-    mount(`/instructions/${ladders.id}`);
+    mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
     await user.type(articleBoxes()[0]!, ' Scara aparține S.C. Veloce Cafe S.R.L.');
@@ -697,7 +697,7 @@ describe('the module form', () => {
 
   it('pastes a whole instruction, shows its articles and flags, and replaces the text', async () => {
     mockApi();
-    mount(`/instructions/${ladders.id}`);
+    mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
     await user.click(screen.getByTestId('instruction-paste'));
@@ -730,7 +730,7 @@ describe('the module form', () => {
 
   it('offers to split several paragraphs pasted into one article', async () => {
     mockApi();
-    mount(`/instructions/${ladders.id}`);
+    mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
     await user.click(screen.getByTestId('instruction-paste'));
@@ -749,7 +749,7 @@ describe('the module form', () => {
 
   it('previews the annex with the text on screen, saved or not', async () => {
     mockApi();
-    mount(`/instructions/${ladders.id}`);
+    mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
     await user.type(articleBoxes()[0]!, ' Nesalvat.');
@@ -775,7 +775,7 @@ describe('the module form', () => {
 describe('writing a new module', () => {
   it('asks for the title, domain and category, then opens the guided template; nothing is stored before the first save', async () => {
     mockApi();
-    const runtime = mount('/instructions/su');
+    const runtime = mount('/instructiuni/su');
     const user = userEvent.setup();
     await screen.findByTestId('instruction-library-su');
     await user.click(screen.getByTestId('instruction-write'));
@@ -796,7 +796,7 @@ describe('writing a new module', () => {
     await user.click(within(dialog).getByTestId('instruction-start-submit'));
 
     await screen.findByTestId('instruction-form');
-    expect(runtime.router.history.location.pathname).toBe('/instructions/new');
+    expect(runtime.router.history.location.pathname).toBe('/instructiuni/nou');
     expect(screen.getByTestId('editor-state').textContent).toBe('Nouă, nesalvată');
     expect(screen.getByTestId('instruction-form-facts').textContent).toBe(
       'SU · Lucrări periculoase · fără articole numerotate'
@@ -843,13 +843,13 @@ describe('writing a new module', () => {
       ])
     );
     await waitFor(() =>
-      expect(runtime.router.history.location.pathname).toBe(`/instructions/${welding.id}`)
+      expect(runtime.router.history.location.pathname).toBe(`/instructiuni/${welding.id}`)
     );
   });
 
   it('starts from a library module of the same domain as a copy of its text, kept when a later read fails', async () => {
     mockApi({ moduleBody: ladderBody });
-    const runtime = mount('/instructions/ssm');
+    const runtime = mount('/instructiuni/ssm');
     const user = userEvent.setup();
     await screen.findAllByTestId('instruction-row');
     await user.click(screen.getByTestId('instruction-write'));
@@ -888,7 +888,7 @@ describe('writing a new module', () => {
 
   it('refuses a title the library already has before opening the form', async () => {
     mockApi();
-    mount('/instructions/ssm');
+    mount('/instructiuni/ssm');
     const user = userEvent.setup();
     await screen.findAllByTestId('instruction-row');
     await user.click(screen.getByTestId('instruction-write'));
@@ -905,7 +905,7 @@ describe('the module page', () => {
   it('shows the version a document annexed and leads to the current one', async () => {
     mockApi();
     const annexed = '4d5e6f7a-8b9c-4d0e-9f1a-2b3c4d5e6f7a';
-    const runtime = mount(`/instructions/${ladders.id}?version=${annexed}`);
+    const runtime = mount(`/instructiuni/${ladders.id}?version=${annexed}`);
     const user = userEvent.setup();
     expect(await screen.findByTestId('fake-editor')).toBeTruthy();
     expect(screen.getByTestId('editor-state').textContent).toBe('Versiunea 1');
@@ -924,7 +924,7 @@ describe('the module page', () => {
 
   it('marks an archived module', async () => {
     mockApi({ modules: [{ ...ladders, archivedAt: '2026-09-26T11:00:00.000Z' }] });
-    mount(`/instructions/${ladders.id}`);
+    mount(`/instructiuni/${ladders.id}`);
     await screen.findByTestId('fake-editor');
     expect(screen.getByTestId('editor-state').textContent).toBe('Arhivată');
   });
@@ -932,10 +932,11 @@ describe('the module page', () => {
 
 describe("a job position's instructions", () => {
   const positionsPath = `/clients/${clientId}/job-positions`;
+  const positionsPage = `/clienti/${clientId}/posturi`;
 
   it('lists the applied modules and the state in the positions table', async () => {
     mockApi();
-    mount(positionsPath);
+    mount(positionsPage);
     const rows = await screen.findAllByTestId('job-position-row');
     expect(
       rows.map((row) => within(row).getByTestId('job-position-instructions').textContent)
@@ -945,7 +946,7 @@ describe("a job position's instructions", () => {
     ).toEqual(['Nu necesită', 'De stabilit']);
     expect(
       within(rows[1]!).getByTestId('job-position-fire-instructions').getAttribute('href')
-    ).toBe(`${positionsPath}/${fitter.id}#fire-instructions`);
+    ).toBe(`${positionsPage}/${fitter.id}#fire-instructions`);
     expect(screen.getByTestId('job-positions-undecided-fire-instructions').textContent).toBe(
       'Un post nu are instrucțiunile SU stabilite: Lăcătuș mecanic.'
     );
@@ -953,7 +954,7 @@ describe("a job position's instructions", () => {
 
   it('decides the fire-safety modules on a card of its own, beside the occupational safety one', async () => {
     mockApi();
-    mount(`${positionsPath}/${fitter.id}`);
+    mount(`${positionsPage}/${fitter.id}`);
     const user = userEvent.setup();
     const ssm = await screen.findByTestId('instructions-card');
     const su = await screen.findByTestId('fire-instructions-card');
@@ -1004,7 +1005,7 @@ describe("a job position's instructions", () => {
 
   it('records that a post needs none, and takes it back', async () => {
     mockApi();
-    mount(`${positionsPath}/${fitter.id}`);
+    mount(`${positionsPage}/${fitter.id}`);
     const user = userEvent.setup();
     const empty = await screen.findByTestId('instructions-empty');
     expect(empty.textContent).toContain('nu se pot genera');
@@ -1031,7 +1032,7 @@ describe("a job position's instructions", () => {
 
   it('picks modules from the library and replaces the set', async () => {
     mockApi();
-    mount(`${positionsPath}/${welder.id}`);
+    mount(`${positionsPage}/${welder.id}`);
     const user = userEvent.setup();
     const rows = await screen.findAllByTestId('instructions-row');
     expect(rows.map((row) => within(row).getByTestId('instructions-open').textContent)).toEqual([
@@ -1051,7 +1052,7 @@ describe("a job position's instructions", () => {
 
   it('removes a module from the row', async () => {
     mockApi();
-    mount(`${positionsPath}/${welder.id}`);
+    mount(`${positionsPage}/${welder.id}`);
     const user = userEvent.setup();
     await screen.findAllByTestId('instructions-row');
     await user.click(screen.getByTestId('instructions-remove'));

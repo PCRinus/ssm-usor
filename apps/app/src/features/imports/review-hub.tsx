@@ -105,7 +105,7 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm">
             <Link
-              to="/clients/import/$importId/files"
+              to="/clienti/import/$importId/fisiere"
               params={{ importId: detail.id }}
               data-testid="import-review-files"
             >
@@ -125,7 +125,7 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
             {links.map((link) => (
               <li key={`${link.anchor}-${link.code}`}>
                 <Link
-                  to="/clients/import/$importId/$section"
+                  to="/clienti/import/$importId/$section"
                   params={{ importId: detail.id, section: link.section }}
                   hash={link.anchor}
                   className="font-medium underline underline-offset-4"
@@ -145,7 +145,7 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
             {kept.map((path) => (
               <li key={path}>
                 <Link
-                  to="/clients/import/$importId/$section"
+                  to="/clienti/import/$importId/$section"
                   params={{ importId: detail.id, section: sectionOf(path) }}
                   hash={anchorOf(path)}
                   className="font-medium underline underline-offset-4"
@@ -175,7 +175,7 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
             return (
               <li key={section}>
                 <Link
-                  to="/clients/import/$importId/$section"
+                  to="/clienti/import/$importId/$section"
                   params={{ importId: detail.id, section }}
                   data-testid="import-section-link"
                   data-section={section}
@@ -254,7 +254,7 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
         importId={abandoning ? detail.id : null}
         running={false}
         onClose={() => setAbandoning(false)}
-        onAbandoned={() => void navigate({ to: '/clients' })}
+        onAbandoned={() => void navigate({ to: '/clienti' })}
       />
     </div>
   );

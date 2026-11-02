@@ -148,7 +148,7 @@ function mockEmployeeImport({
 
 const mount = (path: string) => mountApp(authFixture(makeSession()).client, path);
 
-const importPath = `/clients/${clientId}/employees/import/${importId}`;
+const importPath = `/clienti/${clientId}/angajati/import/${importId}`;
 
 const saved = (index: number) =>
   bodyOf(`/imports/${importId}/employee-changes`, 'PUT', index) as {
@@ -172,7 +172,7 @@ afterEach(() => {
 describe("the client's Angajați tab", () => {
   it('offers the sheets found in the documentation while some are untaken, and new photos', async () => {
     mockEmployeeImport({ found: foundSheets });
-    mount(`/clients/${clientId}/employees`);
+    mount(`/clienti/${clientId}/angajati`);
     expect((await screen.findByTestId('employees-import-found')).textContent).toBe(
       'Importă din fișele găsite în documentație (2 fotografii)'
     );
@@ -185,7 +185,7 @@ describe("the client's Angajați tab", () => {
 
   it('offers one import from the sheets when none were found', async () => {
     mockEmployeeImport();
-    mount(`/clients/${clientId}/employees`);
+    mount(`/clienti/${clientId}/angajati`);
     await screen.findByTestId('employees-start-ways');
     expect(screen.getByTestId('employees-import').textContent).toBe(
       'Importă din fișele de instruire'
@@ -195,7 +195,7 @@ describe("the client's Angajați tab", () => {
 
   it('shows the open import with its progress, its expiry and the way back to it', async () => {
     mockEmployeeImport({ open: [openImport] });
-    mount(`/clients/${clientId}/employees`);
+    mount(`/clienti/${clientId}/angajati`);
     const card = await screen.findByTestId('employee-import-card');
     expect(within(card).getByRole('heading').textContent).toBe(
       'Import din fișe: 23 din 40 verificați'
@@ -208,7 +208,7 @@ describe("the client's Angajați tab", () => {
 
   it('opens the upload with the found sheets already added', async () => {
     mockEmployeeImport({ found: foundSheets });
-    mount(`/clients/${clientId}/employees`);
+    mount(`/clienti/${clientId}/angajati`);
     await userEvent.setup().click(await screen.findByTestId('employees-import-found'));
     const dialog = await screen.findByTestId('employee-upload-dialog');
     await waitFor(() =>
@@ -477,7 +477,7 @@ describe('confirming', () => {
     expect(submit.textContent).toBe('Creează un angajat, fără cel neverificat');
     await user.click(submit);
     await waitFor(() =>
-      expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/employees`)
+      expect(runtime.router.state.location.pathname).toBe(`/clienti/${clientId}/angajati`)
     );
     expect(bodyOf(`/imports/${importId}/confirm`, 'POST')).toEqual({ version: 4 });
     const card = await screen.findByTestId('employees-imported');
@@ -565,7 +565,7 @@ describe('confirming', () => {
       ],
     });
     const user = userEvent.setup();
-    mount(`/clients/${clientId}/employees`);
+    mount(`/clienti/${clientId}/angajati`);
     const card = await screen.findByTestId('employees-imported');
     expect(within(card).getByRole('heading', { level: 3 }).textContent).toBe(
       'Angajați importați din fișe pe 30 oct.'
@@ -585,7 +585,7 @@ describe('confirming', () => {
       confirmed: [newerImport, { ...confirmedImport, uninvited: 0 }],
       invitees: [invitee(1, 'Lazăr', 'invited'), invitee(2, 'Pop', null, false)],
     });
-    mount(`/clients/${clientId}/employees`);
+    mount(`/clienti/${clientId}/angajati`);
     await screen.findByTestId('employees-page');
     await waitFor(() =>
       expect(
@@ -602,7 +602,7 @@ describe('confirming', () => {
       invitees: [invitee(1, 'Lazăr'), invitee(2, 'Pop')],
     });
     const user = userEvent.setup();
-    mount(`/clients/${clientId}/employees`);
+    mount(`/clienti/${clientId}/angajati`);
     const card = await screen.findByTestId('employees-imported');
     expect(within(card).getByRole('heading', { level: 3 }).textContent).toBe(
       'Angajați importați din fișe pe 30 oct.'
@@ -623,7 +623,7 @@ describe('confirming', () => {
       invitees: [invitee(1, 'Lazăr')],
     });
     const user = userEvent.setup();
-    mount(`/clients/${clientId}/employees`);
+    mount(`/clienti/${clientId}/angajati`);
     const card = await screen.findByTestId('employees-imported');
     expect(within(card).getByRole('heading', { level: 3 }).textContent).toBe(
       'Angajați importați din fișe pe 31 oct.'
@@ -640,14 +640,14 @@ describe('confirming', () => {
   it('stays hidden for the import the member hid', async () => {
     mockEmployeeImport({ confirmed: [confirmedImport], invitees: [invitee(1, 'Lazăr')] });
     const user = userEvent.setup();
-    mount(`/clients/${clientId}/employees`);
+    mount(`/clienti/${clientId}/angajati`);
     await user.click(
       within(await screen.findByTestId('employees-imported')).getByTestId('employees-imported-hide')
     );
     expect(screen.queryByTestId('employees-imported')).toBeNull();
     cleanup();
     fetchMock.mockClear();
-    mount(`/clients/${clientId}/employees`);
+    mount(`/clienti/${clientId}/angajati`);
     await screen.findByTestId('employees-page');
     await waitFor(() =>
       expect(

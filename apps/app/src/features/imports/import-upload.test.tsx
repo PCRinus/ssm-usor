@@ -136,7 +136,7 @@ afterEach(() => {
 describe('starting an import from the client list', () => {
   it('offers both ways to start on an empty list', async () => {
     mockImportApi();
-    mountApp(authFixture(makeSession()).client, '/clients');
+    mountApp(authFixture(makeSession()).client, '/clienti');
 
     const ways = await screen.findByTestId('clients-start-ways');
     expect(within(ways).getByTestId('clients-start-form').textContent).toContain(
@@ -152,7 +152,7 @@ describe('starting an import from the client list', () => {
 
   it('shows what a zip holds and what is set aside, then hashes, registers, uploads and starts', async () => {
     mockImportApi();
-    const runtime = mountApp(authFixture(makeSession()).client, '/clients');
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti');
 
     await userEvent.click(await screen.findByTestId('clients-import'));
     await screen.findByTestId('import-upload-dialog');
@@ -184,7 +184,7 @@ describe('starting an import from the client list', () => {
     await userEvent.click(screen.getByTestId('import-upload-submit'));
 
     await waitFor(() =>
-      expect(runtime.router.state.location.pathname).toBe(`/clients/import/${importId}`)
+      expect(runtime.router.state.location.pathname).toBe(`/clienti/import/${importId}`)
     );
     expect(bodyOf('/imports', 'POST')).toEqual({});
     const registered = bodyOf(`/imports/${importId}/files`, 'POST') as {
@@ -247,7 +247,7 @@ describe('starting an import from the client list', () => {
     vi.mocked(uploadImportObject).mockImplementation(
       () => new Promise<void>((resolve) => (releaseUpload = resolve))
     );
-    const runtime = mountApp(authFixture(makeSession()).client, '/clients');
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti');
 
     await userEvent.click(await screen.findByTestId('clients-import'));
     await screen.findByTestId('import-upload-dialog');
@@ -260,7 +260,7 @@ describe('starting an import from the client list', () => {
     releaseUpload();
 
     await waitFor(() =>
-      expect(runtime.router.state.location.pathname).toBe(`/clients/import/${importId}`)
+      expect(runtime.router.state.location.pathname).toBe(`/clienti/import/${importId}`)
     );
     expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe(
       'Citim documentele'
@@ -270,7 +270,7 @@ describe('starting an import from the client list', () => {
 
   it('asks for fewer files past 150', async () => {
     mockImportApi();
-    mountApp(authFixture(makeSession()).client, '/clients');
+    mountApp(authFixture(makeSession()).client, '/clienti');
 
     await userEvent.click(await screen.findByTestId('clients-import'));
     await screen.findByTestId('import-upload-dialog');
@@ -284,7 +284,7 @@ describe('starting an import from the client list', () => {
 
   it('says a zip holding more than one import takes is too large', async () => {
     mockImportApi();
-    mountApp(authFixture(makeSession()).client, '/clients');
+    mountApp(authFixture(makeSession()).client, '/clienti');
 
     await userEvent.click(await screen.findByTestId('clients-import'));
     await screen.findByTestId('import-upload-dialog');
@@ -300,7 +300,7 @@ describe('starting an import from the client list', () => {
 
   it('keeps out a file removed while a zip opens', async () => {
     mockImportApi();
-    mountApp(authFixture(makeSession()).client, '/clients');
+    mountApp(authFixture(makeSession()).client, '/clienti');
     await userEvent.click(await screen.findByTestId('clients-import'));
     await screen.findByTestId('import-upload-dialog');
     choose([new File(['%PDF'], 'Contract 2019.pdf')]);
@@ -322,7 +322,7 @@ describe('starting an import from the client list', () => {
 
   it('says so when a dropped folder cannot be read', async () => {
     mockImportApi();
-    mountApp(authFixture(makeSession()).client, '/clients');
+    mountApp(authFixture(makeSession()).client, '/clienti');
     await userEvent.click(await screen.findByTestId('clients-import'));
     await screen.findByTestId('import-upload-dialog');
 
@@ -354,7 +354,7 @@ describe('starting an import from the client list', () => {
     vi.mocked(uploadImportObject).mockImplementation(async (path) => {
       if (path.endsWith('/2')) throw new Error('Network down');
     });
-    mountApp(authFixture(makeSession()).client, '/clients');
+    mountApp(authFixture(makeSession()).client, '/clienti');
 
     await userEvent.click(await screen.findByTestId('clients-import'));
     await screen.findByTestId('import-upload-dialog');
@@ -376,7 +376,7 @@ describe('an upload that does not go through', () => {
   it('lets go of an import none of whose files went up', async () => {
     mockImportApi();
     vi.mocked(uploadImportObject).mockRejectedValue(new Error('Network down'));
-    await uploadFrom('/clients', [new File(['%PDF'], 'a.pdf'), new File(['%PDF'], 'b.pdf')]);
+    await uploadFrom('/clienti', [new File(['%PDF'], 'a.pdf'), new File(['%PDF'], 'b.pdf')]);
 
     const stalled = await screen.findByTestId('import-upload-stalled');
     expect(stalled.textContent).toContain('Niciun fișier nu s-a încărcat.');
@@ -390,17 +390,17 @@ describe('an upload that does not go through', () => {
 
   it('opens the import when its reading started though the answer was lost', async () => {
     mockImportApi([], refusedStart('import_not_uploading'));
-    const runtime = await uploadFrom('/clients', [new File(['%PDF'], 'a.pdf')]);
+    const runtime = await uploadFrom('/clienti', [new File(['%PDF'], 'a.pdf')]);
 
     await waitFor(() =>
-      expect(runtime.router.state.location.pathname).toBe(`/clients/import/${importId}`)
+      expect(runtime.router.state.location.pathname).toBe(`/clienti/import/${importId}`)
     );
     expect(requestsTo(`/imports/${importId}/start`, 'POST')).toHaveLength(1);
   });
 
   it('says nothing arrived when the import has no file to read, and abandons it on leaving', async () => {
     mockImportApi([], refusedStart('import_empty'));
-    await uploadFrom('/clients', [new File(['%PDF'], 'a.pdf')]);
+    await uploadFrom('/clienti', [new File(['%PDF'], 'a.pdf')]);
 
     expect((await screen.findByTestId('import-upload-empty')).textContent).toContain(
       'Niciun fișier nu a ajuns la noi'
@@ -417,7 +417,7 @@ describe('while the files go up', () => {
   it('keeps a file dropped on the dialog from replacing the app', async () => {
     mockImportApi();
     vi.mocked(uploadImportObject).mockImplementation(() => new Promise(() => undefined));
-    await uploadFrom('/clients', [new File(['%PDF'], 'a.pdf')]);
+    await uploadFrom('/clienti', [new File(['%PDF'], 'a.pdf')]);
     await screen.findByTestId('import-upload-progress');
 
     const dropped = fireEvent.drop(screen.getByTestId('import-upload-dialog'), {
@@ -430,22 +430,22 @@ describe('while the files go up', () => {
     mockImportApi();
     vi.mocked(uploadImportObject).mockImplementation(() => new Promise(() => undefined));
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
-    const runtime = await uploadFrom('/clients', [new File(['%PDF'], 'a.pdf')]);
+    const runtime = await uploadFrom('/clienti', [new File(['%PDF'], 'a.pdf')]);
     await screen.findByTestId('import-upload-progress');
 
-    void runtime.router.navigate({ to: '/clients/$clientId/details', params: { clientId } });
+    void runtime.router.navigate({ to: '/clienti/$clientId/detalii', params: { clientId } });
     await waitFor(() =>
       expect(confirm).toHaveBeenCalledWith(
         'Fișierele încă se încarcă. Dacă pleci acum, renunți la import. Pleci?'
       )
     );
-    expect(runtime.router.state.location.pathname).toBe('/clients');
+    expect(runtime.router.state.location.pathname).toBe('/clienti');
     expect(requestsTo(`/imports/${importId}/abandon`, 'POST')).toHaveLength(0);
 
     confirm.mockReturnValue(true);
-    void runtime.router.navigate({ to: '/clients/$clientId/details', params: { clientId } });
+    void runtime.router.navigate({ to: '/clienti/$clientId/detalii', params: { clientId } });
     await waitFor(() =>
-      expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/details`)
+      expect(runtime.router.state.location.pathname).toBe(`/clienti/${clientId}/detalii`)
     );
     expect(requestsTo(`/imports/${importId}/abandon`, 'POST')).toHaveLength(1);
     confirm.mockRestore();
@@ -455,7 +455,7 @@ describe('while the files go up', () => {
 describe('completing a client from its documentation', () => {
   it("starts from the client's page and names the client and its CUI", async () => {
     mockImportApi();
-    mountApp(authFixture(makeSession()).client, `/clients/${clientId}/details`);
+    mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/detalii`);
 
     await userEvent.click(await screen.findByTestId('client-import'));
     const dialog = await screen.findByTestId('import-upload-dialog');
@@ -506,7 +506,7 @@ describe('the imports on the client list', () => {
       if (url.pathname === `/imports/${importId}`) return Response.json({ import: running });
       return undefined;
     });
-    mountApp(authFixture(makeSession()).client, '/clients');
+    mountApp(authFixture(makeSession()).client, '/clienti');
 
     const rows = await screen.findAllByTestId('import-list-row');
     expect(rows.map((row) => row.dataset.status)).toEqual(['ready', 'preparing']);
@@ -522,7 +522,7 @@ describe('the imports on the client list', () => {
 });
 
 async function openDialog() {
-  mountApp(authFixture(makeSession()).client, '/clients');
+  mountApp(authFixture(makeSession()).client, '/clienti');
   await userEvent.click(await screen.findByTestId('clients-import'));
   return screen.findByTestId('import-upload-dialog');
 }
@@ -584,7 +584,7 @@ describe('the credits an import uses', () => {
       'Scrie-ne la contact@ssmusor.ro și îți adăugăm credite.'
     );
     expect(within(short).getByTestId('import-credits-subscription').getAttribute('href')).toBe(
-      '/organization/subscription'
+      '/organizatie/abonament'
     );
     const line = screen.getByTestId('import-credits-line');
     expect(line.dataset.short).toBe('true');
@@ -636,7 +636,7 @@ describe('the credits an import uses', () => {
         { status: 409 }
       )
     );
-    const runtime = await uploadFrom('/clients', [word()]);
+    const runtime = await uploadFrom('/clienti', [word()]);
 
     const short = await screen.findByTestId('import-credits-short');
     expect(short.textContent).toContain(
@@ -647,6 +647,6 @@ describe('the credits an import uses', () => {
     await waitFor(() => expect(requestsTo(`/imports/${importId}/abandon`, 'POST')).toHaveLength(1));
     await waitFor(() => expect(requestsTo('/me').length).toBeGreaterThan(1));
     expect((screen.getByTestId('import-upload-submit') as HTMLButtonElement).disabled).toBe(true);
-    expect(runtime.router.state.location.pathname).toBe('/clients');
+    expect(runtime.router.state.location.pathname).toBe('/clienti');
   });
 });

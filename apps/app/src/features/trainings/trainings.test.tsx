@@ -204,8 +204,11 @@ type Handler = (url: URL, init: RequestInit | undefined) => Response | Promise<R
 const fetchMock = vi.fn<typeof fetch>();
 
 const employeesPath = `/clients/${clientId}/employees`;
+const employeesPage = `/clienti/${clientId}/angajati`;
 const employeePath = `${employeesPath}/${popescu.id}`;
+const employeePage = `${employeesPage}/${popescu.id}`;
 const trainingsPath = `/clients/${clientId}/trainings`;
+const trainingsPage = `/clienti/${clientId}/instruiri-tinute`;
 
 function mockApi(routes: Partial<Record<string, Handler>> = {}) {
   fetchMock.mockImplementation(async (input, init) => {
@@ -281,7 +284,7 @@ afterEach(() => {
 describe("an employee's training tabs", () => {
   it('splits the page into Date, Instruire SSM and Instruire SU, in the tabs and not in the sidebar', async () => {
     mockApi();
-    const runtime = mountApp(authFixture(makeSession()).client, employeePath);
+    const runtime = mountApp(authFixture(makeSession()).client, employeePage);
     const user = userEvent.setup();
     await screen.findByTestId('employee-page');
     expect(screen.getByRole('heading', { level: 1, name: 'Popescu Ion' })).toBeTruthy();
@@ -293,7 +296,7 @@ describe("an employee's training tabs", () => {
 
     await user.click(tabs[1]!);
     await screen.findByTestId('employee-training-tab');
-    expect(runtime.router.state.location.pathname).toBe(`${employeePath}/training/ssm`);
+    expect(runtime.router.state.location.pathname).toBe(`${employeePage}/instruire/ssm`);
     expect(screen.queryByTestId('employee-page')).toBeNull();
     expect(screen.getAllByTestId('employee-section')[1]!.getAttribute('aria-current')).toBe('page');
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
@@ -305,7 +308,7 @@ describe("an employee's training tabs", () => {
       [`GET ${employeePath}/training-records`]: () =>
         Response.json({ items: [periodicRecord, workplaceRecord] }),
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/ssm`);
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/ssm`);
     const user = userEvent.setup();
     const items = await screen.findAllByTestId('training-record-item');
     expect(
@@ -320,7 +323,7 @@ describe("an employee's training tabs", () => {
     const source = within(interval).getByTestId('training-interval-source');
     expect(source.textContent).toBe('din programul de instruire al clientului');
     expect(source.getAttribute('href')).toBe(
-      `/clients/${clientId}/training?focus=training-schedule`
+      `/clienti/${clientId}/instruire?focus=training-schedule`
     );
     expect(
       within(screen.getByTestId('training-tab-actions')).getByTestId('training-sheet-ssm')
@@ -357,7 +360,7 @@ describe("an employee's training tabs", () => {
 
   it('offers to record the first training when there is none', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/su`);
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/su`);
     const empty = await screen.findByTestId('training-records-empty');
     expect(empty.textContent).toContain('Nicio instruire înregistrată încă');
     expect(screen.getByTestId('training-state').textContent).toBe('Neinstruit');
@@ -366,13 +369,13 @@ describe("an employee's training tabs", () => {
 
   it('gives an untrained employee no due date, and says the fire-safety interval comes from the client', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/su`);
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/su`);
     await screen.findByTestId('training-records-empty');
     expect(screen.getByTestId('training-due-on').textContent).toBe('După instruirea la angajare');
     const source = screen.getByTestId('training-interval-source');
     expect(source.textContent).toBe('din datele de instruire SU ale clientului');
     expect(source.getAttribute('href')).toBe(
-      `/clients/${clientId}/training?focus=fire-training-schedule`
+      `/clienti/${clientId}/instruire?focus=fire-training-schedule`
     );
   });
 
@@ -389,12 +392,12 @@ describe("an employee's training tabs", () => {
           },
         }),
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/ssm`);
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/ssm`);
     const interval = await screen.findByTestId('training-interval');
     expect(interval.textContent).toContain('Lunar');
     const source = within(interval).getByTestId('training-interval-source');
     expect(source.textContent).toBe('din postul Sudor');
-    expect(source.getAttribute('href')).toBe(`/clients/${clientId}/job-positions/${welderId}`);
+    expect(source.getAttribute('href')).toBe(`/clienti/${clientId}/posturi/${welderId}`);
   });
 
   it('says an undecided interval is not set and links to where it is set', async () => {
@@ -407,7 +410,7 @@ describe("an employee's training tabs", () => {
           },
         }),
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/ssm`);
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/ssm`);
     const interval = await screen.findByTestId('training-interval');
     expect(screen.getByTestId('training-due-on').textContent).toBe(
       'Intervalul de instruire nu este stabilit'
@@ -417,7 +420,7 @@ describe("an employee's training tabs", () => {
     const set = within(interval).getByTestId('training-interval-set');
     expect(set.textContent).toBe('Stabilește intervalul');
     expect(set.getAttribute('title')).toBe('Postul își poate avea și propriul interval');
-    expect(set.getAttribute('href')).toBe(`/clients/${clientId}/training?focus=training-schedule`);
+    expect(set.getAttribute('href')).toBe(`/clienti/${clientId}/instruire?focus=training-schedule`);
   });
 
   it('keeps the header to its buttons and says what the sheet lacks on a row of its own', async () => {
@@ -428,7 +431,7 @@ describe("an employee's training tabs", () => {
           su: { ready: true, missing: [], stored: false, sequences: [] },
         }),
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/ssm`);
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/ssm`);
     const notice = await screen.findByTestId('training-sheet-ssm-missing');
     const tab = screen.getByTestId('employee-training-tab');
     expect(notice.parentElement).toBe(tab);
@@ -441,7 +444,7 @@ describe("an employee's training tabs", () => {
     mockApi({
       [`GET ${employeePath}/training-records`]: () => Response.json({ items: [workplaceRecord] }),
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/ssm`);
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/ssm`);
     const user = userEvent.setup();
     await screen.findAllByTestId('training-record-item');
     await user.click(screen.getAllByTestId('training-record')[0]!);
@@ -499,7 +502,7 @@ describe("an employee's training tabs", () => {
             : proposal()
         ),
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/ssm`);
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/ssm`);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('training-record'));
     const dialog = await screen.findByTestId('training-dialog');
@@ -531,7 +534,7 @@ describe("an employee's training tabs", () => {
       [`GET ${trainingsPath}/${trainingId}`]: () => Response.json(detailOf([popescu, taranu])),
       [`PUT ${trainingsPath}/${trainingId}`]: () => Response.json(detailOf([popescu, taranu])),
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/ssm`);
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/ssm`);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('training-record-edit'));
     const dialog = await screen.findByTestId('training-dialog');
@@ -572,7 +575,7 @@ describe("a client's trainings held", () => {
           ],
         }),
     });
-    mountApp(authFixture(makeSession()).client, trainingsPath);
+    mountApp(authFixture(makeSession()).client, trainingsPage);
     const rows = await screen.findAllByTestId('trainings-row');
     expect(within(rows[0]!).getByText('Transcris de pe fișa pe hârtie')).toBeTruthy();
     expect(within(rows[1]!).queryByText('Transcris de pe fișa pe hârtie')).toBeNull();
@@ -584,7 +587,7 @@ describe("a client's trainings held", () => {
       [`GET ${trainingsPath}`]: (url) =>
         Response.json({ items: url.searchParams.get('phase') === 'workplace' ? [] : [held] }),
     });
-    const runtime = mountApp(authFixture(makeSession()).client, employeesPath);
+    const runtime = mountApp(authFixture(makeSession()).client, employeesPage);
     const user = userEvent.setup();
     await screen.findAllByTestId('employees-row');
     const tabs = screen.getAllByTestId('client-section');
@@ -593,7 +596,7 @@ describe("a client's trainings held", () => {
     expect(labels[tab]).toBe('Instruiri ținute');
     await user.click(tabs[tab]!);
     const rows = await screen.findAllByTestId('trainings-row');
-    expect(runtime.router.state.location.pathname).toBe(trainingsPath);
+    expect(runtime.router.state.location.pathname).toBe(trainingsPage);
     expect(screen.getByRole('heading', { name: 'Instruiri ținute' })).toBeTruthy();
     expect(within(rows[0]!).getByText('Periodică')).toBeTruthy();
     expect(within(rows[0]!).getByTestId('trainings-attendee-count').textContent).toBe(
@@ -601,7 +604,7 @@ describe("a client's trainings held", () => {
     );
     const attendees = within(rows[0]!).getAllByTestId('trainings-attendee');
     expect(attendees.map((link) => link.textContent)).toEqual(['Popescu Ion', 'Țăranu Ștefan']);
-    expect(attendees[1]!.getAttribute('href')).toBe(`${employeesPath}/${taranu.id}/training/ssm`);
+    expect(attendees[1]!.getAttribute('href')).toBe(`${employeesPage}/${taranu.id}/instruire/ssm`);
     expect(within(rows[0]!).getByText('120 min (2 h)')).toBeTruthy();
 
     const historyLength = runtime.router.history.length;
@@ -626,7 +629,7 @@ describe("a client's trainings held", () => {
     mockApi({
       [`POST ${trainingsPath}`]: () => Response.json(detailOf([popescu, taranu]), { status: 201 }),
     });
-    mountApp(authFixture(makeSession()).client, trainingsPath);
+    mountApp(authFixture(makeSession()).client, trainingsPage);
     const user = userEvent.setup();
     await screen.findByTestId('trainings-empty');
     await user.click(screen.getByTestId('trainings-record'));
@@ -677,7 +680,7 @@ describe("a client's trainings held", () => {
           { status: 400 }
         ),
     });
-    mountApp(authFixture(makeSession()).client, trainingsPath);
+    mountApp(authFixture(makeSession()).client, trainingsPage);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('trainings-record'));
     const dialog = await screen.findByTestId('training-dialog');
@@ -708,7 +711,7 @@ describe("a client's trainings held", () => {
         return new Response(null, { status: 204 });
       },
     });
-    mountApp(authFixture(makeSession()).client, trainingsPath);
+    mountApp(authFixture(makeSession()).client, trainingsPage);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('trainings-row-menu'));
     await user.click(await screen.findByTestId('trainings-delete'));
@@ -742,7 +745,7 @@ describe("a client's trainings held", () => {
       [`GET ${trainingsPath}`]: () =>
         Response.json({ items: [{ ...heldWith(popescu, taranu), ...signing }] }),
     });
-    mountApp(authFixture(makeSession()).client, trainingsPath);
+    mountApp(authFixture(makeSession()).client, trainingsPage);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('trainings-row-menu'));
     expect((await screen.findByTestId('trainings-lock')).textContent).toBe(lock);
@@ -759,7 +762,7 @@ describe('training state in the employee lists', () => {
 
   it("says each domain's state and due date in its own column on the client's list and filters by state", async () => {
     mockApi({ [`GET ${employeesPath}`]: () => Response.json(page([popescu, overdue])) });
-    const runtime = mountApp(authFixture(makeSession()).client, `${employeesPath}?page=2`);
+    const runtime = mountApp(authFixture(makeSession()).client, `${employeesPage}?page=2`);
     const user = userEvent.setup();
     const rows = await screen.findAllByTestId('employees-row');
     expect(
@@ -812,7 +815,7 @@ describe('training state in the employee lists', () => {
     });
     const runtime = mountApp(
       authFixture(makeSession()).client,
-      `${employeesPath}?trainingState=overdue`
+      `${employeesPage}?trainingState=overdue`
     );
     const user = userEvent.setup();
     expect(await screen.findByText('Niciun angajat în această stare a instruirii')).toBeTruthy();
@@ -831,7 +834,7 @@ describe('training state in the employee lists', () => {
       terminatedAt: '2026-01-31',
     };
     mockApi({ [`GET ${employeesPath}`]: () => Response.json(page([leaver])) });
-    mountApp(authFixture(makeSession()).client, `${employeesPath}?status=terminated`);
+    mountApp(authFixture(makeSession()).client, `${employeesPage}?status=terminated`);
     const [row] = await screen.findAllByTestId('employees-row');
     expect(within(row!).queryByTestId('training-status-ssm')).toBeNull();
     expect(within(row!).queryByTestId('training-status-su')).toBeNull();
@@ -848,7 +851,7 @@ describe('training state in the employee lists', () => {
         Response.json(page([{ ...overdue, client: { id: clientId, name: 'OMV PETROM SA' } }])),
       'GET /clients': () => Response.json(page([sampleClient])),
     });
-    const runtime = mountApp(authFixture(makeSession()).client, '/employees');
+    const runtime = mountApp(authFixture(makeSession()).client, '/angajati');
     const user = userEvent.setup();
     const [row] = await screen.findAllByTestId('organization-employees-row');
     expect(within(row!).getByTestId('training-status-ssm').textContent).toBe('Depășită');
@@ -881,7 +884,7 @@ describe('training state in the employee lists', () => {
     });
     const runtime = mountApp(
       authFixture(makeSession()).client,
-      '/employees?trainingState=overdue&domain=ssm'
+      '/angajati?trainingState=overdue&domain=ssm'
     );
     const user = userEvent.setup();
     await screen.findAllByTestId('organization-employees-row');
@@ -900,7 +903,7 @@ describe('training state in the employee lists', () => {
 describe('dates typed into the dialog', () => {
   it('refuses a day after today', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/ssm`);
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/ssm`);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('training-record'));
     const dialog = await screen.findByTestId('training-dialog');
@@ -962,7 +965,7 @@ describe("an employee's knowledge tests", () => {
     mockApi({
       [`GET ${testsPath}`]: () => Response.json(employeeTests(testStatus('pending', 'hiring'))),
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/ssm`);
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/ssm`);
     const card = within(await screen.findByTestId('employee-tests'));
     expect((await card.findByTestId('tests-state')).textContent).toBe('De susținut');
     expect(card.getByTestId('tests-awaiting').textContent).toBe(
@@ -981,7 +984,7 @@ describe("an employee's knowledge tests", () => {
     mockApi({
       [`GET ${testsPath}`]: () => Response.json(employeeTests(undefined, testStatus('unverified'))),
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/su`);
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/su`);
     const user = userEvent.setup();
     const card = within(await screen.findByTestId('employee-tests'));
     expect((await card.findByTestId('tests-state')).textContent).toBe('Neverificat pe fișă');
@@ -1020,7 +1023,7 @@ describe("an employee's knowledge tests", () => {
           },
         }),
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/su`);
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/su`);
     const card = within(await screen.findByTestId('employee-tests'));
     expect((await card.findByTestId('tests-state')).textContent).toBe('Anual scadent');
     expect(card.getByTestId('tests-awaiting').textContent).toBe(
@@ -1069,7 +1072,7 @@ describe("an employee's knowledge tests", () => {
         return Response.json({ result: paperResult }, { status: 201 });
       },
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/ssm`);
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/ssm`);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('tests-record-paper'));
     const dialog = within(await screen.findByTestId('test-result-dialog'));
@@ -1113,7 +1116,7 @@ describe("an employee's knowledge tests", () => {
           { status: 409 }
         ),
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/su`);
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/su`);
     const user = userEvent.setup();
     const card = within(await screen.findByTestId('employee-tests'));
     expect((await card.findByTestId('tests-awaiting')).textContent).toBe(
@@ -1142,7 +1145,7 @@ describe("an employee's knowledge tests", () => {
           { status: 409 }
         ),
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/ssm`);
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/ssm`);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('tests-record-paper'));
     const dialog = within(await screen.findByTestId('test-result-dialog'));
@@ -1168,7 +1171,7 @@ describe("an employee's knowledge tests", () => {
     });
     const { queryClient } = mountApp(
       authFixture(makeSession()).client,
-      `${employeePath}/training/ssm`
+      `${employeePage}/instruire/ssm`
     );
     const requestLists = [
       getListMySignatureRequestsQueryKey(),
@@ -1210,7 +1213,7 @@ describe('test state in the employee lists', () => {
       [`GET ${employeesPath}`]: (url) =>
         Response.json(page(url.searchParams.get('testState') === 'none' ? [] : [popescu, tested])),
     });
-    const runtime = mountApp(authFixture(makeSession()).client, employeesPath);
+    const runtime = mountApp(authFixture(makeSession()).client, employeesPage);
     const user = userEvent.setup();
     const rows = await screen.findAllByTestId('employees-row');
     const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
@@ -1262,7 +1265,7 @@ describe('test state in the employee lists', () => {
         Response.json(page([{ ...tested, client: { id: clientId, name: 'OMV PETROM SA' } }])),
       'GET /clients': () => Response.json(page([sampleClient])),
     });
-    const runtime = mountApp(authFixture(makeSession()).client, '/employees?testState=garbage');
+    const runtime = mountApp(authFixture(makeSession()).client, '/angajati?testState=garbage');
     const user = userEvent.setup();
     const [row] = await screen.findAllByTestId('organization-employees-row');
     expect(runtime.router.state.location.search).toEqual({});
@@ -1309,7 +1312,7 @@ describe("a portal pass's test sheet", () => {
           },
         }),
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/su`);
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/su`);
     const sheet = within(await screen.findByTestId('tests-sheet'));
     const slots = sheet.getAllByTestId('tests-sheet-slot');
     expect(slots.map((slot) => slot.textContent)).toEqual([
@@ -1344,7 +1347,7 @@ describe("a portal pass's test sheet", () => {
       'URL',
       Object.assign(URL, { createObjectURL: () => 'blob:test-sheet', revokeObjectURL: () => {} })
     );
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/su`);
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/su`);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('tests-sheet-preview'));
     expect(open).toHaveBeenCalledWith('', '_blank');
@@ -1393,7 +1396,7 @@ describe("a portal pass's test sheet", () => {
       'URL',
       Object.assign(URL, { createObjectURL: () => 'blob:test-sheet', revokeObjectURL: () => {} })
     );
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/su`);
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/su`);
     const user = userEvent.setup();
     const sheet = within(await screen.findByTestId('tests-sheet'));
     expect(sheet.getByTestId('tests-sheet-pending')).toBeTruthy();
@@ -1437,7 +1440,7 @@ describe("a portal pass's test sheet", () => {
         });
       },
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/su`);
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/su`);
     const user = userEvent.setup();
     const marks = await screen.findAllByTestId('tests-sheet-paper');
     expect(marks).toHaveLength(2);
@@ -1477,7 +1480,7 @@ describe("a portal pass's test sheet", () => {
           { status: 409 }
         ),
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/su`);
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/su`);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('tests-result-examiner-edit'));
     const dialog = within(await screen.findByTestId('test-result-dialog'));
@@ -1489,7 +1492,7 @@ describe("a portal pass's test sheet", () => {
 
   it('offers no examiner change once the examiner signed', async () => {
     mockApi({ [`GET ${testsPath}`]: withResult(signedBy('pending', 'paper')) });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/su`);
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/su`);
     expect(await screen.findByTestId('tests-sheet')).toBeTruthy();
     expect(screen.queryByTestId('tests-result-examiner-edit')).toBeNull();
     expect(screen.getAllByTestId('tests-sheet-paper')).toHaveLength(1);

@@ -11,10 +11,10 @@ export const wayBackToastDuration = 10_000;
 
 function clientSection({ to, typeKey }: WayBack) {
   if (to === 'document') {
-    return typeKey && documentSetOf(typeKey) === 'fire_safety'
-      ? 'fire-safety-documents'
-      : 'documents';
+    return typeKey && documentSetOf(typeKey) === 'fire_safety' ? 'documente-su' : 'documente-ssm';
   }
+  if (to === 'fire-safety-documents') return 'documente-su';
+  if (to === 'documents') return 'documente-ssm';
   if (to === 'client-contract') return 'contract';
   return to;
 }
@@ -22,12 +22,12 @@ function clientSection({ to, typeKey }: WayBack) {
 // A same-page fix on the lead page needs no way back: the contract is right there.
 const fixedHere = (pathname: string, wayBack: WayBack) =>
   wayBack.to === 'training-sheet'
-    ? pathname === `/clients/${wayBack.clientId}/employees/${wayBack.employeeId}/edit`
-    : pathname.startsWith('/organization') ||
-      pathname.startsWith('/profile') ||
+    ? pathname === `/clienti/${wayBack.clientId}/angajati/${wayBack.employeeId}/editare`
+    : pathname.startsWith('/organizatie') ||
+      pathname.startsWith('/profil') ||
       (wayBack.to !== 'lead-contract' &&
-        pathname.startsWith(`/clients/${wayBack.clientId}/`) &&
-        !pathname.startsWith(`/clients/${wayBack.clientId}/${clientSection(wayBack)}`));
+        pathname.startsWith(`/clienti/${wayBack.clientId}/`) &&
+        !pathname.startsWith(`/clienti/${wayBack.clientId}/${clientSection(wayBack)}`));
 
 const backLabels = {
   documents: 'Înapoi la generare',
@@ -39,8 +39,8 @@ const backLabels = {
 } as const satisfies Record<WayBack['to'], string>;
 
 const trainingTabs = {
-  ssm: '/clients/$clientId/employees/$employeeId/training/ssm',
-  su: '/clients/$clientId/employees/$employeeId/training/su',
+  ssm: '/clienti/$clientId/angajati/$employeeId/instruire/ssm',
+  su: '/clienti/$clientId/angajati/$employeeId/instruire/su',
 } as const;
 
 type ToastPosition = NonNullable<NonNullable<Parameters<typeof toast.success>[1]>['position']>;
@@ -59,10 +59,10 @@ export function useSavedToast() {
     const back = () => {
       endWayBack();
       if (wayBack.to === 'lead-contract') {
-        void navigate({ to: '/leads/$leadId', params: { leadId: wayBack.clientId } });
+        void navigate({ to: '/clienti-potentiali/$leadId', params: { leadId: wayBack.clientId } });
       } else if (wayBack.to === 'client-contract') {
         void navigate({
-          to: '/clients/$clientId/contract',
+          to: '/clienti/$clientId/contract',
           params: { clientId: wayBack.clientId },
         });
       } else if (wayBack.to === 'training-sheet' && wayBack.employeeId && wayBack.domain) {
@@ -74,13 +74,13 @@ export function useSavedToast() {
         void navigate(documentRowLink(wayBack.clientId, wayBack.typeKey));
       } else if (wayBack.to === 'fire-safety-documents') {
         void navigate({
-          to: '/clients/$clientId/fire-safety-documents',
+          to: '/clienti/$clientId/documente-su',
           params: { clientId: wayBack.clientId },
           search: { focus: 'generate' },
         });
       } else {
         void navigate({
-          to: '/clients/$clientId/documents',
+          to: '/clienti/$clientId/documente-ssm',
           params: { clientId: wayBack.clientId },
           search: { focus: 'generate' },
         });

@@ -94,7 +94,7 @@ function screenWidth(wide: boolean) {
 
 async function renderPack({
   pack,
-  url = `/clients/${clientId}/documents`,
+  url = `/clienti/${clientId}/documente-ssm`,
   wide,
   readOnly = false,
   set = 'occupational_safety',
@@ -131,7 +131,7 @@ async function renderPack({
   const root = createRootRoute({ component: Outlet });
   const page = createRoute({
     getParentRoute: () => root,
-    path: '/clients/$clientId/documents',
+    path: '/clienti/$clientId/documente-ssm',
     validateSearch: (search: Record<string, unknown>) => ({
       section: typeof search.section === 'string' ? search.section : undefined,
     }),
@@ -281,7 +281,7 @@ describe('PackLayout', () => {
     const router = await renderPack({
       pack: filled,
       wide: true,
-      url: `/clients/${clientId}/documents?section=own-instructions`,
+      url: `/clienti/${clientId}/documente-ssm?section=own-instructions`,
     });
 
     expect(screen.getByTestId('pack-section-title').textContent).toBe('Instrucțiuni proprii');
@@ -297,7 +297,7 @@ describe('PackLayout', () => {
     expect(router.state.location.search).toEqual({ section: 'training-themes' });
     expect(entry('4').getAttribute('aria-current')).toBe('true');
     expect(entry('4').getAttribute('href')).toBe(
-      `/clients/${clientId}/documents?section=training-themes`
+      `/clienti/${clientId}/documente-ssm?section=training-themes`
     );
   });
 
@@ -305,7 +305,7 @@ describe('PackLayout', () => {
     await renderPack({
       pack: filled,
       wide: true,
-      url: `/clients/${clientId}/documents?section=risk-assessment`,
+      url: `/clienti/${clientId}/documente-ssm?section=risk-assessment`,
     });
 
     const next = screen.getByTestId('pack-next-section');
@@ -356,7 +356,7 @@ describe('PackLayout', () => {
     const router = await renderPack({
       pack: filled,
       wide: false,
-      url: `/clients/${clientId}/documents?section=decisions`,
+      url: `/clienti/${clientId}/documente-ssm?section=decisions`,
     });
 
     expect(screen.getByTestId('pack-section-title').textContent).toBe('Decizii interne');
@@ -365,7 +365,7 @@ describe('PackLayout', () => {
     );
     const back = screen.getByTestId('pack-back');
     expect(back.textContent).toBe('Cuprinsul documentației');
-    expect(back.getAttribute('href')).toBe(`/clients/${clientId}/documents`);
+    expect(back.getAttribute('href')).toBe(`/clienti/${clientId}/documente-ssm`);
 
     await userEvent.click(back);
 

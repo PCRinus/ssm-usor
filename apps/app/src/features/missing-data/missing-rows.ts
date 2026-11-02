@@ -36,59 +36,63 @@ import type {
 
 const to = {
   clientDetails: (clientId: string, focus: ClientDetailsFocus) =>
-    linkOptions({ to: '/clients/$clientId/details', params: { clientId }, search: { focus } }),
+    linkOptions({ to: '/clienti/$clientId/detalii', params: { clientId }, search: { focus } }),
   training: (clientId: string, focus: TrainingFocus) =>
-    linkOptions({ to: '/clients/$clientId/training', params: { clientId }, search: { focus } }),
+    linkOptions({ to: '/clienti/$clientId/instruire', params: { clientId }, search: { focus } }),
   fireSafetyMeans: (clientId: string, focus: FireSafetyMeansFocus) =>
     linkOptions({
-      to: '/clients/$clientId/fire-safety-means',
+      to: '/clienti/$clientId/mijloace-de-aparare',
       params: { clientId },
       search: { focus },
     }),
   clientEvaluations: (clientId: string) =>
     linkOptions({
-      to: '/clients/$clientId/job-positions',
+      to: '/clienti/$clientId/posturi',
       params: { clientId },
       hash: clientEvaluationsSection,
     }),
   clientEvaluation: (clientId: string, evaluationId: string) =>
     linkOptions({
-      to: '/clients/$clientId/job-positions/risk-evaluations/$evaluationId',
+      to: '/clienti/$clientId/posturi/evaluari-riscuri/$evaluationId',
       params: { clientId, evaluationId },
       hash: evaluationSections.factors,
     }),
   addPosition: (clientId: string) =>
     linkOptions({
-      to: '/clients/$clientId/job-positions',
+      to: '/clienti/$clientId/posturi',
       params: { clientId },
       search: { focus: 'add-position' as const },
     }),
   positions: (clientId: string) =>
-    linkOptions({ to: '/clients/$clientId/job-positions', params: { clientId } }),
+    linkOptions({ to: '/clienti/$clientId/posturi', params: { clientId } }),
   documentSection: (clientId: string, section: DocumentSectionId) =>
-    linkOptions({ to: '/clients/$clientId/documents', params: { clientId }, search: { section } }),
+    linkOptions({
+      to: '/clienti/$clientId/documente-ssm',
+      params: { clientId },
+      search: { section },
+    }),
   fireSafetyDocumentSection: (clientId: string, section: FireSafetyDocumentSectionId) =>
     linkOptions({
-      to: '/clients/$clientId/fire-safety-documents',
+      to: '/clienti/$clientId/documente-su',
       params: { clientId },
       search: { section },
     }),
   position: (clientId: string, jobPositionId: string, section: PositionSection) =>
     linkOptions({
-      to: '/clients/$clientId/job-positions/$jobPositionId',
+      to: '/clienti/$clientId/posturi/$jobPositionId',
       params: { clientId, jobPositionId },
       hash: section,
     }),
   // Before the position is evaluated, the page offers to start.
   positionEvaluation: (clientId: string, jobPositionId: string) =>
     linkOptions({
-      to: '/clients/$clientId/job-positions/$jobPositionId/risk-evaluation',
+      to: '/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri',
       params: { clientId, jobPositionId },
       hash: evaluationSections.factors,
     }),
   clientContract: (clientId: string) =>
     linkOptions({
-      to: '/clients/$clientId/contract',
+      to: '/clienti/$clientId/contract',
       params: { clientId },
       search: { focus: 'contract-details' as const },
       replace: true,
@@ -97,20 +101,20 @@ const to = {
   // Only the contract card on the same page links here, so it stays one entry of the history.
   lead: (leadId: string, focus: CompanyFocus | ContractFocus) =>
     linkOptions({
-      to: '/leads/$leadId',
+      to: '/clienti-potentiali/$leadId',
       params: { leadId },
       search: { focus },
       replace: true,
       resetScroll: false,
     }),
   organizationCompany: (focus: OrganizationCompanyFocus) =>
-    linkOptions({ to: '/organization/company', search: { focus } }),
+    linkOptions({ to: '/organizatie/date-firma', search: { focus } }),
   authorizations: (focus: AuthorizationsFocus) =>
-    linkOptions({ to: '/organization/authorizations', search: { focus } }),
-  profile: (focus: ProfileFocus) => linkOptions({ to: '/profile', search: { focus } }),
+    linkOptions({ to: '/organizatie/abilitari', search: { focus } }),
+  profile: (focus: ProfileFocus) => linkOptions({ to: '/profil', search: { focus } }),
   employeeEdit: (clientId: string, employeeId: string, focus: EmployeeFocus) =>
     linkOptions({
-      to: '/clients/$clientId/employees/$employeeId/edit',
+      to: '/clienti/$clientId/angajati/$employeeId/editare',
       params: { clientId, employeeId },
       search: { focus },
     }),

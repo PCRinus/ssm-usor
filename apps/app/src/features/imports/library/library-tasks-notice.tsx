@@ -49,7 +49,7 @@ export function LibraryTasksNotice({ clientId }: { clientId: string }) {
             action={
               <Button asChild variant="outline" size="sm" className="bg-card">
                 <Link
-                  to="/clients/import/$importId"
+                  to="/clienti/import/$importId"
                   params={{ importId: item.id }}
                   data-testid="client-library-tasks-open"
                 >

@@ -60,6 +60,7 @@ const manager = {
 };
 
 const listPath = `/clients/${clientId}/job-positions`;
+const listPage = `/clienti/${clientId}/posturi`;
 
 type Route = (init: RequestInit | undefined) => Response;
 
@@ -107,8 +108,7 @@ const requests = (pathname: string, method: string) =>
     )
     .map(([, init]) => (init?.body ? (JSON.parse(String(init.body)) as unknown) : null));
 
-const mount = () =>
-  mountApp(authFixture(makeSession()).client, `/clients/${clientId}/job-positions`);
+const mount = () => mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/posturi`);
 
 async function openRowMenu(user: ReturnType<typeof userEvent.setup>, name: string) {
   const rows = await screen.findAllByTestId('job-position-row');
@@ -159,7 +159,7 @@ describe("a client's job positions", () => {
     const [row] = await screen.findAllByTestId('job-position-row');
     await user.click(within(row!).getByTestId('job-position-open'));
     await screen.findByTestId('job-position-page');
-    expect(runtime.router.state.location.pathname).toBe(`${listPath}/${barista.id}`);
+    expect(runtime.router.state.location.pathname).toBe(`${listPage}/${barista.id}`);
     expect(screen.getByRole('heading', { level: 2, name: 'Barman preparator' })).toBeTruthy();
     expect(screen.getByText('Prepară și servește înghețată și cafea.')).toBeTruthy();
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
@@ -201,10 +201,10 @@ describe("a client's job positions", () => {
     ]);
     const [first] = rows;
     expect(within(first!).getByTestId('job-position-equipment').getAttribute('href')).toBe(
-      `${listPath}/${barista.id}#protective-equipment`
+      `${listPage}/${barista.id}#protective-equipment`
     );
     expect(within(first!).getByTestId('job-position-instructions').getAttribute('href')).toBe(
-      `${listPath}/${barista.id}#instructions`
+      `${listPage}/${barista.id}#instructions`
     );
   });
 
@@ -215,7 +215,7 @@ describe("a client's job positions", () => {
     const [row] = await screen.findAllByTestId('job-position-row');
     await user.click(within(row!).getByTestId('job-position-equipment'));
     await screen.findByTestId('job-position-page');
-    expect(runtime.router.state.location.pathname).toBe(`${listPath}/${barista.id}`);
+    expect(runtime.router.state.location.pathname).toBe(`${listPage}/${barista.id}`);
     expect(runtime.router.state.location.hash).toBe('protective-equipment');
   });
 
@@ -236,7 +236,7 @@ describe("a client's job positions", () => {
     ]);
     await user.click(screen.getByTestId('job-position-menu-fire-instructions'));
     await screen.findByTestId('job-position-page');
-    expect(runtime.router.state.location.pathname).toBe(`${listPath}/${manager.id}`);
+    expect(runtime.router.state.location.pathname).toBe(`${listPage}/${manager.id}`);
     expect(runtime.router.state.location.hash).toBe('fire-instructions');
   });
 
@@ -249,7 +249,7 @@ describe("a client's job positions", () => {
       'Un post nu are echipamentul de protecție stabilit: Manager magazin – birou.'
     );
     expect(within(equipment).getByRole('link').getAttribute('href')).toBe(
-      `${listPath}/${manager.id}#protective-equipment`
+      `${listPage}/${manager.id}#protective-equipment`
     );
     const instructions = screen.getByTestId('job-positions-undecided-instructions');
     expect(instructions.textContent).toBe(
@@ -259,13 +259,13 @@ describe("a client's job positions", () => {
       within(instructions)
         .getAllByRole('link')
         .map((link) => link.getAttribute('href'))
-    ).toEqual([`${listPath}/${barista.id}#instructions`, `${listPath}/${manager.id}#instructions`]);
+    ).toEqual([`${listPage}/${barista.id}#instructions`, `${listPage}/${manager.id}#instructions`]);
     const fireInstructions = screen.getByTestId('job-positions-undecided-fire-instructions');
     expect(fireInstructions.textContent).toBe(
       'Un post nu are instrucțiunile SU stabilite: Manager magazin – birou.'
     );
     expect(within(fireInstructions).getByRole('link').getAttribute('href')).toBe(
-      `${listPath}/${manager.id}#fire-instructions`
+      `${listPage}/${manager.id}#fire-instructions`
     );
   });
 
@@ -464,7 +464,7 @@ describe("a client's job positions", () => {
     mockApi({ items: [] });
     const runtime = mountApp(
       authFixture(makeSession()).client,
-      `/clients/${clientId}/job-positions?focus=add-position`
+      `/clienti/${clientId}/posturi?focus=add-position`
     );
     expect(await screen.findByTestId('job-position-dialog')).toBeTruthy();
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));

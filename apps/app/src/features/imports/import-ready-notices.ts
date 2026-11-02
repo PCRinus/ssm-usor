@@ -6,9 +6,9 @@ import { isRunning } from './import-format';
 type ImportItem = ImportListResponseItemsItem;
 
 export type ImportLink =
-  | { to: '/clients/import/$importId'; params: { importId: string } }
+  | { to: '/clienti/import/$importId'; params: { importId: string } }
   | {
-      to: '/clients/$clientId/employees/import/$importId';
+      to: '/clienti/$clientId/angajati/import/$importId';
       params: { clientId: string; importId: string };
     };
 
@@ -27,11 +27,11 @@ export const isMineRunning = (items: ImportItem[], userId: string) =>
 export function linkOf(item: ImportItem): ImportLink {
   if (item.kind === 'employees' && item.client) {
     return {
-      to: '/clients/$clientId/employees/import/$importId',
+      to: '/clienti/$clientId/angajati/import/$importId',
       params: { clientId: item.client.id, importId: item.id },
     };
   }
-  return { to: '/clients/import/$importId', params: { importId: item.id } };
+  return { to: '/clienti/import/$importId', params: { importId: item.id } };
 }
 
 function noticeOf(item: ImportItem): ImportReadyNotice | null {

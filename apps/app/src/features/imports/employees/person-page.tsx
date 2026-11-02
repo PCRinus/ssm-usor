@@ -78,7 +78,7 @@ export function EmployeePersonPage({
       <Notice variant="destructive" data-testid="person-missing">
         Persoana nu mai e în import.{' '}
         <Link
-          to="/clients/$clientId/employees/import/$importId"
+          to="/clienti/$clientId/angajati/import/$importId"
           params={{ clientId, importId: detail.id }}
           className="underline"
         >
@@ -121,12 +121,12 @@ export function EmployeePersonPage({
     review.update((changes) => leaving({ ...context, changes }, person));
     if (to) {
       void navigate({
-        to: '/clients/$clientId/employees/import/$importId/$personId',
+        to: '/clienti/$clientId/angajati/import/$importId/$personId',
         params: { clientId, importId: detail.id, personId: to.id },
       });
     } else {
       void navigate({
-        to: '/clients/$clientId/employees/import/$importId',
+        to: '/clienti/$clientId/angajati/import/$importId',
         params: { clientId, importId: detail.id },
       });
     }
@@ -165,7 +165,7 @@ export function EmployeePersonPage({
               {stateLabels[state].label}
             </Tag>
             <Link
-              to="/clients/$clientId/employees/import/$importId"
+              to="/clienti/$clientId/angajati/import/$importId"
               params={{ clientId, importId: detail.id }}
               className="text-sm text-muted-foreground tabular-nums hover:underline"
             >
@@ -267,7 +267,7 @@ export function EmployeePersonPage({
                 completează: adaugă ce lipsește și instruirile noi de pe fișă. Ce are deja în
                 aplicație rămâne așa, dacă nu alegi altfel.{' '}
                 <Link
-                  to="/clients/$clientId/employees/$employeeId"
+                  to="/clienti/$clientId/angajati/$employeeId"
                   params={{ clientId, employeeId: person.existing!.employeeId }}
                   className="underline"
                 >

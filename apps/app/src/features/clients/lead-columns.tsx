@@ -34,7 +34,7 @@ export function leadColumns(
       },
       cell: ({ row, getValue }) => (
         <Link
-          to="/leads/$leadId"
+          to="/clienti-potentiali/$leadId"
           params={{ leadId: row.original.id }}
           data-testid="leads-open"
           className="hover:underline"
@@ -142,7 +142,7 @@ export function leadColumns(
               ) : (
                 <>
                   <DropdownMenuItem asChild data-testid="leads-edit">
-                    <Link to="/leads/$leadId/edit" params={{ leadId: lead.id }}>
+                    <Link to="/clienti-potentiali/$leadId/editare" params={{ leadId: lead.id }}>
                       <Pencil aria-hidden="true" />
                       Modifică
                     </Link>

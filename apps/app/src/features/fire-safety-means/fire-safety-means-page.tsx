@@ -235,7 +235,7 @@ export function FireSafetyMeansPage({
                 !readOnly && (
                   <Button asChild variant="tonal">
                     <Link
-                      to="/clients/$clientId/details"
+                      to="/clienti/$clientId/detalii"
                       params={{ clientId }}
                       search={{ focus: 'add-workplace' }}
                     >

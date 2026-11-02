@@ -187,7 +187,7 @@ const requests = (suffix: string, method = 'GET') =>
     )
     .map(([input, init]) => ({ url: new URL(String(input)), init }));
 
-const firePath = `/clients/${clientId}/fire-safety-documents`;
+const firePath = `/clienti/${clientId}/documente-su`;
 
 const mount = (path = firePath) => mountApp(authFixture(makeSession()).client, path);
 
@@ -322,7 +322,7 @@ describe('client fire-safety documents', () => {
 
   it('leaves the SSM tab to its own set', async () => {
     mockApi({ ssmItems: [ssmReport], fireItems: [registers] });
-    mount(`/clients/${clientId}/documents`);
+    mount(`/clienti/${clientId}/documente-ssm`);
 
     await screen.findAllByTestId('pack-contents-entry');
     expect(screen.getByRole('heading', { name: 'Documentația SSM' })).toBeTruthy();
@@ -600,22 +600,22 @@ describe('client fire-safety documents', () => {
     ]);
     const rows = screen.getAllByTestId('generate-missing-row');
     expect(rows.map((row) => [row.textContent, row.getAttribute('href')])).toEqual([
-      ['Denumirea legală', '/organization/company?focus=legal-name'],
+      ['Denumirea legală', '/organizatie/date-firma?focus=legal-name'],
       [
         'Cadrul tehnic PSINumele lui apare pe documentele SU.',
-        '/organization/authorizations?focus=fire-safety-technician',
+        '/organizatie/abilitari?focus=fire-safety-technician',
       ],
       [
         'Certificatul cadrului tehnic PSIDecizia de numire a cadrului tehnic PSI îl tipărește.',
-        '/organization/authorizations?focus=fire-safety-technician',
+        '/organizatie/abilitari?focus=fire-safety-technician',
       ],
       [
         'Numele reprezentantului legal',
-        `/clients/${clientId}/details?focus=legal-representative-name`,
+        `/clienti/${clientId}/detalii?focus=legal-representative-name`,
       ],
       [
         'Funcția reprezentantului legal',
-        `/clients/${clientId}/details?focus=legal-representative-role`,
+        `/clienti/${clientId}/detalii?focus=legal-representative-role`,
       ],
     ]);
     expect(screen.queryByTestId('generate-submit')).toBeNull();
@@ -718,18 +718,18 @@ describe('client fire-safety documents', () => {
     expect(rows.at(-1)!.textContent).toBe(
       'Cel puțin un post de lucruDecizia privind instruirea în domeniul situațiilor de urgență enumeră posturile de lucru ale clientului.'
     );
-    const client = `/clients/${clientId}`;
+    const client = `/clienti/${clientId}`;
     expect(rows.map((row) => row.getAttribute('href'))).toEqual([
-      `${client}/details?focus=workplace-fire-data`,
-      `${client}/fire-safety-means?focus=fire-equipment`,
-      `${client}/fire-safety-means?focus=fire-substances`,
-      `${client}/training?focus=fire-training-schedule`,
-      `${client}/training?focus=fire-smoking`,
-      `${client}/training?focus=fire-waste`,
-      `${client}/training?focus=workplace-manager`,
-      `${client}/training?focus=fire-safety-coordinator`,
-      `${client}/training?focus=fire-intervention-leader`,
-      `${client}/job-positions?focus=add-position`,
+      `${client}/detalii?focus=workplace-fire-data`,
+      `${client}/mijloace-de-aparare?focus=fire-equipment`,
+      `${client}/mijloace-de-aparare?focus=fire-substances`,
+      `${client}/instruire?focus=fire-training-schedule`,
+      `${client}/instruire?focus=fire-smoking`,
+      `${client}/instruire?focus=fire-waste`,
+      `${client}/instruire?focus=workplace-manager`,
+      `${client}/instruire?focus=fire-safety-coordinator`,
+      `${client}/instruire?focus=fire-intervention-leader`,
+      `${client}/posturi?focus=add-position`,
     ]);
     expect(screen.queryByTestId('generate-first-number')).toBeNull();
   });

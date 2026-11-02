@@ -62,7 +62,7 @@ export function PromoteLeadDialog({
       await queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
       toast.success(`${legalName} este acum client.`);
       close();
-      await navigate({ to: '/clients/$clientId/details', params: { clientId: id } });
+      await navigate({ to: '/clienti/$clientId/detalii', params: { clientId: id } });
     } catch (cause) {
       setError(serverMessage(cause));
     }

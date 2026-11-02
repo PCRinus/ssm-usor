@@ -21,6 +21,7 @@ import { TrainingSheetDownload } from './training-sheet-download';
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const employeeId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
 const employeePath = `/clients/${clientId}/employees/${employeeId}`;
+const employeePage = `/clienti/${clientId}/angajati/${employeeId}`;
 
 type Readiness = { ready: boolean; missing: string[]; stored?: boolean; sequences?: number[] };
 const ready: Readiness = { ready: true, missing: [] };
@@ -61,7 +62,7 @@ function mount(...domains: TrainingDomain[]) {
   const root = createRootRouteWithContext<RouterContext>()({ component: () => <Outlet /> });
   const employee = createRoute({
     getParentRoute: () => root,
-    path: '/clients/$clientId/employees/$employeeId',
+    path: '/clienti/$clientId/angajati/$employeeId',
     component: () =>
       domains.map((domain) => (
         <TrainingSheetDownload
@@ -75,7 +76,7 @@ function mount(...domains: TrainingDomain[]) {
   const router = createRouter({
     routeTree: root.addChildren([employee]),
     context,
-    history: createMemoryHistory({ initialEntries: [employeePath] }),
+    history: createMemoryHistory({ initialEntries: [employeePage] }),
   });
   render(
     <QueryClientProvider client={queryClient}>

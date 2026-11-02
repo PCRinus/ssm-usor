@@ -66,7 +66,7 @@ const requests = (pathname: string, method = 'GET') =>
 const bodyOf = (pathname: string, method: string) =>
   JSON.parse(String(requests(pathname, method).at(-1)?.[1]?.body)) as unknown;
 
-const mount = () => mountApp(authFixture(makeSession()).client, '/organization/subscription');
+const mount = () => mountApp(authFixture(makeSession()).client, '/organizatie/abonament');
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -92,7 +92,7 @@ describe('the Abonament tab', () => {
     expect(within(card).getByRole('heading', { name: 'Perioada de probă' })).toBeTruthy();
     expect(within(card).getByTestId('plan-amount').textContent).toContain('12 zile');
     expect(within(card).getByRole('link', { name: 'Alege un plan' }).getAttribute('href')).toBe(
-      '/organization/subscription/choose'
+      '/organizatie/abonament/alege'
     );
     expect(screen.getByTestId('meter-sms').textContent).toContain(
       'SMS-urile pornesc când alegi un plan'
@@ -194,7 +194,7 @@ describe('the Abonament tab', () => {
     expect(notice.textContent).toContain('Cardul nu a fost confirmat.');
     expect(notice.textContent).not.toContain('Cardul e salvat');
     expect(within(notice).getByRole('link', { name: 'Adaugă cardul' }).getAttribute('href')).toBe(
-      '/organization/subscription/choose'
+      '/organizatie/abonament/alege'
     );
   });
 
@@ -574,7 +574,7 @@ describe('the Abonament tab', () => {
     );
     expect(
       within(notice).getByRole('link', { name: 'Reactivează abonamentul' }).getAttribute('href')
-    ).toBe('/organization/subscription/choose');
+    ).toBe('/organizatie/abonament/alege');
     expect(
       within(screen.getByTestId('plan-card')).getByTestId('plan-amount').textContent
     ).toContain(roDate(inDays(23)));
@@ -716,7 +716,7 @@ describe('the signing codes by SMS on the Abonament tab', () => {
           ),
       },
     });
-    mountApp(authFixture(makeSession()).client, '/organization/subscription?raiseCap=true');
+    mountApp(authFixture(makeSession()).client, '/organizatie/abonament?raiseCap=true');
     const dialog = await screen.findByTestId('sms-cap-dialog');
     await userEvent.click(within(dialog).getByTestId('sms-cap-save'));
     expect((await within(dialog).findByTestId('sms-cap-error')).textContent).toContain(
@@ -739,7 +739,7 @@ describe('the signing codes by SMS on the Abonament tab', () => {
       overview: paidWith({ used: 900, overage: 600, state: 'capped' }, null),
       role: 'specialist',
     });
-    mountApp(authFixture(makeSession()).client, '/organization/subscription?raiseCap=true');
+    mountApp(authFixture(makeSession()).client, '/organizatie/abonament?raiseCap=true');
     expect((await screen.findByTestId('meter-sms-hint')).textContent).toContain(
       'Administratorul poate ridica limita.'
     );

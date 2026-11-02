@@ -57,7 +57,7 @@ function mount(detail: ImportDetail, path = '') {
   });
   mountApp(
     authFixture(makeSession()).client,
-    `/clients/${clientId}/employees/import/${importId}${path}`
+    `/clienti/${clientId}/angajati/import/${importId}${path}`
   );
 }
 

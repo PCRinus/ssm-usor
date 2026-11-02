@@ -109,7 +109,7 @@ describe("the organization's employees", () => {
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('nav-employees'));
     await screen.findByTestId('organization-employees-page');
-    expect(runtime.router.state.location.pathname).toBe('/employees');
+    expect(runtime.router.state.location.pathname).toBe('/angajati');
     expect(screen.getByRole('heading', { level: 1, name: 'Angajați' })).toBeTruthy();
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
     expect(within(breadcrumb).getByText('Angajați')).toBeTruthy();
@@ -127,21 +127,21 @@ describe("the organization's employees", () => {
     expect(query.has('status')).toBe(false);
 
     await user.click(within(rows[1]!).getByTestId('organization-employees-client'));
-    expect(runtime.router.state.location.pathname).toBe(`/clients/${navalId}/details`);
+    expect(runtime.router.state.location.pathname).toBe(`/clienti/${navalId}/detalii`);
   });
 
   it('links each name to the employee’s page under their client', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, '/employees');
+    mountApp(authFixture(makeSession()).client, '/angajati');
     const [first] = await screen.findAllByTestId('organization-employees-open');
-    expect(first!.getAttribute('href')).toBe(`/clients/${petromId}/employees/${popescu.id}`);
+    expect(first!.getAttribute('href')).toBe(`/clienti/${petromId}/angajati/${popescu.id}`);
   });
 
   it('puts the search in the URL once typing pauses and starts again from the first page', async () => {
     mockApi((url) =>
       Response.json(url.searchParams.get('q') ? page([taranu]) : page([popescu, taranu], 30))
     );
-    const runtime = mountApp(authFixture(makeSession()).client, '/employees?page=2&sort=client');
+    const runtime = mountApp(authFixture(makeSession()).client, '/angajati?page=2&sort=client');
     const user = userEvent.setup();
     await screen.findAllByTestId('organization-employees-row');
     const historyLength = runtime.router.history.length;
@@ -168,7 +168,7 @@ describe("the organization's employees", () => {
     mockApi();
     const runtime = mountApp(
       authFixture(makeSession()).client,
-      `/employees?q=popescu&clientId=${petromId}`
+      `/angajati?q=popescu&clientId=${petromId}`
     );
     const user = userEvent.setup();
     await screen.findAllByTestId('organization-employees-row');
@@ -193,7 +193,7 @@ describe("the organization's employees", () => {
 
   it('chooses a client from the filter and clears it', async () => {
     mockApi();
-    const runtime = mountApp(authFixture(makeSession()).client, '/employees');
+    const runtime = mountApp(authFixture(makeSession()).client, '/angajati');
     const user = userEvent.setup();
     await screen.findAllByTestId('organization-employees-row');
     const filter = screen.getByTestId('organization-employees-client-filter');
@@ -217,7 +217,7 @@ describe("the organization's employees", () => {
 
   it('tells an empty organization from a search that matches no one', async () => {
     mockApi(() => Response.json(page([])));
-    const runtime = mountApp(authFixture(makeSession()).client, '/employees');
+    const runtime = mountApp(authFixture(makeSession()).client, '/angajati');
     const user = userEvent.setup();
     expect(await screen.findByText('Niciun angajat încă')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Mergi la clienți' })).toBeTruthy();

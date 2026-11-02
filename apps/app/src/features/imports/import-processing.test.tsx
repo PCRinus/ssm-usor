@@ -124,7 +124,7 @@ function mockImport(detail: ReturnType<typeof importDetail>, read?: () => Respon
   });
 }
 
-const mount = () => mountApp(authFixture(makeSession()).client, `/clients/import/${importId}`);
+const mount = () => mountApp(authFixture(makeSession()).client, `/clienti/import/${importId}`);
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -253,7 +253,7 @@ describe('the processing page', () => {
     expect(within(dialog).getByRole('heading').textContent).toBe('Oprești importul?');
     await userEvent.click(within(dialog).getByTestId('import-abandon-confirm'));
 
-    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/clients'));
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/clienti'));
     expect(requestsTo(`/imports/${importId}/abandon`, 'POST')).toHaveLength(1);
   });
 

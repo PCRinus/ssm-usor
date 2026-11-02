@@ -265,7 +265,7 @@ const requests = (pathname: string, method: string) =>
     .map(([, init]) => (init?.body ? (JSON.parse(String(init.body)) as unknown) : null));
 
 const mount = (search = '') =>
-  mountApp(authFixture(makeSession()).client, `/clients/${clientId}/fire-safety-means${search}`);
+  mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/mijloace-de-aparare${search}`);
 
 async function cardOf(name: string) {
   const cards = await screen.findAllByTestId('fire-means-card');
@@ -831,7 +831,7 @@ describe('client fire-safety means', () => {
     const empty = await screen.findByTestId('fire-means-no-workplace');
     expect(
       within(empty).getByRole('link', { name: 'Adaugă un loc de muncă' }).getAttribute('href')
-    ).toBe(`/clients/${clientId}/details?focus=add-workplace`);
+    ).toBe(`/clienti/${clientId}/detalii?focus=add-workplace`);
   });
 
   it('shows an archived client the means without add or row actions', async () => {

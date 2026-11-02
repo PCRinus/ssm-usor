@@ -26,7 +26,7 @@ export function StartWays({ onImport }: { onImport: () => void }) {
       className="mx-auto mt-6 grid max-w-[38rem] gap-3 sm:grid-cols-2"
       data-testid="clients-start-ways"
     >
-      <Link to="/clients/new" className={wayClass} data-testid="clients-start-form">
+      <Link to="/clienti/nou" className={wayClass} data-testid="clients-start-form">
         <WayContent
           icon={<PenLine className="size-5" />}
           title="Adaugă primul client"

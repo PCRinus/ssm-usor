@@ -99,7 +99,7 @@ function mockReview(
 }
 
 const mount = (path = '') =>
-  mountApp(authFixture(makeSession()).client, `/clients/import/${importId}${path}`);
+  mountApp(authFixture(makeSession()).client, `/clienti/import/${importId}${path}`);
 
 const savedChanges = (index: number) =>
   bodyOf(`/imports/${importId}/changes`, 'PUT', index) as {
@@ -131,7 +131,7 @@ describe('the review hub', () => {
       'Scrie data angajării lui Lazăr Radu, reprezentantul lucrătorilor',
     ]);
     expect(links[0]!.getAttribute('href')).toBe(
-      `/clients/import/${importId}/identity#review-client-legalRepresentativeName`
+      `/clienti/import/${importId}/identity#review-client-legalRepresentativeName`
     );
     const statuses = Object.fromEntries(
       screen
@@ -241,7 +241,7 @@ describe('the review hub', () => {
     await userEvent.click(within(dialog).getByTestId('import-confirm-submit'));
 
     await waitFor(() =>
-      expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/details`)
+      expect(runtime.router.state.location.pathname).toBe(`/clienti/${clientId}/detalii`)
     );
     expect(bodyOf(`/imports/${importId}/confirm`, 'POST')).toEqual({ version: 3 });
     expect((await screen.findByTestId('client-imported-notice')).textContent).toContain(
@@ -438,7 +438,7 @@ describe('one review across its pages', () => {
 
     release();
     await waitFor(() =>
-      expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/details`)
+      expect(runtime.router.state.location.pathname).toBe(`/clienti/${clientId}/detalii`)
     );
     expect(savedChanges(0).changes.fields).toEqual({ 'client.legalName': { option: 2 } });
     expect(bodyOf(`/imports/${importId}/confirm`, 'POST')).toEqual({ version: 4 });

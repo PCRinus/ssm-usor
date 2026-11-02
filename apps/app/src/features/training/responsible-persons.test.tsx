@@ -137,7 +137,7 @@ const requests = (pathname: string, method: string) =>
     )
     .map(([, init]) => (init?.body ? (JSON.parse(String(init.body)) as unknown) : null));
 
-const mount = () => mountApp(authFixture(makeSession()).client, `/clients/${clientId}/training`);
+const mount = () => mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/instruire`);
 
 const renderedRoles = () =>
   Array.from(document.querySelectorAll('[data-testid^="responsible-role-"]')).map((checkbox) =>
@@ -368,7 +368,7 @@ describe('client responsible persons', () => {
     );
     expect(
       screen.getByTestId('responsible-employee-administrator-missing').getAttribute('href')
-    ).toBe(`/clients/${clientId}/details?focus=legal-representative-name`);
+    ).toBe(`/clienti/${clientId}/detalii?focus=legal-representative-name`);
     expect(
       within(screen.getByRole('listbox'))
         .getAllByRole('option')
@@ -433,7 +433,7 @@ describe('client responsible persons', () => {
     mockApi({ items: [], client: { ...sampleClient, currentEmployeeCount: 6 } });
     mountApp(
       authFixture(makeSession()).client,
-      `/clients/${clientId}/training?focus=workers-representative`
+      `/clienti/${clientId}/instruire?focus=workers-representative`
     );
     const representative = await screen.findByTestId('responsible-role-workers_representative');
     expect(representative.getAttribute('data-state')).toBe('checked');
@@ -495,7 +495,7 @@ describe('client responsible persons', () => {
     ['fire-intervention-leader', 'responsible-role-fire_intervention_leader'],
   ])('opens the new person dialog for ?focus=%s with that role ticked', async (focus, box) => {
     mockApi({ items: [] });
-    mountApp(authFixture(makeSession()).client, `/clients/${clientId}/training?focus=${focus}`);
+    mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/instruire?focus=${focus}`);
     const dialog = await screen.findByTestId('responsible-dialog');
     expect(
       within(dialog)
@@ -668,7 +668,7 @@ describe('client responsible persons', () => {
     mockApi({ items: [] });
     const runtime = mountApp(
       authFixture(makeSession()).client,
-      `/clients/${clientId}/training?focus=imminent-danger`
+      `/clienti/${clientId}/instruire?focus=imminent-danger`
     );
     const dialog = await screen.findByTestId('responsible-dialog');
     expect(within(dialog).getByRole('heading').textContent).toBe('Adaugă o persoană responsabilă');
@@ -688,7 +688,7 @@ describe('client responsible persons', () => {
     });
     mountApp(
       authFixture(makeSession()).client,
-      `/clients/${clientId}/training?focus=workers-representative-clash`
+      `/clienti/${clientId}/instruire?focus=workers-representative-clash`
     );
     const dialog = await screen.findByTestId('responsible-dialog');
     expect(within(dialog).getByRole('heading').textContent).toBe('Modifică persoana responsabilă');
@@ -718,7 +718,7 @@ describe('client responsible persons', () => {
       });
     });
     mockApi({ items: [] });
-    mountApp(authFixture(makeSession()).client, `/clients/${clientId}/training?focus=first-aid`);
+    mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/instruire?focus=first-aid`);
     await screen.findByTestId('responsible-dialog');
     expect(scrolled.find((call) => call.testId === 'responsible-add')).toEqual({
       testId: 'responsible-add',

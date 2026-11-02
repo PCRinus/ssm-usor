@@ -262,7 +262,7 @@ describe('the setup guide on a first load', () => {
     expect(card.textContent).toContain('Adaugă primul client');
     const action = within(card).getByTestId('setup-step-action-0');
     expect(action.textContent).toBe('Adaugă client');
-    expect(action.getAttribute('href')).toBe('/clients/new');
+    expect(action.getAttribute('href')).toBe('/clienti/nou');
     expect(within(card).queryByText('Importă din documente')).toBeNull();
     expect(within(card).getByTestId('setup-step-skip').textContent).toBe('Știu deja');
     expect(step('workplaces-positions').dataset.state).toBe('locked');
@@ -277,7 +277,7 @@ describe('the setup guide on a first load', () => {
     expect(guide.dataset.view).toBe('collapsed');
     const next = screen.getByTestId('setup-guide-next');
     expect(next.textContent).toBe('Adaugă primul client');
-    expect(next.getAttribute('href')).toBe('/clients/new');
+    expect(next.getAttribute('href')).toBe('/clienti/nou');
   });
 
   it('remembers that it opened, so the next load is collapsed', async () => {
@@ -496,7 +496,7 @@ describe('the steps', () => {
       'Lipsesc: CUI, denumirea juridică, adresa sediului, reprezentantul legal, funcția reprezentantului legal'
     );
     expect(within(card).getByTestId('setup-step-action-0').getAttribute('href')).toBe(
-      '/organization/company?focus=cui'
+      '/organizatie/date-firma?focus=cui'
     );
   });
 
@@ -513,13 +513,13 @@ describe('the steps', () => {
       'Lipsesc: CUI, adresa sediului'
     );
     expect(within(card).getByTestId('setup-step-field-cui').getAttribute('href')).toBe(
-      '/organization/company?focus=cui'
+      '/organizatie/date-firma?focus=cui'
     );
     expect(within(card).getByTestId('setup-step-field-address').getAttribute('href')).toBe(
-      '/organization/company?focus=address'
+      '/organizatie/date-firma?focus=address'
     );
     expect(within(card).getByTestId('setup-step-action-0').getAttribute('href')).toBe(
-      '/organization/company?focus=cui'
+      '/organizatie/date-firma?focus=cui'
     );
     expect(within(card).queryByTestId('setup-step-skip')).toBeNull();
   });
@@ -539,10 +539,10 @@ describe('the steps', () => {
       'Lipsește: cadrul tehnic PSI'
     );
     expect(within(card).getByTestId('setup-step-action-0').getAttribute('href')).toBe(
-      '/organization/authorizations?focus=fire-safety-technician'
+      '/organizatie/abilitari?focus=fire-safety-technician'
     );
     expect(step('professional-title').getAttribute('href')).toBe(
-      '/profile?focus=professional-title'
+      '/profil?focus=professional-title'
     );
   });
 
@@ -565,10 +565,10 @@ describe('the steps', () => {
     const card = step('employees');
     const action = within(card).getByTestId('setup-step-action-0');
     expect(action.textContent).toBe('Adaugă angajat');
-    expect(action.getAttribute('href')).toBe(`/clients/${clientId}/employees/new`);
+    expect(action.getAttribute('href')).toBe(`/clienti/${clientId}/angajati/nou`);
     expect(within(card).queryByText('Importă din fișe')).toBeNull();
-    expect(step('responsible-persons').getAttribute('href')).toBe(`/clients/${clientId}/training`);
-    expect(step('client').getAttribute('href')).toBe('/clients/new');
+    expect(step('responsible-persons').getAttribute('href')).toBe(`/clienti/${clientId}/instruire`);
+    expect(step('client').getAttribute('href')).toBe('/clienti/nou');
 
     await user.click(action);
     expect(captureEvent).toHaveBeenCalledWith('setup_step_clicked', {
@@ -594,8 +594,8 @@ describe('the steps', () => {
     expect(card.dataset.state).toBe('next');
     const actions = within(card).getAllByRole('link');
     expect(actions.map((action) => [action.textContent, action.getAttribute('href')])).toEqual([
-      ['Documente SSM', `/clients/${clientId}/documents`],
-      ['Documente SU', `/clients/${clientId}/fire-safety-documents`],
+      ['Documente SSM', `/clienti/${clientId}/documente-ssm`],
+      ['Documente SU', `/clienti/${clientId}/documente-su`],
     ]);
   });
 
@@ -621,7 +621,7 @@ describe('the steps', () => {
 describe('when the guide shows', () => {
   it('hides on the document editor pages', async () => {
     mockApi({ guide: founder });
-    mount(`/clients/${clientId}/documents/${documentId}`);
+    mount(`/clienti/${clientId}/documente-ssm/${documentId}`);
     await waitFor(() => expect(calls('/me/setup')).toHaveLength(1));
     expect(await screen.findByTestId('app-logo')).toBeTruthy();
     await expectNoGuide();

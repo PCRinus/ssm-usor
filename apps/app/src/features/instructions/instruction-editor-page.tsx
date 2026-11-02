@@ -96,7 +96,7 @@ export function InstructionEditorPage({
   const back = (
     <Button asChild variant="ghost" size="sm">
       <Link
-        to={module?.domain === 'su' ? '/instructions/su' : '/instructions/ssm'}
+        to={module?.domain === 'su' ? '/instructiuni/su' : '/instructiuni/ssm'}
         data-testid="editor-back"
         onClick={backToList}
         aria-label={pinned ? 'Înapoi' : 'Înapoi la instrucțiunile proprii'}
@@ -173,7 +173,7 @@ export function InstructionEditorPage({
             ? `Versiunea pe care o anexează documentul. Biblioteca are acum versiunea ${module.version.number}, din ${formatRoDate(module.version.createdAt.slice(0, 10))}. `
             : 'Versiunea pe care o anexează documentul. Este și versiunea curentă din bibliotecă. '}
           <Link
-            to="/instructions/$moduleId"
+            to="/instructiuni/$moduleId"
             params={{ moduleId }}
             data-testid="editor-open-current"
             className="font-medium text-foreground underline underline-offset-4"

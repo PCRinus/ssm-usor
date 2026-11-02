@@ -91,7 +91,7 @@ afterEach(() => {
 describe('register', () => {
   it('signs up with Supabase and says to check the email, whoever the address belongs to', async () => {
     const auth = authFixture();
-    mountApp(auth.client, '/register');
+    mountApp(auth.client, '/inregistrare');
     const user = userEvent.setup();
 
     await user.type(await screen.findByTestId('register-email'), ' Ion@Example.test ');
@@ -111,7 +111,7 @@ describe('register', () => {
 
   it('applies the password rules before calling Supabase', async () => {
     const auth = authFixture();
-    mountApp(auth.client, '/register');
+    mountApp(auth.client, '/inregistrare');
     const user = userEvent.setup();
 
     await user.type(await screen.findByTestId('register-email'), 'ion@example.test');
@@ -130,7 +130,7 @@ describe('register', () => {
       data: { session: null, user: null },
       error: authError('signup_disabled'),
     });
-    mountApp(auth.client, '/register');
+    mountApp(auth.client, '/inregistrare');
     const user = userEvent.setup();
 
     await user.type(await screen.findByTestId('register-email'), 'ion@example.test');
@@ -144,7 +144,7 @@ describe('register', () => {
   });
 
   it('is not linked from the login page unless the build flag is on', async () => {
-    mountApp(authFixture().client, '/login');
+    mountApp(authFixture().client, '/autentificare');
 
     await screen.findByTestId('login-page');
     expect(screen.queryByTestId('login-register')).toBeNull();
@@ -152,14 +152,16 @@ describe('register', () => {
 
   it('is linked from the login page when the build flag is on', async () => {
     vi.stubEnv('VITE_REGISTRATION_LINK', 'true');
-    mountApp(authFixture().client, '/login');
+    mountApp(authFixture().client, '/autentificare');
 
-    expect((await screen.findByTestId('login-register')).getAttribute('href')).toBe('/register');
+    expect((await screen.findByTestId('login-register')).getAttribute('href')).toBe(
+      '/inregistrare'
+    );
   });
 });
 
 describe('confirm email', () => {
-  const path = '/confirm-email?token_hash=hash-abc';
+  const path = '/confirmare-email?token_hash=hash-abc';
 
   it('does not use the token when the link is merely opened', async () => {
     const auth = authFixture();
@@ -178,7 +180,7 @@ describe('confirm email', () => {
     await user.click(await screen.findByTestId('confirm-submit'));
 
     await screen.findByTestId('onboarding-page');
-    expect(runtime.router.state.location.pathname).toBe('/onboarding');
+    expect(runtime.router.state.location.pathname).toBe('/configurare');
     expect(auth.client.verifyOtp).toHaveBeenCalledWith({ token_hash: 'hash-abc', type: 'email' });
   });
 
@@ -189,12 +191,12 @@ describe('confirm email', () => {
     await user.click(await screen.findByTestId('confirm-submit'));
 
     await screen.findByTestId('confirm-email-invalid');
-    expect(screen.getByTestId('confirm-go-login').getAttribute('href')).toBe('/login');
+    expect(screen.getByTestId('confirm-go-login').getAttribute('href')).toBe('/autentificare');
   });
 });
 
 describe('onboarding', () => {
-  const mount = () => mountApp(authFixture(makeSession()).client, '/onboarding');
+  const mount = () => mountApp(authFixture(makeSession()).client, '/configurare');
 
   async function fill(
     user: ReturnType<typeof userEvent.setup>,
@@ -444,18 +446,18 @@ describe('onboarding', () => {
 
   it('lets the person sign out instead', async () => {
     const auth = authFixture(makeSession());
-    const runtime = mountApp(auth.client, '/onboarding');
+    const runtime = mountApp(auth.client, '/configurare');
     const user = userEvent.setup();
 
     await user.click(await screen.findByTestId('onboarding-sign-out'));
 
-    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/login'));
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/autentificare'));
     expect(auth.client.signOut).toHaveBeenCalled();
   });
 
   it('sends a signed-out visitor to login', async () => {
-    const runtime = mountApp(authFixture().client, '/onboarding');
+    const runtime = mountApp(authFixture().client, '/configurare');
 
-    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/login'));
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/autentificare'));
   });
 });

@@ -522,7 +522,7 @@ describe('the Legislație page', () => {
     expect(within(ssm!).getByTestId('behind-type-set').textContent).toBe('SSM');
     expect(within(su!).getByTestId('behind-type-set').textContent).toBe('SU');
     expect(within(su!).getByRole('link').getAttribute('href')).toBe(
-      `/clients/${extinguisherBehind.clients[0]!.clientId}/fire-safety-documents?section=registers&focus=fire_extinguisher_register`
+      `/clienti/${extinguisherBehind.clients[0]!.clientId}/documente-su?section=registers&focus=fire_extinguisher_register`
     );
   });
 
@@ -545,7 +545,7 @@ describe('the Legislație page', () => {
       'BETA CAFE SRLpe versiunea 2ciornă editată manual – va fi sărită',
     ]);
     expect(within(clients[0]!).getByRole('link').getAttribute('href')).toBe(
-      `/clients/${firstAidBehind.clients[0]!.clientId}/documents?section=decisions&focus=decision_first_aid`
+      `/clienti/${firstAidBehind.clients[0]!.clientId}/documente-ssm?section=decisions&focus=decision_first_aid`
     );
     expect(within(type).getByTestId('behind-regenerate').textContent).toBe(
       'Regenerează pentru toți clienții (2)'
@@ -660,18 +660,18 @@ describe('the Legislație page', () => {
     expect(rows.map((row) => [row.textContent, row.getAttribute('href')])).toEqual([
       [
         'Programul instruirii periodiceIntervalele pe categorii, prima lună, durata și zilele.',
-        `/clients/${alfaId}/training?focus=training-schedule`,
+        `/clienti/${alfaId}/instruire?focus=training-schedule`,
       ],
       [
         'Sudor · echipament de protecțieArticolele postului, sau că nu are nevoie de echipament.',
-        `/clients/${alfaId}/job-positions/6c7d8e9f-0a1b-4c2d-8e3f-4a5b6c7d8e9f#protective-equipment`,
+        `/clienti/${alfaId}/posturi/6c7d8e9f-0a1b-4c2d-8e3f-4a5b6c7d8e9f#protective-equipment`,
       ],
     ]);
 
     vi.spyOn(console, 'error').mockImplementation(() => {});
     await user.click(rows[0]!);
     await waitFor(() =>
-      expect(runtime.router.state.location.pathname).toBe(`/clients/${alfaId}/training`)
+      expect(runtime.router.state.location.pathname).toBe(`/clienti/${alfaId}/instruire`)
     );
     expect(JSON.parse(sessionStorage.getItem('ssm-usor:way-back')!)).toMatchObject({
       clientId: alfaId,

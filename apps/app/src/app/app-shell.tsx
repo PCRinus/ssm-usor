@@ -100,21 +100,35 @@ const UpdateDialog = lazy(() =>
 
 // `ownerOnly`: a specialist has no leads to see (ADR 007).
 const navigation = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, ownerOnly: false },
-  { to: '/leads', label: 'Clienți potențiali', icon: Handshake, ownerOnly: true },
-  { to: '/clients', label: 'Clienți', icon: Briefcase, ownerOnly: false },
-  { to: '/employees', label: 'Angajați', icon: UsersRound, ownerOnly: false },
-  { to: '/signatures', label: 'Semnături', icon: Signature, ownerOnly: false },
   {
-    to: '/instructions',
+    to: '/dashboard',
+    testId: 'dashboard',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    ownerOnly: false,
+  },
+  {
+    to: '/clienti-potentiali',
+    testId: 'leads',
+    label: 'Clienți potențiali',
+    icon: Handshake,
+    ownerOnly: true,
+  },
+  { to: '/clienti', testId: 'clients', label: 'Clienți', icon: Briefcase, ownerOnly: false },
+  { to: '/angajati', testId: 'employees', label: 'Angajați', icon: UsersRound, ownerOnly: false },
+  { to: '/semnaturi', testId: 'signatures', label: 'Semnături', icon: Signature, ownerOnly: false },
+  {
+    to: '/instructiuni',
+    testId: 'instructions',
     label: 'Instrucțiuni proprii',
     icon: BookOpenText,
     ownerOnly: false,
     children: instructionSections,
   },
-  { to: '/risks', label: 'Riscuri', icon: ShieldAlert, ownerOnly: false },
+  { to: '/riscuri', testId: 'risks', label: 'Riscuri', icon: ShieldAlert, ownerOnly: false },
   {
-    to: '/tests',
+    to: '/teste',
+    testId: 'tests',
     label: 'Teste',
     icon: ClipboardCheck,
     ownerOnly: false,
@@ -122,12 +136,19 @@ const navigation = [
   },
   {
     to: '/legislatie',
+    testId: 'legislatie',
     label: 'Legislație',
     icon: Scale,
     ownerOnly: false,
     children: legislationSections,
   },
-  { to: '/organization', label: 'Organizație', icon: Building2, ownerOnly: false },
+  {
+    to: '/organizatie',
+    testId: 'organization',
+    label: 'Organizație',
+    icon: Building2,
+    ownerOnly: false,
+  },
 ] as const;
 
 const foldsFor = 200;
@@ -207,7 +228,7 @@ function AppNavigation({
                 {navigation
                   .filter((item) => isOwner || !item.ownerOnly)
                   .map((entry) => {
-                    const { to, label, icon: Icon } = entry;
+                    const { to, testId, label, icon: Icon } = entry;
                     const children = 'children' in entry ? entry.children : undefined;
                     const inside = within(to);
                     const expanded = children !== undefined && inside;
@@ -226,7 +247,7 @@ function AppNavigation({
                         >
                           <Link
                             to={to}
-                            data-testid={`nav-${to.slice(1)}`}
+                            data-testid={`nav-${testId}`}
                             aria-current={pathname === to ? 'page' : inside ? 'true' : undefined}
                             onClick={closeOnMobile}
                           >
@@ -236,7 +257,7 @@ function AppNavigation({
                         </SidebarMenuButton>
                         {children && (
                           <NavGroup open={expanded}>
-                            <SidebarMenuSub data-testid={`nav-${to.slice(1)}-group`}>
+                            <SidebarMenuSub data-testid={`nav-${testId}-group`}>
                               {children.map((child) => (
                                 <SidebarMenuSubItem key={child.to}>
                                   <SidebarMenuSubButton asChild isActive={within(child.to)}>
@@ -387,7 +408,7 @@ function AppNavigation({
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild data-testid="account-profile">
-                  <Link to="/profile" onClick={closeOnMobile}>
+                  <Link to="/profil" onClick={closeOnMobile}>
                     <UserRound aria-hidden="true" />
                     Profilul meu
                   </Link>
@@ -399,7 +420,7 @@ function AppNavigation({
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild data-testid="account-organization-link">
-                  <Link to="/organization" onClick={closeOnMobile}>
+                  <Link to="/organizatie" onClick={closeOnMobile}>
                     <Building2 aria-hidden="true" />
                     Organizație
                   </Link>
@@ -460,7 +481,7 @@ export function AppShell() {
     setError(null);
     try {
       await auth.signOut();
-      await navigate({ to: '/login', replace: true });
+      await navigate({ to: '/autentificare', replace: true });
     } catch {
       setError('Deconectarea nu a reușit. Verifică conexiunea și încearcă din nou.');
     } finally {

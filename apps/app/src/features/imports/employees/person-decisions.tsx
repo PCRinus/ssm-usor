@@ -495,7 +495,7 @@ export function MatchDecision({
   const sheetHiredAt = hire.edited ? hire.value : hire.sheet;
   const employee = (
     <Link
-      to="/clients/$clientId/employees/$employeeId"
+      to="/clienti/$clientId/angajati/$employeeId"
       params={{ clientId, employeeId: match.employeeId }}
       className="underline"
     >

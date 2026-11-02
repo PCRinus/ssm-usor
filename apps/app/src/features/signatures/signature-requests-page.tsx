@@ -160,7 +160,7 @@ export function SignatureRequestsPage() {
                     className="min-w-0 flex-1 font-semibold"
                   >
                     <Link
-                      to="/clients/$clientId/trainings"
+                      to="/clienti/$clientId/instruiri-tinute"
                       params={{ clientId: group.client.id }}
                       className="hover:underline"
                     >
@@ -224,8 +224,8 @@ function RequestRow({
           <Link
             to={
               document.domain === 'ssm'
-                ? '/clients/$clientId/employees/$employeeId/training/ssm'
-                : '/clients/$clientId/employees/$employeeId/training/su'
+                ? '/clienti/$clientId/angajati/$employeeId/instruire/ssm'
+                : '/clienti/$clientId/angajati/$employeeId/instruire/su'
             }
             params={{ clientId: request.client.id, employeeId: request.employee.id }}
             data-testid="signature-request-employee"

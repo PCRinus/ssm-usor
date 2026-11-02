@@ -42,7 +42,7 @@ function mount(client: AuthClient | null, path = '/dashboard') {
 describe('dashboard authentication and routing', () => {
   it('validates empty fields and email format before contacting Supabase', async () => {
     const { client } = authFixture();
-    mount(client, '/login');
+    mount(client, '/autentificare');
     const user = userEvent.setup();
     await screen.findByTestId('login-page');
     await user.click(screen.getByTestId('login-submit'));
@@ -59,7 +59,7 @@ describe('dashboard authentication and routing', () => {
 
   it('preserves passwords unchanged and permits retrying a server-rejected form', async () => {
     const { client } = authFixture();
-    mount(client, '/login');
+    mount(client, '/autentificare');
     const user = userEvent.setup();
     await screen.findByTestId('login-page');
     await user.type(screen.getByTestId('login-email'), 'review@example.test');
@@ -88,7 +88,7 @@ describe('dashboard authentication and routing', () => {
     const { client } = authFixture();
     const runtime = mount(client);
     await screen.findByTestId('login-page');
-    expect(runtime.router.state.location.pathname).toBe('/login');
+    expect(runtime.router.state.location.pathname).toBe('/autentificare');
     await waitFor(() => expect(document.title).toBe('Autentificare — SSM Ușor'));
     expect(screen.getByTestId('commit-version').textContent).toMatch(/^Versiune \S+$/);
     expect(screen.queryByTestId('dashboard-page')).toBeNull();
@@ -112,14 +112,14 @@ describe('dashboard authentication and routing', () => {
 
   it('shows invalid credentials without navigating or caching the password', async () => {
     const { client } = authFixture();
-    const runtime = mount(client, '/login');
+    const runtime = mount(client, '/autentificare');
     const user = userEvent.setup();
     await screen.findByTestId('login-page');
     await user.type(screen.getByTestId('login-email'), 'review@example.test');
     await user.type(screen.getByTestId('login-password'), 'incorrect-password');
     await user.click(screen.getByTestId('login-submit'));
     expect(await screen.findByTestId('login-auth-error')).toBeTruthy();
-    expect(runtime.router.state.location.pathname).toBe('/login');
+    expect(runtime.router.state.location.pathname).toBe('/autentificare');
     expect(runtime.queryClient.getMutationCache().getAll()).toHaveLength(0);
   });
 
@@ -129,7 +129,7 @@ describe('dashboard authentication and routing', () => {
       data: { session: null },
       error: { message: 'captcha protection: request disallowed', code: 'captcha_failed' },
     });
-    mount(client, '/login');
+    mount(client, '/autentificare');
     const user = userEvent.setup();
     await screen.findByTestId('login-page');
     await user.type(screen.getByTestId('login-email'), 'review@example.test');
@@ -143,7 +143,7 @@ describe('dashboard authentication and routing', () => {
   it('logs in with the SDK, displays the account, and logs out with an empty query cache', async () => {
     const { client } = authFixture();
     client.signInWithPassword.mockResolvedValue({ data: { session: makeSession() }, error: null });
-    const runtime = mount(client, '/login');
+    const runtime = mount(client, '/autentificare');
     const user = userEvent.setup();
     await screen.findByTestId('login-page');
     await user.type(screen.getByTestId('login-email'), 'review@example.test');
@@ -164,7 +164,7 @@ describe('dashboard authentication and routing', () => {
     expect(runtime.queryClient.getQueryCache().getAll()).toHaveLength(0);
     expect(screen.queryByText('review@example.test')).toBeNull();
     await act(async () => runtime.router.navigate({ to: '/dashboard' }));
-    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/login'));
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/autentificare'));
   });
 
   it('keeps the shell and logo when navigating to clients and collapsing navigation', async () => {
@@ -175,7 +175,7 @@ describe('dashboard authentication and routing', () => {
     await user.click(screen.getByTestId('nav-clients'));
     await screen.findByTestId('clients-page');
     await waitFor(() => expect(document.title).toBe('Clienți — SSM Ușor'));
-    expect(runtime.router.state.location.pathname).toBe('/clients');
+    expect(runtime.router.state.location.pathname).toBe('/clienti');
     expect(screen.getByTestId('nav-clients').getAttribute('aria-current')).toBe('page');
     expect(screen.queryByTestId('nav-legislatie-group')).toBeNull();
     await user.click(screen.getByTestId('sidebar-toggle'));
@@ -212,7 +212,7 @@ describe('dashboard authentication and routing', () => {
         removeEventListener: vi.fn(),
       }))
     );
-    mount(authFixture(makeSession()).client, '/clients');
+    mount(authFixture(makeSession()).client, '/clienti');
     const user = userEvent.setup();
     await screen.findByTestId('clients-page');
     await user.click(screen.getByTestId('sidebar-toggle'));
@@ -232,7 +232,7 @@ describe('dashboard authentication and routing', () => {
         removeEventListener: vi.fn(),
       }))
     );
-    mount(authFixture(makeSession()).client, '/clients');
+    mount(authFixture(makeSession()).client, '/clienti');
     const user = userEvent.setup();
     await screen.findByTestId('clients-page');
     await user.click(screen.getByTestId('sidebar-toggle'));
@@ -298,15 +298,15 @@ describe('dashboard authentication and routing', () => {
   });
 
   it('protects a direct clients visit', async () => {
-    const runtime = mount(authFixture().client, '/clients');
+    const runtime = mount(authFixture().client, '/clienti');
     await screen.findByTestId('login-page');
-    expect(runtime.router.state.location.pathname).toBe('/login');
+    expect(runtime.router.state.location.pathname).toBe('/autentificare');
     expect(screen.queryByRole('table')).toBeNull();
   });
 
   it('redirects an existing session away from login', async () => {
     const { client } = authFixture(makeSession());
-    const runtime = mount(client, '/login');
+    const runtime = mount(client, '/autentificare');
     await screen.findByTestId('dashboard-page');
     expect(runtime.router.state.location.pathname).toBe('/dashboard');
   });

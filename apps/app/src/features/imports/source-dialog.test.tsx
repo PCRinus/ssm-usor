@@ -150,7 +150,7 @@ function mockSources(
 let mounted: ReturnType<typeof mountApp>;
 
 async function openPhoneSource() {
-  mounted = mountApp(authFixture(makeSession()).client, `/clients/import/${importId}/identity`);
+  mounted = mountApp(authFixture(makeSession()).client, `/clienti/import/${importId}/identity`);
   const groups = await screen.findAllByTestId('review-group');
   const contact = groups.find((group) => group.textContent?.includes('Persoană de contact'))!;
   const row = within(contact)
@@ -161,7 +161,7 @@ async function openPhoneSource() {
 }
 
 async function openItemSource(section: string, name: string) {
-  mountApp(authFixture(makeSession()).client, `/clients/import/${importId}/${section}`);
+  mountApp(authFixture(makeSession()).client, `/clienti/import/${importId}/${section}`);
   const items = await screen.findAllByTestId('review-item');
   const item = items.find((each) => each.textContent?.includes(name))!;
   await userEvent.click(within(item).getByTestId('review-source'));
@@ -375,7 +375,7 @@ describe('the source dialog', () => {
 
   it('asks for the source while the pointer is on Sursa, once, and opens it from that answer', async () => {
     mockSources({ 'Contract prestari SSM 2019.pdf': { mimeType: 'application/pdf' } });
-    mountApp(authFixture(makeSession()).client, `/clients/import/${importId}/identity`);
+    mountApp(authFixture(makeSession()).client, `/clienti/import/${importId}/identity`);
     const groups = await screen.findAllByTestId('review-group');
     const contact = groups.find((group) => group.textContent?.includes('Persoană de contact'))!;
     const row = within(contact)
@@ -397,7 +397,7 @@ describe('the source dialog', () => {
 
   it('asks for none of the rows a pointer only crosses', async () => {
     mockSources({ 'Contract prestari SSM 2019.pdf': { mimeType: 'application/pdf' } });
-    mountApp(authFixture(makeSession()).client, `/clients/import/${importId}/identity`);
+    mountApp(authFixture(makeSession()).client, `/clienti/import/${importId}/identity`);
     const buttons = await screen.findAllByTestId('review-source');
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     for (const button of buttons) {
@@ -417,7 +417,7 @@ describe('the source dialog', () => {
   it('asks on hover with the post a passage is for, as the dialog then does', async () => {
     const proposal = proposalFixture();
     mockSources({ 'dosar-ssm.zip/Fise post.doc': word }, phoneSources, proposal);
-    mountApp(authFixture(makeSession()).client, `/clients/import/${importId}/job-positions`);
+    mountApp(authFixture(makeSession()).client, `/clienti/import/${importId}/job-positions`);
     const items = await screen.findAllByTestId('review-item');
     const item = items.find((each) => each.textContent?.includes('Brutar'))!;
     const button = within(item).getByTestId('review-source');

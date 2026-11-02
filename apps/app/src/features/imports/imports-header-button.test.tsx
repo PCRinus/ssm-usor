@@ -59,7 +59,7 @@ function mount() {
     if (url.pathname === '/me' && me) return Response.json(me);
     return undefined;
   });
-  return mountApp(authFixture(makeSession()).client, '/profile');
+  return mountApp(authFixture(makeSession()).client, '/profil');
 }
 
 function phoneWidth() {
@@ -162,16 +162,16 @@ describe('the imports button in the header', () => {
       })
     ).toBeTruthy();
     expect(within(list).getByRole('link', { name: 'Vezi importul' }).getAttribute('href')).toBe(
-      `/clients/import/${failedClient.id}`
+      `/clienti/import/${failedClient.id}`
     );
     expect(
       within(list).getByRole('link', { name: 'Verifică propunerea' }).getAttribute('href')
-    ).toBe(`/clients/import/${readyClient.id}`);
+    ).toBe(`/clienti/import/${readyClient.id}`);
 
     await user.click(within(list).getByRole('link', { name: 'Verifică persoanele' }));
     await waitFor(() =>
       expect(runtime.router.state.location.pathname).toBe(
-        `/clients/${clientId}/employees/import/${readyEmployees.id}`
+        `/clienti/${clientId}/angajati/import/${readyEmployees.id}`
       )
     );
     await waitFor(() => expect(screen.queryByTestId('imports-list')).toBeNull());
@@ -194,7 +194,7 @@ describe('the imports button in the header', () => {
       within(list)
         .getByRole('link', { name: /Transport Delta Nord SRL/ })
         .getAttribute('href')
-    ).toBe(`/clients/${delta.id}/employees/import/${readingEmployees.id}`);
+    ).toBe(`/clienti/${delta.id}/angajati/import/${readingEmployees.id}`);
   });
 
   it('opens the list from the bottom on a phone, and closes it', async () => {
@@ -237,7 +237,7 @@ describe('the plan badge on a phone', () => {
     const menu = await screen.findByRole('dialog');
     const row = within(menu).getByTestId('nav-subscription');
     expect(row.textContent).toBe('AbonamentProbă · 14 zile');
-    expect(row.getAttribute('href')).toBe('/organization/subscription');
+    expect(row.getAttribute('href')).toBe('/organizatie/abonament');
     const footer = Array.from(
       row.closest('[data-sidebar="footer"]')!.querySelectorAll('[data-sidebar="menu-button"]'),
       (item) => item.getAttribute('data-testid')

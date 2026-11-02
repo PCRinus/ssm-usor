@@ -154,7 +154,7 @@ const refused = () =>
     { status: 409 }
   );
 
-const mount = (path = '/tests') => mountApp(authFixture(makeSession()).client, path);
+const mount = (path = '/teste') => mountApp(authFixture(makeSession()).client, path);
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -186,7 +186,7 @@ describe('the question bank', () => {
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('nav-tests'));
     await screen.findByTestId('test-bank-ssm');
-    expect(runtime.router.state.location.pathname).toBe('/tests/ssm');
+    expect(runtime.router.state.location.pathname).toBe('/teste/ssm');
     expect(
       within(screen.getByTestId('nav-tests-group'))
         .getAllByTestId('nav-sub-entry')
@@ -230,7 +230,7 @@ describe('the question bank', () => {
 
   it('shows the fire-safety hiring and annual tests on their own tab', async () => {
     mockApi();
-    mount('/tests/su');
+    mount('/teste/su');
     await screen.findByTestId('test-bank-su');
     const cards = screen.getAllByTestId('test-bank-test');
     expect(cards.map((card) => card.dataset.test)).toEqual(['hiring', 'annual']);
@@ -239,7 +239,7 @@ describe('the question bank', () => {
 
   it('says beside the question why a built-in cannot be hidden at ten active questions', async () => {
     mockApi({ [`PUT /organization/tests/questions/${uuid(2)}/hidden`]: refused });
-    mount('/tests/ssm');
+    mount('/teste/ssm');
     const user = userEvent.setup();
     const questions = await screen.findAllByTestId('test-question');
     await user.click(within(questions[1]!).getByTestId('test-question-hide'));
@@ -261,7 +261,7 @@ describe('the question bank', () => {
       },
       ssmQuestions([ownQuestion, hiddenOne])
     );
-    mount('/tests/ssm');
+    mount('/teste/ssm');
     const user = userEvent.setup();
     const questions = await screen.findAllByTestId('test-question');
     await user.click(within(questions[1]!).getByTestId('test-question-hide'));
@@ -281,7 +281,7 @@ describe('the question bank', () => {
       'POST /organization/tests/questions': () =>
         Response.json({ question: ownQuestion }, { status: 201 }),
     });
-    mount('/tests/ssm');
+    mount('/teste/ssm');
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('test-question-add'));
     const dialog = within(await screen.findByTestId('test-question-dialog'));
@@ -325,7 +325,7 @@ describe('the question bank', () => {
       'POST /organization/tests/questions': () =>
         Response.json({ question: ownQuestion }, { status: 201 }),
     });
-    mount('/tests/su');
+    mount('/teste/su');
     const user = userEvent.setup();
     await screen.findByTestId('test-bank-su');
     await user.click(screen.getAllByTestId('test-question-add')[1]!);
@@ -342,7 +342,7 @@ describe('the question bank', () => {
       },
       ssmQuestions([replacing])
     );
-    mount('/tests/ssm');
+    mount('/teste/ssm');
     const user = userEvent.setup();
     const questions = await screen.findAllByTestId('test-question');
     const own = within(questions[10]!);
@@ -376,7 +376,7 @@ describe('the question bank', () => {
       },
       ssmQuestions([ownQuestion])
     );
-    mount('/tests/ssm');
+    mount('/teste/ssm');
     const user = userEvent.setup();
     const questions = await screen.findAllByTestId('test-question');
     await user.click(within(questions[10]!).getByTestId('test-question-edit'));
@@ -396,7 +396,7 @@ describe('the question bank', () => {
       },
       ssmQuestions([ownQuestion])
     );
-    mount('/tests/ssm');
+    mount('/teste/ssm');
     const user = userEvent.setup();
     const questions = await screen.findAllByTestId('test-question');
     await user.click(within(questions[10]!).getByTestId('test-question-delete'));
@@ -414,7 +414,7 @@ describe('the question bank', () => {
 
   it('previews a question as the employee sees it, the correct options unmarked and the explanation after a wrong answer', async () => {
     mockApi();
-    mount('/tests/ssm');
+    mount('/teste/ssm');
     const user = userEvent.setup();
     const questions = await screen.findAllByTestId('test-question');
     await user.click(within(questions[0]!).getByTestId('test-question-preview'));

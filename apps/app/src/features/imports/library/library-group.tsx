@@ -115,7 +115,7 @@ export function LibraryGroup({ detail }: { detail: ImportDetail }) {
             return (
               <li key={part.part}>
                 <Link
-                  to="/clients/import/$importId/instructions/$domain"
+                  to="/clienti/import/$importId/instructiuni/$domain"
                   params={{ importId: detail.id, domain }}
                   data-testid="import-library-task"
                   data-part={part.part}

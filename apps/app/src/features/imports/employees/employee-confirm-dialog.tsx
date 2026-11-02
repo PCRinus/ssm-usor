@@ -173,7 +173,7 @@ export function EmployeeConfirmDialog({
         }),
         queryClient.refetchQueries({ queryKey: getGetClientQueryKey(clientId) }),
       ]);
-      await navigate({ to: '/clients/$clientId/employees', params: { clientId } });
+      await navigate({ to: '/clienti/$clientId/angajati', params: { clientId } });
       // The client's header reads its route's loader, which keeps the client it loaded.
       await router.invalidate();
     } catch (cause) {

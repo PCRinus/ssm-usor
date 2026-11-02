@@ -8,6 +8,7 @@ import { noTests, untrained } from '@/test/training-fixture';
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const employeesPath = `/clients/${clientId}/employees`;
+const employeesPage = `/clienti/${clientId}/angajati`;
 
 const sampleClient = {
   id: clientId,
@@ -86,7 +87,7 @@ describe("searching a client's employees", () => {
     mockApi((url) =>
       Response.json(url.searchParams.get('q') === 'stef' ? page([taranu]) : page([popescu, taranu]))
     );
-    const runtime = mountApp(authFixture(makeSession()).client, `${employeesPath}?page=2`);
+    const runtime = mountApp(authFixture(makeSession()).client, `${employeesPage}?page=2`);
     const user = userEvent.setup();
     await screen.findAllByTestId('employees-row');
     const historyLength = runtime.router.history.length;
@@ -101,7 +102,7 @@ describe("searching a client's employees", () => {
 
   it('keeps the search when switching to former employees', async () => {
     mockApi(() => Response.json(page([popescu])));
-    const runtime = mountApp(authFixture(makeSession()).client, `${employeesPath}?q=popescu`);
+    const runtime = mountApp(authFixture(makeSession()).client, `${employeesPage}?q=popescu`);
     const user = userEvent.setup();
     await screen.findAllByTestId('employees-row');
     expect((screen.getByTestId('employees-search') as HTMLInputElement).value).toBe('popescu');
@@ -112,10 +113,10 @@ describe("searching a client's employees", () => {
 
   it('follows the URL back to an earlier search', async () => {
     mockApi(() => Response.json(page([popescu])));
-    const runtime = mountApp(authFixture(makeSession()).client, `${employeesPath}?q=ion`);
+    const runtime = mountApp(authFixture(makeSession()).client, `${employeesPage}?q=ion`);
     await screen.findAllByTestId('employees-row');
     act(() => {
-      void runtime.router.navigate({ to: '/clients/$clientId/employees', params: { clientId } });
+      void runtime.router.navigate({ to: '/clienti/$clientId/angajati', params: { clientId } });
     });
     await waitFor(() =>
       expect((screen.getByTestId('employees-search') as HTMLInputElement).value).toBe('')
@@ -124,7 +125,7 @@ describe("searching a client's employees", () => {
 
   it('says when no one matches and clears the search', async () => {
     mockApi((url) => Response.json(url.searchParams.get('q') ? page([]) : page([popescu])));
-    const runtime = mountApp(authFixture(makeSession()).client, `${employeesPath}?q=zzz`);
+    const runtime = mountApp(authFixture(makeSession()).client, `${employeesPage}?q=zzz`);
     const user = userEvent.setup();
     expect(await screen.findByText('Niciun angajat nu corespunde căutării')).toBeTruthy();
     expect(screen.queryByRole('link', { name: 'Adaugă primul angajat' })).toBeNull();
@@ -136,7 +137,7 @@ describe("searching a client's employees", () => {
 
   it('clears the box with Escape', async () => {
     mockApi(() => Response.json(page([popescu])));
-    const runtime = mountApp(authFixture(makeSession()).client, `${employeesPath}?q=ion`);
+    const runtime = mountApp(authFixture(makeSession()).client, `${employeesPage}?q=ion`);
     const user = userEvent.setup();
     await screen.findAllByTestId('employees-row');
     await user.click(screen.getByTestId('employees-search'));

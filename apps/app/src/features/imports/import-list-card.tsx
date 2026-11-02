@@ -102,7 +102,7 @@ function ImportListRow({ item }: { item: ImportItem }) {
   const link = (label: string, primary = false) => (
     <Button asChild size="sm" variant={primary ? 'default' : 'outline'}>
       <Link
-        to="/clients/import/$importId"
+        to="/clienti/import/$importId"
         params={{ importId: item.id }}
         data-testid="import-list-open"
       >

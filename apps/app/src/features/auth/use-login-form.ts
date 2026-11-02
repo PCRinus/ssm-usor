@@ -22,7 +22,7 @@ export function useLoginForm(invitation?: string) {
       form.reset();
       await navigate(
         invitation
-          ? { to: '/accept-invitation', search: { token: invitation }, replace: true }
+          ? { to: '/invitatie', search: { token: invitation }, replace: true }
           : { to: '/dashboard', replace: true }
       );
     } catch (cause) {

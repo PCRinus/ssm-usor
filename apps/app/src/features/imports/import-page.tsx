@@ -38,7 +38,7 @@ export function ImportFilesPage({ importId }: { importId: string }) {
         <div className="grid gap-4">
           {(detail.status === 'ready' || hasLibraryTasks(detail)) && (
             <Button asChild variant="ghost" size="sm" className="w-fit">
-              <Link to="/clients/import/$importId" params={{ importId }}>
+              <Link to="/clienti/import/$importId" params={{ importId }}>
                 <ArrowLeft aria-hidden="true" />
                 {detail.status === 'ready' ? 'Înapoi la propunere' : 'Înapoi la import'}
               </Link>

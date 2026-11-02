@@ -165,10 +165,10 @@ export function ConfirmImportDialog({
             queryKey: getListImportLibraryPartsQueryKey(detail.id),
           }),
         ]);
-        await navigate({ to: '/clients/import/$importId', params: { importId: detail.id } });
+        await navigate({ to: '/clienti/import/$importId', params: { importId: detail.id } });
       } else {
         await navigate({
-          to: '/clients/$clientId/details',
+          to: '/clienti/$clientId/detalii',
           params: { clientId: result.clientId },
         });
       }

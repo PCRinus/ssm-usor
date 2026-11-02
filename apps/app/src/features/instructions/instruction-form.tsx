@@ -192,7 +192,7 @@ export function InstructionForm({
         leaving.current = true;
         toast.success('Instrucțiunea a fost adăugată în bibliotecă.');
         await navigate({
-          to: '/instructions/$moduleId',
+          to: '/instructiuni/$moduleId',
           params: { moduleId: created.module.id },
           replace: true,
         });

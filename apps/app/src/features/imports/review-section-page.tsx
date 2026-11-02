@@ -89,7 +89,7 @@ export function ReviewSectionPage({
         {section === 'equipment' && <EquipmentSection context={context} />}
         <div className="flex flex-wrap justify-between gap-2">
           <Button asChild variant="outline">
-            <Link to="/clients/import/$importId" params={{ importId: detail.id }}>
+            <Link to="/clienti/import/$importId" params={{ importId: detail.id }}>
               <ArrowLeft aria-hidden="true" />
               Înapoi la listă
             </Link>
@@ -97,7 +97,7 @@ export function ReviewSectionPage({
           {next && (
             <Button asChild>
               <Link
-                to="/clients/import/$importId/$section"
+                to="/clienti/import/$importId/$section"
                 params={{ importId: detail.id, section: next }}
                 data-testid="import-next-section"
               >

@@ -45,8 +45,8 @@ import { TrainingStateBadge } from './training-state-badge';
 
 type EmployeeTrainingRecord = EmployeeTrainingRecordListResponse['items'][number];
 
-const employeeRoute = getRouteApi('/_authenticated/clients/$clientId/employees/$employeeId');
-const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
+const employeeRoute = getRouteApi('/_authenticated/clienti/$clientId/angajati/$employeeId');
+const clientRoute = getRouteApi('/_authenticated/clienti/$clientId');
 
 // A new hire's trainings come in the law's order; afterwards the periodic one is the usual.
 function nextPhase(records: EmployeeTrainingRecord[]): TrainingPhase {
@@ -87,7 +87,7 @@ function IntervalFact({
   jobPosition: { id: string; name: string };
   readOnly: boolean;
 }) {
-  const programme = { to: '/clients/$clientId/training', params: { clientId } } as const;
+  const programme = { to: '/clienti/$clientId/instruire', params: { clientId } } as const;
   const search = { focus: programmeFocus[domain] };
   if (status.intervalMonths === null) {
     return (
@@ -113,7 +113,7 @@ function IntervalFact({
       <span className="text-xs font-normal text-muted-foreground">
         {status.intervalSource === 'position' ? (
           <Link
-            to="/clients/$clientId/job-positions/$jobPositionId"
+            to="/clienti/$clientId/posturi/$jobPositionId"
             params={{ clientId, jobPositionId: jobPosition.id }}
             data-testid="training-interval-source"
             className={sourceLinkClass}

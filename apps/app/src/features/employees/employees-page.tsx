@@ -28,8 +28,8 @@ import { employeeStatusLabels } from './employee-format';
 import { type EmployeeStatusChange, EmployeeStatusDialog } from './employee-status-dialog';
 import { EmployeesNoMatch } from './employees-no-match';
 
-const employeesRoute = getRouteApi('/_authenticated/clients/$clientId/employees/');
-const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
+const employeesRoute = getRouteApi('/_authenticated/clienti/$clientId/angajati/');
+const clientRoute = getRouteApi('/_authenticated/clienti/$clientId');
 
 const defaultSort: DataTableSort & { sort: EmployeeSortKey } = { sort: 'name', order: 'asc' };
 
@@ -99,7 +99,7 @@ export function EmployeesPage() {
               return (
                 <Link
                   key={filter.label}
-                  to="/clients/$clientId/employees"
+                  to="/clienti/$clientId/angajati"
                   params={{ clientId }}
                   search={{
                     ...(filter.status ? { status: filter.status } : {}),
@@ -171,7 +171,7 @@ export function EmployeesPage() {
           rowKey={rowKey}
           onRowClick={(employee) =>
             void navigate({
-              to: '/clients/$clientId/employees/$employeeId',
+              to: '/clienti/$clientId/angajati/$employeeId',
               params: { clientId, employeeId: employee.id },
             })
           }
@@ -293,7 +293,7 @@ export function EmployeesPage() {
         onClose={() => setImporting(null)}
         onStarted={(importId) =>
           void navigate({
-            to: '/clients/$clientId/employees/import/$importId',
+            to: '/clienti/$clientId/angajati/import/$importId',
             params: { clientId, importId },
           })
         }
@@ -304,7 +304,7 @@ export function EmployeesPage() {
         client={client}
         onClose={() => setImporting(null)}
         onStarted={(importId) =>
-          void navigate({ to: '/clients/import/$importId', params: { importId } })
+          void navigate({ to: '/clienti/import/$importId', params: { importId } })
         }
       />
     </div>

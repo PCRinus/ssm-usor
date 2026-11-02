@@ -14,8 +14,8 @@ import { EmployeeJobPositionDialog } from './employee-job-position-dialog';
 import { EmployeePending } from './employee-pending';
 import { useEmployee } from './use-employee';
 
-const employeeRoute = getRouteApi('/_authenticated/clients/$clientId/employees/$employeeId');
-const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
+const employeeRoute = getRouteApi('/_authenticated/clienti/$clientId/angajati/$employeeId');
+const clientRoute = getRouteApi('/_authenticated/clienti/$clientId');
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (

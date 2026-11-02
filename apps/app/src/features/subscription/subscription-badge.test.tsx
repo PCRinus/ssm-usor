@@ -90,7 +90,7 @@ describe('SubscriptionBadge', () => {
     const details = await screen.findByTestId('subscription-details');
     expect(details.textContent).toContain('Mai ai 20 de zile');
     expect(screen.getByRole('link', { name: 'Alege un plan' }).getAttribute('href')).toBe(
-      '/organization/subscription'
+      '/organizatie/abonament'
     );
     expect(screen.getByRole('link', { name: 'Vezi prețurile' })).toBeTruthy();
     expect(screen.queryByRole('link', { name: 'Scrie-ne ca să continui' })).toBeNull();
@@ -152,7 +152,7 @@ describe('SubscriptionBar', () => {
       <SubscriptionBar subscription={trial(5)} sms={null} isOwner canAct />
     );
     expect((await screen.findByTestId('subscription-bar-action')).getAttribute('href')).toBe(
-      '/organization/subscription'
+      '/organizatie/abonament'
     );
     expect(screen.getByTestId('subscription-bar-action').textContent).toBe('Alege un plan');
     await userEvent.click(screen.getByTestId('subscription-bar-close'));
@@ -185,7 +185,7 @@ describe('SubscriptionBar', () => {
     await renderRouted(<SubscriptionBar subscription={pastDue} sms={null} isOwner canAct />);
     const action = await screen.findByTestId('subscription-bar-action');
     expect(action.textContent).toBe('Actualizează cardul');
-    expect(action.getAttribute('href')).toBe('/organization/subscription');
+    expect(action.getAttribute('href')).toBe('/organizatie/abonament');
   });
 });
 
@@ -201,7 +201,7 @@ describe('the SMS bar', () => {
     expect(bar.textContent).toContain('Ai folosit 252 din cele 300 de coduri de semnare prin SMS.');
     expect(bar.textContent).not.toContain('€');
     expect(screen.getByTestId('subscription-bar-action').getAttribute('href')).toBe(
-      '/organization/subscription'
+      '/organizatie/abonament'
     );
     await userEvent.click(screen.getByTestId('subscription-bar-close'));
     expect(screen.queryByTestId('subscription-bar')).toBeNull();
@@ -247,7 +247,7 @@ describe('the SMS bar', () => {
     expect((await screen.findByTestId('subscription-bar')).dataset.kind).toBe('smsStop');
     const action = screen.getByTestId('subscription-bar-action');
     expect(action.textContent).toBe('Ridică limita');
-    expect(action.getAttribute('href')).toBe('/organization/subscription?raiseCap=true');
+    expect(action.getAttribute('href')).toBe('/organizatie/abonament?raiseCap=true');
     unmount();
 
     await renderRouted(

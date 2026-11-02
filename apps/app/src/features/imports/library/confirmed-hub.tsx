@@ -25,7 +25,7 @@ export function ConfirmedImportHub({ detail }: { detail: ImportDetail }) {
         </div>
         <Button asChild variant="outline" size="sm">
           <Link
-            to="/clients/import/$importId/files"
+            to="/clienti/import/$importId/fisiere"
             params={{ importId: detail.id }}
             data-testid="import-review-files"
           >
@@ -40,7 +40,7 @@ export function ConfirmedImportHub({ detail }: { detail: ImportDetail }) {
           data-testid="import-confirmed"
           action={
             <Button asChild variant="outline" size="sm" className="bg-card">
-              <Link to="/clients/$clientId/details" params={{ clientId: client.id }}>
+              <Link to="/clienti/$clientId/detalii" params={{ clientId: client.id }}>
                 Deschide clientul
               </Link>
             </Button>
