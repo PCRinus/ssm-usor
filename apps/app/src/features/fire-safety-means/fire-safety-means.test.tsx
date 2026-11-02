@@ -883,7 +883,7 @@ describe('client dangerous substances', () => {
     const law = within(substances).getByTestId('fire-substances-law');
     expect(law.textContent).toBe('OMAI 163/2007');
     expect(law.getAttribute('href')).toBe(
-      'https://legislatie.just.ro/Public/DetaliiDocument/80730'
+      'https://legislatie.just.ro/Public/DetaliiDocument/80731#id_artA18'
     );
     expect(law.getAttribute('target')).toBe('_blank');
   });

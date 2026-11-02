@@ -42,7 +42,6 @@ import { rowClickProps } from '@/components/data-table/row-click';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { DecisionBadge } from '@/features/job-positions/decision-badge';
-import { portalPage } from '@/features/legislation/legislation-labels';
 import { useFocusRequest } from '@/features/missing-data/focus';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 
@@ -79,8 +78,9 @@ const stateBadge = (state: FireSubstancesState, count: number) =>
       ? 'Nu se utilizează'
       : substanceCountLabel(count);
 
-// The act's page on legislatie.just.ro, as in packages/document-engine/templates/legal-acts.json.
-const omai163PortalId = 80730;
+// The general norms are their own document on the portal, apart from the order that approves them
+// (80730, the act the legislation tracker watches); the anchor is the portal's own for art. 18.
+const listArticlePage = 'https://legislatie.just.ro/Public/DetaliiDocument/80731#id_artA18';
 
 export function SubstancesCard({
   clientId,
@@ -180,7 +180,7 @@ export function SubstancesCard({
         <>
           Lista substanțelor periculoase se cere fiecărui client, oricâți angajați are (
           <a
-            href={portalPage(omai163PortalId)}
+            href={listArticlePage}
             target="_blank"
             rel="noreferrer"
             data-testid="fire-substances-law"
