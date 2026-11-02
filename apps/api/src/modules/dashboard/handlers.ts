@@ -6,7 +6,7 @@ import type { ApiEnv } from '../../lib/env';
 import type { getDashboardSummaryRoute } from './routes';
 
 const summaryColumns =
-  'ssm_overdue, ssm_due, ssm_untrained, ssm_current, psi_overdue, psi_due, psi_untrained, psi_current, employees, next_due_on, next_due_count, tests_pending, drafts_to_issue, documents_behind, clients_missing_data, employee_signatures_pending, employee_signatures_oldest_issued_at, active_clients, contracts_received_to_confirm, contracts_ending_within_60_days';
+  'ssm_overdue, ssm_due, ssm_untrained, ssm_current, su_overdue, su_due, su_untrained, su_current, employees, next_due_on, next_due_count, tests_pending, drafts_to_issue, documents_behind, clients_missing_data, employee_signatures_pending, employee_signatures_oldest_issued_at, active_clients, contracts_received_to_confirm, contracts_ending_within_60_days';
 
 export const getDashboardSummary: RouteHandler<typeof getDashboardSummaryRoute, ApiEnv> = async (
   c
@@ -65,11 +65,11 @@ export const getDashboardSummary: RouteHandler<typeof getDashboardSummaryRoute, 
           current: count(row?.ssm_current),
           total: employees,
         },
-        psi: {
-          overdue: count(row?.psi_overdue),
-          due: count(row?.psi_due),
-          untrained: count(row?.psi_untrained),
-          current: count(row?.psi_current),
+        su: {
+          overdue: count(row?.su_overdue),
+          due: count(row?.su_due),
+          untrained: count(row?.su_untrained),
+          current: count(row?.su_current),
           total: employees,
         },
       },

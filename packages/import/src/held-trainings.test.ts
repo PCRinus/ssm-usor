@@ -46,7 +46,7 @@ describe('groupHeldTrainings', () => {
     ['trainer', { trainerName: 'Matei Sorin' }],
     ['day', { heldOn: '2026-07-02' }],
     ['phase', { phase: 'supplementary' as const, supplementaryReason: 'new_equipment' as const }],
-    ['domain', { domain: 'psi' as const }],
+    ['domain', { domain: 'su' as const }],
   ])('keeps apart rows of another %s', (_, parts) => {
     const held = groupHeldTrainings([
       row({}),

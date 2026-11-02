@@ -206,7 +206,7 @@ const testSheetRequest = (overrides: Record<string, unknown> = {}) =>
     testSheet: {
       id: '77777777-8888-4999-8aaa-bbbbbbbbbbbb',
       resultId: '88888888-9999-4aaa-8bbb-cccccccccccc',
-      domain: 'psi',
+      domain: 'su',
       test: 'annual',
       takenOn: '2026-10-15',
     },
@@ -240,7 +240,7 @@ function mockApi(routes: Partial<Record<string, Handler>> = {}) {
       case `GET ${employeePath}/training-sheets`:
         return Response.json({
           ssm: { ready: true, missing: [], stored: false, sequences: [] },
-          psi: { ready: true, missing: [], stored: false, sequences: [] },
+          su: { ready: true, missing: [], stored: false, sequences: [] },
         });
       case `GET ${employeePath}/participant`:
         return Response.json({ participant: null, invitation: null });
@@ -329,7 +329,7 @@ describe('matchSigner', () => {
 });
 
 describe('signers on the training flow', () => {
-  async function openWorkplaceTraining(domain: 'ssm' | 'psi' = 'ssm') {
+  async function openWorkplaceTraining(domain: 'ssm' | 'su' = 'ssm') {
     const user = userEvent.setup();
     mount(`${employeePath}/training/${domain}`);
     // The first mount of the describe loads the route and its queries cold; CI needs longer than the default second.
@@ -414,7 +414,7 @@ describe('signers on the training flow', () => {
 
   it('offers no verifier or admitter signer on the fire-safety sheet, which has no field for them', async () => {
     mockApi();
-    const { user, dialog } = await openWorkplaceTraining('psi');
+    const { user, dialog } = await openWorkplaceTraining('su');
     await waitFor(() =>
       expect(
         (within(dialog).getByTestId('training-trainer-signer') as HTMLSelectElement).value
@@ -865,7 +865,7 @@ describe('the Semnături place', () => {
     );
     expect(sheet.getByTestId('signature-request-employee').textContent).toBe('Popescu Ion');
     expect(sheet.getByTestId('signature-request-employee').getAttribute('href')).toBe(
-      `/clients/${clientId}/employees/${employeeId}/training/psi`
+      `/clients/${clientId}/employees/${employeeId}/training/su`
     );
     expect(sheet.getByText('PSI')).toBeTruthy();
     expect(sheet.getByTestId('signature-request-select').getAttribute('aria-label')).toBe(
@@ -947,7 +947,7 @@ describe("the client's pending signatures", () => {
     const link = within(item!).getByRole('link');
     expect(link.textContent).toBe('Fișa de test · Test anual PSI · 15.10.2026');
     expect(link.getAttribute('href')).toBe(
-      `/clients/${clientId}/employees/${employeeId}/training/psi`
+      `/clients/${clientId}/employees/${employeeId}/training/su`
     );
     expect(item!.textContent).toContain('Instruit');
   });

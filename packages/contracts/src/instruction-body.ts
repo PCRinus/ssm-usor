@@ -5,12 +5,12 @@ import type { InstructionDomain } from './instruction-modules';
 
 export const instructionCategoriesByDomain = {
   ssm: ['work_activity', 'work_equipment', 'protective_equipment'],
-  psi: ['premises_activity', 'installation_equipment', 'hazardous_work'],
+  su: ['premises_activity', 'installation_equipment', 'hazardous_work'],
 } as const satisfies Record<InstructionDomain, readonly string[]>;
 
 export const instructionCategories = [
   ...instructionCategoriesByDomain.ssm,
-  ...instructionCategoriesByDomain.psi,
+  ...instructionCategoriesByDomain.su,
 ] as const;
 
 export const instructionCategorySchema = z.enum(instructionCategories);
@@ -27,9 +27,7 @@ export const instructionCategoryLabels: Record<InstructionCategory, string> = {
 };
 
 export function categoryDomain(category: InstructionCategory): InstructionDomain {
-  return (instructionCategoriesByDomain.ssm as readonly string[]).includes(category)
-    ? 'ssm'
-    : 'psi';
+  return (instructionCategoriesByDomain.ssm as readonly string[]).includes(category) ? 'ssm' : 'su';
 }
 
 export function categoryFitsDomain(category: InstructionCategory, domain: InstructionDomain) {

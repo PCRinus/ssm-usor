@@ -14,7 +14,7 @@ import { FONT_ASSET_ROOT, packagedFonts } from '@docx-editor.dev/fonts';
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
-import { psiAnnexData, psiAnnexSample, ssmAnnexData, ssmAnnexSample } from '../tools/annex-samples';
+import { ssmAnnexData, ssmAnnexSample, suAnnexData, suAnnexSample } from '../tools/annex-samples';
 import { appendAnnexes, renderAnnex } from './annex';
 
 // Outside a bundler the packaged faces are files; without them the engine measures every glyph
@@ -29,24 +29,17 @@ const fonts = packagedFonts({
 
 const templatesUrl = new URL('../templates/', import.meta.url);
 const ssmAnnex = 'annex';
-const psiAnnex = 'fire annex';
+const suAnnex = 'fire annex';
 const appended = 'own instructions with annexes';
 const docxIn = (folder: string) =>
   readdirSync(fileURLToPath(new URL(folder, templatesUrl)))
     .filter((name) => name.endsWith('.docx'))
     .map((name) => `${folder}${name}`);
-const files = [
-  ...docxIn(''),
-  ...docxIn('fire/'),
-  ...docxIn('other/'),
-  ssmAnnex,
-  psiAnnex,
-  appended,
-];
+const files = [...docxIn(''), ...docxIn('fire/'), ...docxIn('other/'), ssmAnnex, suAnnex, appended];
 const template = (name: string) => new Uint8Array(readFileSync(new URL(name, templatesUrl)));
 const built: Record<string, () => Uint8Array> = {
   [ssmAnnex]: () => renderAnnex('ssm', ssmAnnexSample, ssmAnnexData),
-  [psiAnnex]: () => renderAnnex('psi', psiAnnexSample, psiAnnexData),
+  [suAnnex]: () => renderAnnex('su', suAnnexSample, suAnnexData),
   [appended]: () =>
     appendAnnexes(template('3.2_own_instructions.docx'), [
       renderAnnex('ssm', ssmAnnexSample, ssmAnnexData),

@@ -1,6 +1,6 @@
 // Written by tools/import/build_annex.py from tools/import/annex.ro.json.
 
-export type AnnexDomain = 'ssm' | 'psi';
+export type AnnexDomain = 'ssm' | 'su';
 
 const encoded: Record<AnnexDomain, string> = {
   ssm:
@@ -148,7 +148,7 @@ const encoded: Record<AnnexDomain, string> = {
     'AAASAAAAAAAAAAAAAACAATIhAAB3b3JkL2ZvbnRUYWJsZS54bWxQSwECFAAUAAAACABTu2Fd5P9VgCECAADRCAAAFQAAAAAAAAAA' +
     'AAAAgAGFIgAAd29yZC90aGVtZS90aGVtZTEueG1sUEsBAhQAFAAAAAgAU7thXa73YQp4AQAALwcAABMAAAAAAAAAAAAAAIAB2SQA' +
     'AFtDb250ZW50X1R5cGVzXS54bWxQSwUGAAAAAA4ADgB3AwAAgiYAAAAA',
-  psi:
+  su:
     'UEsDBBQAAAAIAFS7YV3o0AEj2QAAAD0CAAALAAAAX3JlbHMvLnJlbHOtkk1LA0EMhu/9FUPu3WwriMjO9iJCbyL1B4SZ7O7Qzgcz' +
     'aa3/3kEKulCKoMe8efPwHNJtzv6gTpyLi0HDqmlBcTDRujBqeNs9Lx9g0y+6Vz6Q1EqZXCqq3oSiYRJJj4jFTOypNDFxqJshZk9S' +
     'xzxiIrOnkXHdtveYfzKgnzHV1mrIW7sCtftI/Dc2ehayJIQmZl6mXK+zOC4VTnlk0WCjealx+Wo0lQx4XWj9e6E4DM7wUzRHz0Gu' +

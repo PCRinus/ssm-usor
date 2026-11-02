@@ -39,7 +39,7 @@ import type {
 type EmployeeRow = Database['public']['Tables']['employees']['Row'];
 
 const trainingStatusFields =
-  'ssm_state, ssm_due_on, ssm_last_periodic_on, ssm_interval_months, ssm_interval_source, psi_state, psi_due_on, psi_last_periodic_on, psi_interval_months, psi_interval_source';
+  'ssm_state, ssm_due_on, ssm_last_periodic_on, ssm_interval_months, ssm_interval_source, su_state, su_due_on, su_last_periodic_on, su_interval_months, su_interval_source';
 
 // The job position rides along by its foreign key: every employee has exactly one.
 const employeeColumnsWithoutStatus =
@@ -71,8 +71,8 @@ function inStates<Q extends { or(filters: string, options: { referencedTable: st
 ) {
   const matching = (state: string, everywhere: boolean) =>
     everywhere
-      ? `and(ssm_state.eq.${state},psi_state.eq.${state})`
-      : `ssm_state.eq.${state},psi_state.eq.${state}`;
+      ? `and(ssm_state.eq.${state},su_state.eq.${state})`
+      : `ssm_state.eq.${state},su_state.eq.${state}`;
   let filtered = query;
   if (trainingState) {
     filtered = filtered.or(matching(trainingState, trainingState === 'current'), {

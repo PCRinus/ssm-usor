@@ -257,7 +257,7 @@ export function JobPositionsCard({
                 </TableCell>
                 <TableCell>
                   <span className="grid grid-cols-[auto_auto] items-center justify-start gap-x-1.5 gap-y-1">
-                    {(['ssm', 'psi'] as const).map((domain) => (
+                    {(['ssm', 'su'] as const).map((domain) => (
                       <Fragment key={domain}>
                         <span className="text-xs text-muted-foreground">
                           {domainLabels[domain]}

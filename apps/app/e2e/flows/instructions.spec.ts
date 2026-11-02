@@ -124,15 +124,15 @@ test('an occupational safety module is written from its guided template, saved i
 test('a fire-safety module takes a fire-safety category and is grouped by it in the library and the picker', async ({
   page,
 }) => {
-  const owner = await createAccount('instructions-psi', 'Dana Instrucțiuni');
+  const owner = await createAccount('instructions-su', 'Dana Instrucțiuni');
   const organizationId = await createOrganization('Instrucțiuni PSI E2E', owner.id);
   const clientId = await createClientCompany(organizationId, 'S.C. ATELIER PSI E2E S.R.L.');
   await completeDocumentData(organizationId, owner.id, clientId);
-  await signIn(page, owner.email, '/instructions/psi');
+  await signIn(page, owner.email, '/instructions/su');
 
   await page.getByTestId('instruction-write').click();
   const dialog = page.getByTestId('instruction-start-dialog');
-  await expect(dialog.getByTestId('instruction-start-domain')).toHaveValue('psi');
+  await expect(dialog.getByTestId('instruction-start-domain')).toHaveValue('su');
   await expect(dialog.getByTestId('instruction-start-group').locator('option')).toHaveText([
     'Spații și activități',
     'Instalații și echipamente',
@@ -148,7 +148,7 @@ test('a fire-safety module takes a fire-safety category and is grouped by it in 
     'PSI · Spații și activități · un articol'
   );
 
-  await page.goto('/instructions/psi');
+  await page.goto('/instructions/su');
   await expect(page.getByTestId('instruction-row').filter({ hasText: 'Birouri' })).toContainText(
     'Spații și activități'
   );

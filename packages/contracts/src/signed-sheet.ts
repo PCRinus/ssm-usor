@@ -27,7 +27,7 @@ export type SheetRowKey = 'h1' | 'h2' | 'adm' | `p${number}` | `s${number}` | `t
 
 export type SheetTable = 'p' | 's' | 't';
 
-const capacity: Record<TrainingDomain, number> = { ssm: 17, psi: 17 };
+const capacity: Record<TrainingDomain, number> = { ssm: 17, su: 17 };
 
 /** The rows of annex 11's block "Rezultatele testărilor" on one sheet. */
 export const testRowCapacity = 5;
@@ -77,7 +77,7 @@ const hiringText: Record<TrainingDomain, Record<'h1' | 'h2', string[]>> = {
     h1: ['date', 'duration', 'trainer', 'trainer_job_title', 'material'],
     h2: ['date', 'place', 'duration', 'trainer', 'trainer_job_title', 'material'],
   },
-  psi: {
+  su: {
     h1: ['date', 'duration', 'trainer', 'trainer_job_title', 'material'],
     h2: ['date', 'place', 'occupation', 'duration', 'trainer', 'trainer_job_title', 'material'],
   },
@@ -92,7 +92,7 @@ const testText = ['date', 'material', 'grade', 'examiner'];
 // says, the one who verified, whom the record names as its trainer (ADR 021); no verifier's.
 const rowSlots: Record<TrainingDomain, Exclude<SheetSignerSlot, 'admitter'>[]> = {
   ssm: ['trainee', 'trainer', 'verifier'],
-  psi: ['trainee', 'trainer'],
+  su: ['trainee', 'trainer'],
 };
 
 const named = (rowKey: string, columns: string[]) => columns.map((column) => `${rowKey}_${column}`);

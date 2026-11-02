@@ -54,7 +54,7 @@ test('a training held gives its attendee a record and ends their untrained state
     intervalMonths: 3,
     intervalSource: 'client',
   });
-  expect(employee.training.psi.state).toBe('untrained');
+  expect(employee.training.su.state).toBe('untrained');
 
   const proposal = await api(
     `/trainings/proposal?domain=ssm&phase=workplace&heldOn=${today}&jobPositionId=${positionId}`
@@ -100,7 +100,7 @@ test('a training held gives its attendee a record and ends their untrained state
   const detail = await api(`/employees/${employee.id}`);
   expect(detail.body.employee.training.ssm.state).toBe('current');
   expect(detail.body.employee.training.ssm.dueOn > today).toBe(true);
-  expect(detail.body.employee.training.psi.state).toBe('untrained');
+  expect(detail.body.employee.training.su.state).toBe('untrained');
 
   const listed = await api('/trainings?domain=ssm');
   expect(listed.body.items).toEqual([

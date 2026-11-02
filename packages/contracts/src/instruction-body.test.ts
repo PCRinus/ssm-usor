@@ -179,15 +179,15 @@ describe('instruction categories', () => {
       expect(instructionCategories).toContain(group);
       expect(categoryDomain(group)).toBe('ssm');
     }
-    expect(categoryDomain('premises_activity')).toBe('psi');
-    expect(categoryDomain('installation_equipment')).toBe('psi');
-    expect(categoryDomain('hazardous_work')).toBe('psi');
+    expect(categoryDomain('premises_activity')).toBe('su');
+    expect(categoryDomain('installation_equipment')).toBe('su');
+    expect(categoryDomain('hazardous_work')).toBe('su');
   });
 
   it('keeps each category in its domain', () => {
     expect(categoryFitsDomain('protective_equipment', 'ssm')).toBe(true);
-    expect(categoryFitsDomain('protective_equipment', 'psi')).toBe(false);
-    expect(categoryFitsDomain('hazardous_work', 'psi')).toBe(true);
+    expect(categoryFitsDomain('protective_equipment', 'su')).toBe(false);
+    expect(categoryFitsDomain('hazardous_work', 'su')).toBe(true);
     expect(categoryFitsDomain('hazardous_work', 'ssm')).toBe(false);
   });
 

@@ -946,7 +946,7 @@ describe('the fire-safety context', () => {
     const [accountant, welder] = facts.jobPositions;
     const storage = {
       moduleId: 'a0a0a0a0-0000-4000-8000-000000000004',
-      domain: 'psi' as const,
+      domain: 'su' as const,
       title: 'Depozitare',
       group: 'premises_activity' as const,
       version: {
@@ -1199,7 +1199,7 @@ describe('a fire-safety document generated again', () => {
       ...facts,
       jobPositions: facts.jobPositions.map((position) => ({
         ...position,
-        needsFireInstructions: position.instructions.some((module) => module.domain === 'psi')
+        needsFireInstructions: position.instructions.some((module) => module.domain === 'su')
           ? true
           : null,
       })),
@@ -1265,23 +1265,23 @@ describe('setOfGroup', () => {
 });
 
 describe('the annexes of the fire-safety own instructions', () => {
-  const psi = (
+  const su = (
     moduleId: string,
     title: string,
     group: 'premises_activity' | 'installation_equipment'
   ) => ({
     moduleId,
-    domain: 'psi' as const,
+    domain: 'su' as const,
     title,
     group,
     version: { id: `${moduleId.slice(0, -1)}9`, number: 1, createdAt: '2026-10-01T08:00:00+00:00' },
   });
-  const cylinders = psi(
+  const cylinders = su(
     'a0a0a0a0-0000-4000-8000-000000000005',
     'Butelii de gaz',
     'installation_equipment'
   );
-  const storage = psi('a0a0a0a0-0000-4000-8000-000000000004', 'Depozitare', 'premises_activity');
+  const storage = su('a0a0a0a0-0000-4000-8000-000000000004', 'Depozitare', 'premises_activity');
 
   it('are the fire-safety modules the positions apply, each once, by group and title', () => {
     const [accountant, welder] = facts.jobPositions;

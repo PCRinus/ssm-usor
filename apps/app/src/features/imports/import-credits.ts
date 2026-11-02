@@ -122,8 +122,8 @@ export function usesSentence(
     files.photos === 0
       ? creditsLabel(needed)
       : `${creditsLabel(needed)} (${importCredits.clientReading} + ${photosCount(files.photos)})`;
-  const { ssm, psi } = importCredits.ownInstructions;
-  return `Folosește ${known}, plus 1 pentru fiecare pagină scanată. Instrucțiunile proprii, dacă le găsim, folosesc încă ${ssm} (IPSSM) și ${psi} (IPSU).`;
+  const { ssm, su } = importCredits.ownInstructions;
+  return `Folosește ${known}, plus 1 pentru fiecare pagină scanată. Instrucțiunile proprii, dacă le găsim, folosesc încă ${ssm} (IPSSM) și ${su} (IPSU).`;
 }
 
 export function leftSentence(balance: CreditsBalance, short: boolean) {

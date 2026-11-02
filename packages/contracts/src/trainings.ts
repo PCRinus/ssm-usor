@@ -1,12 +1,12 @@
 import { z } from 'zod';
 
-export const trainingDomains = ['ssm', 'psi'] as const;
+export const trainingDomains = ['ssm', 'su'] as const;
 export const trainingDomainSchema = z.enum(trainingDomains);
 export type TrainingDomain = z.infer<typeof trainingDomainSchema>;
 
 export const trainingDomainLabels: Record<TrainingDomain, string> = {
   ssm: 'SSM',
-  psi: 'PSI',
+  su: 'PSI',
 };
 
 export const trainingPhases = [
@@ -91,7 +91,7 @@ export type TrainingStatus = z.infer<typeof trainingStatusSchema>;
 
 export const employeeTrainingSchema = z.object({
   ssm: trainingStatusSchema,
-  psi: trainingStatusSchema,
+  su: trainingStatusSchema,
 });
 
 export type EmployeeTraining = z.infer<typeof employeeTrainingSchema>;

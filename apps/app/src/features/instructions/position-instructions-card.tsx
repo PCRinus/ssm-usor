@@ -74,7 +74,7 @@ const domainCopy = {
       'Instrucțiunile celuilalt post se adaugă la ale acestuia; cele deja aplicate rămân.',
     copyEmpty: 'Niciun alt post al clientului nu aplică instrucțiuni încă.',
   },
-  psi: {
+  su: {
     title: 'Instrucțiuni specifice PSI',
     testId: 'fire-instructions',
     specific: 'instrucțiuni specifice PSI',
@@ -492,7 +492,7 @@ function PickInstructionsDialog({
               data-testid={testId('pick-empty')}
               action={
                 <Button asChild variant="outline">
-                  <Link to={domain === 'psi' ? '/instructions/psi' : '/instructions/ssm'}>
+                  <Link to={domain === 'su' ? '/instructions/su' : '/instructions/ssm'}>
                     Deschide Instrucțiuni proprii
                   </Link>
                 </Button>

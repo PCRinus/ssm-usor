@@ -9,7 +9,7 @@ export const employeeSections = [
     exact: false,
   },
   {
-    to: '/clients/$clientId/employees/$employeeId/training/psi',
+    to: '/clients/$clientId/employees/$employeeId/training/su',
     label: 'Instruire PSI',
     icon: Flame,
     exact: false,

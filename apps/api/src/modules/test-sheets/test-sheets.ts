@@ -42,7 +42,7 @@ type ResultRow = {
   organization_id: string;
   client_id: string;
   employee_id: string;
-  domain: 'ssm' | 'psi';
+  domain: 'ssm' | 'su';
   test: 'hiring' | 'annual';
   taken_on: string;
   grade: 'admis';
@@ -600,7 +600,7 @@ const fileWords = (text: string) =>
 
 export function testSheetFileName(
   employee: { last_name: string; first_name: string },
-  result: { domain: 'ssm' | 'psi'; test: 'hiring' | 'annual'; taken_on: string }
+  result: { domain: 'ssm' | 'su'; test: 'hiring' | 'annual'; taken_on: string }
 ) {
   return (
     [

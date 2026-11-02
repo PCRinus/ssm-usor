@@ -269,7 +269,7 @@ function signersOf(domain: TrainingDomain, record: SheetRecord | null) {
   const { trainer, verifier } = record.training;
   return {
     trainer: trainer.name,
-    verifier: verifier?.name ?? (domain === 'psi' ? trainer.name : ''),
+    verifier: verifier?.name ?? (domain === 'su' ? trainer.name : ''),
   };
 }
 
@@ -319,7 +319,7 @@ const sheetRow = (record: SheetRecord): SheetRow => ({
  */
 const tableLayout = {
   ssm: { firstPage: 17, nextPages: 17, material: 27, occupation: 13 },
-  psi: { firstPage: 17, nextPages: 18, material: 31, occupation: 15 },
+  su: { firstPage: 17, nextPages: 18, material: 31, occupation: 15 },
 } as const;
 const rowTwips = 680;
 const lineTwips = 184;
@@ -365,14 +365,14 @@ function sheetParts(facts: TrainingSheetFacts) {
       .filter(
         (record) =>
           record.training.phase === 'periodic' ||
-          (domain === 'psi' && record.training.phase === 'supplementary')
+          (domain === 'su' && record.training.phase === 'supplementary')
       )
       .map((record) => ({
         day: record.training.heldOn,
         createdAt: record.training.createdAt,
         row: sheetRow(record),
       })),
-    ...(domain === 'psi'
+    ...(domain === 'su'
       ? facts.testResults.map((result) => ({
           day: result.takenOn,
           createdAt: result.createdAt,

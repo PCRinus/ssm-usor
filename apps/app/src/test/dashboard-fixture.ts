@@ -26,7 +26,7 @@ export const busySummary: DashboardSummary = {
   },
   trainings: {
     ssm: { overdue: 22, due: 41, untrained: 31, current: 318, total: 412 },
-    psi: { overdue: 29, due: 36, untrained: 46, current: 301, total: 412 },
+    su: { overdue: 29, due: 36, untrained: 46, current: 301, total: 412 },
   },
   nextDue: { on: '2026-11-02', employees: 4 },
   portfolio: {
@@ -49,7 +49,7 @@ export const quietSummary: DashboardSummary = {
   },
   trainings: {
     ssm: { overdue: 0, due: 4, untrained: 0, current: 408, total: 412 },
-    psi: { overdue: 0, due: 7, untrained: 0, current: 405, total: 412 },
+    su: { overdue: 0, due: 7, untrained: 0, current: 405, total: 412 },
   },
   contracts: { receivedToConfirm: 0, endingWithin60Days: 0 },
 };

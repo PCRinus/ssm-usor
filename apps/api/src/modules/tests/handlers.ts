@@ -249,7 +249,7 @@ async function readStanding(db: DataClient, clientId: string, employeeId: string
   const { data, error } = await db
     .from('employees')
     .select(
-      'id, test_status(ssm_state, ssm_awaiting_test, ssm_last_passed_on, ssm_hiring_trained_on, psi_state, psi_awaiting_test, psi_last_passed_on, psi_due_on, psi_hiring_trained_on)'
+      'id, test_status(ssm_state, ssm_awaiting_test, ssm_last_passed_on, ssm_hiring_trained_on, su_state, su_awaiting_test, su_last_passed_on, su_due_on, su_hiring_trained_on)'
     )
     .eq('id', employeeId)
     .eq('client_id', clientId)
@@ -293,7 +293,7 @@ export const getEmployeeTests: RouteHandler<typeof getEmployeeTestsRoute, ApiEnv
       .map((row) => ({ ...toTestResult(row), sheet: summaryOf(sheets, row.id) })),
     attempts: attempts.data.filter((row) => row.domain === domain).map(toAttemptSummary),
   });
-  return c.json({ ssm: ofDomain('ssm'), psi: ofDomain('psi') }, 200);
+  return c.json({ ssm: ofDomain('ssm'), su: ofDomain('su') }, 200);
 };
 
 const notAwaiting = (message: string) =>

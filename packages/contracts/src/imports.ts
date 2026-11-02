@@ -252,7 +252,7 @@ export const employeeImportPeopleSchema = z.object({
 export type EmployeeImportPeople = z.infer<typeof employeeImportPeopleSchema>;
 
 /** A client import's library proposals (ADR 034), one per library and domain. */
-export const importLibraryParts = ['instructions_ssm', 'instructions_psi'] as const;
+export const importLibraryParts = ['instructions_ssm', 'instructions_su'] as const;
 
 export type ImportLibraryPart = (typeof importLibraryParts)[number];
 
@@ -260,7 +260,7 @@ export const importLibraryPartSchema = z.enum(importLibraryParts);
 
 export const libraryPartDomains: Record<ImportLibraryPart, InstructionDomain> = {
   instructions_ssm: 'ssm',
-  instructions_psi: 'psi',
+  instructions_su: 'su',
 };
 
 /** Se citește, De verificat, Nimic nou, Nu s-a putut citi, Confirmat. */

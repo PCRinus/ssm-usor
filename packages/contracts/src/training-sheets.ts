@@ -8,7 +8,7 @@ import { type TrainingDomain, trainingDomainSchema } from './trainings';
  */
 export const trainingSheetTypeKeys = {
   ssm: 'training_sheet_ssm',
-  psi: 'training_sheet_psi',
+  su: 'training_sheet_su',
 } as const satisfies Record<TrainingDomain, string>;
 
 export type TrainingSheetTypeKey = (typeof trainingSheetTypeKeys)[TrainingDomain];
@@ -42,7 +42,7 @@ export type TrainingSheetReadiness = z.infer<typeof trainingSheetReadinessSchema
 
 export const trainingSheetsResponseSchema = z.object({
   ssm: trainingSheetReadinessSchema,
-  psi: trainingSheetReadinessSchema,
+  su: trainingSheetReadinessSchema,
 });
 
 export type TrainingSheetsResponse = z.infer<typeof trainingSheetsResponseSchema>;

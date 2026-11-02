@@ -79,7 +79,7 @@ describe('the per-employee templates', () => {
       trainingSheetTypeKeys.ssm,
       signingTypeKeys.agreement,
       testSheetTypeKey,
-      trainingSheetTypeKeys.psi,
+      trainingSheetTypeKeys.su,
     ]);
   });
 
@@ -389,7 +389,7 @@ describe('the annexes', () => {
       'fire_own_instructions'
     );
     const pages = annexesData(snapshot as Json).map(({ data }) =>
-      documentText(renderAnnex('psi', annexBody, data))
+      documentText(renderAnnex('su', annexBody, data))
     );
     expect(pages).toHaveLength(1);
     expect(pages[0]).toContain('ANEXA 1');

@@ -83,7 +83,7 @@ export function annexParagraphs(body: AnnexBody): AnnexParagraph[] {
 }
 
 // `data` is what the own instructions' header merges (`issueDate`, `provider`, `client`,
-// `branding`, and for `psi` `fireSafetyTechnician`) with the annex's `number`, `title` and
+// `branding`, and for `su` `fireSafetyTechnician`) with the annex's `number`, `title` and
 // `versionDate`.
 export function renderAnnex(domain: AnnexDomain, body: AnnexBody, data: TemplateData): Uint8Array {
   return renderDocument(annexTemplate(domain), { ...data, paragraphs: annexParagraphs(body) });

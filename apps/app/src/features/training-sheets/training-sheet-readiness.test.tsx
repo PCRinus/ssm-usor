@@ -32,11 +32,11 @@ const sheetStatus = (readiness: Readiness) => ({ stored: false, sequences: [], .
 
 const fetchMock = vi.fn<typeof fetch>();
 
-function mockApi({ ssm = ready, psi = ready }: { ssm?: Readiness; psi?: Readiness } = {}) {
+function mockApi({ ssm = ready, su = ready }: { ssm?: Readiness; su?: Readiness } = {}) {
   fetchMock.mockImplementation(async (input) => {
     const url = new URL(String(input));
     if (url.pathname === `${employeePath}/training-sheets`)
-      return Response.json({ ssm: sheetStatus(ssm), psi: sheetStatus(psi) });
+      return Response.json({ ssm: sheetStatus(ssm), su: sheetStatus(su) });
     throw new Error(`Unexpected request: ${url}`);
   });
 }
@@ -121,9 +121,9 @@ describe('TrainingSheetReadiness', () => {
   });
 
   it('starts the way back to the tab when a row is followed, and closes the dialog', async () => {
-    mockApi({ psi: { ready: false, missing: ['employee.workplace'] } });
-    const router = mount('psi');
-    const notice = await screen.findByTestId('training-sheet-psi-missing');
+    mockApi({ su: { ready: false, missing: ['employee.workplace'] } });
+    const router = mount('su');
+    const notice = await screen.findByTestId('training-sheet-su-missing');
     expect(notice.textContent).toContain('Fișa PSI nu se poate întocmi încă: 1 dată de completat.');
 
     await userEvent.click(within(notice).getByRole('button', { name: 'Vezi ce lipsește' }));
@@ -137,14 +137,14 @@ describe('TrainingSheetReadiness', () => {
       clientId,
       to: 'training-sheet',
       employeeId,
-      domain: 'psi',
+      domain: 'su',
     });
   });
 
   it('shows nothing while the sheet can be drawn up', async () => {
-    mockApi({ psi: { ready: false, missing: ['employee.workplace'] } });
-    mount('ssm', 'psi');
-    await screen.findByTestId('training-sheet-psi-missing');
+    mockApi({ su: { ready: false, missing: ['employee.workplace'] } });
+    mount('ssm', 'su');
+    await screen.findByTestId('training-sheet-su-missing');
     expect(screen.queryByTestId('training-sheet-ssm-missing')).toBeNull();
     expect(screen.getAllByRole('status')).toHaveLength(1);
   });

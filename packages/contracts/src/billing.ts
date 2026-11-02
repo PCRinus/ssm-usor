@@ -380,7 +380,7 @@ export const importCredits = {
   clientReading: 25,
   perPage: 1,
   // Reading a pack's own instructions for the library, each time they are read (ADR 034).
-  ownInstructions: { ssm: 25, psi: 10 },
+  ownInstructions: { ssm: 25, su: 10 },
 } as const;
 
 /**

@@ -31,7 +31,7 @@ export const dashboardSummarySchema = z.object({
   }),
   trainings: z.object({
     ssm: dashboardTrainingCountsSchema,
-    psi: dashboardTrainingCountsSchema,
+    su: dashboardTrainingCountsSchema,
   }),
   // The nearest training due date in either domain among employees current or due.
   nextDue: z.object({ on: z.iso.date(), employees: countSchema }).nullable(),

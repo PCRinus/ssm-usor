@@ -4,7 +4,7 @@ import type { Json } from '../../database.types';
 
 const annexDomains: Partial<Record<string, InstructionDomain>> = {
   own_instructions: 'ssm',
-  fire_own_instructions: 'psi',
+  fire_own_instructions: 'su',
 };
 
 /** Null for a document that annexes nothing, whatever its snapshot holds. */

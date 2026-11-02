@@ -16,7 +16,7 @@ import {
 } from './library-model';
 import { useLibraryParts } from './use-library-parts';
 
-const icons = { ssm: HardHat, psi: Flame } as const;
+const icons = { ssm: HardHat, su: Flame } as const;
 
 export function PartStatusTag({ part }: { part: LibraryPart }) {
   if (isExpired(part)) {

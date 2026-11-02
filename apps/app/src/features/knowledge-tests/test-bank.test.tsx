@@ -9,7 +9,7 @@ import { bankTestFacts } from './test-format';
 
 type Question = {
   id: string;
-  domain: 'ssm' | 'psi';
+  domain: 'ssm' | 'su';
   test: 'hiring' | 'annual';
   position: number;
   text: string;
@@ -75,7 +75,7 @@ const ssmQuestions = (overrides: Question[] = []) => [
 ];
 
 const bankTest = (
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   test: 'hiring' | 'annual',
   code: string,
   questions: Question[]
@@ -89,12 +89,12 @@ const bankTest = (
 });
 
 const fireHiring = builtIn(40, {
-  domain: 'psi',
+  domain: 'su',
   test: 'hiring',
   text: 'Ce faci la auzul alarmei de incendiu?',
 });
 const fireAnnual = builtIn(41, {
-  domain: 'psi',
+  domain: 'su',
   test: 'annual',
   text: 'Cât de des se verifică stingătorul?',
 });
@@ -105,8 +105,8 @@ const bank = (ssm: Question[]) => ({
   passMarkPercent: 70,
   tests: [
     bankTest('ssm', 'hiring', 'TASSM', ssm),
-    bankTest('psi', 'hiring', 'TASU', [fireHiring]),
-    bankTest('psi', 'annual', 'TPSU', [fireAnnual]),
+    bankTest('su', 'hiring', 'TASU', [fireHiring]),
+    bankTest('su', 'annual', 'TPSU', [fireAnnual]),
   ],
 });
 
@@ -230,8 +230,8 @@ describe('the question bank', () => {
 
   it('shows the fire-safety hiring and annual tests on their own tab', async () => {
     mockApi();
-    mount('/tests/psi');
-    await screen.findByTestId('test-bank-psi');
+    mount('/tests/su');
+    await screen.findByTestId('test-bank-su');
     const cards = screen.getAllByTestId('test-bank-test');
     expect(cards.map((card) => card.dataset.test)).toEqual(['hiring', 'annual']);
     expect(cards[1]!.textContent).toContain('TPSU');
@@ -325,9 +325,9 @@ describe('the question bank', () => {
       'POST /organization/tests/questions': () =>
         Response.json({ question: ownQuestion }, { status: 201 }),
     });
-    mount('/tests/psi');
+    mount('/tests/su');
     const user = userEvent.setup();
-    await screen.findByTestId('test-bank-psi');
+    await screen.findByTestId('test-bank-su');
     await user.click(screen.getAllByTestId('test-question-add')[1]!);
     const dialog = within(await screen.findByTestId('test-question-dialog'));
     expect((dialog.getByTestId('test-question-test') as HTMLSelectElement).value).toBe('annual');

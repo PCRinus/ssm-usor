@@ -71,12 +71,9 @@ describe('built-in templates', () => {
     expect(documentText(read(name))).not.toMatch(originals);
   });
 
-  it.each(['ssm', 'psi'] as const)(
-    'the %s annex template carries nothing of a client',
-    (domain) => {
-      expect(documentText(annexTemplate(domain))).not.toMatch(originals);
-    }
-  );
+  it.each(['ssm', 'su'] as const)('the %s annex template carries nothing of a client', (domain) => {
+    expect(documentText(annexTemplate(domain))).not.toMatch(originals);
+  });
 });
 
 // Written by us and not imported (ADR 007), so they are kept apart from the provider's pack.
@@ -2550,7 +2547,7 @@ describe('the individual training sheets', () => {
       ['training_sheet_ssm', 'fisa_instruire_ssm.docx'],
       ['signing_agreement', 'act_aditional_semnare_electronica.docx'],
       ['test_sheet', 'fisa_test.docx'],
-      ['training_sheet_psi', 'fire/fisa_instructaj_psi.docx'],
+      ['training_sheet_su', 'fire/fisa_instructaj_su.docx'],
     ]);
     for (const entry of perEmployeeEntries) expect(entry).not.toHaveProperty('number');
     for (const entry of sheetEntries) {
@@ -2571,7 +2568,7 @@ describe('the individual training sheets', () => {
 
   describe.each([
     ['ssm', 'fisa_instruire_ssm.docx'],
-    ['psi', 'fire/fisa_instructaj_psi.docx'],
+    ['su', 'fire/fisa_instructaj_su.docx'],
   ] as const)('%s', (domain, name) => {
     const [recorded, empty] = trainingSheetSamples(domain) as [
       ReturnType<typeof trainingSheetSamples>[number],
@@ -2704,7 +2701,7 @@ describe('the individual training sheets', () => {
   });
 
   it('follows the rubrics of the annex to the general dispositions of OMAI 712/2005', () => {
-    const text = documentText(read('fire/fisa_instructaj_psi.docx'));
+    const text = documentText(read('fire/fisa_instructaj_su.docx'));
     for (const rubric of [
       'FIȘĂ INDIVIDUALĂ',
       'de instructaj în domeniul situațiilor de urgență',

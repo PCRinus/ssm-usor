@@ -201,9 +201,9 @@ export function EmployeeConfirmDialog({
     }
   }
 
-  const ssmPsi = [
+  const ssmSu = [
     summary.tests.ssm > 0 ? `${summary.tests.ssm} SSM` : null,
-    summary.tests.psi > 0 ? `${summary.tests.psi} PSI` : null,
+    summary.tests.su > 0 ? `${summary.tests.su} PSI` : null,
   ].filter(Boolean);
 
   return (
@@ -285,16 +285,16 @@ export function EmployeeConfirmDialog({
                 detail={`${roCount(summary.rows, 'rând', 'rânduri')} de pe fișe, transcrise de pe fișa pe hârtie. Rândurile cu aceeași zi, același instructor și același fel de instruire devin o singură instruire, cu toți participanții ei.`}
               />
             )}
-            {ssmPsi.length > 0 && (
+            {ssmSu.length > 0 && (
               <Line
                 icon={<BadgeCheck className="size-4" />}
-                count={summary.tests.ssm + summary.tests.psi}
+                count={summary.tests.ssm + summary.tests.su}
                 label={count(
-                  summary.tests.ssm + summary.tests.psi,
+                  summary.tests.ssm + summary.tests.su,
                   'test la angajare verificat pe fișă',
                   'teste la angajare verificate pe fișă'
                 )}
-                detail={`${ssmPsi.join(' și ')}. Examinatorul e cel care a semnat pe fișă la verificarea cunoștințelor.`}
+                detail={`${ssmSu.join(' și ')}. Examinatorul e cel care a semnat pe fișă la verificarea cunoștințelor.`}
               />
             )}
             {summary.files > 0 && (

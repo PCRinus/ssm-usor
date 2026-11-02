@@ -1364,7 +1364,7 @@ export async function documentAnnexFile(
   };
 }
 
-const annexCodes = { ssm: 'I.P.S.S.M.', psi: 'I.P.S.U.' } as const;
+const annexCodes = { ssm: 'I.P.S.S.M.', su: 'I.P.S.U.' } as const;
 
 // A dated document's year tells its files apart from the other years'.
 export const documentFileName = (document: { title: string; period: number | null }) =>

@@ -85,7 +85,7 @@ describe('missingSheetDataOf', () => {
       employee: { ...facts.employee, commuteRoute: '  ', workplace: null },
     };
     expect(missingSheetDataOf(lacking)).toEqual(['employee.commute_route', 'employee.workplace']);
-    expect(missingSheetDataOf({ ...lacking, domain: 'psi' })).toEqual(['employee.workplace']);
+    expect(missingSheetDataOf({ ...lacking, domain: 'su' })).toEqual(['employee.workplace']);
   });
 
   it('needs no workplace where the client has one, and nothing else of an empty employee', () => {
@@ -110,7 +110,7 @@ describe('missingSheetDataOf', () => {
     expect(
       missingSheetDataOf({
         ...bare,
-        domain: 'psi',
+        domain: 'su',
         employee: { ...bare.employee, commuteRoute: null },
       })
     ).toEqual([]);
@@ -221,16 +221,16 @@ describe('buildTrainingSheetData', () => {
   });
 
   it('puts the supplementary trainings among the periodic rows of the fire-safety sheet, its verifier the trainer', () => {
-    const psi: TrainingSheetFacts = {
+    const su: TrainingSheetFacts = {
       ...facts,
-      domain: 'psi',
+      domain: 'su',
       employee: { ...facts.employee, commuteRoute: null },
       records: facts.records.map((each) => ({
         ...each,
         training: { ...each.training, verifier: null },
       })),
     };
-    const data = buildTrainingSheetData(psi);
+    const data = buildTrainingSheetData(su);
     expect(data.periodic.map((row) => row.heldOn)).toEqual([
       '03.04.2026',
       '18.05.2026',
@@ -281,7 +281,7 @@ describe('buildTrainingSheetData', () => {
   it('prints a fire-safety pass as a periodic row among the trainings, the examiner as the trainer', () => {
     const data = buildTrainingSheetData({
       ...facts,
-      domain: 'psi',
+      domain: 'su',
       testResults: [
         result('2026-05-01', {
           test: 'annual',
@@ -336,7 +336,7 @@ describe('blankRowsAfter', () => {
     expect(
       blankRowsAfter(
         Array.from({ length: 18 }, () => row('Art. 1 – 60')),
-        'psi'
+        'su'
       )
     ).toHaveLength(17);
   });
@@ -353,7 +353,7 @@ describe('trainingSheetFileName', () => {
       'Fisa-SSM-Popescu-Ion.pdf'
     );
     expect(
-      trainingSheetFileName('psi', { lastName: 'Ștefănescu-Țurcanu', firstName: 'ana maria' })
-    ).toBe('Fisa-PSI-Stefanescu-Turcanu-Ana-Maria.pdf');
+      trainingSheetFileName('su', { lastName: 'Ștefănescu-Țurcanu', firstName: 'ana maria' })
+    ).toBe('Fisa-SU-Stefanescu-Turcanu-Ana-Maria.pdf');
   });
 });

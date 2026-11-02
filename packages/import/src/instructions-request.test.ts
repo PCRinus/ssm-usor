@@ -31,7 +31,7 @@ describe('instructionsRequest', () => {
   });
 
   it('writes the fire-safety task for the PSI domain', () => {
-    const task = instructionsRequest({ ...input, domain: 'psi' }).messages[2]!.content as string;
+    const task = instructionsRequest({ ...input, domain: 'su' }).messages[2]!.content as string;
 
     expect(task).toContain('IPSU');
     expect(task).toContain('premises_activity');
@@ -52,7 +52,7 @@ describe('instructionsRequest', () => {
 
 describe('instructionsAnswer', () => {
   it('holds only the categories of its domain, with no nullable member', () => {
-    const schema = JSON.stringify(instructionsAnswer('psi').jsonSchema);
+    const schema = JSON.stringify(instructionsAnswer('su').jsonSchema);
 
     expect(schema).toContain('hazardous_work');
     expect(schema).not.toContain('work_activity');

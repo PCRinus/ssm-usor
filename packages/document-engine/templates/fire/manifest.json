@@ -344,9 +344,9 @@
     },
     {
       "perEmployee": true,
-      "typeKey": "training_sheet_psi",
+      "typeKey": "training_sheet_su",
       "title": "Fișa individuală de instructaj PSI",
-      "file": "fisa_instructaj_psi.docx",
+      "file": "fisa_instructaj_su.docx",
       "change": {
         "kind": "layout",
         "note": "Semnăturile de la instruirile la angajare au casete mai înalte, fiecare cu linia ei, iar semnătura electronică se tipărește mai mare, pe trei rânduri."

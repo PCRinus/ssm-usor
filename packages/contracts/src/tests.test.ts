@@ -65,7 +65,7 @@ describe('paperTestResultRequestSchema', () => {
   it('grades a paper result admis', () => {
     expect(
       paperTestResultRequestSchema.parse({
-        domain: 'psi',
+        domain: 'su',
         test: 'annual',
         takenOn: '2026-10-20',
         examiner: { name: 'Vasile Tehnic', jobTitle: 'Cadru tehnic PSI' },
@@ -89,16 +89,16 @@ describe('testResultMaterial', () => {
     expect(testResultMaterial('ssm', 'hiring')).toBe(
       'Test de verificare a cunoștințelor la angajare (TASSM)'
     );
-    expect(testResultMaterial('psi', 'hiring')).toBe(
+    expect(testResultMaterial('su', 'hiring')).toBe(
       'Test de verificare a cunoștințelor la angajare (TASU)'
     );
-    expect(testResultMaterial('psi', 'annual')).toBe('Verificare anuală pe bază de test (TPSU)');
+    expect(testResultMaterial('su', 'annual')).toBe('Verificare anuală pe bază de test (TPSU)');
   });
 });
 
 describe('knowledgeTestTitleOf', () => {
   it('names each test with its code', () => {
-    expect(knowledgeTestCodeOf('psi', 'annual')).toBe('TPSU');
+    expect(knowledgeTestCodeOf('su', 'annual')).toBe('TPSU');
     expect(knowledgeTestTitleOf('ssm', 'hiring')).toBe(
       'Test de verificare a cunoștințelor la angajare (TASSM)'
     );

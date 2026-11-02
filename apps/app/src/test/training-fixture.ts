@@ -17,7 +17,7 @@ export const trainingStatus = (
 
 export const untrained = {
   ssm: trainingStatus('untrained'),
-  psi: trainingStatus('untrained'),
+  su: trainingStatus('untrained'),
 };
 
 export const testStatus = (
@@ -27,12 +27,12 @@ export const testStatus = (
   dueOn: string | null = null
 ): TestStatus => ({ state, awaitingTest, lastPassedOn, dueOn });
 
-export const noTests = { ssm: testStatus('none'), psi: testStatus('none') };
+export const noTests = { ssm: testStatus('none'), su: testStatus('none') };
 
 export const employeeTests = (
   ssm: TestStatus = testStatus('none'),
-  psi: TestStatus = testStatus('none')
+  su: TestStatus = testStatus('none')
 ) => ({
   ssm: { status: ssm, results: [], attempts: [] },
-  psi: { status: psi, results: [], attempts: [] },
+  su: { status: su, results: [], attempts: [] },
 });

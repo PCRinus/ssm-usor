@@ -70,7 +70,7 @@ export const byGroupAndTitle = <T extends { group: InstructionModuleGroup; title
   instructionCategories.indexOf(a.group) - instructionCategories.indexOf(b.group) ||
   collator.compare(a.title, b.title);
 
-const domainOrder: Record<InstructionDomain, number> = { ssm: 0, psi: 1 };
+const domainOrder: Record<InstructionDomain, number> = { ssm: 0, su: 1 };
 
 const byDomainGroupAndTitle = (a: InstructionModule, b: InstructionModule) =>
   domainOrder[a.domain] - domainOrder[b.domain] || byGroupAndTitle(a, b);
@@ -456,7 +456,7 @@ async function listApplied(db: DataClient, jobPositionId: string, domain: Instru
 
 const decisionColumns = {
   ssm: 'needs_instructions',
-  psi: 'needs_fire_instructions',
+  su: 'needs_fire_instructions',
 } as const satisfies Record<
   InstructionDomain,
   keyof Database['public']['Tables']['job_positions']['Row']
@@ -484,7 +484,7 @@ const notInLibrary = () =>
 
 const domainNames: Record<InstructionDomain, string> = {
   ssm: 'occupational safety',
-  psi: 'fire-safety',
+  su: 'fire-safety',
 };
 
 const otherDomain = (modules: string[], domain: InstructionDomain) =>
@@ -641,7 +641,7 @@ export const decidePositionInstructions: RouteHandler<
   const { data, error } = await db
     .from('job_positions')
     .update(
-      domain === 'psi'
+      domain === 'su'
         ? { needs_fire_instructions: needsInstructions }
         : { needs_instructions: needsInstructions }
     )

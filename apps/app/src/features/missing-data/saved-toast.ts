@@ -40,7 +40,7 @@ const backLabels = {
 
 const trainingTabs = {
   ssm: '/clients/$clientId/employees/$employeeId/training/ssm',
-  psi: '/clients/$clientId/employees/$employeeId/training/psi',
+  su: '/clients/$clientId/employees/$employeeId/training/su',
 } as const;
 
 type ToastPosition = NonNullable<NonNullable<Parameters<typeof toast.success>[1]>['position']>;

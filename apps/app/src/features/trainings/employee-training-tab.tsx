@@ -71,7 +71,7 @@ const sourceLinkClass = 'underline underline-offset-4 hover:text-foreground';
 
 const programmeFocus = {
   ssm: 'training-schedule',
-  psi: 'fire-training-schedule',
+  su: 'fire-training-schedule',
 } as const satisfies Record<TrainingDomain, string>;
 
 function IntervalFact({

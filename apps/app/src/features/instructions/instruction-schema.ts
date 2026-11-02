@@ -18,11 +18,11 @@ export type AppliedInstruction = PositionInstructionsResponse['items'][number];
 
 export const groupLabels: Record<InstructionModuleGroup, string> = instructionCategoryLabels;
 
-export const domainLabels: Record<InstructionDomain, string> = { ssm: 'SSM', psi: 'PSI' };
+export const domainLabels: Record<InstructionDomain, string> = { ssm: 'SSM', su: 'PSI' };
 
 export const domainHints: Record<InstructionDomain, string> = {
   ssm: 'Anexată la instrucțiunile proprii SSM și citată de tematica SSM.',
-  psi: 'Anexată la instrucțiunile proprii PSI și citată de tematica PSI.',
+  su: 'Anexată la instrucțiunile proprii PSI și citată de tematica PSI.',
 };
 
 const groupExamples: Record<InstructionModuleGroup, string> = {

@@ -88,10 +88,10 @@ export function includedByDefault(leftOn: string | null, existing: boolean) {
 
 const priority: SheetPageKind[] = [
   'ssm_sheet_front',
-  'psi_sheet_front',
+  'su_sheet_front',
   'commute_declaration',
   'ssm_periodic',
-  'psi_periodic',
+  'su_periodic',
   'other',
 ];
 
@@ -260,13 +260,13 @@ const appValues = (
 });
 
 const pageDomain = (kind: SheetPageKind | null): TrainingDomain | null =>
-  kind?.startsWith('ssm') ? 'ssm' : kind?.startsWith('psi') ? 'psi' : null;
+  kind?.startsWith('ssm') ? 'ssm' : kind?.startsWith('su') ? 'su' : null;
 
 // The test closes the introductory general training for occupational safety and the workplace
 // training for fire safety, whose one test closes both (ADR 024).
 const testPhases: Record<TrainingDomain, TrainingPhase[]> = {
   ssm: ['introductory_general'],
-  psi: ['workplace', 'introductory_general'],
+  su: ['workplace', 'introductory_general'],
 };
 
 function closesTest(row: Pick<ProposedSheetRow, 'signatures'>) {
@@ -300,7 +300,7 @@ function readRow(
   builder: RowBuilder
 ): ProposedSheetRow {
   const date = sheetDate(row.heldOn, builder.today);
-  const testOnly = row.domain === 'psi' && row.annualTest;
+  const testOnly = row.domain === 'su' && row.annualTest;
   const proposed: ProposedSheetRow = {
     id: builder.nextId(),
     domain: row.domain,
@@ -410,9 +410,7 @@ function readRow(
       inApp:
         person.existing?.testResults.some(
           (result) =>
-            result.domain === 'psi' &&
-            result.test === 'annual' &&
-            result.takenOn === proposed.heldOn
+            result.domain === 'su' && result.test === 'annual' && result.takenOn === proposed.heldOn
         ) ?? false,
     };
   }
@@ -457,7 +455,7 @@ export function hiringTestRowIds(
   >[]
 ): Set<string> {
   const ids = new Set<string>();
-  for (const domain of ['ssm', 'psi'] as const) {
+  for (const domain of ['ssm', 'su'] as const) {
     const phase = testPhases[domain].find((each) =>
       rows.some((row) => row.domain === domain && row.phase === each && !row.testOnly)
     );

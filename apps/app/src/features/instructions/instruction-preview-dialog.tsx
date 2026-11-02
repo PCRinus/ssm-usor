@@ -35,7 +35,7 @@ export function InstructionPreviewDialog({
   );
 }
 
-const codes: Record<InstructionDomain, string> = { ssm: 'I.P.S.S.M.', psi: 'I.P.S.U.' };
+const codes: Record<InstructionDomain, string> = { ssm: 'I.P.S.S.M.', su: 'I.P.S.U.' };
 
 function PreviewContent({ request }: { request: PreviewRequest }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });

@@ -58,7 +58,7 @@ const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
 const employeeTrainingTabs = {
   ssm: '/clients/$clientId/employees/$employeeId/training/ssm',
-  psi: '/clients/$clientId/employees/$employeeId/training/psi',
+  su: '/clients/$clientId/employees/$employeeId/training/su',
 } as const satisfies Record<TrainingDomain, string>;
 
 const domainFilters: { domain: TrainingDomain | undefined; label: string }[] = [

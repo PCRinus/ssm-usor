@@ -47,15 +47,15 @@ export type LibraryChanges = { instructions: Record<string, InstructionChange> }
 
 export const partOfDomain: Record<InstructionDomain, PartName> = {
   ssm: 'instructions_ssm',
-  psi: 'instructions_psi',
+  su: 'instructions_su',
 };
 
 export const partLabels: Record<PartName, string> = {
   instructions_ssm: 'IPSSM',
-  instructions_psi: 'IPSU',
+  instructions_su: 'IPSU',
 };
 
-export const partOrder: readonly PartName[] = ['instructions_ssm', 'instructions_psi'];
+export const partOrder: readonly PartName[] = ['instructions_ssm', 'instructions_su'];
 
 export const statusLabels: Record<PartStatus, string> = {
   reading: 'Se citește',

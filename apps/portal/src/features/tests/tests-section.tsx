@@ -111,8 +111,8 @@ function DomainTests({
           })}
         </ul>
       )}
-      {domain === 'psi' && status.state === 'passed' && nextAnnual && (
-        <p className="text-sm text-muted-foreground" data-testid="training-test-due-psi">
+      {domain === 'su' && status.state === 'passed' && nextAnnual && (
+        <p className="text-sm text-muted-foreground" data-testid="training-test-due-su">
           {t`Următorul test anual: ${nextAnnual}`}
         </p>
       )}

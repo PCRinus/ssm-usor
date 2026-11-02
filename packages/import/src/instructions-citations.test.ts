@@ -77,7 +77,7 @@ const ssm = pack('SSM/3.2._IPSSM.docx', [
 function resolve(
   citations: Position[],
   packed: { file: InstructionsFile; instructions: CutInstruction[] } = ssm,
-  domain: 'ssm' | 'psi' = 'ssm'
+  domain: 'ssm' | 'su' = 'ssm'
 ) {
   return resolvePositions({
     domain,
@@ -87,7 +87,7 @@ function resolve(
   });
 }
 
-const outcome = (citations: Position[], packed = ssm, domain: 'ssm' | 'psi' = 'ssm') =>
+const outcome = (citations: Position[], packed = ssm, domain: 'ssm' | 'su' = 'ssm') =>
   resolve(citations, packed, domain).map((position) => position.resolution);
 
 describe('parseCitation', () => {
@@ -108,10 +108,7 @@ describe('parseCitation', () => {
 
   it('reads annexes, lists of them and chapters', () => {
     expect(
-      parseCitation(
-        'psi',
-        'IPSU Art. 84 – 104, 114 – 129 ; IPSU Cap. XXV – XXXII ; IPSU Anexa 1,2.'
-      )
+      parseCitation('su', 'IPSU Art. 84 – 104, 114 – 129 ; IPSU Cap. XXV – XXXII ; IPSU Anexa 1,2.')
     ).toEqual([
       { kind: 'articles', scope: { kind: 'main' }, from: 84, to: 104 },
       { kind: 'articles', scope: { kind: 'main' }, from: 114, to: 129 },
@@ -129,11 +126,11 @@ describe('parseCitation', () => {
   });
 
   it('takes articles after an annex and a separator as the main numbering', () => {
-    expect(parseCitation('psi', 'IPSU Anexa 1 ; Art. 5 – 9')).toEqual([
+    expect(parseCitation('su', 'IPSU Anexa 1 ; Art. 5 – 9')).toEqual([
       { kind: 'block', number: 1, written: 'Anexa 1' },
       { kind: 'articles', scope: { kind: 'main' }, from: 5, to: 9 },
     ]);
-    expect(parseCitation('psi', 'Anexa nr. 1 Art. 5 – 9')).toEqual([
+    expect(parseCitation('su', 'Anexa nr. 1 Art. 5 – 9')).toEqual([
       { kind: 'articles', scope: { kind: 'own', number: 1 }, from: 5, to: 9 },
     ]);
   });
@@ -344,7 +341,7 @@ describe('resolvePositions', () => {
   });
 
   describe('annexes', () => {
-    const psi = pack('PSI/2.2._IPSU.docx', [
+    const su = pack('PSI/2.2._IPSU.docx', [
       { common: range(1, 187) },
       { key: 'offices', number: '1', numbers: range(1, 30), heading: 'Anexa nr. 1 BIROURI' },
       { key: 'workshops', number: '', numbers: range(1, 20), heading: 'Anexa nr. 2 ATELIERE' },
@@ -359,14 +356,14 @@ describe('resolvePositions', () => {
               'IPSU Art. 84 – 104, 114 – 129 ; IPSU Cap. XXV – XXXII ; IPSU Anexa 1'
             ),
           ],
-          psi,
-          'psi'
+          su,
+          'su'
         )
       ).toEqual([{ kind: 'resolved', instructions: ['offices'] }]);
     });
 
     it('knows an annex by its heading when the answer gave it no number', () => {
-      expect(outcome([cite('Mecanic', 'IPSU Anexa 1,2.')], psi, 'psi')).toEqual([
+      expect(outcome([cite('Mecanic', 'IPSU Anexa 1,2.')], su, 'su')).toEqual([
         { kind: 'resolved', instructions: ['offices', 'workshops'] },
       ]);
     });
@@ -374,8 +371,8 @@ describe('resolvePositions', () => {
     it('leaves out an annex the pack does not hold, and says so', () => {
       const [position] = resolve(
         [cite('Croitor', 'IPSU Anexa 1'), cite('Croitor', 'IPSU Anexa 3', { section: 'periodic' })],
-        psi,
-        'psi'
+        su,
+        'su'
       );
 
       expect(position!.resolution).toEqual({ kind: 'resolved', instructions: ['offices'] });
@@ -383,7 +380,7 @@ describe('resolvePositions', () => {
     });
 
     it('leaves a post undecided when it cites only an annex the pack does not hold', () => {
-      expect(outcome([cite('Croitor', 'IPSU Anexa 3')], psi, 'psi')).toEqual([
+      expect(outcome([cite('Croitor', 'IPSU Anexa 3')], su, 'su')).toEqual([
         { kind: 'undecided', reasons: [{ kind: 'missing_reference', reference: 'Anexa 3' }] },
       ]);
     });
@@ -395,7 +392,7 @@ describe('resolvePositions', () => {
         { key: 'b', number: '1', numbers: range(1, 5) },
       ]);
 
-      expect(outcome([cite('Croitor', 'IPSU Anexa 1')], twice, 'psi')).toEqual([
+      expect(outcome([cite('Croitor', 'IPSU Anexa 1')], twice, 'su')).toEqual([
         { kind: 'undecided', reasons: [{ kind: 'number_shared', number: 1 }] },
       ]);
     });

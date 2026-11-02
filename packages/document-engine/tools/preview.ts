@@ -1499,7 +1499,7 @@ const employeeSamples = new Map<string, { label: string; data: Record<string, un
             ? signingAgreementSamples()
             : entry.typeKey === testSheetTypeKey
               ? testSheetSamples()
-              : trainingSheetSamples(entry.typeKey.endsWith('_psi') ? 'psi' : 'ssm'),
+              : trainingSheetSamples(entry.typeKey.endsWith('_su') ? 'su' : 'ssm'),
         ])
     )
 );

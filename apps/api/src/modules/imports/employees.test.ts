@@ -24,7 +24,7 @@ const facts: ClientTrainingFacts = {
         },
       },
     },
-    psi: null,
+    su: null,
   },
   people: {
     specialist: { name: 'Ana Popescu', jobTitle: 'Inspector SSM', employeeId: null },
@@ -32,7 +32,7 @@ const facts: ClientTrainingFacts = {
     legalRepresentative: { name: 'Vasile Georgescu', jobTitle: 'Administrator', employeeId: null },
     fireSafetyTechnician: { name: 'Ion Stan', jobTitle: 'Cadru tehnic PSI', employeeId: null },
   },
-  periodicMinutes: { ssm: 60, psi: 120 },
+  periodicMinutes: { ssm: 60, su: 120 },
 };
 
 describe('themesFromFacts', () => {
@@ -57,15 +57,15 @@ describe('themesFromFacts', () => {
 
   it('proposes the hiring plans and the external trainers, as for a training typed by hand', () => {
     expect(
-      themes({ domain: 'psi', phase: 'introductory_general', heldOn: null, jobPositionId: null })
+      themes({ domain: 'su', phase: 'introductory_general', heldOn: null, jobPositionId: null })
     ).toEqual({
       trainerName: 'Ion Stan',
       trainerJobTitle: 'Cadru tehnic PSI',
-      material: hiringPlans.psi.introductoryGeneral,
+      material: hiringPlans.su.introductoryGeneral,
       durationMinutes: 480,
     });
     expect(
-      themes({ domain: 'psi', phase: 'periodic', heldOn: '2025-05-12', jobPositionId: null })
+      themes({ domain: 'su', phase: 'periodic', heldOn: '2025-05-12', jobPositionId: null })
     ).toMatchObject({ material: null, durationMinutes: 120 });
   });
 });

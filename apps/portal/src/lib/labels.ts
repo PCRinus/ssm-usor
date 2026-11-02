@@ -44,19 +44,19 @@ export const testGradeMessages: Record<TestGrade, MessageDescriptor> = {
 // Whole titles rather than the test and the domain joined, which reads wrong in English.
 const testTitleMessages = {
   'ssm.hiring': msg`Testul la angajare SSM`,
-  'psi.hiring': msg`Testul la angajare PSI`,
-  'psi.annual': msg`Testul anual PSI`,
+  'su.hiring': msg`Testul la angajare PSI`,
+  'su.annual': msg`Testul anual PSI`,
 };
 
 const testAwaitingMessages = {
   'ssm.hiring': msg`Testul la angajare SSM te așteaptă`,
-  'psi.hiring': msg`Testul la angajare PSI te așteaptă`,
-  'psi.annual': msg`Testul anual PSI este scadent`,
+  'su.hiring': msg`Testul la angajare PSI te așteaptă`,
+  'su.annual': msg`Testul anual PSI este scadent`,
 };
 
 // There is no annual occupational safety test (ADR 024); its key falls back to the hiring one.
 const testKeyOf = (domain: TrainingDomain, test: KnowledgeTest) =>
-  domain === 'psi' && test === 'annual' ? 'psi.annual' : (`${domain}.hiring` as const);
+  domain === 'su' && test === 'annual' ? 'su.annual' : (`${domain}.hiring` as const);
 
 export const testTitleMessage = (domain: TrainingDomain, test: KnowledgeTest) =>
   testTitleMessages[testKeyOf(domain, test)];
@@ -66,8 +66,8 @@ export const testAwaitingMessage = (domain: TrainingDomain, test: KnowledgeTest)
 
 const testSheetTitleMessages = {
   'ssm.hiring': msg`Fișa de test la angajare SSM`,
-  'psi.hiring': msg`Fișa de test la angajare PSI`,
-  'psi.annual': msg`Fișa de test anual PSI`,
+  'su.hiring': msg`Fișa de test la angajare PSI`,
+  'su.annual': msg`Fișa de test anual PSI`,
 };
 
 export const testSheetTitleMessage = (domain: TrainingDomain, test: KnowledgeTest) =>
@@ -75,7 +75,7 @@ export const testSheetTitleMessage = (domain: TrainingDomain, test: KnowledgeTes
 
 export const trainingDomainMessages: Record<TrainingDomain, MessageDescriptor> = {
   ssm: msg`SSM`,
-  psi: msg`PSI`,
+  su: msg`PSI`,
 };
 
 export const trainingPhaseMessages: Record<TrainingPhase, MessageDescriptor> = {

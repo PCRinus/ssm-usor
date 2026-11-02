@@ -83,7 +83,7 @@ const employee = (
 
 const popescuTraining = {
   ssm: trainingStatus('current', '2027-03-01', '2026-09-01', 6, 'client'),
-  psi: trainingStatus('untrained', null, null, 6, 'client'),
+  su: trainingStatus('untrained', null, null, 6, 'client'),
 };
 const popescu = employee(
   '7c9e6679-7425-40de-944b-e07fc1f90ae7',
@@ -230,7 +230,7 @@ function mockApi(routes: Partial<Record<string, Handler>> = {}) {
       case `GET ${employeePath}/training-sheets`:
         return Response.json({
           ssm: { ready: true, missing: [], stored: false, sequences: [] },
-          psi: { ready: true, missing: [], stored: false, sequences: [] },
+          su: { ready: true, missing: [], stored: false, sequences: [] },
         });
       case `GET /clients/${clientId}/job-positions`:
         return Response.json({
@@ -357,7 +357,7 @@ describe("an employee's training tabs", () => {
 
   it('offers to record the first training when there is none', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/psi`);
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/su`);
     const empty = await screen.findByTestId('training-records-empty');
     expect(empty.textContent).toContain('Nicio instruire înregistrată încă');
     expect(screen.getByTestId('training-state').textContent).toBe('Neinstruit');
@@ -366,7 +366,7 @@ describe("an employee's training tabs", () => {
 
   it('gives an untrained employee no due date, and says the fire-safety interval comes from the client', async () => {
     mockApi();
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/psi`);
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/su`);
     await screen.findByTestId('training-records-empty');
     expect(screen.getByTestId('training-due-on').textContent).toBe('După instruirea la angajare');
     const source = screen.getByTestId('training-interval-source');
@@ -425,7 +425,7 @@ describe("an employee's training tabs", () => {
       [`GET ${employeePath}/training-sheets`]: () =>
         Response.json({
           ssm: { ready: false, missing: ['employee.commute_route'], stored: false, sequences: [] },
-          psi: { ready: true, missing: [], stored: false, sequences: [] },
+          su: { ready: true, missing: [], stored: false, sequences: [] },
         }),
     });
     mountApp(authFixture(makeSession()).client, `${employeePath}/training/ssm`);
@@ -606,21 +606,19 @@ describe("a client's trainings held", () => {
 
     const historyLength = runtime.router.history.length;
     await user.click(
-      screen
-        .getAllByTestId('trainings-filter-domain')
-        .find((link) => link.dataset.domain === 'psi')!
+      screen.getAllByTestId('trainings-filter-domain').find((link) => link.dataset.domain === 'su')!
     );
-    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ domain: 'psi' }));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ domain: 'su' }));
     await user.selectOptions(screen.getByTestId('trainings-filter-phase'), 'workplace');
     await waitFor(() =>
-      expect(runtime.router.state.location.search).toEqual({ domain: 'psi', phase: 'workplace' })
+      expect(runtime.router.state.location.search).toEqual({ domain: 'su', phase: 'workplace' })
     );
     expect(runtime.router.history.length).toBe(historyLength);
     expect((await screen.findByTestId('trainings-empty')).textContent).toContain(
       'Nicio instruire de tipul „La locul de muncă” în domeniul PSI înregistrată încă.'
     );
     const asked = requests('GET', trainingsPath).at(-1)!.url.searchParams;
-    expect(asked.get('domain')).toBe('psi');
+    expect(asked.get('domain')).toBe('su');
     expect(asked.get('phase')).toBe('workplace');
   });
 
@@ -756,7 +754,7 @@ describe("a client's trainings held", () => {
 describe('training state in the employee lists', () => {
   const overdue = employee(taranu.id, 'Țăranu', 'Ștefan', undefined, {
     ssm: trainingStatus('overdue', '2026-06-01', '2025-12-01'),
-    psi: trainingStatus('due', '2026-10-30'),
+    su: trainingStatus('due', '2026-10-30'),
   });
 
   it("says each domain's state and due date in its own column on the client's list and filters by state", async () => {
@@ -775,14 +773,14 @@ describe('training state in the employee lists', () => {
     expect(first.getByTestId('training-status-ssm').textContent).toBe('La zi');
     expect(first.getByTestId('training-status-ssm').className).toContain('bg-success');
     expect(first.getByTestId('training-due-ssm').textContent).toBe('până la 1 mar. 2027');
-    expect(first.getByTestId('training-status-psi').textContent).toBe('Neinstruit');
-    expect(first.queryByTestId('training-due-psi')).toBeNull();
+    expect(first.getByTestId('training-status-su').textContent).toBe('Neinstruit');
+    expect(first.queryByTestId('training-due-su')).toBeNull();
     const second = within(rows[1]!);
     expect(second.getByTestId('training-status-ssm').dataset.state).toBe('overdue');
     expect(second.getByTestId('training-status-ssm').textContent).toBe('Depășită');
     expect(second.getByTestId('training-due-ssm').textContent).toBe('din 1 iun. 2026');
-    expect(second.getByTestId('training-status-psi').textContent).toBe('Scadentă');
-    expect(second.getByTestId('training-due-psi').textContent).toBe('până la 30 oct. 2026');
+    expect(second.getByTestId('training-status-su').textContent).toBe('Scadentă');
+    expect(second.getByTestId('training-due-su').textContent).toBe('până la 30 oct. 2026');
 
     expect(
       within(screen.getByTestId('employees-training-filter'))
@@ -827,7 +825,7 @@ describe('training state in the employee lists', () => {
     const leaver = {
       ...employee(ionescu.id, 'Ionescu', 'Ana', undefined, {
         ssm: trainingStatus(null),
-        psi: trainingStatus(null),
+        su: trainingStatus(null),
       }),
       status: 'terminated',
       terminatedAt: '2026-01-31',
@@ -836,7 +834,7 @@ describe('training state in the employee lists', () => {
     mountApp(authFixture(makeSession()).client, `${employeesPath}?status=terminated`);
     const [row] = await screen.findAllByTestId('employees-row');
     expect(within(row!).queryByTestId('training-status-ssm')).toBeNull();
-    expect(within(row!).queryByTestId('training-status-psi')).toBeNull();
+    expect(within(row!).queryByTestId('training-status-su')).toBeNull();
     const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
     const cells = within(row!).getAllByRole('cell');
     expect(cells[headers.indexOf('Instruire SSM')]!.textContent).toBe('—');
@@ -854,7 +852,7 @@ describe('training state in the employee lists', () => {
     const user = userEvent.setup();
     const [row] = await screen.findAllByTestId('organization-employees-row');
     expect(within(row!).getByTestId('training-status-ssm').textContent).toBe('Depășită');
-    expect(within(row!).getByTestId('training-due-psi').textContent).toBe('până la 30 oct. 2026');
+    expect(within(row!).getByTestId('training-due-su').textContent).toBe('până la 30 oct. 2026');
     await user.click(screen.getByTestId('organization-employees-training-filter-untrained'));
     await waitFor(() =>
       expect(runtime.router.state.location.search).toEqual({ trainingState: 'untrained' })
@@ -935,7 +933,7 @@ const paperResult = {
 const portalResult = {
   ...paperResult,
   id: '7c8d9e0f-1a2b-4c3d-8e4f-5a6b7c8d9e0f',
-  domain: 'psi',
+  domain: 'su',
   test: 'annual',
   takenOn: '2026-09-15',
   material: 'Verificare anuală pe bază de test (TPSU)',
@@ -947,7 +945,7 @@ const portalResult = {
 
 const attempt = (overrides: Record<string, unknown> = {}) => ({
   id: '9e0f1a2b-3c4d-4e5f-8a6b-7c8d9e0f1a2b',
-  domain: 'psi',
+  domain: 'su',
   test: 'annual',
   startedAt: '2026-09-15T08:00:00+00:00',
   finishedAt: '2026-09-15T08:10:00+00:00',
@@ -983,7 +981,7 @@ describe("an employee's knowledge tests", () => {
     mockApi({
       [`GET ${testsPath}`]: () => Response.json(employeeTests(undefined, testStatus('unverified'))),
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/psi`);
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/su`);
     const user = userEvent.setup();
     const card = within(await screen.findByTestId('employee-tests'));
     expect((await card.findByTestId('tests-state')).textContent).toBe('Neverificat pe fișă');
@@ -1006,8 +1004,8 @@ describe("an employee's knowledge tests", () => {
       [`GET ${testsPath}`]: () =>
         Response.json({
           ssm: { ...tests.ssm, results: [paperResult] },
-          psi: {
-            ...tests.psi,
+          su: {
+            ...tests.su,
             results: [portalResult],
             attempts: [
               attempt({ score: 8, passed: true }),
@@ -1022,7 +1020,7 @@ describe("an employee's knowledge tests", () => {
           },
         }),
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/psi`);
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/su`);
     const card = within(await screen.findByTestId('employee-tests'));
     expect((await card.findByTestId('tests-state')).textContent).toBe('Anual scadent');
     expect(card.getByTestId('tests-awaiting').textContent).toBe(
@@ -1115,7 +1113,7 @@ describe("an employee's knowledge tests", () => {
           { status: 409 }
         ),
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/psi`);
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/su`);
     const user = userEvent.setup();
     const card = within(await screen.findByTestId('employee-tests'));
     expect((await card.findByTestId('tests-awaiting')).textContent).toBe(
@@ -1204,7 +1202,7 @@ describe("an employee's knowledge tests", () => {
 describe('test state in the employee lists', () => {
   const tested = {
     ...employee(taranu.id, 'Țăranu', 'Ștefan'),
-    tests: { ssm: testStatus('passed'), psi: testStatus('annual_due', 'annual') },
+    tests: { ssm: testStatus('passed'), su: testStatus('annual_due', 'annual') },
   };
 
   it('shows both domains in one column on the client list and filters by test state', async () => {
@@ -1222,7 +1220,7 @@ describe('test state in the employee lists', () => {
     const second = within(rows[1]!);
     expect(second.getByTestId('test-status-ssm').textContent).toBe('Promovat');
     expect(second.getByTestId('test-status-ssm').className).toContain('bg-success');
-    expect(second.getByTestId('test-status-psi').textContent).toBe('Anual scadent');
+    expect(second.getByTestId('test-status-su').textContent).toBe('Anual scadent');
 
     expect(
       within(screen.getByTestId('employees-test-filter'))
@@ -1268,7 +1266,7 @@ describe('test state in the employee lists', () => {
     const user = userEvent.setup();
     const [row] = await screen.findAllByTestId('organization-employees-row');
     expect(runtime.router.state.location.search).toEqual({});
-    expect(within(row!).getByTestId('test-status-psi').textContent).toBe('Anual scadent');
+    expect(within(row!).getByTestId('test-status-su').textContent).toBe('Anual scadent');
     await user.click(screen.getByTestId('organization-employees-test-filter-annual_due'));
     await waitFor(() =>
       expect(requests('GET', '/employees').at(-1)!.url.searchParams.get('testState')).toBe(
@@ -1288,7 +1286,7 @@ describe("a portal pass's test sheet", () => {
   const withResult = (result: unknown) => () =>
     Response.json({
       ...employeeTests(),
-      psi: {
+      su: {
         status: testStatus('passed', null, '2026-09-15', '2027-09-15'),
         results: [result],
         attempts: [],
@@ -1304,14 +1302,14 @@ describe("a portal pass's test sheet", () => {
             results: [paperResult],
             attempts: [],
           },
-          psi: {
+          su: {
             status: testStatus('passed', null, '2026-09-15', '2027-09-15'),
             results: [signedBy('signed', 'pending')],
             attempts: [],
           },
         }),
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/psi`);
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/su`);
     const sheet = within(await screen.findByTestId('tests-sheet'));
     const slots = sheet.getAllByTestId('tests-sheet-slot');
     expect(slots.map((slot) => slot.textContent)).toEqual([
@@ -1346,7 +1344,7 @@ describe("a portal pass's test sheet", () => {
       'URL',
       Object.assign(URL, { createObjectURL: () => 'blob:test-sheet', revokeObjectURL: () => {} })
     );
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/psi`);
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/su`);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('tests-sheet-preview'));
     expect(open).toHaveBeenCalledWith('', '_blank');
@@ -1395,7 +1393,7 @@ describe("a portal pass's test sheet", () => {
       'URL',
       Object.assign(URL, { createObjectURL: () => 'blob:test-sheet', revokeObjectURL: () => {} })
     );
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/psi`);
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/su`);
     const user = userEvent.setup();
     const sheet = within(await screen.findByTestId('tests-sheet'));
     expect(sheet.getByTestId('tests-sheet-pending')).toBeTruthy();
@@ -1439,7 +1437,7 @@ describe("a portal pass's test sheet", () => {
         });
       },
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/psi`);
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/su`);
     const user = userEvent.setup();
     const marks = await screen.findAllByTestId('tests-sheet-paper');
     expect(marks).toHaveLength(2);
@@ -1479,7 +1477,7 @@ describe("a portal pass's test sheet", () => {
           { status: 409 }
         ),
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/psi`);
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/su`);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('tests-result-examiner-edit'));
     const dialog = within(await screen.findByTestId('test-result-dialog'));
@@ -1491,7 +1489,7 @@ describe("a portal pass's test sheet", () => {
 
   it('offers no examiner change once the examiner signed', async () => {
     mockApi({ [`GET ${testsPath}`]: withResult(signedBy('pending', 'paper')) });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/psi`);
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/su`);
     expect(await screen.findByTestId('tests-sheet')).toBeTruthy();
     expect(screen.queryByTestId('tests-result-examiner-edit')).toBeNull();
     expect(screen.getAllByTestId('tests-sheet-paper')).toHaveLength(1);

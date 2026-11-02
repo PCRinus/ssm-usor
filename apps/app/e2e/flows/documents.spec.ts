@@ -562,7 +562,7 @@ test("from 10 employees the set includes the decision on the workers' representa
     jobTitle: 'Vânzător',
   });
   await evaluateRisks(organizationId, clientId);
-  await createInstructionModule(organizationId, owner.id, 'Lucrul cu foc deschis', 'psi');
+  await createInstructionModule(organizationId, owner.id, 'Lucrul cu foc deschis', 'su');
   await signIn(page, owner.email, `/clients/${clientId}/documents`);
   await expect(page.getByTestId('client-employee-count')).toHaveText('10');
   await page.getByTestId('documents-generate').click();

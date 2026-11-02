@@ -35,7 +35,7 @@ type Attempt = EmployeeTestsResponse['ssm']['attempts'][number];
 
 const hiringTrainingOf: Record<TrainingDomain, string> = {
   ssm: 'instruirea introductiv-generală',
-  psi: 'instruirea la locul de muncă',
+  su: 'instruirea la locul de muncă',
 };
 
 function awaitingLine(domain: TrainingDomain, status: TestStatus) {
@@ -64,8 +64,7 @@ function awaitingLine(domain: TrainingDomain, status: TestStatus) {
 // paper, whose sheet may record annual tests where the hiring one could not be read.
 function recordableTests(domain: TrainingDomain, status: TestStatus): KnowledgeTest[] {
   const hiring = status.state === 'pending' || status.state === 'unverified';
-  const annual =
-    domain === 'psi' && (status.lastPassedOn !== null || status.state === 'unverified');
+  const annual = domain === 'su' && (status.lastPassedOn !== null || status.state === 'unverified');
   return [...(hiring ? (['hiring'] as const) : []), ...(annual ? (['annual'] as const) : [])];
 }
 

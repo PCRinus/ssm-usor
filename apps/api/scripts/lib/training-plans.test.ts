@@ -39,11 +39,11 @@ describe('the hiring plans a training held is proposed from', () => {
   it('are the content lines and durations of the fire-safety training themes 3.1', () => {
     const text = paragraphs('fire/3.1_fire_training_themes.docx');
     expect(text).toContain(
-      `CONȚINUTUL MATERIALULUI DE INSTRUIRE: ${hiringPlans.psi.introductoryGeneral}`
+      `CONȚINUTUL MATERIALULUI DE INSTRUIRE: ${hiringPlans.su.introductoryGeneral}`
     );
     expect(text).toContain(
-      `CONȚINUTUL MATERIALULUI DE INSTRUIRE: ${hiringPlans.psi.workplaceOpening} (Decizia nr. {{fire.decisionNumbers.instructions}})${hiringPlans.psi.workplaceClosing}`
+      `CONȚINUTUL MATERIALULUI DE INSTRUIRE: ${hiringPlans.su.workplaceOpening} (Decizia nr. {{fire.decisionNumbers.instructions}})${hiringPlans.su.workplaceClosing}`
     );
-    expect(totals(text)).toEqual([`${hiringMinutes.psi} min`, `${hiringMinutes.psi} min`]);
+    expect(totals(text)).toEqual([`${hiringMinutes.su} min`, `${hiringMinutes.su} min`]);
   });
 });

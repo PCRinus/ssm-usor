@@ -109,8 +109,8 @@ describe('toEmployeePayload', () => {
       'ssm periodic 2024-07-15',
       'ssm periodic 2025-01-01',
       'ssm periodic 2026-07-01',
-      'psi introductory_general 2021-01-18',
-      'psi workplace 2021-01-19',
+      'su introductory_general 2021-01-18',
+      'su workplace 2021-01-19',
     ]);
     const workplace = payload.trainings.find((training) => training.phase === 'workplace')!;
     expect(workplace).toMatchObject({
@@ -147,8 +147,8 @@ describe('toEmployeePayload', () => {
         examiner_name: 'Mureșan Ioana',
         examiner_job_title: 'Administrator',
       },
-      expect.objectContaining({ domain: 'psi', test: 'hiring', taken_on: '2021-01-19' }),
-      expect.objectContaining({ domain: 'psi', test: 'annual', taken_on: '2026-03-12' }),
+      expect.objectContaining({ domain: 'su', test: 'hiring', taken_on: '2021-01-19' }),
+      expect.objectContaining({ domain: 'su', test: 'annual', taken_on: '2026-03-12' }),
     ]);
   });
 

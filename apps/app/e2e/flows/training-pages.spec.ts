@@ -48,7 +48,7 @@ test('a specialist records trainings held and follows each employee’s state', 
     .map((employee: { id: string }) => employee.id);
   expect(welders).toHaveLength(2);
   // The hiring trainings, so that a periodic one is what decides the welders' state.
-  for (const domain of ['ssm', 'psi']) {
+  for (const domain of ['ssm', 'su']) {
     await api('/trainings', {
       method: 'POST',
       body: JSON.stringify({

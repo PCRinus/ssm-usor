@@ -74,7 +74,7 @@ test('an invited client administrator signs in and finds the employees, their re
   await expect(rows.nth(1)).toContainText('Stan Radu');
   for (const row of [rows.nth(0), rows.nth(1)]) {
     await expect(row.getByTestId('employee-state-ssm')).toHaveText('Neinstruit');
-    await expect(row.getByTestId('employee-state-psi')).toHaveText('Neinstruit');
+    await expect(row.getByTestId('employee-state-su')).toHaveText('Neinstruit');
   }
 
   await page.getByTestId('employees-search').fill('stan');
@@ -87,7 +87,7 @@ test('an invited client administrator signs in and finds the employees, their re
     'Nicio instruire înregistrată încă.'
   );
   await expect(page.getByTestId('training-sheet-ssm')).toBeVisible();
-  await expect(page.getByTestId('training-sheet-psi')).toBeVisible();
+  await expect(page.getByTestId('training-sheet-su')).toBeVisible();
   await expect(page.getByTestId('training-sheet-ssm-missing')).toHaveText(
     'Fișa nu poate fi întocmită încă: lipsește traseul de deplasare; spune-i specialistului.'
   );

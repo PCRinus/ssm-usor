@@ -79,7 +79,7 @@ const requestB = request('6f0c3e43-0c1b-4f4b-8a1e-0000000000r2', {
   record: {
     ...firstRecord,
     id: '6f0c3e43-0c1b-4f4b-8a1e-0000000000a2',
-    domain: 'psi',
+    domain: 'su',
     phase: 'introductory_general',
     heldOn: '2026-02-03',
   },
@@ -149,7 +149,7 @@ beforeEach(() => {
   vi.mocked(useGetPortalTrainingSheets).mockReturnValue(
     queryResult({
       ssm: { ready: true, missing: [], stored: true, sequences: [1] },
-      psi: { ready: true, missing: [], stored: false, sequences: [] },
+      su: { ready: true, missing: [], stored: false, sequences: [] },
     })
   );
   vi.mocked(useListPortalClientEmployees).mockReturnValue(queryPending());
@@ -793,7 +793,7 @@ describe('Instruiri and Contul meu', () => {
     expect(screen.getByTestId('training-sheet-ssm-stored').textContent).toBe(
       'Fișă semnată electronic'
     );
-    expect(screen.queryByTestId('training-sheet-psi-stored')).toBeNull();
+    expect(screen.queryByTestId('training-sheet-su-stored')).toBeNull();
     expect(screen.queryByTestId('training-sheet-ssm-originals')).toBeNull();
   });
 
@@ -801,7 +801,7 @@ describe('Instruiri and Contul meu', () => {
     vi.mocked(useGetPortalTrainingSheets).mockReturnValue(
       queryResult({
         ssm: { ready: true, missing: [], stored: true, sequences: [1, 2] },
-        psi: { ready: true, missing: [], stored: false, sequences: [] },
+        su: { ready: true, missing: [], stored: false, sequences: [] },
       })
     );
     mountPortal(signedIn(), '/instruiri');

@@ -26,7 +26,7 @@ describe('signatureRequestLabel', () => {
     expect(
       signatureRequestLabel({
         kind: 'test_sheet',
-        domain: 'psi',
+        domain: 'su',
         test: 'annual',
         takenOn: '2027-10-01',
       })

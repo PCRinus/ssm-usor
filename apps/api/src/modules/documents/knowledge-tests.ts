@@ -9,8 +9,8 @@ import { type DataClient, fromDatabaseError } from '../../lib/db';
 
 export const knowledgeTestDocuments = {
   test_hiring: { domain: 'ssm', test: 'hiring' },
-  fire_test_hiring: { domain: 'psi', test: 'hiring' },
-  fire_test_annual: { domain: 'psi', test: 'annual' },
+  fire_test_hiring: { domain: 'su', test: 'hiring' },
+  fire_test_annual: { domain: 'su', test: 'annual' },
 } as const satisfies Record<string, { domain: TrainingDomain; test: KnowledgeTest }>;
 
 export type KnowledgeTestTypeKey = keyof typeof knowledgeTestDocuments;

@@ -1028,8 +1028,8 @@ describe('GET /clients/{clientId}/documents', () => {
         )
       ).toEqual([
         { p_organization_id: organizationId, p_domain: 'ssm', p_test: 'hiring' },
-        { p_organization_id: organizationId, p_domain: 'psi', p_test: 'hiring' },
-        { p_organization_id: organizationId, p_domain: 'psi', p_test: 'annual' },
+        { p_organization_id: organizationId, p_domain: 'su', p_test: 'hiring' },
+        { p_organization_id: organizationId, p_domain: 'su', p_test: 'annual' },
       ]);
     });
   });
@@ -2312,7 +2312,7 @@ describe('POST /documents/{documentId}/issue', () => {
     expect((await issueWith(vi.fn(), convertDocuments)).status).toBe(200);
     expect(convertedFiles(convertDocuments.mock.calls[0]![0])).toEqual([
       '\u0001\u0002\u0003',
-      { ...annexData(0), page: 'psi', fireSafetyTechnician: technician },
+      { ...annexData(0), page: 'su', fireSafetyTechnician: technician },
     ]);
   });
 
@@ -3159,7 +3159,7 @@ describe('the fire-safety set', () => {
   it('refuses a set it does not know', async () => {
     mockUpstream();
     expect((await request(`/clients/${clientId}/documents?set=other`)).status).toBe(400);
-    expect((await request(`/clients/${clientId}/documents/readiness?set=psi`)).status).toBe(400);
+    expect((await request(`/clients/${clientId}/documents/readiness?set=su`)).status).toBe(400);
     expect((await generate('documentation_set')).status).toBe(400);
   });
 
@@ -3776,7 +3776,7 @@ describe('the fire-safety set', () => {
   describe('the training themes', () => {
     const hotWork = {
       module_id: 'a0a0a0a0-0000-4000-8000-000000000007',
-      domain: 'psi',
+      domain: 'su',
       instruction_modules: {
         title: 'Lucrul cu foc deschis',
         module_group: 'hazardous_work',

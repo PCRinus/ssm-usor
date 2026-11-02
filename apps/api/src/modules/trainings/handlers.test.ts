@@ -292,10 +292,10 @@ describe('GET /clients/{clientId}/trainings', () => {
 
   it('filters by domain and phase', async () => {
     mockUpstream({ trainings: () => Response.json([]) });
-    const response = await request(`${trainingsPath}?domain=psi&phase=periodic`);
+    const response = await request(`${trainingsPath}?domain=su&phase=periodic`);
     expect(response.status).toBe(200);
     const query = searchOf('/rest/v1/trainings');
-    expect(query.get('domain')).toBe('eq.psi');
+    expect(query.get('domain')).toBe('eq.su');
     expect(query.get('phase')).toBe('eq.periodic');
   });
 
@@ -733,12 +733,12 @@ describe('GET /clients/{clientId}/trainings/proposal', () => {
   it('proposes the fire-safety hiring plan with the technician, without reading themes', async () => {
     mockUpstream({});
     const response = await request(
-      `${proposalPath}?domain=psi&phase=introductory_general&heldOn=2026-10-01`
+      `${proposalPath}?domain=su&phase=introductory_general&heldOn=2026-10-01`
     );
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       durationMinutes: 480,
-      material: hiringPlans.psi.introductoryGeneral,
+      material: hiringPlans.su.introductoryGeneral,
       trainer: { name: 'Radu STAN', jobTitle: 'Cadru tehnic PSI' },
       verifier: null,
       admittedBy: null,
@@ -751,7 +751,7 @@ describe('GET /clients/{clientId}/trainings/proposal', () => {
   it("falls back to the fire-safety schedule's duration without generated themes", async () => {
     mockUpstream({});
     const response = await request(
-      `${proposalPath}?domain=psi&phase=periodic&heldOn=2026-10-01&jobPositionId=${positionId}`
+      `${proposalPath}?domain=su&phase=periodic&heldOn=2026-10-01&jobPositionId=${positionId}`
     );
     expect(await response.json()).toMatchObject({
       durationMinutes: 120,

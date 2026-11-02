@@ -618,7 +618,7 @@ describe('POST /imports/{importId}/library-parts/{part}/retry', () => {
           )
         : undefined
     );
-    const response = await request(`${parts}/instructions_psi/retry`, 'POST');
+    const response = await request(`${parts}/instructions_su/retry`, 'POST');
 
     expect(response.status).toBe(409);
     expect(await response.json()).toMatchObject({ reason: 'import_part_not_failed' });
@@ -634,7 +634,7 @@ describe('POST /imports/{importId}/library-parts/{part}/retry', () => {
           )
         : undefined
     );
-    const response = await request(`${parts}/instructions_psi/retry`, 'POST');
+    const response = await request(`${parts}/instructions_su/retry`, 'POST');
 
     expect(response.status).toBe(409);
     expect(await response.json()).toMatchObject({ reason: 'import_part_expired' });

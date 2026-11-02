@@ -211,7 +211,7 @@ function mockApi(
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}/training-sheets`) {
       return Response.json({
         ssm: { ready: true, missing: [], stored: false, sequences: [] },
-        psi: { ready: true, missing: [], stored: false, sequences: [] },
+        su: { ready: true, missing: [], stored: false, sequences: [] },
       });
     }
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}/status` && method === 'PATCH') {
@@ -969,7 +969,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
       clientId,
       to: 'training-sheet',
       employeeId: sampleEmployee.id,
-      domain: 'psi',
+      domain: 'su',
     });
     mockApi({ detail: () => Response.json({ employee: createdEmployee }) });
     const runtime = mountApp(authFixture(makeSession()).client, `${editPath}?focus=commute-route`);
@@ -982,7 +982,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
     expect(await screen.findByText('Datele angajatului au fost salvate.')).toBeTruthy();
     await user.click(await screen.findByRole('button', { name: 'Înapoi la fișă' }));
     await screen.findByTestId('employee-training-tab');
-    expect(runtime.router.state.location.pathname).toBe(`${detailPath}/training/psi`);
+    expect(runtime.router.state.location.pathname).toBe(`${detailPath}/training/su`);
   });
 
   it('puts a workplace the API refuses on its field', async () => {

@@ -74,26 +74,26 @@ const employeeRow = {
     ssm_last_periodic_on: '2026-08-01',
     ssm_interval_months: 3,
     ssm_interval_source: 'position',
-    psi_state: 'untrained',
-    psi_due_on: null,
-    psi_last_periodic_on: null,
-    psi_interval_months: 6,
-    psi_interval_source: 'client',
+    su_state: 'untrained',
+    su_due_on: null,
+    su_last_periodic_on: null,
+    su_interval_months: 6,
+    su_interval_source: 'client',
   },
   test_status: {
     ssm_state: 'pending',
     ssm_awaiting_test: 'hiring',
     ssm_last_passed_on: null,
-    psi_state: 'passed',
-    psi_awaiting_test: null,
-    psi_last_passed_on: '2026-03-02',
-    psi_due_on: '2027-03-02',
+    su_state: 'passed',
+    su_awaiting_test: null,
+    su_last_passed_on: '2026-03-02',
+    su_due_on: '2027-03-02',
   },
 };
 
 const tests = {
   ssm: { state: 'pending', awaitingTest: 'hiring', lastPassedOn: null, dueOn: null },
-  psi: { state: 'passed', awaitingTest: null, lastPassedOn: '2026-03-02', dueOn: '2027-03-02' },
+  su: { state: 'passed', awaitingTest: null, lastPassedOn: '2026-03-02', dueOn: '2027-03-02' },
 };
 
 const training = {
@@ -104,7 +104,7 @@ const training = {
     intervalMonths: 3,
     intervalSource: 'position',
   },
-  psi: {
+  su: {
     state: 'untrained',
     dueOn: null,
     lastPeriodicOn: null,
@@ -312,7 +312,7 @@ describe('GET /clients/{clientId}/employees', () => {
     const [listUrl] = calls('/rest/v1/employees')[0]!;
     const query = new URL(String(listUrl)).searchParams;
     expect(query.get('select')).toContain('training_status!inner(');
-    expect(query.get('training_status.or')).toBe('(ssm_state.eq.overdue,psi_state.eq.overdue)');
+    expect(query.get('training_status.or')).toBe('(ssm_state.eq.overdue,su_state.eq.overdue)');
   });
 
   it('reads the training status without filtering when no state is asked for', async () => {
@@ -332,9 +332,7 @@ describe('GET /clients/{clientId}/employees', () => {
     const [listUrl] = calls('/rest/v1/employees')[0]!;
     const query = new URL(String(listUrl)).searchParams;
     expect(query.get('select')).toContain('training_status!inner(');
-    expect(query.get('training_status.or')).toBe(
-      '(and(ssm_state.eq.current,psi_state.eq.current))'
-    );
+    expect(query.get('training_status.or')).toBe('(and(ssm_state.eq.current,su_state.eq.current))');
   });
 
   it('filters by a test state in either domain, as the training state', async () => {
@@ -345,8 +343,8 @@ describe('GET /clients/{clientId}/employees', () => {
     const query = new URL(String(listUrl)).searchParams;
     expect(query.get('select')).toContain('test_status!inner(');
     expect(query.get('select')).toContain('training_status!inner(');
-    expect(query.get('test_status.or')).toBe('(ssm_state.eq.annual_due,psi_state.eq.annual_due)');
-    expect(query.get('training_status.or')).toBe('(ssm_state.eq.due,psi_state.eq.due)');
+    expect(query.get('test_status.or')).toBe('(ssm_state.eq.annual_due,su_state.eq.annual_due)');
+    expect(query.get('training_status.or')).toBe('(ssm_state.eq.due,su_state.eq.due)');
   });
 
   it('filters the employees who passed in both domains', async () => {
@@ -354,7 +352,7 @@ describe('GET /clients/{clientId}/employees', () => {
     await request(`${employeesPath}?testState=passed`);
     const query = new URL(String(calls('/rest/v1/employees')[0]![0])).searchParams;
     expect(query.get('select')).not.toContain('training_status!inner(');
-    expect(query.get('test_status.or')).toBe('(and(ssm_state.eq.passed,psi_state.eq.passed))');
+    expect(query.get('test_status.or')).toBe('(and(ssm_state.eq.passed,su_state.eq.passed))');
   });
 
   it('rejects an unknown training state', async () => {

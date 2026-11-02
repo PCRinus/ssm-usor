@@ -615,7 +615,7 @@ function StateNotices({
           data-testid="library-confirmed"
           action={
             <Button asChild variant="outline" size="sm" className="bg-card">
-              <Link to={part.domain === 'psi' ? '/instructions/psi' : '/instructions/ssm'}>
+              <Link to={part.domain === 'su' ? '/instructions/su' : '/instructions/ssm'}>
                 Deschide {label}
               </Link>
             </Button>

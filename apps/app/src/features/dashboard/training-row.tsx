@@ -35,7 +35,7 @@ const states: {
 
 const domains = {
   ssm: { icon: GraduationCap, name: 'SSM' },
-  psi: { icon: Flame, name: 'PSI' },
+  su: { icon: Flame, name: 'PSI' },
 } as const;
 
 export function TrainingRow({

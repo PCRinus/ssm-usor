@@ -96,7 +96,7 @@ export function InstructionEditorPage({
   const back = (
     <Button asChild variant="ghost" size="sm">
       <Link
-        to={module?.domain === 'psi' ? '/instructions/psi' : '/instructions/ssm'}
+        to={module?.domain === 'su' ? '/instructions/su' : '/instructions/ssm'}
         data-testid="editor-back"
         onClick={backToList}
         aria-label={pinned ? 'Înapoi' : 'Înapoi la instrucțiunile proprii'}

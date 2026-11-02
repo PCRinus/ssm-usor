@@ -225,7 +225,7 @@ function RequestRow({
             to={
               document.domain === 'ssm'
                 ? '/clients/$clientId/employees/$employeeId/training/ssm'
-                : '/clients/$clientId/employees/$employeeId/training/psi'
+                : '/clients/$clientId/employees/$employeeId/training/su'
             }
             params={{ clientId: request.client.id, employeeId: request.employee.id }}
             data-testid="signature-request-employee"

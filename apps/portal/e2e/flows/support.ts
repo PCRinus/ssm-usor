@@ -180,7 +180,7 @@ export async function lastSignInCode(to: string) {
   return code;
 }
 
-export async function answerKey(organizationId: string, domain: 'ssm' | 'psi', test: string) {
+export async function answerKey(organizationId: string, domain: 'ssm' | 'su', test: string) {
   const questions = await admin
     .from('test_questions')
     .select('text, options')

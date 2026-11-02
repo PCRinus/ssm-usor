@@ -27,8 +27,8 @@ import { sheetFacts, sheetRecord, sheetResult } from './form.fixture';
 describe('rowKindOf', () => {
   it('puts a supplementary training in its own table on the occupational safety sheet only', () => {
     expect(rowKindOf('ssm', 'supplementary')).toBe('s');
-    expect(rowKindOf('psi', 'supplementary')).toBe('p');
-    expect(rowKindOf('psi', 'workplace')).toBe('h2');
+    expect(rowKindOf('su', 'supplementary')).toBe('p');
+    expect(rowKindOf('su', 'workplace')).toBe('h2');
   });
 });
 
@@ -59,21 +59,21 @@ describe('printedSheets', () => {
       sheetRecord('workplace', '2024-12-02', { source: 'paper' }),
       sheetRecord('workplace', '2026-02-01'),
     ];
-    expect(printedSheets('psi', records)).toEqual([[]]);
+    expect(printedSheets('su', records)).toEqual([[]]);
   });
 
   it('runs a table of paper rows longer than a page onto continuation sheets', () => {
-    const records = Array.from({ length: rowCapacity('psi') + 2 }, (_, index) =>
+    const records = Array.from({ length: rowCapacity('su') + 2 }, (_, index) =>
       sheetRecord('periodic', `2020-01-${String(index + 1).padStart(2, '0')}`, {
         source: 'paper',
-        domain: 'psi',
+        domain: 'su',
       })
     );
-    const sheets = printedSheets('psi', records);
+    const sheets = printedSheets('su', records);
     expect(sheets).toHaveLength(2);
-    expect(sheets[0]).toHaveLength(rowCapacity('psi'));
+    expect(sheets[0]).toHaveLength(rowCapacity('su'));
     expect(sheets[1]!.map((row) => row.rowKey)).toEqual(['p1', 'p2']);
-    expect(sheets[1]![0]!.record.training.heldOn).toBe(`2020-01-${rowCapacity('psi') + 1}`);
+    expect(sheets[1]![0]!.record.training.heldOn).toBe(`2020-01-${rowCapacity('su') + 1}`);
   });
 });
 
@@ -115,7 +115,7 @@ describe('signedSheetData', () => {
   });
 
   it('says on a continuation sheet which sheet it continues', () => {
-    expect(signedSheetData(sheetFacts, 'psi', 3, []).form.continuation).toBe(continuationLine(3));
+    expect(signedSheetData(sheetFacts, 'su', 3, []).form.continuation).toBe(continuationLine(3));
     expect(continuationLine(3)).toBe('Fișa nr. 3, în continuarea fișei nr. 2');
   });
 
@@ -154,16 +154,12 @@ describe('rowValues', () => {
 
   it("fills the workplace training's block and its admission, the place from the employee", () => {
     const record = sheetRecord('workplace', '2026-01-06', {
-      domain: 'psi',
+      domain: 'su',
       admission: { admittedOn: '2026-01-07', name: 'Ion POP', jobTitle: 'Șef atelier' },
     });
-    const values = rowValues('psi', 'h2', record, 'Punct de lucru – Atelier');
+    const values = rowValues('su', 'h2', record, 'Punct de lucru – Atelier');
     expect(Object.keys(values).sort()).toEqual(
-      [
-        ...sheetFieldNames('psi', 'h2').text,
-        'h2_note',
-        ...sheetFieldNames('psi', 'adm').text,
-      ].sort()
+      [...sheetFieldNames('su', 'h2').text, 'h2_note', ...sheetFieldNames('su', 'adm').text].sort()
     );
     expect(values).toMatchObject({
       h2_place: 'Punct de lucru – Atelier',
@@ -201,9 +197,9 @@ describe('resultRowValues', () => {
   });
 
   it('fills a periodic row of the fire-safety sheet with the occupation and no duration', () => {
-    const values = resultRowValues('psi', 'p4', sheetResult('annual', '2026-05-04'), 'Sudor');
+    const values = resultRowValues('su', 'p4', sheetResult('annual', '2026-05-04'), 'Sudor');
     expect(Object.keys(values).sort()).toEqual(
-      [...sheetFieldNames('psi', 'p4').text, 'p4_note'].sort()
+      [...sheetFieldNames('su', 'p4').text, 'p4_note'].sort()
     );
     expect(values).toMatchObject({ p4_duration: '', p4_occupation: 'Sudor' });
     expect(values.p4_material!.replace(/\n/g, ' ')).toBe(
@@ -235,10 +231,10 @@ describe('signedOn', () => {
 const templates = new URL('../../../../../packages/document-engine/templates/', import.meta.url);
 const templateFiles: Record<TrainingDomain, string> = {
   ssm: 'fisa_instruire_ssm.docx',
-  psi: 'fire/fisa_instructaj_psi.docx',
+  su: 'fire/fisa_instructaj_su.docx',
 };
 
-describe.each(['ssm', 'psi'] as const)('the %s template', (domain) => {
+describe.each(['ssm', 'su'] as const)('the %s template', (domain) => {
   it('has a field for every name of the contracts, and no other', () => {
     const docx = renderDocument(
       new Uint8Array(readFileSync(new URL(templateFiles[domain], templates))),

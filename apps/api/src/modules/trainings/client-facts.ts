@@ -17,7 +17,7 @@ import {
 
 export const themesTypeKeys: Record<TrainingDomain, string> = {
   ssm: 'training_themes',
-  psi: 'fire_training_themes',
+  su: 'fire_training_themes',
 };
 
 export const proposalPerson = (
@@ -50,7 +50,7 @@ export async function clientTrainingFacts(
       .order('revision', { ascending: false })
       .limit(1)
       .maybeSingle();
-  const [client, positions, profile, organization, manager, fireSafety, ssmThemes, psiThemes] =
+  const [client, positions, profile, organization, manager, fireSafety, ssmThemes, suThemes] =
     await Promise.all([
       db
         .from('clients')
@@ -93,7 +93,7 @@ export async function clientTrainingFacts(
         .eq('client_id', clientId)
         .maybeSingle(),
       themesOf('ssm'),
-      themesOf('psi'),
+      themesOf('su'),
     ]);
   for (const [result, context] of [
     [client, 'training facts: client'],
@@ -103,7 +103,7 @@ export async function clientTrainingFacts(
     [manager, 'training facts: workplace manager'],
     [fireSafety, 'training facts: fire safety'],
     [ssmThemes, 'training facts: themes'],
-    [psiThemes, 'training facts: fire themes'],
+    [suThemes, 'training facts: fire themes'],
   ] as const) {
     if (result?.error) throw fromDatabaseError(result.error, context);
   }
@@ -118,7 +118,7 @@ export async function clientTrainingFacts(
       ])
     ),
     // An uploaded file has no data to propose from.
-    themes: { ssm: revision(ssmThemes.data), psi: revision(psiThemes.data) },
+    themes: { ssm: revision(ssmThemes.data), su: revision(suThemes.data) },
     people: {
       specialist: proposalPerson(profile?.data?.full_name, profile?.data?.professional_title),
       workplaceManager: proposalPerson(
@@ -138,7 +138,7 @@ export async function clientTrainingFacts(
     },
     periodicMinutes: {
       ssm: client.data?.periodic_training_minutes ?? null,
-      psi: hours ? hours * 60 : null,
+      su: hours ? hours * 60 : null,
     },
   };
 }

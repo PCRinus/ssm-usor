@@ -32,7 +32,7 @@ const saved: { name: string; href: string }[] = [];
 
 function mockApi({
   ssm = ready,
-  psi = ready,
+  su = ready,
   sheet = () =>
     new Response(new Uint8Array([37, 80, 68, 70]), {
       headers: {
@@ -41,11 +41,11 @@ function mockApi({
           'attachment; filename="Fisa-SSM-Popescu-Ion.pdf"; filename*=UTF-8\'\'Fisa-SSM-Popescu-Ion.pdf',
       },
     }),
-}: { ssm?: Readiness; psi?: Readiness; sheet?: () => Response | Promise<Response> } = {}) {
+}: { ssm?: Readiness; su?: Readiness; sheet?: () => Response | Promise<Response> } = {}) {
   fetchMock.mockImplementation(async (input) => {
     const url = new URL(String(input));
     if (url.pathname === `${employeePath}/training-sheets`)
-      return Response.json({ ssm: sheetStatus(ssm), psi: sheetStatus(psi) });
+      return Response.json({ ssm: sheetStatus(ssm), su: sheetStatus(su) });
     if (url.pathname === `${employeePath}/training-sheet`) return sheet();
     throw new Error(`Unexpected request: ${url}`);
   });
@@ -148,8 +148,8 @@ describe('TrainingSheetDownload', () => {
   });
 
   it('is disabled while data is missing', async () => {
-    mockApi({ psi: { ready: false, missing: ['employee.workplace'] } });
-    mount('ssm', 'psi');
+    mockApi({ su: { ready: false, missing: ['employee.workplace'] } });
+    mount('ssm', 'su');
     const ready = await screen.findByRole('button', { name: 'Descarcă fișa SSM' });
     await waitFor(() => expect(ready).toHaveProperty('disabled', false));
     expect(screen.getByRole('button', { name: 'Descarcă fișa PSI' })).toHaveProperty(

@@ -16980,8 +16980,8 @@
     },
     {
       "manifest": "fire",
-      "file": "fire/fisa_instructaj_psi.docx",
-      "typeKey": "training_sheet_psi",
+      "file": "fire/fisa_instructaj_su.docx",
+      "typeKey": "training_sheet_su",
       "paragraph": 3,
       "lastParagraph": 3,
       "block": null,

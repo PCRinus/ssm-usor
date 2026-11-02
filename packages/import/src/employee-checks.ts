@@ -131,7 +131,7 @@ function unusualDuration(
   row: Pick<ProposedSheetRow, 'domain' | 'phase' | 'durationMinutes' | 'testOnly'>
 ) {
   if (row.testOnly || row.durationMinutes === null) return false;
-  if (row.domain === 'psi') return row.durationMinutes < shortestFireMinutes[row.phase];
+  if (row.domain === 'su') return row.durationMinutes < shortestFireMinutes[row.phase];
   if (row.phase === 'periodic') {
     return !(periodicTrainingMinutesOptions as readonly number[]).includes(row.durationMinutes);
   }

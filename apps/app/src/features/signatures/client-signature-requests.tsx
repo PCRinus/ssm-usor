@@ -161,7 +161,7 @@ function RequestLink({
       to={
         domain === 'ssm'
           ? '/clients/$clientId/employees/$employeeId/training/ssm'
-          : '/clients/$clientId/employees/$employeeId/training/psi'
+          : '/clients/$clientId/employees/$employeeId/training/su'
       }
       params={{ clientId, employeeId }}
       className="hover:underline"

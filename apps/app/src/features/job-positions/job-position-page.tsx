@@ -61,7 +61,7 @@ export function JobPositionPage() {
     request: apiRequest,
     query: { queryKey: [...getListEquipmentQueryKey(clientId, jobPositionId), userId], enabled },
   });
-  const instructionsQuery = (domain: 'ssm' | 'psi') => ({
+  const instructionsQuery = (domain: 'ssm' | 'su') => ({
     request: apiRequest,
     query: {
       queryKey: [
@@ -80,8 +80,8 @@ export function JobPositionPage() {
   const fireInstructions = useListPositionInstructions(
     clientId,
     jobPositionId,
-    { domain: 'psi' },
-    instructionsQuery('psi')
+    { domain: 'su' },
+    instructionsQuery('su')
   );
   const riskEvaluation = useGetJobPositionRiskEvaluation(clientId, jobPositionId, {
     request: apiRequest,
@@ -178,7 +178,7 @@ export function JobPositionPage() {
       />
       <PositionInstructionsCard
         id={positionSections.fireInstructions}
-        domain="psi"
+        domain="su"
         clientId={clientId}
         position={position}
         userId={userId}

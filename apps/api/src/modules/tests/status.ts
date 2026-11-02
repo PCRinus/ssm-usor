@@ -5,7 +5,7 @@ import type { Database } from '../../database.types';
 type StatusRow = Database['public']['Views']['employee_test_status']['Row'];
 
 export const testStatusFields =
-  'ssm_state, ssm_awaiting_test, ssm_last_passed_on, psi_state, psi_awaiting_test, psi_last_passed_on, psi_due_on';
+  'ssm_state, ssm_awaiting_test, ssm_last_passed_on, su_state, su_awaiting_test, su_last_passed_on, su_due_on';
 
 export const testStatusColumns = `test_status(${testStatusFields})` as const;
 
@@ -14,10 +14,10 @@ export type TestStatusRow = Pick<
   | 'ssm_state'
   | 'ssm_awaiting_test'
   | 'ssm_last_passed_on'
-  | 'psi_state'
-  | 'psi_awaiting_test'
-  | 'psi_last_passed_on'
-  | 'psi_due_on'
+  | 'su_state'
+  | 'su_awaiting_test'
+  | 'su_last_passed_on'
+  | 'su_due_on'
 >;
 
 const statusOf = (
@@ -35,6 +35,6 @@ const statusOf = (
 export function toEmployeeTests(row: TestStatusRow | null | undefined): EmployeeTests {
   return {
     ssm: statusOf(row?.ssm_state, row?.ssm_awaiting_test, row?.ssm_last_passed_on, null),
-    psi: statusOf(row?.psi_state, row?.psi_awaiting_test, row?.psi_last_passed_on, row?.psi_due_on),
+    su: statusOf(row?.su_state, row?.su_awaiting_test, row?.su_last_passed_on, row?.su_due_on),
   };
 }

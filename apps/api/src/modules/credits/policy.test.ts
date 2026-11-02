@@ -156,14 +156,14 @@ describe("an import's credits", () => {
         { import_id: 'i', kind: 'import_start', credits: -25, import_part: null },
         { import_id: 'i', kind: 'scanned_page', credits: -1, import_part: null },
         { import_id: 'i', kind: 'library_part', credits: -25, import_part: 'instructions_ssm' },
-        { import_id: 'i', kind: 'library_part', credits: -10, import_part: 'instructions_psi' },
+        { import_id: 'i', kind: 'library_part', credits: -10, import_part: 'instructions_su' },
         {
           import_id: 'i',
           kind: 'library_part_refund',
           credits: 10,
-          import_part: 'instructions_psi',
+          import_part: 'instructions_su',
         },
-        { import_id: 'i', kind: 'library_part', credits: -10, import_part: 'instructions_psi' },
+        { import_id: 'i', kind: 'library_part', credits: -10, import_part: 'instructions_su' },
       ])
     ).toEqual({ used: 61, atStart: 25, scannedPages: 1, ownInstructions: 35, refunded: false });
   });

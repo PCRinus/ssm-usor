@@ -100,13 +100,13 @@ describe('the dashboard', () => {
         .getAllByRole('listitem')
         .map((item) => item.textContent)
     ).toEqual(['22 depășite', '41 scadente', '31 neinstruiți', '318 la zi']);
-    expect(hrefOf('dashboard-trainings-psi-chip-due')).toBe(
-      '/employees?trainingState=due&domain=psi'
+    expect(hrefOf('dashboard-trainings-su-chip-due')).toBe(
+      '/employees?trainingState=due&domain=su'
     );
-    expect(screen.getByTestId('dashboard-trainings-psi-chip-due').getAttribute('title')).toBe(
+    expect(screen.getByTestId('dashboard-trainings-su-chip-due').getAttribute('title')).toBe(
       'scadente în 30 de zile: 36'
     );
-    expect(screen.getByTestId('dashboard-trainings-psi-chip-untrained').getAttribute('title')).toBe(
+    expect(screen.getByTestId('dashboard-trainings-su-chip-untrained').getAttribute('title')).toBe(
       'fără instruire la angajare: 46'
     );
     expect(screen.getByTestId('dashboard-documents-behind').textContent).toContain(
@@ -158,7 +158,7 @@ describe('the dashboard', () => {
         documentsBehind: 0,
         testsPending: 0,
       },
-      trainings: { ...busySummary.trainings, psi: { ...busySummary.trainings.psi, overdue: 0 } },
+      trainings: { ...busySummary.trainings, su: { ...busySummary.trainings.su, overdue: 0 } },
       contracts: { receivedToConfirm: 2, endingWithin60Days: 0 },
     });
     mount();
@@ -170,7 +170,7 @@ describe('the dashboard', () => {
     expect(screen.getByTestId('dashboard-todo-signatures')).toBeTruthy();
     expect(screen.queryByTestId('dashboard-todo-missing-data')).toBeNull();
     expect(screen.queryByTestId('dashboard-documents-behind')).toBeNull();
-    expect(screen.getByTestId('dashboard-trainings-psi-overdue-count').className).not.toContain(
+    expect(screen.getByTestId('dashboard-trainings-su-overdue-count').className).not.toContain(
       'text-destructive'
     );
     expect(screen.getByTestId('dashboard-waiting-signatures')).toBeTruthy();
@@ -217,7 +217,7 @@ describe('the dashboard', () => {
     expect(screen.queryByTestId('dashboard-todo-total')).toBeNull();
     expect(screen.queryByTestId('dashboard-todo-signatures')).toBeNull();
     expect(screen.getByTestId('dashboard-trainings-ssm')).toBeTruthy();
-    expect(screen.getByTestId('dashboard-trainings-psi')).toBeTruthy();
+    expect(screen.getByTestId('dashboard-trainings-su')).toBeTruthy();
     expect(screen.getByTestId('dashboard-trainings-ssm-overdue-count').textContent).toBe('0');
     expect(screen.queryByTestId('dashboard-documents-behind')).toBeNull();
     expect(screen.queryByTestId('dashboard-waiting')).toBeNull();

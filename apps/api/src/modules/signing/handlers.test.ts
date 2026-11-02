@@ -450,7 +450,7 @@ describe('the members’ request lists', () => {
               first_name: 'Ion',
               employee_signing_agreements: [],
             },
-            test_results: { domain: 'psi', test: 'annual', taken_on: '2026-10-21' },
+            test_results: { domain: 'su', test: 'annual', taken_on: '2026-10-21' },
           },
         },
       ],
@@ -469,7 +469,7 @@ describe('the members’ request lists', () => {
         testSheet: {
           id: '75757575-0000-4000-8000-000000000001',
           resultId: '7e7e7e7e-0000-4000-8000-000000000001',
-          domain: 'psi',
+          domain: 'su',
           test: 'annual',
           takenOn: '2026-10-21',
         },

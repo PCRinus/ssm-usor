@@ -168,7 +168,7 @@ describe('sortingAnswer', () => {
       sortingAnswer
         .parse({
           files: [
-            file('IPSU.docx', 'own_instructions', 'psi'),
+            file('IPSU.docx', 'own_instructions', 'su'),
             file('Tematica.doc', 'training_themes', 'ssm'),
             file('Decizia.docx', 'decision', 'ssm'),
             file('IPSSM.docx', 'own_instructions', ''),
@@ -176,7 +176,7 @@ describe('sortingAnswer', () => {
         })
         .files.map((triage) => [triage.path, triage.domain])
     ).toEqual([
-      ['IPSU.docx', 'psi'],
+      ['IPSU.docx', 'su'],
       ['Tematica.doc', 'ssm'],
       ['Decizia.docx', null],
       ['IPSSM.docx', null],
@@ -188,9 +188,9 @@ describe('libraryFiles', () => {
   it('gives each domain its own instructions and themes, of the client only', () => {
     const entries = [
       triage('SSM/IPSSM.docx', 'own_instructions', 'Brutăria Fictivă', null, true, 'ssm'),
-      triage('PSI/IPSU.docx', 'own_instructions', 'Brutăria Fictivă', null, true, 'psi'),
+      triage('PSI/IPSU.docx', 'own_instructions', 'Brutăria Fictivă', null, true, 'su'),
       triage('SSM/Tematica.doc', 'training_themes', 'Brutăria Fictivă', null, true, 'ssm'),
-      triage('PSI/Tematica SU.doc', 'training_themes', 'Brutăria Fictivă', null, true, 'psi'),
+      triage('PSI/Tematica SU.doc', 'training_themes', 'Brutăria Fictivă', null, true, 'su'),
       triage('Fara domeniu.docx', 'own_instructions', 'Brutăria Fictivă', null, true, null),
       triage('Decizia.docx', 'decision', 'Brutăria Fictivă', null),
       triage(
@@ -211,7 +211,7 @@ describe('libraryFiles', () => {
       libraryFiles(sorting, new Map(entries.map((entry) => [entry.path, entry.triage])))
     ).toEqual({
       ssm: { instructions: ['SSM/IPSSM.docx'], themes: ['SSM/Tematica.doc'] },
-      psi: { instructions: ['PSI/IPSU.docx'], themes: ['PSI/Tematica SU.doc'] },
+      su: { instructions: ['PSI/IPSU.docx'], themes: ['PSI/Tematica SU.doc'] },
     });
   });
 });

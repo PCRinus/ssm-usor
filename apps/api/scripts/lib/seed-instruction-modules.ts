@@ -106,7 +106,7 @@ async function decidePositions(
   domain: Domain,
   decide: Decide
 ) {
-  const decision = domain === 'psi' ? 'needs_fire_instructions' : 'needs_instructions';
+  const decision = domain === 'su' ? 'needs_fire_instructions' : 'needs_instructions';
   const positions = await db
     .from('job_positions')
     .select('id, client_id, name')
@@ -143,7 +143,7 @@ async function decidePositions(
   for (let start = 0; start < needNone.length; start += 100) {
     const { error } = await db
       .from('job_positions')
-      .update(domain === 'psi' ? { needs_fire_instructions: false } : { needs_instructions: false })
+      .update(domain === 'su' ? { needs_fire_instructions: false } : { needs_instructions: false })
       .in('id', needNone.slice(start, start + 100));
     if (error) throw new Error(`Could not decide seeded job positions: ${error.message}`);
   }
@@ -157,12 +157,12 @@ export async function seedInstructionModules(
 ) {
   const { ids, added } = await seedLibrary(db, organizationId, createdBy);
   const ssm = await decidePositions(db, organizationId, createdBy, ids, 'ssm', instructionsFor);
-  const psi = await decidePositions(db, organizationId, createdBy, ids, 'psi', fireInstructionsFor);
+  const su = await decidePositions(db, organizationId, createdBy, ids, 'su', fireInstructionsFor);
   return {
     modules: added,
     applied: ssm.applied,
     decided: ssm.decided,
-    fireApplied: psi.applied,
-    fireDecided: psi.decided,
+    fireApplied: su.applied,
+    fireDecided: su.decided,
   };
 }
