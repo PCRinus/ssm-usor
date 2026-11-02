@@ -51,6 +51,9 @@ type ProfileRow = {
 };
 
 type FullProfileRow = ProfileRow & {
+  means_of_production: string | null;
+  work_environment: string | null;
+  exposure: string | null;
   evaluation_profile_factors: (RiskFactorFields & {
     evaluation_profile_measures: PreventionMeasureFields[];
   })[];
@@ -76,7 +79,7 @@ const linkedFactorColumns =
 
 const profileFieldColumns = 'id, name, archived_at, in_use, created_at, updated_at';
 
-const profileColumns = `${profileFieldColumns}, evaluation_profile_factors(${riskFactorFieldColumns}, evaluation_profile_measures(${preventionMeasureFieldColumns}))`;
+const profileColumns = `${profileFieldColumns}, means_of_production, work_environment, exposure, evaluation_profile_factors(${riskFactorFieldColumns}, evaluation_profile_measures(${preventionMeasureFieldColumns}))`;
 
 const summaryColumns = `${profileFieldColumns}, client_count, evaluation_profile_factors(gravity_class, probability_class)`;
 
@@ -89,6 +92,9 @@ function toProfile(row: FullProfileRow): EvaluationProfile {
   return {
     id: row.id,
     name: row.name,
+    meansOfProduction: row.means_of_production,
+    workEnvironment: row.work_environment,
+    exposure: row.exposure,
     factors,
     globalRiskLevel: evaluationGlobalRiskLevel(factors),
     archivedAt: row.archived_at,
@@ -218,6 +224,9 @@ export const updateEvaluationProfile: RouteHandler<
   if (body.archived !== undefined) {
     changes.archived_at = body.archived ? new Date().toISOString() : null;
   }
+  if (body.meansOfProduction !== undefined) changes.means_of_production = body.meansOfProduction;
+  if (body.workEnvironment !== undefined) changes.work_environment = body.workEnvironment;
+  if (body.exposure !== undefined) changes.exposure = body.exposure;
   if (Object.keys(changes).length === 0) {
     await findProfile(db, profileId);
   } else {

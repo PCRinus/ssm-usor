@@ -89,6 +89,9 @@ const officeProfile = {
   name: 'Lucrător de birou',
   archived_at: null,
   in_use: true,
+  means_of_production: 'Calculator, imprimantă',
+  work_environment: null,
+  exposure: null,
   created_at: stamp,
   updated_at: stamp,
   evaluation_profile_factors: [electrocution, rhythm],
@@ -346,7 +349,13 @@ describe('GET /evaluation-profiles/{profileId}', () => {
     ]);
     expect(profile.globalRiskLevel).toBe(3.33);
     expect(profile.factors.map((factor) => factor.sourceProfile)).toEqual([null, null]);
-    expect(profile).toMatchObject({ archivedAt: null, inUse: true });
+    expect(profile).toMatchObject({
+      archivedAt: null,
+      inUse: true,
+      meansOfProduction: 'Calculator, imprimantă',
+      workEnvironment: null,
+      exposure: null,
+    });
   });
 
   it('answers 404 for a profile outside the organization', async () => {
@@ -464,6 +473,25 @@ describe('PATCH /evaluation-profiles/{profileId}', () => {
     expect(Number.isNaN(Date.parse(archived.archived_at))).toBe(false);
     expect((await request(profilePath, 'PATCH', { archived: false })).status).toBe(200);
     expect(sent('evaluation_profiles', 'PATCH', 1)).toEqual({ archived_at: null });
+  });
+
+  it('writes and clears the work-system texts, leaving out the ones not sent', async () => {
+    mockUpstream();
+    const response = await request(profilePath, 'PATCH', {
+      meansOfProduction: '  Strung, polizor ',
+      exposure: null,
+    });
+    expect(response.status).toBe(200);
+    expect(sent('evaluation_profiles', 'PATCH')).toEqual({
+      means_of_production: 'Strung, polizor',
+      exposure: null,
+    });
+  });
+
+  it('refuses an exposure of spaces', async () => {
+    mockUpstream();
+    expect((await request(profilePath, 'PATCH', { exposure: '   ' })).status).toBe(400);
+    expect(calls('evaluation_profiles', 'PATCH')).toHaveLength(0);
   });
 });
 

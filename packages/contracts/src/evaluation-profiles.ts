@@ -11,6 +11,7 @@ import {
 // evaluation's, `riskFactorRequestSchema`, and answer with the same factors.
 
 const profileName = z.string().trim().min(2).max(160);
+const optionalText = (max: number) => z.string().trim().min(1).max(max).nullish();
 
 const evaluationProfileFields = {
   id: z.uuid(),
@@ -27,6 +28,10 @@ const evaluationProfileFields = {
 
 export const evaluationProfileSchema = z.object({
   ...evaluationProfileFields,
+  meansOfProduction: z.string().nullable(),
+  workEnvironment: z.string().nullable(),
+  // Unlike an evaluation's, null until written: applying leaves the evaluation's as it is.
+  exposure: z.string().nullable(),
   factors: z.array(riskFactorSchema),
 });
 
@@ -67,6 +72,10 @@ export const updateEvaluationProfileRequestSchema = z.object({
   name: profileName.optional(),
   // True archives, false restores.
   archived: z.boolean().optional(),
+  // Left out, a text stays as it is; null clears it.
+  meansOfProduction: optionalText(2000),
+  workEnvironment: optionalText(2000),
+  exposure: optionalText(120),
 });
 
 export type UpdateEvaluationProfileRequest = z.infer<typeof updateEvaluationProfileRequestSchema>;
