@@ -98,7 +98,7 @@ Tematica de instruire citează fiecare anexă cu articolele ei, „Art. 1–N”
 
 ## Versiunile și documentele rămase în urmă
 
-Fiecare salvare care schimbă textul face o versiune nouă; cele vechi rămân, ca documentele emise să-și păstreze anexele. O salvare care schimbă doar spațiile, literele mari sau punctuația nu face o versiune nouă.
+Fiecare salvare care schimbă textul face o versiune nouă, chiar dacă schimbă doar o diacritică, o literă mare sau un semn, ca „< 50 V” în loc de „> 50 V”; cele vechi rămân, ca documentele emise să-și păstreze anexele. O salvare care schimbă doar spațiile dintre cuvinte nu face o versiune nouă.
 
 Un document emis cu o versiune mai veche rămâne în urmă: în Documente SSM sau Documente PSI apare „Instrucțiuni actualizate”, cu instrucțiunea care s-a schimbat. Îl generezi din nou ca să ia versiunea nouă.
 

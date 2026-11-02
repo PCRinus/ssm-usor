@@ -90,12 +90,12 @@ The categories depend on the domain:
 
 **Storage.** The body is a `jsonb` column on `instruction_module_versions`. A schema in `packages/contracts` holds it, the API applies it on every write, and the database checks its shape. Beside it are two columns:
 
-- `text_hash`: the SHA-256 of the body folded as the import folds text (`foldText`: no diacritics, no case, no punctuation, one space);
+- `text_hash`: the SHA-256 of the body folded as the import folds text (`foldText`: no diacritics, no case, no punctuation, one space), by which the import finds an identical instruction in the library;
 - `article_count`: computed by the database from the body.
 
 The file columns (`docx_path`, `sha256`, `size_bytes`), the `instruction-modules` bucket and its policies go. A row per article was rejected: a version is written once and read whole, by the renderer, the form and the comparison. One row keeps it one write, one hash and one snapshot reference.
 
-**Versions** keep ADR 012's rule: nothing changes in place, and saving stores the next number. A save whose `text_hash` equals the current version's stores nothing, so a save that only moved whitespace does not mark every client's 3.2 behind. The snapshot keeps recording version ids, so `documents_behind`, the badge and the regeneration path of [ADR 017](adr-017-legislation-monitoring.md) do not change.
+**Versions** keep ADR 012's rule: nothing changes in place, and saving stores the next number. The API stores the body with each run of whitespace made one space, and a save whose body is then the current version's stores nothing, so a save that only moved whitespace does not mark every client's 3.2 behind; the database refuses a body identical to the current one. The comparison is on the body, not on `text_hash`: the folded hash would discard a save that only puts back diacritics or turns a symbol ("> 50 V" to "< 50 V"), which a reader of the annex sees. `text_hash` stays what the import matches identical instructions by. The snapshot keeps recording version ids, so `documents_behind`, the badge and the regeneration path of [ADR 017](adr-017-legislation-monitoring.md) do not change.
 
 `article_count` is now exact: the number of article blocks. The "Art. 1–N" of the themes of [ADR 014](adr-014-training-themes.md) and of the fire-safety themes is therefore a true range, and their code is unchanged. A version holds at least one article.
 

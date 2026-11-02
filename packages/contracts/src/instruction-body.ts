@@ -114,8 +114,23 @@ export function bodyCharacters(body: BodyLike) {
   return total;
 }
 
-// Folded, so a save that only moved whitespace, case or punctuation hashes the same; the kinds
-// and the paragraph breaks stay in, since they change the articles the themes cite.
+const oneSpace = (text: string) => text.replace(/\s+/gu, ' ').trim();
+
+// What a save stores and compares: a body that differs from the current version only in
+// whitespace is no new version, while a diacritic or a symbol ("> 50 V") is.
+export function spacedBody(body: BodyLike): InstructionBody {
+  return {
+    blocks: body.blocks.map((block) =>
+      block.kind === 'heading'
+        ? { kind: 'heading', text: oneSpace(block.text) }
+        : { kind: 'article', paragraphs: block.paragraphs.map(oneSpace) }
+    ),
+  };
+}
+
+// Folded, so the import finds a library instruction written with other diacritics, case or
+// punctuation; the kinds and the paragraph breaks stay in, since they change the articles the
+// themes cite.
 export function foldedBody(body: BodyLike) {
   return body.blocks
     .map((block) =>

@@ -30326,7 +30326,7 @@
       "put": {
         "operationId": "saveInstructionBody",
         "summary": "Save a module's text as its next version",
-        "description": "Stores the body as the next version; nothing changes in place, and documents generated before keep citing the version they annexed. A body whose text folds to the current one (`textHash`: diacritics, case, punctuation and spaces aside) stores nothing and answers `changed: false` with the current version, so that it marks no document behind (ADR 034). Refused on an archived module (reason `instruction_module_archived`).",
+        "description": "Stores the body as the next version; nothing changes in place, and documents generated before keep citing the version they annexed. The body is stored with each run of whitespace made one space; one that differs from the current version only in whitespace stores nothing and answers `changed: false` with the current version, so that it marks no document behind (ADR 034). Refused on an archived module (reason `instruction_module_archived`).",
         "security": [
           {
             "bearerAuth": []

@@ -7,6 +7,7 @@ import {
   type InstructionDomain,
   type InstructionModule,
   type InstructionModuleGroup,
+  spacedBody,
   textHash,
   unfilledMark,
 } from '@ssm-usor/contracts';
@@ -43,7 +44,7 @@ import type {
 
 // The database holds the rules of the library (ADR 012, ADR 034): one title per organization,
 // a category of the module's domain, no archiving a module a position applies, no new version
-// on an archived one or of an unchanged text, a module applied only in its own domain, and each
+// on an archived one or of an unchanged body, a module applied only in its own domain, and each
 // of the position's two decisions in step with the modules of its domain. The handlers word them.
 
 type VersionRow = Pick<
@@ -176,7 +177,10 @@ async function readModuleWithBody(db: DataClient, moduleId: string) {
   return { module, body };
 }
 
-/** False when the text folds to the current version's, which then stays the current one. */
+const sameBody = (left: InstructionBody, right: InstructionBody) =>
+  JSON.stringify(spacedBody(left)) === JSON.stringify(spacedBody(right));
+
+/** False when the body differs from the current version's only in whitespace. */
 async function addVersion(
   db: DataClient,
   actor: { organizationId: string; userId: string },
@@ -185,20 +189,20 @@ async function addVersion(
 ) {
   const latest = await db
     .from('instruction_module_versions')
-    .select('number, text_hash')
+    .select('number, body')
     .eq('module_id', moduleId)
     .order('number', { ascending: false })
     .limit(1)
     .maybeSingle();
   if (latest.error) throw fromDatabaseError(latest.error, 'read latest module version');
-  const hash = await textHash(body);
-  if (latest.data?.text_hash === hash) return false;
+  if (latest.data && sameBody(latest.data.body as InstructionBody, body)) return false;
+  const spaced = spacedBody(body);
   const { error } = await db.from('instruction_module_versions').insert({
     organization_id: actor.organizationId,
     module_id: moduleId,
     number: (latest.data?.number ?? 0) + 1,
-    body,
-    text_hash: hash,
+    body: spaced,
+    text_hash: await textHash(spaced),
     created_by: actor.userId,
   });
   if (error?.code === 'INS05') throw moduleArchived();

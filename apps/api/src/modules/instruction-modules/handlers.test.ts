@@ -306,9 +306,7 @@ describe('POST /instruction-modules', () => {
       modules: (init, url) =>
         isGet(init) && url.searchParams.get('id') ? Response.json([welding]) : undefined,
       versions: (init, url) =>
-        isGet(init) && !url.searchParams.get('select')?.includes('body')
-          ? Response.json([])
-          : undefined,
+        isGet(init) && !url.searchParams.get('id') ? Response.json([]) : undefined,
     });
     const response = await request('/instruction-modules', 'POST', {
       title: 'Sudură oxiacetilenică',
@@ -341,9 +339,7 @@ describe('POST /instruction-modules', () => {
       modules: (init, url) =>
         isGet(init) && url.searchParams.get('id') ? Response.json([hotWork]) : undefined,
       versions: (init, url) =>
-        isGet(init) && !url.searchParams.get('select')?.includes('body')
-          ? Response.json([])
-          : undefined,
+        isGet(init) && !url.searchParams.get('id') ? Response.json([]) : undefined,
     });
     const response = await request('/instruction-modules', 'POST', {
       title: 'Lucrul cu foc deschis',
@@ -519,12 +515,12 @@ describe('PUT /instruction-modules/{moduleId}/body', () => {
     });
   });
 
-  it('stores nothing when the text folds to the current one, and answers the current version', async () => {
+  it('stores nothing when only the whitespace moved, and answers the current version', async () => {
     mockUpstream();
     const respaced: InstructionBody = {
       blocks: laddersBody.blocks.map((block) =>
         block.kind === 'heading'
-          ? { ...block, text: block.text.toUpperCase() }
+          ? { ...block, text: block.text.replace(/ /g, '\t ') }
           : { ...block, paragraphs: block.paragraphs.map((text) => text.replace(/ /g, '  ')) }
       ),
     };
@@ -535,6 +531,34 @@ describe('PUT /instruction-modules/{moduleId}/body', () => {
     expect(saved.module.version.number).toBe(2);
     expect(saved.body).toEqual(laddersBody);
     expect(calls('/rest/v1/instruction_module_versions', 'POST')).toHaveLength(0);
+  });
+
+  it('stores a text that only puts back diacritics, changes case or turns a symbol, spaced', async () => {
+    mockUpstream({
+      versions: (init, url) =>
+        isGet(init) && !url.searchParams.get('id')
+          ? Response.json([{ number: 2, body: withoutDiacritics }])
+          : undefined,
+    });
+    const withoutDiacritics: InstructionBody = {
+      blocks: [{ kind: 'article', paragraphs: ['Tensiunea > 50 V pune in pericol sanatatea.'] }],
+    };
+    const corrected: InstructionBody = {
+      blocks: [
+        { kind: 'article', paragraphs: ['Tensiunea  < 50 V nu pune în pericol SĂNĂTATEA.'] },
+      ],
+    };
+    const response = await request(`/instruction-modules/${laddersId}/body`, 'PUT', corrected);
+    expect(response.status).toBe(200);
+    expect(saveInstructionBodyResponseSchema.parse(await response.json()).changed).toBe(true);
+    expect(sent('/rest/v1/instruction_module_versions', 'POST')).toMatchObject({
+      number: 3,
+      body: {
+        blocks: [
+          { kind: 'article', paragraphs: ['Tensiunea < 50 V nu pune în pericol SĂNĂTATEA.'] },
+        ],
+      },
+    });
   });
 
   it('answers the current version when the same text landed first', async () => {

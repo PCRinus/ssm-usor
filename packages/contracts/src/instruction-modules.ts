@@ -104,7 +104,7 @@ export const updateInstructionModuleRequestSchema = z.object({
 export type UpdateInstructionModuleRequest = z.infer<typeof updateInstructionModuleRequestSchema>;
 
 export const saveInstructionBodyResponseSchema = instructionModuleResponseSchema.extend({
-  // False when the text folds to the current version's: nothing was stored.
+  // False when the body differs from the current one only in whitespace: nothing was stored.
   changed: z.boolean(),
 });
 

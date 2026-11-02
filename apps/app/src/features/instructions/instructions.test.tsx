@@ -558,7 +558,7 @@ describe('the module form', () => {
     );
   });
 
-  it('says so when the saved text folds to the current version', async () => {
+  it('says so when the saved text differs from the current version only in spaces', async () => {
     mockApi({
       moduleBody: ladderBody,
       saveBody: (init) =>

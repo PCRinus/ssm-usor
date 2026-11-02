@@ -10,6 +10,7 @@ import {
   instructionBodySchema,
   instructionCategories,
   instructionCategoryLabels,
+  spacedBody,
   textHash,
 } from './instruction-body';
 
@@ -151,6 +152,24 @@ describe('textHash', () => {
       ],
     };
     expect(await textHash(asHeading)).not.toBe(await textHash(asArticle));
+  });
+});
+
+describe('spacedBody', () => {
+  it('collapses whitespace and keeps diacritics, case and symbols', () => {
+    expect(
+      spacedBody({
+        blocks: [
+          { kind: 'heading', text: 'Înainte  de\tlucru' },
+          { kind: 'article', paragraphs: [' Tensiunea   < 50 V. ', 'SĂNĂTATEA\u00a0lucrătorului'] },
+        ],
+      })
+    ).toEqual({
+      blocks: [
+        { kind: 'heading', text: 'Înainte de lucru' },
+        { kind: 'article', paragraphs: ['Tensiunea < 50 V.', 'SĂNĂTATEA lucrătorului'] },
+      ],
+    });
   });
 });
 

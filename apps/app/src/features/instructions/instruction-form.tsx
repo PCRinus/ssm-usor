@@ -180,7 +180,7 @@ export function InstructionForm({
           toast.success(`Am salvat versiunea ${saved.module.version.number}.`);
         } else {
           toast.info(
-            `Textul e același cu cel din versiunea ${saved.module.version.number}: diferă doar spațiile, literele mari sau punctuația, așa că nu am salvat o versiune nouă.`
+            `Textul e același cu cel din versiunea ${saved.module.version.number}: diferă doar spațiile dintre cuvinte, așa că nu am salvat o versiune nouă.`
           );
         }
       } else {

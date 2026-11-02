@@ -1,5 +1,5 @@
 begin;
-select plan(22);
+select plan(23);
 
 -- Fixtures: two organizations with one member and one client each, positions in each.
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -87,10 +87,17 @@ select throws_ok(
 
 select throws_ok(
   $$ insert into public.instruction_module_versions (organization_id, module_id, number, body, text_hash)
-     values ('11111111-0000-4000-8000-000000000001', 'a0a0a0a0-0000-4000-8000-000000000001', 2, pg_temp.body(3), repeat('a', 64)) $$,
+     values ('11111111-0000-4000-8000-000000000001', 'a0a0a0a0-0000-4000-8000-000000000001', 2, pg_temp.body(12), repeat('b', 64)) $$,
   'INS08',
   null,
-  'a version whose text is the current one''s is refused'
+  'a version whose body is the current one''s is refused'
+);
+
+select lives_ok(
+  $$ insert into public.instruction_module_versions (organization_id, module_id, number, body, text_hash)
+     values ('11111111-0000-4000-8000-000000000001', 'a0a0a0a0-0000-4000-8000-000000000001', 2,
+             jsonb_set(pg_temp.body(12), '{blocks,1,paragraphs,0}', '"ARTICOLUL 1 – sănătatea."'), repeat('a', 64)) $$,
+  'a version that changes only diacritics, case or symbols is stored, though it folds to the same text'
 );
 
 select lives_ok(
@@ -196,7 +203,7 @@ select throws_ok(
 
 select throws_ok(
   $$ insert into public.instruction_module_versions (organization_id, module_id, number, body, text_hash)
-     values ('11111111-0000-4000-8000-000000000001', 'a0a0a0a0-0000-4000-8000-000000000001', 2, pg_temp.body(2), repeat('c', 64)) $$,
+     values ('11111111-0000-4000-8000-000000000001', 'a0a0a0a0-0000-4000-8000-000000000001', 3, pg_temp.body(2), repeat('c', 64)) $$,
   'INS05',
   null,
   'an archived module takes no new version'
