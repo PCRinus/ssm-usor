@@ -173,7 +173,8 @@ describe('the PDF viewer', () => {
       <PdfSourceView source={source} quote={null} onNotFound={() => {}} onShown={() => {}} />
     );
     await screen.findByRole('alert');
-    expect(document.loadingTask.destroy).toHaveBeenCalledTimes(1);
+    // The failure shows on commit; the old document is destroyed by an effect's cleanup after it.
+    await waitFor(() => expect(document.loadingTask.destroy).toHaveBeenCalledTimes(1));
 
     rerender(
       <PdfSourceView
