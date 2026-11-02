@@ -53,10 +53,10 @@ describe('counting credits in Romanian', () => {
 describe('what an import will use', () => {
   it('counts 25 for a client, and the photographs beside the documents', () => {
     expect(usesSentence('client', { photos: 0, pages: 0, pdfs: 0 })).toBe(
-      'Folosește 25 de credite, plus 1 pentru fiecare pagină scanată. Instrucțiunile proprii, dacă le găsim, folosesc încă 25 (IPSSM) și 10 (IPSU).'
+      'Folosește 25 de credite, plus 1 pentru fiecare pagină scanată. Dacă le găsim, instrucțiunile proprii folosesc încă 25 (IPSSM) și 10 (IPSU), iar evaluările de risc încă 15.'
     );
     expect(usesSentence('client', { photos: 3, pages: 0, pdfs: 0 })).toBe(
-      'Folosește 28 de credite (25 + 3 fotografii), plus 1 pentru fiecare pagină scanată. Instrucțiunile proprii, dacă le găsim, folosesc încă 25 (IPSSM) și 10 (IPSU).'
+      'Folosește 28 de credite (25 + 3 fotografii), plus 1 pentru fiecare pagină scanată. Dacă le găsim, instrucțiunile proprii folosesc încă 25 (IPSSM) și 10 (IPSU), iar evaluările de risc încă 15.'
     );
   });
 
@@ -244,6 +244,24 @@ describe('what an import used', () => {
       )
     ).toBe(
       'Importul a folosit 59 de credite (25 + 9 pagini scanate + 25 pentru instrucțiunile proprii).'
+    );
+  });
+
+  it('adds the reading of the risk evaluations after the own instructions', () => {
+    expect(
+      usedSentence(
+        {
+          used: 75,
+          atStart: 25,
+          scannedPages: 0,
+          ownInstructions: 35,
+          riskEvaluations: 15,
+          refunded: false,
+        },
+        'client'
+      )
+    ).toBe(
+      'Importul a folosit 75 de credite (25 + 35 pentru instrucțiunile proprii + 15 pentru evaluările de risc).'
     );
   });
 

@@ -123,7 +123,7 @@ export function usesSentence(
       ? creditsLabel(needed)
       : `${creditsLabel(needed)} (${importCredits.clientReading} + ${photosCount(files.photos)})`;
   const { ssm, su } = importCredits.ownInstructions;
-  return `Folosește ${known}, plus 1 pentru fiecare pagină scanată. Instrucțiunile proprii, dacă le găsim, folosesc încă ${ssm} (IPSSM) și ${su} (IPSU).`;
+  return `Folosește ${known}, plus 1 pentru fiecare pagină scanată. Dacă le găsim, instrucțiunile proprii folosesc încă ${ssm} (IPSSM) și ${su} (IPSU), iar evaluările de risc încă ${importCredits.riskEvaluations}.`;
 }
 
 export function leftSentence(balance: CreditsBalance, short: boolean) {
@@ -218,6 +218,9 @@ export function usedSentence(credits: ImportCredits, kind: ImportKind) {
     ...(credits.scannedPages > 0 ? [scannedPagesLabel(credits.scannedPages)] : []),
     ...(credits.ownInstructions > 0
       ? [`${credits.ownInstructions} pentru instrucțiunile proprii`]
+      : []),
+    ...(credits.riskEvaluations > 0
+      ? [`${credits.riskEvaluations} pentru evaluările de risc`]
       : []),
   ];
   if (kind === 'employees' || parts.length === 0 || credits.refunded) return `${total}.`;
