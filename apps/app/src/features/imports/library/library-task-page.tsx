@@ -299,12 +299,13 @@ function TaskContent({
               >
                 <p className="text-sm font-medium">{identicalSentence(identical.length)}.</p>
                 <p className="text-sm text-muted-foreground">
-                  Nu le adăugăm din nou: la confirmare, posturile primesc instrucțiunea pe care o
-                  ai.
+                  {identical.length === 1
+                    ? 'Nu o adăugăm din nou: la confirmare, posturile primesc instrucțiunea pe care o ai.'
+                    : 'Nu le adăugăm din nou: la confirmare, posturile primesc instrucțiunile pe care le ai.'}
                 </p>
                 <details className="text-sm">
                   <summary className="cursor-pointer font-medium text-primary">
-                    Vezi care sunt
+                    {identical.length === 1 ? 'Vezi care e' : 'Vezi care sunt'}
                   </summary>
                   <ul className="mt-2 grid gap-1">
                     {identical.map((instruction) => {
