@@ -100,13 +100,24 @@ function matchesAt(haystack: string[], needle: string[], at: number) {
   return true;
 }
 
-function placesOf(haystack: string[], needle: string[], from: number, to = haystack.length) {
+function placesOf(haystack: string[], needle: string[]) {
   const places: number[] = [];
   if (needle.length === 0) return places;
-  for (let at = from; at + needle.length <= to; at++) {
+  for (let at = 0; at + needle.length <= haystack.length; at++) {
     if (haystack[at] === needle[0] && matchesAt(haystack, needle, at)) places.push(at);
   }
   return places;
+}
+
+function firstAtLeast(sorted: readonly number[], value: number) {
+  let low = 0;
+  let high = sorted.length;
+  while (low < high) {
+    const middle = (low + high) >> 1;
+    if (sorted[middle]! < value) low = middle + 1;
+    else high = middle;
+  }
+  return low;
 }
 
 const fewestWords = 8;
@@ -131,20 +142,41 @@ const needlesOf = (entry: { startWords: string; endWords: string }): Needles => 
   end: variants(tokensOf(entry.endWords), 'last'),
 });
 
-function lastStart(words: Words, needles: string[][], from: number, to: number) {
+interface Layout {
+  words: Words;
+  places: Map<string, number[]>;
+}
+
+function layoutOf(text: string): Layout {
+  return { words: wordsOf(text), places: new Map() };
+}
+
+function placesIn(layout: Layout, needle: string[]) {
+  const key = needle.join(' ');
+  let places = layout.places.get(key);
+  if (!places) {
+    places = placesOf(layout.words.tokens, needle);
+    layout.places.set(key, places);
+  }
+  return places;
+}
+
+function lastStart(layout: Layout, needles: string[][], from: number, to: number) {
   for (const needle of needles) {
-    const start = placesOf(words.tokens, needle, from, to).at(-1);
-    if (start !== undefined) return start;
+    const places = placesIn(layout, needle);
+    const at = places[firstAtLeast(places, to - needle.length + 1) - 1];
+    if (at !== undefined && at >= from) return at;
   }
   return null;
 }
 
-function locate(words: Words, needles: Needles, cursor: number) {
+function locate(layout: Layout, needles: Needles, cursor: number) {
   for (const startNeedle of needles.start) {
     for (const endNeedle of needles.end) {
-      for (const endAt of placesOf(words.tokens, endNeedle, cursor)) {
-        const end = endAt + endNeedle.length;
-        const start = lastStart(words, [startNeedle], cursor, end);
+      const ends = placesIn(layout, endNeedle);
+      for (let index = firstAtLeast(ends, cursor); index < ends.length; index++) {
+        const end = ends[index]! + endNeedle.length;
+        const start = lastStart(layout, [startNeedle], cursor, end);
         if (start !== null) return { start, end };
       }
     }
@@ -242,8 +274,9 @@ export function cutInstructions(
     unreadOf(item, 'file_not_found');
   }
   for (const file of files) {
-    const words = wordsOf(file.text);
     const starts = lineStarts(file.text);
+    const layout = layoutOf(file.text);
+    const { words } = layout;
     const spans: {
       item: (typeof keyed)[number];
       needles: Needles;
@@ -254,7 +287,7 @@ export function cutInstructions(
     let cursor = 0;
     for (const item of keyed.filter(({ entry }) => entry.file === file.path)) {
       const needles = needlesOf(item.entry);
-      const found = locate(words, needles, cursor);
+      const found = locate(layout, needles, cursor);
       spans.push({
         item,
         needles,
@@ -268,7 +301,7 @@ export function cutInstructions(
       if (span.start !== null) return;
       const next = spans.slice(index + 1).find((later) => later.start !== null);
       span.start = lastStart(
-        words,
+        layout,
         span.needles.start,
         span.from,
         next?.start ?? words.tokens.length
