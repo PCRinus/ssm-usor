@@ -111,7 +111,7 @@ What the pages call, all in the portal's generated client ([API, Portal](api.md#
 - The test page opens with `GET …/tests/{domain}/{test}/study-card`, the explanations of the
   test's questions and, when the client has one issued, the material it closes, whose PDF
   `GET …/materials/{domain}` serves inline: the general training material for `ssm`, the IPSU
-  with its annexes for `psi`. A missing material answers `404 material_not_issued`, and the card
+  with its annexes for `su`. A missing material answers `404 material_not_issued`, and the card
   then shows the explanations alone.
 - `POST …/tests/{domain}/{test}/attempts` starts the sitting, or answers the one in progress,
   which `GET …/tests` also returns as `inProgress`: ten questions, one a screen, with

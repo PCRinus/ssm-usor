@@ -186,8 +186,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PATCH /clients/{clientId}/employees/{employeeId}/status`              | Verified user with a membership       | `{ "employee": { … } }` after marking a leaver (with `terminatedAt`) or reactivating                                                                                                               |
 | `PATCH /clients/{clientId}/employees/{employeeId}/job-position`        | Verified user with a membership       | `{ "employee": { … } }` in the new job position                                                                                                                                                    |
 | `GET /clients/{clientId}/employees/{employeeId}/training-records`      | Verified user with a membership       | `{ "items": [ … ] }`, each record with its `training`, `signed`, `hasSignatures`, newest first; `?domain=`                                                                                         |
-| `GET /clients/{clientId}/employees/{employeeId}/training-sheets`       | Verified user with a membership       | `{ "ssm": { ready, missing, stored, sequences }, "psi": { … } }`: whether each individual training sheet can be drawn up, or is stored                                                             |
-| `GET /clients/{clientId}/employees/{employeeId}/training-sheet`        | Verified user with a membership       | `200 application/pdf`, the stored signed sheet, a merged copy, or the sheet built on the spot; `?domain=ssm\|psi&sequence=`; `409 missing_sheet_data`, `503 pdf_unavailable`                       |
+| `GET /clients/{clientId}/employees/{employeeId}/training-sheets`       | Verified user with a membership       | `{ "ssm": { ready, missing, stored, sequences }, "su": { … } }`: whether each individual training sheet can be drawn up, or is stored                                                              |
+| `GET /clients/{clientId}/employees/{employeeId}/training-sheet`        | Verified user with a membership       | `200 application/pdf`, the stored signed sheet, a merged copy, or the sheet built on the spot; `?domain=ssm\|su&sequence=`; `409 missing_sheet_data`, `503 pdf_unavailable`                        |
 | `GET /clients/{clientId}/trainings`                                    | Verified user with a membership       | `{ "items": [ … ] }`, newest first, each with `attendeeCount`, `attendees`, `signed`, `hasSignatures`; `?domain=&phase=`                                                                           |
 | `GET /clients/{clientId}/trainings/proposal`                           | Verified user with a membership       | `{ durationMinutes, material, trainer, … }`; `?domain=&phase=&heldOn=&jobPositionId=&employeeIds=` (the attendees so far, comma-separated)                                                         |
 | `POST /clients/{clientId}/trainings`                                   | Verified user with a membership       | `201 { "training": { …, "records": [ … ] } }`                                                                                                                                                      |
@@ -450,7 +450,7 @@ envelope, current employees by default and `?status=terminated` for the leavers,
 for one client, and `q` matching the client's name as well. Only employees of active clients
 are listed, never those of archived ones. Leads are never included, so an owner and a specialist see the same list. It sorts by `name` (the default),
 `client`, `jobPosition` or `hiredAt`, and takes `?trainingState=` as a client's list does.
-`?domain=ssm|psi` narrows the state filters to one domain: `?trainingState=overdue&domain=ssm`
+`?domain=ssm|su` narrows the state filters to one domain: `?trainingState=overdue&domain=ssm`
 keeps those overdue in SSM, `current` with a domain those up to date in it whatever the other
 says, and a `testState` likewise; without it the filters read both domains as below
 ([ADR 027](architecture/adr-027-dashboard.md)).
@@ -535,10 +535,10 @@ the sheet can be drawn up and, when not, the codes of what is missing:
 `employee.commute_route` on the occupational safety sheet while the route is empty, and
 `employee.workplace` on both while the employee has no workplace at a client with more than one
 active workplace. Nothing else blocks a sheet, and a leaver's sheets are drawn up too.
-`GET …/employees/{employeeId}/training-sheet?domain=ssm|psi` builds the merge data from the
+`GET …/employees/{employeeId}/training-sheet?domain=ssm|su` builds the merge data from the
 employee, the position, the workplace and the domain's training records
 ([document engine](document-engine.md#sheets)), merges the newest registered version of the
-template `training_sheet_ssm` or `training_sheet_psi`, converts it with the converter issuing
+template `training_sheet_ssm` or `training_sheet_su`, converts it with the converter issuing
 uses, and answers the PDF as an attachment named in ASCII after the domain and the person,
 `Fisa-SSM-Popescu-Ion.pdf`. A stored sheet is `ready`, with nothing `missing`, whatever the
 employee lacks now, and the route answers its file as it is, its signatures verifiable; a sheet
@@ -554,7 +554,7 @@ and the codes under `missing`, before anything is merged; no converter, `503` wi
 `pdf_unavailable`, as printing does; a template not registered yet, `503` with the reason
 `template_missing`. An employee who is not the client's is `404`.
 
-Employees carry `training: { ssm, psi }`, each
+Employees carry `training: { ssm, su }`, each
 `{ state, dueOn, lastPeriodicOn, intervalMonths, intervalSource }`, in the list and the detail:
 `state` is `untrained`, `current`, `due` or `overdue`, null for a leaver; `dueOn` is null while
 the interval is undecided and while the employee is `untrained`; `intervalMonths` is the
@@ -584,10 +584,10 @@ character, not a PostgREST operator.
 The instruction library ([ADR 012](architecture/adr-012-own-instructions.md),
 [ADR 034](architecture/adr-034-own-instructions-as-app-text.md)) is the organization's own
 instructions, each a body of headings and numbered articles that the document engine prints.
-Each module has a `domain`, `ssm` or `psi` (ADR 012's amendment of 2026-10-11): which set's own
+Each module has a `domain`, `ssm` or `su` (ADR 012's amendment of 2026-10-11): which set's own
 instructions annex it, 3.2 or 2.1, and a category (`group`) of that domain: `work_activity`,
 `work_equipment` or `protective_equipment` for `ssm`, `premises_activity`,
-`installation_equipment` or `hazardous_work` for `psi`; a category of the other domain answers
+`installation_equipment` or `hazardous_work` for `su`; a category of the other domain answers
 `400` with the reason `instruction_module_category_domain`. `GET /instruction-modules` lists the
 modules in use by domain, category and title, each with its current version (`number`,
 `textHash`, `articleCount`, the article blocks of its body, which the training themes cite) and
@@ -1233,7 +1233,7 @@ no route outside the prefix has the tag.
 | `PUT /portal/participants/{participantId}/language`               | Participant          | `204` after saving `{ language }`, `ro` or `en`                                                 |
 | `GET …/{participantId}/training-records`                          | Employee             | `{ items, training }`: own records newest first with their `slots`, the states                  |
 | `GET …/{participantId}/data`                                      | Employee             | _Datele mele_: what the sheets print, and the provider                                          |
-| `GET …/{participantId}/sheets`                                    | Employee             | `{ ssm, psi }`, each `{ ready, missing, stored, sequences }`                                    |
+| `GET …/{participantId}/sheets`                                    | Employee             | `{ ssm, su }`, each `{ ready, missing, stored, sequences }`                                     |
 | `GET …/{participantId}/sheets/{domain}`                           | Employee             | `200 application/pdf`, as stored once signing has started; `409 missing_sheet_data`             |
 | `GET …/{participantId}/employees`                                 | Client administrator | `{ items }`: current employees with their training states                                       |
 | `GET …/{participantId}/employees/{employeeId}/training-records`   | Client administrator | As the employee's own                                                                           |
@@ -1248,7 +1248,7 @@ no route outside the prefix has the tag.
 | `GET …/{participantId}/employees/{employeeId}/signing-agreement`  | Client administrator | `200 application/pdf`, as the employee's own                                                    |
 | `POST …/{participantId}/signing-sessions`                         | Participant          | `201 { sessionId, channel, addressHint, expiresAt, items }`; the code is sent                   |
 | `POST …/{participantId}/signing-sessions/{sessionId}/sign`        | Participant          | `{ signed, failed, agreements }` after `{ code }`                                               |
-| `GET …/{participantId}/tests`                                     | Employee             | `{ ssm, psi }`, each `{ status, results, attempts, inProgress }`                                |
+| `GET …/{participantId}/tests`                                     | Employee             | `{ ssm, su }`, each `{ status, results, attempts, inProgress }`                                 |
 | `GET …/{participantId}/tests/{domain}/{test}/study-card`          | Employee             | `{ explanations, material }`; `material` null while none is issued                              |
 | `POST …/{participantId}/tests/{domain}/{test}/attempts`           | Employee             | `{ attempt }`, started or resumed; `409 test_not_awaiting`                                      |
 | `PUT …/{participantId}/test-attempts/{attemptId}/answers/{index}` | Employee             | `{ attempt }` after `{ chosen }`; `400 option_out_of_range`, `409 attempt_finished`             |
@@ -1312,7 +1312,7 @@ a retake is drawn and shuffled again. A pass then puts its result on the stored 
 answers `tests` beside `training`.
 
 **The material** (`GET …/materials/{domain}`) is the newest issued revision of the client's
-general training material (`ssm`) or fire-safety own instructions (`psi`), the two type keys of
+general training material (`ssm`) or fire-safety own instructions (`su`), the two type keys of
 the contracts' `portalMaterialTypeKeys`, served inline. A participant reads no document row, so
 `portal_material(participant, domain)`, security definer, answers the revision for the caller's
 own participation, and the API reads its PDF with the secret key. No Storage policy and no
@@ -1340,7 +1340,7 @@ print. The portal's own routes are under [Portal](#portal). The modules are `src
 | `DELETE /organization/tests/questions/{questionId}`                         | Verified user with a membership | `204`; `409 question_built_in`, `409 test_below_minimum`                                                                                              |
 | `PUT /organization/tests/questions/{questionId}/hidden`                     | Verified user with a membership | `{ question }`, hidden; `409 question_not_built_in`, `409 test_below_minimum`                                                                         |
 | `DELETE /organization/tests/questions/{questionId}/hidden`                  | Verified user with a membership | `{ question }`, restored                                                                                                                              |
-| `GET /clients/{clientId}/employees/{employeeId}/tests`                      | Verified user with a membership | `{ ssm, psi }`, each `{ status, results, attempts }`                                                                                                  |
+| `GET /clients/{clientId}/employees/{employeeId}/tests`                      | Verified user with a membership | `{ ssm, su }`, each `{ status, results, attempts }`                                                                                                   |
 | `POST /clients/{clientId}/employees/{employeeId}/tests/results`             | Verified user with a membership | `201 { result }`, a pass of the printed test; `409 test_not_awaiting`                                                                                 |
 | `PATCH /clients/{clientId}/employees/{employeeId}/tests/results/{resultId}` | Verified user with a membership | `{ result }`; `409 result_from_attempt` for a portal result's day or material, `409 examiner_signed` for the examiner once they signed the test sheet |
 | `GET …/tests/results/{resultId}/sheet`                                      | Verified user with a membership | `200 application/pdf` inline, the stored test sheet; `404 test_sheet_not_available` for a paper result                                                |
@@ -1377,7 +1377,7 @@ first (`takenOn`, `material`, `grade` `admis`, `examiner` `{ name, jobTitle }` o
 and each slot's state as a record's slots have them (`unassigned`, `pending`, `signed`, `paper`,
 `void`), from `test_sheets`, its requests and `test_sheet_signatures` as the caller reads them.
 The portal's `GET …/tests` carries the same `sheet` on each result. The client's employee lists and the organization's _Angajați_ answer
-`tests: { ssm, psi }` beside `training`, from the computed relationship `test_status`, and
+`tests: { ssm, su }` beside `training`, from the computed relationship `test_status`, and
 `?testState=passed|pending|annual_due|unverified|none` filters as `?trainingState=` does: `passed` keeps
 those passed in both domains, any other state those in it in either, through an inner embed.
 
@@ -1886,7 +1886,7 @@ readiness is the same either side of ten. Its templates are merged with a contex
 `issueDate`, `branding`, `fire`, and `seasonsDecision`, `controlDecision` and
 `installationRegister`, whether the set holds each of those three (from ten employees, or once
 it exists): covers 1.0 and 6.0 list only what the set holds, and decision 6 cites decision 9
-only then. `annexes` and `noAnnexes` are what the own instructions 2.1 annex: the `psi` modules
+only then. `annexes` and `noAnnexes` are what the own instructions 2.1 annex: the `su` modules
 the current positions apply, each once, by group, title and id, numbered from 1, as the other
 set's `annexes` holds its `ssm` ones; only 2.1 prints them, so an edit in the library marks
 only its draft. Issuing 2.1 renders, like 3.2, each annexed module version as an annex of its
@@ -2207,7 +2207,7 @@ message copies each employee's files. The answer adds `employeeIds`, the employe
 completed.
 
 `GET /imports/{importId}` returns the summary, the `files` with `state`, `documentKind`,
-`documentDomain` (`ssm` or `psi` for own instructions and training themes), `reason`, the company and the page count, `progress` (`files`, `prepared`, `scans`,
+`documentDomain` (`ssm` or `su` for own instructions and training themes), `reason`, the company and the page count, `progress` (`files`, `prepared`, `scans`,
 `scansRead`), `otherCompanies` (by CUI or name, with their `fileIds`), and from `ready` on the
 `proposal`, `registeredCompany`, the member's `changes`, the `version` and the `blockers`. The
 proposal is null before `ready` and once dropped.
@@ -2322,7 +2322,7 @@ changes kept would point at the wrong items. `409` with `import_not_ready` or `i
 
 A client import's own instructions are read for the organization's library
 ([ADR 034](architecture/adr-034-own-instructions-as-app-text.md), "Where it sits in the import"),
-one **library part** per domain, `instructions_ssm` (IPSSM) and `instructions_psi` (IPSU), each
+one **library part** per domain, `instructions_ssm` (IPSSM) and `instructions_su` (IPSU), each
 with its status (`reading`, `to_review`, `nothing_new`, `failed`, `confirmed`). Sorting sets the
 own instructions aside from the client reading ("Instrucțiuni proprii: le citim pentru biblioteca
 ta de instrucțiuni proprii") and records each own-instructions or themes file's domain.
