@@ -205,7 +205,7 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
           extinguisherCount: 9,
           otherEquipment: [
             { kindLabel: 'Ladă cu nisip', count: 1 },
-            { kindLabel: 'Post de intervenție la incendiu', count: 1 },
+            { kindLabel: 'Pichet de incendiu', count: 1 },
           ],
           installations: [
             { kindLabel: 'Hidranți interiori', description: 'Câte doi pe fiecare nivel' },
@@ -1023,7 +1023,7 @@ function annualReportSample(people: ReturnType<typeof person>[], long: boolean) 
             extinguisher('Stingător P50 carosabil – pulbere, 50\u00a0kg', 1, '01.04.2027'),
             extinguisher('Stingător SM9 – spumă mecanică, 9\u00a0l', 2, '—'),
             { what: 'Ladă cu nisip', quantity: '1\u00a0buc.', next: '—' },
-            { what: 'Post de intervenție la incendiu', quantity: '1\u00a0buc.', next: '—' },
+            { what: 'Pichet de incendiu', quantity: '1\u00a0buc.', next: '—' },
             {
               what: 'Instalație de detectare, semnalizare și avertizare la incendiu',
               quantity: '1 instalație',
