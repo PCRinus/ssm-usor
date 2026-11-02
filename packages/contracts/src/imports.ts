@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { instructionBodySchema, instructionCategorySchema } from './instruction-body';
 import { type InstructionDomain, instructionDomainSchema } from './instruction-modules';
+import { preventionMeasureRequestSchema, workSystemComponentSchema } from './risk-evaluations';
 
 // Imports from documents (ADR 030). The proposal itself is `@ssm-usor/import`'s schema, which
 // the API's routes add to the answer.
@@ -762,6 +763,67 @@ export const instructionImportChangesSchema = z
   .strict();
 
 export type InstructionImportChanges = z.infer<typeof instructionImportChangesSchema>;
+
+/** Adaugă în bibliotecă, Folosește ce ai, Adaugă ca nouă, Nu adăuga (ADR 036). */
+export const riskImportLibraryChoices = ['add', 'use_existing', 'add_new', 'skip'] as const;
+
+export type RiskImportLibraryChoice = (typeof riskImportLibraryChoices)[number];
+
+/** Adaugă după cei existenți, Înlocuiește, Lasă cum e: for a sheet that already has factors. */
+export const riskImportExistingChoices = ['append', 'replace', 'keep'] as const;
+
+export type RiskImportExistingChoice = (typeof riskImportExistingChoices)[number];
+
+// Null clears a text the pack gave.
+const riskImportText = (max: number) => z.string().trim().min(1).max(max).nullable().optional();
+
+export const riskImportFactorChangeSchema = z
+  .object({
+    // False leaves the factor out of the client's sheet and of the library.
+    included: z.boolean().optional(),
+    component: workSystemComponentSchema.optional(),
+    group: z.string().trim().min(1).max(200).optional(),
+    description: z.string().trim().min(1).max(1000).optional(),
+    gravityClass: z.int().min(1).max(7).optional(),
+    probabilityClass: z.int().min(1).max(6).optional(),
+    measures: z.array(preventionMeasureRequestSchema).max(30).optional(),
+    actions: riskImportText(2000),
+    deadline: riskImportText(200),
+    responsiblePerson: riskImportText(200),
+    observations: riskImportText(1000),
+  })
+  .strict();
+
+export type RiskImportFactorChange = z.infer<typeof riskImportFactorChangeSchema>;
+
+export const riskImportChangesSchema = z
+  .object({
+    // By the proposed sheet's key; its factors by the factor's key.
+    sheets: z
+      .record(
+        z.string().min(1).max(100),
+        z
+          .object({
+            libraryName: z.string().trim().min(2).max(160).optional(),
+            library: z.enum(riskImportLibraryChoices).optional(),
+            // Every post the sheet applies to, in place of those its heading names.
+            posts: z.array(postReference).max(500).optional(),
+            // For a post that already has factors, by the post.
+            postChoices: z.record(postReference, z.enum(riskImportExistingChoices)).optional(),
+            // For a client-level sheet whose evaluation already has factors.
+            existingChoice: z.enum(riskImportExistingChoices).optional(),
+            meansOfProduction: riskImportText(2000),
+            workEnvironment: riskImportText(2000),
+            exposure: z.string().trim().min(1).max(120).optional(),
+            factors: z.record(z.string().min(1).max(100), riskImportFactorChangeSchema).optional(),
+          })
+          .strict()
+      )
+      .default({}),
+  })
+  .strict();
+
+export type RiskImportChanges = z.infer<typeof riskImportChangesSchema>;
 
 export const importLibraryPartCountsSchema = z.object({
   identical: z.int().min(0),

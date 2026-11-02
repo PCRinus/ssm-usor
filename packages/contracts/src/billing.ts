@@ -381,6 +381,9 @@ export const importCredits = {
   perPage: 1,
   // Reading a pack's own instructions for the library, each time they are read (ADR 034).
   ownInstructions: { ssm: 25, su: 10 },
+  // Reading a pack's risk evaluations for the library and the client, each time they are read
+  // (ADR 036).
+  riskEvaluations: 10,
 } as const;
 
 /**
