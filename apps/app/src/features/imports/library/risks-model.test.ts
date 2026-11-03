@@ -8,6 +8,7 @@ import {
   factorChangeFrom,
   factorState,
   incompleteFactors,
+  lacksText,
   leftSentence,
   libraryOutcome,
   pendingLine,
@@ -133,6 +134,17 @@ describe('a factor of the pack', () => {
         probabilityClass: 4,
       }).flags
     ).toEqual([]);
+  });
+
+  it('needs a group as well as the component and the classes before it can be taken', () => {
+    const noGroup = factorState(factor({ group: ' ', included: false }));
+    expect(noGroup.complete).toBe(false);
+    expect(noGroup.missing).toEqual(['group']);
+    expect(lacksText(noGroup.missing)).toBe('îi lipsește grupa');
+    expect(lacksText(factorState(factor({ component: null, gravityClass: null })).missing)).toBe(
+      'îi lipsesc componenta și clasele'
+    );
+    expect(factorState(factor({ group: '' }), { group: 'Riscuri termice' }).complete).toBe(true);
   });
 
   it("turns the editor's values into the differences only, and ticks a factor left out", () => {
@@ -297,7 +309,7 @@ describe('the confirm bar and the header', () => {
     });
     const states = [sheetState(flagged, undefined, context())];
     expect(leftSentence(states, 1)).toBe(
-      'Mai ai de ales la o fișă. Un factor are ceva de verificat, marcat la el. Un factor nu are toate clasele și rămâne pe dinafară până le alegi.'
+      'Mai ai de ales la o fișă. Un factor are ceva de verificat, marcat la el. Unui factor îi lipsesc clasele, componenta sau grupa și rămâne pe dinafară până le alegi.'
     );
   });
 });

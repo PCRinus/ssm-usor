@@ -124,7 +124,7 @@ const confirmReasons: Record<string, string> = {
   [importErrorReasons.outdated]:
     'Clientul sau biblioteca s-au schimbat între timp: un post sau o evaluare nu mai există. Reîncarcă pagina și alege din nou.',
   [importErrorReasons.incomplete]:
-    'Unii factori bifați nu au toate clasele. Alege-le la factorii marcați mai jos sau debifează-i.',
+    'Unii factori bifați nu au clasele, componenta sau grupa. Completează-i la factorii marcați mai jos sau debifează-i.',
   [importErrorReasons.nameTaken]:
     'Biblioteca are deja o evaluare cu numele ales. Schimbă numele marcate mai jos.',
   [importErrorReasons.refused]:

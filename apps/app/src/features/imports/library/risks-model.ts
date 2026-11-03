@@ -84,7 +84,8 @@ export type FactorState = {
   deadline: string | null;
   responsiblePerson: string | null;
   observations: string | null;
-  // Every class and the component known, as confirming needs of a ticked factor.
+  // What confirming needs of a ticked factor and it still lacks.
+  missing: Missing[];
   complete: boolean;
   // The flags that still hold once the member's changes are taken into account.
   flags: FactorFlag[];
@@ -92,6 +93,20 @@ export type FactorState = {
 };
 
 const planFields = ['actions', 'deadline', 'responsiblePerson', 'observations'] as const;
+
+export type Missing = 'component' | 'classes' | 'group';
+
+const missingNames: Record<Missing, string> = {
+  component: 'componenta',
+  classes: 'clasele',
+  group: 'grupa',
+};
+
+export const missingText = (missing: readonly Missing[]) =>
+  joinNames(missing.map((each) => missingNames[each]));
+
+export const lacksText = (missing: readonly Missing[]) =>
+  `îi ${missing.length === 1 && missing[0] !== 'classes' ? 'lipsește' : 'lipsesc'} ${missingText(missing)}`;
 
 const pick = <T>(change: T | undefined, proposed: T) => (change === undefined ? proposed : change);
 
@@ -124,11 +139,17 @@ export function factorState(factor: ProposedFactor, change?: FactorChange): Fact
         return true;
     }
   });
+  const group = change?.group ?? factor.group;
+  const missing: Missing[] = [
+    ...(component === null ? (['component'] as const) : []),
+    ...(gravityClass === null || probabilityClass === null ? (['classes'] as const) : []),
+    ...(group.trim() === '' ? (['group'] as const) : []),
+  ];
   return {
     factor,
     included: change?.included ?? factor.included,
     component,
-    group: change?.group ?? factor.group,
+    group,
     description: change?.description ?? factor.description,
     gravityClass,
     probabilityClass,
@@ -141,7 +162,8 @@ export function factorState(factor: ProposedFactor, change?: FactorChange): Fact
     deadline: pick(change?.deadline, factor.deadline),
     responsiblePerson: pick(change?.responsiblePerson, factor.responsiblePerson),
     observations: pick(change?.observations, factor.observations),
-    complete: component !== null && gravityClass !== null && probabilityClass !== null,
+    missing,
+    complete: missing.length === 0,
     flags,
     edited: Object.keys(change ?? {}).some((key) => key !== 'included'),
   };
@@ -193,7 +215,7 @@ export type SheetState = {
   factors: FactorState[];
   // Ticked with every class known: what confirming writes.
   written: number;
-  // Unticked because a class or the component is missing.
+  // Unticked because a class, the component or the group is missing.
   incomplete: number;
   leftOut: number;
   toCheck: number;
@@ -390,8 +412,8 @@ export function leftSentence(states: readonly SheetState[], open: number) {
   if (incomplete > 0) {
     lines.push(
       incomplete === 1
-        ? 'Un factor nu are toate clasele și rămâne pe dinafară până le alegi.'
-        : `${factorsLabel(incomplete)} nu au toate clasele și rămân pe dinafară până le alegi.`
+        ? 'Unui factor îi lipsesc clasele, componenta sau grupa și rămâne pe dinafară până le alegi.'
+        : `${factorsLabel(incomplete)} nu au clasele, componenta sau grupa și rămân pe dinafară până le alegi.`
     );
   }
   return lines.join(' ');

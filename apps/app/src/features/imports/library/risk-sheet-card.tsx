@@ -368,7 +368,7 @@ export function RiskSheetCard({
 function factorsLine(state: SheetState) {
   const parts = [roCount(state.written, 'preluat', 'preluați')];
   if (state.toCheck > 0) parts.push(`${state.toCheck} de verificat`);
-  if (state.incomplete > 0) parts.push(`${state.incomplete} fără clase`);
+  if (state.incomplete > 0) parts.push(roCount(state.incomplete, 'incomplet', 'incompleți'));
   const otherLeftOut = state.leftOut - state.incomplete;
   if (otherLeftOut > 0) {
     parts.push(roCount(otherLeftOut, 'lăsat deoparte de tine', 'lăsați deoparte de tine'));

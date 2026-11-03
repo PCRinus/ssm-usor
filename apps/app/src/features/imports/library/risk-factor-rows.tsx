@@ -15,6 +15,8 @@ import {
   factorFlagText,
   factorSource,
   type FactorState,
+  lacksText,
+  missingText,
 } from './risks-model';
 
 function FlagChip({ text, informs }: { text: string; informs: boolean }) {
@@ -114,13 +116,14 @@ function FactorRow({
         {plan && <p className="text-[13px] text-muted-foreground wrap-anywhere">{plan}</p>}
         {!state.complete && !readOnly && (
           <p className="text-[13px] font-medium text-warning-foreground">
-            Alege {state.component === null ? 'componenta și clasele' : 'clasele'} ca să-l poți
-            prelua.
+            Alege {missingText(state.missing)} ca să-l poți prelua.
           </p>
         )}
         {refused && (
           <p className="text-[13px] font-medium text-destructive" role="alert">
-            E bifat, dar nu are toate clasele. Alege-le sau debifează-l.
+            {state.missing.length > 0
+              ? `E bifat, dar ${lacksText(state.missing)}. Completează-l sau debifează-l.`
+              : 'E bifat, dar nu a fost primit. Verifică-l sau debifează-l.'}
           </p>
         )}
         {state.flags.length > 0 && (
