@@ -117,7 +117,10 @@ describe('the sheets written out', () => {
   it('leaves the sheets past the eighth to later requests of eight, after the same files', () => {
     const many = {
       ...answer,
-      sheets: Array.from({ length: 18 }, (_, index) => unrowed(index + 1)),
+      sheets: Array.from({ length: 18 }, (_, index) => ({
+        ...unrowed(index + 1),
+        factors: index < 8 ? [retyped] : [],
+      })),
     };
 
     const batches = retypeBatches(input, many);
@@ -129,6 +132,15 @@ describe('the sheets written out', () => {
     const later = retypeRequest(input, batches[1]!);
     expect(later.messages[1]).toEqual(risksRequest(input).messages[1]);
     expect(later.messages[2]!.content).toContain('- Fișa 17\n- Fișa 18');
+  });
+
+  it('asks again for a sheet the first answer left empty, and not for one it wrote past the eighth', () => {
+    const sheets = Array.from({ length: 10 }, (_, index) => ({
+      ...unrowed(index + 1),
+      factors: index === 2 ? [] : [retyped],
+    }));
+
+    expect(retypeBatches(input, { ...answer, sheets })).toEqual([['Fișa 3']]);
   });
 
   it('puts a later answer’s factors on the sheet of the same file and heading', () => {

@@ -269,12 +269,16 @@ export function risksRequest(
   };
 }
 
+// Every sheet with no rows that the first answer left without factors, so that one it wrote out
+// past the eighth, or left out among the first eight, is neither lost nor read twice.
 export function retypeBatches(input: RisksRequestInput, answer: RisksAnswer): string[][] {
   const numbered = numberRows(input.files);
-  const unrowed = answer.sheets.filter(
-    (sheet) => sheet.firstRow === '' && !hasRows(numbered, sheet.file)
-  );
-  const later = unrowed.slice(retypedSheetsPerRequest).map((sheet) => sheet.heading);
+  const later = answer.sheets
+    .filter(
+      (sheet) =>
+        sheet.firstRow === '' && sheet.factors.length === 0 && !hasRows(numbered, sheet.file)
+    )
+    .map((sheet) => sheet.heading);
   const batches: string[][] = [];
   for (let at = 0; at < later.length; at += retypedSheetsPerRequest) {
     batches.push(later.slice(at, at + retypedSheetsPerRequest));
