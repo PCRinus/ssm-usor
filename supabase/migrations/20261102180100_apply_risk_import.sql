@@ -343,6 +343,7 @@ declare
   v_evaluation public.risk_evaluations;
   v_evaluations uuid[] := '{}';
   v_factor_id uuid;
+  v_written_ids uuid[] := '{}';
   v_order integer;
   v_written integer := 0;
 begin
@@ -431,8 +432,10 @@ begin
         using errcode = '22023';
     end if;
     v_evaluation := public.imported_risk_evaluation(v_import, v_item, v_user);
+    -- Two sheets can land on one evaluation; replacing removes what it had, not the other sheet's.
     if v_item ->> 'mode' = 'replace' then
-      delete from public.risk_factors where evaluation_id = v_evaluation.id;
+      delete from public.risk_factors
+      where evaluation_id = v_evaluation.id and not (id = any (v_written_ids));
     end if;
     select coalesce(max(f.sort_order) + 1, 0) into v_order
     from public.risk_factors f where f.evaluation_id = v_evaluation.id;
@@ -451,7 +454,10 @@ begin
           join public.evaluation_profiles p on p.id = pf.profile_id
           where pf.id = (v_source ->> 'profile_factor_id')::uuid
             and p.organization_id = v_import.organization_id
-            and p.archived_at is null;
+            and p.archived_at is null
+          -- Makes a concurrent delete of the entry wait, so that its in-use check sees this
+          -- factor's pointer instead of deleting the entry from under it.
+          for key share of p;
         else
           v_profile_factor_id := (v_factors_of #>> array[v_source ->> 'entry', v_source ->> 'factor'])::uuid;
         end if;
@@ -474,6 +480,7 @@ begin
         public.import_risk_text(v_factor -> 'observations'), v_order, v_profile_factor_id, v_user
       )
       returning id into v_factor_id;
+      v_written_ids := v_written_ids || v_factor_id;
       insert into public.prevention_measures (
         organization_id, client_id, factor_id, kind, description, sort_order, created_by
       )

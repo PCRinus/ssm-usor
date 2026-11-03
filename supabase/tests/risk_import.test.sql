@@ -125,6 +125,12 @@ returns jsonb language sql as $$
         'sheet', 'sheet-6', 'kind', 'other', 'job_position_id', null, 'name', 'Curieri', 'mode', 'append',
         'means_of_production', null, 'work_environment', null, 'exposure', '8 h / schimb',
         'factors', jsonb_build_array(pg_temp.factor('f-1', 'Lovire de ușa de serviciu', 2, 2))
+      ),
+      jsonb_build_object(
+        'sheet', 'sheet-7', 'kind', 'job_position', 'job_position_id', 'dddddddd-0000-4000-8000-000000000083',
+        'name', null, 'mode', 'replace',
+        'means_of_production', null, 'work_environment', null, 'exposure', '8 h / schimb',
+        'factors', jsonb_build_array(pg_temp.factor('f-1', 'Zgomot de la imprimantă', 1, 3))
       )
     )
   );
@@ -244,7 +250,7 @@ select lives_ok(
 
 select is(
   (select jsonb_array_length(result -> 'created') || ' ' || jsonb_array_length(result -> 'evaluations') || ' ' || (result ->> 'factors') from applied),
-  '1 6 7',
+  '1 6 8',
   'it answers the entries created, the evaluations written and the factors'
 );
 
@@ -299,9 +305,9 @@ select results_eq(
 
 select results_eq(
   $$ select f.description, f.sort_order, f.source_profile_factor_id from public.risk_factors f
-     where f.evaluation_id = 'eeeeeeee-0000-4000-8000-000000000083' $$,
-  $$ values ('Lovire de colțul ghișeului', 0, null::uuid) $$,
-  'a post replaced loses its own factors'
+     where f.evaluation_id = 'eeeeeeee-0000-4000-8000-000000000083' order by f.sort_order $$,
+  $$ values ('Lovire de colțul ghișeului', 0, null::uuid), ('Zgomot de la imprimantă', 1, null::uuid) $$,
+  'a post replaced loses its own factors, and a second sheet replacing it keeps the first one''s'
 );
 
 select is(
