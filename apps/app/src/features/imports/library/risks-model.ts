@@ -182,7 +182,7 @@ export type PostTarget = {
   // As the changes name the post.
   reference: string;
   post: LibraryPost;
-  // The factors its sheet already has, as the reading found them.
+  // The factors its sheet already has.
   existing: number;
   choice: ExistingChoice;
   picked: boolean;
@@ -207,6 +207,8 @@ export type SheetState = {
   // A post's sheet: the posts it applies to, as the changes name them; null for a client-level one.
   posts: string[] | null;
   postsOpen: boolean;
+  // A post the member picked is no longer one the sheet can go on: archived, or left out.
+  postsGone: boolean;
   targets: PostTarget[];
   // A client-level sheet's evaluation, when the client has one already.
   existing: { factors: number; choice: ExistingChoice; picked: boolean } | null;
@@ -219,6 +221,8 @@ export type SheetContext = {
   // The posts a sheet can go on, by `postsByReference`.
   postsById: ReadonlyMap<string, LibraryPost>;
   existingByReference: ReadonlyMap<string, number>;
+  // The client's sheets now, which confirming follows; the reading's counts while it has none.
+  existingFactors: RisksPart['existingFactors'];
 };
 
 /** The factors each post's sheet had when the pack was read, by the post as the changes name it. */
@@ -287,7 +291,12 @@ export function sheetState(
     if (!post || seen.has(post.id)) continue;
     seen.add(post.id);
     const existing =
-      context.existingByReference.get(post.id) ?? context.existingByReference.get(reference) ?? 0;
+      (post.jobPositionId
+        ? context.existingFactors?.jobPositions[post.jobPositionId]
+        : undefined) ??
+      context.existingByReference.get(post.id) ??
+      context.existingByReference.get(reference) ??
+      0;
     const picked = change?.postChoices?.[reference];
     targets.push({
       reference,
@@ -297,10 +306,13 @@ export function sheetState(
       picked: picked !== undefined,
     });
   }
+  const clientFactors = context.existingFactors
+    ? (context.existingFactors.sheets[sheet.key] ?? 0)
+    : (sheet.existing?.factors ?? 0);
   const existing =
-    !jobPosition && sheet.existing && sheet.existing.factors > 0
+    !jobPosition && clientFactors > 0
       ? {
-          factors: sheet.existing.factors,
+          factors: clientFactors,
           choice: change?.existingChoice ?? 'keep',
           picked: change?.existingChoice !== undefined,
         }
@@ -328,6 +340,7 @@ export function sheetState(
     libraryName: change?.libraryName ?? sheet.libraryName,
     posts,
     postsOpen: jobPosition && sheet.undecided && change?.posts === undefined,
+    postsGone: (change?.posts ?? []).some((reference) => !context.postsById.has(reference)),
     targets,
     existing,
     toClient,
@@ -338,7 +351,7 @@ export type Pending = 'posts' | 'library' | 'name';
 
 export function pendingOf(state: SheetState, nameTaken: boolean): Pending[] {
   return [
-    ...(state.postsOpen ? (['posts'] as const) : []),
+    ...(state.postsOpen || state.postsGone ? (['posts'] as const) : []),
     ...(state.sheet.status === 'similar' && state.sheet.copyOf === null && !state.choicePicked
       ? (['library'] as const)
       : []),

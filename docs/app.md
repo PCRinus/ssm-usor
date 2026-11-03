@@ -1021,7 +1021,9 @@ their tab bars read.
   says above its cards how many sheets are left to decide and how many factors to look at, and
   gives each sheet of the proposal a card of decision rows (`decision-row.tsx`, shared with the
   instructions): its posts with the picker, or "Doar în bibliotecă" for a heading that names
-  none; for a post that has factors, "Adaugă după cei existenți", "Înlocuiește" or "Lasă cum e";
+  none, asked again when a post picked is no longer the client's; for a post or client-level
+  sheet that has factors now (`existingFactors`, the reading's counts while the import has no
+  client), "Adaugă după cei existenți", "Înlocuiește" or "Lasă cum e";
   the library choice ("Adaugă în bibliotecă" or "Nu adăuga" for a new sheet, "Ce diferă" with
   "Folosește ce ai" or "Adaugă ca nouă" for a similar one, a similar one asked until picked); the
   entry's name; the work-system texts; and the factors, folded to those with a flag or a missing

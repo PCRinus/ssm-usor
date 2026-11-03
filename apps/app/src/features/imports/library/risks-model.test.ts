@@ -81,6 +81,7 @@ const context = (sheets: RiskSheet[] = []): SheetContext => {
     postReferences,
     postsById: new Map(posts.map((post) => [post.id, post])),
     existingByReference: existingByReference(sheets, postReferences),
+    existingFactors: null,
   };
 };
 
@@ -195,6 +196,48 @@ describe('a sheet of the pack', () => {
       context([chambermaid])
     );
     expect(appended.toClient).toBe(true);
+  });
+
+  it("asks about the client's sheets as they are now, once the client exists", () => {
+    const confirmedPosts: LibraryPost[] = [
+      { id: 'position-1', name: 'Bucătar', jobPositionId: 'job-1' },
+      { id: 'job-3', name: 'Ospătar', jobPositionId: 'job-3' },
+    ];
+    const now: SheetContext = {
+      ...context([sheet()]),
+      postsById: new Map(
+        confirmedPosts.flatMap((post) => [
+          [post.id, post] as const,
+          [post.jobPositionId!, post] as const,
+        ])
+      ),
+      existingFactors: { jobPositions: { 'job-1': 7, 'job-3': 4 }, sheets: { sensitive: 2 } },
+    };
+    expect(sheetState(sheet(), undefined, now).targets[0]).toMatchObject({
+      existing: 7,
+      choice: 'keep',
+    });
+    expect(sheetState(sheet(), { posts: ['job-3'] }, now).targets[0]).toMatchObject({
+      existing: 4,
+      choice: 'keep',
+    });
+    const sensitive = sheet({
+      key: 'sensitive',
+      kind: 'sensitive_groups',
+      posts: [],
+      existing: { factors: 0, choice: null },
+    });
+    expect(sheetState(sensitive, undefined, now).existing).toMatchObject({
+      factors: 2,
+      choice: 'keep',
+    });
+  });
+
+  it('asks for the posts again when one the member picked is gone', () => {
+    const gone = sheetState(sheet(), { posts: ['position-1', 'archived'] }, context());
+    expect(gone.postsGone).toBe(true);
+    expect(gone.targets.map((target) => target.reference)).toEqual(['position-1']);
+    expect(pendingOf(gone, false)).toEqual(['posts']);
   });
 
   it('leaves an undecided sheet open until a post is picked or it goes to the library alone', () => {

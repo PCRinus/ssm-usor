@@ -199,7 +199,7 @@ export function RiskSheetCard({
           <ClientRow
             state={state}
             readOnly={readOnly}
-            tone={ask(state.postsOpen)}
+            tone={ask(state.postsOpen || state.postsGone)}
             onPickPosts={onPickPosts}
             onLibraryOnly={() => onSheet((current) => withField(current, 'posts', []))}
           />
@@ -460,6 +460,11 @@ function ClientRow({
         </ul>
       ) : (
         <span data-testid="risk-import-posts">Niciun post: rămâne doar în bibliotecă.</span>
+      )}
+      {state.postsGone && !readOnly && (
+        <span className="text-warning-foreground" data-testid="risk-import-posts-gone">
+          Un post ales nu mai este printre posturile clientului. Alege din nou posturile.
+        </span>
       )}
     </DecisionRow>
   );

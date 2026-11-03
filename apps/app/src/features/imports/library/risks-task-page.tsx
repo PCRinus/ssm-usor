@@ -196,6 +196,7 @@ function TaskContent({
       postReferences: part.postReferences,
       postsById,
       existingByReference: existing,
+      existingFactors: part.existingFactors,
     })
   );
   const open = readOnly
@@ -409,7 +410,7 @@ function TaskContent({
                     setPostsRequest({
                       key: state.sheet.key,
                       title: state.sheet.heading,
-                      selected: state.posts ?? [],
+                      selected: state.targets.map((target) => target.reference),
                       themes: defaultSheetPosts(state.sheet, part.postReferences),
                       description:
                         'Bifează posturile pe care le evaluează fișa. Fiecare primește factorii ei pe fișa lui de evaluare.',
