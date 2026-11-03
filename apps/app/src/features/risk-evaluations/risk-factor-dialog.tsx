@@ -323,6 +323,7 @@ function RiskFactorForm({
             aria-invalid={Boolean(errors.component)}
             {...form.register('component', {
               onChange: (event: ChangeEvent<HTMLSelectElement>) => {
+                if (!event.target.value) return;
                 const group = form.getValues('group');
                 const kept = groupUnder(event.target.value as WorkSystemComponent, group);
                 if (kept !== group) form.setValue('group', kept);
