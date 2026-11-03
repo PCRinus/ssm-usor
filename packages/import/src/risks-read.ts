@@ -211,7 +211,9 @@ interface Segment {
 function labelledSegments(text: string): Segment[] | null {
   const labels = [...text.matchAll(measureLabel)];
   if (labels.length === 0) return null;
-  const segments: Segment[] = [{ kind: null, text: text.slice(0, labels[0]!.index) }];
+  const segments: Segment[] = [
+    { kind: null, text: text.slice(0, labels[0]!.index), preamble: true },
+  ];
   labels.forEach((label, index) => {
     const end = labels[index + 1]?.index ?? text.length;
     segments.push({

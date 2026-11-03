@@ -345,6 +345,21 @@ describe('the helpers', () => {
     });
   });
 
+  it('drops a heading before the first label', () => {
+    expect(
+      sheetMeasures(
+        'Măsuri propuse: Măsuri tehnice: Mănuși la cuptor. Măsuri organizatorice: Instruire.',
+        []
+      )
+    ).toEqual({
+      measures: [
+        { kind: 'technical', description: 'Mănuși la cuptor.' },
+        { kind: 'organizational', description: 'Instruire.' },
+      ],
+      guessed: false,
+    });
+  });
+
   it('takes a text with no labels and no start words as organizational, and says so', () => {
     expect(sheetMeasures('Instruirea lucrătorilor.', [])).toEqual({
       measures: [{ kind: 'organizational', description: 'Instruirea lucrătorilor.' }],
