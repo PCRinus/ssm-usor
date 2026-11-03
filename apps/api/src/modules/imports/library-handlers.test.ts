@@ -793,6 +793,11 @@ describe('the risk evaluations part', () => {
       if (url.pathname === '/rest/v1/evaluation_profiles') {
         return Response.json([{ name: 'Șofer' }]);
       }
+      if (url.pathname === '/rest/v1/evaluation_profile_factors') {
+        return Response.json([
+          { id: libraryFactorId, evaluation_profiles: { id: libraryEntryId } },
+        ]);
+      }
     };
 
   it('shows the part with its sheets, their posts and the counts of sheets', async () => {
@@ -957,6 +962,34 @@ describe('the risk evaluations part', () => {
       ],
       ['sheet-2', 'job_position', driverId, 'append', [{ profile_factor_id: libraryFactorId }]],
       ['sheet-3', 'sensitive_groups', null, 'replace', [null]],
+    ]);
+  });
+
+  it('writes the factors without their link when the entry they match was archived since', async () => {
+    mockUpstream(
+      confirmUpstream(riskRow(), ({ url }) => {
+        if (url.pathname === '/rest/v1/evaluation_profile_factors') return Response.json([]);
+        return url.pathname === '/rest/v1/rpc/apply_risk_import'
+          ? Response.json({ created: [], evaluations: [evaluationId], factors: 2 })
+          : undefined;
+      })
+    );
+    const response = await request(`${parts}/risk_evaluations/confirm`, 'POST', { version: 3 });
+
+    expect(response.status).toBe(200);
+    const lookup = callsTo('/rest/v1/evaluation_profile_factors')[0]!;
+    expect(lookup.url.searchParams.get('evaluation_profiles.archived_at')).toBe('is.null');
+    expect(lookup.url.searchParams.get('evaluation_profiles.organization_id')).toBe(
+      `eq.${organizationId}`
+    );
+    const rpc = callsTo('/rest/v1/rpc/apply_risk_import')[0]!;
+    const evaluations = (
+      rpc.body as {
+        p_payload: { evaluations: { sheet: string; factors: { source: unknown }[] }[] };
+      }
+    ).p_payload.evaluations;
+    expect(evaluations.find((each) => each.sheet === 'sheet-2')!.factors).toEqual([
+      expect.objectContaining({ source: null }),
     ]);
   });
 

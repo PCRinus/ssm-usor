@@ -20,6 +20,7 @@ import {
   type InstructionsProposal,
   instructionsProposalSchema,
   type ProposedInstruction,
+  type RiskImportPayload,
   riskImportPayload,
   type RisksProposal,
   risksProposalSchema,
@@ -542,6 +543,46 @@ async function takenNames(
   }
 }
 
+// An entry archived or deleted since the reading can no longer be linked to; refusing would leave
+// the member nothing to change, so the client's factors are written without the link.
+async function withoutGoneSources(
+  db: DataClient,
+  organizationId: string,
+  payload: RiskImportPayload
+) {
+  const linked = [
+    ...new Set(
+      payload.evaluations.flatMap((evaluation) =>
+        evaluation.factors.flatMap((factor) =>
+          factor.source && 'profile_factor_id' in factor.source
+            ? [factor.source.profile_factor_id]
+            : []
+        )
+      )
+    ),
+  ];
+  if (linked.length === 0) return;
+  const { data, error } = await db
+    .from('evaluation_profile_factors')
+    .select('id, evaluation_profiles!inner(id)')
+    .in('id', linked)
+    .eq('evaluation_profiles.organization_id', organizationId)
+    .is('evaluation_profiles.archived_at', null);
+  if (error) throw fromDatabaseError(error, 'read the library factors');
+  const active = new Set(data.map((factor) => factor.id));
+  for (const evaluation of payload.evaluations) {
+    for (const factor of evaluation.factors) {
+      if (
+        factor.source &&
+        'profile_factor_id' in factor.source &&
+        !active.has(factor.source.profile_factor_id)
+      ) {
+        factor.source = null;
+      }
+    }
+  }
+}
+
 async function confirmRisks(
   c: Context<ApiEnv>,
   db: DataClient,
@@ -593,6 +634,7 @@ async function confirmRisks(
     );
   }
   await takenNames(db, organizationId, payload.entries);
+  await withoutGoneSources(db, organizationId, payload);
   const { data, error } = await db.rpc('apply_risk_import', {
     p_import_id: row.id,
     p_part: 'risk_evaluations',
