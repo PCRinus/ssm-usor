@@ -64,8 +64,11 @@ begin
   if not found then
     return null;
   end if;
+  -- The lock makes a concurrent delete wait for this transaction, so its in-use check sees the
+  -- factors copied here instead of deleting the profile from under them.
   select * into profile from public.evaluation_profiles
-  where id = p_profile_id and organization_id = target.organization_id;
+  where id = p_profile_id and organization_id = target.organization_id
+  for key share;
   if not found then
     raise exception 'Apply a profile of the organization.' using errcode = 'RSK02';
   end if;
