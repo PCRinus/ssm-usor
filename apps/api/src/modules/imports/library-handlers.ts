@@ -394,11 +394,8 @@ export const saveImportLibraryPartChanges: RouteHandler<
     checkedChanges(changes, storedInstructions(current.proposal), part);
     saved = changes;
   } else {
-    // An empty body parses as the instructions' changes, the first of the union.
-    if ('instructions' in changes && Object.keys(changes.instructions).length > 0) {
-      throw otherPartsChanges();
-    }
-    saved = 'sheets' in changes ? changes : { sheets: {} };
+    if (!('sheets' in changes)) throw otherPartsChanges();
+    saved = changes;
     checkedRiskChanges(saved, storedRisks(current.proposal));
   }
   const { data, error } = await db.rpc('save_import_library_part_changes', {

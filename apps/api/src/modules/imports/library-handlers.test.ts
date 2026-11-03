@@ -895,6 +895,10 @@ describe('the risk evaluations part', () => {
       version: 3,
       changes: { instructions: { 'instruction-1': { included: false } } },
     });
+    const empty = await request(`${parts}/risk_evaluations/changes`, 'PUT', {
+      version: 3,
+      changes: {},
+    });
 
     expect(unknown.status).toBe(400);
     expect(await unknown.json()).toMatchObject({
@@ -905,6 +909,7 @@ describe('the risk evaluations part', () => {
       ],
     });
     expect(instructions.status).toBe(400);
+    expect(empty.status).toBe(400);
     expect(callsTo('/rest/v1/rpc/save_import_library_part_changes')).toEqual([]);
   });
 
