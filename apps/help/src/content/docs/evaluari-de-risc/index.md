@@ -103,7 +103,7 @@ Sus ai **Redenumește…**, **Arhivează** sau **Reactivează** și, pentru o ev
 O evaluare e folosită cât timp cel puțin un factor din fișa unui client a venit din ea: prin aplicare, prin salvarea fișei în bibliotecă sau prin copierea factorilor de la altă fișă.
 
 - Coloana **Folosită la** din listă numără clienții, „3 clienți”. Fișele posturilor arhivate nu se numără, așa că o evaluare folosită doar la posturi arhivate arată „—”.
-- Cardul **Unde este folosită**, pe pagina evaluării, arată fișele grupate pe clienți, cu câți factori din această evaluare are fiecare, și te duce la fiecare fișă. Un client arhivat apare cu „(arhivat)”.
+- Cardul **Unde este folosită**, pe pagina evaluării, arată fișele grupate pe clienți, cu câți factori din această evaluare are fiecare, și te duce la fiecare fișă. Un client arhivat apare cu „(arhivat)”. Pentru o evaluare folosită doar la posturi arhivate, cardul spune asta și că de aceea evaluarea nu se poate șterge.
 
 ## Aplicarea la o fișă
 
