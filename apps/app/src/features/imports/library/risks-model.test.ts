@@ -252,6 +252,15 @@ describe('a sheet of the pack', () => {
     expect(pendingOf(gone, false)).toEqual(['posts']);
   });
 
+  it('asks for the posts again when one the reading proposed is gone', () => {
+    const gone = sheetState(sheet(), undefined, {
+      ...context(),
+      postReferences: { Bucătar: 'archived' },
+    });
+    expect(gone.postsGone).toBe(true);
+    expect(pendingOf(gone, false)).toEqual(['posts']);
+  });
+
   it('leaves an undecided sheet open until a post is picked or it goes to the library alone', () => {
     const undecided = sheet({ posts: [], undecided: true, name: 'Ospătar room-service' });
     expect(pendingOf(sheetState(undecided, undefined, context()), false)).toEqual(['posts']);

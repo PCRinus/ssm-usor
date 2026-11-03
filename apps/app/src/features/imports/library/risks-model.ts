@@ -362,7 +362,7 @@ export function sheetState(
     libraryName: change?.libraryName ?? sheet.libraryName,
     posts,
     postsOpen: jobPosition && sheet.undecided && change?.posts === undefined,
-    postsGone: (change?.posts ?? []).some((reference) => !context.postsById.has(reference)),
+    postsGone: (posts ?? []).some((reference) => !context.postsById.has(reference)),
     targets,
     existing,
     toClient,

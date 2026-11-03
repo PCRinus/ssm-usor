@@ -289,7 +289,7 @@ export const LibraryReviewStoresContext = createContext<LibraryReviewStores | nu
 
 function useStores() {
   const stores = use(LibraryReviewStoresContext);
-  if (!stores) throw new Error('A library review needs ImportReviewScope around it');
+  if (!stores) throw new Error('An import review task needs ImportReviewScope around it');
   return stores;
 }
 
