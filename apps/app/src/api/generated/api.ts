@@ -12122,6 +12122,18 @@ export type RisksLibraryPartChanges = {
 
 export type RisksLibraryPartPostReferences = { [key: string]: string | null };
 
+export type RisksLibraryPartExistingFactorsJobPositions = { [key: string]: number };
+
+export type RisksLibraryPartExistingFactorsSheets = { [key: string]: number };
+
+/**
+ * @nullable
+ */
+export type RisksLibraryPartExistingFactors = {
+  jobPositions: RisksLibraryPartExistingFactorsJobPositions;
+  sheets: RisksLibraryPartExistingFactorsSheets;
+} | null;
+
 export interface RisksLibraryPart {
   status: RisksLibraryPartStatus;
   /** @minimum 1 */
@@ -12145,6 +12157,8 @@ export interface RisksLibraryPart {
   /** @nullable */
   changes: RisksLibraryPartChanges;
   postReferences: RisksLibraryPartPostReferences;
+  /** @nullable */
+  existingFactors: RisksLibraryPartExistingFactors;
   proposal: RisksProposal | null;
 }
 
@@ -36256,7 +36270,7 @@ export const getListImportLibraryPartsUrl = (importId: string) => {
 };
 
 /**
- * One part per domain whose own instructions the sorting found (ADR 034), `instructions_ssm` and `instructions_su`, and `risk_evaluations` when it found a risk assessment (ADR 036), each read by a request of its own once the client proposal is ready: its status (`reading`, `to_review`, `nothing_new`, `failed` with `failureReason`, `confirmed`), the proposal from `to_review` on (null before, and once dropped with the import's, 30 days after the client), the member's changes and the version to save on, the counts of identical, similar, new and unread instructions, `positionPosts` (the client post each post the themes name is, as the changes name posts), `expiresAt` (14 days after the client's confirmation, past which a part is no longer confirmed), and `credits`, its readings net of those given back. `posts` are the posts an instruction can apply to: the client proposal's, by their id, with the job position each became once the client is confirmed, and the client's other active posts by their id. The risk evaluations' part, discriminated by `part`, has no `domain`; its proposal is a `RisksProposal`, its changes are by sheet, its counts are of sheets (`unread`, those with no factor read), and `postReferences` gives, by a post's name as the sheets write it, the client post it is, as the changes name posts. `usage`, the models' cost at list price and tokens, is served outside production and, in production, only to a platform admin. An empty list for an employee import or a pack with neither own instructions nor a risk assessment.
+ * One part per domain whose own instructions the sorting found (ADR 034), `instructions_ssm` and `instructions_su`, and `risk_evaluations` when it found a risk assessment (ADR 036), each read by a request of its own once the client proposal is ready: its status (`reading`, `to_review`, `nothing_new`, `failed` with `failureReason`, `confirmed`), the proposal from `to_review` on (null before, and once dropped with the import's, 30 days after the client), the member's changes and the version to save on, the counts of identical, similar, new and unread instructions, `positionPosts` (the client post each post the themes name is, as the changes name posts), `expiresAt` (14 days after the client's confirmation, past which a part is no longer confirmed), and `credits`, its readings net of those given back. `posts` are the posts an instruction can apply to: the client proposal's, by their id, with the job position each became once the client is confirmed, and the client's other active posts by their id. The risk evaluations' part, discriminated by `part`, has no `domain`; its proposal is a `RisksProposal`, its changes are by sheet, its counts are of sheets (`unread`, those with no factor read), and `postReferences` gives, by a post's name as the sheets write it, the client post it is, as the changes name posts; `existingFactors` gives the factors the client's sheets have now, by job position and, for a client-level sheet, by the sheet's key, which confirming follows where the member made no choice (null while the import has no client). `usage`, the models' cost at list price and tokens, is served outside production and, in production, only to a platform admin. An empty list for an employee import or a pack with neither own instructions nor a risk assessment.
  * @summary A client import's proposals for the library
  */
 export const listImportLibraryParts = async (

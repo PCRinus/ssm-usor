@@ -902,6 +902,15 @@ export const risksPartDetailSchema = libraryPartDetailBase.extend({
   // By a post's name as the proposal's sheets give it: the client's post it is, as the changes
   // name posts; null for one the client import left out.
   postReferences: z.record(z.string(), postReference.nullable()),
+  // The factors the client's sheets have now, which confirming follows where the member made no
+  // choice: by job position, and a client-level sheet's by the sheet's key. Null while the import
+  // has no client.
+  existingFactors: z
+    .object({
+      jobPositions: z.record(z.uuid(), z.int().min(0)),
+      sheets: z.record(z.string(), z.int().min(0)),
+    })
+    .nullable(),
 });
 
 export const importLibraryPartDetailSchema = z.discriminatedUnion('part', [

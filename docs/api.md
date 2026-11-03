@@ -2383,7 +2383,11 @@ apart: the risk part has no `domain`, its `proposal` is the `RisksProposal` of `
 fields and flags, library `status`, `match` and proposed `choice`, `copyOf` for a sheet that
 copies another, and the rows left unplaced or unmatched), its `counts` are of sheets (`unread`,
 those with no factor read), and `postReferences` gives, by a post's name as the sheets write it,
-the client post it is, as the changes name posts. `PUT …/risk_evaluations/changes` takes
+the client post it is, as the changes name posts. `existingFactors` gives the factors the
+client's sheets have now, by job position and, for a client-level sheet, by the sheet's key:
+confirming leaves a sheet that has some as it is unless the member chose, so the review asks
+from these rather than from the counts at the reading; null while the import has no client.
+`PUT …/risk_evaluations/changes` takes
 `changes.sheets`, keyed by the sheet's `key` (`RiskImportChanges`): `libraryName`, `library`
 (`add`, `use_existing`, `add_new`, `skip`), `posts`, `postChoices` by post and `existingChoice`
 for a client-level sheet (`append`, `replace`, `keep`), the three texts, and `factors` by the

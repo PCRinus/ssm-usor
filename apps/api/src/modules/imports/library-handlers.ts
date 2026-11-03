@@ -38,7 +38,7 @@ import { existingRecords, findImport, storedChanges, storedProposal } from './ha
 import { clientPeople, libraryPartExpiry, libraryReasons, riskReasons } from './library';
 import { toClientPayload } from './payload';
 import { describe } from './pipeline';
-import { clientSheetsOf } from './risk-sheets';
+import { type ClientSheets, clientSheetsOf, existingFactorsOf } from './risk-sheets';
 import type {
   confirmImportLibraryPartRoute,
   listImportLibraryPartsRoute,
@@ -219,7 +219,8 @@ function present(
   c: Context<ApiEnv>,
   row: FoundImport,
   part: PartRow,
-  credits: Map<string, number>
+  credits: Map<string, number>,
+  sheets: ClientSheets | null
 ): PartView {
   const base = {
     status: part.status,
@@ -249,6 +250,7 @@ function present(
           }
         : null,
       postReferences: proposal ? postReferencesOf(proposal, row) : {},
+      existingFactors: proposal && sheets ? existingFactorsOf(proposal, sheets) : null,
       proposal,
     };
   }
@@ -282,8 +284,14 @@ export const listImportLibraryParts: RouteHandler<
   const row = await findImport(db, importId);
   const parts = row.kind === 'client' ? await partsOf(db, importId) : [];
   if (parts.length === 0) return c.json({ parts: [], posts: [] }, 200);
-  const [posts, credits] = await Promise.all([postsOf(db, row), creditsByPart(c, importId)]);
-  return c.json({ parts: parts.map((part) => present(c, row, part, credits)), posts }, 200);
+  const [posts, credits, sheets] = await Promise.all([
+    postsOf(db, row),
+    creditsByPart(c, importId),
+    row.client_id && parts.some((part) => !isInstructionsPart(part.part))
+      ? clientSheetsOf(db, row.client_id)
+      : null,
+  ]);
+  return c.json({ parts: parts.map((part) => present(c, row, part, credits, sheets)), posts }, 200);
 };
 
 type DatabaseFailure = { code?: string | null; message?: string; details?: string | null };
@@ -772,5 +780,6 @@ export const retryImportLibraryPart: RouteHandler<
   }
   const row = await findImport(db, importId);
   const current = await partOf(db, importId, part);
-  return c.json({ part: present(c, row, current, await creditsByPart(c, importId)) }, 200);
+  // Reading again, so it has no proposal to count the client's sheets for.
+  return c.json({ part: present(c, row, current, await creditsByPart(c, importId), null) }, 200);
 };

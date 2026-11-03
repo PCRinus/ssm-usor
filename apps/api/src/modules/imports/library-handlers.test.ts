@@ -806,6 +806,22 @@ describe('the risk evaluations part', () => {
       if (url.pathname === '/rest/v1/import_library_parts') {
         return Response.json([partRow(), riskRow()]);
       }
+      if (url.pathname === '/rest/v1/risk_evaluations') {
+        return Response.json([
+          {
+            kind: 'job_position',
+            job_position_id: bakerId,
+            name: null,
+            risk_factors: [{ count: 3 }],
+          },
+          {
+            kind: 'sensitive_groups',
+            job_position_id: null,
+            name: null,
+            risk_factors: [{ count: 2 }],
+          },
+        ]);
+      }
       if (url.pathname === '/rest/v1/credit_entries' && admin) {
         return Response.json([
           { import_id: importId, kind: 'import_start', credits: -25, import_part: null },
@@ -827,6 +843,7 @@ describe('the risk evaluations part', () => {
       status: 'to_review',
       counts: { identical: 1, similar: 0, new: 2, unread: 0 },
       postReferences: { Brutar: baker!.id, Șofer: driver!.id },
+      existingFactors: { jobPositions: { [bakerId]: 3, [driverId]: 0 }, sheets: { 'sheet-3': 2 } },
       credits: 15,
       changes: null,
     });

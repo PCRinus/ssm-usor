@@ -1,5 +1,10 @@
 import { foldText } from '@ssm-usor/contracts';
-import type { ExistingEvaluations, LibraryEvaluation } from '@ssm-usor/import';
+import {
+  entryName,
+  type ExistingEvaluations,
+  type LibraryEvaluation,
+  type RisksProposal,
+} from '@ssm-usor/import';
 
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 
@@ -100,5 +105,24 @@ export function existingByPostName(
     posts: Object.fromEntries(posts.map((post) => [post, byName.get(foldText(post)) ?? 0])),
     sensitiveGroups: sheets.sensitiveGroups,
     other: sheets.other,
+  };
+}
+
+// As confirming reads them, so the review shows the choice for a sheet that gained factors since
+// the reading, or for a post the member picked.
+export function existingFactorsOf(proposal: RisksProposal, sheets: ClientSheets) {
+  return {
+    jobPositions: Object.fromEntries(
+      sheets.jobPositions.map((position) => [position.id, position.factors])
+    ),
+    sheets: Object.fromEntries(
+      proposal.sheets.flatMap((sheet) => {
+        if (sheet.kind === 'job_position') return [];
+        if (sheet.kind === 'sensitive_groups') return [[sheet.key, sheets.sensitiveGroups]];
+        const name = foldText(entryName(sheet.name));
+        const found = Object.entries(sheets.other).find(([other]) => foldText(other) === name);
+        return [[sheet.key, found?.[1] ?? 0]];
+      })
+    ),
   };
 }
