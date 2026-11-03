@@ -105,6 +105,69 @@ describe('readRisksAnswer: checks', () => {
   });
 });
 
+describe('readRisksAnswer: rows the answer misplaces', () => {
+  it('reads a row short of cells as missing its merged cells at the start', () => {
+    const short = {
+      ...assessment,
+      text: assessment.text.replace(
+        '|  | Factori de risc termic | F3.',
+        '| Factori de risc termic | F3.'
+      ),
+    };
+    const sheet = readRisksAnswer([short, plan], answer).sheets[0]!;
+
+    expect(sheet.factors[2]).toMatchObject({
+      component: 'means_of_production',
+      group: 'Factori de risc termic',
+      description: 'Arsuri la scoaterea tăvilor din cuptor.',
+    });
+    expect(sheet.factors[2]!.flags).toContainEqual({ kind: 'row_shape', cells: 6, expected: 7 });
+  });
+
+  it('joins a plan row past its table’s last row to that table, and lists one the answer skipped', () => {
+    const shortTable = {
+      ...answer,
+      planTables: [{ ...answer.planTables[0]!, lastRow: 'R39' }],
+      plan: answer.plan.filter((entry) => entry.row !== 'R41'),
+    };
+    const misplaced = readRisksAnswer([assessment, plan], shortTable);
+
+    expect(misplaced.sheets[0]!.factors[1]!.measures).toHaveLength(3);
+    expect(misplaced.unmatchedPlanRows).toEqual([]);
+
+    const skipped = readRisksAnswer([assessment, plan], {
+      ...answer,
+      plan: answer.plan.filter((entry) => entry.row !== 'R41'),
+    });
+    expect(skipped.unmatchedPlanRows).toEqual([
+      expect.objectContaining({ row: 'R41', risk: 'Zgomot de la hota de evacuare' }),
+    ]);
+  });
+
+  it('lists a plan row in no table, rather than dropping it', () => {
+    const noTables = readRisksAnswer([assessment, plan], { ...answer, planTables: [] });
+
+    expect(noTables.unmatchedPlanRows.map((row) => row.row)).toEqual(['R39', 'R40', 'R41']);
+  });
+
+  it('keeps a plan field within what the database takes', () => {
+    const long = {
+      ...plan,
+      text: plan.text.replace(
+        '| Anual | Administrator |',
+        `| Anual | ${'Administrator '.repeat(20)}|`
+      ),
+    };
+    const answered = {
+      ...answer,
+      plan: [...answer.plan.slice(0, 2), { row: 'R41', factorRows: ['R10'] }],
+    };
+    const field = readRisksAnswer([assessment, long], answered).sheets[0]!.factors[3]!;
+
+    expect(field.responsiblePerson!.length).toBeLessThanOrEqual(200);
+  });
+});
+
 describe('readRisksAnswer: measures and plan', () => {
   it('takes the plan row’s columns as measures by kind, and its fields', () => {
     expect(factor(baker, 1)).toMatchObject({

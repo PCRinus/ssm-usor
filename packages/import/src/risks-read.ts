@@ -174,7 +174,7 @@ export function cellItems(text: string): string[] {
   return items;
 }
 
-export function fieldText(text: string | undefined): string | null {
+export function fieldText(text: string | undefined, max = 2000): string | null {
   if (text === undefined) return null;
   const items = cellItems(text);
   if (items.length === 0) return null;
@@ -183,7 +183,8 @@ export function fieldText(text: string | undefined): string | null {
       index === items.length - 1 || /[.;:!?]$/u.test(item) ? item : `${item};`
     )
     .join(' ')
-    .slice(0, 2000);
+    .slice(0, max)
+    .trim();
 }
 
 const maxMeasures = 30;
@@ -355,7 +356,9 @@ function locate(answer: RisksAnswer, files: Map<string, RisksTextFile>, numbered
     key: `sheet-${index + 1}`,
     rows:
       answered.firstRow && answered.lastRow
-        ? rowsBetween(numbered, answered.firstRow, answered.lastRow)
+        ? rowsBetween(numbered, answered.firstRow, answered.lastRow).filter(
+            (row) => row.file === answered.file
+          )
         : [],
     region: { start: 0, end: 0 },
   }));
@@ -379,10 +382,11 @@ function locate(answer: RisksAnswer, files: Map<string, RisksTextFile>, numbered
   return located;
 }
 
+// A row short of cells has lost them at its start, where the merged component and group stand.
 const role = (cells: readonly string[], index: number | null, expected: number) => {
   if (index === null) return '';
-  const offset = cells.length < expected && index > 1 ? expected - cells.length : 0;
-  return cells[index - 1 - offset] ?? '';
+  const position = index - 1 - Math.max(0, expected - cells.length);
+  return position < 0 ? '' : (cells[position] ?? '');
 };
 
 const headerWords = /\b(?:clasa|gravitate|probabilitate|nivel)\b/;
@@ -435,8 +439,8 @@ function baseFactor(
     source: null,
     component,
     writtenComponent: written.component,
-    group: written.group.trim(),
-    description,
+    group: written.group.trim().slice(0, 200).trim(),
+    description: description.slice(0, 1000).trim(),
     code,
     consequence: written.consequence.trim(),
     gravityClass: classOf(written.gravity, 7),
@@ -535,6 +539,26 @@ const looksLikeFactor = (cells: readonly string[]) =>
 
 const rowText = (row: TableRow) => `| ${row.cells.join(' | ')} |`;
 
+// The database's limits on a factor's plan fields.
+const planFieldLimits: Record<PlanField, number> = {
+  actions: 2000,
+  deadline: 200,
+  responsiblePerson: 200,
+  observations: 1000,
+};
+
+// A row the answer joins to a factor but places in no table, as when a table's last row is
+// given one short, takes the nearest table above it in its file.
+function planTableOf(tables: RisksAnswer['planTables'], row: TableRow) {
+  const number = rowNumber(row.id)!;
+  const above = tables
+    .filter((table) => table.file === row.file && (rowNumber(table.firstRow) ?? Infinity) <= number)
+    .sort((a, b) => rowNumber(b.firstRow)! - rowNumber(a.firstRow)!);
+  return (
+    above.find((table) => number <= (rowNumber(table.lastRow) ?? -Infinity)) ?? above[0] ?? null
+  );
+}
+
 export interface ReadRisksOptions {
   // The client's people, whose names in a plan field are a person rather than a role.
   people?: readonly string[];
@@ -604,14 +628,17 @@ export function readRisksAnswer(
   let post = '';
   let postTable: unknown = null;
   for (const { entry, row } of planRows) {
-    const number = rowNumber(row.id)!;
-    const table = answer.planTables.find(
-      (candidate) =>
-        candidate.file === row.file &&
-        (rowNumber(candidate.firstRow) ?? Infinity) <= number &&
-        number <= (rowNumber(candidate.lastRow) ?? -Infinity)
-    );
-    if (!table) continue;
+    const table = planTableOf(answer.planTables, row);
+    if (!table) {
+      unmatchedPlanRows.push({
+        row: row.id,
+        file: row.file,
+        text: rowText(row),
+        post: '',
+        risk: '',
+      });
+      continue;
+    }
     const at = (index: number | null) => (index === null ? '' : (row.cells[index - 1] ?? ''));
     if (table !== postTable) post = '';
     postTable = table;
@@ -638,10 +665,13 @@ export function readRisksAnswer(
         .map((description) => ({ kind, description }))
     );
     const fields: Record<PlanField, string | null> = {
-      actions: fieldText(at(table.columns.actions)),
-      deadline: fieldText(at(table.columns.deadline)),
-      responsiblePerson: fieldText(at(table.columns.responsible)),
-      observations: fieldText(at(table.columns.observations)),
+      actions: fieldText(at(table.columns.actions), planFieldLimits.actions),
+      deadline: fieldText(at(table.columns.deadline), planFieldLimits.deadline),
+      responsiblePerson: fieldText(
+        at(table.columns.responsible),
+        planFieldLimits.responsiblePerson
+      ),
+      observations: fieldText(at(table.columns.observations), planFieldLimits.observations),
     };
     for (const factor of factors) {
       setMeasures(factor, planned.has(factor) ? [...factor.measures, ...measures] : measures);
@@ -658,6 +688,17 @@ export function readRisksAnswer(
     }
   }
 
+  const answeredPlanRows = new Set(answer.plan.map((entry) => entry.row));
+  for (const table of answer.planTables) {
+    for (const row of rowsBetween(numbered, table.firstRow, table.lastRow)) {
+      if (row.file !== table.file || answeredPlanRows.has(row.id)) continue;
+      const at = (index: number | null) => (index === null ? '' : (row.cells[index - 1] ?? ''));
+      const risk = at(table.columns.risk);
+      if (!/\p{L}{2,}/u.test(risk)) continue;
+      unmatchedPlanRows.push({ row: row.id, file: row.file, text: rowText(row), post: '', risk });
+    }
+  }
+
   const unmatchedMeasureRows: LooseRow[] = [];
   for (const entry of answer.measures) {
     const row = numbered.byId.get(entry.row);
@@ -667,7 +708,7 @@ export function readRisksAnswer(
       unmatchedMeasureRows.push({ row: row.id, file: row.file, text: rowText(row) });
       continue;
     }
-    if (planned.has(factor)) continue;
+    if (planned.has(factor) && factor.measures.length > 0) continue;
     const column = entry.column ?? row.cells.length;
     const { measures, guessed } = sheetMeasures(row.cells[column - 1] ?? '', entry.parts);
     setMeasures(factor, [...factor.measures, ...measures]);
@@ -692,8 +733,12 @@ export function readRisksAnswer(
   return { sheets, unplacedRows, unmatchedPlanRows, unmatchedMeasureRows };
 }
 
-// Ticked by default only when the classes and the component are known: the app never chooses a
-// class (ADR 015).
+// Ticked by default only when the classes, the component and the group are known: the app never
+// chooses a class (ADR 015), and the database takes no factor without a group.
 export const factorComplete = (
-  factor: Pick<ReadFactor, 'component' | 'gravityClass' | 'probabilityClass'>
-) => factor.component !== null && factor.gravityClass !== null && factor.probabilityClass !== null;
+  factor: Pick<ReadFactor, 'component' | 'group' | 'gravityClass' | 'probabilityClass'>
+) =>
+  factor.component !== null &&
+  factor.group.trim() !== '' &&
+  factor.gravityClass !== null &&
+  factor.probabilityClass !== null;
