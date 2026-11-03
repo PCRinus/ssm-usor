@@ -137,7 +137,7 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
         removalConsequence="nu vor mai fi în evaluare. Fișele în care ai aplicat-o își păstrează copiile."
         editorContext={profile.name}
       />
-      <ProfileUsageCard profileId={profile.id} userId={userId} />
+      <ProfileUsageCard profileId={profile.id} inUse={profile.inUse} userId={userId} />
       <ProfileNameDialog naming={naming} onClose={() => setNaming(null)} />
       <RemoveProfileDialog
         profile={removing ? { ...profile, factorCount: profile.factors.length } : null}

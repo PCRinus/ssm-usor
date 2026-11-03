@@ -644,10 +644,20 @@ describe('a profile page', () => {
 
   it('says how a profile comes to be used while no evaluation uses it', async () => {
     mockApi();
-    mount(`/evaluari-de-risc/${office.id}`);
+    mount(`/evaluari-de-risc/${driver.id}`);
     const empty = await screen.findByTestId('risk-profile-usage-empty');
     expect(empty.textContent).toContain('nu este folosită încă la niciun client');
     expect(empty.textContent).toContain('„Aplică din bibliotecă”');
+  });
+
+  it('says why a profile used only by archived posts cannot be deleted', async () => {
+    mockApi();
+    mount(`/evaluari-de-risc/${office.id}`);
+    const archivedOnly = await screen.findByTestId('risk-profile-usage-archived-only');
+    expect(archivedOnly.textContent).toContain('posturi arhivate');
+    expect(archivedOnly.textContent).toContain('nu se poate șterge');
+    expect(screen.queryByTestId('risk-profile-usage-empty')).toBeNull();
+    expect(screen.queryByTestId('risk-profile-remove')).toBeNull();
   });
 
   it('offers to retry when the evaluations using the profile do not load', async () => {
@@ -658,7 +668,7 @@ describe('a profile page', () => {
           ? Response.json({ error: 'forbidden', message: 'no' }, { status: 403 })
           : Response.json({ items: [] }),
     });
-    mount(`/evaluari-de-risc/${office.id}`);
+    mount(`/evaluari-de-risc/${driver.id}`);
     const user = userEvent.setup();
     const error = await screen.findByTestId('risk-profile-usage-error');
     failing = false;

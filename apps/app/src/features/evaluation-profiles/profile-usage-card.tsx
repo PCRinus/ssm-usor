@@ -43,7 +43,15 @@ function byClient(items: readonly ProfileUse[]): ClientUses[] {
   return clients;
 }
 
-export function ProfileUsageCard({ profileId, userId }: { profileId: string; userId: string }) {
+export function ProfileUsageCard({
+  profileId,
+  inUse,
+  userId,
+}: {
+  profileId: string;
+  inUse: boolean;
+  userId: string;
+}) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const usage = useGetEvaluationProfileUsage(profileId, {
     request: apiRequest,
@@ -88,6 +96,11 @@ export function ProfileUsageCard({ profileId, userId }: { profileId: string; use
         >
           Nu am putut încărca fișele de evaluare care o folosesc.
         </Notice>
+      ) : items.length === 0 && inUse ? (
+        <p data-testid="risk-profile-usage-archived-only" className="text-sm text-muted-foreground">
+          Evaluarea nu este folosită la niciun post activ, dar fișele unor posturi arhivate au încă
+          factori din ea, așa că nu se poate șterge.
+        </p>
       ) : items.length === 0 ? (
         <p data-testid="risk-profile-usage-empty" className="text-sm text-muted-foreground">
           Evaluarea nu este folosită încă la niciun client. Deschide fișa de evaluare a unui post și
