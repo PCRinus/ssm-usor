@@ -81,10 +81,22 @@ export function entryName(written: string) {
   return lower.charAt(0).toUpperCase() + lower.slice(1);
 }
 
+// The database's limits on an entry's and a client-level evaluation's name.
+export const nameLength = { min: 2, max: 160 };
+
+const fits = (name: string) => name.length >= nameLength.min;
+
+export function evaluationName(written: string, heading: string) {
+  const name = [entryName(written), entryName(heading)].find(fits) ?? 'Evaluare de risc';
+  return name.slice(0, nameLength.max).trim();
+}
+
 function libraryNameOf(sheet: ReadSheet, posts: readonly string[]) {
   if (sheet.kind === 'sensitive_groups') return 'Grupuri sensibile';
-  if (sheet.kind === 'job_position' && posts.length === 1) return posts[0]!;
-  return entryName(sheet.name) || entryName(sheet.heading);
+  if (sheet.kind === 'job_position' && posts.length === 1 && fits(posts[0]!.trim())) {
+    return posts[0]!.trim().slice(0, nameLength.max).trim();
+  }
+  return evaluationName(sheet.name, sheet.heading);
 }
 
 const choiceFor = (existing: number) => (existing > 0 ? ('keep' as const) : null);
@@ -107,8 +119,13 @@ export function proposeRisks(input: ProposeRisksInput): RisksProposal {
         : [];
     return { sheet, posts, factors: factorsOf(sheet), libraryName: libraryNameOf(sheet, posts) };
   });
+  const postsFirst = [...prepared].sort(
+    (a, b) => Number(a.sheet.kind !== 'job_position') - Number(b.sheet.kind !== 'job_position')
+  );
   const compared = compareRiskSheets({
-    sheets: prepared.map(({ sheet, factors, libraryName }) => ({
+    // A post's sheet is the original of a client-level copy wherever the pack puts it, since a
+    // client-level sheet stays out of the library by default and its copies follow it.
+    sheets: postsFirst.map(({ sheet, factors, libraryName }) => ({
       key: sheet.key,
       name: libraryName,
       factors,

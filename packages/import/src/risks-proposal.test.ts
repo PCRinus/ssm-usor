@@ -119,6 +119,33 @@ describe('proposeRisks', () => {
     expect(matched!.match!.pairs.map((pair) => pair.libraryFactor)).toEqual(['lf1', 'lf2', 'lf3']);
   });
 
+  it('keeps a post’s sheet the original of a client-level copy the pack puts before it', () => {
+    const reordered = { ...read, sheets: [read.sheets[2]!, read.sheets[0]!] };
+    const [copy, original] = propose({ read: reordered }).sheets;
+
+    expect(original).toMatchObject({ kind: 'job_position', choice: 'add', copyOf: null });
+    expect(copy).toMatchObject({ kind: 'sensitive_groups', choice: null, copyOf: 'sheet-1' });
+  });
+
+  it('proposes names within the database’s 160 characters', () => {
+    const long = 'Operator la mașina de ambalat și etichetat produse de panificație '.repeat(3);
+    const named = propose({
+      read: {
+        ...read,
+        sheets: [
+          { ...read.sheets[0]!, posts: [], name: long },
+          { ...read.sheets[3]!, name: 'X' },
+        ],
+      },
+      takenNames: [entryName(long).slice(0, 160).trim()],
+      client: { name: 'Brutăria din curte și patiseria de lângă gară a familiei Popescu' },
+    });
+
+    expect(named.sheets[0]!.libraryName).toMatch(/ \(Brutăria din curte .*\)$/);
+    expect(named.sheets[0]!.libraryName.length).toBeLessThanOrEqual(160);
+    expect(named.sheets[1]!.libraryName).toMatch(/^Subcapitolul v\.iv\. evaluarea riscurilor/);
+  });
+
   it('stores as its schema says', () => {
     expect(risksProposalSchema.parse(JSON.parse(JSON.stringify(proposal)))).toEqual(proposal);
   });
@@ -213,6 +240,36 @@ describe('riskImportPayload', () => {
     expect(payload.evaluations[1]!.factors.map((factor) => factor.source)).toEqual(
       Array(6).fill(null)
     );
+  });
+
+  it('leaves a factor without a group unticked, and refuses it ticked', () => {
+    const noGroup = readRisksAnswer(
+      [
+        {
+          ...assessment,
+          text: assessment.text.replace('| EXECUTANT | Acţiuni greşite |', '| EXECUTANT |  |'),
+        },
+        plan,
+      ],
+      answer
+    );
+    const grouped = propose({ read: noGroup });
+    expect(grouped.sheets[0]!.factors[4]).toMatchObject({ group: '', included: false });
+
+    const changes = riskImportChangesSchema.parse({
+      sheets: { 'sheet-1': { factors: { 'sheet-1.5': { included: true } } } },
+    });
+    const { payload, issues } = riskImportPayload({
+      proposal: grouped,
+      changes,
+      posts,
+      postReferences,
+    });
+    expect(issues).toContainEqual({
+      path: 'sheets.sheet-1.factors.sheet-1.5',
+      message: 'incomplete',
+    });
+    expect(payload.entries[0]!.factors.every((factor) => factor.group !== '')).toBe(true);
   });
 
   it('refuses a ticked factor still without a class, and a post the client no longer has', () => {

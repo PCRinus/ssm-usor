@@ -10,7 +10,7 @@ import {
 } from '@ssm-usor/contracts';
 
 import type { ProposedRiskFactor, ProposedRiskSheet, RisksProposal } from './risks-proposal';
-import { entryName } from './risks-proposal';
+import { evaluationName } from './risks-proposal';
 import { namesPerson, type PlanField } from './risks-read';
 
 export interface RiskPayloadFactor {
@@ -91,11 +91,12 @@ function reviewedFactor(
   const component = change?.component ?? factor.component;
   const gravity = change?.gravityClass ?? factor.gravityClass;
   const probability = change?.probabilityClass ?? factor.probabilityClass;
-  if (component === null || gravity === null || probability === null) return null;
+  const group = (change?.group ?? factor.group).trim();
+  if (component === null || group === '' || gravity === null || probability === null) return null;
   return {
     key: factor.key,
     component,
-    group: change?.group ?? factor.group,
+    group,
     description: change?.description ?? factor.description,
     gravity_class: gravity,
     probability_class: probability,
@@ -263,7 +264,7 @@ export function riskImportPayload(input: RiskPayloadInput): {
       }
       continue;
     }
-    const name = sheet.kind === 'other' ? entryName(sheet.name) : null;
+    const name = sheet.kind === 'other' ? evaluationName(sheet.name, sheet.heading) : null;
     const existing =
       sheet.kind === 'sensitive_groups'
         ? (input.existing?.sensitiveGroups ?? 0)

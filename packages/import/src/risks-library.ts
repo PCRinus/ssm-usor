@@ -185,11 +185,16 @@ function identicalPairs(pack: readonly PackRiskFactor[], entry: LibraryEvaluatio
   });
 }
 
-export function freeName(name: string, clientName: string, taken: ReadonlySet<string>) {
+// Within the database's 160 characters of a name: the client's name cut to 60, then the name.
+export function freeName(name: string, clientName: string, taken: ReadonlySet<string>, max = 160) {
   if (!taken.has(foldText(name))) return name;
-  const named = `${name} (${clientName})`;
-  let candidate = named;
-  for (let number = 2; taken.has(foldText(candidate)); number++) candidate = `${named} ${number}`;
+  const client = clientName.trim().slice(0, 60).trim();
+  const within = (suffix: string) =>
+    `${name.slice(0, Math.max(0, max - suffix.length)).trim()}${suffix}`;
+  let candidate = within(` (${client})`);
+  for (let number = 2; taken.has(foldText(candidate)); number++) {
+    candidate = within(` (${client}) ${number}`);
+  }
   return candidate;
 }
 
