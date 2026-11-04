@@ -67,7 +67,6 @@ import {
   useState,
 } from 'react';
 
-import { OpenSupportContext } from '@/app/observability/open-support';
 import { usePostHogSession } from '@/app/observability/use-posthog-session';
 import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
@@ -90,6 +89,7 @@ import { captureHelpOpened, helpHref, helpTarget } from '@/lib/help';
 
 import { releaseTag } from './build-version';
 import { CommitVersion } from './commit-version';
+import { ReportProblemContext } from './report-problem-context';
 import { ReportProblemDialog } from './report-problem-dialog';
 import { loaderCrumb } from './route-title';
 import { readSidebarOpen, saveSidebarOpen } from './sidebar-open';
@@ -467,7 +467,7 @@ export function AppShell() {
   });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [reportingByEmail, setReportingByEmail] = useState(false);
+  const [reportingByEmail, setReportingByEmail] = useState<{ note?: string } | null>(null);
   const [sidebarOpen] = useState(readSidebarOpen);
   const email = session?.user.email ?? 'Contul meu';
   // A failed load leaves the menu with the email alone; the pages report the failure.
@@ -478,9 +478,9 @@ export function AppShell() {
   const shippedTag = releaseTag();
   const phone = useIsMobile();
 
-  async function reportProblem() {
+  async function reportProblem(note?: string) {
     if (await openSupport()) return;
-    setReportingByEmail(true);
+    setReportingByEmail({ note });
   }
 
   async function signOut() {
@@ -556,7 +556,7 @@ export function AppShell() {
               isOwner={me.data?.membership?.role === 'owner'}
               pending={pending}
               onSignOut={signOut}
-              onReportProblem={reportProblem}
+              onReportProblem={() => reportProblem()}
               unreadCount={unreadCount}
               unreadReleases={releases.unreadCount}
               subscription={me.data?.subscription ?? null}
@@ -619,9 +619,9 @@ export function AppShell() {
                     {error}
                   </Notice>
                 )}
-                <OpenSupportContext value={openSupport}>
+                <ReportProblemContext value={reportProblem}>
                   <Outlet />
-                </OpenSupportContext>
+                </ReportProblemContext>
               </main>
               {!editorPage && (
                 <footer className="flex flex-wrap items-center justify-between gap-2 border-t px-5 py-4 text-xs text-muted-foreground sm:px-8 lg:px-10">
@@ -633,7 +633,11 @@ export function AppShell() {
           </div>
           <SetupGuidePanel />
           <ImportReadyWatcher />
-          <ReportProblemDialog open={reportingByEmail} onClose={() => setReportingByEmail(false)} />
+          <ReportProblemDialog
+            open={reportingByEmail !== null}
+            note={reportingByEmail?.note}
+            onClose={() => setReportingByEmail(null)}
+          />
           {releases.newestUnread && (
             <Suspense fallback={null}>
               <UpdateDialog />

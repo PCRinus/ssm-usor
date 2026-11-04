@@ -268,7 +268,7 @@ describe('the processing page', () => {
     mount();
 
     expect((await screen.findByTestId('import-failed')).textContent).toBe(
-      'Serviciul care citește documentele nu a răspuns. Renunță la import și încearcă din nou.'
+      'Serviciul care citește documentele nu a răspuns. Renunță la import și încearcă din nou.Raportează o problemă cu importul'
     );
     expect(screen.getAllByTestId('import-step').map((step) => step.dataset.state)).toEqual([
       'done',
@@ -291,7 +291,7 @@ describe('the processing page', () => {
     mount();
 
     expect((await screen.findByTestId('import-failed')).textContent).toBe(
-      'Importul s-a oprit din cauza unei erori. Creditele ți-au fost returnate. Renunță la import și încearcă din nou.'
+      'Importul s-a oprit din cauza unei erori. Creditele ți-au fost returnate. Renunță la import și încearcă din nou.Raportează o problemă cu importul'
     );
   });
 

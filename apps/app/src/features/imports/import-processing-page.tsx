@@ -42,6 +42,7 @@ import {
 import { ImportThumbnail } from './import-thumbnail';
 import { inPathOrder } from './path-order';
 import { ReadSetAsideButton } from './read-set-aside-button';
+import { ReportImportButton } from './report-import-button';
 import { useImport } from './use-import';
 import { useUploadStalled } from './use-upload-stalled';
 
@@ -196,7 +197,11 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
         </Notice>
       )}
       {detail.status === 'failed' && (
-        <Notice variant="destructive" data-testid="import-failed">
+        <Notice
+          variant="destructive"
+          data-testid="import-failed"
+          action={<ReportImportButton importId={detail.id} variant="outline" className="bg-card" />}
+        >
           {detail.failureReason ?? 'Importul s-a oprit din cauza unei erori.'}
           {detail.credits?.refunded && ` ${refundedSentence}`} Renunță la import și încearcă din
           nou.

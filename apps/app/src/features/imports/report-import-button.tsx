@@ -6,19 +6,23 @@ import { LoaderCircle, MessageSquareWarning } from 'lucide-react';
 import { useState } from 'react';
 
 import { reportImport, reportImportLibraryPart } from '@/api/generated/api';
-import { useOpenSupport } from '@/app/observability/open-support';
+import { useReportProblem } from '@/app/report-problem-context';
 
 import { importErrorMessage } from './import-format';
 
 export function ReportImportButton({
   importId,
   part,
+  variant = 'ghost',
+  className,
 }: {
   importId: string;
   part?: ImportLibraryPart;
+  variant?: 'ghost' | 'outline';
+  className?: string;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
-  const openSupport = useOpenSupport();
+  const reportProblem = useReportProblem();
   const [sending, setSending] = useState(false);
 
   async function report() {
@@ -32,15 +36,15 @@ export function ReportImportButton({
       toast.error(importErrorMessage(cause, 'Nu am putut trimite semnalarea. Încearcă din nou.'));
       return;
     }
-    const opened = await openSupport();
+    await reportProblem('Am primit semnalarea și ne uităm la import.');
     setSending(false);
-    if (!opened) toast.success('Am primit semnalarea. Ne uităm la import.');
   }
 
   return (
     <Button
-      variant="ghost"
+      variant={variant}
       size="sm"
+      className={className}
       data-testid="import-report"
       disabled={sending}
       onClick={() => void report()}

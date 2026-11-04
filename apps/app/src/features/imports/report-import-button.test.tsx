@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { PostHog } from 'posthog-js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,6 +8,7 @@ import { employeeDetail } from '@/test/employee-import-fixture';
 import {
   clientId,
   fetchMock,
+  importDetail,
   importId,
   mockApi,
   readyDetail,
@@ -86,13 +87,14 @@ const partFields = {
 const libraryParts = {
   parts: [
     { ...partFields, part: 'instructions_ssm', domain: 'ssm', positionPosts: {} },
+    { ...partFields, part: 'instructions_su', domain: 'su', credits: 10, positionPosts: {} },
     { ...partFields, part: 'risk_evaluations', postReferences: {}, existingFactors: null },
   ],
   posts: [],
 };
 
 function mockImport(
-  detail: ReturnType<typeof readyDetail> | ReturnType<typeof employeeDetail>,
+  detail: ReturnType<typeof importDetail> | ReturnType<typeof employeeDetail>,
   report: () => Response = () => new Response(null, { status: 204 })
 ) {
   mockApi((init, url) => {
@@ -132,7 +134,12 @@ const mount = (path: string) => mountApp(authFixture(makeSession()).client, path
 const reportButton = () =>
   screen.findByRole('button', { name: 'Raportează o problemă cu importul' });
 
-const received = 'Am primit semnalarea. Ne uităm la import.';
+const emailDialog = () => screen.findByTestId('report-problem-dialog');
+
+const recorded = 'Am primit semnalarea și ne uităm la import.';
+
+const failedAt = '2026-10-28T09:30:00+00:00';
+const failureReason = 'Citirea s-a oprit din cauza unei erori.';
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -163,21 +170,39 @@ describe('reporting a problem with an import', () => {
     expect(
       fetchMock.mock.invocationCallOrder[fetchMock.mock.calls.indexOf(reported!)]
     ).toBeLessThan(posthog.openSupportChat.mock.invocationCallOrder[0]!);
-    expect(screen.queryByText(received)).toBeNull();
+    expect(screen.queryByTestId('report-problem-dialog')).toBeNull();
   });
 
-  it('says the report was received when the support chat is not there', async () => {
+  it('says the report was recorded and gives the support address when the chat cannot open', async () => {
+    const fake = fakePostHog();
+    posthog.client = fake as unknown as PostHog;
+    posthog.openSupportChat.mockResolvedValue(false);
+    mockImport(readyDetail());
+    mount(`/clienti/import/${importId}`);
+
+    await waitFor(() => expect(fake.setIdentity).toHaveBeenCalled());
+    await userEvent.click(await reportButton());
+
+    const dialog = await emailDialog();
+    expect(dialog.textContent).toContain(recorded);
+    expect(within(dialog).getByTestId('report-problem-email').textContent).toBe(
+      'contact@ssmusor.ro'
+    );
+    expect(requestsTo(`/imports/${importId}/report`, 'POST')).toHaveLength(1);
+  });
+
+  it('records the report and gives the support address when PostHog is off', async () => {
     mockImport(readyDetail());
     mount(`/clienti/import/${importId}`);
 
     await userEvent.click(await reportButton());
 
-    expect(await screen.findByText(received)).toBeTruthy();
+    expect((await emailDialog()).textContent).toContain(recorded);
     expect(requestsTo(`/imports/${importId}/report`, 'POST')).toHaveLength(1);
     expect(posthog.openSupportChat).not.toHaveBeenCalled();
   });
 
-  it('says the report failed, and opens no support chat, when the API refuses it', async () => {
+  it('says the report failed, and opens neither the chat nor the address, when the API refuses it', async () => {
     const fake = fakePostHog();
     posthog.client = fake as unknown as PostHog;
     mockImport(readyDetail(), () =>
@@ -192,7 +217,20 @@ describe('reporting a problem with an import', () => {
       await screen.findByText('Nu am putut trimite semnalarea. Încearcă din nou.')
     ).toBeTruthy();
     expect(posthog.openSupportChat).not.toHaveBeenCalled();
-    expect(screen.queryByText(received)).toBeNull();
+    expect(screen.queryByTestId('report-problem-dialog')).toBeNull();
+  });
+
+  it('reports a client import whose reading stopped, from its notice', async () => {
+    mockImport(importDetail({ status: 'failed', failedAt, failureReason }));
+    mount(`/clienti/import/${importId}`);
+
+    const notice = await screen.findByTestId('import-failed');
+    await userEvent.click(
+      within(notice).getByRole('button', { name: 'Raportează o problemă cu importul' })
+    );
+
+    await emailDialog();
+    expect(requestsTo(`/imports/${importId}/report`, 'POST')).toHaveLength(1);
   });
 
   it('reports the employee import from its review page', async () => {
@@ -202,12 +240,26 @@ describe('reporting a problem with an import', () => {
     await screen.findByTestId('employee-hub');
     await userEvent.click(await reportButton());
 
-    expect(await screen.findByText(received)).toBeTruthy();
+    await emailDialog();
+    expect(requestsTo(`/imports/${importId}/report`, 'POST')).toHaveLength(1);
+  });
+
+  it('reports an employee import whose reading stopped, from its notice', async () => {
+    mockImport(employeeDetail({ status: 'failed', failedAt, failureReason }));
+    mount(`/clienti/${clientId}/angajati/import/${importId}`);
+
+    const notice = await screen.findByTestId('employee-processing-failed');
+    await userEvent.click(
+      within(notice).getByRole('button', { name: 'Raportează o problemă cu importul' })
+    );
+
+    await emailDialog();
     expect(requestsTo(`/imports/${importId}/report`, 'POST')).toHaveLength(1);
   });
 
   it.each([
     ['instructiuni/ssm', 'instructions_ssm'],
+    ['instructiuni/su', 'instructions_su'],
     ['evaluari-de-risc', 'risk_evaluations'],
   ])('reports the part on its own page, %s', async (page, part) => {
     mockImport(readyDetail());
@@ -216,7 +268,7 @@ describe('reporting a problem with an import', () => {
     await screen.findByTestId('library-task');
     await userEvent.click(await reportButton());
 
-    expect(await screen.findByText(received)).toBeTruthy();
+    await emailDialog();
     expect(requestsTo(`/imports/${importId}/library-parts/${part}/report`, 'POST')).toHaveLength(1);
     expect(requestsTo(`/imports/${importId}/report`, 'POST')).toHaveLength(0);
   });

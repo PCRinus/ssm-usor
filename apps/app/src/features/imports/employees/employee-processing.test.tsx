@@ -130,7 +130,7 @@ describe('the page of an employee import that is not ready', () => {
       })
     );
     expect((await screen.findByTestId('employee-processing-failed')).textContent).toBe(
-      'Serviciul care citește documentele nu a răspuns. Creditele ți-au fost returnate. Renunță la import și încearcă din nou.'
+      'Serviciul care citește documentele nu a răspuns. Creditele ți-au fost returnate. Renunță la import și încearcă din nou.Raportează o problemă cu importul'
     );
   });
 

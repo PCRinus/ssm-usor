@@ -15,6 +15,7 @@ import { isRunning, uploadedWhen } from '../import-format';
 import { ImportThumbnail } from '../import-thumbnail';
 import { inPathOrder } from '../path-order';
 import { ImportFileView, PhotoPreviewDialog } from '../photo-preview-dialog';
+import { ReportImportButton } from '../report-import-button';
 import { useUploadStalled } from '../use-upload-stalled';
 import { onlyPhotos, sheetFilesLabel } from './review-format';
 
@@ -135,7 +136,11 @@ export function EmployeeProcessing({
         </Notice>
       )}
       {detail.status === 'failed' && (
-        <Notice variant="destructive" data-testid="employee-processing-failed">
+        <Notice
+          variant="destructive"
+          data-testid="employee-processing-failed"
+          action={<ReportImportButton importId={detail.id} variant="outline" className="bg-card" />}
+        >
           {detail.failureReason ?? 'Importul s-a oprit din cauza unei erori.'}
           {detail.credits?.refunded && ` ${refundedSentence}`} Renunță la import și încearcă din
           nou.

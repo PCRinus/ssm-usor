@@ -13,7 +13,15 @@ const supportEmail = 'contact@ssmusor.ro';
 const mailto = `mailto:${supportEmail}?subject=${encodeURIComponent('Problemă SSM Ușor')}`;
 
 // Not a bare mailto redirect: on a device without a mail app it does nothing at all.
-export function ReportProblemDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function ReportProblemDialog({
+  open,
+  note,
+  onClose,
+}: {
+  open: boolean;
+  note?: string;
+  onClose: () => void;
+}) {
   async function copyAddress() {
     try {
       await navigator.clipboard.writeText(supportEmail);
@@ -29,8 +37,8 @@ export function ReportProblemDialog({ open, onClose }: { open: boolean; onClose:
         <DialogHeader>
           <DialogTitle>Raportează o problemă</DialogTitle>
           <DialogDescription>
-            Chatul de suport nu s-a putut deschide în acest browser. Scrie-ne pe e-mail și îți
-            răspundem cât mai curând.
+            {note && `${note} `}Chatul de suport nu s-a putut deschide în acest browser. Scrie-ne pe
+            e-mail și îți răspundem cât mai curând.
           </DialogDescription>
         </DialogHeader>
         <p
