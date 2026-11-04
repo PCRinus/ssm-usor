@@ -44,6 +44,8 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Audit log** (_jurnalul de audit_): the record of who wrote what in the tables that hold personal data or legally binding records: the account, the member it acted as during an impersonation, the table and row, and the names of the changed columns, never their personal values. Support reads it; nobody changes it. ADR 033. Avoid: history, which is what an owner's view of it would be called, and activity log.
 
+**Admin area**: the platform owner's own app on `admin.ssmusor.ro`, in English, behind Cloudflare Access, the admin claim and a second factor, where support reads improvement copies, sees accounts, grants trials, credits and signing codes, and starts an **impersonation** (acting as a member, with a reason, for at most two hours). ADR 038. Avoid: back office, dashboard (which is the member app's home page), Studio.
+
 ## Work
 
 **Job position** (_post de lucru_): a post at a client as occupational safety sees it: a kind of work with its own risks, equipment and training. Belongs to the client and exists whether or not anyone holds it. An employee is assigned to one. ADR 006. Avoid: job title, role, function, occupation, and "loc de muncă", which the source documents use for three different things.

@@ -112,7 +112,7 @@ The review pages of an import and of its library parts gain **Raportează o prob
 
 ### Where support reads it
 
-The admin area (#611) gains an **Imports** page: every import with its kind, organization, status, reading version, flags, cost, alerts and reports, and, for one import, its improvement copy: the files, the proposal beside what the member changed, and the parts. A Discord alert links to it. Impersonation (#611) shows only what the member can still see, an import in review, and not an abandoned import, a dropped proposal or a copy, so it does not replace this page.
+The admin area ([ADR 038](adr-038-admin-area.md), its own app on `admin.ssmusor.ro`) gains an **Imports** page: every import with its kind, organization, status, reading version, flags, cost, alerts and reports, and, for one import, its improvement copy: the files, the proposal beside what the member changed, and the parts. A Discord alert links to it. Impersonation shows only what the member can still see, an import in review, and not an abandoned import, a dropped proposal or a copy, so it does not replace this page.
 
 ### Not chosen
 
@@ -153,5 +153,5 @@ Each step is a pull request in one stack, on this ADR.
 2. **The database.** The `import-copies` bucket without policies; `reading_version`, `reading_flags` and `reported_at` (with who) on imports and library parts; `quality` on library parts; the copies' 12-month clean-up and the organization's deletion of its folder; pgTAP tests.
 3. **The API.** The copy written when an import or part ends; the reading version and flags; the Discord sender with the first rules and the daily summary; the report route.
 4. **The app.** The report entry on the review pages, and the help article naming it.
-5. **The admin area's Imports page,** as part of #611.
+5. **The admin area's Imports page,** built in ADR 038's stack.
 6. **The test runner** in `apps/api/scripts`, with its cost estimate and its one-copy trial.
