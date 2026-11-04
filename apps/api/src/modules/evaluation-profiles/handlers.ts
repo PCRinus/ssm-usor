@@ -2,8 +2,10 @@ import type { RouteHandler } from '@hono/zod-openapi';
 import {
   evaluationGlobalRiskLevel,
   type EvaluationProfile,
+  type EvaluationProfileSortKey,
   type EvaluationProfileSummary,
   type EvaluationProfileUse,
+  pageRange,
   type RiskFactorRequest,
 } from '@ssm-usor/contracts';
 
@@ -30,6 +32,7 @@ import type {
   createEvaluationProfileRoute,
   getEvaluationProfileRoute,
   getEvaluationProfileUsageRoute,
+  listEvaluationProfileChoicesRoute,
   listEvaluationProfilesRoute,
   removeEvaluationProfileFactorRoute,
   removeEvaluationProfileRoute,
@@ -59,10 +62,13 @@ type FullProfileRow = ProfileRow & {
   })[];
 };
 
-type SummaryRow = ProfileRow & {
-  client_count: number;
+type ClassedFactors = {
   evaluation_profile_factors: Pick<RiskFactorFields, 'gravity_class' | 'probability_class'>[];
 };
+
+type SummaryRow = ProfileRow & ClassedFactors & { client_count: number };
+
+type ChoiceRow = Pick<ProfileRow, 'id' | 'name'> & ClassedFactors;
 
 type LinkedFactorRow = {
   risk_evaluations: Pick<
@@ -81,7 +87,17 @@ const profileFieldColumns = 'id, name, archived_at, in_use, created_at, updated_
 
 const profileColumns = `${profileFieldColumns}, means_of_production, work_environment, exposure, evaluation_profile_factors(${riskFactorFieldColumns}, evaluation_profile_measures(${preventionMeasureFieldColumns}))`;
 
-const summaryColumns = `${profileFieldColumns}, client_count, evaluation_profile_factors(gravity_class, probability_class)`;
+const classedFactorColumns = 'evaluation_profile_factors(gravity_class, probability_class)';
+
+const summaryColumns = `${profileFieldColumns}, client_count, ${classedFactorColumns}`;
+
+// The id keeps every order stable across pages.
+const sortColumns: Record<EvaluationProfileSortKey, string[]> = {
+  name: ['name'],
+  factorCount: ['factor_count', 'name'],
+  clientCount: ['client_count', 'name'],
+  updatedAt: ['updated_at'],
+};
 
 const collator = new Intl.Collator('ro');
 
@@ -173,15 +189,48 @@ export const listEvaluationProfiles: RouteHandler<
   typeof listEvaluationProfilesRoute,
   ApiEnv
 > = async (c) => {
-  const { archived } = c.req.valid('query');
-  const query = createDataClient(c).from('evaluation_profile_list').select(summaryColumns);
-  const { data, error } = await (
-    archived === 'true' ? query.not('archived_at', 'is', null) : query.is('archived_at', null)
-  ).returns<SummaryRow[]>();
+  const { page, pageSize, sort, order, status } = c.req.valid('query');
+  const db = createDataClient(c);
+  const listed = () =>
+    db
+      .from('evaluation_profile_list')
+      .select(summaryColumns, { count: 'exact' })
+      .filter('archived_at', status === 'archived' ? 'not.is' : 'is', null);
+  let query = listed();
+  for (const column of sortColumns[sort]) {
+    query = query.order(column, { ascending: order === 'asc' });
+  }
+  const { from, to } = pageRange(page, pageSize);
+  const { data, error, count } = await query.order('id').range(from, to).returns<SummaryRow[]>();
+  if (error?.code === 'PGRST103') {
+    // The page lies past the end: empty, with the real total.
+    const recount = await listed().range(0, 0);
+    if (recount.error) throw fromDatabaseError(recount.error, 'count evaluation profiles');
+    return c.json({ items: [], page, pageSize, total: recount.count ?? 0 }, 200);
+  }
   if (error) throw fromDatabaseError(error, 'list evaluation profiles');
-  const items = data
-    .map(toSummary)
-    .sort((a, b) => collator.compare(a.name, b.name) || a.id.localeCompare(b.id));
+  return c.json({ items: data.map(toSummary), page, pageSize, total: count ?? 0 }, 200);
+};
+
+export const listEvaluationProfileChoices: RouteHandler<
+  typeof listEvaluationProfileChoicesRoute,
+  ApiEnv
+> = async (c) => {
+  const { data, error } = await createDataClient(c)
+    .from('evaluation_profile_list')
+    .select(`id, name, ${classedFactorColumns}`)
+    .is('archived_at', null)
+    .gt('factor_count', 0)
+    .order('name')
+    .order('id')
+    .returns<ChoiceRow[]>();
+  if (error) throw fromDatabaseError(error, 'list evaluation profile choices');
+  const items = data.map((row) => {
+    const { globalRiskLevel, factorCount, unacceptableFactorCount } = factorTotals(
+      row.evaluation_profile_factors
+    );
+    return { id: row.id, name: row.name, globalRiskLevel, factorCount, unacceptableFactorCount };
+  });
   return c.json({ items }, 200);
 };
 

@@ -1,6 +1,7 @@
 import {
   apiErrorResponseSchema,
   type InstructionBody,
+  instructionModuleChoicesResponseSchema,
   instructionModuleListResponseSchema,
   instructionModuleResponseSchema,
   instructionModuleVersionResponseSchema,
@@ -90,6 +91,22 @@ const hotWork = {
 };
 const library = [ladders, offices, welding, hotWork];
 
+function listRow(module: typeof ladders, appliedCount = 0) {
+  const {
+    instruction_module_versions: [current],
+    ...fields
+  } = module;
+  return {
+    ...fields,
+    version_id: current!.id,
+    version_number: current!.number,
+    version_text_hash: current!.text_hash,
+    version_article_count: current!.article_count,
+    version_created_at: current!.created_at,
+    applied_count: appliedCount,
+  };
+}
+
 const organization = {
   legal_name: 'PREVENT CONSULT S.R.L.',
   legal_representative_name: 'Andrei MUNTEANU',
@@ -130,6 +147,7 @@ const fetchMock = vi.fn<typeof fetch>();
 function mockUpstream(
   handlers: {
     modules?: Handler;
+    list?: Handler;
     versions?: Handler;
     positions?: Handler;
     applied?: Handler;
@@ -149,12 +167,16 @@ function mockUpstream(
       if (custom) return custom;
       if (init?.method === 'POST') return Response.json({ id: weldingId }, { status: 201 });
       if (init?.method === 'PATCH') return Response.json([{ id: laddersId }]);
-      const ids = url.searchParams.get('id');
-      if (ids?.startsWith('in.(')) {
-        const wanted = ids.slice(4, -1).split(',');
-        return Response.json(library.filter((module) => wanted.includes(module.id)));
-      }
-      return Response.json(ids ? [ladders] : [offices, ladders]);
+      const wanted = url.searchParams.get('id')!.slice(4, -1).split(',');
+      return Response.json(library.filter((module) => wanted.includes(module.id)));
+    }
+    if (url.pathname === '/rest/v1/instruction_module_list') {
+      const custom = handlers.list?.(init, url);
+      if (custom) return custom;
+      if (url.searchParams.get('id')) return Response.json([listRow(ladders, 2)]);
+      return Response.json([listRow(offices), listRow(ladders, 2)], {
+        headers: { 'Content-Range': '0-1/2' },
+      });
     }
     if (url.pathname === '/rest/v1/instruction_module_versions') {
       const custom = handlers.versions?.(init, url);
@@ -170,9 +192,6 @@ function mockUpstream(
       if (custom) return custom;
       if (init?.method === 'POST') return new Response(null, { status: 201 });
       if (init?.method === 'DELETE') return new Response(null, { status: 204 });
-      if (url.searchParams.get('select')?.includes('job_positions!inner')) {
-        return Response.json([{ module_id: laddersId }, { module_id: laddersId }]);
-      }
       return Response.json([applied(ladders)]);
     }
     if (url.pathname === '/rest/v1/job_positions') {
@@ -248,14 +267,17 @@ afterEach(() => {
   fetchMock.mockReset();
 });
 
+const listQuery = (index = 0) =>
+  new URL(String(calls('/rest/v1/instruction_module_list', 'GET')[index]![0])).searchParams;
+
 describe('GET /instruction-modules', () => {
-  it('lists the library by group and title with the current version and where each is applied', async () => {
+  it('lists a page of the library by title with the current version and where each is applied', async () => {
     mockUpstream();
     const response = await request('/instruction-modules');
     expect(response.status).toBe(200);
-    const { items } = instructionModuleListResponseSchema.parse(await response.json());
+    const listed = instructionModuleListResponseSchema.parse(await response.json());
     expect(
-      items.map((item) => [
+      listed.items.map((item) => [
         item.title,
         item.group,
         item.version.number,
@@ -266,49 +288,117 @@ describe('GET /instruction-modules', () => {
       ['Birouri', 'work_activity', 1, 2, 0],
       ['Scări metalice', 'work_equipment', 2, 2, 2],
     ]);
-    const listed = calls('/rest/v1/instruction_modules', 'GET')[0]![0];
-    expect(new URL(String(listed)).searchParams.get('archived_at')).toBe('is.null');
+    expect(listed).toMatchObject({ page: 1, pageSize: 25, total: 2 });
+    const query = listQuery();
+    expect(query.get('archived_at')).toBe('is.null');
+    expect(query.get('domain')).toBeNull();
+    expect(query.get('order')).toBe('title.asc,id.asc');
+    expect(query.get('offset')).toBe('0');
+    expect(query.get('limit')).toBe('25');
   });
 
   it('lists only the archived ones when asked', async () => {
     mockUpstream();
-    await request('/instruction-modules?archived=true');
-    const listed = calls('/rest/v1/instruction_modules', 'GET')[0]![0];
-    expect(new URL(String(listed)).searchParams.get('archived_at')).toBe('not.is.null');
+    await request('/instruction-modules?status=archived');
+    expect(listQuery().get('archived_at')).toBe('not.is.null');
   });
 
-  it('lists the modules of one domain when asked, and both, occupational safety first, otherwise', async () => {
-    mockUpstream({
-      modules: (init, url) =>
-        isGet(init) && !url.searchParams.get('id') ? Response.json([hotWork, ladders]) : undefined,
-    });
-    const both = instructionModuleListResponseSchema.parse(
-      await (await request('/instruction-modules')).json()
-    );
-    expect(both.items.map((item) => [item.title, item.domain])).toEqual([
-      ['Scări metalice', 'ssm'],
-      ['Lucrul cu foc deschis', 'su'],
-    ]);
-    expect(
-      new URL(String(calls('/rest/v1/instruction_modules', 'GET')[0]![0])).searchParams.get(
-        'domain'
-      )
-    ).toBeNull();
+  it('lists the modules of one domain when asked', async () => {
+    mockUpstream();
     await request('/instruction-modules?domain=su');
-    expect(
-      new URL(String(calls('/rest/v1/instruction_modules', 'GET')[1]![0])).searchParams.get(
-        'domain'
-      )
-    ).toBe('eq.su');
+    expect(listQuery().get('domain')).toBe('eq.su');
     expect((await request('/instruction-modules?domain=other')).status).toBe(400);
+  });
+
+  it.each([
+    ['group', 'asc', 'module_group.asc,title.asc,id.asc'],
+    ['version', 'desc', 'version_created_at.desc,id.asc'],
+    ['appliedCount', 'asc', 'applied_count.asc,id.asc'],
+    ['title', 'desc', 'title.desc,id.asc'],
+  ])('sorts by %s %s in the database', async (sort, order, expected) => {
+    mockUpstream();
+    const response = await request(`/instruction-modules?sort=${sort}&order=${order}`);
+    expect(response.status).toBe(200);
+    expect(listQuery().get('order')).toBe(expected);
+  });
+
+  it('asks the database for the page wanted', async () => {
+    mockUpstream({
+      list: () => Response.json([listRow(welding)], { headers: { 'Content-Range': '10-10/11' } }),
+    });
+    const listed = instructionModuleListResponseSchema.parse(
+      await (await request('/instruction-modules?page=3&pageSize=5')).json()
+    );
+    expect(listed).toMatchObject({ page: 3, pageSize: 5, total: 11 });
+    expect(listQuery().get('offset')).toBe('10');
+    expect(listQuery().get('limit')).toBe('5');
+  });
+
+  it('answers a page past the end with no modules and the real total', async () => {
+    mockUpstream({
+      list: (_init, url) =>
+        url.searchParams.get('offset') === '25'
+          ? Response.json(
+              { code: 'PGRST103', message: 'Requested range not satisfiable' },
+              { status: 416 }
+            )
+          : Response.json([listRow(ladders)], { headers: { 'Content-Range': '0-0/3' } }),
+    });
+    const response = await request('/instruction-modules?page=2');
+    expect(response.status).toBe(200);
+    expect(instructionModuleListResponseSchema.parse(await response.json())).toEqual({
+      items: [],
+      page: 2,
+      pageSize: 25,
+      total: 3,
+    });
+  });
+
+  it('refuses an unknown sort key or a page too large', async () => {
+    mockUpstream();
+    expect((await request('/instruction-modules?sort=updatedAt')).status).toBe(400);
+    expect((await request('/instruction-modules?pageSize=101')).status).toBe(400);
+    expect(calls('/rest/v1/instruction_module_list', 'GET')).toHaveLength(0);
+  });
+});
+
+describe('GET /instruction-modules/choices', () => {
+  it('lists every module in use, unpaged, by domain, category and title', async () => {
+    mockUpstream({
+      list: () =>
+        Response.json(
+          [ladders, hotWork].map(({ id, title, module_group, domain }) => ({
+            id,
+            title,
+            module_group,
+            domain,
+          }))
+        ),
+    });
+    const response = await request('/instruction-modules/choices');
+    expect(response.status).toBe(200);
+    expect(instructionModuleChoicesResponseSchema.parse(await response.json()).items).toEqual([
+      { id: laddersId, title: 'Scări metalice', group: 'work_equipment', domain: 'ssm' },
+      { id: hotWorkId, title: 'Lucrul cu foc deschis', group: 'hazardous_work', domain: 'su' },
+    ]);
+    const query = listQuery();
+    expect(query.get('archived_at')).toBe('is.null');
+    expect(query.get('order')).toBe('domain.asc,module_group.asc,title.asc,id.asc');
+    expect(query.get('limit')).toBeNull();
+    expect(query.get('domain')).toBeNull();
+  });
+
+  it('lists the modules of one domain when asked', async () => {
+    mockUpstream({ list: () => Response.json([]) });
+    await request('/instruction-modules/choices?domain=su');
+    expect(listQuery().get('domain')).toBe('eq.su');
   });
 });
 
 describe('POST /instruction-modules', () => {
   it('creates a module with its body as version 1, in one transaction', async () => {
     mockUpstream({
-      modules: (init, url) =>
-        isGet(init) && url.searchParams.get('id') ? Response.json([welding]) : undefined,
+      list: () => Response.json([listRow(welding)]),
     });
     const response = await request('/instruction-modules', 'POST', {
       title: 'Sudură oxiacetilenică',
@@ -332,8 +422,7 @@ describe('POST /instruction-modules', () => {
 
   it('creates a fire-safety module with a fire-safety category', async () => {
     mockUpstream({
-      modules: (init, url) =>
-        isGet(init) && url.searchParams.get('id') ? Response.json([hotWork]) : undefined,
+      list: () => Response.json([listRow(hotWork)]),
     });
     const response = await request('/instruction-modules', 'POST', {
       title: 'Lucrul cu foc deschis',
@@ -581,10 +670,8 @@ describe('PUT /instruction-modules/{moduleId}/body', () => {
 
   it('refuses a text on an archived module', async () => {
     mockUpstream({
-      modules: (init, url) =>
-        isGet(init) && url.searchParams.get('id')
-          ? Response.json([{ ...ladders, archived_at: '2026-09-26T11:00:00+00:00' }])
-          : undefined,
+      list: () =>
+        Response.json([listRow({ ...ladders, archived_at: '2026-09-26T11:00:00+00:00' })]),
     });
     const response = await request(`/instruction-modules/${laddersId}/body`, 'PUT', officeBody);
     expect(response.status).toBe(409);

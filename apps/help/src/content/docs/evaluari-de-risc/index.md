@@ -72,9 +72,16 @@ Două cuvinte numesc două lucruri diferite:
 
 Biblioteca e în meniul **Evaluări de risc**. Pornește goală: aplicația nu vine cu factori de risc scriși de noi, așa că biblioteca se umple din posturile pe care le evaluezi tu.
 
-Lista arată, pentru fiecare evaluare, câți factori are și câți dintre ei sunt inacceptabili, nivelul de risc global, la câți clienți e folosită și data ultimei modificări. Implicit lista arată evaluările nearhivate, sub titlul **Evaluări în uz**; **Arată arhiva** îți arată evaluările arhivate, iar **Arată evaluările în uz** te întoarce la celelalte.
+Lista arată, pentru fiecare evaluare, câți factori are și câți dintre ei sunt inacceptabili, nivelul de risc global, la câți clienți e folosită și data ultimei modificări. Apeși pe capul unei coloane ca să ordonezi lista după nume, numărul de factori, numărul de clienți sau data modificării; după factorii inacceptabili și după nivelul global lista nu se ordonează. O bibliotecă mare se împarte în pagini. Deasupra listei alegi între **Active** și **Arhivate**.
 
-Meniul fiecărui rând, cele trei puncte de la capăt, are **Redenumește**, **Arhivează** sau **Reactivează** și, pentru o evaluare pe care nu o folosește niciun client, **Șterge**. Două evaluări nu pot avea același nume, nici când una e arhivată: deosebește-le prin nume, de exemplu „Lucrător de birou – contabilitate”.
+Meniul unei evaluări, cele trei puncte de la capătul rândului, are:
+
+- **Redenumește…**: schimbi numele evaluării.
+- **Arhivează…**: după ce confirmi, evaluarea trece la **Arhivate**. Vezi [Arhivarea și ștergerea](#arhivarea-și-ștergerea).
+- **Reactivează…**, la o evaluare arhivată: după ce confirmi, o aduci înapoi la **Active**.
+- **Șterge…**, doar pentru o evaluare pe care nu o folosește niciun client.
+
+Două evaluări nu pot avea același nume, nici când una e arhivată: deosebește-le prin nume, de exemplu „Lucrător de birou – contabilitate”.
 
 ### O evaluare nouă
 
@@ -96,7 +103,7 @@ Pagina unei evaluări din bibliotecă are aceleași carduri ca o fișă: **Rezul
 - **Termenele și responsabilii** din plan sunt valori implicite: se copiază în fișă și le schimbi acolo pentru fiecare client.
 - Ce schimbi aici nu ajunge în fișele în care ai aplicat deja evaluarea.
 
-Sus ai **Redenumește…**, **Arhivează** sau **Reactivează** și, pentru o evaluare nefolosită, **Șterge evaluarea…**.
+Sus ai **Redenumește…**, **Arhivează…** sau **Reactivează…** și, pentru o evaluare nefolosită, **Șterge…**. Arhivarea și reactivarea îți cer confirmarea, ca în listă.
 
 ### Unde este folosită o evaluare
 
@@ -119,9 +126,9 @@ Fișa primește o copie, nu o legătură. Ce schimbi apoi în fișă nu ajunge �
 
 ## Arhivarea și ștergerea
 
-O evaluare pe care nu o mai aplici o arhivezi. Arhivată, nu mai apare în **Aplică din bibliotecă**, dar își păstrează pagina, factorii și lista clienților care o folosesc. Fișele în care ai aplicat-o își păstrează factorii, pentru că au copiile lor. **Reactivează** o aduce înapoi.
+O evaluare pe care nu o mai aplici o arhivezi cu **Arhivează…**, din listă sau de pe pagina ei; fereastra care se deschide îți spune ce se schimbă și arhivează evaluarea doar după ce confirmi. Arhivată, nu mai apare în **Aplică din bibliotecă**, iar la importul unei documentații nu mai e propusă ca evaluare asemănătoare. Își păstrează pagina, factorii și lista clienților care o folosesc. Fișele în care ai aplicat-o își păstrează factorii, pentru că au copiile lor, așa că o poți arhiva și când e folosită. **Reactivează…** o aduce înapoi.
 
-Doar o evaluare pe care nu o folosește niciun client se poate șterge: pentru una folosită, meniul nu are **Șterge**, ci doar **Arhivează**. La fel, o evaluare folosită doar la clienți sau posturi arhivate nu se poate șterge. Un singur factor al unei evaluări folosite se poate șterge oricând; fișele își păstrează copia lui.
+Doar o evaluare pe care nu o folosește niciun client se poate șterge: pentru una folosită, meniul nu are **Șterge…**, ci doar **Arhivează…**. La fel, o evaluare folosită doar la clienți sau posturi arhivate nu se poate șterge. Un singur factor al unei evaluări folosite se poate șterge oricând; fișele își păstrează copia lui.
 
 ## Fișa de evaluare a unui client
 

@@ -28,13 +28,13 @@ import { useState } from 'react';
 
 import {
   type ApiErrorResponse,
-  getListInstructionModulesQueryKey,
+  getListInstructionModuleChoicesQueryKey,
   getListJobPositionsQueryKey,
   getListPositionInstructionsQueryKey,
   useApplyPositionInstructions,
   useCopyPositionInstructions,
   useDecidePositionInstructions,
-  useListInstructionModules,
+  useListInstructionModuleChoices,
   useListJobPositions,
   useListPositionInstructions,
 } from '@/api/generated/api';
@@ -418,10 +418,13 @@ function PickInstructionsDialog({
   const savedToast = useSavedToast();
   const words = domainCopy[domain];
   const testId = (suffix: string) => `${words.testId}-${suffix}`;
-  const params = { archived: 'false' as const, domain };
-  const modules = useListInstructionModules(params, {
+  const params = { domain };
+  const modules = useListInstructionModuleChoices(params, {
     request: apiRequest,
-    query: { queryKey: [...getListInstructionModulesQueryKey(params), userId], enabled: open },
+    query: {
+      queryKey: [...getListInstructionModuleChoicesQueryKey(params), userId],
+      enabled: open,
+    },
   });
   const apply = useApplyPositionInstructions({ request: apiRequest });
   const [chosen, setChosen] = useState<Set<string> | null>(null);

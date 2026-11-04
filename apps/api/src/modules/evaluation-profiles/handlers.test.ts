@@ -1,6 +1,7 @@
 import {
   apiErrorResponseSchema,
   applyEvaluationProfileResponseSchema,
+  evaluationProfileChoicesResponseSchema,
   evaluationProfileListResponseSchema,
   evaluationProfileResponseSchema,
   evaluationProfileUsageResponseSchema,
@@ -230,6 +231,9 @@ beforeEach(() => {
 
 afterEach(() => vi.unstubAllGlobals());
 
+const listQuery = (index = 0) =>
+  new URL(String(calls('evaluation_profile_list', 'GET')[index]![0])).searchParams;
+
 describe('GET /evaluation-profiles', () => {
   const summary = (
     id: string,
@@ -247,22 +251,25 @@ describe('GET /evaluation-profiles', () => {
     evaluation_profile_factors: factors,
   });
 
-  it('lists the active library by name, with counts, global levels and usage', async () => {
+  it('lists a page of the active library by name, with counts, global levels and usage', async () => {
     mockUpstream({
       list: () =>
-        Response.json([
-          summary(otherProfileId, 'Șofer', { clientCount: 0, inUse: true }, []),
-          summary(profileId, 'Lucrător de birou', { clientCount: 3, inUse: true }, [
-            { gravity_class: 5, probability_class: 2 },
-            { gravity_class: 2, probability_class: 4 },
-          ]),
-        ]),
+        Response.json(
+          [
+            summary(profileId, 'Lucrător de birou', { clientCount: 3, inUse: true }, [
+              { gravity_class: 5, probability_class: 2 },
+              { gravity_class: 2, probability_class: 4 },
+            ]),
+            summary(otherProfileId, 'Șofer', { clientCount: 0, inUse: true }, []),
+          ],
+          { headers: { 'Content-Range': '0-1/2' } }
+        ),
     });
     const response = await request('/evaluation-profiles');
     expect(response.status).toBe(200);
-    const { items } = evaluationProfileListResponseSchema.parse(await response.json());
+    const listed = evaluationProfileListResponseSchema.parse(await response.json());
     expect(
-      items.map((item) => [
+      listed.items.map((item) => [
         item.name,
         item.factorCount,
         item.unacceptableFactorCount,
@@ -275,9 +282,12 @@ describe('GET /evaluation-profiles', () => {
       ['Lucrător de birou', 2, 1, 3.33, 3, true, null],
       ['Șofer', 0, 0, null, 0, true, null],
     ]);
-    const [read] = calls('evaluation_profile_list', 'GET');
-    const params = new URL(String(read![0])).searchParams;
-    expect(params.get('archived_at')).toBe('is.null');
+    expect(listed).toMatchObject({ page: 1, pageSize: 25, total: 2 });
+    const query = listQuery();
+    expect(query.get('archived_at')).toBe('is.null');
+    expect(query.get('order')).toBe('name.asc,id.asc');
+    expect(query.get('offset')).toBe('0');
+    expect(query.get('limit')).toBe('25');
     expect(calls('risk_factors', 'GET')).toHaveLength(0);
   });
 
@@ -293,12 +303,102 @@ describe('GET /evaluation-profiles', () => {
           ),
         ]),
     });
-    const response = await request('/evaluation-profiles?archived=true');
+    const response = await request('/evaluation-profiles?status=archived');
     expect(response.status).toBe(200);
     const { items } = evaluationProfileListResponseSchema.parse(await response.json());
     expect(items.map((item) => item.archivedAt)).toEqual([stamp]);
-    const [read] = calls('evaluation_profile_list', 'GET');
-    expect(new URL(String(read![0])).searchParams.get('archived_at')).toBe('not.is.null');
+    expect(listQuery().get('archived_at')).toBe('not.is.null');
+  });
+
+  it.each([
+    ['factorCount', 'desc', 'factor_count.desc,name.desc,id.asc'],
+    ['clientCount', 'asc', 'client_count.asc,name.asc,id.asc'],
+    ['updatedAt', 'desc', 'updated_at.desc,id.asc'],
+    ['name', 'desc', 'name.desc,id.asc'],
+  ])('sorts by %s %s in the database', async (sort, order, expected) => {
+    mockUpstream({ list: () => Response.json([]) });
+    const response = await request(`/evaluation-profiles?sort=${sort}&order=${order}`);
+    expect(response.status).toBe(200);
+    expect(listQuery().get('order')).toBe(expected);
+  });
+
+  it('asks the database for the page wanted', async () => {
+    mockUpstream({
+      list: () =>
+        Response.json([summary(profileId, 'Sudor', { clientCount: 0, inUse: false }, [])], {
+          headers: { 'Content-Range': '10-10/11' },
+        }),
+    });
+    const listed = evaluationProfileListResponseSchema.parse(
+      await (await request('/evaluation-profiles?page=3&pageSize=5')).json()
+    );
+    expect(listed).toMatchObject({ page: 3, pageSize: 5, total: 11 });
+    expect(listQuery().get('offset')).toBe('10');
+    expect(listQuery().get('limit')).toBe('5');
+  });
+
+  it('answers a page past the end with no profiles and the real total', async () => {
+    mockUpstream({
+      list: (_init, url) =>
+        url.searchParams.get('offset') === '25'
+          ? Response.json(
+              { code: 'PGRST103', message: 'Requested range not satisfiable' },
+              { status: 416 }
+            )
+          : Response.json([summary(profileId, 'Sudor', { clientCount: 0, inUse: false }, [])], {
+              headers: { 'Content-Range': '0-0/3' },
+            }),
+    });
+    const response = await request('/evaluation-profiles?page=2');
+    expect(response.status).toBe(200);
+    expect(evaluationProfileListResponseSchema.parse(await response.json())).toEqual({
+      items: [],
+      page: 2,
+      pageSize: 25,
+      total: 3,
+    });
+  });
+
+  it('refuses a sort by a level the database cannot order, or a page too large', async () => {
+    mockUpstream();
+    expect((await request('/evaluation-profiles?sort=globalRiskLevel')).status).toBe(400);
+    expect((await request('/evaluation-profiles?sort=unacceptableFactorCount')).status).toBe(400);
+    expect((await request('/evaluation-profiles?pageSize=101')).status).toBe(400);
+    expect(calls('evaluation_profile_list', 'GET')).toHaveLength(0);
+  });
+});
+
+describe('GET /evaluation-profiles/choices', () => {
+  it('lists every active profile with factors, unpaged, by name, with its totals', async () => {
+    mockUpstream({
+      list: () =>
+        Response.json([
+          {
+            id: profileId,
+            name: 'Lucrător de birou',
+            evaluation_profile_factors: [
+              { gravity_class: 5, probability_class: 2 },
+              { gravity_class: 2, probability_class: 4 },
+            ],
+          },
+        ]),
+    });
+    const response = await request('/evaluation-profiles/choices');
+    expect(response.status).toBe(200);
+    expect(evaluationProfileChoicesResponseSchema.parse(await response.json()).items).toEqual([
+      {
+        id: profileId,
+        name: 'Lucrător de birou',
+        globalRiskLevel: 3.33,
+        factorCount: 2,
+        unacceptableFactorCount: 1,
+      },
+    ]);
+    const query = listQuery();
+    expect(query.get('archived_at')).toBe('is.null');
+    expect(query.get('factor_count')).toBe('gt.0');
+    expect(query.get('order')).toBe('name.asc,id.asc');
+    expect(query.get('limit')).toBeNull();
   });
 });
 

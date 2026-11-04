@@ -38,6 +38,7 @@ import {
   useListTrainings,
 } from '@/api/generated/api';
 import { EmptyState } from '@/components/empty-state';
+import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
 import { formatDate } from '@/features/employees/employee-format';
@@ -114,32 +115,23 @@ export function ClientTrainingsPage() {
         )}
       </div>
       <div className="overflow-hidden rounded-lg border bg-card">
-        <div className="flex flex-wrap items-center gap-3 border-b px-5 py-3">
-          <nav aria-label="Filtrează după domeniu" className="flex gap-1">
-            {domainFilters.map((filter) => {
-              const active = filter.domain === domain;
-              return (
-                <Link
-                  key={filter.label}
-                  to="/clienti/$clientId/instruiri-tinute"
-                  params={{ clientId }}
-                  search={{ ...(filter.domain ? { domain: filter.domain } : {}), phase }}
-                  data-testid="trainings-filter-domain"
-                  data-domain={filter.domain ?? 'all'}
-                  aria-current={active ? 'page' : undefined}
-                  replace
-                  className={cn(
-                    'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-                    active
-                      ? 'bg-secondary text-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  {filter.label}
-                </Link>
-              );
-            })}
-          </nav>
+        <ListCardHeader>
+          <FilterTabs label="Filtrează după domeniu">
+            {domainFilters.map((filter) => (
+              <FilterTab
+                key={filter.label}
+                to="/clienti/$clientId/instruiri-tinute"
+                params={{ clientId }}
+                search={{ ...(filter.domain ? { domain: filter.domain } : {}), phase }}
+                data-testid="trainings-filter-domain"
+                data-domain={filter.domain ?? 'all'}
+                active={filter.domain === domain}
+                replace
+              >
+                {filter.label}
+              </FilterTab>
+            ))}
+          </FilterTabs>
           <NativeSelect
             aria-label="Tipul instruirii"
             data-testid="trainings-filter-phase"
@@ -163,11 +155,11 @@ export function ClientTrainingsPage() {
             ))}
           </NativeSelect>
           {trainings.isSuccess && (
-            <span className="ml-auto text-sm text-muted-foreground" data-testid="trainings-count">
+            <ListCount testId="trainings-count">
               {items.length === 1 ? '1 instruire' : `${items.length} instruiri`}
-            </span>
+            </ListCount>
           )}
-        </div>
+        </ListCardHeader>
         {trainings.isError ? (
           <div className="p-5">
             <Notice

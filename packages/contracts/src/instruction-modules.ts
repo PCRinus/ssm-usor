@@ -6,6 +6,7 @@ import {
   type InstructionCategory,
   instructionCategorySchema,
 } from './instruction-body';
+import { listQuerySchema, pageSchema } from './list';
 
 // The organization's own instructions, each a body of headings and articles that the own
 // instructions document annexes (ADR 012, ADR 034).
@@ -57,20 +58,54 @@ export const instructionModuleSchema = z.object({
 
 export type InstructionModule = z.infer<typeof instructionModuleSchema>;
 
-export const instructionModuleListQuerySchema = z.object({
-  // Archived modules leave the list unless asked for.
-  archived: z.enum(['true', 'false']).default('false'),
+// Column ids of the library table. `version` sorts by when the current version was saved.
+export const instructionModuleSortKeys = ['title', 'group', 'version', 'appliedCount'] as const;
+
+export type InstructionModuleSortKey = (typeof instructionModuleSortKeys)[number];
+
+export const instructionModuleListStatuses = ['active', 'archived'] as const;
+
+export type InstructionModuleListStatus = (typeof instructionModuleListStatuses)[number];
+
+export const instructionModuleListQuerySchema = listQuerySchema(
+  instructionModuleSortKeys,
+  'title'
+).extend({
+  status: z.enum(instructionModuleListStatuses).default('active'),
   // Left out, both domains.
   domain: instructionDomainSchema.optional(),
 });
 
 export type InstructionModuleListQuery = z.infer<typeof instructionModuleListQuerySchema>;
 
-export const instructionModuleListResponseSchema = z.object({
-  items: z.array(instructionModuleSchema),
-});
+export const instructionModuleListResponseSchema = pageSchema(instructionModuleSchema);
 
 export type InstructionModuleListResponse = z.infer<typeof instructionModuleListResponseSchema>;
+
+export const instructionModuleChoiceSchema = instructionModuleSchema.pick({
+  id: true,
+  title: true,
+  group: true,
+  domain: true,
+});
+
+export type InstructionModuleChoice = z.infer<typeof instructionModuleChoiceSchema>;
+
+export const instructionModuleChoicesQuerySchema = z.object({
+  // Left out, both domains.
+  domain: instructionDomainSchema.optional(),
+});
+
+export type InstructionModuleChoicesQuery = z.infer<typeof instructionModuleChoicesQuerySchema>;
+
+// Every active module, unpaged: a picker that offers a page of the library would hide the rest.
+export const instructionModuleChoicesResponseSchema = z.object({
+  items: z.array(instructionModuleChoiceSchema),
+});
+
+export type InstructionModuleChoicesResponse = z.infer<
+  typeof instructionModuleChoicesResponseSchema
+>;
 
 export const instructionModuleResponseSchema = z.object({
   module: instructionModuleSchema,

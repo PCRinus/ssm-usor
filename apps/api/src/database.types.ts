@@ -3105,6 +3105,13 @@ export type Database = {
             foreignKeyName: 'instruction_module_versions_module_in_organization';
             columns: ['module_id', 'organization_id'];
             isOneToOne: false;
+            referencedRelation: 'instruction_module_list';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'instruction_module_versions_module_in_organization';
+            columns: ['module_id', 'organization_id'];
+            isOneToOne: false;
             referencedRelation: 'instruction_modules';
             referencedColumns: ['id', 'organization_id'];
           },
@@ -3343,6 +3350,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'clients_missing_basic_data';
             referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'job_position_instructions_module_in_organization';
+            columns: ['module_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'instruction_module_list';
+            referencedColumns: ['id', 'organization_id'];
           },
           {
             foreignKeyName: 'job_position_instructions_module_in_organization';
@@ -6854,6 +6868,7 @@ export type Database = {
           client_count: number | null;
           created_at: string | null;
           exposure: string | null;
+          factor_count: number | null;
           id: string | null;
           in_use: boolean | null;
           means_of_production: string | null;
@@ -6872,6 +6887,40 @@ export type Database = {
           },
           {
             foreignKeyName: 'evaluation_profiles_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      instruction_module_list: {
+        Row: {
+          applied_count: number | null;
+          archived_at: string | null;
+          created_at: string | null;
+          domain: Database['public']['Enums']['instruction_domain'] | null;
+          id: string | null;
+          module_group: Database['public']['Enums']['instruction_module_group'] | null;
+          organization_id: string | null;
+          title: string | null;
+          updated_at: string | null;
+          version_article_count: number | null;
+          version_created_at: string | null;
+          version_id: string | null;
+          version_number: number | null;
+          version_text_hash: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'instruction_modules_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'instruction_modules_organization_id_fkey';
             columns: ['organization_id'];
             isOneToOne: false;
             referencedRelation: 'organizations';

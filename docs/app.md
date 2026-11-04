@@ -212,7 +212,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/instructiuni/nou.tsx`                                          | `/instructiuni/nou`                                    | A new module's form, from "Scrie o instrucțiune": title, domain, category and an optional module to copy in the search; nothing stored before the first save.                                              |
 | `routes/_authenticated/instructiuni/$moduleId.tsx`                                    | `/instructiuni/:moduleId`                              | One module's form; `?version=` a version a document annexed, and an archived module, as the annex prints in the Word viewer, only to read.                                                                 |
 | `routes/_authenticated/evaluari-de-risc.tsx`                                          | `/evaluari-de-risc`                                    | Layout of the risk library (ADR 015, ADR 036), the sidebar entry "Evaluări de risc" after "Instrucțiuni proprii".                                                                                          |
-| `routes/_authenticated/evaluari-de-risc/index.tsx`                                    | `/evaluari-de-risc`                                    | The library "Evaluări de risc": the evaluation profiles by name with their counts, global level and "Folosită la"; "Evaluare nouă", "Arată arhiva", renaming, archiving, deleting an unused one.           |
+| `routes/_authenticated/evaluari-de-risc/index.tsx`                                    | `/evaluari-de-risc`                                    | The library "Evaluări de risc": the evaluation profiles in pages, with counts, global level and "Folosită la"; "Evaluare nouă", tabs Active and Arhivate, renaming, archiving, deleting an unused one.     |
 | `routes/_authenticated/evaluari-de-risc/$profileId.tsx`                               | `/evaluari-de-risc/:profileId`                         | One profile: its result, work system and factors, with the evaluation page's cards. Names the breadcrumb after the profile.                                                                                |
 | `routes/_authenticated/teste.tsx`                                                     | `/teste`                                               | Layout of the question bank (ADR 024), the sidebar entry "Teste" after "Evaluări de risc".                                                                                                                 |
 | `routes/_authenticated/teste/index.tsx`                                               | `/teste`                                               | Opens the SSM tab, `/teste/ssm`.                                                                                                                                                                           |
@@ -1211,15 +1211,18 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   is for. The page has one tab per domain (amendment of 2026-10-11), "IPSSM" at
   `/instructiuni/ssm` and "IPSU" at `/instructiuni/su`, the abbreviations the documents print,
   in the section navigation the client and organization pages use; `/instructiuni` opens the
-  SSM tab. A tab lists `GET /instruction-modules?domain=` by category and title, each module
-  with its version and its article count, and how many current positions apply it;
-  "Arată arhiva" lists the archived ones of the domain instead. The row menu corrects a
-  module's title, category and domain, and archives and restores it. There is no upload of Word
+  SSM tab. A tab lists `GET /instruction-modules?domain=` on the shared data table, in pages
+  sorted by title, category, version date or applied count, each module with its version, its
+  article count and date, and how many current positions apply it; the tabs "Active" and
+  "Arhivate" over the table switch to the archived ones of the domain, page, sort and tab kept
+  in the search. The row menu's "Modifică detaliile…" corrects a module's title, category and
+  domain; "Arhivează…" and "Reactivează…" ask in a dialog first, which for a module positions
+  apply says how many and offers no archiving. There is no upload of Word
   files (ADR 034). "Scrie o instrucțiune" asks for a title (one the library has is refused
   before the form opens), the domain, the tab's by default, the category, among the domain's,
   and "Pornește de la": the guided template or an active module of the domain, whose category
-  it takes; it opens `/instructiuni/nou` with them in the search. "Titlu, categorie și
-  domeniu" changes them, its categories those of the chosen domain, and a changed domain moves
+  it takes; it opens `/instructiuni/nou` with them in the search. "Modifică detaliile…"
+  changes the title, category and domain, its categories those of the chosen domain, and a changed domain moves
   the module to the other tab with a category of that domain; the
   domain of a module a current position applies is shown read-only with how many positions
   apply it, and a `409` with `instruction_module_domain_applied` (a position applied it in the
@@ -1353,19 +1356,20 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
 - `/evaluari-de-risc`: the organization's risk library ([ADR 015](architecture/adr-015-risk-assessment.md)),
   in `src/features/evaluation-profiles/`, "Evaluări de risc" in the sidebar for owners and
   specialists alike; the interface calls a profile an "evaluare" of the library and a client's
-  evaluation its "fișă de evaluare" (ADR 036). The list, headed "Evaluări în uz" with its count,
-  shows `GET /evaluation-profiles` by name, each with its factors, the unacceptable ones, the
-  global level, red above 3,50, and "Folosită la", "3 clienți" or "—"; empty, it says that a
-  profile comes from "Salvează în bibliotecă" on an evaluation or from "Evaluare nouă". "Arată
-  arhiva" swaps it for "Evaluări arhivate" (`archived=true`) and back with "Arată evaluările în
-  uz", as on Instrucțiuni proprii. "Evaluare nouă" asks for a name, creates an empty profile and
-  opens it; the row menu renames, archives or reactivates, and offers "Șterge" only for a
-  profile no client uses (`inUse` false), after asking. A refused delete or archive shows the
-  reason above the list. The name dialog
+  evaluation its "fișă de evaluare" (ADR 036). The list is the shared data table over
+  `GET /evaluation-profiles`, its page, sort, order and status in the URL, under the tabs
+  "Active" and "Arhivate" with the count; each row has its factors, the unacceptable ones, the
+  global level, red above 3,50, and "Folosită la", "3 clienți" or "—", and only the name, the
+  factors, "Folosită la" and "Modificat" sort. Empty, it says that a profile comes from
+  "Salvează în bibliotecă" on an evaluation or from "Evaluare nouă". "Evaluare nouă" asks for a
+  name, creates an empty profile and opens it; the row menu has "Redenumește…" and "Arhivează…"
+  on an active profile, "Reactivează…" on an archived one, and "Șterge…" only for a profile no
+  client uses (`inUse` false). Archiving and reactivating ask first in
+  `profile-archive-dialog.tsx`, which the profile page shares. The name dialog
   (`profile-name-dialog.tsx`) is one component for starting, renaming and saving an
   evaluation as a profile.
-- `/evaluari-de-risc/:profileId`: the profile's name with "Redenumește…", "Arhivează" or
-  "Reactivează", and "Șterge evaluarea…" only while no client uses it, a line saying that
+- `/evaluari-de-risc/:profileId`: the profile's name with "Redenumește…", "Arhivează…" or
+  "Reactivează…", and "Șterge…" only while no client uses it, a line saying that
   changes do not reach the evaluations it was applied to, and for an archived profile a notice
   that it is out of "Aplică din bibliotecă"; then "Rezultatul evaluării", "Sistemul de muncă"
   and "Factori de risc" as on the evaluation page. The work-system card is the evaluation's own

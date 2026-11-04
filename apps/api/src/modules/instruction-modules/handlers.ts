@@ -7,6 +7,8 @@ import {
   type InstructionDomain,
   type InstructionModule,
   type InstructionModuleGroup,
+  type InstructionModuleSortKey,
+  pageRange,
   spacedBody,
   textHash,
   unfilledMark,
@@ -35,6 +37,7 @@ import type {
   downloadInstructionModuleRoute,
   getInstructionModuleRoute,
   getInstructionModuleVersionRoute,
+  listInstructionModuleChoicesRoute,
   listInstructionModulesRoute,
   listPositionInstructionsRoute,
   previewInstructionRoute,
@@ -52,14 +55,17 @@ type VersionRow = Pick<
   'id' | 'number' | 'text_hash' | 'article_count' | 'created_at'
 >;
 
-type ModuleRow = Pick<
-  Database['public']['Tables']['instruction_modules']['Row'],
-  'id' | 'title' | 'module_group' | 'domain' | 'archived_at' | 'created_at' | 'updated_at'
-> & { instruction_module_versions: VersionRow[] };
+type ListRow = Database['public']['Views']['instruction_module_list']['Row'];
+
+// A view's columns are all nullable to the type generator; of these only archived_at can be.
+type ModuleRow = {
+  [Column in Exclude<keyof ListRow, 'archived_at'>]: NonNullable<ListRow[Column]>;
+} & Pick<ListRow, 'archived_at'>;
 
 const versionColumns = 'id, number, text_hash, article_count, created_at';
 
-const moduleColumns = `id, title, module_group, domain, archived_at, created_at, updated_at, instruction_module_versions(${versionColumns})`;
+const moduleColumns =
+  'id, title, module_group, domain, archived_at, created_at, updated_at, version_id, version_number, version_text_hash, version_article_count, version_created_at, applied_count';
 
 const collator = new Intl.Collator('ro');
 
@@ -70,11 +76,6 @@ export const byGroupAndTitle = <T extends { group: InstructionModuleGroup; title
   instructionCategories.indexOf(a.group) - instructionCategories.indexOf(b.group) ||
   collator.compare(a.title, b.title);
 
-const domainOrder: Record<InstructionDomain, number> = { ssm: 0, su: 1 };
-
-const byDomainGroupAndTitle = (a: InstructionModule, b: InstructionModule) =>
-  domainOrder[a.domain] - domainOrder[b.domain] || byGroupAndTitle(a, b);
-
 const toVersion = (version: VersionRow) => ({
   id: version.id,
   number: version.number,
@@ -83,17 +84,21 @@ const toVersion = (version: VersionRow) => ({
   createdAt: version.created_at,
 });
 
-function toModule(row: ModuleRow, appliedCount: number): InstructionModule {
-  const version = row.instruction_module_versions[0];
-  if (!version) throw new ApiError('not_found', 'This module has no text yet.');
+function toModule(row: ModuleRow): InstructionModule {
   return {
     id: row.id,
     title: row.title,
     group: row.module_group,
     domain: row.domain,
     archivedAt: row.archived_at,
-    version: toVersion(version),
-    appliedCount,
+    version: {
+      id: row.version_id,
+      number: row.version_number,
+      textHash: row.version_text_hash,
+      articleCount: row.version_article_count,
+      createdAt: row.version_created_at,
+    },
+    appliedCount: row.applied_count,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -128,34 +133,26 @@ const categoryOfOtherDomain = () =>
     'instruction_module_category_domain'
   );
 
-function moduleQuery(db: DataClient) {
-  return db
-    .from('instruction_modules')
-    .select(moduleColumns)
-    .order('number', { referencedTable: 'instruction_module_versions', ascending: false })
-    .limit(1, { referencedTable: 'instruction_module_versions' });
-}
+// The enum's order is the categories' order; the title breaks ties within one.
+const sortColumns: Record<InstructionModuleSortKey, string[]> = {
+  title: ['title'],
+  group: ['module_group', 'title'],
+  version: ['version_created_at'],
+  appliedCount: ['applied_count'],
+};
 
-/** Per module, how many current positions apply it, across the organization's clients. */
-async function appliedCounts(db: DataClient, moduleIds?: string[]) {
-  let query = db
-    .from('job_position_instructions')
-    .select('module_id, job_positions!inner(archived_at)')
-    .is('job_positions.archived_at', null);
-  if (moduleIds) query = query.in('module_id', moduleIds);
-  const { data, error } = await query.returns<{ module_id: string }[]>();
-  if (error) throw fromDatabaseError(error, 'count applied instructions');
-  const counts = new Map<string, number>();
-  for (const row of data) counts.set(row.module_id, (counts.get(row.module_id) ?? 0) + 1);
-  return counts;
+function moduleQuery(db: DataClient) {
+  return db.from('instruction_module_list').select(moduleColumns);
 }
 
 async function readModule(db: DataClient, moduleId: string) {
-  const { data, error } = await moduleQuery(db).eq('id', moduleId).maybeSingle();
+  const { data, error } = await moduleQuery(db)
+    .eq('id', moduleId)
+    .returns<ModuleRow[]>()
+    .maybeSingle();
   if (error) throw fromDatabaseError(error, 'read instruction module');
   if (!data) throw noSuchModule();
-  const counts = await appliedCounts(db, [moduleId]);
-  return toModule(data, counts.get(moduleId) ?? 0);
+  return toModule(data);
 }
 
 async function readVersion(db: DataClient, moduleId: string, versionId: string) {
@@ -246,20 +243,59 @@ export const listInstructionModules: RouteHandler<
   typeof listInstructionModulesRoute,
   ApiEnv
 > = async (c) => {
-  const { archived, domain } = c.req.valid('query');
+  const { page, pageSize, sort, order, status, domain } = c.req.valid('query');
   const db = createDataClient(c);
-  let query = moduleQuery(db);
-  query =
-    archived === 'true' ? query.not('archived_at', 'is', null) : query.is('archived_at', null);
-  if (domain) query = query.eq('domain', domain);
-  const { data, error } = await query;
+  const listed = () => {
+    const query = db
+      .from('instruction_module_list')
+      .select(moduleColumns, { count: 'exact' })
+      .filter('archived_at', status === 'archived' ? 'not.is' : 'is', null);
+    return domain ? query.eq('domain', domain) : query;
+  };
+  let query = listed();
+  for (const column of sortColumns[sort]) {
+    query = query.order(column, { ascending: order === 'asc' });
+  }
+  const { from, to } = pageRange(page, pageSize);
+  const { data, error, count } = await query.order('id').range(from, to).returns<ModuleRow[]>();
+  if (error?.code === 'PGRST103') {
+    // The page lies past the end: empty, with the real total.
+    const recount = await listed().range(0, 0);
+    if (recount.error) throw fromDatabaseError(recount.error, 'count instruction modules');
+    return c.json({ items: [], page, pageSize, total: recount.count ?? 0 }, 200);
+  }
   if (error) throw fromDatabaseError(error, 'list instruction modules');
-  const counts = await appliedCounts(db);
-  const items = data
-    .filter((row) => row.instruction_module_versions.length > 0)
-    .map((row) => toModule(row, counts.get(row.id) ?? 0))
-    .sort(byDomainGroupAndTitle);
-  return c.json({ items }, 200);
+  return c.json({ items: data.map(toModule), page, pageSize, total: count ?? 0 }, 200);
+};
+
+export const listInstructionModuleChoices: RouteHandler<
+  typeof listInstructionModuleChoicesRoute,
+  ApiEnv
+> = async (c) => {
+  const { domain } = c.req.valid('query');
+  let query = createDataClient(c)
+    .from('instruction_module_list')
+    .select('id, title, module_group, domain')
+    .is('archived_at', null);
+  if (domain) query = query.eq('domain', domain);
+  const { data, error } = await query
+    .order('domain')
+    .order('module_group')
+    .order('title')
+    .order('id')
+    .returns<Pick<ModuleRow, 'id' | 'title' | 'module_group' | 'domain'>[]>();
+  if (error) throw fromDatabaseError(error, 'list instruction module choices');
+  return c.json(
+    {
+      items: data.map((row) => ({
+        id: row.id,
+        title: row.title,
+        group: row.module_group,
+        domain: row.domain,
+      })),
+    },
+    200
+  );
 };
 
 export const createInstructionModule: RouteHandler<

@@ -5,6 +5,7 @@ import {
   createEvaluationProfileFactor,
   getEvaluationProfile,
   getEvaluationProfileUsage,
+  listEvaluationProfileChoices,
   listEvaluationProfiles,
   removeEvaluationProfile,
   removeEvaluationProfileFactor,
@@ -18,6 +19,7 @@ import {
   createEvaluationProfileRoute,
   getEvaluationProfileRoute,
   getEvaluationProfileUsageRoute,
+  listEvaluationProfileChoicesRoute,
   listEvaluationProfilesRoute,
   removeEvaluationProfileFactorRoute,
   removeEvaluationProfileRoute,
@@ -29,6 +31,8 @@ import {
 export const evaluationProfilesRouter = createRouter()
   .openapi(listEvaluationProfilesRoute, listEvaluationProfiles)
   .openapi(createEvaluationProfileRoute, createEvaluationProfile)
+  // Before the routes of one profile: `choices` is not a profile id.
+  .openapi(listEvaluationProfileChoicesRoute, listEvaluationProfileChoices)
   .openapi(getEvaluationProfileRoute, getEvaluationProfile)
   .openapi(getEvaluationProfileUsageRoute, getEvaluationProfileUsage)
   .openapi(updateEvaluationProfileRoute, updateEvaluationProfile)

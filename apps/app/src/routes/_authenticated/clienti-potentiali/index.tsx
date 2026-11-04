@@ -1,4 +1,4 @@
-import { clientListStatuses, sortOrderSchema } from '@ssm-usor/contracts';
+import { sortOrderSchema } from '@ssm-usor/contracts';
 import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
 
@@ -10,7 +10,7 @@ const searchSchema = z.object({
   page: z.number().int().min(1).optional().catch(undefined),
   sort: z.enum(leadSortKeys).optional().catch(undefined),
   order: sortOrderSchema.optional().catch(undefined),
-  status: z.enum(clientListStatuses).optional().catch(undefined),
+  status: z.literal('archived').optional().catch(undefined),
 });
 
 export const Route = createFileRoute('/_authenticated/clienti-potentiali/')({

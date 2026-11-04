@@ -1,5 +1,5 @@
 begin;
-select plan(64);
+select plan(66);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -76,6 +76,12 @@ select lives_ok(
   $$ insert into public.evaluation_profiles (id, organization_id, name)
      values ('a1a1a1a1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'Lucrător în atelier') $$,
   'a specialist starts a profile in the library'
+);
+
+select is(
+  (select factor_count from public.evaluation_profile_list where name = 'Lucrător în atelier'),
+  0,
+  'a profile without factors lists none'
 );
 
 select throws_ok(
@@ -374,6 +380,19 @@ select results_eq(
        ('Profil vechi', 1, true),
        ('Sudor', 0, true) $$,
   'the list counts the clients using each profile, archived clients but not archived posts, and says whether any factor points at it'
+);
+
+select results_eq(
+  $$ select name, factor_count from public.evaluation_profile_list
+     where name in ('Lucrător de birou', 'Birou extins', 'Profil vechi', 'Sudor', 'Lucrător în atelier')
+     order by name $$,
+  $$ values
+       ('Birou extins', 3),
+       ('Lucrător de birou', 2),
+       ('Lucrător în atelier', 2),
+       ('Profil vechi', 1),
+       ('Sudor', 1) $$,
+  'the list counts the factors of each profile'
 );
 
 select throws_ok(

@@ -205,7 +205,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `DELETE …/job-positions/{jobPositionId}/equipment/{entryId}`           | Verified user with a membership       | `204`                                                                                                                                                                                              |
 | `PATCH …/job-positions/{jobPositionId}/protective-equipment`           | Verified user with a membership       | `{ "jobPosition": { … } }` after saying the post needs none (`false`) or taking that back (`null`)                                                                                                 |
 | `GET /equipment-suggestions`                                           | Verified user with a membership       | `{ "items": [ … ] }`, risks or items typed before; `?field=risk                                                                                                                                    | item&query=` |
-| `GET /instruction-modules`                                             | Verified user with a membership       | `{ "items": [ … ] }`, by domain, category and title; `?archived=true` lists the archived ones instead; `?domain=`                                                                                  |
+| `GET /instruction-modules`                                             | Verified user with a membership       | `{ "items", "page", "pageSize", "total" }`, a page of the library; `?status=archived` lists the archived ones instead; `?domain=`                                                                  |
+| `GET /instruction-modules/choices`                                     | Verified user with a membership       | `{ "items": [ … ] }`, unpaged, every active module by domain, category and title, for the pickers; `?domain=`                                                                                      |
 | `POST /instruction-modules`                                            | Verified user with a membership       | `201 { "module": { … }, "body": { … } }`, created with its first version                                                                                                                           |
 | `POST /instruction-modules/preview`                                    | Verified user with a membership       | The annex a posted title, domain and body would print, as a `.docx`; nothing stored                                                                                                                |
 | `GET /instruction-modules/{moduleId}`                                  | Verified user with a membership       | `{ "module": { … }, "body": { … } }`, with its current body                                                                                                                                        |
@@ -232,7 +233,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /risk-factor-suggestions`                                         | Verified user with a membership       | `{ "items": [ … ] }`, groups, plan fields or observations typed before; `?field=&query=`                                                                                                           |
 | `POST …/risk-evaluations/{evaluationId}/save-as-profile`               | Verified user with a membership       | `201 { "profile": { … } }`, a new profile of the library with copies of the evaluation's factors                                                                                                   |
 | `POST …/risk-evaluations/{evaluationId}/factors/apply-profile`         | Verified user with a membership       | `{ "evaluation": { … }, "addedFactorCount" }` after adding copies of a profile's factors                                                                                                           |
-| `GET /evaluation-profiles`                                             | Verified user with a membership       | `{ "items": [ … ] }`, the risk library by name, with counts, global levels and usage; `archived=true` lists the archive                                                                            |
+| `GET /evaluation-profiles`                                             | Verified user with a membership       | `{ "items", "page", "pageSize", "total" }`, a page of the risk library with counts, global levels and usage; `status=archived` lists the archive                                                   |
+| `GET /evaluation-profiles/choices`                                     | Verified user with a membership       | `{ "items": [ … ] }`, unpaged, every active profile with factors, for "Aplică din bibliotecă"                                                                                                      |
 | `POST /evaluation-profiles`                                            | Verified user with a membership       | `201 { "profile": { … } }`, an empty profile by `name`                                                                                                                                             |
 | `GET /evaluation-profiles/{profileId}`                                 | Verified user with a membership       | `{ "profile": { … } }` with its work-system texts, factors, measures, levels and global level                                                                                                      |
 | `PATCH /evaluation-profiles/{profileId}`                               | Verified user with a membership       | `{ "profile": { … } }` after renaming, archiving or restoring it, or changing its work-system texts                                                                                                |
@@ -588,11 +590,16 @@ Each module has a `domain`, `ssm` or `su` (ADR 012's amendment of 2026-10-11): w
 instructions annex it, 3.2 or 2.1, and a category (`group`) of that domain: `work_activity`,
 `work_equipment` or `protective_equipment` for `ssm`, `premises_activity`,
 `installation_equipment` or `hazardous_work` for `su`; a category of the other domain answers
-`400` with the reason `instruction_module_category_domain`. `GET /instruction-modules` lists the
-modules in use by domain, category and title, each with its current version (`number`,
-`textHash`, `articleCount`, the article blocks of its body, which the training themes cite) and
-`appliedCount`, how many current positions across the organization's clients apply it;
-`?archived=true` lists the archived ones instead, and `?domain=` one domain's only.
+`400` with the reason `instruction_module_category_domain`. `GET /instruction-modules` lists a
+page of the modules in use, each with its current version (`number`, `textHash`, `articleCount`,
+the article blocks of its body, which the training themes cite) and `appliedCount`, how many
+current positions across the organization's clients apply it; `?status=archived` lists the
+archived ones instead, and `?domain=` one domain's only. It sorts by `title` (the default),
+`group` (the categories' order, then the title), `version` (when the current version was saved)
+or `appliedCount`, the id breaking ties. `GET /instruction-modules/choices` lists every active
+module unpaged, by domain, category and title, with only `id`, `title`, `group` and `domain`: the
+pickers of "Scrie o instrucțiune" and of a position's instructions read it, so a long library is
+never cut to a page.
 
 Bodies are `instructionBodySchema` of the contracts: `{ "blocks": [ … ] }`, each block `{ "kind":
 "heading", "text" }` or `{ "kind": "article", "paragraphs": [ … ] }`, every string one line, with 1
@@ -678,13 +685,17 @@ organization typed before, in its evaluations and in its risk library alike, as 
 suggestions do. A write under an archived client answers `409` with `client_archived`.
 
 The risk library is the organization's evaluation profiles, each a `name` and factors exactly
-like an evaluation's. `GET /evaluation-profiles` lists the active ones by name without their
+like an evaluation's. `GET /evaluation-profiles` lists a page of the active ones without their
 factors, each with `factorCount`, `unacceptableFactorCount`, `globalRiskLevel`, `clientCount`
 (the clients its usage lists, which leaves out archived posts) and `inUse` (whether any
-client's factor points at it, archived posts and clients included); `archived=true` lists only
-the archived ones. `GET /evaluation-profiles/{profileId}` reads one whole, as an evaluation is
-read, with `archivedAt`, `inUse` and the work-system texts `meansOfProduction`,
-`workEnvironment` and `exposure`, each null until written: a profile has no default exposure.
+client's factor points at it, archived posts and clients included); `status=archived` lists only
+the archived ones. It sorts by `name` (the default), `factorCount`, `clientCount` or
+`updatedAt`, the id breaking ties; not by the unacceptable count or the global level, which
+come from the method's grid in code. `GET /evaluation-profiles/choices` lists every active
+profile with factors, unpaged, by name, with its totals, for "Aplică din bibliotecă".
+`GET /evaluation-profiles/{profileId}` reads one whole, as an evaluation is read, with
+`archivedAt`, `inUse` and the work-system texts `meansOfProduction`, `workEnvironment` and
+`exposure`, each null until written: a profile has no default exposure.
 `POST /evaluation-profiles` starts an empty one by `name` and `PATCH` renames it (`name`),
 archives it (`archived: true`) or restores it (`archived: false`), or writes its texts, `null`
 clearing one; a name the library already holds, active or archived, ignoring case and the spaces

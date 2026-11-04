@@ -22,7 +22,10 @@ import { useEffect, useMemo } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 
-import { getListInstructionModulesQueryKey, useListInstructionModules } from '@/api/generated/api';
+import {
+  getListInstructionModuleChoicesQueryKey,
+  useListInstructionModuleChoices,
+} from '@/api/generated/api';
 import { Field } from '@/components/form-field';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 
@@ -93,10 +96,9 @@ function StartContent({
   onSubmit: (values: StartValues) => void;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
-  const params = { archived: 'false' as const };
-  const library = useListInstructionModules(params, {
+  const library = useListInstructionModuleChoices(undefined, {
     request: apiRequest,
-    query: { queryKey: [...getListInstructionModulesQueryKey(params), userId] },
+    query: { queryKey: [...getListInstructionModuleChoicesQueryKey(), userId] },
   });
   const form = useForm<StartForm>({
     resolver: zodResolver(startSchema),

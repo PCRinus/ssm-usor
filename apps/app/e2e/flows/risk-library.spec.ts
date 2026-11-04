@@ -168,6 +168,10 @@ test("a client's evaluated post becomes a profile that evaluates another client'
   await used.getByTestId('risk-profile-actions').click();
   await expect(page.getByTestId('risk-profile-remove')).toHaveCount(0);
   await page.getByTestId('risk-profile-archive').click();
+  await expect(page.getByTestId('risk-profile-archive-dialog')).toContainText(
+    'fișele clienților care o folosesc nu se schimbă'
+  );
+  await page.getByTestId('risk-profile-archive-confirm').click();
   await expect(page.getByText('„Lucrător în atelier” a fost arhivată.')).toBeVisible();
   await expect(page.getByTestId('risk-library-empty')).toBeVisible();
 
@@ -177,8 +181,8 @@ test("a client's evaluated post becomes a profile that evaluates another client'
   await page.keyboard.press('Escape');
 
   await page.goto('/evaluari-de-risc');
-  await page.getByTestId('risk-library-toggle-archived').click();
-  await expect(page.getByText('Evaluări arhivate')).toBeVisible();
+  await page.getByTestId('risk-library-filter-archived').click();
+  await expect(page).toHaveURL(/status=archived/);
   const archived = page.getByTestId('risk-profile-row').filter({ hasText: 'Lucrător în atelier' });
   await expect(archived.getByTestId('risk-profile-clients')).toHaveText('2 clienți');
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
@@ -187,6 +191,7 @@ test("a client's evaluated post becomes a profile that evaluates another client'
   await expect(page.getByTestId('risk-profile-usage-client')).toHaveCount(2);
   await expect(page.getByTestId('risk-profile-remove')).toHaveCount(0);
   await page.getByTestId('risk-profile-restore').click();
+  await page.getByTestId('risk-profile-archive-confirm').click();
   await expect(page.getByText('„Lucrător în atelier” a fost reactivată.')).toBeVisible();
   await expect(page.getByTestId('risk-profile-archived')).toHaveCount(0);
   await expect(page.getByTestId('risk-profile-archive')).toBeVisible();

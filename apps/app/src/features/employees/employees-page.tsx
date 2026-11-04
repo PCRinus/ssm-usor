@@ -1,8 +1,7 @@
 import { defaultPageSize, type EmployeeSortKey } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import { cn } from '@ssm-usor/ui/lib/utils';
 import { keepPreviousData } from '@tanstack/react-query';
-import { getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
+import { getRouteApi, useRouteContext } from '@tanstack/react-router';
 import { UserRound } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -10,6 +9,7 @@ import { getListEmployeesQueryKey, useListEmployees } from '@/api/generated/api'
 import { ApiHttpError } from '@/api/http';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
+import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
 import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
 import {
@@ -92,34 +92,25 @@ export function EmployeesPage() {
       <EmployeesImportedCard clientId={clientId} />
       {!readOnly && <OpenEmployeeImports clientId={clientId} />}
       <div className="overflow-hidden rounded-lg border bg-card">
-        <div className="flex flex-wrap items-center gap-3 border-b px-5 py-3">
-          <nav aria-label="Filtrează angajații" className="flex gap-1">
-            {filters.map((filter) => {
-              const active = filter.status === status;
-              return (
-                <Link
-                  key={filter.label}
-                  to="/clienti/$clientId/angajati"
-                  params={{ clientId }}
-                  search={{
-                    ...(filter.status ? { status: filter.status } : {}),
-                    q,
-                  }}
-                  data-testid={filter.testId}
-                  aria-current={active ? 'page' : undefined}
-                  replace
-                  className={cn(
-                    'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-                    active
-                      ? 'bg-secondary text-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  {filter.label}
-                </Link>
-              );
-            })}
-          </nav>
+        <ListCardHeader>
+          <FilterTabs label="Filtrează angajații">
+            {filters.map((filter) => (
+              <FilterTab
+                key={filter.label}
+                to="/clienti/$clientId/angajati"
+                params={{ clientId }}
+                search={{
+                  ...(filter.status ? { status: filter.status } : {}),
+                  q,
+                }}
+                data-testid={filter.testId}
+                active={filter.status === status}
+                replace
+              >
+                {filter.label}
+              </FilterTab>
+            ))}
+          </FilterTabs>
           <SearchInput
             value={q}
             onSearch={(next) =>
@@ -157,11 +148,11 @@ export function EmployeesPage() {
             </>
           )}
           {employees.isSuccess && (
-            <span className="ml-auto text-sm text-muted-foreground" data-testid="employees-count">
+            <ListCount testId="employees-count">
               {meta.total === 1 ? '1 angajat' : `${meta.total} angajați`}
-            </span>
+            </ListCount>
           )}
-        </div>
+        </ListCardHeader>
         <DataTable
           testId="employees-table"
           rowTestId="employees-row"

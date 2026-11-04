@@ -2,6 +2,7 @@ import { createRoute, z } from '@hono/zod-openapi';
 import {
   applyEvaluationProfileRequestSchema,
   applyEvaluationProfileResponseSchema,
+  evaluationProfileChoicesResponseSchema,
   evaluationProfileListQuerySchema,
   evaluationProfileListResponseSchema,
   evaluationProfileNameRequestSchema,
@@ -57,7 +58,7 @@ export const listEvaluationProfilesRoute = createRoute({
   operationId: 'listEvaluationProfiles',
   summary: "List the organization's evaluation profiles",
   description:
-    'The risk library (ADR 015) by name, each profile without its factors but with `factorCount`, `unacceptableFactorCount`, `globalRiskLevel`, `clientCount` (the clients its usage lists) and `inUse` (ADR 036). Archived profiles are left out unless `archived=true`, which lists only them.',
+    'A page of the risk library (ADR 015), each profile without its factors but with `factorCount`, `unacceptableFactorCount`, `globalRiskLevel`, `clientCount` (the clients its usage lists) and `inUse` (ADR 036). `status=active` (the default) lists the profiles in use, `status=archived` only the archived ones. Sorted by `name` by default, or by `factorCount`, `clientCount` (each then by name) or `updatedAt`; the id breaks ties so pages never overlap. The unacceptable count and the global level are not sort keys: they come from the method’s grid, which only code holds. A page past the end comes back empty with the real total.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { query: evaluationProfileListQuerySchema },
@@ -73,6 +74,30 @@ export const listEvaluationProfilesRoute = createRoute({
       },
     },
     400: { description: 'Invalid query', content: errorContent },
+    ...membershipErrors,
+  },
+});
+
+export const listEvaluationProfileChoicesRoute = createRoute({
+  method: 'get',
+  path: '/evaluation-profiles/choices',
+  operationId: 'listEvaluationProfileChoices',
+  summary: 'List every evaluation profile that can be applied',
+  description:
+    'The library’s active profiles with at least one factor, unpaged, for “Aplică din bibliotecă”: each with its name, `factorCount`, `unacceptableFactorCount` and `globalRiskLevel`, by name.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  responses: {
+    200: {
+      description: 'The profiles that can be applied',
+      content: {
+        'application/json': {
+          schema: evaluationProfileChoicesResponseSchema.meta({
+            id: 'EvaluationProfileChoicesResponse',
+          }),
+        },
+      },
+    },
     ...membershipErrors,
   },
 });

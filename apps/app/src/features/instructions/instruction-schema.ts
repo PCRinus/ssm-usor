@@ -4,6 +4,8 @@ import {
   instructionDomains,
   type InstructionModuleGroup,
   instructionModuleGroups,
+  instructionModuleSortKeys,
+  sortOrderSchema,
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
@@ -96,6 +98,15 @@ export const moduleFormSchema = z.object({
 });
 
 export type ModuleFormValues = z.infer<typeof moduleFormSchema>;
+
+export const librarySearchSchema = z.object({
+  page: z.number().int().min(1).optional().catch(undefined),
+  sort: z.enum(instructionModuleSortKeys).optional().catch(undefined),
+  order: sortOrderSchema.optional().catch(undefined),
+  status: z.literal('archived').optional().catch(undefined),
+});
+
+export type LibrarySearch = z.infer<typeof librarySearchSchema>;
 
 export function byGroup<T extends { group: InstructionModuleGroup }>(items: T[]) {
   return instructionModuleGroups

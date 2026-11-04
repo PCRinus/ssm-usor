@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { listQuerySchema, pageSchema } from './list';
 import {
   evaluatedJobPositionSchema,
   riskEvaluationKindSchema,
@@ -47,18 +48,53 @@ export const evaluationProfileSummarySchema = z.object({
 
 export type EvaluationProfileSummary = z.infer<typeof evaluationProfileSummarySchema>;
 
-export const evaluationProfileListQuerySchema = z.object({
-  // Archived profiles leave the list unless asked for.
-  archived: z.enum(['true', 'false']).default('false'),
+// Column ids of the library table. The unacceptable count and the global level are left out:
+// they come from the method's grid, which the database does not hold (ADR 015).
+export const evaluationProfileSortKeys = [
+  'name',
+  'factorCount',
+  'clientCount',
+  'updatedAt',
+] as const;
+
+export type EvaluationProfileSortKey = (typeof evaluationProfileSortKeys)[number];
+
+export const evaluationProfileListStatuses = ['active', 'archived'] as const;
+
+export type EvaluationProfileListStatus = (typeof evaluationProfileListStatuses)[number];
+
+export const evaluationProfileListQuerySchema = listQuerySchema(
+  evaluationProfileSortKeys,
+  'name'
+).extend({
+  status: z.enum(evaluationProfileListStatuses).default('active'),
 });
 
 export type EvaluationProfileListQuery = z.infer<typeof evaluationProfileListQuerySchema>;
 
-export const evaluationProfileListResponseSchema = z.object({
-  items: z.array(evaluationProfileSummarySchema),
-});
+export const evaluationProfileListResponseSchema = pageSchema(evaluationProfileSummarySchema);
 
 export type EvaluationProfileListResponse = z.infer<typeof evaluationProfileListResponseSchema>;
+
+export const evaluationProfileChoiceSchema = evaluationProfileSummarySchema.pick({
+  id: true,
+  name: true,
+  globalRiskLevel: true,
+  factorCount: true,
+  unacceptableFactorCount: true,
+});
+
+export type EvaluationProfileChoice = z.infer<typeof evaluationProfileChoiceSchema>;
+
+// Every profile that can be applied, unpaged: a picker that offers a page of the library would
+// hide the rest.
+export const evaluationProfileChoicesResponseSchema = z.object({
+  items: z.array(evaluationProfileChoiceSchema),
+});
+
+export type EvaluationProfileChoicesResponse = z.infer<
+  typeof evaluationProfileChoicesResponseSchema
+>;
 
 export const evaluationProfileResponseSchema = z.object({ profile: evaluationProfileSchema });
 

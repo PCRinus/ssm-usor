@@ -12,9 +12,9 @@ import { Link, useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import {
-  getListEvaluationProfilesQueryKey,
+  getListEvaluationProfileChoicesQueryKey,
   useApplyEvaluationProfile,
-  useListEvaluationProfiles,
+  useListEvaluationProfileChoices,
 } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
@@ -29,8 +29,6 @@ import { useEvaluationCache } from '@/features/risk-evaluations/use-evaluation-c
 import { GlobalLevel } from './global-level';
 import { isProfileArchived, profileTotalsLabel } from './profile-schema';
 import { useProfileCache } from './use-profile-cache';
-
-const activeOnly = { archived: 'false' } as const;
 
 function addedFactorsMessage(added: number, profileName: string) {
   if (added === 0) return `„${profileName}” nu mai are factori; fișa a rămas cum era.`;
@@ -54,14 +52,14 @@ export function ApplyProfileDialog({
   const savedToast = useSavedToast();
   const cache = useEvaluationCache(evaluation.clientId);
   const profileCache = useProfileCache();
-  const profiles = useListEvaluationProfiles(activeOnly, {
+  const profiles = useListEvaluationProfileChoices({
     request: apiRequest,
-    query: { queryKey: [...getListEvaluationProfilesQueryKey(activeOnly), userId], enabled: open },
+    query: { queryKey: [...getListEvaluationProfileChoicesQueryKey(), userId], enabled: open },
   });
   const apply = useApplyEvaluationProfile({ request: apiRequest });
   const [selected, setSelected] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const sources = (profiles.data?.items ?? []).filter((profile) => profile.factorCount > 0);
+  const sources = profiles.data?.items ?? [];
   const chosen = sources.find((profile) => profile.id === selected);
 
   function close() {

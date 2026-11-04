@@ -1,12 +1,10 @@
 import {
-  clientListStatuses,
   type ClientSortKey,
   clientSortKeys,
   defaultPageSize,
   sortOrderSchema,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import { cn } from '@ssm-usor/ui/lib/utils';
 import { keepPreviousData } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate, useRouteContext } from '@tanstack/react-router';
 import { Archive, Plus, ScanText, Users } from 'lucide-react';
@@ -17,6 +15,7 @@ import { getListClientsQueryKey, useListClients } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
+import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
 import {
@@ -36,7 +35,7 @@ const searchSchema = z.object({
   page: z.number().int().min(1).optional().catch(undefined),
   sort: z.enum(clientSortKeys).optional().catch(undefined),
   order: sortOrderSchema.optional().catch(undefined),
-  status: z.enum(clientListStatuses).optional().catch(undefined),
+  status: z.literal('archived').optional().catch(undefined),
 });
 
 const filters = [
@@ -104,36 +103,27 @@ function ClientsPage() {
       </div>
       {!archived && <ImportListCard />}
       <div className="overflow-hidden rounded-lg border bg-card">
-        <div className="flex flex-wrap items-center gap-3 border-b px-5 py-3">
-          <nav aria-label="Filtrează clienții" className="flex gap-1">
-            {filters.map((filter) => {
-              const active = filter.status === status;
-              return (
-                <Link
-                  key={filter.label}
-                  to="/clienti"
-                  search={filter.status ? { status: filter.status } : {}}
-                  data-testid={filter.testId}
-                  aria-current={active ? 'page' : undefined}
-                  replace
-                  className={cn(
-                    'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-                    active
-                      ? 'bg-secondary text-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  {filter.label}
-                </Link>
-              );
-            })}
-          </nav>
+        <ListCardHeader>
+          <FilterTabs label="Filtrează clienții">
+            {filters.map((filter) => (
+              <FilterTab
+                key={filter.label}
+                to="/clienti"
+                search={filter.status ? { status: filter.status } : {}}
+                data-testid={filter.testId}
+                active={filter.status === status}
+                replace
+              >
+                {filter.label}
+              </FilterTab>
+            ))}
+          </FilterTabs>
           {clients.isSuccess && (
-            <span className="ml-auto text-sm text-muted-foreground" data-testid="clients-count">
+            <ListCount testId="clients-count">
               {meta.total === 1 ? '1 client' : `${meta.total} clienți`}
-            </span>
+            </ListCount>
           )}
-        </div>
+        </ListCardHeader>
         <DataTable
           testId="clients-table"
           rowTestId="clients-row"
