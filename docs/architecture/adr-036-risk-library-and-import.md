@@ -112,7 +112,7 @@ Retyping was rejected for Word files: the answer would be some 25 factors a shee
 
 **PDFs and scans** have no rows to point at. The same request, for those files, returns each sheet's factors written out with a quote of the row, and every factor read this way is marked **Verifică** in the review. The scanned pages are read as the client import reads them (ADR 030) and charged per page, as there.
 
-_Note, 2026-11-02, from building step 6:_ a plan row can name two risks ("… / …"), and one block of the plan can name the posts of two sheets, so `plan` gives each row every factor row it belongs to, none or several. A PDF's measures sheet has no rows to point at either: a factor read from a PDF takes its measures from the plan alone, joined by its description.
+_Note, 2026-11-02, from building step 6:_ a plan row can name two risks ("… / …"), and one block of the plan can name the posts of two sheets, so `plan` gives each row every factor row it belongs to, none or several. A PDF's measures sheet has no rows to point at either: a factor read from a PDF takes its measures from the plan alone, joined by its description. Since the notes of 2026-11-04 below, the requests that write a PDF's factors out write their measures and plan fields too.
 
 **Checks, never corrections.** The classes are the evaluator's judgement (ADR 015), so the import copies them as written and never proposes one:
 
