@@ -2497,7 +2497,11 @@ read or posted. A message names the rule, the environment (`ENVIRONMENT`, `local
 the import's kind and id, the part, the organization's id, the counts or codes that tripped the
 rule and the import's cost with its parts; never a name, a value, a file name or a failure
 reason's text, only its code (`import.modelFailed`). A file is its place and kind, "file 3 of 9,
-risk_assessment". A failed post is logged and dropped.
+risk_assessment". Every import alert ends with `<ADMIN_ORIGIN/imports/<id>>`, the import in the
+admin area ([admin app](admin.md#the-imports-page)), in angle brackets so that Discord does not try
+to preview a page behind Access; the day summary has none. `ADMIN_ORIGIN` is
+`https://admin.ssmusor.ro` in production and `https://admin.non-prod.ssmusor.ro` in non-prod
+(`wrangler.jsonc`), unset locally, where alerts carry no link. A failed post is logged and dropped.
 
 | Rule                                     | Checked                                          | Trips when                                                                                                                                                                                     |
 | ---------------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -2527,6 +2531,51 @@ platform admin during an impersonation) with the secret key, a report again repl
 posts the alert only when the row had no report in the last 10 minutes, decided by the update
 itself. A report leaves `updated_at` as it was, and is taken from a read-only organization too.
 It answers `204`; the alert goes after the answer.
+
+## Admin routes
+
+The `Admin` entrypoint serves `createAdminApp()` (`src/admin-app.ts`) under `/admin`, reached only
+through the admin Worker's service binding ([admin app](admin.md)); the public `fetch` does not
+mount it. Every route passes `requireAuth` and `requireAdmin`: the admin claim and an `aal2` token,
+else `401` or `403`. They are plain Hono routes, outside the OpenAPI document, answering the shapes
+of `@ssm-usor/contracts`' `admin-imports.ts`. They read with the secret key
+(`createAdminClient`, which names the admin in `x-audit-actor`) across every organization; the
+module is `modules/admin-imports/`.
+
+| Route                                  | Answer                                                                                                                                                                                                     |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /admin/imports`                   | `{ items, page, pageSize, total }`, newest first; `page`, `pageSize` (25, at most 100), `kind`, `status` (an import status or `row_deleted`), `reported=true`, `hasCopy=true`; `400` for an unknown filter |
+| `GET /admin/imports/{id}`              | `{ id, organization, import, parts, copies, record, partRecords, files }`; `404` when neither the row nor a copy exists, or for an id that is not a UUID                                                   |
+| `GET /admin/imports/{id}/files?path=…` | `{ url, expiresAt }`, a signed link to one file of the copy that lasts 60 seconds; `400` for a path that is not a plain path within the copy, `404` for a file or copy not kept                            |
+
+**The list** calls `admin_list_imports` ([data model](data-model.md#audit-log)). Each item has the
+import's `id`, `organization` (`id`, `name`), `rowDeleted`, `kind`, `status`, `createdAt`,
+`endedAt`, `readingVersion` (the first 8 characters of `reading_version.prompts`), `flags`
+(`unreadableFiles`, `nothingFound`, `emptyRequired` and `checks`, the sum of the checks' flags,
+counted from `reading_flags`), `changedShare` (changed and unticked over what was proposed, as the
+"mostly changed" alert counts it, null before a confirmation), `costUsd`, `reportedAt` (the latest
+of the import's and its parts'), `copy` (`writtenAt`, `expiresAt`, `removedAt` of the import's own
+copy, or null) and `partCopies`, the parts' copies kept. An import whose row the clean-up deleted
+comes from its copies alone: `rowDeleted`, no kind, status, flags or cost, `endedAt` when its
+copy's 12 months began.
+
+**One import.** `import` is the row (null once deleted) without its proposal and changes: kind,
+status, failure reason, client, times, report, cost and tokens, `readingVersion`, `readingFlags`
+and `quality` as stored, with `flags` and `changedShare` as in the list. `parts` are its library
+parts the same way, `copies` its `import_copies` rows. When a copy is kept, the route first
+records `import_copy_opened` through `record_admin_event` (the copy's id, the import's
+organization, `{ import_id }`), then lists the copy's folder in `import-copies` and reads
+`record.json` and each kept part's `parts/<part>/record.json`: `record` and `partRecords`, the
+proposal and the member's changes among them, and `files`, every object with its `path` within the
+folder and `sizeBytes`. Without a copy kept, nothing is recorded and Storage is not read.
+
+**A file.** `path` is within the import's copy folder, as `files` gives it (`files/…`,
+`record.json`, `parts/<part>/files/…`). It is refused (`400`) unless every segment is a plain name,
+not empty, `.` or `..`, with no backslash or control character, and so again once
+percent-decoded, since Storage decodes the path it is given. The copy is the import's own, or the
+part's for a path under `parts/<part>/`, and must be kept; the file must be listed in its folder
+(`404` otherwise). The route then records `import_copy_file_opened` (the copy's id,
+`{ import_id, path }`) and signs the object for 60 seconds.
 
 ## Supabase Auth emails
 

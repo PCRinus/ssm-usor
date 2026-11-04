@@ -178,13 +178,13 @@ table that say nothing about a person, such as a state, a role or a stage, the `
 values in `details`. Never the value of a personal field: the event says `cnp` changed, not what
 it was. ADR 033 lists the audited tables and the kept columns, and why the others are left out.
 
-| Column                  | Notes                                                                                                                                                 |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `action`                | `insert`, `update`, `delete`, `impersonation_started`, `impersonation_ended` or `client_deleted`.                                                     |
-| `actor_id`              | The account that acted: `auth.uid()` on a user's token; on the secret key, the account the API names in `x-audit-actor`; null for the service or SQL. |
-| `impersonating_user_id` | The member the actor was acting as during an impersonation.                                                                                           |
-| `source`                | `user`, `api` (secret key with an actor), `service` (secret key without one) or `database`.                                                           |
-| `transaction_id`        | Groups the events of one request.                                                                                                                     |
+| Column                  | Notes                                                                                                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `action`                | `insert`, `update`, `delete`, or a named event: `impersonation_started`, `impersonation_ended`, `client_deleted`, `import_copy_opened`, `import_copy_file_opened`. |
+| `actor_id`              | The account that acted: `auth.uid()` on a user's token; on the secret key, the account the API names in `x-audit-actor`; null for the service or SQL.              |
+| `impersonating_user_id` | The member the actor was acting as during an impersonation.                                                                                                        |
+| `source`                | `user`, `api` (secret key with an actor), `service` (secret key without one) or `database`.                                                                        |
+| `transaction_id`        | Groups the events of one request.                                                                                                                                  |
 
 `audit.record_changes()` runs as three statement-level triggers (`audit_insert`, `audit_update`,
 `audit_delete`) per audited table, with transition tables, so a bulk statement writes its events
@@ -195,6 +195,29 @@ are never changed or deleted: `AUD01` on any update, delete or truncate, whoever
 `delete_archived_client` records one `client_deleted` event naming the client, and sets
 `audit.suppressed` for its own transaction so the rows it deletes record nothing. How long
 events are kept is not decided, and nothing deletes them.
+
+**Admin events** ([ADR 038](architecture/adr-038-admin-area.md), `20261105100000_admin_imports`) record what the platform admin
+does in the admin area. No API role can write `audit.events`, so the API records them through
+`record_admin_event(action, table_name, row_id, organization_id, details default null)`, a security
+definer function only the secret key can execute, which returns the event's id. The actor is the
+account the API names in `x-audit-actor`, believed only on a service-role request as above, and it
+must hold the admin claim (`raw_app_meta_data.role = 'admin'`); otherwise `AUD02`, and an action
+that is not an admin event is `22023`. The event's `source` is `api` and `impersonating_user_id`
+null, even while the admin has an impersonation open: he acts as himself.
+
+| Action                    | When                                                                                                                    | `table_name`, `row_id`                                | `details`             |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | --------------------- |
+| `import_copy_opened`      | The admin opens an import whose improvement copy is kept ([ADR 037](architecture/adr-037-import-quality-and-alerts.md)) | `import_copies`, the import's own copy, else a part's | `{ import_id }`       |
+| `import_copy_file_opened` | The admin is handed a link to one file of a copy                                                                        | `import_copies`, the copy holding the file            | `{ import_id, path }` |
+
+`organization_id` is the import's organization. `admin_list_imports(kind, status, reported,
+has_copy, limit, offset)`, for the secret key only, is the admin area's list of every import: the
+`imports` rows and, for an import whose row the clean-up deleted, its `import_copies` alone
+(`row_deleted`, no kind or status, `ended_at` when its copy's 12 months began, listed at the copy's
+`written_at`), newest first, each with its organization's name, the latest report of the import or
+its parts, its own copy's times, the count of its parts' kept copies and the filtered list's
+`total`. `status` is an import status or `row_deleted`; `has_copy` keeps the imports with a copy
+not removed.
 
 ## Clients
 
@@ -1372,7 +1395,9 @@ Created by `20261028100000_imports` and `20261028100100_import_functions`; `read
 `usage_by_step` and the step of `record_import_usage` by `20261029100000_import_bookkeeping`;
 the reading version, the reading flags, the report and the improvement copies by
 `20261104200000_import_copies`, and the copies' completion and `expensive_alerted_at` by
-`20261104210000_import_copies_completed` ([ADR 037](architecture/adr-037-import-quality-and-alerts.md)).
+`20261104210000_import_copies_completed` ([ADR 037](architecture/adr-037-import-quality-and-alerts.md));
+the admin area's list of them, `admin_list_imports`, by `20261105100000_admin_imports`
+([Audit log](#audit-log)).
 
 `imports` has one row per import, with `organization_id`:
 

@@ -8,17 +8,55 @@ carry for members: no PostHog, no Lingui, no help links, no Actualizări block. 
 
 ## Pages
 
-| Route      | What                                                                                      |
-| ---------- | ----------------------------------------------------------------------------------------- |
-| `/sign-in` | Email and password, with the Turnstile check Supabase Auth's CAPTCHA asks for             |
-| `/enrol`   | The first sign-in: the QR code and key of a new authenticator (TOTP), then its first code |
-| `/verify`  | Every later sign-in: a code from the authenticator                                        |
-| `/`        | "Signed in as …" and Sign out; "This account has no admin access" when the API says `403` |
+| Route          | What                                                                                                              |
+| -------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `/sign-in`     | Email and password, with the Turnstile check Supabase Auth's CAPTCHA asks for                                     |
+| `/enrol`       | The first sign-in: the QR code and key of a new authenticator (TOTP), then its first code                         |
+| `/verify`      | Every later sign-in: a code from the authenticator                                                                |
+| `/`            | "Signed in as …", a link to Imports; "This account has no admin access" when the API says `403`                   |
+| `/imports`     | Every organization's imports, newest first, with filters ([below](#the-imports-page))                             |
+| `/imports/$id` | One import: its row, flags, quality, reports, library parts and its improvement copy ([below](#the-imports-page)) |
+
+The signed-in pages share a top bar with the logo, **Home**, **Imports** and **Sign out**.
 
 Each route sends the session where it stands: no session to `/sign-in`, a session whose token is
 `aal1` to `/enrol` when the account has no verified factor and to `/verify` when it has one, and
 only an `aal2` session to `/`. The pages read the level from the token for that choice alone;
 the API decides.
+
+## The Imports page
+
+[ADR 037](architecture/adr-037-import-quality-and-alerts.md)'s place where support reads how
+imports went, and the only place the improvement copies are read.
+
+**The list** (`/imports`) shows every organization's imports, newest first, 25 to a page: the kind,
+when it was created, the first characters of its id, the organization, the status, a **Reported**
+badge when the member reported the import or one of its parts, the reading flags as small counts
+(files that could not be opened, files sorted but giving nothing, required fields left empty, the
+checks' flags), the share of proposed values the member changed or unticked, the cost with its
+parts, the reading version (the first 8 characters of the prompts' hash), and the copy: kept until
+when, removed, or none, with the number of parts' copies. Filters for the kind, the status, reported
+only and with a copy kept live in the address (`?kind=client&status=failed&reported=true&hasCopy=true&page=2`).
+An abandoned or failed import's row goes 14 days after it ends while its copy stays 12 months: such
+an import is listed from its copy alone, as **Row deleted**, with no kind, status or counts, at the
+time its copy was written; the status filter's **Row deleted** shows only those. A row opens the
+import.
+
+**An import** (`/imports/<id>`) shows its kind, status, organization and id; the times, cost,
+tokens, reading version with the model of each step, and failure reason; its flags as a readable
+list (files by kind, the places of the files that could not be opened or gave nothing, what was
+found, the required fields left empty, the checks' flags by code); its quality per section; who
+reported it and when; each library part with the same; and the improvement copy: when each copy was
+written and until when it is kept, the proposal beside the member's changes as collapsible trees,
+the rest of `record.json` (files, times, counts, usage), and every file of the copy with its path,
+size and **Open**, which asks the API for a link that lasts 60 seconds and opens it in a new tab.
+Once the import's row is gone, the page says so and shows what the copy holds.
+
+**What is recorded.** Opening an import that has a copy kept writes an `import_copy_opened` event to
+the audit log, and every file link handed out an `import_copy_file_opened` event with the file's
+path ([data model](data-model.md#audit-log)), so the agreement's promise that only those who work on
+the import read the copies can be checked. The page loads an import once and does not refetch it
+when the window regains focus, so each look is one event. An import without a copy records nothing.
 
 ## The three locks
 
@@ -48,9 +86,12 @@ The `Admin` entrypoint (`apps/api/src/index.ts`) serves only `createAdminApp()`
 (`apps/api/src/admin-app.ts`), a Hono app of its own under `/admin`. The public `fetch` does not
 mount it, so `api.ssmusor.ro/admin/me` answers `404`. Its routes:
 
-| Route           | Answer                                 |
-| --------------- | -------------------------------------- |
-| `GET /admin/me` | `{ id, email }` of the signed-in admin |
+| Route                           | Answer                                                                   |
+| ------------------------------- | ------------------------------------------------------------------------ |
+| `GET /admin/me`                 | `{ id, email }` of the signed-in admin                                   |
+| `GET /admin/imports`            | A page of every organization's imports ([API](api.md#admin-routes))      |
+| `GET /admin/imports/{id}`       | One import with its parts and its improvement copy, recorded when opened |
+| `GET /admin/imports/{id}/files` | A 60-second link to one file of the copy, recorded                       |
 
 ## Configuration and deployment
 
