@@ -158,6 +158,26 @@ is production's and is what `wrangler dev` reads. A Worker without it counts as 
 production, so a production API deployed by any other way must be given `ENVIRONMENT=production`
 or every member sees the line.
 
+### Discord alerts for imports
+
+The API posts the imports' alerts and their day summary to a Discord channel through a webhook
+([ADR 037](architecture/adr-037-import-quality-and-alerts.md)), one channel per environment, so
+that non-prod's test noise stays out of production's. The deploy workflow uploads the GitHub
+environment secret `DISCORD_ALERTS_WEBHOOK` to the API Worker when it is set, and warns without
+it; alerts are then skipped and the rest works. Once, by hand, for each environment:
+
+1. In the Discord server, create a channel (`#imports-production`, `#imports-non-prod`), and in its
+   **Edit Channel → Integrations → Webhooks** create a webhook and copy its URL.
+2. In the GitHub repository's **Settings → Environments**, add the URL to `production` or
+   `non-prod` as the secret `DISCORD_ALERTS_WEBHOOK`.
+3. Merge to `main` or run **Deploy production**, which uploads it. The next daily clean-up posts
+   the first summary.
+
+A message names the rule, the environment, the import's kind and id, the organization's id, the
+counts that tripped the rule and the cost, never a name, a value or a file name, so Discord is
+not a sub-processor. Whoever holds the URL can post to the channel: rotate it from the same
+Discord page when it leaks.
+
 The request goes to the gateway's Anthropic endpoint unchanged, so the model, the effort and the
 structured output are set in `packages/release-notes/scripts/draft.ts` and `claude.ts`, and the
 instructions the model follows are `packages/release-notes/prompts/update-draft.md`, whose voice

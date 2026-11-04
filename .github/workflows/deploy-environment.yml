@@ -792,13 +792,16 @@ jobs:
           OBLIO_CLIENT_SECRET: ${{ secrets.OBLIO_CLIENT_SECRET }}
           AI_GATEWAY_URL: ${{ vars.AI_GATEWAY_URL }}
           AI_GATEWAY_TOKEN: ${{ secrets.AI_GATEWAY_TOKEN }}
+          DISCORD_ALERTS_WEBHOOK: ${{ secrets.DISCORD_ALERTS_WEBHOOK }}
         shell: bash
         run: |
           {
             echo 'names<<EOF'
-            for name in SUPABASE_SECRET_KEY TURNSTILE_SECRET_KEY SUPABASE_AUTH_HOOK_SECRET SUPABASE_AUTH_SMS_HOOK_SECRET POSTHOG_SUPPORT_SECRET_KEY SIGNING_CA_KEY SIGNING_CA_CERT SIGNING_KEY_ENCRYPTION_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET OBLIO_CLIENT_ID OBLIO_CLIENT_SECRET AI_GATEWAY_URL AI_GATEWAY_TOKEN; do
+            for name in SUPABASE_SECRET_KEY TURNSTILE_SECRET_KEY SUPABASE_AUTH_HOOK_SECRET SUPABASE_AUTH_SMS_HOOK_SECRET POSTHOG_SUPPORT_SECRET_KEY SIGNING_CA_KEY SIGNING_CA_CERT SIGNING_KEY_ENCRYPTION_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET OBLIO_CLIENT_ID OBLIO_CLIENT_SECRET AI_GATEWAY_URL AI_GATEWAY_TOKEN DISCORD_ALERTS_WEBHOOK; do
               if [[ -n "${!name}" ]]; then
                 echo "$name"
+              elif [[ "$name" == DISCORD_ALERTS_WEBHOOK ]]; then
+                echo "::warning::$name is not set. The imports' alerts and day summary are skipped." >&2
               else
                 echo "::warning::$name is not set. The routes that need it will answer 503." >&2
               fi
@@ -847,6 +850,7 @@ jobs:
           OBLIO_CLIENT_ID: ${{ secrets.OBLIO_CLIENT_ID }}
           OBLIO_CLIENT_SECRET: ${{ secrets.OBLIO_CLIENT_SECRET }}
           AI_GATEWAY_TOKEN: ${{ secrets.AI_GATEWAY_TOKEN }}
+          DISCORD_ALERTS_WEBHOOK: ${{ secrets.DISCORD_ALERTS_WEBHOOK }}
           # A GitHub variable, uploaded as a secret so that a repository without it still deploys:
           # the step above selects only the values that are set.
           AI_GATEWAY_URL: ${{ vars.AI_GATEWAY_URL }}
