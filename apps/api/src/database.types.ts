@@ -7083,6 +7083,36 @@ export type Database = {
         };
         Returns: string;
       };
+      admin_list_imports: {
+        Args: {
+          p_has_copy?: boolean;
+          p_kind?: Database['public']['Enums']['import_kind'];
+          p_limit?: number;
+          p_offset?: number;
+          p_reported?: boolean;
+          p_status?: string;
+        };
+        Returns: {
+          copy_expires_at: string;
+          copy_removed_at: string;
+          copy_written_at: string;
+          cost_usd: number;
+          created_at: string;
+          ended_at: string;
+          import_id: string;
+          kind: Database['public']['Enums']['import_kind'];
+          organization_id: string;
+          organization_name: string;
+          part_copies: number;
+          quality: Json;
+          reading_flags: Json;
+          reading_version: Json;
+          reported_at: string;
+          row_deleted: boolean;
+          status: Database['public']['Enums']['import_status'];
+          total: number;
+        }[];
+      };
       answer_test_attempt: {
         Args: {
           p_attempt_id: string;
@@ -8022,6 +8052,16 @@ export type Database = {
           revision_id: string;
           title: string;
         }[];
+      };
+      record_admin_event: {
+        Args: {
+          p_action: string;
+          p_details?: Json;
+          p_organization_id: string;
+          p_row_id: string;
+          p_table_name: string;
+        };
+        Returns: number;
       };
       record_import_copy: {
         Args: {
