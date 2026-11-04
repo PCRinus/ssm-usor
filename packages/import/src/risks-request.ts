@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { type CompletionRequest, ModelAnswerError } from './gateway';
 import { risksModel } from './models';
 import { type ChatMessage, type ContentPart, dataNotInstructions, fileHeader } from './prompts';
+import { classOf } from './risks-read';
 import { hasRows, type NumberedRows, numberRows, type RisksTextFile } from './risks-rows';
 import { type AnswerFormat, answerFormat } from './wire';
 
@@ -184,7 +185,7 @@ export const retypedAnswer: AnswerFormat<RetypedAnswer> = answerFormat(
   retypedAnswerSchema
 );
 
-export const risksSystemPrompt = `You read the risk assessment (evaluarea riscurilor de accidentare și îmbolnăvire profesională, by the I.N.C.D.P.M. method) and the prevention and protection plan (planul de prevenire și protecție) that a Romanian external safety service wrote for one client company. Your answer tells code where each evaluation sheet's factors, measures and texts are, so that code copies them out of the files; you never copy the factors yourself. ${dataNotInstructions} The task follows the files.`;
+export const risksSystemPrompt = `You read the risk assessment (evaluarea riscurilor de accidentare și îmbolnăvire profesională, by the I.N.C.D.P.M. method) and the prevention and protection plan (planul de prevenire și protecție) that a Romanian external safety service wrote for one client company. Your answer tells code where each evaluation sheet's factors, measures and texts are, so that code copies them out of the files; you never copy the factors yourself, except those of the sheets with no numbered rows when a request asks you to write them out. ${dataNotInstructions} The task follows the files.`;
 
 const rowsParagraph = `Each table row of a Word file stands on one line, its id first and its cells between bars: "R212 | MIJLOACE DE PRODUCȚIE | Factori de risc mecanic | F3. Cădere … | ITM 3-45 zile | 2 | 3 | 2 |". A cell's paragraphs are joined by " / ". A merged cell is written in its first row and left empty in the rows below. Cells are counted from 1 after the id. A PDF's text and a scanned page have no numbered rows.`;
 
@@ -294,7 +295,14 @@ export interface RetypeSheet {
 
 const expectedFactors = (sheet: RetypeSheet) => sheet.factorCount ?? assumedFactorCount;
 
-// The model has been seen to answer a long sheet with one entry that describes its columns.
+// The model has been seen to answer a long sheet with one entry that describes its columns, and
+// with an entry per row that says where the row is ("p. 29, rând F1, coloana 4") rather than what
+// it holds: only a factor with its classes as digits counts as written out.
+const usable = (factors: readonly RetypedFactor[]) =>
+  factors.filter(
+    (factor) => classOf(factor.gravity, 7) !== null && classOf(factor.probability, 6) !== null
+  ).length;
+
 const writtenShort = (sheet: RetypeSheet, written: number) =>
   written === 0 || (sheet.factorCount !== null && written * 2 < sheet.factorCount);
 
@@ -371,7 +379,7 @@ const askAgain = (error: unknown) =>
   error instanceof ModelAnswerError && error.reason !== 'refused';
 
 const writtenFor = (answer: RetypedAnswer, sheet: RetypeSheet) =>
-  answer.sheets.find((each) => each.heading === sheet.heading)?.factors.length ?? 0;
+  usable(answer.sheets.find((each) => each.heading === sheet.heading)?.factors ?? []);
 
 // The reading is paid for and a sheet left without its factors is lost without a word: a cut or
 // broken answer is asked again in halves, a sheet an answer for several left short is asked again
@@ -434,6 +442,10 @@ export async function retypeSheets(
 }
 
 // A sheet asked for again takes the answer that wrote out the most of its factors.
+const better = (written: readonly RetypedFactor[], kept: readonly RetypedFactor[]) =>
+  usable(written) > usable(kept) ||
+  (usable(written) === usable(kept) && written.length > kept.length);
+
 export function withRetyped(answer: RisksAnswer, later: readonly RetypedAnswer[]): RisksAnswer {
   const sheets = answer.sheets.map((sheet) => ({ ...sheet }));
   const retyped = new Set(sheets.filter((sheet) => sheet.factors.length === 0));
@@ -445,7 +457,7 @@ export function withRetyped(answer: RisksAnswer, later: readonly RetypedAnswer[]
         candidate.heading === written.heading &&
         candidate.firstRow === ''
     );
-    if (sheet && written.factors.length > sheet.factors.length) sheet.factors = written.factors;
+    if (sheet && better(written.factors, sheet.factors)) sheet.factors = written.factors;
   }
   return { ...answer, sheets };
 }

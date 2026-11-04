@@ -277,6 +277,34 @@ describe('the sheets written out', () => {
     expect(lengths(later, [0])).toEqual([3]);
   });
 
+  it('asks again for a sheet whose rows were answered with where they are instead of what they hold', async () => {
+    const keys: string[] = [];
+    const pointers = (asked: string[]) => ({
+      sheets: asked.map((heading) => ({
+        file: scanned.path,
+        heading,
+        factors: Array.from({ length: 20 }, (_, row) => ({
+          ...retyped,
+          description: `p. 29, rând F${row + 1}, coloana 2`,
+          gravity: `p. 29, F${row + 1}, coloana 4`,
+          probability: `p. 29, F${row + 1}, coloana 5`,
+        })),
+      })),
+    });
+    const later = await retypeSheets(
+      input,
+      pack([20]),
+      answering((key, asked) => {
+        keys.push(key);
+        return key === '1' ? pointers(asked) : written(asked);
+      })
+    );
+
+    expect(keys).toEqual(['1', '1.again']);
+    const [sheet] = withRetyped(pack([20]), later).sheets;
+    expect(sheet!.factors[0]!.description).toBe(retyped.description);
+  });
+
   it('fails the reading when a single sheet’s answer is cut, or the model refuses', async () => {
     await expect(
       retypeSheets(
