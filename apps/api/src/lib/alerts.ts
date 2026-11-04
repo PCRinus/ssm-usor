@@ -8,6 +8,8 @@ export interface AlertMessage {
   title: string;
   // Each a line of value-free facts: ids, counts, codes. Never a name, a value or a file name.
   lines: string[];
+  // Where the admin area shows it, `/imports/<id>`, linked when ADMIN_ORIGIN is set.
+  adminPath?: string;
 }
 
 export interface AlertSender {
@@ -28,14 +30,17 @@ const maxContent = 2_000;
 
 export const environmentOf = (env: ApiEnv['Bindings']) => env.ENVIRONMENT?.trim() || 'local';
 
-export function alertText(message: AlertMessage, environment: string) {
+export function alertText(message: AlertMessage, environment: string, adminOrigin?: string) {
+  // Angle brackets keep Discord from fetching a preview of a page behind Access.
+  const link = adminOrigin && message.adminPath ? `\n<${adminOrigin}${message.adminPath}>` : '';
   const text = [
     `${marks[message.severity]} **${message.title}** · ${environment}`,
     ...message.lines,
   ]
     .join('\n')
     .trim();
-  return text.length > maxContent ? `${text.slice(0, maxContent - 1)}…` : text;
+  const room = maxContent - link.length;
+  return `${text.length > room ? `${text.slice(0, room - 1)}…` : text}${link}`;
 }
 
 export function alertSender(
@@ -44,6 +49,7 @@ export function alertSender(
 ): AlertSender {
   const webhook = env.DISCORD_ALERTS_WEBHOOK?.trim();
   const environment = environmentOf(env);
+  const adminOrigin = env.ADMIN_ORIGIN?.trim().replace(/\/+$/, '') || undefined;
   return {
     enabled: Boolean(webhook),
     async send(message) {
@@ -53,7 +59,7 @@ export function alertSender(
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            content: alertText(message, environment),
+            content: alertText(message, environment, adminOrigin),
             allowed_mentions: { parse: [] },
           }),
           signal: AbortSignal.timeout(5_000),

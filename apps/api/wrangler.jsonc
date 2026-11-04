@@ -13,6 +13,7 @@
     "APP_ORIGIN": "https://app.ssmusor.ro",
     "PORTAL_ORIGIN": "https://portal.ssmusor.ro",
     "MARKETING_ORIGIN": "https://ssmusor.ro",
+    "ADMIN_ORIGIN": "https://admin.ssmusor.ro",
   },
   // apps/mail has no routes; this binding is the only way to reach it.
   "services": [
@@ -90,6 +91,7 @@
         "APP_ORIGIN": "https://app.non-prod.ssmusor.ro",
         "PORTAL_ORIGIN": "https://portal.non-prod.ssmusor.ro",
         "MARKETING_ORIGIN": "https://non-prod.ssmusor.ro",
+        "ADMIN_ORIGIN": "https://admin.non-prod.ssmusor.ro",
       },
       "services": [
         { "binding": "MAIL", "service": "ssm-usor-mail-non-prod", "entrypoint": "Mail" },

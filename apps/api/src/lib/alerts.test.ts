@@ -23,6 +23,21 @@ describe('alertText', () => {
     const text = alertText({ ...message, lines: ['x'.repeat(5_000)] }, 'production');
     expect(text).toHaveLength(2_000);
   });
+
+  it('ends with the admin link, without a preview, only when there is an admin origin', () => {
+    const linked = { ...message, adminPath: '/imports/1' };
+    expect(alertText(linked, 'production', 'https://admin.ssmusor.ro')).toBe(
+      '🔴 **Stuck** · production\nImport: client 1\n<https://admin.ssmusor.ro/imports/1>'
+    );
+    expect(alertText(linked, 'local')).toBe('🔴 **Stuck** · local\nImport: client 1');
+    const long = alertText(
+      { ...linked, lines: ['x'.repeat(5_000)] },
+      'production',
+      'https://admin.ssmusor.ro'
+    );
+    expect(long).toHaveLength(2_000);
+    expect(long.endsWith('…\n<https://admin.ssmusor.ro/imports/1>')).toBe(true);
+  });
 });
 
 describe('alertSender', () => {
@@ -47,6 +62,17 @@ describe('alertSender', () => {
       content: '🔴 **Stuck** · non-prod\nImport: client 1',
       allowed_mentions: { parse: [] },
     });
+  });
+
+  it('links to the admin area named by ADMIN_ORIGIN', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () => new Response(null, { status: 204 }));
+    await alertSender(
+      { DISCORD_ALERTS_WEBHOOK: webhook, ADMIN_ORIGIN: 'https://admin.ssmusor.ro/' },
+      fetcher
+    ).send({ ...message, adminPath: '/imports/1' });
+    expect(JSON.parse(String(fetcher.mock.calls[0]![1]?.body)).content).toMatch(
+      /\n<https:\/\/admin\.ssmusor\.ro\/imports\/1>$/
+    );
   });
 
   it('names a Worker without an environment local', async () => {

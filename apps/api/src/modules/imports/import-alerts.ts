@@ -250,6 +250,7 @@ export function messageOf(alert: ImportAlert): AlertMessage {
       ...alert.facts,
       ...(alert.costUsd === null ? [] : [`Cost: ${usd(alert.costUsd)}`]),
     ],
+    adminPath: `/imports/${alert.importId}`,
   };
 }
 

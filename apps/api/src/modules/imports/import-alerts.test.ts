@@ -359,6 +359,27 @@ describe('a message', () => {
       ].join('\n')
     );
   });
+
+  it('links to the import in the admin area when the environment has one', () => {
+    const [alert] = alertsOf(record({ cost_usd: 1.5 }), null, 'read');
+    expect(
+      alertText(messageOf(alert!), 'non-prod', 'https://admin.non-prod.ssmusor.ro').split('\n')
+    ).toEqual([
+      '🟡 **Expensive import** · non-prod',
+      `Import: client ${importId}`,
+      `Organization: ${organizationId}`,
+      'The import with its parts cost $1.50, over $1.00',
+      'Cost: $1.50',
+      `<https://admin.non-prod.ssmusor.ro/imports/${importId}>`,
+    ]);
+    const reported = reportAlert(
+      { importId, organizationId, kind: 'client', part: 'risk_evaluations', costUsd: null },
+      '0f7c8d96-479c-47b3-b49e-01f4555a0221'
+    );
+    expect(alertText(reported, 'production', 'https://admin.ssmusor.ro')).toMatch(
+      new RegExp(`\\n<https://admin\\.ssmusor\\.ro/imports/${importId}>$`)
+    );
+  });
 });
 
 function fakes(found: ImportRecord | null = record()) {
