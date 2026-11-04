@@ -340,7 +340,7 @@ Când semnătura nu se vede, vezi „Testul la angajare nu a putut fi verificat 
 
 Tot ce verifici și schimbi se salvează pe loc. Poți închide pagina și continua mai târziu: importul deschis apare pe tabul **Angajați** al clientului, cu câte persoane ai verificat și **Continuă**.
 
-Un import la care nu mai lucrezi se păstrează 14 zile de la ultima schimbare; data o vezi pe card, „Se păstrează până pe …”. După aceea se oprește, iar fotografiile încărcate se șterg după încă 14 zile. La fel se întâmplă când alegi **Renunță la import**: nu se creează și nu se modifică niciun angajat.
+Un import la care nu mai lucrezi se păstrează 14 zile de la ultima schimbare; data o vezi pe card, „Se păstrează până pe …”. După aceea se oprește, iar fotografiile încărcate se șterg după încă 14 zile. La fel se întâmplă când alegi **Renunță la import**: nu se creează și nu se modifică niciun angajat. Separat, păstrăm o copie a fiecărui import 12 luni de la încheierea lui, ca să îmbunătățim citirea documentelor, așa cum descrie acordul de prelucrare a datelor; la ea avem acces doar noi.
 
 ## Crearea angajaților
 
@@ -376,8 +376,8 @@ Angajații importați sunt angajați existenți, cu contractul de muncă închei
 
 ## O problemă cu importul
 
-Dacă aplicația a citit greșit un document, a lăsat deoparte ceva ce trebuia citit sau citirea s-a oprit fără un motiv pe care să-l înțelegi, spune-ne. Ai **Raportează o problemă cu importul** în capul paginii unde verifici importul unui client, în capul paginii unde verifici importul angajaților și pe paginile instrucțiunilor proprii și ale evaluărilor de risc din import.
+Dacă aplicația a citit greșit un document, a lăsat deoparte ceva ce trebuia citit sau citirea s-a oprit, spune-ne. Ai **Raportează o problemă cu importul** în capul paginii unde verifici importul unui client, în capul paginii unde verifici importul angajaților și pe paginile instrucțiunilor proprii și ale evaluărilor de risc din import. Pe un import a cărui citire s-a oprit, butonul e în mesajul care spune de ce.
 
-Când îl apeși, aflăm despre ce import e vorba, așa că ne uităm la documentele lui și la ce s-a citit din ele fără să ni le trimiți din nou. Se deschide apoi fereastra de suport, aceeași ca la **Raportează o problemă** din meniul lateral: scrie acolo ce nu e în regulă, de exemplu ce valoare e greșită și în ce document, iar răspunsul îl primești tot acolo. Dacă fereastra de suport nu se poate deschide în browserul tău, îți spunem că am primit semnalarea; ne poți scrie și la contact@ssmusor.ro.
+Când îl apeși, aflăm despre ce import e vorba, așa că ne uităm la documentele lui și la ce s-a citit din ele fără să ni le trimiți din nou. Se deschide apoi fereastra de suport, aceeași ca la **Raportează o problemă** din meniul lateral: scrie acolo ce nu e în regulă, de exemplu ce valoare e greșită și în ce document, iar răspunsul îl primești tot acolo. Dacă fereastra de suport nu se poate deschide în browserul tău, aplicația îți spune că am primit semnalarea și îți arată adresa contact@ssmusor.ro, cu **Copiază adresa** și **Deschide aplicația de e-mail**, ca să ne scrii acolo ce nu e în regulă.
 
 Semnalarea nu folosește credite și nu schimbă importul: îl verifici, îl confirmi sau renunți la el ca înainte.
