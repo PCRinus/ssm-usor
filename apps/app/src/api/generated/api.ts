@@ -11797,6 +11797,9 @@ export type RisksProposalSheetsItemFlagsItem =
     }
   | {
       kind: 'no_factors';
+    }
+  | {
+      kind: 'classes_swapped';
     };
 
 export type RisksProposalSheetsItemPostsItem = {

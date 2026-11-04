@@ -18536,6 +18536,16 @@
                           }
                         },
                         "required": ["kind"]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": ["classes_swapped"]
+                          }
+                        },
+                        "required": ["kind"]
                       }
                     ]
                   }
