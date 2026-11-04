@@ -560,7 +560,7 @@ describe('the source dialog', () => {
     await within(dialog).findByTestId('pdf-view');
     expect(within(dialog).queryByTestId('source-progress')).toBeNull();
 
-    const progress = await within(dialog).findByTestId('source-progress', {}, { timeout: 2000 });
+    const progress = await within(dialog).findByTestId('source-progress');
     expect(progress.textContent).toBe('3,1 din 22,6 MB');
     expect(
       within(within(dialog).getByTestId('source-loading')).getByRole('status').contains(progress)

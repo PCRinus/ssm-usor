@@ -1,9 +1,13 @@
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterEach, beforeAll, beforeEach, vi } from 'vitest';
 
 import { activateLocale, sourceLocale } from '@/app/i18n';
 
 import { fakeTurnstile } from './turnstile';
+
+// The default 1 s wait for an element runs out when several suites share the machine, and a
+// page that renders in 1.2 s fails as missing. A wait ends as soon as the element appears.
+configure({ asyncUtilTimeout: 5_000 });
 
 beforeAll(() => activateLocale(sourceLocale));
 

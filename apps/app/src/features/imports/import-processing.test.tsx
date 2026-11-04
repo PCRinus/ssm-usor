@@ -321,7 +321,7 @@ describe('the processing page', () => {
     expect(screen.queryByTestId('import-upload-unfinished')).toBeNull();
     expect(screen.getByTestId('import-announcement').textContent).toBe('');
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Citim documentele' }, { timeout: 5000 })
+      await screen.findByRole('heading', { level: 1, name: 'Citim documentele' })
     ).toBeTruthy();
     expect(screen.getByTestId('import-announcement').textContent).toBe(
       'Pasul 1 din 4: Pregătim fișierele.'
