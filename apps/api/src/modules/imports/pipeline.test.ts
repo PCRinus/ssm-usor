@@ -2100,7 +2100,7 @@ describe('the risk evaluations', () => {
     ]);
   });
 
-  it('finds a sheet the library already has, and says nothing is new when every one is', async () => {
+  const bakerInLibrary = () => {
     world.riskLibrary = {
       names: ['Brutar'],
       entries: [
@@ -2128,17 +2128,32 @@ describe('the risk evaluations', () => {
         },
       ],
     };
+  };
+
+  it('finds a sheet the library already has, and still asks to confirm the factors it writes on the client', async () => {
+    bakerInLibrary();
     model = packModel({ ...risks, sheets: [risks.sheets[0]] });
     startWith([files[0]!, assessment]);
     await drain(deps());
 
-    expect(part().status).toBe('nothing_new');
+    expect(part().status).toBe('to_review');
     const [baker] = risksProposalSchema.parse(part().proposal).sheets;
     expect(baker).toMatchObject({
       status: 'identical',
       choice: 'use_existing',
       match: { evaluationId: 'c1000000-0000-4000-8000-000000000001' },
     });
+  });
+
+  it('says nothing is new when every sheet is in the library and none is written to the client', async () => {
+    bakerInLibrary();
+    model = packModel({ ...risks, sheets: [{ ...risks.sheets[0], posts: [] }] });
+    startWith([files[0]!, assessment]);
+    await drain(deps());
+
+    expect(part().status).toBe('nothing_new');
+    const [baker] = risksProposalSchema.parse(part().proposal).sheets;
+    expect(baker).toMatchObject({ status: 'identical', undecided: true });
   });
 
   it('counts the factors a post of an existing client already has', async () => {

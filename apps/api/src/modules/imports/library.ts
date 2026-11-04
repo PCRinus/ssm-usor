@@ -29,6 +29,7 @@ import {
   retypeRequest,
   type RisksAnswer,
   risksCharacters,
+  type RisksProposal,
   risksRequest,
   type RisksTextFile,
   RisksTooLargeError,
@@ -343,6 +344,13 @@ async function risksFile(
   return { path: file.upload_path, text: prepared.text, ...(scans.length ? { scans } : {}) };
 }
 
+// A sheet the library already has still writes its factors onto the client's sheets on confirm,
+// which only the specialist's confirm does: "Nimic nou" would read as nothing left to do.
+export const asksForReview = (sheet: RisksProposal['sheets'][number]) =>
+  sheet.status === 'new' ||
+  sheet.status === 'similar' ||
+  (sheet.factors.length > 0 && (sheet.kind !== 'job_position' || sheet.posts.length > 0));
+
 export async function readRiskEvaluations(
   deps: PipelineDeps,
   importId: string,
@@ -400,9 +408,7 @@ export async function readRiskEvaluations(
     existing,
   });
   await deps.store.updateLibraryPart(importId, risksPart, attempt, {
-    status: proposal.sheets.some((sheet) => sheet.status === 'new' || sheet.status === 'similar')
-      ? 'to_review'
-      : 'nothing_new',
+    status: proposal.sheets.some(asksForReview) ? 'to_review' : 'nothing_new',
     proposal: asJson(proposal),
     read_at: new Date().toISOString(),
   });
