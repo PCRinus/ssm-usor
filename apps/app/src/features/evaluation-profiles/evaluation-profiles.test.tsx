@@ -156,6 +156,9 @@ const profileSummaryOf = (profile: EvaluationProfile) => ({
   clientCount: clientCounts.get(profile.id) ?? 0,
 });
 
+const collator = new Intl.Collator('ro');
+const byName = (a: EvaluationProfile, b: EvaluationProfile) => collator.compare(a.name, b.name);
+
 const conflict = (reason: string) =>
   Response.json({ error: 'conflict', message: 'no', reason }, { status: 409 });
 
@@ -249,10 +252,19 @@ function mockApi({
           init
         );
       }
-      const archived = url.searchParams.get('archived') === 'true';
+      const archived = url.searchParams.get('status') === 'archived';
+      const items = [...library.values()]
+        .filter((profile) => (profile.archivedAt !== null) === archived)
+        .sort(byName)
+        .map(profileSummaryOf);
+      if (url.searchParams.get('order') === 'desc') items.reverse();
+      return Response.json({ items, page: 1, pageSize: 25, total: items.length });
+    }
+    if (pathname === '/evaluation-profiles/choices') {
       return Response.json({
         items: [...library.values()]
-          .filter((profile) => (profile.archivedAt !== null) === archived)
+          .filter((profile) => profile.archivedAt === null && profile.factors.length > 0)
+          .sort(byName)
           .map(profileSummaryOf),
       });
     }
@@ -300,6 +312,19 @@ const requests = (pathname: string, method: string) =>
         new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
     )
     .map(([, init]) => (init?.body ? (JSON.parse(String(init.body)) as unknown) : null));
+
+const listQuery = (index = 0) =>
+  new URL(
+    String(
+      fetchMock.mock.calls
+        .filter(
+          ([input, init]) =>
+            new URL(String(input)).pathname === '/evaluation-profiles' &&
+            (init?.method ?? 'GET') === 'GET'
+        )
+        .at(index)![0]
+    )
+  ).searchParams;
 
 const mount = (path: string) => mountApp(authFixture(makeSession()).client, path);
 
@@ -355,11 +380,37 @@ describe('the risk library', () => {
     expect(cells(rows[0]!)).toEqual(['2', '1', '3,33', '3 clienți']);
     expect(cells(rows[1]!)).toEqual(['0', '0', '—', '—']);
     expect(screen.getByRole('columnheader', { name: 'Folosită la' })).toBeTruthy();
-    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('Evaluări în uz2 evaluări');
-    const listed = fetchMock.mock.calls.find(
-      ([input]) => new URL(String(input)).pathname === '/evaluation-profiles'
+    expect(screen.getByTestId('risk-library-count').textContent).toBe('2 evaluări');
+    expect(screen.getByTestId('risk-library-filter-active').getAttribute('aria-current')).toBe(
+      'page'
     );
-    expect(new URL(String(listed![0])).searchParams.get('archived')).toBe('false');
+    expect(screen.queryByRole('heading', { level: 2 })).toBeNull();
+    const query = listQuery();
+    expect(query.get('status')).toBeNull();
+    expect(query.get('sort')).toBe('name');
+    expect(query.get('order')).toBe('asc');
+    expect(query.get('page')).toBe('1');
+  });
+
+  it('sorts by the columns the library can sort, in the URL and from the first page', async () => {
+    mockApi();
+    const runtime = mount('/evaluari-de-risc?page=2');
+    const user = userEvent.setup();
+    await screen.findAllByTestId('risk-profile-row');
+    expect(listQuery().get('page')).toBe('2');
+    expect(
+      ['name', 'factorCount', 'clientCount', 'updatedAt'].map(
+        (id) => screen.queryByTestId(`sort-${id}`) !== null
+      )
+    ).toEqual([true, true, true, true]);
+    expect(screen.queryByTestId('sort-unacceptable')).toBeNull();
+    expect(screen.queryByTestId('sort-level')).toBeNull();
+    await user.click(screen.getByTestId('sort-factorCount'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ sort: 'factorCount' })
+    );
+    await waitFor(() => expect(listQuery(-1).get('sort')).toBe('factorCount'));
+    expect(listQuery(-1).get('page')).toBe('1');
   });
 
   it('counts the clients that use a profile the Romanian way', () => {
@@ -379,21 +430,33 @@ describe('the risk library', () => {
     const user = userEvent.setup();
     const [used, unused] = await screen.findAllByTestId('risk-profile-row');
     await user.click(within(used!).getByTestId('risk-profile-actions'));
-    expect(await screen.findByTestId('risk-profile-archive')).toBeTruthy();
+    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual([
+      'Redenumește…',
+      'Arhivează…',
+    ]);
     expect(screen.queryByTestId('risk-profile-remove')).toBeNull();
     await user.keyboard('{Escape}');
     await user.click(within(unused!).getByTestId('risk-profile-actions'));
-    expect(await screen.findByTestId('risk-profile-archive')).toBeTruthy();
-    expect(screen.getByTestId('risk-profile-remove')).toBeTruthy();
+    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual([
+      'Redenumește…',
+      'Arhivează…',
+      'Șterge…',
+    ]);
   });
 
-  it('archives a profile in use, shows it in the archive and reactivates it', async () => {
+  it('archives a profile in use after asking, shows it under Arhivate and reactivates it', async () => {
     mockApi();
-    mount('/evaluari-de-risc');
+    const runtime = mount('/evaluari-de-risc');
     const user = userEvent.setup();
     const [row] = await screen.findAllByTestId('risk-profile-row');
     await user.click(within(row!).getByTestId('risk-profile-actions'));
     await user.click(await screen.findByTestId('risk-profile-archive'));
+    const dialog = await screen.findByTestId('risk-profile-archive-dialog');
+    expect(within(dialog).getByRole('heading').textContent).toBe('Arhivezi evaluarea?');
+    expect(dialog.textContent).toContain('nu mai apare în „Aplică din bibliotecă”');
+    expect(dialog.textContent).toContain('fișele clienților care o folosesc nu se schimbă');
+    expect(requests(`/evaluation-profiles/${office.id}`, 'PATCH')).toEqual([]);
+    await user.click(within(dialog).getByTestId('risk-profile-archive-confirm'));
     expect(await screen.findByText('„Lucrător de birou” a fost arhivată.')).toBeTruthy();
     expect(requests(`/evaluation-profiles/${office.id}`, 'PATCH')).toEqual([{ archived: true }]);
     await waitFor(() =>
@@ -402,24 +465,53 @@ describe('the risk library', () => {
       ])
     );
 
-    await user.click(screen.getByTestId('risk-library-toggle-archived'));
-    expect(await screen.findByText('Evaluări arhivate')).toBeTruthy();
-    expect(screen.getByTestId('risk-library-toggle-archived').textContent).toBe(
-      'Arată evaluările în uz'
+    await user.click(screen.getByTestId('risk-library-filter-archived'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ status: 'archived' })
     );
+    await waitFor(() => expect(listQuery(-1).get('status')).toBe('archived'));
     const [archived] = await screen.findAllByTestId('risk-profile-row');
     expect(within(archived!).getByTestId('risk-profile-clients').textContent).toBe('3 clienți');
     await user.click(within(archived!).getByTestId('risk-profile-actions'));
-    expect(screen.queryByTestId('risk-profile-remove')).toBeNull();
-    await user.click(await screen.findByTestId('risk-profile-restore'));
+    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual([
+      'Reactivează…',
+    ]);
+    await user.click(screen.getByTestId('risk-profile-restore'));
+    const restore = await screen.findByTestId('risk-profile-archive-dialog');
+    expect(within(restore).getByRole('heading').textContent).toBe('Reactivezi evaluarea?');
+    await user.click(within(restore).getByTestId('risk-profile-archive-confirm'));
     expect(await screen.findByText('„Lucrător de birou” a fost reactivată.')).toBeTruthy();
     expect(requests(`/evaluation-profiles/${office.id}`, 'PATCH')).toEqual([
       { archived: true },
       { archived: false },
     ]);
-    expect((await screen.findByTestId('risk-library-empty')).textContent).toBe(
+    expect((await screen.findByTestId('risk-library-empty')).textContent).toContain(
       'Nicio evaluare arhivată'
     );
+  });
+
+  it('says nothing of clients when archiving a profile none uses, and offers deleting it once archived', async () => {
+    mockApi({ profiles: [office, makeProfile({ name: 'Casier' })] });
+    mount('/evaluari-de-risc');
+    const user = userEvent.setup();
+    const [unused] = await screen.findAllByTestId('risk-profile-row');
+    expect(within(unused!).getByTestId('risk-profile-open').textContent).toBe('Casier');
+    await user.click(within(unused!).getByTestId('risk-profile-actions'));
+    await user.click(await screen.findByTestId('risk-profile-archive'));
+    const dialog = await screen.findByTestId('risk-profile-archive-dialog');
+    expect(dialog.textContent).not.toContain('clienților');
+    await user.click(within(dialog).getByTestId('risk-profile-archive-confirm'));
+    await screen.findByText('„Casier” a fost arhivată.');
+
+    await user.click(screen.getByTestId('risk-library-filter-archived'));
+    await waitFor(() => expect(listQuery(-1).get('status')).toBe('archived'));
+    const [archived] = await screen.findAllByTestId('risk-profile-row');
+    expect(within(archived!).getByTestId('risk-profile-open').textContent).toBe('Casier');
+    await user.click(within(archived!).getByTestId('risk-profile-actions'));
+    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual([
+      'Reactivează…',
+      'Șterge…',
+    ]);
   });
 
   it('counts profiles the Romanian way', () => {
@@ -623,12 +715,20 @@ describe('a profile page', () => {
     mockApi();
     mount(`/evaluari-de-risc/${office.id}`);
     const user = userEvent.setup();
-    await user.click(await screen.findByTestId('risk-profile-archive'));
     expect(screen.queryByTestId('risk-profile-remove')).toBeNull();
+    await user.click(await screen.findByTestId('risk-profile-archive'));
+    const dialog = await screen.findByTestId('risk-profile-archive-dialog');
+    expect(dialog.textContent).toContain('fișele clienților care o folosesc nu se schimbă');
+    await user.click(within(dialog).getByTestId('risk-profile-archive-confirm'));
     const notice = await screen.findByTestId('risk-profile-archived');
     expect(notice.textContent).toContain('nu apare în „Aplică din bibliotecă”');
     expect(screen.getByTestId('risk-profile-usage')).toBeTruthy();
     await user.click(screen.getByTestId('risk-profile-restore'));
+    await user.click(
+      within(await screen.findByTestId('risk-profile-archive-dialog')).getByTestId(
+        'risk-profile-archive-confirm'
+      )
+    );
     await waitFor(() => expect(screen.queryByTestId('risk-profile-archived')).toBeNull());
     expect(requests(`/evaluation-profiles/${office.id}`, 'PATCH')).toEqual([
       { archived: true },
@@ -915,7 +1015,7 @@ describe('an evaluation and the library', () => {
     expect(screen.getByText('Lucru prelungit la monitor')).toBeTruthy();
   });
 
-  it('leaves archived profiles out of the choice', async () => {
+  it('chooses from every profile it can apply, read apart from the library’s pages', async () => {
     mockApi({
       profiles: [
         office,
@@ -930,6 +1030,8 @@ describe('an evaluation and the library', () => {
     expect(
       options.map((option) => within(option).getByRole('radio').getAttribute('value'))
     ).toEqual([office.id]);
+    expect(requests('/evaluation-profiles/choices', 'GET')).toHaveLength(1);
+    expect(requests('/evaluation-profiles', 'GET')).toHaveLength(0);
   });
 
   it('says how a profile comes to exist when the library has none with factors', async () => {

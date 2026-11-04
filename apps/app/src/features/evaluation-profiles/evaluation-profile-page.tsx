@@ -6,7 +6,7 @@ import {
   useRouteContext,
   useRouter,
 } from '@tanstack/react-router';
-import { Archive, ArchiveRestore, PenLine, Trash2 } from 'lucide-react';
+import { Archive, ArchiveRestore, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { getGetEvaluationProfileQueryKey, useGetEvaluationProfile } from '@/api/generated/api';
@@ -19,12 +19,12 @@ import { RiskResultCard } from '@/features/risk-evaluations/risk-result-card';
 import { useFactorListView } from '@/features/risk-evaluations/use-factor-list-view';
 import { WorkSystemCard } from '@/features/risk-evaluations/work-system-card';
 
+import { type ProfileArchiveChange, ProfileArchiveDialog } from './profile-archive-dialog';
 import { ProfileNameDialog } from './profile-name-dialog';
 import { type ProfileNaming, useProfileRenaming } from './profile-naming';
 import type { EvaluationProfile } from './profile-schema';
 import { ProfileUsageCard } from './profile-usage-card';
 import { RemoveProfileDialog } from './remove-profile-dialog';
-import { useProfileArchiving } from './use-profile-archiving';
 import { useProfileFactorStore, useProfileWorkSystemStore } from './use-profile-cache';
 
 export function EvaluationProfilePage({
@@ -51,15 +51,9 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
   const renaming = useProfileRenaming();
   const [naming, setNaming] = useState<ProfileNaming | null>(null);
   const [removing, setRemoving] = useState(false);
-  const archiving = useProfileArchiving();
-  const [error, setError] = useState<string | null>(null);
+  const [archiveChange, setArchiveChange] = useState<ProfileArchiveChange | null>(null);
   const view = useFactorListView(profile.factors, 'factors');
   const archived = profile.archivedAt !== null;
-
-  const setArchived = async (next: boolean) => {
-    setError(null);
-    setError(await archiving.setArchived(profile, next));
-  };
 
   return (
     <div data-testid="risk-profile-page" className="grid gap-5">
@@ -79,7 +73,7 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
               data-testid="risk-profile-rename"
               onClick={() => setNaming(renaming(profile))}
             >
-              <PenLine aria-hidden="true" />
+              <Pencil aria-hidden="true" />
               Redenumește…
             </Button>
             {archived ? (
@@ -87,22 +81,20 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
                 variant="outline"
                 size="sm"
                 data-testid="risk-profile-restore"
-                disabled={archiving.isPending}
-                onClick={() => void setArchived(false)}
+                onClick={() => setArchiveChange({ profile, action: 'restore' })}
               >
                 <ArchiveRestore aria-hidden="true" />
-                Reactivează
+                Reactivează…
               </Button>
             ) : (
               <Button
                 variant="outline"
                 size="sm"
                 data-testid="risk-profile-archive"
-                disabled={archiving.isPending}
-                onClick={() => void setArchived(true)}
+                onClick={() => setArchiveChange({ profile, action: 'archive' })}
               >
                 <Archive aria-hidden="true" />
-                Arhivează
+                Arhivează…
               </Button>
             )}
             {!profile.inUse && (
@@ -113,7 +105,7 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
                 onClick={() => setRemoving(true)}
               >
                 <Trash2 aria-hidden="true" />
-                Șterge evaluarea…
+                Șterge…
               </Button>
             )}
           </div>
@@ -126,11 +118,6 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
         <Notice variant="info" data-testid="risk-profile-archived">
           Evaluarea este arhivată: nu apare în „Aplică din bibliotecă”. Fișele în care ai aplicat-o
           își păstrează factorii. Reactiveaz-o ca să o poți aplica din nou.
-        </Notice>
-      )}
-      {error && (
-        <Notice variant="destructive" data-testid="risk-profile-page-error">
-          {error}
         </Notice>
       )}
       <RiskResultCard id="result" evaluation={profile} view={view} />
@@ -153,6 +140,7 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
       />
       <ProfileUsageCard profileId={profile.id} inUse={profile.inUse} userId={userId} />
       <ProfileNameDialog naming={naming} onClose={() => setNaming(null)} />
+      <ProfileArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
       <RemoveProfileDialog
         profile={removing ? { ...profile, factorCount: profile.factors.length } : null}
         onClose={() => setRemoving(false)}
