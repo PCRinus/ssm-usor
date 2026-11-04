@@ -31,7 +31,8 @@ import {
 import type { Context } from 'hono';
 
 import type { Database, Json } from '../../database.types';
-import { type AdminClient, createAdminClient } from '../../lib/admin-db';
+import { type AdminClient, adminClient, createAdminClient } from '../../lib/admin-db';
+import { alertSender } from '../../lib/alerts';
 import { adminToolsAllowed } from '../../lib/auth';
 import {
   archivedClientError,
@@ -59,6 +60,7 @@ import {
   storedEmployeeChanges,
   storedEmployeeProposal,
 } from './employees';
+import { alertBusyOrganization } from './import-alerts';
 import { libraryPartExpiry } from './library';
 import {
   type ExistingRecords,
@@ -76,6 +78,7 @@ import {
   textPathOf,
   tooMuchText,
 } from './pipeline';
+import { importRecords } from './records';
 import type {
   abandonImportRoute,
   addFoundSheetsRoute,
@@ -850,6 +853,22 @@ async function beginReading(
       );
     throw unavailable();
   }
+  later(
+    c,
+    alertBusyOrganization(
+      { records: importRecords(adminClient(c.env)), alerts: alertSender(c.env) },
+      { importId, organizationId, kind }
+    )
+  );
+}
+
+// Hono's executionCtx throws where the runtime gives none, as in tests.
+export function later(c: Context<ApiEnv>, work: Promise<unknown>) {
+  try {
+    c.executionCtx.waitUntil(work);
+  } catch {
+    void work;
+  }
 }
 
 export const startImport: RouteHandler<typeof startImportRoute, ApiEnv> = async (c) => {
@@ -1124,8 +1143,18 @@ export const confirmImport: RouteHandler<typeof confirmImportRoute, ApiEnv> = as
   if (error) throw decisionError(error, 'confirm import');
   const result = data as { client_id: string; files: unknown[] };
   await queueCopy(c, importId);
+  await queueEnded(c, importId);
   return c.json({ clientId: result.client_id, fileCount: result.files.length }, 200);
 };
+
+// A message lost here loses only its alerts (ADR 037): the daily clean-up writes the copy.
+export async function queueEnded(c: Context<ApiEnv>, importId: string, part?: ImportLibraryPart) {
+  try {
+    await c.env.IMPORT_QUEUE?.send({ type: 'ended', importId, ...(part ? { part } : {}) });
+  } catch (failure) {
+    console.error(`The end of import ${importId} was not queued: ${describe(failure)}`);
+  }
+}
 
 async function queueCopy(c: Context<ApiEnv>, importId: string) {
   try {
@@ -1178,6 +1207,7 @@ async function confirmEmployeeImport(
   };
   await syncSignedSheets(c, row.id, result);
   await queueCopy(c, row.id);
+  await queueEnded(c, row.id);
   return {
     clientId: result.client_id,
     fileCount: result.files.length,
@@ -1211,6 +1241,7 @@ export const abandonImport: RouteHandler<typeof abandonImportRoute, ApiEnv> = as
     throw conflict('The import is already confirmed or abandoned.', importErrorReasons.ended);
   }
   if (error) throw decisionError(error, 'abandon import');
+  await queueEnded(c, importId);
   return c.body(null, 204);
 };
 

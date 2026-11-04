@@ -130,7 +130,10 @@ export interface ImportStore {
   markCopied(importId: string): Promise<void>;
   uncopiedImports(confirmedBefore: string): Promise<string[]>;
   failStalled(reasons: { stalled: string; left: string }): Promise<string[]>;
-  failStalledLibraryParts(reasons: { instructions: string; risks: string }): Promise<number>;
+  failStalledLibraryParts(reasons: {
+    instructions: string;
+    risks: string;
+  }): Promise<{ importId: string; part: ImportLibraryPart }[]>;
   listAbandoned(): Promise<ImportObjectList[]>;
   // Only the imports whose objects are gone: another list leaves them for the next day.
   deleteAbandoned(importIds: string[]): Promise<string[]>;
@@ -414,7 +417,7 @@ export function importStore(admin: AdminClient): ImportStore {
         p_risks_reason: reasons.risks,
       });
       if (error) throw fromDatabaseError(error, 'fail stalled library parts');
-      return data.length;
+      return data.map((row) => ({ importId: row.import_id, part: row.part }));
     },
 
     async listAbandoned() {

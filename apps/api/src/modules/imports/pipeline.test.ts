@@ -12,6 +12,7 @@ import {
 import { strToU8, zipSync } from 'fflate';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { AlertMessage } from '../../lib/alerts';
 import { sha256 } from '../../lib/docx';
 import type { ImportMessage } from '../../lib/env';
 import { cleanUpImports } from './cleanup';
@@ -31,6 +32,14 @@ import {
   maxDeferrals,
   type QueueMessage,
 } from './queue';
+import type {
+  CopyToWrite,
+  ImportRecord,
+  ImportRecordRow,
+  ImportRecords,
+  OrganizationActivity,
+  PartRecordRow,
+} from './records';
 import type { ClientSheets, RiskLibrary } from './risk-sheets';
 import {
   type ImportCopy,
@@ -141,6 +150,10 @@ class World {
   library: LibraryModule[] = [];
   riskLibrary: RiskLibrary = { entries: [], names: [] };
   clientSheets: ClientSheets = { jobPositions: [], sensitiveGroups: 0, other: {} };
+  alerts: AlertMessage[] = [];
+  recordedCopies: string[] = [];
+  uncopied: CopyToWrite[] = [];
+  activity: OrganizationActivity = { startedLastHour: 0, spentTodayUsd: 0 };
 
   send(body: ImportMessage, delaySeconds?: number) {
     this.sent.push({ id: `message-${++this.nextMessage}`, body, attempts: 1, delaySeconds });
@@ -193,6 +206,74 @@ class World {
 
   fileAt(path: string) {
     return [...this.files.values()].find((file) => file.upload_path === path)!;
+  }
+
+  record(id: string): ImportRecord | null {
+    const row = this.imports.get(id);
+    if (!row) return null;
+    const cost =
+      this.usage.reduce((sum, each) => sum + each.cost, 0) +
+      this.partUsage.reduce((sum, each) => sum + each.cost, 0);
+    const recordRow = {
+      failure_reason: null,
+      created_at: '2026-10-28T09:00:00Z',
+      started_at: null,
+      ready_at: null,
+      failed_at: null,
+      confirmed_at: null,
+      abandoned_at: null,
+      reported_at: null,
+      changes: null,
+      quality: null,
+      reading_version: null,
+      reading_flags: null,
+      read_characters: null,
+      input_tokens: 0,
+      cached_input_tokens: 0,
+      output_tokens: 0,
+      cost_usd: cost,
+      usage_by_step: null,
+      ...row,
+    } as unknown as ImportRecordRow;
+    const parts = [...this.parts.values()]
+      .filter((part) => part.import_id === id)
+      .map(
+        (part) =>
+          ({
+            failure_reason: null,
+            read_at: null,
+            failed_at: null,
+            confirmed_at: null,
+            reported_at: null,
+            changes: null,
+            quality: null,
+            reading_version: null,
+            reading_flags: null,
+            input_tokens: 0,
+            cached_input_tokens: 0,
+            output_tokens: 0,
+            cost_usd: this.partUsage
+              .filter((each) => each.part === part.part)
+              .reduce((sum, each) => sum + each.cost, 0),
+            ...part,
+          }) as unknown as PartRecordRow
+      );
+    const files = [...this.files.values()]
+      .filter((file) => file.import_id === id)
+      .sort((a, b) => a.upload_path.localeCompare(b.upload_path));
+    return { row: recordRow, files, parts };
+  }
+
+  records(): ImportRecords {
+    return {
+      get: async (id) => this.record(id),
+      recordCopy: async (id, part) => {
+        this.recordedCopies.push(`${id}:${part ?? ''}`);
+      },
+      uncopied: async () => this.uncopied,
+      activity: async () => this.activity,
+      between: async () => [],
+    };
   }
 
   store(): ImportStore {
@@ -293,7 +374,7 @@ class World {
       },
       failStalledLibraryParts: async (reasons) => {
         this.calls.push(`failStalledLibraryParts ${reasons.instructions} ${reasons.risks}`);
-        return 1;
+        return [{ importId: 'stalled-import', part: 'instructions_ssm' }];
       },
       listAbandoned: async () => this.abandoned,
       deleteAbandoned: async (ids) => {
@@ -573,6 +654,22 @@ function deps(overrides: Partial<PipelineDeps> = {}): PipelineDeps {
         if (paths.some((path) => world.failRemovalOf.has(path))) throw new Error('Storage is down');
         world.calls.push(`remove copies ${paths.length}`);
         for (const path of paths) world.copies.delete(path);
+      },
+      copyIn: async (from, to) => {
+        const bytes = world.objects.get(from);
+        if (!bytes) throw new Error(`No object at ${from}`);
+        world.copies.set(to, bytes);
+      },
+      write: async (path, bytes) => {
+        world.copies.set(path, bytes);
+      },
+    },
+    records: world.records(),
+    alerts: {
+      enabled: true,
+      send: async (message) => {
+        world.alerts.push(message);
+        return true;
       },
     },
     extractor,
@@ -1948,6 +2045,47 @@ describe('the own instructions', () => {
     expect(world.partCharges).toEqual(['instructions_ssm:1']);
   });
 
+  it("keeps the part's reading version and flags", async () => {
+    world.library = [till];
+    model = packModel();
+    startWith(packFiles);
+    await drain(deps());
+
+    expect(part().reading_version).toEqual({
+      models: { instructions: 'gpt-6.1-terra', similarity: 'gpt-6-luna' },
+      prompts: expect.stringMatching(/^[0-9a-f]{12}$/),
+    });
+    expect(part().reading_flags).toMatchObject({
+      found: { instructions: 2, unread: 0 },
+      nothingFound: [],
+    });
+    expect(world.recordedCopies).toEqual([]);
+  });
+
+  it("writes the part's copy beside the import's when it fails", async () => {
+    model = packModel({ not: 'the schema' });
+    startWith(packFiles);
+    await drain(deps());
+
+    expect(part().status).toBe('failed');
+    expect(world.recordedCopies).toEqual([`${importId}:instructions_ssm`]);
+    const folder = `${organizationId}/${importId}/parts/instructions_ssm`;
+    expect([...world.copies.keys()].filter((path) => path.startsWith(folder)).sort()).toEqual([
+      `${folder}/files/instructions_ssm.1.claim.json`,
+      `${folder}/record.json`,
+    ]);
+    const record = JSON.parse(new TextDecoder().decode(world.copies.get(`${folder}/record.json`)));
+    expect(record).toMatchObject({
+      import: importId,
+      part: 'instructions_ssm',
+      status: 'failed',
+      failureReason: libraryReasons.modelFailed,
+      importStatus: 'ready',
+      objects: ['files/instructions_ssm.1.claim.json'],
+    });
+    expect(world.alerts.map((alert) => alert.title)).toContain('Failed on our side');
+  });
+
   it('reads a retried part under its next attempt, once, and ignores the message of the one before', async () => {
     model = packModel({ not: 'the schema' });
     startWith(packFiles);
@@ -2391,5 +2529,112 @@ describe('the risk evaluations', () => {
     await consumeImportDeadLetters({ messages: [message] }, {}, deps());
 
     expect(part()).toMatchObject({ status: 'failed', failure_reason: riskReasons.failed });
+  });
+});
+
+describe('what a reading leaves (ADR 037)', () => {
+  const text = (alert: AlertMessage) => [alert.title, ...alert.lines].join('\n');
+
+  it("keeps the reading's version and flags, and tells support of the file it could not open, by its place", async () => {
+    startWith(files);
+    await drain(deps());
+
+    const row = world.imports.get(importId)!;
+    expect(row.reading_version).toEqual({
+      models: { sorting: 'gpt-6-luna', scanning: 'gpt-6.1-terra', reading: 'gpt-6.1-terra' },
+      prompts: expect.stringMatching(/^[0-9a-f]{12}$/),
+    });
+    const place = [...world.files.values()]
+      .map((file) => file.upload_path)
+      .sort((a, b) => a.localeCompare(b))
+      .indexOf('Dosar/stricat.pdf');
+    expect(row.reading_flags).toMatchObject({
+      files: {
+        total: 8,
+        unreadable: [{ file: place + 1, kind: 'pdf' }],
+        setAside: 1,
+        forEmployees: 1,
+        otherCompany: 1,
+      },
+      emptyRequired: ['jobPositions'],
+      checks: expect.objectContaining({ quote_not_found: expect.any(Number) }),
+    });
+    expect(world.alerts.map((alert) => alert.title)).toEqual(['Files we could not open']);
+    expect(text(world.alerts[0]!)).toContain(`file ${place + 1} of 8, pdf`);
+    for (const alert of world.alerts) {
+      expect(text(alert)).not.toMatch(/stricat|Dosar|BRUTĂRIA|Vasilescu|12345674/);
+    }
+    expect(world.recordedCopies).toEqual([]);
+  });
+
+  it('writes the copy of a failed import, its record first, by a message of its own', async () => {
+    model = (request) =>
+      request.name === 'client_import'
+        ? Response.json({
+            choices: [{ finish_reason: 'length', message: { content: '{"facts": [' } }],
+            usage: { prompt_tokens: 1000, completion_tokens: 64_000 },
+          })
+        : defaultModel(request);
+    startWith([files[0]!]);
+    const outcomes = await drain(deps());
+
+    expect(outcomes.map((outcome) => outcome.type).slice(-1)).toEqual(['keep']);
+    expect(world.recordedCopies).toEqual([`${importId}:`]);
+    const folder = `${organizationId}/${importId}`;
+    const file = world.fileAt('Dosar/Decizia 1.docx');
+    const name = file.storage_path.split('/').at(-1)!;
+    expect([...world.copies.keys()].sort()).toEqual(
+      [
+        `${folder}/files/${name}`,
+        `${folder}/files/${name.replace('.docx', '.txt')}`,
+        `${folder}/record.json`,
+      ].sort()
+    );
+    expect(world.copies.get(`${folder}/files/${name}`)).toEqual(
+      world.objects.get(file.storage_path)
+    );
+    const record = JSON.parse(new TextDecoder().decode(world.copies.get(`${folder}/record.json`)));
+    expect(record).toMatchObject({
+      status: 'failed',
+      failureReason: importReasons.modelFailed,
+      readingVersion: { prompts: expect.any(String) },
+      readingFlags: { files: { total: 1 } },
+      files: [{ place: 1, id: file.id, state: 'read', kind: 'decision' }],
+    });
+    expect(world.alerts.map((alert) => alert.title)).toEqual(['Failed on our side']);
+    expect(text(world.alerts[0]!)).toContain('Reason: import.modelFailed');
+  });
+
+  it('writes the copies the clean-up finds missing before it removes any object', async () => {
+    world.addImport({ status: 'abandoned', abandoned_at: '2026-10-01T00:00:00Z' });
+    const id = world.addFile(files[0]!, 0, 'read');
+    const path = world.files.get(id)!.storage_path;
+    world.uncopied = [{ importId, part: null }];
+    world.abandoned = [{ importId, paths: [path] }];
+    const result = await cleanUpImports(deps());
+
+    expect(
+      world.copies.get(`${organizationId}/${importId}/files/${path.split('/').at(-1)}`)
+    ).toEqual(files[0]!.bytes);
+    expect(world.objects.has(path)).toBe(false);
+    expect(result).toMatchObject({ copiesWritten: 1, copiesNotWritten: 0, deleted: 1 });
+  });
+
+  it('tells support of an import the clean-up failed as stalled, and of one left after its reading', async () => {
+    world.addImport({
+      status: 'failed',
+      failure_reason: importReasons.stalled,
+      failed_at: '2026-11-04T02:41:00Z',
+    });
+    const store = world.store();
+    await cleanUpImports(deps({ store: { ...store, failStalled: async () => [importId] } }));
+    world.imports.get(importId)!.failure_reason = importReasons.left;
+    world.imports.get(importId)!.ready_at = '2026-10-20T10:00:00Z';
+    await cleanUpImports(deps({ store: { ...store, failStalled: async () => [importId] } }));
+
+    expect(world.alerts.map((alert) => alert.title)).toEqual([
+      'Stuck',
+      'Abandoned after a reading',
+    ]);
   });
 });

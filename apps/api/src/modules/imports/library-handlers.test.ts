@@ -512,6 +512,15 @@ describe('POST /imports/{importId}/library-parts/{part}/confirm', () => {
         ],
       },
     });
+    const quality = callsTo('/rest/v1/import_library_parts').find(
+      (call) => call.method === 'PATCH'
+    )!;
+    expect(quality.admin).toBe(true);
+    expect(quality.url.searchParams.get('status')).toBe('eq.confirmed');
+    expect(quality.body).toEqual({
+      quality: { instructions: { changed: 2, unticked: 0, kept: 1 } },
+    });
+    expect(sent).toEqual([{ type: 'ended', importId, part: 'instructions_ssm' }]);
   });
 
   it('names the instruction whose title a module of the library has, and confirms nothing', async () => {
@@ -1031,6 +1040,17 @@ describe('the risk evaluations part', () => {
       ['sheet-2', 'job_position', driverId, 'append', [{ profile_factor_id: libraryFactorId }]],
       ['sheet-3', 'sensitive_groups', null, 'replace', [null]],
     ]);
+    const quality = callsTo('/rest/v1/import_library_parts').find(
+      (call) => call.method === 'PATCH'
+    )!;
+    expect(quality.admin).toBe(true);
+    expect(quality.body).toEqual({
+      quality: {
+        sheets: { changed: 2, unticked: 0, kept: expect.any(Number) },
+        factors: { changed: 1, unticked: 0, kept: expect.any(Number) },
+      },
+    });
+    expect(sent).toEqual([{ type: 'ended', importId, part: 'risk_evaluations' }]);
   });
 
   it('writes the factors without their link when the entry they match was archived since', async () => {

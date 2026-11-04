@@ -1163,7 +1163,10 @@ describe('POST /imports/{importId}/confirm for an employee import', () => {
     );
     expect(syncTrainingRows).toHaveBeenCalledWith({}, applied.training_record_ids);
     expect(syncResultRows).toHaveBeenCalledWith({}, applied.test_result_ids);
-    expect(sent).toEqual([{ type: 'copy', importId }]);
+    expect(sent).toEqual([
+      { type: 'copy', importId },
+      { type: 'ended', importId },
+    ]);
   });
 
   it("gives a person only their own pages of a PDF that holds other people's sheets", async () => {
@@ -1198,7 +1201,10 @@ describe('POST /imports/{importId}/confirm for an employee import', () => {
     const response = await request(`/imports/${importId}/confirm`, 'POST', { version: 4 });
 
     expect(response.status).toBe(200);
-    expect(sent).toEqual([{ type: 'copy', importId }]);
+    expect(sent).toEqual([
+      { type: 'copy', importId },
+      { type: 'ended', importId },
+    ]);
   });
 
   it('confirms nothing while nobody is checked, or a checked person lacks a value', async () => {

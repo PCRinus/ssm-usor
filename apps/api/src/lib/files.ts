@@ -197,7 +197,11 @@ function fileStore(
     },
 
     /** An object already at the target counts as copied, so an interrupted copy can resume. */
-    async copyImportObject(from: string, to: string, bucket: 'imports' | 'client-files') {
+    async copyImportObject(
+      from: string,
+      to: string,
+      bucket: 'imports' | 'client-files' | 'import-copies'
+    ) {
       const { error } = await storage
         .from(importsBucket)
         .copy(from, to, { destinationBucket: bucket });
@@ -220,6 +224,13 @@ function fileStore(
 
     /** The bucket has no policies: only the secret key's store reaches it. */
     listImportCopies: (folder: string) => listAll(importCopiesBucket, folder, 'list import copies'),
+
+    async writeImportCopy(path: string, bytes: Uint8Array, contentType: string) {
+      const { error } = await storage
+        .from(importCopiesBucket)
+        .upload(path, bytes, { contentType, upsert: true });
+      if (error) throw fileError('write import copy', error);
+    },
 
     async removeImportCopies(paths: string[]) {
       if (paths.length === 0) return;

@@ -35,10 +35,11 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { creditsStore } from '../credits/store';
-import { existingRecords, findImport, storedChanges, storedProposal } from './handlers';
+import { existingRecords, findImport, queueEnded, storedChanges, storedProposal } from './handlers';
 import { clientPeople, libraryPartExpiry, libraryReasons, riskReasons } from './library';
 import { toClientPayload } from './payload';
 import { describe } from './pipeline';
+import { instructionsQuality, type QualityCounts, risksQuality } from './reading-flags';
 import { type ClientSheets, clientSheetsOf, existingFactorsOf } from './risk-sheets';
 import type {
   confirmImportLibraryPartRoute,
@@ -663,12 +664,40 @@ async function confirmRisks(
     );
   }
   if (error) throw partError(error, 'confirm risk part', 'risk_evaluations');
+  await partConfirmed(
+    c,
+    row.id,
+    'risk_evaluations',
+    risksQuality(proposal, storedRiskChanges(current.changes))
+  );
   const result = data as { created: string[]; evaluations: string[]; factors: number };
   return {
     createdProfileIds: result.created,
     evaluationIds: result.evaluations,
     factors: result.factors,
   };
+}
+
+// The confirming functions take no counts, so they are written after, and a failure to write them
+// does not undo the confirmation.
+async function partConfirmed(
+  c: Context<ApiEnv>,
+  importId: string,
+  part: ImportLibraryPart,
+  quality: QualityCounts
+) {
+  const { error } = await createAdminClient(c)
+    .from('import_library_parts')
+    .update({ quality })
+    .eq('import_id', importId)
+    .eq('part', part)
+    .eq('status', 'confirmed');
+  if (error) {
+    console.error(
+      `The quality of part ${part} of import ${importId} was not kept: ${error.message}`
+    );
+  }
+  await queueEnded(c, importId, part);
 }
 
 export const confirmImportLibraryPart: RouteHandler<
@@ -723,6 +752,7 @@ export const confirmImportLibraryPart: RouteHandler<
     );
   }
   if (error) throw partError(error, 'confirm library part');
+  await partConfirmed(c, importId, part, instructionsQuality(proposal, changes));
   const result = data as { created: string[]; used: string[]; links: number };
   return c.json(
     {

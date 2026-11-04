@@ -922,7 +922,10 @@ describe('POST /imports/{importId}/confirm', () => {
         quality: { client: { changed: 1, unticked: 0, kept: 0 } },
       },
     });
-    expect(sent).toEqual([{ type: 'copy', importId }]);
+    expect(sent).toEqual([
+      { type: 'copy', importId },
+      { type: 'ended', importId },
+    ]);
   });
 
   it('lists what still blocks, and confirms nothing', async () => {
@@ -1433,6 +1436,7 @@ describe('POST /imports/{importId}/abandon', () => {
     const again = await request(`/imports/${importId}/abandon`, 'POST');
     expect(again.status).toBe(409);
     expect(await again.json()).toMatchObject({ reason: 'import_ended' });
+    expect(sent).toEqual([{ type: 'ended', importId }]);
   });
 });
 

@@ -1,4 +1,6 @@
 import type { ApiEnv } from '../../lib/env';
+import { keepMissingCopies } from './copies';
+import { alertImport, daySummary } from './import-alerts';
 import { libraryReasons, riskReasons } from './library';
 import { copyFolder, describe, importReasons, type PipelineDeps } from './pipeline';
 import { pipelineDeps } from './queue';
@@ -9,10 +11,11 @@ const copyGraceMilliseconds = 60 * 60 * 1000;
 
 /**
  * The daily clean-up of ADR 030: folders whose copy did not finish are copied again, imports the
- * queue lost or members left are failed, then the objects of abandoned and failed imports go
- * after 14 days and confirmed imports' proposals and objects after 30, and the improvement copies
- * of ADR 037 after 12 months. Objects go before the rows that name them, so an import or a copy
- * whose removal failed is listed again the next day.
+ * queue lost or members left are failed, the improvement copies not yet written are written
+ * (ADR 037), then the objects of abandoned and failed imports go after 14 days and confirmed
+ * imports' proposals and objects after 30, and the improvement copies after 12 months. Objects go
+ * before the rows that name them, so an import or a copy whose removal failed is listed again the
+ * next day.
  */
 export async function cleanUpImports(deps: PipelineDeps, now = new Date()) {
   const uncopied = await deps.store.uncopiedImports(
@@ -35,6 +38,11 @@ export async function cleanUpImports(deps: PipelineDeps, now = new Date()) {
     instructions: libraryReasons.stalled,
     risks: riskReasons.stalled,
   });
+  for (const importId of failed) await alertImport(deps, importId, null, ['cleanUp']);
+  for (const { importId, part } of failedParts) {
+    await alertImport(deps, importId, part, ['cleanUp']);
+  }
+  const kept = await keepMissingCopies(deps, now);
   const abandoned = await deps.store.listAbandoned();
   const deleted = await deps.store.deleteAbandoned(await removeObjects(deps, abandoned));
   const dropped = await deps.store.dropProposals();
@@ -46,7 +54,9 @@ export async function cleanUpImports(deps: PipelineDeps, now = new Date()) {
     copied,
     uncopied: uncopied.length - copied,
     failed: failed.length,
-    failedParts,
+    failedParts: failedParts.length,
+    copiesWritten: kept.written,
+    copiesNotWritten: kept.failed,
     deleted: deleted.length,
     dropped,
     emptied: marked.length,
@@ -60,6 +70,8 @@ export async function cleanUpImports(deps: PipelineDeps, now = new Date()) {
       removedCopies.length,
   };
 }
+
+export type CleanUpResult = Awaited<ReturnType<typeof cleanUpImports>>;
 
 // The listed paths, and whatever else the import's folder holds: a scan's page readings and
 // claims are named by no row.
@@ -101,9 +113,32 @@ async function removeCopies(deps: PipelineDeps, copies: ImportCopy[]) {
   return removed;
 }
 
+export const cleanUpLine = (result: CleanUpResult) =>
+  `${result.copied} folders copied, ${result.uncopied} not; ${result.failed} imports failed as stalled or left; ${result.failedParts} library parts failed as stalled; ${result.copiesWritten} improvement copies written, ${result.copiesNotWritten} not; ${result.deleted} deleted; ${result.dropped} proposals dropped; ${result.emptied} folders emptied; ${result.copiesRemoved} improvement copies removed; ${result.left} left for tomorrow.`;
+
+const dayMilliseconds = 24 * 60 * 60 * 1000;
+
+/** Posted after the clean-up, so that a day with no alert still shows the alerts run. */
+export async function postDaySummary(deps: PipelineDeps, line: string, now = new Date()) {
+  if (!deps.alerts.enabled) return;
+  const to = new Date(`${now.toISOString().slice(0, 10)}T00:00:00.000Z`);
+  const from = new Date(to.getTime() - dayMilliseconds);
+  try {
+    const records = await deps.records.between(from.toISOString(), to.toISOString());
+    await deps.alerts.send(daySummary(records, from, to, line));
+  } catch (error) {
+    console.error(`The imports' day summary was not posted: ${describe(error)}`);
+    await deps.alerts.send({
+      severity: 'summary',
+      title: `Imports on ${from.toISOString().slice(0, 10)}`,
+      lines: ['The day could not be read.', `Clean-up: ${line}`],
+    });
+  }
+}
+
 export async function scheduledImportCleanUp(env: ApiEnv['Bindings']) {
-  const result = await cleanUpImports(pipelineDeps(env));
-  console.log(
-    `Import clean-up: ${result.copied} folders copied, ${result.uncopied} not; ${result.failed} imports failed as stalled or left; ${result.failedParts} library parts failed as stalled; ${result.deleted} deleted; ${result.dropped} proposals dropped; ${result.emptied} folders emptied; ${result.copiesRemoved} improvement copies removed; ${result.left} left for tomorrow.`
-  );
+  const deps = pipelineDeps(env);
+  const line = cleanUpLine(await cleanUpImports(deps));
+  console.log(`Import clean-up: ${line}`);
+  await postDaySummary(deps, line);
 }
