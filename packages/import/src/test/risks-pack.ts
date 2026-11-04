@@ -126,7 +126,6 @@ const sheetColumns = {
 
 const none = { startWords: '', endWords: '' };
 
-// What a factor written out from a PDF carries when the documents give it no measures.
 export const unplanned = {
   measuresFrom: null,
   measures: [],
