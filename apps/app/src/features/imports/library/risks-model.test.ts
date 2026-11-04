@@ -15,6 +15,8 @@ import {
   pendingOf,
   type ProposedFactor,
   type RiskSheet,
+  type RisksPart,
+  risksPartDescription,
   riskSummary,
   type SheetChange,
   type SheetContext,
@@ -345,5 +347,48 @@ describe('the changes and the refusals', () => {
       { path: 'sheets.receptionist.factors.receptionist.2' },
     ]);
     expect([...refused.get('receptionist')!]).toEqual(['receptionist.6', 'receptionist.2']);
+  });
+});
+
+describe('the risk evaluations task on the hub', () => {
+  const part = (overrides: Partial<RisksPart> = {}): RisksPart => ({
+    part: 'risk_evaluations',
+    status: 'to_review',
+    attempt: 1,
+    failureReason: null,
+    version: 0,
+    changes: null,
+    counts: { identical: 2, similar: 0, new: 0, unread: 0 },
+    readAt: '2026-11-02T09:00:00Z',
+    confirmedAt: null,
+    expiresAt: null,
+    credits: 15,
+    postReferences: {},
+    existingFactors: null,
+    proposal: null,
+    ...overrides,
+  });
+
+  it('asks to confirm sheets the library already has, since confirming writes them on the client', () => {
+    expect(risksPartDescription(part(), true)).toBe(
+      'Le ai deja în bibliotecă; confirmă ca să le scriem pe fișele clientului.'
+    );
+    expect(risksPartDescription(part(), false)).toBe(
+      'Le ai deja în bibliotecă; după client, confirmă-le ca să le scriem pe fișele lui.'
+    );
+  });
+
+  it('says nothing is new only for a part that writes nothing', () => {
+    expect(risksPartDescription(part({ status: 'nothing_new' }), true)).toBe(
+      'Nimic nou: le ai deja în bibliotecă și nu e nimic de scris pe fișele clientului.'
+    );
+  });
+
+  it('counts the new and similar sheets beside those already in the library', () => {
+    expect(
+      risksPartDescription(part({ counts: { identical: 1, similar: 1, new: 1, unread: 0 } }), false)
+    ).toBe(
+      'De verificat: 3 fișe, una nouă, una asemănătoare și 1 deja în bibliotecă. Le confirmi după client.'
+    );
   });
 });

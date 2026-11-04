@@ -675,8 +675,14 @@ export function risksPartDescription(part: RisksPart, clientConfirmed: boolean, 
     case 'confirmed':
       return part.confirmedAt ? `Confirmate pe ${libraryDay(part.confirmedAt)}.` : 'Confirmate.';
     case 'nothing_new':
+      return 'Nimic nou: le ai deja în bibliotecă și nu e nimic de scris pe fișele clientului.';
     case 'to_review': {
       const counts = part.counts ?? { identical: 0, similar: 0, new: 0, unread: 0 };
+      if (counts.new === 0 && counts.similar === 0 && counts.identical > 0) {
+        return clientConfirmed
+          ? 'Le ai deja în bibliotecă; confirmă ca să le scriem pe fișele clientului.'
+          : 'Le ai deja în bibliotecă; după client, confirmă-le ca să le scriem pe fișele lui.';
+      }
       const total = part.proposal?.sheets.length ?? counts.identical + counts.similar + counts.new;
       const kinds = [
         ...(counts.new > 0 ? [newLabel(counts.new)] : []),
