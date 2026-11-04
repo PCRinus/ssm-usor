@@ -15,6 +15,7 @@ import type {
   RisksLibraryPart,
   RisksProposalSheetsItem,
   RisksProposalSheetsItemFactorsItem,
+  RisksProposalUnmatchedPlanRowsItem,
 } from '@/api/generated/api';
 import { roCount } from '@/features/employees/employee-format';
 
@@ -23,6 +24,7 @@ import { isExpired, joinNames, libraryDay, type LibraryPost } from './library-mo
 export type RisksPart = RisksLibraryPart;
 export type RiskSheet = RisksProposalSheetsItem;
 export type ProposedFactor = RisksProposalSheetsItemFactorsItem;
+export type PlanRow = RisksProposalUnmatchedPlanRowsItem;
 export type FactorFlag = ProposedFactor['flags'][number];
 export type SheetFlag = RiskSheet['flags'][number];
 export type SheetChange = RiskImportChanges['sheets'][string];
@@ -213,9 +215,11 @@ export type PostTarget = {
 export type SheetState = {
   sheet: RiskSheet;
   factors: FactorState[];
-  // Ticked with every class known: what confirming writes.
+  // The plan rows placed on the sheet, which it takes only once the member adds them.
+  planRows: FactorState[];
+  // Ticked with every class known, plan rows added included: what confirming writes.
   written: number;
-  // Unticked because a class, the component or the group is missing.
+  // Of the sheet's own factors: unticked because a class, the component or the group is missing.
   incomplete: number;
   leftOut: number;
   toCheck: number;
@@ -245,7 +249,29 @@ export type SheetContext = {
   existingByReference: ReadonlyMap<string, number>;
   // The client's sheets now, which confirming follows; the reading's counts while it has none.
   existingFactors: RisksPart['existingFactors'];
+  // By the sheet's key, from `placedPlanRows`.
+  planFactors?: ReadonlyMap<string, readonly ProposedFactor[]>;
 };
+
+const placedOn = (row: PlanRow, sheets: ReadonlyMap<string, RiskSheet>) => {
+  const sheet = row.sheet ? sheets.get(row.sheet) : undefined;
+  return row.factor && sheet && sheet.factors.length > 0 ? sheet : null;
+};
+
+export function placedPlanRows(rows: readonly PlanRow[], sheets: readonly RiskSheet[]) {
+  const byKey = new Map(sheets.map((sheet) => [sheet.key, sheet]));
+  const placed = new Map<string, ProposedFactor[]>();
+  for (const row of rows) {
+    const sheet = placedOn(row, byKey);
+    if (sheet) placed.set(sheet.key, [...(placed.get(sheet.key) ?? []), row.factor!]);
+  }
+  return placed;
+}
+
+export function unplacedPlanRows(rows: readonly PlanRow[], sheets: readonly RiskSheet[]) {
+  const byKey = new Map(sheets.map((sheet) => [sheet.key, sheet]));
+  return rows.filter((row) => !placedOn(row, byKey));
+}
 
 /** The factors each post's sheet had when the pack was read, by the post as the changes name it. */
 export function existingByReference(
@@ -278,7 +304,12 @@ export function sheetState(
   context: SheetContext
 ): SheetState {
   const factors = sheet.factors.map((factor) => factorState(factor, change?.factors?.[factor.key]));
-  const written = factors.filter((factor) => factor.included && factor.complete).length;
+  const planRows = (context.planFactors?.get(sheet.key) ?? []).map((factor) =>
+    factorState(factor, change?.factors?.[factor.key])
+  );
+  const written = [...factors, ...planRows].filter(
+    (factor) => factor.included && factor.complete
+  ).length;
   const incomplete = factors.filter((factor) => !factor.included && !factor.complete).length;
 
   let choice: LibraryChoice | null = null;
@@ -348,6 +379,7 @@ export function sheetState(
   return {
     sheet,
     factors,
+    planRows,
     written,
     incomplete,
     leftOut: factors.filter((factor) => !factor.included).length,
@@ -646,12 +678,65 @@ export function incompleteFactors(issues: readonly { path: string }[]) {
   return bySheet;
 }
 
+const measureNames: [PreventionMeasureKind, string][] = [
+  ['technical', 'Măsuri tehnice'],
+  ['organizational', 'Măsuri organizatorice'],
+  ['hygienic_sanitary', 'Măsuri igienico-sanitare'],
+  ['other', 'Alte măsuri'],
+];
+
+const items = (texts: readonly string[]) =>
+  texts
+    .map((text, index) =>
+      index === texts.length - 1 || /[.;:!?]$/u.test(text.trim()) ? text.trim() : `${text.trim()};`
+    )
+    .join(' ');
+
+export function planFieldsLine(
+  state: Pick<
+    FactorState,
+    'measures' | 'actions' | 'deadline' | 'responsiblePerson' | 'observations'
+  >
+) {
+  return [
+    ...measureNames.flatMap(([kind, name]) => {
+      const texts = state.measures
+        .filter((measure) => measure.kind === kind)
+        .map((measure) => measure.description);
+      return texts.length > 0 ? [`${name}: ${items(texts)}`] : [];
+    }),
+    state.actions && `Acțiuni: ${state.actions}`,
+    state.deadline && `Termen: ${state.deadline}`,
+    state.responsiblePerson && `Răspunde: ${state.responsiblePerson}`,
+    state.observations && `Observații: ${state.observations}`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
+
+export function planRowsLine(state: SheetState) {
+  const count = state.planRows.length;
+  const added = state.planRows.filter((row) => row.included).length;
+  const target = state.posts === null ? 'această fișă' : 'acest post';
+  const found =
+    count === 1
+      ? `Un rând din documente e pentru ${target}, dar nu l-am putut lega de niciun factor de pe fișă.`
+      : `${roCount(count, 'rând', 'rânduri')} din documente sunt pentru ${target}, dar nu le-am putut lega de niciun factor de pe fișă.`;
+  if (added === 0) return found;
+  return count === 1
+    ? `${found} L-ai adăugat ca factor.`
+    : `${found} Ai adăugat ${added === 1 ? 'un factor' : factorsLabel(added)} din ele.`;
+}
+
 export const rowCells = (text: string) =>
   text
     .replace(/^\|\s*|\s*\|$/gu, '')
     .split(' | ')
     .map((cell) => cell.trim())
     .filter((cell) => cell !== '');
+
+export const looseCells = (text: string) =>
+  rowCells(text).filter((cell) => !/^[-–—]+$/u.test(cell));
 
 // The viewer finds a quote in the file's text, where a row's cells sit between bars.
 export const rowQuote = (text: string) =>

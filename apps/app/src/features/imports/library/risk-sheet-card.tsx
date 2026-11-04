@@ -18,6 +18,7 @@ import { SourceButton, Tag } from '../review-parts';
 import { DecisionRow, PendingNote, RenameRow, Segmented, type Tone } from './decision-row';
 import { RiskDifferences } from './risk-differences';
 import { RiskFactorRows } from './risk-factor-rows';
+import { RiskPlanRows } from './risk-plan-rows';
 import {
   asksToCheck,
   type ExistingChoice,
@@ -369,6 +370,13 @@ export function RiskSheetCard({
               onSource={onSource}
             />
           )}
+          <RiskPlanRows
+            state={state}
+            readOnly={readOnly}
+            onAdd={onEditFactor}
+            onRemove={(row) => onToggleFactor(row, false)}
+            onSource={onSource}
+          />
         </>
       )}
     </article>
@@ -376,7 +384,8 @@ export function RiskSheetCard({
 }
 
 function factorsLine(state: SheetState) {
-  const parts = [roCount(state.written, 'preluat', 'preluați')];
+  const taken = state.factors.filter((factor) => factor.included && factor.complete).length;
+  const parts = [roCount(taken, 'preluat', 'preluați')];
   if (state.toCheck > 0) parts.push(`${state.toCheck} de verificat`);
   if (state.incomplete > 0) parts.push(roCount(state.incomplete, 'incomplet', 'incompleți'));
   const otherLeftOut = state.leftOut - state.incomplete;
