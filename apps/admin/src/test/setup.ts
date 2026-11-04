@@ -15,6 +15,18 @@ afterEach(() => {
 
 beforeEach(() => vi.stubGlobal('scrollTo', vi.fn()));
 
+// jsdom has no ResizeObserver, which the shared table uses to shade its cut-off edges.
+beforeEach(() =>
+  vi.stubGlobal(
+    'ResizeObserver',
+    class ResizeObserver {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+  )
+);
+
 // jsdom loads no external script, so Turnstile is a fake that hands out a token at once, and
 // another after every reset, as the real widget does.
 beforeEach(() => {

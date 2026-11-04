@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index';
 import { Route as EnrolRouteImport } from './routes/enrol';
 import { Route as SignInRouteImport } from './routes/sign-in';
 import { Route as VerifyRouteImport } from './routes/verify';
+import { Route as ImportsIndexRouteImport } from './routes/imports/index';
+import { Route as ImportsIdRouteImport } from './routes/imports/$id';
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,18 +36,32 @@ const VerifyRoute = VerifyRouteImport.update({
   path: '/verify',
   getParentRoute: () => rootRouteImport,
 } as any);
+const ImportsIndexRoute = ImportsIndexRouteImport.update({
+  id: '/imports/',
+  path: '/imports/',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const ImportsIdRoute = ImportsIdRouteImport.update({
+  id: '/imports/$id',
+  path: '/imports/$id',
+  getParentRoute: () => rootRouteImport,
+} as any);
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
   '/enrol': typeof EnrolRoute;
   '/sign-in': typeof SignInRoute;
   '/verify': typeof VerifyRoute;
+  '/imports/$id': typeof ImportsIdRoute;
+  '/imports/': typeof ImportsIndexRoute;
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
   '/enrol': typeof EnrolRoute;
   '/sign-in': typeof SignInRoute;
   '/verify': typeof VerifyRoute;
+  '/imports/$id': typeof ImportsIdRoute;
+  '/imports': typeof ImportsIndexRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
@@ -53,13 +69,23 @@ export interface FileRoutesById {
   '/enrol': typeof EnrolRoute;
   '/sign-in': typeof SignInRoute;
   '/verify': typeof VerifyRoute;
+  '/imports/$id': typeof ImportsIdRoute;
+  '/imports/': typeof ImportsIndexRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: '/' | '/enrol' | '/sign-in' | '/verify';
+  fullPaths:
+    '/' | '/enrol' | '/sign-in' | '/verify' | '/imports/$id' | '/imports/';
   fileRoutesByTo: FileRoutesByTo;
-  to: '/' | '/enrol' | '/sign-in' | '/verify';
-  id: '__root__' | '/' | '/enrol' | '/sign-in' | '/verify';
+  to: '/' | '/enrol' | '/sign-in' | '/verify' | '/imports/$id' | '/imports';
+  id:
+    | '__root__'
+    | '/'
+    | '/enrol'
+    | '/sign-in'
+    | '/verify'
+    | '/imports/$id'
+    | '/imports/';
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
@@ -67,6 +93,8 @@ export interface RootRouteChildren {
   EnrolRoute: typeof EnrolRoute;
   SignInRoute: typeof SignInRoute;
   VerifyRoute: typeof VerifyRoute;
+  ImportsIdRoute: typeof ImportsIdRoute;
+  ImportsIndexRoute: typeof ImportsIndexRoute;
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +127,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VerifyRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    '/imports/': {
+      id: '/imports/';
+      path: '/imports';
+      fullPath: '/imports/';
+      preLoaderRoute: typeof ImportsIndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/imports/$id': {
+      id: '/imports/$id';
+      path: '/imports/$id';
+      fullPath: '/imports/$id';
+      preLoaderRoute: typeof ImportsIdRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
   }
 }
 
@@ -107,6 +149,8 @@ const rootRouteChildren: RootRouteChildren = {
   EnrolRoute: EnrolRoute,
   SignInRoute: SignInRoute,
   VerifyRoute: VerifyRoute,
+  ImportsIdRoute: ImportsIdRoute,
+  ImportsIndexRoute: ImportsIndexRoute,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
