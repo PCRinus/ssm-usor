@@ -65,7 +65,8 @@ The admin starts an impersonation in the admin app, with its reason and ADR 033'
 ## Consequences
 
 - A third single-page app to keep current beside the app and the portal, with its own Worker and deploy steps in `deploy-non-prod.yml` and `deploy-production.yml`.
-- Mircea sets up, once, a Cloudflare Zero Trust team with an Access application per environment, and adds the admin origins to each Supabase project's redirect URLs.
+- Mircea sets up, once, the Cloudflare Zero Trust team in the dashboard: its onboarding asks for a team name and a plan with payment details, even for the Free plan, which the API cannot do. The Access applications and the one-time-code login are then created through the API with the scaffold.
+- Signing in to the admin app with a password and a code redirects nowhere, so the Supabase projects need no new redirect URL. If a redirecting sign-in comes later (Google, a reset link), its callback joins `additional_redirect_urls` in `supabase/config.toml`, which CI pushes to each project; an entry added in the dashboard is overwritten by the next deploy.
 - The API gains the `Admin` entrypoint and the admin app's Worker a service binding to it, per environment.
 - The GitHub workflows that extend trials and grant credits and signing codes stay until their pages exist, and are then removed.
 - ADR 037's Imports page is built here.
