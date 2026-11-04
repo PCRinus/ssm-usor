@@ -260,7 +260,7 @@ describe('the sheets written out', () => {
       })
     );
 
-    expect(keys).toEqual(['1', '2', '1.again', '2.again']);
+    expect(keys).toEqual(['1', '1.again', '2', '2.again']);
     expect(lengths(later, counts)).toEqual([36, 1]);
   });
 
@@ -344,6 +344,31 @@ describe('the sheets written out', () => {
       )
     ).rejects.toBe(failure);
     expect(keys.sort()).toEqual(['1', '2', '3']);
+  });
+
+  it('sends the first batch alone, and the others together only once it has finished', async () => {
+    const events: string[] = [];
+    await retypeSheets(input, pack([60, 60, 60, 60]), async (key, request) => {
+      events.push(`asked ${key}`);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      events.push(`answered ${key}`);
+      const task = request.messages[2]!.content as string;
+      return written(
+        [...task.matchAll(/^- (Fișa \d+)$/gmu)].map((match) => match[1]!),
+        60
+      );
+    });
+
+    expect(events).toEqual([
+      'asked 1',
+      'answered 1',
+      'asked 2',
+      'asked 3',
+      'asked 4',
+      'answered 2',
+      'answered 3',
+      'answered 4',
+    ]);
   });
 
   it('asks for each factor’s measures by kind and plan fields, "" read as none', () => {

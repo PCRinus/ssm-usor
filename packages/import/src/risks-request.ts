@@ -429,19 +429,23 @@ async function retypeBatch(
   return answers;
 }
 
-// A few batches at once, after the first answer has put the files in the provider's cache. Every
-// batch runs to its end before a failure is thrown, so that the answers kept are not paid twice.
+// The first answer's files do not serve these requests from the provider's cache, as their answer
+// format differs, and requests sent at the same moment each miss it, paying the whole prompt again
+// ($0.26 on an eleven-sheet pack, ADR 036): the first batch goes alone, and the others a few at
+// once after it. Every batch runs to its end before a failure is thrown, so that the answers kept
+// are not paid twice.
 export async function retypeSheets(
   input: RisksRequestInput,
   answer: RisksAnswer,
   ask: RetypeAsk
 ): Promise<RetypedAnswer[]> {
-  const batches = retypeBatches(input, answer);
-  const results: PromiseSettledResult<RetypedAnswer[]>[] = [];
-  for (let at = 0; at < batches.length; at += retypeConcurrency) {
+  const [first, ...rest] = retypeBatches(input, answer);
+  if (!first) return [];
+  const results = await Promise.allSettled([retypeBatch(input, first, ask)]);
+  for (let at = 0; at < rest.length; at += retypeConcurrency) {
     results.push(
       ...(await Promise.allSettled(
-        batches.slice(at, at + retypeConcurrency).map((batch) => retypeBatch(input, batch, ask))
+        rest.slice(at, at + retypeConcurrency).map((batch) => retypeBatch(input, batch, ask))
       ))
     );
   }
