@@ -68,10 +68,10 @@ create temporary table every_send on commit drop as
   select id, organization_id, document_id from public.service_contract_sends;
 grant select on every_revision, every_signed_copy, every_send to authenticated;
 
-create or replace function pg_temp.act_as(user_id text, app_metadata jsonb default '{"provider":"email"}')
+create or replace function pg_temp.act_as(user_id text, app_metadata jsonb default '{"provider":"email"}', aal text default 'aal1')
 returns void language sql as $$
   select set_config('role', 'authenticated', true),
-         set_config('request.jwt.claims', json_build_object('sub', user_id, 'role', 'authenticated', 'app_metadata', app_metadata)::text, true);
+         set_config('request.jwt.claims', json_build_object('sub', user_id, 'role', 'authenticated', 'aal', aal, 'app_metadata', app_metadata)::text, true);
 $$;
 
 create or replace function pg_temp.reads_as_before(actor text)
@@ -134,13 +134,13 @@ select is_empty(
   'another organization reads nothing of these documents'
 );
 
-select pg_temp.act_as('cccccccc-0000-4000-8000-000000000004', '{"provider":"email","role":"admin"}');
+select pg_temp.act_as('cccccccc-0000-4000-8000-000000000004', '{"provider":"email","role":"admin"}', 'aal2');
 select * from pg_temp.reads_as_before('a platform admin outside an impersonation');
 
 reset role;
 insert into public.impersonations (admin_user_id, target_user_id, reason)
   values ('cccccccc-0000-4000-8000-000000000004', 'bbbbbbbb-0000-4000-8000-000000000002', 'reproduce bug');
-select pg_temp.act_as('cccccccc-0000-4000-8000-000000000004', '{"provider":"email","role":"admin"}');
+select pg_temp.act_as('cccccccc-0000-4000-8000-000000000004', '{"provider":"email","role":"admin"}', 'aal2');
 select * from pg_temp.reads_as_before('a platform admin impersonating a specialist');
 
 select results_eq(
@@ -152,7 +152,7 @@ select results_eq(
 reset role;
 update public.impersonations set target_user_id = 'aaaaaaaa-0000-4000-8000-000000000001'
   where admin_user_id = 'cccccccc-0000-4000-8000-000000000004';
-select pg_temp.act_as('cccccccc-0000-4000-8000-000000000004', '{"provider":"email","role":"admin"}');
+select pg_temp.act_as('cccccccc-0000-4000-8000-000000000004', '{"provider":"email","role":"admin"}', 'aal2');
 select * from pg_temp.reads_as_before('a platform admin impersonating an owner');
 
 select * from finish();
