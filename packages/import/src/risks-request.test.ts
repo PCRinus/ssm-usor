@@ -7,6 +7,7 @@ import {
   type RetypeAsk,
   retypeBatches,
   type RetypedAnswer,
+  retypedAnswer,
   retypedFactorsPerRequest,
   retypedFactorTokens,
   retypeRequest,
@@ -19,7 +20,7 @@ import {
   withRetyped,
 } from './risks-request';
 import { numberRows, rowsBetween, splitCells, squeezeLayout } from './risks-rows';
-import { answer, assessment, plan, scanned } from './test/risks-pack';
+import { answer, assessment, plan, scanned, unplanned } from './test/risks-pack';
 
 describe('numberRows', () => {
   it('numbers every table row across the files and leaves the prepared text as it was', () => {
@@ -147,7 +148,7 @@ describe('the sheets written out', () => {
     expect(retypedFactorsPerRequest * retypedFactorTokens).toBeLessThanOrEqual(
       risksOutputTokens / 3
     );
-    const batches = retypeBatches(input, pack([30, 30, 47, 11, 11, 11, 36]));
+    const batches = retypeBatches(input, pack([15, 15, 24, 5, 5, 5, 18]));
 
     expect(headings(batches)).toEqual([
       ['Fișa 1', 'Fișa 2'],
@@ -163,7 +164,8 @@ describe('the sheets written out', () => {
   it('asks for a sheet larger than a batch on its own, and assumes a size for one not counted', () => {
     expect(headings(retypeBatches(input, pack([200, 10, null, 30])))).toEqual([
       ['Fișa 1'],
-      ['Fișa 2', 'Fișa 3'],
+      ['Fișa 2'],
+      ['Fișa 3'],
       ['Fișa 4'],
     ]);
   });
@@ -215,7 +217,7 @@ describe('the sheets written out', () => {
     const keys: string[] = [];
     const later = await retypeSheets(
       input,
-      pack([20, 20, 20]),
+      pack([10, 10, 10]),
       answering((key, asked) => {
         keys.push(key);
         return asked.length > 2 ? cut : written(asked);
@@ -223,25 +225,25 @@ describe('the sheets written out', () => {
     );
 
     expect(keys).toEqual(['1-2-3', '1-2', '3']);
-    expect(lengths(later, [20, 20, 20])).toEqual([20, 20, 20]);
+    expect(lengths(later, [10, 10, 10])).toEqual([20, 20, 20]);
   });
 
   it('asks again alone for a sheet an answer left out, or wrote out under half of', async () => {
     const keys: string[] = [];
     const later = await retypeSheets(
       input,
-      pack([20, 20, 20]),
+      pack([10, 10, 10]),
       answering((key, asked) => {
         keys.push(key);
         if (asked.length === 1) return written(asked);
         return {
-          sheets: [...written(['Fișa 1']).sheets, ...written(['Fișa 2'], 9).sheets],
+          sheets: [...written(['Fișa 1']).sheets, ...written(['Fișa 2'], 4).sheets],
         };
       })
     );
 
     expect(keys).toEqual(['1-2-3', '2', '3']);
-    expect(lengths(later, [20, 20, 20])).toEqual([20, 20, 20]);
+    expect(lengths(later, [10, 10, 10])).toEqual([20, 20, 20]);
   });
 
   it('asks once more for a sheet asked alone and written out short, and keeps the longer answer', async () => {
@@ -318,7 +320,7 @@ describe('the sheets written out', () => {
     await expect(
       retypeSheets(
         input,
-        pack([20, 20]),
+        pack([10, 10]),
         answering((key) => {
           keys.push(key);
           return refused;
@@ -344,6 +346,51 @@ describe('the sheets written out', () => {
     expect(keys.sort()).toEqual(['1', '2', '3']);
   });
 
+  it('asks for each factor’s measures by kind and plan fields, "" read as none', () => {
+    const task = retypeRequest(input, [{ heading: 'Fișa 1' }]).messages[2]!.content as string;
+
+    expect(task).toContain('measures');
+    expect(task).toContain('responsiblePerson');
+    expect(JSON.stringify(retypedAnswer.jsonSchema)).not.toContain('null');
+    const parsed = retypedAnswer.parse({
+      sheets: [
+        {
+          file: scanned.path,
+          heading: 'Fișa 1',
+          factors: [
+            {
+              ...retyped,
+              measuresFrom: '',
+              measures: [],
+              actions: '',
+              deadline: ' ',
+              responsiblePerson: '',
+              observations: '',
+            },
+            {
+              ...retyped,
+              measuresFrom: 'plan',
+              measures: [{ kind: 'technical', description: 'Frâne verificate.' }],
+              actions: '',
+              deadline: 'Periodic',
+              responsiblePerson: 'Administrator',
+              observations: '',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(parsed.sheets[0]!.factors[0]).toMatchObject(unplanned);
+    expect(parsed.sheets[0]!.factors[1]).toMatchObject({
+      measuresFrom: 'plan',
+      measures: [{ kind: 'technical', description: 'Frâne verificate.' }],
+      deadline: 'Periodic',
+      responsiblePerson: 'Administrator',
+      actions: null,
+    });
+  });
+
   it('puts a later answer’s factors on the sheet of the same file and heading', () => {
     const factor = { ...retyped, quote: 'F2. Lovire' };
     const merged = withRetyped({ ...answer, sheets: [unrowed(1), unrowed(2)] }, [
@@ -363,6 +410,7 @@ const retyped = {
   probability: '2',
   level: '4',
   quote: 'F1. Accident rutier cu bicicleta de livrare. Deces 7 2 4',
+  ...unplanned,
 };
 
 describe('squeezeLayout', () => {

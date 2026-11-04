@@ -11,8 +11,8 @@ import {
   sheetMeasures,
   splitCode,
 } from './risks-read';
-import type { RisksAnswer } from './risks-request';
-import { answer, assessment, plan, scanned } from './test/risks-pack';
+import type { RetypedFactor, RisksAnswer } from './risks-request';
+import { answer, assessment, plan, scanned, unplanned } from './test/risks-pack';
 
 const read = readRisksAnswer([assessment, plan], answer, { people: ['Maria Ionescu'] });
 const [baker, shop, sensitive, visitor] = read.sheets;
@@ -253,6 +253,7 @@ describe('readRisksAnswer: a PDF', () => {
             probability: '2',
             level: '4',
             quote: 'F1. Accident rutier cu bicicleta de livrare. Deces 7 2 4',
+            ...unplanned,
           },
           {
             component: '',
@@ -263,6 +264,7 @@ describe('readRisksAnswer: a PDF', () => {
             probability: '3',
             level: '2',
             quote: 'F2. Lovirea de poarta din spate.',
+            ...unplanned,
           },
         ],
       },
@@ -289,6 +291,149 @@ describe('readRisksAnswer: a PDF', () => {
     expect(scanned.text.slice(source!.start, source!.end)).toBe(
       'F1. Accident rutier cu bicicleta de livrare. Deces 7 2 4'
     );
+  });
+});
+
+describe('readRisksAnswer: a PDF’s measures', () => {
+  const written = (factor: Partial<RetypedFactor>): RetypedFactor => ({
+    component: 'MIJLOACE DE PRODUCȚIE',
+    group: 'Factori de risc mecanic',
+    description: 'F1. Accident rutier cu bicicleta de livrare.',
+    consequence: 'Deces',
+    gravity: '7',
+    probability: '2',
+    level: '4',
+    quote: 'F1. Accident rutier cu bicicleta de livrare. Deces 7 2 4',
+    ...unplanned,
+    ...factor,
+  });
+  const readPdf = (...factors: RetypedFactor[]) =>
+    readRisksAnswer(
+      [scanned],
+      {
+        ...answer,
+        sheets: [{ ...answer.sheets[0]!, file: scanned.path, firstRow: '', lastRow: '', factors }],
+        measures: [],
+        planTables: [],
+        plan: [],
+      },
+      { people: ['Maria Ionescu'] }
+    ).sheets[0]!.factors;
+
+  it('takes the measures and plan fields written out with each factor, by kind', () => {
+    const [planned, sheetOnly, bare] = readPdf(
+      written({
+        measuresFrom: 'plan',
+        measures: [
+          { kind: 'technical', description: ' Verificarea frânelor bicicletei. ' },
+          {
+            kind: 'organizational',
+            description: 'Instruire privind circulația pe drumurile publice.',
+          },
+          { kind: 'other', description: '--' },
+        ],
+        actions: 'Revizuirea instrucțiunii.',
+        deadline: 'Periodic',
+        responsiblePerson: 'Cond. loc muncă',
+        observations: '--',
+      }),
+      written({
+        description: 'F2. Lovire de ușa clădirii la livrare.',
+        measuresFrom: 'sheet',
+        measures: [{ kind: 'hygienic_sanitary', description: 'Trusa de prim ajutor în dubă.' }],
+      }),
+      written({ description: 'F3. Alunecare pe scara blocului.' })
+    );
+
+    expect(planned).toMatchObject({
+      measures: [
+        { kind: 'technical', description: 'Verificarea frânelor bicicletei.' },
+        {
+          kind: 'organizational',
+          description: 'Instruire privind circulația pe drumurile publice.',
+        },
+      ],
+      measuresFrom: 'plan',
+      actions: 'Revizuirea instrucțiunii.',
+      deadline: 'Periodic',
+      responsiblePerson: 'Cond. loc muncă',
+      observations: null,
+    });
+    expect(planned!.flags).toEqual([{ kind: 'retyped' }]);
+    expect(sheetOnly).toMatchObject({
+      measures: [{ kind: 'hygienic_sanitary', description: 'Trusa de prim ajutor în dubă.' }],
+      measuresFrom: 'sheet',
+      actions: null,
+    });
+    expect(bare).toMatchObject({ measures: [], measuresFrom: null, deadline: null });
+  });
+
+  it('keeps the limits, and flags a person named and measures past the cap', () => {
+    const [factor] = readPdf(
+      written({
+        measuresFrom: 'plan',
+        measures: Array.from({ length: 32 }, (_, index) => ({
+          kind: 'organizational' as const,
+          description: `Măsura ${index + 1}.`,
+        })),
+        deadline: 'Imediat '.repeat(40),
+        responsiblePerson: 'Maria Ionescu',
+      })
+    );
+
+    expect(factor!.measures).toHaveLength(30);
+    expect(factor!.deadline!.length).toBeLessThanOrEqual(200);
+    expect(factor!.flags).toEqual([
+      { kind: 'retyped' },
+      { kind: 'measures_cut', count: 32 },
+      { kind: 'person_named', field: 'responsiblePerson', text: 'Maria Ionescu' },
+    ]);
+  });
+
+  it('copies a Word plan row joined by its description over what the factor was written out with', () => {
+    const [factor] = readRisksAnswer(
+      [scanned, plan],
+      {
+        ...answer,
+        sheets: [
+          {
+            ...answer.sheets[0]!,
+            file: scanned.path,
+            firstRow: '',
+            lastRow: '',
+            factors: [
+              written({
+                description: 'F1. Prinderea degetelor in malaxorul de aluat pornit',
+                measuresFrom: 'plan',
+                measures: [{ kind: 'technical', description: 'Protecția malaxorului.' }],
+                deadline: 'Imediat',
+                observations: 'Scrisă de model.',
+              }),
+            ],
+          },
+        ],
+        measures: [],
+        planTables: answer.planTables.map((table) => ({
+          ...table,
+          firstRow: 'R3',
+          lastRow: 'R5',
+        })),
+        plan: [{ row: 'R3', factorRows: [] }],
+      },
+      { people: [] }
+    ).sheets[0]!.factors;
+
+    expect(factor).toMatchObject({
+      measures: [
+        { kind: 'technical', description: 'Protecția de la gura malaxorului.' },
+        { kind: 'organizational', description: 'Instruire asupra folosirii malaxorului;' },
+        { kind: 'organizational', description: 'Afișarea instrucțiunii.' },
+      ],
+      measuresFrom: 'plan',
+      actions: 'Revizuirea instrucțiunii.',
+      deadline: 'Imediat; Periodic',
+      observations: 'Scrisă de model.',
+    });
   });
 });
 
@@ -322,6 +467,7 @@ describe('readRisksAnswer: a PDF laid out in columns', () => {
               probability: '5',
               level: '1',
               quote: 'F1. Inţepare şi/ sau tăiere a corpului cu accesoriile utilizate .',
+              ...unplanned,
             },
           ],
         },
@@ -404,6 +550,7 @@ describe('readRisksAnswer: gravity and probability swapped', () => {
             probability: probability!,
             level: level!,
             quote: description!,
+            ...unplanned,
           })),
         },
       ],

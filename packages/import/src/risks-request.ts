@@ -24,9 +24,9 @@ export interface RisksRequestInput {
 // the own instructions (ADR 034).
 export const risksCharacters = 800_000;
 export const risksOutputTokens = 32_000;
-// Measured on 2026-11-04 on two archives printed to PDF (ADR 036): a factor written out took 100
-// to 150 output tokens, reasoning included.
-export const retypedFactorTokens = 150;
+// Measured on 2026-11-04 on two archives printed to PDF (ADR 036): a factor written out with its
+// measures and plan fields took up to 300 output tokens a request, reasoning included.
+export const retypedFactorTokens = 300;
 // A third of the output limit: one answer cut at the limit costs the whole limit, and a model
 // asked for a long list has also been seen to stop after the first sheets and say nothing of it.
 export const retypedFactorsPerRequest = Math.floor(risksOutputTokens / 3 / retypedFactorTokens);
@@ -53,6 +53,12 @@ const retypedFactor = z.object({
   probability: z.string(),
   level: z.string(),
   quote: z.string(),
+  measuresFrom: z.enum(['plan', 'sheet']).nullable(),
+  measures: z.array(z.object({ kind: z.enum(preventionMeasureKinds), description: z.string() })),
+  actions: z.string().nullable(),
+  deadline: z.string().nullable(),
+  responsiblePerson: z.string().nullable(),
+  observations: z.string().nullable(),
 });
 
 const sheetSchema = z.object({
@@ -185,7 +191,7 @@ export const retypedAnswer: AnswerFormat<RetypedAnswer> = answerFormat(
   retypedAnswerSchema
 );
 
-export const risksSystemPrompt = `You read the risk assessment (evaluarea riscurilor de accidentare și îmbolnăvire profesională, by the I.N.C.D.P.M. method) and the prevention and protection plan (planul de prevenire și protecție) that a Romanian external safety service wrote for one client company. Your answer tells code where each evaluation sheet's factors, measures and texts are, so that code copies them out of the files; you never copy the factors yourself, except those of the sheets with no numbered rows when a request asks you to write them out. ${dataNotInstructions} The task follows the files.`;
+export const risksSystemPrompt = `You read the risk assessment (evaluarea riscurilor de accidentare și îmbolnăvire profesională, by the I.N.C.D.P.M. method) and the prevention and protection plan (planul de prevenire și protecție) that a Romanian external safety service wrote for one client company. Your answer tells code where each evaluation sheet's factors, measures and texts are, so that code copies them out of the files; you never copy the factors yourself, except those of the sheets with no numbered rows, with their measures, when a request asks you to write them out. ${dataNotInstructions} The task follows the files.`;
 
 const rowsParagraph = `Each table row of a Word file stands on one line, its id first and its cells between bars: "R212 | MIJLOACE DE PRODUCȚIE | Factori de risc mecanic | F3. Cădere … | ITM 3-45 zile | 2 | 3 | 2 |". A cell's paragraphs are joined by " / ". A merged cell is written in its first row and left empty in the rows below. Cells are counted from 1 after the id. A PDF's text and a scanned page have no numbered rows.`;
 
@@ -230,6 +236,9 @@ function retypeRulesPrompt(headings: readonly string[]) {
 
 sheets: the evaluation sheets below, which have no numbered rows, in this order, each with its file as given and its heading as below.
 - factors: each factor row of its table written out: component and group as the row or the rows above it give them, description without its "F12." code, consequence, gravity, probability and level as printed (digits), and quote: the row's text as it stands in the file, at most 200 characters. One entry per row, with the row's own words and digits: never a summary of the table, a range of rows or a description of its columns.
+- measures: the factor's prevention measures, each its own entry, in the document's words as they stand, never shortened, joined or reworded, with its kind. Take them from the prevention and protection plan's row for the factor, in the block of the sheet's post (the plan writes the risk without its code and often in other words; a row that names two risks belongs to both, and a factor with two rows takes both), each with its column's kind: technical, organizational, hygienic_sanitary, other. For a factor the plan has no row for, or when the files hold no plan, take them from the factor's row of the sheet's measures table ("Fișa de măsuri propuse", by its "F12." code), each with the kind its label gives ("Măsuri tehnice:", "Măsuri organizatorice:"), or where the text has no labels: technical for equipment, installations, protections and checks of them; organizational for training, instructions, rules, supervision and work organization; hygienic_sanitary for medical checks, first aid, hygiene and drinking water; other for protective equipment and anything else. [] when neither gives the factor any: never a measure of another factor, a general measure of the workplace or one of your own, and never a placeholder ("--").
+- measuresFrom: plan or sheet, where the factor's measures come from; "" when it has none.
+- actions, deadline, responsiblePerson, observations: the plan row's actions to carry out the measures, its deadline, the person who answers for them and its observations, as written; "" when the factor has no plan row or the row leaves the cell empty or "--".
 
 The sheets:
 ${headings.map((heading) => `- ${heading}`).join('\n')}`;

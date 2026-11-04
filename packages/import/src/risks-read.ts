@@ -510,12 +510,55 @@ function copiedFactors(sheet: Located): ReadFactor[] {
   return factors;
 }
 
+function setMeasures(factor: ReadFactor, measures: ProposedMeasure[]) {
+  if (measures.length > maxMeasures) {
+    factor.flags.push({ kind: 'measures_cut', count: measures.length });
+  }
+  factor.measures = measures.slice(0, maxMeasures);
+}
+
+const planFields: PlanField[] = ['actions', 'deadline', 'responsiblePerson', 'observations'];
+
+// The database's limits on a factor's plan fields.
+const planFieldLimits: Record<PlanField, number> = {
+  actions: 2000,
+  deadline: 200,
+  responsiblePerson: 200,
+  observations: 1000,
+};
+
+const retypedPlanFields = (written: RetypedFactor) =>
+  Object.fromEntries(
+    planFields.map((field) => [
+      field,
+      fieldText(written[field] ?? undefined, planFieldLimits[field]),
+    ])
+  ) as Record<PlanField, string | null>;
+
+function setPlanFields(
+  factor: ReadFactor,
+  fields: Record<PlanField, string | null>,
+  people: readonly string[]
+) {
+  for (const field of planFields) {
+    const value = fields[field];
+    if (value === null) continue;
+    factor[field] = value;
+    factor.flags = factor.flags.filter(
+      (flag) => !(flag.kind === 'person_named' && flag.field === field)
+    );
+    if (namesPerson(value, people)) {
+      factor.flags.push({ kind: 'person_named', field, text: value });
+    }
+  }
+}
+
 // A PDF's text puts a table row's cells side by side, so a description that wraps in its cell
 // goes on lines below, after the other cells' words: a quote of the whole row is not in the text,
 // its first words are.
 const leadingWords = (quote: string) => quote.trim().split(/\s+/u).slice(0, 5).join(' ');
 
-function retypedFactors(sheet: Located, text: string): ReadFactor[] {
+function retypedFactors(sheet: Located, text: string, people: readonly string[]): ReadFactor[] {
   let component = '';
   let group = '';
   return sheet.answered.factors.map((written: RetypedFactor, index) => {
@@ -531,6 +574,15 @@ function retypedFactors(sheet: Located, text: string): ReadFactor[] {
       findAfter(text, leadingWords(written.quote), sheet.region.start, sheet.region.end)[0];
     if (found) factor.source = { file: sheet.answered.file, ...found };
     else factor.flags.push({ kind: 'quote_not_found' });
+    setMeasures(
+      factor,
+      written.measures
+        .map((measure) => ({ kind: measure.kind, description: measureText(measure.description) }))
+        .filter((measure) => !placeholder.test(measure.description))
+    );
+    setPlanFields(factor, retypedPlanFields(written), people);
+    const planned = planFields.some((field) => factor[field] !== null);
+    factor.measuresFrom = factor.measures.length > 0 || planned ? written.measuresFrom : null;
     return factor;
   });
 }
@@ -555,13 +607,6 @@ export function classesSwapped(
   return swapped >= swapEvidence && swapped * 3 >= telling * 2;
 }
 
-function setMeasures(factor: ReadFactor, measures: ProposedMeasure[]) {
-  if (measures.length > maxMeasures) {
-    factor.flags.push({ kind: 'measures_cut', count: measures.length });
-  }
-  factor.measures = measures.slice(0, maxMeasures);
-}
-
 const descriptionKey = (text: string) => foldText(splitCode(text).description);
 
 const looksLikeFactor = (cells: readonly string[]) =>
@@ -569,14 +614,6 @@ const looksLikeFactor = (cells: readonly string[]) =>
   cells.filter((cell) => /^[1-7]$/.test(cell)).length >= 3;
 
 const rowText = (row: TableRow) => `| ${row.cells.join(' | ')} |`;
-
-// The database's limits on a factor's plan fields.
-const planFieldLimits: Record<PlanField, number> = {
-  actions: 2000,
-  deadline: 200,
-  responsiblePerson: 200,
-  observations: 1000,
-};
 
 // A row the answer joins to a factor but places in no table, as when a table's last row is
 // given one short, takes the nearest table above it in its file.
@@ -614,7 +651,7 @@ export function readRisksAnswer(
       ? []
       : sheet.rows.length > 0
         ? copiedFactors(sheet)
-        : retypedFactors(sheet, file.text);
+        : retypedFactors(sheet, file.text, people);
     if (file && answered.firstRow !== '' && sheet.rows.length === 0) {
       flags.push({ kind: 'rows_not_found' });
     }
@@ -705,17 +742,21 @@ export function readRisksAnswer(
       ),
       observations: fieldText(at(table.columns.observations), planFieldLimits.observations),
     };
+    // A factor written out from a PDF came with the measures the model wrote; a plan row of a
+    // Word file joined to it by its description is copied over them, as copying never drifts.
     for (const factor of factors) {
-      setMeasures(factor, planned.has(factor) ? [...factor.measures, ...measures] : measures);
+      const first = !planned.has(factor);
+      setMeasures(factor, first ? measures : [...factor.measures, ...measures]);
       factor.measuresFrom = 'plan';
-      for (const field of Object.keys(fields) as PlanField[]) {
-        const value = fields[field];
-        if (value === null || factor[field] !== null) continue;
-        factor[field] = value;
-        if (namesPerson(value, people)) {
-          factor.flags.push({ kind: 'person_named', field, text: value });
-        }
-      }
+      setPlanFields(
+        factor,
+        first
+          ? fields
+          : (Object.fromEntries(
+              planFields.map((field) => [field, factor[field] === null ? fields[field] : null])
+            ) as Record<PlanField, string | null>),
+        people
+      );
       planned.add(factor);
     }
   }

@@ -126,6 +126,16 @@ const sheetColumns = {
 
 const none = { startWords: '', endWords: '' };
 
+// What a factor written out from a PDF carries when the documents give it no measures.
+export const unplanned = {
+  measuresFrom: null,
+  measures: [],
+  actions: null,
+  deadline: null,
+  responsiblePerson: null,
+  observations: null,
+};
+
 // The answer a model would give for `assessment` and `plan`, with the rows numbered as
 // `numberRows([assessment, plan])` numbers them.
 export const answer: RisksAnswer = {
