@@ -556,9 +556,9 @@ select results_eq(
   $$ select name, means_of_production, work_environment, exposure from public.evaluation_profiles
      where name in ('Magazioner', 'Lucrător de birou') order by name $$,
   $$ values
-       ('Lucrător de birou', null::text, null::text, '8 h / schimb'),
+       ('Lucrător de birou', null::text, null::text, null::text),
        ('Magazioner', 'Rafturi metalice', 'Spațiu neîncălzit', '4 h / zi') $$,
-  'saving an evaluation as a profile copies its work-system texts'
+  'saving an evaluation as a profile copies its work-system texts, and leaves the exposure empty while the evaluation''s is still the default'
 );
 
 select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000002', '{"provider":"email"}');

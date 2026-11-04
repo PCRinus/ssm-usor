@@ -26294,7 +26294,7 @@ export const getSaveRiskEvaluationAsProfileUrl = (clientId: string, evaluationId
 };
 
 /**
- * A new profile named `name` with copies of the evaluation’s factors, their classes, measures and plan fields, in their order, and its work-system texts. Each factor without a `sourceProfile` gets the new profile as its own; one copied from another profile keeps that. An archived client’s evaluation can be saved too, and its factors stay as they were.
+ * A new profile named `name` with copies of the evaluation’s factors, their classes, measures and plan fields, in their order, and its work-system texts, the exposure only once it is no longer "8 h / schimb". Each factor without a `sourceProfile` gets the new profile as its own; one copied from another profile keeps that. An archived client’s evaluation can be saved too, and its factors stay as they were.
  * @summary Save a risk evaluation as a profile of the library
  */
 export const saveRiskEvaluationAsProfile = async (

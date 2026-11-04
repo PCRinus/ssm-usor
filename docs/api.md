@@ -697,7 +697,7 @@ factor routes take (`RiskFactorRequest`) and answer with the whole profile. Two 
 an evaluation and the library, and nothing links what they copy: `POST
 /clients/{clientId}/risk-evaluations/{evaluationId}/save-as-profile` takes a `name` and
 answers `201` with a new profile holding copies of the evaluation's factors and its work-system
-texts, also for an archived client's evaluation; `POST
+texts, but no exposure while it is still "8 h / schimb", also for an archived client's evaluation; `POST
 …/risk-evaluations/{evaluationId}/factors/apply-profile` takes a `profileId` and answers with
 the evaluation, the profile's factors copied after its own, and `addedFactorCount`. The
 profile's texts fill only the evaluation's empty ones, its exposure while it is still "8 h /

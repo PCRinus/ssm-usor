@@ -1097,8 +1097,8 @@ refused (`RSK02`), an archived profile (`RSK03`), and an archived client by its 
 (`CLA01`).
 `save_risk_evaluation_as_profile` runs as its owner, because it writes
 `source_profile_factor_id`, and so checks the caller's organization itself. It creates a
-profile by name with the evaluation's texts and copies of its factors and measures in their
-order, points each
+profile by name with the evaluation's texts, the exposure left empty while it is still "8 h /
+schimb", and copies of its factors and measures in their order, points each
 of the evaluation's factors that had no origin at its copy, and returns the profile's id, or
 null when the evaluation is not the caller's; a taken name fails on the unique index (`23505`).
 It works for an archived client's evaluation, whose factors it leaves unlinked. The pointer is

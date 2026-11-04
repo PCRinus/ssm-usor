@@ -118,7 +118,8 @@ $$;
 
 -- Runs as its owner because members cannot write the pointer, so it makes the policies' check
 -- of the organization itself. An archived client's factors cannot change and stay unlinked; a
--- factor copied from another profile keeps that origin.
+-- factor copied from another profile keeps that origin. An exposure still at the evaluation's
+-- default is not one the specialist wrote, and an entry holding it would mark it as theirs.
 create or replace function public.save_risk_evaluation_as_profile(p_evaluation_id uuid, p_name text)
 returns uuid
 language plpgsql
@@ -144,7 +145,7 @@ begin
   )
   values (
     source.organization_id, btrim(p_name), source.means_of_production, source.work_environment,
-    source.exposure, (select auth.uid())
+    nullif(source.exposure, '8 h / schimb'), (select auth.uid())
   )
   returning id into profile_id;
   for source_factor in
