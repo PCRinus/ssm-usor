@@ -20,6 +20,7 @@ import {
   riskSummary,
   type SheetChange,
   type SheetContext,
+  sheetFlagText,
   sheetState,
   takenSheets,
 } from './risks-model';
@@ -389,6 +390,14 @@ describe('the risk evaluations task on the hub', () => {
       risksPartDescription(part({ counts: { identical: 1, similar: 1, new: 1, unread: 0 } }), false)
     ).toBe(
       'De verificat: 3 fișe, una nouă, una asemănătoare și 1 deja în bibliotecă. Le confirmi după client.'
+    );
+  });
+});
+
+describe('a sheet’s warnings', () => {
+  it('asks to check the classes of a sheet whose gravity and probability look swapped', () => {
+    expect(sheetFlagText({ kind: 'classes_swapped' })).toBe(
+      'Gravitatea și probabilitatea par inversate în document: verifică clasele.'
     );
   });
 });

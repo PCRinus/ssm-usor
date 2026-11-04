@@ -110,6 +110,8 @@ export function RiskSheetCard({
   const ask = (open: boolean): Tone => (!readOnly && open ? 'todo' : 'done');
   const Icon = kindIcons[sheet.kind];
   const unread = sheet.factors.length === 0;
+  const swapped = sheet.flags.find((flag) => flag.kind === 'classes_swapped');
+  const textFlags = sheet.flags.filter((flag) => flag.kind !== 'classes_swapped');
   const attention = state.factors.filter(
     (factor) =>
       refused.has(factor.factor.key) ||
@@ -309,9 +311,9 @@ export function RiskSheetCard({
             }
           >
             <span>{textsLine(sheet)}</span>
-            {sheet.flags.length > 0 && (
+            {textFlags.length > 0 && (
               <ul className="grid gap-1">
-                {sheet.flags.map((flag, index) => (
+                {textFlags.map((flag, index) => (
                   <li key={index} className="text-[13px] font-medium text-warning-foreground">
                     {sheetFlagText(flag)}
                   </li>
@@ -321,7 +323,7 @@ export function RiskSheetCard({
           </DecisionRow>
 
           <DecisionRow
-            tone={attention.length > 0 ? 'warning' : 'done'}
+            tone={attention.length > 0 || swapped ? 'warning' : 'done'}
             label="Factorii"
             testId="risk-import-factors-row"
             actions={
@@ -342,6 +344,14 @@ export function RiskSheetCard({
             }
           >
             <span data-testid="risk-import-factors-summary">{factorsLine(state)}</span>
+            {swapped && (
+              <span
+                className="text-[13px] font-medium text-warning-foreground"
+                data-testid="risk-import-classes-swapped"
+              >
+                {sheetFlagText(swapped)}
+              </span>
+            )}
             {listed.size > 0 && !showAll && (
               <span className="text-[13px] text-muted-foreground">
                 Mai jos sunt doar cei de verificat.

@@ -1026,8 +1026,9 @@ their tab bars read.
   client), "Adaugă după cei existenți", "Înlocuiește" or "Lasă cum e";
   the library choice ("Adaugă în bibliotecă" or "Nu adăuga" for a new sheet, "Ce diferă" with
   "Folosește ce ai" or "Adaugă ca nouă" for a similar one, a similar one asked until picked); the
-  entry's name; the work-system texts; and the factors, folded to those with a flag or a missing
-  class, grouped by component, each with its tick, classes, computed level, measures, plan fields
+  entry's name; the work-system texts; and the factors, with a warning when the sheet's
+  gravity and probability look swapped (`classes_swapped`), folded to those with a flag or a
+  missing class, grouped by component, each with its tick, classes, computed level, measures, plan fields
   and flags as chips. "Modifică" opens the client sheet's factor editor on the proposed factor,
   whose save becomes the factor's change, and ticks it; ticking a factor without its classes
   opens the editor. Rows the reading joined to no sheet or factor are listed at the end. Saving

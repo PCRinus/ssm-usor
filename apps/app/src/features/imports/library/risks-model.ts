@@ -609,6 +609,8 @@ export function sheetFlagText(flag: SheetFlag) {
       return 'Nu am găsit în document rândurile tabelului ei.';
     case 'no_factors':
       return 'Nu am găsit niciun factor în tabelul ei.';
+    case 'classes_swapped':
+      return 'Gravitatea și probabilitatea par inversate în document: verifică clasele.';
   }
 }
 
