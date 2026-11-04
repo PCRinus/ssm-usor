@@ -19,6 +19,7 @@ import { Route as InregistrareRouteImport } from './routes/inregistrare';
 import { Route as InvitatieRouteImport } from './routes/invitatie';
 import { Route as ParolaUitataRouteImport } from './routes/parola-uitata';
 import { Route as ResetareParolaRouteImport } from './routes/resetare-parola';
+import { Route as VerificareCodRouteImport } from './routes/verificare-cod';
 import { Route as AuthenticatedActualizariRouteImport } from './routes/_authenticated/actualizari';
 import { Route as AuthenticatedClientiRouteImport } from './routes/_authenticated/clienti';
 import { Route as AuthenticatedClientiPotentialiRouteImport } from './routes/_authenticated/clienti-potentiali';
@@ -156,6 +157,11 @@ const ParolaUitataRoute = ParolaUitataRouteImport.update({
 const ResetareParolaRoute = ResetareParolaRouteImport.update({
   id: '/resetare-parola',
   path: '/resetare-parola',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const VerificareCodRoute = VerificareCodRouteImport.update({
+  id: '/verificare-cod',
+  path: '/verificare-cod',
   getParentRoute: () => rootRouteImport,
 } as any);
 const AuthenticatedActualizariRoute =
@@ -699,6 +705,7 @@ export interface FileRoutesByFullPath {
   '/invitatie': typeof InvitatieRoute;
   '/parola-uitata': typeof ParolaUitataRoute;
   '/resetare-parola': typeof ResetareParolaRoute;
+  '/verificare-cod': typeof VerificareCodRoute;
   '/actualizari': typeof AuthenticatedActualizariRouteWithChildren;
   '/clienti': typeof AuthenticatedClientiRouteWithChildren;
   '/clienti-potentiali': typeof AuthenticatedClientiPotentialiRouteWithChildren;
@@ -797,6 +804,7 @@ export interface FileRoutesByTo {
   '/invitatie': typeof InvitatieRoute;
   '/parola-uitata': typeof ParolaUitataRoute;
   '/resetare-parola': typeof ResetareParolaRoute;
+  '/verificare-cod': typeof VerificareCodRoute;
   '/dashboard': typeof AuthenticatedDashboardRoute;
   '/profil': typeof AuthenticatedProfilRoute;
   '/semnaturi': typeof AuthenticatedSemnaturiRoute;
@@ -876,6 +884,7 @@ export interface FileRoutesById {
   '/invitatie': typeof InvitatieRoute;
   '/parola-uitata': typeof ParolaUitataRoute;
   '/resetare-parola': typeof ResetareParolaRoute;
+  '/verificare-cod': typeof VerificareCodRoute;
   '/_authenticated/actualizari': typeof AuthenticatedActualizariRouteWithChildren;
   '/_authenticated/clienti': typeof AuthenticatedClientiRouteWithChildren;
   '/_authenticated/clienti-potentiali': typeof AuthenticatedClientiPotentialiRouteWithChildren;
@@ -978,6 +987,7 @@ export interface FileRouteTypes {
     | '/invitatie'
     | '/parola-uitata'
     | '/resetare-parola'
+    | '/verificare-cod'
     | '/actualizari'
     | '/clienti'
     | '/clienti-potentiali'
@@ -1076,6 +1086,7 @@ export interface FileRouteTypes {
     | '/invitatie'
     | '/parola-uitata'
     | '/resetare-parola'
+    | '/verificare-cod'
     | '/dashboard'
     | '/profil'
     | '/semnaturi'
@@ -1154,6 +1165,7 @@ export interface FileRouteTypes {
     | '/invitatie'
     | '/parola-uitata'
     | '/resetare-parola'
+    | '/verificare-cod'
     | '/_authenticated/actualizari'
     | '/_authenticated/clienti'
     | '/_authenticated/clienti-potentiali'
@@ -1256,6 +1268,7 @@ export interface RootRouteChildren {
   InvitatieRoute: typeof InvitatieRoute;
   ParolaUitataRoute: typeof ParolaUitataRoute;
   ResetareParolaRoute: typeof ResetareParolaRoute;
+  VerificareCodRoute: typeof VerificareCodRoute;
   AuthCallbackRoute: typeof AuthCallbackRoute;
 }
 
@@ -1329,6 +1342,13 @@ declare module '@tanstack/react-router' {
       path: '/resetare-parola';
       fullPath: '/resetare-parola';
       preLoaderRoute: typeof ResetareParolaRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/verificare-cod': {
+      id: '/verificare-cod';
+      path: '/verificare-cod';
+      fullPath: '/verificare-cod';
+      preLoaderRoute: typeof VerificareCodRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/_authenticated/actualizari': {
@@ -2487,6 +2507,7 @@ const rootRouteChildren: RootRouteChildren = {
   InvitatieRoute: InvitatieRoute,
   ParolaUitataRoute: ParolaUitataRoute,
   ResetareParolaRoute: ResetareParolaRoute,
+  VerificareCodRoute: VerificareCodRoute,
   AuthCallbackRoute: AuthCallbackRoute,
 };
 export const routeTree = rootRouteImport

@@ -1,7 +1,7 @@
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import type { QueryClient } from '@tanstack/react-query';
 
-type AuthError = { message: string; code?: string };
+type AuthError = { message: string; code?: string; status?: number };
 
 // Supabase Auth refuses a gated call without a Turnstile token once CAPTCHA is on (ADR 004).
 type CaptchaOptions = { captchaToken?: string };
@@ -39,7 +39,33 @@ export interface AuthClient {
   exchangeCodeForSession(
     authCode: string
   ): Promise<{ data: { session: Session | null }; error: AuthError | null }>;
+  mfa: {
+    getAuthenticatorAssuranceLevel(): Promise<{
+      data: { currentLevel: string | null; nextLevel: string | null } | null;
+      error: AuthError | null;
+    }>;
+    challengeAndVerify(params: {
+      factorId: string;
+      code: string;
+    }): Promise<{ data: unknown; error: AuthError | null }>;
+  };
 }
+
+export type VerifyResult = 'verified' | 'invalid' | 'rate-limited' | 'unreachable';
+
+export class SecondFactorError extends Error {
+  constructor(readonly result: Exclude<VerifyResult, 'verified'>) {
+    super(`The second factor was not verified: ${result}.`);
+  }
+}
+
+const verifiedTotp = (session: Session) =>
+  session.user.factors?.find(
+    (factor) => factor.factor_type === 'totp' && factor.status === 'verified'
+  );
+
+export const hasSecondFactor = (session: Session | null) =>
+  Boolean(session && verifiedTotp(session));
 
 export interface AuthSnapshot {
   status: 'loading' | 'ready' | 'error' | 'unconfigured';
@@ -52,6 +78,9 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
   let disposed = false;
   const listeners = new Set<() => void>();
 
+  // The account whose session a recovery link signed in, until it sets its new password.
+  let recoveredUserId: string | null = null;
+
   const publish = (session: Session | null) => {
     if (disposed) return;
     revision += 1;
@@ -59,6 +88,7 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
       // clear() also cancels cached queries, preventing old results from being reused.
       queryClient.clear();
     }
+    if (session?.user.id !== recoveredUserId) recoveredUserId = null;
     snapshot = { status: 'ready', session };
     listeners.forEach((listener) => listener());
   };
@@ -96,13 +126,50 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
     if (!client) throw new Error('Authentication is not configured.');
     const { error } = await client.updateUser({ password });
     if (error && !(acceptCurrent && error.code === 'same_password')) throw error;
+    recoveredUserId = null;
     // The password is already changed; failing to end other sessions is not worth an error.
     await client.signOut({ scope: 'others' }).catch(() => undefined);
+  }
+
+  async function refreshSnapshot() {
+    if (!client) return;
+    const { data, error } = await client.getSession();
+    if (!error) publish(data.session);
+  }
+
+  // Supabase Auth refuses a password change at aal1 to an account with a verified factor, and
+  // ends its aal1 sessions whenever the factor is verified elsewhere, as in the admin app.
+  async function needsSecondFactor() {
+    await ready;
+    if (!client || !snapshot.session) return false;
+    const { data } = await client.mfa.getAuthenticatorAssuranceLevel();
+    return data?.currentLevel === 'aal1' && data.nextLevel === 'aal2';
+  }
+
+  async function verifySecondFactor(code: string): Promise<VerifyResult> {
+    const factor = snapshot.session && verifiedTotp(snapshot.session);
+    if (!client || !factor) return 'unreachable';
+    try {
+      const { error } = await client.mfa.challengeAndVerify({ factorId: factor.id, code });
+      if (error) {
+        // supabase-js reports a request that never got an answer with status 0.
+        if (error.status === 0) return 'unreachable';
+        return error.status === 429 ? 'rate-limited' : 'invalid';
+      }
+      await refreshSnapshot();
+      return 'verified';
+    } catch {
+      return 'unreachable';
+    }
   }
 
   return {
     ready,
     getSnapshot: () => snapshot,
+    needsSecondFactor,
+    verifySecondFactor,
+    isRecoverySession: (session: Session | null) =>
+      recoveredUserId !== null && session?.user.id === recoveredUserId,
     // The snapshot can hold an expired token: after the computer wakes from sleep, queries
     // refetch before Supabase's refresh reaches onAuthStateChange.
     // getSession() waits for a refresh in progress and renews an expired token itself.
@@ -173,6 +240,7 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
       const { data, error } = await client.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
       if (error) throw error;
       if (!data.session) throw new Error('No session was returned.');
+      recoveredUserId = data.session.user.id;
       publish(data.session);
     },
     updatePassword,
@@ -200,12 +268,14 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
       }
       return exchange;
     },
-    // Proves the person at the keyboard knows the current password before changing it.
+    // Proves the person at the keyboard knows the current password before changing it. Signing
+    // in again leaves the session at aal1, so an account with a second factor gives its code too.
     async changePassword(
       email: string,
       currentPassword: string,
       newPassword: string,
-      captchaToken?: string
+      captchaToken?: string,
+      code?: string
     ) {
       if (!client) throw new Error('Authentication is not configured.');
       const { data, error } = await client.signInWithPassword({
@@ -215,6 +285,10 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
       });
       if (error) throw error;
       if (data.session) publish(data.session);
+      if (code !== undefined && (await needsSecondFactor())) {
+        const verified = await verifySecondFactor(code);
+        if (verified !== 'verified') throw new SecondFactorError(verified);
+      }
       await updatePassword(newPassword);
     },
     dispose() {

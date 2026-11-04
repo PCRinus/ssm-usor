@@ -2,7 +2,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { authFixture, makeSession } from '@/test/auth-fixture';
+import { authFixture, makeSession, withFactor } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -277,5 +277,73 @@ describe('change password on the profile page', () => {
       'cel puțin 8 caractere'
     );
     expect(auth.client.signInWithPassword).not.toHaveBeenCalled();
+  });
+
+  describe('for an account with an authenticator', () => {
+    function signedInWithFactor() {
+      const session = withFactor(makeSession());
+      const auth = authFixture(session, 'aal2');
+      auth.client.signInWithPassword.mockImplementation(async () => {
+        auth.emit('SIGNED_IN', session);
+        return { data: { session }, error: null };
+      });
+      return auth;
+    }
+
+    it('asks for the code too, since checking the password signs in again without it', async () => {
+      const auth = signedInWithFactor();
+      mountApp(auth.client, '/profil');
+      const user = userEvent.setup();
+
+      await user.type(await screen.findByTestId('current-password'), 'ParolaVeche1');
+      await user.type(screen.getByTestId('new-password'), 'ParolaNoua1');
+      await user.type(screen.getByTestId('change-password-code'), '123456');
+      await user.click(screen.getByTestId('change-password-save'));
+
+      expect(await screen.findByText('Parola a fost schimbată.')).toBeTruthy();
+      expect(auth.client.mfa.challengeAndVerify).toHaveBeenCalledWith({
+        factorId: 'factor-one',
+        code: '123456',
+      });
+      expect(auth.client.updateUser).toHaveBeenCalledWith({ password: 'ParolaNoua1' });
+    });
+
+    it('keeps the password when the code is wrong', async () => {
+      const auth = signedInWithFactor();
+      mountApp(auth.client, '/profil');
+      const user = userEvent.setup();
+
+      await user.type(await screen.findByTestId('current-password'), 'ParolaVeche1');
+      await user.type(screen.getByTestId('new-password'), 'ParolaNoua1');
+      await user.type(screen.getByTestId('change-password-code'), '000000');
+      await user.click(screen.getByTestId('change-password-save'));
+
+      expect((await screen.findByTestId('change-password-code-error')).textContent).toMatch(
+        /Codul nu este corect/
+      );
+      expect(auth.client.updateUser).not.toHaveBeenCalled();
+    });
+
+    it('needs the six digits before checking anything', async () => {
+      const auth = signedInWithFactor();
+      mountApp(auth.client, '/profil');
+      const user = userEvent.setup();
+
+      await user.type(await screen.findByTestId('current-password'), 'ParolaVeche1');
+      await user.type(screen.getByTestId('new-password'), 'ParolaNoua1');
+      await user.click(screen.getByTestId('change-password-save'));
+
+      expect((await screen.findByTestId('change-password-code-error')).textContent).toBe(
+        'Introdu cele 6 cifre ale codului.'
+      );
+      expect(auth.client.signInWithPassword).not.toHaveBeenCalled();
+    });
+  });
+
+  it('asks an account without an authenticator for no code', async () => {
+    mountApp(signedIn().client, '/profil');
+
+    await screen.findByTestId('current-password');
+    expect(screen.queryByTestId('change-password-code')).toBeNull();
   });
 });
