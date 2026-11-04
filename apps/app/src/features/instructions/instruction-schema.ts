@@ -100,7 +100,6 @@ export const moduleFormSchema = z.object({
 
 export type ModuleFormValues = z.infer<typeof moduleFormSchema>;
 
-// The library's page, sort and archived view live in the URL; defaults are omitted.
 export const librarySearchSchema = z.object({
   page: z.number().int().min(1).optional().catch(undefined),
   sort: z.enum(instructionModuleSortKeys).optional().catch(undefined),
