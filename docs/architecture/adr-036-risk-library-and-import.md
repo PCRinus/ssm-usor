@@ -133,8 +133,10 @@ Measures, plan fields and texts are left out of the match. A taken name is propo
 
 - the sheet's heading, kind and posts, with the picker for an undecided one;
 - the factors as a table, each with its tick, component, group, description, gravity and probability selects, computed level, measures, plan fields and flags; **Sursa** shows the row in the file;
-- the library choice: **Adaugă în bibliotecă** for a new sheet, **Folosește ce ai** or **Adaugă ca nouă** for a similar one, and **Nu adăuga** for any; a client-level sheet defaults to Nu adăuga;
+- the library choice: **Adaugă în bibliotecă** or **Nu adăuga** for a new sheet, which a client-level one defaults to, and **Folosește ce ai** or **Adaugă ca nouă** for a similar one;
 - for a post that already has factors, "Postul are deja o fișă cu 18 factori", and the specialist's choice: **Adaugă după cei existenți**, **Înlocuiește** or **Lasă cum e**, the default.
+
+_Note, 2026-11-04:_ this list first offered Nu adăuga for any sheet. A similar sheet has none: its factors go to the client either way, and Folosește ce ai already leaves the library as it is, the client's factors that match the entry's pointing at them.
 
 A plan field that names a person rather than a role is flagged, and is copied to the client's sheet but not into the library.
 
