@@ -5095,9 +5095,22 @@
                 "updatedAt"
               ]
             }
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
           }
         },
-        "required": ["items"]
+        "required": ["items", "page", "pageSize", "total"]
       },
       "InstructionModuleResponse": {
         "type": "object",
@@ -5371,6 +5384,45 @@
           }
         },
         "required": ["title", "body"]
+      },
+      "InstructionModuleChoicesResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 2,
+                  "maxLength": 200
+                },
+                "group": {
+                  "type": "string",
+                  "enum": [
+                    "work_activity",
+                    "work_equipment",
+                    "protective_equipment",
+                    "premises_activity",
+                    "installation_equipment",
+                    "hazardous_work"
+                  ]
+                },
+                "domain": {
+                  "type": "string",
+                  "enum": ["ssm", "su"]
+                }
+              },
+              "required": ["id", "title", "group", "domain"]
+            }
+          }
+        },
+        "required": ["items"]
       },
       "UpdateInstructionModuleRequest": {
         "type": "object",
@@ -31349,7 +31401,7 @@
       "get": {
         "operationId": "listInstructionModules",
         "summary": "List the organization's instruction modules",
-        "description": "The library (ADR 012), by domain, group and title, each module with its current version and how many current positions apply it. Archived modules are left out unless `archived=true`, which lists only them; `domain` lists the modules of one set only, `ssm` or `su`.",
+        "description": "A page of the library (ADR 012), each module with its current version and how many current positions apply it. `status=active` (the default) lists the modules in use, `status=archived` only the archived ones; `domain` lists the modules of one set only, `ssm` or `su`. Sorted by `title` by default, or by `group` (the categories in their order, then the title), `version` (when the current version was saved) or `appliedCount`; the id breaks ties so pages never overlap. A page past the end comes back empty with the real total. Modules without a version are left out.",
         "security": [
           {
             "bearerAuth": []
@@ -31358,12 +31410,53 @@
         "parameters": [
           {
             "schema": {
-              "type": "string",
-              "enum": ["true", "false"],
-              "default": "false"
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
             },
             "required": false,
-            "name": "archived",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["title", "group", "version", "appliedCount"],
+              "default": "title"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["asc", "desc"],
+              "default": "asc"
+            },
+            "required": false,
+            "name": "order",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["active", "archived"],
+              "default": "active"
+            },
+            "required": false,
+            "name": "status",
             "in": "query"
           },
           {
@@ -31566,6 +31659,91 @@
           },
           "400": {
             "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/instruction-modules/choices": {
+      "get": {
+        "operationId": "listInstructionModuleChoices",
+        "summary": "List every active instruction module to choose from",
+        "description": "The library's modules in use, unpaged, for a picker: each with its title, category (`group`) and domain, by domain, category and title. `domain` lists the modules of one set only, `ssm` or `su`.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["ssm", "su"]
+            },
+            "required": false,
+            "name": "domain",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The modules in use",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstructionModuleChoicesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query",
             "content": {
               "application/json": {
                 "schema": {

@@ -7,6 +7,7 @@ import {
   downloadInstructionModule,
   getInstructionModule,
   getInstructionModuleVersion,
+  listInstructionModuleChoices,
   listInstructionModules,
   listPositionInstructions,
   previewInstruction,
@@ -21,6 +22,7 @@ import {
   downloadInstructionModuleRoute,
   getInstructionModuleRoute,
   getInstructionModuleVersionRoute,
+  listInstructionModuleChoicesRoute,
   listInstructionModulesRoute,
   listPositionInstructionsRoute,
   previewInstructionRoute,
@@ -31,8 +33,9 @@ import {
 export const instructionModulesRouter = createRouter()
   .openapi(listInstructionModulesRoute, listInstructionModules)
   .openapi(createInstructionModuleRoute, createInstructionModule)
-  // Before the routes of one module: `/instruction-modules/preview` is not a module id.
+  // Before the routes of one module: `preview` and `choices` are not module ids.
   .openapi(previewInstructionRoute, previewInstruction)
+  .openapi(listInstructionModuleChoicesRoute, listInstructionModuleChoices)
   .openapi(getInstructionModuleRoute, getInstructionModule)
   .openapi(updateInstructionModuleRoute, updateInstructionModule)
   .openapi(saveInstructionBodyRoute, saveInstructionBody)

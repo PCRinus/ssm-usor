@@ -3878,6 +3878,15 @@ export type InstructionModuleListResponseItemsItem = {
 
 export interface InstructionModuleListResponse {
   items: InstructionModuleListResponseItemsItem[];
+  /** @minimum 1 */
+  page: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  pageSize: number;
+  /** @minimum 0 */
+  total: number;
 }
 
 export type InstructionModuleResponseModuleGroup =
@@ -4050,6 +4059,41 @@ export interface InstructionPreviewRequest {
   title: string;
   domain?: InstructionPreviewRequestDomain;
   body: InstructionPreviewRequestBody;
+}
+
+export type InstructionModuleChoicesResponseItemsItemGroup =
+  (typeof InstructionModuleChoicesResponseItemsItemGroup)[keyof typeof InstructionModuleChoicesResponseItemsItemGroup];
+
+export const InstructionModuleChoicesResponseItemsItemGroup = {
+  work_activity: 'work_activity',
+  work_equipment: 'work_equipment',
+  protective_equipment: 'protective_equipment',
+  premises_activity: 'premises_activity',
+  installation_equipment: 'installation_equipment',
+  hazardous_work: 'hazardous_work',
+} as const;
+
+export type InstructionModuleChoicesResponseItemsItemDomain =
+  (typeof InstructionModuleChoicesResponseItemsItemDomain)[keyof typeof InstructionModuleChoicesResponseItemsItemDomain];
+
+export const InstructionModuleChoicesResponseItemsItemDomain = {
+  ssm: 'ssm',
+  su: 'su',
+} as const;
+
+export type InstructionModuleChoicesResponseItemsItem = {
+  id: string;
+  /**
+   * @minLength 2
+   * @maxLength 200
+   */
+  title: string;
+  group: InstructionModuleChoicesResponseItemsItemGroup;
+  domain: InstructionModuleChoicesResponseItemsItemDomain;
+};
+
+export interface InstructionModuleChoicesResponse {
+  items: InstructionModuleChoicesResponseItemsItem[];
 }
 
 export type UpdateInstructionModuleRequestGroup =
@@ -15291,22 +15335,63 @@ export const ListEquipmentSuggestionsField = {
 } as const;
 
 export type ListInstructionModulesParams = {
-  archived?: ListInstructionModulesArchived;
+  /**
+   * @minimum 1
+   */
+  page?: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  pageSize?: number;
+  sort?: ListInstructionModulesSort;
+  order?: ListInstructionModulesOrder;
+  status?: ListInstructionModulesStatus;
   domain?: ListInstructionModulesDomain;
 };
 
-export type ListInstructionModulesArchived =
-  (typeof ListInstructionModulesArchived)[keyof typeof ListInstructionModulesArchived];
+export type ListInstructionModulesSort =
+  (typeof ListInstructionModulesSort)[keyof typeof ListInstructionModulesSort];
 
-export const ListInstructionModulesArchived = {
-  true: 'true',
-  false: 'false',
+export const ListInstructionModulesSort = {
+  title: 'title',
+  group: 'group',
+  version: 'version',
+  appliedCount: 'appliedCount',
+} as const;
+
+export type ListInstructionModulesOrder =
+  (typeof ListInstructionModulesOrder)[keyof typeof ListInstructionModulesOrder];
+
+export const ListInstructionModulesOrder = {
+  asc: 'asc',
+  desc: 'desc',
+} as const;
+
+export type ListInstructionModulesStatus =
+  (typeof ListInstructionModulesStatus)[keyof typeof ListInstructionModulesStatus];
+
+export const ListInstructionModulesStatus = {
+  active: 'active',
+  archived: 'archived',
 } as const;
 
 export type ListInstructionModulesDomain =
   (typeof ListInstructionModulesDomain)[keyof typeof ListInstructionModulesDomain];
 
 export const ListInstructionModulesDomain = {
+  ssm: 'ssm',
+  su: 'su',
+} as const;
+
+export type ListInstructionModuleChoicesParams = {
+  domain?: ListInstructionModuleChoicesDomain;
+};
+
+export type ListInstructionModuleChoicesDomain =
+  (typeof ListInstructionModuleChoicesDomain)[keyof typeof ListInstructionModuleChoicesDomain];
+
+export const ListInstructionModuleChoicesDomain = {
   ssm: 'ssm',
   su: 'su',
 } as const;
@@ -22885,7 +22970,7 @@ export const getListInstructionModulesUrl = (params?: ListInstructionModulesPara
 };
 
 /**
- * The library (ADR 012), by domain, group and title, each module with its current version and how many current positions apply it. Archived modules are left out unless `archived=true`, which lists only them; `domain` lists the modules of one set only, `ssm` or `su`.
+ * A page of the library (ADR 012), each module with its current version and how many current positions apply it. `status=active` (the default) lists the modules in use, `status=archived` only the archived ones; `domain` lists the modules of one set only, `ssm` or `su`. Sorted by `title` by default, or by `group` (the categories in their order, then the title), `version` (when the current version was saved) or `appliedCount`; the id breaks ties so pages never overlap. A page past the end comes back empty with the real total. Modules without a version are left out.
  * @summary List the organization's instruction modules
  */
 export const listInstructionModules = async (
@@ -23230,6 +23315,155 @@ export const usePreviewInstruction = <TError = ErrorType<ApiErrorResponse>, TCon
 > => {
   return useMutation(getPreviewInstructionMutationOptions(options), queryClient);
 };
+
+export const getListInstructionModuleChoicesUrl = (params?: ListInstructionModuleChoicesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/instruction-modules/choices?${stringifiedParams}`
+    : `/instruction-modules/choices`;
+};
+
+/**
+ * The library's modules in use, unpaged, for a picker: each with its title, category (`group`) and domain, by domain, category and title. `domain` lists the modules of one set only, `ssm` or `su`.
+ * @summary List every active instruction module to choose from
+ */
+export const listInstructionModuleChoices = async (
+  params?: ListInstructionModuleChoicesParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<InstructionModuleChoicesResponse> => {
+  return apiFetch<InstructionModuleChoicesResponse>(getListInstructionModuleChoicesUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListInstructionModuleChoicesQueryKey = (
+  params?: ListInstructionModuleChoicesParams
+) => {
+  return [`/instruction-modules/choices`, ...(params ? [params] : [])] as const;
+};
+
+export const getListInstructionModuleChoicesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listInstructionModuleChoices>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListInstructionModuleChoicesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listInstructionModuleChoices>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListInstructionModuleChoicesQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listInstructionModuleChoices>>> = ({
+    signal,
+  }) => listInstructionModuleChoices(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listInstructionModuleChoices>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListInstructionModuleChoicesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listInstructionModuleChoices>>
+>;
+export type ListInstructionModuleChoicesQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListInstructionModuleChoices<
+  TData = Awaited<ReturnType<typeof listInstructionModuleChoices>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: undefined | ListInstructionModuleChoicesParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listInstructionModuleChoices>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listInstructionModuleChoices>>,
+          TError,
+          Awaited<ReturnType<typeof listInstructionModuleChoices>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListInstructionModuleChoices<
+  TData = Awaited<ReturnType<typeof listInstructionModuleChoices>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListInstructionModuleChoicesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listInstructionModuleChoices>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listInstructionModuleChoices>>,
+          TError,
+          Awaited<ReturnType<typeof listInstructionModuleChoices>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListInstructionModuleChoices<
+  TData = Awaited<ReturnType<typeof listInstructionModuleChoices>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListInstructionModuleChoicesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listInstructionModuleChoices>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List every active instruction module to choose from
+ */
+
+export function useListInstructionModuleChoices<
+  TData = Awaited<ReturnType<typeof listInstructionModuleChoices>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListInstructionModuleChoicesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listInstructionModuleChoices>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListInstructionModuleChoicesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export const getGetInstructionModuleUrl = (moduleId: string) => {
   return `/instruction-modules/${moduleId}`;

@@ -4,6 +4,8 @@ import {
   copyInstructionsRequestSchema,
   createInstructionModuleRequestSchema,
   instructionBodySchema,
+  instructionModuleChoicesQuerySchema,
+  instructionModuleChoicesResponseSchema,
   instructionModuleDownloadQuerySchema,
   instructionModuleListQuerySchema,
   instructionModuleListResponseSchema,
@@ -74,12 +76,38 @@ export const listInstructionModulesRoute = createRoute({
   operationId: 'listInstructionModules',
   summary: "List the organization's instruction modules",
   description:
-    'The library (ADR 012), by domain, group and title, each module with its current version and how many current positions apply it. Archived modules are left out unless `archived=true`, which lists only them; `domain` lists the modules of one set only, `ssm` or `su`.',
+    'A page of the library (ADR 012), each module with its current version and how many current positions apply it. `status=active` (the default) lists the modules in use, `status=archived` only the archived ones; `domain` lists the modules of one set only, `ssm` or `su`. Sorted by `title` by default, or by `group` (the categories in their order, then the title), `version` (when the current version was saved) or `appliedCount`; the id breaks ties so pages never overlap. A page past the end comes back empty with the real total. Modules without a version are left out.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { query: instructionModuleListQuerySchema },
   responses: {
     200: { description: 'The modules', content: listContent },
+    400: { description: 'Invalid query', content: errorContent },
+    ...membershipErrors,
+  },
+});
+
+export const listInstructionModuleChoicesRoute = createRoute({
+  method: 'get',
+  path: '/instruction-modules/choices',
+  operationId: 'listInstructionModuleChoices',
+  summary: 'List every active instruction module to choose from',
+  description:
+    "The library's modules in use, unpaged, for a picker: each with its title, category (`group`) and domain, by domain, category and title. `domain` lists the modules of one set only, `ssm` or `su`.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { query: instructionModuleChoicesQuerySchema },
+  responses: {
+    200: {
+      description: 'The modules in use',
+      content: {
+        'application/json': {
+          schema: instructionModuleChoicesResponseSchema.meta({
+            id: 'InstructionModuleChoicesResponse',
+          }),
+        },
+      },
+    },
     400: { description: 'Invalid query', content: errorContent },
     ...membershipErrors,
   },
