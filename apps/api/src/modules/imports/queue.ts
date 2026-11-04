@@ -99,6 +99,7 @@ export function pipelineDeps(env: ApiEnv['Bindings']): PipelineDeps {
       copy: files.copyImportObject,
       remove: files.removeImportObjects,
     },
+    copies: { list: files.listImportCopies, remove: files.removeImportCopies },
     extractor: createExtractor(env),
     model: importModel(env),
     registry: { lookup: (cui) => lookupCompany(cui, timedFetch(8_000)) },

@@ -137,11 +137,20 @@ export interface ImportStore {
   dropProposals(): Promise<number>;
   listObjectsToRemove(): Promise<ImportObjectList[]>;
   markObjectsRemoved(importIds: string[]): Promise<string[]>;
+  listExpiredCopies(): Promise<ImportCopy[]>;
+  markCopiesRemoved(copyIds: string[]): Promise<string[]>;
 }
 
 export interface ImportObjectList {
   importId: string;
   paths: string[];
+}
+
+export interface ImportCopy {
+  id: string;
+  // Null for the import's own copy.
+  part: ImportLibraryPart | null;
+  folder: string;
 }
 
 /** IMP05: the real size of a file breaks the import's caps. */
@@ -441,6 +450,25 @@ export function importStore(admin: AdminClient): ImportStore {
         p_import_ids: importIds,
       });
       if (error) throw fromDatabaseError(error, 'mark import objects removed');
+      return data;
+    },
+
+    async listExpiredCopies() {
+      const { data, error } = await admin.rpc('list_expired_import_copies');
+      if (error) throw fromDatabaseError(error, 'list expired import copies');
+      return data.map((row) => ({
+        id: row.copy_id,
+        part: row.part,
+        folder: row.folder,
+      }));
+    },
+
+    async markCopiesRemoved(copyIds) {
+      if (copyIds.length === 0) return [];
+      const { data, error } = await admin.rpc('mark_import_copies_removed', {
+        p_copy_ids: copyIds,
+      });
+      if (error) throw fromDatabaseError(error, 'mark import copies removed');
       return data;
     },
   };

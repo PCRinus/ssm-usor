@@ -74,9 +74,16 @@ export interface ImportObjects {
   remove(paths: string[]): Promise<void>;
 }
 
+export interface ImportCopyObjects {
+  // Every object under the folder, in its subfolders too, by its full path.
+  list(folder: string): Promise<string[]>;
+  remove(paths: string[]): Promise<void>;
+}
+
 export interface PipelineDeps {
   store: ImportStore;
   objects: ImportObjects;
+  copies: ImportCopyObjects;
   extractor: ExtractorService | null;
   model: ModelClient | null;
   // ANAF; it throws when ANAF cannot answer.

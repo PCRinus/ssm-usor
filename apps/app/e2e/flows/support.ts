@@ -906,6 +906,8 @@ export async function cleanUp() {
     await admin.from('client_files').delete().eq('organization_id', id);
     // An import names its client, and restricts the client's deletion.
     await admin.from('imports').delete().eq('organization_id', id);
+    // A copy outlives its import, and restricts the deletion of its organization.
+    await admin.from('import_copies').delete().eq('organization_id', id);
     // A participant's attempts restrict their deletion, and a result restricts its attempt's.
     await admin.from('test_results').delete().eq('organization_id', id);
     await admin.from('test_attempts').delete().eq('organization_id', id);

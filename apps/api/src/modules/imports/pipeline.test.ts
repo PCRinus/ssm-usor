@@ -33,6 +33,7 @@ import {
 } from './queue';
 import type { ClientSheets, RiskLibrary } from './risk-sheets';
 import {
+  type ImportCopy,
   type ImportFileRow,
   ImportLimitError,
   type ImportObjectList,
@@ -124,6 +125,8 @@ class World {
   sizeLimit: number | null = null;
   abandoned: ImportObjectList[] = [];
   toEmpty: ImportObjectList[] = [];
+  copies = new Map<string, Uint8Array>();
+  expiredCopies: ImportCopy[] = [];
   failRemovalOf = new Set<string>();
   calls: string[] = [];
   nextMessage = 0;
@@ -304,6 +307,11 @@ class World {
       listObjectsToRemove: async () => this.toEmpty,
       markObjectsRemoved: async (ids) => {
         this.calls.push(`markObjectsRemoved ${ids.join(',')}`);
+        return ids;
+      },
+      listExpiredCopies: async () => this.expiredCopies,
+      markCopiesRemoved: async (ids) => {
+        if (ids.length > 0) this.calls.push(`markCopiesRemoved ${ids.join(',')}`);
         return ids;
       },
     };
@@ -557,6 +565,15 @@ function deps(overrides: Partial<PipelineDeps> = {}): PipelineDeps {
         world.calls.push(`remove ${paths.length}`);
         for (const path of paths) world.objects.delete(path);
       }),
+    },
+    copies: {
+      list: async (folder) =>
+        [...world.copies.keys()].filter((path) => path.startsWith(`${folder}/`)),
+      remove: async (paths) => {
+        if (paths.some((path) => world.failRemovalOf.has(path))) throw new Error('Storage is down');
+        world.calls.push(`remove copies ${paths.length}`);
+        for (const path of paths) world.copies.delete(path);
+      },
     },
     extractor,
     model: createModelClient({
@@ -1311,6 +1328,33 @@ describe('cleanUpImports', () => {
       emptied: 1,
       left: 1,
     });
+  });
+
+  it("removes the copies past their 12 months, leaving an import's parts that are not", async () => {
+    const old = `${organizationId}/old-import`;
+    world.copies.set(`${old}/proposal.json`, strToU8('{}'));
+    world.copies.set(`${old}/files/a.pdf`, strToU8('a'));
+    world.copies.set(`${old}/parts/instructions_ssm/proposal.json`, strToU8('{}'));
+    world.copies.set(`${old}/parts/risk_evaluations/proposal.json`, strToU8('{}'));
+    world.copies.set(`${organizationId}/stuck/proposal.json`, strToU8('{}'));
+    world.expiredCopies = [
+      { id: 'own', part: null, folder: old },
+      { id: 'risks', part: 'risk_evaluations', folder: `${old}/parts/risk_evaluations` },
+      { id: 'stuck', part: null, folder: `${organizationId}/stuck` },
+    ];
+    world.failRemovalOf.add(`${organizationId}/stuck/proposal.json`);
+    const result = await cleanUpImports(deps());
+
+    expect(world.calls.slice(-3)).toEqual([
+      'remove copies 2',
+      'remove copies 1',
+      'markCopiesRemoved own,risks',
+    ]);
+    expect([...world.copies.keys()]).toEqual([
+      `${old}/parts/instructions_ssm/proposal.json`,
+      `${organizationId}/stuck/proposal.json`,
+    ]);
+    expect(result).toMatchObject({ copiesRemoved: 2, left: 1 });
   });
 });
 

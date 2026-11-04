@@ -2,7 +2,7 @@ import type { ApiEnv } from '../../lib/env';
 import { libraryReasons, riskReasons } from './library';
 import { copyFolder, describe, importReasons, type PipelineDeps } from './pipeline';
 import { pipelineDeps } from './queue';
-import type { ImportObjectList } from './store';
+import type { ImportCopy, ImportObjectList } from './store';
 
 // Long enough for the copy the confirmation queued to have run, or failed for good.
 const copyGraceMilliseconds = 60 * 60 * 1000;
@@ -10,8 +10,9 @@ const copyGraceMilliseconds = 60 * 60 * 1000;
 /**
  * The daily clean-up of ADR 030: folders whose copy did not finish are copied again, imports the
  * queue lost or members left are failed, then the objects of abandoned and failed imports go
- * after 14 days and confirmed imports' proposals and objects after 30. Objects go before the rows
- * that name them, so an import whose removal failed is listed again the next day.
+ * after 14 days and confirmed imports' proposals and objects after 30, and the improvement copies
+ * of ADR 037 after 12 months. Objects go before the rows that name them, so an import or a copy
+ * whose removal failed is listed again the next day.
  */
 export async function cleanUpImports(deps: PipelineDeps, now = new Date()) {
   const uncopied = await deps.store.uncopiedImports(
@@ -39,6 +40,8 @@ export async function cleanUpImports(deps: PipelineDeps, now = new Date()) {
   const dropped = await deps.store.dropProposals();
   const emptied = await deps.store.listObjectsToRemove();
   const marked = await deps.store.markObjectsRemoved(await removeObjects(deps, emptied));
+  const expired = await deps.store.listExpiredCopies();
+  const removedCopies = await deps.store.markCopiesRemoved(await removeCopies(deps, expired));
   return {
     copied,
     uncopied: uncopied.length - copied,
@@ -47,7 +50,14 @@ export async function cleanUpImports(deps: PipelineDeps, now = new Date()) {
     deleted: deleted.length,
     dropped,
     emptied: marked.length,
-    left: abandoned.length - deleted.length + emptied.length - marked.length,
+    copiesRemoved: removedCopies.length,
+    left:
+      abandoned.length -
+      deleted.length +
+      emptied.length -
+      marked.length +
+      expired.length -
+      removedCopies.length,
   };
 }
 
@@ -73,9 +83,27 @@ async function removeObjects(deps: PipelineDeps, lists: ImportObjectList[]) {
   return removed;
 }
 
+async function removeCopies(deps: PipelineDeps, copies: ImportCopy[]) {
+  const removed: string[] = [];
+  for (const copy of copies) {
+    try {
+      const paths = await deps.copies.list(copy.folder);
+      // A part ends up to 14 days after its import, so its copy may outlive the import's.
+      const own = copy.part
+        ? paths
+        : paths.filter((path) => !path.startsWith(`${copy.folder}/parts/`));
+      await deps.copies.remove(own);
+      removed.push(copy.id);
+    } catch (error) {
+      console.error(`The copy ${copy.folder} was left in Storage: ${describe(error)}`);
+    }
+  }
+  return removed;
+}
+
 export async function scheduledImportCleanUp(env: ApiEnv['Bindings']) {
   const result = await cleanUpImports(pipelineDeps(env));
   console.log(
-    `Import clean-up: ${result.copied} folders copied, ${result.uncopied} not; ${result.failed} imports failed as stalled or left; ${result.failedParts} library parts failed as stalled; ${result.deleted} deleted; ${result.dropped} proposals dropped; ${result.emptied} folders emptied; ${result.left} left for tomorrow.`
+    `Import clean-up: ${result.copied} folders copied, ${result.uncopied} not; ${result.failed} imports failed as stalled or left; ${result.failedParts} library parts failed as stalled; ${result.deleted} deleted; ${result.dropped} proposals dropped; ${result.emptied} folders emptied; ${result.copiesRemoved} improvement copies removed; ${result.left} left for tomorrow.`
   );
 }

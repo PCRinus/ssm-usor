@@ -16,6 +16,7 @@ const documentsBucket = 'documents';
 const clientFilesBucket = 'client-files';
 const billingInvoicesBucket = 'billing-invoices';
 const importsBucket = 'imports';
+const importCopiesBucket = 'import-copies';
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 export function createFileStore(c: Context<ApiEnv>) {
@@ -73,6 +74,20 @@ function fileStore(
     if (!response.ok)
       throw fileError(context, { message: `signed read answered ${response.status}` });
     return new Uint8Array(await response.arrayBuffer());
+  }
+
+  async function listAll(bucket: string, folder: string, context: string): Promise<string[]> {
+    const paths: string[] = [];
+    for (let offset = 0; ; offset += 1000) {
+      const { data, error } = await storage.from(bucket).list(folder, { limit: 1000, offset });
+      if (error || !data) throw fileError(context, error);
+      for (const entry of data) {
+        const path = `${folder}/${entry.name}`;
+        if (entry.id === null) paths.push(...(await listAll(bucket, path, context)));
+        else paths.push(path);
+      }
+      if (data.length < 1000) return paths;
+    }
   }
 
   return {
@@ -200,6 +215,18 @@ function fileStore(
       for (let start = 0; start < paths.length; start += 100) {
         const { error } = await storage.from(importsBucket).remove(paths.slice(start, start + 100));
         if (error) throw fileError('remove import objects', error);
+      }
+    },
+
+    /** The bucket has no policies: only the secret key's store reaches it. */
+    listImportCopies: (folder: string) => listAll(importCopiesBucket, folder, 'list import copies'),
+
+    async removeImportCopies(paths: string[]) {
+      for (let start = 0; start < paths.length; start += 100) {
+        const { error } = await storage
+          .from(importCopiesBucket)
+          .remove(paths.slice(start, start + 100));
+        if (error) throw fileError('remove import copies', error);
       }
     },
 

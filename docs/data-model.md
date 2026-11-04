@@ -1369,7 +1369,9 @@ leave them out of a member's insert.
 An **import** ([ADR 030](architecture/adr-030-import-from-documents.md)) holds a client's
 uploaded files and the proposal a model read from them until a member confirms or abandons it.
 Created by `20261028100000_imports` and `20261028100100_import_functions`; `read_characters`,
-`usage_by_step` and the step of `record_import_usage` by `20261029100000_import_bookkeeping`.
+`usage_by_step` and the step of `record_import_usage` by `20261029100000_import_bookkeeping`;
+the reading version, the reading flags, the report and the improvement copies by
+`20261104200000_import_copies` ([ADR 037](architecture/adr-037-import-quality-and-alerts.md)).
 
 `imports` has one row per import, with `organization_id`:
 
@@ -1390,6 +1392,9 @@ Created by `20261028100000_imports` and `20261028100100_import_functions`; `read
 | `created_by`, `created_at`, `started_at`, `ready_at`, `failed_at`  | Who started it, as the real user during an impersonation, and when each step was reached. Checks tie each stamp to its status.                                           |
 | `confirmed_at`, `confirmed_by`, `abandoned_at`                     | The end. A confirmed import has its client.                                                                                                                              |
 | `files_copied_at`, `proposal_dropped_at`, `objects_removed_at`     | The API copied the folder into `client-files`; the proposal was dropped; the API removed the import's objects, which needs the other two.                                |
+| `reading_version`                                                  | JSON object: the model of each step and a short hash of the prompts and schemas that read the import. Support's, not members'.                                           |
+| `reading_flags`                                                    | JSON object of value-free counts that describe the reading: files by kind, what was found, the checks' flags. Never what was read. Support's, not members'.              |
+| `reported_at`, `reported_by`                                       | When a member reported a problem with the import, through the API, and who; `reported_by` needs `reported_at`, and is set null when that account is deleted.             |
 
 `import_files` has one row per uploaded file, with `import_id` and `organization_id` by the
 composite key to `imports (id, organization_id)`, deleted with the import:
@@ -1427,8 +1432,11 @@ since the API writes imports with it, and keeps a confirmed or abandoned import 
 
 **Who reads and writes.** Members of the organization read its imports and their files; an
 import into a client is read only by those who read the client, since the policy asks for the
-client under the caller's own policies. Nobody signed in inserts, updates or deletes either
-table. The API creates imports and their files' rows with the secret key, after checking the
+client under the caller's own policies. They read every column of `imports` and
+`import_library_parts` but `reading_version`, `reading_flags`, `reported_at`, `reported_by` and,
+on parts, `quality`, which are support's: the select is granted column by column, so a column
+added later stays hidden from members until a migration grants it. Nobody signed in inserts,
+updates or deletes either table; a member reports a problem through the API. The API creates imports and their files' rows with the secret key, after checking the
 member, and its queue consumer records the steps, the files' states, the proposal and the
 usage the same way, the usage through `record_import_usage(import, file, step, input, cached,
 output, cost)`, which adds to the import's totals and to its step in `usage_by_step` and, given a
@@ -1639,6 +1647,8 @@ null for `risk_evaluations`, which has none.
 | `proposal`, `changes`, `version`                                   | What the reading proposed (`InstructionsProposal`, or `RisksProposal` for `risk_evaluations`, of `packages/import`), the member's changes, and the count of their saves. Dropped with the import's proposal. |
 | `input_tokens`, `cached_input_tokens`, `output_tokens`, `cost_usd` | The part's model requests; the import's totals include them, under the step `instructions` of `usage_by_step`, or `risks` for `risk_evaluations`.                                                            |
 | `read_at`, `confirmed_at`, `confirmed_by`, `proposal_dropped_at`   | When it was read and confirmed, and by whom; when its proposal was dropped.                                                                                                                                  |
+| `quality`                                                          | Value-free counts per section of how many proposed values were changed, unticked or kept, as on `imports`.                                                                                                   |
+| `reading_version`, `reading_flags`, `reported_at`, `reported_by`   | As on `imports`, for the part.                                                                                                                                                                               |
 
 A part is not confirmed after 14 days from its client's confirmation: it has expired. Members read
 the parts of the imports they read; only the secret key writes them, the usage through
@@ -1711,6 +1721,29 @@ attempt's charge (`refund_library_part_credits`): a part fails before its reques
 our side. `fail_stalled_library_parts(reason, risks reason)` fails a part of a ready or confirmed
 import still `reading` 6 hours after its last change, with the reason of its library; those of an abandoned or failed import stay as they are
 and go with it. `drop_import_proposals()` drops the parts' proposals with their import's.
+
+**Improvement copies.** What ADR 037 keeps of every import and library part for 12 months, to
+improve the reading, lives in the private `import-copies` bucket: the import's under
+`<organization>/<import>/`, a part's under `<organization>/<import>/parts/<part>/`. The bucket
+takes what `imports` takes, up to 25 MiB a file, and has no policy on `storage.objects`, so only
+the secret key reaches it; the app never reads it. `import_copies` records each copy, one row per
+`(import_id, part)`, `part` null for the import's own: `organization_id`, `written_at`,
+`expires_at` and `removed_at`, which cannot come before `written_at`. It names the import without
+a foreign key, since an abandoned or failed import's row goes after 14 days and its copy stays;
+the organization restricts its deletion, so deleting an organization empties its
+`import-copies/<organization>/` folder and these rows first. Only the secret key reads or writes
+the table. Functions for the secret key:
+
+- `record_import_copy(import, part default null)` records that the API wrote the copy and returns
+  `expires_at`, 12 months after the end: the import's confirmation, abandonment or failure; the
+  part's confirmation or failure, else its import's abandonment or failure, else 14 days after its
+  import's confirmation, when the part expired. Recording again moves `written_at` and
+  `expires_at` and clears `removed_at`, so a failed part read again and confirmed counts from its
+  confirmation. It answers `P0002` for no such import or part, and `IMP09` for one not ended.
+- `list_expired_import_copies()` then `mark_import_copies_removed(ids)`, as the retention above:
+  the copies past `expires_at` and not removed, each with `copy_id`, `organization_id`,
+  `import_id`, `part` and `folder` (without the final slash), which the daily clean-up empties,
+  an import's without its `parts/` folders, which expire on their own, before it marks them.
 
 **Sheet photographs a client import found.** A confirmed client import keeps the training sheets
 it sorted as `for_employees` as plain files of the client's import folder. An employee import
