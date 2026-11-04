@@ -78,7 +78,9 @@ export type SheetFlag =
   | { kind: 'text_cut'; field: WorkSystemText }
   | { kind: 'file_not_found' }
   | { kind: 'rows_not_found' }
-  | { kind: 'no_factors' };
+  | { kind: 'no_factors' }
+  // Most printed levels fit the grid with gravity and probability read the other way round.
+  | { kind: 'classes_swapped' };
 
 export interface ReadSheet {
   key: string;
@@ -526,6 +528,26 @@ function retypedFactors(sheet: Located, text: string): ReadFactor[] {
   });
 }
 
+const swapEvidence = 3;
+
+// Only a factor whose two readings give different levels tells them apart, and a gravity of 7
+// has no probability to swap with. The classes stay as written (ADR 015): the sheet is flagged.
+export function classesSwapped(
+  factors: readonly Pick<ReadFactor, 'gravityClass' | 'probabilityClass' | 'printedLevel'>[]
+) {
+  let swapped = 0;
+  let telling = 0;
+  for (const { gravityClass: gravity, probabilityClass: probability, printedLevel } of factors) {
+    if (gravity === null || probability === null || printedLevel === null || gravity > 6) continue;
+    const written = riskLevel(gravity, probability);
+    const turned = riskLevel(probability, gravity);
+    if (written === turned) continue;
+    telling++;
+    if (printedLevel === turned) swapped++;
+  }
+  return swapped >= swapEvidence && swapped * 3 >= telling * 2;
+}
+
 function setMeasures(factor: ReadFactor, measures: ProposedMeasure[]) {
   if (measures.length > maxMeasures) {
     factor.flags.push({ kind: 'measures_cut', count: measures.length });
@@ -590,6 +612,7 @@ export function readRisksAnswer(
       flags.push({ kind: 'rows_not_found' });
     }
     if (factors.length === 0) flags.push({ kind: 'no_factors' });
+    if (classesSwapped(factors)) flags.push({ kind: 'classes_swapped' });
     const texts = {} as Record<WorkSystemText, string | null>;
     for (const field of ['meansOfProduction', 'workEnvironment', 'exposure'] as const) {
       const found = file ? spanText(file.text, sheet.region, answered[field]) : null;

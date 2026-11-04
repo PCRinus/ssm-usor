@@ -38,6 +38,7 @@ const sheetFlag = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('file_not_found') }),
   z.object({ kind: z.literal('rows_not_found') }),
   z.object({ kind: z.literal('no_factors') }),
+  z.object({ kind: z.literal('classes_swapped') }),
 ]);
 
 const existingChoice = z.enum(['append', 'replace', 'keep']);

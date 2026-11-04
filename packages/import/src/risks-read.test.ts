@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   cellItems,
+  classesSwapped,
   componentOf,
   consequenceClass,
   fieldText,
@@ -288,6 +289,92 @@ describe('readRisksAnswer: a PDF', () => {
     expect(scanned.text.slice(source!.start, source!.end)).toBe(
       'F1. Accident rutier cu bicicleta de livrare. Deces 7 2 4'
     );
+  });
+});
+
+describe('readRisksAnswer: gravity and probability swapped', () => {
+  const classes = (gravity: number, probability: number, level: number) => ({
+    gravityClass: gravity,
+    probabilityClass: probability,
+    printedLevel: level,
+  });
+
+  it('flags a sheet whose printed levels mostly fit the grid read the other way round', () => {
+    expect(
+      classesSwapped([
+        classes(5, 2, 3),
+        classes(4, 3, 3),
+        classes(6, 2, 3),
+        classes(4, 2, 2),
+        classes(2, 2, 2),
+      ])
+    ).toBe(true);
+  });
+
+  it('leaves a sheet with a few swapped-looking levels among levels that fit as written', () => {
+    expect(
+      classesSwapped([
+        classes(5, 2, 3),
+        classes(4, 3, 3),
+        classes(6, 2, 3),
+        classes(2, 5, 3),
+        classes(3, 4, 3),
+        classes(4, 5, 5),
+        classes(2, 4, 2),
+      ])
+    ).toBe(false);
+  });
+
+  it('needs three factors that tell the two readings apart', () => {
+    expect(classesSwapped([classes(5, 2, 3), classes(4, 3, 3), classes(2, 2, 2)])).toBe(false);
+  });
+
+  it('counts no factor of gravity 7, which cannot be swapped, nor one without a printed level', () => {
+    expect(
+      classesSwapped([
+        classes(5, 2, 3),
+        classes(4, 3, 3),
+        classes(7, 2, 3),
+        { gravityClass: 5, probabilityClass: 3, printedLevel: null },
+      ])
+    ).toBe(false);
+  });
+
+  it('flags the sheet and keeps the classes as written', () => {
+    const swappedAnswer: RisksAnswer = {
+      ...answer,
+      sheets: [
+        {
+          ...answer.sheets[0]!,
+          file: scanned.path,
+          firstRow: '',
+          lastRow: '',
+          factors: [
+            ['F1. Prindere în malaxor.', '5', '2', '3'],
+            ['F2. Tăiere cu cuțitul.', '4', '3', '3'],
+            ['F3. Arsuri la cuptor.', '6', '2', '3'],
+          ].map(([description, gravity, probability, level]) => ({
+            component: 'MIJLOACE DE PRODUCȚIE',
+            group: 'Factori de risc mecanic',
+            description: description!,
+            consequence: '',
+            gravity: gravity!,
+            probability: probability!,
+            level: level!,
+            quote: description!,
+          })),
+        },
+      ],
+    };
+    const [sheet] = readRisksAnswer([scanned], swappedAnswer).sheets;
+
+    expect(sheet!.flags).toContainEqual({ kind: 'classes_swapped' });
+    expect(sheet!.factors.map((item) => [item.gravityClass, item.probabilityClass])).toEqual([
+      [5, 2],
+      [4, 3],
+      [6, 2],
+    ]);
+    expect(baker!.flags).not.toContainEqual({ kind: 'classes_swapped' });
   });
 });
 
