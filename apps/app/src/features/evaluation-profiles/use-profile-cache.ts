@@ -4,6 +4,7 @@ import {
   type EvaluationProfileResponse,
   getGetEvaluationProfileQueryKey,
   getGetEvaluationProfileUsageQueryKey,
+  getListEvaluationProfileChoicesQueryKey,
   getListEvaluationProfilesQueryKey,
   useCreateEvaluationProfileFactor,
   useRemoveEvaluationProfileFactor,
@@ -19,7 +20,11 @@ import { type EvaluationProfile, profileFailure } from './profile-schema';
 
 export function useProfileCache() {
   const { queryClient } = useRouteContext({ from: '__root__' });
-  const listKey = getListEvaluationProfilesQueryKey();
+  const listsChanged = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: getListEvaluationProfilesQueryKey() }),
+      queryClient.invalidateQueries({ queryKey: getListEvaluationProfileChoicesQueryKey() }),
+    ]);
 
   return {
     saved: async (profile: EvaluationProfile) => {
@@ -27,15 +32,12 @@ export function useProfileCache() {
         { queryKey: getGetEvaluationProfileQueryKey(profile.id) },
         { profile }
       );
-      await queryClient.invalidateQueries({ queryKey: listKey });
+      await listsChanged();
     },
     removed: async (profileId: string) => {
       queryClient.removeQueries({ queryKey: getGetEvaluationProfileQueryKey(profileId) });
       queryClient.removeQueries({ queryKey: getGetEvaluationProfileUsageQueryKey(profileId) });
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: listKey }),
-        invalidateEvaluations(queryClient),
-      ]);
+      await Promise.all([listsChanged(), invalidateEvaluations(queryClient)]);
     },
     // Evaluations show the name of the profile each factor is in, and lose the link when the
     // profile's factor goes.
@@ -53,14 +55,14 @@ export function useProfileCache() {
         queryClient.invalidateQueries({
           queryKey: getGetEvaluationProfileUsageQueryKey(profileId),
         }),
-        queryClient.invalidateQueries({ queryKey: listKey }),
+        listsChanged(),
       ]),
     refresh: (profileId: string) =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: getGetEvaluationProfileQueryKey(profileId) }),
-        queryClient.invalidateQueries({ queryKey: listKey }),
+        listsChanged(),
       ]),
-    listChanged: () => queryClient.invalidateQueries({ queryKey: listKey }),
+    listChanged: listsChanged,
   };
 }
 
