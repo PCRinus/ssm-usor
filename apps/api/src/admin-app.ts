@@ -5,6 +5,7 @@ import { timing } from 'hono/timing';
 import { errorResponse, logServerErrors, noStore } from './app';
 import { requireAdmin, requireAuth } from './lib/auth';
 import type { ApiEnv } from './lib/env';
+import { getImport, getImportFileLink, listImports } from './modules/admin-imports/handlers';
 
 // Served only by the Admin entrypoint, which the admin Worker reaches through a service binding;
 // the public `fetch` never mounts it (ADR 038). No CORS: the browser calls the admin Worker's
@@ -18,6 +19,9 @@ export function createAdminApp() {
   app.use('*', requireAuth, requireAdmin);
 
   app.get('/me', (c) => c.json(c.get('user') satisfies CurrentUser));
+  app.get('/imports', listImports);
+  app.get('/imports/:id', getImport);
+  app.get('/imports/:id/files', getImportFileLink);
 
   app.notFound((c) =>
     c.json(

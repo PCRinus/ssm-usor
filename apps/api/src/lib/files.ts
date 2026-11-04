@@ -76,17 +76,24 @@ function fileStore(
     return new Uint8Array(await response.arrayBuffer());
   }
 
-  async function listAll(bucket: string, folder: string, context: string): Promise<string[]> {
-    const paths: string[] = [];
+  async function listAll(
+    bucket: string,
+    folder: string,
+    context: string
+  ): Promise<{ path: string; size: number | null }[]> {
+    const objects: { path: string; size: number | null }[] = [];
     for (let offset = 0; ; offset += 1000) {
       const { data, error } = await storage.from(bucket).list(folder, { limit: 1000, offset });
       if (error || !data) throw fileError(context, error);
       for (const entry of data) {
         const path = `${folder}/${entry.name}`;
-        if (entry.id === null) paths.push(...(await listAll(bucket, path, context)));
-        else paths.push(path);
+        if (entry.id === null) objects.push(...(await listAll(bucket, path, context)));
+        else {
+          const size = (entry.metadata as { size?: unknown } | null)?.size;
+          objects.push({ path, size: typeof size === 'number' ? size : null });
+        }
       }
-      if (data.length < 1000) return paths;
+      if (data.length < 1000) return objects;
     }
   }
 
@@ -223,7 +230,21 @@ function fileStore(
     },
 
     /** The bucket has no policies: only the secret key's store reaches it. */
-    listImportCopies: (folder: string) => listAll(importCopiesBucket, folder, 'list import copies'),
+    listImportCopies: async (folder: string) =>
+      (await listAll(importCopiesBucket, folder, 'list import copies')).map(({ path }) => path),
+
+    listImportCopyObjects: (folder: string) =>
+      listAll(importCopiesBucket, folder, 'list import copy objects'),
+
+    readImportCopy: (path: string) => read(importCopiesBucket, path, 'read import copy'),
+
+    async importCopyLink(path: string, expiresInSeconds = 60) {
+      const { data, error } = await storage
+        .from(importCopiesBucket)
+        .createSignedUrl(path, expiresInSeconds);
+      if (error || !data) throw fileError('sign import copy link', error);
+      return data.signedUrl;
+    },
 
     async writeImportCopy(path: string, bytes: Uint8Array, contentType: string) {
       const { error } = await storage
