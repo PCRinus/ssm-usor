@@ -244,12 +244,29 @@ function mockApi({
       });
     }
     if (/^\/instruction-modules\/[^/]+\/body$/.test(pathname)) return saveBody(init, url);
-    if (pathname === '/instruction-modules') {
+    if (pathname === '/instruction-modules/choices') {
       const domain = url.searchParams.get('domain');
       return Response.json({
-        items: (url.searchParams.get('archived') === 'true' ? archived : modules).filter(
-          (module) => !domain || module.domain === domain
-        ),
+        items: modules
+          .filter((module) => !domain || module.domain === domain)
+          .map(({ id, title, group, domain: moduleDomain }) => ({
+            id,
+            title,
+            group,
+            domain: moduleDomain,
+          })),
+      });
+    }
+    if (pathname === '/instruction-modules') {
+      const domain = url.searchParams.get('domain');
+      const items = (url.searchParams.get('status') === 'archived' ? archived : modules).filter(
+        (module) => !domain || module.domain === domain
+      );
+      return Response.json({
+        items,
+        page: Number(url.searchParams.get('page')),
+        pageSize: Number(url.searchParams.get('pageSize')),
+        total: items.length,
       });
     }
     const moduleMatch = pathname.match(
@@ -359,19 +376,61 @@ describe('the instruction library', () => {
     expect(within(rows[0]!).getByTestId('instruction-version').textContent).toBe('v1 · 4 articole');
   });
 
-  it('shows the archive on demand', async () => {
+  it('shows the archived ones on their own tab, kept in the address', async () => {
     mockApi({ archived: [{ ...welding, archivedAt: '2026-09-26T11:00:00.000Z' }] });
-    mount();
+    const runtime = mount();
     const user = userEvent.setup();
     await screen.findAllByTestId('instruction-row');
-    await user.click(screen.getByTestId('instruction-toggle-archived'));
+    expect(screen.getByTestId('instruction-count').textContent).toBe('2 instrucțiuni');
+    expect(screen.getByTestId('instruction-filter-active').getAttribute('aria-current')).toBe(
+      'page'
+    );
+    await user.click(screen.getByTestId('instruction-filter-archived'));
     await waitFor(() =>
       expect(screen.getAllByTestId('instruction-row').map((row) => row.textContent)).toEqual([
         expect.stringContaining('Sudură oxiacetilenică'),
       ])
     );
+    expect(runtime.router.state.location.search).toEqual({ status: 'archived' });
+    expect(screen.getByTestId('instruction-count').textContent).toBe('1 instrucțiune');
+    expect(screen.getByTestId('instruction-filter-active').getAttribute('aria-current')).toBeNull();
     await user.click(screen.getByTestId('instruction-actions'));
     expect(await screen.findByTestId('instruction-restore')).toBeTruthy();
+    expect(screen.queryByTestId('instruction-edit')).toBeNull();
+  });
+
+  it('says when there is nothing archived', async () => {
+    mockApi();
+    mountApp(authFixture(makeSession()).client, '/instructiuni/ssm?status=archived');
+    expect((await screen.findByTestId('instruction-empty')).textContent).toContain(
+      'Nicio instrucțiune proprie SSM arhivată'
+    );
+  });
+
+  it('asks the library for a page and a sort, and keeps them in the address', async () => {
+    mockApi();
+    const runtime = mount();
+    const user = userEvent.setup();
+    await screen.findAllByTestId('instruction-row');
+    await user.click(screen.getByTestId('sort-appliedCount'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ sort: 'appliedCount' })
+    );
+    await user.click(screen.getByTestId('sort-version'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ sort: 'version', order: 'desc' })
+    );
+    const listed = fetchMock.mock.calls
+      .map(([input]) => new URL(String(input)))
+      .filter((address) => address.pathname === '/instruction-modules')
+      .map((address) => Object.fromEntries(address.searchParams));
+    expect(listed.at(-1)).toEqual({
+      domain: 'ssm',
+      page: '1',
+      pageSize: '25',
+      sort: 'version',
+      order: 'desc',
+    });
   });
 
   it('lists the fire-safety modules on their own tab', async () => {
@@ -427,7 +486,7 @@ describe('the instruction library', () => {
     const user = userEvent.setup();
     const rows = await screen.findAllByTestId('instruction-row');
     await user.click(within(rows[0]!).getByTestId('instruction-actions'));
-    await user.click(await screen.findByTestId('instruction-rename'));
+    await user.click(await screen.findByTestId('instruction-edit'));
     await user.selectOptions(screen.getByTestId('instruction-module-domain'), 'su');
     await user.click(screen.getByTestId('instruction-module-submit'));
     await waitFor(() =>
@@ -441,7 +500,7 @@ describe('the instruction library', () => {
     const fireTab = await screen.findByTestId('instruction-library-su');
     const [fireRow] = await within(fireTab).findAllByTestId('instruction-row');
     await user.click(within(fireRow!).getByTestId('instruction-actions'));
-    await user.click(await screen.findByTestId('instruction-rename'));
+    await user.click(await screen.findByTestId('instruction-edit'));
     const domain = screen.getByTestId('instruction-module-domain') as HTMLInputElement;
     expect(domain.readOnly).toBe(true);
     expect(domain.value).toBe('SU');
@@ -468,7 +527,7 @@ describe('the instruction library', () => {
     const user = userEvent.setup();
     const rows = await screen.findAllByTestId('instruction-row');
     await user.click(within(rows[0]!).getByTestId('instruction-actions'));
-    await user.click(await screen.findByTestId('instruction-rename'));
+    await user.click(await screen.findByTestId('instruction-edit'));
     await user.selectOptions(screen.getByTestId('instruction-module-domain'), 'su');
     await user.click(screen.getByTestId('instruction-module-submit'));
     expect((await screen.findByTestId('instruction-module-domain-error')).textContent).toContain(
@@ -476,7 +535,51 @@ describe('the instruction library', () => {
     );
   });
 
-  it('refuses to archive a module a position applies, in words', async () => {
+  it('archives a module after asking, and restores it the same way', async () => {
+    mockApi({ archived: [{ ...welding, archivedAt: '2026-09-26T11:00:00.000Z' }] });
+    mount();
+    const user = userEvent.setup();
+    const rows = await screen.findAllByTestId('instruction-row');
+    await user.click(within(rows[0]!).getByTestId('instruction-actions'));
+    await user.click(await screen.findByTestId('instruction-archive'));
+    const dialog = await screen.findByTestId('instruction-archive-dialog');
+    expect(dialog.textContent).toContain('Arhivezi instrucțiunea?');
+    expect(requests(`/instruction-modules/${offices.id}`, 'PATCH')).toHaveLength(0);
+    await user.click(within(dialog).getByTestId('instruction-archive-confirm'));
+    await waitFor(() =>
+      expect(bodies(`/instruction-modules/${offices.id}`, 'PATCH')).toEqual([{ archived: true }])
+    );
+    await waitFor(() => expect(screen.queryByTestId('instruction-archive-dialog')).toBeNull());
+
+    await user.click(screen.getByTestId('instruction-filter-archived'));
+    await waitFor(() => expect(screen.getAllByTestId('instruction-row')).toHaveLength(1));
+    await user.click(screen.getByTestId('instruction-actions'));
+    await user.click(await screen.findByTestId('instruction-restore'));
+    expect((await screen.findByTestId('instruction-archive-dialog')).textContent).toContain(
+      'Reactivezi instrucțiunea?'
+    );
+    await user.click(screen.getByTestId('instruction-archive-confirm'));
+    await waitFor(() =>
+      expect(bodies(`/instruction-modules/${welding.id}`, 'PATCH')).toEqual([{ archived: false }])
+    );
+  });
+
+  it('says up front that a module a position applies cannot be archived, and offers no archiving', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+    const rows = await screen.findAllByTestId('instruction-row');
+    await user.click(within(rows[1]!).getByTestId('instruction-actions'));
+    await user.click(await screen.findByTestId('instruction-archive'));
+    const dialog = await screen.findByTestId('instruction-archive-dialog');
+    expect(dialog.textContent).toContain('este aplicată la 2 posturi');
+    expect(within(dialog).queryByTestId('instruction-archive-confirm')).toBeNull();
+    await user.click(within(dialog).getByTestId('instruction-archive-close'));
+    await waitFor(() => expect(screen.queryByTestId('instruction-archive-dialog')).toBeNull());
+    expect(requests(`/instruction-modules/${ladders.id}`, 'PATCH')).toHaveLength(0);
+  });
+
+  it('says so when a position applied the module in the meantime', async () => {
     mockApi({
       update: () =>
         Response.json(
@@ -487,10 +590,11 @@ describe('the instruction library', () => {
     mount();
     const user = userEvent.setup();
     const rows = await screen.findAllByTestId('instruction-row');
-    await user.click(within(rows[1]!).getByTestId('instruction-actions'));
+    await user.click(within(rows[0]!).getByTestId('instruction-actions'));
     await user.click(await screen.findByTestId('instruction-archive'));
-    expect((await screen.findByTestId('instruction-error')).textContent).toContain(
-      'aplicată la 2 posturi'
+    await user.click(await screen.findByTestId('instruction-archive-confirm'));
+    expect((await screen.findByTestId('instruction-archive-error')).textContent).toContain(
+      'a fost aplicată la un post'
     );
   });
 });
@@ -1217,7 +1321,7 @@ describe("a job position's instructions", () => {
     );
     const listed = fetchMock.mock.calls
       .map(([input]) => new URL(String(input)))
-      .filter((address) => address.pathname === '/instruction-modules')
+      .filter((address) => address.pathname === '/instruction-modules/choices')
       .map((address) => address.searchParams.get('domain'));
     expect(listed).toEqual(['su']);
     await user.click(options[0]!);

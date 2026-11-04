@@ -1,242 +1,193 @@
-import type { InstructionDomain } from '@ssm-usor/contracts';
-import { Badge } from '@ssm-usor/ui/components/badge';
+import {
+  defaultPageSize,
+  type InstructionDomain,
+  type InstructionModuleSortKey,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@ssm-usor/ui/components/dropdown-menu';
-import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ssm-usor/ui/components/table';
-import { toast } from '@ssm-usor/ui/lib/toast';
-import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
-import { BookOpenText, MoreHorizontal } from 'lucide-react';
-import { useState } from 'react';
+import { keepPreviousData } from '@tanstack/react-query';
+import { useNavigate, useRouteContext } from '@tanstack/react-router';
+import { Archive, BookOpenText } from 'lucide-react';
+import { useMemo, useState } from 'react';
+
+import { getListInstructionModulesQueryKey, useListInstructionModules } from '@/api/generated/api';
+import type { DataTableSort } from '@/components/data-table/columns';
+import { DataTable } from '@/components/data-table/data-table';
+import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
 
 import {
-  type ApiErrorResponse,
-  getListInstructionModulesQueryKey,
-  useListInstructionModules,
-  useUpdateInstructionModule,
-} from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
-import { rowClickProps } from '@/components/data-table/row-click';
-import { Notice } from '@/components/notice';
-
+  type InstructionArchiveChange,
+  InstructionArchiveDialog,
+} from './instruction-archive-dialog';
+import { instructionColumns } from './instruction-columns';
 import { InstructionModuleDialog, type ModuleEditing } from './instruction-module-dialog';
 import {
-  articleCountLabel,
   domainLabels,
-  groupLabels,
   type InstructionModule,
-  invalidateLibrary,
-  positionCountLabel,
+  type LibrarySearch,
+  moduleCountLabel,
 } from './instruction-schema';
+
+const libraryPaths = { ssm: '/instructiuni/ssm', su: '/instructiuni/su' } as const;
+
+const defaultSort: DataTableSort & { sort: InstructionModuleSortKey } = {
+  sort: 'title',
+  order: 'asc',
+};
+
+const filters = [
+  { status: undefined, label: 'Active', testId: 'instruction-filter-active' },
+  { status: 'archived', label: 'Arhivate', testId: 'instruction-filter-archived' },
+] as const;
+
+const rowKey = (row: InstructionModule) => row.id;
 
 export function InstructionLibrary({
   domain,
+  search,
   userId,
 }: {
   domain: InstructionDomain;
+  search: LibrarySearch;
   userId: string;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const navigate = useNavigate();
-  const [showArchived, setShowArchived] = useState(false);
-  const params = { archived: showArchived ? ('true' as const) : ('false' as const), domain };
+  const { page = 1, sort = defaultSort.sort, order = defaultSort.order, status } = search;
+  const archived = status === 'archived';
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const navigate = useNavigate({ from: libraryPaths[domain] });
+  const params = {
+    ...(archived ? { status } : {}),
+    domain,
+    page,
+    pageSize: defaultPageSize,
+    sort,
+    order,
+  };
   const modules = useListInstructionModules(params, {
     request: apiRequest,
-    query: { queryKey: [...getListInstructionModulesQueryKey(params), userId] },
+    query: {
+      queryKey: [...getListInstructionModulesQueryKey(params), userId],
+      placeholderData: keepPreviousData,
+    },
   });
-  const update = useUpdateInstructionModule({ request: apiRequest });
+  const meta = modules.data ?? { page, pageSize: defaultPageSize, total: 0 };
   const [editing, setEditing] = useState<ModuleEditing>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  async function setArchived(module: InstructionModule, archived: boolean) {
-    setError(null);
-    try {
-      await update.mutateAsync({ moduleId: module.id, data: { archived } });
-      toast.success(
-        archived ? `„${module.title}” a fost arhivată.` : `„${module.title}” a fost reactivată.`
-      );
-    } catch (cause) {
-      const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
-      setError(
-        body?.reason === 'instruction_module_applied'
-          ? `„${module.title}” este aplicată la ${positionCountLabel(module.appliedCount).toLowerCase()}; scoate-o de acolo înainte să o arhivezi.`
-          : cause instanceof ApiHttpError && cause.status === 404
-            ? 'Instrucțiunea nu mai există în bibliotecă.'
-            : 'Nu am putut salva schimbarea. Verifică conexiunea și încearcă din nou.'
-      );
-    }
-    await invalidateLibrary(queryClient);
-  }
-
-  const items = modules.data?.items ?? [];
+  const [archiveChange, setArchiveChange] = useState<InstructionArchiveChange | null>(null);
+  const columns = useMemo(
+    () => instructionColumns({ onEdit: setEditing, onArchiveChange: setArchiveChange }),
+    []
+  );
   const label = domainLabels[domain];
 
   return (
-    <div data-testid={`instruction-library-${domain}`} className="grid gap-6">
-      {error && (
-        <Notice
-          variant="destructive"
-          data-testid="instruction-error"
-          className="whitespace-pre-line"
-        >
-          {error}
-        </Notice>
-      )}
-      <Card>
-        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
-          <h2 className="text-lg font-semibold">
-            {showArchived ? 'Instrucțiuni arhivate' : 'Instrucțiuni în uz'}
-          </h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            data-testid="instruction-toggle-archived"
-            onClick={() => setShowArchived((value) => !value)}
-          >
-            {showArchived ? 'Arată instrucțiunile în uz' : 'Arată arhiva'}
-          </Button>
-        </CardHeader>
-        {/* A grid, so the table's scroll box can shrink to the card; a block would widen the page on a phone. */}
-        <CardContent className="grid">
-          {modules.isPending ? (
-            <Skeleton className="h-24 w-full" />
-          ) : modules.isError ? (
-            <Notice
-              variant="destructive"
-              action={
-                <Button
-                  variant="outline"
-                  disabled={modules.isFetching}
-                  onClick={() => void modules.refetch()}
-                >
-                  Încearcă din nou
-                </Button>
-              }
+    <div
+      data-testid={`instruction-library-${domain}`}
+      className="overflow-hidden rounded-lg border bg-card"
+    >
+      <ListCardHeader>
+        <FilterTabs label="Filtrează instrucțiunile">
+          {filters.map((filter) => (
+            <FilterTab
+              key={filter.label}
+              to={libraryPaths[domain]}
+              search={filter.status ? { status: filter.status } : {}}
+              data-testid={filter.testId}
+              active={filter.status === status}
+              replace
+              resetScroll={false}
             >
+              {filter.label}
+            </FilterTab>
+          ))}
+        </FilterTabs>
+        {modules.isSuccess && (
+          <ListCount testId="instruction-count">
+            {meta.total === 1 ? '1 instrucțiune' : moduleCountLabel(meta.total)}
+          </ListCount>
+        )}
+      </ListCardHeader>
+      <DataTable
+        testId="instruction-table"
+        rowTestId="instruction-row"
+        label={`Instrucțiunile proprii ${label}`}
+        columns={columns}
+        data={modules.data?.items}
+        rowKey={rowKey}
+        onRowClick={(module) =>
+          void navigate({
+            to: '/instructiuni/$moduleId',
+            params: { moduleId: module.id },
+            state: { openedFromList: true },
+          })
+        }
+        meta={meta}
+        noun={['instrucțiune', 'instrucțiuni']}
+        status={modules.status}
+        isFetching={modules.isFetching}
+        isPlaceholderData={modules.isPlaceholderData}
+        sort={{ sort, order }}
+        onSortChange={(next) =>
+          void navigate({
+            replace: true,
+            resetScroll: false,
+            search: (prev) => ({
+              ...prev,
+              sort:
+                next.sort === defaultSort.sort
+                  ? undefined
+                  : (next.sort as InstructionModuleSortKey),
+              order: next.order === defaultSort.order ? undefined : next.order,
+              page: undefined,
+            }),
+          })
+        }
+        onPageChange={(next) =>
+          void navigate({ search: (prev) => ({ ...prev, page: next > 1 ? next : undefined }) })
+        }
+        error={
+          <>
+            <p data-testid="instruction-load-error" role="alert" className="text-sm">
               Nu am putut încărca biblioteca.
-            </Notice>
-          ) : items.length === 0 ? (
-            <div data-testid="instruction-empty" className="grid justify-items-center gap-3 py-10">
-              <BookOpenText className="size-8 text-muted-foreground" aria-hidden="true" />
-              <p className="text-sm font-medium">
-                {showArchived
-                  ? `Nicio instrucțiune proprie ${label} arhivată`
-                  : `Nicio instrucțiune proprie ${label} încă`}
-              </p>
-              {!showArchived && (
-                <p className="max-w-md text-center text-sm text-muted-foreground">
+            </p>
+            <Button
+              variant="outline"
+              className="mt-4"
+              disabled={modules.isFetching}
+              onClick={() => void modules.refetch()}
+            >
+              Încearcă din nou
+            </Button>
+          </>
+        }
+        empty={
+          <div data-testid="instruction-empty">
+            {archived ? (
+              <>
+                <Archive className="mx-auto mb-4 size-8 text-muted-foreground" aria-hidden="true" />
+                <h3 className="text-base font-medium">
+                  {`Nicio instrucțiune proprie ${label} arhivată`}
+                </h3>
+                <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+                  Instrucțiunile arhivate vor apărea aici. Le poți reactiva oricând.
+                </p>
+              </>
+            ) : (
+              <>
+                <BookOpenText
+                  className="mx-auto mb-4 size-8 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <h3 className="text-base font-medium">{`Nicio instrucțiune proprie ${label} încă`}</h3>
+                <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
                   Scrie câte o instrucțiune pentru fiecare activitate sau echipament, apoi aplic-o
                   la posturile clienților tăi.
                 </p>
-              )}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Titlu</TableHead>
-                  <TableHead>Categorie</TableHead>
-                  <TableHead>Versiune</TableHead>
-                  <TableHead>Aplicată la</TableHead>
-                  <TableHead className="w-12">
-                    <span className="sr-only">Acțiuni</span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((module) => (
-                  <TableRow
-                    key={module.id}
-                    data-testid="instruction-row"
-                    {...rowClickProps(() =>
-                      navigate({
-                        to: '/instructiuni/$moduleId',
-                        params: { moduleId: module.id },
-                        state: { openedFromList: true },
-                      })
-                    )}
-                  >
-                    <TableCell className="font-medium min-w-40 whitespace-normal">
-                      <Link
-                        to="/instructiuni/$moduleId"
-                        params={{ moduleId: module.id }}
-                        state={{ openedFromList: true }}
-                        data-testid="instruction-open"
-                        className="hover:underline"
-                      >
-                        {module.title}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{groupLabels[module.group]}</Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground" data-testid="instruction-version">
-                      {`v${module.version.number} · ${articleCountLabel(module.version.articleCount).toLowerCase()}`}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground" data-testid="instruction-applied">
-                      {positionCountLabel(module.appliedCount)}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            data-testid="instruction-actions"
-                            aria-label={`Acțiuni pentru ${module.title}`}
-                          >
-                            <MoreHorizontal aria-hidden="true" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            data-testid="instruction-rename"
-                            onSelect={() => setEditing(module)}
-                          >
-                            Titlu, categorie și domeniu
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          {module.archivedAt ? (
-                            <DropdownMenuItem
-                              data-testid="instruction-restore"
-                              onSelect={() => void setArchived(module, false)}
-                            >
-                              Reactivează
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem
-                              data-testid="instruction-archive"
-                              variant="destructive"
-                              onSelect={() => void setArchived(module, true)}
-                            >
-                              Arhivează
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+              </>
+            )}
+          </div>
+        }
+      />
       <InstructionModuleDialog editing={editing} onClose={() => setEditing(null)} />
+      <InstructionArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
     </div>
   );
 }
