@@ -12,10 +12,10 @@ import { RiskEvaluationPending } from '@/features/risk-evaluations/risk-evaluati
 import { factorListSearch } from '@/features/risk-evaluations/use-factor-list-view';
 
 export const Route = createFileRoute(
-  '/_authenticated/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri'
+  '/_authenticated/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare'
 )({
   validateSearch: factorListSearch,
-  staticData: { title: 'Evaluare de risc' },
+  staticData: { title: 'Fișa de evaluare' },
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
     const userId = auth.getSnapshot().session?.user.id;
     await queryClient.ensureQueryData(

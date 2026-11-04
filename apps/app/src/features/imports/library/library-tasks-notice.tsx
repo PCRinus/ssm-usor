@@ -1,3 +1,4 @@
+import type { ImportLibraryPart } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Link, useRouteContext } from '@tanstack/react-router';
 import { BookOpenCheck } from 'lucide-react';
@@ -13,8 +14,14 @@ import {
   libraryDay,
   partLabels,
   partOrder,
+  partsNoun,
   statusLabels,
 } from './library-model';
+
+const order: readonly ImportLibraryPart[] = [...partOrder, 'risk_evaluations'];
+
+const labelOf = (part: ImportLibraryPart) =>
+  part === 'risk_evaluations' ? 'Evaluări de risc' : partLabels[part];
 
 export function LibraryTasksNotice({ clientId }: { clientId: string }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
@@ -31,7 +38,7 @@ export function LibraryTasksNotice({ clientId }: { clientId: string }) {
   const imports = (confirmed.data?.items ?? []).flatMap((item) => {
     const open = item.libraryParts
       .filter((part) => isOpenPart(part, now))
-      .sort((a, b) => partOrder.indexOf(a.part) - partOrder.indexOf(b.part));
+      .sort((a, b) => order.indexOf(a.part) - order.indexOf(b.part));
     return open.length > 0 ? [{ item, open }] : [];
   });
   if (imports.length === 0) return null;
@@ -39,12 +46,15 @@ export function LibraryTasksNotice({ clientId }: { clientId: string }) {
     <div className="grid gap-3" data-testid="client-library-tasks">
       {imports.map(({ item, open }) => {
         const until = open[0]!.expiresAt;
+        const noun = partsNoun(open)!;
+        const onlyRisks = open.every((part) => part.part === 'risk_evaluations');
+        const onlyInstructions = open.every((part) => part.part !== 'risk_evaluations');
         return (
           <Notice
             key={item.id}
             variant="info"
             icon={<BookOpenCheck aria-hidden="true" />}
-            title="Instrucțiunile proprii din documentația importată"
+            title={`${noun} din documentația importată`}
             data-testid="client-library-tasks-notice"
             action={
               <Button asChild variant="outline" size="sm" className="bg-card">
@@ -53,14 +63,18 @@ export function LibraryTasksNotice({ clientId }: { clientId: string }) {
                   params={{ importId: item.id }}
                   data-testid="client-library-tasks-open"
                 >
-                  Verifică instrucțiunile
+                  {onlyInstructions
+                    ? 'Verifică instrucțiunile'
+                    : onlyRisks
+                      ? 'Verifică evaluările'
+                      : 'Verifică importul'}
                 </Link>
               </Button>
             }
           >
             {joinNames(
               open.map(
-                (part) => `${partLabels[part.part]}: ${statusLabels[part.status].toLowerCase()}`
+                (part) => `${labelOf(part.part)}: ${statusLabels[part.status].toLowerCase()}`
               )
             )}
             . Le adaugi în biblioteca ta și la posturile clientului

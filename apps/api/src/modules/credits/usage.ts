@@ -5,7 +5,8 @@ import {
   type ImportCredits,
   importCredits,
   type ImportLibraryPart,
-  libraryPartDomains,
+  instructionsPartDomains,
+  isInstructionsPart,
 } from '@ssm-usor/contracts';
 
 import type { SmsSubscription } from '../sms-usage/policy';
@@ -58,10 +59,11 @@ export async function creditsUsageOf(
 
 export function importCreditsOf(entries: ImportCreditEntry[]): ImportCredits | null {
   if (!entries.some((entry) => entry.kind === 'import_start')) return null;
-  const sum = (kinds: string[]) =>
+  const sum = (kinds: string[], of: (entry: ImportCreditEntry) => boolean = () => true) =>
     entries
-      .filter((entry) => kinds.includes(entry.kind))
+      .filter((entry) => kinds.includes(entry.kind) && of(entry))
       .reduce((total, entry) => total + entry.credits, 0);
+  const risks = (entry: ImportCreditEntry) => entry.import_part === 'risk_evaluations';
   return {
     used: Math.max(
       0,
@@ -76,7 +78,11 @@ export function importCreditsOf(entries: ImportCreditEntry[]): ImportCredits | n
     ),
     atStart: Math.max(0, -sum(['import_start', 'import_pages'])),
     scannedPages: entries.filter((entry) => entry.kind === 'scanned_page').length,
-    ownInstructions: Math.max(0, -sum(['library_part', 'library_part_refund'])),
+    ownInstructions: Math.max(
+      0,
+      -sum(['library_part', 'library_part_refund'], (entry) => !risks(entry))
+    ),
+    riskEvaluations: Math.max(0, -sum(['library_part', 'library_part_refund'], risks)),
     refunded: entries.some((entry) => entry.kind === 'refund'),
   };
 }
@@ -127,7 +133,9 @@ export function importCharges(store: CreditsStore, now: () => Date = () => new D
         organizationId,
         policy: await policyOf(organizationId),
         kind: 'library_part',
-        credits: importCredits.ownInstructions[libraryPartDomains[part]],
+        credits: isInstructionsPart(part)
+          ? importCredits.ownInstructions[instructionsPartDomains[part]]
+          : importCredits.riskEvaluations,
         importId,
         importPart: part,
         key: `library:${importId}:${part}:${attempt}`,

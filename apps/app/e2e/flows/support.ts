@@ -2,8 +2,18 @@ import { createHash, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
 import { expect, type Page } from '@playwright/test';
-import { type InstructionBody, textHash } from '@ssm-usor/contracts';
-import { type InstructionsProposal, toProposal } from '@ssm-usor/import';
+import {
+  type InstructionBody,
+  type PreventionMeasureKind,
+  textHash,
+  type WorkSystemComponent,
+} from '@ssm-usor/contracts';
+import {
+  type InstructionsProposal,
+  type LibraryEvaluation,
+  type RisksProposal,
+  toProposal,
+} from '@ssm-usor/import';
 import { createClient } from '@supabase/supabase-js';
 
 import {
@@ -423,6 +433,84 @@ export async function evaluateRisks(organizationId: string, clientId: string) {
   }
 }
 
+/** A post's sheet as the workshop fixture fills it; its factor count. */
+export async function evaluateJobPosition(
+  organizationId: string,
+  clientId: string,
+  jobPositionId: string
+) {
+  await insertEvaluation(
+    { organization_id: organizationId, client_id: clientId },
+    { kind: 'job_position', job_position_id: jobPositionId },
+    workshopEvaluation
+  );
+  return workshopEvaluation.factors.length;
+}
+
+export type ProfileFactorFixture = {
+  component: WorkSystemComponent;
+  group: string;
+  description: string;
+  gravity: number | null;
+  probability: number | null;
+  measures?: [PreventionMeasureKind, string][];
+};
+
+/** An entry of the risk library with its factors, as the import compares the pack with it. */
+export async function createEvaluationProfile(
+  organizationId: string,
+  createdBy: string,
+  name: string,
+  factors: ProfileFactorFixture[]
+): Promise<LibraryEvaluation> {
+  const owner = { organization_id: organizationId, created_by: createdBy };
+  const profile = await admin
+    .from('evaluation_profiles')
+    .insert({ ...owner, name })
+    .select('id')
+    .single();
+  if (profile.error) throw profile.error;
+  const written: LibraryEvaluation['factors'][number][] = [];
+  for (const [index, factor] of factors.entries()) {
+    const saved = await admin
+      .from('evaluation_profile_factors')
+      .insert({
+        ...owner,
+        profile_id: profile.data.id,
+        component: factor.component,
+        factor_group: factor.group,
+        description: factor.description,
+        gravity_class: factor.gravity!,
+        probability_class: factor.probability!,
+        sort_order: index,
+      })
+      .select('id')
+      .single();
+    if (saved.error) throw saved.error;
+    const measures = (factor.measures ?? []).map(([kind, description]) => ({ kind, description }));
+    if (measures.length > 0) {
+      const inserted = await admin.from('evaluation_profile_measures').insert(
+        measures.map((measure, order) => ({
+          ...owner,
+          factor_id: saved.data.id,
+          ...measure,
+          sort_order: order,
+        }))
+      );
+      if (inserted.error) throw inserted.error;
+    }
+    written.push({
+      id: saved.data.id,
+      component: factor.component,
+      description: factor.description,
+      gravityClass: factor.gravity!,
+      probabilityClass: factor.probability!,
+      measures,
+    });
+  }
+  return { id: profile.data.id, name, factors: written };
+}
+
 type ModuleFixture = { title: string; group: string; domain: string; body: InstructionBody };
 
 /** The body of the dev seed's module of the domain: "Scări metalice", or "Lucrul cu foc deschis". */
@@ -473,8 +561,9 @@ export async function createInstructionModule(
 }
 
 /**
- * A client import ready for review, with its own instructions read for the library: the client
- * proposal names `posts`, and the part holds `proposal` as the reading would have made it.
+ * A client import ready for review, with its own instructions or its risk evaluations read for the
+ * library: the client proposal names `posts`, and each part holds its proposal as the reading
+ * would have made it.
  */
 export async function createLibraryImport(input: {
   organizationId: string;
@@ -482,9 +571,10 @@ export async function createLibraryImport(input: {
   legalName: string;
   cui: string;
   posts: string[];
-  proposal: InstructionsProposal;
+  proposal?: InstructionsProposal;
+  risks?: RisksProposal;
   partStatus?: 'to_review' | 'failed';
-  credits?: { start: number; ownInstructions: number };
+  credits?: { start: number; ownInstructions: number; riskEvaluations?: number };
 }) {
   const quote = (text: string) => ({
     file: 'Dosar/Decizia de numire.docx',
@@ -536,19 +626,41 @@ export async function createLibraryImport(input: {
   if (created.error) throw created.error;
   const importId = created.data.id as string;
   const failed = input.partStatus === 'failed';
-  const part = await admin.from('import_library_parts').insert({
-    import_id: importId,
-    organization_id: input.organizationId,
-    part: input.proposal.domain === 'su' ? 'instructions_su' : 'instructions_ssm',
-    status: input.partStatus ?? 'to_review',
-    read_at: failed ? null : now,
-    proposal: failed ? null : JSON.parse(JSON.stringify(input.proposal)),
-    failed_at: failed ? now : null,
-    failure_reason: failed
-      ? 'Modelul nu a dat un răspuns pe care să-l putem folosi pentru instrucțiunile proprii.'
-      : null,
-  });
-  if (part.error) throw part.error;
+  const parts = [
+    ...(input.proposal
+      ? [
+          {
+            part: input.proposal.domain === 'su' ? 'instructions_su' : 'instructions_ssm',
+            proposal: input.proposal,
+            reason:
+              'Modelul nu a dat un răspuns pe care să-l putem folosi pentru instrucțiunile proprii.',
+          } as const,
+        ]
+      : []),
+    ...(input.risks
+      ? [
+          {
+            part: 'risk_evaluations',
+            proposal: input.risks,
+            reason:
+              'Modelul nu a dat un răspuns pe care să-l putem folosi pentru evaluările de risc.',
+          } as const,
+        ]
+      : []),
+  ];
+  for (const { part, proposal, reason } of parts) {
+    const inserted = await admin.from('import_library_parts').insert({
+      import_id: importId,
+      organization_id: input.organizationId,
+      part,
+      status: input.partStatus ?? 'to_review',
+      read_at: failed ? null : now,
+      proposal: failed ? null : JSON.parse(JSON.stringify(proposal)),
+      failed_at: failed ? now : null,
+      failure_reason: failed ? reason : null,
+    });
+    if (inserted.error) throw inserted.error;
+  }
   if (input.credits) {
     const entries = await admin.from('credit_entries').insert([
       {
@@ -566,6 +678,18 @@ export async function createLibraryImport(input: {
         import_part: 'instructions_ssm',
         key: `e2e:library:${importId}`,
       },
+      ...(input.credits.riskEvaluations
+        ? [
+            {
+              organization_id: input.organizationId,
+              kind: 'library_part' as const,
+              credits: -input.credits.riskEvaluations,
+              import_id: importId,
+              import_part: 'risk_evaluations' as const,
+              key: `e2e:risks:${importId}`,
+            },
+          ]
+        : []),
     ]);
     if (entries.error) throw entries.error;
   }
@@ -792,6 +916,8 @@ export async function cleanUp() {
     await admin.from('client_workplaces').delete().eq('organization_id', id);
     // Their factors and measures go with them; a position's would go with the position.
     await admin.from('risk_evaluations').delete().eq('organization_id', id);
+    // After the evaluations, whose factors keep the library's entries from being deleted.
+    await admin.from('evaluation_profiles').delete().eq('organization_id', id);
     // After the employees, who point at them.
     await admin.from('job_positions').delete().eq('organization_id', id);
     await admin.from('client_owner_notes').delete().eq('organization_id', id);

@@ -2,23 +2,25 @@ import { createRoute, z } from '@hono/zod-openapi';
 import {
   addFoundSheetsRequestSchema,
   confirmImportLibraryPartRequestSchema,
-  confirmImportLibraryPartResponseSchema,
   confirmImportRequestSchema,
   confirmImportResponseSchema,
+  confirmInstructionsPartResponseSchema,
+  confirmRisksPartResponseSchema,
   createImportRequestSchema,
   employeeReviewSchema,
   foundSheetsResponseSchema,
   importDetailSchema,
-  importLibraryPartDetailSchema,
   importLibraryPartSchema,
   importLibraryPostSchema,
   importListResponseSchema,
   importSourceQuerySchema,
   importSourceResponseSchema,
   importSummarySchema,
+  instructionsPartDetailSchema,
   listImportsQuerySchema,
   registerImportFilesRequestSchema,
   registerImportFilesResponseSchema,
+  risksPartDetailSchema,
   saveEmployeeImportChangesRequestSchema,
   saveImportChangesRequestSchema,
   saveImportChangesResponseSchema,
@@ -29,6 +31,7 @@ import {
   employeeImportProposalSchema,
   instructionsProposalSchema,
   proposalSchema,
+  risksProposalSchema,
 } from '@ssm-usor/import';
 
 import { requireAuth } from '../../lib/auth';
@@ -442,8 +445,15 @@ export const addFoundSheetsRoute = createRoute({
   },
 });
 
-const libraryPartContent = importLibraryPartDetailSchema
-  .extend({ proposal: instructionsProposalSchema.nullable() })
+const libraryPartContent = z
+  .discriminatedUnion('part', [
+    instructionsPartDetailSchema
+      .extend({ proposal: instructionsProposalSchema.nullable() })
+      .meta({ id: 'InstructionsLibraryPart' }),
+    risksPartDetailSchema
+      .extend({ proposal: risksProposalSchema.nullable() })
+      .meta({ id: 'RisksLibraryPart' }),
+  ])
   .meta({ id: 'ImportLibraryPart' });
 
 export const listImportLibraryPartsRoute = createRoute({
@@ -452,7 +462,7 @@ export const listImportLibraryPartsRoute = createRoute({
   operationId: 'listImportLibraryParts',
   summary: "A client import's proposals for the library",
   description:
-    "One part per domain whose own instructions the sorting found (ADR 034), `instructions_ssm` and `instructions_su`, each read by a request of its own once the client proposal is ready: its status (`reading`, `to_review`, `nothing_new`, `failed` with `failureReason`, `confirmed`), the proposal from `to_review` on (null before, and once dropped with the import's, 30 days after the client), the member's changes and the version to save on, the counts of identical, similar, new and unread instructions, `positionPosts` (the client post each post the themes name is, as the changes name posts), `expiresAt` (14 days after the client's confirmation, past which a part is no longer confirmed), and `credits`, its readings net of those given back. `posts` are the posts an instruction can apply to: the client proposal's, by their id, with the job position each became once the client is confirmed, and the client's other active posts by their id. `usage`, the models' cost at list price and tokens, is served outside production and, in production, only to a platform admin. An empty list for an employee import or a pack without own instructions.",
+    "One part per domain whose own instructions the sorting found (ADR 034), `instructions_ssm` and `instructions_su`, and `risk_evaluations` when it found a risk assessment (ADR 036), each read by a request of its own once the client proposal is ready: its status (`reading`, `to_review`, `nothing_new`, `failed` with `failureReason`, `confirmed`), the proposal from `to_review` on (null before, and once dropped with the import's, 30 days after the client), the member's changes and the version to save on, the counts of identical, similar, new and unread instructions, `positionPosts` (the client post each post the themes name is, as the changes name posts), `expiresAt` (14 days after the client's confirmation, past which a part is no longer confirmed), and `credits`, its readings net of those given back. `posts` are the posts an instruction can apply to: the client proposal's, by their id, with the job position each became once the client is confirmed, and the client's other active posts by their id. The risk evaluations' part, discriminated by `part`, has no `domain`; its proposal is a `RisksProposal`, its changes are by sheet, its counts are of sheets (`unread`, those with no factor read), and `postReferences` gives, by a post's name as the sheets write it, the client post it is, as the changes name posts; `existingFactors` gives the factors the client's sheets have now, by job position and, for a client-level sheet, by the sheet's key, which confirming follows where the member made no choice (null while the import has no client). `usage`, the models' cost at list price and tokens, is served outside production and, in production, only to a platform admin. An empty list for an employee import or a pack with neither own instructions nor a risk assessment.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: importParams },
@@ -479,7 +489,7 @@ export const saveImportLibraryPartChangesRoute = createRoute({
   operationId: 'saveImportLibraryPartChanges',
   summary: "Save the member's review of a library part",
   description:
-    "Replaces the part's changes, by the proposed instruction's key: `included` false leaves it out, `title`, `category` (one of the part's domain), `choice` for a similar instruction (`use_existing` or `add_new`), `posts` in place of those the themes give, and `body`, the text edited, held to the body's schema. Before the client is confirmed too. On the `version` the caller read, and answers the next. `400` for a key the proposal does not have or a category of the other domain; `409` with `import_changed` when someone saved since, `import_part_not_ready` when the part is not `to_review` or `nothing_new`, `import_part_expired` 14 days after the client's confirmation.",
+    "Replaces the part's changes. An instructions part's are by the proposed instruction's key: `included` false leaves it out, `title`, `category` (one of the part's domain), `choice` for a similar instruction (`use_existing` or `add_new`), `posts` in place of those the themes give, and `body`, the text edited, held to the body's schema. The risk evaluations' are `sheets`, by the sheet's key (`RiskImportChanges`): `libraryName`, `library` (`add`, `use_existing`, `add_new`, `skip`), `posts`, `postChoices` and `existingChoice` (`append`, `replace`, `keep`), the three texts, and `factors` by the factor's key. Before the client is confirmed too. On the `version` the caller read, and answers the next. `400` for a key the proposal does not have, a category of the other domain, `use_existing` for a sheet the library matched none of, or another part's changes; `409` with `import_changed` when someone saved since, `import_part_not_ready` when the part is not `to_review` or `nothing_new`, `import_part_expired` 14 days after the client's confirmation.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -505,7 +515,7 @@ export const confirmImportLibraryPartRoute = createRoute({
   operationId: 'confirmImportLibraryPart',
   summary: 'Confirm a library part',
   description:
-    "In one transaction (`apply_instruction_import`): creates a module with its first version for every new instruction and every similar one the member chose to add as new, takes the identical ones and the similar ones kept as they are, and applies each to its posts, skipping a post that applies it already, all as the member. Only after the client is confirmed: `409` with `import_client_unconfirmed` before (the app says \"Confirmă întâi clientul\"). The client import's own confirm never waits for its parts. `409` with `import_part_expired` 14 days after the client's confirmation, `import_part_not_ready`, `import_changed`, `instruction_title_taken` when a new module's title is an active module's (with `issues` on `instructions.<key>.title`), or `import_outdated` when a post or module the review named is gone. `422` with `import_incomplete` for a category of the other domain.",
+    "For the risk evaluations, in one transaction (`apply_risk_import`): creates the chosen library entries with their factors, measures, plan fields as defaults (a person named in one goes to the client only) and texts, creates each missing evaluation of the client, fills only its empty texts, and writes the reviewed factors onto each sheet's posts as the post's choice says, each pointing at the entry's factor it was added to or matched; it answers `createdProfileIds`, `evaluationIds` and `factors`. `409` with `evaluation_profile_name_taken` when a new entry's name is any entry's, archived ones included (with `issues` on `sheets.<key>.libraryName`); `422` with `import_incomplete` for a ticked factor without its component or classes (with `issues` on `sheets.<key>.factors.<key>`). For instructions, in one transaction (`apply_instruction_import`): creates a module with its first version for every new instruction and every similar one the member chose to add as new, takes the identical ones and the similar ones kept as they are, and applies each to its posts, skipping a post that applies it already, all as the member. Only after the client is confirmed: `409` with `import_client_unconfirmed` before (the app says \"Confirmă întâi clientul\"). The client import's own confirm never waits for its parts. `409` with `import_part_expired` 14 days after the client's confirmation, `import_part_not_ready`, `import_changed`, `instruction_title_taken` when a new module's title is an active module's (with `issues` on `instructions.<key>.title`), or `import_outdated` when a post or module the review named is gone. `422` with `import_incomplete` for a category of the other domain.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -519,9 +529,14 @@ export const confirmImportLibraryPartRoute = createRoute({
       description: 'The modules created and applied',
       content: {
         'application/json': {
-          schema: confirmImportLibraryPartResponseSchema.meta({
-            id: 'ConfirmImportLibraryPartResponse',
-          }),
+          schema: z
+            .union([
+              confirmInstructionsPartResponseSchema.meta({
+                id: 'ConfirmInstructionsPartResponse',
+              }),
+              confirmRisksPartResponseSchema.meta({ id: 'ConfirmRisksPartResponse' }),
+            ])
+            .meta({ id: 'ConfirmImportLibraryPartResponse' }),
         },
       },
     },
@@ -543,7 +558,7 @@ export const retryImportLibraryPartRoute = createRoute({
   operationId: 'retryImportLibraryPart',
   summary: 'Read a failed library part again',
   description:
-    '"Citește din nou": a `failed` part of an import ready for review or confirmed goes back to `reading` under its next `attempt` and its message is sent again; the reading is charged again when its request is sent (25 credits for SSM, 10 for SU), and given back if it fails. The client proposal and the other part are untouched. `409` with `import_part_expired` 14 days after the client was confirmed, when it could no longer be confirmed, and `import_part_not_failed` otherwise; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.',
+    '"Citește din nou": a `failed` part of an import ready for review or confirmed goes back to `reading` under its next `attempt` and its message is sent again; the reading is charged again when its request is sent (25 credits for SSM, 10 for SU, 15 for the risk evaluations), and given back if it fails. The client proposal and the other part are untouched. `409` with `import_part_expired` 14 days after the client was confirmed, when it could no longer be confirmed, and `import_part_not_failed` otherwise; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: libraryPartParams },

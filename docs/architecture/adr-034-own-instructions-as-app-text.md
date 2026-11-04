@@ -38,7 +38,7 @@ Mircea decided on 2026-10-29 and, narrowing it to the instructions, on 2026-11-0
 10. The existing test modules are deleted, not converted. There are no customers, and production holds test data only.
 11. The clean-up comes first: the rename and the upload's removal land before the new form and the import.
 
-The risk evaluations, which the earlier draft of this ADR also read from the pack into the risk library, are left to a decision of their own.
+The risk evaluations, which the earlier draft of this ADR also read from the pack into the risk library, are left to a decision of their own, [ADR 036](adr-036-risk-library-and-import.md).
 
 This supersedes, in ADR 012:
 
@@ -251,7 +251,7 @@ A part that fails gets its reading back (`library_part_refund`), since it fails 
 
 ## What is left out
 
-- **The risk evaluations of the pack** and the risk library. They will get a decision of their own.
+- **The risk evaluations of the pack** and the risk library. They will get a decision of their own: [ADR 036](adr-036-risk-library-and-import.md), which adds the part `risk_evaluations`.
 - **Pictures and tables in a module**, and any formatting in a body. Tracked in #768.
 - **Checking the imported text and proposing fixes**: diacritics, typos, clear wording, text copied from a manual, the client's name. The import keeps the pack's words as they are. Tracked in #770.
 - **Uploading a Word file as a module.**

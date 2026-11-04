@@ -50,6 +50,8 @@ topics:
     heading: Portalul și actul adițional după import
   - id: import.instructiuni-proprii
     heading: Instrucțiunile proprii din documentație
+  - id: import.evaluari-de-risc
+    heading: Evaluările de risc din documentație
 sources:
   - docs/architecture/adr-030-import-from-documents.md
   - docs/architecture/adr-032-employees-imported-from-training-sheets.md
@@ -57,6 +59,10 @@ sources:
   - packages/contracts/src/imports.ts
   - packages/contracts/src/billing.ts
   - docs/architecture/adr-034-own-instructions-as-app-text.md
+  - docs/architecture/adr-036-risk-library-and-import.md
+  - apps/app/src/features/imports/library/risks-model.ts
+  - packages/import/src/risks-proposal.ts
+  - supabase/migrations/20261102180100_apply_risk_import.sql
   - apps/api/src/modules/imports/library.ts
   - apps/app/src/features/imports/library/*.tsx
   - apps/app/src/features/imports/library/library-model.ts
@@ -105,9 +111,10 @@ Sunt două importuri, în această ordine: întâi clientul, din documentația l
 
 Citirea documentelor și a fotografiilor se socotește în credite. Un credit înseamnă o fotografie sau o pagină scanată citită.
 
-- **Importul unui client** folosește 25 de credite pentru citirea documentelor, oricât de lungi ar fi, plus câte unul pentru fiecare fotografie și pagină scanată. Un PDF cu text, salvat din Word de exemplu, intră în cele 25. Care pagini ale unui PDF sunt scanate se află abia la citire, așa că fereastra de încărcare îți spune: „Folosește 25 de credite, plus 1 pentru fiecare pagină scanată.” Tot ea îți spune că instrucțiunile proprii, dacă le găsim, folosesc încă 25 (IPSSM) și 10 (IPSU).
+- **Importul unui client** folosește 25 de credite pentru citirea documentelor, oricât de lungi ar fi, plus câte unul pentru fiecare fotografie și pagină scanată. Un PDF cu text, salvat din Word de exemplu, intră în cele 25. Care pagini ale unui PDF sunt scanate se află abia la citire, așa că fereastra de încărcare îți spune: „Folosește 25 de credite, plus 1 pentru fiecare pagină scanată.” Tot ea îți spune că, dacă le găsim, instrucțiunile proprii folosesc încă 25 (IPSSM) și 10 (IPSU), iar evaluările de risc încă 15.
 - **Importul angajaților** folosește un credit pentru fiecare fotografie și pentru fiecare pagină a unui PDF.
 - **Instrucțiunile proprii** din documentația unui client se citesc separat, pentru biblioteca ta de instrucțiuni proprii: 25 de credite pentru cele SSM și 10 pentru cele SU, de fiecare dată când le citim. Dacă citirea lor nu reușește, creditele ei îți sunt returnate.
+- **Evaluările de risc** din documentația unui client se citesc tot separat, pentru biblioteca ta de evaluări de risc și pentru fișele clientului: 15 credite de fiecare dată când le citim, returnate dacă citirea nu reușește.
 
 ### Câte credite ai
 
@@ -133,7 +140,7 @@ Pornești din **Clienți**, cu **Importă din documente**, pentru un client nou,
 
 Aplicația pune deoparte ce nu poartă date despre client (coperți, formulare goale, texte de lege), citește restul și îți propune datele firmei, punctele de lucru, posturile, persoanele cu atribuții, programul de instruire, datele SU și echipamentul de protecție. Le verifici pe secțiuni, cu sursa fiecărei valori la un clic, apoi confirmi. La un client existent, o valoare pe care o ai deja în aplicație nu se schimbă decât dacă alegi tu valoarea din documente.
 
-Instrucțiunile proprii (IPSSM și IPSU) nu intră în propunerea clientului: le citim separat, pentru biblioteca ta de instrucțiuni proprii, și nu te țin pe loc când creezi clientul.
+Instrucțiunile proprii (IPSSM și IPSU) și evaluările de risc nu intră în propunerea clientului: le citim separat, pentru bibliotecile tale, și nu te țin pe loc când creezi clientul.
 
 Nu trebuie să aștepți citirea: importul rămâne în **Clienți**, la **Importuri din documente**, până creezi clientul sau renunți. Dacă ai pornit tu importul și lucrezi între timp pe altă pagină din aplicație, îți apare o notificare când propunerea e gata, cu **Verifică propunerea**, sau când citirea s-a oprit.
 
@@ -161,6 +168,25 @@ O instrucțiune **asemănătoare** arată pe rândul **Seamănă cu** cu care di
 Schimbările se salvează pe măsură ce le faci. Când nu e nimic nou, sarcina spune „Nimic nou în pachet”, iar confirmarea doar aplică instrucțiunile tale la posturi. La confirmare, instrucțiunile noi intră în bibliotecă și toate se aplică la posturile alese; un post care o avea deja nu o primește de două ori.
 
 Dacă citirea nu reușește, vezi motivul și **Citește din nou**. Creditele citirii care nu a reușit îți sunt date înapoi, iar o citire nouă le folosește din nou (25 pentru IPSSM, 10 pentru IPSU), iar clientul și cealaltă parte rămân cum sunt. Totalul importului le arată separat, de exemplu „Importul a folosit 60 de credite (25 + 35 pentru instrucțiunile proprii)”.
+
+### Evaluările de risc din documentație
+
+Evaluarea riscurilor din pachet și planul ei de prevenire și protecție se citesc separat, după ce propunerea clientului e gata, pentru biblioteca ta de [evaluări de risc](/evaluari-de-risc/) și pentru fișele de evaluare ale clientului. Pe pagina importului apar în grupul **Evaluări de risc**, după instrucțiunile proprii, cu aceleași stări: _se citește_, _de verificat_, _nimic nou_, _nu s-a putut citi_ sau _confirmat_. Fișele pe care le ai deja în bibliotecă tot îți cer confirmarea, fiindcă ea le scrie pe fișele clientului: sarcina spune atunci „Le ai deja în bibliotecă; confirmă ca să le scriem pe fișele clientului”. _Nimic nou_ apare doar când confirmarea n-ar scrie nimic, nici în bibliotecă, nici la client. Ca și instrucțiunile, le poți verifica de îndată ce sunt citite, dar le confirmi după client, în cel mult 14 zile de la crearea lui; până atunci butonul spune **Confirmă întâi clientul**, iar pagina clientului îți amintește de ele.
+
+Fiecare fișă de evaluare din pachet are un card, cu titlul ei din document și felul ei: post de lucru, grupuri sensibile sau o fișă în afara posturilor, de exemplu „Vizitatori”. Sus, cardul îți spune ce mai ai de făcut sau „Gata de confirmat”, iar deasupra cardurilor vezi la câte fișe mai ai de ales și câți factori au ceva de verificat. Rândurile cardului sunt:
+
+- **Posturile** pe care le evaluează fișa, după titlul ei, cu **Schimbă posturile**. O fișă care evaluează mai multe posturi se scrie la fiecare. Un titlu care nu numește niciun post al clientului rămâne marcat până alegi postul, cu **Alege posturile**, sau o lași **Doar în bibliotecă**. Fișa grupurilor sensibile și celelalte fișe din afara posturilor merg la fișele clientului cu același nume;
+- **Fișa existentă**, când postul are deja o fișă cu factori, de exemplu „Postul are deja o fișă cu 18 factori”: **Adaugă după cei existenți**, **Înlocuiește** sau **Lasă cum e**, care e propunerea;
+- **În bibliotecă**: o fișă nouă o adaugi cu **Adaugă în bibliotecă** sau o lași doar la client cu **Nu adăuga**; o fișă din afara posturilor e propusă fără bibliotecă. Una care seamănă cu o evaluare a ta îți spune „Ai deja o evaluare asemănătoare”, iar **Ce diferă** îți arată factorii care sunt doar în pachet, cei care sunt doar în evaluarea ta și cei cu alte clase sau alte măsuri. Alegi **Folosește ce ai**, ca evaluarea ta să rămână cum e, sau **Adaugă ca nouă**, ca fișa din pachet să intre separat; rândul rămâne marcat până alegi. O fișă la fel cu o evaluare a ta nu se adaugă din nou, iar o fișă copiată în pachet după alta urmează alegerea celei pe care o copiază;
+- **Numele în bibliotecă**, cu **Redenumește**. Un nume pe care biblioteca îl are deja e propus cu numele clientului după el, de exemplu „Bucătar (Hotel Royal)”;
+- **Sistemul de muncă**: mijloacele de producție, mediul de muncă și expunerea, preluate din document;
+- **Factorii**, cu câți se preiau. Sub el vezi factorii de verificat, iar **Arată toți** îi arată pe toți, grupați pe componente. Fiecare are bifa lui, descrierea, grupa, clasele, nivelul calculat, măsurile și câmpurile planului de prevenire. **Modifică** deschide factorul în formularul fișei de evaluare, ca să-i schimbi clasele, măsurile sau planul, iar **Vezi în document** deschide fișierul la rândul lui.
+
+Clasele de gravitate și de probabilitate sunt judecata evaluatorului, așa că le preluăm cum sunt scrise și nu le schimbăm noi. Îți arătăm însă, la factor: un nivel tipărit care nu se potrivește cu grila metodei, de exemplu „Nivel în document: 2, după metodă: 3” (fișa ia nivelul grilei), o consecință care ține de altă clasă de gravitate, un factor citit dintr-un PDF („Verifică”), fiindcă dintr-un PDF factorul, măsurile lui și câmpurile planului sunt transcrise, nu copiate, și o persoană numită în câmpurile planului, care rămâne doar pe fișa clientului, nu și în bibliotecă. Când la o fișă cele mai multe niveluri tipărite se potrivesc cu grila doar dacă citești gravitatea în locul probabilității și invers, cardul îți spune „Gravitatea și probabilitatea par inversate în document: verifică clasele”; nici atunci nu le inversăm noi. Un factor căruia îi lipsește o clasă, componenta sau grupa rămâne nebifat până le alegi cu **Modifică**. Rândurile pe care nu le-am putut lega de nicio fișă sau de niciun factor le vezi la sfârșit, cu **Vezi în document**; nu le preluăm.
+
+La confirmare, evaluările pe care le adaugi intră în bibliotecă, cu factorii, măsurile, textele sistemului de muncă și câmpurile planului ca valori propuse. Factorii bifați se scriu pe fișele de evaluare ale clientului, după alegerea ta pentru fiecare post, iar fișele care lipsesc se creează. Fiecare factor scris la client arată din ce evaluare a bibliotecii vine, așa că **Unde este folosită** e corectă de la început. Evaluarea riscurilor și planul de prevenire ale clientului se actualizează apoi ca după orice schimbare a fișelor.
+
+Citirea evaluărilor de risc folosește 15 credite de fiecare dată când le citim. Dacă nu reușește, vezi motivul și **Citește din nou**, iar creditele citirii care nu a reușit îți sunt date înapoi. Totalul importului le arată separat, de exemplu „Importul a folosit 75 de credite (25 + 35 pentru instrucțiunile proprii + 15 pentru evaluările de risc)”.
 
 ## Importul angajaților din fișe
 

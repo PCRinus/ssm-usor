@@ -2,7 +2,7 @@ import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 
-import { useRenameEvaluationProfile } from '@/api/generated/api';
+import { useUpdateEvaluationProfile } from '@/api/generated/api';
 
 import { useProfileCache } from './use-profile-cache';
 
@@ -20,18 +20,18 @@ export interface ProfileNaming {
 export function useProfileRenaming() {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const cache = useProfileCache();
-  const rename = useRenameEvaluationProfile({ request: apiRequest });
+  const rename = useUpdateEvaluationProfile({ request: apiRequest });
   return (profile: { id: string; name: string }): ProfileNaming => ({
-    title: 'Redenumește profilul',
-    description: 'Denumirea apare în bibliotecă și când alegi un profil pentru o evaluare.',
+    title: 'Redenumește evaluarea',
+    description: 'Denumirea apare în bibliotecă și în lista din „Aplică din bibliotecă”.',
     defaultName: profile.name,
     submitLabel: 'Salvează',
     pendingLabel: 'Se salvează…',
-    failure: 'Nu am putut redenumi profilul. Verifică conexiunea și încearcă din nou.',
+    failure: 'Nu am putut redenumi evaluarea. Verifică conexiunea și încearcă din nou.',
     submit: async (name) => {
       const result = await rename.mutateAsync({ profileId: profile.id, data: { name } });
       await Promise.all([cache.saved(result.profile), cache.linksChanged(profile.id)]);
-      toast.success('Profilul a fost redenumit.');
+      toast.success('Evaluarea a fost redenumită.');
     },
   });
 }

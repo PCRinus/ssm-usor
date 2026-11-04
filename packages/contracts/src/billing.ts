@@ -381,6 +381,9 @@ export const importCredits = {
   perPage: 1,
   // Reading a pack's own instructions for the library, each time they are read (ADR 034).
   ownInstructions: { ssm: 25, su: 10 },
+  // Reading a pack's risk evaluations, each time they are read: 15, not 10, because the dearest
+  // reference reading cost $0.095, past the $0.08 that ADR 036 set for 10.
+  riskEvaluations: 15,
 } as const;
 
 /**

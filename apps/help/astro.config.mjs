@@ -71,7 +71,7 @@ const areas = [
   ['Clienți potențiali și contracte', 'clienti-potentiali'],
   ['Clienți', 'clienti'],
   ['Instrucțiuni proprii', 'instructiuni'],
-  ['Riscuri', 'riscuri'],
+  ['Evaluări de risc', 'evaluari-de-risc'],
   ['Teste', 'teste'],
   ['Semnături și participanți', 'semnaturi'],
   ['Legislație', 'legislatie'],

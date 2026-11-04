@@ -213,11 +213,11 @@ describe('the rows of the generation form', () => {
       ['e-vizitatori:plan', 'Vizitatori · termene și responsabili'],
     ]);
     expect(hrefs(groups)).toEqual([
-      `/clienti/${clientId}/posturi/p-contabil/evaluare-riscuri#factors`,
-      `/clienti/${clientId}/posturi/p-sudor/evaluare-riscuri#factors`,
-      `/clienti/${clientId}/posturi/p-sudor/evaluare-riscuri#factors`,
+      `/clienti/${clientId}/posturi/p-contabil/fisa-de-evaluare#factors`,
+      `/clienti/${clientId}/posturi/p-sudor/fisa-de-evaluare#factors`,
+      `/clienti/${clientId}/posturi/p-sudor/fisa-de-evaluare#factors`,
       `/clienti/${clientId}/posturi#client-risk-evaluations`,
-      `/clienti/${clientId}/posturi/evaluari-riscuri/e-vizitatori#factors`,
+      `/clienti/${clientId}/posturi/fise-de-evaluare/e-vizitatori#factors`,
     ]);
     const sensitiveGroups = groups
       .flatMap((group) => group.rows)
@@ -249,7 +249,7 @@ describe('the rows of the generation form', () => {
       ['e-grupuri:factors', 'Evaluarea grupurilor sensibile'],
     ]);
     expect(hrefs(groups)).toEqual([
-      `/clienti/${clientId}/posturi/evaluari-riscuri/e-grupuri#factors`,
+      `/clienti/${clientId}/posturi/fise-de-evaluare/e-grupuri#factors`,
     ]);
     expect(groups[0]!.rows[0]!.action).toBeUndefined();
   });

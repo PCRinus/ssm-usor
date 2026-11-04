@@ -1,22 +1,24 @@
 import {
-  type ImportLibraryPart as PartName,
   type InstructionBody,
   instructionCategoriesByDomain,
   type InstructionCategory,
   type InstructionDomain,
+  type InstructionsPart as PartName,
+  isInstructionsPart,
   splitFlagMessages,
 } from '@ssm-usor/contracts';
 
 import type {
   ImportLibraryPart,
   ImportLibraryPartsResponse,
+  InstructionsLibraryPart,
   InstructionsProposalInstructionsItem,
   InstructionsProposalPositionsItem,
   InstructionsProposalUnreadItem,
 } from '@/api/generated/api';
 import { roCount } from '@/features/employees/employee-format';
 
-export type LibraryPart = ImportLibraryPart;
+export type LibraryPart = InstructionsLibraryPart;
 export type LibraryPost = ImportLibraryPartsResponse['posts'][number];
 export type ProposedInstruction = InstructionsProposalInstructionsItem;
 export type ProposedPosition = InstructionsProposalPositionsItem;
@@ -44,6 +46,23 @@ export function withChange<K extends keyof InstructionChange>(
 }
 
 export type LibraryChanges = { instructions: Record<string, InstructionChange> };
+
+// The risk evaluations' part has a review of its own.
+export const isInstructionsLibraryPart = (part: ImportLibraryPart): part is LibraryPart =>
+  isInstructionsPart(part.part);
+
+export const hasInstructionsParts = (parts: readonly { part: ImportLibraryPart['part'] }[]) =>
+  parts.some((part) => isInstructionsPart(part.part));
+
+export function partsNoun(parts: readonly { part: ImportLibraryPart['part'] }[]) {
+  const names = [
+    ...(hasInstructionsParts(parts) ? ['instrucțiunile proprii'] : []),
+    ...(parts.some((part) => part.part === 'risk_evaluations') ? ['evaluările de risc'] : []),
+  ];
+  if (names.length === 0) return null;
+  const text = names.join(' și ');
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
+}
 
 export const partOfDomain: Record<InstructionDomain, PartName> = {
   ssm: 'instructions_ssm',

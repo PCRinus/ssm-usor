@@ -187,7 +187,7 @@ export function JobPositionsCard({
               <TableHead>Angajați</TableHead>
               <TableHead>EIP</TableHead>
               <TableHead>Instrucțiuni</TableHead>
-              <TableHead>Evaluare de risc</TableHead>
+              <TableHead>Fișa de evaluare</TableHead>
               <TableHead className="w-12">
                 <span className="sr-only">Acțiuni</span>
               </TableHead>
@@ -335,10 +335,10 @@ export function JobPositionsCard({
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild data-testid="job-position-menu-risk">
                         <Link
-                          to="/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri"
+                          to="/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare"
                           params={{ clientId, jobPositionId: position.id }}
                         >
-                          Evaluare de risc
+                          Fișa de evaluare
                         </Link>
                       </DropdownMenuItem>
                       {!readOnly && (
@@ -446,7 +446,7 @@ function RiskEvaluationLink({
   return (
     <DecisionBadge asChild decision={(evaluation && evaluation.factorCount > 0) || null}>
       <Link
-        to="/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri"
+        to="/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare"
         params={{ clientId, jobPositionId: position.id }}
         data-testid="job-position-risk"
       >

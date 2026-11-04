@@ -29,6 +29,7 @@ import {
   useRemoveRiskEvaluation,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
 import { ApplyProfileDialog } from '@/features/evaluation-profiles/apply-profile-dialog';
@@ -59,11 +60,12 @@ import { useFactorListView } from './use-factor-list-view';
 import { useLibraryNudge } from './use-library-nudge';
 import { useStartEvaluation } from './use-start-evaluation';
 import { WorkSystemCard } from './work-system-card';
+import { useEvaluationWorkSystemStore } from './work-system-store';
 
 const clientRoute = getRouteApi('/_authenticated/clienti/$clientId');
 const positionRoute = getRouteApi('/_authenticated/clienti/$clientId/posturi/$jobPositionId');
 const clientLevelRoute = getRouteApi(
-  '/_authenticated/clienti/$clientId/posturi/evaluari-riscuri/$evaluationId'
+  '/_authenticated/clienti/$clientId/posturi/fise-de-evaluare/$evaluationId'
 );
 
 function useReadOnly() {
@@ -189,7 +191,7 @@ function PositionNotEvaluated({
       >
         {readOnly
           ? 'Postul nu a fost evaluat. Clientul este arhivat, așa că nu se mai evaluează.'
-          : 'Postul nu a fost evaluat încă. Evaluarea riscurilor și planul de prevenire se generează din evaluările posturilor.'}
+          : 'Postul nu a fost evaluat încă. Evaluarea riscurilor și planul de prevenire se generează din fișele de evaluare ale posturilor.'}
       </Notice>
     </>
   );
@@ -199,8 +201,11 @@ function Header({ title, action }: { title: string; action?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
       <div className="grid gap-1">
-        <p className="text-sm text-muted-foreground">Evaluare de risc</p>
-        <h2 className="text-xl font-semibold tracking-tight wrap-anywhere">{title}</h2>
+        <p className="text-sm text-muted-foreground">Fișa de evaluare</p>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <h2 className="text-xl font-semibold tracking-tight wrap-anywhere">{title}</h2>
+          <HelpLink topic="evaluari-de-risc.fisa" label="Ajutor: fișa de evaluare" />
+        </div>
       </div>
       {action}
     </div>
@@ -233,6 +238,7 @@ function RiskEvaluationView({
   const saveAsProfile = useSaveAsProfile(evaluation.clientId);
   const nudge = useLibraryNudge(evaluation, readOnly);
   const store = useEvaluationFactorStore(evaluation);
+  const workSystemStore = useEvaluationWorkSystemStore(evaluation);
   const view = useFactorListView(evaluation.factors, sections.factors);
   const saveToLibrary = () => setNaming(saveAsProfile(evaluation));
   return (
@@ -260,7 +266,7 @@ function RiskEvaluationView({
                 onClick={() => setRemoving(true)}
               >
                 <Trash2 aria-hidden="true" />
-                Șterge evaluarea…
+                Șterge fișa…
               </Button>
             )}
           </div>
@@ -269,7 +275,8 @@ function RiskEvaluationView({
       <RiskResultCard id={sections.result} evaluation={evaluation} view={view} />
       <WorkSystemCard
         id={sections.workSystem}
-        evaluation={evaluation}
+        workSystem={evaluation}
+        store={workSystemStore}
         position={position}
         readOnly={readOnly}
       />
@@ -286,10 +293,10 @@ function RiskEvaluationView({
         footer={nudge.shown && <LibraryNudge onSave={saveToLibrary} onDismiss={nudge.dismiss} />}
         empty={
           readOnly
-            ? 'Evaluarea nu are factori de risc.'
-            : 'Adaugă un factor de risc, aplică un profil din bibliotecă sau copiază factorii altei evaluări.'
+            ? 'Fișa nu are factori de risc.'
+            : 'Adaugă un factor de risc, aplică o evaluare din bibliotecă sau copiază factorii altei fișe.'
         }
-        removalConsequence="nu vor mai apărea în evaluare și în planul de prevenire."
+        removalConsequence="nu vor mai apărea în fișă și în planul de prevenire."
         editorContext={evaluationTitle(evaluation)}
         clientId={evaluation.clientId}
       />
@@ -315,7 +322,7 @@ function FactorSources({ evaluation, userId }: { evaluation: RiskEvaluation; use
         onClick={() => setSource('profile')}
       >
         <LibraryBig aria-hidden="true" />
-        Aplică un profil
+        Aplică din bibliotecă
       </Button>
       <Button
         variant="outline"
@@ -324,7 +331,7 @@ function FactorSources({ evaluation, userId }: { evaluation: RiskEvaluation; use
         onClick={() => setSource('evaluation')}
       >
         <Copy aria-hidden="true" />
-        Copiază de la altă evaluare
+        Copiază de la altă fișă
       </Button>
       <ApplyProfileDialog
         evaluation={evaluation}
@@ -369,13 +376,13 @@ function RemoveEvaluationDialog({
         setError(
           evaluationFailure(
             cause,
-            'Nu am putut șterge evaluarea. Verifică conexiunea și încearcă din nou.'
+            'Nu am putut șterge fișa. Verifică conexiunea și încearcă din nou.'
           )
         );
         return;
       }
     }
-    toast.success('Evaluarea a fost ștearsă.');
+    toast.success('Fișa de evaluare a fost ștearsă.');
     await navigate(afterRemove);
     await cache.removed(evaluation);
   }
@@ -384,10 +391,10 @@ function RemoveEvaluationDialog({
     <Dialog open={open} onOpenChange={(next) => !next && !remove.isPending && onClose()}>
       <DialogContent data-testid="risk-evaluation-remove-dialog" className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Ștergi evaluarea?</DialogTitle>
+          <DialogTitle>Ștergi fișa de evaluare?</DialogTitle>
           <DialogDescription>
             {count === 0
-              ? 'Evaluarea nu are factori de risc.'
+              ? 'Fișa nu are factori de risc.'
               : `${factorCountLabel(count)} și măsurile ${count === 1 ? 'lui' : 'lor'} se șterg odată cu ea.`}{' '}
             {evaluation.kind === 'other'
               ? 'Nu va mai apărea în evaluarea riscurilor și în planul de prevenire.'
@@ -409,7 +416,7 @@ function RemoveEvaluationDialog({
             disabled={remove.isPending}
             onClick={() => void removeEvaluation()}
           >
-            {remove.isPending ? 'Se șterge…' : 'Șterge evaluarea'}
+            {remove.isPending ? 'Se șterge…' : 'Șterge fișa'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -421,9 +428,9 @@ export function RiskEvaluationNotFound() {
   const { clientId } = clientRoute.useParams();
   return (
     <div data-testid="risk-evaluation-not-found" className="mx-auto grid max-w-lg gap-5 py-14">
-      <h2 className="text-xl font-semibold tracking-tight">Evaluarea nu a fost găsită</h2>
+      <h2 className="text-xl font-semibold tracking-tight">Fișa de evaluare nu a fost găsită</h2>
       <p className="text-sm leading-relaxed text-muted-foreground">
-        Nu există nicio evaluare de risc cu acest identificator la acest client, sau a fost ștearsă.
+        Nu există nicio fișă de evaluare cu acest identificator la acest client, sau a fost ștearsă.
       </p>
       <Button asChild className="w-fit">
         <Link to="/clienti/$clientId/posturi" params={{ clientId }}>
@@ -439,14 +446,16 @@ export function RiskEvaluationError({ error }: ErrorComponentProps) {
   const message =
     error instanceof ApiHttpError && error.status === 401
       ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-      : 'Nu am putut încărca evaluarea de risc. Încearcă din nou.';
+      : 'Nu am putut încărca fișa de evaluare. Încearcă din nou.';
   return (
     <div
       data-testid="risk-evaluation-error"
       role="alert"
       className="mx-auto grid max-w-lg gap-5 py-14"
     >
-      <h2 className="text-xl font-semibold tracking-tight">Evaluarea nu a putut fi încărcată</h2>
+      <h2 className="text-xl font-semibold tracking-tight">
+        Fișa de evaluare nu a putut fi încărcată
+      </h2>
       <p className="text-sm leading-relaxed text-muted-foreground">{message}</p>
       <Button
         data-testid="risk-evaluation-retry"

@@ -14,6 +14,7 @@ import { fromDatabaseError } from '../../lib/db';
 import { creditsStore } from '../credits/store';
 import { importCharges } from '../credits/usage';
 import { clientTrainingThemes, employeeImportClient } from './employees';
+import { type ClientSheets, clientSheetsOf, type RiskLibrary, riskLibraryOf } from './risk-sheets';
 
 type Tables = Database['public']['Tables'];
 
@@ -114,6 +115,8 @@ export interface ImportStore {
   chargeLibraryPart(row: ImportRow, part: ImportLibraryPart, attempt: number): Promise<void>;
   // The organization's active modules of both domains, each with its current text.
   libraryModules(organizationId: string): Promise<LibraryModule[]>;
+  riskLibrary(organizationId: string): Promise<RiskLibrary>;
+  clientSheets(clientId: string): Promise<ClientSheets>;
   provider(organizationId: string): Promise<ProviderIdentity>;
   client(clientId: string): Promise<ExistingClient | null>;
   employeeImportClient(clientId: string): Promise<EmployeeImportClient>;
@@ -127,7 +130,7 @@ export interface ImportStore {
   markCopied(importId: string): Promise<void>;
   uncopiedImports(confirmedBefore: string): Promise<string[]>;
   failStalled(reasons: { stalled: string; left: string }): Promise<string[]>;
-  failStalledLibraryParts(reason: string): Promise<number>;
+  failStalledLibraryParts(reasons: { instructions: string; risks: string }): Promise<number>;
   listAbandoned(): Promise<ImportObjectList[]>;
   // Only the imports whose objects are gone: another list leaves them for the next day.
   deleteAbandoned(importIds: string[]): Promise<string[]>;
@@ -294,6 +297,10 @@ export function importStore(admin: AdminClient): ImportStore {
       });
     },
 
+    riskLibrary: (organizationId) => riskLibraryOf(admin, organizationId),
+
+    clientSheets: (clientId) => clientSheetsOf(admin, clientId),
+
     async provider(organizationId) {
       const [organization, members] = await Promise.all([
         admin
@@ -392,8 +399,11 @@ export function importStore(admin: AdminClient): ImportStore {
       return data;
     },
 
-    async failStalledLibraryParts(reason) {
-      const { data, error } = await admin.rpc('fail_stalled_library_parts', { p_reason: reason });
+    async failStalledLibraryParts(reasons) {
+      const { data, error } = await admin.rpc('fail_stalled_library_parts', {
+        p_reason: reasons.instructions,
+        p_risks_reason: reasons.risks,
+      });
       if (error) throw fromDatabaseError(error, 'fail stalled library parts');
       return data.length;
     },

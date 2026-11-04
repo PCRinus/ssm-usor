@@ -3,7 +3,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useAuth } from '@/features/auth/auth-context';
 import { RiskLibrary } from '@/features/evaluation-profiles/risk-library';
 
-export const Route = createFileRoute('/_authenticated/riscuri/')({
+export const Route = createFileRoute('/_authenticated/evaluari-de-risc/')({
   component: RisksPage,
 });
 

@@ -1,5 +1,5 @@
 import type { ApiEnv } from '../../lib/env';
-import { libraryReasons } from './library';
+import { libraryReasons, riskReasons } from './library';
 import { copyFolder, describe, importReasons, type PipelineDeps } from './pipeline';
 import { pipelineDeps } from './queue';
 import type { ImportObjectList } from './store';
@@ -30,7 +30,10 @@ export async function cleanUpImports(deps: PipelineDeps, now = new Date()) {
     stalled: importReasons.stalled,
     left: importReasons.left,
   });
-  const failedParts = await deps.store.failStalledLibraryParts(libraryReasons.stalled);
+  const failedParts = await deps.store.failStalledLibraryParts({
+    instructions: libraryReasons.stalled,
+    risks: riskReasons.stalled,
+  });
   const abandoned = await deps.store.listAbandoned();
   const deleted = await deps.store.deleteAbandoned(await removeObjects(deps, abandoned));
   const dropped = await deps.store.dropProposals();

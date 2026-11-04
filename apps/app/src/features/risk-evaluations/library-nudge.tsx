@@ -12,18 +12,19 @@ export function LibraryNudge({ onSave, onDismiss }: { onSave: () => void; onDism
         <LibraryBig aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
         <div className="grid gap-0.5">
           <p className="font-medium">
-            Factorii nu sunt încă în biblioteca de riscuri a organizației tale (
+            Factorii nu sunt încă în biblioteca organizației tale (
             <Link
-              to="/riscuri"
+              to="/evaluari-de-risc"
               data-testid="risk-library-nudge-link"
               className="whitespace-nowrap underline underline-offset-4"
             >
-              meniul Riscuri
+              meniul Evaluări de risc
             </Link>
             ).
           </p>
           <p className="text-muted-foreground">
-            Salvează-i ca profil și îi aplici la alți clienți fără să-i scrii din nou.
+            Salvează-i ca evaluare în bibliotecă și îi aplici la alți clienți fără să-i scrii din
+            nou.
           </p>
         </div>
       </div>

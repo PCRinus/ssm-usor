@@ -8,8 +8,8 @@ import {
   listEvaluationProfiles,
   removeEvaluationProfile,
   removeEvaluationProfileFactor,
-  renameEvaluationProfile,
   saveRiskEvaluationAsProfile,
+  updateEvaluationProfile,
   updateEvaluationProfileFactor,
 } from './handlers';
 import {
@@ -21,9 +21,9 @@ import {
   listEvaluationProfilesRoute,
   removeEvaluationProfileFactorRoute,
   removeEvaluationProfileRoute,
-  renameEvaluationProfileRoute,
   saveRiskEvaluationAsProfileRoute,
   updateEvaluationProfileFactorRoute,
+  updateEvaluationProfileRoute,
 } from './routes';
 
 export const evaluationProfilesRouter = createRouter()
@@ -31,7 +31,7 @@ export const evaluationProfilesRouter = createRouter()
   .openapi(createEvaluationProfileRoute, createEvaluationProfile)
   .openapi(getEvaluationProfileRoute, getEvaluationProfile)
   .openapi(getEvaluationProfileUsageRoute, getEvaluationProfileUsage)
-  .openapi(renameEvaluationProfileRoute, renameEvaluationProfile)
+  .openapi(updateEvaluationProfileRoute, updateEvaluationProfile)
   .openapi(removeEvaluationProfileRoute, removeEvaluationProfile)
   .openapi(createEvaluationProfileFactorRoute, createEvaluationProfileFactor)
   .openapi(updateEvaluationProfileFactorRoute, updateEvaluationProfileFactor)

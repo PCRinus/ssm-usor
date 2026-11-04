@@ -40,6 +40,7 @@ import { Notice } from '@/components/notice';
 import { CreditsUsedLine } from './credits-notices';
 import { importErrorMessage } from './import-format';
 import { leaveImportNotice } from './import-notice';
+import { partsNoun } from './library/library-model';
 import {
   type FieldState,
   formatFieldValue,
@@ -264,12 +265,12 @@ export function ConfirmImportDialog({
                 <span>{folderSentence(detail)}</span>
               </p>
             )}
-            {detail.libraryParts.length > 0 && (
+            {partsNoun(detail.libraryParts) && (
               <p className="flex items-start gap-2" data-testid="import-confirm-library">
                 <BookOpenCheck className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                 <span>
-                  Instrucțiunile proprii din pachet le confirmi după, pe pagina importului, unde te
-                  întorci.
+                  {partsNoun(detail.libraryParts)} din pachet le confirmi după, pe pagina
+                  importului, unde te întorci.
                 </span>
               </p>
             )}

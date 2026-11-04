@@ -13,18 +13,18 @@ export function evaluationFailure(cause: unknown, fallback: string) {
   if (!(cause instanceof ApiHttpError)) return fallback;
   const reason = failureReason(cause);
   if (reason === 'risk_evaluation_exists') {
-    return 'Evaluarea există deja; reîncarcă pagina ca s-o vezi.';
+    return 'Fișa de evaluare există deja; reîncarcă pagina ca s-o vezi.';
   }
   if (reason === 'risk_evaluation_name_taken') {
-    return 'Clientul are deja o evaluare cu această denumire.';
+    return 'Clientul are deja o fișă de evaluare cu această denumire.';
   }
   if (reason === 'sensitive_groups_evaluated') {
-    return 'Grupurile sensibile au deja o evaluare; reîncarcă pagina ca s-o vezi.';
+    return 'Grupurile sensibile au deja o fișă de evaluare; reîncarcă pagina ca s-o vezi.';
   }
   if (reason === 'client_archived') {
-    return 'Clientul este arhivat; evaluările lui nu se mai schimbă.';
+    return 'Clientul este arhivat; fișele lui de evaluare nu se mai schimbă.';
   }
-  if (cause.status === 404) return 'Evaluarea sau factorul nu mai există la acest client.';
+  if (cause.status === 404) return 'Fișa sau factorul nu mai există la acest client.';
   if (cause.status === 401) {
     return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
   }

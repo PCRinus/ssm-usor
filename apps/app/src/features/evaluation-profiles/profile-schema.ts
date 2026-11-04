@@ -26,12 +26,30 @@ export const profileNameFormSchema = z.object({
 export type ProfileNameFormValues = z.infer<typeof profileNameFormSchema>;
 
 export const profileNameTaken =
-  'Biblioteca are deja un profil cu această denumire. Deosebește-le prin nume: „Lucrător de birou – contabilitate”.';
+  'Biblioteca are deja o evaluare cu această denumire. Deosebește-le prin nume: „Lucrător de birou – contabilitate”.';
+
+const hasReason = (cause: unknown, reason: EvaluationProfileErrorReason) =>
+  cause instanceof ApiHttpError &&
+  (cause.body as Partial<ApiErrorResponse> | null)?.reason === reason;
 
 export const isProfileNameTaken = (cause: unknown) =>
-  cause instanceof ApiHttpError &&
-  (cause.body as Partial<ApiErrorResponse> | null)?.reason ===
-    ('evaluation_profile_name_taken' satisfies EvaluationProfileErrorReason);
+  hasReason(cause, 'evaluation_profile_name_taken');
+
+export const isProfileInUse = (cause: unknown) => hasReason(cause, 'evaluation_profile_in_use');
+
+export const isProfileArchived = (cause: unknown) =>
+  hasReason(cause, 'evaluation_profile_archived');
+
+export const profileInUse =
+  'Evaluarea este folosită la clienți, așa că nu se poate șterge. O poți arhiva: nu mai apare în „Aplică din bibliotecă”, iar clienții își păstrează fișele.';
+
+/** "—", "1 client", "3 clienți", "20 de clienți". */
+export function clientCountLabel(count: number) {
+  if (count === 0) return '—';
+  if (count === 1) return '1 client';
+  const tens = count % 100;
+  return tens === 0 || tens >= 20 ? `${count} de clienți` : `${count} clienți`;
+}
 
 /** "Niciun factor", "4 factori, unul inacceptabil". */
 export function profileTotalsLabel(
@@ -42,16 +60,17 @@ export function profileTotalsLabel(
 }
 
 export function profileCountLabel(count: number) {
-  if (count === 0) return 'Niciun profil';
-  if (count === 1) return '1 profil';
+  if (count === 0) return 'Nicio evaluare';
+  if (count === 1) return '1 evaluare';
   const tens = count % 100;
-  return tens === 0 || tens >= 20 ? `${count} de profiluri` : `${count} profiluri`;
+  return tens === 0 || tens >= 20 ? `${count} de evaluări` : `${count} evaluări`;
 }
 
 export function profileFailure(cause: unknown, fallback: string) {
   if (!(cause instanceof ApiHttpError)) return fallback;
   if (isProfileNameTaken(cause)) return profileNameTaken;
-  if (cause.status === 404) return 'Profilul sau factorul nu mai există în bibliotecă.';
+  if (isProfileInUse(cause)) return profileInUse;
+  if (cause.status === 404) return 'Evaluarea sau factorul nu mai există în bibliotecă.';
   if (cause.status === 401) {
     return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
   }

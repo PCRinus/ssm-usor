@@ -16,7 +16,7 @@ import { ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
 import { factorCountLabel } from '@/features/risk-evaluations/risk-evaluation-schema';
 
-import { profileFailure } from './profile-schema';
+import { isProfileInUse, profileFailure } from './profile-schema';
 import { useProfileCache } from './use-profile-cache';
 
 interface RemovedProfile {
@@ -49,17 +49,18 @@ export function RemoveProfileDialog({
     try {
       await remove.mutateAsync({ profileId: target.id });
     } catch (cause) {
+      if (isProfileInUse(cause)) await cache.refresh(target.id);
       if (!(cause instanceof ApiHttpError && cause.status === 404)) {
         setError(
           profileFailure(
             cause,
-            'Nu am putut șterge profilul. Verifică conexiunea și încearcă din nou.'
+            'Nu am putut șterge evaluarea. Verifică conexiunea și încearcă din nou.'
           )
         );
         return;
       }
     }
-    toast.success('Profilul a fost șters.');
+    toast.success('Evaluarea a fost ștearsă.');
     await afterRemove?.();
     await cache.removed(target.id);
     close();
@@ -70,16 +71,16 @@ export function RemoveProfileDialog({
       {profile && (
         <DialogContent data-testid="risk-profile-remove-dialog" className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Ștergi profilul?</DialogTitle>
+            <DialogTitle>Ștergi evaluarea?</DialogTitle>
             <DialogDescription>
-              <span className="font-medium text-foreground">{profile.name}</span> se șterge din
-              bibliotecă
+              Evaluarea <span className="font-medium text-foreground">{profile.name}</span> se
+              șterge din bibliotecă
               {profile.factorCount === 1
-                ? ', împreună cu factorul său'
+                ? ', împreună cu factorul ei'
                 : profile.factorCount > 1
-                  ? `, împreună cu cei ${factorCountLabel(profile.factorCount).toLowerCase()} ai săi`
+                  ? `, împreună cu cei ${factorCountLabel(profile.factorCount).toLowerCase()} ai ei`
                   : ''}
-              . Evaluările în care l-ai aplicat își păstrează factorii copiați.
+              . Nu o folosește niciun client.
             </DialogDescription>
           </DialogHeader>
           {error && (
@@ -97,7 +98,7 @@ export function RemoveProfileDialog({
               disabled={remove.isPending}
               onClick={() => void removeProfile(profile)}
             >
-              {remove.isPending ? 'Se șterge…' : 'Șterge profilul'}
+              {remove.isPending ? 'Se șterge…' : 'Șterge evaluarea'}
             </Button>
           </DialogFooter>
         </DialogContent>

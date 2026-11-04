@@ -34,6 +34,7 @@ import {
   identicalSentence,
   instructionsLabel,
   isExpired,
+  isInstructionsLibraryPart,
   isReviewable,
   joinNames,
   libraryDay,
@@ -71,7 +72,9 @@ export function LibraryTaskPage({
       </div>
     );
   }
-  const part = query.data?.parts.find((each) => each.part === partOfDomain[domain]);
+  const part = query.data?.parts
+    .filter(isInstructionsLibraryPart)
+    .find((each) => each.part === partOfDomain[domain]);
   return (
     <div className="grid gap-6">
       {query.isError ? (
@@ -210,7 +213,7 @@ function TaskContent({
           }),
       ]);
       toast.success(
-        result.createdModuleIds.length > 0
+        'createdModuleIds' in result && result.createdModuleIds.length > 0
           ? `Am adăugat ${instructionsLabel(result.createdModuleIds.length)} în bibliotecă.`
           : `Ai confirmat ${label}.`
       );
@@ -646,7 +649,13 @@ function StateNotices({
   }
 }
 
-function ReviewNotices({ review }: { review: LibraryReview }) {
+export function ReviewNotices({
+  review,
+  conflictText = 'Altcineva a modificat instrucțiunile între timp, așa că schimbarea ta nu a fost salvată. Reîncarcă pagina și fă-o din nou.',
+}: {
+  review: Pick<LibraryReview, 'conflict' | 'closed' | 'error' | 'retry'>;
+  conflictText?: string;
+}) {
   if (review.conflict) {
     return (
       <Notice
@@ -658,8 +667,7 @@ function ReviewNotices({ review }: { review: LibraryReview }) {
           </Button>
         }
       >
-        Altcineva a modificat instrucțiunile între timp, așa că schimbarea ta nu a fost salvată.
-        Reîncarcă pagina și fă-o din nou.
+        {conflictText}
       </Notice>
     );
   }

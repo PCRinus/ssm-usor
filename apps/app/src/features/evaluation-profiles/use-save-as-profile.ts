@@ -21,11 +21,11 @@ export function useSaveAsProfile(clientId: string) {
   return (evaluation: RiskEvaluation): ProfileNaming => ({
     title: 'Salvează în bibliotecă',
     description:
-      'Factorii evaluării, cu clasele, măsurile și câmpurile planului, se copiază într-un profil nou al bibliotecii de riscuri, pe care îl poți aplica la alți clienți. Ce schimbi apoi în evaluare sau în profil nu trece dintr-unul în altul.',
+      'Factorii fișei, cu clasele, măsurile și câmpurile planului, și sistemul ei de muncă se copiază într-o evaluare nouă din bibliotecă, pe care o poți aplica la alți clienți. Ce schimbi apoi în fișă sau în bibliotecă nu trece dintr-una în alta.',
     defaultName: evaluationTitle(evaluation),
     submitLabel: 'Salvează în bibliotecă',
     pendingLabel: 'Se salvează…',
-    failure: 'Nu am putut salva profilul. Verifică conexiunea și încearcă din nou.',
+    failure: 'Nu am putut salva evaluarea în bibliotecă. Verifică conexiunea și încearcă din nou.',
     submit: async (name) => {
       const { profile } = await save.mutateAsync({
         clientId: evaluation.clientId,
@@ -34,11 +34,14 @@ export function useSaveAsProfile(clientId: string) {
       });
       // Saving links the evaluation's own factors to the new profile.
       await Promise.all([cache.saved(profile), evaluationCache.refresh(evaluation)]);
-      toast.success(`Profilul „${profile.name}” a fost salvat în biblioteca de riscuri.`, {
+      toast.success(`Evaluarea „${profile.name}” a fost salvată în bibliotecă.`, {
         action: {
           label: 'Deschide',
           onClick: () =>
-            void navigate({ to: '/riscuri/$profileId', params: { profileId: profile.id } }),
+            void navigate({
+              to: '/evaluari-de-risc/$profileId',
+              params: { profileId: profile.id },
+            }),
         },
       });
     },

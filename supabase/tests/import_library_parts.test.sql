@@ -379,7 +379,7 @@ insert into public.import_library_parts (import_id, organization_id, part, updat
   ('10000000-0000-4000-8000-000000000073', '11111111-0000-4000-8000-000000000071', 'instructions_ssm', now() - interval '7 hours');
 
 select results_eq(
-  $$ select import_id, part::text from public.fail_stalled_library_parts('Citirea instrucțiunilor s-a oprit.') $$,
+  $$ select import_id, part::text from public.fail_stalled_library_parts('Citirea instrucțiunilor s-a oprit.', 'Citirea evaluărilor de risc s-a oprit.') $$,
   $$ values ('10000000-0000-4000-8000-000000000072'::uuid, 'instructions_ssm') $$,
   'a part read for 6 hours without progress fails, not one of an abandoned import'
 );

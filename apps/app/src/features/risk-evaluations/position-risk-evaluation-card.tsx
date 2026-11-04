@@ -58,10 +58,10 @@ export function PositionRiskEvaluationCard({
   const openLink = evaluation && (
     <Button asChild variant="outline" size="sm" data-testid="position-risk-open">
       <Link
-        to="/clienti/$clientId/posturi/$jobPositionId/evaluare-riscuri"
+        to="/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare"
         params={{ clientId, jobPositionId: position.id }}
       >
-        Deschide evaluarea
+        Deschide fișa
         <ArrowRight aria-hidden="true" />
       </Link>
     </Button>
@@ -71,12 +71,17 @@ export function PositionRiskEvaluationCard({
     <SectionCard
       id={id}
       headingLevel={3}
+      help="evaluari-de-risc.fisa"
       data-testid="position-risk-card"
       title={
-        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          Evaluare de risc
+        <span>
+          Fișa de evaluare
           {query.data && (
-            <DecisionBadge decision={evaluated || null} data-testid="position-risk-state">
+            <DecisionBadge
+              className="ml-3 align-middle"
+              decision={evaluated || null}
+              data-testid="position-risk-state"
+            >
               {evaluationStateLabel(summary ?? null)}
             </DecisionBadge>
           )}
@@ -104,7 +109,7 @@ export function PositionRiskEvaluationCard({
             </Button>
           }
         >
-          Nu am putut încărca evaluarea postului.
+          Nu am putut încărca fișa de evaluare a postului.
         </Notice>
       ) : !evaluation ? (
         <EmptyState
@@ -131,7 +136,7 @@ export function PositionRiskEvaluationCard({
         </EmptyState>
       ) : evaluation.globalRiskLevel === null ? (
         <p data-testid="position-risk-no-factors" className="text-sm text-muted-foreground">
-          Evaluarea a început, dar nu are încă factori de risc.
+          Fișa de evaluare nu are încă factori de risc.
         </p>
       ) : (
         <FactList className="lg:grid-cols-3">

@@ -53,10 +53,10 @@ describe('counting credits in Romanian', () => {
 describe('what an import will use', () => {
   it('counts 25 for a client, and the photographs beside the documents', () => {
     expect(usesSentence('client', { photos: 0, pages: 0, pdfs: 0 })).toBe(
-      'Folosește 25 de credite, plus 1 pentru fiecare pagină scanată. Instrucțiunile proprii, dacă le găsim, folosesc încă 25 (IPSSM) și 10 (IPSU).'
+      'Folosește 25 de credite, plus 1 pentru fiecare pagină scanată. Dacă le găsim, instrucțiunile proprii folosesc încă 25 (IPSSM) și 10 (IPSU), iar evaluările de risc încă 15.'
     );
     expect(usesSentence('client', { photos: 3, pages: 0, pdfs: 0 })).toBe(
-      'Folosește 28 de credite (25 + 3 fotografii), plus 1 pentru fiecare pagină scanată. Instrucțiunile proprii, dacă le găsim, folosesc încă 25 (IPSSM) și 10 (IPSU).'
+      'Folosește 28 de credite (25 + 3 fotografii), plus 1 pentru fiecare pagină scanată. Dacă le găsim, instrucțiunile proprii folosesc încă 25 (IPSSM) și 10 (IPSU), iar evaluările de risc încă 15.'
     );
   });
 
@@ -177,19 +177,40 @@ describe('what an import used', () => {
   it('splits a client import into the reading and the scanned pages', () => {
     expect(
       usedSentence(
-        { used: 34, atStart: 25, scannedPages: 9, ownInstructions: 0, refunded: false },
+        {
+          used: 34,
+          atStart: 25,
+          scannedPages: 9,
+          ownInstructions: 0,
+          riskEvaluations: 0,
+          refunded: false,
+        },
         'client'
       )
     ).toBe('Importul a folosit 34 de credite (25 + 9 pagini scanate).');
     expect(
       usedSentence(
-        { used: 26, atStart: 25, scannedPages: 1, ownInstructions: 0, refunded: false },
+        {
+          used: 26,
+          atStart: 25,
+          scannedPages: 1,
+          ownInstructions: 0,
+          riskEvaluations: 0,
+          refunded: false,
+        },
         'client'
       )
     ).toBe('Importul a folosit 26 de credite (25 + 1 pagină scanată).');
     expect(
       usedSentence(
-        { used: 25, atStart: 25, scannedPages: 0, ownInstructions: 0, refunded: false },
+        {
+          used: 25,
+          atStart: 25,
+          scannedPages: 0,
+          ownInstructions: 0,
+          riskEvaluations: 0,
+          refunded: false,
+        },
         'client'
       )
     ).toBe('Importul a folosit 25 de credite.');
@@ -198,13 +219,27 @@ describe('what an import used', () => {
   it('adds the readings of the own instructions, after the scanned pages', () => {
     expect(
       usedSentence(
-        { used: 60, atStart: 25, scannedPages: 0, ownInstructions: 35, refunded: false },
+        {
+          used: 60,
+          atStart: 25,
+          scannedPages: 0,
+          ownInstructions: 35,
+          riskEvaluations: 0,
+          refunded: false,
+        },
         'client'
       )
     ).toBe('Importul a folosit 60 de credite (25 + 35 pentru instrucțiunile proprii).');
     expect(
       usedSentence(
-        { used: 59, atStart: 25, scannedPages: 9, ownInstructions: 25, refunded: false },
+        {
+          used: 59,
+          atStart: 25,
+          scannedPages: 9,
+          ownInstructions: 25,
+          riskEvaluations: 0,
+          refunded: false,
+        },
         'client'
       )
     ).toBe(
@@ -212,10 +247,35 @@ describe('what an import used', () => {
     );
   });
 
+  it('adds the reading of the risk evaluations after the own instructions', () => {
+    expect(
+      usedSentence(
+        {
+          used: 75,
+          atStart: 25,
+          scannedPages: 0,
+          ownInstructions: 35,
+          riskEvaluations: 15,
+          refunded: false,
+        },
+        'client'
+      )
+    ).toBe(
+      'Importul a folosit 75 de credite (25 + 35 pentru instrucțiunile proprii + 15 pentru evaluările de risc).'
+    );
+  });
+
   it('gives the total of an employee import', () => {
     expect(
       usedSentence(
-        { used: 98, atStart: 98, scannedPages: 0, ownInstructions: 0, refunded: false },
+        {
+          used: 98,
+          atStart: 98,
+          scannedPages: 0,
+          ownInstructions: 0,
+          riskEvaluations: 0,
+          refunded: false,
+        },
         'employees'
       )
     ).toBe('Importul a folosit 98 de credite.');

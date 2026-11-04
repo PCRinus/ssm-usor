@@ -67,7 +67,7 @@ function ProfileNameForm({ naming, onClose }: { naming: ProfileNaming; onClose: 
           <DialogDescription>{naming.description}</DialogDescription>
         </DialogHeader>
         <div className="mt-5 grid gap-5">
-          <Field id="profile-name" label="Denumirea profilului" mark="required" error={errors.name}>
+          <Field id="profile-name" label="Denumirea evaluării" mark="required" error={errors.name}>
             <Input
               id="profile-name"
               data-testid="profile-name"

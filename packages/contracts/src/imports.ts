@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { instructionBodySchema, instructionCategorySchema } from './instruction-body';
 import { type InstructionDomain, instructionDomainSchema } from './instruction-modules';
+import { preventionMeasureRequestSchema, workSystemComponentSchema } from './risk-evaluations';
 
 // Imports from documents (ADR 030). The proposal itself is `@ssm-usor/import`'s schema, which
 // the API's routes add to the answer.
@@ -117,6 +118,7 @@ export const importErrorReasons = {
   partExpired: 'import_part_expired',
   partNotFailed: 'import_part_not_failed',
   titleTaken: 'instruction_title_taken',
+  nameTaken: 'evaluation_profile_name_taken',
 } as const;
 
 /** With `credits_insufficient`: what the import needs to start, and what is left. */
@@ -251,14 +253,36 @@ export const employeeImportPeopleSchema = z.object({
 
 export type EmployeeImportPeople = z.infer<typeof employeeImportPeopleSchema>;
 
-/** A client import's library proposals (ADR 034), one per library and domain. */
-export const importLibraryParts = ['instructions_ssm', 'instructions_su'] as const;
+/**
+ * A client import's library proposals: the own instructions of each domain (ADR 034) and the risk
+ * evaluations (ADR 036).
+ */
+export const importLibraryParts = [
+  'instructions_ssm',
+  'instructions_su',
+  'risk_evaluations',
+] as const;
 
 export type ImportLibraryPart = (typeof importLibraryParts)[number];
 
 export const importLibraryPartSchema = z.enum(importLibraryParts);
 
-export const libraryPartDomains: Record<ImportLibraryPart, InstructionDomain> = {
+export const instructionsParts = ['instructions_ssm', 'instructions_su'] as const;
+
+export type InstructionsPart = (typeof instructionsParts)[number];
+
+export const isInstructionsPart = (part: ImportLibraryPart): part is InstructionsPart =>
+  (instructionsParts as readonly string[]).includes(part);
+
+// The risk evaluations have none: the documents they are read from are SSM only, and fire risk
+// lives in the SU data (ADR 036).
+export const libraryPartDomains: Record<ImportLibraryPart, InstructionDomain | null> = {
+  instructions_ssm: 'ssm',
+  instructions_su: 'su',
+  risk_evaluations: null,
+};
+
+export const instructionsPartDomains: Record<InstructionsPart, InstructionDomain> = {
   instructions_ssm: 'ssm',
   instructions_su: 'su',
 };
@@ -560,6 +584,8 @@ export const importUsageSchema = importModelUsageSchema
       scanning: importModelUsageSchema.optional(),
       // The library parts' readings and their comparisons with the library (ADR 034).
       instructions: importModelUsageSchema.optional(),
+      // The risk evaluations' readings (ADR 036).
+      risks: importModelUsageSchema.optional(),
     }),
   })
   .meta({ id: 'ImportUsage' });
@@ -577,6 +603,8 @@ export const importCreditsSchema = z
     // The readings of its own instructions for the library, net of those given back: 25 for SSM
     // and 10 for SU each time one is read (ADR 034).
     ownInstructions: z.int().min(0),
+    // The readings of its risk evaluations, net of those given back: 15 each time (ADR 036).
+    riskEvaluations: z.int().min(0),
     // Everything given back, after a failure on our side.
     refunded: z.boolean(),
   })
@@ -763,6 +791,67 @@ export const instructionImportChangesSchema = z
 
 export type InstructionImportChanges = z.infer<typeof instructionImportChangesSchema>;
 
+/** Adaugă în bibliotecă, Folosește ce ai, Adaugă ca nouă, Nu adăuga (ADR 036). */
+export const riskImportLibraryChoices = ['add', 'use_existing', 'add_new', 'skip'] as const;
+
+export type RiskImportLibraryChoice = (typeof riskImportLibraryChoices)[number];
+
+/** Adaugă după cei existenți, Înlocuiește, Lasă cum e: for a sheet that already has factors. */
+export const riskImportExistingChoices = ['append', 'replace', 'keep'] as const;
+
+export type RiskImportExistingChoice = (typeof riskImportExistingChoices)[number];
+
+// Null clears a text the pack gave.
+const riskImportText = (max: number) => z.string().trim().min(1).max(max).nullable().optional();
+
+export const riskImportFactorChangeSchema = z
+  .object({
+    // False leaves the factor out of the client's sheet and of the library.
+    included: z.boolean().optional(),
+    component: workSystemComponentSchema.optional(),
+    group: z.string().trim().min(1).max(200).optional(),
+    description: z.string().trim().min(1).max(1000).optional(),
+    gravityClass: z.int().min(1).max(7).optional(),
+    probabilityClass: z.int().min(1).max(6).optional(),
+    measures: z.array(preventionMeasureRequestSchema).max(30).optional(),
+    actions: riskImportText(2000),
+    deadline: riskImportText(200),
+    responsiblePerson: riskImportText(200),
+    observations: riskImportText(1000),
+  })
+  .strict();
+
+export type RiskImportFactorChange = z.infer<typeof riskImportFactorChangeSchema>;
+
+export const riskImportChangesSchema = z
+  .object({
+    // By the proposed sheet's key; its factors by the factor's key.
+    sheets: z
+      .record(
+        z.string().min(1).max(100),
+        z
+          .object({
+            libraryName: z.string().trim().min(2).max(160).optional(),
+            library: z.enum(riskImportLibraryChoices).optional(),
+            // Every post the sheet applies to, in place of those its heading names.
+            posts: z.array(postReference).max(500).optional(),
+            // For a post that already has factors, by the post.
+            postChoices: z.record(postReference, z.enum(riskImportExistingChoices)).optional(),
+            // For a client-level sheet whose evaluation already has factors.
+            existingChoice: z.enum(riskImportExistingChoices).optional(),
+            meansOfProduction: riskImportText(2000),
+            workEnvironment: riskImportText(2000),
+            exposure: riskImportText(120),
+            factors: z.record(z.string().min(1).max(100), riskImportFactorChangeSchema).optional(),
+          })
+          .strict()
+      )
+      .default({}),
+  })
+  .strict();
+
+export type RiskImportChanges = z.infer<typeof riskImportChangesSchema>;
+
 export const importLibraryPartCountsSchema = z.object({
   identical: z.int().min(0),
   similar: z.int().min(0),
@@ -771,25 +860,15 @@ export const importLibraryPartCountsSchema = z.object({
   unread: z.int().min(0),
 });
 
-/**
- * A library part besides its proposal (`@ssm-usor/import`'s `InstructionsProposal`, which the API
- * adds).
- */
-export const importLibraryPartDetailSchema = z.object({
-  part: importLibraryPartSchema,
-  domain: instructionDomainSchema,
+const libraryPartDetailBase = z.object({
   status: z.enum(importLibraryPartStatuses),
   // 1, then one more each time it is read again.
   attempt: z.int().min(1),
   // In Romanian, with `failed`.
   failureReason: z.string().nullable(),
   version: z.int().min(0),
-  changes: instructionImportChangesSchema.nullable(),
   // Null before read, and once dropped with the import's proposal.
   counts: importLibraryPartCountsSchema.nullable(),
-  // By the proposal's position key: the client's post it is, as the changes name posts; null for
-  // a post the themes name that is none of the client's, or that the client import left out.
-  positionPosts: z.record(z.string(), postReference.nullable()),
   readAt: z.iso.datetime({ offset: true }).nullable(),
   confirmedAt: z.iso.datetime({ offset: true }).nullable(),
   // 14 days after the client's confirmation; null before it.
@@ -800,6 +879,47 @@ export const importLibraryPartDetailSchema = z.object({
   usage: importModelUsageSchema.optional(),
 });
 
+/**
+ * An instructions part besides its proposal (`@ssm-usor/import`'s `InstructionsProposal`, which
+ * the API adds).
+ */
+export const instructionsPartDetailSchema = libraryPartDetailBase.extend({
+  part: z.enum(instructionsParts),
+  domain: instructionDomainSchema,
+  changes: instructionImportChangesSchema.nullable(),
+  // By the proposal's position key: the client's post it is, as the changes name posts; null for
+  // a post the themes name that is none of the client's, or that the client import left out.
+  positionPosts: z.record(z.string(), postReference.nullable()),
+});
+
+/**
+ * The risk evaluations' part besides its proposal (`@ssm-usor/import`'s `RisksProposal`, which the
+ * API adds). Its counts are of sheets, `unread` those found with no factor read.
+ */
+export const risksPartDetailSchema = libraryPartDetailBase.extend({
+  part: z.literal('risk_evaluations'),
+  changes: riskImportChangesSchema.nullable(),
+  // By a post's name as the proposal's sheets give it: the client's post it is, as the changes
+  // name posts; null for one the client import left out.
+  postReferences: z.record(z.string(), postReference.nullable()),
+  // The factors the client's sheets have now, which confirming follows where the member made no
+  // choice: by job position, and a client-level sheet's by the sheet's key. Null while the import
+  // has no client.
+  existingFactors: z
+    .object({
+      jobPositions: z.record(z.uuid(), z.int().min(0)),
+      sheets: z.record(z.string(), z.int().min(0)),
+    })
+    .nullable(),
+});
+
+export const importLibraryPartDetailSchema = z.discriminatedUnion('part', [
+  instructionsPartDetailSchema,
+  risksPartDetailSchema,
+]);
+
+export type InstructionsPartDetail = z.infer<typeof instructionsPartDetailSchema>;
+export type RisksPartDetail = z.infer<typeof risksPartDetailSchema>;
 export type ImportLibraryPartDetail = z.infer<typeof importLibraryPartDetailSchema>;
 
 export const importLibraryPostSchema = z.object({
@@ -815,7 +935,8 @@ export type ImportLibraryPost = z.infer<typeof importLibraryPostSchema>;
 
 export const saveImportLibraryPartChangesRequestSchema = z.object({
   version: z.int().min(0),
-  changes: instructionImportChangesSchema,
+  // An instructions part's changes, or the risk evaluations' (`sheets`).
+  changes: z.union([instructionImportChangesSchema, riskImportChangesSchema]),
 });
 
 export type SaveImportLibraryPartChangesRequest = z.infer<
@@ -826,13 +947,27 @@ export const confirmImportLibraryPartRequestSchema = z.object({ version: z.int()
 
 export type ConfirmImportLibraryPartRequest = z.infer<typeof confirmImportLibraryPartRequestSchema>;
 
-export const confirmImportLibraryPartResponseSchema = z.object({
+export const confirmInstructionsPartResponseSchema = z.object({
   // The modules created, and those of the library applied as they are.
   createdModuleIds: z.array(z.uuid()),
   usedModuleIds: z.array(z.uuid()),
   // The posts' links added; a post that applied a module already is skipped.
   links: z.int().min(0),
 });
+
+export const confirmRisksPartResponseSchema = z.object({
+  // The library entries created.
+  createdProfileIds: z.array(z.uuid()),
+  // The client's evaluations written, those created among them.
+  evaluationIds: z.array(z.uuid()),
+  // The factors written to the client.
+  factors: z.int().min(0),
+});
+
+export const confirmImportLibraryPartResponseSchema = z.union([
+  confirmInstructionsPartResponseSchema,
+  confirmRisksPartResponseSchema,
+]);
 
 export type ConfirmImportLibraryPartResponse = z.infer<
   typeof confirmImportLibraryPartResponseSchema

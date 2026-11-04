@@ -68,7 +68,7 @@ export function CopyRiskFactorsDialog({
       });
       await cache.saved(result.evaluation);
       savedToast(
-        `Evaluarea are acum ${factorCountLabel(result.evaluation.factors.length).toLowerCase()}.`
+        `Fișa are acum ${factorCountLabel(result.evaluation.factors.length).toLowerCase()}.`
       );
       close();
     } catch (cause) {
@@ -85,9 +85,9 @@ export function CopyRiskFactorsDialog({
     <Dialog open={open} onOpenChange={(next) => !next && !copy.isPending && close()}>
       <DialogContent data-testid="risk-factors-copy-dialog" className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Copiază factorii altei evaluări</DialogTitle>
+          <DialogTitle>Copiază factorii altei fișe</DialogTitle>
           <DialogDescription>
-            Factorii evaluării alese, cu clasele și măsurile lor, se adaugă după cei pe care{' '}
+            Factorii fișei alese, cu clasele și măsurile lor, se adaugă după cei pe care{' '}
             <span className="font-medium text-foreground">{evaluationTitle(evaluation)}</span> îi
             are deja. Ajustează apoi clasele la acest loc de muncă.
           </DialogDescription>
@@ -99,17 +99,15 @@ export function CopyRiskFactorsDialog({
             </Notice>
           )}
           {evaluations.isError ? (
-            <Notice variant="destructive">Nu am putut încărca evaluările clientului.</Notice>
+            <Notice variant="destructive">
+              Nu am putut încărca fișele de evaluare ale clientului.
+            </Notice>
           ) : evaluations.data && sources.length === 0 ? (
             <Notice variant="info" data-testid="risk-factors-copy-none">
-              Nicio altă evaluare a clientului nu are factori încă.
+              Nicio altă fișă de evaluare a clientului nu are factori încă.
             </Notice>
           ) : (
-            <Field
-              id="risk-factors-copy-source"
-              label="Evaluarea de la care copiezi"
-              mark="required"
-            >
+            <Field id="risk-factors-copy-source" label="Fișa de la care copiezi" mark="required">
               <NativeSelect
                 id="risk-factors-copy-source"
                 data-testid="risk-factors-copy-source"
@@ -117,7 +115,7 @@ export function CopyRiskFactorsDialog({
                 disabled={copy.isPending || evaluations.isPending}
                 onChange={(event) => setSource(event.target.value)}
               >
-                <NativeSelectOption value="">Alege o evaluare…</NativeSelectOption>
+                <NativeSelectOption value="">Alege o fișă…</NativeSelectOption>
                 {sources.map((candidate) => (
                   <NativeSelectOption key={candidate.id} value={candidate.id}>
                     {`${evaluationTitle(candidate)} (${factorCountLabel(candidate.factorCount).toLowerCase()})`}

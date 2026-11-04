@@ -78,11 +78,11 @@ export function factorCountLabel(count: number) {
   return tens === 0 || tens >= 20 ? `${count} de factori` : `${count} factori`;
 }
 
-export function evaluationCountLabel(count: number) {
-  if (count === 0) return 'Nicio evaluare';
-  if (count === 1) return 'O evaluare';
+export function sheetCountLabel(count: number) {
+  if (count === 0) return 'Nicio fișă';
+  if (count === 1) return 'O fișă';
   const tens = count % 100;
-  return tens === 0 || tens >= 20 ? `${count} de evaluări` : `${count} evaluări`;
+  return tens === 0 || tens >= 20 ? `${count} de fișe` : `${count} fișe`;
 }
 
 /** "niciunul inacceptabil", "unul inacceptabil", "3 inacceptabili". */
@@ -169,7 +169,7 @@ const optionalText = (max: number, what: string) =>
 const orNull = (value: string) => (value.trim() === '' ? null : value.trim());
 
 export const factorFormSchema = z.object({
-  component: z.enum(workSystemComponents),
+  component: z.enum(workSystemComponents, { error: 'Alege componenta sistemului de muncă.' }),
   group: z
     .string()
     .trim()
@@ -202,7 +202,19 @@ export const factorFormSchema = z.object({
 
 export type FactorFormValues = z.infer<typeof factorFormSchema>;
 
-export function emptyFactorForm(after?: RiskFactor): FactorFormValues {
+// An imported factor may not know its component or a class yet (ADR 036).
+export type EditableFactor = Pick<
+  RiskFactor,
+  'id' | 'group' | 'description' | 'actions' | 'deadline' | 'responsiblePerson' | 'observations'
+> & {
+  component: WorkSystemComponent | null;
+  gravityClass: number | null;
+  probabilityClass: number | null;
+  measures: { kind: PreventionMeasureKind; description: string }[];
+  sourceProfile?: RiskFactor['sourceProfile'];
+};
+
+export function emptyFactorForm(after?: Pick<RiskFactor, 'component' | 'group'>): FactorFormValues {
   return {
     component: after?.component ?? 'means_of_production',
     group: after?.group ?? '',
@@ -217,13 +229,14 @@ export function emptyFactorForm(after?: RiskFactor): FactorFormValues {
   };
 }
 
-export function toFactorForm(factor: RiskFactor): FactorFormValues {
+export function toFactorForm(factor: EditableFactor): FactorFormValues {
   return {
-    component: factor.component,
+    // Empty while unknown: the select then asks for one, and the schema refuses the empty value.
+    component: (factor.component ?? '') as WorkSystemComponent,
     group: factor.group,
     description: factor.description,
-    gravityClass: String(factor.gravityClass),
-    probabilityClass: String(factor.probabilityClass),
+    gravityClass: factor.gravityClass === null ? '' : String(factor.gravityClass),
+    probabilityClass: factor.probabilityClass === null ? '' : String(factor.probabilityClass),
     measures: factor.measures.map(({ kind, description }) => ({ kind, description })),
     actions: factor.actions ?? '',
     deadline: factor.deadline ?? '',
@@ -260,16 +273,40 @@ export const workSystemFormSchema = z.object({
     .max(120, 'Expunerea are cel mult 120 de caractere.'),
 });
 
+// A library entry may leave its exposure empty, so applying it keeps the evaluation's.
+export const libraryWorkSystemFormSchema = workSystemFormSchema.extend({
+  exposure: optionalText(120, 'Expunerea'),
+});
+
 export type WorkSystemFormValues = z.infer<typeof workSystemFormSchema>;
 
-export function toWorkSystemForm(evaluation: RiskEvaluation): WorkSystemFormValues {
+/** The work system of a client's evaluation, or of an entry of the library (`library`). */
+export interface WorkSystem {
+  kind: RiskEvaluation['kind'] | 'library';
+  name: string | null;
+  meansOfProduction: string | null;
+  workEnvironment: string | null;
+  exposure: string | null;
+  workTask: string | null;
+  exposedPersons: string | null;
+}
+
+export function toWorkSystemForm(workSystem: WorkSystem): WorkSystemFormValues {
   return {
-    name: evaluation.name ?? '',
-    workTask: evaluation.workTask ?? '',
-    exposedPersons: evaluation.exposedPersons ?? '',
-    meansOfProduction: evaluation.meansOfProduction ?? '',
-    workEnvironment: evaluation.workEnvironment ?? '',
-    exposure: evaluation.exposure,
+    name: workSystem.name ?? '',
+    workTask: workSystem.workTask ?? '',
+    exposedPersons: workSystem.exposedPersons ?? '',
+    meansOfProduction: workSystem.meansOfProduction ?? '',
+    workEnvironment: workSystem.workEnvironment ?? '',
+    exposure: workSystem.exposure ?? '',
+  };
+}
+
+export function toLibraryWorkSystemRequest(values: WorkSystemFormValues) {
+  return {
+    meansOfProduction: orNull(values.meansOfProduction),
+    workEnvironment: orNull(values.workEnvironment),
+    exposure: orNull(values.exposure),
   };
 }
 

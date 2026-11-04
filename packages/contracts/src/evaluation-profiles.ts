@@ -11,18 +11,27 @@ import {
 // evaluation's, `riskFactorRequestSchema`, and answer with the same factors.
 
 const profileName = z.string().trim().min(2).max(160);
+const optionalText = (max: number) => z.string().trim().min(1).max(max).nullish();
 
 const evaluationProfileFields = {
   id: z.uuid(),
   name: z.string(),
   // Null while the profile has no factors.
   globalRiskLevel: z.number().min(1).max(7).nullable(),
+  archivedAt: z.iso.datetime({ offset: true }).nullable(),
+  // Whether any client's factor points at one of its factors, archived posts and clients
+  // included: one in use is archived, never deleted (ADR 036).
+  inUse: z.boolean(),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
 };
 
 export const evaluationProfileSchema = z.object({
   ...evaluationProfileFields,
+  meansOfProduction: z.string().nullable(),
+  workEnvironment: z.string().nullable(),
+  // Unlike an evaluation's, null until written: applying leaves the evaluation's as it is.
+  exposure: z.string().nullable(),
   factors: z.array(riskFactorSchema),
 });
 
@@ -32,9 +41,18 @@ export const evaluationProfileSummarySchema = z.object({
   ...evaluationProfileFields,
   factorCount: z.int().min(0),
   unacceptableFactorCount: z.int().min(0),
+  // The clients the usage lists, which leaves out archived posts: possibly 0 while `inUse`.
+  clientCount: z.int().min(0),
 });
 
 export type EvaluationProfileSummary = z.infer<typeof evaluationProfileSummarySchema>;
+
+export const evaluationProfileListQuerySchema = z.object({
+  // Archived profiles leave the list unless asked for.
+  archived: z.enum(['true', 'false']).default('false'),
+});
+
+export type EvaluationProfileListQuery = z.infer<typeof evaluationProfileListQuerySchema>;
 
 export const evaluationProfileListResponseSchema = z.object({
   items: z.array(evaluationProfileSummarySchema),
@@ -49,6 +67,18 @@ export type EvaluationProfileResponse = z.infer<typeof evaluationProfileResponse
 export const evaluationProfileNameRequestSchema = z.object({ name: profileName });
 
 export type EvaluationProfileNameRequest = z.infer<typeof evaluationProfileNameRequestSchema>;
+
+export const updateEvaluationProfileRequestSchema = z.object({
+  name: profileName.optional(),
+  // True archives, false restores.
+  archived: z.boolean().optional(),
+  // Left out, a text stays as it is; null clears it.
+  meansOfProduction: optionalText(2000),
+  workEnvironment: optionalText(2000),
+  exposure: optionalText(120),
+});
+
+export type UpdateEvaluationProfileRequest = z.infer<typeof updateEvaluationProfileRequestSchema>;
 
 export const applyEvaluationProfileRequestSchema = z.object({ profileId: z.uuid() });
 
@@ -82,6 +112,10 @@ export const evaluationProfileUsageResponseSchema = z.object({
 export type EvaluationProfileUsageResponse = z.infer<typeof evaluationProfileUsageResponseSchema>;
 
 /** `reason` values on evaluation profile errors, so the SPA can word them itself. */
-export const evaluationProfileErrorReasons = ['evaluation_profile_name_taken'] as const;
+export const evaluationProfileErrorReasons = [
+  'evaluation_profile_name_taken',
+  'evaluation_profile_in_use',
+  'evaluation_profile_archived',
+] as const;
 
 export type EvaluationProfileErrorReason = (typeof evaluationProfileErrorReasons)[number];

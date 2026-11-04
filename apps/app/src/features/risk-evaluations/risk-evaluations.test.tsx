@@ -167,7 +167,7 @@ const positionsPath = `/clients/${clientId}/job-positions`;
 const positionsPage = `/clienti/${clientId}/posturi`;
 const evaluationsPath = `/clients/${clientId}/risk-evaluations`;
 const welderPage = `${positionsPage}/${welder.id}`;
-const welderEvaluationPage = `${welderPage}/evaluare-riscuri`;
+const welderEvaluationPage = `${welderPage}/fisa-de-evaluare`;
 
 type Handler = (init: RequestInit | undefined, url: URL) => Response;
 
@@ -358,7 +358,7 @@ describe('the positions table', () => {
       'Fără factori',
     ]);
     expect(within(rows[1]!).getByTestId('job-position-risk').getAttribute('href')).toBe(
-      `${positionsPage}/${fitter.id}/evaluare-riscuri`
+      `${positionsPage}/${fitter.id}/fisa-de-evaluare`
     );
   });
 });
@@ -397,7 +397,7 @@ describe("a position's risk evaluation card", () => {
     );
     await screen.findByTestId('risk-factors-empty');
     expect(runtime.router.state.location.pathname).toBe(
-      `${positionsPage}/${fitter.id}/evaluare-riscuri`
+      `${positionsPage}/${fitter.id}/fisa-de-evaluare`
     );
   });
 });
@@ -410,7 +410,7 @@ describe("a position's risk evaluation page", () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Sudor' })).toBeTruthy();
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
     expect(within(breadcrumb).getByRole('link', { name: 'Sudor' })).toBeTruthy();
-    expect(within(breadcrumb).getByText('Evaluare de risc')).toBeTruthy();
+    expect(within(breadcrumb).getByText('Fișa de evaluare')).toBeTruthy();
 
     expect(screen.getAllByTestId('risk-factors-tab').map((tab) => tab.textContent)).toEqual([
       'Toți 4',
@@ -627,7 +627,7 @@ describe("a position's risk evaluation page", () => {
 
   it('shows the shape of the result without figures until the first factor', async () => {
     mockApi();
-    mount(`${positionsPage}/${cashier.id}/evaluare-riscuri`);
+    mount(`${positionsPage}/${cashier.id}/fisa-de-evaluare`);
     expect((await screen.findByTestId('risk-result-empty')).textContent).toContain(
       'apar după primul factor de risc'
     );
@@ -808,13 +808,13 @@ describe("a position's risk evaluation page", () => {
 
   it("copies the factors of another of the client's evaluations", async () => {
     mockApi();
-    mount(`${positionsPage}/${cashier.id}/evaluare-riscuri`);
+    mount(`${positionsPage}/${cashier.id}/fisa-de-evaluare`);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('risk-factors-copy'));
     const source = await screen.findByTestId<HTMLSelectElement>('risk-factors-copy-source');
     await waitFor(() => expect(source.options).toHaveLength(3));
     expect([...source.options].map((option) => option.textContent)).toEqual([
-      'Alege o evaluare…',
+      'Alege o fișă…',
       'Sudor (4 factori)',
       'Vizitatori (un factor)',
     ]);
@@ -825,7 +825,7 @@ describe("a position's risk evaluation page", () => {
         { fromEvaluationId: welderEvaluation.id },
       ])
     );
-    expect(await screen.findByText('Evaluarea are acum 4 factori.')).toBeTruthy();
+    expect(await screen.findByText('Fișa are acum 4 factori.')).toBeTruthy();
     expect(screen.getAllByTestId('risk-factor-row')).toHaveLength(4);
   });
 
@@ -1060,7 +1060,7 @@ describe("a client's evaluations outside its positions", () => {
       'Nu există grupuri sensibile'
     );
     expect(within(rows[1]!).getByTestId('client-risk-evaluation-state').getAttribute('href')).toBe(
-      `${positionsPage}/evaluari-riscuri/${visitors.id}`
+      `${positionsPage}/fise-de-evaluare/${visitors.id}`
     );
 
     await user.click(within(groups).getByTestId('sensitive-groups-none'));
@@ -1104,7 +1104,7 @@ describe("a client's evaluations outside its positions", () => {
     );
     await userEvent.setup().click(await within(card).findByTestId('sensitive-groups-none'));
     expect((await within(card).findByTestId('client-risk-evaluations-error')).textContent).toBe(
-      'Grupurile sensibile au deja o evaluare; reîncarcă pagina ca s-o vezi.'
+      'Grupurile sensibile au deja o fișă de evaluare; reîncarcă pagina ca s-o vezi.'
     );
   });
 
@@ -1121,7 +1121,7 @@ describe("a client's evaluations outside its positions", () => {
     );
     await screen.findByTestId('risk-evaluation-page');
     expect(runtime.router.state.location.pathname).toMatch(
-      new RegExp(`^${positionsPage}/evaluari-riscuri/[0-9a-f-]+$`)
+      new RegExp(`^${positionsPage}/fise-de-evaluare/[0-9a-f-]+$`)
     );
     expect(screen.getByRole('heading', { level: 2, name: 'Grupuri sensibile' })).toBeTruthy();
   });
@@ -1143,14 +1143,14 @@ describe("a client's evaluations outside its positions", () => {
       expect(requests(evaluationsPath, 'POST')).toEqual([{ kind: 'other', name: 'Vizitatori' }])
     );
     expect((await screen.findByTestId('client-risk-evaluation-name-error')).textContent).toBe(
-      'Clientul are deja o evaluare cu această denumire.'
+      'Clientul are deja o fișă de evaluare cu această denumire.'
     );
     expect(screen.getByTestId('client-risk-evaluation-dialog')).toBeTruthy();
   });
 
   it('records the work task, the people exposed and the name of its own', async () => {
     mockApi();
-    mount(`${positionsPage}/evaluari-riscuri/${visitors.id}`);
+    mount(`${positionsPage}/fise-de-evaluare/${visitors.id}`);
     const card = await screen.findByTestId('work-system-card');
     expect(screen.getByRole('heading', { level: 2, name: 'Vizitatori' })).toBeTruthy();
     expect(within(card).getByTestId('work-system-exposed-persons').textContent).toBe(
@@ -1186,14 +1186,14 @@ describe("a client's evaluations outside its positions", () => {
 
   it("sends a position's evaluation to its address under the position", async () => {
     mockApi();
-    const runtime = mount(`${positionsPage}/evaluari-riscuri/${welderEvaluation.id}`);
+    const runtime = mount(`${positionsPage}/fise-de-evaluare/${welderEvaluation.id}`);
     await screen.findByTestId('risk-evaluation-page');
     expect(runtime.router.state.location.pathname).toBe(welderEvaluationPage);
   });
 
   it('is not found for an evaluation the client does not have', async () => {
     mockApi();
-    mount(`${positionsPage}/evaluari-riscuri/${uuid()}`);
+    mount(`${positionsPage}/fise-de-evaluare/${uuid()}`);
     expect(await screen.findByTestId('risk-evaluation-not-found')).toBeTruthy();
   });
 });
@@ -1232,7 +1232,7 @@ describe('the factor list', () => {
 describe('a failed change', () => {
   it('is put down to an archived client only when the API says so', () => {
     expect(evaluationFailure(new ApiHttpError(409, { reason: 'client_archived' }), 'Eroare.')).toBe(
-      'Clientul este arhivat; evaluările lui nu se mai schimbă.'
+      'Clientul este arhivat; fișele lui de evaluare nu se mai schimbă.'
     );
     expect(evaluationFailure(new ApiHttpError(409, { reason: 'other' }), 'Eroare.')).toBe(
       'Eroare.'

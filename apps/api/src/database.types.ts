@@ -1993,6 +1993,13 @@ export type Database = {
             foreignKeyName: 'evaluation_profile_factors_profile_in_organization';
             columns: ['profile_id', 'organization_id'];
             isOneToOne: false;
+            referencedRelation: 'evaluation_profile_list';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'evaluation_profile_factors_profile_in_organization';
+            columns: ['profile_id', 'organization_id'];
+            isOneToOne: false;
             referencedRelation: 'evaluation_profiles';
             referencedColumns: ['id', 'organization_id'];
           },
@@ -2055,28 +2062,40 @@ export type Database = {
       };
       evaluation_profiles: {
         Row: {
+          archived_at: string | null;
           created_at: string;
           created_by: string | null;
+          exposure: string | null;
           id: string;
+          means_of_production: string | null;
           name: string;
           organization_id: string;
           updated_at: string;
+          work_environment: string | null;
         };
         Insert: {
+          archived_at?: string | null;
           created_at?: string;
           created_by?: string | null;
+          exposure?: string | null;
           id?: string;
+          means_of_production?: string | null;
           name: string;
           organization_id: string;
           updated_at?: string;
+          work_environment?: string | null;
         };
         Update: {
+          archived_at?: string | null;
           created_at?: string;
           created_by?: string | null;
+          exposure?: string | null;
           id?: string;
+          means_of_production?: string | null;
           name?: string;
           organization_id?: string;
           updated_at?: string;
+          work_environment?: string | null;
         };
         Relationships: [
           {
@@ -6829,6 +6848,37 @@ export type Database = {
           },
         ];
       };
+      evaluation_profile_list: {
+        Row: {
+          archived_at: string | null;
+          client_count: number | null;
+          created_at: string | null;
+          exposure: string | null;
+          id: string | null;
+          in_use: boolean | null;
+          means_of_production: string | null;
+          name: string | null;
+          organization_id: string | null;
+          updated_at: string | null;
+          work_environment: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'evaluation_profiles_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'evaluation_profiles_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       release_list: {
         Row: {
           features: Json | null;
@@ -6896,6 +6946,16 @@ export type Database = {
           isSetofReturn: true;
         };
       };
+      add_imported_profile_factor: {
+        Args: {
+          p_factor: Json;
+          p_organization_id: string;
+          p_profile_id: string;
+          p_sort_order: number;
+          p_user: string;
+        };
+        Returns: string;
+      };
       answer_test_attempt: {
         Args: {
           p_attempt_id: string;
@@ -6950,6 +7010,15 @@ export type Database = {
         Returns: number;
       };
       apply_instruction_import: {
+        Args: {
+          p_expected_version: number;
+          p_import_id: string;
+          p_part: Database['public']['Enums']['import_library_part'];
+          p_payload: Json;
+        };
+        Returns: Json;
+      };
+      apply_risk_import: {
         Args: {
           p_expected_version: number;
           p_import_id: string;
@@ -7292,7 +7361,7 @@ export type Database = {
         Returns: string[];
       };
       fail_stalled_library_parts: {
-        Args: { p_reason: string };
+        Args: { p_reason: string; p_risks_reason: string };
         Returns: {
           import_id: string;
           part: Database['public']['Enums']['import_library_part'];
@@ -7392,6 +7461,36 @@ export type Database = {
       import_reference: {
         Args: { p_item: Json; p_keys: Json; p_name: string };
         Returns: string;
+      };
+      import_risk_text: { Args: { p_value: Json }; Returns: string };
+      imported_risk_evaluation: {
+        Args: {
+          p_import: Database['public']['Tables']['imports']['Row'];
+          p_item: Json;
+          p_user: string;
+        };
+        Returns: {
+          client_id: string;
+          created_at: string;
+          created_by: string | null;
+          exposed_persons: string | null;
+          exposure: string;
+          id: string;
+          job_position_id: string | null;
+          kind: Database['public']['Enums']['risk_evaluation_kind'];
+          means_of_production: string | null;
+          name: string | null;
+          organization_id: string;
+          updated_at: string;
+          work_environment: string | null;
+          work_task: string | null;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'risk_evaluations';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
       instruction_article_count: { Args: { p_body: Json }; Returns: number };
       is_draft_document_path: { Args: { p_path: string }; Returns: boolean };
@@ -8272,7 +8371,7 @@ export type Database = {
         | 'other_company'
         | 'failed';
       import_kind: 'client' | 'employees';
-      import_library_part: 'instructions_ssm' | 'instructions_su';
+      import_library_part: 'instructions_ssm' | 'instructions_su' | 'risk_evaluations';
       import_library_part_status: 'reading' | 'to_review' | 'nothing_new' | 'failed' | 'confirmed';
       import_status:
         | 'uploading'
@@ -8501,7 +8600,7 @@ export const Constants = {
         'failed',
       ],
       import_kind: ['client', 'employees'],
-      import_library_part: ['instructions_ssm', 'instructions_su'],
+      import_library_part: ['instructions_ssm', 'instructions_su', 'risk_evaluations'],
       import_library_part_status: ['reading', 'to_review', 'nothing_new', 'failed', 'confirmed'],
       import_status: [
         'uploading',

@@ -6570,6 +6570,14 @@
                   "minimum": 1,
                   "maximum": 7
                 },
+                "archivedAt": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date-time"
+                },
+                "inUse": {
+                  "type": "boolean"
+                },
                 "createdAt": {
                   "type": "string",
                   "format": "date-time"
@@ -6585,16 +6593,23 @@
                 "unacceptableFactorCount": {
                   "type": "integer",
                   "minimum": 0
+                },
+                "clientCount": {
+                  "type": "integer",
+                  "minimum": 0
                 }
               },
               "required": [
                 "id",
                 "name",
                 "globalRiskLevel",
+                "archivedAt",
+                "inUse",
                 "createdAt",
                 "updatedAt",
                 "factorCount",
-                "unacceptableFactorCount"
+                "unacceptableFactorCount",
+                "clientCount"
               ]
             }
           }
@@ -6620,6 +6635,14 @@
                 "minimum": 1,
                 "maximum": 7
               },
+              "archivedAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "inUse": {
+                "type": "boolean"
+              },
               "createdAt": {
                 "type": "string",
                 "format": "date-time"
@@ -6627,6 +6650,18 @@
               "updatedAt": {
                 "type": "string",
                 "format": "date-time"
+              },
+              "meansOfProduction": {
+                "type": "string",
+                "nullable": true
+              },
+              "workEnvironment": {
+                "type": "string",
+                "nullable": true
+              },
+              "exposure": {
+                "type": "string",
+                "nullable": true
               },
               "factors": {
                 "type": "array",
@@ -6741,7 +6776,19 @@
                 }
               }
             },
-            "required": ["id", "name", "globalRiskLevel", "createdAt", "updatedAt", "factors"]
+            "required": [
+              "id",
+              "name",
+              "globalRiskLevel",
+              "archivedAt",
+              "inUse",
+              "createdAt",
+              "updatedAt",
+              "meansOfProduction",
+              "workEnvironment",
+              "exposure",
+              "factors"
+            ]
           }
         },
         "required": ["profile"]
@@ -6822,6 +6869,37 @@
           }
         },
         "required": ["items"]
+      },
+      "UpdateEvaluationProfileRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "meansOfProduction": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "workEnvironment": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "exposure": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 120
+          }
+        }
       },
       "ApplyEvaluationProfileResponse": {
         "type": "object",
@@ -11523,7 +11601,7 @@
               "properties": {
                 "part": {
                   "type": "string",
-                  "enum": ["instructions_ssm", "instructions_su"]
+                  "enum": ["instructions_ssm", "instructions_su", "risk_evaluations"]
                 },
                 "status": {
                   "type": "string",
@@ -11749,7 +11827,7 @@
                     "properties": {
                       "part": {
                         "type": "string",
-                        "enum": ["instructions_ssm", "instructions_su"]
+                        "enum": ["instructions_ssm", "instructions_su", "risk_evaluations"]
                       },
                       "status": {
                         "type": "string",
@@ -11966,7 +12044,7 @@
               "properties": {
                 "part": {
                   "type": "string",
-                  "enum": ["instructions_ssm", "instructions_su"]
+                  "enum": ["instructions_ssm", "instructions_su", "risk_evaluations"]
                 },
                 "status": {
                   "type": "string",
@@ -14583,6 +14661,9 @@
               },
               "instructions": {
                 "$ref": "#/components/schemas/ImportModelUsage"
+              },
+              "risks": {
+                "$ref": "#/components/schemas/ImportModelUsage"
               }
             }
           }
@@ -14638,11 +14719,22 @@
             "type": "integer",
             "minimum": 0
           },
+          "riskEvaluations": {
+            "type": "integer",
+            "minimum": 0
+          },
           "refunded": {
             "type": "boolean"
           }
         },
-        "required": ["used", "atStart", "scannedPages", "ownInstructions", "refunded"]
+        "required": [
+          "used",
+          "atStart",
+          "scannedPages",
+          "ownInstructions",
+          "riskEvaluations",
+          "refunded"
+        ]
       },
       "EmployeeImportReview": {
         "type": "object",
@@ -17267,16 +17359,26 @@
         "required": ["parts", "posts"]
       },
       "ImportLibraryPart": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/InstructionsLibraryPart"
+          },
+          {
+            "$ref": "#/components/schemas/RisksLibraryPart"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "part",
+          "mapping": {
+            "instructions_ssm": "#/components/schemas/InstructionsLibraryPart",
+            "instructions_su": "#/components/schemas/InstructionsLibraryPart",
+            "risk_evaluations": "#/components/schemas/RisksLibraryPart"
+          }
+        }
+      },
+      "InstructionsLibraryPart": {
         "type": "object",
         "properties": {
-          "part": {
-            "type": "string",
-            "enum": ["instructions_ssm", "instructions_su"]
-          },
-          "domain": {
-            "type": "string",
-            "enum": ["ssm", "su"]
-          },
           "status": {
             "type": "string",
             "enum": ["reading", "to_review", "nothing_new", "failed", "confirmed"]
@@ -17292,6 +17394,59 @@
           "version": {
             "type": "integer",
             "minimum": 0
+          },
+          "counts": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "identical": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "similar": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "new": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "unread": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": ["identical", "similar", "new", "unread"]
+          },
+          "readAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "confirmedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "credits": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "usage": {
+            "$ref": "#/components/schemas/ImportModelUsage"
+          },
+          "part": {
+            "type": "string",
+            "enum": ["instructions_ssm", "instructions_su"]
+          },
+          "domain": {
+            "type": "string",
+            "enum": ["ssm", "su"]
           },
           "changes": {
             "type": "object",
@@ -17389,29 +17544,6 @@
             },
             "additionalProperties": false
           },
-          "counts": {
-            "type": "object",
-            "nullable": true,
-            "properties": {
-              "identical": {
-                "type": "integer",
-                "minimum": 0
-              },
-              "similar": {
-                "type": "integer",
-                "minimum": 0
-              },
-              "new": {
-                "type": "integer",
-                "minimum": 0
-              },
-              "unread": {
-                "type": "integer",
-                "minimum": 0
-              }
-            },
-            "required": ["identical", "similar", "new", "unread"]
-          },
           "positionPosts": {
             "type": "object",
             "additionalProperties": {
@@ -17421,46 +17553,24 @@
               "maxLength": 100
             }
           },
-          "readAt": {
-            "type": "string",
-            "nullable": true,
-            "format": "date-time"
-          },
-          "confirmedAt": {
-            "type": "string",
-            "nullable": true,
-            "format": "date-time"
-          },
-          "expiresAt": {
-            "type": "string",
-            "nullable": true,
-            "format": "date-time"
-          },
-          "credits": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "usage": {
-            "$ref": "#/components/schemas/ImportModelUsage"
-          },
           "proposal": {
             "$ref": "#/components/schemas/InstructionsProposal"
           }
         },
         "required": [
-          "part",
-          "domain",
           "status",
           "attempt",
           "failureReason",
           "version",
-          "changes",
           "counts",
-          "positionPosts",
           "readAt",
           "confirmedAt",
           "expiresAt",
           "credits",
+          "part",
+          "domain",
+          "changes",
+          "positionPosts",
           "proposal"
         ]
       },
@@ -18043,43 +18153,91 @@
         },
         "required": ["domain", "instructions", "unread", "positions"]
       },
-      "SaveImportLibraryPartChangesRequest": {
+      "RisksLibraryPart": {
         "type": "object",
         "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["reading", "to_review", "nothing_new", "failed", "confirmed"]
+          },
+          "attempt": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "failureReason": {
+            "type": "string",
+            "nullable": true
+          },
           "version": {
             "type": "integer",
             "minimum": 0
           },
+          "counts": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "identical": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "similar": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "new": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "unread": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": ["identical", "similar", "new", "unread"]
+          },
+          "readAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "confirmedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "credits": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "usage": {
+            "$ref": "#/components/schemas/ImportModelUsage"
+          },
+          "part": {
+            "type": "string",
+            "enum": ["risk_evaluations"]
+          },
           "changes": {
             "type": "object",
+            "nullable": true,
             "properties": {
-              "instructions": {
+              "sheets": {
                 "type": "object",
                 "additionalProperties": {
                   "type": "object",
                   "properties": {
-                    "included": {
-                      "type": "boolean"
-                    },
-                    "title": {
+                    "libraryName": {
                       "type": "string",
                       "minLength": 2,
-                      "maxLength": 200
+                      "maxLength": 160
                     },
-                    "category": {
+                    "library": {
                       "type": "string",
-                      "enum": [
-                        "work_activity",
-                        "work_equipment",
-                        "protective_equipment",
-                        "premises_activity",
-                        "installation_equipment",
-                        "hazardous_work"
-                      ]
-                    },
-                    "choice": {
-                      "type": "string",
-                      "enum": ["use_existing", "add_new"]
+                      "enum": ["add", "use_existing", "add_new", "skip"]
                     },
                     "posts": {
                       "type": "array",
@@ -18090,52 +18248,123 @@
                       },
                       "maxItems": 500
                     },
-                    "body": {
+                    "postChoices": {
                       "type": "object",
-                      "properties": {
-                        "blocks": {
-                          "type": "array",
-                          "items": {
-                            "oneOf": [
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "kind": {
-                                    "type": "string",
-                                    "enum": ["heading"]
-                                  },
-                                  "text": {
-                                    "type": "string",
-                                    "minLength": 1,
-                                    "maxLength": 300
-                                  }
-                                },
-                                "required": ["kind", "text"]
-                              },
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "kind": {
-                                    "type": "string",
-                                    "enum": ["article"]
-                                  },
-                                  "paragraphs": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "maxLength": 20000
-                                    },
-                                    "minItems": 1
-                                  }
-                                },
-                                "required": ["kind", "paragraphs"]
-                              }
+                      "additionalProperties": {
+                        "type": "string",
+                        "enum": ["append", "replace", "keep"]
+                      }
+                    },
+                    "existingChoice": {
+                      "type": "string",
+                      "enum": ["append", "replace", "keep"]
+                    },
+                    "meansOfProduction": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "workEnvironment": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "exposure": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1,
+                      "maxLength": 120
+                    },
+                    "factors": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "included": {
+                            "type": "boolean"
+                          },
+                          "component": {
+                            "type": "string",
+                            "enum": [
+                              "executant",
+                              "work_task",
+                              "means_of_production",
+                              "work_environment"
                             ]
+                          },
+                          "group": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          },
+                          "description": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1000
+                          },
+                          "gravityClass": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 7
+                          },
+                          "probabilityClass": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 6
+                          },
+                          "measures": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "technical",
+                                    "organizational",
+                                    "hygienic_sanitary",
+                                    "other"
+                                  ]
+                                },
+                                "description": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 2000
+                                }
+                              },
+                              "required": ["kind", "description"]
+                            },
+                            "maxItems": 30
+                          },
+                          "actions": {
+                            "type": "string",
+                            "nullable": true,
+                            "minLength": 1,
+                            "maxLength": 2000
+                          },
+                          "deadline": {
+                            "type": "string",
+                            "nullable": true,
+                            "minLength": 1,
+                            "maxLength": 200
+                          },
+                          "responsiblePerson": {
+                            "type": "string",
+                            "nullable": true,
+                            "minLength": 1,
+                            "maxLength": 200
+                          },
+                          "observations": {
+                            "type": "string",
+                            "nullable": true,
+                            "minLength": 1,
+                            "maxLength": 1000
                           }
-                        }
-                      },
-                      "required": ["blocks"]
+                        },
+                        "additionalProperties": false
+                      }
                     }
                   },
                   "additionalProperties": false
@@ -18144,11 +18373,966 @@
               }
             },
             "additionalProperties": false
+          },
+          "postReferences": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "nullable": true,
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          "existingFactors": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "jobPositions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "sheets": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "required": ["jobPositions", "sheets"]
+          },
+          "proposal": {
+            "$ref": "#/components/schemas/RisksProposal"
+          }
+        },
+        "required": [
+          "status",
+          "attempt",
+          "failureReason",
+          "version",
+          "counts",
+          "readAt",
+          "confirmedAt",
+          "expiresAt",
+          "credits",
+          "part",
+          "changes",
+          "postReferences",
+          "existingFactors",
+          "proposal"
+        ]
+      },
+      "RisksProposal": {
+        "type": "object",
+        "nullable": true,
+        "properties": {
+          "sheets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "file": {
+                  "type": "string"
+                },
+                "heading": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": ["job_position", "sensitive_groups", "other"]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "rows": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "first": {
+                      "type": "string"
+                    },
+                    "last": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["first", "last"]
+                },
+                "meansOfProduction": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "workEnvironment": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "exposure": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "flags": {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": ["quote_not_found"]
+                          },
+                          "field": {
+                            "type": "string",
+                            "enum": ["meansOfProduction", "workEnvironment", "exposure"]
+                          }
+                        },
+                        "required": ["kind", "field"]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": ["text_cut"]
+                          },
+                          "field": {
+                            "type": "string",
+                            "enum": ["meansOfProduction", "workEnvironment", "exposure"]
+                          }
+                        },
+                        "required": ["kind", "field"]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": ["file_not_found"]
+                          }
+                        },
+                        "required": ["kind"]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": ["rows_not_found"]
+                          }
+                        },
+                        "required": ["kind"]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": ["no_factors"]
+                          }
+                        },
+                        "required": ["kind"]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": ["classes_swapped"]
+                          }
+                        },
+                        "required": ["kind"]
+                      }
+                    ]
+                  }
+                },
+                "posts": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "existingFactors": {
+                        "type": "number"
+                      },
+                      "choice": {
+                        "type": "string",
+                        "nullable": true,
+                        "enum": ["append", "replace", "keep", null]
+                      }
+                    },
+                    "required": ["name", "existingFactors", "choice"]
+                  }
+                },
+                "undecided": {
+                  "type": "boolean"
+                },
+                "existing": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "factors": {
+                      "type": "number"
+                    },
+                    "choice": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": ["append", "replace", "keep", null]
+                    }
+                  },
+                  "required": ["factors", "choice"]
+                },
+                "libraryName": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["identical", "similar", "new", null]
+                },
+                "match": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "evaluationId": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "share": {
+                      "type": "number"
+                    },
+                    "pairs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "factor": {
+                            "type": "string"
+                          },
+                          "libraryFactor": {
+                            "type": "string"
+                          },
+                          "similarity": {
+                            "type": "number"
+                          },
+                          "otherClasses": {
+                            "type": "boolean"
+                          },
+                          "otherMeasures": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "factor",
+                          "libraryFactor",
+                          "similarity",
+                          "otherClasses",
+                          "otherMeasures"
+                        ]
+                      }
+                    },
+                    "onlyInPack": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "onlyInLibrary": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "evaluationId",
+                    "name",
+                    "share",
+                    "pairs",
+                    "onlyInPack",
+                    "onlyInLibrary"
+                  ]
+                },
+                "choice": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["add", "use_existing", "add_new", "skip", null]
+                },
+                "sameAs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "copyOf": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "factors": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string"
+                      },
+                      "row": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "source": {
+                        "type": "object",
+                        "nullable": true,
+                        "properties": {
+                          "file": {
+                            "type": "string"
+                          },
+                          "start": {
+                            "type": "number"
+                          },
+                          "end": {
+                            "type": "number"
+                          }
+                        },
+                        "required": ["file", "start", "end"]
+                      },
+                      "component": {
+                        "type": "string",
+                        "nullable": true,
+                        "enum": [
+                          "executant",
+                          "work_task",
+                          "means_of_production",
+                          "work_environment",
+                          null
+                        ]
+                      },
+                      "writtenComponent": {
+                        "type": "string"
+                      },
+                      "group": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "code": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "consequence": {
+                        "type": "string"
+                      },
+                      "gravityClass": {
+                        "type": "number",
+                        "nullable": true
+                      },
+                      "probabilityClass": {
+                        "type": "number",
+                        "nullable": true
+                      },
+                      "printedLevel": {
+                        "type": "number",
+                        "nullable": true
+                      },
+                      "measures": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": ["technical", "organizational", "hygienic_sanitary", "other"]
+                            },
+                            "description": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["kind", "description"]
+                        }
+                      },
+                      "measuresFrom": {
+                        "type": "string",
+                        "nullable": true,
+                        "enum": ["plan", "sheet", null]
+                      },
+                      "actions": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "deadline": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "responsiblePerson": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "observations": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "flags": {
+                        "type": "array",
+                        "items": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": ["level_mismatch"]
+                                },
+                                "printed": {
+                                  "type": "number"
+                                },
+                                "grid": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": ["kind", "printed", "grid"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": ["consequence_mismatch"]
+                                },
+                                "consequence": {
+                                  "type": "string"
+                                },
+                                "consequenceClass": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": ["kind", "consequence", "consequenceClass"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": ["class_missing"]
+                                },
+                                "field": {
+                                  "type": "string",
+                                  "enum": ["gravity", "probability"]
+                                },
+                                "written": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["kind", "field", "written"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": ["unknown_component"]
+                                },
+                                "written": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["kind", "written"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": ["missing_group"]
+                                }
+                              },
+                              "required": ["kind"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": ["row_shape"]
+                                },
+                                "cells": {
+                                  "type": "number"
+                                },
+                                "expected": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": ["kind", "cells", "expected"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": ["retyped"]
+                                }
+                              },
+                              "required": ["kind"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": ["quote_not_found"]
+                                }
+                              },
+                              "required": ["kind"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": ["person_named"]
+                                },
+                                "field": {
+                                  "type": "string",
+                                  "enum": [
+                                    "actions",
+                                    "deadline",
+                                    "responsiblePerson",
+                                    "observations"
+                                  ]
+                                },
+                                "text": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["kind", "field", "text"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": ["measure_kind_guessed"]
+                                }
+                              },
+                              "required": ["kind"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": ["measures_cut"]
+                                },
+                                "count": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": ["kind", "count"]
+                            }
+                          ]
+                        }
+                      },
+                      "included": {
+                        "type": "boolean"
+                      },
+                      "level": {
+                        "type": "number",
+                        "nullable": true
+                      }
+                    },
+                    "required": [
+                      "key",
+                      "row",
+                      "source",
+                      "component",
+                      "writtenComponent",
+                      "group",
+                      "description",
+                      "code",
+                      "consequence",
+                      "gravityClass",
+                      "probabilityClass",
+                      "printedLevel",
+                      "measures",
+                      "measuresFrom",
+                      "actions",
+                      "deadline",
+                      "responsiblePerson",
+                      "observations",
+                      "flags",
+                      "included",
+                      "level"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "key",
+                "file",
+                "heading",
+                "kind",
+                "name",
+                "rows",
+                "meansOfProduction",
+                "workEnvironment",
+                "exposure",
+                "flags",
+                "posts",
+                "undecided",
+                "existing",
+                "libraryName",
+                "status",
+                "match",
+                "choice",
+                "sameAs",
+                "copyOf",
+                "factors"
+              ]
+            }
+          },
+          "unplacedRows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "row": {
+                  "type": "string"
+                },
+                "file": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": ["row", "file", "text"]
+            }
+          },
+          "unmatchedPlanRows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "row": {
+                  "type": "string"
+                },
+                "file": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                },
+                "post": {
+                  "type": "string"
+                },
+                "risk": {
+                  "type": "string"
+                }
+              },
+              "required": ["row", "file", "text", "post", "risk"]
+            }
+          },
+          "unmatchedMeasureRows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "row": {
+                  "type": "string"
+                },
+                "file": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": ["row", "file", "text"]
+            }
+          }
+        },
+        "required": ["sheets", "unplacedRows", "unmatchedPlanRows", "unmatchedMeasureRows"]
+      },
+      "SaveImportLibraryPartChangesRequest": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "changes": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "instructions": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "included": {
+                          "type": "boolean"
+                        },
+                        "title": {
+                          "type": "string",
+                          "minLength": 2,
+                          "maxLength": 200
+                        },
+                        "category": {
+                          "type": "string",
+                          "enum": [
+                            "work_activity",
+                            "work_equipment",
+                            "protective_equipment",
+                            "premises_activity",
+                            "installation_equipment",
+                            "hazardous_work"
+                          ]
+                        },
+                        "choice": {
+                          "type": "string",
+                          "enum": ["use_existing", "add_new"]
+                        },
+                        "posts": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 100
+                          },
+                          "maxItems": 500
+                        },
+                        "body": {
+                          "type": "object",
+                          "properties": {
+                            "blocks": {
+                              "type": "array",
+                              "items": {
+                                "oneOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "kind": {
+                                        "type": "string",
+                                        "enum": ["heading"]
+                                      },
+                                      "text": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 300
+                                      }
+                                    },
+                                    "required": ["kind", "text"]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "kind": {
+                                        "type": "string",
+                                        "enum": ["article"]
+                                      },
+                                      "paragraphs": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 20000
+                                        },
+                                        "minItems": 1
+                                      }
+                                    },
+                                    "required": ["kind", "paragraphs"]
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "required": ["blocks"]
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "default": {}
+                  }
+                },
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "sheets": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "libraryName": {
+                          "type": "string",
+                          "minLength": 2,
+                          "maxLength": 160
+                        },
+                        "library": {
+                          "type": "string",
+                          "enum": ["add", "use_existing", "add_new", "skip"]
+                        },
+                        "posts": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 100
+                          },
+                          "maxItems": 500
+                        },
+                        "postChoices": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string",
+                            "enum": ["append", "replace", "keep"]
+                          }
+                        },
+                        "existingChoice": {
+                          "type": "string",
+                          "enum": ["append", "replace", "keep"]
+                        },
+                        "meansOfProduction": {
+                          "type": "string",
+                          "nullable": true,
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "workEnvironment": {
+                          "type": "string",
+                          "nullable": true,
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "exposure": {
+                          "type": "string",
+                          "nullable": true,
+                          "minLength": 1,
+                          "maxLength": 120
+                        },
+                        "factors": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                              "included": {
+                                "type": "boolean"
+                              },
+                              "component": {
+                                "type": "string",
+                                "enum": [
+                                  "executant",
+                                  "work_task",
+                                  "means_of_production",
+                                  "work_environment"
+                                ]
+                              },
+                              "group": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200
+                              },
+                              "description": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1000
+                              },
+                              "gravityClass": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 7
+                              },
+                              "probabilityClass": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 6
+                              },
+                              "measures": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "kind": {
+                                      "type": "string",
+                                      "enum": [
+                                        "technical",
+                                        "organizational",
+                                        "hygienic_sanitary",
+                                        "other"
+                                      ]
+                                    },
+                                    "description": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 2000
+                                    }
+                                  },
+                                  "required": ["kind", "description"]
+                                },
+                                "maxItems": 30
+                              },
+                              "actions": {
+                                "type": "string",
+                                "nullable": true,
+                                "minLength": 1,
+                                "maxLength": 2000
+                              },
+                              "deadline": {
+                                "type": "string",
+                                "nullable": true,
+                                "minLength": 1,
+                                "maxLength": 200
+                              },
+                              "responsiblePerson": {
+                                "type": "string",
+                                "nullable": true,
+                                "minLength": 1,
+                                "maxLength": 200
+                              },
+                              "observations": {
+                                "type": "string",
+                                "nullable": true,
+                                "minLength": 1,
+                                "maxLength": 1000
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "default": {}
+                  }
+                },
+                "additionalProperties": false
+              }
+            ]
           }
         },
         "required": ["version", "changes"]
       },
       "ConfirmImportLibraryPartResponse": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/ConfirmInstructionsPartResponse"
+          },
+          {
+            "$ref": "#/components/schemas/ConfirmRisksPartResponse"
+          }
+        ]
+      },
+      "ConfirmInstructionsPartResponse": {
         "type": "object",
         "properties": {
           "createdModuleIds": {
@@ -18171,6 +19355,30 @@
           }
         },
         "required": ["createdModuleIds", "usedModuleIds", "links"]
+      },
+      "ConfirmRisksPartResponse": {
+        "type": "object",
+        "properties": {
+          "createdProfileIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "evaluationIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "factors": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": ["createdProfileIds", "evaluationIds", "factors"]
       },
       "ConfirmImportLibraryPartRequest": {
         "type": "object",
@@ -32612,10 +33820,22 @@
       "get": {
         "operationId": "listEvaluationProfiles",
         "summary": "List the organization's evaluation profiles",
-        "description": "The risk library (ADR 015) by name, each profile without its factors but with `factorCount`, `unacceptableFactorCount` and `globalRiskLevel`.",
+        "description": "The risk library (ADR 015) by name, each profile without its factors but with `factorCount`, `unacceptableFactorCount`, `globalRiskLevel`, `clientCount` (the clients its usage lists) and `inUse` (ADR 036). Archived profiles are left out unless `archived=true`, which lists only them.",
         "security": [
           {
             "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["true", "false"],
+              "default": "false"
+            },
+            "required": false,
+            "name": "archived",
+            "in": "query"
           }
         ],
         "responses": {
@@ -32625,6 +33845,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/EvaluationProfileListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -32859,8 +34089,9 @@
         }
       },
       "patch": {
-        "operationId": "renameEvaluationProfile",
-        "summary": "Rename an evaluation profile",
+        "operationId": "updateEvaluationProfile",
+        "summary": "Rename, archive or restore an evaluation profile, or change its work-system texts",
+        "description": "A field left out stays as it is; `null` clears `meansOfProduction`, `workEnvironment` or `exposure`, which a profile may leave empty. An archived profile keeps its page, its factors and its usage, and is refused by `applyEvaluationProfile` until restored. Archiving is allowed while clients use the profile, since they hold copies (ADR 036). Names stay unique across active and archived profiles.",
         "security": [
           {
             "bearerAuth": []
@@ -32882,7 +34113,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EvaluationProfileNameRequest"
+                "$ref": "#/components/schemas/UpdateEvaluationProfileRequest"
               }
             }
           }
@@ -32972,8 +34203,8 @@
       },
       "delete": {
         "operationId": "removeEvaluationProfile",
-        "summary": "Delete an evaluation profile with its factors",
-        "description": "The factors it gave evaluations stay in them, as the client’s; their `sourceProfile` becomes null.",
+        "summary": "Delete an evaluation profile no client uses",
+        "description": "Refused while any client’s factor, archived posts’ and clients’ included, points at one of its factors (reason `evaluation_profile_in_use`): such a profile is archived instead (ADR 036).",
         "security": [
           {
             "bearerAuth": []
@@ -33026,6 +34257,16 @@
           },
           "404": {
             "description": "The profile does not exist in this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Clients use the profile (reason `evaluation_profile_in_use`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -33373,7 +34614,7 @@
       "delete": {
         "operationId": "removeEvaluationProfileFactor",
         "summary": "Remove a profile's risk factor",
-        "description": "Answers with the whole profile.",
+        "description": "Allowed while clients use the profile: their copies of the factor stay and their `sourceProfile` becomes null. Answers with the whole profile.",
         "security": [
           {
             "bearerAuth": []
@@ -33477,7 +34718,7 @@
       "post": {
         "operationId": "saveRiskEvaluationAsProfile",
         "summary": "Save a risk evaluation as a profile of the library",
-        "description": "A new profile named `name` with copies of the evaluation’s factors, their classes, measures and plan fields, in their order. The work system texts stay with the evaluation. Each factor without a `sourceProfile` gets the new profile as its own; one copied from another profile keeps that. An archived client’s evaluation can be saved too, and its factors stay as they were.",
+        "description": "A new profile named `name` with copies of the evaluation’s factors, their classes, measures and plan fields, in their order, and its work-system texts, the exposure only once it is no longer \"8 h / schimb\". Each factor without a `sourceProfile` gets the new profile as its own; one copied from another profile keeps that. An archived client’s evaluation can be saved too, and its factors stay as they were.",
         "security": [
           {
             "bearerAuth": []
@@ -33601,7 +34842,7 @@
       "post": {
         "operationId": "applyEvaluationProfile",
         "summary": "Copy the factors of a profile into a risk evaluation",
-        "description": "Adds copies of the profile’s factors, with their classes, measures and plan fields, after the factors the evaluation already has, each with the profile as its `sourceProfile`. `addedFactorCount` says how many. Later changes to the profile do not reach the copies.",
+        "description": "Adds copies of the profile’s factors, with their classes, measures and plan fields, after the factors the evaluation already has, each with the profile as its `sourceProfile`. `addedFactorCount` says how many. The profile’s work-system texts fill only the evaluation’s empty ones, the exposure while it is still \"8 h / schimb\", and never overwrite a text. Later changes to the profile do not reach the copies.",
         "security": [
           {
             "bearerAuth": []
@@ -33689,7 +34930,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`)",
+            "description": "The client is archived (reason `client_archived`), or the profile is (reason `evaluation_profile_archived`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -42057,7 +43298,7 @@
       "get": {
         "operationId": "listImportLibraryParts",
         "summary": "A client import's proposals for the library",
-        "description": "One part per domain whose own instructions the sorting found (ADR 034), `instructions_ssm` and `instructions_su`, each read by a request of its own once the client proposal is ready: its status (`reading`, `to_review`, `nothing_new`, `failed` with `failureReason`, `confirmed`), the proposal from `to_review` on (null before, and once dropped with the import's, 30 days after the client), the member's changes and the version to save on, the counts of identical, similar, new and unread instructions, `positionPosts` (the client post each post the themes name is, as the changes name posts), `expiresAt` (14 days after the client's confirmation, past which a part is no longer confirmed), and `credits`, its readings net of those given back. `posts` are the posts an instruction can apply to: the client proposal's, by their id, with the job position each became once the client is confirmed, and the client's other active posts by their id. `usage`, the models' cost at list price and tokens, is served outside production and, in production, only to a platform admin. An empty list for an employee import or a pack without own instructions.",
+        "description": "One part per domain whose own instructions the sorting found (ADR 034), `instructions_ssm` and `instructions_su`, and `risk_evaluations` when it found a risk assessment (ADR 036), each read by a request of its own once the client proposal is ready: its status (`reading`, `to_review`, `nothing_new`, `failed` with `failureReason`, `confirmed`), the proposal from `to_review` on (null before, and once dropped with the import's, 30 days after the client), the member's changes and the version to save on, the counts of identical, similar, new and unread instructions, `positionPosts` (the client post each post the themes name is, as the changes name posts), `expiresAt` (14 days after the client's confirmation, past which a part is no longer confirmed), and `credits`, its readings net of those given back. `posts` are the posts an instruction can apply to: the client proposal's, by their id, with the job position each became once the client is confirmed, and the client's other active posts by their id. The risk evaluations' part, discriminated by `part`, has no `domain`; its proposal is a `RisksProposal`, its changes are by sheet, its counts are of sheets (`unread`, those with no factor read), and `postReferences` gives, by a post's name as the sheets write it, the client post it is, as the changes name posts; `existingFactors` gives the factors the client's sheets have now, by job position and, for a client-level sheet, by the sheet's key, which confirming follows where the member made no choice (null while the import has no client). `usage`, the models' cost at list price and tokens, is served outside production and, in production, only to a platform admin. An empty list for an employee import or a pack with neither own instructions nor a risk assessment.",
         "security": [
           {
             "bearerAuth": []
@@ -42152,7 +43393,7 @@
       "put": {
         "operationId": "saveImportLibraryPartChanges",
         "summary": "Save the member's review of a library part",
-        "description": "Replaces the part's changes, by the proposed instruction's key: `included` false leaves it out, `title`, `category` (one of the part's domain), `choice` for a similar instruction (`use_existing` or `add_new`), `posts` in place of those the themes give, and `body`, the text edited, held to the body's schema. Before the client is confirmed too. On the `version` the caller read, and answers the next. `400` for a key the proposal does not have or a category of the other domain; `409` with `import_changed` when someone saved since, `import_part_not_ready` when the part is not `to_review` or `nothing_new`, `import_part_expired` 14 days after the client's confirmation.",
+        "description": "Replaces the part's changes. An instructions part's are by the proposed instruction's key: `included` false leaves it out, `title`, `category` (one of the part's domain), `choice` for a similar instruction (`use_existing` or `add_new`), `posts` in place of those the themes give, and `body`, the text edited, held to the body's schema. The risk evaluations' are `sheets`, by the sheet's key (`RiskImportChanges`): `libraryName`, `library` (`add`, `use_existing`, `add_new`, `skip`), `posts`, `postChoices` and `existingChoice` (`append`, `replace`, `keep`), the three texts, and `factors` by the factor's key. Before the client is confirmed too. On the `version` the caller read, and answers the next. `400` for a key the proposal does not have, a category of the other domain, `use_existing` for a sheet the library matched none of, or another part's changes; `409` with `import_changed` when someone saved since, `import_part_not_ready` when the part is not `to_review` or `nothing_new`, `import_part_expired` 14 days after the client's confirmation.",
         "security": [
           {
             "bearerAuth": []
@@ -42171,7 +43412,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["instructions_ssm", "instructions_su"]
+              "enum": ["instructions_ssm", "instructions_su", "risk_evaluations"]
             },
             "required": true,
             "name": "part",
@@ -42276,7 +43517,7 @@
       "post": {
         "operationId": "confirmImportLibraryPart",
         "summary": "Confirm a library part",
-        "description": "In one transaction (`apply_instruction_import`): creates a module with its first version for every new instruction and every similar one the member chose to add as new, takes the identical ones and the similar ones kept as they are, and applies each to its posts, skipping a post that applies it already, all as the member. Only after the client is confirmed: `409` with `import_client_unconfirmed` before (the app says \"Confirmă întâi clientul\"). The client import's own confirm never waits for its parts. `409` with `import_part_expired` 14 days after the client's confirmation, `import_part_not_ready`, `import_changed`, `instruction_title_taken` when a new module's title is an active module's (with `issues` on `instructions.<key>.title`), or `import_outdated` when a post or module the review named is gone. `422` with `import_incomplete` for a category of the other domain.",
+        "description": "For the risk evaluations, in one transaction (`apply_risk_import`): creates the chosen library entries with their factors, measures, plan fields as defaults (a person named in one goes to the client only) and texts, creates each missing evaluation of the client, fills only its empty texts, and writes the reviewed factors onto each sheet's posts as the post's choice says, each pointing at the entry's factor it was added to or matched; it answers `createdProfileIds`, `evaluationIds` and `factors`. `409` with `evaluation_profile_name_taken` when a new entry's name is any entry's, archived ones included (with `issues` on `sheets.<key>.libraryName`); `422` with `import_incomplete` for a ticked factor without its component or classes (with `issues` on `sheets.<key>.factors.<key>`). For instructions, in one transaction (`apply_instruction_import`): creates a module with its first version for every new instruction and every similar one the member chose to add as new, takes the identical ones and the similar ones kept as they are, and applies each to its posts, skipping a post that applies it already, all as the member. Only after the client is confirmed: `409` with `import_client_unconfirmed` before (the app says \"Confirmă întâi clientul\"). The client import's own confirm never waits for its parts. `409` with `import_part_expired` 14 days after the client's confirmation, `import_part_not_ready`, `import_changed`, `instruction_title_taken` when a new module's title is an active module's (with `issues` on `instructions.<key>.title`), or `import_outdated` when a post or module the review named is gone. `422` with `import_incomplete` for a category of the other domain.",
         "security": [
           {
             "bearerAuth": []
@@ -42295,7 +43536,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["instructions_ssm", "instructions_su"]
+              "enum": ["instructions_ssm", "instructions_su", "risk_evaluations"]
             },
             "required": true,
             "name": "part",
@@ -42410,7 +43651,7 @@
       "post": {
         "operationId": "retryImportLibraryPart",
         "summary": "Read a failed library part again",
-        "description": "\"Citește din nou\": a `failed` part of an import ready for review or confirmed goes back to `reading` under its next `attempt` and its message is sent again; the reading is charged again when its request is sent (25 credits for SSM, 10 for SU), and given back if it fails. The client proposal and the other part are untouched. `409` with `import_part_expired` 14 days after the client was confirmed, when it could no longer be confirmed, and `import_part_not_failed` otherwise; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.",
+        "description": "\"Citește din nou\": a `failed` part of an import ready for review or confirmed goes back to `reading` under its next `attempt` and its message is sent again; the reading is charged again when its request is sent (25 credits for SSM, 10 for SU, 15 for the risk evaluations), and given back if it fails. The client proposal and the other part are untouched. `409` with `import_part_expired` 14 days after the client was confirmed, when it could no longer be confirmed, and `import_part_not_failed` otherwise; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.",
         "security": [
           {
             "bearerAuth": []
@@ -42429,7 +43670,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["instructions_ssm", "instructions_su"]
+              "enum": ["instructions_ssm", "instructions_su", "risk_evaluations"]
             },
             "required": true,
             "name": "part",

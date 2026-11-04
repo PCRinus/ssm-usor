@@ -11,9 +11,9 @@ import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { EvaluationLink } from '@/features/risk-evaluations/evaluation-link';
 import {
-  evaluationCountLabel,
   evaluationTitle,
   factorCountLabel,
+  sheetCountLabel,
 } from '@/features/risk-evaluations/risk-evaluation-schema';
 
 type ProfileUse = EvaluationProfileUsageResponseItemsItem;
@@ -43,7 +43,15 @@ function byClient(items: readonly ProfileUse[]): ClientUses[] {
   return clients;
 }
 
-export function ProfileUsageCard({ profileId, userId }: { profileId: string; userId: string }) {
+export function ProfileUsageCard({
+  profileId,
+  inUse,
+  userId,
+}: {
+  profileId: string;
+  inUse: boolean;
+  userId: string;
+}) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const usage = useGetEvaluationProfileUsage(profileId, {
     request: apiRequest,
@@ -58,13 +66,13 @@ export function ProfileUsageCard({ profileId, userId }: { profileId: string; use
       data-testid="risk-profile-usage"
       title={
         <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          Unde este folosit
+          Unde este folosită
           {usage.isSuccess && items.length > 0 && (
             <span
               data-testid="risk-profile-usage-count"
               className="text-sm font-normal text-muted-foreground"
             >
-              {evaluationCountLabel(items.length)}
+              {sheetCountLabel(items.length)}
             </span>
           )}
         </span>
@@ -86,12 +94,17 @@ export function ProfileUsageCard({ profileId, userId }: { profileId: string; use
             </Button>
           }
         >
-          Nu am putut încărca evaluările care folosesc profilul.
+          Nu am putut încărca fișele de evaluare care o folosesc.
         </Notice>
+      ) : items.length === 0 && inUse ? (
+        <p data-testid="risk-profile-usage-archived-only" className="text-sm text-muted-foreground">
+          Evaluarea nu este folosită la niciun post activ, dar fișele unor posturi arhivate au încă
+          factori din ea, așa că nu se poate șterge.
+        </p>
       ) : items.length === 0 ? (
         <p data-testid="risk-profile-usage-empty" className="text-sm text-muted-foreground">
-          Profilul nu este folosit încă la niciun client. Deschide evaluarea unui post și alege
-          „Aplică un profil”.
+          Evaluarea nu este folosită încă la niciun client. Deschide fișa de evaluare a unui post și
+          alege „Aplică din bibliotecă”.
         </p>
       ) : (
         <ul className="grid divide-y">
@@ -130,7 +143,7 @@ export function ProfileUsageCard({ profileId, userId }: { profileId: string; use
                       data-testid="risk-profile-usage-factors"
                       className="text-muted-foreground tabular-nums"
                     >
-                      {factorCountLabel(use.linkedFactorCount)} din profil
+                      {factorCountLabel(use.linkedFactorCount)} din această evaluare
                     </span>
                   </li>
                 ))}

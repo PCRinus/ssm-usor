@@ -4859,12 +4859,17 @@ export type EvaluationProfileListResponseItemsItem = {
    * @nullable
    */
   globalRiskLevel: number | null;
+  /** @nullable */
+  archivedAt: string | null;
+  inUse: boolean;
   createdAt: string;
   updatedAt: string;
   /** @minimum 0 */
   factorCount: number;
   /** @minimum 0 */
   unacceptableFactorCount: number;
+  /** @minimum 0 */
+  clientCount: number;
 };
 
 export interface EvaluationProfileListResponse {
@@ -4949,8 +4954,17 @@ export type EvaluationProfileResponseProfile = {
    * @nullable
    */
   globalRiskLevel: number | null;
+  /** @nullable */
+  archivedAt: string | null;
+  inUse: boolean;
   createdAt: string;
   updatedAt: string;
+  /** @nullable */
+  meansOfProduction: string | null;
+  /** @nullable */
+  workEnvironment: string | null;
+  /** @nullable */
+  exposure: string | null;
   factors: EvaluationProfileResponseProfileFactorsItem[];
 };
 
@@ -5000,6 +5014,33 @@ export type EvaluationProfileUsageResponseItemsItem = {
 
 export interface EvaluationProfileUsageResponse {
   items: EvaluationProfileUsageResponseItemsItem[];
+}
+
+export interface UpdateEvaluationProfileRequest {
+  /**
+   * @minLength 2
+   * @maxLength 160
+   */
+  name?: string;
+  archived?: boolean;
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   * @nullable
+   */
+  meansOfProduction?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   * @nullable
+   */
+  workEnvironment?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 120
+   * @nullable
+   */
+  exposure?: string | null;
 }
 
 export type ApplyEvaluationProfileResponseEvaluationKind =
@@ -8035,6 +8076,7 @@ export type ImportSummaryLibraryPartsItemPart =
 export const ImportSummaryLibraryPartsItemPart = {
   instructions_ssm: 'instructions_ssm',
   instructions_su: 'instructions_su',
+  risk_evaluations: 'risk_evaluations',
 } as const;
 
 export type ImportSummaryLibraryPartsItemStatus =
@@ -8234,6 +8276,7 @@ export type ImportListResponseItemsItemLibraryPartsItemPart =
 export const ImportListResponseItemsItemLibraryPartsItemPart = {
   instructions_ssm: 'instructions_ssm',
   instructions_su: 'instructions_su',
+  risk_evaluations: 'risk_evaluations',
 } as const;
 
 export type ImportListResponseItemsItemLibraryPartsItemStatus =
@@ -8327,6 +8370,7 @@ export type ImportDetailLibraryPartsItemPart =
 export const ImportDetailLibraryPartsItemPart = {
   instructions_ssm: 'instructions_ssm',
   instructions_su: 'instructions_su',
+  risk_evaluations: 'risk_evaluations',
 } as const;
 
 export type ImportDetailLibraryPartsItemStatus =
@@ -8406,6 +8450,7 @@ export type ImportUsageBySteps = {
   reading?: ImportModelUsage;
   scanning?: ImportModelUsage;
   instructions?: ImportModelUsage;
+  risks?: ImportModelUsage;
 };
 
 export interface ImportUsage {
@@ -8437,6 +8482,8 @@ export type ImportCredits = {
   scannedPages: number;
   /** @minimum 0 */
   ownInstructions: number;
+  /** @minimum 0 */
+  riskEvaluations: number;
   refunded: boolean;
 } | null;
 
@@ -11161,26 +11208,10 @@ export type ImportLibraryPartsResponsePostsItem = {
   jobPositionId: string | null;
 };
 
-export type ImportLibraryPartPart =
-  (typeof ImportLibraryPartPart)[keyof typeof ImportLibraryPartPart];
+export type InstructionsLibraryPartStatus =
+  (typeof InstructionsLibraryPartStatus)[keyof typeof InstructionsLibraryPartStatus];
 
-export const ImportLibraryPartPart = {
-  instructions_ssm: 'instructions_ssm',
-  instructions_su: 'instructions_su',
-} as const;
-
-export type ImportLibraryPartDomain =
-  (typeof ImportLibraryPartDomain)[keyof typeof ImportLibraryPartDomain];
-
-export const ImportLibraryPartDomain = {
-  ssm: 'ssm',
-  su: 'su',
-} as const;
-
-export type ImportLibraryPartStatus =
-  (typeof ImportLibraryPartStatus)[keyof typeof ImportLibraryPartStatus];
-
-export const ImportLibraryPartStatus = {
+export const InstructionsLibraryPartStatus = {
   reading: 'reading',
   to_review: 'to_review',
   nothing_new: 'nothing_new',
@@ -11188,10 +11219,26 @@ export const ImportLibraryPartStatus = {
   confirmed: 'confirmed',
 } as const;
 
-export type ImportLibraryPartChangesInstructionsCategory =
-  (typeof ImportLibraryPartChangesInstructionsCategory)[keyof typeof ImportLibraryPartChangesInstructionsCategory];
+export type InstructionsLibraryPartPart =
+  (typeof InstructionsLibraryPartPart)[keyof typeof InstructionsLibraryPartPart];
 
-export const ImportLibraryPartChangesInstructionsCategory = {
+export const InstructionsLibraryPartPart = {
+  instructions_ssm: 'instructions_ssm',
+  instructions_su: 'instructions_su',
+} as const;
+
+export type InstructionsLibraryPartDomain =
+  (typeof InstructionsLibraryPartDomain)[keyof typeof InstructionsLibraryPartDomain];
+
+export const InstructionsLibraryPartDomain = {
+  ssm: 'ssm',
+  su: 'su',
+} as const;
+
+export type InstructionsLibraryPartChangesInstructionsCategory =
+  (typeof InstructionsLibraryPartChangesInstructionsCategory)[keyof typeof InstructionsLibraryPartChangesInstructionsCategory];
+
+export const InstructionsLibraryPartChangesInstructionsCategory = {
   work_activity: 'work_activity',
   work_equipment: 'work_equipment',
   protective_equipment: 'protective_equipment',
@@ -11200,10 +11247,10 @@ export const ImportLibraryPartChangesInstructionsCategory = {
   hazardous_work: 'hazardous_work',
 } as const;
 
-export type ImportLibraryPartChangesInstructionsChoice =
-  (typeof ImportLibraryPartChangesInstructionsChoice)[keyof typeof ImportLibraryPartChangesInstructionsChoice];
+export type InstructionsLibraryPartChangesInstructionsChoice =
+  (typeof InstructionsLibraryPartChangesInstructionsChoice)[keyof typeof InstructionsLibraryPartChangesInstructionsChoice];
 
-export const ImportLibraryPartChangesInstructionsChoice = {
+export const InstructionsLibraryPartChangesInstructionsChoice = {
   use_existing: 'use_existing',
   add_new: 'add_new',
 } as const;
@@ -11480,60 +11527,10 @@ export type InstructionsProposal = {
   positions: InstructionsProposalPositionsItem[];
 } | null;
 
-export type ImportLibraryPartChangesInstructionsBodyBlocksItem =
-  | {
-      kind: 'heading';
-      /**
-       * @minLength 1
-       * @maxLength 300
-       */
-      text: string;
-    }
-  | {
-      kind: 'article';
-      /**
-       * @minItems 1
-       * @items.minLength 1
-       * @items.maxLength 20000
-       */
-      paragraphs: string[];
-    };
-
-export type ImportLibraryPartChangesInstructionsBody = {
-  blocks: ImportLibraryPartChangesInstructionsBodyBlocksItem[];
-};
-
-export type ImportLibraryPartChangesInstructions = {
-  [key: string]: {
-    included?: boolean;
-    /**
-     * @minLength 2
-     * @maxLength 200
-     */
-    title?: string;
-    category?: ImportLibraryPartChangesInstructionsCategory;
-    choice?: ImportLibraryPartChangesInstructionsChoice;
-    /**
-     * @maxItems 500
-     * @items.minLength 1
-     * @items.maxLength 100
-     */
-    posts?: string[];
-    body?: ImportLibraryPartChangesInstructionsBody;
-  };
-};
-
 /**
  * @nullable
  */
-export type ImportLibraryPartChanges = {
-  instructions?: ImportLibraryPartChangesInstructions;
-} | null;
-
-/**
- * @nullable
- */
-export type ImportLibraryPartCounts = {
+export type InstructionsLibraryPartCounts = {
   /** @minimum 0 */
   identical: number;
   /** @minimum 0 */
@@ -11544,61 +11541,7 @@ export type ImportLibraryPartCounts = {
   unread: number;
 } | null;
 
-export type ImportLibraryPartPositionPosts = { [key: string]: string | null };
-
-export interface ImportLibraryPart {
-  part: ImportLibraryPartPart;
-  domain: ImportLibraryPartDomain;
-  status: ImportLibraryPartStatus;
-  /** @minimum 1 */
-  attempt: number;
-  /** @nullable */
-  failureReason: string | null;
-  /** @minimum 0 */
-  version: number;
-  /** @nullable */
-  changes: ImportLibraryPartChanges;
-  /** @nullable */
-  counts: ImportLibraryPartCounts;
-  positionPosts: ImportLibraryPartPositionPosts;
-  /** @nullable */
-  readAt: string | null;
-  /** @nullable */
-  confirmedAt: string | null;
-  /** @nullable */
-  expiresAt: string | null;
-  /** @minimum 0 */
-  credits: number;
-  usage?: ImportModelUsage;
-  proposal: InstructionsProposal | null;
-}
-
-export interface ImportLibraryPartsResponse {
-  parts: ImportLibraryPart[];
-  posts: ImportLibraryPartsResponsePostsItem[];
-}
-
-export type SaveImportLibraryPartChangesRequestChangesInstructionsCategory =
-  (typeof SaveImportLibraryPartChangesRequestChangesInstructionsCategory)[keyof typeof SaveImportLibraryPartChangesRequestChangesInstructionsCategory];
-
-export const SaveImportLibraryPartChangesRequestChangesInstructionsCategory = {
-  work_activity: 'work_activity',
-  work_equipment: 'work_equipment',
-  protective_equipment: 'protective_equipment',
-  premises_activity: 'premises_activity',
-  installation_equipment: 'installation_equipment',
-  hazardous_work: 'hazardous_work',
-} as const;
-
-export type SaveImportLibraryPartChangesRequestChangesInstructionsChoice =
-  (typeof SaveImportLibraryPartChangesRequestChangesInstructionsChoice)[keyof typeof SaveImportLibraryPartChangesRequestChangesInstructionsChoice];
-
-export const SaveImportLibraryPartChangesRequestChangesInstructionsChoice = {
-  use_existing: 'use_existing',
-  add_new: 'add_new',
-} as const;
-
-export type SaveImportLibraryPartChangesRequestChangesInstructionsBodyBlocksItem =
+export type InstructionsLibraryPartChangesInstructionsBodyBlocksItem =
   | {
       kind: 'heading';
       /**
@@ -11617,11 +11560,11 @@ export type SaveImportLibraryPartChangesRequestChangesInstructionsBodyBlocksItem
       paragraphs: string[];
     };
 
-export type SaveImportLibraryPartChangesRequestChangesInstructionsBody = {
-  blocks: SaveImportLibraryPartChangesRequestChangesInstructionsBodyBlocksItem[];
+export type InstructionsLibraryPartChangesInstructionsBody = {
+  blocks: InstructionsLibraryPartChangesInstructionsBodyBlocksItem[];
 };
 
-export type SaveImportLibraryPartChangesRequestChangesInstructions = {
+export type InstructionsLibraryPartChangesInstructions = {
   [key: string]: {
     included?: boolean;
     /**
@@ -11629,21 +11572,751 @@ export type SaveImportLibraryPartChangesRequestChangesInstructions = {
      * @maxLength 200
      */
     title?: string;
-    category?: SaveImportLibraryPartChangesRequestChangesInstructionsCategory;
-    choice?: SaveImportLibraryPartChangesRequestChangesInstructionsChoice;
+    category?: InstructionsLibraryPartChangesInstructionsCategory;
+    choice?: InstructionsLibraryPartChangesInstructionsChoice;
     /**
      * @maxItems 500
      * @items.minLength 1
      * @items.maxLength 100
      */
     posts?: string[];
-    body?: SaveImportLibraryPartChangesRequestChangesInstructionsBody;
+    body?: InstructionsLibraryPartChangesInstructionsBody;
   };
 };
 
-export type SaveImportLibraryPartChangesRequestChanges = {
-  instructions?: SaveImportLibraryPartChangesRequestChangesInstructions;
+/**
+ * @nullable
+ */
+export type InstructionsLibraryPartChanges = {
+  instructions?: InstructionsLibraryPartChangesInstructions;
+} | null;
+
+export type InstructionsLibraryPartPositionPosts = { [key: string]: string | null };
+
+export interface InstructionsLibraryPart {
+  status: InstructionsLibraryPartStatus;
+  /** @minimum 1 */
+  attempt: number;
+  /** @nullable */
+  failureReason: string | null;
+  /** @minimum 0 */
+  version: number;
+  /** @nullable */
+  counts: InstructionsLibraryPartCounts;
+  /** @nullable */
+  readAt: string | null;
+  /** @nullable */
+  confirmedAt: string | null;
+  /** @nullable */
+  expiresAt: string | null;
+  /** @minimum 0 */
+  credits: number;
+  usage?: ImportModelUsage;
+  part: InstructionsLibraryPartPart;
+  domain: InstructionsLibraryPartDomain;
+  /** @nullable */
+  changes: InstructionsLibraryPartChanges;
+  positionPosts: InstructionsLibraryPartPositionPosts;
+  proposal: InstructionsProposal | null;
+}
+
+export type RisksLibraryPartStatus =
+  (typeof RisksLibraryPartStatus)[keyof typeof RisksLibraryPartStatus];
+
+export const RisksLibraryPartStatus = {
+  reading: 'reading',
+  to_review: 'to_review',
+  nothing_new: 'nothing_new',
+  failed: 'failed',
+  confirmed: 'confirmed',
+} as const;
+
+export type RisksLibraryPartPart = (typeof RisksLibraryPartPart)[keyof typeof RisksLibraryPartPart];
+
+export const RisksLibraryPartPart = {
+  risk_evaluations: 'risk_evaluations',
+} as const;
+
+export type RisksLibraryPartChangesSheetsLibrary =
+  (typeof RisksLibraryPartChangesSheetsLibrary)[keyof typeof RisksLibraryPartChangesSheetsLibrary];
+
+export const RisksLibraryPartChangesSheetsLibrary = {
+  add: 'add',
+  use_existing: 'use_existing',
+  add_new: 'add_new',
+  skip: 'skip',
+} as const;
+
+export type RisksLibraryPartChangesSheetsExistingChoice =
+  (typeof RisksLibraryPartChangesSheetsExistingChoice)[keyof typeof RisksLibraryPartChangesSheetsExistingChoice];
+
+export const RisksLibraryPartChangesSheetsExistingChoice = {
+  append: 'append',
+  replace: 'replace',
+  keep: 'keep',
+} as const;
+
+export type RisksLibraryPartChangesSheetsFactorsComponent =
+  (typeof RisksLibraryPartChangesSheetsFactorsComponent)[keyof typeof RisksLibraryPartChangesSheetsFactorsComponent];
+
+export const RisksLibraryPartChangesSheetsFactorsComponent = {
+  executant: 'executant',
+  work_task: 'work_task',
+  means_of_production: 'means_of_production',
+  work_environment: 'work_environment',
+} as const;
+
+export type RisksLibraryPartChangesSheetsFactorsMeasuresItemKind =
+  (typeof RisksLibraryPartChangesSheetsFactorsMeasuresItemKind)[keyof typeof RisksLibraryPartChangesSheetsFactorsMeasuresItemKind];
+
+export const RisksLibraryPartChangesSheetsFactorsMeasuresItemKind = {
+  technical: 'technical',
+  organizational: 'organizational',
+  hygienic_sanitary: 'hygienic_sanitary',
+  other: 'other',
+} as const;
+
+export type RisksProposalSheetsItemKind =
+  (typeof RisksProposalSheetsItemKind)[keyof typeof RisksProposalSheetsItemKind];
+
+export const RisksProposalSheetsItemKind = {
+  job_position: 'job_position',
+  sensitive_groups: 'sensitive_groups',
+  other: 'other',
+} as const;
+
+/**
+ * @nullable
+ */
+export type RisksProposalSheetsItemPostsItemChoice =
+  | (typeof RisksProposalSheetsItemPostsItemChoice)[keyof typeof RisksProposalSheetsItemPostsItemChoice]
+  | null;
+
+export const RisksProposalSheetsItemPostsItemChoice = {
+  append: 'append',
+  replace: 'replace',
+  keep: 'keep',
+} as const;
+
+/**
+ * @nullable
+ */
+export type RisksProposalSheetsItemExistingChoice =
+  | (typeof RisksProposalSheetsItemExistingChoice)[keyof typeof RisksProposalSheetsItemExistingChoice]
+  | null;
+
+export const RisksProposalSheetsItemExistingChoice = {
+  append: 'append',
+  replace: 'replace',
+  keep: 'keep',
+} as const;
+
+/**
+ * @nullable
+ */
+export type RisksProposalSheetsItemStatus =
+  (typeof RisksProposalSheetsItemStatus)[keyof typeof RisksProposalSheetsItemStatus] | null;
+
+export const RisksProposalSheetsItemStatus = {
+  identical: 'identical',
+  similar: 'similar',
+  new: 'new',
+} as const;
+
+/**
+ * @nullable
+ */
+export type RisksProposalSheetsItemChoice =
+  (typeof RisksProposalSheetsItemChoice)[keyof typeof RisksProposalSheetsItemChoice] | null;
+
+export const RisksProposalSheetsItemChoice = {
+  add: 'add',
+  use_existing: 'use_existing',
+  add_new: 'add_new',
+  skip: 'skip',
+} as const;
+
+/**
+ * @nullable
+ */
+export type RisksProposalSheetsItemFactorsItemComponent =
+  | (typeof RisksProposalSheetsItemFactorsItemComponent)[keyof typeof RisksProposalSheetsItemFactorsItemComponent]
+  | null;
+
+export const RisksProposalSheetsItemFactorsItemComponent = {
+  executant: 'executant',
+  work_task: 'work_task',
+  means_of_production: 'means_of_production',
+  work_environment: 'work_environment',
+} as const;
+
+export type RisksProposalSheetsItemFactorsItemMeasuresItemKind =
+  (typeof RisksProposalSheetsItemFactorsItemMeasuresItemKind)[keyof typeof RisksProposalSheetsItemFactorsItemMeasuresItemKind];
+
+export const RisksProposalSheetsItemFactorsItemMeasuresItemKind = {
+  technical: 'technical',
+  organizational: 'organizational',
+  hygienic_sanitary: 'hygienic_sanitary',
+  other: 'other',
+} as const;
+
+/**
+ * @nullable
+ */
+export type RisksProposalSheetsItemFactorsItemMeasuresFrom =
+  | (typeof RisksProposalSheetsItemFactorsItemMeasuresFrom)[keyof typeof RisksProposalSheetsItemFactorsItemMeasuresFrom]
+  | null;
+
+export const RisksProposalSheetsItemFactorsItemMeasuresFrom = {
+  plan: 'plan',
+  sheet: 'sheet',
+} as const;
+
+/**
+ * @nullable
+ */
+export type RisksProposalSheetsItemRows = {
+  first: string;
+  last: string;
+} | null;
+
+export type RisksProposalSheetsItemFlagsItem =
+  | {
+      kind: 'quote_not_found';
+      field: 'meansOfProduction' | 'workEnvironment' | 'exposure';
+    }
+  | {
+      kind: 'text_cut';
+      field: 'meansOfProduction' | 'workEnvironment' | 'exposure';
+    }
+  | {
+      kind: 'file_not_found';
+    }
+  | {
+      kind: 'rows_not_found';
+    }
+  | {
+      kind: 'no_factors';
+    }
+  | {
+      kind: 'classes_swapped';
+    };
+
+export type RisksProposalSheetsItemPostsItem = {
+  name: string;
+  existingFactors: number;
+  /** @nullable */
+  choice: RisksProposalSheetsItemPostsItemChoice;
 };
+
+/**
+ * @nullable
+ */
+export type RisksProposalSheetsItemExisting = {
+  factors: number;
+  /** @nullable */
+  choice: RisksProposalSheetsItemExistingChoice;
+} | null;
+
+export type RisksProposalSheetsItemMatchPairsItem = {
+  factor: string;
+  libraryFactor: string;
+  similarity: number;
+  otherClasses: boolean;
+  otherMeasures: boolean;
+};
+
+/**
+ * @nullable
+ */
+export type RisksProposalSheetsItemMatch = {
+  evaluationId: string;
+  name: string;
+  share: number;
+  pairs: RisksProposalSheetsItemMatchPairsItem[];
+  onlyInPack: string[];
+  onlyInLibrary: string[];
+} | null;
+
+/**
+ * @nullable
+ */
+export type RisksProposalSheetsItemFactorsItemSource = {
+  file: string;
+  start: number;
+  end: number;
+} | null;
+
+export type RisksProposalSheetsItemFactorsItemMeasuresItem = {
+  kind: RisksProposalSheetsItemFactorsItemMeasuresItemKind;
+  description: string;
+};
+
+export type RisksProposalSheetsItemFactorsItemFlagsItem =
+  | {
+      kind: 'level_mismatch';
+      printed: number;
+      grid: number;
+    }
+  | {
+      kind: 'consequence_mismatch';
+      consequence: string;
+      consequenceClass: number;
+    }
+  | {
+      kind: 'class_missing';
+      field: 'gravity' | 'probability';
+      written: string;
+    }
+  | {
+      kind: 'unknown_component';
+      written: string;
+    }
+  | {
+      kind: 'missing_group';
+    }
+  | {
+      kind: 'row_shape';
+      cells: number;
+      expected: number;
+    }
+  | {
+      kind: 'retyped';
+    }
+  | {
+      kind: 'quote_not_found';
+    }
+  | {
+      kind: 'person_named';
+      field: 'actions' | 'deadline' | 'responsiblePerson' | 'observations';
+      text: string;
+    }
+  | {
+      kind: 'measure_kind_guessed';
+    }
+  | {
+      kind: 'measures_cut';
+      count: number;
+    };
+
+export type RisksProposalSheetsItemFactorsItem = {
+  key: string;
+  /** @nullable */
+  row: string | null;
+  /** @nullable */
+  source: RisksProposalSheetsItemFactorsItemSource;
+  /** @nullable */
+  component: RisksProposalSheetsItemFactorsItemComponent;
+  writtenComponent: string;
+  group: string;
+  description: string;
+  /** @nullable */
+  code: string | null;
+  consequence: string;
+  /** @nullable */
+  gravityClass: number | null;
+  /** @nullable */
+  probabilityClass: number | null;
+  /** @nullable */
+  printedLevel: number | null;
+  measures: RisksProposalSheetsItemFactorsItemMeasuresItem[];
+  /** @nullable */
+  measuresFrom: RisksProposalSheetsItemFactorsItemMeasuresFrom;
+  /** @nullable */
+  actions: string | null;
+  /** @nullable */
+  deadline: string | null;
+  /** @nullable */
+  responsiblePerson: string | null;
+  /** @nullable */
+  observations: string | null;
+  flags: RisksProposalSheetsItemFactorsItemFlagsItem[];
+  included: boolean;
+  /** @nullable */
+  level: number | null;
+};
+
+export type RisksProposalSheetsItem = {
+  key: string;
+  file: string;
+  heading: string;
+  kind: RisksProposalSheetsItemKind;
+  name: string;
+  /** @nullable */
+  rows: RisksProposalSheetsItemRows;
+  /** @nullable */
+  meansOfProduction: string | null;
+  /** @nullable */
+  workEnvironment: string | null;
+  /** @nullable */
+  exposure: string | null;
+  flags: RisksProposalSheetsItemFlagsItem[];
+  posts: RisksProposalSheetsItemPostsItem[];
+  undecided: boolean;
+  /** @nullable */
+  existing: RisksProposalSheetsItemExisting;
+  libraryName: string;
+  /** @nullable */
+  status: RisksProposalSheetsItemStatus;
+  /** @nullable */
+  match: RisksProposalSheetsItemMatch;
+  /** @nullable */
+  choice: RisksProposalSheetsItemChoice;
+  sameAs: string[];
+  /** @nullable */
+  copyOf: string | null;
+  factors: RisksProposalSheetsItemFactorsItem[];
+};
+
+export type RisksProposalUnplacedRowsItem = {
+  row: string;
+  file: string;
+  text: string;
+};
+
+export type RisksProposalUnmatchedPlanRowsItem = {
+  row: string;
+  file: string;
+  text: string;
+  post: string;
+  risk: string;
+};
+
+export type RisksProposalUnmatchedMeasureRowsItem = {
+  row: string;
+  file: string;
+  text: string;
+};
+
+/**
+ * @nullable
+ */
+export type RisksProposal = {
+  sheets: RisksProposalSheetsItem[];
+  unplacedRows: RisksProposalUnplacedRowsItem[];
+  unmatchedPlanRows: RisksProposalUnmatchedPlanRowsItem[];
+  unmatchedMeasureRows: RisksProposalUnmatchedMeasureRowsItem[];
+} | null;
+
+/**
+ * @nullable
+ */
+export type RisksLibraryPartCounts = {
+  /** @minimum 0 */
+  identical: number;
+  /** @minimum 0 */
+  similar: number;
+  /** @minimum 0 */
+  new: number;
+  /** @minimum 0 */
+  unread: number;
+} | null;
+
+export type RisksLibraryPartChangesSheetsPostChoices = {
+  [key: string]: 'append' | 'replace' | 'keep';
+};
+
+export type RisksLibraryPartChangesSheetsFactorsMeasuresItem = {
+  kind: RisksLibraryPartChangesSheetsFactorsMeasuresItemKind;
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   */
+  description: string;
+};
+
+export type RisksLibraryPartChangesSheetsFactors = {
+  [key: string]: {
+    included?: boolean;
+    component?: RisksLibraryPartChangesSheetsFactorsComponent;
+    /**
+     * @minLength 1
+     * @maxLength 200
+     */
+    group?: string;
+    /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+    description?: string;
+    /**
+     * @minimum 1
+     * @maximum 7
+     */
+    gravityClass?: number;
+    /**
+     * @minimum 1
+     * @maximum 6
+     */
+    probabilityClass?: number;
+    /** @maxItems 30 */
+    measures?: RisksLibraryPartChangesSheetsFactorsMeasuresItem[];
+    /**
+     * @minLength 1
+     * @maxLength 2000
+     * @nullable
+     */
+    actions?: string | null;
+    /**
+     * @minLength 1
+     * @maxLength 200
+     * @nullable
+     */
+    deadline?: string | null;
+    /**
+     * @minLength 1
+     * @maxLength 200
+     * @nullable
+     */
+    responsiblePerson?: string | null;
+    /**
+     * @minLength 1
+     * @maxLength 1000
+     * @nullable
+     */
+    observations?: string | null;
+  };
+};
+
+export type RisksLibraryPartChangesSheets = {
+  [key: string]: {
+    /**
+     * @minLength 2
+     * @maxLength 160
+     */
+    libraryName?: string;
+    library?: RisksLibraryPartChangesSheetsLibrary;
+    /**
+     * @maxItems 500
+     * @items.minLength 1
+     * @items.maxLength 100
+     */
+    posts?: string[];
+    postChoices?: RisksLibraryPartChangesSheetsPostChoices;
+    existingChoice?: RisksLibraryPartChangesSheetsExistingChoice;
+    /**
+     * @minLength 1
+     * @maxLength 2000
+     * @nullable
+     */
+    meansOfProduction?: string | null;
+    /**
+     * @minLength 1
+     * @maxLength 2000
+     * @nullable
+     */
+    workEnvironment?: string | null;
+    /**
+     * @minLength 1
+     * @maxLength 120
+     * @nullable
+     */
+    exposure?: string | null;
+    factors?: RisksLibraryPartChangesSheetsFactors;
+  };
+};
+
+/**
+ * @nullable
+ */
+export type RisksLibraryPartChanges = {
+  sheets?: RisksLibraryPartChangesSheets;
+} | null;
+
+export type RisksLibraryPartPostReferences = { [key: string]: string | null };
+
+export type RisksLibraryPartExistingFactorsJobPositions = { [key: string]: number };
+
+export type RisksLibraryPartExistingFactorsSheets = { [key: string]: number };
+
+/**
+ * @nullable
+ */
+export type RisksLibraryPartExistingFactors = {
+  jobPositions: RisksLibraryPartExistingFactorsJobPositions;
+  sheets: RisksLibraryPartExistingFactorsSheets;
+} | null;
+
+export interface RisksLibraryPart {
+  status: RisksLibraryPartStatus;
+  /** @minimum 1 */
+  attempt: number;
+  /** @nullable */
+  failureReason: string | null;
+  /** @minimum 0 */
+  version: number;
+  /** @nullable */
+  counts: RisksLibraryPartCounts;
+  /** @nullable */
+  readAt: string | null;
+  /** @nullable */
+  confirmedAt: string | null;
+  /** @nullable */
+  expiresAt: string | null;
+  /** @minimum 0 */
+  credits: number;
+  usage?: ImportModelUsage;
+  part: RisksLibraryPartPart;
+  /** @nullable */
+  changes: RisksLibraryPartChanges;
+  postReferences: RisksLibraryPartPostReferences;
+  /** @nullable */
+  existingFactors: RisksLibraryPartExistingFactors;
+  proposal: RisksProposal | null;
+}
+
+export type ImportLibraryPart = InstructionsLibraryPart | RisksLibraryPart;
+
+export interface ImportLibraryPartsResponse {
+  parts: ImportLibraryPart[];
+  posts: ImportLibraryPartsResponsePostsItem[];
+}
+
+export type SaveImportLibraryPartChangesRequestChanges =
+  | {
+      instructions?: {
+        [key: string]: {
+          included?: boolean;
+          /**
+           * @minLength 2
+           * @maxLength 200
+           */
+          title?: string;
+          category?:
+            | 'work_activity'
+            | 'work_equipment'
+            | 'protective_equipment'
+            | 'premises_activity'
+            | 'installation_equipment'
+            | 'hazardous_work';
+          choice?: 'use_existing' | 'add_new';
+          /**
+           * @maxItems 500
+           * @items.minLength 1
+           * @items.maxLength 100
+           */
+          posts?: string[];
+          body?: {
+            blocks: (
+              | {
+                  kind: 'heading';
+                  /**
+                   * @minLength 1
+                   * @maxLength 300
+                   */
+                  text: string;
+                }
+              | {
+                  kind: 'article';
+                  /**
+                   * @minItems 1
+                   * @items.minLength 1
+                   * @items.maxLength 20000
+                   */
+                  paragraphs: string[];
+                }
+            )[];
+          };
+        };
+      };
+    }
+  | {
+      sheets?: {
+        [key: string]: {
+          /**
+           * @minLength 2
+           * @maxLength 160
+           */
+          libraryName?: string;
+          library?: 'add' | 'use_existing' | 'add_new' | 'skip';
+          /**
+           * @maxItems 500
+           * @items.minLength 1
+           * @items.maxLength 100
+           */
+          posts?: string[];
+          postChoices?: { [key: string]: 'append' | 'replace' | 'keep' };
+          existingChoice?: 'append' | 'replace' | 'keep';
+          /**
+           * @minLength 1
+           * @maxLength 2000
+           * @nullable
+           */
+          meansOfProduction?: string | null;
+          /**
+           * @minLength 1
+           * @maxLength 2000
+           * @nullable
+           */
+          workEnvironment?: string | null;
+          /**
+           * @minLength 1
+           * @maxLength 120
+           * @nullable
+           */
+          exposure?: string | null;
+          factors?: {
+            [key: string]: {
+              included?: boolean;
+              component?: 'executant' | 'work_task' | 'means_of_production' | 'work_environment';
+              /**
+               * @minLength 1
+               * @maxLength 200
+               */
+              group?: string;
+              /**
+               * @minLength 1
+               * @maxLength 1000
+               */
+              description?: string;
+              /**
+               * @minimum 1
+               * @maximum 7
+               */
+              gravityClass?: number;
+              /**
+               * @minimum 1
+               * @maximum 6
+               */
+              probabilityClass?: number;
+              /** @maxItems 30 */
+              measures?: {
+                kind: 'technical' | 'organizational' | 'hygienic_sanitary' | 'other';
+                /**
+                 * @minLength 1
+                 * @maxLength 2000
+                 */
+                description: string;
+              }[];
+              /**
+               * @minLength 1
+               * @maxLength 2000
+               * @nullable
+               */
+              actions?: string | null;
+              /**
+               * @minLength 1
+               * @maxLength 200
+               * @nullable
+               */
+              deadline?: string | null;
+              /**
+               * @minLength 1
+               * @maxLength 200
+               * @nullable
+               */
+              responsiblePerson?: string | null;
+              /**
+               * @minLength 1
+               * @maxLength 1000
+               * @nullable
+               */
+              observations?: string | null;
+            };
+          };
+        };
+      };
+    };
 
 export interface SaveImportLibraryPartChangesRequest {
   /** @minimum 0 */
@@ -11651,12 +12324,22 @@ export interface SaveImportLibraryPartChangesRequest {
   changes: SaveImportLibraryPartChangesRequestChanges;
 }
 
-export interface ConfirmImportLibraryPartResponse {
+export interface ConfirmInstructionsPartResponse {
   createdModuleIds: string[];
   usedModuleIds: string[];
   /** @minimum 0 */
   links: number;
 }
+
+export interface ConfirmRisksPartResponse {
+  createdProfileIds: string[];
+  evaluationIds: string[];
+  /** @minimum 0 */
+  factors: number;
+}
+
+export type ConfirmImportLibraryPartResponse =
+  ConfirmInstructionsPartResponse | ConfirmRisksPartResponse;
 
 export interface ConfirmImportLibraryPartRequest {
   /** @minimum 0 */
@@ -14520,6 +15203,18 @@ export const ListRiskFactorSuggestionsField = {
   deadline: 'deadline',
   responsiblePerson: 'responsiblePerson',
   observations: 'observations',
+} as const;
+
+export type ListEvaluationProfilesParams = {
+  archived?: ListEvaluationProfilesArchived;
+};
+
+export type ListEvaluationProfilesArchived =
+  (typeof ListEvaluationProfilesArchived)[keyof typeof ListEvaluationProfilesArchived];
+
+export const ListEvaluationProfilesArchived = {
+  true: 'true',
+  false: 'false',
 } as const;
 
 export type GetDocumentReadinessParams = {
@@ -25170,42 +25865,58 @@ export const useUpdateSensitiveGroupsState = <
   return useMutation(getUpdateSensitiveGroupsStateMutationOptions(options), queryClient);
 };
 
-export const getListEvaluationProfilesUrl = () => {
-  return `/evaluation-profiles`;
+export const getListEvaluationProfilesUrl = (params?: ListEvaluationProfilesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/evaluation-profiles?${stringifiedParams}`
+    : `/evaluation-profiles`;
 };
 
 /**
- * The risk library (ADR 015) by name, each profile without its factors but with `factorCount`, `unacceptableFactorCount` and `globalRiskLevel`.
+ * The risk library (ADR 015) by name, each profile without its factors but with `factorCount`, `unacceptableFactorCount`, `globalRiskLevel`, `clientCount` (the clients its usage lists) and `inUse` (ADR 036). Archived profiles are left out unless `archived=true`, which lists only them.
  * @summary List the organization's evaluation profiles
  */
 export const listEvaluationProfiles = async (
+  params?: ListEvaluationProfilesParams,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<EvaluationProfileListResponse> => {
-  return apiFetch<EvaluationProfileListResponse>(getListEvaluationProfilesUrl(), {
+  return apiFetch<EvaluationProfileListResponse>(getListEvaluationProfilesUrl(params), {
     ...options,
     method: 'GET',
   });
 };
 
-export const getListEvaluationProfilesQueryKey = () => {
-  return [`/evaluation-profiles`] as const;
+export const getListEvaluationProfilesQueryKey = (params?: ListEvaluationProfilesParams) => {
+  return [`/evaluation-profiles`, ...(params ? [params] : [])] as const;
 };
 
 export const getListEvaluationProfilesQueryOptions = <
   TData = Awaited<ReturnType<typeof listEvaluationProfiles>>,
   TError = ErrorType<ApiErrorResponse>,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof listEvaluationProfiles>>, TError, TData>
-  >;
-  request?: SecondParameter<typeof apiFetch>;
-}) => {
+>(
+  params?: ListEvaluationProfilesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listEvaluationProfiles>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListEvaluationProfilesQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getListEvaluationProfilesQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listEvaluationProfiles>>> = ({ signal }) =>
-    listEvaluationProfiles({ signal, ...requestOptions });
+    listEvaluationProfiles(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listEvaluationProfiles>>,
@@ -25223,6 +25934,7 @@ export function useListEvaluationProfiles<
   TData = Awaited<ReturnType<typeof listEvaluationProfiles>>,
   TError = ErrorType<ApiErrorResponse>,
 >(
+  params: undefined | ListEvaluationProfilesParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listEvaluationProfiles>>, TError, TData>
@@ -25243,6 +25955,7 @@ export function useListEvaluationProfiles<
   TData = Awaited<ReturnType<typeof listEvaluationProfiles>>,
   TError = ErrorType<ApiErrorResponse>,
 >(
+  params?: ListEvaluationProfilesParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listEvaluationProfiles>>, TError, TData>
@@ -25263,6 +25976,7 @@ export function useListEvaluationProfiles<
   TData = Awaited<ReturnType<typeof listEvaluationProfiles>>,
   TError = ErrorType<ApiErrorResponse>,
 >(
+  params?: ListEvaluationProfilesParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listEvaluationProfiles>>, TError, TData>
@@ -25279,6 +25993,7 @@ export function useListEvaluationProfiles<
   TData = Awaited<ReturnType<typeof listEvaluationProfiles>>,
   TError = ErrorType<ApiErrorResponse>,
 >(
+  params?: ListEvaluationProfilesParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listEvaluationProfiles>>, TError, TData>
@@ -25287,7 +26002,7 @@ export function useListEvaluationProfiles<
   },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListEvaluationProfilesQueryOptions(options);
+  const queryOptions = getListEvaluationProfilesQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -25543,16 +26258,17 @@ export function useGetEvaluationProfile<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export const getRenameEvaluationProfileUrl = (profileId: string) => {
+export const getUpdateEvaluationProfileUrl = (profileId: string) => {
   return `/evaluation-profiles/${profileId}`;
 };
 
 /**
- * @summary Rename an evaluation profile
+ * A field left out stays as it is; `null` clears `meansOfProduction`, `workEnvironment` or `exposure`, which a profile may leave empty. An archived profile keeps its page, its factors and its usage, and is refused by `applyEvaluationProfile` until restored. Archiving is allowed while clients use the profile, since they hold copies (ADR 036). Names stay unique across active and archived profiles.
+ * @summary Rename, archive or restore an evaluation profile, or change its work-system texts
  */
-export const renameEvaluationProfile = async (
+export const updateEvaluationProfile = async (
   profileId: string,
-  evaluationProfileNameRequest: EvaluationProfileNameRequest,
+  updateEvaluationProfileRequest: UpdateEvaluationProfileRequest,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<EvaluationProfileResponse> => {
   const getHeaders = (
@@ -25574,34 +26290,34 @@ export const renameEvaluationProfile = async (
     }
     return headers;
   };
-  return apiFetch<EvaluationProfileResponse>(getRenameEvaluationProfileUrl(profileId), {
+  return apiFetch<EvaluationProfileResponse>(getUpdateEvaluationProfileUrl(profileId), {
     ...options,
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(evaluationProfileNameRequest),
+    body: JSON.stringify(updateEvaluationProfileRequest),
   });
 };
 
-export const getRenameEvaluationProfileMutationKey = () => ['renameEvaluationProfile'] as const;
+export const getUpdateEvaluationProfileMutationKey = () => ['updateEvaluationProfile'] as const;
 
-export const getRenameEvaluationProfileMutationOptions = <
+export const getUpdateEvaluationProfileMutationOptions = <
   TError = ErrorType<ApiErrorResponse>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof renameEvaluationProfile>>,
+    Awaited<ReturnType<typeof updateEvaluationProfile>>,
     TError,
-    RenameEvaluationProfileMutationVariables,
+    UpdateEvaluationProfileMutationVariables,
     TContext
   >;
   request?: SecondParameter<typeof apiFetch>;
 }): UseMutationOptions<
-  Awaited<ReturnType<typeof renameEvaluationProfile>>,
+  Awaited<ReturnType<typeof updateEvaluationProfile>>,
   TError,
-  RenameEvaluationProfileMutationVariables,
+  UpdateEvaluationProfileMutationVariables,
   TContext
 > => {
-  const mutationKey = getRenameEvaluationProfileMutationKey();
+  const mutationKey = getUpdateEvaluationProfileMutationKey();
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
       ? options
@@ -25609,51 +26325,51 @@ export const getRenameEvaluationProfileMutationOptions = <
     : { mutation: { mutationKey }, request: undefined };
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof renameEvaluationProfile>>,
-    RenameEvaluationProfileMutationVariables
+    Awaited<ReturnType<typeof updateEvaluationProfile>>,
+    UpdateEvaluationProfileMutationVariables
   > = (props) => {
     const { profileId, data } = props ?? {};
 
-    return renameEvaluationProfile(profileId, data, requestOptions);
+    return updateEvaluationProfile(profileId, data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
-export type RenameEvaluationProfileMutationResult = NonNullable<
-  Awaited<ReturnType<typeof renameEvaluationProfile>>
+export type UpdateEvaluationProfileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateEvaluationProfile>>
 >;
-export type RenameEvaluationProfileMutationBody = EvaluationProfileNameRequest;
-export type RenameEvaluationProfileMutationError = ErrorType<ApiErrorResponse>;
-export type RenameEvaluationProfileMutationVariables = {
+export type UpdateEvaluationProfileMutationBody = UpdateEvaluationProfileRequest;
+export type UpdateEvaluationProfileMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateEvaluationProfileMutationVariables = {
   profileId: string;
-  data: EvaluationProfileNameRequest;
+  data: UpdateEvaluationProfileRequest;
 };
 
 /**
- * @summary Rename an evaluation profile
+ * @summary Rename, archive or restore an evaluation profile, or change its work-system texts
  */
-export const useRenameEvaluationProfile = <
+export const useUpdateEvaluationProfile = <
   TError = ErrorType<ApiErrorResponse>,
   TContext = unknown,
 >(
   options?: {
     mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof renameEvaluationProfile>>,
+      Awaited<ReturnType<typeof updateEvaluationProfile>>,
       TError,
-      RenameEvaluationProfileMutationVariables,
+      UpdateEvaluationProfileMutationVariables,
       TContext
     >;
     request?: SecondParameter<typeof apiFetch>;
   },
   queryClient?: QueryClient
 ): UseMutationResult<
-  Awaited<ReturnType<typeof renameEvaluationProfile>>,
+  Awaited<ReturnType<typeof updateEvaluationProfile>>,
   TError,
-  RenameEvaluationProfileMutationVariables,
+  UpdateEvaluationProfileMutationVariables,
   TContext
 > => {
-  return useMutation(getRenameEvaluationProfileMutationOptions(options), queryClient);
+  return useMutation(getUpdateEvaluationProfileMutationOptions(options), queryClient);
 };
 
 export const getRemoveEvaluationProfileUrl = (profileId: string) => {
@@ -25661,8 +26377,8 @@ export const getRemoveEvaluationProfileUrl = (profileId: string) => {
 };
 
 /**
- * The factors it gave evaluations stay in them, as the client’s; their `sourceProfile` becomes null.
- * @summary Delete an evaluation profile with its factors
+ * Refused while any client’s factor, archived posts’ and clients’ included, points at one of its factors (reason `evaluation_profile_in_use`): such a profile is archived instead (ADR 036).
+ * @summary Delete an evaluation profile no client uses
  */
 export const removeEvaluationProfile = async (
   profileId: string,
@@ -25720,7 +26436,7 @@ export type RemoveEvaluationProfileMutationError = ErrorType<ApiErrorResponse>;
 export type RemoveEvaluationProfileMutationVariables = { profileId: string };
 
 /**
- * @summary Delete an evaluation profile with its factors
+ * @summary Delete an evaluation profile no client uses
  */
 export const useRemoveEvaluationProfile = <
   TError = ErrorType<ApiErrorResponse>,
@@ -26123,7 +26839,7 @@ export const getRemoveEvaluationProfileFactorUrl = (profileId: string, factorId:
 };
 
 /**
- * Answers with the whole profile.
+ * Allowed while clients use the profile: their copies of the factor stay and their `sourceProfile` becomes null. Answers with the whole profile.
  * @summary Remove a profile's risk factor
  */
 export const removeEvaluationProfileFactor = async (
@@ -26220,7 +26936,7 @@ export const getSaveRiskEvaluationAsProfileUrl = (clientId: string, evaluationId
 };
 
 /**
- * A new profile named `name` with copies of the evaluation’s factors, their classes, measures and plan fields, in their order. The work system texts stay with the evaluation. Each factor without a `sourceProfile` gets the new profile as its own; one copied from another profile keeps that. An archived client’s evaluation can be saved too, and its factors stay as they were.
+ * A new profile named `name` with copies of the evaluation’s factors, their classes, measures and plan fields, in their order, and its work-system texts, the exposure only once it is no longer "8 h / schimb". Each factor without a `sourceProfile` gets the new profile as its own; one copied from another profile keeps that. An archived client’s evaluation can be saved too, and its factors stay as they were.
  * @summary Save a risk evaluation as a profile of the library
  */
 export const saveRiskEvaluationAsProfile = async (
@@ -26340,7 +27056,7 @@ export const getApplyEvaluationProfileUrl = (clientId: string, evaluationId: str
 };
 
 /**
- * Adds copies of the profile’s factors, with their classes, measures and plan fields, after the factors the evaluation already has, each with the profile as its `sourceProfile`. `addedFactorCount` says how many. Later changes to the profile do not reach the copies.
+ * Adds copies of the profile’s factors, with their classes, measures and plan fields, after the factors the evaluation already has, each with the profile as its `sourceProfile`. `addedFactorCount` says how many. The profile’s work-system texts fill only the evaluation’s empty ones, the exposure while it is still "8 h / schimb", and never overwrite a text. Later changes to the profile do not reach the copies.
  * @summary Copy the factors of a profile into a risk evaluation
  */
 export const applyEvaluationProfile = async (
@@ -35557,7 +36273,7 @@ export const getListImportLibraryPartsUrl = (importId: string) => {
 };
 
 /**
- * One part per domain whose own instructions the sorting found (ADR 034), `instructions_ssm` and `instructions_su`, each read by a request of its own once the client proposal is ready: its status (`reading`, `to_review`, `nothing_new`, `failed` with `failureReason`, `confirmed`), the proposal from `to_review` on (null before, and once dropped with the import's, 30 days after the client), the member's changes and the version to save on, the counts of identical, similar, new and unread instructions, `positionPosts` (the client post each post the themes name is, as the changes name posts), `expiresAt` (14 days after the client's confirmation, past which a part is no longer confirmed), and `credits`, its readings net of those given back. `posts` are the posts an instruction can apply to: the client proposal's, by their id, with the job position each became once the client is confirmed, and the client's other active posts by their id. `usage`, the models' cost at list price and tokens, is served outside production and, in production, only to a platform admin. An empty list for an employee import or a pack without own instructions.
+ * One part per domain whose own instructions the sorting found (ADR 034), `instructions_ssm` and `instructions_su`, and `risk_evaluations` when it found a risk assessment (ADR 036), each read by a request of its own once the client proposal is ready: its status (`reading`, `to_review`, `nothing_new`, `failed` with `failureReason`, `confirmed`), the proposal from `to_review` on (null before, and once dropped with the import's, 30 days after the client), the member's changes and the version to save on, the counts of identical, similar, new and unread instructions, `positionPosts` (the client post each post the themes name is, as the changes name posts), `expiresAt` (14 days after the client's confirmation, past which a part is no longer confirmed), and `credits`, its readings net of those given back. `posts` are the posts an instruction can apply to: the client proposal's, by their id, with the job position each became once the client is confirmed, and the client's other active posts by their id. The risk evaluations' part, discriminated by `part`, has no `domain`; its proposal is a `RisksProposal`, its changes are by sheet, its counts are of sheets (`unread`, those with no factor read), and `postReferences` gives, by a post's name as the sheets write it, the client post it is, as the changes name posts; `existingFactors` gives the factors the client's sheets have now, by job position and, for a client-level sheet, by the sheet's key, which confirming follows where the member made no choice (null while the import has no client). `usage`, the models' cost at list price and tokens, is served outside production and, in production, only to a platform admin. An empty list for an employee import or a pack with neither own instructions nor a risk assessment.
  * @summary A client import's proposals for the library
  */
 export const listImportLibraryParts = async (
@@ -35691,18 +36407,18 @@ export function useListImportLibraryParts<
 
 export const getSaveImportLibraryPartChangesUrl = (
   importId: string,
-  part: 'instructions_ssm' | 'instructions_su'
+  part: 'instructions_ssm' | 'instructions_su' | 'risk_evaluations'
 ) => {
   return `/imports/${importId}/library-parts/${part}/changes`;
 };
 
 /**
- * Replaces the part's changes, by the proposed instruction's key: `included` false leaves it out, `title`, `category` (one of the part's domain), `choice` for a similar instruction (`use_existing` or `add_new`), `posts` in place of those the themes give, and `body`, the text edited, held to the body's schema. Before the client is confirmed too. On the `version` the caller read, and answers the next. `400` for a key the proposal does not have or a category of the other domain; `409` with `import_changed` when someone saved since, `import_part_not_ready` when the part is not `to_review` or `nothing_new`, `import_part_expired` 14 days after the client's confirmation.
+ * Replaces the part's changes. An instructions part's are by the proposed instruction's key: `included` false leaves it out, `title`, `category` (one of the part's domain), `choice` for a similar instruction (`use_existing` or `add_new`), `posts` in place of those the themes give, and `body`, the text edited, held to the body's schema. The risk evaluations' are `sheets`, by the sheet's key (`RiskImportChanges`): `libraryName`, `library` (`add`, `use_existing`, `add_new`, `skip`), `posts`, `postChoices` and `existingChoice` (`append`, `replace`, `keep`), the three texts, and `factors` by the factor's key. Before the client is confirmed too. On the `version` the caller read, and answers the next. `400` for a key the proposal does not have, a category of the other domain, `use_existing` for a sheet the library matched none of, or another part's changes; `409` with `import_changed` when someone saved since, `import_part_not_ready` when the part is not `to_review` or `nothing_new`, `import_part_expired` 14 days after the client's confirmation.
  * @summary Save the member's review of a library part
  */
 export const saveImportLibraryPartChanges = async (
   importId: string,
-  part: 'instructions_ssm' | 'instructions_su',
+  part: 'instructions_ssm' | 'instructions_su' | 'risk_evaluations',
   saveImportLibraryPartChangesRequest: SaveImportLibraryPartChangesRequest,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<SaveImportChangesResponse> => {
@@ -35779,7 +36495,7 @@ export type SaveImportLibraryPartChangesMutationBody = SaveImportLibraryPartChan
 export type SaveImportLibraryPartChangesMutationError = ErrorType<ApiErrorResponse>;
 export type SaveImportLibraryPartChangesMutationVariables = {
   importId: string;
-  part: 'instructions_ssm' | 'instructions_su';
+  part: 'instructions_ssm' | 'instructions_su' | 'risk_evaluations';
   data: SaveImportLibraryPartChangesRequest;
 };
 
@@ -35811,18 +36527,18 @@ export const useSaveImportLibraryPartChanges = <
 
 export const getConfirmImportLibraryPartUrl = (
   importId: string,
-  part: 'instructions_ssm' | 'instructions_su'
+  part: 'instructions_ssm' | 'instructions_su' | 'risk_evaluations'
 ) => {
   return `/imports/${importId}/library-parts/${part}/confirm`;
 };
 
 /**
- * In one transaction (`apply_instruction_import`): creates a module with its first version for every new instruction and every similar one the member chose to add as new, takes the identical ones and the similar ones kept as they are, and applies each to its posts, skipping a post that applies it already, all as the member. Only after the client is confirmed: `409` with `import_client_unconfirmed` before (the app says "Confirmă întâi clientul"). The client import's own confirm never waits for its parts. `409` with `import_part_expired` 14 days after the client's confirmation, `import_part_not_ready`, `import_changed`, `instruction_title_taken` when a new module's title is an active module's (with `issues` on `instructions.<key>.title`), or `import_outdated` when a post or module the review named is gone. `422` with `import_incomplete` for a category of the other domain.
+ * For the risk evaluations, in one transaction (`apply_risk_import`): creates the chosen library entries with their factors, measures, plan fields as defaults (a person named in one goes to the client only) and texts, creates each missing evaluation of the client, fills only its empty texts, and writes the reviewed factors onto each sheet's posts as the post's choice says, each pointing at the entry's factor it was added to or matched; it answers `createdProfileIds`, `evaluationIds` and `factors`. `409` with `evaluation_profile_name_taken` when a new entry's name is any entry's, archived ones included (with `issues` on `sheets.<key>.libraryName`); `422` with `import_incomplete` for a ticked factor without its component or classes (with `issues` on `sheets.<key>.factors.<key>`). For instructions, in one transaction (`apply_instruction_import`): creates a module with its first version for every new instruction and every similar one the member chose to add as new, takes the identical ones and the similar ones kept as they are, and applies each to its posts, skipping a post that applies it already, all as the member. Only after the client is confirmed: `409` with `import_client_unconfirmed` before (the app says "Confirmă întâi clientul"). The client import's own confirm never waits for its parts. `409` with `import_part_expired` 14 days after the client's confirmation, `import_part_not_ready`, `import_changed`, `instruction_title_taken` when a new module's title is an active module's (with `issues` on `instructions.<key>.title`), or `import_outdated` when a post or module the review named is gone. `422` with `import_incomplete` for a category of the other domain.
  * @summary Confirm a library part
  */
 export const confirmImportLibraryPart = async (
   importId: string,
-  part: 'instructions_ssm' | 'instructions_su',
+  part: 'instructions_ssm' | 'instructions_su' | 'risk_evaluations',
   confirmImportLibraryPartRequest: ConfirmImportLibraryPartRequest,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<ConfirmImportLibraryPartResponse> => {
@@ -35901,7 +36617,7 @@ export type ConfirmImportLibraryPartMutationBody = ConfirmImportLibraryPartReque
 export type ConfirmImportLibraryPartMutationError = ErrorType<ApiErrorResponse>;
 export type ConfirmImportLibraryPartMutationVariables = {
   importId: string;
-  part: 'instructions_ssm' | 'instructions_su';
+  part: 'instructions_ssm' | 'instructions_su' | 'risk_evaluations';
   data: ConfirmImportLibraryPartRequest;
 };
 
@@ -35933,18 +36649,18 @@ export const useConfirmImportLibraryPart = <
 
 export const getRetryImportLibraryPartUrl = (
   importId: string,
-  part: 'instructions_ssm' | 'instructions_su'
+  part: 'instructions_ssm' | 'instructions_su' | 'risk_evaluations'
 ) => {
   return `/imports/${importId}/library-parts/${part}/retry`;
 };
 
 /**
- * "Citește din nou": a `failed` part of an import ready for review or confirmed goes back to `reading` under its next `attempt` and its message is sent again; the reading is charged again when its request is sent (25 credits for SSM, 10 for SU), and given back if it fails. The client proposal and the other part are untouched. `409` with `import_part_expired` 14 days after the client was confirmed, when it could no longer be confirmed, and `import_part_not_failed` otherwise; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.
+ * "Citește din nou": a `failed` part of an import ready for review or confirmed goes back to `reading` under its next `attempt` and its message is sent again; the reading is charged again when its request is sent (25 credits for SSM, 10 for SU, 15 for the risk evaluations), and given back if it fails. The client proposal and the other part are untouched. `409` with `import_part_expired` 14 days after the client was confirmed, when it could no longer be confirmed, and `import_part_not_failed` otherwise; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.
  * @summary Read a failed library part again
  */
 export const retryImportLibraryPart = async (
   importId: string,
-  part: 'instructions_ssm' | 'instructions_su',
+  part: 'instructions_ssm' | 'instructions_su' | 'risk_evaluations',
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<ImportLibraryPartResponse> => {
   return apiFetch<ImportLibraryPartResponse>(getRetryImportLibraryPartUrl(importId, part), {
@@ -35998,7 +36714,7 @@ export type RetryImportLibraryPartMutationResult = NonNullable<
 export type RetryImportLibraryPartMutationError = ErrorType<ApiErrorResponse>;
 export type RetryImportLibraryPartMutationVariables = {
   importId: string;
-  part: 'instructions_ssm' | 'instructions_su';
+  part: 'instructions_ssm' | 'instructions_su' | 'risk_evaluations';
 };
 
 /**

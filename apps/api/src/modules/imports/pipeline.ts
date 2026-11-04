@@ -6,9 +6,11 @@ import {
   importCredits,
   type ImportKind,
   type ImportLibraryPart,
+  importLibraryParts,
   importLimits,
   type InstructionDomain,
-  libraryPartDomains,
+  instructionsPartDomains,
+  isInstructionsPart,
   type PdfPageText,
 } from '@ssm-usor/contracts';
 import {
@@ -191,7 +193,8 @@ const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml
 const wordTypes = new Set(['application/msword', docxType]);
 
 const isWord = (file: Pick<ImportFileRow, 'mime_type'>) => wordTypes.has(file.mime_type);
-const isImage = (file: Pick<ImportFileRow, 'mime_type'>) => file.mime_type.startsWith('image/');
+export const isImage = (file: Pick<ImportFileRow, 'mime_type'>) =>
+  file.mime_type.startsWith('image/');
 /**
  * What starting an import charges for a file it holds (ADR 030): a photograph is always read, and
  * an employee import reads every page of a PDF, as many as the browser counted. A client's PDF
@@ -294,7 +297,7 @@ function base64(bytes: Uint8Array) {
   return btoa(binary);
 }
 
-const dataUrl = (bytes: Uint8Array, type: string) => `data:${type};base64,${base64(bytes)}`;
+export const dataUrl = (bytes: Uint8Array, type: string) => `data:${type};base64,${base64(bytes)}`;
 
 function requireExtractor(deps: PipelineDeps) {
   if (!deps.extractor) throw new ImportFailure(importReasons.notConfigured);
@@ -478,14 +481,20 @@ export const isLibraryFile = (file: ImportFileRow) =>
   libraryStates.has(file.state) &&
   (file.document_kind === 'own_instructions' || file.document_kind === 'training_themes');
 
+// Read by the client reading too, for the posts and the evaluation team (ADR 030).
+export const isRiskFile = (file: ImportFileRow) =>
+  file.document_kind === 'risk_assessment' && file.state === 'read';
+
 export function libraryPartsOf(files: ImportFileRow[]): ImportLibraryPart[] {
   const domains = new Set(
     files
       .filter((file) => isLibraryFile(file) && file.document_kind === 'own_instructions')
       .map((file) => file.document_domain)
   );
-  return (Object.keys(libraryPartDomains) as ImportLibraryPart[]).filter((part) =>
-    domains.has(libraryPartDomains[part])
+  return importLibraryParts.filter((part) =>
+    part === 'risk_evaluations'
+      ? files.some(isRiskFile)
+      : domains.has(instructionsPartDomains[part])
   );
 }
 
@@ -683,7 +692,7 @@ async function failScan(deps: PipelineDeps, file: ImportFileRow, error: unknown)
   );
 }
 
-async function pageImage(deps: PipelineDeps, file: ImportFileRow) {
+export async function pageImage(deps: PipelineDeps, file: ImportFileRow) {
   let original: Uint8Array | null = null;
   return async (page: number) => {
     if (file.derived_path && isImage(file)) {
@@ -1033,12 +1042,11 @@ export async function checkImport(deps: PipelineDeps, importId: string) {
       proposal: asJson({ ...checked, registeredCompany }),
       ready_at: new Date().toISOString(),
     },
-    reading.map((part): ImportMessage => ({
-      type: 'read-instructions',
-      importId,
-      part: part.part,
-      attempt: part.attempt,
-    }))
+    reading.map(({ part, attempt }): ImportMessage =>
+      isInstructionsPart(part)
+        ? { type: 'read-instructions', importId, part, attempt }
+        : { type: 'read-risks', importId, attempt }
+    )
   );
 }
 

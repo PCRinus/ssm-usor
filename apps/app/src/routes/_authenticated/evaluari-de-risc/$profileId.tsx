@@ -15,7 +15,7 @@ import {
 import { RiskEvaluationPending } from '@/features/risk-evaluations/risk-evaluation-pending';
 import { factorListSearch } from '@/features/risk-evaluations/use-factor-list-view';
 
-export const Route = createFileRoute('/_authenticated/riscuri/$profileId')({
+export const Route = createFileRoute('/_authenticated/evaluari-de-risc/$profileId')({
   validateSearch: factorListSearch,
   params: { parse: (params) => ({ profileId: z.uuid().parse(params.profileId) }) },
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {

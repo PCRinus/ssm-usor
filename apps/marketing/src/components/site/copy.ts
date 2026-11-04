@@ -296,7 +296,7 @@ export const library = {
       text: 'Pornești de la întrebările incluse și adaugi ce vrei tu.',
     },
   ] satisfies { icon: LibraryIcon; title: string; text: string }[],
-  shotAlt: 'Biblioteca de riscuri: posturi evaluate o dată și aplicate la orice client',
+  shotAlt: 'Evaluări de risc: posturi evaluate o dată și aplicate la orice client',
 };
 
 export const legislation = {

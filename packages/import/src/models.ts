@@ -2,10 +2,15 @@
 export const sortingModel = 'gpt-6-luna';
 export const readingModel = 'gpt-6.1-terra';
 export const instructionsModel = 'gpt-6.1-terra';
+export const risksModel = 'gpt-6.1-terra';
 export const similarityModel = 'gpt-6-luna';
 
 export type ModelId =
-  typeof sortingModel | typeof readingModel | typeof instructionsModel | typeof similarityModel;
+  | typeof sortingModel
+  | typeof readingModel
+  | typeof instructionsModel
+  | typeof risksModel
+  | typeof similarityModel;
 
 export interface Usage {
   // Input tokens not read from the provider's cache; those are `cachedInput`.

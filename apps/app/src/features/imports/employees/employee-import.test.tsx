@@ -449,7 +449,14 @@ describe('confirming', () => {
     mockEmployeeImport({
       detail: {
         ...partly(),
-        credits: { used: 98, atStart: 98, scannedPages: 0, ownInstructions: 0, refunded: false },
+        credits: {
+          used: 98,
+          atStart: 98,
+          scannedPages: 0,
+          ownInstructions: 0,
+          riskEvaluations: 0,
+          refunded: false,
+        },
       },
     });
     const user = userEvent.setup();
