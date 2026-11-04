@@ -2728,6 +2728,13 @@ export type Database = {
             foreignKeyName: 'import_copies_organization_id_fkey';
             columns: ['organization_id'];
             isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'import_copies_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
             referencedRelation: 'organizations';
             referencedColumns: ['id'];
           },
@@ -7704,7 +7711,12 @@ export type Database = {
           part: Database['public']['Enums']['import_library_part'];
           proposal: Json | null;
           proposal_dropped_at: string | null;
+          quality: Json | null;
           read_at: string | null;
+          reading_flags: Json | null;
+          reading_version: Json | null;
+          reported_at: string | null;
+          reported_by: string | null;
           status: Database['public']['Enums']['import_library_part_status'];
           updated_at: string;
           version: number;
@@ -7745,7 +7757,11 @@ export type Database = {
           proposal_dropped_at: string | null;
           quality: Json | null;
           read_characters: number | null;
+          reading_flags: Json | null;
+          reading_version: Json | null;
           ready_at: string | null;
+          reported_at: string | null;
+          reported_by: string | null;
           source_import_id: string | null;
           started_at: string | null;
           status: Database['public']['Enums']['import_status'];
