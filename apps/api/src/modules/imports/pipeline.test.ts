@@ -2199,7 +2199,7 @@ describe('the risk evaluations', () => {
     expect(part().status).toBe('nothing_new');
   });
 
-  it('writes out a PDF sheet in a request of its own, kept by the sheets it asks for', async () => {
+  it('writes out a PDF sheet with its measures in a request of its own, kept by the sheets it asks for', async () => {
     const pdf: FileSpec = { ...files[2]!, path: 'Dosar/Evaluarea riscurilor.pdf' };
     const noColumns = Object.fromEntries(Object.keys(columns).map((key) => [key, '']));
     model = (request) => {
@@ -2249,6 +2249,12 @@ describe('the risk evaluations', () => {
                   probability: '3',
                   level: '3',
                   quote: 'privind organizarea activității',
+                  measuresFrom: 'plan',
+                  measures: [{ kind: 'technical', description: 'Protecția malaxorului.' }],
+                  actions: '',
+                  deadline: 'Imediat',
+                  responsiblePerson: 'Administrator',
+                  observations: '',
                 },
               ],
             },
@@ -2270,6 +2276,13 @@ describe('the risk evaluations', () => {
     expect(written!.factors.map((factor) => [factor.description, factor.flags[0]])).toEqual([
       ['Prinderea degetelor în malaxor.', { kind: 'retyped' }],
     ]);
+    expect(written!.factors[0]).toMatchObject({
+      measures: [{ kind: 'technical', description: 'Protecția malaxorului.' }],
+      measuresFrom: 'plan',
+      deadline: 'Imediat',
+      responsiblePerson: 'Administrator',
+      actions: null,
+    });
   });
 
   it('fails the part, not the import, when the answer cannot be used', async () => {
