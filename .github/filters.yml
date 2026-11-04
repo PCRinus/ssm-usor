@@ -38,6 +38,12 @@ portal:
   - 'packages/contracts/**'
   - 'apps/api/openapi.json'
   - 'orval.config.ts'
+admin:
+  - *shared
+  - *ui
+  - 'apps/admin/**'
+  - 'packages/api-http/**'
+  - 'packages/contracts/**'
 mail:
   - *shared
   - 'apps/mail/**'
