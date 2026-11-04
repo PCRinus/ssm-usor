@@ -1,8 +1,12 @@
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
 
 import { fakeTurnstile } from './turnstile';
+
+// The default 1 s wait for an element runs out when several suites share the machine, and a
+// page that renders in 1.2 s fails as missing. A wait ends as soon as the element appears.
+configure({ asyncUtilTimeout: 5_000 });
 
 afterEach(cleanup);
 

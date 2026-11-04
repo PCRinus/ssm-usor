@@ -334,8 +334,7 @@ describe('signers on the training flow', () => {
   async function openWorkplaceTraining(domain: 'ssm' | 'su' = 'ssm') {
     const user = userEvent.setup();
     mount(`${employeePage}/instruire/${domain}`);
-    // The first mount of the describe loads the route and its queries cold; CI needs longer than the default second.
-    await screen.findByTestId('training-records-empty', {}, { timeout: 5000 });
+    await screen.findByTestId('training-records-empty');
     await user.click(screen.getAllByTestId('training-record')[0]!);
     const dialog = await screen.findByTestId('training-dialog');
     await user.selectOptions(within(dialog).getByTestId('training-phase'), 'workplace');

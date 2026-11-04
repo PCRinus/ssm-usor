@@ -62,8 +62,7 @@ function mount(detail: ImportDetail, path = '') {
 }
 
 const heading = async () =>
-  (await screen.findByTestId('employee-processing', {}, { timeout: 3000 })).querySelector('h1')
-    ?.textContent;
+  (await screen.findByTestId('employee-processing')).querySelector('h1')?.textContent;
 
 beforeEach(() => {
   fetchMock.mockReset();
