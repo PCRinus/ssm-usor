@@ -1743,6 +1743,14 @@ the table. Functions for the secret key:
   `import_id`, `part` and `folder` (without the final slash), which the daily clean-up empties,
   an import's without its `parts/` folders, which expire on their own, before it marks them.
 
+Within a copy's folder the API writes `files/`, every object of the import's folder in `imports`
+copied by Storage, and `record.json`, the import's row, files, proposal, changes and counts; a
+part's folder holds its own `record.json` and, under `files/`, the objects named after the part.
+The API sets `reading_version` when an import leaves `preparing` and when a part's reading ends,
+`reading_flags` when a reading ends or the pipeline fails it, and a part's `quality` after its
+confirmation, which `apply_instruction_import` and `apply_risk_import` do not take; the shapes are
+in the [API](api.md#improvement-copies-and-alerts).
+
 **Sheet photographs a client import found.** A confirmed client import keeps the training sheets
 it sorted as `for_employees` as plain files of the client's import folder. An employee import
 takes them as copies, made by the API from `client-files` into its own folder with the secret
