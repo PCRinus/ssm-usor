@@ -211,6 +211,12 @@ describe('the plan rows on a sheet card', () => {
     expect(planRowsRow().getAttribute('data-tone')).toBe('done');
     expect(planRowsRow().textContent).toContain('L-ai adăugat ca factor.');
 
+    expect(
+      within(row)
+        .getAllByRole('button')
+        .map((button) => button.textContent)
+    ).toEqual(['Modifică', 'Scoate de pe fișă', 'Vezi în document']);
+
     await userEvent.click(screen.getByTestId('risk-import-plan-row-remove'));
 
     expect(screen.getByTestId('risk-import-plan-row').hasAttribute('data-added')).toBe(false);

@@ -1,4 +1,4 @@
-import { importCredits, importErrorReasons } from '@ssm-usor/contracts';
+import { foldText, importCredits, importErrorReasons } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -550,8 +550,12 @@ function LooseRowItem({
   );
 }
 
-const cellsText = (row: LooseRow) => (
-  <p className="text-sm wrap-anywhere">{looseCells(row.text).join(' · ')}</p>
+const cellsText = (row: LooseRow, label = '') => (
+  <p className="text-sm wrap-anywhere">
+    {looseCells(row.text)
+      .filter((cell) => foldText(cell) !== foldText(label))
+      .join(' · ')}
+  </p>
 );
 
 const rowSource = (row: LooseRow): LabelledSource => ({
@@ -614,7 +618,7 @@ function LooseRows({
                 fields={planFieldsLine(row.factor)}
               />
             ) : (
-              cellsText(row)
+              cellsText(row, row.post)
             )}
           </LooseRowItem>
         ))}

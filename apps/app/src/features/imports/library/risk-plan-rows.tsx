@@ -68,28 +68,19 @@ function PlanRowItem({
         )}
       </div>
       <div className="grid gap-2 sm:flex sm:items-start">
-        {readOnly || !added ? (
-          <>
-            {!readOnly && (
-              <Button
-                type="button"
-                variant="outline"
-                data-testid="risk-import-plan-row-add"
-                aria-label={`Adaugă ca factor: ${state.description}`}
-                onClick={onAdd}
-              >
-                <Plus aria-hidden="true" />
-                Adaugă ca factor
-              </Button>
-            )}
-            <SourceButton
-              outlined
-              label="Vezi în document"
-              sources={[source]}
-              onOpen={() => onSource(source)}
-            />
-          </>
-        ) : (
+        {!readOnly && !added && (
+          <Button
+            type="button"
+            variant="outline"
+            data-testid="risk-import-plan-row-add"
+            aria-label={`Adaugă ca factor: ${state.description}`}
+            onClick={onAdd}
+          >
+            <Plus aria-hidden="true" />
+            Adaugă ca factor
+          </Button>
+        )}
+        {!readOnly && added && (
           <>
             <Button
               type="button"
@@ -113,6 +104,12 @@ function PlanRowItem({
             </Button>
           </>
         )}
+        <SourceButton
+          outlined
+          label="Vezi în document"
+          sources={[source]}
+          onOpen={() => onSource(source)}
+        />
       </div>
     </li>
   );
