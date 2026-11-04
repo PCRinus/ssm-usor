@@ -129,22 +129,27 @@ function foldWithOffsets(text: string): FoldedText {
   const starts: number[] = [];
   const ends: number[] = [];
   let offset = 0;
+  // Not `folded.endsWith(' ')`: V8 copies the string being built on each call, which is
+  // quadratic in a Word file's text.
+  let endsInSpace = false;
   for (const character of text) {
     const end = offset + character.length;
     for (const piece of foldCharacter(character)) {
       if (wordCharacter.test(piece)) {
         folded += piece;
+        endsInSpace = false;
         starts.push(offset);
         ends.push(end);
-      } else if (folded.length > 0 && !folded.endsWith(' ')) {
+      } else if (folded.length > 0 && !endsInSpace) {
         folded += ' ';
+        endsInSpace = true;
         starts.push(offset);
         ends.push(end);
       }
     }
     offset = end;
   }
-  if (folded.endsWith(' ')) {
+  if (endsInSpace) {
     folded = folded.slice(0, -1);
     starts.pop();
     ends.pop();
