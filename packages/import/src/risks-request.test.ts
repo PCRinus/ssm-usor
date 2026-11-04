@@ -18,7 +18,7 @@ import {
   RisksTooLargeError,
   withRetyped,
 } from './risks-request';
-import { numberRows, rowsBetween, splitCells } from './risks-rows';
+import { numberRows, rowsBetween, splitCells, squeezeLayout } from './risks-rows';
 import { answer, assessment, plan, scanned } from './test/risks-pack';
 
 describe('numberRows', () => {
@@ -364,3 +364,13 @@ const retyped = {
   level: '4',
   quote: 'F1. Accident rutier cu bicicleta de livrare. Deces 7 2 4',
 };
+
+describe('squeezeLayout', () => {
+  it('shortens the padding of a PDF layout line and keeps its columns apart', () => {
+    expect(
+      squeezeLayout(
+        'F3. Cădere pe pardoseală          ITM 3-45 zile        2     3     2   \nUrmătorul rând'
+      )
+    ).toBe('F3. Cădere pe pardoseală  ITM 3-45 zile  2  3  2\nUrmătorul rând');
+  });
+});

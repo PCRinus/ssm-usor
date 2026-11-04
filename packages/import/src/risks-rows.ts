@@ -71,3 +71,9 @@ export function rowsBetween(numbered: NumberedRows, first: string, last: string)
     return number >= from && number <= to && row.file === file;
   });
 }
+
+// A PDF's layout text pads its columns with long runs of spaces, which would count against the
+// request's character cap without telling the model anything two spaces don't.
+export function squeezeLayout(text: string) {
+  return text.replace(/[ \t]+$/gmu, '').replace(/[ \t]{3,}/gu, '  ');
+}
