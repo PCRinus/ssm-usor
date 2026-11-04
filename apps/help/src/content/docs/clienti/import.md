@@ -52,8 +52,12 @@ topics:
     heading: Instrucțiunile proprii din documentație
   - id: import.evaluari-de-risc
     heading: Evaluările de risc din documentație
+  - id: import.problema
+    heading: O problemă cu importul
 sources:
   - docs/architecture/adr-030-import-from-documents.md
+  - docs/architecture/adr-037-import-quality-and-alerts.md
+  - apps/app/src/features/imports/report-import-button.tsx
   - docs/architecture/adr-032-employees-imported-from-training-sheets.md
   - docs/architecture/adr-023-advanced-electronic-signature.md
   - packages/contracts/src/imports.ts
@@ -369,3 +373,11 @@ Termenul următoarei instruiri periodice se socotește de la datele de pe fișe.
 Importul nu invită pe nimeni în portal: invitația rămâne o acțiune a ta. După confirmare, tabul **Angajați** îți arată **Invită în portal angajații din fișe**, cu care îi inviți pe toți odată; emailurile și telefoanele pe care fișele nu le au le scrii acolo. Cardul rămâne pe tab și la vizitele următoare, cu data importului și câți angajați mai ai de invitat, până când toți sunt invitați sau în portal ori până alegi **Ascunde**. Ascuns, nu mai apare pentru acel import în browserul în care lucrezi. Dacă mai multe importuri au angajați de invitat, cardul îl arată pe cel mai recent; după ce îi inviți sau îl ascunzi, apare următorul.
 
 Angajații importați sunt angajați existenți, cu contractul de muncă încheiat înainte. Ca să semneze instruirile în portal, semnează întâi actul adițional privind semnarea electronică. Instruirile de pe fișe rămân semnate pe hârtie: în portal apar ca transcrise de pe fișa pe hârtie, fără nimic de semnat. Vezi [Portalul și actul adițional](/clienti/angajati/portal-si-act-aditional/).
+
+## O problemă cu importul
+
+Dacă aplicația a citit greșit un document, a lăsat deoparte ceva ce trebuia citit sau citirea s-a oprit fără un motiv pe care să-l înțelegi, spune-ne. Ai **Raportează o problemă cu importul** în capul paginii unde verifici importul unui client, în capul paginii unde verifici importul angajaților și pe paginile instrucțiunilor proprii și ale evaluărilor de risc din import.
+
+Când îl apeși, aflăm despre ce import e vorba, așa că ne uităm la documentele lui și la ce s-a citit din ele fără să ni le trimiți din nou. Se deschide apoi fereastra de suport, aceeași ca la **Raportează o problemă** din meniul lateral: scrie acolo ce nu e în regulă, de exemplu ce valoare e greșită și în ce document, iar răspunsul îl primești tot acolo. Dacă fereastra de suport nu se poate deschide în browserul tău, îți spunem că am primit semnalarea; ne poți scrie și la contact@ssmusor.ro.
+
+Semnalarea nu folosește credite și nu schimbă importul: îl verifici, îl confirmi sau renunți la el ca înainte.
