@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/test';
 
-import { chambermaidExisting, hotel, hotelRisks, libraryCook } from './risks-pack';
+import {
+  chambermaidExisting,
+  hotel,
+  hotelRisks,
+  libraryCook,
+  protectiveEquipmentRow,
+} from './risks-pack';
 import {
   cleanUp,
   clientOfImport,
@@ -67,6 +73,47 @@ test("a pack's risk evaluations are reviewed before the client is created, confi
     '6 preluați, 2 de verificat'
   );
 
+  const planRows = receptionist.getByTestId('risk-import-plan-rows-row');
+  await expect(planRows).toContainText(
+    '2 rânduri din documente sunt pentru acest post, dar nu le-am putut lega de niciun factor de pe fișă.'
+  );
+  await expect(receptionist.getByTestId('risk-import-plan-rows')).toHaveCount(0);
+  await receptionist.getByTestId('risk-import-plan-rows-toggle').click();
+  await expect(receptionist.getByTestId('risk-import-plan-row')).toHaveCount(2);
+  const equipment = receptionist
+    .getByTestId('risk-import-plan-row')
+    .filter({ hasText: protectiveEquipmentRow });
+  await expect(equipment).toContainText(
+    'Măsuri organizatorice: Instruirea personalului · Acțiuni: Alocarea fondurilor materiale necesare · Termen: Periodic'
+  );
+  await equipment.getByTestId('risk-import-plan-row-add').click();
+  await expect(editor.getByTestId('risk-factor-description')).toHaveValue(protectiveEquipmentRow);
+  await editor.getByTestId('risk-factor-component').selectOption('executant');
+  await editor.getByTestId('risk-factor-group').click();
+  await page.getByRole('option', { name: 'Omisiuni', exact: true }).click();
+  await editor.getByTestId('risk-factor-gravity').selectOption('2');
+  await editor.getByTestId('risk-factor-probability').selectOption('4');
+  await editor.getByTestId('risk-factor-save').click();
+  await expect(editor).toHaveCount(0);
+  await expect(equipment).toContainText('Adăugat pe fișă ca factor.');
+  await expect(equipment).toContainText('gravitate 2, probabilitate 4');
+  await expect(planRows).toContainText('Ai adăugat un factor din ele.');
+  await expect(receptionist.getByTestId('risk-import-factors-summary')).toHaveText(
+    '6 preluați, 2 de verificat'
+  );
+
+  const loose = page.getByTestId('risk-import-loose-rows');
+  await expect(loose).toContainText('Rânduri pe care nu le preluăm');
+  const loosePlan = loose.getByTestId('risk-import-loose-plan');
+  await expect(loosePlan).toContainText('Din planul de prevenire');
+  await expect(loosePlan.getByTestId('risk-import-loose-row')).toHaveCount(1);
+  await expect(loosePlan.getByTestId('risk-import-loose-row')).toContainText(
+    'Montarea de amortizoare la mașinile de spălat'
+  );
+  await expect(loose.getByTestId('risk-import-loose-unplaced')).toContainText(
+    'Expunere la zgomot în spălătorie'
+  );
+
   const cookSheet = sheet('cook');
   await expect(cookSheet.getByTestId('risk-import-similar')).toContainText(
     'Ai deja o evaluare asemănătoare: Bucătar'
@@ -98,7 +145,7 @@ test("a pack's risk evaluations are reviewed before the client is created, confi
 
   await expect(page.getByTestId('risk-import-left')).toContainText('Ai ales tot ce era de ales.');
   await expect(page.getByTestId('library-confirm-summary')).toContainText(
-    'Când confirmi, adăugăm 3 evaluări în bibliotecă, folosim una pe care o ai deja și scriem 18 factori pe 5 fișe ale clientului.'
+    'Când confirmi, adăugăm 3 evaluări în bibliotecă, folosim una pe care o ai deja și scriem 19 factori pe 5 fișe ale clientului.'
   );
   await expect(page.getByRole('status').filter({ hasText: 'Se salvează…' })).toHaveCount(0);
 
@@ -107,6 +154,9 @@ test("a pack's risk evaluations are reviewed before the client is created, confi
     '6 preluați, 2 de verificat'
   );
   await expect(sheet('cook').getByTestId('risk-import-library-use_existing')).toBeChecked();
+  await expect(sheet('receptionist').getByTestId('risk-import-plan-rows-row')).toContainText(
+    'Ai adăugat un factor din ele.'
+  );
 
   await page.goto(`/clienti/import/${importId}`);
   await page.getByTestId('import-confirm').click();
@@ -143,9 +193,12 @@ test("a pack's risk evaluations are reviewed before the client is created, confi
 
   const receptionistPost = await jobPositionId(clientId, 'Recepționer');
   await page.goto(`/clienti/${clientId}/posturi/${receptionistPost}/fisa-de-evaluare`);
-  await expect(page.getByTestId('risk-factor-row')).toHaveCount(6);
+  await expect(page.getByTestId('risk-factor-row')).toHaveCount(7);
+  await expect(
+    page.getByTestId('risk-factor-row').filter({ hasText: protectiveEquipmentRow })
+  ).toHaveCount(1);
   await expect(page.getByTestId('risk-factors-origin')).toHaveText(
-    'Toți cei 6 factori sunt în evaluarea Recepționer din bibliotecă.'
+    'Toți cei 7 factori sunt în evaluarea Recepționer din bibliotecă.'
   );
 
   const cookPost = await jobPositionId(clientId, 'Bucătar');
