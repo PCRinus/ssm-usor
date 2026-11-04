@@ -33,6 +33,7 @@ import {
   type RisksTextFile,
   RisksTooLargeError,
   similarityRequest,
+  squeezeLayout,
   withRetyped,
 } from '@ssm-usor/import';
 
@@ -340,7 +341,8 @@ async function risksFile(
     }
   }
   if (prepared.text.trim() === '' && scans.length === 0) return null;
-  return { path: file.upload_path, text: prepared.text, ...(scans.length ? { scans } : {}) };
+  const text = file.mime_type === 'application/pdf' ? squeezeLayout(prepared.text) : prepared.text;
+  return { path: file.upload_path, text, ...(scans.length ? { scans } : {}) };
 }
 
 // A sheet the library already has still writes its factors onto the client's sheets on confirm,
