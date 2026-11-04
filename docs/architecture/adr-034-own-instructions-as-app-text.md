@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-11-02
+- Amended by [ADR 037](adr-037-import-quality-and-alerts.md) (accepted 2026-11-04): an instructions library part keeps `quality` counts, its reading version and flags, and leaves an improvement copy of its proposal and the member's changes, kept apart for 12 months; its review gains a report entry.
 
 ## Context
 

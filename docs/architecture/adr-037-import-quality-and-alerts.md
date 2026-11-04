@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Date: 2026-11-04
-- Amends: [ADR 030](adr-030-import-from-documents.md) (retention), and through it the employee import ([ADR 032](adr-032-employees-imported-from-training-sheets.md)), own instructions ([ADR 034](adr-034-own-instructions-as-app-text.md)) and risks ([ADR 036](adr-036-risk-library-and-import.md))
+- Amends: [ADR 030](adr-030-import-from-documents.md) (client import, retention), [ADR 032](adr-032-employees-imported-from-training-sheets.md) (employee import), [ADR 034](adr-034-own-instructions-as-app-text.md) (instructions part) and [ADR 036](adr-036-risk-library-and-import.md) (risks part)
 - Issue: #802
 
 ## Context
