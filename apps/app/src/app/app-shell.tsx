@@ -67,6 +67,7 @@ import {
   useState,
 } from 'react';
 
+import { OpenSupportContext } from '@/app/observability/open-support';
 import { usePostHogSession } from '@/app/observability/use-posthog-session';
 import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
@@ -618,7 +619,9 @@ export function AppShell() {
                     {error}
                   </Notice>
                 )}
-                <Outlet />
+                <OpenSupportContext value={openSupport}>
+                  <Outlet />
+                </OpenSupportContext>
               </main>
               {!editorPage && (
                 <footer className="flex flex-wrap items-center justify-between gap-2 border-t px-5 py-4 text-xs text-muted-foreground sm:px-8 lg:px-10">

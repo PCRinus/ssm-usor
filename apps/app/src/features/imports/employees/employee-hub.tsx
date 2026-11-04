@@ -9,6 +9,7 @@ import { Notice } from '@/components/notice';
 
 import { AbandonImportDialog } from '../abandon-import-dialog';
 import { usageLine } from '../import-format';
+import { ReportImportButton } from '../report-import-button';
 import { EmployeeConfirmDialog } from './employee-confirm-dialog';
 import { nextToCheck, peopleCounts, peopleViews } from './employee-review-model';
 import { PeopleList } from './people-list';
@@ -50,9 +51,12 @@ export function EmployeeHub({
             pe nimeni până nu confirmi, o singură dată, la final.
           </p>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => setAbandoning(true)}>
-          Renunță la import
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setAbandoning(true)}>
+            Renunță la import
+          </Button>
+          <ReportImportButton importId={detail.id} />
+        </div>
       </div>
       <SaveStatus review={review} />
       <Card

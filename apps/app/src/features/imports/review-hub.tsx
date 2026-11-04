@@ -11,6 +11,7 @@ import { AbandonImportDialog } from './abandon-import-dialog';
 import { ConfirmImportDialog } from './confirm-import-dialog';
 import { filesLabel, uploadSummary, usageLine } from './import-format';
 import { LibraryGroup, RisksGroup } from './library/library-group';
+import { ReportImportButton } from './report-import-button';
 import { anchorOf, type Blocker, sectionIds, sectionLabels, sectionOf } from './review-model';
 import { StatusTag } from './review-parts';
 import {
@@ -116,6 +117,7 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
           <Button variant="ghost" size="sm" onClick={() => setAbandoning(true)}>
             Renunță la import
           </Button>
+          <ReportImportButton importId={detail.id} />
         </div>
       </div>
       <ConflictNotice review={review} />
