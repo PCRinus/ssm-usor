@@ -10,7 +10,7 @@ const M = legalEntity.filled ? 'span' : 'mark';
 <LegalPage
   title="Acord de prelucrare a datelor"
   description="Condițiile în care SSM Ușor prelucrează date personale în numele serviciilor externe de prevenire și protecție, conform articolului 28 din GDPR."
-  updated="28 octombrie 2026"
+  updated="4 noiembrie 2026"
 >
   <p>
     Acest acord face parte din <a href="/termeni/">Termenii și condițiile</a> Platformei SSM Ușor și
@@ -60,10 +60,26 @@ const M = legalEntity.filled ? 'span' : 'mark';
       salvează în evidențe până nu confirmă utilizatorul.
     </li>
     <li>
+      <strong>Îmbunătățirea importului:</strong> Furnizorul ne autorizează să păstrăm, din fiecare
+      import, inclusiv din cele abandonate sau oprite, o copie pentru îmbunătățire: fișierele
+      încărcate, textul citit din ele, propunerea modelului și ce a schimbat utilizatorul la
+      verificare. O folosim doar ca să aflăm unde citirea greșește și ca să încercăm o schimbare a
+      citirii pe documente reale înainte să o punem în Platformă, trimițând copia unui model de
+      inteligență artificială al unui subîmputernicit de la punctul 6. Nu o folosim pentru
+      antrenarea unor modele de inteligență artificială, nu o arătăm altor furnizori și nu o
+      publicăm. Pentru această utilizare suntem operator, în temeiul interesului legitim (art. 6
+      alin. (1) lit. f) din GDPR), pentru un scop compatibil cu cel pentru care Furnizorul a
+      încărcat documentele.
+    </li>
+    <li>
       <strong>Durată:</strong> cât timp Furnizorul are cont în Platformă, plus perioada de export și
       ștergere de la punctul 9. Un import abandonat se șterge, cu fișierele lui, după 14 zile.
       Propunerea unui import confirmat se păstrează încă 30 de zile, pentru asistență, apoi se
-      șterge; fișierele importate rămân printre fișierele clientului.
+      șterge; fișierele importate rămân printre fișierele clientului. Copia pentru îmbunătățire se
+      păstrează separat, 12 luni de la încheierea importului, apoi se șterge; ștergerea unui client
+      sau a unui angajat în Platformă nu o scurtează. Un caz de test păstrat mai mult de 12 luni are
+      numele, CNP-urile, datele de naștere, adresele și datele de contact înlocuite cu unele
+      inventate.
     </li>
   </ul>
 
@@ -85,7 +101,9 @@ const M = legalEntity.filled ? 'span' : 'mark';
   <p>
     Au acces la date doar persoanele care au nevoie de el pentru a furniza și a întreține Platforma.
     Acestea sunt ținute de o obligație de confidențialitate. Accesul nostru la datele unui cont,
-    pentru asistență, se face cu motiv înregistrat și pe durată limitată.
+    pentru asistență, se face cu motiv înregistrat și pe durată limitată. Copiile pentru
+    îmbunătățirea importului se păstrează separat de datele din Platformă; utilizatorii Platformei
+    nu au acces la ele, iar dintre noi le citesc doar cei care lucrează la import.
   </p>
 
   <h2>5. Securitate</h2>
@@ -97,7 +115,8 @@ const M = legalEntity.filled ? 'span' : 'mark';
     <li>afișarea mascată a CNP-ului, cu dezvăluire doar la cerere;</li>
     <li>
       trimiterea datelor către un model de inteligență artificială doar când un utilizator al
-      Furnizorului pornește un import, doar pentru acel import;
+      Furnizorului pornește un import, doar pentru acel import, și, pentru copiile pentru
+      îmbunătățire, doar ca să încercăm o schimbare a citirii;
     </li>
     <li>actualizări de securitate ale infrastructurii, asigurate de furnizorii de găzduire.</li>
   </ul>
@@ -171,9 +190,9 @@ const M = legalEntity.filled ? 'span' : 'mark';
   <h2>9. La încetarea contractului</h2>
   <p>
     Furnizorul își poate exporta documentele pe durata contractului și timp de 30 de zile după
-    încetarea lui. După acest termen ștergem datele prelucrate în numele său, cu excepția celor pe
-    care legea ne obligă să le păstrăm. Eventualele copii de siguranță se suprascriu în ciclul lor
-    obișnuit.
+    încetarea lui. După acest termen ștergem datele prelucrate în numele său și copiile pentru
+    îmbunătățirea importului făcute din documentele lui, cu excepția celor pe care legea ne obligă
+    să le păstrăm. Eventualele copii de siguranță se suprascriu în ciclul lor obișnuit.
   </p>
 
   <h2>10. Verificare</h2>
