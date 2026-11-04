@@ -10,7 +10,7 @@ const M = legalEntity.filled ? 'span' : 'mark';
 <LegalPage
   title="Politica de confidențialitate"
   description="Cum prelucrează SSM Ușor datele personale ale vizitatorilor, ale furnizorilor și ale angajaților clienților lor."
-  updated="29 octombrie 2026"
+  updated="4 noiembrie 2026"
 >
   {!legalEntity.filled && (
     <p class="note">
@@ -86,6 +86,18 @@ const M = legalEntity.filled ? 'span' : 'mark';
       persoană împuternicită a serviciului extern.
     </li>
     <li>
+      <strong>Îmbunătățirea platformei.</strong> Serviciul extern ne autorizează, prin Acordul de
+      prelucrare a datelor, să folosim datele din platformă pentru utilizările numite acolo, doar ca
+      să îmbunătățim platforma; pentru ele suntem operator. Lista e completă, iar o utilizare nouă
+      se anunță serviciului extern cu cel puțin 15 zile înainte. Deocamdată este una: din fiecare
+      import păstrăm o copie, cu fișierele încărcate, textul citit din ele, propunerea modelului și
+      ce a schimbat specialistul la verificare, ca să aflăm unde citirea greșește și să încercăm o
+      schimbare a citirii pe documente reale înainte să o punem în platformă. Temei: interesul
+      legitim de a îmbunătăți platforma, un scop compatibil cu cel pentru care au fost încărcate
+      datele. Copia nu este accesibilă utilizatorilor platformei și nu se folosește pentru
+      antrenarea unor modele.
+    </li>
+    <li>
       <strong>Date tehnice.</strong> Adresa IP, tipul browserului și jurnale de server, pentru
       securitatea și funcționarea site-ului. Temei: interesul legitim.
     </li>
@@ -124,8 +136,8 @@ const M = legalEntity.filled ? 'span' : 'mark';
   </ul>
   <p>
     Nu folosim datele din platformă pentru publicitate și nu le folosim pentru antrenarea unor
-    modele de inteligență artificială. Nici OpenAI nu folosește pentru antrenare datele trimise la
-    import.
+    modele de inteligență artificială, nici copiile pentru îmbunătățirea importului. Nici OpenAI nu
+    folosește pentru antrenare datele trimise la import.
   </p>
 
   <h2>4. Cookie-uri</h2>
@@ -227,7 +239,9 @@ const M = legalEntity.filled ? 'span' : 'mark';
       importul din documente: un import abandonat se șterge, cu fișierele lui, după 14 zile;
       propunerea unui import confirmat se păstrează încă 30 de zile, pentru asistență; jurnalele
       cererilor către model se păstrează 30 de zile; fișierele importate rămân printre fișierele
-      firmei client, ca datele din platformă;
+      firmei client, ca datele din platformă; copia pentru îmbunătățirea importului se păstrează 12
+      luni de la încheierea importului și se șterge mai devreme dacă serviciul extern își închide
+      contul;
     </li>
     <li>înregistrările sesiunilor în PostHog: ținta noastră este 30 de zile;</li>
     <li>evenimentele de analiză și erorile în PostHog: ținta noastră este 12 luni;</li>

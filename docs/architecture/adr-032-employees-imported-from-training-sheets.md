@@ -3,6 +3,7 @@
 - Status: accepted
 - Date: 2026-10-31
 - Amended 2026-10-31: credits decided in ADR 030 (#640); SMS invitations and sign-in codes are not counted against the SMS allowance (ADR 029).
+- Amended by [ADR 037](adr-037-import-quality-and-alerts.md) (accepted 2026-11-04): an employee import, abandoned and failed ones included, leaves an improvement copy of its photographs, page images, readings and the member's changes, kept apart for 12 months; it stores its reading version and flags, and its review gains a report entry.
 
 ## Context
 

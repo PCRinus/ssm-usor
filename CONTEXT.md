@@ -44,6 +44,8 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Audit log** (_jurnalul de audit_): the record of who wrote what in the tables that hold personal data or legally binding records: the account, the member it acted as during an impersonation, the table and row, and the names of the changed columns, never their personal values. Support reads it; nobody changes it. ADR 033. Avoid: history, which is what an owner's view of it would be called, and activity log.
 
+**Admin area**: the platform owner's own app on `admin.ssmusor.ro`, in English, behind Cloudflare Access, the admin claim and a second factor, where support reads improvement copies, sees accounts, grants trials, credits and signing codes, and starts an **impersonation** (acting as a member, with a reason, for at most two hours). ADR 038. Avoid: back office, dashboard (which is the member app's home page), Studio.
+
 ## Work
 
 **Job position** (_post de lucru_): a post at a client as occupational safety sees it: a kind of work with its own risks, equipment and training. Belongs to the client and exists whether or not anyone holds it. An employee is assigned to one. ADR 006. Avoid: job title, role, function, occupation, and "loc de muncă", which the source documents use for three different things.
@@ -251,6 +253,8 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 **Possibly from another client** (_posibil de la alt client_): a proposed value found only in passages copied from another company's documents, proposed unticked. ADR 030. Avoid: wrong data, error.
 
 **Import folder** (_dosar importat_): the files of a confirmed import in "Alte documente", grouped under the day of the import with the upload's folders. ADR 030. Avoid: archive, which is what an archived client is.
+
+**Improvement copy** (_copia pentru îmbunătățire_): what we keep of every import, abandoned and failed ones included, for 12 months after it ends, to find what the reading gets wrong and to try a change on real documents: the files, their extracted text, the proposal with its flags, and what the member changed in review. Kept apart from the app's data, read only by support, never by members, and never used to train a model. A **test case** is a confirmed import's copy, whose confirmed result is the expected answer. ADR 037. Avoid: backup, archive, training data.
 
 **Credit** (_credit_, plural _credite_): the unit an import's reading is counted in, one for both imports: one photograph or scanned page read, and 25 for reading a client's documents. An import starts when the credits left cover what is known before its reading, and each scanned page is charged as it is found, so the balance may go below zero, by 150 at most, and the shortfall comes off the next month. Each plan has a monthly allowance and the trial one allowance for its whole length; and the first payment brings a one-time **welcome gift** that never expires. ADR 030, ADR 029. Avoid: token, which is the model's unit, and import as a unit.
 

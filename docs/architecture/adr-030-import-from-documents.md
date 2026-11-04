@@ -4,6 +4,7 @@
 - Date: 2026-10-27
 - Amended 2026-10-31: credits decided (#640): an import starts on the credits its known part needs and is charged for scanned pages as it finds them; see "Usage is counted in credits".
 - Amended by [ADR 034](adr-034-own-instructions-as-app-text.md) (accepted 2026-11-02): the own instructions are no longer only set aside; a request of their own proposes the pack's instructions for the library, confirmed after the client.
+- Amended by [ADR 037](adr-037-import-quality-and-alerts.md) (accepted 2026-11-04): every import, abandoned and failed ones included, leaves an improvement copy kept apart for 12 months; see "Where the files go".
 
 ## Context
 
@@ -96,7 +97,7 @@ The uploaded files live in a private bucket of their own, `imports`, under `<org
 
 An abandoned or failed import is deleted with its files 14 days after it ended. The daily clean-up fails an import that stops moving: after 6 hours without progress while it is being read, and after 14 days left uploading or unconfirmed, so its files fall under the same 14 days. Files are removed from Storage before the rows that name them, so a removal that fails is tried again the next day.
 
-Confirming writes the values into the client's own records, but the import keeps its proposal for 30 days more: every value the model proposed with its file and quote, the choices it offered, the checks' results, and what the member changed, kept or unticked. That is what support reads when a member reports a wrong result, to tell a model's mistake from a missing check or a confusing screen, and to adjust the prompts, the schema or the checks. After 30 days the proposal is deleted. The import itself stays, with its date, who ran it, its counts and its cost, and so do its files in the import folder. The proposal holds CNPs, so it lives no longer than it is useful.
+Confirming writes the values into the client's own records, but the import keeps its proposal for 30 days more: every value the model proposed with its file and quote, the choices it offered, the checks' results, and what the member changed, kept or unticked. That is what support reads when a member reports a wrong result, to tell a model's mistake from a missing check or a confusing screen, and to adjust the prompts, the schema or the checks. After 30 days the proposal is deleted. The import itself stays, with its date, who ran it, its counts and its cost, and so do its files in the import folder. The proposal holds CNPs, so it lives no longer than it is useful. (Amended by [ADR 037](adr-037-import-quality-and-alerts.md): every import, abandoned and failed ones included, also leaves an improvement copy of its files, text, proposal and the member's changes, kept apart for 12 months; the retention below is unchanged for what members see.)
 
 ### Usage is counted in credits
 
