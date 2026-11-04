@@ -50,7 +50,13 @@ Biblioteca e în meniul **Instrucțiuni proprii**, cu două taburi:
 
 Categoria ordonează anexele și grupează lista din care alegi instrucțiunile unui post. Nu se tipărește.
 
-Lista arată, pentru fiecare instrucțiune, versiunea, câte articole are și la câte posturi e aplicată. O instrucțiune pe care nu o mai folosești o arhivezi; una aplicată la un post nu se arhivează până nu o scoți de pe post.
+Lista arată, pentru fiecare instrucțiune, categoria, versiunea cu data ei, câte articole are și la câte posturi e aplicată. Apeși pe capul unei coloane ca să ordonezi lista după ea; o bibliotecă mare se împarte în pagini. Deasupra listei alegi între **Active** și **Arhivate**.
+
+Meniul unei instrucțiuni, cele trei puncte de la capătul rândului, are:
+
+- **Modifică detaliile…**: schimbi titlul, categoria sau domeniul.
+- **Arhivează…**: după ce confirmi, instrucțiunea trece la **Arhivate**. Nu mai poate fi aplicată la posturi și textul ei nu se mai schimbă; documentele care o anexează deja rămân cum sunt. O instrucțiune aplicată la un post nu se arhivează: fereastra îți spune la câte posturi e aplicată, ca s-o scoți întâi de pe ele.
+- **Reactivează…**, la o instrucțiune arhivată: o aduci înapoi la **Active**.
 
 ## Scrierea unei instrucțiuni
 
