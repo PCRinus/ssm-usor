@@ -150,6 +150,39 @@ function copyPairs(copy: ProposedRiskSheet, original: ProposedRiskSheet) {
   );
 }
 
+/** By sheet key, the factors each sheet writes once the member's changes are applied. */
+export function reviewedRiskFactors(
+  proposal: RisksProposal,
+  changes: RiskImportChanges | null
+): { reviewed: Map<string, RiskPayloadFactor[]>; issues: RiskPayloadIssue[] } {
+  const sheetChanges = changes?.sheets ?? {};
+  const issues: RiskPayloadIssue[] = [];
+  const reviewed = new Map<string, RiskPayloadFactor[]>();
+  for (const sheet of proposal.sheets) {
+    const factorChanges = sheetChanges[sheet.key]?.factors ?? {};
+    const factors: RiskPayloadFactor[] = [];
+    for (const factor of sheetFactors(proposal, sheet)) {
+      const change = factorChanges[factor.key];
+      if (!(change?.included ?? factor.included)) continue;
+      const written = reviewedFactor(factor, change);
+      if (written) factors.push(written);
+      else
+        issues.push({ path: `sheets.${sheet.key}.factors.${factor.key}`, message: 'incomplete' });
+    }
+    reviewed.set(sheet.key, factors);
+  }
+  return { reviewed, issues };
+}
+
+export const reviewedSheetTexts = (
+  sheet: ProposedRiskSheet,
+  change: RiskImportChanges['sheets'][string] | undefined
+) => ({
+  means_of_production: pick(change?.meansOfProduction, sheet.meansOfProduction),
+  work_environment: pick(change?.workEnvironment, sheet.workEnvironment),
+  exposure: pick(change?.exposure, sheet.exposure),
+});
+
 export function riskImportPayload(input: RiskPayloadInput): {
   payload: RiskImportPayload;
   issues: RiskPayloadIssue[];
@@ -163,33 +196,10 @@ export function riskImportPayload(input: RiskPayloadInput): {
       post.jobPositionId ? [[post.jobPositionId, post.jobPositionId] as const] : []
     ),
   ]);
-  const issues: RiskPayloadIssue[] = [];
   const payload: RiskImportPayload = { entries: [], evaluations: [] };
   const byKey = new Map(proposal.sheets.map((sheet) => [sheet.key, sheet]));
-
-  const reviewed = new Map<string, RiskPayloadFactor[]>();
-  for (const sheet of proposal.sheets) {
-    const factorChanges = changes[sheet.key]?.factors ?? {};
-    const factors: RiskPayloadFactor[] = [];
-    for (const factor of sheetFactors(proposal, sheet)) {
-      const change = factorChanges[factor.key];
-      if (!(change?.included ?? factor.included)) continue;
-      const written = reviewedFactor(factor, change);
-      if (written) factors.push(written);
-      else
-        issues.push({ path: `sheets.${sheet.key}.factors.${factor.key}`, message: 'incomplete' });
-    }
-    reviewed.set(sheet.key, factors);
-  }
-
-  const texts = (sheet: ProposedRiskSheet) => {
-    const change = changes[sheet.key];
-    return {
-      means_of_production: pick(change?.meansOfProduction, sheet.meansOfProduction),
-      work_environment: pick(change?.workEnvironment, sheet.workEnvironment),
-      exposure: pick(change?.exposure, sheet.exposure),
-    };
-  };
+  const { reviewed, issues } = reviewedRiskFactors(proposal, input.changes);
+  const texts = (sheet: ProposedRiskSheet) => reviewedSheetTexts(sheet, changes[sheet.key]);
 
   const choiceOf = (sheet: ProposedRiskSheet) => changes[sheet.key]?.library ?? sheet.choice;
   const entryKeys = new Set<string>();
