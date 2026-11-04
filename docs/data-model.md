@@ -1392,8 +1392,8 @@ the reading version, the reading flags, the report and the improvement copies by
 | `created_by`, `created_at`, `started_at`, `ready_at`, `failed_at`  | Who started it, as the real user during an impersonation, and when each step was reached. Checks tie each stamp to its status.                                           |
 | `confirmed_at`, `confirmed_by`, `abandoned_at`                     | The end. A confirmed import has its client.                                                                                                                              |
 | `files_copied_at`, `proposal_dropped_at`, `objects_removed_at`     | The API copied the folder into `client-files`; the proposal was dropped; the API removed the import's objects, which needs the other two.                                |
-| `reading_version`                                                  | JSON object: the model of each step and a short hash of the prompts and schemas that read the import. Support's, not members'.                                           |
-| `reading_flags`                                                    | JSON object of value-free counts that describe the reading: files by kind, what was found, the checks' flags. Never what was read. Support's, not members'.              |
+| `reading_version`                                                  | JSON object: the model of each step and a short hash of the prompts and schemas that read the import.                                                                    |
+| `reading_flags`                                                    | JSON object of value-free counts that describe the reading: files by kind, what was found, the checks' flags. Never what was read.                                       |
 | `reported_at`, `reported_by`                                       | When a member reported a problem with the import, through the API, and who; `reported_by` needs `reported_at`, and is set null when that account is deleted.             |
 
 `import_files` has one row per uploaded file, with `import_id` and `organization_id` by the
@@ -1432,11 +1432,9 @@ since the API writes imports with it, and keeps a confirmed or abandoned import 
 
 **Who reads and writes.** Members of the organization read its imports and their files; an
 import into a client is read only by those who read the client, since the policy asks for the
-client under the caller's own policies. They read every column of `imports` and
-`import_library_parts` but `reading_version`, `reading_flags`, `reported_at`, `reported_by` and,
-on parts, `quality`, which are support's: the select is granted column by column, so a column
-added later stays hidden from members until a migration grants it. Nobody signed in inserts,
-updates or deletes either table; a member reports a problem through the API. The API creates imports and their files' rows with the secret key, after checking the
+client under the caller's own policies. Nobody signed in inserts, updates or deletes either
+table, the reading version, the flags and the report included; a member reports a problem
+through the API. The API creates imports and their files' rows with the secret key, after checking the
 member, and its queue consumer records the steps, the files' states, the proposal and the
 usage the same way, the usage through `record_import_usage(import, file, step, input, cached,
 output, cost)`, which adds to the import's totals and to its step in `usage_by_step` and, given a

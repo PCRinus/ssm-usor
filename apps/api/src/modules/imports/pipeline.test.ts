@@ -1356,6 +1356,21 @@ describe('cleanUpImports', () => {
     ]);
     expect(result).toMatchObject({ copiesRemoved: 2, left: 1 });
   });
+
+  it('marks a copy whose folder holds nothing of its own removed without calling Storage', async () => {
+    const parted = `${organizationId}/parted-import`;
+    world.copies.set(`${parted}/parts/instructions_ssm/proposal.json`, strToU8('{}'));
+    world.expiredCopies = [
+      { id: 'gone', part: null, folder: `${organizationId}/gone-import` },
+      { id: 'parted', part: null, folder: parted },
+    ];
+    const result = await cleanUpImports(deps());
+
+    expect(world.calls.filter((call) => call.startsWith('remove copies'))).toEqual([]);
+    expect(world.calls.at(-1)).toBe('markCopiesRemoved gone,parted');
+    expect(world.copies.has(`${parted}/parts/instructions_ssm/proposal.json`)).toBe(true);
+    expect(result).toMatchObject({ copiesRemoved: 2 });
+  });
 });
 
 describe('an employee import', () => {

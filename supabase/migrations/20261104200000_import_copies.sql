@@ -38,24 +38,6 @@ comment on column public.import_library_parts.reading_flags is
 comment on column public.import_library_parts.reported_at is
   'When a member reported a problem with the part, through the API (ADR 037); reported_by is who, null once that account is deleted.';
 
--- Members read every column of these tables but the ones above, which are support's (ADR 037).
--- A column added later is hidden from members until a migration grants it to them.
-revoke select on table public.imports from authenticated;
-grant select (
-  id, organization_id, kind, client_id, into_existing_client, source_import_id, status, failure_reason,
-  company_name, company_cui, proposal, changes, version, proposal_dropped_at, quality, input_tokens,
-  cached_input_tokens, output_tokens, cost_usd, created_by, created_at, started_at, ready_at, failed_at,
-  confirmed_at, confirmed_by, abandoned_at, files_copied_at, objects_removed_at, updated_at,
-  read_characters, usage_by_step
-) on table public.imports to authenticated;
-
-revoke select on table public.import_library_parts from authenticated;
-grant select (
-  import_id, organization_id, part, status, attempt, failure_reason, proposal, changes, version,
-  proposal_dropped_at, input_tokens, cached_input_tokens, output_tokens, cost_usd, created_at, read_at,
-  failed_at, confirmed_at, confirmed_by, updated_at
-) on table public.import_library_parts to authenticated;
-
 -- Not columns of imports: an abandoned or failed import's row is deleted 14 days after it ends
 -- (ADR 030), and its copy stays 12 months, so the copy's record outlives the row and has no
 -- foreign key to it.

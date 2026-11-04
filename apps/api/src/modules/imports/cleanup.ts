@@ -92,7 +92,7 @@ async function removeCopies(deps: PipelineDeps, copies: ImportCopy[]) {
       const own = copy.part
         ? paths
         : paths.filter((path) => !path.startsWith(`${copy.folder}/parts/`));
-      await deps.copies.remove(own);
+      if (own.length > 0) await deps.copies.remove(own);
       removed.push(copy.id);
     } catch (error) {
       console.error(`The copy ${copy.folder} was left in Storage: ${describe(error)}`);

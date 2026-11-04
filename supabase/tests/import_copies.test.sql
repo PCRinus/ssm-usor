@@ -1,15 +1,19 @@
 begin;
-select plan(41);
+select plan(38);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
   ('aaaaaaaa-0000-4000-8000-000000000091', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'copies-owner@test', 'x', now(), '{"provider":"email"}', '{}', now(), now()),
-  ('aaaaaaaa-0000-4000-8000-000000000092', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'copies-reporter@test', 'x', now(), '{"provider":"email"}', '{}', now(), now());
+  ('aaaaaaaa-0000-4000-8000-000000000092', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'copies-reporter@test', 'x', now(), '{"provider":"email"}', '{}', now(), now()),
+  ('aaaaaaaa-0000-4000-8000-000000000093', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'copies-other@test', 'x', now(), '{"provider":"email"}', '{}', now(), now());
 
-insert into public.organizations (id, name) values ('11111111-0000-4000-8000-000000000091', 'Copies Org');
+insert into public.organizations (id, name) values
+  ('11111111-0000-4000-8000-000000000091', 'Copies Org'),
+  ('11111111-0000-4000-8000-000000000092', 'Other Copies Org');
 
 insert into public.organization_members (user_id, organization_id, role) values
-  ('aaaaaaaa-0000-4000-8000-000000000091', '11111111-0000-4000-8000-000000000091', 'owner');
+  ('aaaaaaaa-0000-4000-8000-000000000091', '11111111-0000-4000-8000-000000000091', 'owner'),
+  ('aaaaaaaa-0000-4000-8000-000000000093', '11111111-0000-4000-8000-000000000092', 'owner');
 
 insert into public.clients (id, organization_id, legal_name, cui, stage) values
   ('cccccccc-0000-4000-8000-000000000091', '11111111-0000-4000-8000-000000000091', 'Copii SRL', '1590082', 'client');
@@ -118,42 +122,30 @@ select results_eq(
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000091');
 
 select results_eq(
-  $$ select id, status::text from public.imports order by id $$,
-  $$ values ('10000000-0000-4000-8000-000000000091'::uuid, 'confirmed'),
-            ('10000000-0000-4000-8000-000000000092'::uuid, 'abandoned'),
-            ('10000000-0000-4000-8000-000000000093'::uuid, 'ready') $$,
-  'a member still reads their imports'
+  $$ select id, reading_version, reading_flags, reported_at is not null from public.imports order by id $$,
+  $$ values ('10000000-0000-4000-8000-000000000091'::uuid, '{"reading": "gpt-5.1", "hash": "a1b2c3"}'::jsonb, '{"files": 3}'::jsonb, true),
+            ('10000000-0000-4000-8000-000000000092'::uuid, null, null, false),
+            ('10000000-0000-4000-8000-000000000093'::uuid, null, null, false) $$,
+  'a member reads the reading version, the flags and the report of their imports'
 );
 
 select results_eq(
-  $$ select part::text, status::text from public.import_library_parts where import_id = '10000000-0000-4000-8000-000000000091' order by part $$,
-  $$ values ('instructions_ssm', 'confirmed'), ('instructions_su', 'to_review'), ('risk_evaluations', 'failed') $$,
-  'and their library parts'
+  $$ select part::text, quality, reported_at is not null from public.import_library_parts
+     where import_id = '10000000-0000-4000-8000-000000000091' order by part $$,
+  $$ values ('instructions_ssm', '{"instructions": {"kept": 2}}'::jsonb, true),
+            ('instructions_su', null, false),
+            ('risk_evaluations', null, false) $$,
+  'and the quality and the report of their library parts'
 );
 
-select throws_ok(
-  $$ select reading_version from public.imports $$,
-  '42501', null,
-  'but not an import''s reading version'
+select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000093');
+
+select is_empty(
+  $$ select reading_flags from public.imports union all select reading_flags from public.import_library_parts $$,
+  'another organization''s member reads none of them'
 );
 
-select throws_ok(
-  $$ select reading_flags from public.imports $$,
-  '42501', null,
-  'nor its reading flags'
-);
-
-select throws_ok(
-  $$ select reported_at, reported_by from public.imports $$,
-  '42501', null,
-  'nor who reported it'
-);
-
-select throws_ok(
-  $$ select quality, reading_version, reading_flags, reported_at, reported_by from public.import_library_parts $$,
-  '42501', null,
-  'nor the same of a part'
-);
+select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000091');
 
 select throws_ok(
   $$ update public.imports set reported_at = now() where id = '10000000-0000-4000-8000-000000000093' $$,

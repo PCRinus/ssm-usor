@@ -222,6 +222,7 @@ function fileStore(
     listImportCopies: (folder: string) => listAll(importCopiesBucket, folder, 'list import copies'),
 
     async removeImportCopies(paths: string[]) {
+      if (paths.length === 0) return;
       for (let start = 0; start < paths.length; start += 100) {
         const { error } = await storage
           .from(importCopiesBucket)
