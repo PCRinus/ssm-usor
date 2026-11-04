@@ -1087,8 +1087,9 @@ copies' pointers. Archiving is allowed in use, since clients hold copies.
 
 `evaluation_profile_list` is a security-invoker view of the profiles, their texts included, with `client_count`, the
 clients that use one counted as the usage lists them (leaving out archived posts, keeping
-archived clients), and `in_use`, any pointer at all; the API's list and profile reads go
-through it, one grouped read for the whole library.
+archived clients), `in_use`, any pointer at all, and `factor_count`; the API's list and
+profile reads go through it, one grouped read for the whole library, so the list pages and
+sorts in the database. It holds no risk level: those come from the method's grid in code.
 
 Each function is one transaction. `save_evaluation_profile_factor` and
 `apply_evaluation_profile` run as the caller. `save_evaluation_profile_factor` is

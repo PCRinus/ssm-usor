@@ -233,7 +233,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /risk-factor-suggestions`                                         | Verified user with a membership       | `{ "items": [ … ] }`, groups, plan fields or observations typed before; `?field=&query=`                                                                                                           |
 | `POST …/risk-evaluations/{evaluationId}/save-as-profile`               | Verified user with a membership       | `201 { "profile": { … } }`, a new profile of the library with copies of the evaluation's factors                                                                                                   |
 | `POST …/risk-evaluations/{evaluationId}/factors/apply-profile`         | Verified user with a membership       | `{ "evaluation": { … }, "addedFactorCount" }` after adding copies of a profile's factors                                                                                                           |
-| `GET /evaluation-profiles`                                             | Verified user with a membership       | `{ "items": [ … ] }`, the risk library by name, with counts, global levels and usage; `archived=true` lists the archive                                                                            |
+| `GET /evaluation-profiles`                                             | Verified user with a membership       | `{ "items", "page", "pageSize", "total" }`, a page of the risk library with counts, global levels and usage; `status=archived` lists the archive                                                   |
+| `GET /evaluation-profiles/choices`                                     | Verified user with a membership       | `{ "items": [ … ] }`, unpaged, every active profile with factors, for "Aplică din bibliotecă"                                                                                                      |
 | `POST /evaluation-profiles`                                            | Verified user with a membership       | `201 { "profile": { … } }`, an empty profile by `name`                                                                                                                                             |
 | `GET /evaluation-profiles/{profileId}`                                 | Verified user with a membership       | `{ "profile": { … } }` with its work-system texts, factors, measures, levels and global level                                                                                                      |
 | `PATCH /evaluation-profiles/{profileId}`                               | Verified user with a membership       | `{ "profile": { … } }` after renaming, archiving or restoring it, or changing its work-system texts                                                                                                |
@@ -684,13 +685,17 @@ organization typed before, in its evaluations and in its risk library alike, as 
 suggestions do. A write under an archived client answers `409` with `client_archived`.
 
 The risk library is the organization's evaluation profiles, each a `name` and factors exactly
-like an evaluation's. `GET /evaluation-profiles` lists the active ones by name without their
+like an evaluation's. `GET /evaluation-profiles` lists a page of the active ones without their
 factors, each with `factorCount`, `unacceptableFactorCount`, `globalRiskLevel`, `clientCount`
 (the clients its usage lists, which leaves out archived posts) and `inUse` (whether any
-client's factor points at it, archived posts and clients included); `archived=true` lists only
-the archived ones. `GET /evaluation-profiles/{profileId}` reads one whole, as an evaluation is
-read, with `archivedAt`, `inUse` and the work-system texts `meansOfProduction`,
-`workEnvironment` and `exposure`, each null until written: a profile has no default exposure.
+client's factor points at it, archived posts and clients included); `status=archived` lists only
+the archived ones. It sorts by `name` (the default), `factorCount`, `clientCount` or
+`updatedAt`, the id breaking ties; not by the unacceptable count or the global level, which
+come from the method's grid in code. `GET /evaluation-profiles/choices` lists every active
+profile with factors, unpaged, by name, with its totals, for "Aplică din bibliotecă".
+`GET /evaluation-profiles/{profileId}` reads one whole, as an evaluation is read, with
+`archivedAt`, `inUse` and the work-system texts `meansOfProduction`, `workEnvironment` and
+`exposure`, each null until written: a profile has no default exposure.
 `POST /evaluation-profiles` starts an empty one by `name` and `PATCH` renames it (`name`),
 archives it (`archived: true`) or restores it (`archived: false`), or writes its texts, `null`
 clearing one; a name the library already holds, active or archived, ignoring case and the spaces
