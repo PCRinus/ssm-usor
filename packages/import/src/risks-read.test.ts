@@ -262,7 +262,7 @@ describe('readRisksAnswer: a PDF', () => {
             gravity: '2',
             probability: '3',
             level: '2',
-            quote: 'F2. Lovire de ușa clădirii la poarta din spate.',
+            quote: 'F2. Lovirea de poarta din spate.',
           },
         ],
       },
@@ -289,6 +289,48 @@ describe('readRisksAnswer: a PDF', () => {
     expect(scanned.text.slice(source!.start, source!.end)).toBe(
       'F1. Accident rutier cu bicicleta de livrare. Deces 7 2 4'
     );
+  });
+});
+
+describe('readRisksAnswer: a PDF laid out in columns', () => {
+  it('finds a row whose description wraps by the first words of its quote', () => {
+    const laidOut = {
+      path: 'Dosar/Evaluare.pdf',
+      text: [
+        'SUBCAPITOLUL V.I. POSTUL DE LUCRU : CURIER',
+        '      F1. Inţepare şi/ sau tăiere a corpului cu          Minore',
+        '                                                          1   5   1',
+        '      accesoriile utilizate .                           reversibile',
+      ].join('\n'),
+    };
+    const [sheet] = readRisksAnswer([laidOut], {
+      ...answer,
+      sheets: [
+        {
+          ...answer.sheets[0]!,
+          file: laidOut.path,
+          heading: 'SUBCAPITOLUL V.I. POSTUL DE LUCRU : CURIER',
+          firstRow: '',
+          lastRow: '',
+          factors: [
+            {
+              component: 'MIJLOACE DE PRODUCȚIE',
+              group: 'Factori de risc mecanic',
+              description: 'F1. Inţepare şi/ sau tăiere a corpului cu accesoriile utilizate .',
+              consequence: 'Minore reversibile',
+              gravity: '1',
+              probability: '5',
+              level: '1',
+              quote: 'F1. Inţepare şi/ sau tăiere a corpului cu accesoriile utilizate .',
+            },
+          ],
+        },
+      ],
+    }).sheets;
+
+    expect(sheet!.factors[0]!.flags).toEqual([{ kind: 'retyped' }]);
+    const { source } = sheet!.factors[0]!;
+    expect(laidOut.text.slice(source!.start, source!.end)).toBe('F1. Inţepare şi/ sau tăiere');
   });
 });
 

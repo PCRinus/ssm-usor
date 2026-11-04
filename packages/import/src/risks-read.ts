@@ -510,6 +510,11 @@ function copiedFactors(sheet: Located): ReadFactor[] {
   return factors;
 }
 
+// A PDF's text puts a table row's cells side by side, so a description that wraps in its cell
+// goes on lines below, after the other cells' words: a quote of the whole row is not in the text,
+// its first words are.
+const leadingWords = (quote: string) => quote.trim().split(/\s+/u).slice(0, 5).join(' ');
+
 function retypedFactors(sheet: Located, text: string): ReadFactor[] {
   let component = '';
   let group = '';
@@ -521,7 +526,9 @@ function retypedFactors(sheet: Located, text: string): ReadFactor[] {
     if (written.group.trim() !== '') group = written.group;
     const factor = baseFactor(`${sheet.key}.${index + 1}`, { ...written, component, group });
     factor.flags.unshift({ kind: 'retyped' });
-    const found = findAfter(text, written.quote, sheet.region.start, sheet.region.end)[0];
+    const found =
+      findAfter(text, written.quote, sheet.region.start, sheet.region.end)[0] ??
+      findAfter(text, leadingWords(written.quote), sheet.region.start, sheet.region.end)[0];
     if (found) factor.source = { file: sheet.answered.file, ...found };
     else factor.flags.push({ kind: 'quote_not_found' });
     return factor;
