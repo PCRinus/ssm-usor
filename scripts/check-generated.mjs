@@ -11,6 +11,7 @@ const paths = [
   'apps/portal/src/api/generated',
   'apps/app/src/routeTree.gen.ts',
   'apps/portal/src/routeTree.gen.ts',
+  'apps/admin/src/routeTree.gen.ts',
   'apps/portal/src/locales',
   'packages/document-engine/templates/citations.json',
   'packages/help-topics/src/topics.ts',

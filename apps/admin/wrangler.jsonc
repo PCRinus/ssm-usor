@@ -1,0 +1,37 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "ssm-usor-admin",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-08-31",
+  // A workers.dev or preview address would not be behind Cloudflare Access (ADR 038).
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "admin.ssmusor.ro", "custom_domain": true }],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "html_handling": "none",
+    // The Access check has to see every request, the static files included.
+    "run_worker_first": true,
+  },
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "shy-glitter-7bca.cloudflareaccess.com",
+    "ACCESS_AUD": "634a3d06512e6bae3ee5ac6924234546146b455e1b3aa6c30d98d983b53736b6",
+  },
+  "services": [{ "binding": "API", "service": "ssm-usor-api", "entrypoint": "Admin" }],
+  "observability": {
+    "enabled": true,
+  },
+  // Wrangler inherits none of the vars and services into an environment.
+  "env": {
+    "non-prod": {
+      "routes": [{ "pattern": "admin.non-prod.ssmusor.ro", "custom_domain": true }],
+      "vars": {
+        "ACCESS_TEAM_DOMAIN": "shy-glitter-7bca.cloudflareaccess.com",
+        "ACCESS_AUD": "0e439e147f84d513da7c1ed365ff7a1d133b7d1373df341945182279698c10d0",
+      },
+      "services": [{ "binding": "API", "service": "ssm-usor-api-non-prod", "entrypoint": "Admin" }],
+    },
+  },
+}

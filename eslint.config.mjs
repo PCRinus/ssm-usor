@@ -11,6 +11,7 @@ const scriptFiles = ['**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}'];
 const reactFiles = [
   'apps/app/**/*.{js,jsx,ts,tsx}',
   'apps/portal/**/*.{js,jsx,ts,tsx}',
+  'apps/admin/src/**/*.{js,jsx,ts,tsx}',
   'packages/ui/**/*.{js,jsx,ts,tsx}',
 ];
 
@@ -37,6 +38,7 @@ export default defineConfig([
     'packages/document-engine/originals/**',
     'apps/app/src/routeTree.gen.ts',
     'apps/portal/src/routeTree.gen.ts',
+    'apps/admin/src/routeTree.gen.ts',
     'apps/portal/src/locales/**',
     '**/node_modules/**',
     '**/playwright-report/**',
@@ -73,13 +75,22 @@ export default defineConfig([
   {
     // Route components stay unexported so the router plugin can split them into lazy
     // chunks; the plugin adds its own Fast Refresh boundary to every route file.
-    files: ['apps/app/src/routes/**/*.tsx', 'apps/portal/src/routes/**/*.tsx'],
+    files: [
+      'apps/app/src/routes/**/*.tsx',
+      'apps/portal/src/routes/**/*.tsx',
+      'apps/admin/src/routes/**/*.tsx',
+    ],
     rules: {
       'react-refresh/only-export-components': 'off',
     },
   },
   {
-    files: ['**/*.config.{js,mjs,cjs,ts,mts,cts}', 'eslint.config.mjs', 'scripts/**/*.mjs'],
+    files: [
+      '**/*.config.{js,mjs,cjs,ts,mts,cts}',
+      'eslint.config.mjs',
+      'scripts/**/*.mjs',
+      'apps/*/scripts/**/*.mjs',
+    ],
     languageOptions: {
       globals: globals.node,
     },
