@@ -36,6 +36,9 @@ CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,h
 # account's gateway credits, so leave them out unless you are testing imports.
 # AI_GATEWAY_URL=https://gateway.ai.cloudflare.com/v1/<account id>/ssm-usor
 # AI_GATEWAY_TOKEN=a-token-with-AI-Gateway-Run
+# The imports' alerts and day summary go to a Discord channel's webhook (ADR 037); without it
+# they are skipped. Never production's channel here.
+# DISCORD_ALERTS_WEBHOOK=https://discord.com/api/webhooks/<id>/<token>
 # The signing authority (ADR 023): `pnpm --filter @ssm-usor/api signing:ca` prints all three.
 # Without them, signing answers 503 signing_unavailable. Never commit the values.
 # SIGNING_CA_KEY="-----BEGIN PRIVATE KEY-----\n…\n-----END PRIVATE KEY-----"

@@ -1,6 +1,7 @@
 import type {
   CurrentUser,
   ExtractorService,
+  ImportLibraryPart,
   InstructionsPart,
   MailService,
   PdfService,
@@ -22,7 +23,8 @@ export type RegenerationQueue = {
 
 // `deferred` counts the times a message was sent again while the extractor was unavailable;
 // `owner`, the message that claimed a scan before it was deferred. A scan without `pages` sorts
-// the file and sends its pages. `attempt` is the library part's reading the message is for.
+// the file and sends its pages. `attempt` is the library part's reading the message is for. A
+// message without `part` is about the import itself.
 export type ImportMessage =
   | { type: 'prepare'; importId: string; fileId: string; deferred?: number }
   | { type: 'sort'; importId: string }
@@ -37,6 +39,8 @@ export type ImportMessage =
   | { type: 'read'; importId: string; waits: number; progress?: number }
   | { type: 'check'; importId: string }
   | { type: 'copy'; importId: string }
+  | { type: 'ended'; importId: string; part?: ImportLibraryPart }
+  | { type: 'keep'; importId: string; part?: ImportLibraryPart }
   | {
       type: 'read-instructions';
       importId: string;
@@ -111,6 +115,9 @@ export type ApiEnv = {
     // https://gateway.ai.cloudflare.com/v1/<account>/<gateway>, and a token with AI Gateway Run.
     AI_GATEWAY_URL?: string;
     AI_GATEWAY_TOKEN?: string;
+    // A Discord webhook, one per environment, for the imports' alerts (ADR 037); without it
+    // they are skipped.
+    DISCORD_ALERTS_WEBHOOK?: string;
   };
   Variables: {
     user: CurrentUser;
