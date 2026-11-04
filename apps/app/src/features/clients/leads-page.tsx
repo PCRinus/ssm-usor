@@ -1,6 +1,5 @@
 import { defaultPageSize } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import { cn } from '@ssm-usor/ui/lib/utils';
 import { keepPreviousData } from '@tanstack/react-query';
 import { getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
 import { Archive, Handshake, Plus } from 'lucide-react';
@@ -10,6 +9,7 @@ import { getListClientsQueryKey, useListClients } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
+import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
 import { useAuth } from '@/features/auth/auth-context';
 
 import { type ClientArchiveChange, ClientArchiveDialog } from './client-archive-dialog';
@@ -73,36 +73,27 @@ export function LeadsPage() {
         </Button>
       </div>
       <div className="overflow-hidden rounded-lg border bg-card">
-        <div className="flex flex-wrap items-center gap-3 border-b px-5 py-3">
-          <nav aria-label="Filtrează clienții potențiali" className="flex gap-1">
-            {filters.map((filter) => {
-              const active = filter.status === status;
-              return (
-                <Link
-                  key={filter.label}
-                  to="/clienti-potentiali"
-                  search={filter.status ? { status: filter.status } : {}}
-                  data-testid={filter.testId}
-                  aria-current={active ? 'page' : undefined}
-                  replace
-                  className={cn(
-                    'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-                    active
-                      ? 'bg-secondary text-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  {filter.label}
-                </Link>
-              );
-            })}
-          </nav>
+        <ListCardHeader>
+          <FilterTabs label="Filtrează clienții potențiali">
+            {filters.map((filter) => (
+              <FilterTab
+                key={filter.label}
+                to="/clienti-potentiali"
+                search={filter.status ? { status: filter.status } : {}}
+                data-testid={filter.testId}
+                active={filter.status === status}
+                replace
+              >
+                {filter.label}
+              </FilterTab>
+            ))}
+          </FilterTabs>
           {leads.isSuccess && (
-            <span className="ml-auto text-sm text-muted-foreground" data-testid="leads-count">
+            <ListCount testId="leads-count">
               {meta.total === 1 ? '1 client potențial' : `${meta.total} clienți potențiali`}
-            </span>
+            </ListCount>
           )}
-        </div>
+        </ListCardHeader>
         <DataTable
           testId="leads-table"
           rowTestId="leads-row"
