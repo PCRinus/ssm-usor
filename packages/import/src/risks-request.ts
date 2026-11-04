@@ -228,7 +228,7 @@ function retypeRulesPrompt(headings: readonly string[]) {
   return `${rowsParagraph}
 
 sheets: the evaluation sheets below, which have no numbered rows, in this order, each with its file as given and its heading as below.
-- factors: each factor row of its table written out: component and group as the row or the rows above it give them, description without its "F12." code, consequence, gravity, probability and level as printed (digits), and quote: the row's text as it stands in the file, at most 200 characters.
+- factors: each factor row of its table written out: component and group as the row or the rows above it give them, description without its "F12." code, consequence, gravity, probability and level as printed (digits), and quote: the row's text as it stands in the file, at most 200 characters. One entry per row, with the row's own words and digits: never a summary of the table, a range of rows or a description of its columns.
 
 The sheets:
 ${headings.map((heading) => `- ${heading}`).join('\n')}`;
@@ -288,8 +288,15 @@ export interface RetypeSheet {
   index: number;
   file: string;
   heading: string;
-  factorCount: number;
+  // As the first answer counted them; null when it gave no count.
+  factorCount: number | null;
 }
+
+const expectedFactors = (sheet: RetypeSheet) => sheet.factorCount ?? assumedFactorCount;
+
+// The model has been seen to answer a long sheet with one entry that describes its columns.
+const writtenShort = (sheet: RetypeSheet, written: number) =>
+  written === 0 || (sheet.factorCount !== null && written * 2 < sheet.factorCount);
 
 export function retypeBatches(input: RisksRequestInput, answer: RisksAnswer): RetypeSheet[][] {
   const numbered = numberRows(input.files);
@@ -298,15 +305,19 @@ export function retypeBatches(input: RisksRequestInput, answer: RisksAnswer): Re
   let size = 0;
   answer.sheets.forEach((sheet, at) => {
     if (sheet.firstRow !== '' || sheet.factors.length > 0 || hasRows(numbered, sheet.file)) return;
-    const factorCount =
-      sheet.factorCount !== null && sheet.factorCount > 0 ? sheet.factorCount : assumedFactorCount;
-    if (batch.length > 0 && size + factorCount > retypedFactorsPerRequest) {
+    const retype: RetypeSheet = {
+      index: at + 1,
+      file: sheet.file,
+      heading: sheet.heading,
+      factorCount: sheet.factorCount !== null && sheet.factorCount > 0 ? sheet.factorCount : null,
+    };
+    if (batch.length > 0 && size + expectedFactors(retype) > retypedFactorsPerRequest) {
       batches.push(batch);
       batch = [];
       size = 0;
     }
-    batch.push({ index: at + 1, file: sheet.file, heading: sheet.heading, factorCount });
-    size += factorCount;
+    batch.push(retype);
+    size += expectedFactors(retype);
   });
   if (batch.length > 0) batches.push(batch);
   return batches;
@@ -359,16 +370,20 @@ export type RetypeAsk = (
 const askAgain = (error: unknown) =>
   error instanceof ModelAnswerError && error.reason !== 'refused';
 
-// The reading is paid for and a sheet left without factors is lost without a word, so a cut or
-// broken answer is asked again in halves, and a sheet an answer left out is asked again alone.
+const writtenFor = (answer: RetypedAnswer, sheet: RetypeSheet) =>
+  answer.sheets.find((each) => each.heading === sheet.heading)?.factors.length ?? 0;
+
+// The reading is paid for and a sheet left without its factors is lost without a word: a cut or
+// broken answer is asked again in halves, a sheet an answer for several left short is asked again
+// alone, and one asked alone is asked once more.
 async function retypeBatch(
   input: RisksRequestInput,
   sheets: readonly RetypeSheet[],
   ask: RetypeAsk
 ): Promise<RetypedAnswer[]> {
+  const key = sheets.map((sheet) => sheet.index).join('-');
   let answer: RetypedAnswer;
   try {
-    const key = sheets.map((sheet) => sheet.index).join('-');
     answer = placeRetyped(sheets, await ask(key, retypeRequest(input, sheets)));
   } catch (error) {
     if (sheets.length < 2 || !askAgain(error)) throw error;
@@ -378,15 +393,23 @@ async function retypeBatch(
       ...(await retypeBatch(input, sheets.slice(half), ask)),
     ];
   }
-  if (sheets.length < 2) return [answer];
-  const written = new Set(
-    answer.sheets.filter((sheet) => sheet.factors.length > 0).map((sheet) => sheet.heading)
-  );
-  const again: RetypedAnswer[] = [];
-  for (const sheet of sheets.filter((each) => !written.has(each.heading))) {
-    again.push(...(await retypeBatch(input, [sheet], ask)));
+  if (sheets.length === 1) {
+    const [sheet] = sheets;
+    if (!writtenShort(sheet!, writtenFor(answer, sheet!))) return [answer];
+    let again: RetypedAnswer;
+    try {
+      again = placeRetyped(sheets, await ask(`${key}.again`, retypeRequest(input, sheets)));
+    } catch (error) {
+      if (!askAgain(error)) throw error;
+      return [answer];
+    }
+    return [writtenFor(again, sheet!) > writtenFor(answer, sheet!) ? again : answer];
   }
-  return [answer, ...again];
+  const answers = [answer];
+  for (const sheet of sheets.filter((each) => writtenShort(each, writtenFor(answer, each)))) {
+    answers.push(...(await retypeBatch(input, [sheet], ask)));
+  }
+  return answers;
 }
 
 // A few batches at once, after the first answer has put the files in the provider's cache. Every
@@ -410,17 +433,19 @@ export async function retypeSheets(
   return results.flatMap((result) => (result.status === 'fulfilled' ? result.value : []));
 }
 
+// A sheet asked for again takes the answer that wrote out the most of its factors.
 export function withRetyped(answer: RisksAnswer, later: readonly RetypedAnswer[]): RisksAnswer {
   const sheets = answer.sheets.map((sheet) => ({ ...sheet }));
+  const retyped = new Set(sheets.filter((sheet) => sheet.factors.length === 0));
   for (const written of later.flatMap((part) => part.sheets)) {
     const sheet = sheets.find(
       (candidate) =>
+        retyped.has(candidate) &&
         candidate.file === written.file &&
         candidate.heading === written.heading &&
-        candidate.firstRow === '' &&
-        candidate.factors.length === 0
+        candidate.firstRow === ''
     );
-    if (sheet) sheet.factors = written.factors;
+    if (sheet && written.factors.length > sheet.factors.length) sheet.factors = written.factors;
   }
   return { ...answer, sheets };
 }

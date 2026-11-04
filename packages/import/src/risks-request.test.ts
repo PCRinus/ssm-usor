@@ -200,9 +200,15 @@ describe('the sheets written out', () => {
       if (answered instanceof Error) throw answered;
       return answered;
     };
-  const written = (asked: string[]) => ({
-    sheets: asked.map((heading) => ({ file: scanned.path, heading, factors: [retyped] })),
+  const written = (asked: string[], count = 20) => ({
+    sheets: asked.map((heading) => ({
+      file: scanned.path,
+      heading,
+      factors: Array.from({ length: count }, () => retyped),
+    })),
   });
+  const lengths = (later: RetypedAnswer[], counts: (number | null)[]) =>
+    withRetyped(pack(counts), later).sheets.map((sheet) => sheet.factors.length);
   const cut = new ModelAnswerError('The answer stopped early (length).', 'incomplete', noUsage, 0);
 
   it('asks again in halves for a batch whose answer was cut, each named by its sheets', async () => {
@@ -217,26 +223,58 @@ describe('the sheets written out', () => {
     );
 
     expect(keys).toEqual(['1-2-3', '1-2', '3']);
-    expect(withRetyped(pack([20, 20, 20]), later).sheets.map((s) => s.factors.length)).toEqual([
-      1, 1, 1,
-    ]);
+    expect(lengths(later, [20, 20, 20])).toEqual([20, 20, 20]);
   });
 
-  it('asks again alone for a sheet an answer left out', async () => {
+  it('asks again alone for a sheet an answer left out, or wrote out under half of', async () => {
     const keys: string[] = [];
     const later = await retypeSheets(
       input,
       pack([20, 20, 20]),
       answering((key, asked) => {
         keys.push(key);
-        return written(asked.length > 1 ? asked.slice(0, 1) : asked);
+        if (asked.length === 1) return written(asked);
+        return {
+          sheets: [...written(['Fișa 1']).sheets, ...written(['Fișa 2'], 9).sheets],
+        };
       })
     );
 
     expect(keys).toEqual(['1-2-3', '2', '3']);
-    expect(withRetyped(pack([20, 20, 20]), later).sheets.map((s) => s.factors.length)).toEqual([
-      1, 1, 1,
-    ]);
+    expect(lengths(later, [20, 20, 20])).toEqual([20, 20, 20]);
+  });
+
+  it('asks once more for a sheet asked alone and written out short, and keeps the longer answer', async () => {
+    const keys: string[] = [];
+    const counts = [36, 47];
+    const later = await retypeSheets(
+      input,
+      pack(counts),
+      answering((key, asked) => {
+        keys.push(key);
+        if (key === '1') return written(asked, 1);
+        if (key === '1.again') return written(asked, 36);
+        return written(asked, key === '2' ? 1 : 0);
+      })
+    );
+
+    expect(keys).toEqual(['1', '2', '1.again', '2.again']);
+    expect(lengths(later, counts)).toEqual([36, 1]);
+  });
+
+  it('keeps whatever a sheet the first answer gave no count for is written out with', async () => {
+    const keys: string[] = [];
+    const later = await retypeSheets(
+      input,
+      pack([null]),
+      answering((key, asked) => {
+        keys.push(key);
+        return written(asked, 3);
+      })
+    );
+
+    expect(keys).toEqual(['1']);
+    expect(lengths(later, [0])).toEqual([3]);
   });
 
   it('fails the reading when a single sheet’s answer is cut, or the model refuses', async () => {
@@ -271,7 +309,7 @@ describe('the sheets written out', () => {
         pack([60, 60, 60]),
         answering((key, asked) => {
           keys.push(key);
-          return key === '1' ? failure : written(asked);
+          return key === '1' ? failure : written(asked, 60);
         })
       )
     ).rejects.toBe(failure);
