@@ -2697,6 +2697,7 @@ export type Database = {
       };
       import_copies: {
         Row: {
+          completed_at: string | null;
           expires_at: string;
           id: string;
           import_id: string;
@@ -2706,6 +2707,7 @@ export type Database = {
           written_at: string;
         };
         Insert: {
+          completed_at?: string | null;
           expires_at: string;
           id?: string;
           import_id: string;
@@ -2715,6 +2717,7 @@ export type Database = {
           written_at?: string;
         };
         Update: {
+          completed_at?: string | null;
           expires_at?: string;
           id?: string;
           import_id?: string;
@@ -2998,6 +3001,7 @@ export type Database = {
           cost_usd: number;
           created_at: string;
           created_by: string | null;
+          expensive_alerted_at: string | null;
           failed_at: string | null;
           failure_reason: string | null;
           files_copied_at: string | null;
@@ -3036,6 +3040,7 @@ export type Database = {
           cost_usd?: number;
           created_at?: string;
           created_by?: string | null;
+          expensive_alerted_at?: string | null;
           failed_at?: string | null;
           failure_reason?: string | null;
           files_copied_at?: string | null;
@@ -3074,6 +3079,7 @@ export type Database = {
           cost_usd?: number;
           created_at?: string;
           created_by?: string | null;
+          expensive_alerted_at?: string | null;
           failed_at?: string | null;
           failure_reason?: string | null;
           files_copied_at?: string | null;
@@ -7215,6 +7221,13 @@ export type Database = {
           error: true;
         } & 'the function public.client_search_name with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
       };
+      complete_import_copy: {
+        Args: {
+          p_import_id: string;
+          p_part?: Database['public']['Enums']['import_library_part'];
+        };
+        Returns: string;
+      };
       copy_risk_factors: {
         Args: { p_evaluation_id: string; p_from_evaluation_id: string };
         Returns: number;
@@ -7743,6 +7756,7 @@ export type Database = {
           cost_usd: number;
           created_at: string;
           created_by: string | null;
+          expensive_alerted_at: string | null;
           failed_at: string | null;
           failure_reason: string | null;
           files_copied_at: string | null;
