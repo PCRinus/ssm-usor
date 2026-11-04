@@ -362,6 +362,15 @@ describe('the risk library', () => {
     expect(empty.textContent).toContain('Evaluare nouă');
   });
 
+  it('reads status=active in the address as the active tab', async () => {
+    mockApi();
+    mount('/evaluari-de-risc?status=active');
+    await screen.findAllByTestId('risk-profile-row');
+    expect(screen.getByTestId('risk-library-filter-active').getAttribute('aria-current')).toBe(
+      'page'
+    );
+  });
+
   it('lists the profiles with their factors and global level', async () => {
     mockApi();
     mount('/evaluari-de-risc');

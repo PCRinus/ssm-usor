@@ -1,6 +1,5 @@
 import {
   type EvaluationProfileErrorReason,
-  evaluationProfileListStatuses,
   evaluationProfileSortKeys,
   sortOrderSchema,
 } from '@ssm-usor/contracts';
@@ -24,7 +23,7 @@ export const riskLibrarySearchSchema = z.object({
   page: z.number().int().min(1).optional().catch(undefined),
   sort: z.enum(evaluationProfileSortKeys).optional().catch(undefined),
   order: sortOrderSchema.optional().catch(undefined),
-  status: z.enum(evaluationProfileListStatuses).optional().catch(undefined),
+  status: z.literal('archived').optional().catch(undefined),
 });
 
 export type RiskLibrarySearch = z.infer<typeof riskLibrarySearchSchema>;
