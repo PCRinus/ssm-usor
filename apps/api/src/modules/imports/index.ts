@@ -21,6 +21,7 @@ import {
   retryImportLibraryPart,
   saveImportLibraryPartChanges,
 } from './library-handlers';
+import { reportImport, reportImportLibraryPart } from './report-handlers';
 import {
   abandonImportRoute,
   addFoundSheetsRoute,
@@ -34,6 +35,8 @@ import {
   listImportsRoute,
   readImportFileRoute,
   registerImportFilesRoute,
+  reportImportLibraryPartRoute,
+  reportImportRoute,
   retryImportLibraryPartRoute,
   saveEmployeeImportChangesRoute,
   saveImportChangesRoute,
@@ -60,4 +63,6 @@ export const importsRouter = createRouter()
   .openapi(listImportLibraryPartsRoute, listImportLibraryParts)
   .openapi(saveImportLibraryPartChangesRoute, saveImportLibraryPartChanges)
   .openapi(confirmImportLibraryPartRoute, confirmImportLibraryPart)
-  .openapi(retryImportLibraryPartRoute, retryImportLibraryPart);
+  .openapi(retryImportLibraryPartRoute, retryImportLibraryPart)
+  .openapi(reportImportRoute, reportImport)
+  .openapi(reportImportLibraryPartRoute, reportImportLibraryPart);

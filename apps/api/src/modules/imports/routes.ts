@@ -578,3 +578,39 @@ export const retryImportLibraryPartRoute = createRoute({
     503: unavailable,
   },
 });
+
+export const reportImportRoute = createRoute({
+  method: 'post',
+  path: '/imports/{importId}/report',
+  operationId: 'reportImport',
+  summary: 'Report a problem with an import',
+  description:
+    '"Raportează o problemă cu importul" (ADR 037): records when and by whom, a report again replacing both, and tells support, at most once in 10 minutes for the same import. What the member writes goes to the support widget, not here.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: importParams },
+  responses: {
+    204: { description: 'Reported' },
+    400: { description: 'Invalid path', content: errorContent },
+    404: noSuchImport,
+    ...membershipErrors,
+  },
+});
+
+export const reportImportLibraryPartRoute = createRoute({
+  method: 'post',
+  path: '/imports/{importId}/library-parts/{part}/report',
+  operationId: 'reportImportLibraryPart',
+  summary: 'Report a problem with a library part of an import',
+  description:
+    'As for the import: records when and by whom on the part, and tells support at most once in 10 minutes for the same part.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: libraryPartParams },
+  responses: {
+    204: { description: 'Reported' },
+    400: { description: 'Invalid path', content: errorContent },
+    404: { description: 'No such import, or no such part of it', content: errorContent },
+    ...membershipErrors,
+  },
+});
