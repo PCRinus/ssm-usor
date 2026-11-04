@@ -6868,6 +6868,7 @@ export type Database = {
           client_count: number | null;
           created_at: string | null;
           exposure: string | null;
+          factor_count: number | null;
           id: string | null;
           in_use: boolean | null;
           means_of_production: string | null;
