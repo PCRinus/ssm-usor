@@ -11775,6 +11775,42 @@ export const RisksProposalSheetsItemFactorsItemMeasuresFrom = {
 /**
  * @nullable
  */
+export type RisksProposalUnmatchedPlanRowsItemFactorComponent =
+  | (typeof RisksProposalUnmatchedPlanRowsItemFactorComponent)[keyof typeof RisksProposalUnmatchedPlanRowsItemFactorComponent]
+  | null;
+
+export const RisksProposalUnmatchedPlanRowsItemFactorComponent = {
+  executant: 'executant',
+  work_task: 'work_task',
+  means_of_production: 'means_of_production',
+  work_environment: 'work_environment',
+} as const;
+
+export type RisksProposalUnmatchedPlanRowsItemFactorMeasuresItemKind =
+  (typeof RisksProposalUnmatchedPlanRowsItemFactorMeasuresItemKind)[keyof typeof RisksProposalUnmatchedPlanRowsItemFactorMeasuresItemKind];
+
+export const RisksProposalUnmatchedPlanRowsItemFactorMeasuresItemKind = {
+  technical: 'technical',
+  organizational: 'organizational',
+  hygienic_sanitary: 'hygienic_sanitary',
+  other: 'other',
+} as const;
+
+/**
+ * @nullable
+ */
+export type RisksProposalUnmatchedPlanRowsItemFactorMeasuresFrom =
+  | (typeof RisksProposalUnmatchedPlanRowsItemFactorMeasuresFrom)[keyof typeof RisksProposalUnmatchedPlanRowsItemFactorMeasuresFrom]
+  | null;
+
+export const RisksProposalUnmatchedPlanRowsItemFactorMeasuresFrom = {
+  plan: 'plan',
+  sheet: 'sheet',
+} as const;
+
+/**
+ * @nullable
+ */
 export type RisksProposalSheetsItemRows = {
   first: string;
   last: string;
@@ -11974,12 +12010,117 @@ export type RisksProposalUnplacedRowsItem = {
   text: string;
 };
 
+/**
+ * @nullable
+ */
+export type RisksProposalUnmatchedPlanRowsItemFactorSource = {
+  file: string;
+  start: number;
+  end: number;
+} | null;
+
+export type RisksProposalUnmatchedPlanRowsItemFactorMeasuresItem = {
+  kind: RisksProposalUnmatchedPlanRowsItemFactorMeasuresItemKind;
+  description: string;
+};
+
+export type RisksProposalUnmatchedPlanRowsItemFactorFlagsItem =
+  | {
+      kind: 'level_mismatch';
+      printed: number;
+      grid: number;
+    }
+  | {
+      kind: 'consequence_mismatch';
+      consequence: string;
+      consequenceClass: number;
+    }
+  | {
+      kind: 'class_missing';
+      field: 'gravity' | 'probability';
+      written: string;
+    }
+  | {
+      kind: 'unknown_component';
+      written: string;
+    }
+  | {
+      kind: 'missing_group';
+    }
+  | {
+      kind: 'row_shape';
+      cells: number;
+      expected: number;
+    }
+  | {
+      kind: 'retyped';
+    }
+  | {
+      kind: 'quote_not_found';
+    }
+  | {
+      kind: 'person_named';
+      field: 'actions' | 'deadline' | 'responsiblePerson' | 'observations';
+      text: string;
+    }
+  | {
+      kind: 'measure_kind_guessed';
+    }
+  | {
+      kind: 'measures_cut';
+      count: number;
+    };
+
+/**
+ * @nullable
+ */
+export type RisksProposalUnmatchedPlanRowsItemFactor = {
+  key: string;
+  /** @nullable */
+  row: string | null;
+  /** @nullable */
+  source: RisksProposalUnmatchedPlanRowsItemFactorSource;
+  /** @nullable */
+  component: RisksProposalUnmatchedPlanRowsItemFactorComponent;
+  writtenComponent: string;
+  group: string;
+  description: string;
+  /** @nullable */
+  code: string | null;
+  consequence: string;
+  /** @nullable */
+  gravityClass: number | null;
+  /** @nullable */
+  probabilityClass: number | null;
+  /** @nullable */
+  printedLevel: number | null;
+  measures: RisksProposalUnmatchedPlanRowsItemFactorMeasuresItem[];
+  /** @nullable */
+  measuresFrom: RisksProposalUnmatchedPlanRowsItemFactorMeasuresFrom;
+  /** @nullable */
+  actions: string | null;
+  /** @nullable */
+  deadline: string | null;
+  /** @nullable */
+  responsiblePerson: string | null;
+  /** @nullable */
+  observations: string | null;
+  flags: RisksProposalUnmatchedPlanRowsItemFactorFlagsItem[];
+  included: boolean;
+  /** @nullable */
+  level: number | null;
+} | null;
+
 export type RisksProposalUnmatchedPlanRowsItem = {
   row: string;
   file: string;
   text: string;
   post: string;
   risk: string;
+  /** @nullable */
+  sheet?: string | null;
+  /** @nullable */
+  factor?: RisksProposalUnmatchedPlanRowsItemFactor;
 };
 
 export type RisksProposalUnmatchedMeasureRowsItem = {
@@ -36413,7 +36554,7 @@ export const getSaveImportLibraryPartChangesUrl = (
 };
 
 /**
- * Replaces the part's changes. An instructions part's are by the proposed instruction's key: `included` false leaves it out, `title`, `category` (one of the part's domain), `choice` for a similar instruction (`use_existing` or `add_new`), `posts` in place of those the themes give, and `body`, the text edited, held to the body's schema. The risk evaluations' are `sheets`, by the sheet's key (`RiskImportChanges`): `libraryName`, `library` (`add`, `use_existing`, `add_new`, `skip`), `posts`, `postChoices` and `existingChoice` (`append`, `replace`, `keep`), the three texts, and `factors` by the factor's key. Before the client is confirmed too. On the `version` the caller read, and answers the next. `400` for a key the proposal does not have, a category of the other domain, `use_existing` for a sheet the library matched none of, or another part's changes; `409` with `import_changed` when someone saved since, `import_part_not_ready` when the part is not `to_review` or `nothing_new`, `import_part_expired` 14 days after the client's confirmation.
+ * Replaces the part's changes. An instructions part's are by the proposed instruction's key: `included` false leaves it out, `title`, `category` (one of the part's domain), `choice` for a similar instruction (`use_existing` or `add_new`), `posts` in place of those the themes give, and `body`, the text edited, held to the body's schema. The risk evaluations' are `sheets`, by the sheet's key (`RiskImportChanges`): `libraryName`, `library` (`add`, `use_existing`, `add_new`, `skip`), `posts`, `postChoices` and `existingChoice` (`append`, `replace`, `keep`), the three texts, and `factors` by the factor's key, a sheet's own or that of a plan row the reading placed on it (`unmatchedPlanRows[].sheet`), written only once `included` is true. Before the client is confirmed too. On the `version` the caller read, and answers the next. `400` for a key the proposal does not have, a category of the other domain, `use_existing` for a sheet the library matched none of, or another part's changes; `409` with `import_changed` when someone saved since, `import_part_not_ready` when the part is not `to_review` or `nothing_new`, `import_part_expired` 14 days after the client's confirmation.
  * @summary Save the member's review of a library part
  */
 export const saveImportLibraryPartChanges = async (
@@ -36533,7 +36674,7 @@ export const getConfirmImportLibraryPartUrl = (
 };
 
 /**
- * For the risk evaluations, in one transaction (`apply_risk_import`): creates the chosen library entries with their factors, measures, plan fields as defaults (a person named in one goes to the client only) and texts, creates each missing evaluation of the client, fills only its empty texts, and writes the reviewed factors onto each sheet's posts as the post's choice says, each pointing at the entry's factor it was added to or matched; it answers `createdProfileIds`, `evaluationIds` and `factors`. `409` with `evaluation_profile_name_taken` when a new entry's name is any entry's, archived ones included (with `issues` on `sheets.<key>.libraryName`); `422` with `import_incomplete` for a ticked factor without its component or classes (with `issues` on `sheets.<key>.factors.<key>`). For instructions, in one transaction (`apply_instruction_import`): creates a module with its first version for every new instruction and every similar one the member chose to add as new, takes the identical ones and the similar ones kept as they are, and applies each to its posts, skipping a post that applies it already, all as the member. Only after the client is confirmed: `409` with `import_client_unconfirmed` before (the app says "Confirmă întâi clientul"). The client import's own confirm never waits for its parts. `409` with `import_part_expired` 14 days after the client's confirmation, `import_part_not_ready`, `import_changed`, `instruction_title_taken` when a new module's title is an active module's (with `issues` on `instructions.<key>.title`), or `import_outdated` when a post or module the review named is gone. `422` with `import_incomplete` for a category of the other domain.
+ * For the risk evaluations, in one transaction (`apply_risk_import`): creates the chosen library entries with their factors, measures, plan fields as defaults (a person named in one goes to the client only) and texts, creates each missing evaluation of the client, fills only its empty texts, and writes the reviewed factors, followed by the plan rows the member added as factors, onto each sheet's posts as the post's choice says, each pointing at the entry's factor it was added to or matched; it answers `createdProfileIds`, `evaluationIds` and `factors`. `409` with `evaluation_profile_name_taken` when a new entry's name is any entry's, archived ones included (with `issues` on `sheets.<key>.libraryName`); `422` with `import_incomplete` for a ticked factor without its component or classes (with `issues` on `sheets.<key>.factors.<key>`). For instructions, in one transaction (`apply_instruction_import`): creates a module with its first version for every new instruction and every similar one the member chose to add as new, takes the identical ones and the similar ones kept as they are, and applies each to its posts, skipping a post that applies it already, all as the member. Only after the client is confirmed: `409` with `import_client_unconfirmed` before (the app says "Confirmă întâi clientul"). The client import's own confirm never waits for its parts. `409` with `import_part_expired` 14 days after the client's confirmation, `import_part_not_ready`, `import_changed`, `instruction_title_taken` when a new module's title is an active module's (with `issues` on `instructions.<key>.title`), or `import_outdated` when a post or module the review named is gone. `422` with `import_incomplete` for a category of the other domain.
  * @summary Confirm a library part
  */
 export const confirmImportLibraryPart = async (

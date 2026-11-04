@@ -1,10 +1,10 @@
-import { importCredits, importErrorReasons } from '@ssm-usor/contracts';
+import { foldText, importCredits, importErrorReasons } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
-import { ArrowLeft, LoaderCircle, RotateCcw } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { ArrowLeft, ListX, LoaderCircle, RotateCcw } from 'lucide-react';
+import { type ReactNode, useMemo, useState } from 'react';
 
 import {
   type ApiErrorResponse,
@@ -24,7 +24,7 @@ import { RiskFactorDialog } from '@/features/risk-evaluations/risk-factor-dialog
 import { creditsLabel } from '../import-credits';
 import { importErrorMessage } from '../import-format';
 import type { LabelledSource } from '../review-model';
-import { SavingNote, SourceButton } from '../review-parts';
+import { SavingNote, SourceButton, Tag } from '../review-parts';
 import { SourceDialog, type SourceRequest } from '../source-dialog';
 import { SourcePrefetchContext, useSourcePrefetch } from '../source-query';
 import { PartStatusTag } from './library-group';
@@ -38,6 +38,7 @@ import {
 } from './library-model';
 import { ReviewNotices } from './library-task-page';
 import { PostsPickerDialog, type PostsRequest } from './posts-picker-dialog';
+import { PlanRowText } from './risk-plan-rows';
 import { RiskSheetCard } from './risk-sheet-card';
 import {
   confirmSentence,
@@ -50,14 +51,17 @@ import {
   incompleteFactors,
   isRisksLibraryPart,
   leftSentence,
+  looseCells,
   pendingOf,
+  placedPlanRows,
+  planFieldsLine,
   type RisksPart,
   riskSummary,
-  rowCells,
   rowQuote,
   sheetsLabel,
   sheetState,
   takenSheets,
+  unplacedPlanRows,
   withField,
 } from './risks-model';
 import { useLibraryParts, useRiskReview } from './use-library-parts';
@@ -191,12 +195,15 @@ function TaskContent({
     () => existingByReference(sheets, part.postReferences),
     [sheets, part.postReferences]
   );
+  const planRows = useMemo(() => proposal?.unmatchedPlanRows ?? [], [proposal]);
+  const planFactors = useMemo(() => placedPlanRows(planRows, sheets), [planRows, sheets]);
   const states = sheets.map((sheet) =>
     sheetState(sheet, review.changes.sheets[sheet.key], {
       postReferences: part.postReferences,
       postsById,
       existingByReference: existing,
       existingFactors: part.existingFactors,
+      planFactors,
     })
   );
   const open = readOnly
@@ -204,20 +211,12 @@ function TaskContent({
     : states.filter((state) => pendingOf(state, takenNames.has(state.sheet.key)).length > 0).length;
   const summary = riskSummary(states);
   const sheetByKey = new Map(sheets.map((sheet) => [sheet.key, sheet]));
-  const loose = [
-    ...(proposal?.unplacedRows ?? []).map((row) => ({
-      ...row,
-      what: 'Rând de factor care nu ține de nicio fișă',
-    })),
-    ...(proposal?.unmatchedPlanRows ?? []).map((row) => ({
-      ...row,
-      what: `Rând din planul de prevenire fără factor${row.post ? ` (${row.post})` : ''}`,
-    })),
-    ...(proposal?.unmatchedMeasureRows ?? []).map((row) => ({
-      ...row,
-      what: 'Măsură fără factor',
-    })),
-  ];
+  const loose = {
+    plan: unplacedPlanRows(planRows, sheets),
+    measures: proposal?.unmatchedMeasureRows ?? [],
+    unplaced: proposal?.unplacedRows ?? [],
+  };
+  const looseCount = loose.plan.length + loose.measures.length + loose.unplaced.length;
 
   const forgetRefusal = (sheet: string, factor?: string) =>
     setRefused((current) => {
@@ -424,43 +423,12 @@ function TaskContent({
               ))}
             </section>
 
-            {loose.length > 0 && (
-              <section
-                className="grid gap-2 rounded-xl border bg-card px-5 py-4 shadow-xs"
-                data-testid="risk-import-loose-rows"
-              >
-                <h2 className="text-base font-semibold">Rânduri de verificat în document</h2>
-                <p className="text-sm text-muted-foreground">
-                  Nu le-am putut lega de niciun factor, așa că nu le preluăm. Dacă țin de o fișă, le
-                  adaugi pe pagina ei după confirmare.
-                </p>
-                <ul className="grid gap-2">
-                  {loose.map((row) => {
-                    const picked: LabelledSource = { file: row.file, quote: rowQuote(row.text) };
-                    return (
-                      <li
-                        key={`${row.file}-${row.row}`}
-                        className="grid gap-1 rounded-md border px-3 py-2"
-                        data-testid="risk-import-loose-row"
-                      >
-                        <span className="text-xs font-semibold text-warning-foreground">
-                          {row.what}
-                        </span>
-                        <span className="text-sm wrap-anywhere">
-                          {rowCells(row.text).join(' · ')}
-                        </span>
-                        <span className="justify-self-start">
-                          <SourceButton
-                            label="Vezi în document"
-                            sources={[picked]}
-                            onOpen={() => setSource({ title: row.what, sources: [picked] })}
-                          />
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </section>
+            {looseCount > 0 && (
+              <LooseRows
+                count={looseCount}
+                {...loose}
+                onSource={(title, picked) => setSource({ title, sources: [picked] })}
+              />
             )}
           </>
         )}
@@ -520,6 +488,180 @@ function TaskContent({
         />
       </div>
     </SourcePrefetchContext>
+  );
+}
+
+type LooseRow = { row: string; file: string; text: string };
+
+function LooseGroup({
+  title,
+  note,
+  rows,
+  testId,
+  children,
+}: {
+  title: string;
+  note: string;
+  rows: number;
+  testId: string;
+  children: ReactNode;
+}) {
+  if (rows === 0) return null;
+  return (
+    <section aria-label={title} data-testid={testId}>
+      <h3 className="flex flex-wrap gap-x-2 border-t border-border/70 bg-muted/45 px-4 py-1.5 text-xs sm:px-5">
+        <span className="font-semibold text-muted-foreground">{title}</span>
+        <span className="text-muted-foreground">{note}</span>
+      </h3>
+      <ul>{children}</ul>
+    </section>
+  );
+}
+
+function LooseRowItem({
+  label,
+  source,
+  onSource,
+  children,
+}: {
+  label: string | null;
+  source: LabelledSource;
+  onSource: (source: LabelledSource) => void;
+  children: ReactNode;
+}) {
+  return (
+    <li
+      className="grid gap-x-4 gap-y-2 border-t border-border/70 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:px-5"
+      data-testid="risk-import-loose-row"
+    >
+      <div className="grid min-w-0 gap-1">
+        {label && <span className="text-sm font-medium wrap-anywhere">{label}</span>}
+        {children}
+      </div>
+      <div className="grid sm:flex sm:items-start">
+        <SourceButton
+          outlined
+          label="Vezi în document"
+          sources={[source]}
+          onOpen={() => onSource(source)}
+        />
+      </div>
+    </li>
+  );
+}
+
+const cellsText = (row: LooseRow, label = '') => (
+  <p className="text-sm wrap-anywhere">
+    {looseCells(row.text)
+      .filter((cell) => foldText(cell) !== foldText(label))
+      .join(' · ')}
+  </p>
+);
+
+const rowSource = (row: LooseRow): LabelledSource => ({
+  file: row.file,
+  quote: rowQuote(row.text),
+});
+
+function LooseRows({
+  count,
+  plan,
+  measures,
+  unplaced,
+  onSource,
+}: {
+  count: number;
+  plan: ReturnType<typeof unplacedPlanRows>;
+  measures: LooseRow[];
+  unplaced: LooseRow[];
+  onSource: (title: string, source: LabelledSource) => void;
+}) {
+  return (
+    <section
+      aria-labelledby="risk-loose-heading"
+      className="overflow-hidden rounded-xl border bg-card shadow-xs"
+      data-testid="risk-import-loose-rows"
+    >
+      <div className="flex items-start gap-3.5 px-4 py-4 sm:px-5">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-secondary">
+          <ListX className="size-5" aria-hidden="true" />
+        </span>
+        <div className="grid min-w-0 gap-1">
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <h2 id="risk-loose-heading" className="text-base leading-snug font-semibold">
+              Rânduri pe care nu le preluăm
+            </h2>
+            <Tag tone="muted">{count}</Tag>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Le-am găsit în documente, dar nu le-am putut lega de niciun factor de pe fișe. Fără un
+            factor nu au gravitate și probabilitate, așa că nu intră în import.
+          </p>
+        </div>
+      </div>
+      <LooseGroup
+        title="Din planul de prevenire"
+        note="rânduri pe care nu le-am putut pune pe nicio fișă"
+        rows={plan.length}
+        testId="risk-import-loose-plan"
+      >
+        {plan.map((row) => (
+          <LooseRowItem
+            key={`${row.file}-${row.row}`}
+            label={row.post || 'Fără post'}
+            source={rowSource(row)}
+            onSource={(picked) => onSource('Rând din planul de prevenire', picked)}
+          >
+            {row.factor ? (
+              <PlanRowText
+                description={row.factor.description}
+                fields={planFieldsLine(row.factor)}
+              />
+            ) : (
+              cellsText(row, row.post)
+            )}
+          </LooseRowItem>
+        ))}
+      </LooseGroup>
+      <LooseGroup
+        title="Din tabelul de măsuri"
+        note="măsuri care nu țin de niciun factor"
+        rows={measures.length}
+        testId="risk-import-loose-measures"
+      >
+        {measures.map((row) => (
+          <LooseRowItem
+            key={`${row.file}-${row.row}`}
+            label={null}
+            source={rowSource(row)}
+            onSource={(picked) => onSource('Rând din tabelul de măsuri', picked)}
+          >
+            {cellsText(row)}
+          </LooseRowItem>
+        ))}
+      </LooseGroup>
+      <LooseGroup
+        title="În afara fișelor"
+        note="rânduri scrise ca factori, dar în afara tabelului oricărei fișe"
+        rows={unplaced.length}
+        testId="risk-import-loose-unplaced"
+      >
+        {unplaced.map((row) => (
+          <LooseRowItem
+            key={`${row.file}-${row.row}`}
+            label={null}
+            source={rowSource(row)}
+            onSource={(picked) => onSource('Rând în afara fișelor', picked)}
+          >
+            {cellsText(row)}
+          </LooseRowItem>
+        ))}
+      </LooseGroup>
+      <p className="border-t border-border/70 px-4 py-3 text-[13px] text-muted-foreground sm:px-5">
+        După confirmare, dacă un rând ține de un post, îl adaugi ca factor pe fișa lui, cu clasele
+        lui.
+      </p>
+    </section>
   );
 }
 

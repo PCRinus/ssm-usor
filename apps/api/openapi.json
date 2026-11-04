@@ -19035,6 +19035,300 @@
                 },
                 "risk": {
                   "type": "string"
+                },
+                "sheet": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "factor": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "row": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "source": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "file": {
+                          "type": "string"
+                        },
+                        "start": {
+                          "type": "number"
+                        },
+                        "end": {
+                          "type": "number"
+                        }
+                      },
+                      "required": ["file", "start", "end"]
+                    },
+                    "component": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        "executant",
+                        "work_task",
+                        "means_of_production",
+                        "work_environment",
+                        null
+                      ]
+                    },
+                    "writtenComponent": {
+                      "type": "string"
+                    },
+                    "group": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "consequence": {
+                      "type": "string"
+                    },
+                    "gravityClass": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "probabilityClass": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "printedLevel": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "measures": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": ["technical", "organizational", "hygienic_sanitary", "other"]
+                          },
+                          "description": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["kind", "description"]
+                      }
+                    },
+                    "measuresFrom": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": ["plan", "sheet", null]
+                    },
+                    "actions": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "deadline": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "responsiblePerson": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "observations": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "flags": {
+                      "type": "array",
+                      "items": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": ["level_mismatch"]
+                              },
+                              "printed": {
+                                "type": "number"
+                              },
+                              "grid": {
+                                "type": "number"
+                              }
+                            },
+                            "required": ["kind", "printed", "grid"]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": ["consequence_mismatch"]
+                              },
+                              "consequence": {
+                                "type": "string"
+                              },
+                              "consequenceClass": {
+                                "type": "number"
+                              }
+                            },
+                            "required": ["kind", "consequence", "consequenceClass"]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": ["class_missing"]
+                              },
+                              "field": {
+                                "type": "string",
+                                "enum": ["gravity", "probability"]
+                              },
+                              "written": {
+                                "type": "string"
+                              }
+                            },
+                            "required": ["kind", "field", "written"]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": ["unknown_component"]
+                              },
+                              "written": {
+                                "type": "string"
+                              }
+                            },
+                            "required": ["kind", "written"]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": ["missing_group"]
+                              }
+                            },
+                            "required": ["kind"]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": ["row_shape"]
+                              },
+                              "cells": {
+                                "type": "number"
+                              },
+                              "expected": {
+                                "type": "number"
+                              }
+                            },
+                            "required": ["kind", "cells", "expected"]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": ["retyped"]
+                              }
+                            },
+                            "required": ["kind"]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": ["quote_not_found"]
+                              }
+                            },
+                            "required": ["kind"]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": ["person_named"]
+                              },
+                              "field": {
+                                "type": "string",
+                                "enum": ["actions", "deadline", "responsiblePerson", "observations"]
+                              },
+                              "text": {
+                                "type": "string"
+                              }
+                            },
+                            "required": ["kind", "field", "text"]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": ["measure_kind_guessed"]
+                              }
+                            },
+                            "required": ["kind"]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": ["measures_cut"]
+                              },
+                              "count": {
+                                "type": "number"
+                              }
+                            },
+                            "required": ["kind", "count"]
+                          }
+                        ]
+                      }
+                    },
+                    "included": {
+                      "type": "boolean"
+                    },
+                    "level": {
+                      "type": "number",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "row",
+                    "source",
+                    "component",
+                    "writtenComponent",
+                    "group",
+                    "description",
+                    "code",
+                    "consequence",
+                    "gravityClass",
+                    "probabilityClass",
+                    "printedLevel",
+                    "measures",
+                    "measuresFrom",
+                    "actions",
+                    "deadline",
+                    "responsiblePerson",
+                    "observations",
+                    "flags",
+                    "included",
+                    "level"
+                  ]
                 }
               },
               "required": ["row", "file", "text", "post", "risk"]
@@ -43393,7 +43687,7 @@
       "put": {
         "operationId": "saveImportLibraryPartChanges",
         "summary": "Save the member's review of a library part",
-        "description": "Replaces the part's changes. An instructions part's are by the proposed instruction's key: `included` false leaves it out, `title`, `category` (one of the part's domain), `choice` for a similar instruction (`use_existing` or `add_new`), `posts` in place of those the themes give, and `body`, the text edited, held to the body's schema. The risk evaluations' are `sheets`, by the sheet's key (`RiskImportChanges`): `libraryName`, `library` (`add`, `use_existing`, `add_new`, `skip`), `posts`, `postChoices` and `existingChoice` (`append`, `replace`, `keep`), the three texts, and `factors` by the factor's key. Before the client is confirmed too. On the `version` the caller read, and answers the next. `400` for a key the proposal does not have, a category of the other domain, `use_existing` for a sheet the library matched none of, or another part's changes; `409` with `import_changed` when someone saved since, `import_part_not_ready` when the part is not `to_review` or `nothing_new`, `import_part_expired` 14 days after the client's confirmation.",
+        "description": "Replaces the part's changes. An instructions part's are by the proposed instruction's key: `included` false leaves it out, `title`, `category` (one of the part's domain), `choice` for a similar instruction (`use_existing` or `add_new`), `posts` in place of those the themes give, and `body`, the text edited, held to the body's schema. The risk evaluations' are `sheets`, by the sheet's key (`RiskImportChanges`): `libraryName`, `library` (`add`, `use_existing`, `add_new`, `skip`), `posts`, `postChoices` and `existingChoice` (`append`, `replace`, `keep`), the three texts, and `factors` by the factor's key, a sheet's own or that of a plan row the reading placed on it (`unmatchedPlanRows[].sheet`), written only once `included` is true. Before the client is confirmed too. On the `version` the caller read, and answers the next. `400` for a key the proposal does not have, a category of the other domain, `use_existing` for a sheet the library matched none of, or another part's changes; `409` with `import_changed` when someone saved since, `import_part_not_ready` when the part is not `to_review` or `nothing_new`, `import_part_expired` 14 days after the client's confirmation.",
         "security": [
           {
             "bearerAuth": []
@@ -43517,7 +43811,7 @@
       "post": {
         "operationId": "confirmImportLibraryPart",
         "summary": "Confirm a library part",
-        "description": "For the risk evaluations, in one transaction (`apply_risk_import`): creates the chosen library entries with their factors, measures, plan fields as defaults (a person named in one goes to the client only) and texts, creates each missing evaluation of the client, fills only its empty texts, and writes the reviewed factors onto each sheet's posts as the post's choice says, each pointing at the entry's factor it was added to or matched; it answers `createdProfileIds`, `evaluationIds` and `factors`. `409` with `evaluation_profile_name_taken` when a new entry's name is any entry's, archived ones included (with `issues` on `sheets.<key>.libraryName`); `422` with `import_incomplete` for a ticked factor without its component or classes (with `issues` on `sheets.<key>.factors.<key>`). For instructions, in one transaction (`apply_instruction_import`): creates a module with its first version for every new instruction and every similar one the member chose to add as new, takes the identical ones and the similar ones kept as they are, and applies each to its posts, skipping a post that applies it already, all as the member. Only after the client is confirmed: `409` with `import_client_unconfirmed` before (the app says \"Confirmă întâi clientul\"). The client import's own confirm never waits for its parts. `409` with `import_part_expired` 14 days after the client's confirmation, `import_part_not_ready`, `import_changed`, `instruction_title_taken` when a new module's title is an active module's (with `issues` on `instructions.<key>.title`), or `import_outdated` when a post or module the review named is gone. `422` with `import_incomplete` for a category of the other domain.",
+        "description": "For the risk evaluations, in one transaction (`apply_risk_import`): creates the chosen library entries with their factors, measures, plan fields as defaults (a person named in one goes to the client only) and texts, creates each missing evaluation of the client, fills only its empty texts, and writes the reviewed factors, followed by the plan rows the member added as factors, onto each sheet's posts as the post's choice says, each pointing at the entry's factor it was added to or matched; it answers `createdProfileIds`, `evaluationIds` and `factors`. `409` with `evaluation_profile_name_taken` when a new entry's name is any entry's, archived ones included (with `issues` on `sheets.<key>.libraryName`); `422` with `import_incomplete` for a ticked factor without its component or classes (with `issues` on `sheets.<key>.factors.<key>`). For instructions, in one transaction (`apply_instruction_import`): creates a module with its first version for every new instruction and every similar one the member chose to add as new, takes the identical ones and the similar ones kept as they are, and applies each to its posts, skipping a post that applies it already, all as the member. Only after the client is confirmed: `409` with `import_client_unconfirmed` before (the app says \"Confirmă întâi clientul\"). The client import's own confirm never waits for its parts. `409` with `import_part_expired` 14 days after the client's confirmation, `import_part_not_ready`, `import_changed`, `instruction_title_taken` when a new module's title is an active module's (with `issues` on `instructions.<key>.title`), or `import_outdated` when a post or module the review named is gone. `422` with `import_incomplete` for a category of the other domain.",
         "security": [
           {
             "bearerAuth": []

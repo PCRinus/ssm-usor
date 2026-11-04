@@ -119,7 +119,14 @@ export const risksProposalSchema = z
       })
     ),
     unplacedRows: z.array(looseRow),
-    unmatchedPlanRows: z.array(looseRow.extend({ post: z.string(), risk: z.string() })),
+    unmatchedPlanRows: z.array(
+      looseRow.extend({
+        post: z.string(),
+        risk: z.string(),
+        sheet: z.string().nullable().optional(),
+        factor: factor.nullable().optional(),
+      })
+    ),
     unmatchedMeasureRows: z.array(looseRow),
   })
   .meta({ id: 'RisksProposal' });

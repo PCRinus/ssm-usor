@@ -295,6 +295,50 @@ export const libraryCook: Written[] = [
 
 export const chambermaidExisting = workshopEvaluation.factors.length;
 
+const planFile = 'Dosar/Planul de prevenire și protecție Hotel Royal.docx';
+
+// A plan row that pairs with no factor, written out as the reading writes it: the plan gives no
+// component, group or classes.
+function planRow(
+  row: string,
+  risk: string,
+  measures: [PreventionMeasureKind, string][],
+  fields: Pick<ReadFactor, 'actions' | 'deadline' | 'responsiblePerson'>
+) {
+  const factor: ReadFactor = {
+    key: `plan-${row}`,
+    row,
+    source: { file: planFile, start: 0, end: 0 },
+    component: null,
+    writtenComponent: '',
+    group: '',
+    description: risk,
+    code: null,
+    consequence: '',
+    gravityClass: null,
+    probabilityClass: null,
+    printedLevel: null,
+    measures: measures.map(([kind, description]) => ({ kind, description })),
+    measuresFrom: 'plan',
+    ...fields,
+    observations: null,
+    flags: [],
+  };
+  return {
+    row,
+    file: planFile,
+    text: `| RECEPȚIONER HOTEL | ${risk} | ${measures.map(([, text]) => text).join(' / ')} | ${fields.actions ?? '--'} | ${fields.deadline ?? '--'} | ${fields.responsiblePerson ?? '--'} |`,
+    post: 'RECEPȚIONER HOTEL',
+    risk,
+    sheet: 'receptionist',
+    factor,
+  };
+}
+
+export const protectiveEquipmentRow =
+  'Neutilizarea echipamentului individual de protecție și a celorlalte mijloace de protecție din dotare.';
+export const firstAidRow = 'Lipsa trusei de prim ajutor din spațiile de birou';
+
 export function hotelRisks(library: LibraryEvaluation[]): RisksProposal {
   rows = 0;
   const sheets = [
@@ -328,12 +372,25 @@ export function hotelRisks(library: LibraryEvaluation[]): RisksProposal {
         },
       ],
       unmatchedPlanRows: [
+        planRow('R112', protectiveEquipmentRow, [['organizational', 'Instruirea personalului']], {
+          actions: 'Alocarea fondurilor materiale necesare',
+          deadline: 'Periodic',
+          responsiblePerson: 'Cond. loc muncă; Serv extern',
+        }),
+        planRow(
+          'R113',
+          firstAidRow,
+          [['organizational', 'Dotarea recepției cu o trusă de prim ajutor completă']],
+          { actions: null, deadline: 'Imediat', responsiblePerson: 'Administrator' }
+        ),
         {
           row: 'R120',
           file,
           text: '| Spălătorie | Zgomot | Montarea de amortizoare la mașinile de spălat | Anual | Administrator |',
           post: 'Spălătorie',
           risk: 'Zgomot',
+          sheet: null,
+          factor: null,
         },
       ],
       unmatchedMeasureRows: [],

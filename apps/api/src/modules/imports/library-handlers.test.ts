@@ -749,7 +749,30 @@ describe('the risk evaluations part', () => {
       }),
     ],
     unplacedRows: [],
-    unmatchedPlanRows: [],
+    unmatchedPlanRows: [
+      {
+        row: 'R41',
+        file: 'Dosar/Plan.docx',
+        text: '| 3 |  | Zgomot de la hota de evacuare | Izolarea hotei. | Anual | Administrator |',
+        post: 'BRUTAR',
+        risk: 'Zgomot de la hota de evacuare',
+        sheet: 'sheet-1',
+        factor: factor('plan-R41', {
+          row: 'R41',
+          component: null,
+          writtenComponent: '',
+          group: '',
+          description: 'Zgomot de la hota de evacuare',
+          code: null,
+          consequence: '',
+          gravityClass: null,
+          probabilityClass: null,
+          printedLevel: null,
+          included: false,
+          level: null,
+        }),
+      },
+    ],
     unmatchedMeasureRows: [],
   };
 
@@ -876,6 +899,29 @@ describe('the risk evaluations part', () => {
       p_expected_version: 3,
       p_changes: changes,
     });
+  });
+
+  it('saves a plan row added to the sheet it was placed on, and refuses it on another', async () => {
+    mockUpstream(({ url }) => {
+      if (url.pathname === '/rest/v1/import_library_parts') return Response.json(riskRow());
+      if (url.pathname === '/rest/v1/rpc/save_import_library_part_changes') return Response.json(4);
+    });
+    const added = { gravityClass: 2, probabilityClass: 3, included: true };
+    const placed = await request(`${parts}/risk_evaluations/changes`, 'PUT', {
+      version: 3,
+      changes: { sheets: { 'sheet-1': { factors: { 'plan-R41': added } } } },
+    });
+    const elsewhere = await request(`${parts}/risk_evaluations/changes`, 'PUT', {
+      version: 3,
+      changes: { sheets: { 'sheet-2': { factors: { 'plan-R41': added } } } },
+    });
+
+    expect(placed.status).toBe(200);
+    expect(elsewhere.status).toBe(400);
+    expect(await elsewhere.json()).toMatchObject({
+      issues: [{ path: 'changes.sheets.sheet-2.factors.plan-R41', message: 'unknown' }],
+    });
+    expect(callsTo('/rest/v1/rpc/save_import_library_part_changes')).toHaveLength(1);
   });
 
   it('refuses a sheet or a factor the proposal does not have, and another part’s changes', async () => {

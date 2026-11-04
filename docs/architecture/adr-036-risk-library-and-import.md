@@ -140,6 +140,8 @@ Measures, plan fields and texts are left out of the match. A taken name is propo
 
 _Note, 2026-11-04:_ this list first offered Nu adăuga for any sheet. A similar sheet has none: its factors go to the client either way, and Folosește ce ai already leaves the library as it is, the client's factors that match the entry's pointing at them.
 
+_Note, 2026-11-04, plan rows with no factor:_ a plan row that pairs with no factor can be a risk the evaluator planned for the post but left off its sheet (ROYAL HOTEL's receptionist block plans for "Neutilizarea echipamentului individual de protecţie", which the receptionist's sheet does not list), though others are copies from another post or a template's leftovers. Listed at the end, it was never imported. Code now writes such a row out as an unticked factor with the plan's measures by kind and its plan fields, and places it on the sheet most of its block's paired rows go to, else on the one sheet whose name its post names. That sheet's card shows it folded under **Rânduri fără factor**, and **Adaugă ca factor** opens the factor form, where the specialist chooses its component, group and classes; the app still chooses no class. An added row is written like the sheet's own factors, into the entry the sheet creates too. Rows placed on no sheet, measures rows with no factor and factor rows outside every sheet stay listed at the end, under **Rânduri pe care nu le preluăm**.
+
 A plan field that names a person rather than a role is flagged, and is copied to the client's sheet but not into the library.
 
 **Confirming** runs `apply_risk_import` in one transaction, after the client's confirm:

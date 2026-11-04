@@ -19,6 +19,7 @@ import {
 import {
   type InstructionsProposal,
   instructionsProposalSchema,
+  planFactorsOf,
   type ProposedInstruction,
   type RiskImportPayload,
   riskImportPayload,
@@ -358,7 +359,9 @@ function checkedRiskChanges(changes: RiskImportChanges, proposal: RisksProposal 
   const issues = Object.entries(changes.sheets).flatMap(([key, change]) => {
     const sheet = sheets.get(key);
     if (!sheet) return [{ path: `changes.sheets.${key}`, message: 'unknown' }];
-    const factors = new Set(sheet.factors.map((factor) => factor.key));
+    const factors = new Set(
+      [...sheet.factors, ...planFactorsOf(proposal!, key)].map((factor) => factor.key)
+    );
     return [
       ...Object.keys(change.factors ?? {}).flatMap((factor) =>
         factors.has(factor)

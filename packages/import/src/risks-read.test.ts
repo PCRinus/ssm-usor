@@ -220,6 +220,80 @@ describe('readRisksAnswer: measures and plan', () => {
   });
 });
 
+describe('readRisksAnswer: a plan row paired with no factor', () => {
+  const unpaired = (rows: RisksAnswer['plan'], text = plan.text) =>
+    readRisksAnswer(
+      [assessment, { ...plan, text }],
+      { ...answer, plan: rows },
+      {
+        people: ['Maria Ionescu'],
+      }
+    ).unmatchedPlanRows;
+  const nonePaired = answer.plan.map((entry) => ({ ...entry, factorRows: [] }));
+
+  it('writes it out as a factor with the plan’s measures by kind and its fields, to be added', () => {
+    expect(read.unmatchedPlanRows[0]!.factor).toEqual({
+      key: 'plan-R41',
+      row: 'R41',
+      source: expect.objectContaining({ file: plan.path }),
+      component: null,
+      writtenComponent: '',
+      group: '',
+      description: 'Zgomot de la hota de evacuare',
+      code: null,
+      consequence: '',
+      gravityClass: null,
+      probabilityClass: null,
+      printedLevel: null,
+      measures: [{ kind: 'technical', description: 'Izolarea hotei.' }],
+      measuresFrom: 'plan',
+      actions: null,
+      deadline: 'Anual',
+      responsiblePerson: 'Administrator',
+      observations: null,
+      flags: [],
+    });
+  });
+
+  it('flags a person named in its fields', () => {
+    const [row] = unpaired(
+      answer.plan,
+      plan.text.replace('| Anual | Administrator |', '| Anual | Maria Ionescu |')
+    );
+
+    expect(row!.factor!.flags).toEqual([
+      { kind: 'person_named', field: 'responsiblePerson', text: 'Maria Ionescu' },
+    ]);
+  });
+
+  it('places it on the sheet most of its post’s paired rows go to, listed or not', () => {
+    expect(read.unmatchedPlanRows[0]!.sheet).toBe('sheet-1');
+    expect(unpaired(answer.plan.filter((entry) => entry.row !== 'R41'))).toEqual([
+      expect.objectContaining({ row: 'R41', post: 'BRUTĂRIA DIN CURTE; BRUTAR', sheet: 'sheet-1' }),
+    ]);
+  });
+
+  it('places it on the one sheet named in its post when none of the post’s rows is paired', () => {
+    expect(unpaired(nonePaired).map((row) => [row.row, row.sheet])).toEqual([
+      ['R39', 'sheet-1'],
+      ['R40', 'sheet-1'],
+      ['R41', 'sheet-1'],
+    ]);
+  });
+
+  it('places it on no sheet when its post names none, and gives a row in no table no factor', () => {
+    const laundry = plan.text.replace('BRUTĂRIA DIN CURTE / / BRUTAR', 'SPĂLĂTORIE');
+    expect(unpaired(nonePaired, laundry).map((row) => row.sheet)).toEqual([null, null, null]);
+
+    const noTables = readRisksAnswer([assessment, plan], { ...answer, planTables: [] });
+    expect(noTables.unmatchedPlanRows.map((row) => [row.sheet, row.factor])).toEqual([
+      [null, null],
+      [null, null],
+      [null, null],
+    ]);
+  });
+});
+
 describe('readRisksAnswer: a PDF', () => {
   const pdfAnswer: RisksAnswer = {
     sheets: [

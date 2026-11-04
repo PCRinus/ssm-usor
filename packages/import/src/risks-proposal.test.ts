@@ -149,6 +149,16 @@ describe('proposeRisks', () => {
   it('stores as its schema says', () => {
     expect(risksProposalSchema.parse(JSON.parse(JSON.stringify(proposal)))).toEqual(proposal);
   });
+
+  it('reads a proposal stored before its plan rows were placed on sheets', () => {
+    const stored = JSON.parse(JSON.stringify(proposal)) as typeof proposal;
+    for (const row of stored.unmatchedPlanRows) {
+      delete row.sheet;
+      delete row.factor;
+    }
+
+    expect(risksProposalSchema.parse(stored).unmatchedPlanRows[0]).not.toHaveProperty('factor');
+  });
 });
 
 describe('entryName', () => {
@@ -270,6 +280,59 @@ describe('riskImportPayload', () => {
       message: 'incomplete',
     });
     expect(payload.entries[0]!.factors.every((factor) => factor.group !== '')).toBe(true);
+  });
+
+  it('writes a plan row placed on a sheet only once added, after the sheet’s factors', () => {
+    expect(proposal.unmatchedPlanRows[0]).toMatchObject({
+      sheet: 'sheet-1',
+      factor: { key: 'plan-R41', included: false, level: null },
+    });
+    const left = riskImportPayload({ proposal, changes: null, posts, postReferences }).payload;
+    expect(left.evaluations[0]!.factors.map((factor) => factor.key)).not.toContain('plan-R41');
+
+    const changes = riskImportChangesSchema.parse({
+      sheets: {
+        'sheet-1': {
+          factors: {
+            'plan-R41': {
+              component: 'work_environment',
+              group: 'Factori de risc fizic',
+              gravityClass: 2,
+              probabilityClass: 3,
+              included: true,
+            },
+          },
+        },
+      },
+    });
+    const { payload, issues } = riskImportPayload({ proposal, changes, posts, postReferences });
+
+    expect(issues).toEqual([]);
+    expect(payload.entries[0]!.factors.at(-1)).toMatchObject({ key: 'plan-R41' });
+    expect(payload.evaluations[0]!.factors.at(-1)).toEqual({
+      key: 'plan-R41',
+      component: 'work_environment',
+      group: 'Factori de risc fizic',
+      description: 'Zgomot de la hota de evacuare',
+      gravity_class: 2,
+      probability_class: 3,
+      measures: [{ kind: 'technical', description: 'Izolarea hotei.' }],
+      actions: null,
+      deadline: 'Anual',
+      responsible_person: 'Administrator',
+      observations: null,
+      source: { entry: 'sheet-1', factor: 'plan-R41' },
+    });
+  });
+
+  it('refuses a plan row added without its classes', () => {
+    const changes = riskImportChangesSchema.parse({
+      sheets: { 'sheet-1': { factors: { 'plan-R41': { included: true } } } },
+    });
+
+    expect(riskImportPayload({ proposal, changes, posts, postReferences }).issues).toEqual([
+      { path: 'sheets.sheet-1.factors.plan-R41', message: 'incomplete' },
+    ]);
   });
 
   it('refuses a ticked factor still without a class, and a post the client no longer has', () => {

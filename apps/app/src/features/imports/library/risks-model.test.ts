@@ -13,6 +13,10 @@ import {
   libraryOutcome,
   pendingLine,
   pendingOf,
+  placedPlanRows,
+  planFieldsLine,
+  type PlanRow,
+  planRowsLine,
   type ProposedFactor,
   type RiskSheet,
   type RisksPart,
@@ -23,6 +27,7 @@ import {
   sheetFlagText,
   sheetState,
   takenSheets,
+  unplacedPlanRows,
 } from './risks-model';
 
 const factor = (overrides: Partial<ProposedFactor> = {}): ProposedFactor => ({
@@ -277,6 +282,99 @@ describe('a sheet of the pack', () => {
     expect(pendingOf(state, true)).toEqual(['name']);
     expect(pendingLine(['posts', 'name'])).toBe('Mai ai 2 lucruri de făcut');
     expect(pendingOf(sheetState(sheet(), { library: 'skip' }, context()), true)).toEqual([]);
+  });
+});
+
+describe('the plan rows placed on a sheet', () => {
+  const planFactor = (key: string, overrides: Partial<ProposedFactor> = {}) =>
+    factor({
+      key,
+      row: key.replace('plan-', ''),
+      component: null,
+      writtenComponent: '',
+      group: '',
+      description: 'Neutilizarea echipamentului individual de protecție',
+      code: null,
+      consequence: '',
+      gravityClass: null,
+      probabilityClass: null,
+      printedLevel: null,
+      measures: [
+        { kind: 'organizational', description: 'Instruirea personalului' },
+        { kind: 'organizational', description: 'Afișarea instrucțiunii.' },
+        { kind: 'other', description: 'Mănuși' },
+      ],
+      actions: 'Alocarea fondurilor materiale necesare',
+      deadline: 'Periodic',
+      responsiblePerson: 'Cond. loc munca; Serv extern',
+      included: false,
+      level: null,
+      ...overrides,
+    });
+  const planRow = (sheetKey: string | null, key: string): PlanRow => ({
+    row: key.replace('plan-', ''),
+    file: 'Dosar/Plan.docx',
+    text: '| 22 |  | Neutilizarea echipamentului | Instruirea personalului; | -- |',
+    post: 'RECEPTIONER HOTEL',
+    risk: 'Neutilizarea echipamentului',
+    sheet: sheetKey,
+    factor: planFactor(key),
+  });
+  const cook = sheet();
+  const rows = [
+    planRow('cook', 'plan-R22'),
+    planRow('cook', 'plan-R23'),
+    planRow(null, 'plan-R30'),
+    planRow('gone', 'plan-R31'),
+    { ...planRow('cook', 'plan-R32'), factor: null },
+    { row: 'R33', file: 'Dosar/Plan.docx', text: '| x |', post: '', risk: '' },
+  ];
+  const withPlan = (change?: SheetChange, client = false) =>
+    sheetState(client ? { ...cook, kind: 'sensitive_groups', posts: [] } : cook, change, {
+      ...context(),
+      planFactors: placedPlanRows(rows, [cook]),
+    });
+  const added = {
+    component: 'executant' as const,
+    group: 'Omisiuni',
+    gravityClass: 2,
+    probabilityClass: 3,
+    included: true,
+  };
+
+  it('puts on a sheet only the rows with a factor placed on it, the rest at the end', () => {
+    expect(withPlan().planRows.map((row) => row.factor.key)).toEqual(['plan-R22', 'plan-R23']);
+    expect(unplacedPlanRows(rows, [cook]).map((row) => row.row)).toEqual([
+      'R30',
+      'R31',
+      'R32',
+      'R33',
+    ]);
+  });
+
+  it('writes a row once added, and counts no row left out as something to fix', () => {
+    const before = withPlan();
+    expect(before).toMatchObject({ written: 2, incomplete: 0, leftOut: 0, toCheck: 0 });
+
+    const after = withPlan({ factors: { 'plan-R22': added } });
+    expect(after.written).toBe(3);
+    expect(after.planRows[0]).toMatchObject({ included: true, complete: true, level: 2 });
+    expect(riskSummary([after]).factors).toBe(3);
+  });
+
+  it('says how many rows are for the post and how many the member added', () => {
+    expect(planRowsLine(withPlan())).toBe(
+      '2 rânduri din documente sunt pentru acest post, dar nu le-am putut lega de niciun factor de pe fișă.'
+    );
+    expect(planRowsLine(withPlan({ factors: { 'plan-R23': added } }, true))).toBe(
+      '2 rânduri din documente sunt pentru această fișă, dar nu le-am putut lega de niciun factor de pe fișă. Ai adăugat un factor din ele.'
+    );
+  });
+
+  it('lists the measures by kind and the plan fields present', () => {
+    expect(planFieldsLine(planFactor('plan-R22'))).toBe(
+      'Măsuri organizatorice: Instruirea personalului; Afișarea instrucțiunii. · Alte măsuri: Mănuși · Acțiuni: Alocarea fondurilor materiale necesare · Termen: Periodic · Răspunde: Cond. loc munca; Serv extern'
+    );
   });
 });
 
