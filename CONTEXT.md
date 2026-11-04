@@ -252,6 +252,8 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Import folder** (_dosar importat_): the files of a confirmed import in "Alte documente", grouped under the day of the import with the upload's folders. ADR 030. Avoid: archive, which is what an archived client is.
 
+**Improvement copy** (_copia pentru îmbunătățire_): what we keep of every import, abandoned and failed ones included, for 12 months after it ends, to find what the reading gets wrong and to try a change on real documents: the files, their extracted text, the proposal with its flags, and what the member changed in review. Kept apart from the app's data, read only by support, never by members, and never used to train a model. A **test case** is a confirmed import's copy, whose confirmed result is the expected answer. ADR 037. Avoid: backup, archive, training data.
+
 **Credit** (_credit_, plural _credite_): the unit an import's reading is counted in, one for both imports: one photograph or scanned page read, and 25 for reading a client's documents. An import starts when the credits left cover what is known before its reading, and each scanned page is charged as it is found, so the balance may go below zero, by 150 at most, and the shortfall comes off the next month. Each plan has a monthly allowance and the trial one allowance for its whole length; and the first payment brings a one-time **welcome gift** that never expires. ADR 030, ADR 029. Avoid: token, which is the model's unit, and import as a unit.
 
 ## Billing
