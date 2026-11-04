@@ -155,6 +155,7 @@ Keep the deployment units separate even though the source is in one repository:
 www.<domain> / <domain>  -> apps/marketing -> Cloudflare Workers Static Assets
 app.<domain>             -> apps/app -> Cloudflare Workers Static Assets
 portal.<domain>          -> apps/portal -> Cloudflare Workers Static Assets (ADR 022)
+admin.<domain>           -> apps/admin  -> Cloudflare Worker + Static Assets, behind Access (ADR 038)
 api.<domain>             -> apps/api       -> Cloudflare Worker
 legislation.<domain>     -> apps/legislation -> Cloudflare Worker, daily legislation check (cron, POST /run)
 background jobs          -> queues/workflows -> portable processing workers

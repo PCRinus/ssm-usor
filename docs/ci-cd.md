@@ -43,15 +43,16 @@ available as a required PR check, including on documentation-only changes.
 | `apps/help/**`                                                                                                                            | Help site                                             |
 | `apps/app/**`, `packages/help-topics/**`                                                                                                  | SPA                                                   |
 | `apps/portal/**`                                                                                                                          | Portal                                                |
-| `packages/api-http/**`                                                                                                                    | SPA and portal                                        |
+| `apps/admin/**`                                                                                                                           | Admin app ([guide](admin.md))                         |
+| `packages/api-http/**`                                                                                                                    | SPA, portal and admin app                             |
 | `apps/api/**` (except the shared contract below)                                                                                          | API                                                   |
 | `apps/mail/**`                                                                                                                            | Mail Worker                                           |
 | `apps/sms/**`                                                                                                                             | SMS Worker ([guide](sms.md))                          |
 | `apps/pdf/**`, `packages/contracts/src/pdf.ts`, `signer*.ts` and `extractor*.ts` in the same folder                                       | PDF Worker and its container images ([guide](pdf.md)) |
 | `apps/legislation/**`, `packages/legislation/**`, `packages/document-engine/**`                                                           | Legislation Worker                                    |
-| `packages/ui/**`                                                                                                                          | SPA, portal and marketing                             |
-| `packages/design-tokens/**`                                                                                                               | SPA, portal, marketing and help site                  |
-| `packages/contracts/**`                                                                                                                   | API, SPA, portal, mail and SMS Workers                |
+| `packages/ui/**`                                                                                                                          | SPA, portal, admin app and marketing                  |
+| `packages/design-tokens/**`                                                                                                               | SPA, portal, admin app, marketing and help site       |
+| `packages/contracts/**`                                                                                                                   | API, SPA, portal, admin app, mail and SMS Workers     |
 | `apps/api/openapi.json`                                                                                                                   | API and SPA                                           |
 | `orval.config.ts`                                                                                                                         | SPA                                                   |
 | `supabase/config.toml`, `supabase/migrations/**`, workflow/action/filter files                                                            | Database (hosted migrations and configuration)        |
@@ -109,7 +110,7 @@ dry-run task depends on that build.
 
 Each build uploads a `release-<application>-<environment>-<commit>` artifact, retained for seven
 days. The artifact includes the Wrangler bundle and, for the frontends, the static `dist`
-assets. Deployment jobs download their matching artifact. API, mail, PDF, legislation, marketing and help upload the
+assets. Deployment jobs download their matching artifact. API, mail, PDF, legislation, marketing, help and the admin app upload the
 already-bundled Worker with `--no-bundle`; SPA uploads the built static assets. No deployment
 job runs lint, tests, application builds, or code generation again before publishing.
 
@@ -149,7 +150,7 @@ without it the job only leaves a notice, and `POST /run` answers `404`.
 
 When `supabase/config.toml` or a migration changes, a last job applies the file to the
 environment's project with `supabase config push`, after the API, because the Send Email hook it declares
-must not point at an endpoint that is not deployed yet, and after the SPA and the portal, because
+must not point at an endpoint that is not deployed yet, and after the SPA, the portal and the admin app, because
 the CAPTCHA it turns on refuses a sign-in without the Turnstile token only the new pages send. Only properties the file declares are
 written; `[remotes.production]` and `[remotes.non-prod]` hold the values that differ from the
 local stack, and the CLI picks the block whose `project_id` is the project's. The push does not
@@ -189,7 +190,11 @@ local stack on pull requests instead. The job caches the Chromium download by Pl
 version and installs only its system packages on a cache hit. API smoke-test failures block
 an accompanying SPA release. The portal has the same pair of jobs, **Deploy portal** and
 **Verify deployed portal**, with only signed-out smoke checks and no secrets; it waits for the
-API like the SPA and never for the SPA. There is no check of the old live release before deployment.
+API like the SPA and never for the SPA. **Deploy admin app** uploads the admin Worker's bundle
+with the built pages as its assets, after the API, because `wrangler deploy` refuses its service
+binding to the API's `Admin` entrypoint until a deployment of the API exports it; it has no
+browser check, since every request needs Cloudflare Access ([admin app](admin.md)). There is no
+check of the old live release before deployment.
 
 ## Releases
 
