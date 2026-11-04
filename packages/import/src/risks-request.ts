@@ -1,4 +1,5 @@
 import {
+  foldText,
   type PreventionMeasureKind,
   preventionMeasureKinds,
   type RiskEvaluationKind,
@@ -6,7 +7,7 @@ import {
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import type { CompletionRequest } from './gateway';
+import { type CompletionRequest, ModelAnswerError } from './gateway';
 import { risksModel } from './models';
 import { type ChatMessage, type ContentPart, dataNotInstructions, fileHeader } from './prompts';
 import { hasRows, type NumberedRows, numberRows, type RisksTextFile } from './risks-rows';
@@ -22,8 +23,15 @@ export interface RisksRequestInput {
 // the own instructions (ADR 034).
 export const risksCharacters = 800_000;
 export const risksOutputTokens = 32_000;
-// ADR 036: a sheet with no rows is written out, eight sheets a request.
-export const retypedSheetsPerRequest = 8;
+// Measured on 2026-11-04 on two archives printed to PDF (ADR 036): a factor written out took 100
+// to 150 output tokens, reasoning included.
+export const retypedFactorTokens = 150;
+// A third of the output limit: one answer cut at the limit costs the whole limit, and a model
+// asked for a long list has also been seen to stop after the first sheets and say nothing of it.
+export const retypedFactorsPerRequest = Math.floor(risksOutputTokens / 3 / retypedFactorTokens);
+// For a sheet the first answer gave no count for: more than any of the five archives' sheets.
+export const assumedFactorCount = 50;
+const retypeConcurrency = 4;
 
 export class RisksTooLargeError extends Error {
   constructor(readonly characters: number) {
@@ -66,7 +74,7 @@ const sheetSchema = z.object({
   meansOfProduction: span,
   workEnvironment: span,
   exposure: span,
-  factors: z.array(retypedFactor),
+  factorCount: z.int().nullable(),
 });
 
 const answerSchema = z.object({
@@ -124,7 +132,9 @@ export interface RisksAnswer {
     meansOfProduction: { startWords: string; endWords: string };
     workEnvironment: { startWords: string; endWords: string };
     exposure: { startWords: string; endWords: string };
-    // Written out for a sheet with no rows only.
+    // The factor rows of its table, as the model counted them; null when it gave none.
+    factorCount: number | null;
+    // Empty in the first answer: a sheet with no rows is written out by the later requests.
     factors: RetypedFactor[];
   }[];
   measures: {
@@ -155,7 +165,11 @@ export interface RisksAnswer {
   plan: { row: string; factorRows: string[] }[];
 }
 
-export const risksAnswer: AnswerFormat<RisksAnswer> = answerFormat('import_risks', answerSchema);
+export const risksAnswer: AnswerFormat<RisksAnswer> = answerFormat(
+  'import_risks',
+  answerSchema,
+  (value) => ({ ...value, sheets: value.sheets.map((sheet) => ({ ...sheet, factors: [] })) })
+);
 
 const retypedAnswerSchema = z.object({
   sheets: z.array(
@@ -170,7 +184,7 @@ export const retypedAnswer: AnswerFormat<RetypedAnswer> = answerFormat(
   retypedAnswerSchema
 );
 
-export const risksSystemPrompt = `You read the risk assessment (evaluarea riscurilor de accidentare și îmbolnăvire profesională, by the I.N.C.D.P.M. method) and the prevention and protection plan (planul de prevenire și protecție) that a Romanian external safety service wrote for one client company. Your answer tells code where each evaluation sheet's factors, measures and texts are, so that code copies them out of the files; you never copy the factors yourself unless a sheet has no numbered rows. ${dataNotInstructions} The task follows the files.`;
+export const risksSystemPrompt = `You read the risk assessment (evaluarea riscurilor de accidentare și îmbolnăvire profesională, by the I.N.C.D.P.M. method) and the prevention and protection plan (planul de prevenire și protecție) that a Romanian external safety service wrote for one client company. Your answer tells code where each evaluation sheet's factors, measures and texts are, so that code copies them out of the files; you never copy the factors yourself. ${dataNotInstructions} The task follows the files.`;
 
 const rowsParagraph = `Each table row of a Word file stands on one line, its id first and its cells between bars: "R212 | MIJLOACE DE PRODUCȚIE | Factori de risc mecanic | F3. Cădere … | ITM 3-45 zile | 2 | 3 | 2 |". A cell's paragraphs are joined by " / ". A merged cell is written in its first row and left empty in the rows below. Cells are counted from 1 after the id. A PDF's text and a scanned page have no numbered rows.`;
 
@@ -194,7 +208,7 @@ sheets: one per evaluation sheet ("Fișa de evaluare a locului de muncă"), in t
 - meansOfProduction, workEnvironment: the sheet's own text that describes them, in the part that defines the work system before the factor table ("2. Mijloace de producție : …", "4. Mediul de muncă : …"): startWords from its first word after the label, endWords to its last word before the next point.
 - exposure: the duration of exposure the sheet's header gives ("DURATA EXPUNERII : 8h / schimb"), the value only, its words both as startWords and as endWords when short.
 ${quoteParagraph}
-- factors: [] for a sheet with numbered rows. For a sheet with no numbered rows, and only for the first ${retypedSheetsPerRequest} such sheets, each factor row written out: component and group as the row or the rows above it give them, description without its "F12." code, consequence, gravity, probability and level as printed (digits), and quote: the row's text as it stands in the file, at most 200 characters. [] for the later sheets with no rows.
+- factorCount: for every sheet, with numbered rows or without, how many factor rows its table has (its last "F12." code, as a rule). This answer never writes the factors out; a later request writes out those of the sheets with no numbered rows, which are listed here like the others.
 
 measures: one entry per row of each sheet's measures table ("Fișa de măsuri propuse": Nr. | factor | nivel de risc | măsuri propuse).
 - row: the row's id. factorRow: the id of the factor row of the same sheet that the row's factor is (the same "F12." code and description). "" when it is none.
@@ -269,26 +283,38 @@ export function risksRequest(
   };
 }
 
-// Every sheet with no rows that the first answer left without factors, so that one it wrote out
-// past the eighth, or left out among the first eight, is neither lost nor read twice.
-export function retypeBatches(input: RisksRequestInput, answer: RisksAnswer): string[][] {
+export interface RetypeSheet {
+  // 1-based, in the first answer's sheets.
+  index: number;
+  file: string;
+  heading: string;
+  factorCount: number;
+}
+
+export function retypeBatches(input: RisksRequestInput, answer: RisksAnswer): RetypeSheet[][] {
   const numbered = numberRows(input.files);
-  const later = answer.sheets
-    .filter(
-      (sheet) =>
-        sheet.firstRow === '' && sheet.factors.length === 0 && !hasRows(numbered, sheet.file)
-    )
-    .map((sheet) => sheet.heading);
-  const batches: string[][] = [];
-  for (let at = 0; at < later.length; at += retypedSheetsPerRequest) {
-    batches.push(later.slice(at, at + retypedSheetsPerRequest));
-  }
+  const batches: RetypeSheet[][] = [];
+  let batch: RetypeSheet[] = [];
+  let size = 0;
+  answer.sheets.forEach((sheet, at) => {
+    if (sheet.firstRow !== '' || sheet.factors.length > 0 || hasRows(numbered, sheet.file)) return;
+    const factorCount =
+      sheet.factorCount !== null && sheet.factorCount > 0 ? sheet.factorCount : assumedFactorCount;
+    if (batch.length > 0 && size + factorCount > retypedFactorsPerRequest) {
+      batches.push(batch);
+      batch = [];
+      size = 0;
+    }
+    batch.push({ index: at + 1, file: sheet.file, heading: sheet.heading, factorCount });
+    size += factorCount;
+  });
+  if (batch.length > 0) batches.push(batch);
   return batches;
 }
 
 export function retypeRequest(
   input: RisksRequestInput,
-  headings: readonly string[]
+  sheets: readonly Pick<RetypeSheet, 'heading'>[]
 ): Omit<CompletionRequest<RetypedAnswer>, 'metadata'> {
   checkSize(input.files);
   const numbered = numberRows(input.files);
@@ -297,12 +323,91 @@ export function retypeRequest(
     messages: [
       { role: 'system', content: risksSystemPrompt },
       filesMessage(input.files, numbered),
-      { role: 'system', content: retypeRulesPrompt(headings) },
+      { role: 'system', content: retypeRulesPrompt(sheets.map((sheet) => sheet.heading)) },
     ],
     answer: retypedAnswer,
     reasoningEffort: 'medium',
     maxCompletionTokens: risksOutputTokens,
   };
+}
+
+// The answer's sheets on the sheets asked for, so that a heading the model wrote a little
+// differently, or a path it shortened, does not lose them.
+export function placeRetyped(asked: readonly RetypeSheet[], answer: RetypedAnswer): RetypedAnswer {
+  const left = [...asked];
+  const sheets: RetypedAnswer['sheets'] = [];
+  for (const written of answer.sheets) {
+    let at = left.findIndex((sheet) => sheet.heading === written.heading);
+    if (at === -1) {
+      at = left.findIndex((sheet) => foldText(sheet.heading) === foldText(written.heading));
+    }
+    if (at === -1 && asked.length === 1 && answer.sheets.length === 1) at = 0;
+    if (at === -1 || at >= left.length) continue;
+    const [sheet] = left.splice(at, 1);
+    sheets.push({ file: sheet!.file, heading: sheet!.heading, factors: written.factors });
+  }
+  return { sheets };
+}
+
+// Each request is named by the sheets it asks for, so that a kept answer is only ever reused for
+// the same request.
+export type RetypeAsk = (
+  key: string,
+  request: Omit<CompletionRequest<RetypedAnswer>, 'metadata'>
+) => Promise<RetypedAnswer>;
+
+const askAgain = (error: unknown) =>
+  error instanceof ModelAnswerError && error.reason !== 'refused';
+
+// The reading is paid for and a sheet left without factors is lost without a word, so a cut or
+// broken answer is asked again in halves, and a sheet an answer left out is asked again alone.
+async function retypeBatch(
+  input: RisksRequestInput,
+  sheets: readonly RetypeSheet[],
+  ask: RetypeAsk
+): Promise<RetypedAnswer[]> {
+  let answer: RetypedAnswer;
+  try {
+    const key = sheets.map((sheet) => sheet.index).join('-');
+    answer = placeRetyped(sheets, await ask(key, retypeRequest(input, sheets)));
+  } catch (error) {
+    if (sheets.length < 2 || !askAgain(error)) throw error;
+    const half = Math.ceil(sheets.length / 2);
+    return [
+      ...(await retypeBatch(input, sheets.slice(0, half), ask)),
+      ...(await retypeBatch(input, sheets.slice(half), ask)),
+    ];
+  }
+  if (sheets.length < 2) return [answer];
+  const written = new Set(
+    answer.sheets.filter((sheet) => sheet.factors.length > 0).map((sheet) => sheet.heading)
+  );
+  const again: RetypedAnswer[] = [];
+  for (const sheet of sheets.filter((each) => !written.has(each.heading))) {
+    again.push(...(await retypeBatch(input, [sheet], ask)));
+  }
+  return [answer, ...again];
+}
+
+// A few batches at once, after the first answer has put the files in the provider's cache. Every
+// batch runs to its end before a failure is thrown, so that the answers kept are not paid twice.
+export async function retypeSheets(
+  input: RisksRequestInput,
+  answer: RisksAnswer,
+  ask: RetypeAsk
+): Promise<RetypedAnswer[]> {
+  const batches = retypeBatches(input, answer);
+  const results: PromiseSettledResult<RetypedAnswer[]>[] = [];
+  for (let at = 0; at < batches.length; at += retypeConcurrency) {
+    results.push(
+      ...(await Promise.allSettled(
+        batches.slice(at, at + retypeConcurrency).map((batch) => retypeBatch(input, batch, ask))
+      ))
+    );
+  }
+  const failed = results.find((result) => result.status === 'rejected');
+  if (failed) throw failed.reason;
+  return results.flatMap((result) => (result.status === 'fulfilled' ? result.value : []));
 }
 
 export function withRetyped(answer: RisksAnswer, later: readonly RetypedAnswer[]): RisksAnswer {

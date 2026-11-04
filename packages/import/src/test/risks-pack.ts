@@ -148,6 +148,7 @@ export const answer: RisksAnswer = {
         endWords: 'ventilație mecanică deasupra cuptorului.',
       },
       exposure: { startWords: '8h / schimb', endWords: '8h / schimb' },
+      factorCount: null,
       factors: [],
     },
     {
@@ -163,6 +164,7 @@ export const answer: RisksAnswer = {
       meansOfProduction: { startWords: 'Casa de marcat', endWords: 'rafturile magazinului.' },
       workEnvironment: { startWords: 'Magazin cu vitrină', endWords: 'iarna cu aeroterme.' },
       exposure: { startWords: '6h / schimb', endWords: '6h / schimb' },
+      factorCount: null,
       factors: [],
     },
     {
@@ -177,6 +179,7 @@ export const answer: RisksAnswer = {
       meansOfProduction: none,
       workEnvironment: none,
       exposure: none,
+      factorCount: null,
       factors: [],
     },
     {
@@ -195,6 +198,7 @@ export const answer: RisksAnswer = {
       },
       workEnvironment: none,
       exposure: none,
+      factorCount: null,
       factors: [],
     },
   ],

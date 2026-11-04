@@ -1,10 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
+import { GatewayError, ModelAnswerError } from './gateway';
+import { noUsage } from './models';
 import {
+  placeRetyped,
+  type RetypeAsk,
   retypeBatches,
+  type RetypedAnswer,
+  retypedFactorsPerRequest,
+  retypedFactorTokens,
   retypeRequest,
+  retypeSheets,
   risksAnswer,
   risksCharacters,
+  risksOutputTokens,
   risksRequest,
   RisksTooLargeError,
   withRetyped,
@@ -104,43 +113,169 @@ describe('risksRequest', () => {
 });
 
 describe('the sheets written out', () => {
-  const unrowed = (index: number) => ({
+  const unrowed = (index: number, factorCount: number | null = 30) => ({
     ...answer.sheets[0]!,
     file: scanned.path,
     heading: `Fișa ${index}`,
     firstRow: '',
     lastRow: '',
+    factorCount,
     factors: [],
   });
   const input = { files: [scanned], posts: [] };
+  const pack = (counts: (number | null)[]) => ({
+    ...answer,
+    sheets: counts.map((count, index) => unrowed(index + 1, count)),
+  });
+  const headings = (batches: { heading: string }[][]) =>
+    batches.map((batch) => batch.map((sheet) => sheet.heading));
 
-  it('leaves the sheets past the eighth to later requests of eight, after the same files', () => {
-    const many = {
-      ...answer,
-      sheets: Array.from({ length: 18 }, (_, index) => ({
-        ...unrowed(index + 1),
-        factors: index < 8 ? [retyped] : [],
-      })),
-    };
+  it('asks the first request for each sheet’s factor count and for no factor written out', () => {
+    const task = risksRequest(input).messages[2]!.content as string;
 
-    const batches = retypeBatches(input, many);
-
-    expect(batches).toEqual([
-      ['Fișa 9', 'Fișa 10', 'Fișa 11', 'Fișa 12', 'Fișa 13', 'Fișa 14', 'Fișa 15', 'Fișa 16'],
-      ['Fișa 17', 'Fișa 18'],
-    ]);
-    const later = retypeRequest(input, batches[1]!);
-    expect(later.messages[1]).toEqual(risksRequest(input).messages[1]);
-    expect(later.messages[2]!.content).toContain('- Fișa 17\n- Fișa 18');
+    expect(task).toContain('factorCount');
+    expect(JSON.stringify(risksAnswer.jsonSchema)).not.toContain('"quote"');
+    const wire = JSON.parse(JSON.stringify(answer)) as { sheets: Record<string, unknown>[] };
+    const parsed = risksAnswer.parse({
+      ...wire,
+      sheets: wire.sheets.map((sheet) => ({ ...sheet, factorCount: '36' })),
+    });
+    expect(parsed.sheets[0]).toMatchObject({ factorCount: 36, factors: [] });
   });
 
-  it('asks again for a sheet the first answer left empty, and not for one it wrote past the eighth', () => {
-    const sheets = Array.from({ length: 10 }, (_, index) => ({
-      ...unrowed(index + 1),
-      factors: index === 2 ? [] : [retyped],
-    }));
+  it('sizes the batches by the factors counted, well under the output limit', () => {
+    expect(retypedFactorsPerRequest * retypedFactorTokens).toBeLessThanOrEqual(
+      risksOutputTokens / 3
+    );
+    const batches = retypeBatches(input, pack([30, 30, 47, 11, 11, 11, 36]));
 
-    expect(retypeBatches(input, { ...answer, sheets })).toEqual([['Fișa 3']]);
+    expect(headings(batches)).toEqual([
+      ['Fișa 1', 'Fișa 2'],
+      ['Fișa 3', 'Fișa 4', 'Fișa 5'],
+      ['Fișa 6', 'Fișa 7'],
+    ]);
+    expect(batches[0]!.map((sheet) => sheet.index)).toEqual([1, 2]);
+    const later = retypeRequest(input, batches[2]!);
+    expect(later.messages[1]).toEqual(risksRequest(input).messages[1]);
+    expect(later.messages[2]!.content).toContain('- Fișa 6\n- Fișa 7');
+  });
+
+  it('asks for a sheet larger than a batch on its own, and assumes a size for one not counted', () => {
+    expect(headings(retypeBatches(input, pack([200, 10, null, 30])))).toEqual([
+      ['Fișa 1'],
+      ['Fișa 2', 'Fișa 3'],
+      ['Fișa 4'],
+    ]);
+  });
+
+  it('leaves out a sheet with rows', () => {
+    const sheets = [unrowed(1), { ...unrowed(2), file: assessment.path, firstRow: 'R7' }];
+    const batches = retypeBatches(
+      { files: [scanned, assessment], posts: [] },
+      { ...answer, sheets }
+    );
+
+    expect(headings(batches)).toEqual([['Fișa 1']]);
+  });
+
+  it('places an answer’s sheets on those asked for, by heading, even written a little differently', () => {
+    const asked = retypeBatches(input, pack([10, 10]))[0]!;
+    const placed = placeRetyped(asked, {
+      sheets: [
+        { file: 'evaluare.pdf', heading: 'FIȘA 2', factors: [retyped] },
+        { file: scanned.path, heading: 'Fișa 9', factors: [retyped] },
+      ],
+    });
+
+    expect(placed.sheets).toEqual([{ file: scanned.path, heading: 'Fișa 2', factors: [retyped] }]);
+  });
+
+  type Asked = Parameters<RetypeAsk>;
+  const answering =
+    (respond: (key: string, asked: string[]) => RetypedAnswer | Error) =>
+    async (...[key, request]: Asked) => {
+      const task = request.messages[2]!.content as string;
+      const asked = [...task.matchAll(/^- (Fișa \d+)$/gmu)].map((match) => match[1]!);
+      const answered = respond(key, asked);
+      if (answered instanceof Error) throw answered;
+      return answered;
+    };
+  const written = (asked: string[]) => ({
+    sheets: asked.map((heading) => ({ file: scanned.path, heading, factors: [retyped] })),
+  });
+  const cut = new ModelAnswerError('The answer stopped early (length).', 'incomplete', noUsage, 0);
+
+  it('asks again in halves for a batch whose answer was cut, each named by its sheets', async () => {
+    const keys: string[] = [];
+    const later = await retypeSheets(
+      input,
+      pack([20, 20, 20]),
+      answering((key, asked) => {
+        keys.push(key);
+        return asked.length > 2 ? cut : written(asked);
+      })
+    );
+
+    expect(keys).toEqual(['1-2-3', '1-2', '3']);
+    expect(withRetyped(pack([20, 20, 20]), later).sheets.map((s) => s.factors.length)).toEqual([
+      1, 1, 1,
+    ]);
+  });
+
+  it('asks again alone for a sheet an answer left out', async () => {
+    const keys: string[] = [];
+    const later = await retypeSheets(
+      input,
+      pack([20, 20, 20]),
+      answering((key, asked) => {
+        keys.push(key);
+        return written(asked.length > 1 ? asked.slice(0, 1) : asked);
+      })
+    );
+
+    expect(keys).toEqual(['1-2-3', '2', '3']);
+    expect(withRetyped(pack([20, 20, 20]), later).sheets.map((s) => s.factors.length)).toEqual([
+      1, 1, 1,
+    ]);
+  });
+
+  it('fails the reading when a single sheet’s answer is cut, or the model refuses', async () => {
+    await expect(
+      retypeSheets(
+        input,
+        pack([20]),
+        answering(() => cut)
+      )
+    ).rejects.toBe(cut);
+    const refused = new ModelAnswerError('The model refused: no.', 'refused', noUsage, 0);
+    const keys: string[] = [];
+    await expect(
+      retypeSheets(
+        input,
+        pack([20, 20]),
+        answering((key) => {
+          keys.push(key);
+          return refused;
+        })
+      )
+    ).rejects.toBe(refused);
+    expect(keys).toEqual(['1-2']);
+  });
+
+  it('finishes the other batches before it fails, so their answers are kept', async () => {
+    const keys: string[] = [];
+    const failure = new GatewayError('The gateway answered 500.', 500, noUsage, 0);
+    await expect(
+      retypeSheets(
+        input,
+        pack([60, 60, 60]),
+        answering((key, asked) => {
+          keys.push(key);
+          return key === '1' ? failure : written(asked);
+        })
+      )
+    ).rejects.toBe(failure);
+    expect(keys.sort()).toEqual(['1', '2', '3']);
   });
 
   it('puts a later answer’s factors on the sheet of the same file and heading', () => {
