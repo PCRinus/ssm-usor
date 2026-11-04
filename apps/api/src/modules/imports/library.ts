@@ -24,9 +24,8 @@ import {
   readInstructionsAnswer,
   readInstructionsDocx,
   readRisksAnswer,
-  retypeBatches,
   type RetypedAnswer,
-  retypeRequest,
+  retypeSheets,
   type RisksAnswer,
   risksCharacters,
   type RisksProposal,
@@ -383,14 +382,11 @@ export async function readRiskEvaluations(
     throw error;
   }
   const first = await answerOf<RisksAnswer>(deps, row, risksPart, attempt, request);
-  const later: RetypedAnswer[] = [];
-  for (const [index, headings] of retypeBatches(input, first).entries()) {
-    later.push(
-      await keptAnswer(deps, row, `${risksPart}.${attempt}.retyped-${index + 1}`, () =>
-        askForPart(deps, row, risksPart, retypeRequest(input, headings))
-      )
-    );
-  }
+  const later = await retypeSheets(input, first, (key, retype) =>
+    keptAnswer<RetypedAnswer>(deps, row, `${risksPart}.${attempt}.retyped-${key}`, () =>
+      askForPart(deps, row, risksPart, retype)
+    )
+  );
   const read = readRisksAnswer(files, withRetyped(first, later), {
     people: [...people, ...provider.people],
   });

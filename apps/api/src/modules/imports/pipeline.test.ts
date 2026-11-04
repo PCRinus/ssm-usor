@@ -2012,7 +2012,7 @@ describe('the risk evaluations', () => {
     columns,
     workEnvironment: none,
     exposure: none,
-    factors: [],
+    factorCount: 2,
   };
   const risks = {
     sheets: [
@@ -2197,6 +2197,79 @@ describe('the risk evaluations', () => {
     expect(read.images).toHaveLength(1);
     expect(world.scanCharges).toHaveLength(1);
     expect(part().status).toBe('nothing_new');
+  });
+
+  it('writes out a PDF sheet in a request of its own, kept by the sheets it asks for', async () => {
+    const pdf: FileSpec = { ...files[2]!, path: 'Dosar/Evaluarea riscurilor.pdf' };
+    const noColumns = Object.fromEntries(Object.keys(columns).map((key) => [key, '']));
+    model = (request) => {
+      if (request.name === 'import_sorting') {
+        return {
+          files: [
+            {
+              path: pdf.path,
+              kind: 'risk_assessment',
+              companyName: 'BRUTĂRIA FICTIVĂ S.R.L.',
+              companyCui: '12345674',
+              carriesClientData: true,
+            },
+          ],
+        };
+      }
+      if (request.name === 'import_risks') {
+        return {
+          ...risks,
+          sheets: [
+            {
+              ...risks.sheets[0],
+              file: pdf.path,
+              heading: 'Decizia nr. 2',
+              firstRow: '',
+              lastRow: '',
+              columns: noColumns,
+              meansOfProduction: none,
+              factorCount: 1,
+            },
+          ],
+        };
+      }
+      if (request.name === 'import_risks_retyped') {
+        return {
+          sheets: [
+            {
+              file: pdf.path,
+              heading: 'Decizia nr. 2',
+              factors: [
+                {
+                  component: 'MIJLOACE DE PRODUCȚIE',
+                  group: 'Factori de risc mecanic',
+                  description: 'F1. Prinderea degetelor în malaxor.',
+                  consequence: 'ITM 45-180 zile',
+                  gravity: '3',
+                  probability: '3',
+                  level: '3',
+                  quote: 'privind organizarea activității',
+                },
+              ],
+            },
+          ],
+        };
+      }
+      return defaultModel(request);
+    };
+    startWith([pdf]);
+    await drain(deps());
+
+    expect(modelRequests.filter((request) => request.name === 'import_risks_retyped')).toEqual([
+      expect.objectContaining({ maxTokens: 32_000 }),
+    ]);
+    expect(
+      world.objects.has(`${organizationId}/${importId}/risk_evaluations.1.retyped-1.json`)
+    ).toBe(true);
+    const [written] = risksProposalSchema.parse(part().proposal).sheets;
+    expect(written!.factors.map((factor) => [factor.description, factor.flags[0]])).toEqual([
+      ['Prinderea degetelor în malaxor.', { kind: 'retyped' }],
+    ]);
   });
 
   it('fails the part, not the import, when the answer cannot be used', async () => {
