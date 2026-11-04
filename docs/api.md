@@ -2579,6 +2579,11 @@ part's for a path under `parts/<part>/`, and must be kept; the file must be list
 (`404` otherwise). The route then records `import_copy_file_opened` (the copy's id,
 `{ import_id, path }`) and signs the object for 60 seconds.
 
+**Test runs.** `pnpm --filter @ssm-usor/api import:test-run` reads chosen copies again with
+today's reading and compares each with what the member confirmed, after an estimate and only with
+`--yes`. It reads production data, so only Mircea runs it, from his machine:
+[import-test-runs.md](import-test-runs.md).
+
 ## Supabase Auth emails
 
 Supabase Auth does not send email itself: its Send Email hook posts every email it would send
