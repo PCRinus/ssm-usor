@@ -50,19 +50,28 @@ export const requireAuth = createMiddleware<ApiEnv>(async (c, next) => {
 
   c.set('user', user.data);
   c.set('emailConfirmed', Boolean(data.user.email_confirmed_at));
-  // Only the secret key writes app_metadata, so the role is trusted, as is_platform_admin() does.
-  c.set('platformAdmin', data.user.app_metadata?.role === 'admin');
+  // Only the secret key writes app_metadata, so the role is trusted. As in is_platform_admin(),
+  // it gives an admin's power only to a session that passed its second factor (ADR 038).
+  const adminClaim = data.user.app_metadata?.role === 'admin';
+  c.set('adminClaim', adminClaim);
+  c.set('platformAdmin', adminClaim && assuranceLevel(token) === 'aal2');
   c.set('accessToken', token);
   await next();
 });
 
-// After requireAuth, on the Admin entrypoint (ADR 038): the admin claim alone is not enough,
-// the session must also have passed its second factor. requireAuth verified the token, so its
-// claims can be read without checking the signature again.
+// requireAuth verified the token, so its claims can be read without checking the signature again.
+function assuranceLevel(token: string): unknown {
+  try {
+    return decode(token).payload.aal;
+  } catch {
+    return undefined;
+  }
+}
+
+// After requireAuth, on the Admin entrypoint (ADR 038).
 export const requireAdmin = createMiddleware<ApiEnv>(async (c, next) => {
-  if (!c.get('platformAdmin')) throw new ApiError('forbidden', 'Admins only.');
-  const { payload } = decode(c.get('accessToken'));
-  if (payload.aal !== 'aal2') {
+  if (!c.get('adminClaim')) throw new ApiError('forbidden', 'Admins only.');
+  if (!c.get('platformAdmin')) {
     throw new ApiError(
       'forbidden',
       'Sign in with a second factor first.',

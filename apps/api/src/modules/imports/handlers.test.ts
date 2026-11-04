@@ -2,6 +2,7 @@ import { toProposal } from '@ssm-usor/import';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
+import { accessTokenAt } from '../../lib/access-token.fixture';
 import type { ApiEnv, ImportMessage } from '../../lib/env';
 import { creditsUpstream } from '../credits/upstream.fixture';
 
@@ -169,13 +170,19 @@ function mockUpstream(handler: Handler = () => undefined) {
   });
 }
 
-const request = (path: string, method = 'GET', body?: unknown, bindings = env) =>
+const request = (
+  path: string,
+  method = 'GET',
+  body?: unknown,
+  bindings = env,
+  token = 'user-token'
+) =>
   createApp().request(
     path,
     {
       method,
       headers: {
-        Authorization: 'Bearer user-token',
+        Authorization: `Bearer ${token}`,
         ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -815,7 +822,7 @@ describe('GET /imports/{importId}', () => {
 
   describe('usage', () => {
     const step = { input_tokens: 1000, cached_input_tokens: 0, output_tokens: 200, cost_usd: 0.01 };
-    const getUsage = async (bindings: ApiEnv['Bindings']) => {
+    const getUsage = async (bindings: ApiEnv['Bindings'], token?: string) => {
       mockUpstream(({ url }) => {
         if (url.pathname === '/rest/v1/imports') {
           return Response.json(
@@ -836,7 +843,7 @@ describe('GET /imports/{importId}', () => {
         if (url.pathname === '/rest/v1/import_files') return Response.json([]);
       });
       const body = (await (
-        await request(`/imports/${importId}`, 'GET', undefined, bindings)
+        await request(`/imports/${importId}`, 'GET', undefined, bindings, token)
       ).json()) as {
         import: { usage?: unknown };
       };
@@ -864,11 +871,13 @@ describe('GET /imports/{importId}', () => {
       }
     });
 
-    it('serves them in production to a platform admin only', async () => {
+    it('serves them in production to a platform admin only, past the second factor', async () => {
       const production = { ...env, ENVIRONMENT: 'production' };
-      expect(await getUsage(production)).toBeUndefined();
+      expect(await getUsage(production, accessTokenAt('aal2'))).toBeUndefined();
       authUser = { ...user, app_metadata: { provider: 'email', role: 'admin' } };
-      expect(await getUsage(production)).toMatchObject({ costUsd: 0.27 });
+      expect(await getUsage(production, accessTokenAt('aal1'))).toBeUndefined();
+      expect(await getUsage(production)).toBeUndefined();
+      expect(await getUsage(production, accessTokenAt('aal2'))).toMatchObject({ costUsd: 0.27 });
     });
   });
 });

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createAdminApp } from './admin-app';
 import { createApp } from './app';
+import { accessTokenAt } from './lib/access-token.fixture';
 import type { ApiEnv } from './lib/env';
 
 const env: ApiEnv['Bindings'] = {
@@ -28,10 +29,7 @@ const member = {
   user_metadata: { role: 'admin' },
 };
 
-const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
-
-const token = (aal: 'aal1' | 'aal2') =>
-  `${encode({ alg: 'ES256', typ: 'JWT' })}.${encode({ sub: user.id, aal })}.c2lnbmF0dXJl`;
+const token = (aal: 'aal1' | 'aal2') => accessTokenAt(aal, user.id);
 
 const fetchMock = vi.fn<typeof fetch>();
 

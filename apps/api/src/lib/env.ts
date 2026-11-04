@@ -126,6 +126,8 @@ export type ApiEnv = {
   Variables: {
     user: CurrentUser;
     emailConfirmed: boolean;
+    adminClaim: boolean;
+    // The admin claim on a session that passed its second factor (ADR 038).
     platformAdmin: boolean;
     accessToken: string;
     membership: Membership;
