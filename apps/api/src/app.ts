@@ -1,9 +1,11 @@
 import { Scalar } from '@scalar/hono-api-reference';
 import type { ApiErrorResponse } from '@ssm-usor/contracts';
+import type { Context } from 'hono';
 import { cors } from 'hono/cors';
+import { createMiddleware } from 'hono/factory';
 import { timing } from 'hono/timing';
 
-import { allowedOrigins, marketingOrigin } from './lib/env';
+import { allowedOrigins, type ApiEnv, marketingOrigin } from './lib/env';
 import { ApiError, errorStatus, fromEngineError } from './lib/errors';
 import { openApiConfig } from './lib/openapi';
 import { authHooksRouter } from './modules/auth-hooks';
@@ -41,26 +43,57 @@ import { trainingsRouter } from './modules/trainings';
 import { waitlistRouter } from './modules/waitlist';
 import { createRouter } from './router';
 
+// Every 5xx leaves a line, also from a path that does not log its cause. The ray id is the
+// one the SPA reports for a failed request.
+export const logServerErrors = createMiddleware<ApiEnv>(async (c, next) => {
+  const started = Date.now();
+  await next();
+  if (c.res.status < 500) return;
+  console.error(
+    `${c.req.method} ${c.req.path} answered ${c.res.status} after ${Date.now() - started} ms (ray ${c.req.header('cf-ray') ?? 'none'})`
+  );
+});
+
+export const noStore = createMiddleware<ApiEnv>(async (c, next) => {
+  c.header('Cache-Control', 'no-store');
+  await next();
+});
+
+export function errorResponse(thrown: Error, c: Context<ApiEnv>) {
+  const error = fromStripeError(fromEngineError(thrown));
+  if (error instanceof ApiError) {
+    if (error.code === 'unauthorized') c.header('WWW-Authenticate', 'Bearer');
+    return c.json(
+      {
+        error: error.code,
+        message: error.message,
+        ...(error.issues ? { issues: error.issues } : {}),
+        ...(error.reason ? { reason: error.reason } : {}),
+        ...(error.missing ? { missing: error.missing } : {}),
+        ...error.extra,
+      } satisfies ApiErrorResponse,
+      errorStatus[error.code]
+    );
+  }
+
+  console.error(`Unhandled API error: ${error.name}`);
+  return c.json(
+    {
+      error: 'internal_error',
+      message: 'An unexpected error occurred.',
+    } satisfies ApiErrorResponse,
+    500
+  );
+}
+
 export function createApp() {
   const app = createRouter();
 
-  // Every 5xx leaves a line, also from a path that does not log its cause. The ray id is the
-  // one the SPA reports for a failed request.
-  app.use('*', async (c, next) => {
-    const started = Date.now();
-    await next();
-    if (c.res.status < 500) return;
-    console.error(
-      `${c.req.method} ${c.req.path} answered ${c.res.status} after ${Date.now() - started} ms (ray ${c.req.header('cf-ray') ?? 'none'})`
-    );
-  });
+  app.use('*', logServerErrors);
   // Server-Timing on every answer: the whole request, and the token and membership checks
   // that precede every handler, so a slow page can be read apart in the browser's network tab.
   app.use('*', timing());
-  app.use('*', async (c, next) => {
-    c.header('Cache-Control', 'no-store');
-    await next();
-  });
+  app.use('*', noStore);
   app.use(
     '*',
     cors({
@@ -129,32 +162,7 @@ export function createApp() {
     )
   );
 
-  app.onError((thrown, c) => {
-    const error = fromStripeError(fromEngineError(thrown));
-    if (error instanceof ApiError) {
-      if (error.code === 'unauthorized') c.header('WWW-Authenticate', 'Bearer');
-      return c.json(
-        {
-          error: error.code,
-          message: error.message,
-          ...(error.issues ? { issues: error.issues } : {}),
-          ...(error.reason ? { reason: error.reason } : {}),
-          ...(error.missing ? { missing: error.missing } : {}),
-          ...error.extra,
-        } satisfies ApiErrorResponse,
-        errorStatus[error.code]
-      );
-    }
-
-    console.error(`Unhandled API error: ${error.name}`);
-    return c.json(
-      {
-        error: 'internal_error',
-        message: 'An unexpected error occurred.',
-      } satisfies ApiErrorResponse,
-      500
-    );
-  });
+  app.onError(errorResponse);
 
   return app;
 }

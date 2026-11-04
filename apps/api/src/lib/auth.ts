@@ -2,6 +2,7 @@ import { currentUserSchema } from '@ssm-usor/contracts';
 import { createClient } from '@supabase/supabase-js';
 import type { Context } from 'hono';
 import { createMiddleware } from 'hono/factory';
+import { decode } from 'hono/jwt';
 import { endTime, startTime } from 'hono/timing';
 
 import { requestFetch, supabaseConfig } from './db';
@@ -52,6 +53,23 @@ export const requireAuth = createMiddleware<ApiEnv>(async (c, next) => {
   // Only the secret key writes app_metadata, so the role is trusted, as is_platform_admin() does.
   c.set('platformAdmin', data.user.app_metadata?.role === 'admin');
   c.set('accessToken', token);
+  await next();
+});
+
+// After requireAuth, on the Admin entrypoint (ADR 038): the admin claim alone is not enough,
+// the session must also have passed its second factor. requireAuth verified the token, so its
+// claims can be read without checking the signature again.
+export const requireAdmin = createMiddleware<ApiEnv>(async (c, next) => {
+  if (!c.get('platformAdmin')) throw new ApiError('forbidden', 'Admins only.');
+  const { payload } = decode(c.get('accessToken'));
+  if (payload.aal !== 'aal2') {
+    throw new ApiError(
+      'forbidden',
+      'Sign in with a second factor first.',
+      undefined,
+      'aal2_required'
+    );
+  }
   await next();
 });
 
