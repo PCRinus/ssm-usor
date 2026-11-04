@@ -205,7 +205,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `DELETE …/job-positions/{jobPositionId}/equipment/{entryId}`           | Verified user with a membership       | `204`                                                                                                                                                                                              |
 | `PATCH …/job-positions/{jobPositionId}/protective-equipment`           | Verified user with a membership       | `{ "jobPosition": { … } }` after saying the post needs none (`false`) or taking that back (`null`)                                                                                                 |
 | `GET /equipment-suggestions`                                           | Verified user with a membership       | `{ "items": [ … ] }`, risks or items typed before; `?field=risk                                                                                                                                    | item&query=` |
-| `GET /instruction-modules`                                             | Verified user with a membership       | `{ "items": [ … ] }`, by domain, category and title; `?archived=true` lists the archived ones instead; `?domain=`                                                                                  |
+| `GET /instruction-modules`                                             | Verified user with a membership       | `{ "items", "page", "pageSize", "total" }`, a page of the library; `?status=archived` lists the archived ones instead; `?domain=`                                                                  |
+| `GET /instruction-modules/choices`                                     | Verified user with a membership       | `{ "items": [ … ] }`, unpaged, every active module by domain, category and title, for the pickers; `?domain=`                                                                                      |
 | `POST /instruction-modules`                                            | Verified user with a membership       | `201 { "module": { … }, "body": { … } }`, created with its first version                                                                                                                           |
 | `POST /instruction-modules/preview`                                    | Verified user with a membership       | The annex a posted title, domain and body would print, as a `.docx`; nothing stored                                                                                                                |
 | `GET /instruction-modules/{moduleId}`                                  | Verified user with a membership       | `{ "module": { … }, "body": { … } }`, with its current body                                                                                                                                        |
@@ -588,11 +589,16 @@ Each module has a `domain`, `ssm` or `su` (ADR 012's amendment of 2026-10-11): w
 instructions annex it, 3.2 or 2.1, and a category (`group`) of that domain: `work_activity`,
 `work_equipment` or `protective_equipment` for `ssm`, `premises_activity`,
 `installation_equipment` or `hazardous_work` for `su`; a category of the other domain answers
-`400` with the reason `instruction_module_category_domain`. `GET /instruction-modules` lists the
-modules in use by domain, category and title, each with its current version (`number`,
-`textHash`, `articleCount`, the article blocks of its body, which the training themes cite) and
-`appliedCount`, how many current positions across the organization's clients apply it;
-`?archived=true` lists the archived ones instead, and `?domain=` one domain's only.
+`400` with the reason `instruction_module_category_domain`. `GET /instruction-modules` lists a
+page of the modules in use, each with its current version (`number`, `textHash`, `articleCount`,
+the article blocks of its body, which the training themes cite) and `appliedCount`, how many
+current positions across the organization's clients apply it; `?status=archived` lists the
+archived ones instead, and `?domain=` one domain's only. It sorts by `title` (the default),
+`group` (the categories' order, then the title), `version` (when the current version was saved)
+or `appliedCount`, the id breaking ties. `GET /instruction-modules/choices` lists every active
+module unpaged, by domain, category and title, with only `id`, `title`, `group` and `domain`: the
+pickers of "Scrie o instrucțiune" and of a position's instructions read it, so a long library is
+never cut to a page.
 
 Bodies are `instructionBodySchema` of the contracts: `{ "blocks": [ … ] }`, each block `{ "kind":
 "heading", "text" }` or `{ "kind": "article", "paragraphs": [ … ] }`, every string one line, with 1

@@ -1211,15 +1211,18 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   is for. The page has one tab per domain (amendment of 2026-10-11), "IPSSM" at
   `/instructiuni/ssm` and "IPSU" at `/instructiuni/su`, the abbreviations the documents print,
   in the section navigation the client and organization pages use; `/instructiuni` opens the
-  SSM tab. A tab lists `GET /instruction-modules?domain=` by category and title, each module
-  with its version and its article count, and how many current positions apply it;
-  "Arată arhiva" lists the archived ones of the domain instead. The row menu corrects a
-  module's title, category and domain, and archives and restores it. There is no upload of Word
+  SSM tab. A tab lists `GET /instruction-modules?domain=` on the shared data table, in pages
+  sorted by title, category, version date or applied count, each module with its version, its
+  article count and date, and how many current positions apply it; the tabs "Active" and
+  "Arhivate" over the table switch to the archived ones of the domain, page, sort and tab kept
+  in the search. The row menu's "Modifică detaliile…" corrects a module's title, category and
+  domain; "Arhivează…" and "Reactivează…" ask in a dialog first, which for a module positions
+  apply says how many and offers no archiving. There is no upload of Word
   files (ADR 034). "Scrie o instrucțiune" asks for a title (one the library has is refused
   before the form opens), the domain, the tab's by default, the category, among the domain's,
   and "Pornește de la": the guided template or an active module of the domain, whose category
-  it takes; it opens `/instructiuni/nou` with them in the search. "Titlu, categorie și
-  domeniu" changes them, its categories those of the chosen domain, and a changed domain moves
+  it takes; it opens `/instructiuni/nou` with them in the search. "Modifică detaliile…"
+  changes the title, category and domain, its categories those of the chosen domain, and a changed domain moves
   the module to the other tab with a category of that domain; the
   domain of a module a current position applies is shown read-only with how many positions
   apply it, and a `409` with `instruction_module_domain_applied` (a position applied it in the
