@@ -82,7 +82,7 @@ Meniul fiecărui rând, cele trei puncte de la capăt, are **Redenumește**, **A
 
 ### Salvarea unei fișe în bibliotecă
 
-Calea cea mai scurtă e să evaluezi întâi postul la un client și să salvezi fișa. Pe pagina unei fișe cu cel puțin un factor, **Salvează în bibliotecă** copiază într-o evaluare nouă din bibliotecă factorii fișei, cu clasele, măsurile și câmpurile planului, și textele sistemului de muncă. Numele propus e al fișei; îl poți schimba.
+Calea cea mai scurtă e să evaluezi întâi postul la un client și să salvezi fișa. Pe pagina unei fișe cu cel puțin un factor, **Salvează în bibliotecă** copiază într-o evaluare nouă din bibliotecă factorii fișei, cu clasele, măsurile și câmpurile planului, și textele sistemului de muncă; expunerea o ia doar dacă ai schimbat-o de la „8 h / schimb”. Numele propus e al fișei; îl poți schimba.
 
 Cât timp niciun factor al unei fișe nu vine din bibliotecă, sub factori apare îndemnul „Factorii nu sunt încă în biblioteca organizației tale”, cu același buton. Cu **Nu acum** îndemnul nu mai apare la fișa respectivă, în browserul în care l-ai închis.
 
