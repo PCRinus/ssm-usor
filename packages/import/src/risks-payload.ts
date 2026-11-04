@@ -84,6 +84,20 @@ const planFields: [PlanField, keyof RiskPayloadFactor][] = [
 
 const pick = <T>(change: T | undefined, proposed: T) => (change === undefined ? proposed : change);
 
+// The plan rows paired with no factor that the reading placed on the sheet, in the plan's order.
+export const planFactorsOf = (
+  proposal: Pick<RisksProposal, 'unmatchedPlanRows'>,
+  sheet: string
+): ProposedRiskFactor[] =>
+  proposal.unmatchedPlanRows.flatMap((row) =>
+    row.sheet === sheet && row.factor ? [row.factor] : []
+  );
+
+const sheetFactors = (proposal: RisksProposal, sheet: ProposedRiskSheet) => [
+  ...sheet.factors,
+  ...planFactorsOf(proposal, sheet.key),
+];
+
 function reviewedFactor(
   factor: ProposedRiskFactor,
   change: RiskImportFactorChange | undefined
@@ -157,7 +171,7 @@ export function riskImportPayload(input: RiskPayloadInput): {
   for (const sheet of proposal.sheets) {
     const factorChanges = changes[sheet.key]?.factors ?? {};
     const factors: RiskPayloadFactor[] = [];
-    for (const factor of sheet.factors) {
+    for (const factor of sheetFactors(proposal, sheet)) {
       const change = factorChanges[factor.key];
       if (!(change?.included ?? factor.included)) continue;
       const written = reviewedFactor(factor, change);
@@ -210,7 +224,7 @@ export function riskImportPayload(input: RiskPayloadInput): {
     if (!original) return new Map();
     const toOriginal =
       original === sheet
-        ? new Map(sheet.factors.map((factor) => [factor.key, factor.key] as const))
+        ? new Map(sheetFactors(proposal, sheet).map((factor) => [factor.key, factor.key] as const))
         : copyPairs(sheet, original);
     const choice = choiceOf(original);
     const sources = new Map<string, RiskPayloadSource>();

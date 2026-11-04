@@ -6,7 +6,13 @@ import {
   type RiskLibraryMatch,
   type RiskLibraryStatus,
 } from './risks-library';
-import { factorComplete, type ReadFactor, type ReadRisks, type ReadSheet } from './risks-read';
+import {
+  factorComplete,
+  type ReadFactor,
+  type ReadRisks,
+  type ReadSheet,
+  type UnmatchedPlanRow,
+} from './risks-read';
 
 export type RiskLibraryChoice = 'add' | 'use_existing' | 'add_new' | 'skip';
 export type ExistingFactorsChoice = 'append' | 'replace' | 'keep';
@@ -44,10 +50,17 @@ export interface ProposedRiskSheet extends Omit<ReadSheet, 'posts' | 'factors'> 
   factors: ProposedRiskFactor[];
 }
 
+// A proposal stored before plan rows were placed on sheets has neither `sheet` nor `factor`.
+export interface ProposedPlanRow extends Omit<UnmatchedPlanRow, 'sheet' | 'factor'> {
+  sheet?: string | null;
+  // Unticked: written only when the specialist adds it to its sheet.
+  factor?: ProposedRiskFactor | null;
+}
+
 export interface RisksProposal {
   sheets: ProposedRiskSheet[];
   unplacedRows: ReadRisks['unplacedRows'];
-  unmatchedPlanRows: ReadRisks['unmatchedPlanRows'];
+  unmatchedPlanRows: ProposedPlanRow[];
   unmatchedMeasureRows: ReadRisks['unmatchedMeasureRows'];
 }
 
@@ -186,7 +199,10 @@ export function proposeRisks(input: ProposeRisksInput): RisksProposal {
   return {
     sheets,
     unplacedRows: input.read.unplacedRows,
-    unmatchedPlanRows: input.read.unmatchedPlanRows,
+    unmatchedPlanRows: input.read.unmatchedPlanRows.map((row) => ({
+      ...row,
+      factor: row.factor && { ...row.factor, included: false, level: null },
+    })),
     unmatchedMeasureRows: input.read.unmatchedMeasureRows,
   };
 }

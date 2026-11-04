@@ -334,6 +334,8 @@ export function hotelRisks(library: LibraryEvaluation[]): RisksProposal {
           text: '| Spălătorie | Zgomot | Montarea de amortizoare la mașinile de spălat | Anual | Administrator |',
           post: 'Spălătorie',
           risk: 'Zgomot',
+          sheet: null,
+          factor: null,
         },
       ],
       unmatchedMeasureRows: [],

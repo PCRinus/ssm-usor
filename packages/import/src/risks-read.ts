@@ -104,12 +104,21 @@ export interface LooseRow {
   text: string;
 }
 
+export interface UnmatchedPlanRow extends LooseRow {
+  post: string;
+  risk: string;
+  // The sheet of the post the row is written under, by its key; null when none is known.
+  sheet: string | null;
+  // The row written out as a factor the specialist may add; null without a table or a risk.
+  factor: ReadFactor | null;
+}
+
 export interface ReadRisks {
   sheets: ReadSheet[];
   // Rows written like factors that no sheet spans.
   unplacedRows: LooseRow[];
   // Plan and measures rows that the answer and the plan's own words join to no factor.
-  unmatchedPlanRows: (LooseRow & { post: string; risk: string })[];
+  unmatchedPlanRows: UnmatchedPlanRow[];
   unmatchedMeasureRows: LooseRow[];
 }
 
@@ -627,6 +636,65 @@ function planTableOf(tables: RisksAnswer['planTables'], row: TableRow) {
   );
 }
 
+type PlanTable = RisksAnswer['planTables'][number];
+
+const planCell = (row: TableRow) => (index: number | null) =>
+  index === null ? '' : (row.cells[index - 1] ?? '');
+
+function planMeasures(row: TableRow, table: PlanTable): ProposedMeasure[] {
+  const at = planCell(row);
+  return planKinds.flatMap(([column, kind]) =>
+    cellItems(at(table.columns[column]))
+      .map(measureText)
+      .filter((description) => description !== '')
+      .map((description) => ({ kind, description }))
+  );
+}
+
+function planRowFields(row: TableRow, table: PlanTable): Record<PlanField, string | null> {
+  const at = planCell(row);
+  return {
+    actions: fieldText(at(table.columns.actions), planFieldLimits.actions),
+    deadline: fieldText(at(table.columns.deadline), planFieldLimits.deadline),
+    responsiblePerson: fieldText(at(table.columns.responsible), planFieldLimits.responsiblePerson),
+    observations: fieldText(at(table.columns.observations), planFieldLimits.observations),
+  };
+}
+
+// The plan names no component, group or classes: the specialist chooses them on adding it.
+function planRowFactor(
+  row: TableRow,
+  table: PlanTable,
+  people: readonly string[]
+): ReadFactor | null {
+  const description = cellItems(planCell(row)(table.columns.risk)).join(' ').slice(0, 1000).trim();
+  if (!/\p{L}{2,}/u.test(description)) return null;
+  const factor: ReadFactor = {
+    key: `plan-${row.id}`,
+    row: row.id,
+    source: { file: row.file, start: row.start, end: row.end },
+    component: null,
+    writtenComponent: '',
+    group: '',
+    description,
+    code: null,
+    consequence: '',
+    gravityClass: null,
+    probabilityClass: null,
+    printedLevel: null,
+    measures: [],
+    measuresFrom: 'plan',
+    actions: null,
+    deadline: null,
+    responsiblePerson: null,
+    observations: null,
+    flags: [],
+  };
+  setMeasures(factor, planMeasures(row, table));
+  setPlanFields(factor, planRowFields(row, table), people);
+  return factor;
+}
+
 export interface ReadRisksOptions {
   // The client's people, whose names in a plan field are a person rather than a role.
   people?: readonly string[];
@@ -684,11 +752,33 @@ export function readRisksAnswer(
   });
 
   const factorOfRow = new Map<string, ReadFactor>();
+  const sheetOf = new Map<ReadFactor, string>();
   for (const sheet of sheets) {
-    for (const factor of sheet.factors) if (factor.row) factorOfRow.set(factor.row, factor);
+    for (const factor of sheet.factors) {
+      if (factor.row) factorOfRow.set(factor.row, factor);
+      sheetOf.set(factor, sheet.key);
+    }
   }
 
   const unmatchedPlanRows: ReadRisks['unmatchedPlanRows'] = [];
+  // A plan block is one post's rows of one table; its sheet is where its paired rows' factors are.
+  const blockSheets = new Map<string, Map<string, number>>();
+  const blockOf = new Map<UnmatchedPlanRow, string>();
+  const blockKey = (table: PlanTable, post: string) =>
+    `${answer.planTables.indexOf(table)}|${post}`;
+  const unmatched = (row: TableRow, table: PlanTable, post: string) => {
+    const item: UnmatchedPlanRow = {
+      row: row.id,
+      file: row.file,
+      text: rowText(row),
+      post,
+      risk: planCell(row)(table.columns.risk),
+      sheet: null,
+      factor: planRowFactor(row, table, people),
+    };
+    unmatchedPlanRows.push(item);
+    blockOf.set(item, blockKey(table, post));
+  };
   const planned = new Set<ReadFactor>();
   const planRows = answer.plan
     .map((entry) => ({ entry, row: numbered.byId.get(entry.row) }))
@@ -705,10 +795,12 @@ export function readRisksAnswer(
         text: rowText(row),
         post: '',
         risk: '',
+        sheet: null,
+        factor: null,
       });
       continue;
     }
-    const at = (index: number | null) => (index === null ? '' : (row.cells[index - 1] ?? ''));
+    const at = planCell(row);
     if (table !== postTable) post = '';
     postTable = table;
     const writtenPost = fieldText(at(table.columns.post));
@@ -724,24 +816,16 @@ export function readRisksAnswer(
       );
     }
     if (factors.length === 0) {
-      unmatchedPlanRows.push({ row: row.id, file: row.file, text: rowText(row), post, risk });
+      unmatched(row, table, post);
       continue;
     }
-    const measures = planKinds.flatMap(([column, kind]) =>
-      cellItems(at(table.columns[column]))
-        .map(measureText)
-        .filter((description) => description !== '')
-        .map((description) => ({ kind, description }))
-    );
-    const fields: Record<PlanField, string | null> = {
-      actions: fieldText(at(table.columns.actions), planFieldLimits.actions),
-      deadline: fieldText(at(table.columns.deadline), planFieldLimits.deadline),
-      responsiblePerson: fieldText(
-        at(table.columns.responsible),
-        planFieldLimits.responsiblePerson
-      ),
-      observations: fieldText(at(table.columns.observations), planFieldLimits.observations),
-    };
+    const counts = blockSheets.get(blockKey(table, post)) ?? new Map<string, number>();
+    for (const key of new Set(factors.map((factor) => sheetOf.get(factor)!))) {
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    blockSheets.set(blockKey(table, post), counts);
+    const measures = planMeasures(row, table);
+    const fields = planRowFields(row, table);
     // A factor written out from a PDF came with the measures the model wrote; a plan row of a
     // Word file joined to it by its description is copied over them, as copying never drifts.
     for (const factor of factors) {
@@ -763,14 +847,32 @@ export function readRisksAnswer(
 
   const answeredPlanRows = new Set(answer.plan.map((entry) => entry.row));
   for (const table of answer.planTables) {
+    let tablePost = '';
     for (const row of rowsBetween(numbered, table.firstRow, table.lastRow)) {
-      if (row.file !== table.file || answeredPlanRows.has(row.id)) continue;
-      const at = (index: number | null) => (index === null ? '' : (row.cells[index - 1] ?? ''));
-      const risk = at(table.columns.risk);
-      if (!/\p{L}{2,}/u.test(risk)) continue;
-      unmatchedPlanRows.push({ row: row.id, file: row.file, text: rowText(row), post: '', risk });
+      if (row.file !== table.file) continue;
+      const at = planCell(row);
+      const writtenPost = fieldText(at(table.columns.post));
+      if (writtenPost) tablePost = writtenPost;
+      if (answeredPlanRows.has(row.id) || !/\p{L}{2,}/u.test(at(table.columns.risk))) continue;
+      unmatched(row, table, tablePost);
     }
   }
+
+  const named = (written: string) => {
+    const folded = ` ${foldText(written)} `;
+    const found = sheets.filter((sheet) => {
+      const name = foldText(sheet.name);
+      return sheet.factors.length > 0 && name !== '' && folded.includes(` ${name} `);
+    });
+    return found.length === 1 ? found[0]!.key : null;
+  };
+  for (const item of unmatchedPlanRows) {
+    if (!item.factor) continue;
+    const ranked = [...(blockSheets.get(blockOf.get(item)!) ?? [])].sort((a, b) => b[1] - a[1]);
+    const [top, next] = ranked;
+    item.sheet = top && (!next || top[1] > next[1]) ? top[0] : named(item.post);
+  }
+  unmatchedPlanRows.sort((a, b) => (rowNumber(a.row) ?? 0) - (rowNumber(b.row) ?? 0));
 
   const unmatchedMeasureRows: LooseRow[] = [];
   for (const entry of answer.measures) {
