@@ -1,6 +1,5 @@
 import {
   employeeSortKeys,
-  employeeStatuses,
   sortOrderSchema,
   testStateFilters,
   trainingStateFilters,
@@ -13,7 +12,7 @@ import { EmployeesPage } from '@/features/employees/employees-page';
 // The table state lives in the URL: the filters, the page, and one sort key, so refresh and
 // back keep the place in the list. Defaults are omitted to keep links short.
 const searchSchema = z.object({
-  status: z.enum(employeeStatuses).optional(),
+  status: z.literal('terminated').optional().catch(undefined),
   trainingState: z.enum(trainingStateFilters).optional().catch(undefined),
   testState: z.enum(testStateFilters).optional().catch(undefined),
   page: z.number().int().min(1).optional().catch(undefined),

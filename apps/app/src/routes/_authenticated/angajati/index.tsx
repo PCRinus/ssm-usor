@@ -1,5 +1,4 @@
 import {
-  employeeStatuses,
   organizationEmployeeSortKeys,
   sortOrderSchema,
   testStateFilters,
@@ -12,7 +11,7 @@ import { z } from 'zod';
 import { OrganizationEmployeesPage } from '@/features/employees/organization-employees-page';
 
 const searchSchema = z.object({
-  status: z.enum(employeeStatuses).optional().catch(undefined),
+  status: z.literal('terminated').optional().catch(undefined),
   clientId: z.uuid().optional().catch(undefined),
   trainingState: z.enum(trainingStateFilters).optional().catch(undefined),
   testState: z.enum(testStateFilters).optional().catch(undefined),

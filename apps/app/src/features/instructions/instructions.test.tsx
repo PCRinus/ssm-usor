@@ -407,6 +407,15 @@ describe('the instruction library', () => {
     );
   });
 
+  it('reads status=active in the address as the active tab', async () => {
+    mockApi();
+    mountApp(authFixture(makeSession()).client, '/instructiuni/ssm?status=active');
+    await screen.findAllByTestId('instruction-row');
+    expect(screen.getByTestId('instruction-filter-active').getAttribute('aria-current')).toBe(
+      'page'
+    );
+  });
+
   it('asks the library for a page and a sort, and keeps them in the address', async () => {
     mockApi();
     const runtime = mount();

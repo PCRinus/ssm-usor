@@ -4,7 +4,6 @@ import {
   instructionDomains,
   type InstructionModuleGroup,
   instructionModuleGroups,
-  instructionModuleListStatuses,
   instructionModuleSortKeys,
   sortOrderSchema,
 } from '@ssm-usor/contracts';
@@ -104,7 +103,7 @@ export const librarySearchSchema = z.object({
   page: z.number().int().min(1).optional().catch(undefined),
   sort: z.enum(instructionModuleSortKeys).optional().catch(undefined),
   order: sortOrderSchema.optional().catch(undefined),
-  status: z.enum(instructionModuleListStatuses).optional().catch(undefined),
+  status: z.literal('archived').optional().catch(undefined),
 });
 
 export type LibrarySearch = z.infer<typeof librarySearchSchema>;
