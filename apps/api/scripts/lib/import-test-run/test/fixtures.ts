@@ -16,6 +16,7 @@ import {
   toProposal,
 } from '@ssm-usor/import';
 
+import type { CopyContext } from '../../../../src/modules/imports/copies';
 import type { CopySource, ImportCopyRecord, KeptCopy, PartCopyRecord } from '../cases';
 
 export const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
@@ -254,6 +255,17 @@ export const risksProposal = (sheets: ProposedRiskSheet[]): RisksProposal => ({
 
 const encoder = new TextEncoder();
 
+export const copyContext: CopyContext = {
+  createdBy: null,
+  provider: {
+    name: 'SERVICIUL EXTERN EXEMPLU S.R.L.',
+    cui: '76543210',
+    people: ['Marinescu Elena'],
+  },
+  existingClient: null,
+  registeredCompany: null,
+};
+
 export function importRecord(
   overrides: Partial<ImportCopyRecord> & Pick<ImportCopyRecord, 'import' | 'kind'>
 ): ImportCopyRecord {
@@ -272,6 +284,7 @@ export function importRecord(
       abandonedAt: null,
       reportedAt: null,
     },
+    context: copyContext,
     files: [],
     proposal: null,
     changes: null,
@@ -301,6 +314,7 @@ export function partRecord(
     failureReason: null,
     importStatus: 'confirmed',
     times: { readAt: null, failedAt: null, confirmedAt: '2026-11-04T10:00:00Z', reportedAt: null },
+    context: copyContext,
     proposal: null,
     changes: null,
     quality: null,

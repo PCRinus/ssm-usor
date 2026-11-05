@@ -15,6 +15,7 @@ import {
   employeeProposal,
   importRecord,
   memoryBucket,
+  organizationId,
   photoId,
   sheetPage,
   today,
@@ -27,11 +28,6 @@ const decisionText = [
 ].join('\n');
 
 const context: CaseContext = {
-  provider: async () => ({
-    name: 'SERVICIUL EXTERN EXEMPLU S.R.L.',
-    cui: '76543210',
-    people: ['Marinescu Elena'],
-  }),
   client: async () => null,
   trainingThemes: async () => () => null,
 };
@@ -49,6 +45,11 @@ function clientCopy(n: number, extraFiles: ImportCopyRecord['files'] = []) {
         place: 1,
         id: fileId(n),
         uploadPath: 'Dosar/Decizia 1.docx',
+        originalFileName: 'Decizia 1.docx',
+        storagePath: `${organizationId}/${importId(n)}/${fileId(n)}.docx`,
+        textPath: `${organizationId}/${importId(n)}/${fileId(n)}.txt`,
+        derivedPath: null,
+        declaredPages: null,
         mimeType: docxType,
         sizeBytes: 1200,
         sha256: 'a'.repeat(64),
@@ -201,6 +202,21 @@ describe('runTests', () => {
     expect(lines.some((line) => line.includes('0123456789ab') && line.includes('→'))).toBe(true);
   });
 
+  it('gives the reading the provider its copy recorded', async () => {
+    const { bucket, requests, run } = setUp({ yes: true });
+    const copy = clientCopy(1);
+    const provider = { name: 'SERVICIUL DE ATUNCI S.R.L.', cui: '11223344', people: [] };
+    bucket.keepImport(
+      { ...copy.record, context: { ...copy.record.context, provider } },
+      copy.files
+    );
+
+    await run();
+
+    const reading = requests.find((request) => request.answer.name === readingAnswer.name)!;
+    expect(JSON.stringify(reading.messages)).toContain('SERVICIUL DE ATUNCI S.R.L. (CUI 11223344)');
+  });
+
   it('writes a report of counts that holds none of the values read', async () => {
     const { bucket, run } = setUp({ yes: true });
     const copy = clientCopy(1);
@@ -246,6 +262,11 @@ describe('runTests', () => {
           place: 1,
           id: photoId,
           uploadPath: 'Fise/Coman.jpg',
+          originalFileName: 'Coman.jpg',
+          storagePath: `${organizationId}/${importId(3)}/${photoId}.jpg`,
+          textPath: `${organizationId}/${importId(3)}/${photoId}.json`,
+          derivedPath: `${organizationId}/${importId(3)}/${photoId}.jpeg`,
+          declaredPages: null,
           mimeType: 'image/jpeg',
           sizeBytes: 4,
           sha256: 'b'.repeat(64),
@@ -304,6 +325,11 @@ describe('runTests', () => {
           place: 1,
           id: photoId,
           uploadPath: 'Fise/Coman.jpg',
+          originalFileName: 'Coman.jpg',
+          storagePath: `${organizationId}/${importId(4)}/${photoId}.jpg`,
+          textPath: `${organizationId}/${importId(4)}/${photoId}.json`,
+          derivedPath: `${organizationId}/${importId(4)}/${photoId}.jpeg`,
+          declaredPages: null,
           mimeType: 'image/jpeg',
           sizeBytes: 4,
           sha256: 'b'.repeat(64),
@@ -362,6 +388,11 @@ describe('runTests', () => {
         place: 2,
         id: photo,
         uploadPath: 'Dosar/Afis.jpg',
+        originalFileName: 'Afis.jpg',
+        storagePath: `${organizationId}/${importId(5)}/${photo}.jpg`,
+        textPath: `${organizationId}/${importId(5)}/${photo}.json`,
+        derivedPath: `${organizationId}/${importId(5)}/${photo}.jpeg`,
+        declaredPages: null,
         mimeType: 'image/jpeg',
         sizeBytes: 4,
         sha256: 'c'.repeat(64),

@@ -7,7 +7,6 @@ import {
   type ModelClient,
   type ModelId,
   noUsage,
-  type ProviderIdentity,
   readingAnswer,
   sheetPageAnswer,
   sortingAnswer,
@@ -17,11 +16,11 @@ import {
 
 import { sha256 } from '../../../src/lib/docx';
 import type { ImportMessage } from '../../../src/lib/env';
+import type { CopyContext } from '../../../src/modules/imports/copies';
 import {
   ImportFailure,
   type ImportObjects,
   type PipelineDeps,
-  textPathOf,
 } from '../../../src/modules/imports/pipeline';
 import { recordFailure, runStep } from '../../../src/modules/imports/queue';
 import type {
@@ -32,9 +31,8 @@ import type {
 } from '../../../src/modules/imports/store';
 import type { CopySource, ImportCopyRecord, TestCase } from './cases';
 
-// Read from the database, never written.
+// Read from the database, never written: what the copy's record does not hold.
 export interface CaseContext {
-  provider(organizationId: string): Promise<ProviderIdentity>;
   client(clientId: string): Promise<ExistingClient | null>;
   trainingThemes(row: ImportRow, today: string): Promise<TrainingThemes>;
 }
@@ -128,22 +126,6 @@ export function keptPageImages(
   };
 }
 
-// import_files.storage_path in the database names a file's object by its type alone.
-const storageExtensions: Record<string, string> = {
-  'application/pdf': 'pdf',
-  'application/msword': 'doc',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/heic': 'heic',
-  'image/heif': 'heic',
-};
-
-const derivedExtensions: Record<string, string> = {
-  'application/msword': 'docx',
-  'image/jpeg': 'jpeg',
-};
-
 const scanClaim = /\.(?:scan(?:-\d+)?|claim)\.json$/;
 const pageReading = /\.page-\d+\.json$/;
 
@@ -153,35 +135,33 @@ const nameOf = (path: string) => path.slice(path.lastIndexOf('/') + 1);
  * The import's files as the pipeline's rows. An import read again starts each file as prepared,
  * from its kept text; a part reads them as its import left them.
  */
-export function fileRows(record: ImportCopyRecord, folder: string, asLeft: boolean) {
+export function fileRows(record: ImportCopyRecord, asLeft: boolean) {
   const names = new Set<string>();
   const files = record.files.map((file): ImportFileRow => {
     const own = file.objects.map(nameOf);
     for (const name of own) names.add(name);
-    const storagePath = `${folder}/${file.id}.${storageExtensions[file.mimeType] ?? 'bin'}`;
-    const textPath = textPathOf({ storage_path: storagePath, mime_type: file.mimeType });
-    const derived = `${file.id}.${derivedExtensions[file.mimeType] ?? 'jpg'}`;
-    const hasText = own.includes(nameOf(textPath));
+    const kept = (path: string | null) =>
+      path !== null && own.includes(nameOf(path)) ? path : null;
+    const textPath = kept(file.textPath);
     return {
       id: file.id,
       import_id: record.import,
       upload_path: file.uploadPath,
-      original_file_name: nameOf(file.uploadPath),
+      original_file_name: file.originalFileName,
       mime_type: file.mimeType,
       size_bytes: file.sizeBytes,
       sha256: file.sha256,
-      storage_path: storagePath,
-      state: asLeft ? file.state : hasText ? 'prepared' : 'failed',
+      storage_path: file.storagePath,
+      state: asLeft ? file.state : textPath ? 'prepared' : 'failed',
       document_kind: asLeft ? file.kind : null,
-      reason: asLeft || !hasText ? file.reason : null,
+      reason: asLeft || !textPath ? file.reason : null,
       company_name: asLeft ? (file.company?.name ?? null) : null,
       company_cui: asLeft ? (file.company?.cui ?? null) : null,
       page_count: file.pageCount,
       is_scan: file.isScan,
-      text_path: hasText ? textPath : null,
-      derived_path:
-        own.includes(derived) && derived !== nameOf(storagePath) ? `${folder}/${derived}` : null,
-      declared_pages: null,
+      text_path: textPath,
+      derived_path: kept(file.derivedPath),
+      declared_pages: file.declaredPages,
       document_domain: asLeft ? file.domain : null,
     };
   });
@@ -247,6 +227,7 @@ const emptyEmployeeClient: EmployeeImportClient = {
 };
 
 interface CaseState {
+  context: CopyContext;
   row: ImportRow & Record<string, unknown>;
   files: ImportFileRow[];
   part: (LibraryPartRow & Record<string, unknown>) | null;
@@ -289,8 +270,10 @@ function memoryStore(state: CaseState, context: CaseContext): ImportStore {
     libraryModules: async () => [],
     riskLibrary: async () => ({ entries: [], names: [] }),
     clientSheets: async () => ({ jobPositions: [], sensitiveGroups: 0, other: {} }),
-    provider: (organizationId) => context.provider(organizationId),
-    client: (clientId) => context.client(clientId),
+    provider: async () => state.context.provider,
+    // The record keeps the client only of an import into an existing one; a part of a new
+    // client's import reads the client its confirm made.
+    client: async (clientId) => state.context.existingClient ?? context.client(clientId),
     employeeImportClient: async () => emptyEmployeeClient,
     trainingThemes: (importRow, today) => context.trainingThemes(importRow, today),
     keepPageImage: async () => {},
@@ -331,7 +314,7 @@ export async function readAgain(input: ReadAgainInput): Promise<CaseReading> {
   const { testCase, rescan } = input;
   const importRecord = testCase.type === 'import' ? testCase.record : testCase.importRecord;
   const folder = testCase.folder;
-  const { files, names } = fileRows(importRecord, folder, testCase.type === 'part');
+  const { files, names } = fileRows(importRecord, testCase.type === 'part');
   const objects = memoryObjects(
     folder,
     names,
@@ -340,6 +323,7 @@ export async function readAgain(input: ReadAgainInput): Promise<CaseReading> {
   );
   const forClient = importRecord.kind === 'client';
   const state: CaseState = {
+    context: testCase.record.context,
     row: {
       id: importRecord.import,
       organization_id: importRecord.organization,
@@ -352,7 +336,7 @@ export async function readAgain(input: ReadAgainInput): Promise<CaseReading> {
       company_cui: null,
       proposal: testCase.type === 'import' ? null : importRecord.proposal,
       files_copied_at: null,
-      created_by: null,
+      created_by: testCase.record.context.createdBy,
     },
     files,
     part:
@@ -392,7 +376,10 @@ export async function readAgain(input: ReadAgainInput): Promise<CaseReading> {
     records: {
       get: unused('read records'),
       recordCopy: unused('write a copy'),
+      completeCopy: unused('write a copy'),
       uncopied: unused('write a copy'),
+      incompleteCopies: unused('write a copy'),
+      claimExpensiveAlert: unused('send alerts'),
       activity: unused('read records'),
       between: unused('read records'),
     },

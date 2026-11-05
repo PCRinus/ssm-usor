@@ -54,7 +54,6 @@ export function storageCopies(admin: AdminClient): CopySource {
 export function databaseContext(admin: AdminClient): CaseContext {
   const store = importStore(admin);
   return {
-    provider: (organizationId) => store.provider(organizationId),
     client: (clientId) => store.client(clientId),
     trainingThemes: (row, today) => store.trainingThemes(row, today),
   };

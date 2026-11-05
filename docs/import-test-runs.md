@@ -93,8 +93,11 @@ to the database or to Storage.
   the gateway metadata `purpose: test-run` beside the organization and the import.
 - **What is left empty.** The organization's library, the client's risk sheets and the client's
   employees, posts and workplaces: after a confirm they hold what this very import wrote. ANAF is
-  not asked. The provider's name and people, an existing client's name and CUI and the client's
-  training themes are read from the database, as they are today.
+  not asked.
+- **What the first reading was given.** The files' paths, original names and declared pages, the
+  provider's name and people and an existing client's name and CUI come from the copy's
+  `record.json`. The client a part reads when its import made a new one, and the client's
+  training themes, are read from the database, as they are today.
 
 ## The comparison
 
