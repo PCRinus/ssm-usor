@@ -42484,10 +42484,10 @@
             "schema": {
               "type": "string",
               "enum": ["open", "confirmed"],
-              "description": "The open imports when left out; `confirmed` the 10 confirmed last, every one for a client's client imports, with `uninvited` counted for a client's employee imports."
+              "description": "The open imports when left out; `confirmed` the 10 confirmed last, or, with `clientId` and client imports (`kind` left out or `client`), every confirmed import of that client; with `uninvited` counted for a client's employee imports."
             },
             "required": false,
-            "description": "The open imports when left out; `confirmed` the 10 confirmed last, every one for a client's client imports, with `uninvited` counted for a client's employee imports.",
+            "description": "The open imports when left out; `confirmed` the 10 confirmed last, or, with `clientId` and client imports (`kind` left out or `client`), every confirmed import of that client; with `uninvited` counted for a client's employee imports.",
             "name": "status",
             "in": "query"
           }

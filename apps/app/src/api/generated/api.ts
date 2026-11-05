@@ -15636,7 +15636,7 @@ export type ListImportsParams = {
    */
   kind?: ListImportsKind;
   /**
-   * The open imports when left out; `confirmed` the 10 confirmed last, every one for a client's client imports, with `uninvited` counted for a client's employee imports.
+   * The open imports when left out; `confirmed` the 10 confirmed last, or, with `clientId` and client imports (`kind` left out or `client`), every confirmed import of that client; with `uninvited` counted for a client's employee imports.
    */
   status?: ListImportsStatus;
 };
