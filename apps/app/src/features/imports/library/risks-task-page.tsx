@@ -23,6 +23,7 @@ import { RiskFactorDialog } from '@/features/risk-evaluations/risk-factor-dialog
 
 import { creditsLabel } from '../import-credits';
 import { importErrorMessage } from '../import-format';
+import { ReportImportButton } from '../report-import-button';
 import type { LabelledSource } from '../review-model';
 import { SavingNote, SourceButton, Tag } from '../review-parts';
 import { SourceDialog, type SourceRequest } from '../source-dialog';
@@ -344,7 +345,10 @@ function TaskContent({
               potrivesc cu metoda.
             </p>
           </div>
-          {reviewable && <SavingNote saving={review.saving} />}
+          <div className="flex flex-wrap items-center gap-3">
+            {reviewable && <SavingNote saving={review.saving} />}
+            <ReportImportButton importId={detail.id} part={part.part} />
+          </div>
         </div>
 
         <StateNotices

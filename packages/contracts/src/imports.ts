@@ -119,6 +119,7 @@ export const importErrorReasons = {
   partNotFailed: 'import_part_not_failed',
   titleTaken: 'instruction_title_taken',
   nameTaken: 'evaluation_profile_name_taken',
+  reportImpersonated: 'import_report_impersonated',
 } as const;
 
 /** With `credits_insufficient`: what the import needs to start, and what is left. */
@@ -360,7 +361,7 @@ export const listImportsQuerySchema = z.object({
     .enum(['open', 'confirmed'])
     .optional()
     .meta({
-      description: `The open imports when left out; \`confirmed\` the ${confirmedListed} confirmed last, with \`uninvited\` counted for a client's employee imports.`,
+      description: `The open imports when left out; \`confirmed\` the ${confirmedListed} confirmed last, or, with \`clientId\` and client imports (\`kind\` left out or \`client\`), every confirmed import of that client; with \`uninvited\` counted for a client's employee imports.`,
     }),
 });
 

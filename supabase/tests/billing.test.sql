@@ -17,10 +17,10 @@ insert into public.organization_members (user_id, organization_id, role) values
   ('aaaaaaaa-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'specialist'),
   ('bbbbbbbb-0000-4000-8000-000000000001', '22222222-0000-4000-8000-000000000001', 'owner');
 
-create or replace function pg_temp.act_as(user_id text, app_metadata jsonb default '{"provider":"email"}')
+create or replace function pg_temp.act_as(user_id text, app_metadata jsonb default '{"provider":"email"}', aal text default 'aal1')
 returns void language sql as $$
   select set_config('role', 'authenticated', true),
-         set_config('request.jwt.claims', json_build_object('sub', user_id, 'role', 'authenticated', 'app_metadata', app_metadata)::text, true);
+         set_config('request.jwt.claims', json_build_object('sub', user_id, 'role', 'authenticated', 'aal', aal, 'app_metadata', app_metadata)::text, true);
 $$;
 
 set local role service_role;
@@ -148,7 +148,7 @@ select results_eq(
 reset role;
 insert into public.impersonations (admin_user_id, target_user_id, reason)
 values ('cccccccc-0000-4000-8000-000000000003', 'aaaaaaaa-0000-4000-8000-000000000001', 'support');
-select pg_temp.act_as('cccccccc-0000-4000-8000-000000000003', '{"provider":"email","role":"admin"}');
+select pg_temp.act_as('cccccccc-0000-4000-8000-000000000003', '{"provider":"email","role":"admin"}', 'aal2');
 
 select is_empty(
   $$ select 1 from public.billing_invoices $$,

@@ -1,7 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
+import { Input } from '@ssm-usor/ui/components/input';
 import { toast } from '@ssm-usor/ui/lib/toast';
+import { useLocation, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
@@ -11,10 +13,12 @@ import { PasswordInput } from '@/components/password-input';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useAuth } from '@/features/auth/auth-context';
 import { newPasswordErrorMessage } from '@/features/auth/auth-errors';
+import { hasSecondFactor, SecondFactorError } from '@/features/auth/auth-store';
 import { useCaptcha } from '@/features/auth/captcha';
 import {
   changePasswordSchema,
   type ChangePasswordValues,
+  changePasswordWithCodeSchema,
   newPasswordHint,
 } from '@/features/auth/password-schema';
 
@@ -29,21 +33,36 @@ export function ChangePasswordCard({ email }: { email: string }) {
   // An account made with Google has no password, so it cannot pass the check below; the reset
   // email sets a first one. Supabase does not say whether one was set since, so the offer stays.
   const madeWithGoogle = !(session?.user.app_metadata.providers ?? ['email']).includes('email');
+  const withCode = hasSecondFactor(session);
+  const navigate = useNavigate();
+  const currentHref = useLocation({ select: (location) => location.href });
   const [linkState, setLinkState] = useState<'idle' | 'sending' | 'sent'>('idle');
   const form = useForm<ChangePasswordValues>({
-    resolver: zodResolver(changePasswordSchema),
-    defaultValues: { currentPassword: '', newPassword: '' },
+    resolver: zodResolver(withCode ? changePasswordWithCodeSchema : changePasswordSchema),
+    defaultValues: { currentPassword: '', newPassword: '', code: '' },
   });
   const formRef = useRevealErrors(form);
   const { errors, isSubmitting } = form.formState;
 
-  const onSubmit = form.handleSubmit(async ({ currentPassword, newPassword }) => {
+  const onSubmit = form.handleSubmit(async ({ currentPassword, newPassword, code }) => {
     try {
-      await withToken((token) => auth.changePassword(email, currentPassword, newPassword, token));
+      await withToken((token) =>
+        auth.changePassword(email, currentPassword, newPassword, token, withCode ? code : undefined)
+      );
       form.reset();
       toast.success('Parola a fost schimbată.');
     } catch (cause) {
-      if (codeOf(cause) === 'invalid_credentials') {
+      if (cause instanceof SecondFactorError) {
+        // Checking the password signed in again without the second factor, in every tab: the
+        // code page restores it before anything else runs on a weaker session.
+        toast.error('Parola nu a fost schimbată. Introdu codul ca să continui.');
+        await navigate({
+          to: '/verificare-cod',
+          search: { redirect: currentHref },
+          state: { codeFailure: cause.result },
+          replace: true,
+        });
+      } else if (codeOf(cause) === 'invalid_credentials') {
         form.setError('currentPassword', { message: 'Parola curentă nu este corectă.' });
       } else {
         form.setError('newPassword', { message: newPasswordErrorMessage(cause) });
@@ -128,6 +147,29 @@ export function ChangePasswordCard({ email }: { email: string }) {
               {...form.register('newPassword')}
             />
           </Field>
+          {withCode && (
+            <Field
+              id="change-password-code"
+              label="Cod din aplicația de autentificare"
+              error={errors.code}
+            >
+              <Input
+                id="change-password-code"
+                data-testid="change-password-code"
+                className="font-mono tracking-[0.3em] tabular-nums"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                disabled={isSubmitting}
+                aria-invalid={Boolean(errors.code)}
+                aria-describedby={errors.code ? 'change-password-code-error' : undefined}
+                {...form.register('code', {
+                  setValueAs: (value: string) => value.replace(/\D/g, ''),
+                })}
+              />
+            </Field>
+          )}
           <div ref={captchaRef} />
           <div>
             <Button type="submit" data-testid="change-password-save" disabled={isSubmitting}>

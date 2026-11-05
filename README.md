@@ -38,6 +38,7 @@ The pnpm/Turborepo workspace contains:
 - `apps/help` — the members' help site, Starlight at `help.ssmusor.ro` ([ADR 028](docs/architecture/adr-028-help-site.md));
 - `apps/app` — the client-only React/Vite application shell;
 - `apps/portal` — the participants' portal, a second React/Vite SPA ([guide](docs/portal.md));
+- `apps/admin` — the platform owner's admin area, a React/Vite SPA behind Cloudflare Access ([guide](docs/admin.md));
 - `apps/api` — the Cloudflare Worker API;
 - `apps/mail` — the internal Worker that renders and sends email;
 - `apps/sms` — the internal Worker that sends text messages through Twilio ([guide](docs/sms.md));

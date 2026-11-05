@@ -4,6 +4,7 @@
 - Date: 2026-11-04
 - Replaces the shape decided in #611 on 2026-10-26 (a section of the app at `/admin`)
 - Issue: #611
+- Amended 2026-11-05: platform-admin power requires `aal2` everywhere, the database included: `is_platform_admin()` asks for the token's `aal` as well as the claim, the public API's admin tools too, and the member app asks an account with an authenticator for its code, since verifying one ends the account's `aal1` sessions and Supabase Auth refuses a password change at `aal1`.
 
 ## Context
 
@@ -30,11 +31,11 @@ It is served as static assets by a Worker, `ssm-usor-admin`, on the custom domai
 
 ### Three locks
 
-| Lock                                     | What it is                                                                                                                                                                                                                                                             | What it stops                                                     |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| **Cloudflare Access**                    | An Access application on both admin hostnames, whose policy allows only Mircea's address, signed in with a one-time code by email or with Google. Cloudflare checks it before the Worker runs. The Zero Trust free plan covers up to 50 users.                         | Anyone else reaching the app or its API at all, whatever our bugs |
-| **Supabase sign-in and the admin claim** | Email and password, and the trusted `app_metadata.role = 'admin'` that `is_platform_admin()` already reads. `app_metadata` can only be written with the secret key, so no member can give it to themselves. The claim is granted by SQL or a script, never in the app. | A signed-in member who is not an admin                            |
-| **Multi-factor authentication**          | A code from an authenticator app (TOTP), enrolled at the first sign-in to the admin app. Supabase marks a session that passed it `aal2`. TOTP comes with every Supabase plan.                                                                                          | A stolen password                                                 |
+| Lock                                     | What it is                                                                                                                                                                                                                                                                                          | What it stops                                                     |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| **Cloudflare Access**                    | An Access application on both admin hostnames, whose policy allows only Mircea's address, signed in with a one-time code by email or with Google. Cloudflare checks it before the Worker runs. The Zero Trust free plan covers up to 50 users.                                                      | Anyone else reaching the app or its API at all, whatever our bugs |
+| **Supabase sign-in and the admin claim** | Email and password, and the trusted `app_metadata.role = 'admin'` that `is_platform_admin()` already reads. `app_metadata` can only be written with the secret key, so no member can give it to themselves. The claim is granted by SQL or a script, never in the app.                              | A signed-in member who is not an admin                            |
+| **Multi-factor authentication**          | A code from an authenticator app (TOTP), enrolled at the first sign-in to the admin app. Supabase marks a session that passed it `aal2`, and the claim gives an admin's power only to such a session, in the database (`is_platform_admin()`) as in both APIs. TOTP comes with every Supabase plan. | A stolen password                                                 |
 
 The admin Worker also verifies the `Cf-Access-Jwt-Assertion` header Cloudflare adds, against the Zero Trust team's keys and the Access application's audience, and refuses a request without a valid one. A route or a domain that missed the Access application then fails closed instead of open.
 
@@ -55,6 +56,8 @@ Each admin action writes a named event to `audit.events` (ADR 033) with the admi
 ### Impersonation across the two addresses
 
 The admin starts an impersonation in the admin app, with its reason and ADR 033's two-hour cap, then opens `app.ssmusor.ro`, where he is signed in as himself, and the member app acts as the member with its banner. He ends it from either app.
+
+Starting, ending and acting during an impersonation all need a session at `aal2`. `is_platform_admin()` is false for a token whose `aal` is not `aal2`, so a session with the password alone, from either app or straight to PostgREST, neither starts nor ends an impersonation, and an active one does not apply to it. The member app therefore asks an account with an authenticator for its code after every sign-in and after a recovery link. It has to anyway: verifying a code ends the account's `aal1` sessions, so the member app's session ended at each sign-in to the admin app, and Supabase Auth refuses a password or email change at `aal1` to an account with a verified factor. The portal asks for none; impersonation is for members, and the participants' functions act as the real signed-in user.
 
 ### Not chosen
 

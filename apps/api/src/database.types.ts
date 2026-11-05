@@ -2695,6 +2695,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      import_copies: {
+        Row: {
+          completed_at: string | null;
+          expires_at: string;
+          id: string;
+          import_id: string;
+          organization_id: string;
+          part: Database['public']['Enums']['import_library_part'] | null;
+          removed_at: string | null;
+          written_at: string;
+        };
+        Insert: {
+          completed_at?: string | null;
+          expires_at: string;
+          id?: string;
+          import_id: string;
+          organization_id: string;
+          part?: Database['public']['Enums']['import_library_part'] | null;
+          removed_at?: string | null;
+          written_at?: string;
+        };
+        Update: {
+          completed_at?: string | null;
+          expires_at?: string;
+          id?: string;
+          import_id?: string;
+          organization_id?: string;
+          part?: Database['public']['Enums']['import_library_part'] | null;
+          removed_at?: string | null;
+          written_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'import_copies_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'import_copies_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       import_files: {
         Row: {
           cached_input_tokens: number;
@@ -2834,7 +2882,12 @@ export type Database = {
           part: Database['public']['Enums']['import_library_part'];
           proposal: Json | null;
           proposal_dropped_at: string | null;
+          quality: Json | null;
           read_at: string | null;
+          reading_flags: Json | null;
+          reading_version: Json | null;
+          reported_at: string | null;
+          reported_by: string | null;
           status: Database['public']['Enums']['import_library_part_status'];
           updated_at: string;
           version: number;
@@ -2856,7 +2909,12 @@ export type Database = {
           part: Database['public']['Enums']['import_library_part'];
           proposal?: Json | null;
           proposal_dropped_at?: string | null;
+          quality?: Json | null;
           read_at?: string | null;
+          reading_flags?: Json | null;
+          reading_version?: Json | null;
+          reported_at?: string | null;
+          reported_by?: string | null;
           status?: Database['public']['Enums']['import_library_part_status'];
           updated_at?: string;
           version?: number;
@@ -2878,7 +2936,12 @@ export type Database = {
           part?: Database['public']['Enums']['import_library_part'];
           proposal?: Json | null;
           proposal_dropped_at?: string | null;
+          quality?: Json | null;
           read_at?: string | null;
+          reading_flags?: Json | null;
+          reading_version?: Json | null;
+          reported_at?: string | null;
+          reported_by?: string | null;
           status?: Database['public']['Enums']['import_library_part_status'];
           updated_at?: string;
           version?: number;
@@ -2938,6 +3001,7 @@ export type Database = {
           cost_usd: number;
           created_at: string;
           created_by: string | null;
+          expensive_alerted_at: string | null;
           failed_at: string | null;
           failure_reason: string | null;
           files_copied_at: string | null;
@@ -2952,7 +3016,11 @@ export type Database = {
           proposal_dropped_at: string | null;
           quality: Json | null;
           read_characters: number | null;
+          reading_flags: Json | null;
+          reading_version: Json | null;
           ready_at: string | null;
+          reported_at: string | null;
+          reported_by: string | null;
           source_import_id: string | null;
           started_at: string | null;
           status: Database['public']['Enums']['import_status'];
@@ -2972,6 +3040,7 @@ export type Database = {
           cost_usd?: number;
           created_at?: string;
           created_by?: string | null;
+          expensive_alerted_at?: string | null;
           failed_at?: string | null;
           failure_reason?: string | null;
           files_copied_at?: string | null;
@@ -2986,7 +3055,11 @@ export type Database = {
           proposal_dropped_at?: string | null;
           quality?: Json | null;
           read_characters?: number | null;
+          reading_flags?: Json | null;
+          reading_version?: Json | null;
           ready_at?: string | null;
+          reported_at?: string | null;
+          reported_by?: string | null;
           source_import_id?: string | null;
           started_at?: string | null;
           status?: Database['public']['Enums']['import_status'];
@@ -3006,6 +3079,7 @@ export type Database = {
           cost_usd?: number;
           created_at?: string;
           created_by?: string | null;
+          expensive_alerted_at?: string | null;
           failed_at?: string | null;
           failure_reason?: string | null;
           files_copied_at?: string | null;
@@ -3020,7 +3094,11 @@ export type Database = {
           proposal_dropped_at?: string | null;
           quality?: Json | null;
           read_characters?: number | null;
+          reading_flags?: Json | null;
+          reading_version?: Json | null;
           ready_at?: string | null;
+          reported_at?: string | null;
+          reported_by?: string | null;
           source_import_id?: string | null;
           started_at?: string | null;
           status?: Database['public']['Enums']['import_status'];
@@ -7005,6 +7083,38 @@ export type Database = {
         };
         Returns: string;
       };
+      admin_list_imports: {
+        Args: {
+          p_has_copy?: boolean;
+          p_kind?: Database['public']['Enums']['import_kind'];
+          p_limit?: number;
+          p_offset?: number;
+          p_reported?: boolean;
+          p_status?: string;
+        };
+        Returns: {
+          copy_completed_at: string;
+          copy_expires_at: string;
+          copy_removed_at: string;
+          copy_written_at: string;
+          cost_usd: number;
+          created_at: string;
+          ended_at: string;
+          import_id: string;
+          incomplete_part_copies: number;
+          kind: Database['public']['Enums']['import_kind'];
+          organization_id: string;
+          organization_name: string;
+          part_copies: number;
+          quality: Json;
+          reading_flags: Json;
+          reading_version: Json;
+          reported_at: string;
+          row_deleted: boolean;
+          status: Database['public']['Enums']['import_status'];
+          total: number;
+        }[];
+      };
       answer_test_attempt: {
         Args: {
           p_attempt_id: string;
@@ -7142,6 +7252,13 @@ export type Database = {
         Returns: {
           error: true;
         } & 'the function public.client_search_name with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
+      };
+      complete_import_copy: {
+        Args: {
+          p_import_id: string;
+          p_part?: Database['public']['Enums']['import_library_part'];
+        };
+        Returns: string;
       };
       copy_risk_factors: {
         Args: { p_evaluation_id: string; p_from_evaluation_id: string };
@@ -7600,6 +7717,16 @@ export type Database = {
           paths: string[];
         }[];
       };
+      list_expired_import_copies: {
+        Args: never;
+        Returns: {
+          copy_id: string;
+          folder: string;
+          import_id: string;
+          organization_id: string;
+          part: Database['public']['Enums']['import_library_part'];
+        }[];
+      };
       list_import_objects_to_remove: {
         Args: never;
         Returns: {
@@ -7629,7 +7756,12 @@ export type Database = {
           part: Database['public']['Enums']['import_library_part'];
           proposal: Json | null;
           proposal_dropped_at: string | null;
+          quality: Json | null;
           read_at: string | null;
+          reading_flags: Json | null;
+          reading_version: Json | null;
+          reported_at: string | null;
+          reported_by: string | null;
           status: Database['public']['Enums']['import_library_part_status'];
           updated_at: string;
           version: number;
@@ -7656,6 +7788,7 @@ export type Database = {
           cost_usd: number;
           created_at: string;
           created_by: string | null;
+          expensive_alerted_at: string | null;
           failed_at: string | null;
           failure_reason: string | null;
           files_copied_at: string | null;
@@ -7670,7 +7803,11 @@ export type Database = {
           proposal_dropped_at: string | null;
           quality: Json | null;
           read_characters: number | null;
+          reading_flags: Json | null;
+          reading_version: Json | null;
           ready_at: string | null;
+          reported_at: string | null;
+          reported_by: string | null;
           source_import_id: string | null;
           started_at: string | null;
           status: Database['public']['Enums']['import_status'];
@@ -7688,6 +7825,10 @@ export type Database = {
       mark_found_sheets_uploaded: {
         Args: { p_file_ids: string[]; p_import_id: string };
         Returns: undefined;
+      };
+      mark_import_copies_removed: {
+        Args: { p_copy_ids: string[] };
+        Returns: string[];
       };
       mark_import_objects_removed: {
         Args: { p_import_ids: string[] };
@@ -7913,6 +8054,23 @@ export type Database = {
           revision_id: string;
           title: string;
         }[];
+      };
+      record_admin_event: {
+        Args: {
+          p_action: string;
+          p_details?: Json;
+          p_organization_id: string;
+          p_row_id: string;
+          p_table_name: string;
+        };
+        Returns: number;
+      };
+      record_import_copy: {
+        Args: {
+          p_import_id: string;
+          p_part?: Database['public']['Enums']['import_library_part'];
+        };
+        Returns: string;
       };
       record_import_usage: {
         Args: {

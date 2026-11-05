@@ -27,10 +27,10 @@ insert into public.profiles (user_id, full_name) values
   ('aaaaaaaa-0000-4000-8000-000000000001', 'Ana Owner'),
   ('bbbbbbbb-0000-4000-8000-000000000001', 'Bogdan Owner');
 
-create or replace function pg_temp.act_as(user_id text, app_metadata jsonb default '{"provider":"email"}')
+create or replace function pg_temp.act_as(user_id text, app_metadata jsonb default '{"provider":"email"}', aal text default 'aal1')
 returns void language sql as $$
   select set_config('role', 'authenticated', true),
-         set_config('request.jwt.claims', json_build_object('sub', user_id, 'role', 'authenticated', 'app_metadata', app_metadata)::text, true);
+         set_config('request.jwt.claims', json_build_object('sub', user_id, 'role', 'authenticated', 'aal', aal, 'app_metadata', app_metadata)::text, true);
 $$;
 
 -- The API's secret key.
@@ -325,7 +325,7 @@ reset role;
 insert into public.impersonations (admin_user_id, target_user_id, reason)
 values ('cccccccc-0000-4000-8000-000000000003', 'aaaaaaaa-0000-4000-8000-000000000001', 'help with invitations');
 
-select pg_temp.act_as('cccccccc-0000-4000-8000-000000000003', '{"provider":"email","role":"admin"}');
+select pg_temp.act_as('cccccccc-0000-4000-8000-000000000003', '{"provider":"email","role":"admin"}', 'aal2');
 select lives_ok(
   $$ select * from public.create_organization_invitation('via-support@test') $$,
   'a platform admin impersonating an owner invites for that organization'

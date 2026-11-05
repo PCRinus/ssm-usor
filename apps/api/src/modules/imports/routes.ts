@@ -34,6 +34,7 @@ import {
   risksProposalSchema,
 } from '@ssm-usor/import';
 
+import { allowWhileReadOnly } from '../../lib/access';
 import { requireAuth } from '../../lib/auth';
 import { requireMembership } from '../../lib/membership';
 import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
@@ -102,7 +103,7 @@ export const listImportsRoute = createRoute({
   operationId: 'listImports',
   summary: "List the organization's open or last confirmed imports",
   description:
-    "Every import of `kind` (client imports when left out, both kinds with `all`) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, with `all` those the app watches to say when a member's import finishes reading, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first; with `kind` `employees` and `clientId` each counts in `uninvited` the current employees it brought who are neither participants nor invited, and the Angajați tab offers to invite the people of the latest with someone left.",
+    "Every import of `kind` (client imports when left out, both kinds with `all`) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, with `all` those the app watches to say when a member's import finishes reading, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first: the last ten, or every one of a client's client imports with `clientId`, which its Detalii tab lists with what is left of each; with `kind` `employees` and `clientId` each counts in `uninvited` the current employees it brought who are neither participants nor invited, and the Angajați tab offers to invite the people of the latest with someone left.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { query: listImportsQuerySchema },
@@ -576,5 +577,49 @@ export const retryImportLibraryPartRoute = createRoute({
     409: { description: 'The part has not failed, or it expired', content: errorContent },
     ...membershipErrors,
     503: unavailable,
+  },
+});
+
+const reportRefused = {
+  description:
+    'The account is not a member of an organization, or is a platform admin impersonating a member (`import_report_impersonated`)',
+  content: errorContent,
+} as const;
+
+export const reportImportRoute = createRoute({
+  method: 'post',
+  path: '/imports/{importId}/report',
+  operationId: 'reportImport',
+  summary: 'Report a problem with an import',
+  description:
+    '"Raportează o problemă cu importul" (ADR 037): records when and by whom, a report again replacing both, and tells support, at most once in 10 minutes for the same import. What the member writes goes to the support widget, not here.',
+  security: bearerSecurity,
+  middleware: [requireAuth, allowWhileReadOnly, requireMembership] as const,
+  request: { params: importParams },
+  responses: {
+    204: { description: 'Reported' },
+    400: { description: 'Invalid path', content: errorContent },
+    404: noSuchImport,
+    ...membershipErrors,
+    403: reportRefused,
+  },
+});
+
+export const reportImportLibraryPartRoute = createRoute({
+  method: 'post',
+  path: '/imports/{importId}/library-parts/{part}/report',
+  operationId: 'reportImportLibraryPart',
+  summary: 'Report a problem with a library part of an import',
+  description:
+    'As for the import: records when and by whom on the part, and tells support at most once in 10 minutes for the same part.',
+  security: bearerSecurity,
+  middleware: [requireAuth, allowWhileReadOnly, requireMembership] as const,
+  request: { params: libraryPartParams },
+  responses: {
+    204: { description: 'Reported' },
+    400: { description: 'Invalid path', content: errorContent },
+    404: { description: 'No such import, or no such part of it', content: errorContent },
+    ...membershipErrors,
+    403: reportRefused,
   },
 });

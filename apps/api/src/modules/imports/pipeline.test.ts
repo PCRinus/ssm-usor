@@ -12,9 +12,10 @@ import {
 import { strToU8, zipSync } from 'fflate';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { AlertMessage } from '../../lib/alerts';
 import { sha256 } from '../../lib/docx';
 import type { ImportMessage } from '../../lib/env';
-import { cleanUpImports } from './cleanup';
+import { cleanUpImports, cleanUpLine } from './cleanup';
 import { libraryReasons, riskReasons } from './library';
 import {
   fileReasons,
@@ -31,8 +32,17 @@ import {
   maxDeferrals,
   type QueueMessage,
 } from './queue';
+import type {
+  CopyToWrite,
+  ImportRecord,
+  ImportRecordRow,
+  ImportRecords,
+  OrganizationActivity,
+  PartRecordRow,
+} from './records';
 import type { ClientSheets, RiskLibrary } from './risk-sheets';
 import {
+  type ImportCopy,
   type ImportFileRow,
   ImportLimitError,
   type ImportObjectList,
@@ -124,6 +134,8 @@ class World {
   sizeLimit: number | null = null;
   abandoned: ImportObjectList[] = [];
   toEmpty: ImportObjectList[] = [];
+  copies = new Map<string, Uint8Array>();
+  expiredCopies: ImportCopy[] = [];
   failRemovalOf = new Set<string>();
   calls: string[] = [];
   nextMessage = 0;
@@ -138,6 +150,12 @@ class World {
   library: LibraryModule[] = [];
   riskLibrary: RiskLibrary = { entries: [], names: [] };
   clientSheets: ClientSheets = { jobPositions: [], sensitiveGroups: 0, other: {} };
+  alerts: AlertMessage[] = [];
+  recordedCopies: string[] = [];
+  uncopied: CopyToWrite[] = [];
+  incomplete: CopyToWrite[] = [];
+  completedCopies = new Set<string>();
+  activity: OrganizationActivity = { startedLastHour: 0, spentTodayUsd: 0 };
 
   send(body: ImportMessage, delaySeconds?: number) {
     this.sent.push({ id: `message-${++this.nextMessage}`, body, attempts: 1, delaySeconds });
@@ -190,6 +208,90 @@ class World {
 
   fileAt(path: string) {
     return [...this.files.values()].find((file) => file.upload_path === path)!;
+  }
+
+  record(id: string): ImportRecord | null {
+    const row = this.imports.get(id);
+    if (!row) return null;
+    const cost =
+      this.usage.reduce((sum, each) => sum + each.cost, 0) +
+      this.partUsage.reduce((sum, each) => sum + each.cost, 0);
+    const recordRow = {
+      failure_reason: null,
+      created_at: '2026-10-28T09:00:00Z',
+      started_at: null,
+      ready_at: null,
+      failed_at: null,
+      confirmed_at: null,
+      abandoned_at: null,
+      reported_at: null,
+      changes: null,
+      quality: null,
+      reading_version: null,
+      reading_flags: null,
+      read_characters: null,
+      input_tokens: 0,
+      cached_input_tokens: 0,
+      output_tokens: 0,
+      cost_usd: cost,
+      usage_by_step: null,
+      ...row,
+    } as unknown as ImportRecordRow;
+    const parts = [...this.parts.values()]
+      .filter((part) => part.import_id === id)
+      .map(
+        (part) =>
+          ({
+            failure_reason: null,
+            read_at: null,
+            failed_at: null,
+            confirmed_at: null,
+            reported_at: null,
+            changes: null,
+            quality: null,
+            reading_version: null,
+            reading_flags: null,
+            input_tokens: 0,
+            cached_input_tokens: 0,
+            output_tokens: 0,
+            cost_usd: this.partUsage
+              .filter((each) => each.part === part.part)
+              .reduce((sum, each) => sum + each.cost, 0),
+            ...part,
+          }) as unknown as PartRecordRow
+      );
+    const files = [...this.files.values()]
+      .filter((file) => file.import_id === id)
+      .sort((a, b) => a.upload_path.localeCompare(b.upload_path));
+    return { row: recordRow, files, parts };
+  }
+
+  records(): ImportRecords {
+    return {
+      get: async (id) => this.record(id),
+      recordCopy: async (id, part) => {
+        this.recordedCopies.push(`${id}:${part ?? ''}`);
+        this.completedCopies.delete(`${id}:${part ?? ''}`);
+      },
+      completeCopy: async (id, part) => {
+        this.completedCopies.add(`${id}:${part ?? ''}`);
+      },
+      uncopied: async () => this.uncopied,
+      incompleteCopies: async (ids) =>
+        this.incomplete.filter(
+          (copy) =>
+            ids.includes(copy.importId) &&
+            !this.completedCopies.has(`${copy.importId}:${copy.part ?? ''}`)
+        ),
+      claimExpensiveAlert: async (id) => {
+        const row = this.imports.get(id);
+        if (!row || row.expensive_alerted_at) return false;
+        row.expensive_alerted_at = '2026-10-28T10:00:00Z';
+        return true;
+      },
+      activity: async () => this.activity,
+      between: async () => [],
+    };
   }
 
   store(): ImportStore {
@@ -290,7 +392,7 @@ class World {
       },
       failStalledLibraryParts: async (reasons) => {
         this.calls.push(`failStalledLibraryParts ${reasons.instructions} ${reasons.risks}`);
-        return 1;
+        return [{ importId: 'stalled-import', part: 'instructions_ssm' }];
       },
       listAbandoned: async () => this.abandoned,
       deleteAbandoned: async (ids) => {
@@ -304,6 +406,11 @@ class World {
       listObjectsToRemove: async () => this.toEmpty,
       markObjectsRemoved: async (ids) => {
         this.calls.push(`markObjectsRemoved ${ids.join(',')}`);
+        return ids;
+      },
+      listExpiredCopies: async () => this.expiredCopies,
+      markCopiesRemoved: async (ids) => {
+        if (ids.length > 0) this.calls.push(`markCopiesRemoved ${ids.join(',')}`);
         return ids;
       },
     };
@@ -557,6 +664,31 @@ function deps(overrides: Partial<PipelineDeps> = {}): PipelineDeps {
         world.calls.push(`remove ${paths.length}`);
         for (const path of paths) world.objects.delete(path);
       }),
+    },
+    copies: {
+      list: async (folder) =>
+        [...world.copies.keys()].filter((path) => path.startsWith(`${folder}/`)),
+      remove: async (paths) => {
+        if (paths.some((path) => world.failRemovalOf.has(path))) throw new Error('Storage is down');
+        world.calls.push(`remove copies ${paths.length}`);
+        for (const path of paths) world.copies.delete(path);
+      },
+      copyIn: async (from, to) => {
+        const bytes = world.objects.get(from);
+        if (!bytes) throw new Error(`No object at ${from}`);
+        world.copies.set(to, bytes);
+      },
+      write: async (path, bytes) => {
+        world.copies.set(path, bytes);
+      },
+    },
+    records: world.records(),
+    alerts: {
+      enabled: true,
+      send: async (message) => {
+        world.alerts.push(message);
+        return true;
+      },
     },
     extractor,
     model: createModelClient({
@@ -1312,6 +1444,48 @@ describe('cleanUpImports', () => {
       left: 1,
     });
   });
+
+  it("removes the copies past their 12 months, leaving an import's parts that are not", async () => {
+    const old = `${organizationId}/old-import`;
+    world.copies.set(`${old}/proposal.json`, strToU8('{}'));
+    world.copies.set(`${old}/files/a.pdf`, strToU8('a'));
+    world.copies.set(`${old}/parts/instructions_ssm/proposal.json`, strToU8('{}'));
+    world.copies.set(`${old}/parts/risk_evaluations/proposal.json`, strToU8('{}'));
+    world.copies.set(`${organizationId}/stuck/proposal.json`, strToU8('{}'));
+    world.expiredCopies = [
+      { id: 'own', part: null, folder: old },
+      { id: 'risks', part: 'risk_evaluations', folder: `${old}/parts/risk_evaluations` },
+      { id: 'stuck', part: null, folder: `${organizationId}/stuck` },
+    ];
+    world.failRemovalOf.add(`${organizationId}/stuck/proposal.json`);
+    const result = await cleanUpImports(deps());
+
+    expect(world.calls.slice(-3)).toEqual([
+      'remove copies 2',
+      'remove copies 1',
+      'markCopiesRemoved own,risks',
+    ]);
+    expect([...world.copies.keys()]).toEqual([
+      `${old}/parts/instructions_ssm/proposal.json`,
+      `${organizationId}/stuck/proposal.json`,
+    ]);
+    expect(result).toMatchObject({ copiesRemoved: 2, left: 1 });
+  });
+
+  it('marks a copy whose folder holds nothing of its own removed without calling Storage', async () => {
+    const parted = `${organizationId}/parted-import`;
+    world.copies.set(`${parted}/parts/instructions_ssm/proposal.json`, strToU8('{}'));
+    world.expiredCopies = [
+      { id: 'gone', part: null, folder: `${organizationId}/gone-import` },
+      { id: 'parted', part: null, folder: parted },
+    ];
+    const result = await cleanUpImports(deps());
+
+    expect(world.calls.filter((call) => call.startsWith('remove copies'))).toEqual([]);
+    expect(world.calls.at(-1)).toBe('markCopiesRemoved gone,parted');
+    expect(world.copies.has(`${parted}/parts/instructions_ssm/proposal.json`)).toBe(true);
+    expect(result).toMatchObject({ copiesRemoved: 2 });
+  });
 });
 
 describe('an employee import', () => {
@@ -1889,6 +2063,47 @@ describe('the own instructions', () => {
     expect(world.partCharges).toEqual(['instructions_ssm:1']);
   });
 
+  it("keeps the part's reading version and flags", async () => {
+    world.library = [till];
+    model = packModel();
+    startWith(packFiles);
+    await drain(deps());
+
+    expect(part().reading_version).toEqual({
+      models: { instructions: 'gpt-6.1-terra', similarity: 'gpt-6-luna' },
+      prompts: expect.stringMatching(/^[0-9a-f]{12}$/),
+    });
+    expect(part().reading_flags).toMatchObject({
+      found: { instructions: 2, unread: 0 },
+      nothingFound: [],
+    });
+    expect(world.recordedCopies).toEqual([]);
+  });
+
+  it("writes the part's copy beside the import's when it fails", async () => {
+    model = packModel({ not: 'the schema' });
+    startWith(packFiles);
+    await drain(deps());
+
+    expect(part().status).toBe('failed');
+    expect(world.recordedCopies).toEqual([`${importId}:instructions_ssm`]);
+    const folder = `${organizationId}/${importId}/parts/instructions_ssm`;
+    expect([...world.copies.keys()].filter((path) => path.startsWith(folder)).sort()).toEqual([
+      `${folder}/files/instructions_ssm.1.claim.json`,
+      `${folder}/record.json`,
+    ]);
+    const record = JSON.parse(new TextDecoder().decode(world.copies.get(`${folder}/record.json`)));
+    expect(record).toMatchObject({
+      import: importId,
+      part: 'instructions_ssm',
+      status: 'failed',
+      failureReason: libraryReasons.modelFailed,
+      importStatus: 'ready',
+      objects: ['files/instructions_ssm.1.claim.json'],
+    });
+    expect(world.alerts.map((alert) => alert.title)).toContain('Failed on our side');
+  });
+
   it('reads a retried part under its next attempt, once, and ignores the message of the one before', async () => {
     model = packModel({ not: 'the schema' });
     startWith(packFiles);
@@ -2332,5 +2547,145 @@ describe('the risk evaluations', () => {
     await consumeImportDeadLetters({ messages: [message] }, {}, deps());
 
     expect(part()).toMatchObject({ status: 'failed', failure_reason: riskReasons.failed });
+  });
+});
+
+describe('what a reading leaves (ADR 037)', () => {
+  const text = (alert: AlertMessage) => [alert.title, ...alert.lines].join('\n');
+
+  it("keeps the reading's version and flags, and tells support of the file it could not open, by its place", async () => {
+    startWith(files);
+    await drain(deps());
+
+    const row = world.imports.get(importId)!;
+    expect(row.reading_version).toEqual({
+      models: { sorting: 'gpt-6-luna', scanning: 'gpt-6.1-terra', reading: 'gpt-6.1-terra' },
+      prompts: expect.stringMatching(/^[0-9a-f]{12}$/),
+    });
+    const place = [...world.files.values()]
+      .map((file) => file.upload_path)
+      .sort((a, b) => a.localeCompare(b))
+      .indexOf('Dosar/stricat.pdf');
+    expect(row.reading_flags).toMatchObject({
+      files: {
+        total: 8,
+        unreadable: [{ file: place + 1, kind: 'pdf' }],
+        setAside: 1,
+        forEmployees: 1,
+        otherCompany: 1,
+      },
+      emptyRequired: ['jobPositions'],
+      checks: expect.objectContaining({ quote_not_found: expect.any(Number) }),
+    });
+    expect(world.alerts.map((alert) => alert.title)).toEqual(['Files we could not open']);
+    expect(text(world.alerts[0]!)).toContain(`file ${place + 1} of 8, pdf`);
+    for (const alert of world.alerts) {
+      expect(text(alert)).not.toMatch(/stricat|Dosar|BRUTĂRIA|Vasilescu|12345674/);
+    }
+    expect(world.recordedCopies).toEqual([]);
+  });
+
+  it('writes the copy of a failed import, its record first, by a message of its own', async () => {
+    model = (request) =>
+      request.name === 'client_import'
+        ? Response.json({
+            choices: [{ finish_reason: 'length', message: { content: '{"facts": [' } }],
+            usage: { prompt_tokens: 1000, completion_tokens: 64_000 },
+          })
+        : defaultModel(request);
+    startWith([files[0]!]);
+    const outcomes = await drain(deps());
+
+    expect(outcomes.map((outcome) => outcome.type).slice(-1)).toEqual(['keep']);
+    expect(world.recordedCopies).toEqual([`${importId}:`]);
+    const folder = `${organizationId}/${importId}`;
+    const file = world.fileAt('Dosar/Decizia 1.docx');
+    const name = file.storage_path.split('/').at(-1)!;
+    expect([...world.copies.keys()].sort()).toEqual(
+      [
+        `${folder}/files/${name}`,
+        `${folder}/files/${name.replace('.docx', '.txt')}`,
+        `${folder}/record.json`,
+      ].sort()
+    );
+    expect(world.copies.get(`${folder}/files/${name}`)).toEqual(
+      world.objects.get(file.storage_path)
+    );
+    const record = JSON.parse(new TextDecoder().decode(world.copies.get(`${folder}/record.json`)));
+    expect(record).toMatchObject({
+      status: 'failed',
+      failureReason: importReasons.modelFailed,
+      readingVersion: { prompts: expect.any(String) },
+      readingFlags: { files: { total: 1 } },
+      files: [{ place: 1, id: file.id, state: 'read', kind: 'decision' }],
+    });
+    expect(world.alerts.map((alert) => alert.title)).toEqual(['Failed on our side']);
+    expect(text(world.alerts[0]!)).toContain('Reason: import.modelFailed');
+  });
+
+  it('queues the copies the clean-up finds missing, and writes one itself before its import loses its objects', async () => {
+    world.addImport({ status: 'abandoned', abandoned_at: '2026-10-01T00:00:00Z' });
+    const id = world.addFile(files[0]!, 0, 'read');
+    const path = world.files.get(id)!.storage_path;
+    const missing = { importId, part: null, recorded: true };
+    world.uncopied = [missing];
+    world.incomplete = [missing];
+    world.abandoned = [{ importId, paths: [path] }];
+    const result = await cleanUpImports(deps());
+
+    expect(world.sent.map((message) => message.body)).toEqual([{ type: 'keep', importId }]);
+    expect(
+      world.copies.get(`${organizationId}/${importId}/files/${path.split('/').at(-1)}`)
+    ).toEqual(files[0]!.bytes);
+    expect(world.completedCopies.has(`${importId}:`)).toBe(true);
+    expect(world.objects.has(path)).toBe(false);
+    expect(result).toMatchObject({ copiesQueued: 1, copiesNotQueued: 0, held: 0, deleted: 1 });
+  });
+
+  it('keeps the objects of an import whose copy cannot be written, abandoned or confirmed, until the next day', async () => {
+    world.addImport({ status: 'abandoned', abandoned_at: '2026-10-01T00:00:00Z' });
+    const id = world.addFile(files[0]!, 0, 'read');
+    const path = world.files.get(id)!.storage_path;
+    world.incomplete = [{ importId, part: null, recorded: true }];
+    world.abandoned = [{ importId, paths: [path] }];
+    const failing = deps();
+    failing.copies.copyIn = async () => {
+      throw new Error('Storage is down');
+    };
+    const result = await cleanUpImports(failing);
+    world.abandoned = [];
+    world.toEmpty = [{ importId, paths: [path] }];
+    const confirmed = await cleanUpImports(failing);
+
+    expect(world.objects.has(path)).toBe(true);
+    expect(
+      world.calls.filter((call) => /^(deleteAbandoned|markObjectsRemoved)/.test(call))
+    ).toEqual([
+      'deleteAbandoned ',
+      'markObjectsRemoved ',
+      'deleteAbandoned ',
+      'markObjectsRemoved ',
+    ]);
+    expect(result).toMatchObject({ held: 1, deleted: 0 });
+    expect(confirmed).toMatchObject({ held: 1, emptied: 0 });
+    expect(cleanUpLine(result)).toContain('1 imports kept until their copies are written');
+  });
+
+  it('tells support of an import the clean-up failed as stalled, and of one left after its reading', async () => {
+    world.addImport({
+      status: 'failed',
+      failure_reason: importReasons.stalled,
+      failed_at: '2026-11-04T02:41:00Z',
+    });
+    const store = world.store();
+    await cleanUpImports(deps({ store: { ...store, failStalled: async () => [importId] } }));
+    world.imports.get(importId)!.failure_reason = importReasons.left;
+    world.imports.get(importId)!.ready_at = '2026-10-20T10:00:00Z';
+    await cleanUpImports(deps({ store: { ...store, failStalled: async () => [importId] } }));
+
+    expect(world.alerts.map((alert) => alert.title)).toEqual([
+      'Stuck',
+      'Abandoned after a reading',
+    ]);
   });
 });

@@ -27,7 +27,8 @@
     "oblio:check": "node --import tsx scripts/oblio-check.ts",
     "signing:ca": "node --import tsx scripts/signing-ca.ts",
     "signing:check:local": "node --import tsx scripts/check-signing.ts",
-    "test-sheet:check:local": "node --import tsx scripts/check-test-sheet.ts"
+    "test-sheet:check:local": "node --import tsx scripts/check-test-sheet.ts",
+    "import:test-run": "node --env-file-if-exists=.env.test-run --import tsx scripts/import-test-run.ts"
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.6.3",

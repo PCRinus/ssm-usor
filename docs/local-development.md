@@ -131,6 +131,8 @@ the real widget answers only on the environments' domains.
 | ----------------- | ---------------------- |
 | React SPA         | http://localhost:5173  |
 | Portal            | http://localhost:5174  |
+| Admin app         | http://localhost:5176  |
+| Admin Worker      | http://localhost:8794  |
 | Hono API          | http://localhost:8787  |
 | Mail Worker       | http://localhost:8790  |
 | SMS Worker        | http://localhost:8793  |

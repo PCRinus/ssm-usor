@@ -3,11 +3,13 @@ import { createFileRoute, Navigate, redirect } from '@tanstack/react-router';
 import { AppShell } from '@/app/app-shell';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
+import { requireSecondFactor } from '@/features/auth/second-factor';
 
 export const Route = createFileRoute('/_authenticated')({
-  beforeLoad: async ({ context: { auth } }) => {
+  beforeLoad: async ({ context: { auth }, location }) => {
     await auth.ready;
     if (!auth.getSnapshot().session) throw redirect({ to: '/autentificare', replace: true });
+    await requireSecondFactor(auth, location.href);
   },
   component: AuthenticatedLayout,
 });

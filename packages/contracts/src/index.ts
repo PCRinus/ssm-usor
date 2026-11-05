@@ -7,6 +7,7 @@ import { membershipSchema } from './organizations';
 import { profileSchema } from './profile';
 import { subscriptionSummarySchema } from './subscriptions';
 
+export * from './admin-imports';
 export * from './billing';
 export * from './caen';
 export * from './client-files';

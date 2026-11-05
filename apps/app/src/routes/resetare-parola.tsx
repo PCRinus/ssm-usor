@@ -20,6 +20,8 @@ import {
 
 // Public: the link in a password reset email lands here. Opening it does nothing; the
 // token is used only when a new password is submitted, because mail scanners open links.
+// An account with a second factor gives its code after the token and comes back here without
+// it: Supabase Auth refuses the new password before then.
 export const Route = createFileRoute('/resetare-parola')({
   staticData: { title: 'Resetare parolă' },
   validateSearch: z.object({ token_hash: z.string().optional() }),
@@ -42,10 +44,10 @@ function SpentLink() {
 
 function ResetPasswordPage() {
   const { token_hash: tokenHash } = Route.useSearch();
-  const { auth } = useAuth();
+  const { auth, session } = useAuth();
   const navigate = useNavigate();
   // The token works once. After it is verified, a rejected password is retried without it.
-  const [verified, setVerified] = useState(false);
+  const recovered = auth.isRecoverySession(session);
   const [spent, setSpent] = useState(false);
   const form = useForm<ResetPasswordValues>({
     resolver: zodResolver(resetPasswordSchema),
@@ -55,15 +57,22 @@ function ResetPasswordPage() {
   const { errors, isSubmitting } = form.formState;
 
   const onSubmit = form.handleSubmit(async ({ password }) => {
-    if (!verified) {
+    if (!recovered) {
       try {
         await auth.verifyRecovery(tokenHash!);
-        setVerified(true);
       } catch (cause) {
         if (isSpentRecoveryLink(cause)) setSpent(true);
         else form.setError('root.auth', { message: newPasswordErrorMessage(cause) });
         return;
       }
+    }
+    if (await auth.needsSecondFactor()) {
+      await navigate({
+        to: '/verificare-cod',
+        search: { redirect: '/resetare-parola' },
+        replace: true,
+      });
+      return;
     }
     try {
       await auth.updatePassword(password, { acceptCurrent: true });
@@ -75,7 +84,7 @@ function ResetPasswordPage() {
     await navigate({ to: '/dashboard', replace: true });
   });
 
-  if (!tokenHash || spent) return <SpentLink />;
+  if ((!tokenHash && !recovered) || spent) return <SpentLink />;
 
   return (
     <PublicFrame

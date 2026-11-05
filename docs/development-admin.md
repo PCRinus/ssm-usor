@@ -91,7 +91,8 @@ The script uses Supabase's Auth Admin API and, with the same secret key, PostgRE
 No invitation/confirmation email is sent. Supabase owns the authentication tables; the
 organization and client rows come from the checked-in migrations, which must already be applied.
 The `admin` metadata marks a platform admin: it does not bypass row-level security, it only
-allows impersonating a user for support, as described in the [data model](data-model.md).
+allows impersonating a user for support, as described in the [data model](data-model.md), and
+only on a session that passed a code from an authenticator ([admin app](admin.md)).
 User-editable `user_metadata` is not used to grant privileges.
 
 `SEED_ADMIN_PASSWORD` applies when the account is created; rerunning the script leaves an

@@ -22,6 +22,7 @@ import { invalidateLibrary } from '@/features/instructions/instruction-schema';
 
 import { creditsLabel } from '../import-credits';
 import { importErrorMessage } from '../import-format';
+import { ReportImportButton } from '../report-import-button';
 import { SavingNote } from '../review-parts';
 import { SourceDialog, type SourceRequest } from '../source-dialog';
 import { SourcePrefetchContext, useSourcePrefetch } from '../source-query';
@@ -280,7 +281,10 @@ function TaskContent({
               {intro} {splitSentence(identical.length, rows.length)}
             </p>
           </div>
-          {reviewable && <SavingNote saving={review.saving} />}
+          <div className="flex flex-wrap items-center gap-3">
+            {reviewable && <SavingNote saving={review.saving} />}
+            <ReportImportButton importId={detail.id} part={part.part} />
+          </div>
         </div>
 
         <StateNotices

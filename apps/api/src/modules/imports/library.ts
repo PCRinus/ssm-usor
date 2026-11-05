@@ -37,6 +37,7 @@ import {
   withRetyped,
 } from '@ssm-usor/import';
 
+import { alertImport, importEnded } from './import-alerts';
 import {
   claimed,
   dataUrl,
@@ -51,6 +52,8 @@ import {
   pageLabel,
   type PipelineDeps,
 } from './pipeline';
+import { instructionsReadingFlags, risksReadingFlags } from './reading-flags';
+import { readingVersion } from './reading-version';
 import { existingByPostName } from './risk-sheets';
 import { asJson, type ImportFileRow, type ImportRow } from './store';
 
@@ -242,9 +245,8 @@ export async function readInstructions(
   if (!(await claimed(deps, pathOf(row, `${part}.${attempt}.claim.json`), owner))) return;
 
   const domain = instructionsPartDomains[part];
-  const files = (await deps.store.listFiles(importId)).filter(
-    (file) => isLibraryFile(file) && file.document_domain === domain
-  );
+  const all = await deps.store.listFiles(importId);
+  const files = all.filter((file) => isLibraryFile(file) && file.document_domain === domain);
   const instructions: InstructionsFile[] = [];
   const themes: { path: string; text: string }[] = [];
   for (const file of files) {
@@ -297,13 +299,16 @@ export async function readInstructions(
   }
 
   const proposal = await proposeInstructions({ read, library, client, judged });
-  await deps.store.updateLibraryPart(importId, part, attempt, {
+  const done = await deps.store.updateLibraryPart(importId, part, attempt, {
     status: proposal.instructions.some((instruction) => instruction.status !== 'identical')
       ? 'to_review'
       : 'nothing_new',
     proposal: asJson(proposal),
+    reading_version: asJson(await readingVersion(part)),
+    reading_flags: asJson(instructionsReadingFlags(all, domain, proposal)),
     read_at: new Date().toISOString(),
   });
+  if (done) await alertImport(deps, importId, part, ['read']);
 }
 
 export function libraryFailureReason(error: unknown): string {
@@ -365,7 +370,8 @@ export async function readRiskEvaluations(
   if (!(await claimed(deps, pathOf(row, `${risksPart}.${attempt}.claim.json`), owner))) return;
 
   const files: RisksTextFile[] = [];
-  for (const file of (await deps.store.listFiles(importId)).filter(isRiskFile)) {
+  const all = await deps.store.listFiles(importId);
+  for (const file of all.filter(isRiskFile)) {
     const read = await risksFile(deps, row, file);
     if (read) files.push(read);
   }
@@ -405,11 +411,14 @@ export async function readRiskEvaluations(
     client,
     existing,
   });
-  await deps.store.updateLibraryPart(importId, risksPart, attempt, {
+  const done = await deps.store.updateLibraryPart(importId, risksPart, attempt, {
     status: proposal.sheets.some(asksForReview) ? 'to_review' : 'nothing_new',
     proposal: asJson(proposal),
+    reading_version: asJson(await readingVersion(risksPart)),
+    reading_flags: asJson(risksReadingFlags(all, proposal)),
     read_at: new Date().toISOString(),
   });
+  if (done) await alertImport(deps, importId, risksPart, ['read']);
 }
 
 export function riskFailureReason(error: unknown): string {
@@ -428,9 +437,11 @@ export async function failLibraryPart(
   attempt: number,
   reason: string
 ) {
-  await deps.store.updateLibraryPart(importId, part, attempt, {
+  const failed = await deps.store.updateLibraryPart(importId, part, attempt, {
     status: 'failed',
     failure_reason: reason,
+    reading_version: asJson(await readingVersion(part)),
     failed_at: new Date().toISOString(),
   });
+  if (failed) await importEnded(deps, importId, part, ['read', 'ended']);
 }

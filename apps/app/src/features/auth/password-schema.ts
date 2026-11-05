@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { codeField } from './second-factor';
+
 // Mirrors `newPasswordSchema` in the contracts, which mirrors the Supabase password policy
 // in supabase/config.toml.
 export const newPasswordField = z
@@ -26,10 +28,14 @@ export const resetPasswordSchema = z.object({ password: newPasswordField });
 
 export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
 
+// The code is asked only of an account with a second factor (changePasswordWithCodeSchema).
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Introdu parola curentă.'),
   newPassword: newPasswordField,
+  code: z.string(),
 });
+
+export const changePasswordWithCodeSchema = changePasswordSchema.extend({ code: codeField });
 
 export type ChangePasswordValues = z.infer<typeof changePasswordSchema>;
 

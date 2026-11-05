@@ -68,6 +68,7 @@ jobs:
       api: ${{ steps.select.outputs.api }}
       app: ${{ steps.select.outputs.app }}
       portal: ${{ steps.select.outputs.portal }}
+      admin: ${{ steps.select.outputs.admin }}
       mail: ${{ steps.select.outputs.mail }}
       sms: ${{ steps.select.outputs.sms }}
       pdf: ${{ steps.select.outputs.pdf }}
@@ -135,12 +136,12 @@ jobs:
           CHANGES: ${{ steps.filter.outputs.changes || '[]' }}
         shell: bash
         run: |
-          all='["api","app","portal","mail","sms","pdf","legislation","marketing","help","database","templates"]'
+          all='["api","app","portal","admin","mail","sms","pdf","legislation","marketing","help","database","templates"]'
           if [[ "$EVERYTHING" == true ]]; then CHANGES=$all; fi
           for name in $(jq -r '.[]' <<< "$all"); do
             echo "$name=$(jq --arg name "$name" 'index($name) != null' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
           done
-          echo "projects=$(jq -c 'map(select(IN("api", "app", "portal", "mail", "sms", "pdf", "legislation", "marketing", "help")))' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
+          echo "projects=$(jq -c 'map(select(IN("api", "app", "portal", "admin", "mail", "sms", "pdf", "legislation", "marketing", "help")))' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
 
   validate:
     name: Validate repository
@@ -259,6 +260,7 @@ jobs:
         if: >-
           needs.changes.outputs.app == 'true' ||
           needs.changes.outputs.portal == 'true' ||
+          needs.changes.outputs.admin == 'true' ||
           needs.changes.outputs.api == 'true'
         shell: bash
         run: |
@@ -272,7 +274,10 @@ jobs:
       # Supabase Auth refuses a sign-in without a Turnstile token, so a build without the key
       # would ship a login page that cannot sign anyone in.
       - name: Check the Turnstile site key
-        if: needs.changes.outputs.app == 'true' || needs.changes.outputs.portal == 'true'
+        if: >-
+          needs.changes.outputs.app == 'true' ||
+          needs.changes.outputs.portal == 'true' ||
+          needs.changes.outputs.admin == 'true'
         shell: bash
         run: |
           : "${VITE_TURNSTILE_SITE_KEY:?Set TURNSTILE_SITE_KEY in GitHub variables}"
@@ -332,6 +337,17 @@ jobs:
         with:
           name: release-portal-${{ inputs.environment }}-${{ inputs.sha }}
           path: ${{ runner.temp }}/release-portal/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: true
+
+      - name: Upload validated admin release
+        if: needs.changes.outputs.admin == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-admin-${{ inputs.environment }}-${{ inputs.sha }}
+          path: ${{ runner.temp }}/release-admin/
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
@@ -792,13 +808,16 @@ jobs:
           OBLIO_CLIENT_SECRET: ${{ secrets.OBLIO_CLIENT_SECRET }}
           AI_GATEWAY_URL: ${{ vars.AI_GATEWAY_URL }}
           AI_GATEWAY_TOKEN: ${{ secrets.AI_GATEWAY_TOKEN }}
+          DISCORD_ALERTS_WEBHOOK: ${{ secrets.DISCORD_ALERTS_WEBHOOK }}
         shell: bash
         run: |
           {
             echo 'names<<EOF'
-            for name in SUPABASE_SECRET_KEY TURNSTILE_SECRET_KEY SUPABASE_AUTH_HOOK_SECRET SUPABASE_AUTH_SMS_HOOK_SECRET POSTHOG_SUPPORT_SECRET_KEY SIGNING_CA_KEY SIGNING_CA_CERT SIGNING_KEY_ENCRYPTION_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET OBLIO_CLIENT_ID OBLIO_CLIENT_SECRET AI_GATEWAY_URL AI_GATEWAY_TOKEN; do
+            for name in SUPABASE_SECRET_KEY TURNSTILE_SECRET_KEY SUPABASE_AUTH_HOOK_SECRET SUPABASE_AUTH_SMS_HOOK_SECRET POSTHOG_SUPPORT_SECRET_KEY SIGNING_CA_KEY SIGNING_CA_CERT SIGNING_KEY_ENCRYPTION_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET OBLIO_CLIENT_ID OBLIO_CLIENT_SECRET AI_GATEWAY_URL AI_GATEWAY_TOKEN DISCORD_ALERTS_WEBHOOK; do
               if [[ -n "${!name}" ]]; then
                 echo "$name"
+              elif [[ "$name" == DISCORD_ALERTS_WEBHOOK ]]; then
+                echo "::warning::$name is not set. The imports' alerts and day summary are skipped." >&2
               else
                 echo "::warning::$name is not set. The routes that need it will answer 503." >&2
               fi
@@ -847,6 +866,7 @@ jobs:
           OBLIO_CLIENT_ID: ${{ secrets.OBLIO_CLIENT_ID }}
           OBLIO_CLIENT_SECRET: ${{ secrets.OBLIO_CLIENT_SECRET }}
           AI_GATEWAY_TOKEN: ${{ secrets.AI_GATEWAY_TOKEN }}
+          DISCORD_ALERTS_WEBHOOK: ${{ secrets.DISCORD_ALERTS_WEBHOOK }}
           # A GitHub variable, uploaded as a secret so that a repository without it still deploys:
           # the step above selects only the values that are set.
           AI_GATEWAY_URL: ${{ vars.AI_GATEWAY_URL }}
@@ -892,11 +912,11 @@ jobs:
 
   deploy-auth-config:
     name: Deploy Supabase configuration
-    needs: [changes, validate, test, deploy-api, deploy-app, deploy-portal]
+    needs: [changes, validate, test, deploy-api, deploy-app, deploy-portal, deploy-admin]
     # After the API: the Send Email and Send SMS hooks must not point at an endpoint that is not
-    # deployed yet. After the SPA and the portal too: Supabase Auth's CAPTCHA refuses a sign-in
-    # without a Turnstile token, and ignores one while it is off, so the pages that send it go
-    # first.
+    # deployed yet. After the SPA, the portal and the admin app too: Supabase Auth's CAPTCHA
+    # refuses a sign-in without a Turnstile token, and ignores one while it is off, so the pages
+    # that send it go first.
     # A skipped deployment is fine only when its application was not selected; when it was
     # selected and skipped, something before it failed.
     if: >-
@@ -909,7 +929,9 @@ jobs:
       (needs.deploy-app.result == 'success' ||
         (needs.deploy-app.result == 'skipped' && needs.changes.outputs.app != 'true')) &&
       (needs.deploy-portal.result == 'success' ||
-        (needs.deploy-portal.result == 'skipped' && needs.changes.outputs.portal != 'true'))
+        (needs.deploy-portal.result == 'skipped' && needs.changes.outputs.portal != 'true')) &&
+      (needs.deploy-admin.result == 'success' ||
+        (needs.deploy-admin.result == 'skipped' && needs.changes.outputs.admin != 'true'))
     runs-on: ubuntu-latest
     # Never beside a deployment of the same thing, and never cancelled halfway: a newer run
     # waits its turn.
@@ -1158,6 +1180,57 @@ jobs:
           packageManager: pnpm
           command: >-
             deploy --assets .wrangler/release/dist
+            --tag ${{ inputs.sha }}
+            --message "${{ steps.metadata.outputs.message }}"
+
+  deploy-admin:
+    name: Deploy admin app
+    needs: [changes, validate, test, build, deploy-api]
+    # After the API: `wrangler deploy` refuses a service binding to the API's Admin entrypoint
+    # before a deployment of the API exports it (ADR 038). A skipped API job only on releases
+    # without it.
+    if: >-
+      !cancelled() &&
+      needs.changes.outputs.admin == 'true' &&
+      needs.validate.result == 'success' &&
+      needs.test.result == 'success' &&
+      needs.build.result == 'success' &&
+      (needs.deploy-api.result == 'success' ||
+        (needs.deploy-api.result == 'skipped' && needs.changes.outputs.api != 'true'))
+    runs-on: ubuntu-latest
+    # Never beside a deployment of the same thing, and never cancelled halfway: a newer run
+    # waits its turn.
+    concurrency:
+      group: deploy-admin-${{ inputs.environment }}
+      cancel-in-progress: false
+    timeout-minutes: 15
+    environment:
+      name: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.sha }}
+      - uses: ./.github/actions/setup
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-admin-${{ inputs.environment }}-${{ inputs.sha }}
+          path: apps/admin/.wrangler/release
+
+      - name: Prepare deployment message
+        id: metadata
+        uses: ./.github/actions/deployment-message
+
+      - name: Deploy validated admin Worker and assets
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/admin
+          packageManager: pnpm
+          command: >-
+            deploy .wrangler/release/worker/index.js --no-bundle
+            --assets .wrangler/release/dist
             --tag ${{ inputs.sha }}
             --message "${{ steps.metadata.outputs.message }}"
 

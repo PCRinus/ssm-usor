@@ -1,0 +1,15 @@
+@import '@ssm-usor/ui/globals.css';
+
+@source './';
+
+@layer base {
+  :root {
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    min-width: 320px;
+    min-height: 100svh;
+  }
+}

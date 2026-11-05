@@ -15,6 +15,8 @@ import { isRunning, uploadedWhen } from '../import-format';
 import { ImportThumbnail } from '../import-thumbnail';
 import { inPathOrder } from '../path-order';
 import { ImportFileView, PhotoPreviewDialog } from '../photo-preview-dialog';
+import { ReportImportButton } from '../report-import-button';
+import { useCanReportImport } from '../use-can-report-import';
 import { useUploadStalled } from '../use-upload-stalled';
 import { onlyPhotos, sheetFilesLabel } from './review-format';
 
@@ -82,6 +84,7 @@ export function EmployeeProcessing({
   const [previewing, setPreviewing] = useState<string | null>(null);
   const running = isRunning(detail.status);
   const stalled = useUploadStalled(detail);
+  const canReport = useCanReportImport();
   const reached = reachedStep(detail);
   const files = useMemo(() => inPathOrder(detail.files), [detail.files]);
   const photos = onlyPhotos(files);
@@ -121,6 +124,7 @@ export function EmployeeProcessing({
             {running ? 'Oprește importul' : 'Renunță la import'}
           </Button>
         )}
+        {detail.status === 'confirmed' && <ReportImportButton importId={detail.id} />}
       </div>
       {running && (
         <Notice variant="info" data-testid="employee-processing-can-leave">
@@ -135,10 +139,24 @@ export function EmployeeProcessing({
         </Notice>
       )}
       {detail.status === 'failed' && (
-        <Notice variant="destructive" data-testid="employee-processing-failed">
-          {detail.failureReason ?? 'Importul s-a oprit din cauza unei erori.'}
-          {detail.credits?.refunded && ` ${refundedSentence}`} Renunță la import și încearcă din
-          nou.
+        <Notice
+          variant="destructive"
+          data-testid="employee-processing-failed"
+          action={
+            canReport && (
+              <ReportImportButton
+                importId={detail.id}
+                variant="outline"
+                className="h-auto min-h-8 bg-card py-1.5 text-left whitespace-normal"
+              />
+            )
+          }
+        >
+          <p data-testid="employee-processing-failed-message">
+            {detail.failureReason ?? 'Importul s-a oprit din cauza unei erori.'}
+            {detail.credits?.refunded && ` ${refundedSentence}`} Renunță la import și încearcă din
+            nou.
+          </p>
         </Notice>
       )}
       {detail.status !== 'abandoned' && (

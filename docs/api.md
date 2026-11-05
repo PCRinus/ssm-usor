@@ -119,6 +119,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PUT /imports/{importId}/library-parts/{part}/changes`                 | Verified user with a membership       | `{ "version" }` after saving `{ version, changes }` of a part `to_review` or `nothing_new`; `409` on a stale version                                                                               |
 | `POST /imports/{importId}/library-parts/{part}/confirm`                | Verified user with a membership       | `{ "createdModuleIds", "usedModuleIds", "links" }`, or `{ "createdProfileIds", "evaluationIds", "factors" }` for the risk evaluations, in one transaction; `409` before the client is confirmed    |
 | `POST /imports/{importId}/library-parts/{part}/retry`                  | Verified user with a membership       | `{ "part": { … } }`, a failed part reading again under its next attempt, charged again                                                                                                             |
+| `POST /imports/{importId}/report`                                      | Verified user with a membership       | `204` after recording a member's report of a problem with the import; support is told at most once in 10 minutes                                                                                   |
+| `POST /imports/{importId}/library-parts/{part}/report`                 | Verified user with a membership       | `204` after recording the report on a library part; support is told at most once in 10 minutes                                                                                                     |
 | `GET /files/download`                                                  | Public, by signed Storage link        | The file behind `?source=`, named `?name=`; `?disposition=inline` shows a PDF, a JPEG or a PNG                                                                                                     |
 | `GET /organization/company-details`                                    | Verified user with a membership       | `{ "companyDetails": { … } }`: what documents print about the provider as a company                                                                                                                |
 | `PUT /organization/company-details`                                    | Owner                                 | The company details after replacing them                                                                                                                                                           |
@@ -270,7 +272,7 @@ repeating either changes nothing and keeps the first date.
 `DELETE /clients/{clientId}` deletes an archived client outright, for testing an import with the
 same company again, which an archived client's CUI otherwise refuses. Who may call it is the rule
 of the import's `usage`: anyone when `ENVIRONMENT` is not `production`, and in production a
-platform admin only (`adminToolsAllowed` in `lib/auth.ts`); anyone else gets `403`. Every client
+platform admin past the second factor only (`adminToolsAllowed` in `lib/auth.ts`); anyone else gets `403`. Every client
 response, and each row of `GET /clients`, says it as `canDelete`: true for an archived client
 when the rule holds. The handler
 reads the client as the caller, so `404` and the policies are as for `GET`, answers `409` with
@@ -786,7 +788,9 @@ with the same need; never reach for it to work around a policy. The invitations 
 second, for the three things listed below. Inside a request, `createAdminClient(c)` and
 `createLastingAdminClient(c)` (for a write that must finish when the caller disconnects, as
 the signing evidence) send the signed-in account's id in `x-audit-actor`, which the audit log
-names as the actor of the write ([ADR 033](architecture/adr-033-audit-log.md)); build a
+names as the actor of the write ([ADR 033](architecture/adr-033-audit-log.md)), and, for a
+platform admin past the second factor, `x-audit-aal: aal2`, without which the log names no
+impersonation; build a
 secret-key client for a user only through them, never with `adminClient(env)`, which names
 nobody and is for the queues and the webhook.
 Supabase owns its Auth schema; business tables live in SQL migrations
@@ -2171,6 +2175,8 @@ send fails, so the retried delivery moves on again.
 | `read-instructions` (part) | `{ importId, part, attempt }`, for an import `ready` or `confirmed` whose part still reads that attempt; it first claims `<part>.<attempt>.claim.json` in the import's folder. The part's own-instructions files (`document_domain`) are read with Word's own numbers and notes (`readInstructionsDocx`, the converted `.docx` for a `.doc`), a PDF line by line from its text; its training themes as the client reading has them. One GPT-6.1 Terra request (`instructionsRequest`, at most 800,000 characters, else the part fails with its size before anything is charged; 16,000 output tokens) with the client proposal's posts by name, charged as it is sent; its answer is kept at `<part>.<attempt>.answer.json`, so a retried delivery does not send it again. `readInstructionsAnswer` cuts the instructions and resolves the posts' citations; the organization's active modules of the domain are compared with them (`pairsToJudge`), the pairs in between in one GPT-6 Luna request (`similarityRequest`; an answer outside the schema leaves them new), and `proposeInstructions` makes the proposal. The part becomes `to_review`, or `nothing_new` when every instruction is identical to a module.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `read-risks` (part)        | `{ importId, attempt }`, for an import `ready` or `confirmed` whose `risk_evaluations` part still reads that attempt, after the claim `risk_evaluations.<attempt>.claim.json`. The `risk_assessment` files the client reading read are read again as it prepared them: a Word file's text with its table rows, a PDF's text pages, and its scanned pages, or a photograph, as images. One GPT-6.1 Terra request (`risksRequest`: the rows numbered, the client proposal's posts by name; at most 800,000 characters, else the part fails before anything is charged; 32,000 output tokens), charged as it is sent and kept at `risk_evaluations.<attempt>.answer.json`; the sheets with no rows (a PDF's) are then written out by further requests (`retypeSheets`), each factor with its measures by kind and its plan fields, from the plan's row for it or else the measures sheet: the first request alone, as the first answer's cache does not serve them, then the others four at a time, each with as many sheets as fit about 35 factors by the counts of the first answer; an answer cut at its limit or outside the schema is asked again in halves, and a sheet an answer left out is asked again alone. Each is kept at `risk_evaluations.<attempt>.retyped-<sheets>.json`, named by the sheets it asks for (`retyped-3-4`). `readRisksAnswer` copies the factors, measures, plan fields and texts, the client's and the organization's people marking a plan field that names a person; `proposeRisks` compares each sheet with the organization's active library entries, the names of all of them taken, and counts the factors an existing client's posts have by name. The part becomes `to_review`, or `nothing_new` when confirming would change nothing: no sheet is new or similar, and none with factors has a post or is client-level. |
 | `copy` (import)            | After confirming: copies each file of the import folder, or each file an employee import made (an employee's photograph or page image, a scanned PDF of the client), from `imports` to `client-files` (`import_folder_copies`), an object already there counting as copied, then sets `files_copied_at`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `ended` (import or part)   | `{ importId, part? }`, sent when a member confirms or abandons an import or confirms a part, its step run by the consumer itself when the pipeline fails an import or a part: checks the rules of an end (below) and posts their alerts, then sends `keep`. Neither ever fails the member's action; a message that cannot be sent is logged.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `keep` (import or part)    | `{ importId, part?, offset? }`. Writes the improvement copy (below): `record_import_copy` first, then the objects of the import's folder by name, 200 a message, copied by Storage into `import-copies`, each next 200 by a `keep` of its own with their `offset`; after the last, `record.json`, then `complete_import_copy`. An import abandoned or failed sends a `keep` for each of its parts once its own copy is complete. A failure is retried as any step, then dropped: the clean-up queues the copies not complete.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 Every model request carries `{ organizationId, importId }` as the gateway's metadata, and its
 tokens and cost go to `record_import_usage` with its step (`sorting` for the pack and a scan's
@@ -2195,7 +2201,8 @@ answer outside the schema twice fails at once. A file's failure marks the file `
 reason in Romanian and the import goes on without it; the failure of `sort`, `read` or `check`
 marks the import `failed` with a reason. The failure of `read-instructions` or `read-risks`, or
 its dead letter, marks only its part `failed`, with a reason in Romanian; the client proposal and
-the other parts go on. The copy is not failed: the clean-up copies again.
+the other parts go on. The copy is not failed: the clean-up copies again. Neither is `ended`
+or `keep`: the clean-up queues the copies not complete.
 
 ### Reviewing and confirming
 
@@ -2244,8 +2251,8 @@ same four for each step that called a model in `bySteps` (`sorting`, `reading`, 
 `instructions`, `risks`), and
 `readCharacters`, null until sorted, all as numbers, from the import's bookkeeping columns. It is
 served when `ENVIRONMENT` is not `production` (non-prod and `wrangler dev`, where it is unset) and,
-in production, only to a platform admin, an account whose `app_metadata.role` is `admin`, the
-claim `is_platform_admin()` reads (`adminToolsAllowed`, which also guards `DELETE
+in production, only to a platform admin, an account whose `app_metadata.role` is `admin` on a
+token whose `aal` is `aal2`, as `is_platform_admin()` asks (`adminToolsAllowed`, which also guards `DELETE
 /clients/{clientId}`); otherwise the field is absent ([deployment](deployment.md#the-same-gateway-for-imports-from-documents)).
 
 `changes` holds what the member decided, by the proposal's paths. `fields` is keyed
@@ -2431,7 +2438,153 @@ removes the paths and the rest of the import's folder (a scan's page readings an
 `delete_abandoned_imports` deletes only the imports whose objects went. Likewise
 `drop_import_proposals()` (confirmed 30 days ago, with their library parts' proposals), `list_import_objects_to_remove()` (proposal
 dropped, folder copied) and `mark_import_objects_removed`. An import whose removal failed is
-listed again the next day.
+listed again the next day. The imports and parts it fails are checked against the clean-up's
+rules, queues the improvement copies that are missing, and removes no import's objects while a
+copy of it is incomplete (below). After it, one message sums up the previous UTC day.
+
+### Improvement copies and alerts
+
+[ADR 037](architecture/adr-037-import-quality-and-alerts.md) keeps a copy of every import and
+library part for 12 months, to improve the reading, and tells support on Discord when one goes
+wrong. The module's `copies.ts`, `import-alerts.ts`, `reading-flags.ts`, `reading-version.ts`,
+`records.ts` (the reads they need, with the secret key) and `report-handlers.ts`, and
+`lib/alerts.ts` (the webhook).
+
+**When a copy is written.** An import's copy when it ends: confirmed (`ended` after
+`apply_client_import` or `apply_employee_import`), abandoned (after `abandon_import`), or failed by
+the pipeline (`sort`, `read` or `check` failing, the caps at `prepare`, or a dead letter). A
+part's when it is confirmed or fails; the parts of an abandoned or failed import are written with
+it. A copy is complete once `complete_import_copy` marks it, after its `record.json`. The
+clean-up sends a `keep`, up to 200 a run and the rest the next day, for every ended import or part
+whose objects are still there and whose copy is not complete (no row, or `completed_at` null): an
+import it failed as stalled or left, a part that expired 14 days after its client unconfirmed, and
+any `keep` that was lost or stopped halfway. Before it removes the objects of an import abandoned
+or failed 14 days ago, or confirmed 30 days ago, it writes that import's incomplete copies itself,
+up to 1,000 objects a run in all; an import whose copy still fails or does not fit keeps its
+objects and its row until the next day, and the clean-up's line counts it. A Worker invocation
+makes at most 10,000 subrequests on Workers Paid, one for each object copied.
+
+**The copy.** In the private bucket `import-copies`, under `<organization>/<import>/`:
+`files/<name>` for every object of the import's folder in `imports` (the originals, the converted
+copies, the extracted text, a scan's page readings and page images, the claims), and
+`record.json`: the kind, status, failure reason and times, each file with its place, upload
+path, original name, storage, text and converted paths, type, size, hash, pages and declared
+pages, state, sorted kind and domain, reason, company and its objects, `context` (what the reading
+was given beside the files: `createdBy`, the provider's name, CUI and people as the store gives
+them when the copy is written, the existing client's name and CUI for an import into one, and
+ANAF's answer kept in the proposal as `registeredCompany`), the proposal and the member's changes, `quality`, `readingVersion`, `readingFlags`, the tokens and
+cost with `usage_by_step`, and the names of its parts. A part's copy is
+`parts/<part>/record.json` (its status, attempt, failure reason, times, `context`, proposal,
+changes, quality, version, flags and usage) and `parts/<part>/files/` with the objects named after it (its claims,
+its answer, the written-out sheets). `record_import_copy` is called first, so a copy that fails
+halfway is still removed after its 12 months, and it clears `completed_at`, so that copy is
+written again.
+
+**Reading version and flags.** When an import leaves `preparing`, and when a part's reading ends
+or fails, its `reading_version` is set: `{ models: { <step>: <model> }, prompts: <12 hex> }`, the
+SHA-256 of the system prompts and answer schemas the reader uses, built with stand-in data so that
+only their text counts. When the reading ends (`ready`) or the pipeline fails it,
+`reading_flags` holds counts, places and codes, never what was read: `files` (`total`, `byKind`,
+`unreadable` as `{ file, kind }` places from 1 in the listed order, `setAside`, `forEmployees`,
+`otherCompany`), `found` (posts and the other lists, people, pages, rows, instructions, sheets,
+factors), `emptyRequired` (of `client.legalName`, `client.cui`, `jobPositions`), `checks` (the
+existing checks' flags by code: `quote_not_found`, `person.invalid_cnp`, `row.unsigned`,
+`instruction.end_not_found`, `factor.level_mismatch`, `factor.class_missing`, …), `nothingFound`
+(places of files of a kind that gave nothing of it) and, for a client import, `proposedValues`.
+Confirming a part stores its `quality` too, counted as for the client: each instruction, sheet
+and factor changed, unticked or kept.
+
+**Alerts.** `DISCORD_ALERTS_WEBHOOK` is the channel's webhook; without it (as locally) nothing is
+read or posted. A message names the rule, the environment (`ENVIRONMENT`, `local` without it),
+the import's kind and id, the part, the organization's id, the counts or codes that tripped the
+rule and the import's cost with its parts; never a name, a value, a file name or a failure
+reason's text, only its code (`import.modelFailed`). A file is its place and kind, "file 3 of 9,
+risk_assessment". Every import alert ends with `<ADMIN_ORIGIN/imports/<id>>`, the import in the
+admin area ([admin app](admin.md#the-imports-page)), in angle brackets so that Discord does not try
+to preview a page behind Access; the day summary has none. `ADMIN_ORIGIN` is
+`https://admin.ssmusor.ro` in production and `https://admin.non-prod.ssmusor.ro` in non-prod
+(`wrangler.jsonc`), unset locally, where alerts carry no link. A failed post is logged and dropped.
+
+| Rule                                     | Checked                                          | Trips when                                                                                                                                                                                     |
+| ---------------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🔴 Failed on our side                    | the pipeline fails an import or a part (`ended`) | its reason is `unavailable`, `notConfigured`, `modelRefused`, `modelFailed`, `failed` or `scansUnfinished`                                                                                     |
+| 🔴 Stuck                                 | the clean-up                                     | it failed the import or part as stalled                                                                                                                                                        |
+| 🟡 Sorted, but nothing found             | a reading ends                                   | `nothingFound` names a file: a training sheet no page of which became a person, an own-instructions file of the domain nothing was cut from, a risk assessment read with no sheet with factors |
+| 🟡 Client reading with no required field | a client reading ends                            | no company name, no CUI and no post                                                                                                                                                            |
+| 🟡 Files we could not open               | a reading ends                                   | a file is `failed`                                                                                                                                                                             |
+| 🔴 Reported by the member                | the report routes                                | always, at most once in 10 minutes per import or part                                                                                                                                          |
+| 🟡 Confirmed, but mostly changed         | `ended` after a confirmation                     | (changed + unticked) over what was proposed is more than 0.5; for a client import what was proposed is `proposedValues`, since its `kept` counts only what an existing client kept             |
+| 🟡 Abandoned after a reading             | `ended`, the clean-up                            | abandoned by the member after `ready`, failed as left after `ready`, or a part left `to_review` until it expired                                                                               |
+| 🟡 Expensive import                      | a reading ends                                   | the import with its parts passes $1; once, by `expensive_alerted_at` set from null                                                                                                             |
+| 🔴 Busy organization                     | an import starts or a split starts one           | more than 10 imports started in the last hour, or more than $5 on imports started since midnight UTC; once an hour per organization, per Worker isolate                                        |
+
+The thresholds are the constants of `import-alerts.ts`. **The day summary** (📋), posted after
+the clean-up, counts the previous UTC day's imports started, confirmed, abandoned and failed, the
+share of proposed values changed or unticked in the imports and parts confirmed, the cost of the
+imports started, the alerts (the rules above re-checked on the day's events, the expensive ones
+by `expensive_alerted_at`, the busy organizations left out) and the clean-up's own line. It reads
+the day's imports and parts page by page, without their proposals.
+
+**Reporting.** `POST /imports/{importId}/report` and
+`POST /imports/{importId}/library-parts/{part}/report` (`reportImport`,
+`reportImportLibraryPart`) take no body. The import, and the part, must be one the member reads
+(`404` otherwise). The API sets `reported_at` and `reported_by` (the signed-in account, the
+platform admin during an impersonation) with the secret key, a report again replacing both, and
+posts the alert only when the row had no report in the last 10 minutes, decided by the update
+itself. A report leaves `updated_at` as it was, and is taken from a read-only organization too.
+It answers `204`; the alert goes after the answer.
+
+## Admin routes
+
+The `Admin` entrypoint serves `createAdminApp()` (`src/admin-app.ts`) under `/admin`, reached only
+through the admin Worker's service binding ([admin app](admin.md)); the public `fetch` does not
+mount it. Every route passes `requireAuth` and `requireAdmin`: the admin claim and an `aal2` token,
+else `401` or `403`. They are plain Hono routes, outside the OpenAPI document, answering the shapes
+of `@ssm-usor/contracts`' `admin-imports.ts`. They read with the secret key
+(`createAdminClient`, which names the admin in `x-audit-actor`) across every organization; the
+module is `modules/admin-imports/`.
+
+| Route                                  | Answer                                                                                                                                                                                                     |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /admin/imports`                   | `{ items, page, pageSize, total }`, newest first; `page`, `pageSize` (25, at most 100), `kind`, `status` (an import status or `row_deleted`), `reported=true`, `hasCopy=true`; `400` for an unknown filter |
+| `GET /admin/imports/{id}`              | `{ id, organization, import, parts, copies, record, partRecords, files }`; `404` when neither the row nor a copy exists, or for an id that is not a UUID                                                   |
+| `GET /admin/imports/{id}/files?path=…` | `{ url, expiresAt }`, a signed link to one file of the copy that lasts 60 seconds; `400` for a path that is not a plain path within the copy, `404` for a file or copy not kept                            |
+
+**The list** calls `admin_list_imports` ([data model](data-model.md#audit-log)). Each item has the
+import's `id`, `organization` (`id`, `name`), `rowDeleted`, `kind`, `status`, `createdAt`,
+`endedAt`, `readingVersion` (the first 8 characters of `reading_version.prompts`), `flags`
+(`unreadableFiles`, `nothingFound`, `emptyRequired` and `checks`, the sum of the checks' flags,
+counted from `reading_flags`), `changedShare` (changed and unticked over what was proposed, as the
+"mostly changed" alert counts it, null before a confirmation), `costUsd`, `reportedAt` (the latest
+of the import's and its parts'), `copy` (`writtenAt`, `expiresAt`, `removedAt` and `completedAt`
+of the import's own copy, or null), `partCopies`, the parts' copies kept, and
+`incompletePartCopies`, those of them without `completedAt`. An import whose row the clean-up deleted
+comes from its copies alone: `rowDeleted`, no kind, status, flags or cost, `endedAt` when its
+copy's 12 months began.
+
+**One import.** `import` is the row (null once deleted) without its proposal and changes: kind,
+status, failure reason, client, times, report, cost and tokens, `readingVersion`, `readingFlags`
+and `quality` as stored, with `flags` and `changedShare` as in the list. `parts` are its library
+parts the same way, `copies` its `import_copies` rows, each with `completedAt`, null while the
+copy is written or after its writing stopped halfway. When a copy is kept, the route first
+records `import_copy_opened` through `record_admin_event` (the copy's id, the import's
+organization, `{ import_id }`), then lists the copy's folder in `import-copies` and reads
+`record.json` and each kept part's `parts/<part>/record.json`: `record` and `partRecords`, the
+proposal and the member's changes among them, and `files`, every object with its `path` within the
+folder and `sizeBytes`. Without a copy kept, nothing is recorded and Storage is not read.
+
+**A file.** `path` is within the import's copy folder, as `files` gives it (`files/…`,
+`record.json`, `parts/<part>/files/…`). It is refused (`400`) unless every segment is a plain name,
+not empty, `.` or `..`, with no backslash or control character, and so again once
+percent-decoded, since Storage decodes the path it is given. The copy is the import's own, or the
+part's for a path under `parts/<part>/`, and must be kept; the file must be listed in its folder
+(`404` otherwise). The route then records `import_copy_file_opened` (the copy's id,
+`{ import_id, path }`) and signs the object for 60 seconds.
+
+**Test runs.** `pnpm --filter @ssm-usor/api import:test-run` reads chosen copies again with
+today's reading and compares each with what the member confirmed, after an estimate and only with
+`--yes`. It reads production data, so only Mircea runs it, from his machine:
+[import-test-runs.md](import-test-runs.md).
 
 ## Supabase Auth emails
 

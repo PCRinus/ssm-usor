@@ -1,12 +1,15 @@
-import { instructionsParts } from '@ssm-usor/contracts';
+import { importLibraryParts, instructionsParts } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import { adminClient } from '../../lib/admin-db';
+import { alertSender } from '../../lib/alerts';
 import { timedFetch } from '../../lib/db';
 import type { ApiEnv, ImportMessage } from '../../lib/env';
 import { createExtractor } from '../../lib/extractor';
 import { adminFileStore } from '../../lib/files';
 import { lookupCompany } from '../companies/anaf';
+import { keepStep } from './copies';
+import { importEnded } from './import-alerts';
 import {
   failLibraryPart,
   libraryFailureReason,
@@ -21,7 +24,7 @@ import {
   checkImport,
   copyFolder,
   describe,
-  failedPatch,
+  failImport,
   fileFailureReason,
   fileReasons,
   ImportFailure,
@@ -37,6 +40,7 @@ import {
   scanPages,
   sortImport,
 } from './pipeline';
+import { importRecords } from './records';
 import { importModel } from './settings';
 import { importStore } from './store';
 
@@ -70,6 +74,13 @@ export const importMessageSchema = z.discriminatedUnion('type', [
   }),
   z.object({ type: z.literal('check'), importId }),
   z.object({ type: z.literal('copy'), importId }),
+  z.object({ type: z.literal('ended'), importId, part: z.enum(importLibraryParts).optional() }),
+  z.object({
+    type: z.literal('keep'),
+    importId,
+    part: z.enum(importLibraryParts).optional(),
+    offset: z.int().min(1).optional(),
+  }),
   z.object({
     type: z.literal('read-instructions'),
     importId,
@@ -89,8 +100,9 @@ export type QueueMessage = {
 
 export function pipelineDeps(env: ApiEnv['Bindings']): PipelineDeps {
   const files = adminFileStore(env);
+  const admin = adminClient(env);
   return {
-    store: importStore(adminClient(env)),
+    store: importStore(admin),
     objects: {
       read: files.readImportObject,
       write: files.writeImportObject,
@@ -99,10 +111,18 @@ export function pipelineDeps(env: ApiEnv['Bindings']): PipelineDeps {
       copy: files.copyImportObject,
       remove: files.removeImportObjects,
     },
+    copies: {
+      list: files.listImportCopies,
+      remove: files.removeImportCopies,
+      copyIn: (from, to) => files.copyImportObject(from, to, 'import-copies'),
+      write: files.writeImportCopy,
+    },
     extractor: createExtractor(env),
     model: importModel(env),
     registry: { lookup: (cui) => lookupCompany(cui, timedFetch(8_000)) },
     queue: env.IMPORT_QUEUE ?? null,
+    records: importRecords(admin),
+    alerts: alertSender(env),
   };
 }
 
@@ -124,6 +144,10 @@ export function runStep(deps: PipelineDeps, message: ImportMessage, messageId: s
       return checkImport(deps, message.importId);
     case 'copy':
       return copyFolder(deps, message.importId);
+    case 'ended':
+      return importEnded(deps, message.importId, message.part ?? null);
+    case 'keep':
+      return keepStep(deps, message.importId, message.part ?? null, message.offset);
     case 'read-instructions':
       return readInstructions(deps, message.importId, message.part, message.attempt, messageId);
     case 'read-risks':
@@ -156,11 +180,13 @@ export async function recordFailure(deps: PipelineDeps, message: ImportMessage, 
     case 'read':
     case 'check': {
       const from = ({ sort: 'sorting', read: 'reading', check: 'checking' } as const)[message.type];
-      await deps.store.advance(message.importId, from, failedPatch(importFailureReason(error)));
+      await failImport(deps, message.importId, from, importFailureReason(error));
       return;
     }
     case 'copy':
-      // The daily clean-up copies again what is left.
+    case 'ended':
+    case 'keep':
+      // The daily clean-up copies again what is left, and queues the copies not complete.
       return;
     case 'read-instructions':
       await failLibraryPart(

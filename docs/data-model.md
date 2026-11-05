@@ -23,7 +23,8 @@ same information as one row for the API. Both helpers run as `security definer` 
 read memberships regardless of the caller's own policies.
 
 Roles and organizations are never stored in Supabase user metadata. The only claim the app
-trusts is `app_metadata.role = 'admin'`, which only the Auth Admin API can set.
+trusts is `app_metadata.role = 'admin'`, which only the Auth Admin API can set, and only on a
+session that passed its second factor (`aal2`, [ADR 038](architecture/adr-038-admin-area.md)).
 
 A user without a membership can sign in but sees nothing, and the API answers `403 forbidden`.
 Organizations are created by the seed, and by onboarding
@@ -150,7 +151,10 @@ the organization's rows, as the invoices are the owner's (ADR 029); only the sec
 
 ## Platform admins and impersonation
 
-`public.is_platform_admin()` is true for a JWT whose `app_metadata.role` is `admin`. Platform
+`public.is_platform_admin()` is true for a JWT whose `app_metadata.role` is `admin` and whose
+`aal` is `aal2`, a session that passed its second factor
+([ADR 038](architecture/adr-038-admin-area.md)): with the password alone an admin starts, ends
+and reads no impersonation, and `effective_user_id()` ignores an active one. Platform
 admins have no blanket bypass. To reproduce a customer's problem they **impersonate** a user:
 an `impersonations` row (admin, target, reason, `expires_at`, `ended_at`) makes
 `public.effective_user_id()` return the target while the row is active, so every policy
@@ -178,13 +182,13 @@ table that say nothing about a person, such as a state, a role or a stage, the `
 values in `details`. Never the value of a personal field: the event says `cnp` changed, not what
 it was. ADR 033 lists the audited tables and the kept columns, and why the others are left out.
 
-| Column                  | Notes                                                                                                                                                 |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `action`                | `insert`, `update`, `delete`, `impersonation_started`, `impersonation_ended` or `client_deleted`.                                                     |
-| `actor_id`              | The account that acted: `auth.uid()` on a user's token; on the secret key, the account the API names in `x-audit-actor`; null for the service or SQL. |
-| `impersonating_user_id` | The member the actor was acting as during an impersonation.                                                                                           |
-| `source`                | `user`, `api` (secret key with an actor), `service` (secret key without one) or `database`.                                                           |
-| `transaction_id`        | Groups the events of one request.                                                                                                                     |
+| Column                  | Notes                                                                                                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `action`                | `insert`, `update`, `delete`, or a named event: `impersonation_started`, `impersonation_ended`, `client_deleted`, `import_copy_opened`, `import_copy_file_opened`. |
+| `actor_id`              | The account that acted: `auth.uid()` on a user's token; on the secret key, the account the API names in `x-audit-actor`; null for the service or SQL.              |
+| `impersonating_user_id` | The member the actor was acting as during an impersonation.                                                                                                        |
+| `source`                | `user`, `api` (secret key with an actor), `service` (secret key without one) or `database`.                                                                        |
+| `transaction_id`        | Groups the events of one request.                                                                                                                                  |
 
 `audit.record_changes()` runs as three statement-level triggers (`audit_insert`, `audit_update`,
 `audit_delete`) per audited table, with transition tables, so a bulk statement writes its events
@@ -195,6 +199,31 @@ are never changed or deleted: `AUD01` on any update, delete or truncate, whoever
 `delete_archived_client` records one `client_deleted` event naming the client, and sets
 `audit.suppressed` for its own transaction so the rows it deletes record nothing. How long
 events are kept is not decided, and nothing deletes them.
+
+**Admin events** ([ADR 038](architecture/adr-038-admin-area.md), `20261105100000_admin_imports`) record what the platform admin
+does in the admin area. No API role can write `audit.events`, so the API records them through
+`record_admin_event(action, table_name, row_id, organization_id, details default null)`, a security
+definer function only the secret key can execute, which returns the event's id. The actor is the
+account the API names in `x-audit-actor`, believed only on a service-role request as above, and it
+must hold the admin claim (`raw_app_meta_data.role = 'admin'`) and, as the API says in
+`x-audit-aal: aal2` (`20261105120000_platform_admin_second_factor`), have passed its second
+factor; otherwise `AUD02`, and an action
+that is not an admin event is `22023`. The event's `source` is `api` and `impersonating_user_id`
+null, even while the admin has an impersonation open: he acts as himself.
+
+| Action                    | When                                                                                                                    | `table_name`, `row_id`                                | `details`             |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | --------------------- |
+| `import_copy_opened`      | The admin opens an import whose improvement copy is kept ([ADR 037](architecture/adr-037-import-quality-and-alerts.md)) | `import_copies`, the import's own copy, else a part's | `{ import_id }`       |
+| `import_copy_file_opened` | The admin is handed a link to one file of a copy                                                                        | `import_copies`, the copy holding the file            | `{ import_id, path }` |
+
+`organization_id` is the import's organization. `admin_list_imports(kind, status, reported,
+has_copy, limit, offset)`, for the secret key only, is the admin area's list of every import: the
+`imports` rows and, for an import whose row the clean-up deleted, its `import_copies` alone
+(`row_deleted`, no kind or status, `ended_at` when its copy's 12 months began, listed at the copy's
+`written_at`), newest first, each with its organization's name, the latest report of the import or
+its parts, its own copy's times with `copy_completed_at`, the count of its parts' kept copies and
+of those not completed (`incomplete_part_copies`), and the filtered list's `total`. `status` is an import status or `row_deleted`; `has_copy` keeps the imports with a copy
+not removed.
 
 ## Clients
 
@@ -1369,7 +1398,12 @@ leave them out of a member's insert.
 An **import** ([ADR 030](architecture/adr-030-import-from-documents.md)) holds a client's
 uploaded files and the proposal a model read from them until a member confirms or abandons it.
 Created by `20261028100000_imports` and `20261028100100_import_functions`; `read_characters`,
-`usage_by_step` and the step of `record_import_usage` by `20261029100000_import_bookkeeping`.
+`usage_by_step` and the step of `record_import_usage` by `20261029100000_import_bookkeeping`;
+the reading version, the reading flags, the report and the improvement copies by
+`20261104200000_import_copies`, and the copies' completion and `expensive_alerted_at` by
+`20261104210000_import_copies_completed` ([ADR 037](architecture/adr-037-import-quality-and-alerts.md));
+the admin area's list of them, `admin_list_imports`, by `20261105100000_admin_imports`, and its
+copies' completion by `20261105140000_admin_list_imports_copy_completed` ([Audit log](#audit-log)).
 
 `imports` has one row per import, with `organization_id`:
 
@@ -1390,6 +1424,14 @@ Created by `20261028100000_imports` and `20261028100100_import_functions`; `read
 | `created_by`, `created_at`, `started_at`, `ready_at`, `failed_at`  | Who started it, as the real user during an impersonation, and when each step was reached. Checks tie each stamp to its status.                                           |
 | `confirmed_at`, `confirmed_by`, `abandoned_at`                     | The end. A confirmed import has its client.                                                                                                                              |
 | `files_copied_at`, `proposal_dropped_at`, `objects_removed_at`     | The API copied the folder into `client-files`; the proposal was dropped; the API removed the import's objects, which needs the other two.                                |
+| `reading_version`                                                  | JSON object: the model of each step and a short hash of the prompts and schemas that read the import.                                                                    |
+| `reading_flags`                                                    | JSON object of value-free counts that describe the reading: files by kind, what was found, the checks' flags. Never what was read.                                       |
+| `reported_at`, `reported_by`                                       | When a member reported a problem with the import, through the API, and who; `reported_by` needs `reported_at`, and is set null when that account is deleted.             |
+| `expensive_alerted_at`                                             | When support was told the import with its parts cost more than $1; set from null once.                                                                                   |
+
+`updated_at` moves on every change but a report (`reported_at`, `reported_by`) and
+`expensive_alerted_at`, by a `when` on its trigger, as on `import_library_parts` but a report: the
+14 days of a ready import and the 6 hours before a reading part counts as stalled run from it.
 
 `import_files` has one row per uploaded file, with `import_id` and `organization_id` by the
 composite key to `imports (id, organization_id)`, deleted with the import:
@@ -1428,7 +1470,8 @@ since the API writes imports with it, and keeps a confirmed or abandoned import 
 **Who reads and writes.** Members of the organization read its imports and their files; an
 import into a client is read only by those who read the client, since the policy asks for the
 client under the caller's own policies. Nobody signed in inserts, updates or deletes either
-table. The API creates imports and their files' rows with the secret key, after checking the
+table, the reading version, the flags and the report included; a member reports a problem
+through the API. The API creates imports and their files' rows with the secret key, after checking the
 member, and its queue consumer records the steps, the files' states, the proposal and the
 usage the same way, the usage through `record_import_usage(import, file, step, input, cached,
 output, cost)`, which adds to the import's totals and to its step in `usage_by_step` and, given a
@@ -1639,6 +1682,8 @@ null for `risk_evaluations`, which has none.
 | `proposal`, `changes`, `version`                                   | What the reading proposed (`InstructionsProposal`, or `RisksProposal` for `risk_evaluations`, of `packages/import`), the member's changes, and the count of their saves. Dropped with the import's proposal. |
 | `input_tokens`, `cached_input_tokens`, `output_tokens`, `cost_usd` | The part's model requests; the import's totals include them, under the step `instructions` of `usage_by_step`, or `risks` for `risk_evaluations`.                                                            |
 | `read_at`, `confirmed_at`, `confirmed_by`, `proposal_dropped_at`   | When it was read and confirmed, and by whom; when its proposal was dropped.                                                                                                                                  |
+| `quality`                                                          | Value-free counts per section of how many proposed values were changed, unticked or kept, as on `imports`.                                                                                                   |
+| `reading_version`, `reading_flags`, `reported_at`, `reported_by`   | As on `imports`, for the part.                                                                                                                                                                               |
 
 A part is not confirmed after 14 days from its client's confirmation: it has expired. Members read
 the parts of the imports they read; only the secret key writes them, the usage through
@@ -1711,6 +1756,41 @@ attempt's charge (`refund_library_part_credits`): a part fails before its reques
 our side. `fail_stalled_library_parts(reason, risks reason)` fails a part of a ready or confirmed
 import still `reading` 6 hours after its last change, with the reason of its library; those of an abandoned or failed import stay as they are
 and go with it. `drop_import_proposals()` drops the parts' proposals with their import's.
+
+**Improvement copies.** What ADR 037 keeps of every import and library part for 12 months, to
+improve the reading, lives in the private `import-copies` bucket: the import's under
+`<organization>/<import>/`, a part's under `<organization>/<import>/parts/<part>/`. The bucket
+takes what `imports` takes, up to 25 MiB a file, and has no policy on `storage.objects`, so only
+the secret key reaches it; the app never reads it. `import_copies` records each copy, one row per
+`(import_id, part)`, `part` null for the import's own: `organization_id`, `written_at`, when the
+API last began writing it, `completed_at`, when it finished (null while being written or after it
+stopped halfway), `expires_at` and `removed_at`; `completed_at` and `removed_at` cannot come
+before `written_at`. It names the import without
+a foreign key, since an abandoned or failed import's row goes after 14 days and its copy stays;
+the organization restricts its deletion, so deleting an organization empties its
+`import-copies/<organization>/` folder and these rows first. Only the secret key reads or writes
+the table. Functions for the secret key:
+
+- `record_import_copy(import, part default null)` records that the API begins the copy and returns
+  `expires_at`, 12 months after the end: the import's confirmation, abandonment or failure; the
+  part's confirmation or failure, else its import's abandonment or failure, else 14 days after its
+  import's confirmation, when the part expired. Recording again moves `written_at` and
+  `expires_at` and clears `removed_at` and `completed_at`, so a failed part read again and confirmed counts from its
+  confirmation. It answers `P0002` for no such import or part, and `IMP09` for one not ended.
+- `complete_import_copy(import, part default null)` sets `completed_at` once the copy's
+  `record.json` is written and returns it; `P0002` for a copy not recorded or removed.
+- `list_expired_import_copies()` then `mark_import_copies_removed(ids)`, as the retention above:
+  the copies past `expires_at` and not removed, each with `copy_id`, `organization_id`,
+  `import_id`, `part` and `folder` (without the final slash), which the daily clean-up empties,
+  an import's without its `parts/` folders, which expire on their own, before it marks them.
+
+Within a copy's folder the API writes `files/`, every object of the import's folder in `imports`
+copied by Storage, and `record.json`, the import's row, files, proposal, changes and counts; a
+part's folder holds its own `record.json` and, under `files/`, the objects named after the part.
+The API sets `reading_version` when an import leaves `preparing` and when a part's reading ends,
+`reading_flags` when a reading ends or the pipeline fails it, and a part's `quality` after its
+confirmation, which `apply_instruction_import` and `apply_risk_import` do not take; the shapes are
+in the [API](api.md#improvement-copies-and-alerts).
 
 **Sheet photographs a client import found.** A confirmed client import keeps the training sheets
 it sorted as `for_employees` as plain files of the client's import folder. An employee import

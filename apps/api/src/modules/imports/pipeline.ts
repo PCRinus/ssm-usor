@@ -19,6 +19,7 @@ import {
   type DocumentKind,
   DocxReadError,
   docxToText,
+  employeeImportProposalSchema,
   type ExistingClient,
   type FileTriage,
   GatewayError,
@@ -47,11 +48,16 @@ import {
   withChecks,
 } from '@ssm-usor/import';
 
+import type { AlertSender } from '../../lib/alerts';
 import { sha256 } from '../../lib/docx';
 import type { ImportMessage, ImportQueue } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { romanianToday } from './employees';
+import { alertImport, importEnded } from './import-alerts';
 import type { RegisteredCompany } from './payload';
+import { clientReadingFlags, employeeReadingFlags } from './reading-flags';
+import { readingVersion } from './reading-version';
+import type { ImportRecords } from './records';
 import {
   asJson,
   type ImportFileRow,
@@ -74,14 +80,26 @@ export interface ImportObjects {
   remove(paths: string[]): Promise<void>;
 }
 
+export interface ImportCopyObjects {
+  // Every object under the folder, in its subfolders too, by its full path.
+  list(folder: string): Promise<string[]>;
+  remove(paths: string[]): Promise<void>;
+  // From the `imports` bucket, by Storage's own copy; an object already there counts as copied.
+  copyIn(from: string, to: string): Promise<void>;
+  write(path: string, bytes: Uint8Array, contentType: string): Promise<void>;
+}
+
 export interface PipelineDeps {
   store: ImportStore;
   objects: ImportObjects;
+  copies: ImportCopyObjects;
   extractor: ExtractorService | null;
   model: ModelClient | null;
   // ANAF; it throws when ANAF cannot answer.
   registry: { lookup(cui: string): Promise<CompanyLookup | null> };
   queue: ImportQueue | null;
+  records: ImportRecords;
+  alerts: AlertSender;
 }
 
 // The documents go to the reading model in one request, so this bounds that request's cost and
@@ -369,10 +387,11 @@ async function transition(
   messages: ImportMessage[]
 ) {
   const queue = messages.length > 0 ? requireQueue(deps) : null;
-  if (!(await deps.store.advance(importId, from, patch))) return;
-  if (!queue) return;
+  if (!(await deps.store.advance(importId, from, patch))) return false;
+  if (!queue) return true;
   try {
     await sendAll(queue, messages);
+    return true;
   } catch (error) {
     await deps.store
       .advance(importId, patch.status, { status: from })
@@ -389,6 +408,31 @@ export const failedPatch = (reason: string): ImportUpdate & { status: 'failed' }
   failed_at: new Date().toISOString(),
 });
 
+function readingFlagsOf(row: ImportRow, files: ImportFileRow[]) {
+  if (row.kind === 'employees') {
+    const proposal = employeeImportProposalSchema.safeParse(row.proposal);
+    return employeeReadingFlags(files, proposal.success ? proposal.data : null);
+  }
+  const proposal = proposalSchema.safeParse(row.proposal);
+  return clientReadingFlags(files, proposal.success ? proposal.data : null);
+}
+
+export async function failImport(
+  deps: PipelineDeps,
+  importId: string,
+  from: ImportStatus,
+  reason: string
+) {
+  const row = await deps.store.getImport(importId);
+  const flags = row ? readingFlagsOf(row, await deps.store.listFiles(importId)) : null;
+  const failed = await deps.store.advance(importId, from, {
+    ...failedPatch(reason),
+    ...(flags ? { reading_flags: asJson(flags) } : {}),
+  });
+  if (failed) await importEnded(deps, importId, null, ['read', 'ended']);
+  return failed;
+}
+
 export async function prepareFile(deps: PipelineDeps, importId: string, fileId: string) {
   const row = await deps.store.getImport(importId);
   if (!row || row.status !== 'preparing') return;
@@ -398,11 +442,7 @@ export async function prepareFile(deps: PipelineDeps, importId: string, fileId: 
       await deps.store.updateFile(file.id, await prepare(deps, file), 'uploaded');
     } catch (error) {
       if (error instanceof ImportLimitError) {
-        await deps.store.advance(
-          importId,
-          'preparing',
-          failedPatch(importReasons.overLimits[row.kind])
-        );
+        await failImport(deps, importId, 'preparing', importReasons.overLimits[row.kind]);
         return;
       }
       if (!permanentFileFailure(error)) throw error;
@@ -419,9 +459,15 @@ export async function prepareFile(deps: PipelineDeps, importId: string, fileId: 
 export async function afterPreparing(deps: PipelineDeps, importId: string) {
   const files = await deps.store.listFiles(importId);
   if (files.some((file) => file.state === 'uploaded')) return;
-  await transition(deps, importId, 'preparing', { status: 'sorting' }, [
-    { type: 'sort', importId },
-  ]);
+  const row = await deps.store.getImport(importId);
+  if (!row) return;
+  await transition(
+    deps,
+    importId,
+    'preparing',
+    { status: 'sorting', reading_version: asJson(await readingVersion(row.kind)) },
+    [{ type: 'sort', importId }]
+  );
 }
 
 async function prepare(deps: PipelineDeps, file: ImportFileRow): Promise<ImportFileUpdate> {
@@ -1000,7 +1046,8 @@ export async function checkImport(deps: PipelineDeps, importId: string) {
     return;
   }
   const proposal = proposalSchema.parse(row.proposal);
-  const files = (await deps.store.listFiles(importId)).filter((file) => file.state === 'read');
+  const all = await deps.store.listFiles(importId);
+  const files = all.filter((file) => file.state === 'read');
   const texts: Record<string, string | null> = {};
   for (const entry of await Promise.all(files.map((file) => loadPrepared(deps.objects, file)))) {
     if (!isImage(entry.file)) {
@@ -1029,17 +1076,15 @@ export async function checkImport(deps: PipelineDeps, importId: string) {
     : null;
   // The library parts read once the posts they cite are proposed, and never hold up the client
   // (ADR 034).
-  const reading = await deps.store.openLibraryParts(
-    row,
-    libraryPartsOf(await deps.store.listFiles(importId))
-  );
-  await transition(
+  const reading = await deps.store.openLibraryParts(row, libraryPartsOf(all));
+  const ready = await transition(
     deps,
     importId,
     'checking',
     {
       status: 'ready',
       proposal: asJson({ ...checked, registeredCompany }),
+      reading_flags: asJson(clientReadingFlags(all, checked)),
       ready_at: new Date().toISOString(),
     },
     reading.map(({ part, attempt }): ImportMessage =>
@@ -1048,6 +1093,7 @@ export async function checkImport(deps: PipelineDeps, importId: string) {
         : { type: 'read-risks', importId, attempt }
     )
   );
+  if (ready) await alertImport(deps, importId, null, ['read']);
 }
 
 const pathOrder = new Intl.Collator('ro', { numeric: true });
@@ -1087,11 +1133,13 @@ async function checkSheets(deps: PipelineDeps, row: ImportRow) {
     deps.store.trainingThemes(row, today),
   ]);
   const proposal = toEmployeeProposal({ pages, client, themes, today });
-  await deps.store.advance(row.id, 'checking', {
+  const ready = await deps.store.advance(row.id, 'checking', {
     status: 'ready',
     proposal: asJson(proposal),
+    reading_flags: asJson(employeeReadingFlags(await deps.store.listFiles(row.id), proposal)),
     ready_at: new Date().toISOString(),
   });
+  if (ready) await alertImport(deps, row.id, null, ['read']);
 }
 
 export async function copyFolder(deps: PipelineDeps, importId: string) {

@@ -39,6 +39,7 @@ sources:
   - apps/app/src/features/clients/legal-representative-card.tsx
   - apps/app/src/features/clients/contact-card.tsx
   - apps/app/src/features/clients/owner-notes-card.tsx
+  - apps/app/src/features/imports/library/client-imports-card.tsx
   - apps/app/src/features/clients/client-form-schema.ts
   - apps/app/src/features/training/document-details-schema.ts
   - apps/app/src/features/missing-data/missing-rows.ts
@@ -103,6 +104,10 @@ Scrie-l cum vrei să apară pe documente, de exemplu „0721 000 000”. Aplica�
 Cardul **Notițe** îl văd doar administratorii organizației. Aici ții discuțiile, prețurile și pașii următori cu clientul, în cel mult 5000 de caractere. Notițele nu apar în niciun document și nici în portal.
 
 Salvezi cu **Salvează notițele**. Până atunci vezi „Modificări nesalvate”. Un client care a fost întâi client potențial își păstrează notițele de atunci.
+
+## Importurile din documente
+
+Un client creat sau completat din documente are la sfârșitul tabului cardul **Importuri din documente**, cu fiecare import confirmat, cel mai nou primul: ziua, cine l-a pornit, câte fișiere a avut și ce a mai rămas din el, de exemplu „2 de verificat, până pe 19 nov.” sau **Încheiat**. Rândul deschide pagina importului, cu fișierele lui și cu instrucțiunile și evaluările de risc din pachet. Totul despre import e în [După crearea clientului](/clienti/import/#după-crearea-clientului).
 
 ## Când documentele cer date de aici
 

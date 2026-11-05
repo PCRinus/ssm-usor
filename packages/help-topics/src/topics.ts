@@ -402,6 +402,7 @@ export const helpTopics = {
   'import.pornire': { path: '/clienti/import/', anchor: 'de-unde-pornești' },
   'import.portal': { path: '/clienti/import/', anchor: 'portalul-și-actul-adițional-după-import' },
   'import.post': { path: '/clienti/import/', anchor: 'postul-de-lucru' },
+  'import.problema': { path: '/clienti/import/', anchor: 'o-problemă-cu-importul' },
   'import.randuri': { path: '/clienti/import/', anchor: 'rândurile-de-instruire' },
   'import.salvare': { path: '/clienti/import/', anchor: 'salvarea-și-cele-14-zile' },
   'import.test-verificat-pe-fisa': {

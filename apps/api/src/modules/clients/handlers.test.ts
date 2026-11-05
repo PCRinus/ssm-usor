@@ -10,6 +10,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
+import { accessTokenAt } from '../../lib/access-token.fixture';
 import type { ApiEnv } from '../../lib/env';
 import { openApiConfig } from '../../lib/openapi';
 
@@ -937,8 +938,8 @@ describe('DELETE /clients/{clientId}', () => {
     { bucket: 'documents', path: `signed-sheets/${clientRow.id}/e/ssm-1/v1-a.pdf` },
     { bucket: 'client-files', path: `${membership.organization_id}/${clientRow.id}/f.pdf` },
   ];
-  const remove = (bindings = env) =>
-    request(`/clients/${clientRow.id}`, { method: 'DELETE' }, undefined, bindings);
+  const remove = (bindings = env, token?: string) =>
+    request(`/clients/${clientRow.id}`, { method: 'DELETE' }, token, bindings);
   const storageCalls = () =>
     fetchMock.mock.calls.filter(([input]) =>
       new URL(String(input)).pathname.startsWith('/storage/v1/object/')
@@ -976,12 +977,14 @@ describe('DELETE /clients/{clientId}', () => {
     expect(calls('/rest/v1/rpc/delete_archived_client')).toHaveLength(0);
   });
 
-  it('is open to a platform admin in production', async () => {
+  it('is open to a platform admin in production, past the second factor', async () => {
     mockUpstream({
       auth: () => Response.json({ ...user, app_metadata: { provider: 'email', role: 'admin' } }),
       clients: () => Response.json([archived]),
     });
-    expect((await remove(production)).status).toBe(204);
+    expect((await remove(production, `Bearer ${accessTokenAt('aal1')}`)).status).toBe(403);
+    expect(calls('/rest/v1/rpc/delete_archived_client')).toHaveLength(0);
+    expect((await remove(production, `Bearer ${accessTokenAt('aal2')}`)).status).toBe(204);
     expect(calls('/rest/v1/rpc/delete_archived_client')).toHaveLength(1);
   });
 

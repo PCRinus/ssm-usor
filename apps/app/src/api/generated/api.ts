@@ -15636,7 +15636,7 @@ export type ListImportsParams = {
    */
   kind?: ListImportsKind;
   /**
-   * The open imports when left out; `confirmed` the 10 confirmed last, with `uninvited` counted for a client's employee imports.
+   * The open imports when left out; `confirmed` the 10 confirmed last, or, with `clientId` and client imports (`kind` left out or `client`), every confirmed import of that client; with `uninvited` counted for a client's employee imports.
    */
   status?: ListImportsStatus;
 };
@@ -35410,7 +35410,7 @@ export const getListImportsUrl = (params?: ListImportsParams) => {
 };
 
 /**
- * Every import of `kind` (client imports when left out, both kinds with `all`) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, with `all` those the app watches to say when a member's import finishes reading, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first; with `kind` `employees` and `clientId` each counts in `uninvited` the current employees it brought who are neither participants nor invited, and the Angajați tab offers to invite the people of the latest with someone left.
+ * Every import of `kind` (client imports when left out, both kinds with `all`) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, with `all` those the app watches to say when a member's import finishes reading, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first: the last ten, or every one of a client's client imports with `clientId`, which its Detalii tab lists with what is left of each; with `kind` `employees` and `clientId` each counts in `uninvited` the current employees it brought who are neither participants nor invited, and the Angajați tab offers to invite the people of the latest with someone left.
  * @summary List the organization's open or last confirmed imports
  */
 export const listImports = async (
@@ -37297,6 +37297,186 @@ export const useRetryImportLibraryPart = <TError = ErrorType<ApiErrorResponse>, 
   TContext
 > => {
   return useMutation(getRetryImportLibraryPartMutationOptions(options), queryClient);
+};
+
+export const getReportImportUrl = (importId: string) => {
+  return `/imports/${importId}/report`;
+};
+
+/**
+ * "Raportează o problemă cu importul" (ADR 037): records when and by whom, a report again replacing both, and tells support, at most once in 10 minutes for the same import. What the member writes goes to the support widget, not here.
+ * @summary Report a problem with an import
+ */
+export const reportImport = async (
+  importId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getReportImportUrl(importId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getReportImportMutationKey = () => ['reportImport'] as const;
+
+export const getReportImportMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reportImport>>,
+    TError,
+    ReportImportMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reportImport>>,
+  TError,
+  ReportImportMutationVariables,
+  TContext
+> => {
+  const mutationKey = getReportImportMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reportImport>>,
+    ReportImportMutationVariables
+  > = (props) => {
+    const { importId } = props ?? {};
+
+    return reportImport(importId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReportImportMutationResult = NonNullable<Awaited<ReturnType<typeof reportImport>>>;
+
+export type ReportImportMutationError = ErrorType<ApiErrorResponse>;
+export type ReportImportMutationVariables = { importId: string };
+
+/**
+ * @summary Report a problem with an import
+ */
+export const useReportImport = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof reportImport>>,
+      TError,
+      ReportImportMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof reportImport>>,
+  TError,
+  ReportImportMutationVariables,
+  TContext
+> => {
+  return useMutation(getReportImportMutationOptions(options), queryClient);
+};
+
+export const getReportImportLibraryPartUrl = (
+  importId: string,
+  part: 'instructions_ssm' | 'instructions_su' | 'risk_evaluations'
+) => {
+  return `/imports/${importId}/library-parts/${part}/report`;
+};
+
+/**
+ * As for the import: records when and by whom on the part, and tells support at most once in 10 minutes for the same part.
+ * @summary Report a problem with a library part of an import
+ */
+export const reportImportLibraryPart = async (
+  importId: string,
+  part: 'instructions_ssm' | 'instructions_su' | 'risk_evaluations',
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getReportImportLibraryPartUrl(importId, part), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getReportImportLibraryPartMutationKey = () => ['reportImportLibraryPart'] as const;
+
+export const getReportImportLibraryPartMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reportImportLibraryPart>>,
+    TError,
+    ReportImportLibraryPartMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reportImportLibraryPart>>,
+  TError,
+  ReportImportLibraryPartMutationVariables,
+  TContext
+> => {
+  const mutationKey = getReportImportLibraryPartMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reportImportLibraryPart>>,
+    ReportImportLibraryPartMutationVariables
+  > = (props) => {
+    const { importId, part } = props ?? {};
+
+    return reportImportLibraryPart(importId, part, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReportImportLibraryPartMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reportImportLibraryPart>>
+>;
+
+export type ReportImportLibraryPartMutationError = ErrorType<ApiErrorResponse>;
+export type ReportImportLibraryPartMutationVariables = {
+  importId: string;
+  part: 'instructions_ssm' | 'instructions_su' | 'risk_evaluations';
+};
+
+/**
+ * @summary Report a problem with a library part of an import
+ */
+export const useReportImportLibraryPart = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof reportImportLibraryPart>>,
+      TError,
+      ReportImportLibraryPartMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof reportImportLibraryPart>>,
+  TError,
+  ReportImportLibraryPartMutationVariables,
+  TContext
+> => {
+  return useMutation(getReportImportLibraryPartMutationOptions(options), queryClient);
 };
 
 export const getGetServiceContractUrl = (clientId: string) => {

@@ -128,6 +128,11 @@ enabled = true
 provider = "turnstile"
 secret = "1x0000000000000000000000000000000AA"
 
+# The admin app requires an authenticator code (ADR 038); no member app offers enrolment.
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
 # Per hour, for the whole project. The default of 30 is less than a client onboarding a floor of
 # employees in one afternoon needs, and the cap is what bounds the cost of misuse (ADR 022).
 # Emails go through the Send Email hook, which the default of 2 still applies to: the third

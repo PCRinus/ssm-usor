@@ -2,6 +2,7 @@ import { toProposal } from '@ssm-usor/import';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
+import { accessTokenAt } from '../../lib/access-token.fixture';
 import type { ApiEnv, ImportMessage } from '../../lib/env';
 import { creditsUpstream } from '../credits/upstream.fixture';
 
@@ -169,13 +170,19 @@ function mockUpstream(handler: Handler = () => undefined) {
   });
 }
 
-const request = (path: string, method = 'GET', body?: unknown, bindings = env) =>
+const request = (
+  path: string,
+  method = 'GET',
+  body?: unknown,
+  bindings = env,
+  token = 'user-token'
+) =>
   createApp().request(
     path,
     {
       method,
       headers: {
-        Authorization: 'Bearer user-token',
+        Authorization: `Bearer ${token}`,
         ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -704,6 +711,67 @@ describe('PUT /imports/{importId}/changes', () => {
   });
 });
 
+describe('GET /imports with status confirmed', () => {
+  it("lists every confirmed client import of a client, with who ran it, its files and its library parts' deadline", async () => {
+    mockUpstream(({ url }) =>
+      url.pathname === '/rest/v1/imports'
+        ? Response.json([
+            importRow({
+              status: 'confirmed',
+              client_id: clientId,
+              clients: { id: clientId, legal_name: 'Royal Hotel SRL' },
+              confirmed_at: '2026-11-05T10:00:00+00:00',
+              import_files: [{ count: 50 }],
+              import_library_parts: [
+                { part: 'instructions_ssm', status: 'to_review' },
+                { part: 'risk_evaluations', status: 'confirmed' },
+              ],
+            }),
+          ])
+        : undefined
+    );
+    const response = await request(`/imports?clientId=${clientId}&status=confirmed`);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      items: [
+        {
+          id: importId,
+          createdBy: { id: user.id, fullName: 'Ana Popescu' },
+          fileCount: 50,
+          confirmedAt: '2026-11-05T10:00:00+00:00',
+          libraryParts: [
+            {
+              part: 'instructions_ssm',
+              status: 'to_review',
+              expiresAt: '2026-11-19T10:00:00.000Z',
+            },
+            {
+              part: 'risk_evaluations',
+              status: 'confirmed',
+              expiresAt: '2026-11-19T10:00:00.000Z',
+            },
+          ],
+        },
+      ],
+    });
+    const [list] = callsTo('/rest/v1/imports');
+    expect(list!.url.searchParams.get('kind')).toBe('eq.client');
+    expect(list!.url.searchParams.get('client_id')).toBe(`eq.${clientId}`);
+    expect(list!.url.searchParams.get('order')).toBe('confirmed_at.desc');
+    expect(list!.url.searchParams.has('limit')).toBe(false);
+  });
+
+  it("lists the organization's last ten confirmed client imports without a client", async () => {
+    mockUpstream(({ url }) =>
+      url.pathname === '/rest/v1/imports' ? Response.json([]) : undefined
+    );
+    await request('/imports?status=confirmed');
+
+    expect(callsTo('/rest/v1/imports')[0]!.url.searchParams.get('limit')).toBe('10');
+  });
+});
+
 describe('GET /imports/{importId}', () => {
   it('shows the files, the progress, the other companies and what blocks confirming', async () => {
     const proposal = { ...toProposal(reading), registeredCompany: null };
@@ -815,7 +883,7 @@ describe('GET /imports/{importId}', () => {
 
   describe('usage', () => {
     const step = { input_tokens: 1000, cached_input_tokens: 0, output_tokens: 200, cost_usd: 0.01 };
-    const getUsage = async (bindings: ApiEnv['Bindings']) => {
+    const getUsage = async (bindings: ApiEnv['Bindings'], token?: string) => {
       mockUpstream(({ url }) => {
         if (url.pathname === '/rest/v1/imports') {
           return Response.json(
@@ -836,7 +904,7 @@ describe('GET /imports/{importId}', () => {
         if (url.pathname === '/rest/v1/import_files') return Response.json([]);
       });
       const body = (await (
-        await request(`/imports/${importId}`, 'GET', undefined, bindings)
+        await request(`/imports/${importId}`, 'GET', undefined, bindings, token)
       ).json()) as {
         import: { usage?: unknown };
       };
@@ -864,11 +932,13 @@ describe('GET /imports/{importId}', () => {
       }
     });
 
-    it('serves them in production to a platform admin only', async () => {
+    it('serves them in production to a platform admin only, past the second factor', async () => {
       const production = { ...env, ENVIRONMENT: 'production' };
-      expect(await getUsage(production)).toBeUndefined();
+      expect(await getUsage(production, accessTokenAt('aal2'))).toBeUndefined();
       authUser = { ...user, app_metadata: { provider: 'email', role: 'admin' } };
-      expect(await getUsage(production)).toMatchObject({ costUsd: 0.27 });
+      expect(await getUsage(production, accessTokenAt('aal1'))).toBeUndefined();
+      expect(await getUsage(production)).toBeUndefined();
+      expect(await getUsage(production, accessTokenAt('aal2'))).toMatchObject({ costUsd: 0.27 });
     });
   });
 });
@@ -922,7 +992,10 @@ describe('POST /imports/{importId}/confirm', () => {
         quality: { client: { changed: 1, unticked: 0, kept: 0 } },
       },
     });
-    expect(sent).toEqual([{ type: 'copy', importId }]);
+    expect(sent).toEqual([
+      { type: 'copy', importId },
+      { type: 'ended', importId },
+    ]);
   });
 
   it('lists what still blocks, and confirms nothing', async () => {
@@ -1433,6 +1506,7 @@ describe('POST /imports/{importId}/abandon', () => {
     const again = await request(`/imports/${importId}/abandon`, 'POST');
     expect(again.status).toBe(409);
     expect(await again.json()).toMatchObject({ reason: 'import_ended' });
+    expect(sent).toEqual([{ type: 'ended', importId }]);
   });
 });
 

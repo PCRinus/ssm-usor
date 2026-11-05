@@ -171,6 +171,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/inregistrare.tsx`                                                             | `/inregistrare`                                        | Public and unlinked. Supabase's signup: email and password.                                                                                                                                                |
 | `routes/confirmare-email.tsx`                                                         | `/confirmare-email`                                    | Public. Where a signup confirmation email lands; confirms on a button press.                                                                                                                               |
 | `routes/configurare.tsx`                                                              | `/configurare`                                         | Signed in, outside the shell. An account without an organization creates one.                                                                                                                              |
+| `routes/verificare-cod.tsx`                                                           | `/verificare-cod`                                      | Signed in at `aal1` with an authenticator: the code, then the page in `redirect`. See [Second factor](#second-factor).                                                                                     |
 | `routes/_authenticated.tsx`                                                           | pathless                                               | Session guard and the app shell for every protected page.                                                                                                                                                  |
 | `routes/_authenticated/dashboard.tsx`                                                 | `/dashboard`                                           | The Dashboard: what to do, the clients' trainings, the portfolio, and the contracts for owners.                                                                                                            |
 | `routes/_authenticated/organizatie.tsx`                                               | `/organizatie`                                         | The organization's name, the caller's role, and the row of sections.                                                                                                                                       |
@@ -191,7 +192,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/clienti/import/$importId/evaluari-de-risc.tsx`                 | `/clienti/import/:importId/evaluari-de-risc`           | The import's risk evaluations task (ADR 036): one card per sheet of the pack, confirmed after the client.                                                                                                  |
 | `routes/_authenticated/clienti/$clientId.tsx`                                         | `/clienti/:id`                                         | Client layout: loads the client through `GET /clients/{clientId}`, shows its summary card and section tabs, returns the breadcrumb label from its loader.                                                  |
 | `routes/_authenticated/clienti/$clientId/index.tsx`                                   | `/clienti/:id`                                         | Redirects to the details.                                                                                                                                                                                  |
-| `routes/_authenticated/clienti/$clientId/detalii.tsx`                                 | `/clienti/:id/detalii`                                 | "Detalii": one card per kind of data, each edited in place: the company, the legal representative, the workplaces, the contact, and the owners' notes for an owner.                                        |
+| `routes/_authenticated/clienti/$clientId/detalii.tsx`                                 | `/clienti/:id/detalii`                                 | "Detalii": one card per kind of data: the company, the legal representative, the workplaces, the contact, the owners' notes for an owner, and the client's confirmed imports from documents.               |
 | `routes/_authenticated/clienti/$clientId/angajati.tsx`                                | pathless                                               | Employees section layout carrying the breadcrumb title.                                                                                                                                                    |
 | `routes/_authenticated/clienti/$clientId/angajati/index.tsx`                          | `/clienti/:id/angajati`                                | The client's employees with a status filter, the state filters (`trainingState`, `testState`) and a text search (`q`) in the search params.                                                                |
 | `routes/_authenticated/clienti/$clientId/angajati/nou.tsx`                            | `/clienti/:id/angajati/nou`                            | Form that adds an employee to the client.                                                                                                                                                                  |
@@ -350,6 +351,26 @@ a page that offers a new link.
 and checks it with `signInWithPassword` before `updateUser`, so an unlocked screen is not
 enough to take over the account. There, a new password equal to the current one is reported
 on the field.
+
+## Second factor
+
+Only a platform admin's account has an authenticator (TOTP), enrolled in the admin app
+([admin app](admin.md#the-member-app-and-the-second-factor)); the member app never enrols one.
+Such an account's session is `aal1` after a password, Google or a confirmation link, and
+Supabase Auth ends `aal1` sessions when a code is verified elsewhere and refuses a password
+change at `aal1`. So `/_authenticated`, `/configurare` and `/invitatie` send an `aal1` session of
+an account with a verified factor to `/verificare-cod` (`requireSecondFactor`, from
+`mfa.getAuthenticatorAssuranceLevel`), with the page asked for in `redirect`, a path inside the
+app or nothing. The page calls `mfa.challengeAndVerify` and then opens that page. A session
+Supabase no longer knows (401, 403, `session_not_found`) is told to sign in again, and a session
+that ends on the page goes to `/autentificare`. After a recovery link, `/resetare-parola`
+verifies the token, sends the session to the code, and on its return takes the new password
+without the token, for the session the link signed in only. The tab keeps that account's id in
+`sessionStorage` until the password is set or the session ends, so reloading the code page does
+not lose it. The profile's password form asks for the code too, since checking the current
+password signs in again at `aal1`. A code that fails there leaves the session at `aal1`, so the
+form sends it to `/verificare-cod` with the failure and the profile in `redirect`, and the
+password stays unchanged.
 
 The rules live in `src/features/auth/password-schema.ts` and mirror `newPasswordSchema` in the
 contracts and the policy in `supabase/config.toml`. The accept-invitation page uses the same
@@ -1010,10 +1031,19 @@ their tab bars read.
   "Adaugă ca nouă". Every change goes to `PUT …/library-parts/{part}/changes` as the client
   review's do, one save after another on the version the previous answered. Before the client is
   confirmed its button reads "Confirmă întâi clientul"; confirming the client with parts returns
-  to the hub, which for a confirmed import shows the client's notice and the group
-  (`confirmed-hub.tsx`), and the client's "Detalii" links back while a part is neither confirmed
-  nor expired (`GET /imports?clientId=&status=confirmed`). A failed part offers "Citește din
-  nou" (`POST …/retry`).
+  to the import's page, which for a confirmed import (`confirmed-hub.tsx`) leads with "Ce mai ai
+  de făcut" while a part is neither confirmed nor expired (`isOpenPart`): the parts' deadline
+  ("Până pe … · mai ai N zile", `next-steps-model.ts`) and a row per open part with its
+  description, its status while it reads or failed, and a button to its page, the first one
+  primary. "Gata" lists the client's data, with "Deschide clientul", and each confirmed part with
+  "Vezi"; an expired part goes under "Au expirat". Once nothing is open, a green panel says
+  "Importul e încheiat." with what was taken and "Deschide clientul", above "Ce am preluat". The
+  client's "Detalii" links back while a part is open (`LibraryTasksNotice`), and its last card,
+  "Importuri din documente" (`client-imports-card.tsx`), lists every confirmed client import of
+  the client, newest first, with its day, who ran it, its files and what is left ("N de
+  verificat, până pe …", "Încheiat", or what expired), each row opening the import; both read
+  `GET /imports?clientId=&status=confirmed`, which for a client's client imports has no cap. A
+  failed part offers "Citește din nou" (`POST …/retry`).
 - The import's risk evaluations ([ADR 036](architecture/adr-036-risk-library-and-import.md),
   `risks-task-page.tsx`, `risk-sheet-card.tsx`, `risks-model.ts`). After the instructions the hub
   shows the group "Evaluări de risc" with one task, "Fișe de evaluare", for the part

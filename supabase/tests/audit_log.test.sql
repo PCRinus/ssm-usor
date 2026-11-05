@@ -1,5 +1,5 @@
 begin;
-select plan(46);
+select plan(48);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 select v.id::uuid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', v.email, '', now(), v.app_metadata::jsonb, '{}', now(), now()
@@ -29,11 +29,11 @@ insert into public.employees (id, organization_id, client_id, job_position_id, l
   ('e1e1e1e1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'b1b1b1b1-0000-4000-8000-000000000002', 'Plecat', 'Dan', 'Sudor', '2020-03-01'),
   ('e1e1e1e1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'b1b1b1b1-0000-4000-8000-000000000002', 'Plecat', 'Ana', 'Sudor', '2020-03-01');
 
-create or replace function pg_temp.act_as(p_user_id text, p_headers jsonb default '{}')
+create or replace function pg_temp.act_as(p_user_id text, p_headers jsonb default '{}', p_aal text default 'aal1')
 returns void language sql as $$
   select set_config('role', 'authenticated', true),
          set_config('request.jwt.claims', (
-           select json_build_object('sub', p_user_id, 'role', 'authenticated', 'app_metadata', u.raw_app_meta_data)::text
+           select json_build_object('sub', p_user_id, 'role', 'authenticated', 'aal', p_aal, 'app_metadata', u.raw_app_meta_data)::text
            from auth.users u where u.id = p_user_id::uuid
          ), true),
          set_config('request.headers', p_headers::text, true);
@@ -179,7 +179,7 @@ select results_eq(
 );
 
 
-select pg_temp.act_as('eeeeeeee-0000-4000-8000-000000000001');
+select pg_temp.act_as('eeeeeeee-0000-4000-8000-000000000001', p_aal => 'aal2');
 insert into public.impersonations (admin_user_id, target_user_id, reason)
 values ('eeeeeeee-0000-4000-8000-000000000001', 'aaaaaaaa-0000-4000-8000-000000000002', 'Reproduce #123');
 select pg_temp.act_as_postgres();
@@ -191,7 +191,7 @@ select results_eq(
   'starting an impersonation names the admin, the impersonated member and their organization'
 );
 
-select pg_temp.act_as('eeeeeeee-0000-4000-8000-000000000001');
+select pg_temp.act_as('eeeeeeee-0000-4000-8000-000000000001', p_aal => 'aal2');
 update public.employees set qualification = 'Sudor autorizat' where id = 'e1e1e1e1-0000-4000-8000-000000000001';
 select pg_temp.act_as_postgres();
 select results_eq(
@@ -201,7 +201,7 @@ select results_eq(
   'a change during an impersonation names the real admin and the user they act as'
 );
 
-select pg_temp.act_as_secret_key('{"x-audit-actor": "eeeeeeee-0000-4000-8000-000000000001"}');
+select pg_temp.act_as_secret_key('{"x-audit-actor": "eeeeeeee-0000-4000-8000-000000000001", "x-audit-aal": "aal2"}');
 update public.employees set education = 'Liceu' where id = 'e1e1e1e1-0000-4000-8000-000000000001';
 select pg_temp.act_as_postgres();
 select results_eq(
@@ -210,8 +210,26 @@ select results_eq(
   'and so does the API''s, from the admin''s active impersonation'
 );
 
-
 select pg_temp.act_as('eeeeeeee-0000-4000-8000-000000000001');
+update public.employees set education = 'Facultate' where id = 'e1e1e1e1-0000-4000-8000-000000000001';
+select pg_temp.act_as_postgres();
+select is(
+  (select education from public.employees where id = 'e1e1e1e1-0000-4000-8000-000000000001'),
+  'Liceu',
+  'a password-only session of the same admin acts as the admin, who reaches none of the member''s rows'
+);
+
+select pg_temp.act_as_secret_key('{"x-audit-actor": "eeeeeeee-0000-4000-8000-000000000001"}');
+update public.employees set education = 'Gimnaziu' where id = 'e1e1e1e1-0000-4000-8000-000000000001';
+select pg_temp.act_as_postgres();
+select results_eq(
+  $$ select actor_id, impersonating_user_id, source from pg_temp.last_event('employees') $$,
+  $$ values ('eeeeeeee-0000-4000-8000-000000000001'::uuid, null::uuid, 'api') $$,
+  'as is the API''s for such a session'
+);
+
+
+select pg_temp.act_as('eeeeeeee-0000-4000-8000-000000000001', p_aal => 'aal2');
 select throws_ok(
   $$ update public.impersonations set expires_at = expires_at + interval '1 hour' where ended_at is null $$,
   '42501', null, 'the admin does not move the expiry'
@@ -246,7 +264,7 @@ select results_eq(
   $$ values ('impersonation_ended', 'eeeeeeee-0000-4000-8000-000000000001'::uuid, 'aaaaaaaa-0000-4000-8000-000000000002'::uuid) $$,
   'which is recorded with both users'
 );
-select pg_temp.act_as('eeeeeeee-0000-4000-8000-000000000001');
+select pg_temp.act_as('eeeeeeee-0000-4000-8000-000000000001', p_aal => 'aal2');
 select throws_ok(
   $$ update public.impersonations set ended_at = now() where admin_user_id = 'eeeeeeee-0000-4000-8000-000000000001' $$,
   'IMS01', 'An ended impersonation is not changed.', 'an ended impersonation stays as it ended'

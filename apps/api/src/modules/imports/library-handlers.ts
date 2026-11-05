@@ -35,10 +35,11 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { creditsStore } from '../credits/store';
-import { existingRecords, findImport, storedChanges, storedProposal } from './handlers';
+import { existingRecords, findImport, queueEnded, storedChanges, storedProposal } from './handlers';
 import { clientPeople, libraryPartExpiry, libraryReasons, riskReasons } from './library';
 import { toClientPayload } from './payload';
 import { describe } from './pipeline';
+import { instructionsQuality, type QualityCounts, risksQuality } from './reading-flags';
 import { type ClientSheets, clientSheetsOf, existingFactorsOf } from './risk-sheets';
 import type {
   confirmImportLibraryPartRoute,
@@ -161,7 +162,10 @@ async function postsOf(db: DataClient, row: FoundImport): Promise<ImportLibraryP
   return posts;
 }
 
-function positionPostsOf(proposal: InstructionsProposal, row: FoundImport) {
+export function positionPostsOf(
+  proposal: InstructionsProposal,
+  row: Pick<FoundImport, 'proposal'>
+) {
   const stored = storedProposal(row.proposal);
   const byName = new Map(
     (stored?.proposal.jobPositions ?? []).map((position) => [foldText(position.name), position.id])
@@ -422,6 +426,27 @@ interface LibraryPayload {
   use: { module_id: string; job_position_ids: string[] }[];
 }
 
+export function reviewedInstructions(
+  proposal: InstructionsProposal,
+  changes: InstructionImportChanges | null,
+  positionPosts: Record<string, string | null>
+) {
+  return proposal.instructions.flatMap((instruction) => {
+    const change = changes?.instructions[instruction.key] ?? {};
+    if (change.included === false) return [];
+    return [
+      {
+        instruction,
+        references: change.posts ?? defaultPosts(instruction, positionPosts),
+        choice: change.choice ?? instruction.choice,
+        title: (change.title ?? instruction.title).trim(),
+        category: change.category ?? instruction.category,
+        body: change.body ?? instruction.body,
+      },
+    ];
+  });
+}
+
 async function libraryPayload(
   proposal: InstructionsProposal,
   changes: InstructionImportChanges | null,
@@ -438,10 +463,8 @@ async function libraryPayload(
   const payload: LibraryPayload = { create: [], use: [] };
   const createdKeys: string[] = [];
   const issues: { path: string; message: string }[] = [];
-  for (const instruction of proposal.instructions) {
-    const change = changes?.instructions[instruction.key] ?? {};
-    if (change.included === false) continue;
-    const references = change.posts ?? defaultPosts(instruction, positionPosts);
+  for (const reviewed of reviewedInstructions(proposal, changes, positionPosts)) {
+    const { instruction, references, choice, category, body } = reviewed;
     const jobPositionIds = [
       ...new Set(
         references.flatMap((reference) => {
@@ -454,7 +477,6 @@ async function libraryPayload(
         })
       ),
     ];
-    const choice = change.choice ?? instruction.choice;
     if (
       instruction.match &&
       (instruction.status === 'identical' ||
@@ -463,14 +485,12 @@ async function libraryPayload(
       payload.use.push({ module_id: instruction.match.moduleId, job_position_ids: jobPositionIds });
       continue;
     }
-    const category = change.category ?? instruction.category;
     if (!categoryFitsDomain(category, instructionsPartDomains[part])) {
       issues.push({ path: `instructions.${instruction.key}.category`, message: 'other_domain' });
     }
-    const body = change.body ?? instruction.body;
     createdKeys.push(instruction.key);
     payload.create.push({
-      title: (change.title ?? instruction.title).trim(),
+      title: reviewed.title,
       category,
       body,
       text_hash: await textHash(body),
@@ -663,12 +683,41 @@ async function confirmRisks(
     );
   }
   if (error) throw partError(error, 'confirm risk part', 'risk_evaluations');
+  await partConfirmed(
+    c,
+    row.id,
+    'risk_evaluations',
+    risksQuality(proposal, storedRiskChanges(current.changes))
+  );
   const result = data as { created: string[]; evaluations: string[]; factors: number };
   return {
     createdProfileIds: result.created,
     evaluationIds: result.evaluations,
     factors: result.factors,
   };
+}
+
+// The confirming functions take no counts, so they are written after, and a failure to write them
+// does not undo the confirmation.
+async function partConfirmed(
+  c: Context<ApiEnv>,
+  importId: string,
+  part: ImportLibraryPart,
+  quality: QualityCounts
+) {
+  const { error } = await createAdminClient(c)
+    .from('import_library_parts')
+    .update({ quality })
+    .eq('import_id', importId)
+    .eq('part', part)
+    .eq('status', 'confirmed');
+  if (error) {
+    // As in fromDatabaseError: a message that came with a code can quote the row's values.
+    console.error(
+      `The quality of part ${part} of import ${importId} was not kept: ${error.code || `no code: ${error.message}`}`
+    );
+  }
+  await queueEnded(c, importId, part);
 }
 
 export const confirmImportLibraryPart: RouteHandler<
@@ -723,6 +772,7 @@ export const confirmImportLibraryPart: RouteHandler<
     );
   }
   if (error) throw partError(error, 'confirm library part');
+  await partConfirmed(c, importId, part, instructionsQuality(proposal, changes));
   const result = data as { created: string[]; used: string[]; links: number };
   return c.json(
     {
