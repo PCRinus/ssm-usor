@@ -3,7 +3,7 @@ import type {
   SignatureRequestSms,
   SignInCodeSms,
   SigningCodeSms,
-} from '@ssm-usor/contracts';
+} from '@ssm-usor/contracts/sms';
 
 // One GSM-7 segment. A single character outside GSM-7's basic set, such as "ș", switches the
 // whole message to UCS-2: 70 characters a segment, and two or three times the price (ADR 022).

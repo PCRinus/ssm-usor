@@ -25,7 +25,7 @@ import {
   smsUsageNoticeEmailSchema,
   type WaitlistConfirmationEmail,
   waitlistConfirmationEmailSchema,
-} from '@ssm-usor/contracts';
+} from '@ssm-usor/contracts/mail';
 import { WorkerEntrypoint } from 'cloudflare:workers';
 
 import OrganizationInvitation, {

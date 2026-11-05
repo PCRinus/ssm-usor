@@ -1,4 +1,4 @@
-import type { SmsUsageNoticeEmail } from '@ssm-usor/contracts';
+import type { SmsUsageNoticeEmail } from '@ssm-usor/contracts/mail';
 import type { CSSProperties } from 'react';
 
 import { color } from '../theme';
