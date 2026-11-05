@@ -10893,9 +10893,25 @@ export interface RegisterImportFilesRequest {
   files: RegisterImportFilesRequestFilesItem[];
 }
 
-export interface SaveImportChangesResponse {
+export type SaveClientImportChangesResponseBlockersItemCode =
+  (typeof SaveClientImportChangesResponseBlockersItemCode)[keyof typeof SaveClientImportChangesResponseBlockersItemCode];
+
+export const SaveClientImportChangesResponseBlockersItemCode = {
+  choice: 'choice',
+  missing: 'missing',
+  unknown_reference: 'unknown_reference',
+  invalid: 'invalid',
+} as const;
+
+export type SaveClientImportChangesResponseBlockersItem = {
+  path: string;
+  code: SaveClientImportChangesResponseBlockersItemCode;
+};
+
+export interface SaveClientImportChangesResponse {
   /** @minimum 0 */
   version: number;
+  blockers: SaveClientImportChangesResponseBlockersItem[];
 }
 
 export type SaveImportChangesRequestChangesFields = {
@@ -11015,6 +11031,11 @@ export interface SplitImportRequest {
    * @maxItems 150
    */
   fileIds: string[];
+}
+
+export interface SaveImportChangesResponse {
+  /** @minimum 0 */
+  version: number;
 }
 
 export type SaveEmployeeImportChangesRequestChangesPeopleState =
@@ -35852,14 +35873,14 @@ export const getSaveImportChangesUrl = (importId: string) => {
 };
 
 /**
- * A client import's: replaces the changes, on the `version` the caller read, and answers the next version. `409` with `import_changed` when someone saved since, `import_not_ready` when the import is not `ready`, `import_wrong_kind` for an employee import.
+ * A client import's: replaces the changes, on the `version` the caller read, and answers the next version with what still blocks confirming, the `blockers` the import's detail gives for these changes. `409` with `import_changed` when someone saved since, `import_not_ready` when the import is not `ready`, `import_wrong_kind` for an employee import.
  * @summary Save the member's review
  */
 export const saveImportChanges = async (
   importId: string,
   saveImportChangesRequest: SaveImportChangesRequest,
   options?: Parameters<typeof apiFetch>[1]
-): Promise<SaveImportChangesResponse> => {
+): Promise<SaveClientImportChangesResponse> => {
   const getHeaders = (
     h?: NonNullable<RequestInit['headers']>
   ): Record<string, string | readonly string[]> => {
@@ -35879,7 +35900,7 @@ export const saveImportChanges = async (
     }
     return headers;
   };
-  return apiFetch<SaveImportChangesResponse>(getSaveImportChangesUrl(importId), {
+  return apiFetch<SaveClientImportChangesResponse>(getSaveImportChangesUrl(importId), {
     ...options,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },

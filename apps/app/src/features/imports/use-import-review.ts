@@ -113,7 +113,17 @@ export class ReviewStore {
         if (changes === this.snapshot.changes) this.set({ error: null });
         this.queryClient.setQueriesData<ImportDetailResponse>(
           { queryKey: getGetImportQueryKey(this.importId) },
-          (old) => (old ? { import: { ...old.import, version: saved.version, changes } } : old)
+          (old) =>
+            old
+              ? {
+                  import: {
+                    ...old.import,
+                    version: saved.version,
+                    changes,
+                    blockers: saved.blockers,
+                  },
+                }
+              : old
         );
         await this.queryClient.invalidateQueries({
           queryKey: getGetImportQueryKey(this.importId),

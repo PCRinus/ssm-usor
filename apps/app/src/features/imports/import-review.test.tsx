@@ -12,6 +12,7 @@ import {
   meWithCredits,
   mockApi,
   proposalFixture,
+  readyBlockers,
   readyDetail,
   requestsTo,
 } from '@/test/import-fixture';
@@ -48,21 +49,38 @@ function mockReview(
   detail: Detail,
   {
     save,
+    read,
     confirm,
     me,
-  }: { save?: (body: unknown) => Response; confirm?: () => Response; me?: unknown } = {}
+  }: {
+    save?: (body: unknown) => Response | Promise<Response>;
+    read?: (call: number) => Promise<void> | undefined;
+    confirm?: () => Response;
+    me?: unknown;
+  } = {}
 ) {
   saves = 0;
+  let reads = 0;
   mockApi((init, url) => {
     const method = init?.method ?? 'GET';
     if (url.pathname === '/me' && me) return Response.json(me);
     if (url.pathname === `/imports/${importId}` && method === 'GET') {
-      return Response.json({ import: detail });
+      const held = read?.(++reads);
+      return held
+        ? held.then(() => Response.json({ import: detail }))
+        : Response.json({ import: detail });
     }
     if (url.pathname === `/imports/${importId}/changes`) {
       saves += 1;
       const body = JSON.parse(String(init?.body)) as { version: number };
-      return save?.(body) ?? Response.json({ version: body.version + 1 });
+      const answer =
+        save?.(body) ?? Response.json({ version: body.version + 1, blockers: detail.blockers });
+      return Promise.resolve(answer).then(async (response) => {
+        if (response.ok) {
+          detail.blockers = ((await response.clone().json()) as Pick<Detail, 'blockers'>).blockers;
+        }
+        return response;
+      });
     }
     if (url.pathname === `/imports/${importId}/confirm`) {
       return confirm?.() ?? Response.json({ clientId, fileCount: 3 });
@@ -350,7 +368,13 @@ describe('a section of the review', () => {
   });
 
   it('writes a missing hire date in the item dialog', async () => {
-    mockReview(readyDetail());
+    mockReview(readyDetail(), {
+      save: (body) =>
+        Response.json({
+          version: (body as { version: number }).version + 1,
+          blockers: readyBlockers.filter((blocker) => blocker.path !== 'employees.0.hiredAt'),
+        }),
+    });
     mount('/responsible');
 
     const employees = await screen.findByTestId('review-list-employees');
@@ -363,6 +387,7 @@ describe('a section of the review', () => {
     expect(savedChanges(0).changes.items).toEqual({
       'employee-1': { values: { hiredAt: '2024-03-01' } },
     });
+    await waitFor(() => expect(employees.textContent).not.toContain('Lipsește data angajării.'));
   });
 });
 
@@ -414,8 +439,8 @@ describe('one review across its pages', () => {
     mockReview(readyDetail({ proposal, blockers: [] }), {
       save: (body) =>
         held.then(() =>
-          Response.json({ version: (body as { version: number }).version + 1 })
-        ) as unknown as Response,
+          Response.json({ version: (body as { version: number }).version + 1, blockers: [] })
+        ),
     });
     const runtime = mount('/identity');
 
@@ -731,6 +756,70 @@ describe("a protective-equipment entry's duration", () => {
     expect(
       within(mask!).getByText('Un articol de consum nu are durată de utilizare.')
     ).toBeTruthy();
+  });
+
+  it('drops the note once the save answers, before the import is read again', async () => {
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const detail = durationDetail();
+    mockReview(detail, {
+      save: (body) =>
+        Response.json({
+          version: (body as { version: number }).version + 1,
+          blockers: [{ path: 'protectiveEquipment.1.durationMonths', code: 'invalid' }],
+        }),
+      read: (call) => (call > 1 ? held : undefined),
+    });
+    mount('/equipment');
+
+    const [gloves] = await screen.findAllByTestId('review-item');
+    await userEvent.click(within(gloves!).getByTestId('review-edit'));
+    const dialog = await screen.findByTestId('review-item-dialog');
+    await userEvent.type(within(dialog).getByTestId('review-item-durationMonths'), '12');
+    await userEvent.click(within(dialog).getByTestId('review-item-save'));
+
+    await waitFor(() =>
+      expect(screen.getAllByTestId('review-item')[0]!.textContent).not.toContain(
+        'Lipsește durata de utilizare.'
+      )
+    );
+    const [row, mask] = screen.getAllByTestId('review-item');
+    expect(row!.textContent).toContain('12 luni');
+    expect(mask!.textContent).toContain('Un articol de consum nu are durată de utilizare.');
+    await waitFor(() => expect(requestsTo(`/imports/${importId}`)).toHaveLength(2));
+    release();
+  });
+
+  it('says what the saved allocation now asks for', async () => {
+    mockReview(durationDetail(), {
+      save: (body) =>
+        Response.json({
+          version: (body as { version: number }).version + 1,
+          blockers: [
+            { path: 'protectiveEquipment.0.durationMonths', code: 'missing' },
+            { path: 'protectiveEquipment.1.durationMonths', code: 'missing' },
+          ],
+        }),
+    });
+    mount('/equipment');
+
+    const [, mask] = await screen.findAllByTestId('review-item');
+    await userEvent.click(within(mask!).getByTestId('review-edit'));
+    const dialog = await screen.findByTestId('review-item-dialog');
+    await userEvent.clear(within(dialog).getByTestId('review-item-durationMonths'));
+    await userEvent.selectOptions(
+      within(dialog).getByTestId('review-item-allocation'),
+      'personal_inventory'
+    );
+    await userEvent.click(within(dialog).getByTestId('review-item-save'));
+
+    await waitFor(() =>
+      expect(screen.getAllByTestId('review-item')[1]!.textContent).toContain(
+        'Lipsește durata de utilizare.'
+      )
+    );
   });
 });
 

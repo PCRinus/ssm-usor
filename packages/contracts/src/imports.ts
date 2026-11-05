@@ -654,6 +654,11 @@ export type SaveImportChangesRequest = z.infer<typeof saveImportChangesRequestSc
 
 export const saveImportChangesResponseSchema = z.object({ version: z.int().min(0) });
 
+export const saveClientImportChangesResponseSchema = saveImportChangesResponseSchema.extend({
+  // As the import's detail gives them for the changes just saved.
+  blockers: z.array(importBlockerSchema),
+});
+
 export const saveEmployeeImportChangesRequestSchema = z.object({
   version: z.int().min(0),
   changes: employeeImportChangesSchema,

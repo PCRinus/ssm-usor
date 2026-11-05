@@ -16498,15 +16498,31 @@
         },
         "required": ["files"]
       },
-      "SaveImportChangesResponse": {
+      "SaveClientImportChangesResponse": {
         "type": "object",
         "properties": {
           "version": {
             "type": "integer",
             "minimum": 0
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string",
+                  "enum": ["choice", "missing", "unknown_reference", "invalid"]
+                }
+              },
+              "required": ["path", "code"]
+            }
           }
         },
-        "required": ["version"]
+        "required": ["version", "blockers"]
       },
       "SaveImportChangesRequest": {
         "type": "object",
@@ -16771,6 +16787,16 @@
           }
         },
         "required": ["fileIds"]
+      },
+      "SaveImportChangesResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": ["version"]
       },
       "SaveEmployeeImportChangesRequest": {
         "type": "object",
@@ -42895,7 +42921,7 @@
       "put": {
         "operationId": "saveImportChanges",
         "summary": "Save the member's review",
-        "description": "A client import's: replaces the changes, on the `version` the caller read, and answers the next version. `409` with `import_changed` when someone saved since, `import_not_ready` when the import is not `ready`, `import_wrong_kind` for an employee import.",
+        "description": "A client import's: replaces the changes, on the `version` the caller read, and answers the next version with what still blocks confirming, the `blockers` the import's detail gives for these changes. `409` with `import_changed` when someone saved since, `import_not_ready` when the import is not `ready`, `import_wrong_kind` for an employee import.",
         "security": [
           {
             "bearerAuth": []
@@ -42924,11 +42950,11 @@
         },
         "responses": {
           "200": {
-            "description": "The new version",
+            "description": "The new version and what still blocks confirming",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SaveImportChangesResponse"
+                  "$ref": "#/components/schemas/SaveClientImportChangesResponse"
                 }
               }
             }

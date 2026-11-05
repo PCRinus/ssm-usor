@@ -1015,7 +1015,8 @@ their tab bars read.
   values back instead of saving a row); the other items open `ItemEditDialog`. Items and values
   only another company's passages give are listed unticked. Every decision goes to `PUT
 /imports/{id}/changes` at once, one save after another on the version the previous answered;
-  a `409` `import_changed` stops saving and offers to reload. The values a member wrote carry
+  each answer's blockers replace the import's before it is read again, so a note the save settles
+  goes at once. A `409` `import_changed` stops saving and offers to reload. The values a member wrote carry
   "Modificat de tine". Confirming shows what is created, added, changed and kept, posts
   `/confirm` with the version, and opens the client's "Detalii" with a notice held in memory for
   that one visit (`import-notice.ts`).

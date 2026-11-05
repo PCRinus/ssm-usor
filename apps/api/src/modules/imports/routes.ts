@@ -21,6 +21,7 @@ import {
   registerImportFilesRequestSchema,
   registerImportFilesResponseSchema,
   risksPartDetailSchema,
+  saveClientImportChangesResponseSchema,
   saveEmployeeImportChangesRequestSchema,
   saveImportChangesRequestSchema,
   saveImportChangesResponseSchema,
@@ -221,7 +222,7 @@ export const saveImportChangesRoute = createRoute({
   operationId: 'saveImportChanges',
   summary: "Save the member's review",
   description:
-    "A client import's: replaces the changes, on the `version` the caller read, and answers the next version. `409` with `import_changed` when someone saved since, `import_not_ready` when the import is not `ready`, `import_wrong_kind` for an employee import.",
+    "A client import's: replaces the changes, on the `version` the caller read, and answers the next version with what still blocks confirming, the `blockers` the import's detail gives for these changes. `409` with `import_changed` when someone saved since, `import_not_ready` when the import is not `ready`, `import_wrong_kind` for an employee import.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -229,7 +230,16 @@ export const saveImportChangesRoute = createRoute({
     body: json(saveImportChangesRequestSchema.meta({ id: 'SaveImportChangesRequest' })),
   },
   responses: {
-    200: { description: 'The new version', content: versionContent },
+    200: {
+      description: 'The new version and what still blocks confirming',
+      content: {
+        'application/json': {
+          schema: saveClientImportChangesResponseSchema.meta({
+            id: 'SaveClientImportChangesResponse',
+          }),
+        },
+      },
+    },
     400: { description: 'Invalid path or body', content: errorContent },
     404: noSuchImport,
     409: { description: 'Not ready, or saved since it was read', content: errorContent },
