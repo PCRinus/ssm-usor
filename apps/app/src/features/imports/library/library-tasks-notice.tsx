@@ -1,12 +1,10 @@
 import type { ImportLibraryPart } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { BookOpenCheck } from 'lucide-react';
 import { useState } from 'react';
 
-import { getListImportsQueryKey, useListImports } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
-import { useAuth } from '@/features/auth/auth-context';
 
 import {
   isOpenPart,
@@ -17,6 +15,7 @@ import {
   partsNoun,
   statusLabels,
 } from './library-model';
+import { useConfirmedClientImports } from './use-confirmed-client-imports';
 
 const order: readonly ImportLibraryPart[] = [...partOrder, 'risk_evaluations'];
 
@@ -24,16 +23,7 @@ const labelOf = (part: ImportLibraryPart) =>
   part === 'risk_evaluations' ? 'Evaluări de risc' : partLabels[part];
 
 export function LibraryTasksNotice({ clientId }: { clientId: string }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const { session } = useAuth();
-  const params = { clientId, kind: 'client' as const, status: 'confirmed' as const };
-  const confirmed = useListImports(params, {
-    request: apiRequest,
-    query: {
-      queryKey: [...getListImportsQueryKey(params), session?.user.id],
-      enabled: Boolean(session && apiRequest.baseUrl),
-    },
-  });
+  const confirmed = useConfirmedClientImports(clientId);
   const [now] = useState(() => Date.now());
   const imports = (confirmed.data?.items ?? []).flatMap((item) => {
     const open = item.libraryParts

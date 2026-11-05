@@ -70,6 +70,7 @@ sources:
   - apps/api/src/modules/imports/library.ts
   - apps/app/src/features/imports/library/*.tsx
   - apps/app/src/features/imports/library/library-model.ts
+  - apps/app/src/features/imports/library/next-steps-model.ts
   - apps/api/src/modules/credits/usage.ts
   - apps/app/src/features/imports/import-credits.ts
   - apps/app/src/features/imports/credits-notices.tsx
@@ -156,7 +157,7 @@ Documentele încărcate rămân la client, în **Alte documente**, într-un fold
 
 Instrucțiunile proprii din pachet (IPSSM și IPSU) se citesc separat, după ce propunerea clientului e gata, pentru biblioteca ta de [instrucțiuni proprii](/instructiuni/). Pe pagina importului apar sub secțiunile clientului, în grupul **Instrucțiuni proprii**, câte una pentru IPSSM și IPSU, fiecare cu starea ei: _se citește_, _de verificat_, _nimic nou_, _nu s-a putut citi_ sau _confirmat_.
 
-Le poți deschide și verifica de îndată ce sunt citite, dar le confirmi după client, pentru că se aplică la posturile lui: până atunci butonul lor spune **Confirmă întâi clientul**. Nu te țin pe loc: creezi clientul oricând. Dacă mai ai instrucțiuni de confirmat, după crearea clientului te întorci pe pagina importului, iar pagina clientului îți amintește de ele, cu **Verifică instrucțiunile**, până le confirmi. Le poți confirma timp de 14 zile de la crearea clientului; după aceea propunerea expiră și nu mai poate fi schimbată sau citită din nou.
+Le poți deschide și verifica de îndată ce sunt citite, dar le confirmi după client, pentru că se aplică la posturile lui: până atunci butonul lor spune **Confirmă întâi clientul**. Nu te țin pe loc: creezi clientul oricând. Dacă mai ai instrucțiuni de confirmat, după crearea clientului rămâi pe pagina importului, care începe cu ce mai ai de făcut (vezi [După crearea clientului](#după-crearea-clientului)), iar pagina clientului îți amintește de ele, cu **Verifică instrucțiunile**, până le confirmi. Le poți confirma timp de 14 zile de la crearea clientului; după aceea propunerea expiră și nu mai poate fi schimbată sau citită din nou.
 
 Ce ai deja în bibliotecă nu ți se cere din nou. Deasupra listei vezi câte sunt, de exemplu „7 instrucțiuni din pachet sunt deja în biblioteca ta”: la confirmare, posturile primesc instrucțiunea ta. Fiecare instrucțiune nouă sau asemănătoare are un card cu titlul ei și, pe rânduri, ce hotărăști pentru ea, fiecare rând cu butonul lui. Un rând care încă așteaptă o alegere e marcat cu galben, iar sus cardul îți spune ce mai ai de făcut, de exemplu „Mai ai de ales posturile”, sau „Gata de confirmat”. Rândurile sunt:
 
@@ -191,6 +192,14 @@ Clasele de gravitate și de probabilitate sunt judecata evaluatorului, așa că 
 La confirmare, evaluările pe care le adaugi intră în bibliotecă, cu factorii, măsurile, textele sistemului de muncă și câmpurile planului ca valori propuse. Factorii bifați se scriu pe fișele de evaluare ale clientului, după alegerea ta pentru fiecare post, iar fișele care lipsesc se creează. Fiecare factor scris la client arată din ce evaluare a bibliotecii vine, așa că **Unde este folosită** e corectă de la început. Evaluarea riscurilor și planul de prevenire ale clientului se actualizează apoi ca după orice schimbare a fișelor.
 
 Citirea evaluărilor de risc folosește 15 credite de fiecare dată când le citim. Dacă nu reușește, vezi motivul și **Citește din nou**, iar creditele citirii care nu a reușit îți sunt date înapoi. Totalul importului le arată separat, de exemplu „Importul a folosit 75 de credite (25 + 35 pentru instrucțiunile proprii + 15 pentru evaluările de risc)”.
+
+### După crearea clientului
+
+După ce creezi sau completezi clientul, rămâi pe pagina importului. Dacă pachetul avea instrucțiuni proprii sau evaluări de risc pe care nu le-ai confirmat încă, pagina începe cu **Ce mai ai de făcut**: ziua până la care le poți confirma, de exemplu „Până pe 19 noiembrie · mai ai 14 zile”, apoi câte un rând pentru IPSSM, IPSU și fișele de evaluare, fiecare cu ce e de verificat și cu butonul care te duce la el: **Verifică IPSSM**, **Verifică IPSU** sau **Verifică fișele**. O parte care încă se citește sau a cărei citire s-a oprit își arată starea în rând, iar butonul ei e **Vezi IPSSM**, **Vezi IPSU** sau **Vezi fișele**. Dedesubt, la **Gata**, sunt datele clientului, cu **Deschide clientul**, și ce ai confirmat deja, fiecare cu **Vezi**. Ce n-ai confirmat în cele 14 zile apare separat, la **Au expirat**.
+
+Când nu mai ai nimic de confirmat, pagina spune „Importul e încheiat.” și ce s-a preluat, de exemplu „Datele clientului, instrucțiunile și fișele de evaluare sunt preluate. Poți genera documentația clientului.”, cu **Deschide clientul**. Sub ea, la **Ce am preluat**, vezi datele clientului și fiecare parte confirmată.
+
+La importurile unui client revii oricând din tabul lui **Detalii**, din cardul **Importuri din documente**: fiecare import confirmat al clientului, cel mai nou primul, cu ziua, cine l-a pornit, dacă a creat sau a completat clientul, câte fișiere a avut și ce a mai rămas din el: „2 de verificat, până pe 19 nov.”, **Încheiat** sau, când a trecut termenul, „Instrucțiunile au expirat” ori „Evaluările au expirat”. Rândul deschide pagina importului.
 
 ## Importul angajaților din fișe
 

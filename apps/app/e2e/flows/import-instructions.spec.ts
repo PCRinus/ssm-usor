@@ -107,20 +107,30 @@ test("a pack's own instructions are reviewed before the client is created, confi
   await page.getByTestId('import-confirm-dialog').getByTestId('import-confirm-submit').click();
   await expect(page.getByTestId('import-confirmed-hub')).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/clienti/import/${importId}$`));
+  await expect(page.getByTestId('import-next-step')).toHaveAttribute(
+    'data-part',
+    'instructions_ssm'
+  );
+  await expect(page.getByTestId('import-next-steps-deadline')).toContainText('mai ai 14 zile');
+  await expect(page.getByTestId('import-done-client')).toContainText(
+    `Preluate în ${bakery.legalName}`
+  );
 
   const clientId = await clientOfImport(importId);
   await page.goto(`/clienti/${clientId}/detalii`);
+  await expect(page.getByTestId('client-import-row')).toHaveAttribute('data-outcome', 'open');
   const reminder = page.getByTestId('client-library-tasks-notice');
   await expect(reminder).toContainText('IPSSM: de verificat');
   await reminder.getByTestId('client-library-tasks-open').click();
-  await page.getByTestId('import-library-task').click();
+  await page.getByTestId('import-next-step-open').click();
   await expect(page.getByTestId('library-confirm')).toHaveText('Confirmă instrucțiunile');
   await page.getByTestId('library-confirm').click();
 
-  await expect(page.getByTestId('import-confirmed-hub')).toBeVisible();
-  await expect(
-    page.getByTestId('import-library-task').getByTestId('library-part-status')
-  ).toHaveText('Confirmat');
+  await expect(page.getByTestId('import-finished')).toBeVisible();
+  await expect(page.getByTestId('import-done-part')).toHaveAttribute(
+    'data-part',
+    'instructions_ssm'
+  );
 
   await page.goto('/instructiuni/ssm');
   const library = page.getByTestId('instruction-open');
@@ -138,5 +148,6 @@ test("a pack's own instructions are reviewed before the client is created, confi
     2
   );
   await page.goto(`/clienti/${clientId}/detalii`);
+  await expect(page.getByTestId('client-import-row')).toHaveAttribute('data-outcome', 'done');
   await expect(page.getByTestId('client-library-tasks-notice')).toHaveCount(0);
 });

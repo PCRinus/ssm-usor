@@ -192,7 +192,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/clienti/import/$importId/evaluari-de-risc.tsx`                 | `/clienti/import/:importId/evaluari-de-risc`           | The import's risk evaluations task (ADR 036): one card per sheet of the pack, confirmed after the client.                                                                                                  |
 | `routes/_authenticated/clienti/$clientId.tsx`                                         | `/clienti/:id`                                         | Client layout: loads the client through `GET /clients/{clientId}`, shows its summary card and section tabs, returns the breadcrumb label from its loader.                                                  |
 | `routes/_authenticated/clienti/$clientId/index.tsx`                                   | `/clienti/:id`                                         | Redirects to the details.                                                                                                                                                                                  |
-| `routes/_authenticated/clienti/$clientId/detalii.tsx`                                 | `/clienti/:id/detalii`                                 | "Detalii": one card per kind of data, each edited in place: the company, the legal representative, the workplaces, the contact, and the owners' notes for an owner.                                        |
+| `routes/_authenticated/clienti/$clientId/detalii.tsx`                                 | `/clienti/:id/detalii`                                 | "Detalii": one card per kind of data: the company, the legal representative, the workplaces, the contact, the owners' notes for an owner, and the client's confirmed imports from documents.               |
 | `routes/_authenticated/clienti/$clientId/angajati.tsx`                                | pathless                                               | Employees section layout carrying the breadcrumb title.                                                                                                                                                    |
 | `routes/_authenticated/clienti/$clientId/angajati/index.tsx`                          | `/clienti/:id/angajati`                                | The client's employees with a status filter, the state filters (`trainingState`, `testState`) and a text search (`q`) in the search params.                                                                |
 | `routes/_authenticated/clienti/$clientId/angajati/nou.tsx`                            | `/clienti/:id/angajati/nou`                            | Form that adds an employee to the client.                                                                                                                                                                  |
@@ -1031,10 +1031,19 @@ their tab bars read.
   "Adaugă ca nouă". Every change goes to `PUT …/library-parts/{part}/changes` as the client
   review's do, one save after another on the version the previous answered. Before the client is
   confirmed its button reads "Confirmă întâi clientul"; confirming the client with parts returns
-  to the hub, which for a confirmed import shows the client's notice and the group
-  (`confirmed-hub.tsx`), and the client's "Detalii" links back while a part is neither confirmed
-  nor expired (`GET /imports?clientId=&status=confirmed`). A failed part offers "Citește din
-  nou" (`POST …/retry`).
+  to the import's page, which for a confirmed import (`confirmed-hub.tsx`) leads with "Ce mai ai
+  de făcut" while a part is neither confirmed nor expired (`isOpenPart`): the parts' deadline
+  ("Până pe … · mai ai N zile", `next-steps-model.ts`) and a row per open part with its
+  description, its status while it reads or failed, and a button to its page, the first one
+  primary. "Gata" lists the client's data, with "Deschide clientul", and each confirmed part with
+  "Vezi"; an expired part goes under "Au expirat". Once nothing is open, a green panel says
+  "Importul e încheiat." with what was taken and "Deschide clientul", above "Ce am preluat". The
+  client's "Detalii" links back while a part is open (`LibraryTasksNotice`), and its last card,
+  "Importuri din documente" (`client-imports-card.tsx`), lists every confirmed client import of
+  the client, newest first, with its day, who ran it, its files and what is left ("N de
+  verificat, până pe …", "Încheiat", or what expired), each row opening the import; both read
+  `GET /imports?clientId=&status=confirmed`, which for a client's client imports has no cap. A
+  failed part offers "Citește din nou" (`POST …/retry`).
 - The import's risk evaluations ([ADR 036](architecture/adr-036-risk-library-and-import.md),
   `risks-task-page.tsx`, `risk-sheet-card.tsx`, `risks-model.ts`). After the instructions the hub
   shows the group "Evaluări de risc" with one task, "Fișe de evaluare", for the part

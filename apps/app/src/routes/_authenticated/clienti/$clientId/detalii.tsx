@@ -8,6 +8,7 @@ import { LegalRepresentativeCard } from '@/features/clients/legal-representative
 import { OwnerNotesCard } from '@/features/clients/owner-notes-card';
 import { WorkplacesCard } from '@/features/clients/workplaces-card';
 import { ImportedNotice } from '@/features/imports/imported-notice';
+import { ClientImportsCard } from '@/features/imports/library/client-imports-card';
 import { LibraryTasksNotice } from '@/features/imports/library/library-tasks-notice';
 import {
   clientDetailsFocus,
@@ -54,6 +55,7 @@ function ClientDetailsPage() {
       />
       <ContactCard client={client} readOnly={readOnly} />
       {isOwner && <OwnerNotesCard clientId={client.id} userId={userId} readOnly={readOnly} />}
+      <ClientImportsCard clientId={client.id} />
     </div>
   );
 }

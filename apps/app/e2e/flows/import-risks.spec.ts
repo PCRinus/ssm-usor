@@ -172,17 +172,22 @@ test("a pack's risk evaluations are reviewed before the client is created, confi
   await evaluateJobPosition(organizationId, clientId, chambermaidPost);
 
   await page.goto(`/clienti/${clientId}/detalii`);
+  await expect(page.getByTestId('client-import-row')).toHaveAttribute('data-outcome', 'open');
   const reminder = page.getByTestId('client-library-tasks-notice');
   await expect(reminder).toContainText('Evaluări de risc: de verificat');
   await reminder.getByTestId('client-library-tasks-open').click();
-  await page.getByTestId('import-library-task').click();
+  await expect(page.getByTestId('import-next-step-open')).toHaveText('Verifică fișele');
+  await page.getByTestId('import-next-step-open').click();
   await expect(page.getByTestId('library-confirm')).toHaveText('Confirmă evaluările');
   await page.getByTestId('library-confirm').click();
 
-  await expect(page.getByTestId('import-confirmed-hub')).toBeVisible();
-  await expect(
-    page.getByTestId('import-library-task').getByTestId('library-part-status')
-  ).toHaveText('Confirmat');
+  await expect(page.getByTestId('import-finished')).toContainText(
+    'Datele clientului și fișele de evaluare sunt preluate.'
+  );
+  await expect(page.getByTestId('import-done-part')).toHaveAttribute(
+    'data-part',
+    'risk_evaluations'
+  );
 
   await page.goto('/evaluari-de-risc');
   const entries = page.getByTestId('risk-profile-row');
@@ -212,5 +217,6 @@ test("a pack's risk evaluations are reviewed before the client is created, confi
   await expect(page.getByTestId('risk-factor-row')).toHaveCount(chambermaidExisting + 3);
 
   await page.goto(`/clienti/${clientId}/detalii`);
+  await expect(page.getByTestId('client-import-row')).toHaveAttribute('data-outcome', 'done');
   await expect(page.getByTestId('client-library-tasks-notice')).toHaveCount(0);
 });
