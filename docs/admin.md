@@ -89,11 +89,14 @@ Without the team domain or the audience the Worker refuses every request.
 
 ## Requests to the API
 
-The browser only calls its own origin. The Worker sends `/api/*` to the service binding `API`,
-the API Worker's `Admin` entrypoint (`ssm-usor-api`, or `ssm-usor-api-non-prod`), with `/api`
-replaced by `/admin`: `GET /api/me` arrives as `GET /admin/me`. It passes the method, the body,
-the query string and the `Authorization`, `Content-Type`, `Accept` and `cf-ray` headers, and
-nothing else, so cookies and the Access token stay at the Worker.
+The browser only calls its own origin, and sends its cookies with those calls: Cloudflare Access
+checks `/api` like any other path, and without the `CF_Authorization` cookie the edge answers
+with a redirect to its sign-in page, which the app's client refuses. The Worker sends `/api/*`
+to the service binding `API`, the API Worker's `Admin` entrypoint (`ssm-usor-api`, or
+`ssm-usor-api-non-prod`), with `/api` replaced by `/admin`: `GET /api/me` arrives as
+`GET /admin/me`. It passes the method, the body, the query string and the `Authorization`,
+`Content-Type`, `Accept` and `cf-ray` headers, and nothing else, so cookies and the Access token
+stay at the Worker.
 
 The `Admin` entrypoint (`apps/api/src/index.ts`) serves only `createAdminApp()`
 (`apps/api/src/admin-app.ts`), a Hono app of its own under `/admin`. The public `fetch` does not

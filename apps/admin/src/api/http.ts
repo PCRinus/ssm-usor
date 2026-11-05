@@ -2,7 +2,7 @@ import { ApiHttpError, type ApiRequestOptions, createApiHttp } from '@ssm-usor/a
 
 export { ApiHttpError, type ApiRequestOptions } from '@ssm-usor/api-http';
 
-const http = createApiHttp();
+const http = createApiHttp({ credentials: 'same-origin' });
 
 export function apiFetch<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   return http.apiFetch<T>(path, options);

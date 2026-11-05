@@ -29,6 +29,9 @@ type FailureDetails =
 
 export interface ApiHttpOptions {
   onFailure?: (failure: ApiRequestFailure) => void;
+  // An API on the page's own origin behind Cloudflare Access needs the Access cookie; without it
+  // the edge answers with a redirect to its sign-in page.
+  credentials?: 'omit' | 'same-origin';
 }
 
 function apiUrl(baseUrl: string | undefined, path: string) {
@@ -64,7 +67,7 @@ const reportedStatus = (status: number) => status >= 500 || status === 401 || st
 
 const uuid = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 
-export function createApiHttp({ onFailure }: ApiHttpOptions = {}) {
+export function createApiHttp({ onFailure, credentials = 'omit' }: ApiHttpOptions = {}) {
   function reportFailure(
     method: string | undefined,
     url: URL,
@@ -96,7 +99,7 @@ export function createApiHttp({ onFailure }: ApiHttpOptions = {}) {
       response = await fetch(url, {
         ...request,
         headers,
-        credentials: 'omit',
+        credentials,
         redirect: 'error',
       });
     } catch (error) {
