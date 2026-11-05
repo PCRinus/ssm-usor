@@ -3,7 +3,6 @@ import { vi } from 'vitest';
 
 import type { AuthClient } from '@/features/auth/auth-store';
 
-// An account with a verified authenticator, as Supabase Auth returns it on the session's user.
 export function withFactor(session: Session): Session {
   return {
     ...session,
