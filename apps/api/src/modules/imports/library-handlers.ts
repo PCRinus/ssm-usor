@@ -693,8 +693,9 @@ async function partConfirmed(
     .eq('part', part)
     .eq('status', 'confirmed');
   if (error) {
+    // As in fromDatabaseError: a message that came with a code can quote the row's values.
     console.error(
-      `The quality of part ${part} of import ${importId} was not kept: ${error.message}`
+      `The quality of part ${part} of import ${importId} was not kept: ${error.code || `no code: ${error.message}`}`
     );
   }
   await queueEnded(c, importId, part);
