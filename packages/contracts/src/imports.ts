@@ -361,7 +361,7 @@ export const listImportsQuerySchema = z.object({
     .enum(['open', 'confirmed'])
     .optional()
     .meta({
-      description: `The open imports when left out; \`confirmed\` the ${confirmedListed} confirmed last, with \`uninvited\` counted for a client's employee imports.`,
+      description: `The open imports when left out; \`confirmed\` the ${confirmedListed} confirmed last, every one for a client's client imports, with \`uninvited\` counted for a client's employee imports.`,
     }),
 });
 

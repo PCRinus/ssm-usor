@@ -711,6 +711,67 @@ describe('PUT /imports/{importId}/changes', () => {
   });
 });
 
+describe('GET /imports with status confirmed', () => {
+  it("lists every confirmed client import of a client, with who ran it, its files and its library parts' deadline", async () => {
+    mockUpstream(({ url }) =>
+      url.pathname === '/rest/v1/imports'
+        ? Response.json([
+            importRow({
+              status: 'confirmed',
+              client_id: clientId,
+              clients: { id: clientId, legal_name: 'Royal Hotel SRL' },
+              confirmed_at: '2026-11-05T10:00:00+00:00',
+              import_files: [{ count: 50 }],
+              import_library_parts: [
+                { part: 'instructions_ssm', status: 'to_review' },
+                { part: 'risk_evaluations', status: 'confirmed' },
+              ],
+            }),
+          ])
+        : undefined
+    );
+    const response = await request(`/imports?clientId=${clientId}&status=confirmed`);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      items: [
+        {
+          id: importId,
+          createdBy: { id: user.id, fullName: 'Ana Popescu' },
+          fileCount: 50,
+          confirmedAt: '2026-11-05T10:00:00+00:00',
+          libraryParts: [
+            {
+              part: 'instructions_ssm',
+              status: 'to_review',
+              expiresAt: '2026-11-19T10:00:00.000Z',
+            },
+            {
+              part: 'risk_evaluations',
+              status: 'confirmed',
+              expiresAt: '2026-11-19T10:00:00.000Z',
+            },
+          ],
+        },
+      ],
+    });
+    const [list] = callsTo('/rest/v1/imports');
+    expect(list!.url.searchParams.get('kind')).toBe('eq.client');
+    expect(list!.url.searchParams.get('client_id')).toBe(`eq.${clientId}`);
+    expect(list!.url.searchParams.get('order')).toBe('confirmed_at.desc');
+    expect(list!.url.searchParams.has('limit')).toBe(false);
+  });
+
+  it("lists the organization's last ten confirmed client imports without a client", async () => {
+    mockUpstream(({ url }) =>
+      url.pathname === '/rest/v1/imports' ? Response.json([]) : undefined
+    );
+    await request('/imports?status=confirmed');
+
+    expect(callsTo('/rest/v1/imports')[0]!.url.searchParams.get('limit')).toBe('10');
+  });
+});
+
 describe('GET /imports/{importId}', () => {
   it('shows the files, the progress, the other companies and what blocks confirming', async () => {
     const proposal = { ...toProposal(reading), registeredCompany: null };

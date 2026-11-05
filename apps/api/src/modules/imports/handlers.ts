@@ -462,12 +462,14 @@ export const listImports: RouteHandler<typeof listImportsRoute, ApiEnv> = async 
   const db = createDataClient(c);
   const everyKind = db.from('imports').select(summaryColumns);
   const selected = kind === 'all' ? everyKind : everyKind.eq('kind', kind);
+  const lastConfirmed = () => {
+    const latest = selected.eq('status', 'confirmed').order('confirmed_at', { ascending: false });
+    // A client gets a client import only when a member re-imports its pack, so its own are few.
+    return clientId && kind === 'client' ? latest : latest.limit(confirmedListed);
+  };
   const query = (
     status === 'confirmed'
-      ? selected
-          .eq('status', 'confirmed')
-          .order('confirmed_at', { ascending: false })
-          .limit(confirmedListed)
+      ? lastConfirmed()
       : selected.in('status', [...openStatuses]).order('created_at', { ascending: false })
   )
     .order('updated_at', { referencedTable: 'last_file', ascending: false })

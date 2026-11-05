@@ -15636,7 +15636,7 @@ export type ListImportsParams = {
    */
   kind?: ListImportsKind;
   /**
-   * The open imports when left out; `confirmed` the 10 confirmed last, with `uninvited` counted for a client's employee imports.
+   * The open imports when left out; `confirmed` the 10 confirmed last, every one for a client's client imports, with `uninvited` counted for a client's employee imports.
    */
   status?: ListImportsStatus;
 };
@@ -35410,7 +35410,7 @@ export const getListImportsUrl = (params?: ListImportsParams) => {
 };
 
 /**
- * Every import of `kind` (client imports when left out, both kinds with `all`) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, with `all` those the app watches to say when a member's import finishes reading, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first; with `kind` `employees` and `clientId` each counts in `uninvited` the current employees it brought who are neither participants nor invited, and the Angajați tab offers to invite the people of the latest with someone left.
+ * Every import of `kind` (client imports when left out, both kinds with `all`) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, with `all` those the app watches to say when a member's import finishes reading, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first: the last ten, or every one of a client's client imports with `clientId`, which its Detalii tab lists with what is left of each; with `kind` `employees` and `clientId` each counts in `uninvited` the current employees it brought who are neither participants nor invited, and the Angajați tab offers to invite the people of the latest with someone left.
  * @summary List the organization's open or last confirmed imports
  */
 export const listImports = async (
