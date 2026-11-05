@@ -115,10 +115,22 @@ describe('the Access check', () => {
   );
 
   it('lets local development through only with ACCESS_CHECK=off', async () => {
-    expect((await call(request('/'), env({ ACCESS_CHECK: 'off' }))).status).toBe(200);
-    for (const value of ['false', 'OFF', '0', '']) {
-      expect((await call(request('/'), env({ ACCESS_CHECK: value }))).status).toBe(403);
+    for (const origin of ['http://localhost:8787', 'http://127.0.0.1:8787']) {
+      const local = new Request(`${origin}/`);
+      expect((await call(local, env({ ACCESS_CHECK: 'off' }))).status).toBe(200);
+      for (const value of ['false', 'OFF', '0', '']) {
+        expect((await call(local, env({ ACCESS_CHECK: value }))).status).toBe(403);
+      }
     }
+  });
+
+  it('ignores ACCESS_CHECK=off on any host but localhost', async () => {
+    const off = env({ ACCESS_CHECK: 'off' });
+    expect((await call(request('/'), off)).status).toBe(403);
+    const lookalike = new Request('https://localhost.ssmusor.ro/');
+    expect((await call(lookalike, off)).status).toBe(403);
+    const token = await accessToken();
+    expect((await call(request('/', { 'Cf-Access-Jwt-Assertion': token }), off)).status).toBe(200);
   });
 });
 

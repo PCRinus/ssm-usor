@@ -7,7 +7,8 @@ export interface AdminWorkerEnv {
   ACCESS_TEAM_DOMAIN?: string;
   // The Access application's audience tag, one per environment.
   ACCESS_AUD?: string;
-  // "off" skips the Access check. Only apps/admin/.dev.vars may set it, for `wrangler dev`.
+  // "off" skips the Access check, but only for a request to localhost or 127.0.0.1 (`wrangler dev`),
+  // so the var set by mistake on a deployed Worker turns nothing off.
   ACCESS_CHECK?: string;
 }
 
@@ -24,8 +25,10 @@ function keySetOf(teamDomain: string) {
   return keySet;
 }
 
+const localHosts = new Set(['localhost', '127.0.0.1']);
+
 async function passedAccess(request: Request, env: AdminWorkerEnv) {
-  if (env.ACCESS_CHECK === 'off') return true;
+  if (env.ACCESS_CHECK === 'off' && localHosts.has(new URL(request.url).hostname)) return true;
   const teamDomain = env.ACCESS_TEAM_DOMAIN?.trim();
   const audience = env.ACCESS_AUD?.trim();
   if (!teamDomain || !audience) {

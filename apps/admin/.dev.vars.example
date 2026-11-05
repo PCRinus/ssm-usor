@@ -1,3 +1,3 @@
-# Copy to .dev.vars for `pnpm dev`. Never set it anywhere else: it lets every request past the
-# Cloudflare Access check, which nothing on a laptop can pass.
+# Copy to .dev.vars for `pnpm dev`. Never set it anywhere else: it lets every request to localhost
+# past the Cloudflare Access check, which nothing on a laptop can pass.
 ACCESS_CHECK=off

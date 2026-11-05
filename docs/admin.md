@@ -71,8 +71,11 @@ pnpm dev:admin
 ```
 
 `.dev.vars` holds `ACCESS_CHECK=off`, the only way past the Access check, since nothing on a
-laptop has an Access token. Git ignores the file, and a test fails if `wrangler.jsonc` ever sets
-the variable. Any other value, or none, keeps the check on.
+laptop has an Access token. The Worker honours it only for a request to `localhost` or
+`127.0.0.1`, so `pnpm dev:admin` starts `wrangler dev` with `--local-upstream`: without it,
+Wrangler hands the Worker the route's host. Git ignores the file, and a test fails if
+`wrangler.jsonc` ever sets the variable. Any other value, or none, keeps the check on, and on a
+deployed Worker even `off` does.
 
 `pnpm dev:admin` starts Vite on http://localhost:5176 for the pages and the Worker under
 `wrangler dev` on port 8794, and Vite sends `/api` on to the Worker. The Worker finds the API

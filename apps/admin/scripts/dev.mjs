@@ -9,7 +9,13 @@ import process from 'node:process';
 mkdirSync(new URL('../dist', import.meta.url), { recursive: true });
 
 const children = [
-  spawn('wrangler', ['dev', '--port', '8794', '--inspector-port', '9243'], { stdio: 'inherit' }),
+  // Without --local-upstream, wrangler dev rewrites request.url to the route's host, and the
+  // Worker honours ACCESS_CHECK=off only on localhost.
+  spawn(
+    'wrangler',
+    ['dev', '--port', '8794', '--inspector-port', '9243', '--local-upstream', 'localhost:8794'],
+    { stdio: 'inherit' }
+  ),
   spawn('vite', ['--port', '5176', '--strictPort'], { stdio: 'inherit' }),
 ];
 
