@@ -34,6 +34,15 @@ describe('fetching from the API', () => {
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ credentials: 'omit', redirect: 'error' });
   });
 
+  it('passes the credentials mode it was created with', async () => {
+    fetchMock.mockImplementation(async () => Response.json({}));
+    await createApiHttp({ credentials: 'same-origin' }).apiFetch('/me', { baseUrl });
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      credentials: 'same-origin',
+      redirect: 'error',
+    });
+  });
+
   it('sends no Authorization header without a session, even one the caller set', async () => {
     fetchMock.mockResolvedValue(Response.json({}));
     await apiFetch('/me', {

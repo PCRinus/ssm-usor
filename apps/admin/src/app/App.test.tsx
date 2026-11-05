@@ -157,6 +157,7 @@ describe('the admin sign-in', () => {
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(String(url)).toBe('http://localhost:5176/api/me');
     expect(new Headers(init?.headers).get('Authorization')).toBe(`Bearer ${token('aal2')}`);
+    expect(init?.credentials).toBe('same-origin');
   });
 
   it('removes a factor left unverified before enrolling again', async () => {
