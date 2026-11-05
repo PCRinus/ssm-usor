@@ -1,5 +1,6 @@
 import { costOf, type ModelId, noUsage, type Usage } from '@ssm-usor/import';
 
+import { readingOutputTokens, sortingOutputTokens } from '../../../src/modules/imports/pipeline';
 import type { Reader, ReadingVersion } from '../../../src/modules/imports/reading-version';
 import { readerOf, type TestCase } from './cases';
 
@@ -15,6 +16,8 @@ export interface Estimate {
   byModel: Partial<Record<ModelId, { usage: Usage; cost: number }>>;
   // Copies with a step that had no usage stored, estimated from their text alone.
   fromText: number;
+  // Copies with a step that stored no usage and has no text to guess from, left out of the cost.
+  unknown: number;
 }
 
 interface StepUsage {
@@ -30,6 +33,13 @@ const add = (a: Usage, b: Usage): Usage => ({
 });
 
 const pageReading = /\.page-\d+\.json$/;
+
+// A reasoning model's output is most of a step's cost and the text says nothing of it, so a
+// guess counts the most the step may write: an estimate above the spending, never under it.
+const textSteps: Record<string, number> = {
+  sorting: sortingOutputTokens,
+  reading: readingOutputTokens,
+};
 
 function scannedPagesOf(testCase: TestCase) {
   const record = testCase.type === 'import' ? testCase.record : testCase.importRecord;
@@ -66,6 +76,7 @@ export function estimateCases(
     scannedPages: 0,
     byModel: {},
     fromText: 0,
+    unknown: 0,
   };
   for (const testCase of cases) {
     const models = versions[readerOf(testCase)].models;
@@ -74,15 +85,24 @@ export function estimateCases(
     estimate.characters += characters;
     estimate.scannedPages += scannedPagesOf(testCase);
     let guessed = false;
+    let unknown = false;
     for (const step of stepsOf(testCase, rescan)) {
       const model = models[step] as ModelId | undefined;
       if (!model) continue;
       let usage = storedUsage(testCase, step);
-      if (!usage && (step === 'sorting' || step === 'reading') && characters > 0) {
-        usage = { input: Math.ceil(characters / charactersPerToken), cachedInput: 0, output: 0 };
+      const outputCap = textSteps[step];
+      if (!usage && outputCap !== undefined && characters > 0) {
+        usage = {
+          input: Math.ceil(characters / charactersPerToken),
+          cachedInput: 0,
+          output: outputCap,
+        };
         guessed = true;
       }
-      if (!usage) continue;
+      if (!usage) {
+        unknown = true;
+        continue;
+      }
       const spent = estimate.byModel[model] ?? { usage: noUsage, cost: 0 };
       estimate.byModel[model] = {
         usage: add(spent.usage, usage),
@@ -90,6 +110,7 @@ export function estimateCases(
       };
     }
     if (guessed) estimate.fromText++;
+    if (unknown) estimate.unknown++;
   }
   return estimate;
 }
@@ -126,7 +147,12 @@ export function estimateLines(estimate: Estimate, rescan: boolean): string[] {
     `  ${'total'.padEnd(width)}  ${dollars(totalCost(estimate)).padStart(10)}`,
     ...(estimate.fromText > 0
       ? [
-          `  ${estimate.fromText} of them stored no usage for a step, so its input is guessed from the text and its output left out.`,
+          `  ${estimate.fromText} of them stored no usage for a step, so its input is guessed from the text and its output counted at the step's limit.`,
+        ]
+      : []),
+    ...(estimate.unknown > 0
+      ? [
+          `  ${estimate.unknown} of them stored no usage and no text for a step, so what they cost is unknown and not in the total.`,
         ]
       : []),
   ];

@@ -25,6 +25,7 @@ export function parseRunArgs(args: string[], now = new Date()): RunOptions {
       rescan: { type: 'boolean', default: false },
       yes: { type: 'boolean', default: false },
       trial: { type: 'boolean', default: false },
+      'max-cost': { type: 'string' },
       out: { type: 'string' },
       'show-values': { type: 'boolean', default: false },
     },
@@ -49,6 +50,13 @@ export function parseRunArgs(args: string[], now = new Date()): RunOptions {
   if (limit !== null && !(Number.isInteger(limit) && limit >= 1)) {
     throw new Error('--limit is a whole number from 1.');
   }
+  const maxCost = values['max-cost'] === undefined ? null : Number(values['max-cost']);
+  if (maxCost !== null && !(Number.isFinite(maxCost) && maxCost > 0)) {
+    throw new Error('--max-cost is a number of dollars above 0.');
+  }
+  if (values.yes && !values.trial && maxCost === null) {
+    throw new Error('--yes spends: pass --max-cost <usd> with it, or --trial to read one copy.');
+  }
   const stamp = now.toISOString().replace(/[:.]/g, '-');
   return {
     environment,
@@ -61,6 +69,7 @@ export function parseRunArgs(args: string[], now = new Date()): RunOptions {
     rescan: values.rescan,
     yes: values.yes,
     trial: values.trial,
+    maxCost,
     out: values.out ?? join(tmpdir(), `import-test-run-${environment}-${stamp}.json`),
     showValues: values['show-values'],
   };

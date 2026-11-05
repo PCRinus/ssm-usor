@@ -43,6 +43,21 @@ export class NoResultError extends Error {
 
 const key = (value: unknown) => foldText(String(value ?? ''));
 
+// Unread changes would leave the answer as the unreviewed proposal, which flatters the reading.
+function readChanges<T>(changes: unknown, read: (value: unknown) => T | null): T | null {
+  if (changes === null || changes === undefined) return null;
+  const decided = read(changes);
+  if (decided === null) throw new NoResultError("The copy's changes no longer read.");
+  return decided;
+}
+
+const parsedWith =
+  <T>(schema: { safeParse(value: unknown): { success: true; data: T } | { success: false } }) =>
+  (value: unknown) => {
+    const parsed = schema.safeParse(value);
+    return parsed.success ? parsed.data : null;
+  };
+
 function valueOf(value: unknown): Value {
   if (value === null || value === undefined) return null;
   if (Array.isArray(value)) return value.map(String).sort().join('; ');
@@ -147,7 +162,7 @@ export function confirmedClient(proposal: unknown, changes: unknown): Sections {
   return clientSections(
     toClientPayload({
       proposal: stored.proposal,
-      changes: storedChanges(changes),
+      changes: readChanges(changes, storedChanges),
       intoExistingClient: false,
       existing: noExistingRecords,
     }).payload
@@ -176,7 +191,9 @@ export function employeeSections(payload: EmployeeImportPayload): Sections {
       training.records.map((record) => {
         const person = key(people.get(record.employee_key));
         return {
-          identities: [`${person}|${training.domain}|${training.phase}|${training.held_on}`],
+          identities: [
+            person ? `${person}|${training.domain}|${training.phase}|${training.held_on}` : '',
+          ],
           group: `${person}|${training.domain}|${training.phase}`,
           values: {
             ...valuesOf(training as unknown as Row, ['key', 'records', 'domain', 'phase']),
@@ -188,7 +205,7 @@ export function employeeSections(payload: EmployeeImportPayload): Sections {
     tests: payload.test_results.map((result) => {
       const person = key(people.get(result.employee_key));
       return {
-        identities: [`${person}|${result.domain}|${result.test}`],
+        identities: [person ? `${person}|${result.domain}|${result.test}` : ''],
         group: `${person}|${result.domain}`,
         values: valuesOf(result as unknown as Row, ['employee_key', 'domain', 'test', 'material']),
       };
@@ -214,7 +231,7 @@ const noRecords = { jobPositions: [], workplaces: [], employees: [] };
 export function confirmedEmployees(proposal: unknown, changes: unknown, today: string): Sections {
   const stored = storedEmployeeProposal(proposal);
   if (!stored) throw new NoResultError('The copy keeps no employee proposal.');
-  const decided = storedEmployeeChanges(changes);
+  const decided = readChanges(changes, storedEmployeeChanges);
   const withoutMatches: EmployeeImportChanges | null = decided && {
     ...decided,
     people: Object.fromEntries(
@@ -270,11 +287,11 @@ export function instructionSections(
 ): Sections {
   const parsed = instructionsProposalSchema.safeParse(proposal);
   if (!parsed.success) throw new NoResultError('The copy keeps no instructions proposal.');
-  const decided = changes === null ? null : instructionImportChangesSchema.safeParse(changes);
+  const decided = readChanges(changes, parsedWith(instructionImportChangesSchema));
   const postName = postNames(importProposal);
   const reviewed = reviewedInstructions(
     parsed.data,
-    decided?.success ? decided.data : null,
+    decided,
     positionPostsOf(parsed.data, { proposal: importProposal as never })
   );
   return {
@@ -302,8 +319,7 @@ export function riskSections(
   const parsed = risksProposalSchema.safeParse(proposal);
   if (!parsed.success) throw new NoResultError('The copy keeps no risks proposal.');
   const risks = parsed.data as RisksProposal;
-  const decided = changes === null ? null : riskImportChangesSchema.safeParse(changes);
-  const sheetChanges = decided?.success ? decided.data : null;
+  const sheetChanges = readChanges(changes, parsedWith(riskImportChangesSchema));
   const postName = postNames(importProposal);
   const { reviewed } = reviewedRiskFactors(risks, sheetChanges);
   const written = risks.sheets.filter((sheet) => (reviewed.get(sheet.key) ?? []).length > 0);

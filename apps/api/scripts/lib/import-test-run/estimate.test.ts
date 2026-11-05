@@ -1,6 +1,7 @@
 import { costOf } from '@ssm-usor/import';
 import { describe, expect, it } from 'vitest';
 
+import { readingOutputTokens, sortingOutputTokens } from '../../../src/modules/imports/pipeline';
 import type { TestCase } from './cases';
 import { estimateCases, estimateLines, stepsOf, totalCost } from './estimate';
 import { currentVersions } from './run';
@@ -124,12 +125,35 @@ describe('estimateCases', () => {
     );
   });
 
-  it('guesses the input of a step that stored no usage from the copy’s text', async () => {
+  it('guesses a step that stored no usage from the copy’s text, its output at the step’s limit', async () => {
     const estimate = estimateCases([clientCase(null)], await currentVersions(), false);
 
-    expect(estimate.fromText).toBe(1);
-    expect(estimate.byModel['gpt-6.1-terra']!.usage.input).toBe(10_000);
-    expect(estimate.byModel['gpt-6-luna']!.usage.input).toBe(10_000);
+    expect(estimate).toMatchObject({ fromText: 1, unknown: 0 });
+    expect(estimate.byModel['gpt-6.1-terra']!.usage).toEqual({
+      input: 10_000,
+      cachedInput: 0,
+      output: readingOutputTokens,
+    });
+    expect(estimate.byModel['gpt-6-luna']!.usage).toEqual({
+      input: 10_000,
+      cachedInput: 0,
+      output: sortingOutputTokens,
+    });
+  });
+
+  it('counts apart a copy that stored no usage and has no text to guess from', async () => {
+    const unpriced: TestCase = {
+      ...risksCase,
+      record: partRecord({ import: 'import-1', part: 'risk_evaluations' }),
+    } as TestCase;
+
+    const estimate = estimateCases([unpriced, risksCase], await currentVersions(), false);
+
+    expect(estimate).toMatchObject({ copies: 2, unknown: 1 });
+    expect(totalCost(estimate)).toBeGreaterThan(0);
+    expect(estimateLines(estimate, false).at(-1)).toBe(
+      '  1 of them stored no usage and no text for a step, so what they cost is unknown and not in the total.'
+    );
   });
 
   it('costs nothing for an employee copy read from its kept page readings', async () => {

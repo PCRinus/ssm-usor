@@ -20,6 +20,7 @@ import type { CopyContext } from '../../../src/modules/imports/copies';
 import {
   ImportFailure,
   type ImportObjects,
+  isTransient,
   type PipelineDeps,
 } from '../../../src/modules/imports/pipeline';
 import { recordFailure, runStep } from '../../../src/modules/imports/queue';
@@ -29,7 +30,7 @@ import type {
   ImportStore,
   LibraryPartRow,
 } from '../../../src/modules/imports/store';
-import type { CopySource, ImportCopyRecord, TestCase } from './cases';
+import { type CopySource, type ImportCopyRecord, MissingObjectError, type TestCase } from './cases';
 
 // Read from the database, never written: what the copy's record does not hold.
 export interface CaseContext {
@@ -168,8 +169,15 @@ export function fileRows(record: ImportCopyRecord, asLeft: boolean) {
   return { files, names };
 }
 
+class NotInTestRun extends Error {
+  constructor(what: string) {
+    super(`A test run does not ${what}.`);
+    this.name = 'NotInTestRun';
+  }
+}
+
 const unused = (name: string) => () => {
-  throw new Error(`A test run does not ${name}.`);
+  throw new NotInTestRun(name);
 };
 
 function memoryObjects(
@@ -195,7 +203,7 @@ function memoryObjects(
       const own = written.get(path);
       if (own) return own;
       const name = nameIn(path);
-      if (name === null || !kept.has(name)) throw new Error(`Object not found: ${path}`);
+      if (name === null || !kept.has(name)) throw new MissingObjectError(path);
       let bytes = loaded.get(name);
       if (!bytes) {
         bytes = load(name);
@@ -308,7 +316,19 @@ export interface ReadAgainInput {
   model: ModelClient;
   extractor: ExtractorService | null;
   rescan: boolean;
+  wait?: (milliseconds: number) => Promise<void>;
 }
+
+// As the queue retries a delivery (queue.ts), fewer times: a run waits on each one.
+const transientRetries = 2;
+const retryDelayMilliseconds = 30_000;
+
+const sleep = (milliseconds: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
+
+// isTransient takes any unknown error for a passing one; these are the run's own refusals.
+const retried = (error: unknown) =>
+  isTransient(error) && !(error instanceof NotInTestRun || error instanceof MissingObjectError);
 
 export async function readAgain(input: ReadAgainInput): Promise<CaseReading> {
   const { testCase, rescan } = input;
@@ -394,10 +414,18 @@ export async function readAgain(input: ReadAgainInput): Promise<CaseReading> {
     if (!rescan && message.type === 'scan' && !message.pages) {
       keepFirstSorting(state, importRecord, message.fileId);
     }
-    try {
-      await runStep(deps, message, `test-run-${step}`);
-    } catch (error) {
-      await recordFailure(deps, message, error);
+    for (let attempt = 0; ; attempt++) {
+      try {
+        await runStep(deps, message, `test-run-${step}`);
+        break;
+      } catch (error) {
+        if (attempt < transientRetries && retried(error)) {
+          await (input.wait ?? sleep)(retryDelayMilliseconds * 2 ** attempt);
+          continue;
+        }
+        await recordFailure(deps, message, error);
+        break;
+      }
     }
   }
   return outcomeOf(state);

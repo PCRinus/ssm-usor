@@ -17,7 +17,13 @@ import {
 } from '@ssm-usor/import';
 
 import type { CopyContext } from '../../../../src/modules/imports/copies';
-import type { CopySource, ImportCopyRecord, KeptCopy, PartCopyRecord } from '../cases';
+import {
+  type CopySource,
+  type ImportCopyRecord,
+  type KeptCopy,
+  MissingObjectError,
+  type PartCopyRecord,
+} from '../cases';
 
 export const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
 export const today = '2026-11-05';
@@ -330,6 +336,7 @@ export function memoryBucket() {
   const objects = new Map<string, Uint8Array>();
   const kept: KeptCopy[] = [];
   const reads: string[] = [];
+  const unavailable = new Set<string>();
   const put = (path: string, value: string | Uint8Array | object) =>
     objects.set(
       path,
@@ -347,8 +354,9 @@ export function memoryBucket() {
     },
     async read(path) {
       reads.push(path);
+      if (unavailable.has(path)) throw new Error('Storage is unavailable.');
       const bytes = objects.get(path);
-      if (!bytes) throw new Error(`No object ${path}`);
+      if (!bytes) throw new MissingObjectError(path);
       return bytes;
     },
   };
@@ -356,6 +364,7 @@ export function memoryBucket() {
     source,
     reads,
     put,
+    unavailable,
     keepImport(record: ImportCopyRecord, files: Record<string, string | Uint8Array | object>) {
       const folder = `${record.organization}/${record.import}`;
       for (const [name, value] of Object.entries(files)) put(`${folder}/files/${name}`, value);

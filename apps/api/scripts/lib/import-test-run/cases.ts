@@ -39,6 +39,13 @@ export interface Selection {
   limit: number | null;
 }
 
+export class MissingObjectError extends Error {
+  constructor(path: string) {
+    super(`Object not found: ${path}`);
+    this.name = 'MissingObjectError';
+  }
+}
+
 const decoder = new TextDecoder();
 
 export async function readJson<T>(source: CopySource, path: string): Promise<T> {
@@ -64,12 +71,21 @@ export async function selectCases(
 ): Promise<TestCase[]> {
   const wantsImports = selection.kind !== null || selection.parts.length === 0;
   const wantsParts = selection.parts.length > 0 || selection.kind === null;
+  // A record the clean-up removed leaves its copy out; one Storage could not give is said, so
+  // an outage does not pass for an empty selection.
+  const recordOf = <T>(path: string, label: string) =>
+    readJson<T>(source, path).catch((error: unknown) => {
+      if (!(error instanceof MissingObjectError)) {
+        warn(`${label}: its record could not be read, so it is left out.`);
+      }
+      return null;
+    });
   const importRecords = new Map<string, Promise<ImportCopyRecord | null>>();
   const importRecordOf = (copy: KeptCopy) => {
     const folder = `${copy.organizationId}/${copy.importId}`;
     let record = importRecords.get(folder);
     if (!record) {
-      record = readJson<ImportCopyRecord>(source, `${folder}/record.json`).catch(() => null);
+      record = recordOf<ImportCopyRecord>(`${folder}/record.json`, `import ${copy.importId}`);
       importRecords.set(folder, record);
     }
     return record;
@@ -90,10 +106,10 @@ export async function selectCases(
     if (!wantsParts) continue;
     if (selection.parts.length > 0 && !selection.parts.includes(copy.part)) continue;
     if (selection.kind === 'employees') continue;
-    const record = await readJson<PartCopyRecord>(
-      source,
-      `${folder}/parts/${copy.part}/record.json`
-    ).catch(() => null);
+    const record = await recordOf<PartCopyRecord>(
+      `${folder}/parts/${copy.part}/record.json`,
+      `${copy.part} of import ${copy.importId}`
+    );
     if (!record) continue;
     if (selection.confirmedOnly && record.status !== 'confirmed') continue;
     if (!importRecord) {

@@ -5,6 +5,7 @@ import {
   confirmedClient,
   confirmedEmployees,
   instructionSections,
+  NoResultError,
   readClient,
   readEmployees,
   riskSections,
@@ -68,6 +69,17 @@ describe('pairRows', () => {
       [2, 2],
       [3, null],
       [null, 3],
+    ]);
+  });
+
+  it('pairs no rows by an identity made of blank parts', () => {
+    const expected = [row(['|'], null, {}), row(['|', 'popescu ion'], null, {})];
+    const got = [row(['popescu ion|'], null, {}), row(['|', 'popescu ion'], null, {})];
+
+    expect(pairRows(expected, got)).toEqual([
+      [1, 1],
+      [0, null],
+      [null, 0],
     ]);
   });
 
@@ -185,6 +197,15 @@ describe('an employee import', () => {
     expect(comparison.sections.trainings!.found).toBeGreaterThan(0);
   });
 
+  it('gives a training of a nameless person no identity of its own', () => {
+    const nameless = sheetPage({ person: { lastName: null, firstName: null } });
+
+    const trainings = readEmployees(employeeProposal(nameless), today).trainings!;
+
+    expect(trainings.length).toBeGreaterThan(0);
+    expect(trainings.every((training) => training.identities[0] === '')).toBe(true);
+  });
+
   it('leaves out a person the member did not check', () => {
     const answer = employeeProposal(sheetPage({}));
 
@@ -271,5 +292,32 @@ describe('a risks part', () => {
       ].sort()
     );
     expect(comparison.sections.sheets).toEqual({ found: 3, missed: 0, wrong: 0, extra: 0 });
+  });
+});
+
+describe('a copy whose changes no longer read', () => {
+  const unreadable = { people: [], fields: [], instructions: [], sheets: [] };
+
+  it('has no answer, rather than the proposal as it was before the member reviewed it', () => {
+    const importProposal = clientProposal();
+
+    expect(() => confirmedClient(clientProposal(), unreadable)).toThrow(NoResultError);
+    expect(() => confirmedEmployees(employeeProposal(sheetPage({})), unreadable, today)).toThrow(
+      /changes no longer read/
+    );
+    expect(() =>
+      instructionSections(
+        instructionsProposal([instruction({ number: '1' })]),
+        unreadable,
+        importProposal
+      )
+    ).toThrow(/changes no longer read/);
+    expect(() =>
+      riskSections(
+        risksProposal([riskSheet([riskFactor({ key: 'f1', description: 'Zgomot' })])]),
+        unreadable,
+        importProposal
+      )
+    ).toThrow(/changes no longer read/);
   });
 });

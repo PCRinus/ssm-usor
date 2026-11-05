@@ -1,6 +1,8 @@
+import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { mkdir, rename, rm, writeFile } from 'node:fs/promises';
-import { dirname, isAbsolute, relative, resolve } from 'node:path';
+import { mkdir, realpath, rename, rm, writeFile } from 'node:fs/promises';
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { promisify } from 'node:util';
 
 import {
   type ExtractorService,
@@ -52,6 +54,8 @@ export interface RunOptions extends Selection {
   trial: boolean;
   out: string;
   showValues: boolean;
+  // In dollars; null only for a trial or a run told nothing to spend.
+  maxCost: number | null;
 }
 
 export interface RunDeps {
@@ -64,6 +68,15 @@ export interface RunDeps {
   repositoryRoot: string;
   today: string;
   now?: () => Date;
+  wait?: (milliseconds: number) => Promise<void>;
+  revision?: (repositoryRoot: string) => Promise<CodeRevision | null>;
+}
+
+// The reading version names the models and the prompts; the reasoning effort, the token limits
+// and the code after the model are told only by the commit.
+export interface CodeRevision {
+  commit: string;
+  dirty: boolean;
 }
 
 interface CaseReport {
@@ -89,12 +102,17 @@ export interface RunReport {
   environment: string;
   rescan: boolean;
   trial: boolean;
+  maxCost: number | null;
+  // Null where git could not tell.
+  code: CodeRevision | null;
   readingVersions: Record<Reader, ReadingVersion>;
   cases: CaseReport[];
   summary: {
     compared: number;
     failed: number;
     skipped: number;
+    // Left when the spending reached --max-cost.
+    notStarted: number;
     totals: Counts;
     score: number | null;
     cost: number;
@@ -110,11 +128,33 @@ export async function currentVersions() {
   return Object.fromEntries(entries) as Record<Reader, ReadingVersion>;
 }
 
-// The repository is public, and the report names the copies it read.
-export function isRepositoryPath(path: string, root: string) {
-  const from = relative(resolve(root), resolve(path));
-  return from === '' || (!from.startsWith('..') && !isAbsolute(from));
+// The repository is public, and the report names the copies it read. Both sides are compared
+// as real paths, so a symlink or a path in another case on macOS does not slip past.
+export async function isRepositoryPath(path: string, root: string) {
+  const target = resolve(path);
+  await mkdir(dirname(target), { recursive: true });
+  const folder = await realpath(dirname(target));
+  const repository = await realpath(root).catch(() => resolve(root));
+  const from = relative(repository, join(folder, basename(target)));
+  return from === '' || !(from === '..' || from.startsWith(`..${sep}`) || isAbsolute(from));
 }
+
+const exec = promisify(execFile);
+
+export async function codeRevision(repositoryRoot: string): Promise<CodeRevision | null> {
+  try {
+    const [head, status] = await Promise.all([
+      exec('git', ['rev-parse', 'HEAD'], { cwd: repositoryRoot }),
+      exec('git', ['status', '--porcelain'], { cwd: repositoryRoot }),
+    ]);
+    return { commit: head.stdout.trim(), dirty: status.stdout.trim() !== '' };
+  } catch {
+    return null;
+  }
+}
+
+const codeText = (code: CodeRevision | null) =>
+  code ? `${code.commit.slice(0, 12)}${code.dirty ? ' with uncommitted changes' : ''}` : 'unknown';
 
 const versionText = (version: unknown) => {
   if (!version || typeof version !== 'object') return 'none';
@@ -168,7 +208,7 @@ const tokens = (usage: Usage) =>
 // Nothing of a copy is written to disk: the report alone, which holds counts and no values.
 export async function runTests(options: RunOptions, deps: RunDeps): Promise<RunReport | null> {
   const print = deps.print;
-  if (isRepositoryPath(options.out, deps.repositoryRoot)) {
+  if (await isRepositoryPath(options.out, deps.repositoryRoot)) {
     throw new Error('Pass --out outside the repository, which is public.');
   }
   const versions = await currentVersions();
@@ -186,132 +226,164 @@ export async function runTests(options: RunOptions, deps: RunDeps): Promise<RunR
   const spends = cases.some((testCase) => stepsOf(testCase, options.rescan).length > 0);
   if (spends && !options.yes) {
     print(
-      `Nothing was sent to a model. Run again with --yes to spend about ${dollars(totalCost(estimate))}, or with --trial --yes to read the first copy alone.`
+      `Nothing was sent to a model. Run again with --yes --max-cost <usd> to spend about ${dollars(totalCost(estimate))}, or with --trial --yes to read the first copy alone.`
     );
     return null;
   }
 
   const model = spends ? deps.model() : null;
+  const code = await (deps.revision ?? codeRevision)(deps.repositoryRoot);
   const reports: CaseReport[] = [];
   const totals = noCounts();
-  for (const testCase of cases) {
-    const current = versions[readerOf(testCase)];
-    const base = {
-      copy: caseLabel(testCase),
-      import: testCase.record.import,
-      organization: testCase.record.organization,
-      part: testCase.type === 'part' ? testCase.part : null,
-      readingVersion: { stored: testCase.record.readingVersion, current },
+  const spentSoFar = () => reports.reduce((sum, each) => sum + each.spent.cost, 0);
+  let notStarted = 0;
+  let report: RunReport;
+  try {
+    for (const [index, testCase] of cases.entries()) {
+      if (options.maxCost !== null && spentSoFar() >= options.maxCost) {
+        notStarted = cases.length - index;
+        print(
+          `Spending reached --max-cost ${dollars(options.maxCost)}: ${notStarted} ${notStarted === 1 ? 'copy' : 'copies'} not started.`
+        );
+        break;
+      }
+      const each = await runCase(testCase, versions, model, options, deps);
+      reports.push(each);
+      if (each.comparison) addCounts(totals, each.comparison.totals);
+    }
+  } finally {
+    const cost = spentSoFar();
+    report = {
+      ranAt: (deps.now?.() ?? new Date()).toISOString(),
+      environment: options.environment,
+      rescan: options.rescan,
+      trial: options.trial,
+      maxCost: options.maxCost,
+      code,
+      readingVersions: versions,
+      cases: reports,
+      summary: {
+        compared: reports.filter((each) => each.status === 'compared').length,
+        failed: reports.filter((each) => each.status === 'failed').length,
+        skipped: reports.filter((each) => each.status === 'skipped').length,
+        notStarted,
+        totals,
+        score: scoreOf(totals),
+        cost,
+      },
     };
     print(
-      `${base.copy}: reading ${versionText(base.readingVersion.stored)} → ${versionText(current)}`
+      `Summary: ${report.summary.compared} compared, ${report.summary.failed} failed, ${report.summary.skipped} skipped${notStarted ? `, ${notStarted} not started` : ''} · score ${percent(report.summary.score)} (${countsText(totals)}) · spent ${dollars(cost)} · code ${codeText(code)}`
     );
-    let expected: Sections;
-    try {
-      expected = expectedOf(testCase, deps.today);
-    } catch (error) {
-      if (!(error instanceof NoResultError)) throw error;
-      print(`  skipped: ${error.message}`);
-      reports.push({
-        ...base,
-        status: 'skipped',
-        reason: error.message,
-        spent: { byModel: {}, cost: 0 },
-        imagesNotReadAgain: 0,
-        comparison: null,
-      });
-      continue;
-    }
-    const counted = testRunModel(model ?? noModel, options.rescan);
-    let reading;
-    try {
-      reading = await readAgain({
-        testCase,
-        source: deps.source,
-        context: deps.context,
-        model: counted.client,
-        extractor: deps.extractor,
-        rescan: options.rescan,
-      });
-    } catch (error) {
-      reading = { proposal: null, failure: describe(error) };
-    }
-    const spent = spentOf(counted.byModel);
-    const imagesNotReadAgain = counted.refused.images;
-    if (reading.failure !== null) {
-      print(`  failed: ${reading.failure} · ${dollars(spent.cost)}`);
-      reports.push({
-        ...base,
-        status: 'failed',
-        reason: reading.failure,
-        spent,
-        imagesNotReadAgain,
-        comparison: null,
-      });
-      continue;
-    }
-    const comparison = compareSections(expected, readOf(testCase, reading.proposal, deps.today));
-    addCounts(totals, comparison.totals);
-    print(
-      `  score ${percent(comparison.score)} (${countsText(comparison.totals)}) · ${dollars(spent.cost)}${imagesNotReadAgain ? ` · ${imagesNotReadAgain} page images not read again` : ''}`
-    );
-    for (const [section, counts] of Object.entries(comparison.sections)) {
-      if (counts.found + counts.missed + counts.wrong + counts.extra === 0) continue;
-      print(`    ${section}: ${percent(scoreOf(counts))} (${countsText(counts)})`);
-    }
-    if (options.showValues) {
-      for (const difference of comparison.differences) {
-        print(
-          `      ${difference.outcome} ${difference.section}[${difference.row}].${difference.field}: ${JSON.stringify(difference.expected)} → ${JSON.stringify(difference.got)}`
-        );
-      }
-    }
-    if (options.trial) {
-      for (const [id, each] of counted.byModel) {
-        print(`  ${id}: ${tokens(each.usage)}, ${each.requests} requests, ${dollars(each.cost)}`);
-      }
-    }
-    reports.push({
-      ...base,
-      status: 'compared',
-      reason: null,
-      spent,
-      imagesNotReadAgain,
-      comparison: {
-        ...comparison,
-        differences: comparison.differences.map(({ section, row, field, outcome }) => ({
-          section,
-          row,
-          field,
-          outcome,
-        })),
-      },
-    });
+    await writeReport(options.out, report);
+    print(`Report: ${resolve(options.out)}`);
   }
+  return report;
+}
 
-  const cost = reports.reduce((sum, report) => sum + report.spent.cost, 0);
-  const report: RunReport = {
-    ranAt: (deps.now?.() ?? new Date()).toISOString(),
-    environment: options.environment,
-    rescan: options.rescan,
-    trial: options.trial,
-    readingVersions: versions,
-    cases: reports,
-    summary: {
-      compared: reports.filter((each) => each.status === 'compared').length,
-      failed: reports.filter((each) => each.status === 'failed').length,
-      skipped: reports.filter((each) => each.status === 'skipped').length,
-      totals,
-      score: scoreOf(totals),
-      cost,
-    },
+async function runCase(
+  testCase: TestCase,
+  versions: Record<Reader, ReadingVersion>,
+  model: ModelClient | null,
+  options: RunOptions,
+  deps: RunDeps
+): Promise<CaseReport> {
+  const print = deps.print;
+  const current = versions[readerOf(testCase)];
+  const base = {
+    copy: caseLabel(testCase),
+    import: testCase.record.import,
+    organization: testCase.record.organization,
+    part: testCase.type === 'part' ? testCase.part : null,
+    readingVersion: { stored: testCase.record.readingVersion, current },
   };
   print(
-    `Summary: ${report.summary.compared} compared, ${report.summary.failed} failed, ${report.summary.skipped} skipped · score ${percent(report.summary.score)} (${countsText(totals)}) · spent ${dollars(cost)}`
+    `${base.copy}: reading ${versionText(base.readingVersion.stored)} → ${versionText(current)}`
   );
-  await writeReport(options.out, report);
-  print(`Report: ${resolve(options.out)}`);
-  return report;
+  // An error's message may quote the copy, so the report keeps a reason of its own.
+  const reasonOf = (error: unknown, otherwise: string) => {
+    if (error instanceof NoResultError) return error.message;
+    if (options.showValues) print(`    ${describe(error)}`);
+    return otherwise;
+  };
+  let expected: Sections;
+  try {
+    expected = expectedOf(testCase, deps.today);
+  } catch (error) {
+    const reason = reasonOf(error, "The copy's answer could not be read.");
+    print(`  skipped: ${reason}`);
+    return {
+      ...base,
+      status: 'skipped',
+      reason,
+      spent: { byModel: {}, cost: 0 },
+      imagesNotReadAgain: 0,
+      comparison: null,
+    };
+  }
+  const counted = testRunModel(model ?? noModel, options.rescan);
+  let reading;
+  try {
+    reading = await readAgain({
+      testCase,
+      source: deps.source,
+      context: deps.context,
+      model: counted.client,
+      extractor: deps.extractor,
+      rescan: options.rescan,
+      wait: deps.wait,
+    });
+  } catch (error) {
+    reading = { proposal: null, failure: describe(error) };
+  }
+  const spent = spentOf(counted.byModel);
+  const imagesNotReadAgain = counted.refused.images;
+  const failed = (reason: string): CaseReport => {
+    print(`  failed: ${reason} · ${dollars(spent.cost)}`);
+    return { ...base, status: 'failed', reason, spent, imagesNotReadAgain, comparison: null };
+  };
+  if (reading.failure !== null) return failed(reading.failure);
+  let comparison: Comparison;
+  try {
+    comparison = compareSections(expected, readOf(testCase, reading.proposal, deps.today));
+  } catch (error) {
+    return failed(reasonOf(error, 'The new reading could not be compared.'));
+  }
+  print(
+    `  score ${percent(comparison.score)} (${countsText(comparison.totals)}) · ${dollars(spent.cost)}${imagesNotReadAgain ? ` · ${imagesNotReadAgain} page images not read again` : ''}`
+  );
+  for (const [section, counts] of Object.entries(comparison.sections)) {
+    if (counts.found + counts.missed + counts.wrong + counts.extra === 0) continue;
+    print(`    ${section}: ${percent(scoreOf(counts))} (${countsText(counts)})`);
+  }
+  if (options.showValues) {
+    for (const difference of comparison.differences) {
+      print(
+        `      ${difference.outcome} ${difference.section}[${difference.row}].${difference.field}: ${JSON.stringify(difference.expected)} → ${JSON.stringify(difference.got)}`
+      );
+    }
+  }
+  if (options.trial) {
+    for (const [id, each] of counted.byModel) {
+      print(`  ${id}: ${tokens(each.usage)}, ${each.requests} requests, ${dollars(each.cost)}`);
+    }
+  }
+  return {
+    ...base,
+    status: 'compared',
+    reason: null,
+    spent,
+    imagesNotReadAgain,
+    comparison: {
+      ...comparison,
+      differences: comparison.differences.map(({ section, row, field, outcome }) => ({
+        section,
+        row,
+        field,
+        outcome,
+      })),
+    },
+  };
 }
 
 const noModel: ModelClient = {

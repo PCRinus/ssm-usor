@@ -1,14 +1,31 @@
-import { mkdir, mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { promisify } from 'node:util';
 
 import type { CompletionRequest, ModelClient } from '@ssm-usor/import';
-import { readingAnswer, sheetPageAnswer, sortingAnswer } from '@ssm-usor/import';
+import {
+  GatewayError,
+  noUsage,
+  readingAnswer,
+  sheetPageAnswer,
+  sortingAnswer,
+} from '@ssm-usor/import';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ImportCopyRecord } from './cases';
 import type { CaseContext } from './reading';
-import { type RunOptions, runTests, writeReport } from './run';
+import { codeRevision, type RunDeps, type RunOptions, runTests, writeReport } from './run';
 import {
   clientProposal,
   clientReading,
@@ -20,6 +37,24 @@ import {
   sheetPage,
   today,
 } from './test/fixtures';
+
+const exec = promisify(execFile);
+
+const odd = vi.hoisted(() => ({ readClientFails: 0 }));
+
+vi.mock('./results', async (importOriginal) => {
+  const results = await importOriginal<typeof import('./results')>();
+  return {
+    ...results,
+    readClient(proposal: unknown) {
+      if (odd.readClientFails > 0) {
+        odd.readClientFails--;
+        throw new TypeError("Cannot read properties of undefined (reading 'Vasilescu')");
+      }
+      return results.readClient(proposal);
+    },
+  };
+});
 
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const decisionText = [
@@ -86,9 +121,14 @@ function clientCopy(n: number, extraFiles: ImportCopyRecord['files'] = []) {
 
 function fakeModel() {
   const requests: CompletionRequest<unknown>[] = [];
+  const outages = { reading: 0 };
   const model: ModelClient = {
     async complete<T>(request: CompletionRequest<T>) {
       requests.push(request as CompletionRequest<unknown>);
+      if (request.answer.name === readingAnswer.name && outages.reading > 0) {
+        outages.reading--;
+        throw new GatewayError('The gateway answered 503.', 503, noUsage, 0);
+      }
       const usage = { input: 1000, cachedInput: 0, output: 500 };
       if (request.answer.name === sortingAnswer.name) {
         const path = request.messages
@@ -122,23 +162,25 @@ function fakeModel() {
       throw new Error(`Unexpected request ${request.answer.name}`);
     },
   };
-  return { model, requests };
+  return { model, requests, outages };
 }
 
 let sandbox: string;
 
 beforeEach(async () => {
   sandbox = await mkdtemp(join(tmpdir(), 'import-test-run-'));
+  odd.readClientFails = 0;
 });
 
 afterEach(async () => {
   await rm(sandbox, { recursive: true, force: true });
 });
 
-function setUp(options: Partial<RunOptions> = {}) {
+function setUp(options: Partial<RunOptions> = {}, overrides: Partial<RunDeps> = {}) {
   const bucket = memoryBucket();
-  const { model, requests } = fakeModel();
+  const { model, requests, outages } = fakeModel();
   const makeModel = vi.fn(() => model);
+  const wait = vi.fn(async () => {});
   const lines: string[] = [];
   const run = () =>
     runTests(
@@ -155,6 +197,7 @@ function setUp(options: Partial<RunOptions> = {}) {
         trial: false,
         out: join(sandbox, 'report.json'),
         showValues: false,
+        maxCost: null,
         ...options,
       },
       {
@@ -165,9 +208,12 @@ function setUp(options: Partial<RunOptions> = {}) {
         print: (line) => lines.push(line),
         repositoryRoot: join(sandbox, 'repository'),
         today,
+        wait,
+        revision: async () => null,
+        ...overrides,
       }
     );
-  return { bucket, requests, makeModel, lines, run };
+  return { bucket, requests, outages, makeModel, wait, lines, run };
 }
 
 describe('runTests', () => {
@@ -437,6 +483,164 @@ describe('runTests', () => {
     const { run } = setUp({ out: join(sandbox, 'repository', 'apps', 'report.json') });
 
     await expect(run()).rejects.toThrow(/outside the repository/);
+  });
+
+  it('refuses a report path that reaches the repository through a symlink', async () => {
+    await mkdir(join(sandbox, 'repository'), { recursive: true });
+    await symlink(join(sandbox, 'repository'), join(sandbox, 'elsewhere'));
+    const { run } = setUp({ out: join(sandbox, 'elsewhere', 'report.json') });
+
+    await expect(run()).rejects.toThrow(/outside the repository/);
+  });
+
+  it('refuses a report path that names the repository in another case', async (context) => {
+    await mkdir(join(sandbox, 'repository'), { recursive: true });
+    const caseSensitive = await access(join(sandbox, 'REPOSITORY')).then(
+      () => false,
+      () => true
+    );
+    if (caseSensitive) context.skip();
+    const { run } = setUp({ out: join(sandbox, 'REPOSITORY', 'report.json') });
+
+    await expect(run()).rejects.toThrow(/outside the repository/);
+  });
+
+  it('fails a copy whose reading cannot be compared, and goes on to the next', async () => {
+    const { bucket, lines, run } = setUp({ yes: true });
+    for (const n of [1, 2]) {
+      const copy = clientCopy(n);
+      bucket.keepImport(copy.record, copy.files);
+    }
+    odd.readClientFails = 1;
+
+    const report = await run();
+
+    expect(report!.cases.map((each) => [each.import, each.status, each.reason])).toEqual([
+      [importId(1), 'failed', 'The new reading could not be compared.'],
+      [importId(2), 'compared', null],
+    ]);
+    expect(report!.cases[0]!.spent.cost).toBeCloseTo(0.011);
+    expect(lines.join('\n')).not.toContain('Vasilescu');
+  });
+
+  it('writes the report of the copies read when the run stops halfway', async () => {
+    const lines: string[] = [];
+    const print = (line: string) => {
+      if (line.startsWith(`client import ${importId(2)}`)) throw new Error('The terminal closed.');
+      lines.push(line);
+    };
+    const { bucket, run } = setUp({ yes: true }, { print });
+    for (const n of [1, 2]) {
+      const copy = clientCopy(n);
+      bucket.keepImport(copy.record, copy.files);
+    }
+
+    await expect(run()).rejects.toThrow('The terminal closed.');
+
+    const report = JSON.parse(await readFile(join(sandbox, 'report.json'), 'utf8'));
+    expect(report.cases.map((each: { import: string }) => each.import)).toEqual([importId(1)]);
+    expect(report.summary).toMatchObject({ compared: 1, cost: expect.closeTo(0.011) });
+  });
+
+  it('skips a copy whose changes no longer read, spending nothing on it', async () => {
+    const { bucket, requests, run } = setUp({ yes: true });
+    const copy = clientCopy(7);
+    bucket.keepImport({ ...copy.record, changes: { fields: [], items: [] } as never }, copy.files);
+
+    const report = await run();
+
+    expect(report!.cases[0]).toMatchObject({
+      status: 'skipped',
+      reason: "The copy's changes no longer read.",
+    });
+    expect(requests).toEqual([]);
+  });
+
+  it('starts no copy once the spending reaches --max-cost', async () => {
+    const { bucket, requests, lines, run } = setUp({ yes: true, maxCost: 0.005 });
+    for (const n of [1, 2, 3]) {
+      const copy = clientCopy(n);
+      bucket.keepImport(copy.record, copy.files);
+    }
+
+    const report = await run();
+
+    expect(report!.cases.map((each) => each.import)).toEqual([importId(1)]);
+    expect(new Set(requests.map((request) => request.metadata.importId))).toEqual(
+      new Set([importId(1)])
+    );
+    expect(report!).toMatchObject({ maxCost: 0.005, summary: { notStarted: 2 } });
+    expect(lines).toContain('Spending reached --max-cost $0.0050: 2 copies not started.');
+    expect(lines.find((line) => line.startsWith('Summary:'))).toContain('2 not started');
+  });
+
+  it('reads a step again after a passing gateway error, as the queue would', async () => {
+    const { bucket, outages, wait, run } = setUp({ yes: true });
+    const copy = clientCopy(1);
+    bucket.keepImport(copy.record, copy.files);
+    outages.reading = 2;
+
+    const report = await run();
+
+    expect(report!.cases[0]).toMatchObject({ status: 'compared' });
+    expect(wait.mock.calls).toEqual([[30_000], [60_000]]);
+  });
+
+  it('fails the copy when the gateway error outlasts the retries', async () => {
+    const { bucket, outages, run } = setUp({ yes: true });
+    const copy = clientCopy(1);
+    bucket.keepImport(copy.record, copy.files);
+    outages.reading = 3;
+
+    const report = await run();
+
+    expect(report!.cases[0]).toMatchObject({ status: 'failed' });
+    expect(report!.summary.failed).toBe(1);
+  });
+
+  it('names the commit the run read with, and whether it had uncommitted changes', async () => {
+    const commit = '0123456789abcdef0123456789abcdef01234567';
+    const { bucket, lines, run } = setUp(
+      { yes: true },
+      { revision: async () => ({ commit, dirty: true }) }
+    );
+    const copy = clientCopy(1);
+    bucket.keepImport(copy.record, copy.files);
+
+    const report = await run();
+
+    expect(report!.code).toEqual({ commit, dirty: true });
+    expect(lines.find((line) => line.startsWith('Summary:'))).toMatch(
+      /code 0123456789ab with uncommitted changes$/
+    );
+  });
+});
+
+describe('codeRevision', () => {
+  it('is null where git cannot tell', async () => {
+    expect(await codeRevision(join(sandbox, 'not-a-folder'))).toBeNull();
+  });
+
+  it('names the commit checked out, and whether the tree has changes', async () => {
+    const git = (...args: string[]) => exec('git', args, { cwd: sandbox });
+    await git('init', '--quiet');
+    await git(
+      '-c',
+      'user.name=Test',
+      '-c',
+      'user.email=test@example.com',
+      'commit',
+      '--allow-empty',
+      '--quiet',
+      '-m',
+      'Start'
+    );
+
+    const clean = await codeRevision(sandbox);
+    await writeFile(join(sandbox, 'notes.txt'), 'changed');
+
+    expect(clean).toEqual({ commit: expect.stringMatching(/^[0-9a-f]{40}$/), dirty: false });
+    expect(await codeRevision(sandbox)).toEqual({ commit: clean!.commit, dirty: true });
   });
 });
 

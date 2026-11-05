@@ -55,6 +55,11 @@ export function outcomeOf(expected: Value | undefined, got: Value | undefined): 
   return sameValue(expected!, got!) ? 'found' : 'wrong';
 }
 
+// A composite identity of blank parts, as `|` from a nameless row, names nothing, and would pair
+// such rows in list order.
+const isIdentity = (identity: string | undefined): identity is string =>
+  identity !== undefined && identity.split('|').some((part) => part.trim() !== '');
+
 export function pairRows(expected: ResultRow[], got: ResultRow[]) {
   const pairs: [number | null, number | null][] = [];
   const free = new Set(got.map((_, index) => index));
@@ -70,7 +75,7 @@ export function pairRows(expected: ResultRow[], got: ResultRow[]) {
   for (let pass = 0; pass < passes; pass++) {
     unpaired = unpaired.filter((index) => {
       const identity = expected[index]!.identities[pass];
-      return !identity || !take(index, (row) => row.identities[pass] === identity);
+      return !isIdentity(identity) || !take(index, (row) => row.identities[pass] === identity);
     });
   }
   for (const index of unpaired) {

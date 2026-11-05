@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { gatewayOf, parseRunArgs, supabaseOf } from './args';
 import { caseLabel, selectCases, type Selection } from './cases';
-import { importRecord, memoryBucket, partRecord } from './test/fixtures';
+import { importRecord, memoryBucket, organizationId, partRecord } from './test/fixtures';
 
 const id = (n: number) => `d1000000-0000-4000-8000-00000000000${n}`;
 
@@ -65,6 +65,22 @@ describe('selectCases', () => {
     ]);
   });
 
+  it('leaves out a copy whose record Storage could not give, and says so', async () => {
+    const bucket = bucketOfCopies();
+    bucket.unavailable.add(`${organizationId}/${id(2)}/record.json`);
+    bucket.unavailable.add(`${organizationId}/${id(1)}/parts/risk_evaluations/record.json`);
+    const warnings: string[] = [];
+
+    const cases = await selectCases(bucket.source, all, (line) => warnings.push(line));
+
+    expect(cases.map(caseLabel)).toEqual([`client import ${id(1)}`]);
+    expect(warnings).toEqual([
+      `risk_evaluations of import ${id(1)}: its record could not be read, so it is left out.`,
+      `import ${id(2)}: its record could not be read, so it is left out.`,
+      `instructions_su of import ${id(4)}: its import's copy is gone, so it is left out.`,
+    ]);
+  });
+
   it('stops at the limit and keeps to the imports named', async () => {
     expect(await labels({ limit: 1 })).toEqual([`client import ${id(1)}`]);
     expect(await labels({ imports: [id(2)] })).toEqual([`employees import ${id(2)}`]);
@@ -98,6 +114,18 @@ describe('parseRunArgs', () => {
     expect(() => parseRunArgs(['--env', 'non-prod', '--part', 'risks'])).toThrow(/--part/);
     expect(() => parseRunArgs(['--env', 'non-prod', '--limit', '0'])).toThrow(/--limit/);
     expect(() => parseRunArgs(['--env', 'non-prod', '--import', '42'])).toThrow(/Not an id/);
+  });
+
+  it('spends only up to a cap, which --yes asks for unless it is a trial', () => {
+    expect(() => parseRunArgs(['--env', 'non-prod', '--yes'])).toThrow(/--max-cost/);
+    expect(() => parseRunArgs(['--env', 'non-prod', '--yes', '--max-cost', '0'])).toThrow(
+      /--max-cost/
+    );
+    expect(() => parseRunArgs(['--env', 'non-prod', '--yes', '--max-cost', 'five'])).toThrow(
+      /--max-cost/
+    );
+    expect(parseRunArgs(['--env', 'non-prod', '--yes', '--max-cost', '2.5']).maxCost).toBe(2.5);
+    expect(parseRunArgs(['--env', 'non-prod', '--yes', '--trial']).maxCost).toBeNull();
   });
 });
 

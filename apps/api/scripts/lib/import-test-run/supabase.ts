@@ -4,7 +4,7 @@ import type { Database } from '../../../src/database.types';
 import type { AdminClient } from '../../../src/lib/admin-db';
 import { fromDatabaseError } from '../../../src/lib/db';
 import { importStore } from '../../../src/modules/imports/store';
-import type { CopySource, KeptCopy } from './cases';
+import { type CopySource, type KeptCopy, MissingObjectError } from './cases';
 import type { CaseContext } from './reading';
 
 const bucket = 'import-copies';
@@ -45,10 +45,22 @@ export function storageCopies(admin: AdminClient): CopySource {
     },
     async read(path) {
       const { data, error } = await admin.storage.from(bucket).download(path);
-      if (error) throw new Error(`The copy's object ${path} could not be read: ${error.message}`);
+      if (error) {
+        if (isNotFound(error)) throw new MissingObjectError(path);
+        throw new Error(`The copy's object ${path} could not be read: ${error.message}`);
+      }
       return new Uint8Array(await data.arrayBuffer());
     },
   };
+}
+
+// Storage answers a missing object with HTTP 400 and the status 404 in its body.
+function isNotFound(error: { message?: string; status?: unknown; statusCode?: unknown }) {
+  return (
+    error.status === 404 ||
+    String(error.statusCode) === '404' ||
+    /not[ _]found/i.test(error.message ?? '')
+  );
 }
 
 export function databaseContext(admin: AdminClient): CaseContext {

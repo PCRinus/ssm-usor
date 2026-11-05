@@ -13,7 +13,7 @@ runs it, from his machine.** It never runs in CI or on a server.
 ```sh
 pnpm --filter @ssm-usor/api import:test-run --env production --kind client --limit 5
 pnpm --filter @ssm-usor/api import:test-run --env production --kind client --limit 5 --trial --yes
-pnpm --filter @ssm-usor/api import:test-run --env production --kind client --limit 5 --yes
+pnpm --filter @ssm-usor/api import:test-run --env production --kind client --limit 5 --yes --max-cost 2
 ```
 
 The script is `apps/api/scripts/import-test-run.ts`; its parts are in
@@ -32,7 +32,8 @@ The script is `apps/api/scripts/import-test-run.ts`; its parts are in
 | `--limit <n>`                                                | The newest `n` copies of the selection.                                                                        |
 | `--rescan`                                                   | Reads the page images again too (below).                                                                       |
 | `--trial`                                                    | Reads the first copy alone and prints its real tokens and cost by model.                                       |
-| `--yes`                                                      | Spends. Without it the run stops after the estimate.                                                           |
+| `--yes`                                                      | Spends. Without it the run stops after the estimate. Needs `--max-cost`, except with `--trial`.                |
+| `--max-cost <usd>`                                           | Starts no copy once the run has spent this many dollars; the copy under way is finished.                       |
 | `--out <path>`                                               | Where the report goes; by default `import-test-run-<env>-<time>.json` in the system's temporary folder.        |
 | `--show-values`                                              | Prints each difference with its two values on the terminal. They are never written to the report.              |
 
@@ -61,15 +62,28 @@ Environment: production.
   gpt-6-luna        $0.0013  (8,000 input, 1,000 output tokens)
   gpt-6.1-terra     $0.2800  (110,000 input, 34,000 output tokens)
   total             $0.2813
-Nothing was sent to a model. Run again with --yes to spend about $0.2813, or with --trial --yes to read the first copy alone.
+Nothing was sent to a model. Run again with --yes --max-cost <usd> to spend about $0.2813, or with --trial --yes to read the first copy alone.
 ```
 
 The estimate is each step's stored usage (`usage_by_step` of an import, the tokens of a part)
 priced at today's rates of the step's current model, a cached token counted as a fresh one.
-A step that stored no usage is guessed from the copy's characters at 3.25 a token, its output
-left out, and the estimate says so. Nothing is spent without `--yes`; `--trial --yes` reads the
-first copy alone. An employee copy without `--rescan` sends nothing to a model and runs without
-`--yes`.
+A sorting or reading step that stored no usage is guessed from the copy's characters at 3.25 a
+token, and its output is counted at the step's output limit (16,000 tokens for the sorting,
+64,000 for the reading), the most it may write: with a reasoning model the output is most of the
+cost and the text says nothing of it, so the guess errs above the spending. A step that stored no
+usage and has no text to guess from, as a library part of an import that recorded none, is left
+out of the total, and the estimate counts the copies it left out:
+
+```text
+  1 of them stored no usage and no text for a step, so what they cost is unknown and not in the total.
+```
+
+Nothing is spent without `--yes`, and `--yes` asks for `--max-cost`: the run starts no copy once
+what it has spent reaches the cap, prints `Spending reached --max-cost $2.0000: 3 copies not
+started.`, and writes its report with the copies it read. The copy under way when the cap is
+reached is finished, so a run can end a copy's cost above it. `--trial --yes` reads the first copy
+alone and needs no cap; it is the first step before a run on many copies. An employee copy without
+`--rescan` sends nothing to a model and runs without `--yes`.
 
 ## How a copy is read again
 
@@ -91,6 +105,9 @@ to the database or to Storage.
   such a page draw it with `EXTRACTOR_URL`, or the file fails.
 - **The same models and gateway.** The requests go through the API's model client, tagged with
   the gateway metadata `purpose: test-run` beside the organization and the import.
+- **Retried as the queue would.** A step that fails with a passing error (the gateway's 429, 5xx
+  or timeout, Storage unavailable) is run again after 30 seconds, then after 60, before the copy
+  fails, as the import queue retries a delivery with backoff.
 - **What is left empty.** The organization's library, the client's risk sheets and the client's
   employees, posts and workplaces: after a confirm they hold what this very import wrote. ANAF is
   not asked.
@@ -121,23 +138,46 @@ person's next training of that domain and phase. A pair's values are then:
 - **wrong**: both hold it, and they differ;
 - **extra**: the reading holds it, the answer does not (a row the member unticked is extra).
 
+A composite identity whose parts are all blank, and a training or test of a person with no name,
+pairs nothing by identity: such a row is paired by its group, in order, or not at all.
+
 A row of either side with no partner counts each of its values missed or extra. The **score** is
 found over everything counted. Each copy prints its line, its sections, and its spending; the run
 ends with the summary.
+
+A copy is **skipped** when it has no answer: it kept no proposal, or its changes no longer read
+with today's schema, which would otherwise leave the answer as the proposal before the member
+reviewed it. It **fails** when the reading stops, or when its proposal cannot be put through the
+confirm's code; the reason in the report is the run's own, never an error's message, which may
+quote the copy (`--show-values` prints the message on the terminal). One copy's failure does not
+stop the run, and the run exits with code 1 when any copy failed.
 
 ## The reading versions
 
 Each copy's line names its stored reading version and today's, `prompts (step model, …)`, so a
 run says what changed between the first reading and this one. The report keeps both.
 
+The reading version does not cover the reasoning effort, the token limits or the code after the
+model, so the report also keeps the commit the run read with, `code: { commit, dirty }`, `dirty`
+when the tree had uncommitted changes, and the summary line ends with it: `code 0123456789ab`, or
+`code 0123456789ab with uncommitted changes`. Where git cannot tell, it is `null` and `code
+unknown`.
+
 ## The report and the disk
 
-The report is JSON: the run's environment and flags, today's reading versions, and for each copy
-its status (`compared`, `failed` with its reason, or `skipped` when it kept no proposal), its
-spending by model, the counts by section and field, and the differences by section, row, field
-and outcome. It holds **no value read**: no name, CNP or text. It is written to `--out`, owner
-read and write only, through a file beside it renamed into place, and the run refuses a path
-inside the repository, which is public.
+The report is JSON: the run's environment and flags with `maxCost`, the commit (`code`), today's
+reading versions, and for each copy its status (`compared`, `failed` with its reason, or `skipped`
+with its reason), its spending by model, the counts by section and field, and the differences by
+section, row, field and outcome. The summary counts the copies compared, failed, skipped and
+`notStarted` (left by `--max-cost`), with the totals, the score and the cost. It holds **no value
+read**: no name, CNP or text. It is written to `--out`, owner read and write only, through a file
+beside it renamed into place, also when the run stops halfway, with the copies read until then.
+The run refuses a path inside the repository, which is public, comparing real paths, so a symlink
+into the repository or the repository's path in another case on macOS is refused too.
+
+A copy whose `record.json` is gone (the clean-up removed it) is left out quietly; one Storage
+could not give for another reason is left out with a warning, so an outage does not pass for an
+empty selection.
 
 The copies are read from Storage into memory, one copy at a time, and only the objects a step
 asks for. Nothing else of a copy reaches the disk.

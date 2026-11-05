@@ -14,7 +14,7 @@ import { databaseContext, secretClient, storageCopies } from './lib/import-test-
 
 //   pnpm --filter @ssm-usor/api import:test-run --env production --kind client --limit 5
 //   … --trial --yes      reads the first copy alone and prints its real tokens and cost
-//   … --yes              reads every copy selected
+//   … --yes --max-cost 5 reads every copy selected, starting none once $5 is spent
 // Reads the improvement copies of confirmed imports again with today's reading and compares
 // each with what the member confirmed (ADR 037, docs/import-test-runs.md). It reads client data,
 // so only Mircea runs it, from his machine.
@@ -23,7 +23,7 @@ try {
   const options = parseRunArgs(process.argv.slice(2));
   const { url, secret } = supabaseOf(options.environment, process.env);
   const admin = secretClient(url, secret);
-  await runTests(options, {
+  const report = await runTests(options, {
     source: storageCopies(admin),
     context: databaseContext(admin),
     model: () => createModelClient(gatewayOf(process.env)),
@@ -34,6 +34,7 @@ try {
     repositoryRoot: resolve(dirname(fileURLToPath(import.meta.url)), '../../..'),
     today: romanianToday(),
   });
+  if (report && report.summary.failed > 0) process.exitCode = 1;
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
   process.exitCode = 1;
