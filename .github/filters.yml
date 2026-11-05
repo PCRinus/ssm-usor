@@ -44,15 +44,16 @@ admin:
   - 'apps/admin/**'
   - 'packages/api-http/**'
   - 'packages/contracts/**'
+# Each of these Workers lists only the contract files it imports: one that starts importing
+# another contract file adds it here, or a change to that file never reaches it.
 mail:
   - *shared
   - 'apps/mail/**'
-  - 'packages/contracts/**'
+  - 'packages/contracts/src/mail.ts'
 sms:
   - *shared
   - 'apps/sms/**'
-  - 'packages/contracts/**'
-# Only its interface lives in the contracts.
+  - 'packages/contracts/src/sms.ts'
 pdf:
   - *shared
   - 'apps/pdf/**'
