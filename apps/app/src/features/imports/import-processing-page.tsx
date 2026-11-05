@@ -200,7 +200,13 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
         <Notice
           variant="destructive"
           data-testid="import-failed"
-          action={<ReportImportButton importId={detail.id} variant="outline" className="bg-card" />}
+          action={
+            <ReportImportButton
+              importId={detail.id}
+              variant="outline"
+              className="h-auto min-h-8 bg-card py-1.5 text-left whitespace-normal"
+            />
+          }
         >
           {detail.failureReason ?? 'Importul s-a oprit din cauza unei erori.'}
           {detail.credits?.refunded && ` ${refundedSentence}`} Renunță la import și încearcă din
