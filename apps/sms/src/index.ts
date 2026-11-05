@@ -9,7 +9,7 @@ import {
   signingCodeSmsSchema,
   type SmsReceipt,
   type SmsService,
-} from '@ssm-usor/contracts';
+} from '@ssm-usor/contracts/sms';
 import { WorkerEntrypoint } from 'cloudflare:workers';
 
 import type { SmsEnv } from './env';

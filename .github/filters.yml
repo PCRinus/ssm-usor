@@ -44,15 +44,19 @@ admin:
   - 'apps/admin/**'
   - 'packages/api-http/**'
   - 'packages/contracts/**'
+# Mail and SMS import their contract by its own subpath, never the package entry, which would
+# bundle every contract. One that starts importing another contract adds its file here, or a
+# change to that file never reaches it.
 mail:
   - *shared
   - 'apps/mail/**'
-  - 'packages/contracts/**'
+  - 'packages/contracts/package.json'
+  - 'packages/contracts/src/mail.ts'
 sms:
   - *shared
   - 'apps/sms/**'
-  - 'packages/contracts/**'
-# Only its interface lives in the contracts.
+  - 'packages/contracts/package.json'
+  - 'packages/contracts/src/sms.ts'
 pdf:
   - *shared
   - 'apps/pdf/**'

@@ -1,4 +1,4 @@
-import type { SmsReceipt } from '@ssm-usor/contracts';
+import type { SmsReceipt } from '@ssm-usor/contracts/sms';
 
 import type { SmsEnv } from '../env';
 import { logProvider } from './log';
