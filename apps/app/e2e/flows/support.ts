@@ -862,6 +862,21 @@ export async function emailedLink(to: string, kind: string) {
   return email.url;
 }
 
+// Storage lists one level at a time, a folder as an entry without an id.
+async function storageFolder(bucket: string, folder: string): Promise<string[]> {
+  const paths: string[] = [];
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await admin.storage.from(bucket).list(folder, { limit: 1000, offset });
+    if (error) throw error;
+    for (const entry of data) {
+      const path = `${folder}/${entry.name}`;
+      if (entry.id === null) paths.push(...(await storageFolder(bucket, path)));
+      else paths.push(path);
+    }
+    if (data.length < 1000) return paths;
+  }
+}
+
 export async function cleanUp() {
   // Accounts created through the UI are found by this run's address suffix.
   const { data } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
@@ -907,6 +922,10 @@ export async function cleanUp() {
     // An import names its client, and restricts the client's deletion.
     await admin.from('imports').delete().eq('organization_id', id);
     // A copy outlives its import, and restricts the deletion of its organization.
+    const copyPaths = await storageFolder('import-copies', id);
+    for (let start = 0; start < copyPaths.length; start += 100) {
+      await admin.storage.from('import-copies').remove(copyPaths.slice(start, start + 100));
+    }
     await admin.from('import_copies').delete().eq('organization_id', id);
     // A participant's attempts restrict their deletion, and a result restricts its attempt's.
     await admin.from('test_results').delete().eq('organization_id', id);
