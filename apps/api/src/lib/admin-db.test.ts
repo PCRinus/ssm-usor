@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   adminClient,
   auditActorHeader,
+  auditAssuranceHeader,
   createAdminClient,
   createLastingAdminClient,
 } from './admin-db';
@@ -19,11 +20,16 @@ const userId = '0f7c8d96-479c-47b3-b49e-01f4555a0221';
 
 const fetchMock = vi.fn<typeof fetch>();
 
-function contextOf(user: { id: string } | undefined, signal = new AbortController().signal) {
+function contextOf(
+  user: { id: string } | undefined,
+  signal = new AbortController().signal,
+  platformAdmin = false
+) {
+  const variables: Record<string, unknown> = { user, platformAdmin };
   return {
     env,
     req: { raw: { signal } },
-    get: (key: string) => (key === 'user' ? user : undefined),
+    get: (key: string) => variables[key],
   } as unknown as Context<ApiEnv>;
 }
 
@@ -52,6 +58,16 @@ describe('the audit actor on secret-key requests', () => {
 
     expect(headers.get(auditActorHeader)).toBe(userId);
     expect(headers.get('Authorization')).toBe(`Bearer ${env.SUPABASE_SECRET_KEY}`);
+    expect(headers.has(auditAssuranceHeader)).toBe(false);
+  });
+
+  it('says a platform admin passed the second factor, so the database names an impersonation', async () => {
+    const headers = await headersSentBy(
+      createAdminClient(contextOf({ id: userId }, undefined, true))
+    );
+
+    expect(headers.get(auditActorHeader)).toBe(userId);
+    expect(headers.get(auditAssuranceHeader)).toBe('aal2');
   });
 
   it('names nobody for work no one signed in asked for', async () => {

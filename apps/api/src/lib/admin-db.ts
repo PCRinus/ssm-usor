@@ -22,7 +22,7 @@ export function createLastingAdminClient(c: Context<ApiEnv>) {
   return adminClient(c.env, undefined, auditActorOf(c));
 }
 
-export function adminClient(env: ApiEnv['Bindings'], signal?: AbortSignal, actorId?: string) {
+export function adminClient(env: ApiEnv['Bindings'], signal?: AbortSignal, actor?: AuditActor) {
   const secretKey = secretKeySchema.safeParse(env.SUPABASE_SECRET_KEY);
   if (!secretKey.success) throw new ApiError('service_unavailable');
 
@@ -30,7 +30,12 @@ export function adminClient(env: ApiEnv['Bindings'], signal?: AbortSignal, actor
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: {
       fetch: timedFetch(8_000, signal),
-      headers: actorId ? { [auditActorHeader]: actorId } : {},
+      headers: actor
+        ? {
+            [auditActorHeader]: actor.id,
+            ...(actor.platformAdmin ? { [auditAssuranceHeader]: 'aal2' } : {}),
+          }
+        : {},
     },
   });
 }
@@ -41,9 +46,18 @@ export type AdminClient = ReturnType<typeof adminClient>;
 // They believe it only on a service-role request, which only the secret key can make.
 export const auditActorHeader = 'x-audit-actor';
 
+// Sent for a platform admin past the second factor: only then does the database name the
+// admin's active impersonation, as only then did effective_user_id() act as the member.
+export const auditAssuranceHeader = 'x-audit-aal';
+
+interface AuditActor {
+  id: string;
+  platformAdmin: boolean;
+}
+
 // The signed-in account, the platform admin during an impersonation: the database finds whom
 // they impersonate itself. Unset before requireAuth, and for work no one signed in asked for.
-function auditActorOf(c: Context<ApiEnv>): string | undefined {
+function auditActorOf(c: Context<ApiEnv>): AuditActor | undefined {
   const user: ApiEnv['Variables']['user'] | undefined = c.get('user');
-  return user?.id;
+  return user && { id: user.id, platformAdmin: c.get('platformAdmin') };
 }
