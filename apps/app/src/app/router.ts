@@ -1,5 +1,6 @@
 import { createRouter, type RouterHistory } from '@tanstack/react-router';
 
+import type { VerifyResult } from '@/features/auth/auth-store';
 import type { RouterContext } from '@/routes/__root';
 import { routeTree } from '@/routeTree.gen';
 
@@ -24,6 +25,8 @@ declare module '@tanstack/react-router' {
   // Set by a link from a list to its editor, whose back link then goes back instead.
   interface HistoryState {
     openedFromList?: boolean;
+    // A code that failed on another page, as when changing the password, shown on the code page.
+    codeFailure?: Exclude<VerifyResult, 'verified'>;
   }
   interface StaticDataRouteOption {
     title?: string;

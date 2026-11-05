@@ -56,3 +56,44 @@ begin
   end if;
 end;
 $$;
+
+-- The same for an admin event: the account the API names must hold the admin claim and, as the
+-- API says in x-audit-aal, have passed its second factor.
+create or replace function public.record_admin_event(
+  p_action text,
+  p_table_name text,
+  p_row_id uuid,
+  p_organization_id uuid,
+  p_details jsonb default null
+)
+returns bigint
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_actor record;
+  v_id bigint;
+begin
+  if p_action is null or p_action not in ('import_copy_opened', 'import_copy_file_opened') then
+    raise exception 'Not an admin event.' using errcode = '22023';
+  end if;
+  select * into v_actor from audit.current_actor();
+  if v_actor.source is distinct from 'api'
+    or (nullif(current_setting('request.headers', true), '')::jsonb ->> 'x-audit-aal') is distinct from 'aal2'
+    or not exists (
+      select 1 from auth.users u
+      where u.id = v_actor.actor_id and u.raw_app_meta_data ->> 'role' = 'admin'
+    ) then
+    raise exception 'An admin event names a platform admin past the second factor.' using errcode = 'AUD02';
+  end if;
+  -- The admin acts as himself here, even during an impersonation he has open.
+  insert into audit.events (action, table_name, row_id, organization_id, details, actor_id, impersonating_user_id, source)
+  values (p_action, p_table_name, p_row_id, p_organization_id, p_details, v_actor.actor_id, null, 'api')
+  returning id into v_id;
+  return v_id;
+end;
+$$;
+
+comment on function public.record_admin_event(text, text, uuid, uuid, jsonb) is
+  'Records a named admin event in audit.events (ADR 033, ADR 038) for the platform admin the API names in x-audit-actor, past the second factor (x-audit-aal = aal2), and returns its id: import_copy_opened, import_copy_file_opened. AUD02 without such an admin.';

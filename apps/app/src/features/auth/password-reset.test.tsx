@@ -308,9 +308,9 @@ describe('change password on the profile page', () => {
       expect(auth.client.updateUser).toHaveBeenCalledWith({ password: 'ParolaNoua1' });
     });
 
-    it('keeps the password when the code is wrong', async () => {
+    it('keeps the password when the code is wrong, and asks for the code the session now lacks', async () => {
       const auth = signedInWithFactor();
-      mountApp(auth.client, '/profil');
+      const runtime = mountApp(auth.client, '/profil');
       const user = userEvent.setup();
 
       await user.type(await screen.findByTestId('current-password'), 'ParolaVeche1');
@@ -318,9 +318,22 @@ describe('change password on the profile page', () => {
       await user.type(screen.getByTestId('change-password-code'), '000000');
       await user.click(screen.getByTestId('change-password-save'));
 
-      expect((await screen.findByTestId('change-password-code-error')).textContent).toMatch(
-        /Codul nu este corect/
+      await screen.findByTestId('second-factor-page');
+      expect(runtime.router.state.location.pathname).toBe('/verificare-cod');
+      expect(runtime.router.state.location.search).toEqual({ redirect: '/profil' });
+      expect((await screen.findByTestId('second-factor-code-error')).textContent).toBe(
+        'Codul nu este corect sau a expirat. Introdu codul afișat acum în aplicație.'
       );
+      expect(
+        await screen.findByText('Parola nu a fost schimbată. Introdu codul ca să continui.')
+      ).toBeTruthy();
+      expect(auth.client.updateUser).not.toHaveBeenCalled();
+
+      await user.type(screen.getByTestId('second-factor-code'), '123456');
+      await user.click(screen.getByTestId('second-factor-submit'));
+
+      await screen.findByTestId('change-password-card');
+      expect(runtime.router.state.location.pathname).toBe('/profil');
       expect(auth.client.updateUser).not.toHaveBeenCalled();
     });
 

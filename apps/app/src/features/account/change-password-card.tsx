@@ -3,6 +3,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
 import { Input } from '@ssm-usor/ui/components/input';
 import { toast } from '@ssm-usor/ui/lib/toast';
+import { useLocation, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
@@ -20,7 +21,6 @@ import {
   changePasswordWithCodeSchema,
   newPasswordHint,
 } from '@/features/auth/password-schema';
-import { codeFailureMessages } from '@/features/auth/second-factor';
 
 const codeOf = (error: unknown) =>
   typeof error === 'object' && error !== null && 'code' in error ? error.code : null;
@@ -34,6 +34,8 @@ export function ChangePasswordCard({ email }: { email: string }) {
   // email sets a first one. Supabase does not say whether one was set since, so the offer stays.
   const madeWithGoogle = !(session?.user.app_metadata.providers ?? ['email']).includes('email');
   const withCode = hasSecondFactor(session);
+  const navigate = useNavigate();
+  const currentHref = useLocation({ select: (location) => location.href });
   const [linkState, setLinkState] = useState<'idle' | 'sending' | 'sent'>('idle');
   const form = useForm<ChangePasswordValues>({
     resolver: zodResolver(withCode ? changePasswordWithCodeSchema : changePasswordSchema),
@@ -51,8 +53,15 @@ export function ChangePasswordCard({ email }: { email: string }) {
       toast.success('Parola a fost schimbată.');
     } catch (cause) {
       if (cause instanceof SecondFactorError) {
-        form.setValue('code', '');
-        form.setError('code', { message: codeFailureMessages[cause.result] });
+        // Checking the password signed in again without the second factor, in every tab: the
+        // code page restores it before anything else runs on a weaker session.
+        toast.error('Parola nu a fost schimbată. Introdu codul ca să continui.');
+        await navigate({
+          to: '/verificare-cod',
+          search: { redirect: currentHref },
+          state: { codeFailure: cause.result },
+          replace: true,
+        });
       } else if (codeOf(cause) === 'invalid_credentials') {
         form.setError('currentPassword', { message: 'Parola curentă nu este corectă.' });
       } else {

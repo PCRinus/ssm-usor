@@ -1,5 +1,5 @@
 begin;
-select plan(18);
+select plan(20);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 select v.id::uuid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', v.email, '', now(), v.app_metadata::jsonb, '{}', now(), now()
@@ -81,7 +81,7 @@ select throws_ok(
 );
 select pg_temp.act_as_postgres();
 
-select pg_temp.act_as_secret_key('{"x-audit-actor": "eeeeeeee-0000-4000-8000-0000000000a1"}');
+select pg_temp.act_as_secret_key('{"x-audit-actor": "eeeeeeee-0000-4000-8000-0000000000a1", "x-audit-aal": "aal2"}');
 select isnt(
   public.record_admin_event('import_copy_opened', 'import_copies', 'c0c0c0c0-0000-4000-8000-0000000000a1',
     '11111111-0000-4000-8000-0000000000a1', '{"import_id": "10000000-0000-4000-8000-0000000000a1"}'),
@@ -109,7 +109,7 @@ select results_eq(
 
 insert into public.impersonations (admin_user_id, target_user_id, reason)
 values ('eeeeeeee-0000-4000-8000-0000000000a1', 'aaaaaaaa-0000-4000-8000-0000000000a1', 'Ajut la import');
-select pg_temp.act_as_secret_key('{"x-audit-actor": "eeeeeeee-0000-4000-8000-0000000000a1"}');
+select pg_temp.act_as_secret_key('{"x-audit-actor": "eeeeeeee-0000-4000-8000-0000000000a1", "x-audit-aal": "aal2"}');
 select public.record_admin_event('import_copy_opened', 'import_copies', 'c0c0c0c0-0000-4000-8000-0000000000a1', '11111111-0000-4000-8000-0000000000a1');
 select pg_temp.act_as_postgres();
 select is(
@@ -118,12 +118,28 @@ select is(
   'an admin opening a copy during an impersonation acts as himself'
 );
 
-select pg_temp.act_as_secret_key('{"x-audit-actor": "aaaaaaaa-0000-4000-8000-0000000000a1"}');
+select pg_temp.act_as_secret_key('{"x-audit-actor": "aaaaaaaa-0000-4000-8000-0000000000a1", "x-audit-aal": "aal2"}');
 select throws_ok(
   $$ select public.record_admin_event('import_copy_opened', 'import_copies', 'c0c0c0c0-0000-4000-8000-0000000000a1', '11111111-0000-4000-8000-0000000000a1') $$,
   'AUD02',
   null,
   'a member named by the API is refused'
+);
+select pg_temp.act_as_postgres();
+
+select pg_temp.act_as_secret_key('{"x-audit-actor": "eeeeeeee-0000-4000-8000-0000000000a1"}');
+select throws_ok(
+  $$ select public.record_admin_event('import_copy_opened', 'import_copies', 'c0c0c0c0-0000-4000-8000-0000000000a1', '11111111-0000-4000-8000-0000000000a1') $$,
+  'AUD02',
+  null,
+  'so is an admin whose session the API does not say passed the second factor'
+);
+select pg_temp.act_as_secret_key('{"x-audit-actor": "eeeeeeee-0000-4000-8000-0000000000a1", "x-audit-aal": "aal1"}');
+select throws_ok(
+  $$ select public.record_admin_event('import_copy_opened', 'import_copies', 'c0c0c0c0-0000-4000-8000-0000000000a1', '11111111-0000-4000-8000-0000000000a1') $$,
+  'AUD02',
+  null,
+  'or says stayed at aal1'
 );
 select pg_temp.act_as_postgres();
 
@@ -136,7 +152,7 @@ select throws_ok(
 );
 select pg_temp.act_as_postgres();
 
-select pg_temp.act_as_secret_key('{"x-audit-actor": "eeeeeeee-0000-4000-8000-0000000000a1"}');
+select pg_temp.act_as_secret_key('{"x-audit-actor": "eeeeeeee-0000-4000-8000-0000000000a1", "x-audit-aal": "aal2"}');
 select throws_ok(
   $$ select public.record_admin_event('client_deleted', 'clients', 'c0c0c0c0-0000-4000-8000-0000000000a1', '11111111-0000-4000-8000-0000000000a1') $$,
   '22023',

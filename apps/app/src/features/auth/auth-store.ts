@@ -1,7 +1,7 @@
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import type { QueryClient } from '@tanstack/react-query';
 
-type AuthError = { message: string; code?: string; status?: number };
+type AuthError = { message: string; code?: string; status?: number; name?: string };
 
 // Supabase Auth refuses a gated call without a Turnstile token once CAPTCHA is on (ADR 004).
 type CaptchaOptions = { captchaToken?: string };
@@ -51,7 +51,36 @@ export interface AuthClient {
   };
 }
 
-export type VerifyResult = 'verified' | 'invalid' | 'rate-limited' | 'unreachable';
+export type VerifyResult = 'verified' | 'invalid' | 'rate-limited' | 'unreachable' | 'signed-out';
+
+const signedOutCodes = new Set(['session_not_found', 'session_expired', 'bad_jwt']);
+
+const isSignedOut = (error: AuthError) =>
+  error.status === 401 ||
+  error.status === 403 ||
+  (error.code !== undefined && signedOutCodes.has(error.code)) ||
+  error.name === 'AuthSessionMissingError';
+
+// A reload of the code page in the middle of a password reset must still know that this tab used
+// the link, which works once.
+const recoveredUserKey = 'ssm-usor:recovered-user';
+
+function readRecoveredUser() {
+  try {
+    return sessionStorage.getItem(recoveredUserKey);
+  } catch {
+    return null;
+  }
+}
+
+function storeRecoveredUser(userId: string | null) {
+  try {
+    if (userId) sessionStorage.setItem(recoveredUserKey, userId);
+    else sessionStorage.removeItem(recoveredUserKey);
+  } catch {
+    // Without storage, a reload during the reset asks for a new link.
+  }
+}
 
 export class SecondFactorError extends Error {
   constructor(readonly result: Exclude<VerifyResult, 'verified'>) {
@@ -79,7 +108,11 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
   const listeners = new Set<() => void>();
 
   // The account whose session a recovery link signed in, until it sets its new password.
-  let recoveredUserId: string | null = null;
+  let recoveredUserId = readRecoveredUser();
+  const setRecoveredUser = (userId: string | null) => {
+    recoveredUserId = userId;
+    storeRecoveredUser(userId);
+  };
 
   const publish = (session: Session | null) => {
     if (disposed) return;
@@ -88,7 +121,7 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
       // clear() also cancels cached queries, preventing old results from being reused.
       queryClient.clear();
     }
-    if (session?.user.id !== recoveredUserId) recoveredUserId = null;
+    if (recoveredUserId !== null && session?.user.id !== recoveredUserId) setRecoveredUser(null);
     snapshot = { status: 'ready', session };
     listeners.forEach((listener) => listener());
   };
@@ -126,7 +159,7 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
     if (!client) throw new Error('Authentication is not configured.');
     const { error } = await client.updateUser({ password });
     if (error && !(acceptCurrent && error.code === 'same_password')) throw error;
-    recoveredUserId = null;
+    setRecoveredUser(null);
     // The password is already changed; failing to end other sessions is not worth an error.
     await client.signOut({ scope: 'others' }).catch(() => undefined);
   }
@@ -147,6 +180,7 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
   }
 
   async function verifySecondFactor(code: string): Promise<VerifyResult> {
+    if (client && !snapshot.session) return 'signed-out';
     const factor = snapshot.session && verifiedTotp(snapshot.session);
     if (!client || !factor) return 'unreachable';
     try {
@@ -154,7 +188,8 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
       if (error) {
         // supabase-js reports a request that never got an answer with status 0.
         if (error.status === 0) return 'unreachable';
-        return error.status === 429 ? 'rate-limited' : 'invalid';
+        if (error.status === 429) return 'rate-limited';
+        return isSignedOut(error) ? 'signed-out' : 'invalid';
       }
       await refreshSnapshot();
       return 'verified';
@@ -240,7 +275,7 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
       const { data, error } = await client.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
       if (error) throw error;
       if (!data.session) throw new Error('No session was returned.');
-      recoveredUserId = data.session.user.id;
+      setRecoveredUser(data.session.user.id);
       publish(data.session);
     },
     updatePassword,
@@ -269,7 +304,8 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
       return exchange;
     },
     // Proves the person at the keyboard knows the current password before changing it. Signing
-    // in again leaves the session at aal1, so an account with a second factor gives its code too.
+    // in again leaves the session at aal1, so an account with a second factor gives its code too,
+    // and after a SecondFactorError the session stays at aal1 until a code is verified.
     async changePassword(
       email: string,
       currentPassword: string,

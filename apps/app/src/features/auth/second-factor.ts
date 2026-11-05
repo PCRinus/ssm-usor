@@ -20,6 +20,7 @@ export const codeFailureMessages: Record<Exclude<VerifyResult, 'verified'>, stri
   invalid: 'Codul nu este corect sau a expirat. Introdu codul afișat acum în aplicație.',
   'rate-limited': 'Prea multe încercări. Așteaptă un minut și încearcă din nou.',
   unreachable: 'Nu am putut verifica codul. Verifică conexiunea și încearcă din nou.',
+  'signed-out': 'Sesiunea ta a expirat. Autentifică-te din nou pentru a continua.',
 };
 
 export async function requireSecondFactor(auth: AuthStore, href: string) {

@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { cleanup, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -150,6 +150,54 @@ describe('the second factor in the member app', () => {
     await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
     expect(auth.client.verifyOtp).toHaveBeenCalledOnce();
     expect(auth.client.updateUser).toHaveBeenCalledWith({ password: 'ParolaNoua1' });
+  });
+
+  it('still knows the link was used when the code page is reloaded during a reset', async () => {
+    const auth = authFixture();
+    const recovered = withFactor(makeSession());
+    auth.client.verifyOtp.mockImplementation(async () => {
+      auth.emit('SIGNED_IN', recovered);
+      return { data: { session: recovered }, error: null };
+    });
+    mountApp(auth.client, '/resetare-parola?token_hash=hash-abc');
+    const user = userEvent.setup();
+    await user.type(await screen.findByTestId('reset-password'), 'ParolaNoua1');
+    await user.click(screen.getByTestId('reset-submit'));
+    await screen.findByTestId('second-factor-page');
+
+    disposeRuntimes();
+    cleanup();
+    const reloaded = authFixture(recovered);
+    const runtime = mountApp(reloaded.client, '/verificare-cod?redirect=/resetare-parola');
+    await user.type(await screen.findByTestId('second-factor-code'), '123456');
+    await user.click(screen.getByTestId('second-factor-submit'));
+
+    await screen.findByTestId('reset-password-page');
+    await user.type(screen.getByTestId('reset-password'), 'ParolaNoua1');
+    await user.click(screen.getByTestId('reset-submit'));
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
+    expect(reloaded.client.verifyOtp).not.toHaveBeenCalled();
+    expect(reloaded.client.updateUser).toHaveBeenCalledWith({ password: 'ParolaNoua1' });
+    expect(sessionStorage.length).toBe(0);
+  });
+
+  it('tells a person whose session ended to sign in again, and sends them there once it is gone', async () => {
+    const auth = authFixture(withFactor(makeSession()));
+    auth.client.mfa.challengeAndVerify.mockResolvedValue({
+      data: null,
+      error: { message: 'Session not found', code: 'session_not_found', status: 403 },
+    });
+    const runtime = mountApp(auth.client, '/dashboard');
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByTestId('second-factor-code'), '123456');
+    await user.click(screen.getByTestId('second-factor-submit'));
+
+    expect((await screen.findByTestId('second-factor-code-error')).textContent).toBe(
+      'Sesiunea ta a expirat. Autentifică-te din nou pentru a continua.'
+    );
+    auth.emit('SIGNED_OUT', null);
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/autentificare'));
   });
 
   it('does not let a signed-in session set a password on the reset page without a link', async () => {

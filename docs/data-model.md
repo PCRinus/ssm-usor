@@ -205,7 +205,9 @@ does in the admin area. No API role can write `audit.events`, so the API records
 `record_admin_event(action, table_name, row_id, organization_id, details default null)`, a security
 definer function only the secret key can execute, which returns the event's id. The actor is the
 account the API names in `x-audit-actor`, believed only on a service-role request as above, and it
-must hold the admin claim (`raw_app_meta_data.role = 'admin'`); otherwise `AUD02`, and an action
+must hold the admin claim (`raw_app_meta_data.role = 'admin'`) and, as the API says in
+`x-audit-aal: aal2` (`20261105120000_platform_admin_second_factor`), have passed its second
+factor; otherwise `AUD02`, and an action
 that is not an admin event is `22023`. The event's `source` is `api` and `impersonating_user_id`
 null, even while the admin has an impersonation open: he acts as himself.
 

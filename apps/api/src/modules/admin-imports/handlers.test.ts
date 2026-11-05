@@ -38,7 +38,14 @@ const env: ApiEnv['Bindings'] = {
 const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
 const token = `${encode({ alg: 'ES256', typ: 'JWT' })}.${encode({ sub: admin.id, aal: 'aal2' })}.c2ln`;
 
-type Call = { method: string; url: URL; body: unknown; secret: boolean; actor: string | null };
+type Call = {
+  method: string;
+  url: URL;
+  body: unknown;
+  secret: boolean;
+  actor: string | null;
+  aal: string | null;
+};
 
 const listRow = {
   import_id: importId,
@@ -224,6 +231,7 @@ function mockUpstream() {
       body: typeof raw === 'string' && /^[[{]/.test(raw) ? JSON.parse(raw) : raw,
       secret: headers.get('Authorization') === `Bearer ${secretKey}`,
       actor: headers.get('x-audit-actor'),
+      aal: headers.get('x-audit-aal'),
     });
     const body = calls.at(-1)!.body as Record<string, unknown>;
     const path = decodeURIComponent(url.pathname);
@@ -382,6 +390,7 @@ describe('GET /admin/imports/{id}', () => {
     });
     expect(events()[0]!.secret).toBe(true);
     expect(events()[0]!.actor).toBe(admin.id);
+    expect(events()[0]!.aal).toBe('aal2');
     expect(calls.indexOf(events()[0]!)).toBeLessThan(calls.indexOf(storageCalls()[0]!));
 
     expect(detail.organization).toEqual({ id: organizationId, name: 'Protecția Muncii SRL' });

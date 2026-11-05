@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '@ssm-usor/ui/components/input';
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate, useRouterState } from '@tanstack/react-router';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { PublicFrame, PublicFrameAction } from '@/app/public-frame';
@@ -19,6 +20,11 @@ export function SecondFactorPage({ continueTo }: { continueTo: string }) {
   });
   const formRef = useRevealErrors(form);
   const { errors, isSubmitting } = form.formState;
+  const failedElsewhere = useRouterState({ select: (state) => state.location.state.codeFailure });
+  const { setError } = form;
+  useEffect(() => {
+    if (failedElsewhere) setError('code', { message: codeFailureMessages[failedElsewhere] });
+  }, [failedElsewhere, setError]);
 
   const onSubmit = form.handleSubmit(async ({ code }) => {
     const result = await auth.verifySecondFactor(code);

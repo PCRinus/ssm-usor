@@ -361,11 +361,16 @@ Supabase Auth ends `aal1` sessions when a code is verified elsewhere and refuses
 change at `aal1`. So `/_authenticated`, `/configurare` and `/invitatie` send an `aal1` session of
 an account with a verified factor to `/verificare-cod` (`requireSecondFactor`, from
 `mfa.getAuthenticatorAssuranceLevel`), with the page asked for in `redirect`, a path inside the
-app or nothing. The page calls `mfa.challengeAndVerify` and then opens that page. After a
-recovery link, `/resetare-parola` verifies the token, sends the session to the code, and on its
-return takes the new password without the token, for the session the link signed in only. The
-profile's password form asks for the code too, since checking the current password signs in
-again at `aal1`.
+app or nothing. The page calls `mfa.challengeAndVerify` and then opens that page. A session
+Supabase no longer knows (401, 403, `session_not_found`) is told to sign in again, and a session
+that ends on the page goes to `/autentificare`. After a recovery link, `/resetare-parola`
+verifies the token, sends the session to the code, and on its return takes the new password
+without the token, for the session the link signed in only. The tab keeps that account's id in
+`sessionStorage` until the password is set or the session ends, so reloading the code page does
+not lose it. The profile's password form asks for the code too, since checking the current
+password signs in again at `aal1`. A code that fails there leaves the session at `aal1`, so the
+form sends it to `/verificare-cod` with the failure and the profile in `redirect`, and the
+password stays unchanged.
 
 The rules live in `src/features/auth/password-schema.ts` and mirror `newPasswordSchema` in the
 contracts and the policy in `supabase/config.toml`. The accept-invitation page uses the same
