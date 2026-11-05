@@ -591,7 +591,7 @@ type FoundImport = Awaited<ReturnType<typeof findImport>>;
 
 async function clientBlockers(
   db: DataClient,
-  row: FoundImport,
+  row: Pick<FoundImport, 'into_existing_client' | 'client_id'>,
   stored: NonNullable<ReturnType<typeof storedProposal>>,
   changes: ImportChanges | null
 ): Promise<ImportDetail['blockers']> {
@@ -1025,7 +1025,13 @@ export const saveImportChanges: RouteHandler<typeof saveImportChangesRoute, ApiE
   const { importId } = c.req.valid('param');
   const { version, changes } = c.req.valid('json');
   const db = createDataClient(c);
-  const row = await findImport(db, importId);
+  const { data: row, error } = await db
+    .from('imports')
+    .select('kind, proposal, into_existing_client, client_id')
+    .eq('id', importId)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'find import');
+  if (!row) throw notFound();
   if (row.kind !== 'client') throw wrongKind();
   const saved = await saveChanges(db, importId, version, changes);
   const stored = storedProposal(row.proposal);
