@@ -1,10 +1,20 @@
 import { type ImportLibraryPart, importLibraryParts } from '@ssm-usor/contracts';
+import type { ExistingClient, ProviderIdentity } from '@ssm-usor/import';
 
+import type { ImportMessage } from '../../lib/env';
 import { alertImport } from './import-alerts';
-import { describe, type PipelineDeps } from './pipeline';
-import type { ImportRecord, PartRecordRow } from './records';
+import { describe, type PipelineDeps, sendAll } from './pipeline';
+import type { CopyToWrite, ImportRecord, PartRecordRow } from './records';
 
 const encoder = new TextEncoder();
+
+// One Storage request each: an employee import can hold thousands of objects, and one message
+// copies this many before it sends the next, so no invocation nears its subrequest limit.
+export const keepChunkObjects = 200;
+// The copies the daily clean-up finds missing beyond this wait a day.
+export const sweptCopiesPerRun = 200;
+// What the daily clean-up copies itself before it removes an import whose copy is incomplete.
+export const inlineCopyObjects = 1000;
 
 const folderOf = (record: ImportRecord) => `${record.row.organization_id}/${record.row.id}`;
 
@@ -25,7 +35,31 @@ const usageOf = (row: {
   costUsd: Number(row.cost_usd ?? 0),
 });
 
-export function importCopyRecord(record: ImportRecord, objects: string[]) {
+export interface CopyContext {
+  createdBy: string | null;
+  // As the store gives it when the copy is written, which the reading asked for minutes before.
+  provider: ProviderIdentity;
+  existingClient: ExistingClient | null;
+  // ANAF's answer for the proposed CUI, kept in the proposal by the check step.
+  registeredCompany: unknown;
+}
+
+async function contextOf(deps: PipelineDeps, record: ImportRecord): Promise<CopyContext> {
+  const { row } = record;
+  const proposal = row.proposal;
+  return {
+    createdBy: row.created_by,
+    provider: await deps.store.provider(row.organization_id),
+    existingClient:
+      row.into_existing_client && row.client_id ? await deps.store.client(row.client_id) : null,
+    registeredCompany:
+      proposal && typeof proposal === 'object' && !Array.isArray(proposal)
+        ? (proposal.registeredCompany ?? null)
+        : null,
+  };
+}
+
+export function importCopyRecord(record: ImportRecord, objects: string[], context: CopyContext) {
   const { row } = record;
   return {
     import: row.id,
@@ -44,14 +78,20 @@ export function importCopyRecord(record: ImportRecord, objects: string[]) {
       abandonedAt: row.abandoned_at,
       reportedAt: row.reported_at,
     },
+    context,
     files: record.files.map((file, index) => ({
       place: index + 1,
       id: file.id,
       uploadPath: file.upload_path,
+      originalFileName: file.original_file_name,
+      storagePath: file.storage_path,
+      textPath: file.text_path,
+      derivedPath: file.derived_path,
       mimeType: file.mime_type,
       sizeBytes: file.size_bytes,
       sha256: file.sha256,
       pageCount: file.page_count,
+      declaredPages: file.declared_pages,
       isScan: file.is_scan,
       state: file.state,
       kind: file.document_kind,
@@ -79,7 +119,12 @@ export function importCopyRecord(record: ImportRecord, objects: string[]) {
   };
 }
 
-export function partCopyRecord(record: ImportRecord, part: PartRecordRow, objects: string[]) {
+export function partCopyRecord(
+  record: ImportRecord,
+  part: PartRecordRow,
+  objects: string[],
+  context: CopyContext
+) {
   return {
     import: record.row.id,
     organization: record.row.organization_id,
@@ -94,6 +139,7 @@ export function partCopyRecord(record: ImportRecord, part: PartRecordRow, object
       confirmedAt: part.confirmed_at,
       reportedAt: part.reported_at,
     },
+    context,
     proposal: part.proposal,
     changes: part.changes,
     quality: part.quality,
@@ -106,73 +152,164 @@ export function partCopyRecord(record: ImportRecord, part: PartRecordRow, object
 
 const json = (value: unknown) => encoder.encode(`${JSON.stringify(value, null, 2)}\n`);
 
-// The record goes first: a copy that fails halfway leaves a row the 12-month clean-up removes
-// its objects by, never objects no row names.
-async function keepPartCopy(
-  deps: PipelineDeps,
-  record: ImportRecord,
-  part: ImportLibraryPart,
-  names: string[]
-) {
-  const row = record.parts.find((each) => each.part === part);
-  if (!row) return false;
-  await deps.records.recordCopy(record.row.id, part);
-  const folder = folderOf(record);
-  const own = names.filter((name) => partOfObject(name) === part);
-  for (const name of own) {
-    await deps.copies.copyIn(`${folder}/${name}`, `${folder}/parts/${part}/files/${name}`);
-  }
-  await deps.copies.write(
-    `${folder}/parts/${part}/record.json`,
-    json(partCopyRecord(record, row, own)),
-    'application/json'
-  );
-  return true;
+export interface KeptChunk {
+  done: boolean;
+  // Where the next chunk starts, in the copy's objects by name.
+  next: number;
+  copied: number;
+  // The parts that ended with the import, abandoned or failed, once its own copy is done.
+  partsToKeep: ImportLibraryPart[];
 }
 
+// Null for an import that is gone, or a part it does not have.
 export async function keepCopy(
   deps: PipelineDeps,
   importId: string,
-  part: ImportLibraryPart | null
-) {
+  part: ImportLibraryPart | null,
+  offset = 0,
+  limit = keepChunkObjects
+): Promise<KeptChunk | null> {
   const record = await deps.records.get(importId);
-  if (!record) return false;
+  if (!record) return null;
+  const partRow = part ? record.parts.find((each) => each.part === part) : null;
+  if (part && !partRow) return null;
+  // The record goes first: a copy that fails halfway leaves a row the 12-month clean-up removes
+  // its objects by, never objects no row names. It stays incomplete until record.json is written.
+  if (offset === 0) await deps.records.recordCopy(importId, part);
   const folder = folderOf(record);
-  if (part) return keepPartCopy(deps, record, part, await deps.objects.list(folder));
-  await deps.records.recordCopy(importId, null);
-  const names = await deps.objects.list(folder);
-  const own = names.filter((name) => partOfObject(name) === null);
-  for (const name of own) {
-    await deps.copies.copyIn(`${folder}/${name}`, `${folder}/files/${name}`);
+  const target = part ? `${folder}/parts/${part}` : folder;
+  const own = (await deps.objects.list(folder))
+    .filter((name) => partOfObject(name) === part)
+    .sort();
+  const end = Math.min(own.length, offset + Math.max(limit, 0));
+  for (const name of own.slice(offset, end)) {
+    await deps.copies.copyIn(`${folder}/${name}`, `${target}/files/${name}`);
   }
+  const copied = Math.max(end - offset, 0);
+  if (end < own.length) return { done: false, next: end, copied, partsToKeep: [] };
+  const context = await contextOf(deps, record);
   await deps.copies.write(
-    `${folder}/record.json`,
-    json(importCopyRecord(record, own)),
+    `${target}/record.json`,
+    json(
+      partRow
+        ? partCopyRecord(record, partRow, own, context)
+        : importCopyRecord(record, own, context)
+    ),
     'application/json'
   );
-  if (record.row.status === 'abandoned' || record.row.status === 'failed') {
-    for (const each of record.parts) await keepPartCopy(deps, record, each.part, names);
+  await deps.records.completeCopy(importId, part);
+  const endedWithImport =
+    !part && (record.row.status === 'abandoned' || record.row.status === 'failed');
+  return {
+    done: true,
+    next: end,
+    copied,
+    partsToKeep: endedWithImport ? record.parts.map((each) => each.part) : [],
+  };
+}
+
+const keepMessage = (
+  importId: string,
+  part: ImportLibraryPart | null,
+  offset = 0
+): ImportMessage => ({
+  type: 'keep',
+  importId,
+  ...(part ? { part } : {}),
+  ...(offset > 0 ? { offset } : {}),
+});
+
+export async function keepStep(
+  deps: PipelineDeps,
+  importId: string,
+  part: ImportLibraryPart | null,
+  offset = 0
+) {
+  let chunk = await keepCopy(deps, importId, part, offset);
+  while (chunk && !chunk.done) {
+    if (deps.queue) {
+      await deps.queue.send(keepMessage(importId, part, chunk.next));
+      return;
+    }
+    chunk = await keepCopy(deps, importId, part, chunk.next);
   }
-  return true;
+  if (!chunk || chunk.partsToKeep.length === 0) return;
+  if (deps.queue) {
+    await sendAll(
+      deps.queue,
+      chunk.partsToKeep.map((each) => keepMessage(importId, each))
+    );
+    return;
+  }
+  for (const each of chunk.partsToKeep) await keepStep(deps, importId, each);
+}
+
+// The daily clean-up's fallback, for copies whose message was lost or failed, and for parts that
+// expired unconfirmed, which no other step ends.
+export async function keepMissingCopies(deps: PipelineDeps, now = new Date()) {
+  const missing = await deps.records.uncopied(now);
+  const sent = deps.queue ? missing.slice(0, sweptCopiesPerRun) : [];
+  if (deps.queue && sent.length > 0) {
+    try {
+      await sendAll(
+        deps.queue,
+        sent.map((copy) => keepMessage(copy.importId, copy.part))
+      );
+    } catch (error) {
+      console.error(`The missing improvement copies were not queued: ${describe(error)}`);
+      return { queued: 0, left: missing.length };
+    }
+  }
+  for (const { importId, part, recorded } of sent) {
+    if (part && !recorded) await alertImport(deps, importId, part, ['expired']);
+  }
+  return { queued: sent.length, left: missing.length - sent.length };
+}
+
+export interface CopyBudget {
+  objects: number;
+}
+
+async function keepWithin(deps: PipelineDeps, copy: CopyToWrite, budget: CopyBudget) {
+  let offset = 0;
+  while (budget.objects > 0) {
+    const chunk = await keepCopy(deps, copy.importId, copy.part, offset, budget.objects);
+    if (!chunk) return true;
+    budget.objects -= chunk.copied;
+    if (chunk.done) return true;
+    offset = chunk.next;
+  }
+  return false;
 }
 
 /**
- * The daily clean-up's fallback, before any object is removed: the copies of imports and parts
- * that ended without one written, a part that expired unconfirmed among them.
+ * The imports, of those named, whose objects may go: every copy of theirs is complete, or is
+ * written now within the budget. The others keep their objects for tomorrow's clean-up.
  */
-export async function keepMissingCopies(deps: PipelineDeps, now = new Date()) {
-  let written = 0;
-  let failed = 0;
-  for (const { importId, part } of await deps.records.uncopied(now)) {
+export async function withCopiesKept(
+  deps: PipelineDeps,
+  importIds: string[],
+  budget: CopyBudget,
+  now = new Date()
+) {
+  if (importIds.length === 0) return new Set<string>();
+  const held = new Set<string>();
+  for (const copy of await deps.records.incompleteCopies(importIds, now)) {
+    if (held.has(copy.importId)) continue;
+    let kept = false;
     try {
-      if (await keepCopy(deps, importId, part)) written++;
-      if (part) await alertImport(deps, importId, part, ['expired']);
+      kept = await keepWithin(deps, copy, budget);
     } catch (error) {
-      failed++;
       console.error(
-        `The copy of import ${importId}${part ? ` part ${part}` : ''} was not written: ${describe(error)}`
+        `The copy of import ${copy.importId}${copy.part ? ` part ${copy.part}` : ''} was not written: ${describe(error)}`
+      );
+    }
+    if (!kept) {
+      held.add(copy.importId);
+      console.error(
+        `The objects of import ${copy.importId} stay until its improvement copy is written.`
       );
     }
   }
-  return { written, failed };
+  return new Set(importIds.filter((id) => !held.has(id)));
 }

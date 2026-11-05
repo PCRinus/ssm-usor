@@ -1,5 +1,5 @@
 import type { ApiEnv } from '../../lib/env';
-import { keepMissingCopies } from './copies';
+import { type CopyBudget, inlineCopyObjects, keepMissingCopies, withCopiesKept } from './copies';
 import { alertImport, daySummary } from './import-alerts';
 import { libraryReasons, riskReasons } from './library';
 import { copyFolder, describe, importReasons, type PipelineDeps } from './pipeline';
@@ -11,7 +11,7 @@ const copyGraceMilliseconds = 60 * 60 * 1000;
 
 /**
  * The daily clean-up of ADR 030: folders whose copy did not finish are copied again, imports the
- * queue lost or members left are failed, the improvement copies not yet written are written
+ * queue lost or members left are failed, the improvement copies not yet written are queued
  * (ADR 037), then the objects of abandoned and failed imports go after 14 days and confirmed
  * imports' proposals and objects after 30, and the improvement copies after 12 months. Objects go
  * before the rows that name them, so an import or a copy whose removal failed is listed again the
@@ -43,11 +43,12 @@ export async function cleanUpImports(deps: PipelineDeps, now = new Date()) {
     await alertImport(deps, importId, part, ['cleanUp']);
   }
   const kept = await keepMissingCopies(deps, now);
-  const abandoned = await deps.store.listAbandoned();
-  const deleted = await deps.store.deleteAbandoned(await removeObjects(deps, abandoned));
+  const budget = { objects: inlineCopyObjects };
+  const abandoned = await removable(deps, await deps.store.listAbandoned(), budget, now);
+  const deleted = await deps.store.deleteAbandoned(await removeObjects(deps, abandoned.lists));
   const dropped = await deps.store.dropProposals();
-  const emptied = await deps.store.listObjectsToRemove();
-  const marked = await deps.store.markObjectsRemoved(await removeObjects(deps, emptied));
+  const emptied = await removable(deps, await deps.store.listObjectsToRemove(), budget, now);
+  const marked = await deps.store.markObjectsRemoved(await removeObjects(deps, emptied.lists));
   const expired = await deps.store.listExpiredCopies();
   const removedCopies = await deps.store.markCopiesRemoved(await removeCopies(deps, expired));
   return {
@@ -55,19 +56,40 @@ export async function cleanUpImports(deps: PipelineDeps, now = new Date()) {
     uncopied: uncopied.length - copied,
     failed: failed.length,
     failedParts: failedParts.length,
-    copiesWritten: kept.written,
-    copiesNotWritten: kept.failed,
+    copiesQueued: kept.queued,
+    copiesNotQueued: kept.left,
+    held: abandoned.held + emptied.held,
     deleted: deleted.length,
     dropped,
     emptied: marked.length,
     copiesRemoved: removedCopies.length,
     left:
-      abandoned.length -
+      abandoned.lists.length -
       deleted.length +
-      emptied.length -
+      emptied.lists.length -
       marked.length +
       expired.length -
       removedCopies.length,
+  };
+}
+
+// An import's objects go only once its improvement copies are complete (ADR 037): after its
+// removal nothing is left to copy them from.
+async function removable(
+  deps: PipelineDeps,
+  lists: ImportObjectList[],
+  budget: CopyBudget,
+  now: Date
+) {
+  const kept = await withCopiesKept(
+    deps,
+    lists.map((list) => list.importId),
+    budget,
+    now
+  );
+  return {
+    lists: lists.filter((list) => kept.has(list.importId)),
+    held: lists.length - kept.size,
   };
 }
 
@@ -114,7 +136,7 @@ async function removeCopies(deps: PipelineDeps, copies: ImportCopy[]) {
 }
 
 export const cleanUpLine = (result: CleanUpResult) =>
-  `${result.copied} folders copied, ${result.uncopied} not; ${result.failed} imports failed as stalled or left; ${result.failedParts} library parts failed as stalled; ${result.copiesWritten} improvement copies written, ${result.copiesNotWritten} not; ${result.deleted} deleted; ${result.dropped} proposals dropped; ${result.emptied} folders emptied; ${result.copiesRemoved} improvement copies removed; ${result.left} left for tomorrow.`;
+  `${result.copied} folders copied, ${result.uncopied} not; ${result.failed} imports failed as stalled or left; ${result.failedParts} library parts failed as stalled; ${result.copiesQueued} improvement copies queued, ${result.copiesNotQueued} not; ${result.held} imports kept until their copies are written; ${result.deleted} deleted; ${result.dropped} proposals dropped; ${result.emptied} folders emptied; ${result.copiesRemoved} improvement copies removed; ${result.left} left for tomorrow.`;
 
 const dayMilliseconds = 24 * 60 * 60 * 1000;
 

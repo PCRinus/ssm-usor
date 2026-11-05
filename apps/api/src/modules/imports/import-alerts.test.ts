@@ -7,6 +7,7 @@ import {
   alertImport,
   alertsOf,
   daySummary,
+  expensiveAlert,
   failureCode,
   importEnded,
   messageOf,
@@ -37,6 +38,8 @@ function row(overrides: Partial<ImportRecordRow> = {}): ImportRecordRow {
     confirmed_at: null,
     abandoned_at: null,
     reported_at: null,
+    created_by: null,
+    expensive_alerted_at: null,
     proposal: {
       client: { legalName: { options: [{ value: 'BRUTĂRIA FICTIVĂ S.R.L.' }] } },
       employees: [{ lastName: 'Popescu', firstName: 'Ion', cnp: '1850312350011' }],
@@ -160,13 +163,12 @@ describe('the rules checked as a reading ends', () => {
     ).toEqual(['unreadable_files']);
   });
 
-  it('trips once on the import whose cost, with its parts, passes $1', () => {
-    expect(rules(alertsOf(record({ cost_usd: 1.2 }), null, 'read'))).toEqual(['expensive']);
-    expect(rules(alertsOf(record({ cost_usd: 1 }), null, 'read'))).toEqual([]);
-    const crossing = record({ cost_usd: 1.3 }, [part({ cost_usd: 0.5 })]);
-    expect(rules(alertsOf(crossing, 'risk_evaluations', 'read'))).toEqual(['expensive']);
-    const past = record({ cost_usd: 1.8 }, [part({ cost_usd: 0.5 })]);
-    expect(rules(alertsOf(past, 'risk_evaluations', 'read'))).toEqual([]);
+  it('finds the import whose cost, with its parts, passes $1, until its alert is marked sent', () => {
+    expect(expensiveAlert(record({ cost_usd: 1.2 }), null)?.rule).toBe('expensive');
+    expect(expensiveAlert(record({ cost_usd: 1 }), null)).toBeNull();
+    const sent = record({ cost_usd: 1.8, expensive_alerted_at: '2026-11-03T09:30:00Z' });
+    expect(expensiveAlert(sent, null)).toBeNull();
+    expect(rules(alertsOf(record({ cost_usd: 1.2 }), null, 'read'))).toEqual([]);
   });
 
   it("checks a part's own flags for an assessment that gave no factor", () => {
@@ -307,6 +309,7 @@ describe('a message', () => {
   it('names the rule, the import and its organization, its counts and its cost, and nothing personal', () => {
     const everything = [
       ...alertsOf(record({ reading_flags: flags, cost_usd: 1.5 }), null, 'read'),
+      expensiveAlert(record({ cost_usd: 1.5 }), null)!,
       ...alertsOf(
         record({
           status: 'failed',
@@ -364,7 +367,10 @@ function fakes(found: ImportRecord | null = record()) {
   const records = {
     get: vi.fn(async () => found),
     recordCopy: vi.fn(),
+    completeCopy: vi.fn(),
     uncopied: vi.fn(async () => []),
+    incompleteCopies: vi.fn(async () => []),
+    claimExpensiveAlert: vi.fn(async () => true),
     activity: vi.fn(async () => ({ startedLastHour: 0, spentTodayUsd: 0 })),
     between: vi.fn(async () => []),
   } satisfies ImportRecords;
@@ -418,6 +424,53 @@ describe('importEnded', () => {
   });
 });
 
+describe('the expensive alert', () => {
+  it('is sent once when a part fails and is read again', async () => {
+    let marked = false;
+    const { deps, sent } = fakes(
+      record({ cost_usd: 1.4 }, [part({ status: 'failed', failure_reason: riskReasons.failed })])
+    );
+    deps.records.claimExpensiveAlert.mockImplementation(async () => {
+      if (marked) return false;
+      marked = true;
+      return true;
+    });
+    await alertImport(deps, importId, 'risk_evaluations', ['read', 'ended']);
+    await alertImport(deps, importId, 'risk_evaluations', ['read']);
+    expect(sent.filter((text) => text.includes('Expensive import'))).toHaveLength(1);
+  });
+
+  it('is sent once when two parts finish together', async () => {
+    let marked = false;
+    const { deps, sent } = fakes(
+      record({ cost_usd: 1.6 }, [part(), part({ part: 'instructions_ssm' })])
+    );
+    deps.records.claimExpensiveAlert.mockImplementation(async () => {
+      await Promise.resolve();
+      if (marked) return false;
+      marked = true;
+      return true;
+    });
+    await Promise.all([
+      alertImport(deps, importId, 'risk_evaluations', ['read']),
+      alertImport(deps, importId, 'instructions_ssm', ['read']),
+    ]);
+    expect(sent.filter((text) => text.includes('Expensive import'))).toHaveLength(1);
+    expect(deps.records.claimExpensiveAlert).toHaveBeenCalledTimes(2);
+  });
+
+  it('is not claimed at the end of an import, nor once marked sent', async () => {
+    const { deps, sent } = fakes(
+      record({ cost_usd: 2, expensive_alerted_at: '2026-11-03T09:30:00Z' })
+    );
+    await alertImport(deps, importId, null, ['read']);
+    deps.records.get.mockResolvedValue(record({ cost_usd: 2, status: 'abandoned' }));
+    await alertImport(deps, importId, null, ['ended']);
+    expect(deps.records.claimExpensiveAlert).not.toHaveBeenCalled();
+    expect(sent.filter((text) => text.includes('Expensive import'))).toEqual([]);
+  });
+});
+
 describe('alertBusyOrganization', () => {
   it('trips past 10 imports started in an hour, or $5 spent since midnight, once an hour', async () => {
     const { deps, sent } = fakes();
@@ -447,7 +500,8 @@ describe('daySummary', () => {
         status: 'confirmed',
         confirmed_at: '2026-11-03T11:00:00Z',
         quality: { people: { changed: 1, unticked: 0, kept: 9 } },
-        cost_usd: 0.5,
+        cost_usd: 1.5,
+        expensive_alerted_at: '2026-11-03T09:20:00Z',
       }),
       record({
         id: 'b',
@@ -485,8 +539,8 @@ describe('daySummary', () => {
         '📋 **Imports on 2026-11-03** · production',
         'Started 2 · confirmed 1 · abandoned 1 · failed 1',
         'Proposed values changed or unticked: 10% (2 of 20)',
-        'Cost of the imports started: $0.75',
-        'Alerts: 3',
+        'Cost of the imports started: $1.75',
+        'Alerts: 4',
         'Clean-up: 2 folders copied, 0 not.',
       ].join('\n')
     );

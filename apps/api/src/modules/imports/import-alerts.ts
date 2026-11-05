@@ -5,7 +5,7 @@ import type { ImportQueue } from '../../lib/env';
 import { libraryReasons, riskReasons } from './library';
 import { describe, importReasons } from './pipeline';
 import { changedShare, type FilePlace, type ReadingFlags } from './reading-flags';
-import type { ImportRecord, ImportRecords, PartRecordRow } from './records';
+import type { DayPartRow, ImportDay, ImportRecords } from './records';
 
 export const mostlyChangedShare = 0.5;
 export const expensiveImportUsd = 1;
@@ -108,9 +108,12 @@ const describePlaces = (places: FilePlace[], total: number | undefined) =>
 
 const timeOf = (at: string | null) => (at ? Date.parse(at) : null);
 
+// An import record as the alerts read it: the day summary's has no files.
+type Checked = ImportDay & { files?: readonly unknown[] };
+
 function alertOf(
-  record: ImportRecord,
-  part: PartRecordRow | null,
+  record: Checked,
+  part: DayPartRow | null,
   rule: AlertRule,
   facts: string[]
 ): ImportAlert {
@@ -126,12 +129,12 @@ function alertOf(
 }
 
 function readingRules(
-  record: ImportRecord,
-  part: PartRecordRow | null,
+  record: Checked,
+  part: DayPartRow | null,
   flags: ReadingFlags | null
 ): ImportAlert[] {
   const alerts: ImportAlert[] = [];
-  const total = flags?.files?.total ?? record.files.length;
+  const total = flags?.files?.total ?? record.files?.length ?? 0;
   if (flags?.nothingFound?.length) {
     alerts.push(
       alertOf(record, part, 'nothing_found', describePlaces(flags.nothingFound, total || undefined))
@@ -154,19 +157,20 @@ function readingRules(
       alertOf(record, part, 'unreadable_files', describePlaces(flags.files.unreadable, total))
     );
   }
-  const cost = Number(record.row.cost_usd ?? 0);
-  const before = part ? cost - Number(part.cost_usd ?? 0) : 0;
-  if (cost > expensiveImportUsd && before <= expensiveImportUsd) {
-    alerts.push(
-      alertOf(record, part, 'expensive', [
-        `The import with its parts cost ${usd(cost)}, over ${usd(expensiveImportUsd)}`,
-      ])
-    );
-  }
   return alerts;
 }
 
-function endRules(record: ImportRecord, part: PartRecordRow | null): ImportAlert[] {
+// Checked as each reading ends, the import's and each part's; sent only by the caller that marks
+// it sent on the import, so a part read again, or two parts ending together, alert once.
+export function expensiveAlert(record: Checked, part: DayPartRow | null): ImportAlert | null {
+  const cost = Number(record.row.cost_usd ?? 0);
+  if (cost <= expensiveImportUsd || record.row.expensive_alerted_at) return null;
+  return alertOf(record, part, 'expensive', [
+    `The import with its parts cost ${usd(cost)}, over ${usd(expensiveImportUsd)}`,
+  ]);
+}
+
+function endRules(record: Checked, part: DayPartRow | null): ImportAlert[] {
   const own = part ?? record.row;
   const alerts: ImportAlert[] = [];
   if (own.status === 'failed' && isOurs(own.failure_reason)) {
@@ -194,7 +198,7 @@ function endRules(record: ImportRecord, part: PartRecordRow | null): ImportAlert
   return alerts;
 }
 
-function cleanUpRules(record: ImportRecord, part: PartRecordRow | null): ImportAlert[] {
+function cleanUpRules(record: Checked, part: DayPartRow | null): ImportAlert[] {
   const own = part ?? record.row;
   if (own.status !== 'failed') return [];
   const code = failureCode(own.failure_reason);
@@ -210,7 +214,7 @@ function cleanUpRules(record: ImportRecord, part: PartRecordRow | null): ImportA
 }
 
 export function alertsOf(
-  record: ImportRecord,
+  record: Checked,
   part: ImportLibraryPart | null,
   moment: Moment
 ): ImportAlert[] {
@@ -264,10 +268,11 @@ export async function alertImport(
   try {
     const record = await deps.records.get(importId);
     if (!record) return;
-    await sendAll(
-      deps,
-      moments.flatMap((moment) => alertsOf(record, part, moment))
-    );
+    const alerts = moments.flatMap((moment) => alertsOf(record, part, moment));
+    const partRow = part ? (record.parts.find((each) => each.part === part) ?? null) : null;
+    const expensive = moments.includes('read') ? expensiveAlert(record, partRow) : null;
+    if (expensive && (await deps.records.claimExpensiveAlert(importId))) alerts.push(expensive);
+    await sendAll(deps, alerts);
   } catch (error) {
     console.error(`The alerts of import ${importId} were not checked: ${describe(error)}`);
   }
@@ -378,7 +383,7 @@ function momentsIn(
  * the busy organizations left out.
  */
 export function daySummary(
-  records: ImportRecord[],
+  records: ImportDay[],
   from: Date,
   to: Date,
   cleanUpLine: string
@@ -414,6 +419,7 @@ export function daySummary(
     );
     alerts += ownMoments.flatMap((moment) => alertsOf(record, null, moment)).length;
     if (inside(row.reported_at, start, end)) alerts++;
+    if (inside(row.expensive_alerted_at, start, end)) alerts++;
     for (const part of record.parts) {
       const moments = momentsIn(
         {

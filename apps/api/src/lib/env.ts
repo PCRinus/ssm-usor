@@ -24,7 +24,8 @@ export type RegenerationQueue = {
 // `deferred` counts the times a message was sent again while the extractor was unavailable;
 // `owner`, the message that claimed a scan before it was deferred. A scan without `pages` sorts
 // the file and sends its pages. `attempt` is the library part's reading the message is for. A
-// message without `part` is about the import itself.
+// message without `part` is about the import itself. `offset` is where a copy goes on, in its
+// objects by name.
 export type ImportMessage =
   | { type: 'prepare'; importId: string; fileId: string; deferred?: number }
   | { type: 'sort'; importId: string }
@@ -40,7 +41,7 @@ export type ImportMessage =
   | { type: 'check'; importId: string }
   | { type: 'copy'; importId: string }
   | { type: 'ended'; importId: string; part?: ImportLibraryPart }
-  | { type: 'keep'; importId: string; part?: ImportLibraryPart }
+  | { type: 'keep'; importId: string; part?: ImportLibraryPart; offset?: number }
   | {
       type: 'read-instructions';
       importId: string;

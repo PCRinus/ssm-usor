@@ -8,7 +8,7 @@ import type { ApiEnv, ImportMessage } from '../../lib/env';
 import { createExtractor } from '../../lib/extractor';
 import { adminFileStore } from '../../lib/files';
 import { lookupCompany } from '../companies/anaf';
-import { keepCopy } from './copies';
+import { keepStep } from './copies';
 import { importEnded } from './import-alerts';
 import {
   failLibraryPart,
@@ -75,7 +75,12 @@ export const importMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('check'), importId }),
   z.object({ type: z.literal('copy'), importId }),
   z.object({ type: z.literal('ended'), importId, part: z.enum(importLibraryParts).optional() }),
-  z.object({ type: z.literal('keep'), importId, part: z.enum(importLibraryParts).optional() }),
+  z.object({
+    type: z.literal('keep'),
+    importId,
+    part: z.enum(importLibraryParts).optional(),
+    offset: z.int().min(1).optional(),
+  }),
   z.object({
     type: z.literal('read-instructions'),
     importId,
@@ -142,7 +147,7 @@ export function runStep(deps: PipelineDeps, message: ImportMessage, messageId: s
     case 'ended':
       return importEnded(deps, message.importId, message.part ?? null);
     case 'keep':
-      return keepCopy(deps, message.importId, message.part ?? null);
+      return keepStep(deps, message.importId, message.part ?? null, message.offset);
     case 'read-instructions':
       return readInstructions(deps, message.importId, message.part, message.attempt, messageId);
     case 'read-risks':
@@ -181,7 +186,7 @@ export async function recordFailure(deps: PipelineDeps, message: ImportMessage, 
     case 'copy':
     case 'ended':
     case 'keep':
-      // The daily clean-up copies again what is left, and writes the copies not written.
+      // The daily clean-up copies again what is left, and queues the copies not complete.
       return;
     case 'read-instructions':
       await failLibraryPart(

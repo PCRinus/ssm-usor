@@ -15,7 +15,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AlertMessage } from '../../lib/alerts';
 import { sha256 } from '../../lib/docx';
 import type { ImportMessage } from '../../lib/env';
-import { cleanUpImports } from './cleanup';
+import { cleanUpImports, cleanUpLine } from './cleanup';
 import { libraryReasons, riskReasons } from './library';
 import {
   fileReasons,
@@ -153,6 +153,8 @@ class World {
   alerts: AlertMessage[] = [];
   recordedCopies: string[] = [];
   uncopied: CopyToWrite[] = [];
+  incomplete: CopyToWrite[] = [];
+  completedCopies = new Set<string>();
   activity: OrganizationActivity = { startedLastHour: 0, spentTodayUsd: 0 };
 
   send(body: ImportMessage, delaySeconds?: number) {
@@ -269,8 +271,24 @@ class World {
       get: async (id) => this.record(id),
       recordCopy: async (id, part) => {
         this.recordedCopies.push(`${id}:${part ?? ''}`);
+        this.completedCopies.delete(`${id}:${part ?? ''}`);
+      },
+      completeCopy: async (id, part) => {
+        this.completedCopies.add(`${id}:${part ?? ''}`);
       },
       uncopied: async () => this.uncopied,
+      incompleteCopies: async (ids) =>
+        this.incomplete.filter(
+          (copy) =>
+            ids.includes(copy.importId) &&
+            !this.completedCopies.has(`${copy.importId}:${copy.part ?? ''}`)
+        ),
+      claimExpensiveAlert: async (id) => {
+        const row = this.imports.get(id);
+        if (!row || row.expensive_alerted_at) return false;
+        row.expensive_alerted_at = '2026-10-28T10:00:00Z';
+        return true;
+      },
       activity: async () => this.activity,
       between: async () => [],
     };
@@ -2605,19 +2623,52 @@ describe('what a reading leaves (ADR 037)', () => {
     expect(text(world.alerts[0]!)).toContain('Reason: import.modelFailed');
   });
 
-  it('writes the copies the clean-up finds missing before it removes any object', async () => {
+  it('queues the copies the clean-up finds missing, and writes one itself before its import loses its objects', async () => {
     world.addImport({ status: 'abandoned', abandoned_at: '2026-10-01T00:00:00Z' });
     const id = world.addFile(files[0]!, 0, 'read');
     const path = world.files.get(id)!.storage_path;
-    world.uncopied = [{ importId, part: null }];
+    const missing = { importId, part: null, recorded: true };
+    world.uncopied = [missing];
+    world.incomplete = [missing];
     world.abandoned = [{ importId, paths: [path] }];
     const result = await cleanUpImports(deps());
 
+    expect(world.sent.map((message) => message.body)).toEqual([{ type: 'keep', importId }]);
     expect(
       world.copies.get(`${organizationId}/${importId}/files/${path.split('/').at(-1)}`)
     ).toEqual(files[0]!.bytes);
+    expect(world.completedCopies.has(`${importId}:`)).toBe(true);
     expect(world.objects.has(path)).toBe(false);
-    expect(result).toMatchObject({ copiesWritten: 1, copiesNotWritten: 0, deleted: 1 });
+    expect(result).toMatchObject({ copiesQueued: 1, copiesNotQueued: 0, held: 0, deleted: 1 });
+  });
+
+  it('keeps the objects of an import whose copy cannot be written, abandoned or confirmed, until the next day', async () => {
+    world.addImport({ status: 'abandoned', abandoned_at: '2026-10-01T00:00:00Z' });
+    const id = world.addFile(files[0]!, 0, 'read');
+    const path = world.files.get(id)!.storage_path;
+    world.incomplete = [{ importId, part: null, recorded: true }];
+    world.abandoned = [{ importId, paths: [path] }];
+    const failing = deps();
+    failing.copies.copyIn = async () => {
+      throw new Error('Storage is down');
+    };
+    const result = await cleanUpImports(failing);
+    world.abandoned = [];
+    world.toEmpty = [{ importId, paths: [path] }];
+    const confirmed = await cleanUpImports(failing);
+
+    expect(world.objects.has(path)).toBe(true);
+    expect(
+      world.calls.filter((call) => /^(deleteAbandoned|markObjectsRemoved)/.test(call))
+    ).toEqual([
+      'deleteAbandoned ',
+      'markObjectsRemoved ',
+      'deleteAbandoned ',
+      'markObjectsRemoved ',
+    ]);
+    expect(result).toMatchObject({ held: 1, deleted: 0 });
+    expect(confirmed).toMatchObject({ held: 1, emptied: 0 });
+    expect(cleanUpLine(result)).toContain('1 imports kept until their copies are written');
   });
 
   it('tells support of an import the clean-up failed as stalled, and of one left after its reading', async () => {
