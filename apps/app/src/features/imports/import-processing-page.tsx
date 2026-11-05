@@ -43,6 +43,7 @@ import { ImportThumbnail } from './import-thumbnail';
 import { inPathOrder } from './path-order';
 import { ReadSetAsideButton } from './read-set-aside-button';
 import { ReportImportButton } from './report-import-button';
+import { useCanReportImport } from './use-can-report-import';
 import { useImport } from './use-import';
 import { useUploadStalled } from './use-upload-stalled';
 
@@ -137,6 +138,7 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
   const navigate = useNavigate();
   const [abandoning, setAbandoning] = useState(false);
   const stalled = useUploadStalled(detail);
+  const canReport = useCanReportImport();
   const running = isRunning(detail.status);
   const open = !['confirmed', 'abandoned'].includes(detail.status);
   const files = useMemo(() => inPathOrder(detail.files), [detail.files]);
@@ -202,11 +204,13 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
           variant="destructive"
           data-testid="import-failed"
           action={
-            <ReportImportButton
-              importId={detail.id}
-              variant="outline"
-              className="h-auto min-h-8 bg-card py-1.5 text-left whitespace-normal"
-            />
+            canReport && (
+              <ReportImportButton
+                importId={detail.id}
+                variant="outline"
+                className="h-auto min-h-8 bg-card py-1.5 text-left whitespace-normal"
+              />
+            )
           }
         >
           <p data-testid="import-failed-message">

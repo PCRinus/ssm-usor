@@ -1,5 +1,5 @@
 import type { RouteHandler } from '@hono/zod-openapi';
-import type { ImportLibraryPart } from '@ssm-usor/contracts';
+import { importErrorReasons, type ImportLibraryPart } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
 import { createAdminClient } from '../../lib/admin-db';
@@ -58,7 +58,20 @@ async function record(c: Context<ApiEnv>, importId: string, part: ImportLibraryP
   return false;
 }
 
+// A report raises a support alert in the member's name, which an admin acting as them must not.
+function refuseImpersonation(c: Context<ApiEnv>) {
+  if (c.get('membership').userId !== c.get('user').id) {
+    throw new ApiError(
+      'forbidden',
+      'A platform admin impersonating a member cannot report their import.',
+      undefined,
+      importErrorReasons.reportImpersonated
+    );
+  }
+}
+
 async function report(c: Context<ApiEnv>, importId: string, part: ImportLibraryPart | null) {
+  refuseImpersonation(c);
   const row = await reportedImport(c, importId);
   if (part) {
     const { data, error } = await createDataClient(c)

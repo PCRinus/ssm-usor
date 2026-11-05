@@ -10,6 +10,7 @@ import {
   fetchMock,
   importDetail,
   importId,
+  meResponse,
   mockApi,
   readyDetail,
   requestsTo,
@@ -93,12 +94,15 @@ const libraryParts = {
   posts: [],
 };
 
+let me: unknown = meResponse;
+
 function mockImport(
   detail: ReturnType<typeof importDetail> | ReturnType<typeof employeeDetail>,
   report: () => Response = () => new Response(null, { status: 204 })
 ) {
   mockApi((init, url) => {
     const method = init?.method ?? 'GET';
+    if (url.pathname === '/me') return Response.json(me);
     if (url.pathname === '/me/support-identity') {
       return Response.json({ distinctId: 'user-one', hash: 'support-hash' });
     }
@@ -146,6 +150,7 @@ beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock);
   posthog.client = null;
   posthog.openSupportChat.mockReset().mockResolvedValue(true);
+  me = meResponse;
 });
 
 afterEach(() => {
@@ -226,7 +231,7 @@ describe('reporting a problem with an import', () => {
 
     const notice = await screen.findByTestId('import-failed');
     await userEvent.click(
-      within(notice).getByRole('button', { name: 'Raportează o problemă cu importul' })
+      await within(notice).findByRole('button', { name: 'Raportează o problemă cu importul' })
     );
 
     await emailDialog();
@@ -250,7 +255,7 @@ describe('reporting a problem with an import', () => {
 
     const notice = await screen.findByTestId('employee-processing-failed');
     await userEvent.click(
-      within(notice).getByRole('button', { name: 'Raportează o problemă cu importul' })
+      await within(notice).findByRole('button', { name: 'Raportează o problemă cu importul' })
     );
 
     await emailDialog();
@@ -318,4 +323,56 @@ describe('reporting a problem with an import', () => {
     expect(requestsTo(`/imports/${importId}/library-parts/${part}/report`, 'POST')).toHaveLength(1);
     expect(requestsTo(`/imports/${importId}/report`, 'POST')).toHaveLength(0);
   });
+
+  const confirmed = importDetail({
+    status: 'confirmed',
+    confirmedAt: failedAt,
+    client: { id: clientId, legalName: client.legalName },
+    libraryParts: [{ part: 'instructions_ssm', status: 'ready', expiresAt: null }],
+  });
+
+  it.each([
+    ['the client review', readyDetail(), `/clienti/import/${importId}`, 'import-review-hub'],
+    [
+      'a stopped client import',
+      importDetail({ status: 'failed', failedAt, failureReason }),
+      `/clienti/import/${importId}`,
+      'import-failed',
+    ],
+    ['a confirmed client import', confirmed, `/clienti/import/${importId}`, 'import-confirmed-hub'],
+    ['a part', readyDetail(), `/clienti/import/${importId}/evaluari-de-risc`, 'library-task'],
+    [
+      'the employee review',
+      employeeDetail(),
+      `/clienti/${clientId}/angajati/import/${importId}`,
+      'employee-hub',
+    ],
+    [
+      'a stopped employee import',
+      employeeDetail({ status: 'failed', failedAt, failureReason }),
+      `/clienti/${clientId}/angajati/import/${importId}`,
+      'employee-processing-failed',
+    ],
+  ])(
+    'shows no button on %s to an admin impersonating the member',
+    async (_, detail, path, page) => {
+      me = {
+        ...meResponse,
+        user: { id: 'platform-admin', email: 'admin@example.test' },
+        impersonation: {
+          targetMemberId: 'user-one',
+          targetOrganizationId: meResponse.membership.organization.id,
+        },
+      };
+      mockImport(detail);
+      mount(path);
+
+      await screen.findByTestId(page);
+      await waitFor(() => expect(requestsTo('/me')).not.toHaveLength(0));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(
+        screen.queryByRole('button', { name: 'Raportează o problemă cu importul' })
+      ).toBeNull();
+    }
+  );
 });

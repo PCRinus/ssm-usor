@@ -9,6 +9,7 @@ import { reportImport, reportImportLibraryPart } from '@/api/generated/api';
 import { useReportProblem } from '@/app/report-problem-context';
 
 import { importErrorMessage } from './import-format';
+import { useCanReportImport } from './use-can-report-import';
 
 export function ReportImportButton({
   importId,
@@ -23,6 +24,7 @@ export function ReportImportButton({
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const reportProblem = useReportProblem();
+  const canReport = useCanReportImport();
   const [sending, setSending] = useState(false);
 
   async function report() {
@@ -40,6 +42,7 @@ export function ReportImportButton({
     setSending(false);
   }
 
+  if (!canReport) return null;
   return (
     <Button
       variant={variant}

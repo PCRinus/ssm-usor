@@ -36,6 +36,7 @@ let partVisible: boolean;
 let quiet: boolean;
 let access: 'full' | 'read_only';
 let status: string;
+let member: string;
 
 function mockUpstream() {
   fetchMock.mockImplementation(async (input, init) => {
@@ -53,7 +54,7 @@ function mockUpstream() {
     if (url.pathname === '/auth/v1/user') return Response.json(user);
     if (url.pathname === '/rest/v1/rpc/current_membership') {
       return Response.json([
-        { user_id: user.id, organization_id: organizationId, role: 'specialist', access },
+        { user_id: member, organization_id: organizationId, role: 'specialist', access },
       ]);
     }
     const quietFilter = url.searchParams.has('or');
@@ -104,6 +105,7 @@ beforeEach(() => {
   quiet = true;
   access = 'full';
   status = 'ready';
+  member = user.id;
   mockUpstream();
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -180,6 +182,24 @@ describe('POST /imports/{importId}/report', () => {
     ).toBe(204);
     expect(updates('imports')).toHaveLength(1);
     expect(updates('import_library_parts')).toHaveLength(1);
+  });
+
+  it('refuses a platform admin impersonating a member, and records and tells nothing', async () => {
+    member = '9c2d4e6f-8a0b-4c1d-9e2f-3a4b5c6d7e8f';
+    const whole = await request(`/imports/${importId}/report`);
+    const part = await request(`/imports/${importId}/library-parts/risk_evaluations/report`);
+
+    for (const response of [whole, part]) {
+      expect(response.status).toBe(403);
+      expect(await response.json()).toMatchObject({
+        error: 'forbidden',
+        reason: 'import_report_impersonated',
+      });
+    }
+    expect(updates('imports')).toEqual([]);
+    expect(updates('import_library_parts')).toEqual([]);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(posts()).toEqual([]);
   });
 
   it('refuses a caller without a token', async () => {

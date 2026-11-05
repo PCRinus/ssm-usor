@@ -16,6 +16,7 @@ import { ImportThumbnail } from '../import-thumbnail';
 import { inPathOrder } from '../path-order';
 import { ImportFileView, PhotoPreviewDialog } from '../photo-preview-dialog';
 import { ReportImportButton } from '../report-import-button';
+import { useCanReportImport } from '../use-can-report-import';
 import { useUploadStalled } from '../use-upload-stalled';
 import { onlyPhotos, sheetFilesLabel } from './review-format';
 
@@ -83,6 +84,7 @@ export function EmployeeProcessing({
   const [previewing, setPreviewing] = useState<string | null>(null);
   const running = isRunning(detail.status);
   const stalled = useUploadStalled(detail);
+  const canReport = useCanReportImport();
   const reached = reachedStep(detail);
   const files = useMemo(() => inPathOrder(detail.files), [detail.files]);
   const photos = onlyPhotos(files);
@@ -141,11 +143,13 @@ export function EmployeeProcessing({
           variant="destructive"
           data-testid="employee-processing-failed"
           action={
-            <ReportImportButton
-              importId={detail.id}
-              variant="outline"
-              className="h-auto min-h-8 bg-card py-1.5 text-left whitespace-normal"
-            />
+            canReport && (
+              <ReportImportButton
+                importId={detail.id}
+                variant="outline"
+                className="h-auto min-h-8 bg-card py-1.5 text-left whitespace-normal"
+              />
+            )
           }
         >
           <p data-testid="employee-processing-failed-message">

@@ -44439,7 +44439,7 @@
             }
           },
           "403": {
-            "description": "The account is not a member of an organization",
+            "description": "The account is not a member of an organization, or is a platform admin impersonating a member (`import_report_impersonated`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -44536,7 +44536,7 @@
             }
           },
           "403": {
-            "description": "The account is not a member of an organization",
+            "description": "The account is not a member of an organization, or is a platform admin impersonating a member (`import_report_impersonated`)",
             "content": {
               "application/json": {
                 "schema": {

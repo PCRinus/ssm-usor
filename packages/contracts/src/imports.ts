@@ -119,6 +119,7 @@ export const importErrorReasons = {
   partNotFailed: 'import_part_not_failed',
   titleTaken: 'instruction_title_taken',
   nameTaken: 'evaluation_profile_name_taken',
+  reportImpersonated: 'import_report_impersonated',
 } as const;
 
 /** With `credits_insufficient`: what the import needs to start, and what is left. */

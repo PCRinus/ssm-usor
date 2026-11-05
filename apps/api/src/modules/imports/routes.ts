@@ -580,6 +580,12 @@ export const retryImportLibraryPartRoute = createRoute({
   },
 });
 
+const reportRefused = {
+  description:
+    'The account is not a member of an organization, or is a platform admin impersonating a member (`import_report_impersonated`)',
+  content: errorContent,
+} as const;
+
 export const reportImportRoute = createRoute({
   method: 'post',
   path: '/imports/{importId}/report',
@@ -595,6 +601,7 @@ export const reportImportRoute = createRoute({
     400: { description: 'Invalid path', content: errorContent },
     404: noSuchImport,
     ...membershipErrors,
+    403: reportRefused,
   },
 });
 
@@ -613,5 +620,6 @@ export const reportImportLibraryPartRoute = createRoute({
     400: { description: 'Invalid path', content: errorContent },
     404: { description: 'No such import, or no such part of it', content: errorContent },
     ...membershipErrors,
+    403: reportRefused,
   },
 });

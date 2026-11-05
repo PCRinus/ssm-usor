@@ -271,7 +271,7 @@ describe('the processing page', () => {
     expect(within(notice).getByTestId('import-failed-message').textContent).toBe(
       'Serviciul care citește documentele nu a răspuns. Renunță la import și încearcă din nou.'
     );
-    expect(within(notice).getByTestId('import-report').textContent).toBe(
+    expect((await within(notice).findByTestId('import-report')).textContent).toBe(
       'Raportează o problemă cu importul'
     );
     expect(screen.getAllByTestId('import-step').map((step) => step.dataset.state)).toEqual([
@@ -298,7 +298,7 @@ describe('the processing page', () => {
     expect(within(notice).getByTestId('import-failed-message').textContent).toBe(
       'Importul s-a oprit din cauza unei erori. Creditele ți-au fost returnate. Renunță la import și încearcă din nou.'
     );
-    expect(within(notice).getByTestId('import-report').textContent).toBe(
+    expect((await within(notice).findByTestId('import-report')).textContent).toBe(
       'Raportează o problemă cu importul'
     );
   });
