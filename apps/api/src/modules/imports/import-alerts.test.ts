@@ -361,7 +361,7 @@ describe('a message', () => {
   });
 
   it('links to the import in the admin area when the environment has one', () => {
-    const [alert] = alertsOf(record({ cost_usd: 1.5 }), null, 'read');
+    const alert = expensiveAlert(record({ cost_usd: 1.5 }), null);
     expect(
       alertText(messageOf(alert!), 'non-prod', 'https://admin.non-prod.ssmusor.ro').split('\n')
     ).toEqual([
