@@ -96,6 +96,10 @@ const goneRow = {
   quality: null,
   cost_usd: null,
   reported_at: null,
+  copy_written_at: null,
+  copy_expires_at: null,
+  copy_removed_at: null,
+  copy_completed_at: null,
   part_copies: 0,
   incomplete_part_copies: 0,
 };
@@ -353,6 +357,18 @@ describe('GET /admin/imports', () => {
       flags: null,
       changedShare: null,
       costUsd: null,
+      copy: null,
+    });
+  });
+
+  it('lists a copy still being written with no completion', async () => {
+    listRows = [{ ...listRow, copy_completed_at: null }];
+    const page = adminImportListSchema.parse(await (await request('/admin/imports')).json());
+    expect(page.items[0]!.copy).toEqual({
+      writtenAt: '2026-11-03T09:10:05+00:00',
+      expiresAt: '2027-11-03T09:10:00+00:00',
+      removedAt: null,
+      completedAt: null,
     });
   });
 

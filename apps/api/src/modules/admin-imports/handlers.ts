@@ -14,6 +14,7 @@ import {
 import type { Context } from 'hono';
 import { z } from 'zod';
 
+import type { Database } from '../../database.types';
 import { type AdminClient, createAdminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
@@ -73,12 +74,21 @@ const copyOf = (row: {
   completedAt: row.completed_at,
 });
 
+type CopyColumn = 'copy_written_at' | 'copy_expires_at' | 'copy_removed_at' | 'copy_completed_at';
+
+// The generated types miss that the copy columns are null for an import with no kept copy, and
+// the completion for a copy still being written.
+type ListRow = Omit<
+  Database['public']['Functions']['admin_list_imports']['Returns'][number],
+  CopyColumn
+> & { [column in CopyColumn]: string | null };
+
 async function listPage(
   db: AdminClient,
   query: z.infer<typeof adminImportListQuerySchema>,
   limit: number,
   offset: number
-) {
+): Promise<ListRow[]> {
   const { data, error } = await db.rpc('admin_list_imports', {
     p_kind: query.kind,
     p_status: query.status,

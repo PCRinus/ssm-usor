@@ -11,6 +11,7 @@ import {
   importDetail,
   importId,
   meResponse,
+  meWithCredits,
   mockApi,
   readyDetail,
   requestsTo,
@@ -357,7 +358,7 @@ describe('reporting a problem with an import', () => {
     'shows no button on %s to an admin impersonating the member',
     async (_, detail, path, page) => {
       me = {
-        ...meResponse,
+        ...meWithCredits(),
         user: { id: 'platform-admin', email: 'admin@example.test' },
         impersonation: {
           targetMemberId: 'user-one',
@@ -368,8 +369,7 @@ describe('reporting a problem with an import', () => {
       mount(path);
 
       await screen.findByTestId(page);
-      await waitFor(() => expect(requestsTo('/me')).not.toHaveLength(0));
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await screen.findByTestId('subscription-badge');
       expect(
         screen.queryByRole('button', { name: 'Raportează o problemă cu importul' })
       ).toBeNull();
