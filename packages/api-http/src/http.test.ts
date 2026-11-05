@@ -34,7 +34,7 @@ describe('fetching from the API', () => {
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ credentials: 'omit', redirect: 'error' });
   });
 
-  it('sends cookies to its own origin only when asked to', async () => {
+  it('passes the credentials mode it was created with', async () => {
     fetchMock.mockImplementation(async () => Response.json({}));
     await createApiHttp({ credentials: 'same-origin' }).apiFetch('/me', { baseUrl });
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
