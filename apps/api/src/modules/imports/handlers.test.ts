@@ -693,7 +693,53 @@ describe('PUT /imports/{importId}/changes', () => {
       changes: {},
     });
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ version: 3 });
+    expect(await response.json()).toEqual({ version: 3, blockers: [] });
+  });
+
+  it('answers what still blocks confirming once the changes are saved', async () => {
+    const proposal = {
+      ...toProposal({
+        ...reading,
+        protectiveEquipment: [
+          {
+            jobPositions: [],
+            risk: 'Substanțe de curățat',
+            item: 'Mănuși',
+            quantity: 1,
+            durationMonths: null,
+            allocation: 'personal_inventory',
+            file: 'Dosar/Fisier 1.docx',
+            quote: 'Mănuși',
+            otherCompany: null,
+          },
+        ],
+      }),
+      registeredCompany: null,
+    };
+    let version = 2;
+    mockUpstream(({ url }) => {
+      if (url.pathname === '/rest/v1/imports') {
+        return Response.json(importRow({ status: 'ready', version, proposal }));
+      }
+      if (url.pathname === '/rest/v1/rpc/save_import_changes') return Response.json(++version);
+    });
+    const save = async (items: Record<string, unknown>) => {
+      const response = await request(`/imports/${importId}/changes`, 'PUT', {
+        version,
+        changes: { fields: {}, items },
+      });
+      expect(response.status).toBe(200);
+      return (await response.json()) as { version: number; blockers: unknown[] };
+    };
+    const duration = { path: 'protectiveEquipment.0.durationMonths', code: 'missing' };
+
+    const before = await save({});
+    expect(before.version).toBe(3);
+    expect(before.blockers).toContainEqual(duration);
+
+    const after = await save({ 'equipment-entry-1': { values: { durationMonths: 12 } } });
+    expect(after.version).toBe(4);
+    expect(after.blockers).not.toContainEqual(duration);
   });
 
   it("refuses an employee import's review, which has a shape of its own", async () => {

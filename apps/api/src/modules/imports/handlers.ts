@@ -567,19 +567,8 @@ export const getImport: RouteHandler<typeof getImportRoute, ApiEnv> = async (c) 
   const stored = storedProposal(row.proposal);
   const visible = stored !== null && (row.status === 'ready' || row.status === 'confirmed');
   const changes = visible ? storedChanges(row.changes) : null;
-  let blockers: ImportDetail['blockers'] = [];
-  if (visible && row.status === 'ready') {
-    blockers = toClientPayload({
-      proposal: stored.proposal,
-      changes,
-      intoExistingClient: row.into_existing_client,
-      existing:
-        row.into_existing_client && row.client_id
-          ? await existingRecords(db, row.client_id)
-          : noExistingRecords,
-      registeredCompany: stored.registeredCompany,
-    }).blockers;
-  }
+  const blockers =
+    visible && row.status === 'ready' ? await clientBlockers(db, row, stored, changes) : [];
   const detail = {
     ...toSummary(row, await creatorNames(db, [row])),
     version: row.version,
@@ -599,6 +588,24 @@ export const getImport: RouteHandler<typeof getImportRoute, ApiEnv> = async (c) 
 };
 
 type FoundImport = Awaited<ReturnType<typeof findImport>>;
+
+async function clientBlockers(
+  db: DataClient,
+  row: Pick<FoundImport, 'into_existing_client' | 'client_id'>,
+  stored: NonNullable<ReturnType<typeof storedProposal>>,
+  changes: ImportChanges | null
+): Promise<ImportDetail['blockers']> {
+  return toClientPayload({
+    proposal: stored.proposal,
+    changes,
+    intoExistingClient: row.into_existing_client,
+    existing:
+      row.into_existing_client && row.client_id
+        ? await existingRecords(db, row.client_id)
+        : noExistingRecords,
+    registeredCompany: stored.registeredCompany,
+  }).blockers;
+}
 
 async function employeeImportDetail(c: Context<ApiEnv>, db: DataClient, row: FoundImport) {
   const files = await listFilesOf(db, row.id);
@@ -1018,8 +1025,18 @@ export const saveImportChanges: RouteHandler<typeof saveImportChangesRoute, ApiE
   const { importId } = c.req.valid('param');
   const { version, changes } = c.req.valid('json');
   const db = createDataClient(c);
-  await requireKind(db, importId, 'client');
-  return c.json({ version: await saveChanges(db, importId, version, changes) }, 200);
+  const { data: row, error } = await db
+    .from('imports')
+    .select('kind, proposal, into_existing_client, client_id')
+    .eq('id', importId)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'find import');
+  if (!row) throw notFound();
+  if (row.kind !== 'client') throw wrongKind();
+  const saved = await saveChanges(db, importId, version, changes);
+  const stored = storedProposal(row.proposal);
+  const blockers = stored ? await clientBlockers(db, row, stored, changes) : [];
+  return c.json({ version: saved, blockers }, 200);
 };
 
 // Each save is a change to the import, so it restarts the 14 days an import is kept untouched.
