@@ -34,6 +34,7 @@ let calls: Call[] = [];
 let visible: boolean;
 let partVisible: boolean;
 let quiet: boolean;
+let access: 'full' | 'read_only';
 
 function mockUpstream() {
   fetchMock.mockImplementation(async (input, init) => {
@@ -51,7 +52,7 @@ function mockUpstream() {
     if (url.pathname === '/auth/v1/user') return Response.json(user);
     if (url.pathname === '/rest/v1/rpc/current_membership') {
       return Response.json([
-        { user_id: user.id, organization_id: organizationId, role: 'specialist', access: 'full' },
+        { user_id: user.id, organization_id: organizationId, role: 'specialist', access },
       ]);
     }
     const quietFilter = url.searchParams.has('or');
@@ -99,6 +100,7 @@ beforeEach(() => {
   visible = true;
   partVisible = true;
   quiet = true;
+  access = 'full';
   mockUpstream();
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -156,6 +158,16 @@ describe('POST /imports/{importId}/report', () => {
     expect(read.admin).toBe(false);
     expect(updates('imports')).toEqual([]);
     expect(posts()).toEqual([]);
+  });
+
+  it('takes a report from a read-only organization, whose data it does not change', async () => {
+    access = 'read_only';
+    expect((await request(`/imports/${importId}/report`)).status).toBe(204);
+    expect(
+      (await request(`/imports/${importId}/library-parts/risk_evaluations/report`)).status
+    ).toBe(204);
+    expect(updates('imports')).toHaveLength(1);
+    expect(updates('import_library_parts')).toHaveLength(1);
   });
 
   it('refuses a caller without a token', async () => {

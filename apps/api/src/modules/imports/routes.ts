@@ -34,6 +34,7 @@ import {
   risksProposalSchema,
 } from '@ssm-usor/import';
 
+import { allowWhileReadOnly } from '../../lib/access';
 import { requireAuth } from '../../lib/auth';
 import { requireMembership } from '../../lib/membership';
 import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
@@ -587,7 +588,7 @@ export const reportImportRoute = createRoute({
   description:
     '"Raportează o problemă cu importul" (ADR 037): records when and by whom, a report again replacing both, and tells support, at most once in 10 minutes for the same import. What the member writes goes to the support widget, not here.',
   security: bearerSecurity,
-  middleware: [requireAuth, requireMembership] as const,
+  middleware: [requireAuth, allowWhileReadOnly, requireMembership] as const,
   request: { params: importParams },
   responses: {
     204: { description: 'Reported' },
@@ -605,7 +606,7 @@ export const reportImportLibraryPartRoute = createRoute({
   description:
     'As for the import: records when and by whom on the part, and tells support at most once in 10 minutes for the same part.',
   security: bearerSecurity,
-  middleware: [requireAuth, requireMembership] as const,
+  middleware: [requireAuth, allowWhileReadOnly, requireMembership] as const,
   request: { params: libraryPartParams },
   responses: {
     204: { description: 'Reported' },
