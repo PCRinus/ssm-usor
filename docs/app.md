@@ -171,6 +171,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/inregistrare.tsx`                                                             | `/inregistrare`                                        | Public and unlinked. Supabase's signup: email and password.                                                                                                                                                |
 | `routes/confirmare-email.tsx`                                                         | `/confirmare-email`                                    | Public. Where a signup confirmation email lands; confirms on a button press.                                                                                                                               |
 | `routes/configurare.tsx`                                                              | `/configurare`                                         | Signed in, outside the shell. An account without an organization creates one.                                                                                                                              |
+| `routes/verificare-cod.tsx`                                                           | `/verificare-cod`                                      | Signed in at `aal1` with an authenticator: the code, then the page in `redirect`. See [Second factor](#second-factor).                                                                                     |
 | `routes/_authenticated.tsx`                                                           | pathless                                               | Session guard and the app shell for every protected page.                                                                                                                                                  |
 | `routes/_authenticated/dashboard.tsx`                                                 | `/dashboard`                                           | The Dashboard: what to do, the clients' trainings, the portfolio, and the contracts for owners.                                                                                                            |
 | `routes/_authenticated/organizatie.tsx`                                               | `/organizatie`                                         | The organization's name, the caller's role, and the row of sections.                                                                                                                                       |
@@ -350,6 +351,21 @@ a page that offers a new link.
 and checks it with `signInWithPassword` before `updateUser`, so an unlocked screen is not
 enough to take over the account. There, a new password equal to the current one is reported
 on the field.
+
+## Second factor
+
+Only a platform admin's account has an authenticator (TOTP), enrolled in the admin app
+([admin app](admin.md#the-member-app-and-the-second-factor)); the member app never enrols one.
+Such an account's session is `aal1` after a password, Google or a confirmation link, and
+Supabase Auth ends `aal1` sessions when a code is verified elsewhere and refuses a password
+change at `aal1`. So `/_authenticated`, `/configurare` and `/invitatie` send an `aal1` session of
+an account with a verified factor to `/verificare-cod` (`requireSecondFactor`, from
+`mfa.getAuthenticatorAssuranceLevel`), with the page asked for in `redirect`, a path inside the
+app or nothing. The page calls `mfa.challengeAndVerify` and then opens that page. After a
+recovery link, `/resetare-parola` verifies the token, sends the session to the code, and on its
+return takes the new password without the token, for the session the link signed in only. The
+profile's password form asks for the code too, since checking the current password signs in
+again at `aal1`.
 
 The rules live in `src/features/auth/password-schema.ts` and mirror `newPasswordSchema` in the
 contracts and the policy in `supabase/config.toml`. The accept-invitation page uses the same

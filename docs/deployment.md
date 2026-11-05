@@ -151,7 +151,7 @@ The API's import also needs the extractor in `apps/pdf` (the `EXTRACTOR` binding
 Worker's deployment provides.
 
 The import's review shows a debugging line with the import's cost and tokens to everyone outside
-production and, in production, to platform admins only. The API tells the two apart by the
+production and, in production, to platform admins past their second factor only. The API tells the two apart by the
 variable `ENVIRONMENT`, which the deploy workflow sets to the GitHub environment's name,
 `production` or `non-prod`, beside `OBLIO_DOCUMENTS`, and not in `wrangler.jsonc`, whose top level
 is production's and is what `wrangler dev` reads. A Worker without it counts as outside

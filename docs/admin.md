@@ -67,7 +67,16 @@ when the window regains focus, so each look is one event. An import without a co
 | **Multi-factor authentication**          | In the same entrypoint: the token's `aal` claim must be `aal2`, which Supabase gives a session only after a code from the authenticator.                                                                                                                                                                                                                                                                                                   |
 
 A missing or invalid bearer token is `401`; a valid one without the claim or without `aal2` is
-`403` (`reason: aal2_required` for the latter). The Worker's own `403` is plain text, so the home
+`403` (`reason: aal2_required` for the latter).
+
+The claim counts only at `aal2` everywhere else too. `public.is_platform_admin()` asks for the
+token's `aal` to be `aal2` as well as for the claim, so an admin signed in with the password
+alone can neither start nor end an impersonation through PostgREST, and an active one does not
+apply to that session: `effective_user_id()` is the admin's own id. On the public API, the
+`platformAdmin` flag behind `adminToolsAllowed` (the import's cost line and deleting an archived
+client in production) is the claim on an `aal2` token, and the API tells the audit log the
+session passed its second factor (`x-audit-aal`) so that its secret-key writes name the
+impersonated member only then ([ADR 033](architecture/adr-033-audit-log.md)). The Worker's own `403` is plain text, so the home
 page does not mistake it for the API's.
 
 The team domain and the audiences are in `apps/admin/wrangler.jsonc` as variables, one audience
@@ -136,6 +145,47 @@ where email = 'admin@ssmusor.test';
 
 The claim reaches the token at the next sign-in or refresh. The same statement in the hosted
 project's SQL editor grants it there; the app never grants it.
+
+## The member app and the second factor
+
+An account with a verified authenticator gives its code in the member app too. After a sign-in
+with a password, with Google or by a confirmation link, every page that uses the session sends
+an `aal1` session to `/verificare-cod`, which asks for the code (`mfa.challengeAndVerify`) and
+then goes on to the page that was asked for. After a recovery link, the reset page verifies the
+link, asks for the code the same way, and comes back for the new password, which has to be
+typed again. Changing the password on the profile page signs in again with the current one,
+which gives an `aal1` session, so the form asks for the code as well. An account without a
+verified factor sees none of this; the member app never enrols one. The portal asks for no code:
+its sign-in is the participants', and the admin's power is not used there.
+
+The member app needs this because of two rules of Supabase Auth:
+
+- **Verifying a code ends the account's `aal1` sessions.** Supabase Auth signs out every session
+  of the account below `aal2` when a code is verified anywhere, so a password-only session in
+  the member app ended each time the admin signed in to the admin app. Sessions at `aal2` stay.
+- **An account with a verified factor changes its password or email only at `aal2`.** Supabase
+  Auth answers `401 insufficient_aal` otherwise, and a recovery link's session is `aal1`.
+
+## A lost password
+
+The reset email works as for any member, with the code from the authenticator after the link.
+Without the authenticator either, set the password with the secret key, from `apps/admin` as
+below:
+
+```bash
+SUPABASE_URL=https://<project>.supabase.co SUPABASE_SECRET_KEY=sb_secret_… ADMIN_ID=<user id> \
+NEW_PASSWORD='…' node --input-type=module -e '
+import { createClient } from "@supabase/supabase-js";
+const admin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, {
+  auth: { persistSession: false },
+});
+const { error } = await admin.auth.admin.updateUserById(process.env.ADMIN_ID, {
+  password: process.env.NEW_PASSWORD,
+});
+console.log(error ? error.message : "password set");'
+```
+
+or delete the factor first (below), after which the reset email needs no code.
 
 ## A lost authenticator
 

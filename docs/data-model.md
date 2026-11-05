@@ -23,7 +23,8 @@ same information as one row for the API. Both helpers run as `security definer` 
 read memberships regardless of the caller's own policies.
 
 Roles and organizations are never stored in Supabase user metadata. The only claim the app
-trusts is `app_metadata.role = 'admin'`, which only the Auth Admin API can set.
+trusts is `app_metadata.role = 'admin'`, which only the Auth Admin API can set, and only on a
+session that passed its second factor (`aal2`, [ADR 038](architecture/adr-038-admin-area.md)).
 
 A user without a membership can sign in but sees nothing, and the API answers `403 forbidden`.
 Organizations are created by the seed, and by onboarding
@@ -150,7 +151,10 @@ the organization's rows, as the invoices are the owner's (ADR 029); only the sec
 
 ## Platform admins and impersonation
 
-`public.is_platform_admin()` is true for a JWT whose `app_metadata.role` is `admin`. Platform
+`public.is_platform_admin()` is true for a JWT whose `app_metadata.role` is `admin` and whose
+`aal` is `aal2`, a session that passed its second factor
+([ADR 038](architecture/adr-038-admin-area.md)): with the password alone an admin starts, ends
+and reads no impersonation, and `effective_user_id()` ignores an active one. Platform
 admins have no blanket bypass. To reproduce a customer's problem they **impersonate** a user:
 an `impersonations` row (admin, target, reason, `expires_at`, `ended_at`) makes
 `public.effective_user_id()` return the target while the row is active, so every policy

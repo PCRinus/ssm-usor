@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-11-01
+- Amended 2026-11-05: on the secret key, an account's active impersonation is named only when the API also sends `x-audit-aal: aal2`, for a platform admin whose session passed its second factor ([ADR 038](adr-038-admin-area.md)); with the password alone the database does not act as the member, so the log does not say it did.
 
 ## Context
 
@@ -95,7 +96,7 @@ Every kept value states what happened without describing a person: a state, a ro
 `audit.current_actor()` decides once per statement who the write is for:
 
 - **A user's token** (`authenticated`). The actor is `auth.uid()`, the real signed-in account. When `effective_user_id()` differs, the actor is a platform admin impersonating someone, and that someone is `impersonating_user_id`.
-- **The secret key** (`service_role`). The API sends the signed-in account's id in the `x-audit-actor` header on every secret-key client made inside a request (`createAdminClient` and `createLastingAdminClient` in `apps/api/src/lib/admin-db.ts`, the one place those clients are made). PostgREST puts the request's headers in `request.headers`, and the trigger reads it. If that account has an active impersonation, the impersonated member is named too. Without the header, or with one that is not an account id, the source is `service` and nobody is named; the write still goes through. Queues, the Stripe webhook and the scheduled jobs, which act for nobody, are `service`.
+- **The secret key** (`service_role`). The API sends the signed-in account's id in the `x-audit-actor` header on every secret-key client made inside a request (`createAdminClient` and `createLastingAdminClient` in `apps/api/src/lib/admin-db.ts`, the one place those clients are made). PostgREST puts the request's headers in `request.headers`, and the trigger reads it. If that account has an active impersonation and the API sends `x-audit-aal: aal2`, the impersonated member is named too. Without the header, or with one that is not an account id, the source is `service` and nobody is named; the write still goes through. Queues, the Stripe webhook and the scheduled jobs, which act for nobody, are `service`.
 - **Anything else** (a SQL session, a migration, Auth's own writes) is `database`.
 
 **The header is believed only on a service-role request.** PostgREST switches to the role the verified JWT names, so the session's `role` is `service_role` only for a request signed with the project's secret, which only the API holds. A user who sends `x-audit-actor` with their own token is still recorded as themselves, and pgTAP covers that case. The check reads the `role` setting, which a security definer function does not change, rather than any claim a caller could shape. This was verified on 2026-11-01 against a PostgREST of the version the local stack runs, pointed at a scratch database: a service-role JWT with the header was recorded as `api` with that account, one without it as `service`, and an `authenticated` JWT with a forged header as the token's own `sub`.

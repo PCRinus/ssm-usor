@@ -272,7 +272,7 @@ repeating either changes nothing and keeps the first date.
 `DELETE /clients/{clientId}` deletes an archived client outright, for testing an import with the
 same company again, which an archived client's CUI otherwise refuses. Who may call it is the rule
 of the import's `usage`: anyone when `ENVIRONMENT` is not `production`, and in production a
-platform admin only (`adminToolsAllowed` in `lib/auth.ts`); anyone else gets `403`. Every client
+platform admin past the second factor only (`adminToolsAllowed` in `lib/auth.ts`); anyone else gets `403`. Every client
 response, and each row of `GET /clients`, says it as `canDelete`: true for an archived client
 when the rule holds. The handler
 reads the client as the caller, so `404` and the policies are as for `GET`, answers `409` with
@@ -788,7 +788,9 @@ with the same need; never reach for it to work around a policy. The invitations 
 second, for the three things listed below. Inside a request, `createAdminClient(c)` and
 `createLastingAdminClient(c)` (for a write that must finish when the caller disconnects, as
 the signing evidence) send the signed-in account's id in `x-audit-actor`, which the audit log
-names as the actor of the write ([ADR 033](architecture/adr-033-audit-log.md)); build a
+names as the actor of the write ([ADR 033](architecture/adr-033-audit-log.md)), and, for a
+platform admin past the second factor, `x-audit-aal: aal2`, without which the log names no
+impersonation; build a
 secret-key client for a user only through them, never with `adminClient(env)`, which names
 nobody and is for the queues and the webhook.
 Supabase owns its Auth schema; business tables live in SQL migrations
@@ -2249,8 +2251,8 @@ same four for each step that called a model in `bySteps` (`sorting`, `reading`, 
 `instructions`, `risks`), and
 `readCharacters`, null until sorted, all as numbers, from the import's bookkeeping columns. It is
 served when `ENVIRONMENT` is not `production` (non-prod and `wrangler dev`, where it is unset) and,
-in production, only to a platform admin, an account whose `app_metadata.role` is `admin`, the
-claim `is_platform_admin()` reads (`adminToolsAllowed`, which also guards `DELETE
+in production, only to a platform admin, an account whose `app_metadata.role` is `admin` on a
+token whose `aal` is `aal2`, as `is_platform_admin()` asks (`adminToolsAllowed`, which also guards `DELETE
 /clients/{clientId}`); otherwise the field is absent ([deployment](deployment.md#the-same-gateway-for-imports-from-documents)).
 
 `changes` holds what the member decided, by the proposal's paths. `fields` is keyed
