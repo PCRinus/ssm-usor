@@ -376,7 +376,7 @@ Angajații importați sunt angajați existenți, cu contractul de muncă închei
 
 ## O problemă cu importul
 
-Dacă aplicația a citit greșit un document, a lăsat deoparte ceva ce trebuia citit sau citirea s-a oprit, spune-ne. Ai **Raportează o problemă cu importul** în capul paginii unde verifici importul unui client, în capul paginii unde verifici importul angajaților și pe paginile instrucțiunilor proprii și ale evaluărilor de risc din import. Pe un import a cărui citire s-a oprit, butonul e în mesajul care spune de ce.
+Dacă aplicația a citit greșit un document, a lăsat deoparte ceva ce trebuia citit sau citirea s-a oprit, spune-ne. Ai **Raportează o problemă cu importul** în capul paginii unde verifici importul unui client, în capul paginii unde verifici importul angajaților și pe paginile instrucțiunilor proprii și ale evaluărilor de risc din import. Pe un import a cărui citire s-a oprit, butonul e în mesajul care spune de ce. Butonul rămâne și după ce ai creat sau completat clientul ori ai creat angajații, în capul paginii importului, așa că poți semnala o greșeală pe care o observi abia după confirmare.
 
 Când îl apeși, aflăm despre ce import e vorba, așa că ne uităm la documentele lui și la ce s-a citit din ele fără să ni le trimiți din nou. Se deschide apoi fereastra de suport, aceeași ca la **Raportează o problemă** din meniul lateral: scrie acolo ce nu e în regulă, de exemplu ce valoare e greșită și în ce document, iar răspunsul îl primești tot acolo. Dacă fereastra de suport nu se poate deschide în browserul tău, aplicația îți spune că am primit semnalarea și îți arată adresa contact@ssmusor.ro, cu **Copiază adresa** și **Deschide aplicația de e-mail**, ca să ne scrii acolo ce nu e în regulă.
 

@@ -7,6 +7,7 @@ import { Notice } from '@/components/notice';
 
 import { CreditsUsedLine } from '../credits-notices';
 import { endSentence, usageLine } from '../import-format';
+import { ReportImportButton } from '../report-import-button';
 import { LibraryGroup, RisksGroup } from './library-group';
 
 export function ConfirmedImportHub({ detail }: { detail: ImportDetail }) {
@@ -23,16 +24,19 @@ export function ConfirmedImportHub({ detail }: { detail: ImportDetail }) {
           </span>
           <h1 className="text-3xl font-semibold tracking-tight">{name}</h1>
         </div>
-        <Button asChild variant="outline" size="sm">
-          <Link
-            to="/clienti/import/$importId/fisiere"
-            params={{ importId: detail.id }}
-            data-testid="import-review-files"
-          >
-            <FileText aria-hidden="true" />
-            Fișierele importului
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link
+              to="/clienti/import/$importId/fisiere"
+              params={{ importId: detail.id }}
+              data-testid="import-review-files"
+            >
+              <FileText aria-hidden="true" />
+              Fișierele importului
+            </Link>
+          </Button>
+          <ReportImportButton importId={detail.id} />
+        </div>
       </div>
       {client && (
         <Notice

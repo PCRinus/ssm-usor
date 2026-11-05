@@ -35,6 +35,7 @@ let visible: boolean;
 let partVisible: boolean;
 let quiet: boolean;
 let access: 'full' | 'read_only';
+let status: string;
 
 function mockUpstream() {
   fetchMock.mockImplementation(async (input, init) => {
@@ -62,6 +63,7 @@ function mockUpstream() {
           ? {
               id: importId,
               kind: 'client',
+              status,
               organization_id: organizationId,
               cost_usd: '0.420000',
             }
@@ -101,6 +103,7 @@ beforeEach(() => {
   partVisible = true;
   quiet = true;
   access = 'full';
+  status = 'ready';
   mockUpstream();
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -147,6 +150,15 @@ describe('POST /imports/{importId}/report', () => {
     expect(again!.body).toEqual({ reported_at: expect.any(String), reported_by: user.id });
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(posts()).toEqual([]);
+  });
+
+  it('takes a report on a confirmed import, whose client the member has already created', async () => {
+    status = 'confirmed';
+    const response = await request(`/imports/${importId}/report`);
+
+    expect(response.status).toBe(204);
+    expect(updates('imports')).toHaveLength(1);
+    await vi.waitFor(() => expect(posts()).toHaveLength(1));
   });
 
   it("answers 404 for an import the member's organization cannot see, and records nothing", async () => {

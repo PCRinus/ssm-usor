@@ -257,6 +257,52 @@ describe('reporting a problem with an import', () => {
     expect(requestsTo(`/imports/${importId}/report`, 'POST')).toHaveLength(1);
   });
 
+  it('keeps the button on the client import after the client is created', async () => {
+    mockImport(
+      importDetail({
+        status: 'confirmed',
+        confirmedAt: failedAt,
+        client: { id: clientId, legalName: client.legalName },
+        libraryParts: [{ part: 'instructions_ssm', status: 'ready', expiresAt: null }],
+      })
+    );
+    mount(`/clienti/import/${importId}`);
+
+    await screen.findByTestId('import-confirmed-hub');
+    await userEvent.click(await reportButton());
+
+    await emailDialog();
+    expect(requestsTo(`/imports/${importId}/report`, 'POST')).toHaveLength(1);
+  });
+
+  it('keeps the button on a confirmed client import with nothing left to confirm', async () => {
+    mockImport(
+      importDetail({
+        status: 'confirmed',
+        confirmedAt: failedAt,
+        client: { id: clientId, legalName: client.legalName },
+      })
+    );
+    mount(`/clienti/import/${importId}`);
+
+    await screen.findByTestId('import-processing');
+    await userEvent.click(await reportButton());
+
+    await emailDialog();
+    expect(requestsTo(`/imports/${importId}/report`, 'POST')).toHaveLength(1);
+  });
+
+  it('keeps the button on a confirmed employee import', async () => {
+    mockImport(employeeDetail({ status: 'confirmed', confirmedAt: failedAt }));
+    mount(`/clienti/${clientId}/angajati/import/${importId}`);
+
+    await screen.findByTestId('employee-processing');
+    await userEvent.click(await reportButton());
+
+    await emailDialog();
+    expect(requestsTo(`/imports/${importId}/report`, 'POST')).toHaveLength(1);
+  });
+
   it.each([
     ['instructiuni/ssm', 'instructions_ssm'],
     ['instructiuni/su', 'instructions_su'],

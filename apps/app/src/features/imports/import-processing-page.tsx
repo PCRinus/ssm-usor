@@ -177,6 +177,7 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
             {running ? 'Oprește importul' : 'Renunță la import'}
           </Button>
         )}
+        {detail.status === 'confirmed' && <ReportImportButton importId={detail.id} />}
       </div>
       {running && (
         <Notice variant="info" data-testid="import-can-leave">
