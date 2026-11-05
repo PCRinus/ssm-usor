@@ -1,5 +1,5 @@
 begin;
-select plan(46);
+select plan(48);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 select v.id::uuid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', v.email, '', now(), v.app_metadata::jsonb, '{}', now(), now()
@@ -201,13 +201,31 @@ select results_eq(
   'a change during an impersonation names the real admin and the user they act as'
 );
 
-select pg_temp.act_as_secret_key('{"x-audit-actor": "eeeeeeee-0000-4000-8000-000000000001"}');
+select pg_temp.act_as_secret_key('{"x-audit-actor": "eeeeeeee-0000-4000-8000-000000000001", "x-audit-aal": "aal2"}');
 update public.employees set education = 'Liceu' where id = 'e1e1e1e1-0000-4000-8000-000000000001';
 select pg_temp.act_as_postgres();
 select results_eq(
   $$ select actor_id, impersonating_user_id, source from pg_temp.last_event('employees') $$,
   $$ values ('eeeeeeee-0000-4000-8000-000000000001'::uuid, 'aaaaaaaa-0000-4000-8000-000000000002'::uuid, 'api') $$,
   'and so does the API''s, from the admin''s active impersonation'
+);
+
+select pg_temp.act_as('eeeeeeee-0000-4000-8000-000000000001');
+update public.employees set education = 'Facultate' where id = 'e1e1e1e1-0000-4000-8000-000000000001';
+select pg_temp.act_as_postgres();
+select is(
+  (select education from public.employees where id = 'e1e1e1e1-0000-4000-8000-000000000001'),
+  'Liceu',
+  'a password-only session of the same admin acts as the admin, who reaches none of the member''s rows'
+);
+
+select pg_temp.act_as_secret_key('{"x-audit-actor": "eeeeeeee-0000-4000-8000-000000000001"}');
+update public.employees set education = 'Gimnaziu' where id = 'e1e1e1e1-0000-4000-8000-000000000001';
+select pg_temp.act_as_postgres();
+select results_eq(
+  $$ select actor_id, impersonating_user_id, source from pg_temp.last_event('employees') $$,
+  $$ values ('eeeeeeee-0000-4000-8000-000000000001'::uuid, null::uuid, 'api') $$,
+  'as is the API''s for such a session'
 );
 
 
