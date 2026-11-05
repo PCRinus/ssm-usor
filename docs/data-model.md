@@ -1371,7 +1371,8 @@ uploaded files and the proposal a model read from them until a member confirms o
 Created by `20261028100000_imports` and `20261028100100_import_functions`; `read_characters`,
 `usage_by_step` and the step of `record_import_usage` by `20261029100000_import_bookkeeping`;
 the reading version, the reading flags, the report and the improvement copies by
-`20261104200000_import_copies` ([ADR 037](architecture/adr-037-import-quality-and-alerts.md)).
+`20261104200000_import_copies`, and the copies' completion and `expensive_alerted_at` by
+`20261104210000_import_copies_completed` ([ADR 037](architecture/adr-037-import-quality-and-alerts.md)).
 
 `imports` has one row per import, with `organization_id`:
 
@@ -1395,6 +1396,11 @@ the reading version, the reading flags, the report and the improvement copies by
 | `reading_version`                                                  | JSON object: the model of each step and a short hash of the prompts and schemas that read the import.                                                                    |
 | `reading_flags`                                                    | JSON object of value-free counts that describe the reading: files by kind, what was found, the checks' flags. Never what was read.                                       |
 | `reported_at`, `reported_by`                                       | When a member reported a problem with the import, through the API, and who; `reported_by` needs `reported_at`, and is set null when that account is deleted.             |
+| `expensive_alerted_at`                                             | When support was told the import with its parts cost more than $1; set from null once.                                                                                   |
+
+`updated_at` moves on every change but a report (`reported_at`, `reported_by`) and
+`expensive_alerted_at`, by a `when` on its trigger, as on `import_library_parts` but a report: the
+14 days of a ready import and the 6 hours before a reading part counts as stalled run from it.
 
 `import_files` has one row per uploaded file, with `import_id` and `organization_id` by the
 composite key to `imports (id, organization_id)`, deleted with the import:
@@ -1725,19 +1731,23 @@ improve the reading, lives in the private `import-copies` bucket: the import's u
 `<organization>/<import>/`, a part's under `<organization>/<import>/parts/<part>/`. The bucket
 takes what `imports` takes, up to 25 MiB a file, and has no policy on `storage.objects`, so only
 the secret key reaches it; the app never reads it. `import_copies` records each copy, one row per
-`(import_id, part)`, `part` null for the import's own: `organization_id`, `written_at`,
-`expires_at` and `removed_at`, which cannot come before `written_at`. It names the import without
+`(import_id, part)`, `part` null for the import's own: `organization_id`, `written_at`, when the
+API last began writing it, `completed_at`, when it finished (null while being written or after it
+stopped halfway), `expires_at` and `removed_at`; `completed_at` and `removed_at` cannot come
+before `written_at`. It names the import without
 a foreign key, since an abandoned or failed import's row goes after 14 days and its copy stays;
 the organization restricts its deletion, so deleting an organization empties its
 `import-copies/<organization>/` folder and these rows first. Only the secret key reads or writes
 the table. Functions for the secret key:
 
-- `record_import_copy(import, part default null)` records that the API wrote the copy and returns
+- `record_import_copy(import, part default null)` records that the API begins the copy and returns
   `expires_at`, 12 months after the end: the import's confirmation, abandonment or failure; the
   part's confirmation or failure, else its import's abandonment or failure, else 14 days after its
   import's confirmation, when the part expired. Recording again moves `written_at` and
-  `expires_at` and clears `removed_at`, so a failed part read again and confirmed counts from its
+  `expires_at` and clears `removed_at` and `completed_at`, so a failed part read again and confirmed counts from its
   confirmation. It answers `P0002` for no such import or part, and `IMP09` for one not ended.
+- `complete_import_copy(import, part default null)` sets `completed_at` once the copy's
+  `record.json` is written and returns it; `P0002` for a copy not recorded or removed.
 - `list_expired_import_copies()` then `mark_import_copies_removed(ids)`, as the retention above:
   the copies past `expires_at` and not removed, each with `copy_id`, `organization_id`,
   `import_id`, `part` and `folder` (without the final slash), which the daily clean-up empties,
