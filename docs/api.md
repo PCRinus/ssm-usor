@@ -2556,15 +2556,17 @@ import's `id`, `organization` (`id`, `name`), `rowDeleted`, `kind`, `status`, `c
 (`unreadableFiles`, `nothingFound`, `emptyRequired` and `checks`, the sum of the checks' flags,
 counted from `reading_flags`), `changedShare` (changed and unticked over what was proposed, as the
 "mostly changed" alert counts it, null before a confirmation), `costUsd`, `reportedAt` (the latest
-of the import's and its parts'), `copy` (`writtenAt`, `expiresAt`, `removedAt` of the import's own
-copy, or null) and `partCopies`, the parts' copies kept. An import whose row the clean-up deleted
+of the import's and its parts'), `copy` (`writtenAt`, `expiresAt`, `removedAt` and `completedAt`
+of the import's own copy, or null), `partCopies`, the parts' copies kept, and
+`incompletePartCopies`, those of them without `completedAt`. An import whose row the clean-up deleted
 comes from its copies alone: `rowDeleted`, no kind, status, flags or cost, `endedAt` when its
 copy's 12 months began.
 
 **One import.** `import` is the row (null once deleted) without its proposal and changes: kind,
 status, failure reason, client, times, report, cost and tokens, `readingVersion`, `readingFlags`
 and `quality` as stored, with `flags` and `changedShare` as in the list. `parts` are its library
-parts the same way, `copies` its `import_copies` rows. When a copy is kept, the route first
+parts the same way, `copies` its `import_copies` rows, each with `completedAt`, null while the
+copy is written or after its writing stopped halfway. When a copy is kept, the route first
 records `import_copy_opened` through `record_admin_event` (the copy's id, the import's
 organization, `{ import_id }`), then lists the copy's folder in `import-copies` and reads
 `record.json` and each kept part's `parts/<part>/record.json`: `record` and `partRecords`, the

@@ -7093,6 +7093,7 @@ export type Database = {
           p_status?: string;
         };
         Returns: {
+          copy_completed_at: string;
           copy_expires_at: string;
           copy_removed_at: string;
           copy_written_at: string;
@@ -7100,6 +7101,7 @@ export type Database = {
           created_at: string;
           ended_at: string;
           import_id: string;
+          incomplete_part_copies: number;
           kind: Database['public']['Enums']['import_kind'];
           organization_id: string;
           organization_name: string;

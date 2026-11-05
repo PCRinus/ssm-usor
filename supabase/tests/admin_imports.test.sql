@@ -1,5 +1,5 @@
 begin;
-select plan(20);
+select plan(21);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 select v.id::uuid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', v.email, '', now(), v.app_metadata::jsonb, '{}', now(), now()
@@ -194,6 +194,15 @@ select results_eq(
   $$ select import_id from public.admin_list_imports(p_reported => true) $$,
   $$ values ('10000000-0000-4000-8000-0000000000a2'::uuid), ('10000000-0000-4000-8000-0000000000a1'::uuid) $$,
   'filtered to the reported ones, a part''s report counting for its import'
+);
+update public.import_copies set completed_at = written_at
+where id = 'c0c0c0c0-0000-4000-8000-0000000000a1';
+select results_eq(
+  $$ select import_id, copy_completed_at is not null, part_copies, incomplete_part_copies
+     from public.admin_list_imports(p_has_copy => true) $$,
+  $$ values ('10000000-0000-4000-8000-0000000000a1'::uuid, true, 1, 1),
+     ('10000000-0000-4000-8000-0000000000a9'::uuid, false, 0, 0) $$,
+  'the list says whether the import''s own copy completed and how many of its parts'' copies did not'
 );
 select results_eq(
   $$ select import_id, total from public.admin_list_imports(p_limit => 1, p_offset => 1) $$,

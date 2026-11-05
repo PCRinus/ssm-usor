@@ -37,6 +37,7 @@ import {
   kindLabels,
   statusLabels,
 } from './format';
+import { IncompleteCopyBadge } from './incomplete-copy-badge';
 import { StatusBadge } from './status-badge';
 
 const columns = [
@@ -50,7 +51,7 @@ const columns = [
   'Copy',
 ] as const;
 
-function CopyCell({ item }: { item: AdminImportListItem }) {
+function CopyText({ item }: { item: AdminImportListItem }) {
   const parts =
     item.partCopies > 0 ? ` + ${item.partCopies} part${item.partCopies > 1 ? 's' : ''}` : '';
   if (!item.copy) {
@@ -63,6 +64,21 @@ function CopyCell({ item }: { item: AdminImportListItem }) {
     <span>
       Until {formatDate(item.copy.expiresAt)}
       <span className="text-muted-foreground">{parts}</span>
+    </span>
+  );
+}
+
+function CopyCell({ item }: { item: AdminImportListItem }) {
+  const ownIncomplete = Boolean(item.copy && !item.copy.removedAt && !item.copy.completedAt);
+  const incomplete = (ownIncomplete ? 1 : 0) + item.incompletePartCopies;
+  return (
+    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+      <CopyText item={item} />
+      {incomplete > 0 && (
+        <IncompleteCopyBadge
+          title={`${incomplete === 1 ? 'A copy has' : `${incomplete} copies have`} not finished writing`}
+        />
+      )}
     </span>
   );
 }

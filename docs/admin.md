@@ -35,8 +35,10 @@ badge when the member reported the import or one of its parts, the reading flags
 (files that could not be opened, files sorted but giving nothing, required fields left empty, the
 checks' flags), the share of proposed values the member changed or unticked, the cost with its
 parts, the reading version (the first 8 characters of the prompts' hash), and the copy: kept until
-when, removed, or none, with the number of parts' copies. Filters for the kind, the status, reported
-only and with a copy kept live in the address (`?kind=client&status=failed&reported=true&hasCopy=true&page=2`).
+when, removed, or none, with the number of parts' copies, and an **Incomplete** badge when the
+import's own copy or one of its parts' kept copies has not finished writing (no `completed_at`: its
+writing stopped before `record.json`). Filters for the kind, the status, reported only and with a
+copy kept live in the address (`?kind=client&status=failed&reported=true&hasCopy=true&page=2`).
 An abandoned or failed import's row goes 14 days after it ends while its copy stays 12 months: such
 an import is listed from its copy alone, as **Row deleted**, with no kind, status or counts, at the
 time its copy was written; the status filter's **Row deleted** shows only those. A row opens the
@@ -47,8 +49,10 @@ tokens, reading version with the model of each step, and failure reason; its fla
 list (files by kind, the places of the files that could not be opened or gave nothing, what was
 found, the required fields left empty, the checks' flags by code); its quality per section; who
 reported it and when; each library part with the same; and the improvement copy: when each copy was
-written and until when it is kept, the proposal beside the member's changes as collapsible trees,
-the rest of `record.json` (files, times, counts, usage), and every file of the copy with its path,
+written and until when it is kept, an **Incomplete** badge on a kept copy, the import's own or a
+part's, that has not finished writing, with the note that the daily clean-up writes it again (or,
+once the import's row is gone, that nothing will), the proposal beside the member's changes as
+collapsible trees, the rest of `record.json` (files, times, counts, usage), and every file of the copy with its path,
 size and **Open**, which asks the API for a link that lasts 60 seconds and opens it in a new tab.
 Once the import's row is gone, the page says so and shows what the copy holds.
 

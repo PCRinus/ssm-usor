@@ -44,6 +44,8 @@ export const adminImportCopySchema = z.object({
   writtenAt: timestamp,
   expiresAt: timestamp,
   removedAt: timestamp.nullable(),
+  // Null while the copy is being written, or after its writing stopped halfway.
+  completedAt: timestamp.nullable(),
 });
 
 export type AdminImportCopy = z.infer<typeof adminImportCopySchema>;
@@ -67,6 +69,7 @@ export const adminImportListItemSchema = z.object({
   reportedAt: timestamp.nullable(),
   copy: adminImportCopySchema.omit({ id: true, part: true }).nullable(),
   partCopies: z.int().min(0),
+  incompletePartCopies: z.int().min(0),
 });
 
 export type AdminImportListItem = z.infer<typeof adminImportListItemSchema>;

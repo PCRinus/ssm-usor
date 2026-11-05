@@ -73,8 +73,10 @@ const list: AdminImportList = {
         writtenAt: '2026-11-03T09:10:05+00:00',
         expiresAt: '2027-11-03T09:10:00+00:00',
         removedAt: null,
+        completedAt: '2026-11-03T09:10:09+00:00',
       },
       partCopies: 1,
+      incompletePartCopies: 1,
     },
     {
       id: goneId,
@@ -93,8 +95,10 @@ const list: AdminImportList = {
         writtenAt: '2026-10-01T09:10:05+00:00',
         expiresAt: '2027-10-01T09:10:00+00:00',
         removedAt: null,
+        completedAt: '2026-10-01T09:10:12+00:00',
       },
       partCopies: 0,
+      incompletePartCopies: 0,
     },
   ],
   page: 1,
@@ -167,6 +171,15 @@ const detail: AdminImportDetail = {
       writtenAt: '2026-11-03T09:10:05+00:00',
       expiresAt: '2027-11-03T09:10:00+00:00',
       removedAt: null,
+      completedAt: '2026-11-03T09:10:09+00:00',
+    },
+    {
+      id: 'c0c0c0c0-0000-4000-8000-000000000002',
+      part: 'risk_evaluations',
+      writtenAt: '2026-11-03T09:30:05+00:00',
+      expiresAt: '2027-11-03T09:30:00+00:00',
+      removedAt: null,
+      completedAt: null,
     },
   ],
   record: {
@@ -254,6 +267,8 @@ describe('the imports list', () => {
     expect(first.getByText('a1b2c3d4')).toBeTruthy();
     expect(rows[0]!.textContent).toContain('Until 3 Nov 2027');
     expect(rows[0]!.textContent).toContain('+ 1 part');
+    expect(first.getByTestId('copy-incomplete').title).toBe('A copy has not finished writing');
+    expect(within(rows[1]!).queryByTestId('copy-incomplete')).toBeNull();
     expect(within(rows[1]!).getByText('Row deleted')).toBeTruthy();
     expect(screen.getByTestId('pager-summary').textContent).toBe('1–25 of 60 imports');
     expect(requested()[0]!.search).toBe('?page=1&pageSize=25');
@@ -338,6 +353,18 @@ describe('an import', () => {
     );
   });
 
+  it('marks a copy that has not finished writing, and says the clean-up retries it', async () => {
+    mount(`/imports/${importId}`);
+
+    const [own, part] = await screen.findAllByTestId('copy-row');
+    expect(within(own!).queryByTestId('copy-incomplete')).toBeNull();
+    expect(part!.textContent).toContain('Risk evaluations');
+    expect(within(part!).getByTestId('copy-incomplete').textContent).toBe('Incomplete');
+    expect(part!.textContent).toContain(
+      'The copy has not finished writing; the daily clean-up retries it.'
+    );
+  });
+
   it('opens a file of the copy through a short-lived link, in a tab of its own', async () => {
     const tab = { opener: {}, location: { href: '' }, close: vi.fn() };
     const open = vi.fn(() => tab);
@@ -362,6 +389,9 @@ describe('an import', () => {
     expect((await screen.findByTestId('import-title')).textContent).toBe('Employees import');
     expect(screen.getByTestId('row-deleted')).toBeTruthy();
     expect(screen.getByTestId('copy-proposal').textContent).toContain('people');
+    expect(screen.getAllByTestId('copy-row')[1]!.textContent).toContain(
+      'with the import’s row gone the clean-up will not retry it'
+    );
   });
 
   it('says so for an import with neither row nor copy', async () => {

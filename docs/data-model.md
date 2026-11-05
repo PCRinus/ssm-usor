@@ -221,8 +221,8 @@ has_copy, limit, offset)`, for the secret key only, is the admin area's list of 
 `imports` rows and, for an import whose row the clean-up deleted, its `import_copies` alone
 (`row_deleted`, no kind or status, `ended_at` when its copy's 12 months began, listed at the copy's
 `written_at`), newest first, each with its organization's name, the latest report of the import or
-its parts, its own copy's times, the count of its parts' kept copies and the filtered list's
-`total`. `status` is an import status or `row_deleted`; `has_copy` keeps the imports with a copy
+its parts, its own copy's times with `copy_completed_at`, the count of its parts' kept copies and
+of those not completed (`incomplete_part_copies`), and the filtered list's `total`. `status` is an import status or `row_deleted`; `has_copy` keeps the imports with a copy
 not removed.
 
 ## Clients
@@ -1402,8 +1402,8 @@ Created by `20261028100000_imports` and `20261028100100_import_functions`; `read
 the reading version, the reading flags, the report and the improvement copies by
 `20261104200000_import_copies`, and the copies' completion and `expensive_alerted_at` by
 `20261104210000_import_copies_completed` ([ADR 037](architecture/adr-037-import-quality-and-alerts.md));
-the admin area's list of them, `admin_list_imports`, by `20261105100000_admin_imports`
-([Audit log](#audit-log)).
+the admin area's list of them, `admin_list_imports`, by `20261105100000_admin_imports`, and its
+copies' completion by `20261105140000_admin_list_imports_copy_completed` ([Audit log](#audit-log)).
 
 `imports` has one row per import, with `organization_id`:
 

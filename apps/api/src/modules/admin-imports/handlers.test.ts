@@ -78,7 +78,9 @@ const listRow = {
   copy_written_at: '2026-11-03T09:10:05+00:00',
   copy_expires_at: '2027-11-03T09:10:00+00:00',
   copy_removed_at: null,
+  copy_completed_at: '2026-11-03T09:10:09+00:00',
   part_copies: 1,
+  incomplete_part_copies: 1,
   total: 3,
 };
 
@@ -95,6 +97,7 @@ const goneRow = {
   cost_usd: null,
   reported_at: null,
   part_copies: 0,
+  incomplete_part_copies: 0,
 };
 
 const importRow = {
@@ -151,6 +154,7 @@ const copyRows = (id: string) =>
           written_at: '2026-11-03T09:10:05+00:00',
           expires_at: '2027-11-03T09:10:00+00:00',
           removed_at: null,
+          completed_at: '2026-11-03T09:10:09+00:00',
         },
         {
           id: partCopyId,
@@ -159,6 +163,7 @@ const copyRows = (id: string) =>
           written_at: '2026-11-03T09:30:05+00:00',
           expires_at: '2027-11-03T09:30:00+00:00',
           removed_at: null,
+          completed_at: null,
         },
       ]
     : id === goneId
@@ -170,6 +175,7 @@ const copyRows = (id: string) =>
             written_at: '2026-10-01T09:10:05+00:00',
             expires_at: '2027-09-15T09:10:00+00:00',
             removed_at: null,
+            completed_at: '2026-10-01T09:10:12+00:00',
           },
         ]
       : [];
@@ -334,8 +340,10 @@ describe('GET /admin/imports', () => {
         writtenAt: '2026-11-03T09:10:05+00:00',
         expiresAt: '2027-11-03T09:10:00+00:00',
         removedAt: null,
+        completedAt: '2026-11-03T09:10:09+00:00',
       },
       partCopies: 1,
+      incompletePartCopies: 1,
     });
     expect(page.items[1]).toMatchObject({
       id: goneId,
@@ -405,7 +413,10 @@ describe('GET /admin/imports/{id}', () => {
     expect(detail.parts).toMatchObject([
       { part: 'risk_evaluations', status: 'confirmed', flags: { checks: 2 }, changedShare: 1 / 12 },
     ]);
-    expect(detail.copies.map((copy) => copy.id)).toEqual([ownCopyId, partCopyId]);
+    expect(detail.copies.map((copy) => [copy.id, copy.completedAt])).toEqual([
+      [ownCopyId, '2026-11-03T09:10:09+00:00'],
+      [partCopyId, null],
+    ]);
     expect(detail.record).toEqual(records[`${folder}/record.json`]);
     expect(detail.partRecords).toEqual([
       { part: 'risk_evaluations', record: { part: 'risk_evaluations', proposal: {} } },

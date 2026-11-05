@@ -60,3 +60,10 @@ export function flagSummary(flags: AdminImportFlags | null) {
     { key: 'checks', count: flags.checks, label: 'checks' },
   ].filter((flag) => flag.count > 0);
 }
+
+export const incompleteCopyExplanation =
+  'The copy has not finished writing; the daily clean-up retries it.';
+
+// The clean-up writes copies again only for imports whose row it still finds.
+export const incompleteCopyOfDeletedRow =
+  'The copy did not finish writing, and with the import’s row gone the clean-up will not retry it.';

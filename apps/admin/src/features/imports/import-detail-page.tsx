@@ -31,9 +31,12 @@ import {
   formatCost,
   formatDateTime,
   formatShare,
+  incompleteCopyExplanation,
+  incompleteCopyOfDeletedRow,
   kindLabels,
   partLabels,
 } from './format';
+import { IncompleteCopyBadge } from './incomplete-copy-badge';
 import { JsonTree } from './json-tree';
 import { QualityList, ReadingFlagsList, ReadingVersion } from './reading';
 import { StatusBadge } from './status-badge';
@@ -122,20 +125,37 @@ function RestOfRecord({ record }: { record: CopyRecord | null }) {
   );
 }
 
-function CopyRows({ copies }: { copies: AdminImportCopy[] }) {
+function CopyRows({ copies, rowDeleted }: { copies: AdminImportCopy[]; rowDeleted: boolean }) {
   return (
     <ul className="divide-y text-sm">
-      {copies.map((copy) => (
-        <li key={copy.id} className="flex flex-wrap items-baseline justify-between gap-x-4 py-1.5">
-          <span className="font-medium">{copy.part ? partLabels[copy.part] : 'The import'}</span>
-          <span className="text-muted-foreground">
-            written {formatDateTime(copy.writtenAt)} ·{' '}
-            {copy.removedAt
-              ? `removed ${formatDateTime(copy.removedAt)}`
-              : `kept until ${formatDateTime(copy.expiresAt)}`}
-          </span>
-        </li>
-      ))}
+      {copies.map((copy) => {
+        const incomplete = !copy.removedAt && !copy.completedAt;
+        return (
+          <li
+            key={copy.id}
+            data-testid="copy-row"
+            className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-1.5"
+          >
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="font-medium">
+                {copy.part ? partLabels[copy.part] : 'The import'}
+              </span>
+              {incomplete && <IncompleteCopyBadge />}
+            </span>
+            <span className="text-muted-foreground">
+              written {formatDateTime(copy.writtenAt)} ·{' '}
+              {copy.removedAt
+                ? `removed ${formatDateTime(copy.removedAt)}`
+                : `kept until ${formatDateTime(copy.expiresAt)}`}
+            </span>
+            {incomplete && (
+              <span className="text-muted-foreground basis-full text-xs">
+                {rowDeleted ? incompleteCopyOfDeletedRow : incompleteCopyExplanation}
+              </span>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -408,7 +428,7 @@ function DetailBody({ detail }: { detail: AdminImportDetail }) {
           </p>
         ) : (
           <>
-            <CopyRows copies={detail.copies} />
+            <CopyRows copies={detail.copies} rowDeleted={!detail.import} />
             {kept.length > 0 && (
               <div className="mt-4 space-y-4">
                 {record && <ProposalAndChanges record={record} testId="copy-side-by-side" />}

@@ -63,12 +63,14 @@ const copyOf = (row: {
   written_at: string;
   expires_at: string;
   removed_at: string | null;
+  completed_at: string | null;
 }): AdminImportCopy => ({
   id: row.id,
   part: row.part,
   writtenAt: row.written_at,
   expiresAt: row.expires_at,
   removedAt: row.removed_at,
+  completedAt: row.completed_at,
 });
 
 async function listPage(
@@ -116,9 +118,11 @@ export async function listImports(c: Context<ApiEnv>) {
           writtenAt: row.copy_written_at,
           expiresAt: row.copy_expires_at!,
           removedAt: row.copy_removed_at,
+          completedAt: row.copy_completed_at,
         }
       : null,
     partCopies: row.part_copies,
+    incompletePartCopies: row.incomplete_part_copies,
   }));
   return c.json({
     items,
@@ -139,7 +143,7 @@ function importIdOf(c: Context<ApiEnv>) {
 async function copiesOf(db: AdminClient, importId: string) {
   const { data, error } = await db
     .from('import_copies')
-    .select('id, organization_id, part, written_at, expires_at, removed_at')
+    .select('id, organization_id, part, written_at, expires_at, removed_at, completed_at')
     .eq('import_id', importId)
     .order('part', { ascending: true, nullsFirst: true });
   if (error) throw fromDatabaseError(error, 'read import copies');
