@@ -147,9 +147,11 @@ export function EmployeeProcessing({
             />
           }
         >
-          {detail.failureReason ?? 'Importul s-a oprit din cauza unei erori.'}
-          {detail.credits?.refunded && ` ${refundedSentence}`} Renunță la import și încearcă din
-          nou.
+          <p data-testid="employee-processing-failed-message">
+            {detail.failureReason ?? 'Importul s-a oprit din cauza unei erori.'}
+            {detail.credits?.refunded && ` ${refundedSentence}`} Renunță la import și încearcă din
+            nou.
+          </p>
         </Notice>
       )}
       {detail.status !== 'abandoned' && (

@@ -208,9 +208,11 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
             />
           }
         >
-          {detail.failureReason ?? 'Importul s-a oprit din cauza unei erori.'}
-          {detail.credits?.refunded && ` ${refundedSentence}`} Renunță la import și încearcă din
-          nou.
+          <p data-testid="import-failed-message">
+            {detail.failureReason ?? 'Importul s-a oprit din cauza unei erori.'}
+            {detail.credits?.refunded && ` ${refundedSentence}`} Renunță la import și încearcă din
+            nou.
+          </p>
         </Notice>
       )}
       {detail.status === 'confirmed' && detail.client && (
