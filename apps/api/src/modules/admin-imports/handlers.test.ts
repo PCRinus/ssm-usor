@@ -352,6 +352,13 @@ describe('GET /admin/imports', () => {
     expect(past).toMatchObject({ items: [], page: 9, total: 3 });
   });
 
+  it('refuses a page whose offset the database could not hold, before reading the list', async () => {
+    const response = await request('/admin/imports?page=2147483647&pageSize=100');
+    expect(response.status).toBe(400);
+    expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('validation_error');
+    expect(calls.map((call) => call.url.pathname)).not.toContain('/rest/v1/rpc/admin_list_imports');
+  });
+
   it('refuses a filter it does not know', async () => {
     const response = await request('/admin/imports?status=lost');
     expect(response.status).toBe(400);

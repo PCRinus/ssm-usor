@@ -10,10 +10,14 @@ import { defaultPageSize, maxPageSize, pageSchema } from './list';
 
 const timestamp = z.iso.datetime({ offset: true });
 
+export const maxAdminImportPage = 100_000;
+
 export const adminImportStatusFilters = [...importStatuses, 'row_deleted'] as const;
 
 export const adminImportListQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
+  // The list's offset is an int4 in admin_list_imports, which (page - 1) * pageSize past this
+  // would overflow.
+  page: z.coerce.number().int().min(1).max(maxAdminImportPage).default(1),
   pageSize: z.coerce.number().int().min(1).max(maxPageSize).default(defaultPageSize),
   kind: z.enum(importKinds).optional(),
   // `row_deleted`: the imports known only by their copies, whose row the clean-up removed.
