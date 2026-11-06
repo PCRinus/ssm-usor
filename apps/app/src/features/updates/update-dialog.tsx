@@ -183,7 +183,7 @@ export function UpdateDialog() {
           data-testid="update-dialog"
           className="h-auto max-h-[92dvh] bg-release-sand [&>[data-slot=drawer-handle]]:bg-foreground/25"
         >
-          <div className="relative flex items-end gap-[18px] px-5 pt-3.5">
+          <div className="relative flex shrink-0 items-end gap-[18px] px-5 pt-3.5">
             <ReleaseTag tag={release.tag} size="sheet" />
             <div className="grid gap-1 pb-[18px]">
               <span className="text-[22px] leading-none font-bold tracking-[-0.01em] tabular-nums">
@@ -200,20 +200,22 @@ export function UpdateDialog() {
               <X aria-hidden="true" className="size-5" />
             </DrawerClose>
           </div>
-          <DrawerBody className="grid gap-4 bg-card px-5 pt-[22px] pb-[calc(1.75rem+env(safe-area-inset-bottom,0px))]">
-            <div className="grid gap-2">
-              <DrawerTitle className="text-[22px] leading-[1.2] font-bold tracking-[-0.015em]">
-                <InlineMarkdown text={release.headline} />
-              </DrawerTitle>
-              {release.lead && (
-                <DrawerDescription className="text-[15px] leading-normal text-release-body">
-                  <InlineMarkdown text={release.lead} />
-                </DrawerDescription>
-              )}
-            </div>
+          <div className="grid shrink-0 gap-2 bg-card px-5 pt-[22px] pb-4">
+            <DrawerTitle className="text-[22px] leading-[1.2] font-bold tracking-[-0.015em]">
+              <InlineMarkdown text={release.headline} />
+            </DrawerTitle>
+            {release.lead && (
+              <DrawerDescription className="text-[15px] leading-normal text-release-body">
+                <InlineMarkdown text={release.lead} />
+              </DrawerDescription>
+            )}
+          </div>
+          <DrawerBody data-testid="update-dialog-scroll" className="bg-card px-5 pb-4">
             <Highlights release={release} phone />
+          </DrawerBody>
+          <div className="grid shrink-0 gap-4 border-t border-muted bg-card px-5 pt-4 pb-[calc(1.75rem+env(safe-area-inset-bottom,0px))]">
             <MoreCount release={release} />
-            <div className="grid gap-2 pt-1">
+            <div className="grid gap-2">
               <Button
                 data-testid="update-dialog-acknowledge"
                 className="h-12 rounded-xl text-[15px] font-semibold"
@@ -225,7 +227,7 @@ export function UpdateDialog() {
                 {details}
               </Button>
             </div>
-          </DrawerBody>
+          </div>
         </DrawerContent>
       </Drawer>
     );
@@ -237,7 +239,7 @@ export function UpdateDialog() {
         data-testid="update-dialog"
         showCloseButton={false}
         {...(release.lead ? {} : { 'aria-describedby': undefined })}
-        className="flex gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-[0_30px_80px_rgb(15_36_31/0.35)] sm:max-w-[740px]"
+        className="flex max-h-[calc(100svh-2rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-[0_30px_80px_rgb(15_36_31/0.35)] sm:max-w-[740px]"
       >
         <div className="flex w-[228px] shrink-0 flex-col items-center bg-release-sand px-6">
           <div
@@ -251,27 +253,30 @@ export function UpdateDialog() {
           </div>
           <div aria-hidden="true" className="min-h-7 flex-1" />
         </div>
-        <div className="relative flex min-w-0 flex-1 flex-col">
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
           <DialogClose
             aria-label="Închide"
             className="absolute top-3.5 right-3.5 flex size-9 items-center justify-center rounded-lg text-muted-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X aria-hidden="true" className="size-[18px]" />
           </DialogClose>
-          <div className="flex flex-1 flex-col gap-[22px] px-8 pt-[30px] pb-[26px]">
-            <div className="grid gap-2.5 pr-8">
-              <DialogTitle className="text-2xl leading-[1.2] font-bold tracking-[-0.015em]">
-                <InlineMarkdown text={release.headline} />
-              </DialogTitle>
-              {release.lead && (
-                <DialogDescription className="text-[15px] leading-[1.55] text-release-body">
-                  <InlineMarkdown text={release.lead} />
-                </DialogDescription>
-              )}
-            </div>
+          <div className="grid shrink-0 gap-2.5 pt-[30px] pr-16 pb-[22px] pl-8">
+            <DialogTitle className="text-2xl leading-[1.2] font-bold tracking-[-0.015em]">
+              <InlineMarkdown text={release.headline} />
+            </DialogTitle>
+            {release.lead && (
+              <DialogDescription className="text-[15px] leading-[1.55] text-release-body">
+                <InlineMarkdown text={release.lead} />
+              </DialogDescription>
+            )}
+          </div>
+          <div
+            data-testid="update-dialog-scroll"
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-8 pb-[26px]"
+          >
             <Highlights release={release} phone={false} />
           </div>
-          <div className="flex items-center gap-2 border-t border-muted bg-background/60 py-4 pr-5 pl-8">
+          <div className="flex shrink-0 items-center gap-2 border-t border-muted bg-background/60 py-4 pr-5 pl-8">
             <MoreCount release={release} />
             <Button asChild variant="outline" className="ml-auto h-10 rounded-[10px] px-4">
               {details}

@@ -247,6 +247,22 @@ describe('the update dialog', () => {
     expect(row.querySelector('strong')?.textContent).toBe('Raportează o problemă cu importul');
   });
 
+  it('scrolls only the highlights, keeping the headline and the buttons in view', async () => {
+    mockApi([newest]);
+    mount();
+    const dialog = await screen.findByRole('dialog', { name: newest.headline });
+    const scroll = within(dialog).getByTestId('update-dialog-scroll');
+    expect(scroll.contains(within(dialog).getByTestId('update-dialog-highlights'))).toBe(true);
+    for (const fixed of [
+      within(dialog).getByRole('heading', { name: newest.headline }),
+      within(dialog).getByTestId('update-dialog-more'),
+      within(dialog).getByRole('button', { name: 'Am înțeles' }),
+      within(dialog).getByRole('link', { name: 'Vezi detaliile' }),
+    ]) {
+      expect(scroll.contains(fixed)).toBe(false);
+    }
+  });
+
   it('leaves the count out when the highlights are everything', async () => {
     mockApi([{ ...newest, improvements: [], fixes: [] }]);
     mount();
