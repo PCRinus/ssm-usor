@@ -200,17 +200,20 @@ export function UpdateDialog() {
               <X aria-hidden="true" className="size-5" />
             </DrawerClose>
           </div>
-          <div className="grid shrink-0 gap-2 bg-card px-5 pt-[22px] pb-4">
-            <DrawerTitle className="text-[22px] leading-[1.2] font-bold tracking-[-0.015em]">
-              <InlineMarkdown text={release.headline} />
-            </DrawerTitle>
-            {release.lead && (
-              <DrawerDescription className="text-[15px] leading-normal text-release-body">
-                <InlineMarkdown text={release.lead} />
-              </DrawerDescription>
-            )}
-          </div>
-          <DrawerBody data-testid="update-dialog-scroll" className="bg-card px-5 pb-4">
+          <DrawerBody
+            data-testid="update-dialog-scroll"
+            className="grid gap-4 bg-card px-5 pt-[22px] pb-4"
+          >
+            <div className="grid gap-2">
+              <DrawerTitle className="text-[22px] leading-[1.2] font-bold tracking-[-0.015em]">
+                <InlineMarkdown text={release.headline} />
+              </DrawerTitle>
+              {release.lead && (
+                <DrawerDescription className="text-[15px] leading-normal text-release-body">
+                  <InlineMarkdown text={release.lead} />
+                </DrawerDescription>
+              )}
+            </div>
             <Highlights release={release} phone />
           </DrawerBody>
           <div className="grid shrink-0 gap-4 border-t border-muted bg-card px-5 pt-4 pb-[calc(1.75rem+env(safe-area-inset-bottom,0px))]">

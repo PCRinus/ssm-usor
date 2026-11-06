@@ -247,7 +247,7 @@ describe('the update dialog', () => {
     expect(row.querySelector('strong')?.textContent).toBe('Raportează o problemă cu importul');
   });
 
-  it('scrolls only the highlights, keeping the headline and the buttons in view', async () => {
+  it('on a desktop, scrolls only the highlights, keeping the headline and the buttons in view', async () => {
     mockApi([newest]);
     mount();
     const dialog = await screen.findByRole('dialog', { name: newest.headline });
@@ -258,6 +258,31 @@ describe('the update dialog', () => {
       within(dialog).getByTestId('update-dialog-more'),
       within(dialog).getByRole('button', { name: 'Am înțeles' }),
       within(dialog).getByRole('link', { name: 'Vezi detaliile' }),
+    ]) {
+      expect(scroll.contains(fixed)).toBe(false);
+    }
+  });
+
+  it('on a phone, scrolls the headline with the highlights and keeps the buttons in view', async () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({
+        matches: query === '(max-width: 767px)',
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }))
+    );
+    mockApi([newest]);
+    mount();
+    const drawer = await screen.findByTestId('update-dialog');
+    const scroll = within(drawer).getByTestId('update-dialog-scroll');
+    expect(scroll.contains(within(drawer).getByText(newest.headline))).toBe(true);
+    expect(scroll.contains(within(drawer).getByTestId('update-dialog-highlights'))).toBe(true);
+    for (const fixed of [
+      within(drawer).getByTestId('update-dialog-more'),
+      within(drawer).getByRole('button', { name: 'Am înțeles' }),
+      within(drawer).getByRole('link', { name: 'Vezi detaliile' }),
     ]) {
       expect(scroll.contains(fixed)).toBe(false);
     }
