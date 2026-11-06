@@ -27,11 +27,11 @@ export const helpTopics = {
   },
   'angajati.actuali-si-fosti': {
     path: '/clienti/angajati/',
-    anchor: 'angajați-actuali-și-foști-angajați',
+    anchor: 'lucrători-actuali-și-foști-lucrători',
   },
   'angajati.adaugare': {
     path: '/clienti/angajati/adaugare-si-editare/',
-    anchor: 'adăugarea-unui-angajat',
+    anchor: 'adăugarea-unui-lucrător',
   },
   'angajati.anexa-13': {
     path: '/clienti/angajati/portal-si-act-aditional/',
@@ -48,7 +48,7 @@ export const helpTopics = {
   'angajati.cautare': { path: '/clienti/angajati/', anchor: 'căutarea' },
   'angajati.client-arhivat': {
     path: '/clienti/angajati/',
-    anchor: 'angajații-unui-client-arhivat',
+    anchor: 'lucrătorii-unui-client-arhivat',
   },
   'angajati.cnp': { path: '/clienti/angajati/adaugare-si-editare/', anchor: 'cnp-ul' },
   'angajati.cnp-invalid': { path: '/clienti/angajati/adaugare-si-editare/', anchor: 'cnp-invalid' },
@@ -98,7 +98,7 @@ export const helpTopics = {
     path: '/clienti/angajati/instruire-si-teste/',
     anchor: 'copia-de-citire-și-originalele',
   },
-  'angajati.fisiere': { path: '/clienti/angajati/', anchor: 'fișierele-angajatului' },
+  'angajati.fisiere': { path: '/clienti/angajati/', anchor: 'fișierele-lucrătorului' },
   'angajati.functia-din-contract': {
     path: '/clienti/angajati/adaugare-si-editare/',
     anchor: 'funcția-din-contract',
@@ -130,13 +130,13 @@ export const helpTopics = {
   'angajati.invitatie': { path: '/clienti/angajati/portal-si-act-aditional/', anchor: 'invitația' },
   'angajati.invitatie-din-fise': {
     path: '/clienti/angajati/portal-si-act-aditional/',
-    anchor: 'invitarea-angajaților-din-fișe',
+    anchor: 'invitarea-lucrătorilor-din-fișe',
   },
   'angajati.invitatie-fara-adresa': {
     path: '/clienti/angajati/portal-si-act-aditional/',
-    anchor: 'angajat-fără-email-sau-telefon',
+    anchor: 'lucrător-fără-email-sau-telefon',
   },
-  'angajati.lista': { path: '/clienti/angajati/', anchor: 'lista-angajaților' },
+  'angajati.lista': { path: '/clienti/angajati/', anchor: 'lista-lucrătorilor' },
   'angajati.marca': { path: '/clienti/angajati/adaugare-si-editare/', anchor: 'marca' },
   'angajati.modificare': {
     path: '/clienti/angajati/adaugare-si-editare/',
@@ -148,7 +148,7 @@ export const helpTopics = {
   },
   'angajati.numar-angajati': {
     path: '/clienti/angajati/',
-    anchor: 'de-ce-contează-numărul-de-angajați',
+    anchor: 'de-ce-contează-numărul-de-lucrători',
   },
   'angajati.numar-contract': {
     path: '/clienti/angajati/adaugare-si-editare/',
@@ -159,7 +159,7 @@ export const helpTopics = {
     anchor: 'numele-și-prenumele',
   },
   'angajati.observatii': { path: '/clienti/angajati/adaugare-si-editare/', anchor: 'observațiile' },
-  'angajati.pagina-angajatului': { path: '/clienti/angajati/', anchor: 'pagina-unui-angajat' },
+  'angajati.pagina-angajatului': { path: '/clienti/angajati/', anchor: 'pagina-unui-lucrător' },
   'angajati.plecare': { path: '/clienti/angajati/plecare/', anchor: 'marcarea-plecării' },
   'angajati.portal': {
     path: '/clienti/angajati/portal-si-act-aditional/',
@@ -201,7 +201,7 @@ export const helpTopics = {
   'angajati.stare-neinstruit': { path: '/clienti/angajati/', anchor: 'neinstruit' },
   'angajati.stare-scadenta': { path: '/clienti/angajati/', anchor: 'scadentă' },
   'angajati.stare-testare': { path: '/clienti/angajati/', anchor: 'starea-testării' },
-  'angajati.stergere': { path: '/clienti/angajati/plecare/', anchor: 'un-angajat-nu-se-șterge' },
+  'angajati.stergere': { path: '/clienti/angajati/plecare/', anchor: 'un-lucrător-nu-se-șterge' },
   'angajati.telefon': { path: '/clienti/angajati/adaugare-si-editare/', anchor: 'telefonul' },
   'angajati.termen-instruire': {
     path: '/clienti/angajati/instruire-si-teste/',
@@ -220,7 +220,10 @@ export const helpTopics = {
   },
   'angajati.test-promovat': { path: '/clienti/angajati/', anchor: 'promovat' },
   'angajati.testare': { path: '/clienti/angajati/instruire-si-teste/', anchor: 'testarea' },
-  'angajati.toti-angajatii': { path: '/clienti/angajati/', anchor: 'angajații-tuturor-clienților' },
+  'angajati.toti-angajatii': {
+    path: '/clienti/angajati/',
+    anchor: 'lucrătorii-tuturor-clienților',
+  },
   'angajati.traseu': {
     path: '/clienti/angajati/adaugare-si-editare/',
     anchor: 'traseul-de-deplasare',
@@ -307,7 +310,7 @@ export const helpTopics = {
   },
   'detalii.reprezentant-angajat': {
     path: '/clienti/detalii/',
-    anchor: 'administratorul-este-și-angajat-al-firmei',
+    anchor: 'administratorul-este-și-lucrător-al-firmei',
   },
   'detalii.reprezentant-legal': { path: '/clienti/detalii/', anchor: 'reprezentantul-legal' },
   'detalii.sediu-social': {
@@ -370,14 +373,14 @@ export const helpTopics = {
   },
   'import.angajat-existent': {
     path: '/clienti/import/',
-    anchor: 'un-angajat-pe-care-clientul-îl-are-deja',
+    anchor: 'un-lucrător-pe-care-clientul-îl-are-deja',
   },
-  'import.angajati': { path: '/clienti/import/', anchor: 'importul-angajaților-din-fișe' },
+  'import.angajati': { path: '/clienti/import/', anchor: 'importul-lucrătorilor-din-fișe' },
   'import.ce-fotografiezi': { path: '/clienti/import/', anchor: 'ce-fotografiezi' },
   'import.citire': { path: '/clienti/import/', anchor: 'citirea-fișelor' },
   'import.client': { path: '/clienti/import/', anchor: 'importul-unui-client-din-documente' },
   'import.cnp': { path: '/clienti/import/', anchor: 'cnp-ul-de-pe-fișă' },
-  'import.confirmare': { path: '/clienti/import/', anchor: 'crearea-angajaților' },
+  'import.confirmare': { path: '/clienti/import/', anchor: 'crearea-lucrătorilor' },
   'import.dupa-import': { path: '/clienti/import/', anchor: 'după-import' },
   'import.evaluari-de-risc': {
     path: '/clienti/import/',
@@ -444,7 +447,7 @@ export const helpTopics = {
   },
   'organizatie.pachete': {
     path: '/organizatie/abonament/',
-    anchor: 'pachetele-de-angajați-și-utilizatorii-în-plus',
+    anchor: 'pachetele-de-lucrători-și-utilizatorii-în-plus',
   },
   'organizatie.perioada-de-proba': { path: '/organizatie/abonament/', anchor: 'perioada-de-probă' },
   'organizatie.plata-nereusita': {

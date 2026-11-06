@@ -57,7 +57,7 @@ function group(label, directory, subgroups = []) {
 
 const clientAreas = [
   { label: 'Detalii', directory: 'detalii' },
-  { label: 'Angajați', directory: 'angajati' },
+  { label: 'Lucrători', directory: 'angajati' },
   { label: 'Posturi și echipament', directory: 'posturi' },
   { label: 'Instruire și fișe', directory: 'instruire' },
   { label: 'Evaluarea riscurilor', directory: 'evaluarea-riscurilor' },
