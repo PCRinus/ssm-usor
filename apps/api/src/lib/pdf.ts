@@ -45,6 +45,7 @@ async function convertAt(url: string, files: Uint8Array[], conversion: Conversio
   });
   if (merging) form.append('flatten', 'true');
   else if (files.length > 1) form.append('merge', 'true');
+  if (!merging) form.append('updateIndexes', 'true');
   if (conversion === 'archival') form.append('pdfa', 'PDF/A-2b');
   const route = merging ? '/forms/pdfengines/merge' : '/forms/libreoffice/convert';
   const response = await fetch(new URL(route, url), {
