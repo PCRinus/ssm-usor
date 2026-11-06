@@ -225,6 +225,69 @@ describe('the update dialog', () => {
     expect(rows.map((row) => row.textContent)).toEqual([help.text, reminders.improvements[0]]);
   });
 
+  it('shows the marks of an item instead of its asterisks', async () => {
+    mockApi([
+      {
+        ...newest,
+        features: [],
+        improvements: [
+          'Butonul **Raportează o problemă cu importul** rămâne în capul paginii importului.',
+        ],
+        fixes: [],
+      },
+    ]);
+    mount();
+    const dialog = await screen.findByRole('dialog', { name: newest.headline });
+    const row = within(within(dialog).getByTestId('update-dialog-highlights')).getByRole(
+      'listitem'
+    );
+    expect(row.textContent).toBe(
+      'Butonul Raportează o problemă cu importul rămâne în capul paginii importului.'
+    );
+    expect(row.querySelector('strong')?.textContent).toBe('Raportează o problemă cu importul');
+  });
+
+  it('on a desktop, scrolls only the highlights, keeping the headline and the buttons in view', async () => {
+    mockApi([newest]);
+    mount();
+    const dialog = await screen.findByRole('dialog', { name: newest.headline });
+    const scroll = within(dialog).getByTestId('update-dialog-scroll');
+    expect(scroll.contains(within(dialog).getByTestId('update-dialog-highlights'))).toBe(true);
+    for (const fixed of [
+      within(dialog).getByRole('heading', { name: newest.headline }),
+      within(dialog).getByTestId('update-dialog-more'),
+      within(dialog).getByRole('button', { name: 'Am înțeles' }),
+      within(dialog).getByRole('link', { name: 'Vezi detaliile' }),
+    ]) {
+      expect(scroll.contains(fixed)).toBe(false);
+    }
+  });
+
+  it('on a phone, scrolls the headline with the highlights and keeps the buttons in view', async () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({
+        matches: query === '(max-width: 767px)',
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }))
+    );
+    mockApi([newest]);
+    mount();
+    const drawer = await screen.findByTestId('update-dialog');
+    const scroll = within(drawer).getByTestId('update-dialog-scroll');
+    expect(scroll.contains(within(drawer).getByText(newest.headline))).toBe(true);
+    expect(scroll.contains(within(drawer).getByTestId('update-dialog-highlights'))).toBe(true);
+    for (const fixed of [
+      within(drawer).getByTestId('update-dialog-more'),
+      within(drawer).getByRole('button', { name: 'Am înțeles' }),
+      within(drawer).getByRole('link', { name: 'Vezi detaliile' }),
+    ]) {
+      expect(scroll.contains(fixed)).toBe(false);
+    }
+  });
+
   it('leaves the count out when the highlights are everything', async () => {
     mockApi([{ ...newest, improvements: [], fixes: [] }]);
     mount();
@@ -356,6 +419,44 @@ describe('the release page', () => {
     expect(screen.queryByTestId('release-fixes')).toBeNull();
     await waitFor(() => expect(acknowledgements()).toEqual([{ tag: newest.tag }]));
     await waitFor(() => expect(screen.queryByTestId('nav-actualizari-badge')).toBeNull());
+  });
+
+  it('shows the marks in every line instead of their asterisks', async () => {
+    const marked: Release = {
+      ...newest,
+      unread: false,
+      headline: 'Importul are acum **Raportează o problemă**',
+      lead: 'Pagina importului arată *ce mai ai de confirmat*.',
+      features: [
+        {
+          title: 'Fila **Arhivate**',
+          text: 'Instrucțiunile arhivate au fila lor, **Arhivate**, lângă **Active**.',
+          where: 'Instrucțiuni proprii, fila **Arhivate**',
+          icon: 'archive',
+        },
+      ],
+      improvements: ['Meniul are **Modifică detaliile…** și **Arhivează…**.'],
+      fixes: ['Mesajul roșu dispare imediat ce se salvează.'],
+    };
+    mockApi([marked, first]);
+    mount('/actualizari/2026.11.06');
+    await screen.findByTestId('release-page');
+    const page = screen.getByTestId('release-page');
+    expect(page.textContent).not.toContain('*');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
+      'Importul are acum Raportează o problemă'
+    );
+    expect(page.querySelector('em')?.textContent).toBe('ce mai ai de confirmat');
+    expect(
+      [...screen.getByTestId('release-features').querySelectorAll('strong')].map(
+        (mark) => mark.textContent
+      )
+    ).toEqual(['Arhivate', 'Arhivate', 'Active', 'Arhivate']);
+    expect(
+      [...screen.getByTestId('release-improvements').querySelectorAll('strong')].map(
+        (mark) => mark.textContent
+      )
+    ).toEqual(['Modifică detaliile…', 'Arhivează…']);
   });
 
   it('has no previous release for the oldest', async () => {

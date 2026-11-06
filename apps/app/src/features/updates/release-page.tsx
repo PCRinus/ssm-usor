@@ -6,6 +6,7 @@ import type { Release } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { useScrollToHash } from '@/app/use-scroll-to-hash';
 
+import { InlineMarkdown } from './inline-markdown';
 import { KindSquare } from './kind-square';
 import { formatReleaseDay, formatReleaseDayBeside, kindTitles } from './release-format';
 import { ReleaseTag } from './release-tag';
@@ -125,7 +126,9 @@ function OtherReleases({
             Versiunea anterioară,{' '}
             {formatReleaseDayBeside(previous.publishedAt, release.publishedAt)}
           </span>
-          <span className="text-[15px] font-semibold">{previous.headline}</span>
+          <span className="text-[15px] font-semibold">
+            <InlineMarkdown text={previous.headline} />
+          </span>
         </Link>
       )}
       <Link
@@ -181,11 +184,11 @@ export function ReleasePage({ tag }: { tag: string }) {
             Publicată pe {published}
           </span>
           <h1 className="text-[25px] leading-[1.2] font-bold tracking-[-0.02em] sm:text-[34px] sm:leading-[1.15]">
-            {release.headline}
+            <InlineMarkdown text={release.headline} />
           </h1>
           {release.lead && (
             <p className="text-base leading-[1.6] text-release-body sm:text-[17px]">
-              {release.lead}
+              <InlineMarkdown text={release.lead} />
             </p>
           )}
         </div>
@@ -211,13 +214,17 @@ export function ReleasePage({ tag }: { tag: string }) {
                   className="grid gap-2 rounded-xl border bg-card p-4 sm:gap-2.5 sm:px-6 sm:py-[22px]"
                 >
                   <h3 className="text-base leading-[1.35] font-semibold sm:text-[17px]">
-                    {feature.title}
+                    <InlineMarkdown text={feature.title} />
                   </h3>
-                  <p className="text-[15px] leading-[1.6] text-release-body">{feature.text}</p>
+                  <p className="text-[15px] leading-[1.6] text-release-body">
+                    <InlineMarkdown text={feature.text} />
+                  </p>
                   {feature.where && (
                     <p className="border-t border-muted pt-2 text-[13px] leading-[1.45] text-muted-foreground sm:border-0 sm:pt-0">
                       Unde o găsești:{' '}
-                      <span className="font-medium text-foreground">{feature.where}</span>
+                      <span className="font-medium text-foreground">
+                        <InlineMarkdown text={feature.where} />
+                      </span>
                     </p>
                   )}
                 </div>
@@ -236,7 +243,9 @@ export function ReleasePage({ tag }: { tag: string }) {
               </SectionHeading>
               <ul className="grid list-disc gap-2.5 pl-5 text-[15px] leading-[1.55]">
                 {release.improvements.map((line) => (
-                  <li key={line}>{line}</li>
+                  <li key={line}>
+                    <InlineMarkdown text={line} />
+                  </li>
                 ))}
               </ul>
             </section>
@@ -253,7 +262,9 @@ export function ReleasePage({ tag }: { tag: string }) {
               </SectionHeading>
               <ul className="grid list-disc gap-2.5 pl-5 text-[15px] leading-[1.55]">
                 {release.fixes.map((line) => (
-                  <li key={line}>{line}</li>
+                  <li key={line}>
+                    <InlineMarkdown text={line} />
+                  </li>
                 ))}
               </ul>
             </section>
