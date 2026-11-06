@@ -37,7 +37,7 @@ const failureOf = (cause: unknown) => {
     return 'Convertorul PDF nu este disponibil. Încearcă din nou peste câteva minute.';
   }
   if (body?.reason === 'missing_sheet_data') {
-    return 'Fișa nu se poate întocmi încă: lipsesc date ale angajatului.';
+    return 'Fișa nu se poate întocmi încă: lipsesc date ale lucrătorului.';
   }
   return 'Nu am putut descărca fișa. Verifică conexiunea și încearcă din nou.';
 };

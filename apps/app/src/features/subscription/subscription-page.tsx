@@ -201,7 +201,7 @@ function SubscriptionContent({
             <MemberNote overview={overview} />
           ) : null}
           <p className="px-1 text-[13px] leading-relaxed text-muted-foreground">
-            Peste 1.500 de angajați sau o echipă mare? Scrie-ne pentru o ofertă, la{' '}
+            Peste 1.500 de lucrători sau o echipă mare? Scrie-ne pentru o ofertă, la{' '}
             <a
               href={`mailto:${contactEmail}?subject=${encodeURIComponent('Ofertă Enterprise SSM Ușor')}`}
               className="font-semibold text-foreground underline-offset-2 hover:underline"
@@ -393,16 +393,16 @@ function noticeFor(
         <Notice
           variant="warning"
           data-testid="subscription-notice"
-          title="Ai trecut de limita de angajați."
+          title="Ai trecut de limita de lucrători."
           action={chooseLink('Adaugă un pachet', {
             packs: packsNeeded(choice.plan, employees.used),
           })}
         >
-          Ai {formatCount(employees.used)} de angajați la clienți, cu{' '}
+          Ai {formatCount(employees.used)} de lucrători la clienți, cu{' '}
           {formatCount(employees.used - employees.limit)} peste cei {formatCount(employees.limit)}{' '}
           din plan. Lucrezi mai departe cu tot ce ai.
           {pack
-            ? ` Un pachet de ${pack.employees} de angajați costă ${formatEuro(pack.prices[choice.interval])} ${choice.interval === 'year' ? 'pe an' : 'pe lună'}.`
+            ? ` Un pachet de ${pack.employees} de lucrători costă ${formatEuro(pack.prices[choice.interval])} ${choice.interval === 'year' ? 'pe an' : 'pe lună'}.`
             : ''}
         </Notice>
       );
@@ -424,7 +424,7 @@ function MemberNote({ overview }: { overview: BillingOverview }) {
               Administratorul organizației se ocupă de abonament.
             </strong>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Dacă ai nevoie de mai mulți angajați sau de un coleg în plus, scrie-i
+              Dacă ai nevoie de mai mulți lucrători sau de un coleg în plus, scrie-i
               administratorului.
             </p>
           </div>

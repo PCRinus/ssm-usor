@@ -283,21 +283,21 @@ describe('client employees list', () => {
     const current = screen
       .getAllByTestId('client-section')
       .filter((link) => link.getAttribute('aria-current') === 'page');
-    expect(current.map((link) => link.textContent)).toEqual(['Angajați']);
+    expect(current.map((link) => link.textContent)).toEqual(['Lucrători']);
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
     expect(within(breadcrumb).queryByText('Spațiul de lucru')).toBeNull();
     expect(within(breadcrumb).getByRole('link', { name: 'Clienți' })).toBeTruthy();
     expect(within(breadcrumb).getByRole('link', { name: 'OMV PETROM SA' })).toBeTruthy();
-    expect(within(breadcrumb).getByText('Angajați')).toBeTruthy();
+    expect(within(breadcrumb).getByText('Lucrători')).toBeTruthy();
     const row = await screen.findByTestId('employees-row');
     expect(within(row).getByText('Popescu Ion')).toBeTruthy();
     expect(within(row).getByText('Marca A-17')).toBeTruthy();
     expect(within(row).getByText('Sudor')).toBeTruthy();
     expect(within(row).getByText('ion.popescu@example.com')).toBeTruthy();
     expect(within(row).getByText('1 mar. 2020')).toBeTruthy();
-    expect(within(row).queryByText('Angajați actuali')).toBeNull();
-    expect(screen.getByTestId('employees-count').textContent).toBe('1 angajat');
-    expect(screen.getByTestId('pager-summary').textContent).toBe('1 angajat');
+    expect(within(row).queryByText('Lucrători actuali')).toBeNull();
+    expect(screen.getByTestId('employees-count').textContent).toBe('1 lucrător');
+    expect(screen.getByTestId('pager-summary').textContent).toBe('1 lucrător');
     expect(screen.queryByTestId('pager-next')).toBeNull();
     const [url, init] = requests(employeesPath)[0]!;
     const query = new URL(String(url)).searchParams;
@@ -354,7 +354,7 @@ describe('client employees list', () => {
     await screen.findByTestId('client-details-page');
     await user.click(
       within(screen.getByRole('navigation', { name: 'Secțiunile clientului' })).getByRole('link', {
-        name: 'Angajați',
+        name: 'Lucrători',
       })
     );
     await screen.findByTestId('employees-page');
@@ -384,13 +384,13 @@ describe('client employees list', () => {
     const runtime = mountApp(authFixture(makeSession()).client, employeesPage);
     const user = userEvent.setup();
     await screen.findByTestId('employees-row');
-    expect(screen.getByTestId('employees-count').textContent).toBe('26 angajați');
-    expect(screen.getByTestId('pager-summary').textContent).toBe('1–25 din 26 de angajați');
+    expect(screen.getByTestId('employees-count').textContent).toBe('26 lucrători');
+    expect(screen.getByTestId('pager-summary').textContent).toBe('1–25 din 26 de lucrători');
     expect((screen.getByTestId('pager-previous') as HTMLButtonElement).disabled).toBe(true);
     await user.click(screen.getByTestId('pager-next'));
     await screen.findByText('Zamfir Ion');
     expect(runtime.router.state.location.search).toEqual({ page: 2 });
-    expect(screen.getByTestId('pager-summary').textContent).toBe('26–26 din 26 de angajați');
+    expect(screen.getByTestId('pager-summary').textContent).toBe('26–26 din 26 de lucrători');
     expect((screen.getByTestId('pager-next') as HTMLButtonElement).disabled).toBe(true);
     // Switching the status filter starts again from the first page.
     await user.click(screen.getByTestId('employees-filter-terminated'));
@@ -404,7 +404,7 @@ describe('client employees list', () => {
     const runtime = mountApp(authFixture(makeSession()).client, `${employeesPage}?page=2`);
     const user = userEvent.setup();
     await screen.findByTestId('employees-row');
-    const nameHeader = screen.getByRole('columnheader', { name: /Angajat$/ });
+    const nameHeader = screen.getByRole('columnheader', { name: /Lucrător$/ });
     expect(nameHeader.getAttribute('aria-sort')).toBe('ascending');
     // Contact is not sortable: no button, no aria-sort.
     expect(
@@ -435,17 +435,17 @@ describe('client employees list', () => {
     mockApi();
     const runtime = mountApp(authFixture(makeSession()).client, employeesPage);
     await screen.findByTestId('employees-empty');
-    expect(screen.getByTestId('employees-count').textContent).toBe('0 angajați');
-    await userEvent.setup().click(screen.getByRole('link', { name: /^Adaugă primul angajat/ }));
+    expect(screen.getByTestId('employees-count').textContent).toBe('0 lucrători');
+    await userEvent.setup().click(screen.getByRole('link', { name: /^Adaugă primul lucrător/ }));
     await screen.findByTestId('new-employee-page');
     expect(runtime.router.state.location.pathname).toBe(`${employeesPage}/nou`);
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
     expect(within(breadcrumb).getByRole('link', { name: 'OMV PETROM SA' })).toBeTruthy();
-    expect(within(breadcrumb).getByRole('link', { name: 'Angajați' })).toBeTruthy();
-    expect(within(breadcrumb).getByText('Angajat nou')).toBeTruthy();
+    expect(within(breadcrumb).getByRole('link', { name: 'Lucrători' })).toBeTruthy();
+    expect(within(breadcrumb).getByText('Lucrător nou')).toBeTruthy();
     // The form stands on its own: no client summary card or section tabs above it.
     expect(screen.queryByTestId('client-page')).toBeNull();
-    expect(screen.getByRole('heading', { level: 1, name: 'Angajat nou' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Lucrător nou' })).toBeTruthy();
     const clientField = screen.getByTestId('employee-client') as HTMLInputElement;
     expect(clientField.value).toBe('OMV PETROM SA');
     expect(clientField.disabled).toBe(true);
@@ -982,7 +982,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
     await user.type(route, 'Str. Lungă 5 – Str. Fabricii 3, pe jos');
     await user.click(screen.getByTestId('employee-submit'));
 
-    expect(await screen.findByText('Datele angajatului au fost salvate.')).toBeTruthy();
+    expect(await screen.findByText('Datele lucrătorului au fost salvate.')).toBeTruthy();
     await user.click(await screen.findByRole('button', { name: 'Înapoi la fișă' }));
     await screen.findByTestId('employee-training-tab');
     expect(runtime.router.state.location.pathname).toBe(`${detailPage}/instruire/su`);
@@ -1063,7 +1063,7 @@ describe('employee status changes', () => {
     });
     await user.click(screen.getByTestId('employees-filter-terminated'));
     await screen.findByTestId('employees-row');
-    expect(await screen.findByText('Popescu Ion a fost trecut la foști angajați.')).toBeTruthy();
+    expect(await screen.findByText('Popescu Ion a fost trecut la foști lucrători.')).toBeTruthy();
   });
 
   it('picks the leave date from the calendar', async () => {
@@ -1157,7 +1157,7 @@ describe('employee status changes', () => {
     expect(JSON.parse(String(requests(statusPath, 'PATCH')[0]![1]?.body))).toEqual({
       status: 'active',
     });
-    expect(await screen.findByText('Popescu Ion este din nou angajat actual.')).toBeTruthy();
+    expect(await screen.findByText('Popescu Ion este din nou lucrător actual.')).toBeTruthy();
   });
 
   it('explains a reactivation refused because a current employee has the CNP', async () => {
@@ -1179,7 +1179,7 @@ describe('employee status changes', () => {
     await user.click(await screen.findByTestId('employees-reactivate'));
     await user.click(await screen.findByTestId('employee-status-confirm'));
     expect((await screen.findByTestId('employee-status-error')).textContent).toContain(
-      'un angajat actual al clientului are același CNP'
+      'un lucrător actual al clientului are același CNP'
     );
     expect(screen.getByTestId('employee-status-dialog')).toBeTruthy();
   });
@@ -1207,10 +1207,10 @@ describe('employee detail', () => {
     expect(runtime.router.state.location.pathname).toBe(detailPage);
     expect(screen.queryByTestId('client-page')).toBeNull();
     expect(screen.getByRole('heading', { level: 1, name: 'Popescu Ion' })).toBeTruthy();
-    expect(screen.getByTestId('employee-status').textContent).toBe('Angajat actual');
+    expect(screen.getByTestId('employee-status').textContent).toBe('Lucrător actual');
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
     expect(within(breadcrumb).getByRole('link', { name: 'OMV PETROM SA' })).toBeTruthy();
-    expect(within(breadcrumb).getByRole('link', { name: 'Angajați' })).toBeTruthy();
+    expect(within(breadcrumb).getByRole('link', { name: 'Lucrători' })).toBeTruthy();
     expect(within(breadcrumb).getByText('Popescu Ion')).toBeTruthy();
     expect(screen.getByText('A-17')).toBeTruthy();
     expect(screen.getByText('1 mar. 2020')).toBeTruthy();
@@ -1276,7 +1276,7 @@ describe('employee detail', () => {
     setDate(await screen.findByTestId('employee-terminated-at'), '2026-09-10');
     await user.click(screen.getByTestId('employee-status-confirm'));
     await waitFor(() =>
-      expect(screen.getByTestId('employee-status').textContent).toBe('Fost angajat')
+      expect(screen.getByTestId('employee-status').textContent).toBe('Fost lucrător')
     );
     expect(screen.getByText('10 sept. 2026')).toBeTruthy();
     expect(screen.getByText('Vechime la plecare')).toBeTruthy();
@@ -1527,7 +1527,7 @@ describe('employee editing', () => {
 
     await screen.findByTestId('employee-page');
     expect(runtime.router.state.location.pathname).toBe(`${employeesPage}/${sampleEmployee.id}`);
-    expect(await screen.findByText('Datele angajatului au fost salvate.')).toBeTruthy();
+    expect(await screen.findByText('Datele lucrătorului au fost salvate.')).toBeTruthy();
     const [, init] = requests(`${employeesPath}/${sampleEmployee.id}`, 'PUT')[0]!;
     const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
     expect(body).toMatchObject({

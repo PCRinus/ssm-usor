@@ -5,7 +5,7 @@ import { joinNames } from './review-format';
 
 export { joinNames };
 
-// In memory, for the first visit to the client's Angajați tab after the confirm: the import
+// In memory, for the first visit to the client's Lucrători tab after the confirm: the import
 // keeps no record of who it created and who it completed, so a later visit shows only its date
 // and who is left to invite.
 export type EmployeesImported = {
@@ -62,9 +62,9 @@ export function importedSentence(notice: EmployeesImported) {
         : null;
   const leavers =
     notice.leavers.length === 1
-      ? `${notice.leavers[0]} e la Foști angajați`
+      ? `${notice.leavers[0]} e la Foști lucrători`
       : notice.leavers.length > 1
-        ? `${joinNames(notice.leavers)} sunt la Foști angajați`
+        ? `${joinNames(notice.leavers)} sunt la Foști lucrători`
         : null;
   if (completed && leavers) parts.push(`${completed}, iar ${leavers}.`);
   else if (completed ?? leavers) parts.push(`${completed ?? leavers}.`);

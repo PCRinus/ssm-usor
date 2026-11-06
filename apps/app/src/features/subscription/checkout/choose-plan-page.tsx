@@ -158,7 +158,7 @@ function ChoosePlanForm({
         {mode === 'change' ? 'Schimbă planul' : 'Alege planul'}
       </h1>
       <p className="text-[15px] leading-relaxed text-muted-foreground">
-        Ai {formatCount(employees)} {employees === 1 ? 'angajat' : 'de angajați'} la clienți și{' '}
+        Ai {formatCount(employees)} {employees === 1 ? 'lucrător' : 'de lucrători'} la clienți și{' '}
         {members === 1 ? 'un utilizator' : `${members} utilizatori`}. Prețurile sunt fără TVA.
       </p>
     </div>

@@ -93,7 +93,7 @@ describe('the dashboard', () => {
       '/angajati?trainingState=overdue&domain=ssm'
     );
     expect(within(ssm).getByRole('img').getAttribute('aria-label')).toBe(
-      'Instruiri SSM, 412 angajați: 22 depășite, 41 scadente, 31 neinstruiți, 318 la zi'
+      'Instruiri SSM, 412 lucrători: 22 depășite, 41 scadente, 31 neinstruiți, 318 la zi'
     );
     expect(
       within(ssm)
@@ -121,11 +121,11 @@ describe('the dashboard', () => {
     const portfolio = screen.getByTestId('dashboard-portfolio');
     expect(screen.getByTestId('dashboard-portfolio-clients').textContent).toBe('18 clienți activi');
     expect(screen.getByTestId('dashboard-portfolio-employees').textContent).toBe(
-      '412 angajați, +41 față de septembrie'
+      '412 lucrători, +41 față de septembrie'
     );
     expect(within(portfolio).getAllByTestId('dashboard-portfolio-bar')).toHaveLength(12);
     expect(within(portfolio).getByRole('img').getAttribute('aria-label')).toBe(
-      'Angajați în ultimele 12 luni, de la 23 în noiembrie 2025 la 412 în octombrie 2026'
+      'Lucrători în ultimele 12 luni, de la 23 în noiembrie 2025 la 412 în octombrie 2026'
     );
     expect(portfolio.className).not.toContain('max-w-[560px]');
 
@@ -199,7 +199,7 @@ describe('the dashboard', () => {
     expect(screen.queryByTestId('dashboard-contracts')).toBeNull();
     expect(screen.getByTestId('dashboard-portfolio').className).toContain('max-w-[560px]');
     expect(screen.getByTestId('dashboard-portfolio-employees').textContent).toBe(
-      '368 de angajați, −3 față de septembrie'
+      '368 de lucrători, −3 față de septembrie'
     );
   });
 
@@ -207,7 +207,7 @@ describe('the dashboard', () => {
     mockApi(quietSummary);
     mount();
     expect((await screen.findByTestId('dashboard-todo-done')).textContent).toBe(
-      'Totul e la zi Următoarea instruire scadentă: luni, 2 noiembrie, pentru 4 angajați'
+      'Totul e la zi Următoarea instruire scadentă: luni, 2 noiembrie, pentru 4 lucrători'
     );
     expect(screen.getByTestId('dashboard-greeting').textContent).toBe(
       'Bună ziua, Mircea. Nu ai nimic de făcut, iar la clienți nu e nicio instruire depășită.'

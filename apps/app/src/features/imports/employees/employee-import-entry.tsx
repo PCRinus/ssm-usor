@@ -85,7 +85,7 @@ export function EmployeeImportButtons({
           data-testid="employees-add"
         >
           <Plus aria-hidden="true" />
-          Adaugă angajat
+          Adaugă lucrător
         </Link>
       </Button>
     </div>
@@ -125,7 +125,7 @@ export function EmployeeStartWays({
         <WayBadge>
           <PenLine className="size-5" />
         </WayBadge>
-        <span className="text-[15px] font-semibold">Adaugă primul angajat</span>
+        <span className="text-[15px] font-semibold">Adaugă primul lucrător</span>
         <span className="text-sm leading-snug text-muted-foreground">
           Completezi tu datele persoanei, pornind de la nume și post.
         </span>
@@ -165,7 +165,7 @@ export function EmployeeStartWays({
           {sheets.length > 0 ? 'Importă din fotografii noi' : 'Importă din fișele de instruire'}
         </span>
         <span className="text-sm leading-snug text-muted-foreground">
-          Fotografiezi fișele individuale pe hârtie, iar noi îți propunem angajații și instruirile
+          Fotografiezi fișele individuale pe hârtie, iar noi îți propunem lucrătorii și instruirile
           lor.
         </span>
       </button>
@@ -233,7 +233,7 @@ function OpenImportCard({
           aria-label={`${people.checked} din ${roCount(people.total, 'persoană', 'persoane')} verificate`}
         />
         <p className="text-sm text-muted-foreground">
-          Din {photosLabel(item.fileCount)}. Ce ai verificat e salvat; angajații se creează când
+          Din {photosLabel(item.fileCount)}. Ce ai verificat e salvat; lucrătorii se creează când
           confirmi, la final.
         </p>
       </>
@@ -389,16 +389,16 @@ function ImportedNoticeCard({
           <h3 id="employees-imported-title" className="font-semibold">
             {notice
               ? notice.created === 1
-                ? 'Un angajat creat din fișe'
-                : `${roCount(notice.created, 'angajat creat', 'angajați creați')} din fișe`
-              : `Angajați importați din fișe pe ${dayMonth.format(new Date(item.confirmedAt ?? item.createdAt))}`}
+                ? 'Un lucrător creat din fișe'
+                : `${roCount(notice.created, 'lucrător creat', 'lucrători creați')} din fișe`
+              : `Lucrători importați din fișe pe ${dayMonth.format(new Date(item.confirmedAt ?? item.createdAt))}`}
           </h3>
           <p className="text-sm text-muted-foreground">
             {notice
               ? importedSentence(notice)
               : uninvited === 1
-                ? 'Un angajat adus de import nu e încă invitat în portal.'
-                : `${roCount(uninvited, 'angajat', 'angajați')} aduși de import nu sunt încă invitați în portal.`}
+                ? 'Un lucrător adus de import nu e încă invitat în portal.'
+                : `${roCount(uninvited, 'lucrător', 'lucrători')} aduși de import nu sunt încă invitați în portal.`}
           </p>
         </div>
         <Button variant="ghost" size="sm" data-testid="employees-imported-hide" onClick={onHide}>
@@ -417,7 +417,7 @@ function ImportedNoticeCard({
               <li>
                 {allWithoutContact
                   ? 'Fișele nu au email sau telefon: le scrii în dialogul de invitare.'
-                  : `${roCount(noContact, 'angajat nu are', 'angajați nu au')} email sau telefon: le scrii în dialogul de invitare.`}
+                  : `${roCount(noContact, 'lucrător nu are', 'lucrători nu au')} email sau telefon: le scrii în dialogul de invitare.`}
               </li>
             )}
             {notice && notice.noCommute.length > 0 && (
@@ -428,7 +428,7 @@ function ImportedNoticeCard({
         {uninvited > 0 && (
           <Button data-testid="employees-imported-invite" onClick={() => openBulkInvite(item.id)}>
             <Send aria-hidden="true" />
-            Invită în portal angajații din fișe
+            Invită în portal lucrătorii din fișe
           </Button>
         )}
       </div>

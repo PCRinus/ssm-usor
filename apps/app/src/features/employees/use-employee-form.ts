@@ -121,7 +121,7 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
       // The position just gained a person, whether it was new or not.
       await queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) });
       if (employee) {
-        savedToast('Datele angajatului au fost salvate.');
+        savedToast('Datele lucrătorului au fost salvate.');
         await navigate({
           to: '/clienti/$clientId/angajati/$employeeId',
           params: { clientId, employeeId: employee.id },
@@ -143,8 +143,8 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
           } else {
             form.setError('root.server', {
               message: employee
-                ? 'Datele intră în conflict cu alt angajat al clientului.'
-                : 'Clientul este arhivat; nu mai pot fi adăugați angajați.',
+                ? 'Datele intră în conflict cu alt lucrător al clientului.'
+                : 'Clientul este arhivat; nu mai pot fi adăugați lucrători.',
             });
           }
           return;
@@ -163,7 +163,7 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
         if (cause.status === 404) {
           form.setError('root.server', {
             message: employee
-              ? 'Angajatul nu mai există la acest client.'
+              ? 'Lucrătorul nu mai există la acest client.'
               : 'Clientul nu mai există în organizația ta.',
           });
           return;
@@ -182,7 +182,7 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
         }
       }
       form.setError('root.server', {
-        message: 'Nu am putut salva angajatul. Verifică conexiunea și încearcă din nou.',
+        message: 'Nu am putut salva lucrătorul. Verifică conexiunea și încearcă din nou.',
       });
     }
   });

@@ -1185,7 +1185,7 @@ describe("the employee's signing agreement", () => {
     mount(employeePage);
     const card = await screen.findByTestId('signing-agreement-card');
     expect((await within(card).findByTestId('signing-agreement-detail')).textContent).toBe(
-      'Semnat de angajat pe 1 oct. 2026, așteaptă semnătura administratorului în portal.'
+      'Semnat de lucrător pe 1 oct. 2026, așteaptă semnătura administratorului în portal.'
     );
     expect(within(card).queryByTestId('signing-agreement-paper')).toBeNull();
     expect(within(card).queryByTestId('signing-agreement-in-contract')).toBeNull();
@@ -1390,7 +1390,7 @@ describe('signing from the Semnături place', () => {
     const failed = within(dialog).getByTestId('signing-failed');
     expect(failed.textContent).toContain('semnezi ca verificator');
     expect(within(failed).getByTestId('signing-failed-reason').textContent).toBe(
-      'Fișa angajatului nu are toate datele (locul de muncă, traseul). Completează-le, apoi semnează din nou.'
+      'Fișa lucrătorului nu are toate datele (locul de muncă, traseul). Completează-le, apoi semnează din nou.'
     );
 
     await user.click(within(dialog).getByTestId('signing-close'));

@@ -87,13 +87,13 @@ export interface EmployeePack {
 export const employeePacks: Record<EmployeePackKey, EmployeePack> = {
   employees50: {
     key: 'employees50',
-    name: 'Pachet de 50 de angajați',
+    name: 'Pachet de 50 de lucrători',
     employees: 50,
     prices: recurring('employees50', 1500),
   },
   employees500: {
     key: 'employees500',
-    name: 'Pachet de 500 de angajați',
+    name: 'Pachet de 500 de lucrători',
     employees: 500,
     prices: recurring('employees500', 4000),
   },

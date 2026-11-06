@@ -2,7 +2,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { SearchX } from 'lucide-react';
 
 export function EmployeesNoMatch({
-  title = 'Niciun angajat nu corespunde căutării',
+  title = 'Niciun lucrător nu corespunde căutării',
   hint,
   testId,
   clearLabel = 'Șterge căutarea',

@@ -7,11 +7,11 @@ import { contactEmail } from './subscription-copy';
 export function problemMessage(problem: BillingChoiceProblem) {
   switch (problem.reason) {
     case 'start_employee_ceiling':
-      return 'Start acoperă cel mult 600 de angajați. Pentru câți ai, alege Profesional.';
+      return 'Start acoperă cel mult 600 de lucrători. Pentru câți ai, alege Profesional.';
     case 'start_member_ceiling':
       return 'Start are cel mult 2 utilizatori. Pentru câți sunteți, alege Profesional.';
     case 'employee_packs_below_need':
-      return `Pentru angajații de azi îți trebuie cel puțin ${problem.minimum ?? 1} ${problem.minimum === 1 ? 'pachet' : 'pachete'}.`;
+      return `Pentru lucrătorii de azi îți trebuie cel puțin ${problem.minimum ?? 1} ${problem.minimum === 1 ? 'pachet' : 'pachete'}.`;
     case 'extra_members_below_need':
       return `Pentru utilizatorii de azi îți trebuie cel puțin ${problem.minimum ?? 1} în plus.`;
     case 'employee_packs_above_plan':

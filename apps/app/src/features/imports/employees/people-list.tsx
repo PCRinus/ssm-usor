@@ -95,7 +95,7 @@ export function PeopleList({
         {shown.length === 0 ? (
           <p className="px-5 py-8 text-center text-sm text-muted-foreground">
             {tab === 'to_check'
-              ? 'Ai verificat pe toată lumea. Poți crea angajații.'
+              ? 'Ai verificat pe toată lumea. Poți crea lucrătorii.'
               : 'Nicio persoană aici.'}
           </p>
         ) : (
@@ -163,7 +163,7 @@ function PersonRow({
   const postId = positionOf(context, person);
   const rows = ownRows(context, person.id).filter(({ row }) => !row.testOnly).length;
   const postNote = isExisting(context, person)
-    ? 'Angajat existent'
+    ? 'Lucrător existent'
     : group?.match === 'none' && !context.changes.jobTitles[group.id]
       ? 'Se hotărăște mai sus'
       : postId && positionName(positions, postId) !== title

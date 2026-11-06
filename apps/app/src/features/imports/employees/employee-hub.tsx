@@ -45,7 +45,7 @@ export function EmployeeHub({
     <div className="grid gap-6" data-testid="employee-hub">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="grid max-w-3xl gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Verifică angajații propuși</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Verifică lucrătorii propuși</h1>
           <p className="text-sm text-muted-foreground">
             Pentru {clientName}: {peopleLabel(counts.total)} din {sheetFilesLabel(files)}. Nu creăm
             pe nimeni până nu confirmi, o singură dată, la final.
@@ -92,7 +92,7 @@ export function EmployeeHub({
         <div className="grid gap-1 text-sm">
           <p>
             Ce verifici se salvează pe loc. Poți închide pagina și continua mai târziu, din fila
-            Angajați a clientului.
+            Lucrători a clientului.
           </p>
           {detail.expiresAt && (
             <p className="text-muted-foreground">
@@ -112,7 +112,7 @@ export function EmployeeHub({
           </Button>
         ) : (
           <Button data-testid="employee-hub-continue" onClick={() => setConfirming(true)}>
-            Creează angajații
+            Creează lucrătorii
           </Button>
         )}
       </Card>
@@ -122,7 +122,7 @@ export function EmployeeHub({
           icon={<BriefcaseBusiness aria-hidden="true" />}
           title="Clientul nu are încă posturi de lucru"
         >
-          Fiecare angajat intră pe un post al clientului. Adaugă posturile de mai jos, câte unul
+          Fiecare lucrător intră pe un post al clientului. Adaugă posturile de mai jos, câte unul
           pentru fiecare post scris pe fișe; le completezi apoi pe pagina postului.
         </Notice>
       )}
@@ -143,10 +143,10 @@ export function EmployeeHub({
       <UnplacedPages detail={detail} context={context} onChange={review.update} />
       <Card
         className="flex flex-wrap items-center justify-between gap-4 px-5 py-4"
-        aria-label="Crearea angajaților"
+        aria-label="Crearea lucrătorilor"
       >
         <p className="max-w-2xl text-sm">
-          Creezi angajații o singură dată, când ai terminat.{' '}
+          Creezi lucrătorii o singură dată, când ai terminat.{' '}
           <span className="text-muted-foreground">
             Poți și înainte să-i verifici pe toți: cei neverificați rămân în afara acestui import.
           </span>
@@ -157,7 +157,7 @@ export function EmployeeHub({
           disabled={counts.checked === 0}
           onClick={() => setConfirming(true)}
         >
-          Creează angajații…
+          Creează lucrătorii…
         </Button>
       </Card>
       {detail.usage && (

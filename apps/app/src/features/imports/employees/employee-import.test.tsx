@@ -169,7 +169,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("the client's Angajați tab", () => {
+describe("the client's Lucrători tab", () => {
   it('offers the sheets found in the documentation while some are untaken, and new photos', async () => {
     mockEmployeeImport({ found: foundSheets });
     mount(`/clienti/${clientId}/angajati`);
@@ -234,7 +234,7 @@ describe('reading the photographs', () => {
     const steps = await screen.findByTestId('employee-processing-steps');
     expect(steps.textContent).toContain('Fotografii citite: 2 din 5.');
     expect(screen.getByTestId('employee-processing-can-leave').textContent).toContain(
-      'Importul rămâne pe pagina Angajați a clientului'
+      'Importul rămâne pe pagina Lucrători a clientului'
     );
     expect(screen.getAllByTestId('employee-processing-photo')).toHaveLength(5);
   });
@@ -402,14 +402,14 @@ describe('the person page', () => {
     const user = userEvent.setup();
     mount(`${importPath}/lazar`);
     const card = await screen.findByTestId('person-decide-match');
-    expect(within(card).getByRole('heading').textContent).toBe('Este același angajat?');
+    expect(within(card).getByRole('heading').textContent).toBe('Este același lucrător?');
     await user.click(within(card).getByTestId('person-match-decline'));
     await waitFor(() =>
       expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(1)
     );
     expect(saved(0).changes.people.lazar).toEqual({ existing: false });
     expect(screen.getByTestId('person-declined-notice').textContent).toContain(
-      'Îl creăm ca angajat nou, nu îl completăm pe Lazăr Radu din aplicație.'
+      'Îl creăm ca lucrător nou, nu îl completăm pe Lazăr Radu din aplicație.'
     );
     expect(screen.getByTestId('person-decide-post')).toBeTruthy();
   });
@@ -475,20 +475,20 @@ describe('confirming', () => {
     await user.click(await screen.findByTestId('employee-hub-confirm'));
     const dialog = await screen.findByTestId('employee-confirm-dialog');
     expect(within(dialog).getByRole('heading', { level: 2 }).textContent).toBe(
-      'Creezi angajații fără cel neverificat?'
+      'Creezi lucrătorii fără cel neverificat?'
     );
     expect(within(dialog).getByTestId('employee-confirm-left').textContent).toContain(
       'Toma Andrei'
     );
     const submit = within(dialog).getByTestId('employee-confirm-submit');
-    expect(submit.textContent).toBe('Creează un angajat, fără cel neverificat');
+    expect(submit.textContent).toBe('Creează un lucrător, fără cel neverificat');
     await user.click(submit);
     await waitFor(() =>
       expect(runtime.router.state.location.pathname).toBe(`/clienti/${clientId}/angajati`)
     );
     expect(bodyOf(`/imports/${importId}/confirm`, 'POST')).toEqual({ version: 4 });
     const card = await screen.findByTestId('employees-imported');
-    expect(card.textContent).toContain('Un angajat creat din fișe');
+    expect(card.textContent).toContain('Un lucrător creat din fișe');
     expect(card.textContent).toContain('Lazăr Radu a fost completat');
     await waitFor(() => expect(screen.getByTestId('client-employee-count').textContent).toBe('1'));
   });
@@ -521,12 +521,12 @@ describe('confirming', () => {
   it("offers to invite the import's people to the portal while some are left", async () => {
     const { user, card } = await confirmPartly([invitee(1, 'Lazăr'), invitee(2, 'Pop', 'invited')]);
     const invite = await within(card).findByTestId('employees-imported-invite');
-    expect(invite.textContent).toBe('Invită în portal angajații din fișe');
+    expect(invite.textContent).toBe('Invită în portal lucrătorii din fișe');
     await user.click(invite);
     expect(
       within(await screen.findByTestId('bulk-invite-dialog')).getByRole('heading', { level: 2 })
         .textContent
-    ).toBe('Invită în portal angajații din fișe');
+    ).toBe('Invită în portal lucrătorii din fișe');
     expect(requestsTo(`/clients/${clientId}/imports/${importId}/portal-invitees`)).not.toHaveLength(
       0
     );
@@ -575,13 +575,13 @@ describe('confirming', () => {
     mount(`/clienti/${clientId}/angajati`);
     const card = await screen.findByTestId('employees-imported');
     expect(within(card).getByRole('heading', { level: 3 }).textContent).toBe(
-      'Angajați importați din fișe pe 30 oct.'
+      'Lucrători importați din fișe pe 30 oct.'
     );
     expect(card.textContent).toContain(
-      '2 angajați aduși de import nu sunt încă invitați în portal.'
+      '2 lucrători aduși de import nu sunt încă invitați în portal.'
     );
     expect(card.textContent).toContain(
-      '1 angajat nu are email sau telefon: le scrii în dialogul de invitare.'
+      '1 lucrător nu are email sau telefon: le scrii în dialogul de invitare.'
     );
     await user.click(within(card).getByTestId('employees-imported-invite'));
     expect(await screen.findByTestId('bulk-invite-dialog')).toBeTruthy();
@@ -612,7 +612,7 @@ describe('confirming', () => {
     mount(`/clienti/${clientId}/angajati`);
     const card = await screen.findByTestId('employees-imported');
     expect(within(card).getByRole('heading', { level: 3 }).textContent).toBe(
-      'Angajați importați din fișe pe 30 oct.'
+      'Lucrători importați din fișe pe 30 oct.'
     );
     expect(requestsTo(`/clients/${clientId}/imports/${newerImportId}/portal-invitees`)).toEqual([]);
     await user.click(within(card).getByTestId('employees-imported-invite'));
@@ -633,14 +633,14 @@ describe('confirming', () => {
     mount(`/clienti/${clientId}/angajati`);
     const card = await screen.findByTestId('employees-imported');
     expect(within(card).getByRole('heading', { level: 3 }).textContent).toBe(
-      'Angajați importați din fișe pe 31 oct.'
+      'Lucrători importați din fișe pe 31 oct.'
     );
     await user.click(within(card).getByTestId('employees-imported-hide'));
     await waitFor(() =>
       expect(
         within(screen.getByTestId('employees-imported')).getByRole('heading', { level: 3 })
           .textContent
-      ).toBe('Angajați importați din fișe pe 30 oct.')
+      ).toBe('Lucrători importați din fișe pe 30 oct.')
     );
   });
 
@@ -694,9 +694,9 @@ describe('confirming', () => {
         .getAllByRole('listitem')
         .map((item) => item.textContent)
     ).toEqual([
-      'La Pop Elena, CNP-ul îl are deja alt angajat al clientului sau altă persoană din import.',
+      'La Pop Elena, CNP-ul îl are deja alt lucrător al clientului sau altă persoană din import.',
       'La Lazăr Radu, data angajării lipsește.',
-      'La Lazăr Radu, e de spus dacă e același angajat din aplicație.',
+      'La Lazăr Radu, e de spus dacă e același lucrător din aplicație.',
     ]);
   });
 });

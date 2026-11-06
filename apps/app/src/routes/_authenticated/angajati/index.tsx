@@ -23,7 +23,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute('/_authenticated/angajati/')({
-  staticData: { title: 'Angajați' },
+  staticData: { title: 'Lucrători' },
   validateSearch: searchSchema,
   component: OrganizationEmployeesPage,
 });

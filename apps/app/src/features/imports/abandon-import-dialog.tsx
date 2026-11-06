@@ -70,7 +70,7 @@ export function AbandonImportDialog({
           <DialogTitle>{running ? 'Oprești importul?' : 'Renunți la import?'}</DialogTitle>
           <DialogDescription>
             {employees
-              ? 'Nu se creează și nu se modifică niciun angajat. Fotografiile încărcate se șterg după 14 zile.'
+              ? 'Nu se creează și nu se modifică niciun lucrător. Fotografiile încărcate se șterg după 14 zile.'
               : 'Nu se creează și nu se modifică niciun client. Fișierele încărcate se șterg după 14 zile.'}
           </DialogDescription>
         </DialogHeader>

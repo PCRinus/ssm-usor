@@ -199,7 +199,7 @@ describe('client names', () => {
 
   it('needs the company form for a name of one word', () => {
     expect(clientsNamedIn('Munca de birou se face așezat.', patterns)).toEqual([]);
-    expect(clientsNamedIn('Angajații Birou S.R.L. poartă ecuson.', patterns)).toEqual([
+    expect(clientsNamedIn('Lucrătorii Birou S.R.L. poartă ecuson.', patterns)).toEqual([
       { id: '2', legalName: 'BIROU SRL' },
     ]);
   });

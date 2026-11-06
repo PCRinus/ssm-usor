@@ -128,7 +128,7 @@ export function EmployeeTestsCard({
             </Button>
           }
         >
-          Nu am putut încărca testele angajatului.
+          Nu am putut încărca testele lucrătorului.
         </Notice>
       ) : !domainTests ? (
         <Skeleton className="h-24 w-full" aria-busy="true" />
@@ -191,7 +191,7 @@ function TestsBody({
       {status.state === 'pending' && status.awaitingTest === 'hiring' && (
         <Notice variant="warning" data-testid="tests-gap">
           Testul la angajare ({knowledgeTestCodeOf(domain, 'hiring')}) nu este promovat încă. Legea
-          nu admite la lucru un angajat netestat; aplicația doar semnalează lipsa.
+          nu admite la lucru un lucrător netestat; aplicația doar semnalează lipsa.
         </Notice>
       )}
 

@@ -45,7 +45,7 @@ const clientRoute = getRouteApi('/_authenticated/clienti/$clientId');
 // The documents follow the data they print. The service contract is an owner's (ADR 007).
 const sections = [
   { to: '/clienti/$clientId/detalii', label: 'Detalii', icon: IdCard, ownerOnly: false },
-  { to: '/clienti/$clientId/angajati', label: 'Angajați', icon: UsersRound, ownerOnly: false },
+  { to: '/clienti/$clientId/angajati', label: 'Lucrători', icon: UsersRound, ownerOnly: false },
   {
     to: '/clienti/$clientId/posturi',
     label: 'Posturi de lucru',
@@ -122,7 +122,7 @@ export function ClientLayout() {
             <HeaderFact label="CUI">
               <span className="tabular-nums">{formatCui(client.cui, client.vatPayer)}</span>
             </HeaderFact>
-            <HeaderFact label="Angajați">
+            <HeaderFact label="Lucrători">
               <span className="tabular-nums" data-testid="client-employee-count">
                 {client.currentEmployeeCount}
               </span>

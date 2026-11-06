@@ -374,7 +374,7 @@ describe('clients list', () => {
     await waitFor(() =>
       expect(runtime.router.state.location.search).toEqual({ sort: 'currentEmployeeCount' })
     );
-    expect(screen.getByRole('columnheader', { name: /Angajați/ }).getAttribute('aria-sort')).toBe(
+    expect(screen.getByRole('columnheader', { name: /Lucrători/ }).getAttribute('aria-sort')).toBe(
       'ascending'
     );
     const last = requests('/clients').at(-1)!;
@@ -401,7 +401,7 @@ describe('clients list', () => {
     mockApi({ me: meAs('owner') });
     mountApp(authFixture(makeSession()).client, `/clienti/${sampleClient.id}/angajati`);
     await screen.findByTestId('client-page');
-    await waitFor(() => expect(document.title).toBe('Angajați — OMV PETROM SA — SSM Ușor'));
+    await waitFor(() => expect(document.title).toBe('Lucrători — OMV PETROM SA — SSM Ușor'));
   });
 
   it('explains a missing membership and can retry', async () => {
@@ -702,7 +702,7 @@ describe('client details', () => {
     await screen.findByTestId('owner-notes-card');
     expect(screen.getAllByTestId('client-section').map((link) => link.textContent)).toEqual([
       'Detalii',
-      'Angajați',
+      'Lucrători',
       'Posturi de lucru',
       'Mijloace de apărare',
       'Instruire și responsabili',
@@ -949,10 +949,10 @@ describe('client details', () => {
     await user.click(screen.getByTestId('details-representative-is-employee'));
     const picker = await screen.findByTestId('details-representative-employee');
     await waitFor(() => expect(picker.hasAttribute('disabled')).toBe(false));
-    expect(picker.textContent).toContain('Alege un angajat');
+    expect(picker.textContent).toContain('Alege un lucrător');
     await user.click(screen.getByTestId('legal-representative-save'));
     expect((await screen.findByTestId('details-representative-employee-error')).textContent).toBe(
-      'Alege angajatul din listă sau debifează căsuța.'
+      'Alege lucrătorul din listă sau debifează căsuța.'
     );
     expect(requests(`${clientPath}/document-details`, 'PUT')).toHaveLength(0);
   });
@@ -1125,7 +1125,7 @@ describe('client archiving', () => {
       const user = userEvent.setup();
       await user.click(await screen.findByTestId('client-delete'));
       const dialog = await screen.findByTestId('client-delete-dialog');
-      expect(dialog.textContent).toContain('angajații');
+      expect(dialog.textContent).toContain('lucrătorii');
       expect(dialog.textContent).toContain('documentele');
       expect(dialog.textContent).toContain('fișierele');
       const confirm = within(dialog).getByTestId<HTMLButtonElement>('client-delete-confirm');

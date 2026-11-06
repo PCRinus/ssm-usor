@@ -116,7 +116,7 @@ test('a specialist records trainings held and follows each employee’s state', 
   }
 
   await page.goto(`/clienti/${clientId}/angajati?trainingState=overdue`);
-  await expect(page.getByText('Niciun angajat în această stare a instruirii')).toBeVisible();
+  await expect(page.getByText('Niciun lucrător în această stare a instruirii')).toBeVisible();
 
   await page.goto(`/clienti/${clientId}/angajati`);
   await page.getByTestId('employees-open').filter({ hasText: 'Lăcătușu Vasile' }).click();

@@ -14,7 +14,7 @@ describe('the declared employee count', () => {
     const result = count.safeParse('1000001');
     expect(result.success).toBe(false);
     expect(result.error?.issues[0]?.message).toBe(
-      'Numărul de angajați este de cel mult 1.000.000.'
+      'Numărul de lucrători este de cel mult 1.000.000.'
     );
   });
 });

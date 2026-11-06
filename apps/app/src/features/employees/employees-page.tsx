@@ -86,14 +86,14 @@ export function EmployeesPage() {
   return (
     <div data-testid="employees-page" className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">Angajați</h2>
+        <h2 className="text-lg font-semibold">Lucrători</h2>
         {!readOnly && <EmployeeImportButtons clientId={clientId} onStart={setImporting} />}
       </div>
       <EmployeesImportedCard clientId={clientId} />
       {!readOnly && <OpenEmployeeImports clientId={clientId} />}
       <div className="overflow-hidden rounded-lg border bg-card">
         <ListCardHeader>
-          <FilterTabs label="Filtrează angajații">
+          <FilterTabs label="Filtrează lucrătorii">
             {filters.map((filter) => (
               <FilterTab
                 key={filter.label}
@@ -120,7 +120,7 @@ export function EmployeesPage() {
               })
             }
             placeholder="Caută după nume sau marcă"
-            label="Caută angajați"
+            label="Caută lucrători"
             testId="employees-search"
           />
           {status !== 'terminated' && (
@@ -149,14 +149,14 @@ export function EmployeesPage() {
           )}
           {employees.isSuccess && (
             <ListCount testId="employees-count">
-              {meta.total === 1 ? '1 angajat' : `${meta.total} angajați`}
+              {meta.total === 1 ? '1 lucrător' : `${meta.total} lucrători`}
             </ListCount>
           )}
         </ListCardHeader>
         <DataTable
           testId="employees-table"
           rowTestId="employees-row"
-          label="Lista angajaților"
+          label="Lista lucrătorilor"
           columns={columns}
           data={employees.data?.items}
           rowKey={rowKey}
@@ -167,7 +167,7 @@ export function EmployeesPage() {
             })
           }
           meta={meta}
-          noun={['angajat', 'angajați']}
+          noun={['lucrător', 'lucrători']}
           status={!apiRequest.baseUrl ? 'error' : employees.status}
           isFetching={employees.isFetching}
           isPlaceholderData={employees.isPlaceholderData}
@@ -196,7 +196,7 @@ export function EmployeesPage() {
                     ? 'Contul tău nu face parte dintr-o organizație. Contactează administratorul.'
                     : employees.error instanceof ApiHttpError && employees.error.status === 404
                       ? 'Clientul nu mai există în organizația ta.'
-                      : 'Nu am putut încărca lista angajaților. Încearcă din nou.'}
+                      : 'Nu am putut încărca lista lucrătorilor. Încearcă din nou.'}
               </p>
               {apiRequest.baseUrl && (
                 <Button
@@ -225,10 +225,10 @@ export function EmployeesPage() {
               />
             ) : trainingState ? (
               <EmployeesNoMatch
-                title="Niciun angajat în această stare a instruirii"
-                hint="Ceilalți angajați sunt în altă stare. Arată-i pe toți pentru a-i vedea."
+                title="Niciun lucrător în această stare a instruirii"
+                hint="Ceilalți lucrători sunt în altă stare. Arată-i pe toți pentru a-i vedea."
                 testId="employees-empty"
-                clearLabel="Arată toți angajații"
+                clearLabel="Arată toți lucrătorii"
                 clearTestId="employees-empty-clear-training-state"
                 onClear={() =>
                   void navigate({
@@ -239,10 +239,10 @@ export function EmployeesPage() {
               />
             ) : testState ? (
               <EmployeesNoMatch
-                title="Niciun angajat în această stare a testării"
-                hint="Ceilalți angajați sunt în altă stare. Arată-i pe toți pentru a-i vedea."
+                title="Niciun lucrător în această stare a testării"
+                hint="Ceilalți lucrători sunt în altă stare. Arată-i pe toți pentru a-i vedea."
                 testId="employees-empty"
-                clearLabel="Arată toți angajații"
+                clearLabel="Arată toți lucrătorii"
                 clearTestId="employees-empty-clear-test-state"
                 onClear={() =>
                   void navigate({
@@ -258,15 +258,15 @@ export function EmployeesPage() {
                   aria-hidden="true"
                 />
                 <h3 className="text-base font-medium">
-                  {status === 'terminated' ? 'Niciun fost angajat' : 'Niciun angajat încă'}
+                  {status === 'terminated' ? 'Niciun fost lucrător' : 'Niciun lucrător încă'}
                 </h3>
                 <p
                   data-testid="employees-empty"
                   className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
                 >
                   {status === 'terminated'
-                    ? 'Angajații care pleacă rămân aici, cu dovezile lor.'
-                    : 'Adaugă angajații clientului pentru a le organiza instruirile și documentele.'}
+                    ? 'Lucrătorii care pleacă rămân aici, cu dovezile lor.'
+                    : 'Adaugă lucrătorii clientului pentru a le organiza instruirile și documentele.'}
                 </p>
                 {!status && !readOnly && (
                   <EmployeeStartWays clientId={clientId} onStart={setImporting} />

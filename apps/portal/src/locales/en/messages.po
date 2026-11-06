@@ -20,7 +20,7 @@ msgstr "{0, plural, one {One addendum signed electronically by both parties} oth
 #. placeholder {0}: item.employeeName
 #. placeholder {1}: formatDate(item.employeeSignedAt.slice(0, 10), 'short')
 #: src/features/signing/signing-item-text.tsx
-msgid "{0}, semnat de angajat pe {1}; semnezi ca angajator."
+msgid "{0}, semnat de lucrător pe {1}; semnezi ca angajator."
 msgstr "{0}, signed by the employee on {1}; you sign as the employer."
 
 #. placeholder {0}: item.employeeName
@@ -49,10 +49,6 @@ msgstr "{correct} of {total} answers correct"
 msgid "{count, plural, one {# instruire, actualizată {updated}} few {# instruiri, actualizată {updated}} other {# de instruiri, actualizată {updated}}}"
 msgstr "{count, plural, one {# session, updated {updated}} other {# sessions, updated {updated}}}"
 
-#: src/features/home/home-page.tsx
-msgid "{count, plural, one {angajat} few {angajați} other {de angajați}}"
-msgstr "{count, plural, one {employee} other {employees}}"
-
 #: src/features/signing/signing-page.tsx
 msgid "{count, plural, one {Codul e valabil 10 minute și semnează documentul ales.} few {Codul e valabil 10 minute și semnează cele # documente alese.} other {Codul e valabil 10 minute și semnează cele # de documente alese.}}"
 msgstr "{count, plural, one {The code is valid for 10 minutes and signs the document you chose.} other {The code is valid for 10 minutes and signs the # documents you chose.}}"
@@ -61,8 +57,12 @@ msgstr "{count, plural, one {The code is valid for 10 minutes and signs the docu
 msgid "{count, plural, one {Fișa nu poate fi întocmită încă: lipsește {items}; spune-i specialistului.} few {Fișa nu poate fi întocmită încă: lipsesc {items}; spune-i specialistului.} other {Fișa nu poate fi întocmită încă: lipsesc {items}; spune-i specialistului.}}"
 msgstr "{count, plural, one {The sheet cannot be drawn up yet: the {items} is missing; tell the specialist.} other {The sheet cannot be drawn up yet: the {items} are missing; tell the specialist.}}"
 
+#: src/features/home/home-page.tsx
+msgid "{count, plural, one {lucrător} few {lucrători} other {de lucrători}}"
+msgstr "{count, plural, one {employee} other {employees}}"
+
 #: src/features/signing/signatures-panel.tsx
-msgid "{count, plural, one {O semnătură așteaptă la angajați} few {# semnături așteaptă la angajați} other {# de semnături așteaptă la angajați}}"
+msgid "{count, plural, one {O semnătură așteaptă la lucrători} few {# semnături așteaptă la lucrători} other {# de semnături așteaptă la lucrători}}"
 msgstr "{count, plural, one {One signature still due from employees} other {# signatures still due from employees}}"
 
 #: src/features/training/training-summary.tsx
@@ -142,7 +142,7 @@ msgid "Acte adiționale de semnat și instruiri nesemnate"
 msgstr "Addenda to sign and unsigned trainings"
 
 #: src/features/signing/client-signatures-page.tsx
-msgid "Actele adiționale care așteaptă semnătura angajatorului și instruirile pe care angajații nu le-au semnat încă."
+msgid "Actele adiționale care așteaptă semnătura angajatorului și instruirile pe care lucrătorii nu le-au semnat încă."
 msgstr "The addenda waiting for the employer's signature and the trainings employees have not signed yet."
 
 #: src/features/signing/agreement-section.tsx
@@ -230,7 +230,7 @@ msgid "Ai semnat actul adițional. Specialistul îl vede semnat de tine."
 msgstr "You signed the addendum. Your specialist sees it signed by you."
 
 #: src/features/signing/signing-page.tsx
-msgid "Ai semnat fișa de test a angajatului."
+msgid "Ai semnat fișa de test a lucrătorului."
 msgstr "You signed the employee's test sheet."
 
 #: src/features/signing/signing-page.tsx
@@ -238,7 +238,7 @@ msgid "Ai semnat fișa de test."
 msgstr "You signed the test sheet."
 
 #: src/features/signing/signing-page.tsx
-msgid "Ai semnat instruirea. Semnătura e pe fișa angajatului."
+msgid "Ai semnat instruirea. Semnătura e pe fișa lucrătorului."
 msgstr "You signed the training. The signature is on the employee's sheet."
 
 #: src/features/signing/signing-page.tsx
@@ -250,7 +250,7 @@ msgid "Aici vezi instruirile tale, fișele tale individuale de instruire și dat
 msgstr "Here you see your training sessions, your individual training sheets and your identification details, as they appear on the sheets."
 
 #: src/features/participation/privacy-notice.tsx
-msgid "Aici vezi, în numele angajatorului, angajații companiei cu stadiul instruirii lor, instruirile fiecăruia și fișele lor individuale de instruire, precum și persoanele responsabile desemnate de companie. Sunt date personale ale angajaților, puse la dispoziția ta doar ca să urmărești aceste evidențe pentru companie. Despre tine păstrăm numele și adresa la care ai primit invitația, ca să te poți conecta."
+msgid "Aici vezi, în numele angajatorului, lucrătorii companiei cu stadiul instruirii lor, instruirile fiecăruia și fișele lor individuale de instruire, precum și persoanele responsabile desemnate de companie. Sunt date personale ale lucrătorilor, puse la dispoziția ta doar ca să urmărești aceste evidențe pentru companie. Despre tine păstrăm numele și adresa la care ai primit invitația, ca să te poți conecta."
 msgstr "Here you see, on the employer's behalf, the company's employees with the state of their training, each one's training sessions and individual training sheets, and the responsible persons the company has appointed. This is the employees' personal data, made available to you only so that you can follow these records for the company. About you, we keep your name and the address your invitation was sent to, so that you can sign in."
 
 #: src/features/participation/participation-picker.tsx
@@ -281,35 +281,14 @@ msgstr "We sent a new code. Use the most recent one."
 msgid "Am trimis un cod prin SMS la <0>{hint}</0>."
 msgstr "We sent a code by text message to <0>{hint}</0>."
 
-#: src/features/employees/employee-page.tsx
-#: src/lib/labels.ts
-msgid "Angajat"
-msgstr "Employee"
-
 #: src/features/home/home-page.tsx
 #: src/features/my-data/my-data-page.tsx
 msgid "Angajat din"
 msgstr "Employed since"
 
-#: src/app/places.ts
-#: src/features/employees/employee-page.tsx
-#: src/features/employees/employees-page.tsx
-#: src/features/home/home-page.tsx
-#: src/features/signing/client-signatures-page.tsx
-msgid "Angajați"
-msgstr "Employees"
-
-#: src/features/signing/signatures-panel.tsx
-msgid "Angajații nu au nimic de semnat."
-msgstr "Employees have nothing to sign."
-
 #: src/features/participation/privacy-notice.tsx
 msgid "Angajatorul este obligat să țină aceste evidențe de Legea nr. 319/2006 a securității și sănătății în muncă, de HG nr. 1425/2006 și de OMAI nr. 712/2005. Datele sunt prelucrate pentru aceste obligații legale, nu pe baza unui acord pe care să ți-l cerem, iar portalul doar ți le arată. Dacă ceva nu este corect, spune-i specialistului {organizationName}."
 msgstr "The employer must keep these records under Legea nr. 319/2006 (Law 319/2006 on occupational safety and health), HG nr. 1425/2006 (the Government Decision implementing it) and OMAI nr. 712/2005 (the Order of the Minister of Administration and Interior on fire safety training). The data is processed to meet these legal obligations, not on the basis of a consent we would ask you for, and the portal only shows it to you. If something is not right, tell the {organizationName} specialist."
-
-#: src/features/employees/employee-page.tsx
-msgid "Angajatul nu a fost găsit"
-msgstr "Employee not found"
 
 #: src/lib/labels.ts
 msgid "Anual scadent"
@@ -364,7 +343,7 @@ msgid "Caută după nume"
 msgstr "Search by name"
 
 #: src/features/employees/employees-page.tsx
-msgid "Caută un angajat după nume"
+msgid "Caută un lucrător după nume"
 msgstr "Search for an employee by name"
 
 #: src/features/signing/sms-refusal-notice.tsx
@@ -665,7 +644,7 @@ msgid "Fiecare instruire la care ai participat, cea mai recentă prima. Fișele 
 msgstr "Every training session you took part in, the most recent first. The sheets gather these rows."
 
 #: src/features/participation/privacy-notice.tsx
-msgid "Fiind și angajat, vezi și instruirile tale, fișele tale și datele tale de identificare."
+msgid "Fiind și lucrător, vezi și instruirile tale, fișele tale și datele tale de identificare."
 msgstr "As you are also an employee, you also see your own training sessions, sheets and identification details."
 
 #: src/features/signing/signing-messages.ts
@@ -923,6 +902,27 @@ msgstr "Language"
 msgid "Locurile portalului"
 msgstr "Portal sections"
 
+#: src/features/employees/employee-page.tsx
+#: src/lib/labels.ts
+msgid "Lucrător"
+msgstr "Employee"
+
+#: src/app/places.ts
+#: src/features/employees/employee-page.tsx
+#: src/features/employees/employees-page.tsx
+#: src/features/home/home-page.tsx
+#: src/features/signing/client-signatures-page.tsx
+msgid "Lucrători"
+msgstr "Employees"
+
+#: src/features/signing/signatures-panel.tsx
+msgid "Lucrătorii nu au nimic de semnat."
+msgstr "Employees have nothing to sign."
+
+#: src/features/employees/employee-page.tsx
+msgid "Lucrătorul nu a fost găsit"
+msgstr "Employee not found"
+
 #: src/features/participation/privacy-notice.tsx
 msgid "Mai multe despre cum sunt păstrate și protejate datele găsești în <0>politica de confidențialitate</0>."
 msgstr "You can read more about how the data is kept and protected in the <0>privacy policy</0>."
@@ -988,11 +988,11 @@ msgid "Niciun act adițional nu așteaptă semnătura ta."
 msgstr "No addendum waits for your signature."
 
 #: src/features/employees/employees-page.tsx
-msgid "Niciun angajat cu acest nume."
+msgid "Niciun lucrător cu acest nume."
 msgstr "No employee with this name."
 
 #: src/features/employees/employees-page.tsx
-msgid "Niciun angajat înregistrat încă."
+msgid "Niciun lucrător înregistrat încă."
 msgstr "No employees recorded yet."
 
 #: src/features/signing/signatures-panel.tsx
@@ -1372,7 +1372,7 @@ msgstr "Signed"
 
 #. placeholder {0}: day(agreement.employeeSignedAt)
 #: src/features/signing/client-signatures-page.tsx
-msgid "Semnat de angajat pe {0}; așteaptă semnătura ta."
+msgid "Semnat de lucrător pe {0}; așteaptă semnătura ta."
 msgstr "Signed by the employee on {0}; waiting for your signature."
 
 #. placeholder {0}: day(agreement.employerSignedAt ?? agreement.signedAt)
@@ -1505,7 +1505,7 @@ msgid "SSM Ușor, acasă"
 msgstr "SSM Ușor, home"
 
 #: src/features/employees/employees-page.tsx
-msgid "Stadiul instruirii fiecărui angajat; deschide unul pentru instruirile și fișele lui."
+msgid "Stadiul instruirii fiecărui lucrător; deschide unul pentru instruirile și fișele lui."
 msgstr "The training state of each employee; open one for their training sessions and sheets."
 
 #: src/features/my-data/my-data-page.tsx

@@ -52,7 +52,7 @@ export function EmployeePortalCard({
           {warnAgreement && <AgreementWarning agreement={agreement.data?.agreement ?? null} />}
         </span>
       }
-      description="În portal angajatul își vede instruirile, fișele și datele. Intră cu un cod primit pe email sau prin SMS, fără parolă."
+      description="În portal lucrătorul își vede instruirile, fișele și datele. Intră cu un cod primit pe email sau prin SMS, fără parolă."
       action={
         uninvited &&
         !readOnly && (
@@ -96,7 +96,7 @@ export function EmployeePortalCard({
         <InvitationStatus invitation={invitation} readOnly={readOnly} onMessage={setMessage} />
       ) : (
         <div data-testid="participant-none" className="grid gap-4">
-          <p className="text-sm text-muted-foreground">Angajatul nu are acces la portal.</p>
+          <p className="text-sm text-muted-foreground">Lucrătorul nu are acces la portal.</p>
           <FactList>
             <Fact label="Email">{employee.email}</Fact>
             <Fact label="Telefon">{employee.phone}</Fact>

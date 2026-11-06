@@ -166,7 +166,7 @@ describe("a job position's page", () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Sudor' })).toBeTruthy();
     expect(screen.getByText('Personal de execuție')).toBeTruthy();
     expect(screen.getByText('la 2 luni')).toBeTruthy();
-    expect(screen.getByTestId('job-position-employees-link').textContent).toBe('3 angajați');
+    expect(screen.getByTestId('job-position-employees-link').textContent).toBe('3 lucrători');
     expect(screen.getByText('Sudură electrică și autogenă.')).toBeTruthy();
 
     const rows = await screen.findAllByTestId('equipment-row');

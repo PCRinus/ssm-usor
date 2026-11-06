@@ -203,7 +203,7 @@ function EmployeesCard({ participantId }: { participantId: string }) {
     >
       <span className="flex items-center justify-between gap-2">
         <span className="text-base font-semibold sm:text-[1.0625rem]">
-          <Trans>Angajați</Trans>
+          <Trans>Lucrători</Trans>
         </span>
         <ChevronRight aria-hidden="true" className="size-5 text-muted-foreground" />
       </span>
@@ -211,7 +211,7 @@ function EmployeesCard({ participantId }: { participantId: string }) {
         <Count
           value={count}
           label={t({
-            message: plural(count, { one: 'angajat', few: 'angajați', other: 'de angajați' }),
+            message: plural(count, { one: 'lucrător', few: 'lucrători', other: 'de lucrători' }),
           })}
           testId="home-employees-count"
         />

@@ -202,7 +202,7 @@ export const matchOf = (changes: Changes, person: Person) =>
 
 export const matchedName = (person: Person) =>
   [person.fields.lastName.app, person.fields.firstName.app].filter(Boolean).join(' ') ||
-  'angajatul din aplicație';
+  'lucrătorul din aplicație';
 
 export const isExisting = (context: Pick<ReviewContext, 'changes'>, person: Person) =>
   matchOf(context.changes, person) !== null;
@@ -620,16 +620,16 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
     decisions.push({
       key: 'match',
       anchor: 'match',
-      label: 'Spune dacă e angajatul cu același nume din aplicație',
-      tag: 'Angajat de confirmat',
+      label: 'Spune dacă e lucrătorul cu același nume din aplicație',
+      tag: 'Lucrător de confirmat',
       tone: 'destructive',
     });
   } else if (twin) {
     decisions.push({
       key: 'match',
       anchor: 'match',
-      label: `E propus ca același angajat din aplicație ca ${personName(context, twin)}`,
-      tag: 'Același angajat la două persoane',
+      label: `E propus ca același lucrător din aplicație ca ${personName(context, twin)}`,
+      tag: 'Același lucrător la două persoane',
       tone: 'destructive',
     });
   }
@@ -734,7 +734,7 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
       decisions.push({
         key: `duplicate-${name}`,
         anchor: fieldAnchor(context, person, name),
-        label: `${fieldLabels[name]} e al angajatului din aplicație: scoate-l sau corectează-l`,
+        label: `${fieldLabels[name]} e al lucrătorului din aplicație: scoate-l sau corectează-l`,
         tag: `${fieldLabels[name]} e deja în aplicație`,
         tone: 'destructive',
       });

@@ -36,7 +36,7 @@ describe('billing format', () => {
     });
     expect(amounts.lines.map((line) => [line.label, line.amountCents])).toEqual([
       ['Profesional, anual', 149000],
-      ['1 pachet de 500 de angajați', 40000],
+      ['1 pachet de 500 de lucrători', 40000],
       ['1 utilizator în plus', 15000],
     ]);
     expect(amounts).toMatchObject({ subtotalCents: 204000, vatCents: 42840, totalCents: 246840 });
@@ -46,7 +46,7 @@ describe('billing format', () => {
     expect(packsNeeded('start', 250)).toBe(0);
     expect(packsNeeded('start', 312)).toBe(2);
     expect(packsNeeded('profesional', 1740)).toBe(1);
-    expect(packsLabel('start', 2)).toBe('2 pachete de câte 50 de angajați');
+    expect(packsLabel('start', 2)).toBe('2 pachete de câte 50 de lucrători');
   });
 
   it('sums up a choice in a line', () => {

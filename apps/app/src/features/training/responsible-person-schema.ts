@@ -32,7 +32,7 @@ export const responsibleRoleLabels: Record<
   workers_representative: {
     label: responsiblePersonRoleLabels.workers_representative,
     description:
-      'Ales de lucrători dintre ei. Necesar de la 10 angajați, doi de la 50. Nu poate fi reprezentantul legal.',
+      'Ales de lucrători dintre ei. Necesar de la 10 lucrători, doi de la 50. Nu poate fi reprezentantul legal.',
   },
   fire_safety_coordinator: {
     label: responsiblePersonRoleLabels.fire_safety_coordinator,
@@ -77,7 +77,7 @@ export const responsiblePersonFormSchema = z
     roles: z.array(z.enum(responsiblePersonRoles)).min(1, 'Alege cel puțin o responsabilitate.'),
   })
   .refine((person) => !person.roles.includes('workers_representative') || person.employeeId, {
-    message: 'Reprezentantul lucrătorilor se alege dintre angajații clientului.',
+    message: 'Reprezentantul lucrătorilor se alege dintre lucrătorii clientului.',
     path: ['employeeId'],
   });
 

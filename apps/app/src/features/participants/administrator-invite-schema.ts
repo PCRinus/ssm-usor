@@ -16,7 +16,7 @@ export const administratorInviteFormSchema = z
   })
   .superRefine((values, ctx) => {
     if (values.isEmployee && !values.employeeId) {
-      ctx.addIssue({ code: 'custom', path: ['employeeId'], message: 'Alege angajatul.' });
+      ctx.addIssue({ code: 'custom', path: ['employeeId'], message: 'Alege lucrătorul.' });
     }
     if (!values.isEmployee && values.fullName.length < 2) {
       ctx.addIssue({

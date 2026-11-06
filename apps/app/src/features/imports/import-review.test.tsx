@@ -252,7 +252,7 @@ describe('the review hub', () => {
       expect.stringContaining('1punct de lucru'),
       expect.stringContaining('1post de lucru'),
       expect.stringContaining('1responsabil'),
-      expect.stringContaining('1angajat'),
+      expect.stringContaining('1lucrător'),
       expect.stringContaining('6mijloace de apărare'),
     ]);
     expect(dialog.textContent).toContain('Nu preluăm un element de la alt client.');
@@ -671,7 +671,7 @@ describe('the employees an import creates', () => {
     expect(optional.textContent).toContain('Mureșan Ioana');
     expect(optional.textContent).toContain('reprezentantul legal · Administrator');
     const tick = within(optional).getByRole('checkbox', {
-      name: 'Preia ca angajat pe Mureșan Ioana',
+      name: 'Preia ca lucrător pe Mureșan Ioana',
     });
     expect(tick.getAttribute('aria-checked')).toBe('false');
 
@@ -681,7 +681,7 @@ describe('the employees an import creates', () => {
     const ticked = within(employees)
       .getAllByTestId('review-item')
       .find((row) => row.textContent?.includes('Mureșan Ioana'))!;
-    await userEvent.click(within(ticked).getByRole('button', { name: 'Nu-l face angajat' }));
+    await userEvent.click(within(ticked).getByRole('button', { name: 'Nu-l face lucrător' }));
     await waitFor(() => expect(saves).toBe(2));
     expect(savedChanges(1).changes.items).toEqual({ 'employee-2': { included: false } });
   });

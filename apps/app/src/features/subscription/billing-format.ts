@@ -46,12 +46,12 @@ export function packOf(plan: PaidPlan) {
   return employeePacks[billingPlans[plan].employeePack];
 }
 
-/** "1 pachet de 500 de angajați", "2 pachete de câte 50 de angajați". */
+/** "1 pachet de 500 de lucrători", "2 pachete de câte 50 de lucrători". */
 export function packsLabel(plan: PaidPlan, packs: number) {
   const size = packOf(plan).employees;
   return packs === 1
-    ? `1 pachet de ${size} de angajați`
-    : `${packs} pachete de câte ${size} de angajați`;
+    ? `1 pachet de ${size} de lucrători`
+    : `${packs} pachete de câte ${size} de lucrători`;
 }
 
 export function extraMembersLabel(members: number) {

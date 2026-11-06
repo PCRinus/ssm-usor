@@ -118,7 +118,7 @@ function InviteEmployeeForm({
         <DialogHeader>
           <DialogTitle>Invită în portal</DialogTitle>
           <DialogDescription>
-            Trimitem adresa portalului. Angajatul intră cu un cod primit la aceeași adresă, fără
+            Trimitem adresa portalului. Lucrătorul intră cu un cod primit la aceeași adresă, fără
             parolă, și își vede instruirile, fișele și datele. Invitația este valabilă 30 de zile.{' '}
             <HelpLink topic="angajati.invitatie">Află mai mult</HelpLink>
           </DialogDescription>
@@ -139,7 +139,7 @@ function InviteEmployeeForm({
               </Button>
             }
           >
-            Angajatul nu are email sau telefon. Adaugă unul în datele lui, apoi trimite invitația.{' '}
+            Lucrătorul nu are email sau telefon. Adaugă unul în datele lui, apoi trimite invitația.{' '}
             <HelpLink topic="angajati.invitatie-fara-adresa">De ce?</HelpLink>
           </Notice>
         ) : (
@@ -198,10 +198,10 @@ function InviteEmployeeForm({
                 }
               >
                 {smsBlock === 'foreign'
-                  ? `Angajatul are doar ${foreignNumberLabel(employee.phone ?? '')}, iar SMS trimitem doar spre numere din România. Adaugă-i o adresă de email, apoi trimite invitația.`
+                  ? `Lucrătorul are doar ${foreignNumberLabel(employee.phone ?? '')}, iar SMS trimitem doar spre numere din România. Adaugă-i o adresă de email, apoi trimite invitația.`
                   : sendable.length > 0
                     ? trialSmsNotice
-                    : 'În perioada de probă nu trimitem SMS, iar angajatul are doar un număr de telefon. Adaugă-i o adresă de email, apoi trimite invitația.'}
+                    : 'În perioada de probă nu trimitem SMS, iar lucrătorul are doar un număr de telefon. Adaugă-i o adresă de email, apoi trimite invitația.'}
               </Notice>
             )}
           </>

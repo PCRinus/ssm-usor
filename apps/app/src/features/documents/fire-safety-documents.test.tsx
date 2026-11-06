@@ -292,7 +292,7 @@ describe('client fire-safety documents', () => {
     await waitFor(() =>
       expect(screen.getAllByTestId('client-section').map((link) => link.textContent)).toEqual([
         'Detalii',
-        'Angajați',
+        'Lucrători',
         'Posturi de lucru',
         'Mijloace de apărare',
         'Instruire și responsabili',
@@ -466,7 +466,7 @@ describe('client fire-safety documents', () => {
 
     await user.click(screen.getByTestId('documents-generate'));
     expect((await screen.findByTestId('generate-headcount')).textContent).toBe(
-      '6 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare nu se generează. Se cer de la 10 angajați.'
+      '6 lucrători în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare nu se generează. Se cer de la 10 lucrători.'
     );
   });
 
@@ -492,7 +492,7 @@ describe('client fire-safety documents', () => {
 
     await user.click(await screen.findByTestId('documents-generate'));
     expect((await screen.findByTestId('generate-headcount')).textContent).toBe(
-      '9 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, graficele de întreținere și verificare, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare nu se generează. Se cer de la 10 angajați. Decizia privind controlul propriu există deja și rămâne în documentație, deși se cere doar de la 10 angajați.'
+      '9 lucrători în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, graficele de întreținere și verificare, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare nu se generează. Se cer de la 10 lucrători. Decizia privind controlul propriu există deja și rămâne în documentație, deși se cere doar de la 10 lucrători.'
     );
   });
 
@@ -658,7 +658,7 @@ describe('client fire-safety documents', () => {
     const period = screen.getByTestId<HTMLInputElement>('generate-period');
     expect(period.value).toBe(String(new Date().getFullYear()));
     expect(screen.getByTestId('generate-headcount').textContent).toBe(
-      '12 angajați în lista clientului, așa că se generează și decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare.'
+      '12 lucrători în lista clientului, așa că se generează și decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare.'
     );
 
     await user.clear(number);
@@ -836,7 +836,7 @@ describe('client fire-safety documents', () => {
 describe('fireSafetyHeadcountRule', () => {
   it('speaks of the schedules in the plural, even when they are the only document kept', () => {
     expect(fireSafetyHeadcountRule(4, ['fire_maintenance_schedules'])).toBe(
-      '4 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare nu se generează. Se cer de la 10 angajați. Graficele de întreținere și verificare există deja și rămân în documentație, deși se cer doar de la 10 angajați.'
+      '4 lucrători în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare nu se generează. Se cer de la 10 lucrători. Graficele de întreținere și verificare există deja și rămân în documentație, deși se cer doar de la 10 lucrători.'
     );
   });
 });

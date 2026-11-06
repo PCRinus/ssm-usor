@@ -236,7 +236,7 @@ function FieldsDialog({
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription>
-              Ce scrii aici se preia la crearea angajatului, în locul valorii citite de pe fișă.
+              Ce scrii aici se preia la crearea lucrătorului, în locul valorii citite de pe fișă.
             </DialogDescription>
           </DialogHeader>
           <DialogBody className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -339,7 +339,7 @@ export function ExistingComparison({
             </Button>
           </div>
           <p className="text-sm text-muted-foreground">
-            Angajatul nu are încă aceste date în aplicație. Le preluăm de pe fișă.
+            Lucrătorul nu are încă aceste date în aplicație. Le preluăm de pe fișă.
           </p>
           <dl className="divide-y">
             {added.map(({ name }) => (
@@ -386,7 +386,7 @@ export function ExistingComparison({
             />
           )}
           <p className="text-sm text-muted-foreground">
-            Angajatul are deja o valoare, iar fișa scrie alta. Păstrăm valoarea ta dacă nu alegi
+            Lucrătorul are deja o valoare, iar fișa scrie alta. Păstrăm valoarea ta dacă nu alegi
             altfel.
           </p>
           <dl className="divide-y">

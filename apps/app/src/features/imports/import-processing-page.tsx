@@ -341,12 +341,12 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
       )}
       {forEmployees.length > 0 && (
         <Card className="gap-3 px-5 py-4" data-testid="import-group-employees">
-          <GroupHeading title="Pentru importul angajaților" count={forEmployees.length} />
+          <GroupHeading title="Pentru importul lucrătorilor" count={forEmployees.length} />
           <p className="max-w-2xl text-sm text-muted-foreground">
             Fotografii ale fișelor individuale de instruire. Nu le citim acum: le folosim după ce
-            clientul e creat, când îi imporți angajații.
+            clientul e creat, când îi imporți lucrătorii.
           </p>
-          <ul className="flex flex-wrap gap-3" aria-label="Fotografii păstrate pentru angajați">
+          <ul className="flex flex-wrap gap-3" aria-label="Fotografii păstrate pentru lucrători">
             {forEmployees.map((file) => (
               <li key={file.id} className="grid w-20 gap-1">
                 <ImportThumbnail importId={detail.id} file={file} className="h-24 w-20" />
@@ -484,7 +484,7 @@ function countsAfterSorting(files: ImportFile[]) {
   const aside = files.filter((file) => file.state === 'set_aside').length;
   const other = files.filter((file) => file.state === 'other_company').length;
   if (employees > 0)
-    parts.push(employees === 1 ? 'o fișă de angajat' : `${employees} fișe de angajați`);
+    parts.push(employees === 1 ? 'o fișă de lucrător' : `${employees} fișe de lucrători`);
   if (aside > 0) parts.push(`${aside} deoparte`);
   if (other > 0) parts.push(`${other} ale altei firme`);
   return parts.join(', ');

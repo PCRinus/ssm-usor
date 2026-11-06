@@ -34,8 +34,8 @@ export function sentSummary(invited: number, notInvited: number) {
     invited === 0 ? 'Nicio invitație nu a plecat.' : `Am trimis ${invitationCount(invited)}.`;
   if (notInvited === 0) return sent;
   return notInvited === 1
-    ? `${sent} Pentru un angajat nu a mers: vezi rândul lui.`
-    : `${sent} Pentru ${roCount(notInvited, 'angajat', 'angajați')} nu a mers: vezi rândurile lor.`;
+    ? `${sent} Pentru un lucrător nu a mers: vezi rândul lui.`
+    : `${sent} Pentru ${roCount(notInvited, 'lucrător', 'lucrători')} nu a mers: vezi rândurile lor.`;
 }
 
 /** "1 rămâne neinvitat", "35 rămân neinvitați". */
@@ -48,12 +48,12 @@ export const nameOf = (invitee: Pick<ImportInvitee, 'lastName' | 'firstName'>) =
 
 export function formerEmployeesSentence(formers: ImportInvitee[]) {
   if (formers.length === 0) return null;
-  if (formers.length === 1) return `${nameOf(formers[0]!)} nu apare: e fost angajat.`;
+  if (formers.length === 1) return `${nameOf(formers[0]!)} nu apare: e fost lucrător.`;
   if (formers.length <= 3) {
     const names = formers.map(nameOf);
-    return `${names.slice(0, -1).join(', ')} și ${names.at(-1)} nu apar: sunt foști angajați.`;
+    return `${names.slice(0, -1).join(', ')} și ${names.at(-1)} nu apar: sunt foști lucrători.`;
   }
-  return `${roCount(formers.length, 'fost angajat', 'foști angajați')} nu apar.`;
+  return `${roCount(formers.length, 'fost lucrător', 'foști lucrători')} nu apar.`;
 }
 
 export const bulkSmsBlockMessages: Record<SmsBlock, string> = {
@@ -64,18 +64,18 @@ export const bulkSmsBlockMessages: Record<SmsBlock, string> = {
 const rowReasons: Record<string, string> = {
   sms_trial: bulkSmsBlockMessages.trial,
   sms_foreign_number: bulkSmsBlockMessages.foreign,
-  [bulkInvitationSkipReasons.formerEmployee]: 'E fost angajat; nu primește invitație.',
+  [bulkInvitationSkipReasons.formerEmployee]: 'E fost lucrător; nu primește invitație.',
   [bulkInvitationSkipReasons.employeeHasParticipant]: 'Are deja acces la portal.',
   [bulkInvitationSkipReasons.employeeInvited]: 'Are deja o invitație deschisă.',
-  [bulkInvitationFailureReasons.employeeNotFound]: 'Angajatul nu mai există la acest client.',
+  [bulkInvitationFailureReasons.employeeNotFound]: 'Lucrătorul nu mai există la acest client.',
   [bulkInvitationFailureReasons.contactNotSaved]:
-    'Adresa nu a putut fi salvată în datele angajatului.',
+    'Adresa nu a putut fi salvată în datele lucrătorului.',
   [participantErrorReasons.invalidAddress]: 'Scrie un email sau un număr de telefon valid.',
 };
 
 export function rowReasonMessage(reason: string | null) {
   return (
     (reason && (rowReasons[reason] ?? participantReasonMessage(reason))) ??
-    'Invitația nu a putut fi trimisă. Încearcă din nou din pagina angajatului.'
+    'Invitația nu a putut fi trimisă. Încearcă din nou din pagina lucrătorului.'
   );
 }

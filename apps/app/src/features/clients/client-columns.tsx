@@ -109,7 +109,7 @@ export function clientColumns({
     }),
     helper.accessor('currentEmployeeCount', {
       id: 'currentEmployeeCount',
-      header: 'Angajați',
+      header: 'Lucrători',
       meta: numeric,
       cell: ({ getValue }) => getValue(),
     }),

@@ -178,7 +178,7 @@ export function SubstancesCard({
       }
       description={
         <>
-          Lista substanțelor periculoase se cere fiecărui client, oricâți angajați are (
+          Lista substanțelor periculoase se cere fiecărui client, oricâți lucrători are (
           <a
             href={listArticlePage}
             target="_blank"

@@ -66,15 +66,15 @@ function PickerForm({
         noValidate
       >
         <DialogHeader>
-          <DialogTitle>Invită un angajat în portal</DialogTitle>
+          <DialogTitle>Invită un lucrător în portal</DialogTitle>
           <DialogDescription>
-            Alege angajatul; invitația pleacă pe emailul sau telefonul din datele lui.
+            Alege lucrătorul; invitația pleacă pe emailul sau telefonul din datele lui.
           </DialogDescription>
         </DialogHeader>
         <Field
           id="participant-pick-employee"
-          label="Angajatul"
-          error={missing ? { type: 'required', message: 'Alege un angajat.' } : undefined}
+          label="Lucrătorul"
+          error={missing ? { type: 'required', message: 'Alege un lucrător.' } : undefined}
           className="mt-5"
         >
           <EmployeeCombobox

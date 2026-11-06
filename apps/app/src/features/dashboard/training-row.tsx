@@ -66,7 +66,7 @@ export function TrainingRow({
       <div className="min-w-0">
         <div
           role="img"
-          aria-label={`Instruiri ${name}, ${countOf(counts.total, 'angajat', 'angajați')}: ${parts
+          aria-label={`Instruiri ${name}, ${countOf(counts.total, 'lucrător', 'lucrători')}: ${parts
             .map((part) => `${part.count} ${part.short}`)
             .join(', ')}`}
           className="flex h-3.5 gap-0.5 overflow-hidden rounded-[5px] bg-muted"

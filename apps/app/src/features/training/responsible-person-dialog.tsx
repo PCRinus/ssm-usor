@@ -170,7 +170,7 @@ function ResponsiblePersonForm({
     : dialogRoleOrder.filter((role) => role !== 'workers_representative');
   const contractTitleHint =
     contractTitle && contractTitle !== typedTitle.trim()
-      ? `În contractul angajatului este acum „${contractTitle}”.`
+      ? `În contractul lucrătorului este acum „${contractTitle}”.`
       : undefined;
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -203,12 +203,12 @@ function ResponsiblePersonForm({
       }
       if (status === 409) {
         form.setError('employeeId', {
-          message: 'Angajatul este deja în listă. Modifică responsabilitățile lui de acolo.',
+          message: 'Lucrătorul este deja în listă. Modifică responsabilitățile lui de acolo.',
         });
         return;
       }
       if (status === 400 && body?.issues?.some((issue) => issue.path === 'employeeId')) {
-        form.setError('employeeId', { message: 'Angajatul nu aparține acestui client.' });
+        form.setError('employeeId', { message: 'Lucrătorul nu aparține acestui client.' });
         return;
       }
       if (status === 400 && body?.issues?.some((issue) => issue.path === 'workplaceId')) {
@@ -251,15 +251,15 @@ function ResponsiblePersonForm({
         {person && pointedRole === 'workers_representative' && (
           <Notice variant="warning" data-testid="responsible-clash" className="mt-5">
             {person.fullName} are același nume ca reprezentantul legal al clientului, așa că nu
-            poate fi și reprezentantul lucrătorilor. Debifează rolul aici și numește alt angajat.
+            poate fi și reprezentantul lucrătorilor. Debifează rolul aici și numește alt lucrător.
           </Notice>
         )}
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
           <Field
             id="responsible-employee"
-            label="Angajat"
+            label="Lucrător"
             mark="optional"
-            hint="Alege un angajat sau administratorul, ori completează numele și funcția."
+            hint="Alege un lucrător sau administratorul, ori completează numele și funcția."
             error={errors.employeeId}
             className="sm:col-span-2"
           >
@@ -441,7 +441,7 @@ function ResponsiblePersonForm({
                           </label>
                           <p id={`${id}-description`} className="text-xs text-muted-foreground">
                             {blocked
-                              ? 'Nu poate fi reprezentantul legal. Se alege dintre angajații clientului.'
+                              ? 'Nu poate fi reprezentantul legal. Se alege dintre lucrătorii clientului.'
                               : responsibleRoleLabels[role].description}
                           </p>
                         </div>

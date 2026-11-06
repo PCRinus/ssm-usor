@@ -27,7 +27,7 @@ function excludedCategorySentence(category: StaffCategory, positions: HeldPositi
             .map((position) => `${position.name} (${position.employeeCount})`),
           ...(held.length > listedPositions ? [`încă ${held.length - listedPositions}`] : []),
         ])}`;
-  return `${countOf(total, 'angajat', 'angajați')} ${where} ${total === 1 ? 'este' : 'sunt'} în categoria „${staffCategoryLabels[category]}”, marcată „Nu se aplică”.`;
+  return `${countOf(total, 'lucrător', 'lucrători')} ${where} ${total === 1 ? 'este' : 'sunt'} în categoria „${staffCategoryLabels[category]}”, marcată „Nu se aplică”.`;
 }
 
 export function ExcludedCategoryWarning({

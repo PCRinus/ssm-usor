@@ -60,8 +60,8 @@ export function PortalEmployeesCard({
   return (
     <SectionCard
       data-testid="portal-employees-card"
-      title="Angajații în portal"
-      description="Fiecare angajat își vede în portal instruirile, fișele și datele, și își semnează rândurile din fișă. Intră cu un cod primit pe email sau prin SMS, fără parolă."
+      title="Lucrătorii în portal"
+      description="Fiecare lucrător își vede în portal instruirile, fișele și datele, și își semnează rândurile din fișă. Intră cu un cod primit pe email sau prin SMS, fără parolă."
       action={
         !readOnly && (
           <Button
@@ -71,7 +71,7 @@ export function PortalEmployeesCard({
             onClick={() => setPicking(true)}
           >
             <Send aria-hidden="true" />
-            Invită un angajat
+            Invită un lucrător
           </Button>
         )
       }
@@ -83,7 +83,7 @@ export function PortalEmployeesCard({
       )}
       {none ? (
         <p data-testid="portal-employees-empty" className="text-sm text-muted-foreground">
-          Niciun angajat nu a fost invitat încă în portal.
+          Niciun lucrător nu a fost invitat încă în portal.
         </p>
       ) : (
         <ul className="grid divide-y">

@@ -136,18 +136,18 @@ describe("a client's job positions", () => {
     expect(first!.textContent).toContain('Prepară și servește');
     expect(within(first!).getByTestId('job-position-category-badge').textContent).toBe('Execuție');
     expect(first!.textContent).toContain('Gelaterie');
-    expect(within(first!).getByTestId('job-position-employees').textContent).toBe('3 angajați');
+    expect(within(first!).getByTestId('job-position-employees').textContent).toBe('3 lucrători');
     expect(within(second!).getByTestId('job-position-category-badge').textContent).toBe(
       'Tehnico-administrativ'
     );
     expect(within(second!).getByTestId('job-position-employees').textContent).toBe(
-      'Niciun angajat'
+      'Niciun lucrător'
     );
     expect(within(first!).getByTestId('job-position-equipment').textContent).toBe('2 articole');
     expect(within(second!).getByTestId('job-position-equipment').textContent).toBe('De stabilit');
 
     const sections = screen.getAllByTestId('client-section').map((item) => item.textContent);
-    expect(sections.slice(0, 3)).toEqual(['Detalii', 'Angajați', 'Posturi de lucru']);
+    expect(sections.slice(0, 3)).toEqual(['Detalii', 'Lucrători', 'Posturi de lucru']);
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
     expect(within(breadcrumb).getByText('Posturi de lucru')).toBeTruthy();
   });
@@ -411,7 +411,7 @@ describe("a client's job positions", () => {
     await openRowMenu(user, 'Barman preparator');
     await user.click(await screen.findByTestId('job-position-remove'));
     const held = await screen.findByTestId('job-position-remove-dialog');
-    expect(held.textContent).toContain('3 angajați');
+    expect(held.textContent).toContain('3 lucrători');
     expect(screen.getByTestId<HTMLButtonElement>('job-position-remove-confirm').disabled).toBe(
       true
     );
@@ -439,7 +439,7 @@ describe("a client's job positions", () => {
     await user.click(await screen.findByTestId('job-position-remove'));
     await user.click(await screen.findByTestId('job-position-remove-confirm'));
     expect((await screen.findByTestId('job-positions-error')).textContent).toContain(
-      'mai sunt angajați'
+      'mai sunt lucrători'
     );
   });
 
@@ -474,13 +474,13 @@ describe("a client's job positions", () => {
 describe('employeeCountLabel', () => {
   it('counts people the Romanian way', () => {
     expect([0, 1, 2, 19, 20, 101, 120].map(employeeCountLabel)).toEqual([
-      'Niciun angajat',
-      'Un angajat',
-      '2 angajați',
-      '19 angajați',
-      '20 de angajați',
-      '101 angajați',
-      '120 de angajați',
+      'Niciun lucrător',
+      'Un lucrător',
+      '2 lucrători',
+      '19 lucrători',
+      '20 de lucrători',
+      '101 lucrători',
+      '120 de lucrători',
     ]);
   });
 });

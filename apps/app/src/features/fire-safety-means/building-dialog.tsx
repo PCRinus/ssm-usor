@@ -169,9 +169,9 @@ function BuildingForm({
         <DialogHeader>
           <DialogTitle>Clădirea, {workplace.name}</DialogTitle>
           <DialogDescription>
-            Ce apare în fișa obiectivului, cerută de la 10 angajați. Toate câmpurile sunt opționale:
-            ce lași gol apare în fișă ca de completat. Instalațiile și stingătoarele se iau din
-            inventar.
+            Ce apare în fișa obiectivului, cerută de la 10 lucrători. Toate câmpurile sunt
+            opționale: ce lași gol apare în fișă ca de completat. Instalațiile și stingătoarele se
+            iau din inventar.
           </DialogDescription>
         </DialogHeader>
         <DialogBody className="mt-5 grid gap-6">

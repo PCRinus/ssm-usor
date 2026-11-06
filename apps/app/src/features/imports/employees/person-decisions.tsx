@@ -119,7 +119,7 @@ function Option({
 
 const positionDetail = (position: Position) =>
   [
-    roCount(position.employeeCount, 'angajat', 'angajați'),
+    roCount(position.employeeCount, 'lucrător', 'lucrători'),
     staffCategoryLabels[position.staffCategory],
     position.trainingIntervalMonths
       ? `instruire periodică la ${position.trainingIntervalMonths} luni`
@@ -352,7 +352,7 @@ export function CnpDecision({
           checked={mode === 'none'}
           onSelect={() => setMode('none')}
           label="Lasă fără CNP"
-          detail="Îl completezi mai târziu, pe pagina angajatului."
+          detail="Îl completezi mai târziu, pe pagina lucrătorului."
           testId="person-cnp-none"
         />
       </div>
@@ -398,7 +398,7 @@ export function WorkplaceDecision({
         {group.personIds.length > 1
           ? `Ce alegi aici se aplică tuturor celor ${group.personIds.length} cu același loc pe fișă.`
           : 'Alege unul dintre locurile de muncă ale clientului.'}{' '}
-        Fără el, angajatul se creează, iar locul îl completezi după.
+        Fără el, lucrătorul se creează, iar locul îl completezi după.
       </p>
       <div role="group" aria-labelledby="workplace-title" className="grid gap-2">
         {workplaces.map((workplace) => (
@@ -499,7 +499,7 @@ export function MatchDecision({
       params={{ clientId, employeeId: match.employeeId }}
       className="underline"
     >
-      Deschide angajatul
+      Deschide lucrătorul
     </Link>
   );
   return (
@@ -507,15 +507,15 @@ export function MatchDecision({
       id="match"
       title={
         asked
-          ? 'Este același angajat?'
+          ? 'Este același lucrător?'
           : rehire
             ? 'Angajat din nou după plecare'
-            : 'Același angajat la două persoane'
+            : 'Același lucrător la două persoane'
       }
     >
       {asked && (
         <p className="text-sm">
-          Fișa nu are CNP și nici data nașterii. Clientul are un singur angajat cu același nume,{' '}
+          Fișa nu are CNP și nici data nașterii. Clientul are un singur lucrător cu același nume,{' '}
           {name}
           {hiredAt ? `, angajat la ${dateLabel(String(hiredAt))}` : ''}
           {leftAt ? `, plecat din firmă la ${dateLabel(leftAt)}` : ''}. {employee}
@@ -525,14 +525,14 @@ export function MatchDecision({
         <p className="text-sm">
           {name} a plecat din firmă la {dateLabel(leftAt)}, iar fișa scrie angajarea
           {typeof sheetHiredAt === 'string' ? ` la ${dateLabel(sheetHiredAt)}` : ' după plecare'}.
-          În aplicație, o reangajare după o pauză e un angajat nou, nu cel vechi readus. Îl poți
-          crea ca angajat nou, poți corecta mai jos data angajării, dacă e citită greșit, sau îl
+          În aplicație, o reangajare după o pauză e un lucrător nou, nu cel vechi readus. Îl poți
+          crea ca lucrător nou, poți corecta mai jos data angajării, dacă e citită greșit, sau îl
           poți lăsa deoparte. {employee}
         </p>
       )}
       {twin && (
         <p className="text-sm">
-          {twin.label}. Un angajat se completează o singură dată: spune că nu e el sau lasă una
+          {twin.label}. Un lucrător se completează o singură dată: spune că nu e el sau lasă una
           dintre persoane deoparte.
         </p>
       )}
@@ -545,7 +545,7 @@ export function MatchDecision({
                 withPersonChange(current, person.id, (each) => ({ ...each, existing: true }))
               )
             }
-            label="Da, e același angajat"
+            label="Da, e același lucrător"
             detail="Îl completăm cu ce lipsește și cu instruirile de pe fișă."
             testId="person-match-confirm"
           />
@@ -557,10 +557,10 @@ export function MatchDecision({
               withMatchDeclined({ ...context, changes: current }, person, rehire)
             )
           }
-          label={asked ? 'Nu, e altă persoană' : 'Creează-l ca angajat nou'}
+          label={asked ? 'Nu, e altă persoană' : 'Creează-l ca lucrător nou'}
           detail={
             rehire
-              ? 'Fără CNP și număr de marcă, care rămân la fostul angajat. Îi alegi postul.'
+              ? 'Fără CNP și număr de marcă, care rămân la fostul lucrător. Îi alegi postul.'
               : 'Datele din aplicație nu se folosesc. Îi alegi postul.'
           }
           testId="person-match-decline"

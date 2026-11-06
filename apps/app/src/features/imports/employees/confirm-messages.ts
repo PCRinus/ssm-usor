@@ -30,8 +30,8 @@ function issueLine(context: ReviewContext, issue: Issue) {
   const who = personName(context, person);
   if (part === 'existing') {
     return issue.message === 'choice'
-      ? `La ${who}, e de spus dacă e același angajat din aplicație.`
-      : `La ${who}, angajatul din aplicație e propus și la altă persoană.`;
+      ? `La ${who}, e de spus dacă e același lucrător din aplicație.`
+      : `La ${who}, lucrătorul din aplicație e propus și la altă persoană.`;
   }
   const field = part === 'fields' && name && name in fieldLabels ? (name as FieldName) : undefined;
   const what =
@@ -52,7 +52,7 @@ function issueLine(context: ReviewContext, issue: Issue) {
     takenIndexes.has(issue.message) ||
     (issue.message === 'invalid' && (field === 'cnp' || field === 'employeeNumber'));
   const why = taken
-    ? 'îl are deja alt angajat al clientului sau altă persoană din import'
+    ? 'îl are deja alt lucrător al clientului sau altă persoană din import'
     : issue.message === 'missing'
       ? 'lipsește'
       : issue.message === 'choice'
@@ -70,8 +70,12 @@ export function confirmIssueLines(context: ReviewContext, issues: readonly Issue
 
 export function createLabel(created: number, left: number) {
   const people =
-    created === 0 ? null : created === 1 ? 'un angajat' : roCount(created, 'angajat', 'angajați');
-  if (!people) return left === 0 ? 'Completează angajații' : 'Completează angajații verificați';
+    created === 0
+      ? null
+      : created === 1
+        ? 'un lucrător'
+        : roCount(created, 'lucrător', 'lucrători');
+  if (!people) return left === 0 ? 'Completează lucrătorii' : 'Completează lucrătorii verificați';
   if (left === 0) return `Creează ${people}`;
   return `Creează ${people}, fără ${left === 1 ? 'cel neverificat' : `cei ${left}`}`;
 }

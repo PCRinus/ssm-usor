@@ -20,8 +20,8 @@ export function EmployeesPage() {
     <Page testId="employees-page">
       <PageHeader
         eyebrow={participation.clientName}
-        title={t`Angajați`}
-        description={t`Stadiul instruirii fiecărui angajat; deschide unul pentru instruirile și fișele lui.`}
+        title={t`Lucrători`}
+        description={t`Stadiul instruirii fiecărui lucrător; deschide unul pentru instruirile și fișele lui.`}
       />
       <EmployeeList participantId={participation.participantId} />
     </Page>
@@ -44,7 +44,7 @@ function EmployeeList({ participantId }: { participantId: string }) {
       >
         <UsersRound aria-hidden="true" className="size-8 text-muted-foreground" />
         <p className="text-muted-foreground">
-          <Trans>Niciun angajat înregistrat încă.</Trans>
+          <Trans>Niciun lucrător înregistrat încă.</Trans>
         </p>
       </div>
     );
@@ -75,7 +75,7 @@ function EmployeeList({ participantId }: { participantId: string }) {
         </Link>
         <label className="relative block">
           <span className="sr-only">
-            <Trans>Caută un angajat după nume</Trans>
+            <Trans>Caută un lucrător după nume</Trans>
           </span>
           <Search
             aria-hidden="true"
@@ -92,7 +92,7 @@ function EmployeeList({ participantId }: { participantId: string }) {
         </label>
         {shown.length === 0 ? (
           <p data-testid="employees-no-match" className="py-4 text-center text-muted-foreground">
-            <Trans>Niciun angajat cu acest nume.</Trans>
+            <Trans>Niciun lucrător cu acest nume.</Trans>
           </p>
         ) : (
           <ul className={`${cardClass} divide-y overflow-hidden`} data-testid="employees-list">
