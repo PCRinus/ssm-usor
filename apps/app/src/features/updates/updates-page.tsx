@@ -6,6 +6,7 @@ import { Sparkles } from 'lucide-react';
 import type { Release } from '@/api/generated/api';
 import { EmptyState } from '@/components/empty-state';
 
+import { InlineMarkdown } from './inline-markdown';
 import {
   fixCount,
   formatReleaseDay,
@@ -71,7 +72,7 @@ function ReleaseRow({ release, last }: { release: Release; last: boolean }) {
         >
           <span className="flex flex-col-reverse items-start gap-2 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
             <span className="text-base leading-[1.35] font-semibold sm:text-[17px] sm:leading-[1.3]">
-              {release.headline}
+              <InlineMarkdown text={release.headline} />
             </span>
             {release.unread && (
               <span className="shrink-0 rounded-full bg-brand-lime px-2 py-0.5 text-xs font-semibold">
@@ -80,7 +81,9 @@ function ReleaseRow({ release, last }: { release: Release; last: boolean }) {
             )}
           </span>
           {release.lead && (
-            <span className="text-sm leading-[1.55] text-release-body">{release.lead}</span>
+            <span className="text-sm leading-[1.55] text-release-body">
+              <InlineMarkdown text={release.lead} />
+            </span>
           )}
           <span className="flex flex-wrap gap-1.5 pt-0.5 sm:pt-1">
             {chipsOf(release).map((chip) => (

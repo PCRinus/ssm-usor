@@ -23,6 +23,7 @@ import { lazy, type ReactNode, Suspense } from 'react';
 import type { Release } from '@/api/generated/api';
 
 import { saveDismissedTag } from './dismissal';
+import { InlineMarkdown } from './inline-markdown';
 import { KindSquare } from './kind-square';
 import { dialogHighlights, formatReleaseDay, kindTitles, type ReleaseKind } from './release-format';
 import { ReleaseTag } from './release-tag';
@@ -100,16 +101,18 @@ function Highlights({ release, phone }: { release: Release; phone: boolean }) {
                 </Tile>
                 {titled ? (
                   <span className="grid gap-0.5">
-                    <span className="text-sm font-semibold">{feature.title}</span>
+                    <span className="text-sm font-semibold">
+                      <InlineMarkdown text={feature.title} />
+                    </span>
                     {!phone && (
                       <span className="text-[13px] leading-[1.45] text-muted-foreground">
-                        {feature.text}
+                        <InlineMarkdown text={feature.text} />
                       </span>
                     )}
                   </span>
                 ) : (
                   <span className="text-[15px] leading-normal text-release-body">
-                    {feature.text}
+                    <InlineMarkdown text={feature.text} />
                   </span>
                 )}
               </li>
@@ -124,7 +127,9 @@ function Highlights({ release, phone }: { release: Release; phone: boolean }) {
               <Tile kind={kind} phone={phone}>
                 <Icon aria-hidden="true" className={icon} />
               </Tile>
-              <span>{line}</span>
+              <span>
+                <InlineMarkdown text={line} />
+              </span>
             </li>
           ))}
         </Group>
@@ -198,11 +203,11 @@ export function UpdateDialog() {
           <DrawerBody className="grid gap-4 bg-card px-5 pt-[22px] pb-[calc(1.75rem+env(safe-area-inset-bottom,0px))]">
             <div className="grid gap-2">
               <DrawerTitle className="text-[22px] leading-[1.2] font-bold tracking-[-0.015em]">
-                {release.headline}
+                <InlineMarkdown text={release.headline} />
               </DrawerTitle>
               {release.lead && (
                 <DrawerDescription className="text-[15px] leading-normal text-release-body">
-                  {release.lead}
+                  <InlineMarkdown text={release.lead} />
                 </DrawerDescription>
               )}
             </div>
@@ -256,11 +261,11 @@ export function UpdateDialog() {
           <div className="flex flex-1 flex-col gap-[22px] px-8 pt-[30px] pb-[26px]">
             <div className="grid gap-2.5 pr-8">
               <DialogTitle className="text-2xl leading-[1.2] font-bold tracking-[-0.015em]">
-                {release.headline}
+                <InlineMarkdown text={release.headline} />
               </DialogTitle>
               {release.lead && (
                 <DialogDescription className="text-[15px] leading-[1.55] text-release-body">
-                  {release.lead}
+                  <InlineMarkdown text={release.lead} />
                 </DialogDescription>
               )}
             </div>
