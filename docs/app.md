@@ -1590,7 +1590,9 @@ What members read about each release, its **update**
 ([ADR 026](architecture/adr-026-updates-and-release-review.md)), lives in
 `src/features/updates/`. The app has no dialect: the release workflow parses the
 release body into the `releases` table, and the app reads the rows through `GET /releases`,
-never Markdown. `use-releases.ts` is the one query everything shares: keyed by the signed-in
+never the body. Each line keeps the inline Markdown it was written with, as the release on
+GitHub shows it, so every place that shows update text goes through `InlineMarkdown`, which
+renders bold, italics and code spans as elements and never as HTML. `use-releases.ts` is the one query everything shares: keyed by the signed-in
 user, since `unread` is per account, and kept fresh for five minutes. The shell reads it for the
 sidebar badge, the footer link and the dialog, the two pages read it, and their route loaders
 fill it first with `releasesQueryOptions`. The release page finds its row in the list instead
