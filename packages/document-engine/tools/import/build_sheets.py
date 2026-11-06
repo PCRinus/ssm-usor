@@ -29,7 +29,9 @@ SIGNATURE_HEIGHT = 680
 HIRING_SIGNATURE_HEIGHT = 960
 # Between two signature boxes, so each line under a signature is its own.
 SIGNATURE_GUTTER = 240
-LINE = '<w:{side} w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
+# A whole point: the in-app viewer paints a line as a box its own width high, and Safari does not
+# draw one thinner than a screen pixel.
+LINE = '<w:{side} w:val="single" w:sz="8" w:space="0" w:color="000000"/>'
 # The rows of a periodic table the signed sheet holds, those of a page (rowCapacity in contracts).
 ROW_CAPACITY = 17
 # The signed sheet's rows of test results: the five the paper sheet prints at the least.
