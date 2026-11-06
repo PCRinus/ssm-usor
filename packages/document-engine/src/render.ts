@@ -2,6 +2,7 @@ import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
 
 import { isTextPart, replaceText } from './text';
+import { fillTableOfContents } from './toc';
 
 // Merges data into a Word template (ADR 005). Templates carry `{{ }}` placeholders:
 //
@@ -153,6 +154,13 @@ function tidy(zip: PizZip) {
   for (const name of Object.keys(zip.files).filter(isTextPart)) {
     // The two full stops are often in different runs, so the XML cannot be searched for "..".
     zip.file(name, replaceText(zip.file(name)!.asText(), doubledFullStop, '.'));
+  }
+  const body = zip.file('word/document.xml');
+  if (body) {
+    zip.file(
+      body.name,
+      fillTableOfContents(body.asText(), zip.file('word/styles.xml')?.asText() ?? '')
+    );
   }
   return zip;
 }
