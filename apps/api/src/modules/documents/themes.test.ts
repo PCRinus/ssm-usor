@@ -185,6 +185,18 @@ describe('the periodic sessions of a post', () => {
     );
   });
 
+  it('cite a module of one article by that article alone', () => {
+    const [session] = trainingSessions({
+      firstMonth: 12,
+      intervalMonths: 12,
+      periodicTrainingMinutes: 60,
+      modules: [{ title: 'Utilizarea scărilor metalice', articleCount: 1 }],
+    });
+    expect(session!.content).toBe(
+      'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0290; I.P.S.S.M. Utilizarea scărilor metalice, Art.\u00a01'
+    );
+  });
+
   it('end in no test, since the periodic training is verified without one', () => {
     const sessions = trainingSessions({
       firstMonth: 1,
