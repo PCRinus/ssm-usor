@@ -1868,6 +1868,143 @@ def size_list_labels(xml, numbering, styles):
     return xml, numbering
 
 
+TEXT_WIDTH = round((21000 - MARGINS['LeftMargin'] - MARGINS['RightMargin']) * 1440 / 2540)  # twips
+TOC_HANG = 1134  # twips: a wrapped entry's lines run 2 cm in, clear of its "Capitolul IV." label
+TOC_INSTRUCTION = r' TOC \o "1-2" \h \z \u '
+TOC_PLACEHOLDER = (
+    '<w:sdt><w:sdtPr><w:docPartObj><w:docPartGallery w:val="Table of Contents"/><w:docPartUnique/>'
+    '</w:docPartObj></w:sdtPr><w:sdtContent><w:p><w:pPr><w:pStyle w:val="TOC1"/></w:pPr>'
+    '<w:r><w:fldChar w:fldCharType="begin"/></w:r>'
+    f'<w:r><w:instrText xml:space="preserve">{TOC_INSTRUCTION}</w:instrText></w:r>'
+    '<w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r>'
+    '</w:p></w:sdtContent></w:sdt>')
+# `end` is searched from the second entry on: a typed list may open with the first chapter's
+# own title. The 3.2 and 2.1 annex lines are a loop of the client's annexes, issued as files
+# of their own, so they stay typed under the table, without page numbers.
+TABLES_OF_CONTENTS = {
+    '11_employer_briefing': {
+        'title': r'^Cuprins material informativ',
+        'end': r'^Capitolul I\. ',
+        'headings': [(1, r'^Capitolul [IVXLC]+\. '), (2, r'^Subcapitolul [IVXLC]+\.[IVXLC]+\. ')],
+    },
+    '2.2_general_training_material': {
+        'title': r'^Cuprins:$',
+        'end': r'^Notă:$',
+        'headings': [(1, r'^Capitolul [IVXLC]+\. ')],
+    },
+    '3.2_own_instructions': {
+        'title': r'^CUPRINS IPSSM',
+        'end': r'^\{\{#annexes\}\}$',
+        'headings': [(1, r'^Capitolul [IVXLC]+\. ')],
+    },
+    '9_risk_assessment': {
+        'title': r'^Cuprins$',
+        'end': r'^CAPITOLUL I\. ',
+        'headings': [(1, r'^CAPITOLUL [IVXLC]+\. '), (2, r'^SUBCAPITOLUL [IVXLC]+\.([IVXLC]+|\{\{roman\}\})\. '),
+                     (1, r'^Anexa Nr\. \d\. '), (1, r'^BIBLIOGRAFIE$')],
+        'joined': r'^Anexa Nr\. \d\.$',
+    },
+    '2.1_fire_own_instructions': {
+        'title': r'^CUPRINS IPSU',
+        'end': r'^\{\{#annexes\}\}$',
+        'headings': [(1, r'^Capitolul [IVXLC]+\. '), (1, r'^BIBLIOGRAFIE$')],
+    },
+}
+PARAGRAPH_STYLE = re.compile(r'<w:pStyle w:val="([^"]+)"/>')
+OUTLINE_LEVEL = re.compile(r'<w:outlineLvl w:val="\d"/>')
+
+
+def style_definition(styles, style_id):
+    return re.search(rf'<w:style\b[^>]*w:styleId="{re.escape(style_id)}"[^>]*>.*?</w:style>', styles, flags=re.S)
+
+
+def with_style(paragraph, style_id):
+    properties = own_properties(paragraph)
+    element = f'<w:pStyle w:val="{style_id}"/>'
+    if not properties:
+        opening = re.match(r'<w:p\b[^>]*>', paragraph).group(0)
+        return f'{opening}<w:pPr>{element}</w:pPr>{paragraph[len(opening):]}'
+    changed = PARAGRAPH_STYLE.sub(element, properties, count=1) if PARAGRAPH_STYLE.search(properties) \
+        else properties.replace('<w:pPr>', f'<w:pPr>{element}', 1)
+    return paragraph.replace(properties, changed, 1)
+
+
+def joined_with_next(paragraph, following):
+    """One paragraph of the two, the second's text after a line break: "Anexa Nr. 1." over its
+    title is one heading, which a table of contents can name whole."""
+    runs = following[len(re.match(r'<w:p\b[^>]*>\s*(?:<w:pPr>.*?</w:pPr>)?', following, flags=re.S).group(0)):-len('</w:p>')]
+    first = re.search(r'<w:rPr>.*?</w:rPr>', runs, flags=re.S)
+    return f'{paragraph[:-len("</w:p>")]}<w:r>{first.group(0) if first else ""}<w:br/></w:r>{runs}</w:p>'
+
+
+def heading_style(level):
+    return (f'<w:style w:type="paragraph" w:styleId="Heading{level}"><w:name w:val="heading {level}"/>'
+            '<w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>'
+            f'<w:pPr><w:keepNext/><w:outlineLvl w:val="{level - 1}"/></w:pPr><w:rPr><w:b/><w:bCs/></w:rPr></w:style>')
+
+
+def contents_entry_style(level):
+    left = (level - 1) * 567 + TOC_HANG
+    return (f'<w:style w:type="paragraph" w:styleId="TOC{level}"><w:name w:val="toc {level}"/>'
+            '<w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="39"/><w:pPr>'
+            f'<w:tabs><w:tab w:val="right" w:leader="dot" w:pos="{TEXT_WIDTH}"/></w:tabs>'
+            f'<w:spacing w:before="0" w:after="40"/><w:ind w:left="{left}" w:hanging="{TOC_HANG}"/><w:jc w:val="left"/>'
+            f'</w:pPr><w:rPr><w:rFonts w:ascii="{FONT}" w:hAnsi="{FONT}" w:cs="{FONT}"/>'
+            f'<w:sz w:val="{round(BODY_SIZE * 2)}"/><w:szCs w:val="{round(BODY_SIZE * 2)}"/></w:rPr></w:style>')
+
+
+def spoken_text(paragraph):
+    """A paragraph's text with its line breaks and tabs as spaces, as a table of contents
+    prints a heading."""
+    parts = re.findall(r'<w:t\b[^>]*>([^<]*)</w:t>|<w:(?:br|tab)/>', paragraph)
+    return re.sub(r'\s+', ' ', ''.join(part or ' ' for part in parts)).strip()
+
+
+def table_of_contents(xml, styles, spec):
+    """The typed contents become a table of contents field, which the engine fills from the
+    headings of the merged document. Chapter titles take the "heading N" styles; the body text
+    the originals set in them ("Art. 1.", "(Preluare din …)") moves to a copy of the style under
+    another name, so it keeps its look and leaves the outline, the PDF's bookmarks and the
+    table. Safe to run again."""
+    if 'docPartGallery w:val="Table of Contents"' not in xml:
+        paragraphs = [(start, end) for kind, start, end in body_blocks(xml) if kind == 'p']
+        texts = [paragraph_text(xml[start:end]) for start, end in paragraphs]
+        title = next(index for index, text in enumerate(texts) if re.search(spec['title'], text))
+        end = next(index for index in range(title + 2, len(texts)) if re.search(spec['end'], texts[index]))
+        xml = xml[:paragraphs[title][1]] + TOC_PLACEHOLDER + xml[paragraphs[end][0]:]
+
+    if spec.get('joined'):
+        paragraphs = [(start, end) for kind, start, end in body_blocks(xml) if kind == 'p']
+        for (start, end), (following, following_end) in reversed(list(zip(paragraphs, paragraphs[1:]))):
+            if re.search(spec['joined'], paragraph_text(xml[start:end])):
+                xml = xml[:start] + joined_with_next(xml[start:end], xml[following:following_end]) + xml[following_end:]
+
+    xml = OUTLINE_LEVEL.sub('', re.sub(r'<w:pStyle w:val="Heading(\d)"/>', r'<w:pStyle w:val="Paragraph\1"/>', xml))
+    contents_end = xml.index('</w:sdt>', xml.index('docPartGallery w:val="Table of Contents"'))
+    for kind, start, end in reversed(list(body_blocks(xml))):
+        if kind == 'p' and start > contents_end:
+            text = spoken_text(xml[start:end])
+            level = next((level for level, pattern in spec['headings'] if re.search(pattern, text)), None)
+            if level:
+                xml = xml[:start] + with_style(xml[start:end], f'Heading{level}') + xml[end:]
+
+    for level in sorted(set(re.findall(r'<w:pStyle w:val="Paragraph(\d)"/>', xml))):
+        if style_definition(styles, f'Paragraph{level}'):
+            continue
+        copy = style_definition(styles, f'Heading{level}').group(0)
+        copy = copy.replace(f'w:styleId="Heading{level}"', f'w:styleId="Paragraph{level}"')
+        copy = copy.replace(f'<w:name w:val="heading {level}"/>', f'<w:name w:val="Paragraph {level}"/>')
+        copy = OUTLINE_LEVEL.sub('', re.sub(r'<w:link w:val="[^"]*"/>', '', copy))
+        styles = styles.replace('</w:styles>', f'{copy}</w:styles>')
+
+    for style_id, definition in [('Heading1', heading_style(1)), ('Heading2', heading_style(2)),
+                                 ('TOC1', contents_entry_style(1)), ('TOC2', contents_entry_style(2))]:
+        existing = style_definition(styles, style_id)
+        styles = styles.replace(existing.group(0), definition) if existing \
+            else styles.replace('</w:styles>', f'{definition}</w:styles>')
+    return xml, styles
+
+
 # A paragraph holding only this marker becomes a page break of its own. A break set on a
 # paragraph is saved as a break run at the end of the paragraph before it, which may be a loop
 # tag's: inside a section of its own, the break can be left out for one item of a loop.
@@ -1884,15 +2021,20 @@ def sweep(path):
     its own fonts as the defaults of the styles, and list labels smaller than their text. Then
     three rules every template keeps: a line ending in ":" keeps with the list item after it,
     no run of paragraphs kept with the next longer than `KEEP_CHAIN` unless its lines are
-    short, and the branding line small and grey. Safe to run again."""
+    short, and the branding line small and grey; and in the documents with contents, a table
+    of contents over real headings (`TABLES_OF_CONTENTS`). Safe to run again."""
     with zipfile.ZipFile(path) as archive:
         entries = [(item, archive.read(item.filename)) for item in archive.infolist()]
         styles = archive.read('word/styles.xml').decode('utf8')
+        document = archive.read('word/document.xml').decode('utf8')
         labelled = {}
+        contents = TABLES_OF_CONTENTS.get(os.path.basename(path)[: -len('.docx')])
+        if contents:
+            document, styles = table_of_contents(document, styles, contents)
+            labelled['word/document.xml'], labelled['word/styles.xml'] = document, styles
         if 'word/numbering.xml' in archive.namelist():
             labelled['word/document.xml'], labelled['word/numbering.xml'] = size_list_labels(
-                archive.read('word/document.xml').decode('utf8'), archive.read('word/numbering.xml').decode('utf8'),
-                styles)
+                document, archive.read('word/numbering.xml').decode('utf8'), styles)
     with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as archive:
         for item, data in entries:
             if item.filename in labelled:
