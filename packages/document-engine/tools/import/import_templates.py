@@ -690,6 +690,15 @@ def build_header(document, details):
         table.initialize(2, 4)
         header.insertTextContent(header.createTextCursor(), table, False)
         table.HoriOrient = FULL_WIDTH
+        # A whole point: the in-app viewer paints a line as a box its own width high, and Safari
+        # does not draw one thinner than a screen pixel.
+        border = uno.createUnoStruct('com.sun.star.table.TableBorder2')
+        for side in ('TopLine', 'BottomLine', 'LeftLine', 'RightLine', 'HorizontalLine', 'VerticalLine'):
+            setattr(border, side, BorderLine2(Color=0, OuterLineWidth=round(POINT), LineWidth=round(POINT)))
+            setattr(border, f'Is{side}Valid', True)
+        # A fresh struct zeroes the cells' padding; 0.97 mm is LibreOffice's default.
+        border.Distance, border.IsDistanceValid = 97, True
+        table.TableBorder2 = border
         separators = table.TableColumnSeparators
         for separator, position in zip(separators, HEADER_COLUMNS):
             separator.Position = position
