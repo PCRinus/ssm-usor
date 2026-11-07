@@ -17,7 +17,7 @@ Articolele sunt așezate ca meniul aplicației, așa că un articol se află und
 
 ## Deschide ajutorul din aplicație
 
-Lângă un câmp care are o explicație vezi un buton mic **?**, după eticheta lui. Apasă-l și se deschide, într-o filă separată, exact secțiunea care explică acel câmp. Formularul rămâne cum l-ai lăsat, iar data următoare ajutorul se deschide în aceeași filă, nu în una nouă.
+Lângă un câmp care are o explicație vezi un mic semn al întrebării, după eticheta lui. Apasă-l și se deschide, într-o filă separată, exact secțiunea care explică acel câmp. Formularul rămâne cum l-ai lăsat. Ajutorul are o singură filă: data următoare se deschide tot în ea, chiar dacă lucrezi în mai multe file ale aplicației.
 
 Unele mesaje din aplicație se încheie cu un link **De ce?**, care duce la regula din spatele mesajului. Ajutorul întreg îl deschizi din **Ajutor**, în partea de jos a meniului.
 
