@@ -49,6 +49,25 @@ export async function riskLibraryOf(db: DataClient, organizationId: string): Pro
   };
 }
 
+export type LibraryName = { id: string; name: string; archived: boolean };
+
+export async function libraryNamesOf(
+  db: DataClient,
+  organizationId: string
+): Promise<LibraryName[]> {
+  const { data, error } = await db
+    .from('evaluation_profiles')
+    .select('id, name, archived_at')
+    .eq('organization_id', organizationId)
+    .order('name');
+  if (error) throw fromDatabaseError(error, 'read the risk library names');
+  return data.map((entry) => ({
+    id: entry.id,
+    name: entry.name,
+    archived: entry.archived_at !== null,
+  }));
+}
+
 export interface ClientSheets {
   // The factors of each active post's sheet, by the post's id, and the post's name.
   jobPositions: { id: string; name: string; factors: number }[];

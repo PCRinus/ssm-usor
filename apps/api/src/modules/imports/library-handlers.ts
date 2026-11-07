@@ -40,7 +40,13 @@ import { clientPeople, libraryPartExpiry, libraryReasons, riskReasons } from './
 import { toClientPayload } from './payload';
 import { describe } from './pipeline';
 import { instructionsQuality, type QualityCounts, risksQuality } from './reading-flags';
-import { type ClientSheets, clientSheetsOf, existingFactorsOf } from './risk-sheets';
+import {
+  type ClientSheets,
+  clientSheetsOf,
+  existingFactorsOf,
+  type LibraryName,
+  libraryNamesOf,
+} from './risk-sheets';
 import type {
   confirmImportLibraryPartRoute,
   listImportLibraryPartsRoute,
@@ -93,8 +99,26 @@ const storedRisks = (value: unknown): RisksProposal | null => {
   return parsed.success ? parsed.data : null;
 };
 
+// Changes saved before 2026-11-07 may hold `add` or `skip`, choices ADR 036 no longer offers: a
+// post's new sheet always goes to the library and a client-level one never does.
+function withoutRetiredChoices(value: unknown) {
+  if (typeof value !== 'object' || value === null || !('sheets' in value)) return value;
+  const { sheets } = value as { sheets: unknown };
+  if (typeof sheets !== 'object' || sheets === null) return value;
+  return {
+    ...value,
+    sheets: Object.fromEntries(
+      Object.entries(sheets).map(([key, change]) => {
+        if (typeof change !== 'object' || change === null) return [key, change];
+        const { library, ...rest } = change as { library?: unknown };
+        return [key, library === 'add' || library === 'skip' ? rest : change];
+      })
+    ),
+  };
+}
+
 const storedRiskChanges = (value: unknown): RiskImportChanges | null => {
-  const parsed = riskImportChangesSchema.safeParse(value);
+  const parsed = riskImportChangesSchema.safeParse(withoutRetiredChoices(value));
   return parsed.success ? parsed.data : null;
 };
 
@@ -225,7 +249,8 @@ function present(
   row: FoundImport,
   part: PartRow,
   credits: Map<string, number>,
-  sheets: ClientSheets | null
+  sheets: ClientSheets | null,
+  libraryNames: LibraryName[]
 ): PartView {
   const base = {
     status: part.status,
@@ -256,6 +281,7 @@ function present(
         : null,
       postReferences: proposal ? postReferencesOf(proposal, row) : {},
       existingFactors: proposal && sheets ? existingFactorsOf(proposal, sheets) : null,
+      libraryNames: proposal ? libraryNames : [],
       proposal,
     };
   }
@@ -289,14 +315,20 @@ export const listImportLibraryParts: RouteHandler<
   const row = await findImport(db, importId);
   const parts = row.kind === 'client' ? await partsOf(db, importId) : [];
   if (parts.length === 0) return c.json({ parts: [], posts: [] }, 200);
-  const [posts, credits, sheets] = await Promise.all([
+  const risks = parts.find((part) => !isInstructionsPart(part.part));
+  const [posts, credits, sheets, libraryNames] = await Promise.all([
     postsOf(db, row),
     creditsByPart(c, importId),
-    row.client_id && parts.some((part) => !isInstructionsPart(part.part))
-      ? clientSheetsOf(db, row.client_id)
-      : null,
+    row.client_id && risks ? clientSheetsOf(db, row.client_id) : null,
+    risks?.proposal ? libraryNamesOf(db, c.get('membership').organizationId) : [],
   ]);
-  return c.json({ parts: parts.map((part) => present(c, row, part, credits, sheets)), posts }, 200);
+  return c.json(
+    {
+      parts: parts.map((part) => present(c, row, part, credits, sheets, libraryNames)),
+      posts,
+    },
+    200
+  );
 };
 
 type DatabaseFailure = { code?: string | null; message?: string; details?: string | null };
@@ -372,8 +404,9 @@ function checkedRiskChanges(changes: RiskImportChanges, proposal: RisksProposal 
           ? []
           : [{ path: `changes.sheets.${key}.factors.${factor}`, message: 'unknown' }]
       ),
-      ...(change.library === 'use_existing' && !sheet.match
-        ? [{ path: `changes.sheets.${key}.library`, message: 'no_match' }]
+      ...(change.library !== undefined &&
+      (sheet.kind !== 'job_position' || sheet.copyOf !== null || sheet.status !== 'similar')
+        ? [{ path: `changes.sheets.${key}.library`, message: 'no_choice' }]
         : []),
     ];
   });
@@ -831,5 +864,8 @@ export const retryImportLibraryPart: RouteHandler<
   const row = await findImport(db, importId);
   const current = await partOf(db, importId, part);
   // Reading again, so it has no proposal to count the client's sheets for.
-  return c.json({ part: present(c, row, current, await creditsByPart(c, importId), null) }, 200);
+  return c.json(
+    { part: present(c, row, current, await creditsByPart(c, importId), null, []) },
+    200
+  );
 };

@@ -250,7 +250,7 @@ describe('the quality of a part', () => {
     });
   });
 
-  it('counts the sheets and the factors read for them', () => {
+  it('counts the sheets and the factors read for them, a sheet with every factor removed as unticked', () => {
     const factor = (key: string, included = true) => ({ key, included });
     const proposal = {
       sheets: [
@@ -266,12 +266,12 @@ describe('the quality of a part', () => {
             libraryName: 'Brutar',
             factors: { f1: { included: false }, f2: { gravityClass: 3 }, f3: { included: true } },
           },
-          s2: { library: 'skip' },
+          s2: { factors: { f4: { included: false } } },
         },
       })
     ).toEqual({
       sheets: { changed: 1, unticked: 1, kept: 1 },
-      factors: { changed: 2, unticked: 1, kept: 1 },
+      factors: { changed: 2, unticked: 2, kept: 0 },
     });
   });
 });

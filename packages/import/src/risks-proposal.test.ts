@@ -29,7 +29,11 @@ describe('proposeRisks', () => {
       { name: 'Casier', existingFactors: 0, choice: null },
     ]);
     expect(shop!.undecided).toBe(false);
-    expect(shop!.libraryName).toBe('Vânzător, casier');
+    expect(shop).toMatchObject({
+      libraryName: 'Vânzător, casier',
+      nameFrom: 'heading',
+      takenName: null,
+    });
   });
 
   it('leaves a heading that names none of the posts undecided', () => {
@@ -93,6 +97,8 @@ describe('proposeRisks', () => {
 
     expect(named.sheets[0]).toMatchObject({
       libraryName: 'Brutar (Brutăria din curte)',
+      nameFrom: 'post',
+      takenName: 'Brutar',
       posts: [{ name: 'Brutar', existingFactors: 18, choice: 'keep' }],
     });
     expect(named.sheets[3]!.existing).toEqual({ factors: 2, choice: 'keep' });
@@ -226,7 +232,6 @@ describe('riskImportPayload', () => {
     const changes = riskImportChangesSchema.parse({
       sheets: {
         'sheet-1': {
-          library: 'skip',
           postChoices: {},
           factors: { 'sheet-1.7': { probabilityClass: 4 }, 'sheet-1.1': { included: false } },
         },
@@ -241,15 +246,36 @@ describe('riskImportPayload', () => {
       existing: { jobPositions: { 'jp-brutar': 18, 'jp-vanzator': 4 } },
     });
 
-    expect(payload.entries.map((entry) => entry.key)).toEqual(['sheet-2']);
+    expect(payload.entries.map((entry) => [entry.key, entry.factors.length])).toEqual([
+      ['sheet-1', 5],
+      ['sheet-2', 3],
+    ]);
     expect(payload.evaluations.map((evaluation) => [evaluation.sheet, evaluation.mode])).toEqual([
       ['sheet-2', 'replace'],
       ['sheet-3', 'append'],
       ['sheet-4', 'append'],
     ]);
-    expect(payload.evaluations[1]!.factors.map((factor) => factor.source)).toEqual(
-      Array(6).fill(null)
-    );
+    expect(payload.evaluations[1]!.factors.map((factor) => factor.source)).toEqual([
+      null,
+      ...[2, 3, 4, 5, 6].map((index) => ({ entry: 'sheet-1', factor: `sheet-1.${index}` })),
+    ]);
+  });
+
+  it('adds a post’s sheet stored as left out of the library, and never a client-level one', () => {
+    const stored = {
+      ...proposal,
+      sheets: proposal.sheets.map((sheet) =>
+        sheet.key === 'sheet-1' ? { ...sheet, choice: 'skip' as const } : sheet
+      ),
+    };
+    const { payload } = riskImportPayload({
+      proposal: stored,
+      changes: riskImportChangesSchema.parse({ sheets: { 'sheet-4': { library: 'add_new' } } }),
+      posts,
+      postReferences,
+    });
+
+    expect(payload.entries.map((entry) => entry.key)).toEqual(['sheet-1', 'sheet-2']);
   });
 
   it('leaves a factor without a group unticked, and refuses it ticked', () => {

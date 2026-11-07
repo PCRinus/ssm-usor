@@ -16,6 +16,7 @@ import {
 
 export type RiskLibraryChoice = 'add' | 'use_existing' | 'add_new' | 'skip';
 export type ExistingFactorsChoice = 'append' | 'replace' | 'keep';
+export type LibraryNameSource = 'post' | 'heading' | 'kind';
 
 export interface ProposedRiskFactor extends ReadFactor {
   // Ticked: written to the client and the library.
@@ -41,6 +42,11 @@ export interface ProposedRiskSheet extends Omit<ReadSheet, 'posts' | 'factors'> 
   existing: { factors: number; choice: ExistingFactorsChoice | null } | null;
   // Proposed for a new library entry, editable.
   libraryName: string;
+  // What the proposed name was taken from: the sheet's one post, its heading, or its kind. Absent
+  // from a proposal read before 2026-11-07, as is `takenName`.
+  nameFrom?: LibraryNameSource;
+  // The name an entry of the library already held, so the client's name was added to it.
+  takenName?: string | null;
   // Null for a sheet identical to an earlier one of the pack, which it follows in the library.
   status: RiskLibraryStatus | null;
   match: RiskLibraryMatch | null;
@@ -104,12 +110,15 @@ export function evaluationName(written: string, heading: string) {
   return name.slice(0, nameLength.max).trim();
 }
 
-function libraryNameOf(sheet: ReadSheet, posts: readonly string[]) {
-  if (sheet.kind === 'sensitive_groups') return 'Grupuri sensibile';
+function libraryNameOf(
+  sheet: ReadSheet,
+  posts: readonly string[]
+): { name: string; from: LibraryNameSource } {
+  if (sheet.kind === 'sensitive_groups') return { name: 'Grupuri sensibile', from: 'kind' };
   if (sheet.kind === 'job_position' && posts.length === 1 && fits(posts[0]!.trim())) {
-    return posts[0]!.trim().slice(0, nameLength.max).trim();
+    return { name: posts[0]!.trim().slice(0, nameLength.max).trim(), from: 'post' };
   }
-  return evaluationName(sheet.name, sheet.heading);
+  return { name: evaluationName(sheet.name, sheet.heading), from: 'heading' };
 }
 
 const choiceFor = (existing: number) => (existing > 0 ? ('keep' as const) : null);
@@ -130,7 +139,8 @@ export function proposeRisks(input: ProposeRisksInput): RisksProposal {
       sheet.kind === 'job_position'
         ? [...new Set(sheet.posts.flatMap((post) => postByFold.get(foldText(post)) ?? []))]
         : [];
-    return { sheet, posts, factors: factorsOf(sheet), libraryName: libraryNameOf(sheet, posts) };
+    const { name, from } = libraryNameOf(sheet, posts);
+    return { sheet, posts, factors: factorsOf(sheet), libraryName: name, nameFrom: from };
   });
   const postsFirst = [...prepared].sort(
     (a, b) => Number(a.sheet.kind !== 'job_position') - Number(b.sheet.kind !== 'job_position')
@@ -151,51 +161,56 @@ export function proposeRisks(input: ProposeRisksInput): RisksProposal {
   const byKey = new Map(compared.map((item) => [item.key, item]));
   const copyOf = new Map(compared.flatMap((item) => item.sameAs.map((key) => [key, item.key])));
 
-  const sheets = prepared.map(({ sheet, posts, factors, libraryName }): ProposedRiskSheet => {
-    const clientLevel = sheet.kind !== 'job_position';
-    const existingCount =
-      sheet.kind === 'sensitive_groups'
-        ? (input.existing?.sensitiveGroups ?? 0)
-        : sheet.kind === 'other'
-          ? (Object.entries(input.existing?.other ?? {}).find(
-              ([name]) => foldText(name) === foldText(libraryName)
-            )?.[1] ?? 0)
-          : 0;
-    const item = byKey.get(sheet.key);
-    const status = item?.status ?? null;
-    let choice: RiskLibraryChoice | null = null;
-    if (item) {
-      if (item.status === 'identical') choice = 'use_existing';
-      else if (factors.length === 0 || clientLevel) choice = 'skip';
-      else if (item.status === 'new') choice = 'add';
-      else choice = item.match!.onlyInPack.length > 0 ? 'add_new' : 'use_existing';
+  const sheets = prepared.map(
+    ({ sheet, posts, factors, libraryName, nameFrom }): ProposedRiskSheet => {
+      const clientLevel = sheet.kind !== 'job_position';
+      const existingCount =
+        sheet.kind === 'sensitive_groups'
+          ? (input.existing?.sensitiveGroups ?? 0)
+          : sheet.kind === 'other'
+            ? (Object.entries(input.existing?.other ?? {}).find(
+                ([name]) => foldText(name) === foldText(libraryName)
+              )?.[1] ?? 0)
+            : 0;
+      const item = byKey.get(sheet.key);
+      const status = item?.status ?? null;
+      let choice: RiskLibraryChoice | null = null;
+      if (item) {
+        if (item.status === 'identical') choice = 'use_existing';
+        else if (factors.length === 0 || clientLevel) choice = 'skip';
+        else if (item.status === 'new') choice = 'add';
+        else choice = item.match!.onlyInPack.length > 0 ? 'add_new' : 'use_existing';
+      }
+      return {
+        key: sheet.key,
+        file: sheet.file,
+        heading: sheet.heading,
+        kind: sheet.kind,
+        name: sheet.name,
+        rows: sheet.rows,
+        meansOfProduction: sheet.meansOfProduction,
+        workEnvironment: sheet.workEnvironment,
+        exposure: sheet.exposure,
+        flags: sheet.flags,
+        posts: posts.map((name) => {
+          const count = input.existing?.posts?.[name] ?? 0;
+          return { name, existingFactors: count, choice: choiceFor(count) };
+        }),
+        undecided: sheet.kind === 'job_position' && posts.length === 0,
+        existing: clientLevel ? { factors: existingCount, choice: choiceFor(existingCount) } : null,
+        libraryName: item?.name ?? libraryName,
+        nameFrom,
+        takenName:
+          item && item.status !== 'identical' && item.name !== libraryName ? libraryName : null,
+        status,
+        match: item?.match ?? null,
+        choice,
+        sameAs: item?.sameAs ?? [],
+        copyOf: copyOf.get(sheet.key) ?? null,
+        factors,
+      };
     }
-    return {
-      key: sheet.key,
-      file: sheet.file,
-      heading: sheet.heading,
-      kind: sheet.kind,
-      name: sheet.name,
-      rows: sheet.rows,
-      meansOfProduction: sheet.meansOfProduction,
-      workEnvironment: sheet.workEnvironment,
-      exposure: sheet.exposure,
-      flags: sheet.flags,
-      posts: posts.map((name) => {
-        const count = input.existing?.posts?.[name] ?? 0;
-        return { name, existingFactors: count, choice: choiceFor(count) };
-      }),
-      undecided: sheet.kind === 'job_position' && posts.length === 0,
-      existing: clientLevel ? { factors: existingCount, choice: choiceFor(existingCount) } : null,
-      libraryName: item?.name ?? libraryName,
-      status,
-      match: item?.match ?? null,
-      choice,
-      sameAs: item?.sameAs ?? [],
-      copyOf: copyOf.get(sheet.key) ?? null,
-      factors,
-    };
-  });
+  );
   return {
     sheets,
     unplacedRows: input.read.unplacedRows,

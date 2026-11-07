@@ -11741,10 +11741,8 @@ export type RisksLibraryPartChangesSheetsLibrary =
   (typeof RisksLibraryPartChangesSheetsLibrary)[keyof typeof RisksLibraryPartChangesSheetsLibrary];
 
 export const RisksLibraryPartChangesSheetsLibrary = {
-  add: 'add',
   use_existing: 'use_existing',
   add_new: 'add_new',
-  skip: 'skip',
 } as const;
 
 export type RisksLibraryPartChangesSheetsExistingChoice =
@@ -11809,6 +11807,15 @@ export const RisksProposalSheetsItemExistingChoice = {
   append: 'append',
   replace: 'replace',
   keep: 'keep',
+} as const;
+
+export type RisksProposalSheetsItemNameFrom =
+  (typeof RisksProposalSheetsItemNameFrom)[keyof typeof RisksProposalSheetsItemNameFrom];
+
+export const RisksProposalSheetsItemNameFrom = {
+  post: 'post',
+  heading: 'heading',
+  kind: 'kind',
 } as const;
 
 /**
@@ -12092,6 +12099,9 @@ export type RisksProposalSheetsItem = {
   /** @nullable */
   existing: RisksProposalSheetsItemExisting;
   libraryName: string;
+  nameFrom?: RisksProposalSheetsItemNameFrom;
+  /** @nullable */
+  takenName?: string | null;
   /** @nullable */
   status: RisksProposalSheetsItemStatus;
   /** @nullable */
@@ -12378,6 +12388,12 @@ export type RisksLibraryPartExistingFactors = {
   sheets: RisksLibraryPartExistingFactorsSheets;
 } | null;
 
+export type RisksLibraryPartLibraryNamesItem = {
+  id: string;
+  name: string;
+  archived: boolean;
+};
+
 export interface RisksLibraryPart {
   status: RisksLibraryPartStatus;
   /** @minimum 1 */
@@ -12403,6 +12419,7 @@ export interface RisksLibraryPart {
   postReferences: RisksLibraryPartPostReferences;
   /** @nullable */
   existingFactors: RisksLibraryPartExistingFactors;
+  libraryNames: RisksLibraryPartLibraryNamesItem[];
   proposal: RisksProposal | null;
 }
 
@@ -12469,7 +12486,7 @@ export type SaveImportLibraryPartChangesRequestChanges =
            * @maxLength 160
            */
           libraryName?: string;
-          library?: 'add' | 'use_existing' | 'add_new' | 'skip';
+          library?: 'use_existing' | 'add_new';
           /**
            * @maxItems 500
            * @items.minLength 1
@@ -36860,7 +36877,7 @@ export const getListImportLibraryPartsUrl = (importId: string) => {
 };
 
 /**
- * One part per domain whose own instructions the sorting found (ADR 034), `instructions_ssm` and `instructions_su`, and `risk_evaluations` when it found a risk assessment (ADR 036), each read by a request of its own once the client proposal is ready: its status (`reading`, `to_review`, `nothing_new`, `failed` with `failureReason`, `confirmed`), the proposal from `to_review` on (null before, and once dropped with the import's, 30 days after the client), the member's changes and the version to save on, the counts of identical, similar, new and unread instructions, `positionPosts` (the client post each post the themes name is, as the changes name posts), `expiresAt` (14 days after the client's confirmation, past which a part is no longer confirmed), and `credits`, its readings net of those given back. `posts` are the posts an instruction can apply to: the client proposal's, by their id, with the job position each became once the client is confirmed, and the client's other active posts by their id. The risk evaluations' part, discriminated by `part`, has no `domain`; its proposal is a `RisksProposal`, its changes are by sheet, its counts are of sheets (`unread`, those with no factor read), and `postReferences` gives, by a post's name as the sheets write it, the client post it is, as the changes name posts; `existingFactors` gives the factors the client's sheets have now, by job position and, for a client-level sheet, by the sheet's key, which confirming follows where the member made no choice (null while the import has no client). `usage`, the models' cost at list price and tokens, is served outside production and, in production, only to a platform admin. An empty list for an employee import or a pack with neither own instructions nor a risk assessment.
+ * One part per domain whose own instructions the sorting found (ADR 034), `instructions_ssm` and `instructions_su`, and `risk_evaluations` when it found a risk assessment (ADR 036), each read by a request of its own once the client proposal is ready: its status (`reading`, `to_review`, `nothing_new`, `failed` with `failureReason`, `confirmed`), the proposal from `to_review` on (null before, and once dropped with the import's, 30 days after the client), the member's changes and the version to save on, the counts of identical, similar, new and unread instructions, `positionPosts` (the client post each post the themes name is, as the changes name posts), `expiresAt` (14 days after the client's confirmation, past which a part is no longer confirmed), and `credits`, its readings net of those given back. `posts` are the posts an instruction can apply to: the client proposal's, by their id, with the job position each became once the client is confirmed, and the client's other active posts by their id. The risk evaluations' part, discriminated by `part`, has no `domain`; its proposal is a `RisksProposal`, its changes are by sheet, its counts are of sheets (`unread`, those with no factor read), and `postReferences` gives, by a post's name as the sheets write it, the client post it is, as the changes name posts; `existingFactors` gives the factors the client's sheets have now, by job position and, for a client-level sheet, by the sheet's key, which confirming follows where the member made no choice (null while the import has no client); and `libraryNames` gives every entry of the risk library, archived ones included, by id, name and whether it is archived, since a new entry's name is none of theirs (empty without a proposal). `usage`, the models' cost at list price and tokens, is served outside production and, in production, only to a platform admin. An empty list for an employee import or a pack with neither own instructions nor a risk assessment.
  * @summary A client import's proposals for the library
  */
 export const listImportLibraryParts = async (
@@ -37000,7 +37017,7 @@ export const getSaveImportLibraryPartChangesUrl = (
 };
 
 /**
- * Replaces the part's changes. An instructions part's are by the proposed instruction's key: `included` false leaves it out, `title`, `category` (one of the part's domain), `choice` for a similar instruction (`use_existing` or `add_new`), `posts` in place of those the themes give, and `body`, the text edited, held to the body's schema. The risk evaluations' are `sheets`, by the sheet's key (`RiskImportChanges`): `libraryName`, `library` (`add`, `use_existing`, `add_new`, `skip`), `posts`, `postChoices` and `existingChoice` (`append`, `replace`, `keep`), the three texts, and `factors` by the factor's key, a sheet's own or that of a plan row the reading placed on it (`unmatchedPlanRows[].sheet`), written only once `included` is true. Before the client is confirmed too. On the `version` the caller read, and answers the next. `400` for a key the proposal does not have, a category of the other domain, `use_existing` for a sheet the library matched none of, or another part's changes; `409` with `import_changed` when someone saved since, `import_part_not_ready` when the part is not `to_review` or `nothing_new`, `import_part_expired` 14 days after the client's confirmation.
+ * Replaces the part's changes. An instructions part's are by the proposed instruction's key: `included` false leaves it out, `title`, `category` (one of the part's domain), `choice` for a similar instruction (`use_existing` or `add_new`), `posts` in place of those the themes give, and `body`, the text edited, held to the body's schema. The risk evaluations' are `sheets`, by the sheet's key (`RiskImportChanges`): `libraryName`, `library` (`use_existing` or `add_new`, only for a post's sheet similar to an entry: a post's new sheet always goes to the library and a client-level one never does), `posts`, `postChoices` and `existingChoice` (`append`, `replace`, `keep`), the three texts, and `factors` by the factor's key, a sheet's own or that of a plan row the reading placed on it (`unmatchedPlanRows[].sheet`), written only once `included` is true. Before the client is confirmed too. On the `version` the caller read, and answers the next. `400` for a key the proposal does not have, a category of the other domain, `library` for any other sheet, or another part's changes; `409` with `import_changed` when someone saved since, `import_part_not_ready` when the part is not `to_review` or `nothing_new`, `import_part_expired` 14 days after the client's confirmation.
  * @summary Save the member's review of a library part
  */
 export const saveImportLibraryPartChanges = async (

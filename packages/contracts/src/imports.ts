@@ -797,8 +797,11 @@ export const instructionImportChangesSchema = z
 
 export type InstructionImportChanges = z.infer<typeof instructionImportChangesSchema>;
 
-/** Adaugă în bibliotecă, Folosește ce ai, Adaugă ca nouă, Nu adăuga (ADR 036). */
-export const riskImportLibraryChoices = ['add', 'use_existing', 'add_new', 'skip'] as const;
+/**
+ * Folosește ce ai, Adaugă ca nouă: for a post's sheet similar to an entry. A post's new sheet always
+ * goes to the library and a client-level one never does (ADR 036, 2026-11-07).
+ */
+export const riskImportLibraryChoices = ['use_existing', 'add_new'] as const;
 
 export type RiskImportLibraryChoice = (typeof riskImportLibraryChoices)[number];
 
@@ -917,6 +920,9 @@ export const risksPartDetailSchema = libraryPartDetailBase.extend({
       sheets: z.record(z.string(), z.int().min(0)),
     })
     .nullable(),
+  // Every entry of the library now, archived ones included, since a new entry's name is none of
+  // theirs.
+  libraryNames: z.array(z.object({ id: z.uuid(), name: z.string(), archived: z.boolean() })),
 });
 
 export const importLibraryPartDetailSchema = z.discriminatedUnion('part', [
