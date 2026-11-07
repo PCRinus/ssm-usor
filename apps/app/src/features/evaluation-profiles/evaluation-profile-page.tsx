@@ -133,7 +133,7 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
         store={store}
         readOnly={false}
         view={view}
-        description="Termenele și responsabilii din plan se copiază în fișă ca valori implicite; le schimbi acolo pentru fiecare client."
+        description="Termenele și persoanele care răspund de măsuri, din plan, se copiază în fișă ca valori implicite; le schimbi acolo pentru fiecare client."
         empty="Evaluarea nu are încă factori de risc."
         removalConsequence="nu vor mai fi în evaluare. Fișele în care ai aplicat-o își păstrează copiile."
         editorContext={profile.name}

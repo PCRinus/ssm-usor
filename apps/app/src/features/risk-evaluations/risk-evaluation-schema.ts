@@ -140,9 +140,9 @@ type FactorGapKind = 'measure' | 'deadlineAndResponsible' | 'deadline' | 'respon
 
 const factorGapMessages: Record<FactorGapKind, string> = {
   measure: 'Un factor inacceptabil are nevoie de cel puțin o măsură de prevenire.',
-  deadlineAndResponsible: 'Lipsesc termenul și responsabilul măsurilor.',
+  deadlineAndResponsible: 'Lipsesc termenul și persoana care răspunde de măsuri.',
   deadline: 'Lipsește termenul măsurilor.',
-  responsible: 'Lipsește responsabilul măsurilor.',
+  responsible: 'Lipsește persoana care răspunde de măsuri.',
 };
 
 // What generating will ask of the factor (ADR 015, readiness).
@@ -196,7 +196,7 @@ export const factorFormSchema = z.object({
     .max(30, 'Un factor are cel mult 30 de măsuri.'),
   actions: optionalText(2000, 'Acțiunile'),
   deadline: optionalText(200, 'Termenul'),
-  responsiblePerson: optionalText(200, 'Responsabilul'),
+  responsiblePerson: optionalText(200, 'Persoana care răspunde'),
   observations: optionalText(1000, 'Observațiile'),
 });
 
