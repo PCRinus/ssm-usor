@@ -173,8 +173,10 @@ export function InstructionEditorPage({
               : 'Versiunea pe care o anexează documentul. Este și versiunea curentă din bibliotecă.'
           }
         >
-          <span className="xl:hidden">{libraryIsNewer ? 'Mai veche' : 'Curentă'}</span>
-          <span className="max-xl:hidden">
+          <span aria-hidden="true" className="xl:hidden">
+            {libraryIsNewer ? 'Mai veche' : 'Curentă'}
+          </span>
+          <span className="max-xl:sr-only">
             {libraryIsNewer ? 'Mai veche decât biblioteca' : 'Versiunea curentă din bibliotecă'}
           </span>
         </Badge>

@@ -1263,7 +1263,8 @@ describe('the module page', () => {
     expect(await screen.findByTestId('fake-editor')).toBeTruthy();
     expect(screen.getByTestId('editor-state').textContent).toBe('Versiunea 1');
     const pinnedState = screen.getByTestId('editor-pinned-version');
-    expect(pinnedState.textContent).toContain('Mai veche decât biblioteca');
+    expect(within(pinnedState).getByText('Mai veche decât biblioteca')).toBeTruthy();
+    expect(within(pinnedState).getByText('Mai veche').getAttribute('aria-hidden')).toBe('true');
     expect(pinnedState.title).toContain('Biblioteca are acum versiunea 2, din 26.09.2026');
     expect(screen.queryByRole('navigation', { name: 'breadcrumb' })).toBeNull();
     expect(screen.getByRole('main').className).toContain('overflow-hidden');
