@@ -67,6 +67,8 @@ const choices: readonly { value: Choice; label: string; outcome: string }[] = [
   },
 ];
 
+const includedLabel = (included: boolean) => (included ? 'Inclusă' : 'Nu e inclusă');
+
 function pendingLine(pending: readonly string[]) {
   if (pending.length > 1) return `Mai ai ${pending.length} lucruri de făcut`;
   return pending[0] === 'title' ? 'Mai ai de schimbat titlul' : `Mai ai de ales ${pending[0]}`;
@@ -195,15 +197,20 @@ export function InstructionRow({
             <Switch
               id={`${id}-included`}
               data-testid="library-instruction-included"
-              aria-label={`Inclusă: ${row.title}`}
+              aria-label={`${includedLabel(row.included)}: ${row.title}`}
               checked={row.included}
               disabled={readOnly}
               onCheckedChange={(checked) =>
                 onChange((current) => withChange(current, 'included', checked ? undefined : false))
               }
             />
-            <Label htmlFor={`${id}-included`} className="text-[13px]" aria-hidden="true">
-              Inclusă
+            <Label
+              htmlFor={`${id}-included`}
+              className={cn('text-[13px] sm:min-w-20', !row.included && 'text-muted-foreground')}
+              aria-hidden="true"
+              data-testid="library-instruction-included-label"
+            >
+              {includedLabel(row.included)}
             </Label>
           </div>
         </div>
