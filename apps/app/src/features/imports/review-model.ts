@@ -450,23 +450,40 @@ export function spellingCorrection(value: string, written: string) {
   return capitals ? 'majuscule' : 'diacritice';
 }
 
+export type SpellingChoice = { corrected: string; written: string; keptWritten: boolean };
+
+// The document's spelling the member keeps is stored as their value, beside the option it spells.
 // Into an existing client, the client's own value stands where it is kept or the same.
-export function fieldSpelling(state: FieldState): string | null {
-  if (state.edited || state.option === null || state.status !== 'value') return null;
+export function fieldSpelling(
+  state: FieldState,
+  change: FieldChange | undefined
+): SpellingChoice | null {
+  if (state.status !== 'value' || state.anaf) return null;
   if (state.comparison === 'kept' || state.comparison === 'same') return null;
-  return state.options[state.option]?.spelling ?? null;
+  if (!state.edited) {
+    const written = state.option === null ? undefined : state.options[state.option]?.spelling;
+    return written ? { corrected: String(state.value), written, keptWritten: false } : null;
+  }
+  const index =
+    change?.option ??
+    (state.own.length === 1 ? state.own[0] : state.own.length === 0 && change?.included ? 0 : null);
+  const option = index === null || index === undefined ? undefined : state.options[index];
+  if (!option?.spelling || change?.value !== option.spelling) return null;
+  return { corrected: String(option.value), written: option.spelling, keptWritten: true };
 }
 
-export type ItemSpelling = { field: string; value: string; written: string };
+export type ItemSpelling = { field: string; value: string; written: string; keptWritten: boolean };
 
 export function itemSpellings(state: ItemState, changes: Changes): ItemSpelling[] {
   const written = changes.items[state.item.id]?.values ?? {};
   return Object.entries((state.item.spelling ?? {}) as Record<string, string>).flatMap(
-    ([field, spelling]) => {
+    ([field, spelling]): ItemSpelling[] => {
       const value = state.item[field];
-      return field in written || typeof value !== 'string'
+      if (typeof value !== 'string') return [];
+      const keptWritten = written[field] === spelling;
+      return field in written && !keptWritten
         ? []
-        : [{ field, value, written: spelling }];
+        : [{ field, value, written: spelling, keptWritten }];
     }
   );
 }
@@ -495,13 +512,61 @@ export type FieldState = {
   // Into an existing client: what the app has, and whether the documents' value replaces it.
   existing: string | number | null;
   comparison: 'none' | 'added' | 'same' | 'kept' | 'replaced';
+  // A new client's name where ANAF registers the CUI under another than the documents give.
+  anaf: AnafName | null;
 };
 
+// `picked` is null while ANAF's name stands by default.
+export type AnafName = {
+  name: string;
+  documents: string | number;
+  documentsOption: number;
+  picked: 'anaf' | 'documents' | null;
+};
+
+const legalNameDiffers = (proposal: Proposal, registered: RegisteredCompany) =>
+  proposal.flags.some(
+    (flag) =>
+      flag.path === 'client.legalName' &&
+      flag.code === 'legal_name_differs' &&
+      flag.detail === registered.legalName
+  );
+
+/** ANAF's name offered against the documents' one, as the API's payload takes it by default. */
+function anafName(
+  proposal: Proposal,
+  changes: Changes,
+  registered: RegisteredCompany | null | undefined
+): AnafName | null {
+  if (!registered || !legalNameDiffers(proposal, registered)) return null;
+  const { options } = proposedField(proposal, 'client.legalName');
+  const own = options.flatMap((option, index) => (option.otherCompanyName === null ? [index] : []));
+  if (own.length !== 1) return null;
+  const cui = fieldState(proposal, changes, 'client.cui').value;
+  if (cui === null || bareCui(cui) !== registered.cui) return null;
+  const change = changes.fields['client.legalName'];
+  const documentsOption = own[0]!;
+  const offer = {
+    name: registered.legalName,
+    documents: options[documentsOption]!.value,
+    documentsOption,
+  };
+  if (change?.value !== undefined) {
+    return change.value === registered.legalName ? { ...offer, picked: 'anaf' } : null;
+  }
+  if (change?.option !== undefined) {
+    return change.option === documentsOption ? { ...offer, picked: 'documents' } : null;
+  }
+  return change?.included === false ? null : { ...offer, picked: null };
+}
+
+// `registered` is ANAF's company for a new client, whose name stands in for the documents' one.
 export function fieldState(
   proposal: Proposal,
   changes: Changes,
   path: string,
-  existing?: string | number | null
+  existing?: string | number | null,
+  registered?: RegisteredCompany | null
 ): FieldState {
   const { options } = proposedField(proposal, path);
   const change = changes.fields[path];
@@ -543,6 +608,15 @@ export function fieldState(
       : status === 'choice' || status === 'missing'
         ? options.flatMap((each) => each.sources)
         : [];
+  const anaf =
+    path === 'client.legalName' && existing === undefined
+      ? anafName(proposal, changes, registered)
+      : null;
+  if (anaf && anaf.picked !== 'documents') {
+    value = anaf.name;
+    option = null;
+    edited = false;
+  }
   let comparison: FieldState['comparison'] = 'none';
   if (existing !== undefined) {
     if (isEmpty(existing)) comparison = value !== null ? 'added' : 'none';
@@ -563,6 +637,7 @@ export function fieldState(
     otherCompanyName: shown !== null ? (options[shown]?.otherCompanyName ?? null) : null,
     existing: existing ?? null,
     comparison,
+    anaf,
   };
 }
 
@@ -642,7 +717,9 @@ export function itemStates(proposal: Proposal, changes: Changes, list: ItemList)
       included: change?.included ?? reason === null,
       proposed: reason === null,
       untickedReason: reason,
-      edited: Object.keys(written).length > 0,
+      edited: Object.entries(written).some(
+        ([field, value]) => value !== (item.spelling as Record<string, string> | undefined)?.[field]
+      ),
     };
   });
 }
@@ -715,6 +792,23 @@ const itemFieldLabels: Record<string, string> = {
 };
 
 export const itemFieldLabel = (field: string) => itemFieldLabels[field] ?? field;
+
+const spellingLabels: Record<string, string> = {
+  name: 'Denumire',
+  activity: 'Activitate',
+  workZone: 'Zona de lucru',
+  activities: 'Activități',
+  item: 'Articol',
+  risk: 'Risc',
+  room: 'Încăpere',
+  assemblyPoint: 'Punctul de adunare',
+  combustibleMaterials: 'Materiale combustibile',
+  ignitionSources: 'Surse de aprindere',
+  fireRiskEquipment: 'Echipamente și mijloace de lucru',
+  specificMeasures: 'Măsuri specifice',
+};
+
+export const itemSpellingLabel = (field: string) => spellingLabels[field] ?? itemFieldLabel(field);
 
 export type Blocker = {
   path: string;
@@ -832,7 +926,10 @@ const bareCui = (value: unknown) =>
     .replace(/^RO/i, '')
     .trim();
 
-/** ANAF's company when the CUI is another firm's than the name the review now holds. */
+/**
+ * ANAF's company when the CUI is another firm's than the name the review now holds, or while a new
+ * client's name waits for the member to weigh ANAF's against the documents'.
+ */
 export function anafMismatch(
   proposal: Proposal,
   changes: Changes,
@@ -841,7 +938,9 @@ export function anafMismatch(
   if (!registered) return null;
   const cui = fieldState(proposal, changes, 'client.cui').value;
   if (cui !== null && bareCui(cui) !== registered.cui) return null;
-  const name = fieldState(proposal, changes, 'client.legalName').value;
+  const state = fieldState(proposal, changes, 'client.legalName', undefined, registered);
+  if (state.anaf) return state.anaf.picked === null ? registered : null;
+  const name = state.value;
   if (name === null || sameCompanyName(String(name), registered.legalName)) return null;
   return registered;
 }
@@ -1029,10 +1128,6 @@ export function flagsAt(proposal: Proposal, prefix: string) {
   return proposal.flags.filter(
     (flag) => flag.path === prefix || flag.path.startsWith(`${prefix}.`)
   );
-}
-
-export function sourceFilesCount(sources: Source[]) {
-  return new Set(sources.map((source) => source.file)).size;
 }
 
 // A passage that proves several values is shown once, naming all of them.

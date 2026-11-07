@@ -1,3 +1,4 @@
+import type { ImportChanges } from '@ssm-usor/contracts';
 import { type Proposal, type Reading, toProposal, withChecks } from '@ssm-usor/import';
 import { describe, expect, it } from 'vitest';
 
@@ -338,6 +339,57 @@ describe('toClientPayload', () => {
       cui: '1590082',
       vat_payer: true,
     });
+  });
+
+  it("takes ANAF's name where the documents name the CUI's firm otherwise, unless the member takes theirs", () => {
+    const registeredCompany = {
+      cui: '12345674',
+      legalName: 'PANIFICAȚIA NOUĂ S.R.L.',
+      vatPayer: false,
+      inactive: false,
+    };
+    const differing: Proposal = {
+      ...proposalOf(reading()),
+      flags: [
+        {
+          path: 'client.legalName',
+          code: 'legal_name_differs',
+          detail: registeredCompany.legalName,
+        },
+      ],
+    };
+    const mapped = (
+      fields: ImportChanges['fields'],
+      { proposal = differing, intoExistingClient = false } = {}
+    ) =>
+      toClientPayload({
+        proposal,
+        changes: { fields, items: {} },
+        intoExistingClient,
+        existing: noExistingRecords,
+        registeredCompany,
+      }).payload;
+
+    expect(mapped({}).client.legal_name).toBe('PANIFICAȚIA NOUĂ S.R.L.');
+    expect(mapped({}).quality.client.changed).toBe(0);
+    expect(
+      mapped({ 'client.legalName': { value: 'PANIFICAȚIA NOUĂ S.R.L.' } }).client.legal_name
+    ).toBe('PANIFICAȚIA NOUĂ S.R.L.');
+    expect(mapped({ 'client.legalName': { option: 0 } }).client.legal_name).toBe(
+      'BRUTĂRIA FICTIVĂ S.R.L.'
+    );
+    expect(mapped({ 'client.legalName': { value: 'Brutăria Mea S.R.L.' } }).client.legal_name).toBe(
+      'Brutăria Mea S.R.L.'
+    );
+    expect(mapped({ 'client.cui': { value: '1590082' } }).client.legal_name).toBe(
+      'BRUTĂRIA FICTIVĂ S.R.L.'
+    );
+    expect(mapped({}, { proposal: proposalOf(reading()) }).client.legal_name).toBe(
+      'BRUTĂRIA FICTIVĂ S.R.L.'
+    );
+    expect(mapped({}, { intoExistingClient: true }).client.legal_name).toBe(
+      'BRUTĂRIA FICTIVĂ S.R.L.'
+    );
   });
 
   it('applies what the member chose, wrote, ticked and unticked, and counts it without values', () => {

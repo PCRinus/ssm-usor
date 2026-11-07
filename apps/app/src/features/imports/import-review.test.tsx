@@ -269,12 +269,23 @@ describe('the review hub', () => {
 });
 
 describe('a section of the review', () => {
-  it('puts the choice first and saves each decision on the version the last save answered', async () => {
+  it('asks for the choice in its row and saves each decision on the version the last save answered', async () => {
     mockReview(readyDetail());
     mount('/identity');
 
     const choice = await screen.findByTestId('review-choice');
-    expect(choice.textContent).toContain('Alege reprezentantul legal');
+    expect(choice.textContent).toContain('Reprezentant legal');
+    expect(choice.textContent).toContain('Documentele dau 2 variante');
+    const representative = (await screen.findAllByTestId('review-group')).find((group) =>
+      group.textContent?.includes('Semnează documentele clientului')
+    )!;
+    expect(within(representative).getByTestId('review-group-pending').textContent).toBe(
+      'Mai ai de ales reprezentantul legal'
+    );
+    expect(within(choice).getByRole('radio', { name: /^Decizie 1\.docx/ })).toBeTruthy();
+    expect(
+      within(choice).getByRole('radio', { name: /^Contract prestari SSM 2019\.pdf/ })
+    ).toBeTruthy();
     await userEvent.click(within(choice).getByRole('radio', { name: /Ioana Mureșan/ }));
     await waitFor(() => expect(saves).toBe(1));
     expect(savedChanges(0)).toEqual({
@@ -300,7 +311,36 @@ describe('a section of the review', () => {
     });
   });
 
-  it('turns a group into its form in place, and marks the value changed', async () => {
+  it('names the files a choice comes from, the first one and how many more', async () => {
+    const proposal = proposalFixture();
+    const files = (count: number, first: string) =>
+      Array.from({ length: count }, (_, index) => ({
+        file: index === 0 ? first : `dosar-ssm.zip/Anexa ${index}.pdf (pagina 2)`,
+        quote: 'Salubris SA',
+      }));
+    proposal.fireSafety.wasteContractor.options[0]!.sources = files(
+      3,
+      'dosar-ssm.zip/PSI/Decizie privind organizarea activității de apărare împotriva incendiilor 2.1.docx'
+    );
+    proposal.fireSafety.wasteContractor.options[1]!.sources = files(21, 'b.pdf');
+    mockReview(readyDetail({ proposal }));
+    mount('/fire-safety');
+
+    const choice = (await screen.findAllByTestId('review-choice')).find((each) =>
+      each.textContent?.includes('Firma de salubritate')
+    )!;
+    const [three, many] = within(choice)
+      .getAllByRole('radio')
+      .slice(0, 2)
+      .map((radio) => radio.closest('[data-checked]') as HTMLElement);
+    const long =
+      'Decizie privind organizarea activității de apărare împotriva incendiilor 2.1.docx';
+    expect(three!.textContent).toContain(`${long} și încă 2 fișiere: Anexa 1.pdf, Anexa 2.pdf`);
+    expect(within(three!).getByTitle(`${long}, Anexa 1.pdf, Anexa 2.pdf`)).toBeTruthy();
+    expect(many!.textContent).toContain('b.pdf și încă 20 de fișiere');
+  });
+
+  it('opens only the field changed, marked as the one open, and marks the value changed', async () => {
     mockReview(readyDetail());
     mount('/identity');
 
@@ -311,17 +351,46 @@ describe('a section of the review', () => {
       .getAllByTestId('review-row')
       .find((row) => row.textContent?.includes('Telefon'))!;
     await userEvent.click(within(phoneRow).getByTestId('review-edit'));
-    const phone = within(contact).getByTestId('client-contact-phone');
+
+    const open = within(contact).getByTestId('review-row-editing');
+    expect(open.textContent).toContain('Schimbi acum');
+    expect(within(contact).getAllByTestId('review-group-form')).toHaveLength(1);
+    expect(within(contact).queryByTestId('review-input-contactName')).toBeNull();
+    expect(within(contact).queryByTestId('review-input-contactEmail')).toBeNull();
+    const phone = within(open).getByTestId('review-input-contactPhone');
+    expect(document.activeElement).toBe(phone);
     await userEvent.clear(phone);
     await userEvent.type(phone, '0745 218 903');
-    await userEvent.click(within(contact).getByTestId('review-group-save'));
+    await userEvent.click(within(open).getByTestId('review-group-save'));
 
     await waitFor(() => expect(saves).toBe(1));
     expect(savedChanges(0).changes.fields).toEqual({
       'client.contactPhone': { value: '0745 218 903' },
     });
     expect(await within(contact).findByTestId('edited-tag')).toBeTruthy();
-    expect(contact.textContent).toContain('Propus din documente: 0269 214 377');
+    expect(within(contact).queryByTestId('review-row-editing')).toBeNull();
+    expect(contact.textContent).toContain('Din documente: 0269 214 377');
+  });
+
+  it('keeps a value the member rewrites only in capitals as theirs', async () => {
+    mockReview(readyDetail());
+    mount('/identity');
+
+    const groups = await screen.findAllByTestId('review-group');
+    const company = groups.find((group) => group.textContent?.includes('Date firmă'))!;
+    const addressRow = within(company)
+      .getAllByTestId('review-row')
+      .find((row) => row.textContent?.includes('Adresă'))!;
+    await userEvent.click(within(addressRow).getByTestId('review-edit'));
+    const address = within(company).getByTestId('review-input-addressLine');
+    await userEvent.clear(address);
+    await userEvent.type(address, 'STR. MORILOR NR. 14');
+    await userEvent.click(within(company).getByTestId('review-group-save'));
+
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({
+      'client.addressLine': { value: 'STR. MORILOR NR. 14' },
+    });
   });
 
   const validCuiDetail = (vatPayer: boolean) => {
@@ -500,7 +569,7 @@ function legalNameChoice() {
 
 const legalNameBlock = async () =>
   (await screen.findAllByTestId('review-choice')).find((each) =>
-    each.textContent?.includes('Alege denumirea')
+    each.textContent?.includes('Denumire')
   )!;
 
 describe('the name of a new client', () => {
@@ -516,6 +585,100 @@ describe('the name of a new client', () => {
     await waitFor(() =>
       expect(section.textContent).toContain('Spicul Auriu Panificație SRL. Valorile se preiau')
     );
+  });
+});
+
+describe("a new client's name ANAF registers otherwise", () => {
+  const anafDetail = () => {
+    const proposal = proposalFixture();
+    proposal.flags = [
+      { path: 'client.legalName', code: 'legal_name_differs', detail: 'PANIFICAȚIA NOUĂ SRL' },
+    ] as typeof proposal.flags;
+    return readyDetail({
+      proposal,
+      blockers: [],
+      registeredCompany: {
+        cui: '31458207',
+        legalName: 'PANIFICAȚIA NOUĂ SRL',
+        vatPayer: true,
+        inactive: false,
+      },
+    });
+  };
+
+  it("takes ANAF's name by default, and the documents' only when picked", async () => {
+    mockReview(anafDetail());
+    mount('/identity');
+
+    const row = await screen.findByTestId('review-anaf-choice');
+    const section = screen.getByTestId('import-review-section');
+    expect(section.textContent).toContain('PANIFICAȚIA NOUĂ SRL. Valorile se preiau');
+    expect(row.textContent).toContain(
+      'Documentele dau altă denumire decât ANAF pentru CUI-ul 31458207'
+    );
+    const anaf = within(row).getByRole('radio', { name: /La ANAF, pentru CUI 31458207/ });
+    expect((anaf as HTMLInputElement).checked).toBe(true);
+    expect(within(row).getByTestId('review-anaf-pick').textContent).toContain('Intră în documente');
+    expect(row.textContent).toContain('Am ales denumirea de la ANAF');
+    const company = screen
+      .getAllByTestId('review-group')
+      .find((group) => group.textContent?.includes('Date firmă'))!;
+    expect(within(company).getByTestId('review-group-pending').textContent).toBe(
+      'Mai ai de văzut denumirea'
+    );
+    expect(screen.queryByTestId('review-anaf-mismatch')).toBeNull();
+
+    await userEvent.click(anaf);
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({
+      'client.legalName': { value: 'PANIFICAȚIA NOUĂ SRL' },
+    });
+    await waitFor(() =>
+      expect(within(company).getByTestId('review-group-pending').textContent).toBe(
+        'Gata de confirmat'
+      )
+    );
+    expect(row.textContent).not.toContain('Am ales denumirea de la ANAF');
+
+    await userEvent.click(within(row).getByRole('radio', { name: /În documente/ }));
+    await waitFor(() => expect(saves).toBe(2));
+    expect(savedChanges(1).changes.fields).toEqual({ 'client.legalName': { option: 0 } });
+    await waitFor(() =>
+      expect(section.textContent).toContain('Brutăria Spicul Auriu SRL. Valorile se preiau')
+    );
+    expect(within(row).getByTestId('review-documents-pick').textContent).toContain(
+      'Intră în documente'
+    );
+  });
+
+  it("names the client by ANAF's name on the hub until the documents' is picked", async () => {
+    mockReview(anafDetail());
+    mount();
+
+    await screen.findByTestId('import-review-hub');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('PANIFICAȚIA NOUĂ SRL');
+    const identity = screen
+      .getAllByTestId('import-section-link')
+      .find((link) => link.dataset.section === 'identity')!;
+    expect(identity.textContent).toContain(
+      'Documentele dau altă denumire decât ANAF. Am ales-o pe cea de la ANAF.'
+    );
+  });
+
+  it("edits the name as ANAF gives it, and keeps the documents' when written back", async () => {
+    mockReview(anafDetail());
+    mount('/identity');
+
+    const row = await screen.findByTestId('review-anaf-choice');
+    await userEvent.click(within(row).getByTestId('review-edit'));
+    const input = screen.getByTestId('review-input-legalName') as HTMLInputElement;
+    expect(input.value).toBe('PANIFICAȚIA NOUĂ SRL');
+    await userEvent.clear(input);
+    await userEvent.type(input, 'Brutăria Spicul Auriu SRL');
+    await userEvent.click(screen.getByTestId('review-group-save'));
+
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({ 'client.legalName': { option: 0 } });
   });
 });
 
@@ -597,7 +760,7 @@ describe('another value than the documents give', () => {
     mount('/identity');
 
     const choice = (await screen.findAllByTestId('review-choice')).find((each) =>
-      each.textContent?.includes('Alege CUI-ul')
+      each.textContent?.includes('CUI')
     )!;
     await userEvent.click(within(choice).getByRole('radio', { name: /Altă valoare/ }));
     const input = within(choice).getByTestId('review-other-value');
@@ -1223,11 +1386,13 @@ describe('completing an existing client (E2)', () => {
 
     await userEvent.click(within(kept).getByRole('link', { name: 'Telefon' }));
     const differs = await screen.findByTestId('review-differs-row');
-    expect(differs.textContent).toContain('Rămâne 0269 214 300 (din aplicație)');
-    expect(differs.textContent).toContain(
-      'În documente: 0269 214 377, din Contract prestari SSM 2019.pdf'
+    const app = within(differs).getByRole('radio', { name: /În aplicație/ });
+    expect((app as HTMLInputElement).checked).toBe(true);
+    expect(within(differs).getByTestId('review-keep-app').textContent).toContain('0269 214 300');
+    expect(within(differs).getByTestId('review-use-documents').textContent).toContain(
+      '0269 214 377'
     );
-    await userEvent.click(within(differs).getByTestId('review-use-documents'));
+    await userEvent.click(within(differs).getByRole('radio', { name: /În documente/ }));
     await waitFor(() => expect(saves).toBe(1));
     expect(savedChanges(0).changes.fields).toEqual({
       'client.contactPhone': { replace: true },
@@ -1467,7 +1632,10 @@ describe('a value proposed with its spelling corrected', () => {
     return readyDetail({ proposal });
   };
 
-  it('shows the corrected value beside the document’s, and keeps the document’s at one click', async () => {
+  const checked = (scope: HTMLElement, name: RegExp) =>
+    (within(scope).getByRole('radio', { name }) as HTMLInputElement).checked;
+
+  it('offers the corrected value over the document’s, one above the other, and takes either', async () => {
     mockReview(spellingDetail());
     mount('/job-positions');
 
@@ -1476,14 +1644,15 @@ describe('a value proposed with its spelling corrected', () => {
     )!;
     const [name, zone] = within(row).getAllByTestId('review-spelling');
     expect(name!.textContent).toBe(
-      'Denumire:Propus: Îngrijitor hotelÎn document: INGRIJITOR HOTELScrierea corectată: majuscule și diacriticePăstrează ca în document'
+      'Scrierea corectată: majuscule și diacriticeScrierea corectatăIntră în documenteÎngrijitor hotelCa în documentINGRIJITOR HOTEL'
     );
+    expect(checked(name!, /Scrierea corectată/)).toBe(true);
     expect(markedWords(name!)).toEqual(['Îngrijitor', 'INGRIJITOR']);
     expect(zone!.textContent).toContain('Scrierea corectată: majuscule');
     expect(zone!.textContent).not.toContain('diacritice');
     expect(markedWords(zone!)).toEqual([]);
 
-    await userEvent.click(within(name!).getByRole('button', { name: 'Păstrează ca în document' }));
+    await userEvent.click(within(name!).getByRole('radio', { name: /Ca în document/ }));
     await waitFor(() => expect(saves).toBe(1));
     expect(savedChanges(0).changes.items).toEqual({
       'position-1': { values: { name: 'INGRIJITOR HOTEL' } },
@@ -1491,8 +1660,9 @@ describe('a value proposed with its spelling corrected', () => {
     const kept = screen
       .getAllByTestId('review-item')
       .find((item) => item.textContent?.includes('INGRIJITOR HOTEL'))!;
-    expect(within(kept).getAllByTestId('review-spelling')).toHaveLength(1);
-    expect(within(kept).getByTestId('edited-tag')).toBeTruthy();
+    const [keptName] = within(kept).getAllByTestId('review-spelling');
+    expect(checked(keptName!, /Ca în document/)).toBe(true);
+    expect(within(kept).queryByTestId('edited-tag')).toBeNull();
 
     await userEvent.click(within(kept).getByTestId('review-edit'));
     const dialog = await screen.findByTestId('job-position-dialog');
@@ -1502,27 +1672,58 @@ describe('a value proposed with its spelling corrected', () => {
     expect(savedChanges(1).changes.items['position-1']).toEqual({
       values: { name: 'INGRIJITOR HOTEL', activities: 'Frământare și coacere, curățenie' },
     });
+
+    await userEvent.click(within(keptName!).getByRole('radio', { name: /Scrierea corectată/ }));
+    await waitFor(() => expect(saves).toBe(3));
+    expect(savedChanges(2).changes.items['position-1']).toEqual({
+      values: { activities: 'Frământare și coacere, curățenie' },
+    });
   });
 
-  it('keeps the document’s spelling of a single value as the member’s', async () => {
+  it('keeps the document’s spelling of a single value at a choice, and goes back to the corrected one', async () => {
     mockReview(spellingDetail());
     mount('/fire-safety');
 
     await screen.findByText('Locul pentru fumat');
     const row = document.getElementById('review-fireSafety-smokingPlace')!;
-    expect(within(row).getByTestId('review-spelling').textContent).toContain(
-      'Scrierea corectată: diacritice'
-    );
-    expect(markedWords(within(row).getByTestId('review-spelling'))).toEqual(['În', 'In']);
+    const spelling = within(row).getByTestId('review-spelling');
+    expect(spelling.textContent).toContain('Scrierea corectată: diacritice');
+    expect(markedWords(spelling)).toEqual(['În', 'In']);
+    expect(row.textContent?.match(/Locul pentru fumat/g)).toHaveLength(1);
 
-    await userEvent.click(within(row).getByRole('button', { name: 'Păstrează ca în document' }));
+    await userEvent.click(within(row).getByRole('radio', { name: /Ca în document/ }));
     await waitFor(() => expect(saves).toBe(1));
     expect(savedChanges(0).changes.fields).toEqual({
       'fireSafety.smokingPlace': { value: 'In curte' },
     });
-    await waitFor(() => expect(within(row).queryByTestId('review-spelling')).toBeNull());
-    expect(within(row).getByTestId('edited-tag')).toBeTruthy();
-    expect(row.textContent).toContain('Propus din documente: În curte');
+    await waitFor(() => expect(checked(row, /Ca în document/)).toBe(true));
+    expect(within(row).queryByTestId('edited-tag')).toBeNull();
+    expect(row.textContent).not.toContain('Din documente');
+
+    await userEvent.click(within(row).getByRole('radio', { name: /Scrierea corectată/ }));
+    await waitFor(() => expect(saves).toBe(2));
+    expect(savedChanges(1).changes.fields).toEqual({});
+    await waitFor(() => expect(checked(row, /Scrierea corectată/)).toBe(true));
+  });
+
+  it('lists the corrections of the other sections at the end of the first', async () => {
+    mockReview({ ...spellingDetail(), blockers: [] });
+    mount('/identity');
+
+    const others = await screen.findByTestId('review-other-sections');
+    const rows = within(others).getAllByTestId('review-other-section');
+    expect(rows.map((row) => row.textContent)).toEqual([
+      expect.stringContaining('Posturi de lucru'),
+      expect.stringContaining('Apărarea împotriva incendiilor'),
+    ]);
+    expect(rows[0]!.textContent).toContain('2 corecturi de scriere');
+    expect(rows[1]!.textContent).toContain(
+      'Reguli de apărare împotriva incendiilor · locul pentru fumat'
+    );
+    expect(markedWords(rows[1]!)).toEqual(['În', 'In']);
+    expect(
+      within(rows[1]!).getByTestId('review-other-section-open').getAttribute('href')
+    ).toContain('/fire-safety#review-fireSafety-smokingPlace');
   });
 
   it('sums up the hub with the corrected value', async () => {

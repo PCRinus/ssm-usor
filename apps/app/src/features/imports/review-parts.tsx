@@ -1,10 +1,12 @@
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { Check, FileSearch, Pencil, ShieldCheck } from 'lucide-react';
-import { type ComponentProps, type ReactNode, use, useEffect, useRef } from 'react';
+import { Check, FileSearch, Pencil, ShieldCheck, SpellCheck } from 'lucide-react';
+import { type ComponentProps, type ReactNode, use, useEffect, useId, useRef } from 'react';
 
+import { filesLabel } from './import-format';
 import { type LabelledSource, type SectionStatus, spellingCorrection } from './review-model';
+import { requestFileName } from './source-match';
 import { SourcePrefetchContext } from './source-query';
 import { type DiffRun, spellingDiff } from './spelling-diff';
 
@@ -110,8 +112,8 @@ const pointerIntentMs = 130;
 export function SourceButton({
   sources,
   onOpen,
-  label = 'Sursa',
-  outlined = false,
+  label = 'Vezi în document',
+  outlined = true,
 }: {
   sources: LabelledSource[];
   onOpen: () => void;
@@ -219,11 +221,18 @@ export function ReviewCard({
   );
 }
 
-export function EditButton({ onClick }: { onClick: () => void }) {
+export function EditButton({
+  onClick,
+  label = 'Schimbă',
+}: {
+  onClick: () => void;
+  label?: string;
+}) {
   return (
-    <LinkButton data-testid="review-edit" onClick={onClick}>
-      Schimbă
-    </LinkButton>
+    <Button type="button" variant="outline" data-testid="review-edit" onClick={onClick}>
+      <Pencil aria-hidden="true" />
+      {label}
+    </Button>
   );
 }
 
@@ -247,38 +256,184 @@ function DiffText({ runs, markClassName }: { runs: DiffRun[]; markClassName: str
   );
 }
 
-export function SpellingPair({
+export function PickList({
+  labelledBy,
   label,
-  value,
-  written,
-  onKeep,
+  children,
+  testId,
 }: {
+  labelledBy?: string;
   label?: string;
-  value: string;
-  written: string;
-  onKeep: () => void;
+  children: ReactNode;
+  testId?: string;
 }) {
-  const diff = spellingDiff(value, written);
+  return (
+    <div
+      role="radiogroup"
+      aria-labelledby={labelledBy}
+      aria-label={label}
+      className="grid gap-2"
+      data-testid={testId}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function PickOption({
+  name,
+  checked,
+  onPick,
+  heading,
+  action,
+  below,
+  testId,
+  inDocuments = checked,
+  children,
+}: {
+  name: string;
+  checked: boolean;
+  onPick: () => void;
+  heading: ReactNode;
+  action?: ReactNode;
+  below?: ReactNode;
+  testId?: string;
+  // False while a value the member is writing is not saved yet.
+  inDocuments?: boolean;
+  children?: ReactNode;
+}) {
+  const id = useId();
+  return (
+    <div
+      data-testid={testId}
+      data-checked={checked}
+      className="grid grid-cols-[1rem_minmax(0,1fr)] items-start gap-x-2.5 gap-y-2 rounded-[10px] border bg-background/60 px-3 py-2.5 has-checked:border-primary has-checked:bg-card has-checked:ring-1 has-checked:ring-primary sm:grid-cols-[1rem_minmax(0,1fr)_auto]"
+    >
+      <input
+        id={id}
+        type="radio"
+        name={name}
+        className="mt-0.5 size-4 cursor-pointer accent-primary"
+        checked={checked}
+        onChange={onPick}
+        // A checked radio fires no change, and picking the preselected one is what settles it.
+        onClick={checked ? onPick : undefined}
+      />
+      <label htmlFor={id} className="grid min-w-0 cursor-pointer gap-1">
+        <span className="flex min-h-5 flex-wrap items-center gap-2 text-[12.5px] font-semibold text-muted-foreground">
+          {heading}
+          {checked && inDocuments && (
+            <span className="inline-flex h-5 items-center gap-1 rounded-[5px] bg-primary px-1.5 text-[11.5px] font-semibold text-primary-foreground">
+              <Check className="size-3" strokeWidth={3} aria-hidden="true" />
+              Intră în documente
+            </span>
+          )}
+        </span>
+        {children && <span className="text-sm wrap-anywhere text-foreground">{children}</span>}
+      </label>
+      {action && <div className="col-start-2 sm:col-start-auto sm:self-center">{action}</div>}
+      {below && <div className="col-[2/-1] min-w-0">{below}</div>}
+    </div>
+  );
+}
+
+export function SourceFileNames({ sources }: { sources: LabelledSource[] }) {
+  const names = [...new Set(sources.map((source) => requestFileName(source.file)))];
+  if (names.length === 0) return 'În documente';
+  const others = names.slice(1);
+  return (
+    <span className="flex max-w-full min-w-0" title={names.join(', ')}>
+      <span className="truncate">{names[0]}</span>
+      {others.length > 0 && (
+        <span className="shrink-0 whitespace-pre">
+          {` și încă ${filesLabel(others.length)}`}
+          <span className="sr-only">: {others.join(', ')}</span>
+        </span>
+      )}
+    </span>
+  );
+}
+
+export function KindLine({
+  icon,
+  tone,
+  children,
+}: {
+  icon: ReactNode;
+  tone?: 'warning';
+  children: ReactNode;
+}) {
   return (
     <span
-      className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]"
-      data-testid="review-spelling"
+      className={cn(
+        'flex items-start gap-1.5 text-[13px] [&>svg]:mt-0.5 [&>svg]:size-3.5 [&>svg]:shrink-0',
+        tone === 'warning' ? 'font-semibold text-warning-foreground' : 'text-muted-foreground'
+      )}
     >
-      {label && <span className="text-muted-foreground">{label}:</span>}
-      <span className="rounded-md border border-success-border bg-success px-1.5 py-0.5 text-success-foreground wrap-anywhere">
-        <span className="sr-only">Propus: </span>
-        <DiffText runs={diff.value} markClassName="bg-success-border" />
-      </span>
-      <span className="rounded-md border border-destructive-border bg-destructive-soft px-1.5 py-0.5 text-destructive-foreground wrap-anywhere">
-        <span className="sr-only">În document: </span>
-        <DiffText runs={diff.written} markClassName="bg-destructive-border" />
-      </span>
-      <span className="text-muted-foreground">
-        Scrierea corectată: {spellingCorrection(value, written)}
-      </span>
-      <LinkButton className="text-[13px]" onClick={onKeep}>
-        Păstrează ca în document
-      </LinkButton>
+      {icon}
+      {children}
     </span>
+  );
+}
+
+export function SpellingPill({ runs, written }: { runs: DiffRun[]; written: boolean }) {
+  return (
+    <span
+      className={cn(
+        'inline-block w-fit max-w-full rounded-md border px-1.5 py-0.5 text-[13px]',
+        written
+          ? 'border-destructive-border bg-destructive-soft text-destructive-foreground'
+          : 'border-success-border bg-success text-success-foreground'
+      )}
+    >
+      <DiffText
+        runs={runs}
+        markClassName={written ? 'bg-destructive-border' : 'bg-success-border'}
+      />
+    </span>
+  );
+}
+
+export function SpellingChoice({
+  label,
+  corrected,
+  written,
+  keptWritten,
+  onPick,
+}: {
+  label: string;
+  corrected: string;
+  written: string;
+  keptWritten: boolean;
+  onPick: (keepWritten: boolean) => void;
+}) {
+  const name = useId();
+  const diff = spellingDiff(corrected, written);
+  return (
+    <div className="grid gap-1.5" data-testid="review-spelling">
+      <KindLine icon={<SpellCheck aria-hidden="true" />}>
+        Scrierea corectată: {spellingCorrection(corrected, written)}
+      </KindLine>
+      <PickList label={label}>
+        <PickOption
+          name={name}
+          checked={!keptWritten}
+          onPick={() => onPick(false)}
+          heading="Scrierea corectată"
+          testId="review-spelling-corrected"
+        >
+          <SpellingPill runs={diff.value} written={false} />
+        </PickOption>
+        <PickOption
+          name={name}
+          checked={keptWritten}
+          onPick={() => onPick(true)}
+          heading="Ca în document"
+          testId="review-spelling-written"
+        >
+          <SpellingPill runs={diff.written} written />
+        </PickOption>
+      </PickList>
+    </div>
   );
 }

@@ -216,6 +216,40 @@ export function resolveField(field: Field<Value>, change: FieldChange | undefine
   return none;
 }
 
+const bareCui = (value: unknown) =>
+  String(value ?? '')
+    .replace(/^RO/i, '')
+    .trim();
+
+/**
+ * ANAF's name for a new client whose documents name the CUI's firm otherwise, as the review
+ * preselects it: the member takes the documents' name by choosing its option.
+ */
+export function anafLegalName(
+  proposal: Proposal,
+  changes: ImportChanges,
+  registered: RegisteredCompany | null | undefined
+): string | null {
+  if (!registered) return null;
+  const differs = proposal.flags.some(
+    (flag: Flag) =>
+      flag.path === 'client.legalName' &&
+      flag.code === 'legal_name_differs' &&
+      flag.detail === registered.legalName
+  );
+  if (!differs) return null;
+  const own = proposal.client.legalName.options.filter(
+    (option) => option.otherCompanyName === null
+  );
+  if (own.length !== 1) return null;
+  const cui = resolveField(proposal.client.cui, changes.fields['client.cui']).value;
+  if (cui === null || bareCui(cui) !== registered.cui) return null;
+  const change = changes.fields['client.legalName'];
+  if (change?.option !== undefined || change?.included === false) return null;
+  if (change?.value !== undefined && change.value !== registered.legalName) return null;
+  return registered.legalName;
+}
+
 // `client_fire_safety` takes a smoking place only beside designated places, and a pack whose
 // decisions disagree may carry a place from the policy the member did not choose.
 function smokingPlaceDropped(
@@ -328,10 +362,16 @@ export function toClientPayload(input: {
   const fireSafety: Row = {};
   const fireReplace: string[] = [];
   const placeDropped = smokingPlaceDropped(proposal, changes, intoExistingClient, existing);
+  const anafName = intoExistingClient
+    ? null
+    : anafLegalName(proposal, changes, input.registeredCompany);
   for (const { section, path, field } of fieldsOf(proposal)) {
     if (path === 'fireSafety.smokingPlace' && placeDropped) continue;
     const change = changes.fields[path];
-    const resolved = resolveField(field, change);
+    const resolved: Resolution =
+      path === 'client.legalName' && anafName !== null
+        ? { value: anafName, option: null, choice: false, changed: false, unticked: false }
+        : resolveField(field, change);
     if (resolved.changed) quality[section].changed++;
     if (resolved.unticked) quality[section].unticked++;
     if (resolved.choice) block(path, 'choice');

@@ -69,7 +69,12 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
   const [abandoning, setAbandoning] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const blockers = detail.blockers as Blocker[];
-  const states = fieldStates(proposal, review.changes, existing.valueAt);
+  const states = fieldStates(
+    proposal,
+    review.changes,
+    existing.valueAt,
+    detail.intoExistingClient ? null : detail.registeredCompany
+  );
   const statuses = sectionStatuses(
     proposal,
     review.changes,

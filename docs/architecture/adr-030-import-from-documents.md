@@ -5,6 +5,7 @@
 - Amended 2026-10-31: credits decided (#640): an import starts on the credits its known part needs and is charged for scanned pages as it finds them; see "Usage is counted in credits".
 - Amended by [ADR 034](adr-034-own-instructions-as-app-text.md) (accepted 2026-11-02): the own instructions are no longer only set aside; a request of their own proposes the pack's instructions for the library, confirmed after the client.
 - Amended by [ADR 037](adr-037-import-quality-and-alerts.md) (accepted 2026-11-04): every import, abandoned and failed ones included, leaves an improvement copy kept apart for 12 months; see "Where the files go".
+- Amended 2026-11-07: a new client's name defaults to ANAF's where ANAF registers the CUI under another name than the documents give, and a spelling correction is a choice with the document's spelling; see "Decision".
 
 ## Context
 
@@ -59,8 +60,9 @@ The rules the model is given, from the decisions of 2026-10-26:
 - Three values are proposed by code where no passage states them, each with a note that says why, for the member to change (2026-10-30): a staff category none of the ticked posts is in, once every ticked post has a category and the other category has an interval, as "nu se aplică"; the fire-safety training's first month and days, and a category's interval within the fire-safety range of 1 to 6 months, from the SSM schedule where the fire-safety documents give none; and "needs no protective equipment" for a post no equipment entry names whose work zone or activities are desk work (a short list of words, none of which may be joined by work on the floor, the road or a site). The fire-safety card has no "nu se aplică", so a category without SSM periodic training leaves its fire-safety interval for the member.
 - A smoking place goes with designated places only ([ADR 019](adr-019-fire-safety-stage-three.md)): the smoking policy chosen decides, and a place read from a decision the member did not choose shows as not applying and is left out, never blocking (2026-10-29).
 - The hire date comes from "admis la lucru".
-- Posts, workplaces and their activities and fire-safety texts, rooms, protective equipment and its risks, waste kinds and collectors and the smoking place are proposed with their spelling corrected, sentence case for a value in capitals (by code) and Romanian diacritics (by the model), and the document's spelling is kept beside the corrected value, for the member to keep at one click; names of people and companies, identifiers and addresses stay as written, and the legal representative's role gets sentence case only (2026-10-29).
+- Posts, workplaces and their activities and fire-safety texts, rooms, protective equipment and its risks, waste kinds and collectors and the smoking place are proposed with their spelling corrected, sentence case for a value in capitals (by code) and Romanian diacritics (by the model), and the document's spelling is kept beside the corrected value, the two stacked as a choice in which the corrected one is preselected (2026-11-07); names of people and companies, identifiers and addresses stay as written, and the legal representative's role gets sentence case only (2026-10-29).
 - Where documents disagree, both values are proposed as a choice; mandatory values that are missing are flagged.
+- Where ANAF registers a new client's CUI under another name than the documents give (`legal_name_differs`), ANAF's name is taken by default and the documents' one is the alternative the member can pick; the review and the payload decide it alike. ANAF's register is the current, legally valid name, while a pack is often years old (2026-11-07).
 
 Why the management post is unticked (2026-10-29). Legea 319/2006 protects the worker, a person employed by the employer (art. 5 lit. a). An SRL's administrator usually works under a mandate (contract de administrare): they act as the employer, are not one of its workers, and need no post, evaluation or training sheet. A pack still often evaluates "Administrator – conducerea firmei", and a ticked post with nobody on it then shows as missing equipment, instructions and evaluation. An administrator may also be an employee (Legea 31/1990 art. 196^1 (3)), and then their post is evaluated, so the member can tick it. When the administrator also does a trade, they fill one post that says so ([ADR 006](adr-006-job-positions.md)): a separate "Administrator – <post>" when their work and risks differ from the existing post's (driving, office work, cash and bank), or the existing post when they do exactly that job. Which of the two is the evaluator's call; the import follows what the documents evaluated, and matching people to posts belongs to the employee import.
 
@@ -128,7 +130,7 @@ The import is the exception to product scope's "no personal data in AI prompts b
 ## What is left out
 
 - Importing several clients in one upload, or a portfolio at once. One client per import, by decision.
-- An import from a list of CUIs. Identity comes from the documents; ANAF only confirms it.
+- An import from a list of CUIs. Identity comes from the documents; ANAF confirms it, and only its name stands in for a differing one.
 - REGES-Online exports as a source of employees. The export belongs to the employer's account; a provider would have to ask each client for it. It can be a later source for the same employee review.
 - Spreadsheets, drawings and e-mail files as sources.
 - Highlighting a passage on an image, or on the original Word file outside the viewer.
