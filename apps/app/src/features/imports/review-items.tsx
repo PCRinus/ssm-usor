@@ -17,8 +17,8 @@ import {
   workplaceKinds,
 } from '@ssm-usor/contracts';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
-import { CircleMinus, Copy, HardHat, UserRound } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { CircleMinus, Copy, HardHat, Split, UserRound } from 'lucide-react';
+import { type ReactNode, useId, useState } from 'react';
 
 import { WorkplaceDialog, type WorkplaceDraft } from '@/features/clients/workplace-dialog';
 import { emptyWorkplaceForm, type WorkplaceFormValues } from '@/features/clients/workplace-schema';
@@ -54,6 +54,7 @@ import {
   type ItemState,
   itemStates,
   type LabelledSource,
+  nameSpellings,
   roleLabel,
   sameValue,
   secondRegisteredOfficeNote,
@@ -63,10 +64,14 @@ import {
 import {
   EditButton,
   EditedTag,
+  KindLine,
   LinkButton,
+  PickList,
+  PickOption,
   ReviewCard,
   RowNote,
   SourceButton,
+  SourceFileNames,
   SpellingChoice,
 } from './review-parts';
 
@@ -126,6 +131,46 @@ function changedValues(state: ItemState, next: Record<string, unknown>) {
   return values;
 }
 
+function NameChoice({ state, context }: { state: ItemState; context: ItemsContext }) {
+  const name = useId();
+  const spellings = nameSpellings(context.proposal, state);
+  if (spellings.length === 0) return null;
+  return (
+    <div className="mt-1 grid gap-1.5" data-testid="review-name-spellings">
+      <KindLine icon={<Split aria-hidden="true" />}>
+        Documentele scriu numele în {spellings.length} feluri. Păstrează-l pe cel corect.
+      </KindLine>
+      <PickList label="Numele">
+        {spellings.map((spelling, index) => (
+          <PickOption
+            key={spelling.value}
+            name={name}
+            checked={state.values.fullName === spelling.value}
+            onPick={() =>
+              context.review.setItem(state.item.id, (current) => {
+                const values = Object.fromEntries(
+                  Object.entries(current.values ?? {}).filter(([key]) => key !== 'fullName')
+                );
+                if (index > 0) values.fullName = spelling.value;
+                return { ...current, values };
+              })
+            }
+            heading={<SourceFileNames sources={spelling.sources} />}
+            action={
+              <SourceButton
+                sources={spelling.sources}
+                onOpen={() => context.openSource(spelling.value, spelling.sources)}
+              />
+            }
+          >
+            {spelling.value}
+          </PickOption>
+        ))}
+      </PickList>
+    </div>
+  );
+}
+
 function ItemRow({
   state,
   context,
@@ -149,7 +194,7 @@ function ItemRow({
   const flags = flagsAt(context.proposal, prefix).filter((flag) => {
     const [, , field, role] = flag.path.split('.');
     return (
-      !['missing', 'unknown_reference'].includes(flag.code) &&
+      !['missing', 'unknown_reference', 'name_spelled_differently'].includes(flag.code) &&
       (field !== 'roles' || roles.includes(role ?? ''))
     );
   });
@@ -205,6 +250,7 @@ function ItemRow({
             </RowNote>
           );
         })}
+        <NameChoice state={state} context={context} />
         {flags.map((flag) => (
           <RowNote key={`${flag.path}-${flag.code}`}>
             {flagNote(flag, context.proposal, context.changes)}

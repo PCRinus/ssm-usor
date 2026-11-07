@@ -9545,6 +9545,7 @@ export const ImportDetailProposalFlagsItemCode = {
   unknown_reference: 'unknown_reference',
   cui_not_registered: 'cui_not_registered',
   legal_name_differs: 'legal_name_differs',
+  name_spelled_differently: 'name_spelled_differently',
 } as const;
 
 /**
@@ -10747,10 +10748,16 @@ export type ImportDetailProposalEmployeesItem = {
   hiredAt: string | null;
 };
 
+export type ImportDetailProposalFlagsItemSource = {
+  file: string;
+  quote: string;
+};
+
 export type ImportDetailProposalFlagsItem = {
   path: string;
   code: ImportDetailProposalFlagsItemCode;
   detail?: string;
+  source?: ImportDetailProposalFlagsItemSource;
 };
 
 /**

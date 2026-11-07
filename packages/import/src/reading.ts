@@ -370,6 +370,22 @@ function addOption<T extends string | number>(
   }
 }
 
+// "Smoking is forbidden on the premises" beside "allowed in the marked place at the gate" is one
+// rule, which the smoking decision's designated places already writes whole ("În afara acestor
+// locuri, fumatul este interzis…"). Without a place read, the two stay a choice.
+function joinSmokingRules(fireSafety: Record<string, Field<string | number>>) {
+  const policies = fireSafety.smokingPolicy!.options;
+  const designated = policies.find((option) => option.value === 'designated_places');
+  const forbidden = policies.find((option) => option.value === 'forbidden_everywhere');
+  const placed = fireSafety.smokingPlace!.options.some(
+    (option) => option.otherCompanyName === null
+  );
+  if (!designated || !forbidden || !placed) return;
+  if (designated.otherCompanyName !== null || forbidden.otherCompanyName !== null) return;
+  mergeSources(designated.sources, forbidden.sources);
+  policies.splice(policies.indexOf(forbidden), 1);
+}
+
 function emptyFields<const K extends string>(names: readonly K[]) {
   return Object.fromEntries(names.map((name) => [name, { options: [] }])) as unknown as Record<
     K,
@@ -554,6 +570,7 @@ export function toProposal(...readings: Reading[]): Proposal {
     const [group, name] = fact.field.split('.') as [string, string];
     addOption(groups[group]![name]!.options, { value, ...traced(fact) }, sameFactValue[fact.field]);
   }
+  joinSmokingRules(groups.fireSafety!);
 
   const list = <T>(pick: (reading: Reading) => T[]) => readings.flatMap(pick);
 
