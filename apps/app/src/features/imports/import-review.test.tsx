@@ -408,6 +408,29 @@ describe('a section of the review', () => {
     );
   });
 
+  it('shows where the section stands among the others, each step a link to its section', async () => {
+    mockReview(readyDetail());
+    mount('/job-positions');
+
+    const steps = await screen.findByRole('navigation', { name: 'Secțiunile propunerii' });
+    expect(within(steps).getByTestId('import-section-position').textContent).toBe(
+      'Secțiunea 3 din 7'
+    );
+    const links = within(steps).getAllByTestId('import-section-step');
+    expect(links).toHaveLength(7);
+    expect(links.map((link) => link.getAttribute('aria-current'))).toEqual([
+      null,
+      null,
+      'page',
+      null,
+      null,
+      null,
+      null,
+    ]);
+    expect(links[1]!.getAttribute('href')).toBe(`/clienti/import/${importId}/workplaces`);
+    expect(links[2]!.getAttribute('aria-label')).toBe('3. Posturi de lucru');
+  });
+
   it("leaves another company's post out until ticked, and edits a post in the app's dialog", async () => {
     mockReview(readyDetail());
     mount('/job-positions');
