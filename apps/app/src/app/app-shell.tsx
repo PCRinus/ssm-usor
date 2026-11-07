@@ -24,6 +24,7 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -104,59 +105,94 @@ const UpdateDialog = lazy(() =>
 // `ownerOnly`: a specialist has no leads to see (ADR 007).
 const navigation = [
   {
-    to: '/dashboard',
-    testId: 'dashboard',
-    label: 'Dashboard',
-    icon: LayoutDashboard,
-    ownerOnly: false,
+    id: 'start',
+    entries: [
+      {
+        to: '/dashboard',
+        testId: 'dashboard',
+        label: 'Dashboard',
+        icon: LayoutDashboard,
+        ownerOnly: false,
+      },
+    ],
   },
   {
-    to: '/clienti-potentiali',
-    testId: 'leads',
-    label: 'Clienți potențiali',
-    icon: Handshake,
-    ownerOnly: true,
-  },
-  { to: '/clienti', testId: 'clients', label: 'Clienți', icon: Briefcase, ownerOnly: false },
-  { to: '/angajati', testId: 'employees', label: 'Lucrători', icon: UsersRound, ownerOnly: false },
-  { to: '/semnaturi', testId: 'signatures', label: 'Semnături', icon: Signature, ownerOnly: false },
-  {
-    to: '/instructiuni',
-    testId: 'instructions',
-    label: 'Instrucțiuni proprii',
-    icon: BookOpenText,
-    ownerOnly: false,
-    children: instructionSections,
-  },
-  {
-    to: '/evaluari-de-risc',
-    testId: 'risks',
-    label: 'Evaluări de risc',
-    icon: ShieldAlert,
-    ownerOnly: false,
-  },
-  {
-    to: '/teste',
-    testId: 'tests',
-    label: 'Teste',
-    icon: ClipboardCheck,
-    ownerOnly: false,
-    children: testBankSections,
+    id: 'clients',
+    label: 'Clienții tăi',
+    entries: [
+      {
+        to: '/clienti-potentiali',
+        testId: 'leads',
+        label: 'Clienți potențiali',
+        icon: Handshake,
+        ownerOnly: true,
+      },
+      { to: '/clienti', testId: 'clients', label: 'Clienți', icon: Briefcase, ownerOnly: false },
+      {
+        to: '/angajati',
+        testId: 'employees',
+        label: 'Lucrători',
+        icon: UsersRound,
+        ownerOnly: false,
+      },
+      {
+        to: '/semnaturi',
+        testId: 'signatures',
+        label: 'Semnături',
+        icon: Signature,
+        ownerOnly: false,
+      },
+    ],
   },
   {
-    to: '/legislatie',
-    testId: 'legislatie',
-    label: 'Legislație',
-    icon: Scale,
-    ownerOnly: false,
-    children: legislationSections,
+    id: 'library',
+    label: 'Biblioteca ta',
+    entries: [
+      {
+        to: '/instructiuni',
+        testId: 'instructions',
+        label: 'Instrucțiuni proprii',
+        icon: BookOpenText,
+        ownerOnly: false,
+        children: instructionSections,
+      },
+      {
+        to: '/evaluari-de-risc',
+        testId: 'risks',
+        label: 'Evaluări de risc',
+        icon: ShieldAlert,
+        ownerOnly: false,
+      },
+      {
+        to: '/teste',
+        testId: 'tests',
+        label: 'Teste',
+        icon: ClipboardCheck,
+        ownerOnly: false,
+        children: testBankSections,
+      },
+      {
+        to: '/legislatie',
+        testId: 'legislatie',
+        label: 'Legislație',
+        icon: Scale,
+        ownerOnly: false,
+        children: legislationSections,
+      },
+    ],
   },
   {
-    to: '/organizatie',
-    testId: 'organization',
-    label: 'Organizație',
-    icon: Building2,
-    ownerOnly: false,
+    id: 'firm',
+    label: 'Firma ta',
+    entries: [
+      {
+        to: '/organizatie',
+        testId: 'organization',
+        label: 'Organizație',
+        icon: Building2,
+        ownerOnly: false,
+      },
+    ],
   },
 ] as const;
 
@@ -230,67 +266,79 @@ function AppNavigation({
   return (
     <Sidebar collapsible="icon" className="sticky top-16 bottom-auto h-[calc(100svh-4rem)]">
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <nav aria-label="Navigare principală">
-              <SidebarMenu>
-                {navigation
-                  .filter((item) => isOwner || !item.ownerOnly)
-                  .map((entry) => {
-                    const { to, testId, label, icon: Icon } = entry;
-                    const children = 'children' in entry ? entry.children : undefined;
-                    const inside = within(to);
-                    const expanded = children !== undefined && inside;
-                    return (
-                      <SidebarMenuItem key={to}>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={inside}
-                          tooltip={label}
-                          // The open group's current page carries the highlight; the parent keeps
-                          // it only in the icon rail, which hides the group.
-                          className={cn(
-                            expanded &&
-                              'data-[active=true]:bg-transparent group-data-[collapsible=icon]:data-[active=true]:bg-sidebar-accent'
-                          )}
-                        >
-                          <Link
-                            to={to}
-                            data-testid={`nav-${testId}`}
-                            aria-current={pathname === to ? 'page' : inside ? 'true' : undefined}
-                            onClick={closeOnMobile}
+        <nav aria-label="Navigare principală">
+          {navigation.map((section) => {
+            const entries = section.entries.filter((entry) => isOwner || !entry.ownerOnly);
+            const labelId = `nav-section-${section.id}`;
+            return (
+              <SidebarGroup key={section.id} className="py-1 first:pt-2 last:pb-2">
+                {'label' in section && (
+                  <SidebarGroupLabel
+                    id={labelId}
+                    className="h-6 group-data-[collapsible=icon]:-mt-6"
+                  >
+                    {section.label}
+                  </SidebarGroupLabel>
+                )}
+                <SidebarGroupContent>
+                  <SidebarMenu aria-labelledby={'label' in section ? labelId : undefined}>
+                    {entries.map((entry) => {
+                      const { to, testId, label, icon: Icon } = entry;
+                      const children = 'children' in entry ? entry.children : undefined;
+                      const inside = within(to);
+                      const expanded = children !== undefined && inside;
+                      return (
+                        <SidebarMenuItem key={to}>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={inside}
+                            tooltip={label}
+                            // The open group's current page carries the highlight; the parent keeps
+                            // it only in the icon rail, which hides the group.
+                            className={cn(
+                              expanded &&
+                                'data-[active=true]:bg-transparent group-data-[collapsible=icon]:data-[active=true]:bg-sidebar-accent'
+                            )}
                           >
-                            <Icon aria-hidden="true" />
-                            <span>{label}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                        {children && (
-                          <NavGroup open={expanded}>
-                            <SidebarMenuSub data-testid={`nav-${testId}-group`}>
-                              {children.map((child) => (
-                                <SidebarMenuSubItem key={child.to}>
-                                  <SidebarMenuSubButton asChild isActive={within(child.to)}>
-                                    <Link
-                                      to={child.to}
-                                      data-testid="nav-sub-entry"
-                                      aria-current={within(child.to) ? 'page' : undefined}
-                                      onClick={closeOnMobile}
-                                    >
-                                      <span>{child.label}</span>
-                                    </Link>
-                                  </SidebarMenuSubButton>
-                                </SidebarMenuSubItem>
-                              ))}
-                            </SidebarMenuSub>
-                          </NavGroup>
-                        )}
-                      </SidebarMenuItem>
-                    );
-                  })}
-              </SidebarMenu>
-            </nav>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                            <Link
+                              to={to}
+                              data-testid={`nav-${testId}`}
+                              aria-current={pathname === to ? 'page' : inside ? 'true' : undefined}
+                              onClick={closeOnMobile}
+                            >
+                              <Icon aria-hidden="true" />
+                              <span>{label}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                          {children && (
+                            <NavGroup open={expanded}>
+                              <SidebarMenuSub data-testid={`nav-${testId}-group`}>
+                                {children.map((child) => (
+                                  <SidebarMenuSubItem key={child.to}>
+                                    <SidebarMenuSubButton asChild isActive={within(child.to)}>
+                                      <Link
+                                        to={child.to}
+                                        data-testid="nav-sub-entry"
+                                        aria-current={within(child.to) ? 'page' : undefined}
+                                        onClick={closeOnMobile}
+                                      >
+                                        <span>{child.label}</span>
+                                      </Link>
+                                    </SidebarMenuSubButton>
+                                  </SidebarMenuSubItem>
+                                ))}
+                              </SidebarMenuSub>
+                            </NavGroup>
+                          )}
+                        </SidebarMenuItem>
+                      );
+                    })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            );
+          })}
+        </nav>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
