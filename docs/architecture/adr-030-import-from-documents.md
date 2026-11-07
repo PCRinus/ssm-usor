@@ -5,6 +5,7 @@
 - Amended 2026-10-31: credits decided (#640): an import starts on the credits its known part needs and is charged for scanned pages as it finds them; see "Usage is counted in credits".
 - Amended by [ADR 034](adr-034-own-instructions-as-app-text.md) (accepted 2026-11-02): the own instructions are no longer only set aside; a request of their own proposes the pack's instructions for the library, confirmed after the client.
 - Amended by [ADR 037](adr-037-import-quality-and-alerts.md) (accepted 2026-11-04): every import, abandoned and failed ones included, leaves an improvement copy kept apart for 12 months; see "Where the files go".
+- Amended 2026-11-07: a new client's name defaults to ANAF's where ANAF registers the CUI under another name than the documents give, and a spelling correction is a choice with the document's spelling; see "Decision".
 
 ## Context
 
