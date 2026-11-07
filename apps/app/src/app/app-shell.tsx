@@ -85,7 +85,7 @@ import { subscriptionPath } from '@/features/subscription/subscription-copy';
 import { newCount } from '@/features/updates/release-format';
 import { useReleases } from '@/features/updates/use-releases';
 import { useUpdateDialogOpen } from '@/features/updates/use-update-dialog-open';
-import { captureHelpOpened, helpHref, helpTarget } from '@/lib/help';
+import { captureHelpOpened, helpHref, helpTarget, openHelpTab } from '@/lib/help';
 
 import { releaseTag } from './build-version';
 import { CommitVersion } from './commit-version';
@@ -322,8 +322,9 @@ function AppNavigation({
                   href={helpHome}
                   target={helpTarget}
                   data-testid="nav-ajutor"
-                  onClick={() => {
+                  onClick={(event) => {
                     captureHelpOpened();
+                    openHelpTab(event);
                     closeOnMobile();
                   }}
                 >

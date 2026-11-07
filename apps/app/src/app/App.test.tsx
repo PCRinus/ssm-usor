@@ -240,6 +240,7 @@ describe('dashboard authentication and routing', () => {
     const help = within(drawer).getByRole('link', { name: 'Ajutor' });
     expect(help.getAttribute('href')).toBe('http://localhost:4331/');
     expect(help.getAttribute('target')).toBe('ssm-usor-ajutor');
+    expect(help.getAttribute('rel')).toBeNull();
     const footerItems = help
       .closest('[data-sidebar="footer"]')!
       .querySelectorAll('[data-sidebar="menu-button"]');
@@ -248,8 +249,10 @@ describe('dashboard authentication and routing', () => {
       'Ajutor',
       'Raportează o problemă',
     ]);
-    help.addEventListener('click', (event) => event.preventDefault());
+    const open = vi.fn(() => ({ focus: vi.fn() }));
+    vi.stubGlobal('open', open);
     await user.click(help);
+    expect(open).toHaveBeenCalledWith('http://localhost:4331/', 'ssm-usor-ajutor');
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 

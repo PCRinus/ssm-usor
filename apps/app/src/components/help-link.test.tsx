@@ -16,6 +16,7 @@ const { path, anchor } = helpTopics[topic];
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
   vi.mocked(captureEvent).mockClear();
 });
 
@@ -121,6 +122,55 @@ describe('HelpLink', () => {
     expect(link.getAttribute('target')).toBe('ssm-usor-ajutor');
     link.addEventListener('click', (event) => event.preventDefault());
     await user.click(link);
+    expect(captureEvent).toHaveBeenCalledWith('help_opened', { topic });
+  });
+
+  it('opens the topic in the help tab and brings that tab forward', async () => {
+    const user = userEvent.setup();
+    const tab = { focus: vi.fn() };
+    const open = vi.fn(() => tab);
+    vi.stubGlobal('open', open);
+    render(<HelpLink topic={topic} label="Ajutor: Contact" />);
+    let followed: boolean | undefined;
+    const follow = (event: Event) => (followed = !event.defaultPrevented);
+    document.addEventListener('click', follow);
+    await user.click(screen.getByRole('link', { name: 'Ajutor: Contact' }));
+    document.removeEventListener('click', follow);
+    expect(open).toHaveBeenCalledWith(new URL(helpHref(topic)!).href, 'ssm-usor-ajutor');
+    expect(tab.focus).toHaveBeenCalled();
+    expect(followed).toBe(false);
+  });
+
+  it('follows the link itself when the browser blocks the tab', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      'open',
+      vi.fn(() => null)
+    );
+    render(<HelpLink topic={topic} label="Ajutor: Contact" />);
+    let followed: boolean | undefined;
+    const follow = (event: Event) => {
+      followed = !event.defaultPrevented;
+      event.preventDefault();
+    };
+    document.addEventListener('click', follow);
+    await user.click(screen.getByRole('link', { name: 'Ajutor: Contact' }));
+    document.removeEventListener('click', follow);
+    expect(followed).toBe(true);
+  });
+
+  it('leaves a click with a modifier to the browser', async () => {
+    const user = userEvent.setup();
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    render(<HelpLink topic={topic} label="Ajutor: Contact" />);
+    const stay = (event: Event) => event.preventDefault();
+    document.addEventListener('click', stay);
+    await user.keyboard('{Meta>}');
+    await user.click(screen.getByRole('link', { name: 'Ajutor: Contact' }));
+    await user.keyboard('{/Meta}');
+    document.removeEventListener('click', stay);
+    expect(open).not.toHaveBeenCalled();
     expect(captureEvent).toHaveBeenCalledWith('help_opened', { topic });
   });
 
