@@ -1,0 +1,13 @@
+---
+import Default from '@astrojs/starlight/components/Head.astro';
+---
+
+<Default>
+  <slot />
+</Default>
+
+<script>
+  import { keepOneHelpTab } from '../lib/one-help-tab';
+
+  keepOneHelpTab(window);
+</script>
