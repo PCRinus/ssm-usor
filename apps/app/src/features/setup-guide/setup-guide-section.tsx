@@ -11,7 +11,7 @@ import { totalSteps } from './steps';
 
 const hiddenReasons: Record<GuideHiddenReason, string> = {
   'read-only': 'Ghidul nu se arată cât contul e doar pentru citire.',
-  impersonation: 'Ghidul nu se arată cât acționezi în locul unui administrator.',
+  impersonation: 'Ghidul nu se arată cât acționezi în locul unui admin.',
 };
 
 export function SetupGuideSection() {

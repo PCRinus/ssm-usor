@@ -46,7 +46,7 @@ export function billingErrorMessage(cause: unknown) {
     if (typeof reason === 'string' && reason in reasonMessages) return reasonMessages[reason]!;
     const problem = billingChoiceProblemReasonSchema.safeParse(reason);
     if (problem.success) return problemMessage({ reason: problem.data });
-    if (cause.status === 403) return 'Doar administratorul organizației schimbă abonamentul.';
+    if (cause.status === 403) return 'Doar adminul organizației schimbă abonamentul.';
     if (cause.status === 401) {
       return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
     }

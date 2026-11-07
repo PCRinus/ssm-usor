@@ -385,9 +385,9 @@ describe('the steps', () => {
   it('names the owner a specialist waits for', () => {
     expect(
       lockReason('needs-organization-data', { ownerName: 'Ioana Popescu', isOwner: false })
-    ).toBe('Așteaptă datele firmei de la administrator, Ioana Popescu.');
+    ).toBe('Așteaptă datele firmei de la admin, Ioana Popescu.');
     expect(lockReason('needs-organization-data', { ownerName: null, isOwner: false })).toBe(
-      'Așteaptă datele firmei de la un administrator.'
+      'Așteaptă datele firmei de la un admin.'
     );
     expect(
       lockReason('needs-organization-data', { ownerName: 'Ioana Popescu', isOwner: true })
@@ -422,7 +422,7 @@ describe('the steps', () => {
         )
       );
     expect(step('generate-sets').textContent).toContain(
-      'Așteaptă datele firmei de la administrator, Ioana Popescu.'
+      'Așteaptă datele firmei de la admin, Ioana Popescu.'
     );
   });
 
@@ -445,9 +445,7 @@ describe('the steps', () => {
       );
 
     expect(step('company').dataset.state).toBe('owner-only');
-    expect(step('company').textContent).toContain(
-      'Doar administratorul poate completa · Ioana Popescu'
-    );
+    expect(step('company').textContent).toContain('Doar adminul poate completa · Ioana Popescu');
     expect(within(step('company')).queryByRole('link')).toBeNull();
     expect(step('company').tagName).toBe('DIV');
     expect(step('authorizations').textContent).toContain('Făcut de Ioana Popescu');
@@ -475,7 +473,7 @@ describe('the steps', () => {
         )
       );
 
-    expect(step('company').textContent).toContain('Doar un administrator poate completa');
+    expect(step('company').textContent).toContain('Doar un admin poate completa');
     expect(step('authorizations').textContent).toContain('Gata');
   });
 
@@ -843,7 +841,7 @@ describe('Setări', () => {
     const show = await screen.findByTestId('settings-setup-guide-show');
     expect((show as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByTestId('settings-setup-guide-hidden').textContent).toBe(
-      'Ghidul nu se arată cât acționezi în locul unui administrator.'
+      'Ghidul nu se arată cât acționezi în locul unui admin.'
     );
   });
 
@@ -959,14 +957,14 @@ describe('a specialist’s end', () => {
     { clientId, organizationHasClients: true, next: null }
   );
 
-  it('reads Așteaptă administratorul while only an owner can unlock the rest', async () => {
+  it('reads Așteaptă adminul while only an owner can unlock the rest', async () => {
     localStorage.setItem(openedKey, '2026-10-27T10:00:00.000Z');
     mockApi({ guide: waitingForTheOwner, role: 'specialist' });
     mount();
 
     const guide = await panel();
     expect(guide.dataset.view).toBe('collapsed');
-    expect(screen.getByTestId('setup-guide-waiting').textContent).toBe('Așteaptă administratorul');
+    expect(screen.getByTestId('setup-guide-waiting').textContent).toBe('Așteaptă adminul');
     expect(screen.queryByTestId('setup-guide-next')).toBeNull();
     expect(screen.queryByTestId('setup-guide-finished')).toBeNull();
   });

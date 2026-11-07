@@ -103,7 +103,7 @@ export function uploadFailureMessage(cause: unknown) {
     return 'Lucrătorul nu mai există la acest client.';
   }
   if (cause.status === 403) {
-    return 'Doar administratorii pot încărca fișiere pentru administratori.';
+    return 'Doar adminii pot încărca fișiere pentru admini.';
   }
   if (cause.status === 401) {
     return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';

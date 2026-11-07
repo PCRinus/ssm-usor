@@ -289,9 +289,7 @@ describe('the other documents of a client', () => {
 
     const [first, second] = await screen.findAllByTestId('client-file-row');
     expect(within(first!).queryByTestId('client-file-owners-only')).toBeNull();
-    expect(within(second!).getByTestId('client-file-owners-only').textContent).toBe(
-      'Doar administratori'
-    );
+    expect(within(second!).getByTestId('client-file-owners-only').textContent).toBe('Doar admini');
 
     await user.click(within(first!).getByTestId('client-file-actions'));
     await user.click(await screen.findByTestId('client-file-owners-only-switch'));
@@ -302,9 +300,7 @@ describe('the other documents of a client', () => {
       })
     );
     expect(
-      await screen.findByText(
-        '„Certificat de înregistrare” este acum vizibil doar pentru administratori.'
-      )
+      await screen.findByText('„Certificat de înregistrare” este acum vizibil doar pentru admini.')
     ).toBeTruthy();
   });
 
@@ -728,7 +724,7 @@ describe('the files of a lead', () => {
     const card = await screen.findByTestId('client-files-card');
     expect(screen.getByTestId('lead-page')).toBeTruthy();
     expect(within(card).getByTestId('client-files-lead-hint').textContent).toContain(
-      'Până devine client, fișierele lui sunt vizibile doar administratorilor.'
+      'Până devine client, fișierele lui sunt vizibile doar adminilor.'
     );
     const [row] = await within(card).findAllByTestId('client-file-row');
     expect(within(row!).queryByTestId('client-file-owners-only')).toBeNull();
@@ -742,7 +738,7 @@ describe('the files of a lead', () => {
     const dialog = await openUploadDialog(user);
     expect(within(dialog).queryByTestId('client-files-owners-only')).toBeNull();
     expect(within(dialog).getByTestId('client-files-upload-lead-hint').textContent).toBe(
-      'Până devine client, fișierele lui sunt vizibile doar administratorilor.'
+      'Până devine client, fișierele lui sunt vizibile doar adminilor.'
     );
   });
 });

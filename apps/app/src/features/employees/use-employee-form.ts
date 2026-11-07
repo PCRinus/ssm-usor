@@ -176,7 +176,7 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
         }
         if (cause.status === 403) {
           form.setError('root.server', {
-            message: 'Contul tău nu face parte dintr-o organizație. Contactează administratorul.',
+            message: 'Contul tău nu face parte dintr-o organizație. Contactează adminul.',
           });
           return;
         }

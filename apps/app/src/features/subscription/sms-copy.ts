@@ -115,7 +115,7 @@ export function smsMeterFor(sms: BillingSmsUsage, reader: SmsReader): SmsMeter {
       const reached = `Ai atins limita de siguranță, de ${cap} pe lună.${renews ? ` Până pe ${renews},` : ''} ${byEmail}.`;
       hint = owner
         ? `${reached} Cele ${formatCount(over)} peste plan: ${formatEuro(over * smsOverage.price.unitAmount)} + TVA, pe factura din ${renews ?? 'luna următoare'}.`
-        : `${reached} Administratorul poate ridica limita.`;
+        : `${reached} Adminul poate ridica limita.`;
       break;
     }
     case 'stopped':
@@ -196,7 +196,7 @@ export function smsBarFor(sms: BillingSmsUsage, reader: SmsReader & { canAct: bo
         ...stopped,
         detail: owner
           ? `Ai atins limita de siguranță de ${cap} pe lună. ${until}; cine nu are email nu poate semna.`
-          : `S-a atins limita de ${cap} pe lună. ${until}; administratorul poate ridica limita.`,
+          : `S-a atins limita de ${cap} pe lună. ${until}; adminul poate ridica limita.`,
         closable: false,
         link: reader.canAct ? 'raiseCap' : owner ? 'usage' : null,
       } satisfies SmsBar;

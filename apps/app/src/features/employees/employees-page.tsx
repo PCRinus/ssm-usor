@@ -193,7 +193,7 @@ export function EmployeesPage() {
                 {employees.error instanceof ApiHttpError && employees.error.status === 401
                   ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
                   : employees.error instanceof ApiHttpError && employees.error.status === 403
-                    ? 'Contul tău nu face parte dintr-o organizație. Contactează administratorul.'
+                    ? 'Contul tău nu face parte dintr-o organizație. Contactează adminul.'
                     : employees.error instanceof ApiHttpError && employees.error.status === 404
                       ? 'Clientul nu mai există în organizația ta.'
                       : 'Nu am putut încărca lista lucrătorilor. Încearcă din nou.'}

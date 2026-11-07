@@ -18,14 +18,14 @@ export const clientWording = {
     added: (name: string) => `${name} a fost adăugat.`,
     archived: 'Clientul este arhivat; datele lui nu mai pot fi modificate.',
     gone: 'Clientul nu mai există în organizația ta.',
-    forbidden: 'Contul tău nu face parte dintr-o organizație. Contactează administratorul.',
+    forbidden: 'Contul tău nu face parte dintr-o organizație. Contactează adminul.',
     failed: 'Nu am putut salva clientul. Verifică conexiunea și încearcă din nou.',
   },
   lead: {
     added: (name: string) => `${name} a fost adăugat printre clienții potențiali.`,
     archived: 'Clientul potențial este arhivat; datele lui nu mai pot fi modificate.',
     gone: 'Clientul potențial nu mai există în organizația ta.',
-    forbidden: 'Doar un administrator al organizației lucrează cu clienții potențiali.',
+    forbidden: 'Doar un admin al organizației lucrează cu clienții potențiali.',
     failed: 'Nu am putut salva clientul potențial. Verifică conexiunea și încearcă din nou.',
   },
 } as const;

@@ -795,7 +795,7 @@ describe('the contract of a client', () => {
     mockApi({ client, role: 'specialist' });
     mount(`/clienti/${leadId}/contract`);
     expect((await screen.findByTestId('contract-owners-only')).textContent).toContain(
-      'Doar administratorii organizației pot vedea contractul'
+      'Doar adminii organizației pot vedea contractul'
     );
     const sections = screen.getAllByTestId('client-section').map((link) => link.textContent);
     expect(sections).not.toContain('Contract');

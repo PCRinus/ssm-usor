@@ -45,9 +45,9 @@ Un client e o firmă pentru care lucrezi. Pe pagina lui ții tot ce îi priveșt
 - **Documentație SSM** și **Documentație SU**: cât din fiecare set de documente e emis (vezi [Documentația SSM și SU](#documentația-ssm-și-su));
 - **Adăugat**: ziua în care firma a devenit client, adică ziua în care ai adăugat-o sau, dacă a fost întâi client potențial, ziua în care a devenit client.
 
-Lista e ordonată după denumire și împărțită pe pagini. O poți ordona după oricare dintre coloane. Un clic pe rând deschide pagina clientului, la tabul **Detalii**. Din meniul de la capătul rândului ajungi la **Modifică**, care deschide același tab, și, dacă ești administrator, la **Arhivează…**.
+Lista e ordonată după denumire și împărțită pe pagini. O poți ordona după oricare dintre coloane. Un clic pe rând deschide pagina clientului, la tabul **Detalii**. Din meniul de la capătul rândului ajungi la **Modifică**, care deschide același tab, și, dacă ești admin, la **Arhivează…**.
 
-Clienții potențiali nu apar aici. Au lista lor, **Clienți potențiali**, pe care o văd doar administratorii.
+Clienții potențiali nu apar aici. Au lista lor, **Clienți potențiali**, pe care o văd doar adminii.
 
 ### Clienți activi și clienți arhivați
 
@@ -71,18 +71,18 @@ Poți ordona lista după aceste coloane ca să vezi întâi clienții la care ma
 
 În capul paginii vezi denumirea clientului, CUI-ul și câți lucrători actuali are. Dedesubt sunt taburile clientului:
 
-- **Detalii**: datele firmei, reprezentantul legal, sediul și punctele de lucru, persoana de contact și, pentru administratori, notițele. Vezi [Detalii](/clienti/detalii/);
+- **Detalii**: datele firmei, reprezentantul legal, sediul și punctele de lucru, persoana de contact și, pentru admini, notițele. Vezi [Detalii](/clienti/detalii/);
 - **Lucrători**: lucrătorii clientului, cu instruirea și testarea lor. Vezi [Lucrători](/clienti/angajati/);
 - **Posturi de lucru**, **Mijloace de apărare**, **Instruire și responsabili** și **Instruiri ținute**: datele din care se întocmesc documentele și evidența instruirilor;
 - **Documente SSM** și **Documente SU**: cele două seturi de documente;
-- **Contract**: contractul de prestări servicii cu clientul, pe care îl văd doar administratorii;
+- **Contract**: contractul de prestări servicii cu clientul, pe care îl văd doar adminii;
 - **Alte documente** și **Portal**.
 
 Documentele se întocmesc din ce completezi în celelalte taburi. Când îți lipsește ceva la generare, lista datelor lipsă te duce la câmpul de completat, pe tabul lui.
 
 ## Arhivarea unui client
 
-Arhivezi un client cu care nu mai lucrezi. Doar administratorii pot arhiva și reactiva un client. Alege **Arhivează…** din capul paginii clientului sau din meniul rândului din listă, apoi confirmă.
+Arhivezi un client cu care nu mai lucrezi. Doar adminii pot arhiva și reactiva un client. Alege **Arhivează…** din capul paginii clientului sau din meniul rândului din listă, apoi confirmă.
 
 Arhivarea nu șterge nimic. Clientul iese din lista clienților activi, iar lucrătorii, posturile și documentele lui rămân cum erau și le găsești din **Arhivați**.
 
@@ -100,4 +100,4 @@ Dacă un coleg a arhivat clientul cât timp lucrai la el, la salvare vezi „Cli
 
 ## Reactivarea unui client
 
-Un administrator reactivează un client cu **Reactivează…**, din capul paginii clientului arhivat sau din meniul rândului din lista **Arhivați**. Clientul revine în lista clienților activi, cu lucrătorii, posturile și documentele lui, și poți lucra din nou la el.
+Un admin reactivează un client cu **Reactivează…**, din capul paginii clientului arhivat sau din meniul rândului din lista **Arhivați**. Clientul revine în lista clienților activi, cu lucrătorii, posturile și documentele lui, și poți lucra din nou la el.

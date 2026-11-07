@@ -41,7 +41,7 @@ function serverMessage(cause: unknown, action: ClientArchiveChange['action'], le
         : 'Clientul nu mai există în organizația ta.';
     }
     if (cause.status === 403) {
-      return `Doar un administrator al organizației poate arhiva sau reactiva ${noun}.`;
+      return `Doar un admin al organizației poate arhiva sau reactiva ${noun}.`;
     }
     if (cause.status === 401) {
       return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';

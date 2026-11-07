@@ -143,7 +143,7 @@ export function UsageCard({
       memberLimitOf(choice) < (billingPlans[choice.plan].maxMembers ?? 0);
     memberHint = !owner
       ? full
-        ? `${base} Pentru un coleg nou, administratorul adaugă un utilizator.`
+        ? `${base} Pentru un coleg nou, adminul adaugă un utilizator.`
         : base
       : canAdd
         ? `${base} ${choice.plan === 'start' ? 'Al doilea utilizator' : 'Fiecare utilizator nou'} costă ${formatEuro(overview.catalogue.extraMember.prices[choice.interval])} ${choice.interval === 'year' ? 'pe an' : 'pe lună'}.`

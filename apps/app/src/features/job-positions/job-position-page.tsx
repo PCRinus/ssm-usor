@@ -221,7 +221,7 @@ export function JobPositionError({ error }: ErrorComponentProps) {
     error instanceof ApiHttpError && error.status === 401
       ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
       : error instanceof ApiHttpError && error.status === 403
-        ? 'Contul tău nu face parte dintr-o organizație. Contactează administratorul.'
+        ? 'Contul tău nu face parte dintr-o organizație. Contactează adminul.'
         : 'Nu am putut încărca postul de lucru. Încearcă din nou.';
   return (
     <div

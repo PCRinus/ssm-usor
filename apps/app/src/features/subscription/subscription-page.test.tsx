@@ -123,12 +123,12 @@ describe('the Abonament tab', () => {
     expect(within(card).queryByTestId('plan-amount')).toBeNull();
     expect(within(card).queryByRole('button')).toBeNull();
     expect(screen.getByTestId('member-note').textContent).toContain(
-      'Administratorul organizației se ocupă de abonament.'
+      'Adminul organizației se ocupă de abonament.'
     );
     expect(screen.getByTestId('price-list').textContent).toContain('39 € pe lună sau 390 € pe an');
     expect(screen.getByTestId('meter-employees').textContent).toContain('1.740 din 2.000');
     expect(screen.getByTestId('meter-members').textContent).toContain(
-      'administratorul adaugă un utilizator'
+      'adminul adaugă un utilizator'
     );
     expect(screen.queryByTestId('payment-card')).toBeNull();
     expect(screen.queryByTestId('invoices-card')).toBeNull();
@@ -741,7 +741,7 @@ describe('the signing codes by SMS on the Abonament tab', () => {
     });
     mountApp(authFixture(makeSession()).client, '/organizatie/abonament?raiseCap=true');
     expect((await screen.findByTestId('meter-sms-hint')).textContent).toContain(
-      'Administratorul poate ridica limita.'
+      'Adminul poate ridica limita.'
     );
     expect(screen.queryByTestId('meter-sms-raise')).toBeNull();
     expect(screen.queryByTestId('sms-cap-dialog')).toBeNull();

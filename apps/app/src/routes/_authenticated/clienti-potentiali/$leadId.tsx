@@ -67,7 +67,7 @@ function LeadNotFound() {
       <h1 className="text-2xl font-semibold">Clientul potențial nu a fost găsit</h1>
       <p className="text-sm leading-relaxed text-muted-foreground">
         Nu există niciun client potențial cu acest identificator în organizația ta, sau contul tău
-        nu este de administrator.
+        nu este de admin.
       </p>
       <Button asChild className="w-fit">
         <Link to="/clienti">Înapoi la clienți</Link>

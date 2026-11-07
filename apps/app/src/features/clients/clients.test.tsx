@@ -1097,7 +1097,7 @@ describe('client archiving', () => {
     mockApi({ me: meAs('specialist'), get: () => Response.json({ client: archivedClient }) });
     mountApp(authFixture(makeSession()).client, `/clienti/${sampleClient.id}/angajati`);
     const banner = await screen.findByTestId('client-archived-banner');
-    expect(banner.textContent).toContain('Un administrator al organizației îl poate reactiva.');
+    expect(banner.textContent).toContain('Un admin al organizației îl poate reactiva.');
     expect(screen.queryByTestId('client-restore')).toBeNull();
   });
 

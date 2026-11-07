@@ -133,7 +133,7 @@ function AuthorizationsForm({
       form.setError('root.server', {
         message:
           cause instanceof ApiHttpError && cause.status === 403
-            ? 'Doar administratorii organizației pot modifica abilitările.'
+            ? 'Doar adminii organizației pot modifica abilitările.'
             : cause instanceof ApiHttpError && cause.status === 401
               ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
               : 'Nu am putut salva abilitările. Verifică conexiunea și încearcă din nou.',

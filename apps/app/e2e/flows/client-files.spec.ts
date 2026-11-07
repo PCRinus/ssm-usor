@@ -40,7 +40,7 @@ test('an owner uploads files to a client, renames one and deletes it', async ({ 
   const row = page.getByTestId('client-file-row');
   await expect(row).toHaveCount(1);
   await expect(row.getByTestId('client-file-kind')).toHaveText('PDF');
-  await expect(row.getByTestId('client-file-owners-only')).toHaveText('Doar administratori');
+  await expect(row.getByTestId('client-file-owners-only')).toHaveText('Doar admini');
 
   await row.getByTestId('client-file-actions').click();
   await page.getByTestId('client-file-rename').click();

@@ -280,9 +280,7 @@ function SubscriptionDetails({
       ) : (
         <>
           {!impersonating && needsOwner && (
-            <p className="text-muted-foreground">
-              Administratorul organizației se ocupă de abonament.
-            </p>
+            <p className="text-muted-foreground">Adminul organizației se ocupă de abonament.</p>
           )}
           <Link to={subscriptionPath} onClick={onNavigate} className="w-fit underline">
             Vezi abonamentul

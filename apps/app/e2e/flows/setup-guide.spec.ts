@@ -88,7 +88,7 @@ test('a specialist joining a firm with a client sees the firm’s steps as the o
   await expect(step(page, 'company')).toContainText('Făcut de Ioana Popescu');
   await expect(step(page, 'authorizations')).toHaveAttribute('data-state', 'owner-only');
   await expect(step(page, 'authorizations')).toContainText(
-    'Doar administratorul poate completa · Ioana Popescu'
+    'Doar adminul poate completa · Ioana Popescu'
   );
   await expect(step(page, 'authorizations').getByRole('link')).toHaveCount(0);
   await expect(step(page, 'professional-title')).toHaveAttribute('data-state', 'next');

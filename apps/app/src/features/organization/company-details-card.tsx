@@ -178,7 +178,7 @@ function CompanyDetailsForm({
       form.setError('root.server', {
         message:
           cause instanceof ApiHttpError && cause.status === 403
-            ? 'Doar administratorii organizației pot modifica datele firmei.'
+            ? 'Doar adminii organizației pot modifica datele firmei.'
             : cause instanceof ApiHttpError && cause.status === 401
               ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
               : 'Nu am putut salva datele firmei. Verifică conexiunea și încearcă din nou.',

@@ -153,7 +153,7 @@ describe('leads', () => {
     });
     mount('/clienti-potentiali');
     expect((await screen.findByTestId('leads-error')).textContent).toContain(
-      'Doar administratorii organizației'
+      'Doar adminii organizației'
     );
     expect(screen.queryByTestId('leads-retry')).toBeNull();
     expect(screen.getByTestId('nav-clients')).toBeTruthy();

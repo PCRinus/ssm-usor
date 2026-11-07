@@ -1,8 +1,9 @@
 import type { OrganizationRole } from '@ssm-usor/contracts';
 
-// "Owner" is the database's word; people in the app read "administrator".
+// "Owner" is the database's word; people in the app read "admin", since testers took "administrator"
+// for the client's legal representative.
 export const roleLabels: Record<OrganizationRole, string> = {
-  owner: 'Administrator',
+  owner: 'Admin',
   specialist: 'Specialist',
 };
 

@@ -45,7 +45,7 @@ sources:
   - apps/app/src/features/subscription/checkout/*.tsx
 ---
 
-Abonamentul e al organizației, nu al unei persoane. Îl alege, îl schimbă și îl anulează administratorul organizației; colegii văd planul și cât folosiți, fără sume și fără butoane.
+Abonamentul e al organizației, nu al unei persoane. Îl alege, îl schimbă și îl anulează adminul organizației; colegii văd planul și cât folosiți, fără sume și fără butoane.
 
 ## Pagina Abonament
 
@@ -108,18 +108,18 @@ Se numără:
 
 Dacă treci de limita de lucrători, lucrezi mai departe cu tot ce ai. Pagina îți spune cu câți ai trecut și îți propune pachetul care îți lipsește. Peste cele incluse, codurile de semnare prin SMS pleacă mai departe: fiecare costă 0,10 € și apare pe factura următoare; pe un plan anual, se plătesc lunar. Ca factura să nu crească fără margini, se opresc la de trei ori cât include planul, adică 150 pe Start și 900 pe Profesional. De acolo, până la luna următoare, un lucrător fără email nu mai primește codul de semnare prin SMS.
 
-Administratorul organizației primește un email când au plecat 80 % din codurile incluse în lună, când au plecat toate și când se ajunge la limita de siguranță, fiecare o singură dată pe lună. Până la prima plată, emailul de la 100 % spune că, până la luna următoare, codurile nu mai pleacă prin SMS. Un lucrător fără email care cere atunci un cod de semnare vede în portal că trebuie să vorbească cu specialistul SSM; dacă îi adaugi o adresă de email, codul îi vine pe email și semnează pe loc.
+Adminul organizației primește un email când au plecat 80 % din codurile incluse în lună, când au plecat toate și când se ajunge la limita de siguranță, fiecare o singură dată pe lună. Până la prima plată, emailul de la 100 % spune că, până la luna următoare, codurile nu mai pleacă prin SMS. Un lucrător fără email care cere atunci un cod de semnare vede în portal că trebuie să vorbească cu specialistul SSM; dacă îi adaugi o adresă de email, codul îi vine pe email și semnează pe loc.
 
 SMS-urile pleacă doar la numere din România (+40). Un lucrător cu un număr din altă țară se invită pe email.
 
 Bara codurilor de semnare își schimbă culoarea doar când e ceva de știut:
 
 - **de la 80 %** devine galbenă, iar textul de sub ea spune câte mai ai incluse și până când;
-- **peste cele incluse** rămâne galbenă. Administratorul vede câte au trecut de cele incluse și prețul lor, de exemplu „+42 peste cele incluse, 0,10 € fiecare, pe factura din 14.11”; colegii văd doar câte au trecut;
-- **la limita de siguranță** devine roșie: codurile pleacă pe email până la reînnoire, iar cine nu are email nu poate semna. Administratorul vede suma codurilor de peste plan și butonul **Ridică limita** (vezi [Limita de siguranță pentru SMS](#limita-de-siguranță-pentru-sms));
+- **peste cele incluse** rămâne galbenă. Adminul vede câte au trecut de cele incluse și prețul lor, de exemplu „+42 peste cele incluse, 0,10 € fiecare, pe factura din 14.11”; colegii văd doar câte au trecut;
+- **la limita de siguranță** devine roșie: codurile pleacă pe email până la reînnoire, iar cine nu are email nu poate semna. Adminul vede suma codurilor de peste plan și butonul **Ridică limita** (vezi [Limita de siguranță pentru SMS](#limita-de-siguranță-pentru-sms));
 - **la o oprire fermă**, într-un cont de test sau înainte de prima plată, devine roșie când s-au folosit toate codurile: până la reînnoire, codurile pleacă pe email.
 
-Din 80 %, o bandă galbenă deasupra paginii le spune tuturor membrilor câte coduri s-au folosit, cu **Vezi consumul**. La 80 % o poți închide până a doua zi. Peste cele incluse nu se mai închide și rămâne până la reînnoire. La limita de siguranță sau la o oprire fermă banda devine roșie și spune că codurile de semnare nu mai pleacă prin SMS; la limita de siguranță, administratorul are acolo **Ridică limita**. Cât timp apare banda perioadei de probă sau a unei plăți nereușite, banda SMS-urilor așteaptă după ea. Fereastra insignei planului arată și ea codurile lunii, iar când s-au oprit, insigna primește un punct.
+Din 80 %, o bandă galbenă deasupra paginii le spune tuturor membrilor câte coduri s-au folosit, cu **Vezi consumul**. La 80 % o poți închide până a doua zi. Peste cele incluse nu se mai închide și rămâne până la reînnoire. La limita de siguranță sau la o oprire fermă banda devine roșie și spune că codurile de semnare nu mai pleacă prin SMS; la limita de siguranță, adminul are acolo **Ridică limita**. Cât timp apare banda perioadei de probă sau a unei plăți nereușite, banda SMS-urilor așteaptă după ea. Fereastra insignei planului arată și ea codurile lunii, iar când s-au oprit, insigna primește un punct.
 
 ### Creditele pentru import
 
@@ -149,7 +149,7 @@ Insigna planului arată și ea creditele lunii și pe cele de bun venit rămase.
 
 Limita oprește codurile de semnare trimise prin SMS după un anumit număr pe lună, ca o lună neobișnuită să nu coste mai mult decât ai hotărât. Din start e de trei ori cât include planul: 150 pe Start și 900 pe Profesional.
 
-Administratorul o schimbă cu **Ridică limita**, de sub bara codurilor sau din banda de deasupra paginii, când limita e atinsă. În fereastra care se deschide alegi limita nouă, de la de trei până la de douăzeci de ori cât include planul, iar fereastra îți spune ce înseamnă: câte coduri pe lună și cât pot costa cel mult cele de peste plan, fără TVA. Limita rămâne așa până o schimbi din nou; o poți și coborî. Dacă luna aceasta s-au trimis deja mai multe coduri decât limita aleasă, fereastra îți spune că până la reînnoire codurile pleacă tot pe email.
+Adminul o schimbă cu **Ridică limita**, de sub bara codurilor sau din banda de deasupra paginii, când limita e atinsă. În fereastra care se deschide alegi limita nouă, de la de trei până la de douăzeci de ori cât include planul, iar fereastra îți spune ce înseamnă: câte coduri pe lună și cât pot costa cel mult cele de peste plan, fără TVA. Limita rămâne așa până o schimbi din nou; o poți și coborî. Dacă luna aceasta s-au trimis deja mai multe coduri decât limita aleasă, fereastra îți spune că până la reînnoire codurile pleacă tot pe email.
 
 ## Schimbarea planului
 
@@ -209,4 +209,4 @@ Pagina **Abonament** funcționează și în acest timp. Cu **Alege un plan** sau
 
 ## Ce văd colegii
 
-Colegii care nu sunt administratori văd tabul **Abonament** cu planul, starea lui și cât folosiți, plus prețurile planurilor. Nu văd sumele organizației, cardul sau facturile, și nu pot schimba nimic. Văd și banda codurilor de semnare prin SMS, fără prețuri; la limita de siguranță, banda le spune că administratorul poate ridica limita. Dacă aveți nevoie de mai mulți lucrători sau de un coleg în plus, administratorul adaugă din pagina lui.
+Colegii care nu sunt admini văd tabul **Abonament** cu planul, starea lui și cât folosiți, plus prețurile planurilor. Nu văd sumele organizației, cardul sau facturile, și nu pot schimba nimic. Văd și banda codurilor de semnare prin SMS, fără prețuri; la limita de siguranță, banda le spune că adminul poate ridica limita. Dacă aveți nevoie de mai mulți lucrători sau de un coleg în plus, adminul adaugă din pagina lui.

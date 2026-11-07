@@ -118,7 +118,7 @@ describe('SubscriptionBadge', () => {
     );
     await userEvent.click(await screen.findByTestId('subscription-badge'));
     expect((await screen.findByTestId('subscription-details')).textContent).toContain(
-      'Administratorul organizației se ocupă de abonament.'
+      'Adminul organizației se ocupă de abonament.'
     );
     expect(screen.getByRole('link', { name: 'Vezi abonamentul' })).toBeTruthy();
     unmount();
@@ -128,7 +128,7 @@ describe('SubscriptionBadge', () => {
     );
     await userEvent.click(await screen.findByTestId('subscription-badge'));
     const details = await screen.findByTestId('subscription-details');
-    expect(details.textContent).not.toContain('Administratorul organizației');
+    expect(details.textContent).not.toContain('Adminul organizației');
     expect(screen.queryByRole('link', { name: 'Alege un plan' })).toBeNull();
   });
 });
@@ -254,7 +254,7 @@ describe('the SMS bar', () => {
       <SubscriptionBar subscription={active} sms={capped} isOwner={false} canAct={false} />
     );
     expect((await screen.findByTestId('subscription-bar')).textContent).toContain(
-      'administratorul poate ridica limita'
+      'adminul poate ridica limita'
     );
     expect(screen.queryByTestId('subscription-bar-action')).toBeNull();
   });
