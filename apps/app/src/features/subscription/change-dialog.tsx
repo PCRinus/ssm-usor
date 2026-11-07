@@ -26,7 +26,7 @@ import { billingErrorMessage, problemMessage } from './billing-errors';
 import {
   choiceLines,
   choiceSummary,
-  formatCount,
+  employeesLabel,
   formatEuro,
   packsLabel,
   perInterval,
@@ -168,7 +168,7 @@ function copyFor(
           : '';
       return {
         title: `Treci la ${targetName}?`,
-        lead: `${targetName} începe azi: ${formatCount(terms.includedEmployees)} de lucrători, ${terms.includedMembers} utilizatori, ${terms.monthlySms} de SMS pe lună, fiecare coleg își vede clienții lui și documentele nu mai poartă marca SSM Ușor.${packsLine}${membersLine}`,
+        lead: `${targetName} începe azi: ${employeesLabel(terms.includedEmployees)}, ${terms.includedMembers} utilizatori, ${terms.monthlySms} de SMS pe lună, fiecare coleg își vede clienții lui și documentele nu mai poartă marca SSM Ușor.${packsLine}${membersLine}`,
         rows: nowRows(),
         note: prorationNote,
         confirm: `Treci la ${targetName}`,
@@ -182,7 +182,7 @@ function copyFor(
       ].filter(Boolean);
       return {
         title: `Treci la ${targetName} de pe ${applies}?`,
-        lead: `Până pe ${applies} rămâi pe ${currentName}, iar perioada plătită nu se returnează.${needs.length ? ` Pentru cei ${formatCount(usage.employees)} lucrători și cei ${usage.members} utilizatori de azi, ${targetName} are nevoie de ${needs.join(' și de ')}.` : ''}`,
+        lead: `Până pe ${applies} rămâi pe ${currentName}, iar perioada plătită nu se returnează.${needs.length ? ` Pentru cei ${employeesLabel(usage.employees)} și cei ${usage.members} utilizatori de azi, ${targetName} are nevoie de ${needs.join(' și de ')}.` : ''}`,
         ...atRenewal(applies),
         losses: current.plan === 'profesional' ? proLosses : undefined,
         confirm: `Treci la ${targetName} pe ${applies}`,

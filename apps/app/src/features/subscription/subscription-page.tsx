@@ -15,7 +15,14 @@ import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 
 import { billingErrorMessage } from './billing-errors';
-import { addDays, cardBrand, formatCount, formatEuro, packsNeeded } from './billing-format';
+import {
+  addDays,
+  cardBrand,
+  employeesLabel,
+  formatCount,
+  formatEuro,
+  packsNeeded,
+} from './billing-format';
 import { BillingCard } from './billing-ui';
 import { CancelDialog } from './cancel-dialog';
 import { ChangeDialog } from './change-dialog';
@@ -398,7 +405,7 @@ function noticeFor(
             packs: packsNeeded(choice.plan, employees.used),
           })}
         >
-          Ai {formatCount(employees.used)} de lucrători la clienți, cu{' '}
+          Ai {employeesLabel(employees.used)} la clienți, cu{' '}
           {formatCount(employees.used - employees.limit)} peste cei {formatCount(employees.limit)}{' '}
           din plan. Lucrezi mai departe cu tot ce ai.
           {pack

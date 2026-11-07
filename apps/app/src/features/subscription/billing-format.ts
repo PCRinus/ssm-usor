@@ -9,6 +9,8 @@ import {
   vatPercent,
 } from '@ssm-usor/contracts';
 
+import { nounFor } from '@/features/dashboard/dashboard-format';
+
 // Grouped by hand: Romanian Intl leaves four digits ungrouped, and the price list writes 1.490 €.
 function grouped(value: number) {
   const sign = value < 0 ? '-' : '';
@@ -26,6 +28,9 @@ export function formatEuro(cents: number) {
 export function formatCount(value: number) {
   return grouped(value);
 }
+
+export const employeesLabel = (count: number) =>
+  `${formatCount(count)} ${nounFor(count, 'lucrător', 'lucrători')}`;
 
 export const shortPlanNames: Record<PaidPlan, string> = {
   start: 'Start',
