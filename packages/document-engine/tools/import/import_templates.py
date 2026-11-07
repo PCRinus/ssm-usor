@@ -690,8 +690,6 @@ def build_header(document, details):
         table.initialize(2, 4)
         header.insertTextContent(header.createTextCursor(), table, False)
         table.HoriOrient = FULL_WIDTH
-        # A whole point: the in-app viewer paints a line as a box its own width high, and Safari
-        # does not draw one thinner than a screen pixel.
         border = uno.createUnoStruct('com.sun.star.table.TableBorder2')
         for side in ('TopLine', 'BottomLine', 'LeftLine', 'RightLine', 'HorizontalLine', 'VerticalLine'):
             setattr(border, side, BorderLine2(Color=0, OuterLineWidth=round(POINT), LineWidth=round(POINT)))
