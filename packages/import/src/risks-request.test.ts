@@ -111,6 +111,25 @@ describe('risksRequest', () => {
     expect(parsed.sheets[0]!.columns.level).toBe(7);
     expect(parsed.sheets[0]!.columns.consequence).toBeNull();
   });
+
+  it('asks each post’s sheet for a name of its work, reusable at other employers, "" read as none', () => {
+    const task = risksRequest(input).messages[2]!.content as string;
+
+    expect(task).toMatch(/workName: for job_position, .*reused at other employers/u);
+    expect(task).toContain("Never the client's name, a person's name");
+    expect(task).toContain('two sheets never share a name');
+    const wire = JSON.parse(JSON.stringify(answer)) as { sheets: Record<string, unknown>[] };
+    const parsed = risksAnswer.parse({
+      ...wire,
+      sheets: wire.sheets.map((sheet) => ({ ...sheet, workName: sheet.workName ?? '' })),
+    });
+    expect(parsed.sheets.map((sheet) => sheet.workName)).toEqual([
+      'Producție de panificație',
+      'Vânzare în magazin',
+      null,
+      null,
+    ]);
+  });
 });
 
 describe('the sheets written out', () => {

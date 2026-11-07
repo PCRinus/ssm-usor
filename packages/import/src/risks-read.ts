@@ -91,6 +91,8 @@ export interface ReadSheet {
   name: string;
   // The proposal's posts, as the answer named them.
   posts: string[];
+  // The model's name for the work; null when it gave none or named one of the client's people.
+  workName: string | null;
   rows: { first: string; last: string } | null;
   meansOfProduction: string | null;
   workEnvironment: string | null;
@@ -314,6 +316,10 @@ const acronyms = new Set([
 // "Ramona CIMPEAN" or one of the client's people is a person.
 export function namesPerson(text: string, people: readonly string[]) {
   for (const match of text.matchAll(personName)) if (!acronyms.has(match[1]!)) return true;
+  return namesOneOf(text, people);
+}
+
+function namesOneOf(text: string, people: readonly string[]) {
   const folded = ` ${foldName(text)} `;
   return people.some((person) => {
     const name = foldName(person);
@@ -703,6 +709,14 @@ export interface ReadRisksOptions {
   people?: readonly string[];
 }
 
+// "Operare CNC" reads like a first name and a surname in capitals, so only the client's own people
+// rule a name out.
+function workNameOf(sheet: RisksAnswer['sheets'][number], people: readonly string[]) {
+  if (sheet.kind !== 'job_position') return null;
+  const name = sheet.workName?.replace(/\s+/gu, ' ').trim() ?? '';
+  return name === '' || namesOneOf(name, people) ? null : name;
+}
+
 export function readRisksAnswer(
   files: readonly RisksTextFile[],
   answer: RisksAnswer,
@@ -746,6 +760,7 @@ export function readRisksAnswer(
       kind: answered.kind,
       name: answered.name,
       posts: answered.posts,
+      workName: workNameOf(answered, people),
       rows:
         sheet.rows.length > 0 ? { first: sheet.rows[0]!.id, last: sheet.rows.at(-1)!.id } : null,
       ...texts,

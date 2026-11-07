@@ -107,10 +107,12 @@ export const risksProposalSchema = z
             choice: existingChoice.nullable(),
           })
         ),
+        workName: z.string().nullable().optional(),
+        workplace: z.string().nullable().optional(),
         undecided: z.boolean(),
         existing: z.object({ factors: z.number(), choice: existingChoice.nullable() }).nullable(),
         libraryName: z.string(),
-        nameFrom: z.enum(['post', 'heading', 'kind']).optional(),
+        nameFrom: z.enum(['work', 'workplace', 'post', 'heading', 'kind']).optional(),
         takenName: z.string().nullable().optional(),
         status: z.enum(['identical', 'similar', 'new']).nullable(),
         match: match.nullable(),

@@ -18736,6 +18736,14 @@
                     "required": ["name", "existingFactors", "choice"]
                   }
                 },
+                "workName": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "workplace": {
+                  "type": "string",
+                  "nullable": true
+                },
                 "undecided": {
                   "type": "boolean"
                 },
@@ -18759,7 +18767,7 @@
                 },
                 "nameFrom": {
                   "type": "string",
-                  "enum": ["post", "heading", "kind"]
+                  "enum": ["work", "workplace", "post", "heading", "kind"]
                 },
                 "takenName": {
                   "type": "string",

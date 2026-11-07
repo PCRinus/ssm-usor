@@ -11813,6 +11813,8 @@ export type RisksProposalSheetsItemNameFrom =
   (typeof RisksProposalSheetsItemNameFrom)[keyof typeof RisksProposalSheetsItemNameFrom];
 
 export const RisksProposalSheetsItemNameFrom = {
+  work: 'work',
+  workplace: 'workplace',
   post: 'post',
   heading: 'heading',
   kind: 'kind',
@@ -12095,6 +12097,10 @@ export type RisksProposalSheetsItem = {
   exposure: string | null;
   flags: RisksProposalSheetsItemFlagsItem[];
   posts: RisksProposalSheetsItemPostsItem[];
+  /** @nullable */
+  workName?: string | null;
+  /** @nullable */
+  workplace?: string | null;
   undecided: boolean;
   /** @nullable */
   existing: RisksProposalSheetsItemExisting;
