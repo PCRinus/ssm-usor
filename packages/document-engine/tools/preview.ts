@@ -1306,6 +1306,7 @@ function sample(
           noWorkplaces: false,
         },
         evaluationCountText: '2 posturi de lucru și grupurile sensibile la riscuri specifice',
+        noSensitiveGroups: false,
         globalLevel: '2,80',
         evaluations: [
           evaluation(

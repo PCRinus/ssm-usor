@@ -1275,7 +1275,10 @@ describe('fire-safety set', () => {
   it('lists the fire-safety modules its positions apply as annexes, in the contents and in chapter XXIV', () => {
     const own = read('fire/2.1_fire_own_instructions.docx');
     const text = documentText(renderDocument(own, stageTwoData));
-    const chapter = text.slice(text.indexOf('Capitolul XXIV.'), text.indexOf('BIBLIOGRAFIE'));
+    const chapter = text.slice(
+      text.lastIndexOf('Capitolul XXIV.'),
+      text.lastIndexOf('BIBLIOGRAFIE')
+    );
     expect(chapter.split('\n').filter(Boolean)).toEqual([
       'Capitolul XXIV. Instrucțiuni proprii în domeniul situațiilor de urgență specifice activităților și echipamentelor de muncă din cadrul S.C. CLIENT DEMO S.R.L.',
       'Instrucțiunile specifice posturilor de lucru, întocmite pe activități și echipamente de muncă, sunt anexate prezentelor instrucțiuni proprii și fac parte din ele. Fiecare post de lucru le aplică pe cele care îl privesc.',
@@ -1283,7 +1286,7 @@ describe('fire-safety set', () => {
       'Anexa 2. I.P.S.U. Depozitarea buteliilor (versiunea din 02.10.2026)',
     ]);
     expect(text).toMatch(
-      /^XXIII\. Dispoziții finale\nXXIV\. Instrucțiuni proprii .*S\.C\. CLIENT DEMO S\.R\.L\.\nBibliografie\nAnexa 1\. I\.P\.S\.U\. Lucrul cu foc deschis\nAnexa 2\. I\.P\.S\.U\. Depozitarea buteliilor$/m
+      /^Capitolul XXIII\. Dispoziții finale\nCapitolul XXIV\. Instrucțiuni proprii .*S\.C\. CLIENT DEMO S\.R\.L\.\nBIBLIOGRAFIE\nAnexa 1\. I\.P\.S\.U\. Lucrul cu foc deschis\nAnexa 2\. I\.P\.S\.U\. Depozitarea buteliilor$/m
     );
 
     const none = documentText(
@@ -1291,7 +1294,7 @@ describe('fire-safety set', () => {
     );
     expect(
       none
-        .slice(none.indexOf('Capitolul XXIV.'), none.indexOf('BIBLIOGRAFIE'))
+        .slice(none.lastIndexOf('Capitolul XXIV.'), none.lastIndexOf('BIBLIOGRAFIE'))
         .split('\n')
         .filter(Boolean)
         .slice(1)
@@ -1305,8 +1308,9 @@ describe('fire-safety set', () => {
     const text = documentText(
       renderDocument(read('fire/2.1_fire_own_instructions.docx'), stageTwoData)
     );
-    expect(text.match(/^Capitolul [IVX]+\. /gm)).toHaveLength(24);
-    expect(text).toMatch(/^XXII\. Stingătoarele de incendiu$/m);
+    // Each chapter twice: its row in the contents, then its title.
+    expect(text.match(/^Capitolul [IVX]+\. /gm)).toHaveLength(48);
+    expect(text.match(/^Capitolul XXII\. Stingătoarele de incendiu$/gm)).toHaveLength(2);
     expect(text).toContain('(Preluare din OMAI 135/2023 – Anexa 1)');
     expect(text).toContain('(Preluare din OMAI 712/2005 – art. 21) Instructajul periodic');
     expect(text).toContain('pe o durată de cel puțin două ore');
@@ -1525,9 +1529,11 @@ describe('typesetting', () => {
     '%s aligns nothing with spaces and spaces nothing with empty paragraphs',
     (name) => {
       // A table cell or a text box may be empty; a paragraph that holds a picture is not.
+      // A table of contents is empty until the merge writes its entries.
       const body = bodyOf(name)
         .replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g, '<w:tbl/>')
-        .replace(/<w:txbxContent>[\s\S]*?<\/w:txbxContent>/g, '');
+        .replace(/<w:txbxContent>[\s\S]*?<\/w:txbxContent>/g, '')
+        .replace(/<w:sdt>(?:(?!<\/w:sdt>)[\s\S])*?Table of Contents[\s\S]*?<\/w:sdt>/g, '');
       const texts = paragraphsOf(body).map(documentTextOf);
       expect(texts.filter((text) => /^[ \u00a0\t]/.test(text))).toEqual([]);
       // Loop tags stand alone in a paragraph. The only empty paragraphs are the ones Word needs
@@ -1546,6 +1552,29 @@ describe('typesetting', () => {
       }
     }
   );
+
+  // The outline is what the contents, the PDF's bookmarks and the editor's navigation list:
+  // the originals set long runs of articles in the heading styles.
+  it.each([
+    ['11_employer_briefing.docx', 19],
+    ['2.2_general_training_material.docx', 17],
+    ['3.2_own_instructions.docx', 13],
+    ['9_risk_assessment.docx', 20],
+    ['fire/2.1_fire_own_instructions.docx', 25],
+  ] as const)('%s has a table of contents, and its %i headings are its titles', (name, count) => {
+    const body = bodyOf(name);
+    expect(body.match(/<w:docPartGallery w:val="Table of Contents"\/>/g)).toHaveLength(1);
+    const headings = paragraphsOf(body)
+      .filter((paragraph) => /<w:pStyle w:val="Heading\d"\/>/.test(paragraph))
+      .map(documentTextOf);
+    expect(headings).toHaveLength(count);
+    for (const heading of headings) {
+      expect(heading).toMatch(
+        /^((Sub)?[Cc]apitolul|(SUB)?CAPITOLUL) [IVXLC]+\.|^Anexa Nr\. \d\.|^BIBLIOGRAFIE$/
+      );
+    }
+    expect(body).not.toContain('<w:outlineLvl');
+  });
 
   it.each(typesetFiles)('%s uses one font, the body and title sizes, and Romanian', (name) => {
     const xml = bodyOf(name);
@@ -2472,7 +2501,7 @@ describe('risk_assessment', () => {
     );
   });
 
-  it('repeats a subchapter per evaluation, and a contents row for each', () => {
+  it('repeats a subchapter per evaluation, which the contents list from the merged headings', () => {
     expect(templatePlaceholders(read('9_risk_assessment.docx'))).toEqual(
       expect.arrayContaining([
         'riskAssessment.evaluations',
@@ -2487,7 +2516,10 @@ describe('risk_assessment', () => {
         'workersRepresentatives',
       ])
     );
-    expect(text.match(/\{\{#riskAssessment\.evaluations\}\}/g)).toHaveLength(3);
+    expect(text.match(/\{\{#riskAssessment\.evaluations\}\}/g)).toHaveLength(2);
+    expect(bodyOf('9_risk_assessment.docx')).toContain(
+      '<w:docPartGallery w:val="Table of Contents"/>'
+    );
     expect(text).toContain('{{#sheet}}{{component}}');
     expect(text).toContain('Conducerea locurilor de muncă: {{workplaceManagersList}}');
     expect(text).toContain('SUBCAPITOLUL V.{{roman}}.');

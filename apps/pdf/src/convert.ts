@@ -90,6 +90,9 @@ function convertOnce(
     form.append('files', new Blob([file], { type: docxType }), `${numbered(index)}.docx`);
   });
   if (files.length > 1) form.append('merge', 'true');
+  // Gotenberg's default, said out loud: a document's table of contents leaves the merge
+  // without page numbers, and LibreOffice writes them in while it lays the pages out.
+  form.append('updateIndexes', 'true');
   // The archival flavour: fonts embedded, nothing fetched from outside when it is opened,
   // which is what a copy kept as evidence, and later signed, should be.
   if (archival) form.append('pdfa', 'PDF/A-2b');

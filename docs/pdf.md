@@ -33,7 +33,9 @@ one request to Gotenberg's LibreOffice route with `merge=true`, the files named 
 `0002.docx` and so on, since Gotenberg merges in the alphanumeric order of the names. For
 either set's own instructions, 3.2 or 2.1, the files are the common part, then per annex its title page and the
 module's file: `[common part, title page 1, module 1, title page 2, module 2, …]`, 1 + 2n
-files, which four digits number up to 9,999.
+files, which four digits number up to 9,999. Every LibreOffice conversion sends `updateIndexes=true`, Gotenberg's
+default said out loud: a table of contents leaves the merge without page numbers, and
+LibreOffice writes them in as it lays the pages out ([the engine](document-engine.md)).
 
 The result is PDF/A-2b: fonts embedded, nothing fetched when it is opened, the flavour meant
 for a copy that is kept as evidence and later signed. It rejects with the message

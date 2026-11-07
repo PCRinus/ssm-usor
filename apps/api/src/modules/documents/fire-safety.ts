@@ -1009,9 +1009,12 @@ function fireSchedule({
   };
 }
 
+const articleRange = (from: number, to: number) =>
+  from === to ? `art.\u00a0${from}` : `art.\u00a0${from}–${to}`;
+
 // A file without a numbered list counts no articles, and "art. 1–0" would cite nothing.
 const fireModuleCitation = ({ title, articleCount }: { title: string; articleCount: number }) =>
-  articleCount > 0 ? `I.P.S.U. ${title}, art.\u00a01–${articleCount}` : `I.P.S.U. ${title}`;
+  articleCount > 0 ? `I.P.S.U. ${title}, ${articleRange(1, articleCount)}` : `I.P.S.U. ${title}`;
 
 /**
  * A staff category's sessions cite the fire-safety modules its posts apply, each whole, as the
@@ -1108,7 +1111,7 @@ function fireThemes(facts: FireSafetySetFacts): FireThemesContext | undefined {
             return {
               month: monthNames[month - 1]!.toLocaleUpperCase('ro'),
               content: [
-                `IPSU art.\u00a0${range.from}–${range.to}`,
+                `IPSU ${articleRange(range.from, range.to)}`,
                 ...modules,
                 `instrucțiunile afișate la locul de muncă (Decizia nr.\u00a0${instructionsDecision})`,
                 'organizarea apărării împotriva incendiilor la locul de muncă',
