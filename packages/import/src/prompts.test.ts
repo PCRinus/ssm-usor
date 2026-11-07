@@ -99,6 +99,7 @@ describe('readingMessages', () => {
       'usually the administrator, whether or not they are an employee',
       'cu atribuții în domeniul apărării împotriva incendiilor',
       'never the safety service\'s PSI technician ("cadru tehnic cu atribuții în domeniul prevenirii și stingerii incendiilor")',
+      '"designated_places" when it is allowed in designated places, also when the documents add that it is forbidden on the rest of the premises',
     ]) {
       expect(system!.content).toContain(rule);
     }

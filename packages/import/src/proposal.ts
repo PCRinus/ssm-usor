@@ -352,6 +352,7 @@ export const flagCodes = [
   'unknown_reference',
   'cui_not_registered',
   'legal_name_differs',
+  'name_spelled_differently',
 ] as const;
 
 export type FlagCode = (typeof flagCodes)[number];
@@ -361,6 +362,8 @@ export const flagSchema = z.object({
   path: z.string(),
   code: z.enum(flagCodes),
   detail: z.string().optional(),
+  // Where the check found what it flags, when that is a passage no value of the proposal cites.
+  source: sourceSchema.optional(),
 });
 
 export type Flag = z.infer<typeof flagSchema>;

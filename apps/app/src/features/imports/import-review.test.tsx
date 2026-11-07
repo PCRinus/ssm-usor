@@ -861,6 +861,35 @@ describe('what the checks found', () => {
     expect(list.textContent).not.toContain('workplaces.0');
   });
 
+  it('offers a person’s name another file spells otherwise as a choice, kept as read until picked', async () => {
+    const proposal = proposalFixture();
+    (proposal as { flags: unknown[] }).flags = [
+      {
+        path: 'responsiblePersons.0.fullName',
+        code: 'name_spelled_differently',
+        detail: 'Radu Lozăr',
+        source: { file: 'dosar-ssm.zip/IPSSM.docx', quote: 'Radu Lozăr, prim ajutor' },
+      },
+    ] as never;
+    mockReview(readyDetail({ proposal, blockers: [] }));
+    mount('/responsible');
+
+    const choice = await screen.findByTestId('review-name-spellings');
+    expect(choice.textContent).toContain('Documentele scriu numele în 2 feluri.');
+    expect(within(choice).getByRole('radio', { name: /Radu Lazăr/ })).toHaveProperty(
+      'checked',
+      true
+    );
+    expect(within(choice).getByRole('radio', { name: /^IPSSM\.docx/ })).toBeTruthy();
+    await userEvent.click(within(choice).getByRole('radio', { name: /Radu Lozăr/ }));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.items).toEqual({
+      'person-1': { values: { fullName: 'Radu Lozăr' } },
+    });
+    const list = screen.getByTestId('review-list-responsiblePersons');
+    expect(list.textContent).not.toContain('Modificat de tine');
+  });
+
   it("warns on both rows when ANAF knows the CUI as another firm's, and leaves it to check", async () => {
     const proposal = proposalFixture();
     proposal.client.legalName.options[0]!.value = 'S.C. BRUTĂRIA SPICUL AURIU S.R.L.';

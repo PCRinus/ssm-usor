@@ -1002,6 +1002,19 @@ describe('the fire-safety context', () => {
     );
   });
 
+  it('cites a fire-safety module of one article by that article alone', () => {
+    const [execution] = buildFireSafetyContext({
+      ...facts,
+      fireOwnInstructions: {
+        ...facts.fireOwnInstructions!,
+        annexes: facts.fireOwnInstructions!.annexes.map((annex) => ({ ...annex, articleCount: 1 })),
+      },
+    }).fireThemes!.categories.filter((category) => category.staffCategory === 'execution');
+    expect(execution!.sessions[0]!.content.split('; ')[1]).toBe(
+      'I.P.S.U. Lucrul cu foc deschis, art.\u00a01'
+    );
+  });
+
   it('names the workplaces of the themes, the registered office first', () => {
     expect(buildFireSafetyContext(facts).fireThemes!.workplaceNames).toBe(
       'Sediul social, Atelier Ghiroda'

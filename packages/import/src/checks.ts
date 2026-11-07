@@ -14,6 +14,7 @@ import {
 import { z } from 'zod';
 
 import { findQuote, foldName, foldText, sameAddress, similar, streetKey } from './match';
+import { withNameSpellings } from './name-spellings';
 import {
   type Field,
   type Flag,
@@ -27,6 +28,8 @@ import { intervalWords } from './wire';
 export interface CheckInput {
   // Null for a file without text to search, such as a photograph.
   files: Record<string, string | null>;
+  // The client's files the reading did not get, as the own instructions, searched for names.
+  setAsideFiles?: Record<string, string>;
   // Into an existing client, its identity is the app's and is never missing.
   clientExists?: boolean;
 }
@@ -542,7 +545,18 @@ export function withChecks(
   proposal: Proposal,
   input: CheckInput & { registrations?: Registrations }
 ): Proposal {
-  const flags = checkProposal(proposal, input);
-  if (input.registrations) flags.push(...checkRegistrations(proposal, input.registrations));
-  return { ...proposal, flags };
+  const readable = Object.entries(input.files).filter(
+    (entry): entry is [string, string] => entry[1] !== null
+  );
+  const spelled = withNameSpellings(proposal, {
+    ...Object.fromEntries(readable),
+    ...input.setAsideFiles,
+  });
+  // An option the spellings add may cite a set-aside file, which is the import's all the same.
+  const files = { ...input.files, ...input.setAsideFiles };
+  const flags = [...checkProposal(spelled.proposal, { ...input, files }), ...spelled.flags];
+  if (input.registrations) {
+    flags.push(...checkRegistrations(spelled.proposal, input.registrations));
+  }
+  return { ...spelled.proposal, flags };
 }

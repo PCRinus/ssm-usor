@@ -86,7 +86,8 @@ export function dealChapters(document: ChapterStructure, sessions: number): Arti
 
 export type CitedModule = { title: string; articleCount: number };
 
-export const articles = (from: number, to: number) => `Art.\u00a0${from}\u00a0–\u00a0${to}`;
+export const articles = (from: number, to: number) =>
+  from === to ? `Art.\u00a0${from}` : `Art.\u00a0${from}\u00a0–\u00a0${to}`;
 
 // A file without a numbered list counts no articles, and "Art. 1 – 0" would cite nothing.
 export const citation = (module: CitedModule) =>
