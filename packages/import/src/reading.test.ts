@@ -196,6 +196,17 @@ describe('fromWire', () => {
         fromWire(answer).fireSafety.smokingPolicy.options.map((option) => option.value)
       ).toEqual(['forbidden_everywhere', 'designated_places']);
     });
+
+    it('keeps the choice when only another company’s passages forbid smoking', () => {
+      const answer = wireAnswer();
+      const ban = answer.facts.find((fact) => fact.value === forbidden.value)!;
+      ban.otherCompany = 'ATELIERUL INVENTAT S.R.L.';
+      answer.facts.push(allowed, place);
+
+      expect(
+        fromWire(answer).fireSafety.smokingPolicy.options.map((option) => option.value)
+      ).toEqual(['forbidden_everywhere', 'designated_places']);
+    });
   });
 
   it('keeps an equipment entry that names no post, with its post unresolved', () => {

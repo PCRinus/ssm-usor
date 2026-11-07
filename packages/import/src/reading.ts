@@ -380,7 +380,8 @@ function joinSmokingRules(fireSafety: Record<string, Field<string | number>>) {
   const placed = fireSafety.smokingPlace!.options.some(
     (option) => option.otherCompanyName === null
   );
-  if (!designated || !forbidden || !placed || designated.otherCompanyName !== null) return;
+  if (!designated || !forbidden || !placed) return;
+  if (designated.otherCompanyName !== null || forbidden.otherCompanyName !== null) return;
   mergeSources(designated.sources, forbidden.sources);
   policies.splice(policies.indexOf(forbidden), 1);
 }
