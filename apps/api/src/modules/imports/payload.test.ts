@@ -701,6 +701,12 @@ describe('toClientPayload', () => {
         ],
       })
     );
+    // An import read before the reading joined the two rules (ADR 030) still holds them apart.
+    proposal.fireSafety.smokingPolicy.options.unshift({
+      value: 'forbidden_everywhere',
+      sources: [{ file: fire, quote: 'citat' }],
+      otherCompanyName: null,
+    });
     const policies = proposal.fireSafety.smokingPolicy.options.map((option) => option.value);
     const payloadWith = (policy: string | null, existing = noExistingRecords, replace = false) =>
       toClientPayload({

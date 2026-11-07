@@ -135,6 +135,69 @@ describe('fromWire', () => {
     });
   });
 
+  describe('smoking forbidden on the premises and allowed in a marked place', () => {
+    const allowed = {
+      field: 'fireSafety.smokingPolicy',
+      value: 'designated_places',
+      file: 'Dosar/PSI/Decizia fumat.docx',
+      quote: 'Fumatul este permis : În locurile special amenajate de la poarta unitatii',
+      otherCompany: '',
+    };
+    const place = {
+      ...allowed,
+      field: 'fireSafety.smokingPlace',
+      value: 'În locurile special amenajate de la poarta unității',
+    };
+    const forbidden = {
+      field: 'fireSafety.smokingPolicy',
+      value: 'forbidden_everywhere',
+      file: 'Dosar/PSI/Lista mijloace.doc',
+      quote: 'Fumatul este interzis în toate spațiile',
+    };
+
+    it('proposes the designated place with the sources of both statements', () => {
+      const answer = wireAnswer();
+      answer.facts.push(allowed, place);
+
+      const read = fromWire(answer);
+
+      expect(read.fireSafety.smokingPolicy.options).toEqual([
+        {
+          value: 'designated_places',
+          sources: [
+            { file: allowed.file, quote: allowed.quote },
+            { file: forbidden.file, quote: forbidden.quote },
+          ],
+          otherCompanyName: null,
+        },
+      ]);
+      expect(proposalChoices(read).map((choice) => choice.path)).not.toContain(
+        'fireSafety.smokingPolicy'
+      );
+    });
+
+    it('leaves the two rules a choice when no document names the place', () => {
+      const answer = wireAnswer();
+      answer.facts.push(allowed);
+
+      expect(
+        fromWire(answer).fireSafety.smokingPolicy.options.map((option) => option.value)
+      ).toEqual(['forbidden_everywhere', 'designated_places']);
+    });
+
+    it('keeps the choice when only another company’s passages allow smoking', () => {
+      const answer = wireAnswer();
+      answer.facts.push(
+        { ...allowed, otherCompany: 'ATELIERUL INVENTAT S.R.L.' },
+        { ...place, otherCompany: 'ATELIERUL INVENTAT S.R.L.' }
+      );
+
+      expect(
+        fromWire(answer).fireSafety.smokingPolicy.options.map((option) => option.value)
+      ).toEqual(['forbidden_everywhere', 'designated_places']);
+    });
+  });
+
   it('keeps an equipment entry that names no post, with its post unresolved', () => {
     const answer = wireAnswer();
     answer.protectiveEquipment[0]!.jobPositions = [];
