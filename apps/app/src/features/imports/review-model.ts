@@ -903,6 +903,7 @@ const advisoryFlags = new Set([
   'file_not_found',
   'cui_not_registered',
   'duplicate',
+  'name_spelled_differently',
 ]);
 
 export type RegisteredCompany = { cui: string; legalName: string; inactive: boolean };
@@ -1103,6 +1104,16 @@ export function flagNote(flag: Flag, proposal: Proposal, changes: Changes): stri
       return flag.detail && cui !== undefined
         ? anafMismatchNote({ cui: bareCui(cui), legalName: flag.detail, inactive: false })
         : 'Denumirea diferă de cea de la ANAF.';
+    }
+    case 'name_spelled_differently': {
+      const item = single ? undefined : itemsOf(proposal, root as ItemList)?.[Number(parts[1])];
+      const proposed = single
+        ? proposedField(proposal, `${root}.${field}`).options[Number(parts[3])]?.value
+        : item && itemName(root as ItemList, item);
+      const file = flag.source ? ` (în ${flag.source.file.split('/').at(-1)})` : '';
+      return proposed && flag.detail
+        ? `Documentele scriu numele în două feluri: „${proposed}” și „${flag.detail}”${file}. Verifică-l.`
+        : `Documentele scriu numele și altfel${file}. Verifică-l.`;
     }
   }
 }

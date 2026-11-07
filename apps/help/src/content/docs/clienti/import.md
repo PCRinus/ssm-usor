@@ -161,6 +161,8 @@ La sfârșitul primei secțiuni, **Găsite în alte secțiuni** îți arată ce 
 
 Instrucțiunile proprii (IPSSM și IPSU) și evaluările de risc nu intră în propunerea clientului: le citim separat, pentru bibliotecile tale, și nu te țin pe loc când creezi clientul.
 
+Numele reprezentantului legal, al persoanei de contact și ale persoanelor cu atribuții le căutăm în toate documentele încărcate, și în cele puse deoparte, ca instrucțiunile proprii. Când un document scrie numele cu una sau două litere altfel, de exemplu „Ionescu” într-unul și „Ioanescu” în altul, rândul lui îți spune „Documentele scriu numele în două feluri” și în ce fișier, iar **Vezi pasajul** îți arată locul din fișier. Avertismentul nu oprește nimic: verifici numele și, dacă e cazul, îl corectezi cu **Schimbă**.
+
 Nu trebuie să aștepți citirea: importul rămâne în **Clienți**, la **Importuri din documente**, până creezi clientul sau renunți. Dacă ai pornit tu importul și lucrezi între timp pe altă pagină din aplicație, îți apare o notificare când propunerea e gata, cu **Verifică propunerea**, sau când citirea s-a oprit.
 
 Cât timp ai un import pornit de tine care se citește, te așteaptă la verificare sau s-a oprit, în capul paginii apare butonul **Importuri**, lângă **Ghid de configurare**; pe telefon e butonul rotund de lângă ghid, cu numărul importurilor de verificat. Îl deschizi de pe orice pagină și vezi importurile grupate: **De verificat**, cu butonul care te duce la verificare, **Se citesc**, cu cât s-a citit, și **S-au oprit**, cu **Vezi importul**. Un import confirmat sau la care ai renunțat iese din listă, iar butonul dispare când nu mai ai niciunul deschis.

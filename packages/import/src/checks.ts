@@ -14,6 +14,7 @@ import {
 import { z } from 'zod';
 
 import { findQuote, foldName, foldText, sameAddress, similar, streetKey } from './match';
+import { checkNameSpellings } from './name-spellings';
 import {
   type Field,
   type Flag,
@@ -27,6 +28,8 @@ import { intervalWords } from './wire';
 export interface CheckInput {
   // Null for a file without text to search, such as a photograph.
   files: Record<string, string | null>;
+  // The client's files the reading did not get, as the own instructions, searched for names only.
+  setAsideFiles?: Record<string, string>;
   // Into an existing client, its identity is the app's and is never missing.
   clientExists?: boolean;
 }
@@ -490,6 +493,12 @@ export function checkProposal(proposal: Proposal, input: CheckInput): Flag[] {
     ...checkAllowedValues(proposal),
     ...checkDuplicates(proposal),
     ...checkReferences(proposal),
+    ...checkNameSpellings(proposal, {
+      ...Object.fromEntries(
+        Object.entries(input.files).filter((entry): entry is [string, string] => entry[1] !== null)
+      ),
+      ...input.setAsideFiles,
+    }),
   ];
 }
 

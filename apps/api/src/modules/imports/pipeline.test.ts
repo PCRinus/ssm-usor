@@ -1046,11 +1046,15 @@ describe('the import queue', () => {
     expect(modelRequests.map((request) => request.name)).toEqual(['import_sorting']);
   });
 
-  it('sets own instructions aside with a reason of their own', async () => {
+  it('sets own instructions aside with a reason of their own, and still checks the names they spell', async () => {
     const instructions: FileSpec = {
       ...files[0]!,
       path: 'Dosar/IPSSM.docx',
-      bytes: docx(['BRUTĂRIA FICTIVĂ S.R.L.', 'Instrucțiuni proprii de securitate și sănătate']),
+      bytes: docx([
+        'BRUTĂRIA FICTIVĂ S.R.L.',
+        'Instrucțiuni proprii de securitate și sănătate',
+        'Aprobat: administrator Vasilesu Andrei',
+      ]),
     };
     model = (request) =>
       request.name === 'import_sorting' && request.images.length === 0
@@ -1075,6 +1079,15 @@ describe('the import queue', () => {
       state: 'set_aside',
       document_kind: 'own_instructions',
       reason: fileReasons.ownInstructions,
+    });
+    expect(proposalSchema.parse(world.imports.get(importId)!.proposal).flags).toContainEqual({
+      path: 'client.legalRepresentativeName.options.0',
+      code: 'name_spelled_differently',
+      detail: 'Vasilesu Andrei',
+      source: {
+        file: 'Dosar/IPSSM.docx',
+        quote: 'Aprobat: administrator Vasilesu Andrei',
+      },
     });
   });
 

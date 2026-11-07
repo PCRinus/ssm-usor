@@ -1057,9 +1057,23 @@ export async function checkImport(deps: PipelineDeps, importId: string) {
       texts[pageLabel(entry.file, page.number)] = null;
     }
   }
+  const setAsideFiles: Record<string, string> = {};
+  // Only names are looked for in a set-aside file, so one that cannot be loaded never holds up
+  // the check.
+  const setAside = await Promise.allSettled(
+    all
+      .filter((file) => file.state === 'set_aside' && !isImage(file))
+      .map((file) => loadPrepared(deps.objects, file))
+  );
+  for (const loaded of setAside) {
+    if (loaded.status === 'fulfilled' && loaded.value.text.trim() !== '') {
+      setAsideFiles[loaded.value.file.upload_path] = loaded.value.text;
+    }
+  }
   const registrations = await lookUpRegistrations(proposal, deps.registry);
   const checked = withChecks(proposal, {
     files: texts,
+    setAsideFiles,
     clientExists: row.into_existing_client,
     registrations,
   });

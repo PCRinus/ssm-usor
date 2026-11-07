@@ -14669,11 +14669,24 @@
                         "missing",
                         "unknown_reference",
                         "cui_not_registered",
-                        "legal_name_differs"
+                        "legal_name_differs",
+                        "name_spelled_differently"
                       ]
                     },
                     "detail": {
                       "type": "string"
+                    },
+                    "source": {
+                      "type": "object",
+                      "properties": {
+                        "file": {
+                          "type": "string"
+                        },
+                        "quote": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["file", "quote"]
                     }
                   },
                   "required": ["path", "code"]

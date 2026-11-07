@@ -861,6 +861,41 @@ describe('what the checks found', () => {
     expect(list.textContent).not.toContain('workplaces.0');
   });
 
+  it('warns of a name the documents spell two ways, naming the file, with its passage', async () => {
+    const proposal = proposalFixture();
+    proposal.client.legalRepresentativeName.options.splice(1);
+    (proposal as { flags: unknown[] }).flags = [
+      {
+        path: 'client.legalRepresentativeName.options.0',
+        code: 'name_spelled_differently',
+        detail: 'Ioana Mureșean',
+        source: { file: 'dosar-ssm.zip/IPSSM.docx', quote: 'Aprobat: Ioana Mureșean' },
+      },
+      {
+        path: 'responsiblePersons.0.fullName',
+        code: 'name_spelled_differently',
+        detail: 'Radu Lozăr',
+        source: { file: 'dosar-ssm.zip/IPSSM.docx', quote: 'Radu Lozăr, prim ajutor' },
+      },
+    ] as never;
+    mockReview(readyDetail({ proposal, blockers: [] }));
+    mount('/identity');
+
+    const row = await screen.findByText(/Documentele scriu numele în două feluri/);
+    expect(row.textContent).toContain(
+      'Documentele scriu numele în două feluri: „Ioana Mureșan” și „Ioana Mureșean” (în IPSSM.docx). Verifică-l.'
+    );
+    expect(within(row).getByRole('button', { name: 'Vezi pasajul' })).toBeTruthy();
+
+    disposeRuntimes();
+    mockReview(readyDetail({ proposal, blockers: [] }));
+    mount('/responsible');
+    const list = await screen.findByTestId('review-list-responsiblePersons');
+    expect(list.textContent).toContain(
+      'Documentele scriu numele în două feluri: „Radu Lazăr” și „Radu Lozăr” (în IPSSM.docx).'
+    );
+  });
+
   it("warns on both rows when ANAF knows the CUI as another firm's, and leaves it to check", async () => {
     const proposal = proposalFixture();
     proposal.client.legalName.options[0]!.value = 'S.C. BRUTĂRIA SPICUL AURIU S.R.L.';
