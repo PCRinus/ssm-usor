@@ -9,6 +9,7 @@ import {
 } from './risks-library';
 import {
   factorComplete,
+  namesOneOf,
   type ReadFactor,
   type ReadRisks,
   type ReadSheet,
@@ -37,7 +38,8 @@ export interface ProposedSheetPost {
 export interface ProposedRiskSheet extends Omit<ReadSheet, 'posts' | 'workName' | 'factors'> {
   posts: ProposedSheetPost[];
   // Absent from a proposal stored before the reading suggested names. The model's name for the
-  // work and the workplace the heading names, null when there is none or it names the client.
+  // work and the workplace the heading names, null when there is none or it names the client or
+  // one of its people.
   workName?: string | null;
   workplace?: string | null;
   // A post's sheet whose heading names none of the proposal's posts: the specialist picks one, or
@@ -90,6 +92,8 @@ export interface ProposeRisksInput {
   library: readonly LibraryEvaluation[];
   takenNames: readonly string[];
   client: { name: string };
+  // The client's and provider's people, whose names never go into a library entry's name.
+  people?: readonly string[];
   existing?: ExistingEvaluations;
   thresholds?: { share: number; description: number };
 }
@@ -135,27 +139,34 @@ const namesClient = (name: string, client: string) => {
   return folded.length >= 3 && ` ${foldName(name)} `.includes(` ${folded} `);
 };
 
-const usableName = (written: string | null | undefined, client: string) => {
+interface Owners {
+  client: string;
+  people: readonly string[];
+}
+
+const usableName = (written: string | null | undefined, owners: Owners) => {
   const name = written && entryName(written).slice(0, nameLength.max).trim();
-  return name && fits(name) && !namesClient(name, client) ? name : null;
+  return name && fits(name) && !namesClient(name, owners.client) && !namesOneOf(name, owners.people)
+    ? name
+    : null;
 };
 
-const suggestedNames = (sheet: ReadSheet, client: string) => ({
-  workName: usableName(sheet.workName, client),
-  workplace: usableName(workplaceOf(sheet.heading), client),
+const suggestedNames = (sheet: ReadSheet, owners: Owners) => ({
+  workName: usableName(sheet.workName, owners),
+  workplace: usableName(workplaceOf(sheet.heading), owners),
 });
 
 // A library entry is reused at other employers, so it is named by its work before its post.
 function libraryNameOf(
   sheet: ReadSheet,
   posts: readonly string[],
-  client: string
+  owners: Owners
 ): { name: string; from: LibraryNameSource } {
   if (sheet.kind === 'sensitive_groups') return { name: 'Grupuri sensibile', from: 'kind' };
   const heading = { name: evaluationName(sheet.name, sheet.heading), from: 'heading' } as const;
   if (sheet.kind !== 'job_position') return heading;
-  const { workName, workplace } = suggestedNames(sheet, client);
-  const post = posts.length === 1 ? usableName(posts[0], client) : null;
+  const { workName, workplace } = suggestedNames(sheet, owners);
+  const post = posts.length === 1 ? usableName(posts[0], owners) : null;
   if (workName) return { name: workName, from: 'work' };
   if (workplace) return { name: workplace, from: 'workplace' };
   return post ? { name: post, from: 'post' } : heading;
@@ -164,6 +175,7 @@ function libraryNameOf(
 const choiceFor = (existing: number) => (existing > 0 ? ('keep' as const) : null);
 
 export function proposeRisks(input: ProposeRisksInput): RisksProposal {
+  const owners: Owners = { client: input.client.name, people: input.people ?? [] };
   const postByFold = new Map(input.posts.map((post) => [foldText(post), post]));
   const factorsOf = (sheet: ReadSheet): ProposedRiskFactor[] =>
     sheet.factors.map((factor) => ({
@@ -179,7 +191,7 @@ export function proposeRisks(input: ProposeRisksInput): RisksProposal {
       sheet.kind === 'job_position'
         ? [...new Set(sheet.posts.flatMap((post) => postByFold.get(foldText(post)) ?? []))]
         : [];
-    const { name, from } = libraryNameOf(sheet, posts, input.client.name);
+    const { name, from } = libraryNameOf(sheet, posts, owners);
     return { sheet, posts, factors: factorsOf(sheet), libraryName: name, nameFrom: from };
   });
   const postsFirst = [...prepared].sort(
@@ -236,7 +248,7 @@ export function proposeRisks(input: ProposeRisksInput): RisksProposal {
           const count = input.existing?.posts?.[name] ?? 0;
           return { name, existingFactors: count, choice: choiceFor(count) };
         }),
-        ...suggestedNames(sheet, input.client.name),
+        ...suggestedNames(sheet, owners),
         undecided: sheet.kind === 'job_position' && posts.length === 0,
         existing: clientLevel ? { factors: existingCount, choice: choiceFor(existingCount) } : null,
         libraryName: item?.name ?? libraryName,

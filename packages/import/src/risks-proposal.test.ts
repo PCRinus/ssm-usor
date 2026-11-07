@@ -188,6 +188,24 @@ describe('proposeRisks', () => {
     expect(sheet).toMatchObject({ libraryName: 'Brutărie', workName: null, workplace: 'Brutărie' });
   });
 
+  it('passes over a workplace that names one of the client’s people', () => {
+    const [sheet] = propose({
+      read: {
+        ...read,
+        sheets: [
+          {
+            ...read.sheets[0]!,
+            workName: null,
+            heading: 'PENTRU LOCUL DE MUNCĂ: ATELIER ION POPESCU, POSTUL DE LUCRU: BRUTAR',
+          },
+        ],
+      },
+      people: ['Ion Popescu'],
+    }).sheets;
+
+    expect(sheet).toMatchObject({ libraryName: 'Brutar', nameFrom: 'post', workplace: null });
+  });
+
   it('shows the work’s name, the workplace and the posts the default comes from', () => {
     expect(baker).toMatchObject({
       workName: 'Producție de panificație',

@@ -645,7 +645,6 @@ export function nameNote(state: SheetState, entries: readonly LibraryName[]): Na
   }
 }
 
-/** The names "Redenumește" offers in one click: the work, the workplace, the posts, as written. */
 export function nameSuggestions(
   state: SheetState,
   entries: readonly LibraryName[],

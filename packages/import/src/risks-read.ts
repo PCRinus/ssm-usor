@@ -319,7 +319,7 @@ export function namesPerson(text: string, people: readonly string[]) {
   return namesOneOf(text, people);
 }
 
-function namesOneOf(text: string, people: readonly string[]) {
+export function namesOneOf(text: string, people: readonly string[]) {
   const folded = ` ${foldName(text)} `;
   return people.some((person) => {
     const name = foldName(person);
