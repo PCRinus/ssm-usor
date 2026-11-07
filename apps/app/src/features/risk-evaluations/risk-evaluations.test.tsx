@@ -458,7 +458,7 @@ describe("a position's risk evaluation page", () => {
       'Fără măsuri'
     );
     expect(within(electricRow!).getByTestId('risk-factor-gap').textContent).toBe(
-      'Un factor inacceptabil are nevoie de cel puțin o măsură de prevenire.'
+      'Planul de prevenire nu are nicio măsură pentru acest factor, iar nivelul 4 cere una. Adaugă o măsură.'
     );
     expect(within(carelessRow!).getByTestId('risk-level').textContent).toBe('Nivel 3');
     expect(within(carelessRow!).getByTestId('risk-level').dataset.unacceptable).toBeUndefined();

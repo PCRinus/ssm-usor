@@ -20,7 +20,6 @@ import { RiskDifferences } from './risk-differences';
 import { RiskFactorRows } from './risk-factor-rows';
 import { RiskPlanRows } from './risk-plan-rows';
 import {
-  asksToCheck,
   type ExistingChoice,
   existingChoiceLabels,
   existingOutcome,
@@ -30,6 +29,7 @@ import {
   type LibraryChoice,
   libraryChoiceLabels,
   libraryOutcome,
+  needsCheck,
   pendingLine,
   pendingOf,
   type RiskSheet,
@@ -115,9 +115,7 @@ export function RiskSheetCard({
   const textFlags = sheet.flags.filter((flag) => flag.kind !== 'classes_swapped');
   const attention = state.factors.filter(
     (factor) =>
-      refused.has(factor.factor.key) ||
-      (!factor.included && !factor.complete) ||
-      (factor.included && factor.flags.some(asksToCheck))
+      refused.has(factor.factor.key) || (!factor.included && !factor.complete) || needsCheck(factor)
   );
   // A factor fixed while the list is folded stays in it, so it does not vanish under the pointer.
   const [listed, setListed] = useState(() => new Set(attention.map((factor) => factor.factor.key)));

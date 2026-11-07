@@ -3,6 +3,7 @@ import {
   gravityConsequence,
   isUnacceptableRiskLevel,
   maxAcceptableGlobalRiskLevel,
+  maxAcceptableRiskLevel,
   type PreventionMeasureKind,
   preventionMeasureKinds,
   probabilityFrequency,
@@ -136,10 +137,28 @@ export function sectionsOf(factors: readonly RiskFactor[]): ComponentSection[] {
   });
 }
 
+export function missingMeasureText({
+  level,
+  gravityClass,
+  probabilityClass,
+  printedLevel = null,
+}: {
+  level: number;
+  gravityClass: number;
+  probabilityClass: number;
+  printedLevel?: number | null;
+}) {
+  // A sheet that prints an acceptable level leaves the factor out of its plan, so the grid's
+  // level is the only reason the measure is asked for.
+  if (printedLevel !== null && !isUnacceptableRiskLevel(printedLevel)) {
+    return `Planul de prevenire nu are nicio măsură pentru acest factor. Pe fișă e trecut nivelul ${printedLevel}, dar gravitatea ${gravityClass} și probabilitatea ${probabilityClass} dau nivelul ${level}, iar de la nivelul ${maxAcceptableRiskLevel + 1} factorul are nevoie de o măsură. Adaugă o măsură sau verifică clasele.`;
+  }
+  return `Planul de prevenire nu are nicio măsură pentru acest factor, iar nivelul ${level} cere una. Adaugă o măsură.`;
+}
+
 type FactorGapKind = 'measure' | 'deadlineAndResponsible' | 'deadline' | 'responsible';
 
-const factorGapMessages: Record<FactorGapKind, string> = {
-  measure: 'Un factor inacceptabil are nevoie de cel puțin o măsură de prevenire.',
+const factorGapMessages: Record<Exclude<FactorGapKind, 'measure'>, string> = {
   deadlineAndResponsible: 'Lipsesc termenul și persoana care răspunde de măsuri.',
   deadline: 'Lipsește termenul măsurilor.',
   responsible: 'Lipsește persoana care răspunde de măsuri.',
@@ -160,6 +179,7 @@ function factorGapKind(factor: RiskFactor): FactorGapKind | null {
 
 export function factorGap(factor: RiskFactor): string | null {
   const kind = factorGapKind(factor);
+  if (kind === 'measure') return missingMeasureText({ ...factor, level: factor.riskLevel });
   return kind && factorGapMessages[kind];
 }
 

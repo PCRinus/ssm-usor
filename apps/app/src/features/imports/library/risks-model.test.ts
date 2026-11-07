@@ -11,6 +11,8 @@ import {
   lacksText,
   leftSentence,
   libraryOutcome,
+  measureGap,
+  needsCheck,
   pendingLine,
   pendingOf,
   placedPlanRows,
@@ -171,6 +173,59 @@ describe('a factor of the pack', () => {
         observations: null,
       })
     ).toEqual({ gravityClass: 3, responsiblePerson: null, included: true });
+  });
+});
+
+describe('an unacceptable factor without a measure', () => {
+  const commute = factor({
+    description: 'Accident de traseu pe timpul deplasării de la/la serviciu',
+    gravityClass: 7,
+    probabilityClass: 2,
+    printedLevel: 3,
+    level: 4,
+    measures: [],
+    measuresFrom: null,
+    deadline: null,
+    responsiblePerson: null,
+    flags: [{ kind: 'level_mismatch', grid: 4, printed: 3 }],
+  });
+
+  it('says the sheet printed an acceptable level the classes do not give, and what to do', () => {
+    expect(measureGap(factorState(commute))).toEqual({
+      text: 'Planul de prevenire nu are nicio măsură pentru acest factor. Pe fișă e trecut nivelul 3, dar gravitatea 7 și probabilitatea 2 dau nivelul 4, iar de la nivelul 4 factorul are nevoie de o măsură. Adaugă o măsură sau verifică clasele.',
+      explainsLevel: true,
+    });
+  });
+
+  it('says only that the level asks for a measure when the sheet printed it as well', () => {
+    const printed = factorState({
+      ...commute,
+      gravityClass: 4,
+      probabilityClass: 5,
+      printedLevel: 4,
+      level: 5,
+      flags: [{ kind: 'level_mismatch', grid: 5, printed: 4 }],
+    });
+    expect(measureGap(printed)).toEqual({
+      text: 'Planul de prevenire nu are nicio măsură pentru acest factor, iar nivelul 5 cere una. Adaugă o măsură.',
+      explainsLevel: false,
+    });
+    expect(measureGap(factorState({ ...commute, flags: [] }))?.explainsLevel).toBe(false);
+  });
+
+  it('says nothing once a measure is added, or for an acceptable factor', () => {
+    expect(
+      measureGap(
+        factorState(commute, { measures: [{ kind: 'organizational', description: 'Instruire' }] })
+      )
+    ).toBeNull();
+    expect(measureGap(factorState({ ...commute, gravityClass: 2, level: 2 }))).toBeNull();
+  });
+
+  it('is a factor to look at while it is ticked', () => {
+    const plain = factorState({ ...commute, flags: [] });
+    expect(needsCheck(plain)).toBe(true);
+    expect(needsCheck(factorState({ ...commute, flags: [], included: false }))).toBe(false);
   });
 });
 
