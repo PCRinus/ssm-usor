@@ -428,6 +428,37 @@ describe('toClientPayload', () => {
     expect(payload.quality.protectiveEquipment).toEqual({ changed: 1, unticked: 0, kept: 0 });
   });
 
+  it('asks to choose between two spellings of the representative, and writes the one chosen', () => {
+    const proposal = withChecks(proposalOf(reading()), {
+      files: { [decision]: null, [fire]: null },
+      setAsideFiles: { 'Dosar/IPSSM.docx': 'Aprobat: administrator Vasilesu Andrei' },
+    });
+    const payloadWith = (changes: ImportChanges | null) =>
+      toClientPayload({
+        proposal,
+        changes,
+        intoExistingClient: false,
+        existing: noExistingRecords,
+      });
+
+    expect(payloadWith(null).blockers).toContainEqual({
+      path: 'client.legalRepresentativeName',
+      code: 'choice',
+    });
+    const option = proposal.client.legalRepresentativeName.options.findIndex(
+      (each) => each.value === 'Vasilesu Andrei'
+    );
+    const chosen = payloadWith({
+      fields: { 'client.legalRepresentativeName': { option } },
+      items: {},
+    });
+    expect(chosen.blockers).not.toContainEqual(
+      expect.objectContaining({ path: 'client.legalRepresentativeName' })
+    );
+    expect(chosen.payload.client).toMatchObject({ legal_representative_name: 'Vasilesu Andrei' });
+    expect(chosen.payload.quality.client).toMatchObject({ changed: 1 });
+  });
+
   it('blocks on a choice, a missing identity, an invalid value and a representative without an employee', () => {
     const base = reading();
     const proposal = withChecks(

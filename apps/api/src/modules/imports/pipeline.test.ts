@@ -1046,7 +1046,7 @@ describe('the import queue', () => {
     expect(modelRequests.map((request) => request.name)).toEqual(['import_sorting']);
   });
 
-  it('sets own instructions aside with a reason of their own, and still checks the names they spell', async () => {
+  it('sets own instructions aside with a reason of their own, and offers the names they spell otherwise', async () => {
     const instructions: FileSpec = {
       ...files[0]!,
       path: 'Dosar/IPSSM.docx',
@@ -1080,15 +1080,16 @@ describe('the import queue', () => {
       document_kind: 'own_instructions',
       reason: fileReasons.ownInstructions,
     });
-    expect(proposalSchema.parse(world.imports.get(importId)!.proposal).flags).toContainEqual({
-      path: 'client.legalRepresentativeName.options.0',
-      code: 'name_spelled_differently',
-      detail: 'Vasilesu Andrei',
-      source: {
-        file: 'Dosar/IPSSM.docx',
-        quote: 'Aprobat: administrator Vasilesu Andrei',
+    const stored = proposalSchema.parse(world.imports.get(importId)!.proposal);
+    expect(stored.client.legalRepresentativeName.options).toEqual([
+      expect.objectContaining({ value: 'Vasilescu Andrei' }),
+      {
+        value: 'Vasilesu Andrei',
+        sources: [{ file: 'Dosar/IPSSM.docx', quote: 'Aprobat: administrator Vasilesu Andrei' }],
+        otherCompanyName: null,
       },
-    });
+    ]);
+    expect(stored.flags.filter((flag) => flag.path.startsWith('client.legalRep'))).toEqual([]);
   });
 
   it('sets the general training material aside by its kind, even when told it carries client data', async () => {

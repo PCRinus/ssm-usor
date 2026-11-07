@@ -861,16 +861,9 @@ describe('what the checks found', () => {
     expect(list.textContent).not.toContain('workplaces.0');
   });
 
-  it('warns of a name the documents spell two ways, naming the file, with its passage', async () => {
+  it('offers a person’s name another file spells otherwise as a choice, kept as read until picked', async () => {
     const proposal = proposalFixture();
-    proposal.client.legalRepresentativeName.options.splice(1);
     (proposal as { flags: unknown[] }).flags = [
-      {
-        path: 'client.legalRepresentativeName.options.0',
-        code: 'name_spelled_differently',
-        detail: 'Ioana Mureșean',
-        source: { file: 'dosar-ssm.zip/IPSSM.docx', quote: 'Aprobat: Ioana Mureșean' },
-      },
       {
         path: 'responsiblePersons.0.fullName',
         code: 'name_spelled_differently',
@@ -879,21 +872,22 @@ describe('what the checks found', () => {
       },
     ] as never;
     mockReview(readyDetail({ proposal, blockers: [] }));
-    mount('/identity');
-
-    const row = await screen.findByText(/Documentele scriu numele în două feluri/);
-    expect(row.textContent).toContain(
-      'Documentele scriu numele în două feluri: „Ioana Mureșan” și „Ioana Mureșean” (în IPSSM.docx). Verifică-l.'
-    );
-    expect(within(row).getByRole('button', { name: 'Vezi pasajul' })).toBeTruthy();
-
-    disposeRuntimes();
-    mockReview(readyDetail({ proposal, blockers: [] }));
     mount('/responsible');
-    const list = await screen.findByTestId('review-list-responsiblePersons');
-    expect(list.textContent).toContain(
-      'Documentele scriu numele în două feluri: „Radu Lazăr” și „Radu Lozăr” (în IPSSM.docx).'
+
+    const choice = await screen.findByTestId('review-name-spellings');
+    expect(choice.textContent).toContain('Documentele scriu numele în 2 feluri.');
+    expect(within(choice).getByRole('radio', { name: /Radu Lazăr/ })).toHaveProperty(
+      'checked',
+      true
     );
+    expect(within(choice).getByRole('radio', { name: /^IPSSM\.docx/ })).toBeTruthy();
+    await userEvent.click(within(choice).getByRole('radio', { name: /Radu Lozăr/ }));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.items).toEqual({
+      'person-1': { values: { fullName: 'Radu Lozăr' } },
+    });
+    const list = screen.getByTestId('review-list-responsiblePersons');
+    expect(list.textContent).not.toContain('Modificat de tine');
   });
 
   it("warns on both rows when ANAF knows the CUI as another firm's, and leaves it to check", async () => {

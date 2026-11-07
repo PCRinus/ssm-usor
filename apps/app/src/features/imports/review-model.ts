@@ -697,6 +697,33 @@ function untickedReason(
   return null;
 }
 
+const offeredNames = (proposal: Proposal, list: ItemList, index: number) =>
+  proposal.flags
+    .filter(
+      (flag) =>
+        flag.code === 'name_spelled_differently' &&
+        flag.path === `${list}.${index}.fullName` &&
+        flag.detail &&
+        flag.source
+    )
+    .map((flag) => ({ value: flag.detail!, sources: [flag.source!] }));
+
+export type NameSpelling = { value: string; sources: Source[] };
+
+/**
+ * A person's name as the reading proposed it and as other files spell it, while the member has
+ * kept one of them; none once they wrote another.
+ */
+export function nameSpellings(proposal: Proposal, state: ItemState): NameSpelling[] {
+  const offered = offeredNames(proposal, state.list, state.index);
+  if (offered.length === 0) return [];
+  const spellings = [
+    { value: String(state.item.fullName ?? ''), sources: state.item.sources },
+    ...offered,
+  ];
+  return spellings.some((spelling) => spelling.value === state.values.fullName) ? spellings : [];
+}
+
 export function itemStates(proposal: Proposal, changes: Changes, list: ItemList): ItemState[] {
   const leftOutPositions = new Set(
     list === 'protectiveEquipment'
@@ -718,7 +745,12 @@ export function itemStates(proposal: Proposal, changes: Changes, list: ItemList)
       proposed: reason === null,
       untickedReason: reason,
       edited: Object.entries(written).some(
-        ([field, value]) => value !== (item.spelling as Record<string, string> | undefined)?.[field]
+        ([field, value]) =>
+          value !== (item.spelling as Record<string, string> | undefined)?.[field] &&
+          !(
+            field === 'fullName' &&
+            offeredNames(proposal, list, index).some((name) => name.value === value)
+          )
       ),
     };
   });

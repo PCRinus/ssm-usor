@@ -825,19 +825,8 @@ function ValueRow({
         </RowNote>
       )}
       {flags.map((flag) => (
-        <RowNote key={`${flag.path}-${flag.code}-${flag.detail ?? ''}`}>
+        <RowNote key={`${flag.path}-${flag.code}`}>
           {flagNote(flag, context.proposal, context.changes)}
-          {flag.source && (
-            <>
-              {' '}
-              <LinkButton
-                className="text-[13px]"
-                onClick={() => context.openSource(state.label, [flag.source!])}
-              >
-                Vezi pasajul
-              </LinkButton>
-            </>
-          )}
         </RowNote>
       ))}
     </DecisionRow>

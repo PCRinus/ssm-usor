@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
+import { withChecks } from './checks';
 import { checkNameSpellings } from './name-spellings';
+import { proposalChoices } from './proposal';
 import { fromWire } from './reading';
 import { files, wireAnswer } from './test/fixtures';
 
@@ -101,6 +103,45 @@ describe('checkNameSpellings', () => {
     const texts = { [instructions]: 'Administrator Vasilescu Andrie' };
 
     expect(checkNameSpellings(fromWire(answer), texts)).toEqual([]);
+  });
+
+  it('offers the client’s other spelling as a choice, its passage checked like any other', () => {
+    const proposal = proposalWith('Mihai IONESCU - DRAGOMIR');
+    const setAsideFiles = { [instructions]: 'Aprobat, Administrator: Mihai IOANESCU - DRAGOMIR' };
+
+    const checked = withChecks(proposal, { files, setAsideFiles });
+
+    expect(checked.client.legalRepresentativeName.options.slice(-1)).toEqual([
+      {
+        value: 'Mihai IOANESCU - DRAGOMIR',
+        sources: [
+          { file: instructions, quote: 'Aprobat, Administrator: Mihai IOANESCU - DRAGOMIR' },
+        ],
+        otherCompanyName: null,
+      },
+    ]);
+    expect(proposalChoices(checked).map((choice) => choice.path)).toContain(
+      'client.legalRepresentativeName'
+    );
+    expect(checked.flags.filter((flag) => flag.path.startsWith('client.'))).toEqual([
+      { path: 'client.legalRepresentativeName.options.0.sources.0', code: 'quote_not_found' },
+    ]);
+    expect(withChecks(checked, { files, setAsideFiles }).client).toEqual(checked.client);
+  });
+
+  it('keeps a responsible person’s other spelling as a flag, since a name has no options', () => {
+    const checked = withChecks(fromWire(wireAnswer()), {
+      files,
+      setAsideFiles: { [instructions]: 'Prim ajutor: Ionescu Mria' },
+    });
+
+    expect(checked.flags).toContainEqual(
+      expect.objectContaining({
+        path: 'responsiblePersons.0.fullName',
+        code: 'name_spelled_differently',
+        detail: 'Ionescu Mria',
+      })
+    );
   });
 
   it('leaves out another company’s names and a name of one word', () => {

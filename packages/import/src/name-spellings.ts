@@ -148,3 +148,28 @@ export function checkNameSpellings(proposal: Proposal, texts: Record<string, str
     }));
   });
 }
+
+const clientNameField = /^client\.(legalRepresentativeName|contactName)\.options\.\d+$/;
+
+// The client's representative and contact are fields with options, so another spelling is one
+// more option, a choice like any other the documents disagree on; a responsible person's name
+// has none, so it stays a flag.
+export function withNameSpellings(
+  proposal: Proposal,
+  texts: Record<string, string>
+): { proposal: Proposal; flags: Flag[] } {
+  const found = checkNameSpellings(proposal, texts);
+  const client = structuredClone(proposal.client);
+  for (const flag of found) {
+    const field = clientNameField.exec(flag.path)?.[1] as
+      'legalRepresentativeName' | 'contactName' | undefined;
+    if (!field || !flag.detail || !flag.source) continue;
+    const options = client[field].options;
+    if (options.some((option) => option.value === flag.detail)) continue;
+    options.push({ value: flag.detail, sources: [flag.source], otherCompanyName: null });
+  }
+  return {
+    proposal: { ...proposal, client },
+    flags: found.filter((flag) => !clientNameField.test(flag.path)),
+  };
+}
