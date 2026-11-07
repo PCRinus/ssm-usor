@@ -108,7 +108,10 @@ export default defineConfig({
       defaultLocale: 'root',
       locales: { root: { label: 'Română', lang: 'ro' } },
       favicon: '/brand/favicon.png',
-      components: { SiteTitle: './src/components/SiteTitle.astro' },
+      components: {
+        Head: './src/components/Head.astro',
+        SiteTitle: './src/components/SiteTitle.astro',
+      },
       customCss: ['./src/styles/theme.css'],
       sidebar,
     }),
