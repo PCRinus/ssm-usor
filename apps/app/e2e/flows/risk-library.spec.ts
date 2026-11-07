@@ -112,7 +112,7 @@ test("a client's evaluated post becomes a profile that evaluates another client'
   await expect(usage.nth(0)).toContainText('S.C. AL DOILEA CLIENT E2E S.R.L.');
   await expect(usage.nth(1).getByTestId('risk-profile-usage-open')).toHaveText('Lăcătuș mecanic');
   await expect(page.getByTestId('risk-factors-card')).toContainText(
-    'Termenele și responsabilii din plan se copiază în fișă ca valori implicite'
+    'Termenele și persoanele care răspund de măsuri, din plan, se copiază în fișă ca valori implicite'
   );
   const workSystem = page.getByTestId('work-system-card');
   await expect(workSystem.getByTestId('work-system-means')).toHaveText(
