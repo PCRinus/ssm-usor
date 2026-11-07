@@ -93,11 +93,12 @@ function TabsFrame({
   }
 
   const arrow =
-    'absolute top-0 bottom-px flex w-10 items-end pb-1 from-(--section-tab-surface) from-45% to-transparent text-foreground outline-none focus-visible:[&>span]:outline-2 focus-visible:[&>span]:outline-offset-1 focus-visible:[&>span]:outline-ring';
+    'group absolute top-0 bottom-px flex w-10 cursor-pointer items-end pb-1 from-(--section-tab-surface) from-45% to-transparent text-foreground outline-none focus-visible:[&>span]:outline-2 focus-visible:[&>span]:outline-offset-1 focus-visible:[&>span]:outline-ring';
   // Not a border on the nav: the viewport would clip the open tab, which has to cover the line.
   const listClass =
     'flex w-max min-w-full items-end gap-[3px] pt-2 shadow-[inset_0_-1px_0_var(--color-border)]';
-  const arrowFace = 'flex size-8 items-center justify-center rounded-full border bg-card shadow-xs';
+  const arrowFace =
+    'flex size-8 items-center justify-center rounded-full border bg-card shadow-xs transition-colors group-hover:border-primary group-hover:bg-primary group-hover:text-primary-foreground group-active:bg-primary/85';
 
   return (
     <div
