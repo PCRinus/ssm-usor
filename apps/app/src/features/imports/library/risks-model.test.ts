@@ -419,7 +419,7 @@ describe('the confirm bar and the header', () => {
     });
     const states = [sheetState(flagged, undefined, context())];
     expect(leftSentence(states, 1)).toBe(
-      'Mai ai de ales la o fișă. Un factor are ceva de verificat, marcat la el. Unui factor îi lipsesc clasele, componenta sau grupa și rămâne pe dinafară până le alegi.'
+      'Mai ai de ales la o evaluare. Un factor are ceva de verificat, marcat la el. Unui factor îi lipsesc clasele, componenta sau grupa și rămâne pe dinafară până le alegi.'
     );
   });
 });
@@ -487,7 +487,7 @@ describe('the risk evaluations task on the hub', () => {
     expect(
       risksPartDescription(part({ counts: { identical: 1, similar: 1, new: 1, unread: 0 } }), false)
     ).toBe(
-      'De verificat: 3 fișe, una nouă, una asemănătoare și 1 deja în bibliotecă. Le confirmi după client.'
+      'De verificat: 3 evaluări, una nouă, una asemănătoare și 1 deja în bibliotecă. Le confirmi după client.'
     );
   });
 });

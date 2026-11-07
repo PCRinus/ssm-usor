@@ -431,7 +431,7 @@ export function leftSentence(states: readonly SheetState[], open: number) {
   const toCheck = states.reduce((sum, state) => sum + state.toCheck, 0);
   const lines = [
     open > 0
-      ? `Mai ai de ales la ${open === 1 ? 'o fișă' : sheetsLabel(open)}.`
+      ? `Mai ai de ales la ${open === 1 ? 'o evaluare' : evaluationsLabel(open)}.`
       : 'Ai ales tot ce era de ales.',
   ];
   if (toCheck > 0) {
@@ -776,7 +776,7 @@ export function risksPartDescription(part: RisksPart, clientConfirmed: boolean, 
         ...(counts.similar > 0 ? [similarLabel(counts.similar)] : []),
         ...(counts.identical > 0 ? [`${counts.identical} deja în bibliotecă`] : []),
       ];
-      const found = `De verificat: ${total === 1 ? 'o fișă' : sheetsLabel(total)}${kinds.length > 0 ? `, ${joinNames(kinds)}` : ''}.`;
+      const found = `De verificat: ${total === 1 ? 'o evaluare' : evaluationsLabel(total)}${kinds.length > 0 ? `, ${joinNames(kinds)}` : ''}.`;
       return clientConfirmed ? found : `${found} Le confirmi după client.`;
     }
   }

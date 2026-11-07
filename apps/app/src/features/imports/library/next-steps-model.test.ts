@@ -34,10 +34,10 @@ describe('what the confirmed import says it took', () => {
         { part: 'risk_evaluations' },
       ])
     ).toBe(
-      'Datele clientului, instrucțiunile și fișele de evaluare sunt preluate. Poți genera documentația clientului.'
+      'Datele clientului, instrucțiunile și evaluările de risc sunt preluate. Poți genera documentația clientului.'
     );
     expect(takenSentence([{ part: 'risk_evaluations' }])).toBe(
-      'Datele clientului și fișele de evaluare sunt preluate. Poți genera documentația clientului.'
+      'Datele clientului și evaluările de risc sunt preluate. Poți genera documentația clientului.'
     );
     expect(takenSentence([])).toBe(
       'Datele clientului sunt preluate. Poți genera documentația clientului.'
@@ -52,10 +52,10 @@ describe('what the confirmed import says it took', () => {
       counts: { identical: 2, similar: 0, new: added, unread: 0 },
     });
     expect(foundSentence([part('instructions_ssm', 3), part('risk_evaluations', 2)])).toBe(
-      'Am găsit în pachet instrucțiuni și fișe de evaluare pe care nu le ai.'
+      'Am găsit în pachet instrucțiuni și evaluări de risc pe care nu le ai.'
     );
     expect(foundSentence([part('instructions_ssm', 0), part('risk_evaluations', 2)])).toBe(
-      'Am găsit în pachet fișe de evaluare pe care nu le ai.'
+      'Am găsit în pachet evaluări de risc pe care nu le ai.'
     );
     expect(foundSentence([part('instructions_ssm', 0)])).toBeNull();
   });

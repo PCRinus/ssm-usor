@@ -119,7 +119,7 @@ const conflictText =
 
 const confirmReasons: Record<string, string> = {
   [importErrorReasons.clientUnconfirmed]:
-    'Confirmă întâi clientul: fișele de evaluare se aplică la posturile lui.',
+    'Confirmă întâi clientul: evaluările de risc se aplică la posturile lui.',
   [importErrorReasons.partExpired]:
     'Propunerea a expirat la 14 zile după crearea clientului, așa că nu mai poate fi confirmată.',
   [importErrorReasons.partNotReady]:
@@ -333,14 +333,14 @@ function TaskContent({
       <div className="grid gap-6" data-testid="library-task" data-part={part.part}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="grid max-w-3xl gap-1">
-            <span className="text-sm text-muted-foreground">Evaluări de risc din import</span>
+            <span className="text-sm text-muted-foreground">Din import</span>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <h1 className="text-3xl font-semibold tracking-tight">Fișe de evaluare</h1>
+              <h1 className="text-3xl font-semibold tracking-tight">Evaluări de risc</h1>
               <PartStatusTag part={part} />
               <HelpLink topic="import.evaluari-de-risc" label="Ajutor: evaluările din import" />
             </div>
             <p className="text-sm text-muted-foreground">
-              Fișele de evaluare din documentația lui {name}, pentru biblioteca ta și pentru
+              Evaluările de risc din documentația lui {name}, pentru biblioteca ta și pentru
               posturile clientului. Clasele sunt cele din document; noi doar îți arătăm unde nu se
               potrivesc cu metoda.
             </p>
@@ -366,7 +366,7 @@ function TaskContent({
                 <h2 id="risk-sheets-heading" className="text-lg font-semibold">
                   Ce verifici înainte să confirmi
                   <span className="ml-2 text-sm font-normal text-muted-foreground tabular-nums">
-                    {sheets.length === 1 ? 'o fișă' : sheetsLabel(sheets.length)}
+                    {sheets.length === 1 ? 'o evaluare' : evaluationsLabel(sheets.length)}
                   </span>
                 </h2>
                 {!readOnly && (
@@ -699,7 +699,7 @@ function StateNotices({
           }
           data-testid="library-reading"
         >
-          Citim fișele de evaluare din pachet. Pagina se actualizează singură când sunt gata; între
+          Citim evaluările de risc din pachet. Pagina se actualizează singură când sunt gata; între
           timp poți verifica și crea clientul.
         </Notice>
       );
@@ -742,8 +742,8 @@ function StateNotices({
           }
         >
           Ai confirmat evaluările de risc
-          {part.confirmedAt ? ` pe ${libraryDay(part.confirmedAt)}` : ''}. Fișele sunt în biblioteca
-          ta și pe posturile clientului.
+          {part.confirmedAt ? ` pe ${libraryDay(part.confirmedAt)}` : ''}. Evaluările sunt în
+          biblioteca ta și pe posturile clientului.
         </Notice>
       );
     default:

@@ -59,8 +59,8 @@ function stepOf(importId: string, part: ImportLibraryPart, now: number): Step {
   if (isRisksLibraryPart(part)) {
     return {
       part,
-      label: 'Fișe de evaluare',
-      verb: 'fișele',
+      label: 'Evaluări de risc',
+      verb: 'evaluările',
       icon: ShieldAlert,
       help: risksHelp,
       link: { to: '/clienti/import/$importId/evaluari-de-risc', params: { importId } },
