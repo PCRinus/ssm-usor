@@ -176,3 +176,17 @@ tr[data-pointed] {
   --color-dashboard-untrained: var(--dashboard-untrained);
   --color-dashboard-bar: var(--dashboard-bar);
 }
+
+@layer base {
+  :root {
+    --section-tab: #e3e8e0;
+    --section-tab-hover: #d8dfd4;
+    --section-tab-foreground: #4d5c55;
+  }
+}
+
+@theme inline {
+  --color-section-tab: var(--section-tab);
+  --color-section-tab-hover: var(--section-tab-hover);
+  --color-section-tab-foreground: var(--section-tab-foreground);
+}

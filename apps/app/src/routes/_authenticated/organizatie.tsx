@@ -1,9 +1,9 @@
 import { Button } from '@ssm-usor/ui/components/button';
-import { createFileRoute, Link, Outlet, useMatches } from '@tanstack/react-router';
+import { createFileRoute, Outlet, useMatches } from '@tanstack/react-router';
 import { Award, Building2, CreditCard, UsersRound } from 'lucide-react';
 
 import { Notice } from '@/components/notice';
-import { SectionNav } from '@/components/section-nav';
+import { SectionNav, SectionNavLink } from '@/components/section-nav';
 import { useMe } from '@/features/account/use-me';
 import { roleLabels } from '@/features/organization/labels';
 
@@ -59,19 +59,10 @@ function OrganizationLayout() {
         <span className="text-sm text-muted-foreground">{roleLabels[membership.role]}</span>
       </div>
       <SectionNav label="Secțiunile organizației">
-        {sections.map(({ to, label, icon: Icon }) => (
-          <li key={to} className="shrink-0">
-            <Link
-              to={to}
-              resetScroll={false}
-              data-testid="organization-section"
-              className="inline-flex h-10 items-center gap-2 whitespace-nowrap border-b-2 border-transparent px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:border-primary data-[status=active]:text-foreground"
-              activeProps={{ 'aria-current': 'page' }}
-            >
-              <Icon className="size-4 shrink-0" aria-hidden="true" />
-              {label}
-            </Link>
-          </li>
+        {sections.map(({ to, label, icon }) => (
+          <SectionNavLink key={to} to={to} data-testid="organization-section" icon={icon}>
+            {label}
+          </SectionNavLink>
         ))}
       </SectionNav>
       <Outlet />

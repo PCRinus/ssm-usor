@@ -1,10 +1,10 @@
 import { Button } from '@ssm-usor/ui/components/button';
-import { Link, Outlet, useMatchRoute, useNavigate } from '@tanstack/react-router';
+import { Outlet, useMatchRoute, useNavigate } from '@tanstack/react-router';
 import { PenLine } from 'lucide-react';
 import { useState } from 'react';
 
 import { HelpLink } from '@/components/help-link';
-import { SectionNav } from '@/components/section-nav';
+import { SectionNav, SectionNavLink } from '@/components/section-nav';
 import { useAuth } from '@/features/auth/auth-context';
 
 import { instructionSections } from './instruction-sections';
@@ -35,19 +35,10 @@ export function InstructionLibraryLayout() {
       </div>
       <div className="grid gap-5">
         <SectionNav label="Secțiunile instrucțiunilor proprii">
-          {instructionSections.map(({ to, label, icon: Icon }) => (
-            <li key={to} className="shrink-0">
-              <Link
-                to={to}
-                resetScroll={false}
-                data-testid="instruction-tab"
-                className="inline-flex h-10 items-center gap-2 whitespace-nowrap border-b-2 border-transparent px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:border-primary data-[status=active]:text-foreground"
-                activeProps={{ 'aria-current': 'page' }}
-              >
-                <Icon className="size-4 shrink-0" aria-hidden="true" />
-                {label}
-              </Link>
-            </li>
+          {instructionSections.map(({ to, label, icon }) => (
+            <SectionNavLink key={to} to={to} data-testid="instruction-tab" icon={icon}>
+              {label}
+            </SectionNavLink>
           ))}
         </SectionNav>
         <Outlet />

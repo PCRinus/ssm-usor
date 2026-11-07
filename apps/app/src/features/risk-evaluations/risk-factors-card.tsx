@@ -24,6 +24,7 @@ import { type KeyboardEvent, type ReactNode, useId, useState } from 'react';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
+import { SectionTab, SectionTabs } from '@/components/section-nav';
 
 import {
   type FactorSort,
@@ -249,32 +250,24 @@ function FactorList({
 
   return (
     <div className="-mx-6 min-w-0 @container">
-      <div
-        role="tablist"
-        aria-label="Componente"
-        className="flex gap-1 overflow-x-auto px-6 pb-3.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
+      <SectionTabs label="Componente" value={tab} surface="var(--color-card)" className="px-6">
         {tabs.map((item) => (
-          <button
+          <SectionTab
             key={item.tab}
-            type="button"
-            role="tab"
+            selected={item.tab === tab}
             id={tabId(item.tab)}
-            aria-selected={item.tab === tab}
             aria-controls={panelId}
-            tabIndex={item.tab === tab ? 0 : -1}
             data-testid="risk-factors-tab"
             onClick={() => setTab(item.tab)}
             onKeyDown={onTabKey}
-            className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-selected:bg-muted aria-selected:text-foreground"
           >
             {item.tab === 'all' ? 'Toți' : componentLabels[item.tab]}{' '}
             <span className="font-normal tabular-nums">{item.count}</span>
-          </button>
+          </SectionTab>
         ))}
-      </div>
+      </SectionTabs>
       <div role="tabpanel" id={panelId} aria-labelledby={tabId(tab)}>
-        <div className="flex items-center gap-2.5 px-6 pb-3 @2xl:hidden">
+        <div className="flex items-center gap-2.5 px-6 py-3 @2xl:hidden">
           <label
             htmlFor={`${baseId}-sort`}
             className="text-sm whitespace-nowrap text-muted-foreground"
@@ -298,7 +291,7 @@ function FactorList({
         {cell && (
           <div
             data-testid="risk-factors-filter"
-            className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t bg-muted/55 px-6 py-2.5 text-sm"
+            className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t bg-muted/55 px-6 @2xl:border-t-0 py-2.5 text-sm"
           >
             <span>
               Doar factorii cu gravitate {cell.gravityClass} și probabilitate{' '}
@@ -316,7 +309,11 @@ function FactorList({
         <div role="table" aria-label="Factori de risc">
           <div
             role="row"
-            className={cn('hidden items-center gap-x-3.5 border-t px-6 py-1.5 @2xl:grid', layout)}
+            className={cn(
+              'hidden items-center gap-x-3.5 px-6 py-2 @2xl:grid',
+              cell && 'border-t',
+              layout
+            )}
           >
             <SortHeader sortKey="level" label="Nivel" sort={sort} onSort={setSort} />
             <div role="columnheader" className="text-sm font-medium">

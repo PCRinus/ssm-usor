@@ -12,7 +12,7 @@ import { Pencil, RotateCcw, UserRound, UserRoundMinus } from 'lucide-react';
 import { useState } from 'react';
 
 import { ApiHttpError } from '@/api/http';
-import { SectionNav } from '@/components/section-nav';
+import { SectionNav, SectionNavLink } from '@/components/section-nav';
 import { HeaderFact, RecordHeader } from '@/features/clients/record-header';
 
 import { EmployeePending } from './employee-pending';
@@ -90,21 +90,17 @@ export function EmployeeLayout() {
         actionsWidth="wide"
       />
       <SectionNav label="Secțiunile lucrătorului">
-        {employeeSections.map(({ to, label, icon: Icon, exact }) => (
-          <li key={to} className="shrink-0">
-            <Link
-              to={to}
-              params={{ clientId, employeeId }}
-              resetScroll={false}
-              activeOptions={{ exact }}
-              data-testid="employee-section"
-              className="inline-flex h-10 items-center gap-2 whitespace-nowrap border-b-2 border-transparent px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:border-primary data-[status=active]:text-foreground"
-              activeProps={{ 'aria-current': 'page' }}
-            >
-              <Icon className="size-4 shrink-0" aria-hidden="true" />
-              {label}
-            </Link>
-          </li>
+        {employeeSections.map(({ to, label, icon, exact }) => (
+          <SectionNavLink
+            key={to}
+            to={to}
+            params={{ clientId, employeeId }}
+            activeOptions={{ exact }}
+            data-testid="employee-section"
+            icon={icon}
+          >
+            {label}
+          </SectionNavLink>
         ))}
       </SectionNav>
       <Outlet />

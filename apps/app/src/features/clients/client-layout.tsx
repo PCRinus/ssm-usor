@@ -31,7 +31,7 @@ import { useState } from 'react';
 
 import { ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
-import { SectionNav } from '@/components/section-nav';
+import { SectionNav, SectionNavLink } from '@/components/section-nav';
 import { useMe } from '@/features/account/use-me';
 import { ImportUploadDialog } from '@/features/imports/import-upload-dialog';
 import { useEndWayBackOutside } from '@/features/missing-data/way-back';
@@ -200,20 +200,16 @@ export function ClientLayout() {
       <SectionNav label="Secțiunile clientului">
         {sections
           .filter((section) => isOwner || !section.ownerOnly)
-          .map(({ to, label, icon: Icon }) => (
-            <li key={to} className="shrink-0">
-              <Link
-                to={to}
-                params={{ clientId: client.id }}
-                resetScroll={false}
-                data-testid="client-section"
-                className="inline-flex h-10 items-center gap-2 whitespace-nowrap border-b-2 border-transparent px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:border-primary data-[status=active]:text-foreground"
-                activeProps={{ 'aria-current': 'page' }}
-              >
-                <Icon className="size-4 shrink-0" aria-hidden="true" />
-                {label}
-              </Link>
-            </li>
+          .map(({ to, label, icon }) => (
+            <SectionNavLink
+              key={to}
+              to={to}
+              params={{ clientId: client.id }}
+              data-testid="client-section"
+              icon={icon}
+            >
+              {label}
+            </SectionNavLink>
           ))}
       </SectionNav>
       <Outlet />
