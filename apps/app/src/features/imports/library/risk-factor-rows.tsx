@@ -9,6 +9,7 @@ import { RiskLevelTile } from '@/features/risk-evaluations/risk-level-tile';
 
 import type { LabelledSource } from '../review-model';
 import { SourceButton } from '../review-parts';
+import { RowActions } from './decision-row';
 import {
   asksToCheck,
   byComponent,
@@ -134,7 +135,7 @@ function FactorRow({
           </ul>
         )}
       </div>
-      <div className="col-span-3 grid grid-cols-2 gap-2 sm:col-span-1 sm:flex">
+      <RowActions className="col-span-3 sm:col-span-1 sm:flex-nowrap">
         <SourceButton
           outlined
           label="Vezi în document"
@@ -153,7 +154,7 @@ function FactorRow({
             Modifică
           </Button>
         )}
-      </div>
+      </RowActions>
     </li>
   );
 }

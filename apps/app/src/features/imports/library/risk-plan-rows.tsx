@@ -6,7 +6,7 @@ import { RiskLevelTile } from '@/features/risk-evaluations/risk-level-tile';
 
 import type { LabelledSource } from '../review-model';
 import { SourceButton } from '../review-parts';
-import { DecisionRow } from './decision-row';
+import { DecisionRow, RowActions } from './decision-row';
 import {
   factorSource,
   type FactorState,
@@ -67,7 +67,7 @@ function PlanRowItem({
           </>
         )}
       </div>
-      <div className="grid gap-2 sm:flex sm:items-start">
+      <RowActions className="sm:items-start">
         {!readOnly && !added && (
           <Button
             type="button"
@@ -110,7 +110,7 @@ function PlanRowItem({
           sources={[source]}
           onOpen={() => onSource(source)}
         />
-      </div>
+      </RowActions>
     </li>
   );
 }

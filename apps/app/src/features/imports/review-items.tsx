@@ -34,6 +34,7 @@ import {
 import { allocationLabels } from '@/features/protective-equipment/equipment-schema';
 
 import { type ItemDialogField, ItemEditDialog } from './item-edit-dialog';
+import { RowActions } from './library/decision-row';
 import type { FieldContext } from './review-fields';
 import {
   allocationLabel,
@@ -210,13 +211,13 @@ function ItemRow({
           </RowNote>
         ))}
       </div>
-      <div className="mt-1 flex flex-wrap gap-2 sm:mt-0 sm:items-start sm:justify-end max-sm:[&>*]:flex-auto">
+      <RowActions className="mt-1 sm:mt-0 sm:items-start sm:justify-end">
         <SourceButton
           sources={sources}
           onOpen={() => context.openSource(title, sources, state.item.otherCompanyName)}
         />
         {onEdit && <EditButton onClick={onEdit} />}
-      </div>
+      </RowActions>
     </li>
   );
 }

@@ -42,6 +42,12 @@ export function StatusDot({ tone }: { tone: Tone }) {
   );
 }
 
+export function RowActions({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <div className={cn('flex flex-wrap gap-2 max-sm:[&>*]:flex-auto', className)}>{children}</div>
+  );
+}
+
 export function DecisionRow({
   tone,
   label,
@@ -51,7 +57,6 @@ export function DecisionRow({
   id,
   wide = false,
   top = false,
-  pairedActions = false,
   children,
 }: {
   tone: Tone;
@@ -63,7 +68,6 @@ export function DecisionRow({
   // Field names such as "Periodicitate SU, tehnico-administrativ" wrap in the narrow column.
   wide?: boolean;
   top?: boolean;
-  pairedActions?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -83,14 +87,9 @@ export function DecisionRow({
       <span className="text-sm font-medium">{label}</span>
       <div className="col-start-2 grid min-w-0 gap-1 text-sm sm:col-start-auto">{children}</div>
       {actions && (
-        <div
-          className={cn(
-            'col-start-2 mt-2 grid gap-2 sm:col-start-auto sm:mt-0 sm:flex sm:flex-wrap sm:justify-end',
-            pairedActions && 'max-sm:flex max-sm:flex-wrap max-sm:[&>*]:flex-auto'
-          )}
-        >
+        <RowActions className="col-start-2 mt-2 sm:col-start-auto sm:mt-0 sm:justify-end">
           {actions}
-        </div>
+        </RowActions>
       )}
       {below && <div className="col-start-2 mt-2 min-w-0 sm:col-span-3">{below}</div>}
     </div>
