@@ -86,7 +86,7 @@ export function DecisionRow({
         <div
           className={cn(
             'col-start-2 mt-2 grid gap-2 sm:col-start-auto sm:mt-0 sm:flex sm:flex-wrap sm:justify-end',
-            pairedActions && 'grid-cols-2 max-sm:[&>button]:px-2.5 [&>:only-child]:col-span-2'
+            pairedActions && 'max-sm:flex max-sm:flex-wrap max-sm:[&>*]:flex-auto'
           )}
         >
           {actions}

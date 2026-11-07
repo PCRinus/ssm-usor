@@ -210,7 +210,7 @@ function ItemRow({
           </RowNote>
         ))}
       </div>
-      <div className="mt-1 grid grid-cols-2 gap-2 sm:mt-0 sm:flex sm:items-start sm:justify-end [&>:only-child]:col-span-2">
+      <div className="mt-1 flex flex-wrap gap-2 sm:mt-0 sm:items-start sm:justify-end max-sm:[&>*]:flex-auto">
         <SourceButton
           sources={sources}
           onOpen={() => context.openSource(title, sources, state.item.otherCompanyName)}
