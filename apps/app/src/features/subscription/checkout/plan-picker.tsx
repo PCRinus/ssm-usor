@@ -6,6 +6,7 @@ import { HelpLink } from '@/components/help-link';
 
 import {
   employeeLimitOf,
+  employeesLabel,
   formatCount,
   formatEuro,
   packOf,
@@ -217,8 +218,8 @@ export function PlanPicker({
           onChange={(employeePacks) => onChange({ ...choice, employeePacks })}
           hint={
             limits.minPacks > 0
-              ? `Ai ${formatCount(employees)} de lucrători, iar ${name} include ${formatCount(terms.includedEmployees)}: îți trebuie cel puțin ${limits.minPacks} ${limits.minPacks === 1 ? 'pachet' : 'pachete'}. Acum acoperi ${formatCount(covered)}.`
-              : `${name} include ${formatCount(terms.includedEmployees)} de lucrători, iar tu ai ${formatCount(employees)}. ${choice.employeePacks > 0 ? `Acum acoperi ${formatCount(covered)}.` : 'Nu ai nevoie de pachete acum.'}`
+              ? `Ai ${employeesLabel(employees)}, iar ${name} include ${formatCount(terms.includedEmployees)}: îți trebuie cel puțin ${limits.minPacks} ${limits.minPacks === 1 ? 'pachet' : 'pachete'}. Acum acoperi ${formatCount(covered)}.`
+              : `${name} include ${employeesLabel(terms.includedEmployees)}, iar tu ai ${formatCount(employees)}. ${choice.employeePacks > 0 ? `Acum acoperi ${formatCount(covered)}.` : 'Nu ai nevoie de pachete acum.'}`
           }
         />
         <div className="border-t pt-3.5">

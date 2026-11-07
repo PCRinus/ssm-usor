@@ -18,7 +18,7 @@ import { TestStateFilter } from '@/features/knowledge-tests/test-state-filter';
 import { TrainingStateFilter } from '@/features/trainings/training-state-filter';
 
 import { ClientFilter } from './client-filter';
-import { employeeStatusLabels } from './employee-format';
+import { employeeStatusLabels, roCount } from './employee-format';
 import { EmployeesNoMatch } from './employees-no-match';
 import {
   organizationEmployeeColumns,
@@ -167,7 +167,7 @@ export function OrganizationEmployeesPage() {
           )}
           {employees.isSuccess && (
             <ListCount testId="organization-employees-count">
-              {meta.total === 1 ? '1 lucrător' : `${meta.total} lucrători`}
+              {roCount(meta.total, 'lucrător', 'lucrători')}
             </ListCount>
           )}
         </ListCardHeader>

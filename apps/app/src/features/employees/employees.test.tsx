@@ -384,7 +384,7 @@ describe('client employees list', () => {
     const runtime = mountApp(authFixture(makeSession()).client, employeesPage);
     const user = userEvent.setup();
     await screen.findByTestId('employees-row');
-    expect(screen.getByTestId('employees-count').textContent).toBe('26 lucrători');
+    expect(screen.getByTestId('employees-count').textContent).toBe('26 de lucrători');
     expect(screen.getByTestId('pager-summary').textContent).toBe('1–25 din 26 de lucrători');
     expect((screen.getByTestId('pager-previous') as HTMLButtonElement).disabled).toBe(true);
     await user.click(screen.getByTestId('pager-next'));

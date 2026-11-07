@@ -8,7 +8,7 @@ import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 
 import { billingErrorMessage, problemMessage } from '../billing-errors';
-import { formatCount } from '../billing-format';
+import { employeesLabel } from '../billing-format';
 import { ChangeDialog } from '../change-dialog';
 import { contactEmail } from '../subscription-copy';
 import {
@@ -158,7 +158,7 @@ function ChoosePlanForm({
         {mode === 'change' ? 'Schimbă planul' : 'Alege planul'}
       </h1>
       <p className="text-[15px] leading-relaxed text-muted-foreground">
-        Ai {formatCount(employees)} {employees === 1 ? 'lucrător' : 'de lucrători'} la clienți și{' '}
+        Ai {employeesLabel(employees)} la clienți și{' '}
         {members === 1 ? 'un utilizator' : `${members} utilizatori`}. Prețurile sunt fără TVA.
       </p>
     </div>
