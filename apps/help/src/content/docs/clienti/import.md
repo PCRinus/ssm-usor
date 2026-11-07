@@ -145,6 +145,8 @@ Pornești din **Clienți**, cu **Importă din documente**, pentru un client nou,
 
 Aplicația pune deoparte ce nu poartă date despre client (coperți, formulare goale, texte de lege), citește restul și îți propune datele firmei, punctele de lucru, posturile, persoanele cu atribuții, programul de instruire, datele SU și echipamentul de protecție. Le verifici pe secțiuni, cu sursa fiecărei valori la un clic, apoi confirmi. La un client existent, o valoare pe care o ai deja în aplicație nu se schimbă decât dacă alegi tu valoarea din documente.
 
+La un client nou, **Schimbă** de pe cardul **Date firmă** deschide câmpurile firmei, cu **Plătitor de TVA** lângă CUI, ca la un client adăugat de mână. Căsuța e bifată când ANAF arată firma înregistrată în scopuri de TVA, iar un CUI scris cu prefixul RO o bifează la salvare. Pe card, CUI-ul unei firme plătitoare de TVA apare cu prefixul RO.
+
 Instrucțiunile proprii (IPSSM și IPSU) și evaluările de risc nu intră în propunerea clientului: le citim separat, pentru bibliotecile tale, și nu te țin pe loc când creezi clientul.
 
 Nu trebuie să aștepți citirea: importul rămâne în **Clienți**, la **Importuri din documente**, până creezi clientul sau renunți. Dacă ai pornit tu importul și lucrezi între timp pe altă pagină din aplicație, îți apare o notificare când propunerea e gata, cu **Verifică propunerea**, sau când citirea s-a oprit.

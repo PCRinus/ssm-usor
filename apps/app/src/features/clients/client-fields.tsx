@@ -121,25 +121,41 @@ export function IdentificationFields({
           {...inputProps('legalName', errors.legalName, busy)}
         />
       </Field>
-      <div className="flex items-center gap-3 sm:col-span-2">
-        <Controller
-          control={form.control}
-          name="vatPayer"
-          render={({ field }) => (
-            <Checkbox
-              id="vatPayer"
-              data-testid="client-vat-payer"
-              checked={field.value}
-              disabled={busy}
-              onCheckedChange={(checked) => field.onChange(checked === true)}
-              onBlur={field.onBlur}
-            />
-          )}
-        />
-        <Label htmlFor="vatPayer">Plătitor de TVA</Label>
-        <HelpLink topic="clienti.tva" label="Ajutor: Plătitor de TVA" className="-ml-2" />
-      </div>
+      <VatPayerField form={form} busy={busy} />
     </>
+  );
+}
+
+export function VatPayerField({
+  form,
+  busy,
+  id = 'vatPayer',
+  testId = 'client-vat-payer',
+}: {
+  form: ClientForm;
+  busy: boolean;
+  id?: string;
+  testId?: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 sm:col-span-2">
+      <Controller
+        control={form.control}
+        name="vatPayer"
+        render={({ field }) => (
+          <Checkbox
+            id={id}
+            data-testid={testId}
+            checked={field.value}
+            disabled={busy}
+            onCheckedChange={(checked) => field.onChange(checked === true)}
+            onBlur={field.onBlur}
+          />
+        )}
+      />
+      <Label htmlFor={id}>Plătitor de TVA</Label>
+      <HelpLink topic="clienti.tva" label="Ajutor: Plătitor de TVA" className="-ml-2" />
+    </div>
   );
 }
 

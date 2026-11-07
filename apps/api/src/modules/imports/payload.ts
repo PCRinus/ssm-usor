@@ -366,7 +366,10 @@ export function toClientPayload(input: {
         block(path, 'missing');
       }
     }
-    if (
+    const vatPayer = changes.fields['client.vatPayer']?.value;
+    if (vatPayer === 'true' || vatPayer === 'false') {
+      client.vat_payer = vatPayer === 'true';
+    } else if (
       input.registeredCompany &&
       client.cui !== undefined &&
       input.registeredCompany.cui === client.cui

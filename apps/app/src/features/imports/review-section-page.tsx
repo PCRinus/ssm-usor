@@ -16,7 +16,13 @@ import {
   ResponsibleSection,
   WorkplacesSection,
 } from './review-items';
-import { type Blocker, type SectionId, sectionIds, sectionLabels } from './review-model';
+import {
+  type Blocker,
+  type SectionId,
+  sectionIds,
+  sectionLabels,
+  vatPayerInForce,
+} from './review-model';
 import { SavingNote } from './review-parts';
 import { fieldStates, reviewName } from './review-summary';
 import { SourceDialog, type SourceRequest } from './source-dialog';
@@ -43,7 +49,7 @@ export function ReviewSectionPage({
     changes: review.changes,
     review,
     states,
-    vatPayer: registered?.vatPayer ?? false,
+    vatPayer: vatPayerInForce(proposal, review.changes, registered),
     registered,
     existingClient: detail.intoExistingClient,
     openSource: (title, sources, otherCompanyName) =>

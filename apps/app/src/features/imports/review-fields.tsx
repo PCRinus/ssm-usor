@@ -20,6 +20,7 @@ import {
   ContactFields,
   RegisteredOfficeFields,
   RegistrationFields,
+  VatPayerField,
 } from '@/features/clients/client-fields';
 import {
   clientFormSchema,
@@ -31,6 +32,7 @@ import { endSentence } from './import-format';
 import {
   anafMismatch,
   anafMismatchNote,
+  anafVatPayer,
   anchorOf,
   appliesAt,
   type Changes,
@@ -52,6 +54,7 @@ import {
   type SectionId,
   sourceFilesCount,
   valueInForce,
+  vatPayerPath,
   yesNoLabels,
 } from './review-model';
 import {
@@ -80,7 +83,7 @@ export type FieldContext = {
   review: ImportReview;
   states: Record<string, FieldState>;
   vatPayer: boolean;
-  registered: RegisteredCompany | null;
+  registered: (RegisteredCompany & { vatPayer: boolean }) | null;
   existingClient: boolean;
   openSource: OpenSource;
 };
@@ -109,6 +112,11 @@ function keepWritten(context: FieldContext, path: string, written: string) {
     Object.entries(current).filter(([key]) => key !== 'value' && key !== 'option')
   );
   context.review.setField(path, { ...rest, value: written });
+}
+
+function saveVatPayer(context: FieldContext, vatPayer: boolean, cui: string | undefined) {
+  const anaf = anafVatPayer(context.registered, cui ?? context.states['client.cui']?.value ?? null);
+  context.review.setField(vatPayerPath, vatPayer === anaf ? null : { value: String(vatPayer) });
 }
 
 // A value equal to what the documents propose is not stored as the member's.
@@ -464,10 +472,15 @@ function GroupForm({
   >;
   for (const path of paths) {
     const value = context.states[path]?.value;
-    defaults[fieldKey(path)] = value === null || value === undefined ? '' : String(value);
+    const text = value === null || value === undefined ? '' : String(value);
+    defaults[fieldKey(path)] = path === 'client.cui' ? (normalizeCui(text)?.cui ?? text) : text;
   }
+  const withVatPayer = paths.includes('client.cui') && !context.existingClient;
+  if (withVatPayer) (defaults as Record<string, unknown>).vatPayer = context.vatPayer;
   const form = useForm<Record<string, string>>({
-    resolver: zodResolver(formSchema(paths)) as never,
+    resolver: zodResolver(
+      withVatPayer ? formSchema(paths).extend({ vatPayer: z.boolean() }) : formSchema(paths)
+    ) as never,
     defaultValues: defaults,
   });
   const clientForm = form as unknown as Parameters<typeof RegistrationFields>[0]['form'];
@@ -478,6 +491,10 @@ function GroupForm({
       context,
       Object.fromEntries(paths.map((path) => [path, values[fieldKey(path)] ?? '']))
     );
+    if (withVatPayer) {
+      const typed = normalizeCui(values.cui ?? '');
+      saveVatPayer(context, Boolean(values.vatPayer) || Boolean(typed?.vatPrefix), typed?.cui);
+    }
     onDone();
   });
   const plain = paths.filter((path) => !covered(path, has));
@@ -530,7 +547,9 @@ function GroupForm({
             hint={
               path === 'fireSafety.wasteKinds'
                 ? 'Desparte tipurile de deșeuri cu punct și virgulă.'
-                : undefined
+                : path === 'client.cui'
+                  ? 'Cu sau fără prefixul RO, de exemplu RO1590082.'
+                  : undefined
             }
             error={error}
             className={integerPaths.has(path) ? undefined : 'sm:col-span-2'}
@@ -546,6 +565,14 @@ function GroupForm({
           </Field>
         );
       })}
+      {withVatPayer && (
+        <VatPayerField
+          form={clientForm}
+          busy={false}
+          id="review-input-vatPayer"
+          testId="review-input-vatPayer"
+        />
+      )}
       {has('caenCode', 'tradeRegisterNumber') && (
         <RegistrationFields form={clientForm} busy={false} />
       )}

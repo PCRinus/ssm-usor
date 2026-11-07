@@ -324,6 +324,73 @@ describe('a section of the review', () => {
     expect(contact.textContent).toContain('Propus din documente: 0269 214 377');
   });
 
+  const validCuiDetail = (vatPayer: boolean) => {
+    const proposal = proposalFixture();
+    proposal.client.cui.options[0]!.value = '1590082';
+    return readyDetail({
+      proposal,
+      registeredCompany: {
+        cui: '1590082',
+        legalName: 'BRUTĂRIA SPICUL AURIU SRL',
+        vatPayer,
+        inactive: false,
+      },
+    });
+  };
+
+  it("asks for the VAT registration beside the bare CUI, and shows RO only while it's ticked", async () => {
+    mockReview(validCuiDetail(true));
+    mount('/identity');
+
+    const groups = await screen.findAllByTestId('review-group');
+    const company = groups.find((group) => group.textContent?.includes('Date firmă'))!;
+    expect(company.textContent).toContain('RO1590082');
+    const cuiRow = within(company)
+      .getAllByTestId('review-row')
+      .find((row) => row.textContent?.includes('CUI'))!;
+    await userEvent.click(within(cuiRow).getByTestId('review-edit'));
+
+    expect((within(company).getByTestId('review-input-cui') as HTMLInputElement).value).toBe(
+      '1590082'
+    );
+    const vatPayer = within(company).getByTestId('review-input-vatPayer');
+    expect(vatPayer.getAttribute('aria-checked')).toBe('true');
+    await userEvent.click(vatPayer);
+    await userEvent.click(within(company).getByTestId('review-group-save'));
+
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({
+      'client.vatPayer': { value: 'false' },
+    });
+    await waitFor(() => expect(company.textContent).not.toContain('RO1590082'));
+    expect(company.textContent).toContain('1590082');
+  });
+
+  it('takes a typed RO prefix as VAT registration', async () => {
+    mockReview(validCuiDetail(false));
+    mount('/identity');
+
+    const groups = await screen.findAllByTestId('review-group');
+    const company = groups.find((group) => group.textContent?.includes('Date firmă'))!;
+    const cuiRow = within(company)
+      .getAllByTestId('review-row')
+      .find((row) => row.textContent?.includes('CUI'))!;
+    await userEvent.click(within(cuiRow).getByTestId('review-edit'));
+    expect(within(company).getByTestId('review-input-vatPayer').getAttribute('aria-checked')).toBe(
+      'false'
+    );
+    const cui = within(company).getByTestId('review-input-cui');
+    await userEvent.clear(cui);
+    await userEvent.type(cui, 'RO1590082');
+    await userEvent.click(within(company).getByTestId('review-group-save'));
+
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({
+      'client.vatPayer': { value: 'true' },
+    });
+    expect(await within(company).findByText('RO1590082')).toBeTruthy();
+  });
+
   it('says plainly when someone else saved in the meantime', async () => {
     mockReview(readyDetail(), {
       save: () =>
