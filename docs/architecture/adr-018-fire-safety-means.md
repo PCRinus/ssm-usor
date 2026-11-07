@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-10-10
+- Amended by [ADR 039](adr-039-training-categories-from-job-positions.md): the starting intervals are the legal maximum, six months, and only the categories with posts need one.
 
 ## Context
 

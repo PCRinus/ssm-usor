@@ -977,10 +977,10 @@ The API builds the data once per generation and merges every template with it
   `GET /clients/{clientId}/documents/readiness` returns the list; generating is refused until
   it is empty, because a data field is never left blank. Generating one document again leaves
   out instead the names each gap fills (ADR 005, amended 2026-10-10), through the `gapRules`
-  chain both sets share in `apps/api/src/modules/documents/gaps.ts`. The training schedule requires a
-  decision for both staff categories, at least one interval, and an interval for every category
-  held by a current employee. An explicit “Nu se aplică” excludes a category with no current
-  employees; an undecided blank does not count as an exclusion.
+  chain both sets share in `apps/api/src/modules/documents/gaps.ts`. The training schedule requires the
+  shared fields and an interval for every staff category the client has a job position in
+  ([ADR 039](architecture/adr-039-training-categories-from-job-positions.md)); an interval saved
+  for a category without posts is ignored, and the fire-safety schedule follows the same rule.
 - `buildDocumentContext(facts)` turns the stored facts into the names of the table below:
   dates as `19.01.2026`, people under the roles they hold in the order they were designated,
   each person once with the first job title even when named for several workplaces (compared
