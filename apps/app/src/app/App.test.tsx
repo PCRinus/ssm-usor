@@ -1,3 +1,4 @@
+import { helpTabName } from '@ssm-usor/help-topics/url';
 import { createMemoryHistory } from '@tanstack/react-router';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -239,7 +240,7 @@ describe('dashboard authentication and routing', () => {
     const drawer = await screen.findByRole('dialog');
     const help = within(drawer).getByRole('link', { name: 'Ajutor' });
     expect(help.getAttribute('href')).toBe('http://localhost:4331/');
-    expect(help.getAttribute('target')).toBe('ssm-usor-ajutor');
+    expect(help.getAttribute('target')).toBe(helpTabName);
     expect(help.getAttribute('rel')).toBeNull();
     const footerItems = help
       .closest('[data-sidebar="footer"]')!
@@ -252,7 +253,7 @@ describe('dashboard authentication and routing', () => {
     const open = vi.fn(() => ({ focus: vi.fn() }));
     vi.stubGlobal('open', open);
     await user.click(help);
-    expect(open).toHaveBeenCalledWith('http://localhost:4331/', 'ssm-usor-ajutor');
+    expect(open).toHaveBeenCalledWith('http://localhost:4331/', helpTabName);
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 

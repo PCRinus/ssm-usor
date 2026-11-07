@@ -1,4 +1,5 @@
 import { helpTopics } from '@ssm-usor/help-topics/topics';
+import { helpTabName } from '@ssm-usor/help-topics/url';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -48,7 +49,7 @@ describe('Field', () => {
     );
     const link = screen.getByRole('link', { name: 'Ajutor: CNP' });
     expect(link.getAttribute('href')).toBe(helpHref(topic));
-    expect(link.getAttribute('target')).toBe('ssm-usor-ajutor');
+    expect(link.getAttribute('target')).toBe(helpTabName);
     expect(link.getAttribute('title')).toBe('Ajutor: CNP');
     expect(link.getAttribute('rel')).toBeNull();
     expect(screen.getByLabelText(/^CNP/)).toBe(document.getElementById('cnp'));
@@ -110,7 +111,7 @@ describe('HelpLink', () => {
     render(<HelpLink topic={topic} label="Ajutor: Contact" />);
     const link = screen.getByRole('link', { name: 'Ajutor: Contact' });
     expect(link.getAttribute('href')).toBe(helpHref(topic));
-    expect(link.getAttribute('target')).toBe('ssm-usor-ajutor');
+    expect(link.getAttribute('target')).toBe(helpTabName);
     expect(link.querySelector('svg')).not.toBeNull();
   });
 
@@ -119,7 +120,7 @@ describe('HelpLink', () => {
     render(<HelpLink topic={topic}>Află mai mult</HelpLink>);
     const link = screen.getByRole('link', { name: 'Află mai mult' });
     expect(link.getAttribute('aria-label')).toBeNull();
-    expect(link.getAttribute('target')).toBe('ssm-usor-ajutor');
+    expect(link.getAttribute('target')).toBe(helpTabName);
     link.addEventListener('click', (event) => event.preventDefault());
     await user.click(link);
     expect(captureEvent).toHaveBeenCalledWith('help_opened', { topic });
@@ -136,7 +137,7 @@ describe('HelpLink', () => {
     document.addEventListener('click', follow);
     await user.click(screen.getByRole('link', { name: 'Ajutor: Contact' }));
     document.removeEventListener('click', follow);
-    expect(open).toHaveBeenCalledWith(new URL(helpHref(topic)!).href, 'ssm-usor-ajutor');
+    expect(open).toHaveBeenCalledWith(new URL(helpHref(topic)!).href, helpTabName);
     expect(tab.focus).toHaveBeenCalled();
     expect(followed).toBe(false);
   });
