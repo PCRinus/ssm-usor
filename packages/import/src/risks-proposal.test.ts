@@ -278,6 +278,44 @@ describe('riskImportPayload', () => {
     expect(payload.entries.map((entry) => entry.key)).toEqual(['sheet-1', 'sheet-2']);
   });
 
+  it('never links a client-level sheet to the library, even one identical to an entry', () => {
+    const stored = {
+      ...proposal,
+      sheets: proposal.sheets.map((sheet) =>
+        sheet.key === 'sheet-4'
+          ? {
+              ...sheet,
+              status: 'identical' as const,
+              choice: 'use_existing' as const,
+              match: {
+                evaluationId: 'entry-visitors',
+                name: 'Vizitatori',
+                share: 1,
+                pairs: sheet.factors.map((factor) => ({
+                  factor: factor.key,
+                  libraryFactor: `library-${factor.key}`,
+                  similarity: 1,
+                  otherClasses: false,
+                  otherMeasures: false,
+                })),
+                onlyInPack: [],
+                onlyInLibrary: [],
+              },
+            }
+          : sheet
+      ),
+    };
+    const { payload } = riskImportPayload({
+      proposal: stored,
+      changes: null,
+      posts,
+      postReferences,
+    });
+
+    const visitors = payload.evaluations.find((evaluation) => evaluation.sheet === 'sheet-4')!;
+    expect(visitors.factors.map((factor) => factor.source)).toEqual([null]);
+  });
+
   it('leaves a factor without a group unticked, and refuses it ticked', () => {
     const noGroup = readRisksAnswer(
       [

@@ -204,8 +204,7 @@ export function riskImportPayload(input: RiskPayloadInput): {
   // A post's new sheet always goes to the library and a client-level one never does (ADR 036,
   // 2026-11-07); a proposal read before then may hold `skip` for a post's sheet.
   const choiceOf = (sheet: ProposedRiskSheet): ProposedRiskSheet['choice'] => {
-    if (sheet.kind !== 'job_position')
-      return sheet.choice === 'use_existing' ? 'use_existing' : 'skip';
+    if (sheet.kind !== 'job_position') return 'skip';
     const choice = changes[sheet.key]?.library ?? sheet.choice;
     return choice === 'skip' ? 'add' : choice;
   };
@@ -250,7 +249,11 @@ export function riskImportPayload(input: RiskPayloadInput): {
       for (const [own, theirs] of toOriginal) {
         if (kept.has(theirs)) sources.set(own, { entry: original.key, factor: theirs });
       }
-    } else if (original.match && (original.status === 'identical' || choice === 'use_existing')) {
+    } else if (
+      original.kind === 'job_position' &&
+      original.match &&
+      (original.status === 'identical' || choice === 'use_existing')
+    ) {
       const libraryOf = new Map(
         original.match.pairs.map((pair) => [pair.factor, pair.libraryFactor])
       );

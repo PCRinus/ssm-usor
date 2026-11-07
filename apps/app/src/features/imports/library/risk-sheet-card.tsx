@@ -680,6 +680,7 @@ function LibraryLink({ id, children }: { id: string; children: ReactNode }) {
       to="/evaluari-de-risc/$profileId"
       params={{ profileId: id }}
       target="_blank"
+      rel="noopener noreferrer"
       className="w-fit text-[13px] font-medium text-foreground underline underline-offset-4 hover:text-primary"
       data-testid="risk-import-library-link"
     >
