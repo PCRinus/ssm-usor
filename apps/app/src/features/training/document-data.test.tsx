@@ -143,7 +143,7 @@ describe('client document data', () => {
     const sections = screen.getAllByTestId('client-section').map((link) => link.textContent);
     expect(sections).toEqual([
       'Detalii',
-      'Angajați',
+      'Lucrători',
       'Posturi de lucru',
       'Mijloace de apărare',
       'Instruire și responsabili',
@@ -289,7 +289,7 @@ describe('client document data', () => {
     mount();
 
     expect((await screen.findByTestId('training-program-category-warning')).textContent).toBe(
-      '3 angajați pe posturile Sudor (2) și Contabil (1) sunt în categoria „Personal de execuție”, marcată „Nu se aplică”. Modifică programul înainte de a genera documentele.'
+      '3 lucrători pe posturile Sudor (2) și Contabil (1) sunt în categoria „Personal de execuție”, marcată „Nu se aplică”. Modifică programul înainte de a genera documentele.'
     );
     expect(screen.getByTestId('training-program-administrative')).toBeTruthy();
   });
@@ -308,7 +308,7 @@ describe('client document data', () => {
     await chooseOption(user, 'details-worker-interval', 'Nu se aplică');
 
     expect((await screen.findByTestId('training-program-category-warning')).textContent).toBe(
-      '28 de angajați pe posturile Sudor (7), Lăcătuș (6), Strungar (5), Vopsitor (4), Electrician (3) și încă 2 sunt în categoria „Personal de execuție”, marcată „Nu se aplică”. Alege un interval pentru această categorie înainte de a genera documentele.'
+      '28 de lucrători pe posturile Sudor (7), Lăcătuș (6), Strungar (5), Vopsitor (4), Electrician (3) și încă 2 sunt în categoria „Personal de execuție”, marcată „Nu se aplică”. Alege un interval pentru această categorie înainte de a genera documentele.'
     );
   });
 
@@ -331,7 +331,7 @@ describe('client document data', () => {
 
     expect(await screen.findByTestId('training-program-form')).toBeTruthy();
     expect((await screen.findByTestId('training-program-category-warning')).textContent).toBe(
-      '1 angajat pe postul Director este în categoria „Tehnico-administrativ și conducători de locuri de muncă”, marcată „Nu se aplică”. 3 angajați pe posturile Sudor (2) și Contabil (1) sunt în categoria „Personal de execuție”, marcată „Nu se aplică”. Alege un interval pentru aceste categorii înainte de a genera documentele.'
+      '1 lucrător pe postul Director este în categoria „Tehnico-administrativ și conducători de locuri de muncă”, marcată „Nu se aplică”. 3 lucrători pe posturile Sudor (2) și Contabil (1) sunt în categoria „Personal de execuție”, marcată „Nu se aplică”. Alege un interval pentru aceste categorii înainte de a genera documentele.'
     );
   });
 

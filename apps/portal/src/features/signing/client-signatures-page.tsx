@@ -45,12 +45,12 @@ export function ClientSignaturesPage() {
         className="-mb-3 -ml-1 inline-flex min-h-11 w-fit items-center gap-1 rounded-sm px-1 text-sm font-medium focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none sm:-mb-5"
       >
         <ChevronLeft aria-hidden="true" className="size-4" />
-        <Trans>Angajați</Trans>
+        <Trans>Lucrători</Trans>
       </Link>
       <PageHeader
         eyebrow={participation.clientName}
         title={t`Semnături`}
-        description={t`Actele adiționale care așteaptă semnătura angajatorului și instruirile pe care angajații nu le-au semnat încă.`}
+        description={t`Actele adiționale care așteaptă semnătura angajatorului și instruirile pe care lucrătorii nu le-au semnat încă.`}
       />
       <PageGrid>
         <div className="grid gap-8 lg:col-span-8">
@@ -153,7 +153,7 @@ function AgreementRow({
         <span className="font-semibold">{employeeNameOf(item.employee)}</span>
         <span className="text-sm text-muted-foreground">
           {item.awaitingEmployer
-            ? t`Semnat de angajat pe ${day(agreement.employeeSignedAt)}; așteaptă semnătura ta.`
+            ? t`Semnat de lucrător pe ${day(agreement.employeeSignedAt)}; așteaptă semnătura ta.`
             : t`Semnat electronic pe ${day(agreement.employerSignedAt ?? agreement.signedAt)}.`}
         </span>
       </span>

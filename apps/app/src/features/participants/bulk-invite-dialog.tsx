@@ -239,7 +239,7 @@ function BulkInviteForm({
         noValidate
       >
         <DialogHeader>
-          <DialogTitle>Invită în portal angajații din fișe</DialogTitle>
+          <DialogTitle>Invită în portal lucrătorii din fișe</DialogTitle>
           <DialogDescription>
             Fiecare primește adresa portalului și intră cu un cod primit la aceeași adresă, fără
             parolă. Invitația e valabilă 30 de zile.{' '}
@@ -250,7 +250,7 @@ function BulkInviteForm({
           <PortalSteps />
           {invitees.isError ? (
             <Notice variant="destructive" data-testid="bulk-invite-load-error">
-              Lista angajaților nu a putut fi încărcată. Închide dialogul și încearcă din nou.
+              Lista lucrătorilor nu a putut fi încărcată. Închide dialogul și încearcă din nou.
             </Notice>
           ) : !rows ? (
             <div className="grid gap-2" data-testid="bulk-invite-loading">
@@ -263,8 +263,8 @@ function BulkInviteForm({
               {candidates.length === 0 && (
                 <Notice variant="info" data-testid="bulk-invite-nobody">
                   {onPortal.length > 0
-                    ? 'Toți angajații din fișe au deja acces la portal sau o invitație.'
-                    : 'Importul nu a adus angajați actuali de invitat.'}
+                    ? 'Toți lucrătorii din fișe au deja acces la portal sau o invitație.'
+                    : 'Importul nu a adus lucrători actuali de invitat.'}
                 </Notice>
               )}
               {withAddress.length > 0 && (
@@ -313,7 +313,7 @@ function BulkInviteForm({
                 <p className="grid grid-cols-[1rem_minmax(0,1fr)] gap-2.5">
                   <IdCard className="mt-0.5 size-4" aria-hidden="true" />
                   <span data-testid="bulk-invite-saved-note">
-                    Adresele scrise aici se salvează în datele angajaților.
+                    Adresele scrise aici se salvează în datele lucrătorilor.
                     {formers.length > 0 && ` ${formerEmployeesSentence(formers)}`}
                   </span>
                 </p>
@@ -528,7 +528,7 @@ function InviteeRow({
       data-testid="bulk-invite-row"
       className="grid gap-x-3 gap-y-1.5 py-2.5 text-sm sm:grid-cols-[minmax(0,1fr)_17.5rem_5.5rem] sm:items-center"
     >
-      <PersonName invitee={invitee} hint={fromRow ? 'din datele angajatului' : undefined} />
+      <PersonName invitee={invitee} hint={fromRow ? 'din datele lucrătorului' : undefined} />
       <span>
         <label htmlFor={inputId} className="sr-only">
           Email sau telefon pentru {nameOf(invitee)}

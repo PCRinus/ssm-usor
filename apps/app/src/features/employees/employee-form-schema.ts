@@ -20,8 +20,8 @@ import { optionalPhoneField } from '@/lib/phone';
 
 export const employeeMessages = {
   cnpInvalid: 'CNP invalid. Verifică cele 13 cifre, data nașterii și cifra de control.',
-  cnpTaken: 'Un angajat actual al clientului are deja acest CNP.',
-  numberTaken: 'Un angajat actual al clientului are deja această marcă.',
+  cnpTaken: 'Un lucrător actual al clientului are deja acest CNP.',
+  numberTaken: 'Un lucrător actual al clientului are deja această marcă.',
   bornAfterHire: 'Data nașterii trebuie să fie înaintea datei angajării.',
   birthNotInCnp: 'Data nașterii nu corespunde cu CNP-ul.',
 } as const;

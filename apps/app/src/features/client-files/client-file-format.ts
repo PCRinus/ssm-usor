@@ -100,7 +100,7 @@ export function uploadFailureMessage(cause: unknown) {
   if (cause.status === 409) return archivedMessage;
   const issues = (cause.body as Partial<ApiErrorResponse> | undefined)?.issues;
   if (issues?.some((issue) => issue.path === 'employeeId')) {
-    return 'Angajatul nu mai există la acest client.';
+    return 'Lucrătorul nu mai există la acest client.';
   }
   if (cause.status === 403) {
     return 'Doar administratorii pot încărca fișiere pentru administratori.';

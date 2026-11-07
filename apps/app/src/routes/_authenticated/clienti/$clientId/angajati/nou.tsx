@@ -5,7 +5,7 @@ import { EmployeeForm } from '@/features/employees/employee-form';
 const clientRoute = getRouteApi('/_authenticated/clienti/$clientId');
 
 export const Route = createFileRoute('/_authenticated/clienti/$clientId/angajati/nou')({
-  staticData: { title: 'Angajat nou', fullPage: true },
+  staticData: { title: 'Lucrător nou', fullPage: true },
   component: NewEmployeePage,
 });
 

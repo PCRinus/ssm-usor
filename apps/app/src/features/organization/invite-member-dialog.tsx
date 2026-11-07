@@ -117,7 +117,7 @@ function InviteForm({ onClose }: { onClose: () => void }) {
             id="invite-role"
             label="Rol"
             mark="required"
-            hint="Specialiștii lucrează cu clienții și angajații. Administratorii pot, în plus, să invite alți membri."
+            hint="Specialiștii lucrează cu clienții și lucrătorii. Administratorii pot, în plus, să invite alți membri."
             error={errors.role}
           >
             <NativeSelect

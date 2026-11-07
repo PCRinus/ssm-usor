@@ -31,7 +31,7 @@ export function EmployeePage({ employeeId }: { employeeId: string }) {
         className="-mb-3 -ml-1 inline-flex min-h-11 w-fit items-center gap-1 rounded-sm px-1 text-sm font-medium focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none sm:-mb-5"
       >
         <ChevronLeft aria-hidden="true" className="size-4" />
-        <Trans>Angajați</Trans>
+        <Trans>Lucrători</Trans>
       </Link>
       <EmployeeDetail participantId={participation.participantId} employeeId={employeeId} />
     </Page>
@@ -61,7 +61,7 @@ function EmployeeDetail({
   if (records.error instanceof ApiHttpError && records.error.status === 404) {
     return (
       <PageHeader
-        title={t`Angajatul nu a fost găsit`}
+        title={t`Lucrătorul nu a fost găsit`}
         description={t`Poate a fost scos din evidența companiei.`}
       />
     );
@@ -70,7 +70,7 @@ function EmployeeDetail({
   return (
     <>
       <PageHeader
-        title={employee ? `${employee.lastName} ${employee.firstName}` : t`Angajat`}
+        title={employee ? `${employee.lastName} ${employee.firstName}` : t`Lucrător`}
         description={employee && [employee.position, employee.workplace].filter(Boolean).join(', ')}
       >
         {employee && (

@@ -111,6 +111,6 @@ export const missingSheetDataMessages: Record<MissingSheetData, MessageDescripto
 };
 
 export const participationKindMessages: Record<Participation['kind'], MessageDescriptor> = {
-  employee: msg`Angajat`,
+  employee: msg`Lucrător`,
   client_administrator: msg`Administratorul clientului`,
 };

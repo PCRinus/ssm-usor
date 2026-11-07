@@ -17,7 +17,7 @@ export function Pager({
   onPage,
 }: {
   meta: PageMeta;
-  // Singular and plural of what is counted, for example ['angajat', 'angajați'].
+  // Singular and plural of what is counted, for example ['lucrător', 'lucrători'].
   noun: readonly [string, string];
   disabled?: boolean;
   onPage: (page: number) => void;

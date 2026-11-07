@@ -142,7 +142,7 @@ export function JobPositionPage() {
               ? intervalLabel(position.trainingIntervalMonths)
               : 'Ca restul categoriei'}
           </Fact>
-          <Fact label="Angajați pe post">
+          <Fact label="Lucrători pe post">
             <Link
               to="/clienti/$clientId/angajati"
               params={{ clientId }}

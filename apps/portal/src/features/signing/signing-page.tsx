@@ -752,11 +752,11 @@ function oneSignedMessage(item: SigningItem, ownEmployeeId: string | null): Mess
   }
   const own = item.request.employee.id === ownEmployeeId;
   if (item.request.kind === 'test_sheet') {
-    return own ? msg`Ai semnat fișa de test.` : msg`Ai semnat fișa de test a angajatului.`;
+    return own ? msg`Ai semnat fișa de test.` : msg`Ai semnat fișa de test a lucrătorului.`;
   }
   return own
     ? msg`Ai semnat instruirea. Semnătura e pe fișa ta.`
-    : msg`Ai semnat instruirea. Semnătura e pe fișa angajatului.`;
+    : msg`Ai semnat instruirea. Semnătura e pe fișa lucrătorului.`;
 }
 
 function ResultStep({

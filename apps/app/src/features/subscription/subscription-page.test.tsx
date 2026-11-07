@@ -98,7 +98,7 @@ describe('the Abonament tab', () => {
       'SMS-urile pornesc când alegi un plan'
     );
     expect(screen.getByTestId('meter-employees').textContent).toContain(
-      'pentru 312 îți trebuie 2 pachete de câte 50 de angajați'
+      'pentru 312 îți trebuie 2 pachete de câte 50 de lucrători'
     );
     expect(screen.getByTestId('payment-card').textContent).toContain('Nu ai salvat un card');
     expect(screen.getByTestId('invoices-card').textContent).toContain(
@@ -161,7 +161,7 @@ describe('the Abonament tab', () => {
     );
     const card = screen.getByTestId('plan-card');
     expect(within(card).getByTestId('plan-amount').textContent).toContain('83,49 €');
-    expect(card.textContent).toContain('2 pachete de câte 50 de angajați');
+    expect(card.textContent).toContain('2 pachete de câte 50 de lucrători');
     expect(screen.getByTestId('meter-employees').textContent).toContain('312 din 350');
     expect(screen.getByTestId('meter-sms').textContent).toContain('0 din 50');
     expect(screen.getByTestId('payment-card-number').textContent).toBe('Visa •••• 4242');
@@ -249,7 +249,7 @@ describe('the Abonament tab', () => {
     expect(card.textContent).toContain('Total pe an2.468,40 €');
     expect(within(card).getByTestId('plan-note').textContent).toContain('2,60 € + TVA');
     expect(card.textContent).toContain(
-      'Start nu este disponibil: acoperă cel mult 600 de angajați, iar tu ai 1.740.'
+      'Start nu este disponibil: acoperă cel mult 600 de lucrători, iar tu ai 1.740.'
     );
     expect(within(card).getByRole('button', { name: 'Treci la plata lunară' })).toBeTruthy();
 

@@ -55,7 +55,7 @@ const kinds = {
   sheets: {
     title: (date: string, count: number) => `Fișe importate pe ${date} · ${filesLabel(count)}`,
     description:
-      'Fișele scanate din care au fost transcrise instruirile. Fiecare angajat are la fișierele sale doar paginile lui.',
+      'Fișele scanate din care au fost transcrise instruirile. Fiecare lucrător are la fișierele sale doar paginile lui.',
     toggle: (open: boolean) => (open ? 'Restrânge fișele importate' : 'Deschide fișele importate'),
     zip: 'Descarcă fișele (ZIP)',
     zipName: (date: string) => `Fișe importate ${date}.zip`,

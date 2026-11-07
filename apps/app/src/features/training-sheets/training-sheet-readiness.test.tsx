@@ -72,7 +72,7 @@ function mount(...domains: TrainingDomain[]) {
   const edit = createRoute({
     getParentRoute: () => root,
     path: '/clienti/$clientId/angajati/$employeeId/editare',
-    component: () => <h1>Modifică angajatul</h1>,
+    component: () => <h1>Modifică lucrătorul</h1>,
   });
   const router = createRouter({
     routeTree: root.addChildren([tab, edit]),
@@ -107,15 +107,15 @@ describe('TrainingSheetReadiness', () => {
 
     await userEvent.click(within(notice).getByRole('button', { name: 'Vezi ce lipsește' }));
     const dialog = await screen.findByRole('dialog', { name: 'Ce lipsește pentru fișa SSM' });
-    expect(within(dialog).getByRole('heading', { name: 'Datele angajatului' })).toBeTruthy();
+    expect(within(dialog).getByRole('heading', { name: 'Datele lucrătorului' })).toBeTruthy();
     const rows = within(dialog).getAllByTestId('training-sheet-missing-row');
     expect(rows.map((row) => [row.textContent, row.getAttribute('href')])).toEqual([
       [
-        'Traseul de deplasareDrumul angajatului între domiciliu și locul de muncă, cerut de fișa SSM.',
+        'Traseul de deplasareDrumul lucrătorului între domiciliu și locul de muncă, cerut de fișa SSM.',
         `${employeePage}/editare?focus=commute-route`,
       ],
       [
-        'Punctul de lucruClientul are mai multe puncte de lucru active; alege-l pe cel al angajatului.',
+        'Punctul de lucruClientul are mai multe puncte de lucru active; alege-l pe cel al lucrătorului.',
         `${employeePage}/editare?focus=workplace`,
       ],
     ]);
@@ -130,7 +130,7 @@ describe('TrainingSheetReadiness', () => {
     await userEvent.click(within(notice).getByRole('button', { name: 'Vezi ce lipsește' }));
     await userEvent.click(await screen.findByTestId('training-sheet-missing-row'));
 
-    await screen.findByRole('heading', { name: 'Modifică angajatul' });
+    await screen.findByRole('heading', { name: 'Modifică lucrătorul' });
     expect(router.state.location.pathname).toBe(`${employeePage}/editare`);
     expect(router.state.location.search).toEqual({ focus: 'workplace' });
     expect(screen.queryByRole('dialog')).toBeNull();

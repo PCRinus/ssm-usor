@@ -146,7 +146,7 @@ Fișa are trei carduri:
 
 Pe tabul **Posturi de lucru** al clientului, cardul **Fișe de evaluare în afara posturilor** ține fișele care nu sunt ale unui post: a grupurilor sensibile și ale altor persoane expuse. Cu **Adaugă o fișă** dai un nume categoriei, de exemplu „Vizitatori” sau „Personalul firmelor de curățenie”, și o evaluezi ca pe un post.
 
-O fișă în afara posturilor are, la sistemul de muncă, și **Sarcina de muncă** și **Persoanele expuse**, pe care un post le ia din activitățile și angajații lui.
+O fișă în afara posturilor are, la sistemul de muncă, și **Sarcina de muncă** și **Persoanele expuse**, pe care un post le ia din activitățile și lucrătorii lui.
 
 ### Grupurile sensibile
 
@@ -159,7 +159,7 @@ După declarație, **Evaluează totuși** pornește fișa și înlocuiește decl
 
 ## Sistemul de muncă
 
-Cardul descrie postul evaluat. Pentru un post, sarcina de muncă vine din activitățile lui, iar persoanele expuse din numărul de angajați actuali. Tu scrii:
+Cardul descrie postul evaluat. Pentru un post, sarcina de muncă vine din activitățile lui, iar persoanele expuse din numărul de lucrători actuali. Tu scrii:
 
 - **Mijloace de producție**: echipamentele de muncă, uneltele și materialele folosite;
 - **Mediul de muncă**: spațiul, microclimatul, iluminatul, zgomotul;

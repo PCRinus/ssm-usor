@@ -9,7 +9,7 @@ topics:
   - id: organizatie.alegerea-planului
     heading: Alegerea planului
   - id: organizatie.pachete
-    heading: Pachetele de angajați și utilizatorii în plus
+    heading: Pachetele de lucrători și utilizatorii în plus
   - id: organizatie.consum
     heading: Cât folosești
   - id: organizatie.limita-sms
@@ -54,14 +54,14 @@ O găsești în **Organizație**, la tabul **Abonament**, după **Abilitări**. 
 Pagina are trei părți:
 
 - **planul**: numele lui, dacă e lunar sau anual, starea și următoarea plată, cu prețul defalcat pe plan, pachete și utilizatori, plus TVA;
-- **Cât folosești**: angajații, utilizatorii, codurile de semnare prin SMS și creditele pentru import, față de cât include planul (vezi [Cât folosești](#cât-folosești));
+- **Cât folosești**: lucrătorii, utilizatorii, codurile de semnare prin SMS și creditele pentru import, față de cât include planul (vezi [Cât folosești](#cât-folosești));
 - **Plată și facturi**: cardul, adresa la care pleacă facturile și lista facturilor (vezi [Plata și facturile](#plata-și-facturile)).
 
 Prețurile din aplicație sunt fără TVA, la care se adaugă TVA de 21 %. Totalurile arată și suma cu TVA.
 
 ## Perioada de probă
 
-Un cont nou începe cu 30 de zile de probă, fără card. În acest timp ai tot ce include **Profesional**: 1.500 de angajați la clienți și 3 utilizatori, plus 300 de credite pentru import pentru toată perioada de probă (vezi [Creditele pentru import](#creditele-pentru-import)). Singura diferență: în perioada de probă nu se trimit SMS-uri. Codurile de conectare și de semnare pleacă pe email, iar un angajat fără adresă de email nu poate fi invitat până alegi un plan.
+Un cont nou începe cu 30 de zile de probă, fără card. În acest timp ai tot ce include **Profesional**: 1.500 de lucrători la clienți și 3 utilizatori, plus 300 de credite pentru import pentru toată perioada de probă (vezi [Creditele pentru import](#creditele-pentru-import)). Singura diferență: în perioada de probă nu se trimit SMS-uri. Codurile de conectare și de semnare pleacă pe email, iar un lucrător fără adresă de email nu poate fi invitat până alegi un plan.
 
 Insigna planului arată câte zile mai ai. În ultima săptămână apare și o bandă deasupra paginii, pe care o poți închide până a doua zi; în ultima zi nu se mai închide.
 
@@ -77,7 +77,7 @@ Apasă **Alege un plan**. Pe pagina care se deschide:
 
 1. Alegi perioada de plată: **Lunar** sau **Anual**. Pe an plătești 10 luni din 12.
 2. Alegi planul: **Start** sau **Profesional**. Fiecare card arată ce include.
-3. Alegi câte pachete de angajați și câți utilizatori în plus vrei (vezi mai jos).
+3. Alegi câte pachete de lucrători și câți utilizatori în plus vrei (vezi mai jos).
 4. Completezi cardul. Poți plăti și cu Apple Pay sau Google Pay, dacă telefonul sau browserul tău le are.
 
 În dreapta, **Rezumat** arată prețul pe lună sau pe an, TVA-ul și totalul, iar dedesubt ce se întâmplă azi: în perioada de probă, „Azi nu plătești nimic” și data primei plăți; altfel, suma pe care o plătești azi.
@@ -88,29 +88,29 @@ Uneori plata are nevoie de un minut până apare abonamentul. Atunci pagina îț
 
 Factura are nevoie de denumirea și de CUI-ul organizației. Dacă lipsesc, completează-le în **Organizație**, la **Date firmă**, apoi revino.
 
-**Enterprise** nu se alege din aplicație. Pentru peste 1.500 de angajați sau o echipă mare, scrie-ne la contact@ssmusor.ro și îți trimitem o ofertă.
+**Enterprise** nu se alege din aplicație. Pentru peste 1.500 de lucrători sau o echipă mare, scrie-ne la contact@ssmusor.ro și îți trimitem o ofertă.
 
-### Pachetele de angajați și utilizatorii în plus
+### Pachetele de lucrători și utilizatorii în plus
 
-**Start** include 250 de angajați la clienți și un utilizator. Peste 250 adaugi pachete de câte 50 de angajați, până la 600 în total, și cel mult încă un utilizator.
+**Start** include 250 de lucrători la clienți și un utilizator. Peste 250 adaugi pachete de câte 50 de lucrători, până la 600 în total, și cel mult încă un utilizator.
 
-**Profesional** include 1.500 de angajați și 3 utilizatori. Peste 1.500 adaugi pachete de câte 500 de angajați, iar utilizatori în plus câți îți trebuie.
+**Profesional** include 1.500 de lucrători și 3 utilizatori. Peste 1.500 adaugi pachete de câte 500 de lucrători, iar utilizatori în plus câți îți trebuie.
 
-Aplicația nu te lasă să alegi mai puține pachete sau utilizatori decât ai azi: dacă ai 312 angajați, Start cere cel puțin 2 pachete. **Start** nu se poate alege deloc dacă ai peste 600 de angajați sau peste 2 utilizatori; cardul planului spune de ce.
+Aplicația nu te lasă să alegi mai puține pachete sau utilizatori decât ai azi: dacă ai 312 lucrători, Start cere cel puțin 2 pachete. **Start** nu se poate alege deloc dacă ai peste 600 de lucrători sau peste 2 utilizatori; cardul planului spune de ce.
 
 ## Cât folosești
 
 Se numără:
 
-- **angajații la clienți**: angajații actuali ai clienților activi. Foștii angajați, clienții potențiali și clienții arhivați nu intră în număr. Liniile albe din bară arată unde se termină ce include planul și fiecare pachet;
+- **lucrătorii la clienți**: lucrătorii actuali ai clienților activi. Foștii lucrători, clienții potențiali și clienții arhivați nu intră în număr. Liniile albe din bară arată unde se termină ce include planul și fiecare pachet;
 - **utilizatorii**: membrii organizației, cu tine cu tot;
 - **codurile de semnare prin SMS**: câte au plecat luna aceasta, față de cât include planul: 50 pe Start, 300 pe Profesional, de exemplu „252 din 300”. Luna e a abonamentului: începe în ziua în care se reînnoiește, de exemplu de pe 14.10 până pe 13.11, și pe un plan anual. Invitațiile în portal, codurile de conectare și anunțurile că sunt instruiri de semnat pleacă și ele prin SMS, dar nu se numără. În perioada de probă, fără un plan ales, rândul nu are bară: spune doar că totul pleacă pe email.
 
-Dacă treci de limita de angajați, lucrezi mai departe cu tot ce ai. Pagina îți spune cu câți ai trecut și îți propune pachetul care îți lipsește. Peste cele incluse, codurile de semnare prin SMS pleacă mai departe: fiecare costă 0,10 € și apare pe factura următoare; pe un plan anual, se plătesc lunar. Ca factura să nu crească fără margini, se opresc la de trei ori cât include planul, adică 150 pe Start și 900 pe Profesional. De acolo, până la luna următoare, un angajat fără email nu mai primește codul de semnare prin SMS.
+Dacă treci de limita de lucrători, lucrezi mai departe cu tot ce ai. Pagina îți spune cu câți ai trecut și îți propune pachetul care îți lipsește. Peste cele incluse, codurile de semnare prin SMS pleacă mai departe: fiecare costă 0,10 € și apare pe factura următoare; pe un plan anual, se plătesc lunar. Ca factura să nu crească fără margini, se opresc la de trei ori cât include planul, adică 150 pe Start și 900 pe Profesional. De acolo, până la luna următoare, un lucrător fără email nu mai primește codul de semnare prin SMS.
 
-Administratorul organizației primește un email când au plecat 80 % din codurile incluse în lună, când au plecat toate și când se ajunge la limita de siguranță, fiecare o singură dată pe lună. Până la prima plată, emailul de la 100 % spune că, până la luna următoare, codurile nu mai pleacă prin SMS. Un angajat fără email care cere atunci un cod de semnare vede în portal că trebuie să vorbească cu specialistul SSM; dacă îi adaugi o adresă de email, codul îi vine pe email și semnează pe loc.
+Administratorul organizației primește un email când au plecat 80 % din codurile incluse în lună, când au plecat toate și când se ajunge la limita de siguranță, fiecare o singură dată pe lună. Până la prima plată, emailul de la 100 % spune că, până la luna următoare, codurile nu mai pleacă prin SMS. Un lucrător fără email care cere atunci un cod de semnare vede în portal că trebuie să vorbească cu specialistul SSM; dacă îi adaugi o adresă de email, codul îi vine pe email și semnează pe loc.
 
-SMS-urile pleacă doar la numere din România (+40). Un angajat cu un număr din altă țară se invită pe email.
+SMS-urile pleacă doar la numere din România (+40). Un lucrător cu un număr din altă țară se invită pe email.
 
 Bara codurilor de semnare își schimbă culoarea doar când e ceva de știut:
 
@@ -123,13 +123,13 @@ Din 80 %, o bandă galbenă deasupra paginii le spune tuturor membrilor câte co
 
 ### Creditele pentru import
 
-Importul clienților din documente și al angajaților din fișe se plătește în credite. Un credit e o pagină scanată sau o fotografie citită la import. Documentele unui client costă 25 de credite, plus câte unul pentru fiecare pagină scanată; un document scris pe calculator, cum e unul din Word, intră în cele 25.
+Importul clienților din documente și al lucrătorilor din fișe se plătește în credite. Un credit e o pagină scanată sau o fotografie citită la import. Documentele unui client costă 25 de credite, plus câte unul pentru fiecare pagină scanată; un document scris pe calculator, cum e unul din Word, intră în cele 25.
 
 Câte credite ai:
 
 - **în perioada de probă**: 300 pentru toată perioada, care nu se reînnoiesc. Dacă alegi un plan în perioada de probă, păstrezi cele 300 până la prima plată;
-- **pe Start**: 300 pe lună, cam cât pentru 12 clienți sau 40 de angajați;
-- **pe Profesional**: 1.500 pe lună, cam cât pentru 60 de clienți sau 200 de angajați.
+- **pe Start**: 300 pe lună, cam cât pentru 12 clienți sau 40 de lucrători;
+- **pe Profesional**: 1.500 pe lună, cam cât pentru 60 de clienți sau 200 de lucrători.
 
 Creditele lunii se reînnoiesc în ziua în care se reînnoiește abonamentul, iar cele nefolosite nu se adună.
 
@@ -161,7 +161,7 @@ Din pagina **Abonament**:
 Ce se întâmplă depinde de schimbare:
 
 - **trecerea de la Start la Profesional, un pachet sau un utilizator în plus** se aplică pe loc. Pe un plan lunar, diferența pentru zilele rămase apare pe factura următoare; pe unul anual se plătește pe loc. Ce aveai înainte se scade pentru partea nefolosită, iar la trecerea pe Profesional pachetele și utilizatorii în plus pe care nu îi mai folosești se opresc odată cu ea;
-- **trecerea de la Profesional la Start, mai puține pachete sau utilizatori** se aplică de la următoarea reînnoire și nu costă nimic azi. Până atunci păstrezi ce ai plătit, iar banii nu se returnează. Trecerea la Start adaugă pachetele de care au nevoie angajații de azi, iar fereastra de confirmare ți le arată;
+- **trecerea de la Profesional la Start, mai puține pachete sau utilizatori** se aplică de la următoarea reînnoire și nu costă nimic azi. Până atunci păstrezi ce ai plătit, iar banii nu se returnează. Trecerea la Start adaugă pachetele de care au nevoie lucrătorii de azi, iar fereastra de confirmare ți le arată;
 - **de la lunar la anual** se aplică pe loc: plătești anul, din care se scade partea nefolosită din luna curentă;
 - **de la anual la lunar** se aplică la sfârșitul anului plătit.
 
@@ -209,4 +209,4 @@ Pagina **Abonament** funcționează și în acest timp. Cu **Alege un plan** sau
 
 ## Ce văd colegii
 
-Colegii care nu sunt administratori văd tabul **Abonament** cu planul, starea lui și cât folosiți, plus prețurile planurilor. Nu văd sumele organizației, cardul sau facturile, și nu pot schimba nimic. Văd și banda codurilor de semnare prin SMS, fără prețuri; la limita de siguranță, banda le spune că administratorul poate ridica limita. Dacă aveți nevoie de mai mulți angajați sau de un coleg în plus, administratorul adaugă din pagina lui.
+Colegii care nu sunt administratori văd tabul **Abonament** cu planul, starea lui și cât folosiți, plus prețurile planurilor. Nu văd sumele organizației, cardul sau facturile, și nu pot schimba nimic. Văd și banda codurilor de semnare prin SMS, fără prețuri; la limita de siguranță, banda le spune că administratorul poate ridica limita. Dacă aveți nevoie de mai mulți lucrători sau de un coleg în plus, administratorul adaugă din pagina lui.

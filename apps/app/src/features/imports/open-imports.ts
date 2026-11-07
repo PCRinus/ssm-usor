@@ -29,7 +29,7 @@ const nameOf = (item: ImportItem) =>
   (item.kind === 'employees' ? 'Fișele unui client' : 'Client nou din documente');
 
 const kindLabel = (item: ImportItem) =>
-  item.kind === 'employees' ? 'Import angajați' : 'Import client';
+  item.kind === 'employees' ? 'Import lucrători' : 'Import client';
 
 function runningStep(item: ImportItem): { step: string; progress: number | null } {
   const progress = item.progress;

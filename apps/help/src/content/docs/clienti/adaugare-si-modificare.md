@@ -145,7 +145,7 @@ Sediul social e și un punct de lucru, pe care îl adaugi separat, pe tabul **De
 
 ## Reprezentantul legal și persoana de contact
 
-Numele reprezentantului legal îl poți scrie de la început, în **Alte informații**. Funcția lui și legătura cu angajații clientului le completezi apoi pe tabul **Detalii**. Vezi [Reprezentantul legal](/clienti/detalii/#reprezentantul-legal) și [Persoana de contact](/clienti/detalii/#persoana-de-contact).
+Numele reprezentantului legal îl poți scrie de la început, în **Alte informații**. Funcția lui și legătura cu lucrătorii clientului le completezi apoi pe tabul **Detalii**. Vezi [Reprezentantul legal](/clienti/detalii/#reprezentantul-legal) și [Persoana de contact](/clienti/detalii/#persoana-de-contact).
 
 ## Modificarea datelor
 

@@ -67,7 +67,7 @@ function stateDetail(agreement: Agreement) {
   switch (agreement.state) {
     case 'generated':
       return agreementAwaitsEmployer(agreement)
-        ? `Semnat de angajat pe ${formatDay(agreement.employeeSignedAt)}, așteaptă semnătura administratorului în portal.`
+        ? `Semnat de lucrător pe ${formatDay(agreement.employeeSignedAt)}, așteaptă semnătura administratorului în portal.`
         : `Descărcat pe ${formatDay(agreement.generatedAt)}; se semnează de mână sau din portal.`;
     case 'signed_electronically':
       return agreement.signedAt ? `Semnat electronic pe ${formatDay(agreement.signedAt)}.` : null;
@@ -171,8 +171,8 @@ export function SigningAgreementCard({
       title="Actul adițional privind semnarea electronică"
       description={
         <>
-          Acordul angajatului de a semna electronic fișele de instruire, la contractul individual de
-          muncă. <HelpLink topic="angajati.act-aditional">Află mai mult</HelpLink>
+          Acordul lucrătorului de a semna electronic fișele de instruire, la contractul individual
+          de muncă. <HelpLink topic="angajati.act-aditional">Află mai mult</HelpLink>
         </>
       }
       action={
@@ -224,7 +224,7 @@ export function SigningAgreementCard({
             </Button>
           }
         >
-          Actul adițional spune unde primește angajatul codurile de semnare. Adaugă-i un email sau
+          Actul adițional spune unde primește lucrătorul codurile de semnare. Adaugă-i un email sau
           un telefon ca să-l poată semna din portal sau ca să-l descarci.
         </Notice>
       )}
@@ -241,7 +241,7 @@ export function SigningAgreementCard({
           }
         >
           Actul adițional numește reprezentantul legal al clientului. Completează-i numele și
-          funcția în datele clientului ca să-l poată semna angajatul din portal sau ca să-l
+          funcția în datele clientului ca să-l poată semna lucrătorul din portal sau ca să-l
           descarci.
         </Notice>
       )}
@@ -292,7 +292,7 @@ export function SigningAgreementCard({
             <span className="text-muted-foreground" data-testid="signing-agreement-detail">
               {agreement
                 ? stateDetail(agreement)
-                : 'Angajatul îl poate semna din portal de la prima autentificare. Descarcă-l ca să fie semnat de mână; pentru un angajat nou, clauza poate intra direct în contractul de muncă.'}
+                : 'Lucrătorul îl poate semna din portal de la prima autentificare. Descarcă-l ca să fie semnat de mână; pentru un lucrător nou, clauza poate intra direct în contractul de muncă.'}
             </span>
           </p>
           {!readOnly && (unsigned || agreed) && (
@@ -488,8 +488,8 @@ function ContractClauseDialog({
           <DialogHeader>
             <DialogTitle>Clauza pentru contractul de muncă</DialogTitle>
             <DialogDescription>
-              Pentru un angajat nou: clauza intră în contractul individual de muncă în locul actului
-              adițional. După semnarea contractului, marchează „Clauza e în contract”.
+              Pentru un lucrător nou: clauza intră în contractul individual de muncă în locul
+              actului adițional. După semnarea contractului, marchează „Clauza e în contract”.
             </DialogDescription>
           </DialogHeader>
           <DialogBody>
@@ -603,8 +603,8 @@ function PaperAgreementForm({
         <DialogHeader>
           <DialogTitle>Marchează semnat pe hârtie</DialogTitle>
           <DialogDescription>
-            Pentru actul adițional semnat de mână de angajat și de angajator. Scanul îl poți atașa
-            din fișierele angajatului.
+            Pentru actul adițional semnat de mână de lucrător și de angajator. Scanul îl poți atașa
+            din fișierele lucrătorului.
           </DialogDescription>
         </DialogHeader>
         <DialogBody className="mt-5 grid gap-5">
@@ -614,7 +614,7 @@ function PaperAgreementForm({
             mark="optional"
             hint={
               noFiles
-                ? 'Angajatul nu are fișiere. Încarcă scanul în „Fișiere”, pe pagina lui, ca să-l poți atașa.'
+                ? 'Lucrătorul nu are fișiere. Încarcă scanul în „Fișiere”, pe pagina lui, ca să-l poți atașa.'
                 : undefined
             }
           >

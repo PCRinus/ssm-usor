@@ -234,7 +234,7 @@ describe('the participant shell', () => {
       })
     );
     mountPortal(signedIn(), '/');
-    expect(await barEntries()).toEqual(['Acasă', 'Angajați', 'Contul meu']);
+    expect(await barEntries()).toEqual(['Acasă', 'Lucrători', 'Contul meu']);
   });
 
   it('gives a client administrator who is an employee their own trainings and data from Acasă', async () => {
@@ -242,7 +242,7 @@ describe('the participant shell', () => {
       queryResult({ participations: [participation({ kind: 'client_administrator' })] })
     );
     mountPortal(signedIn(), '/');
-    expect(await barEntries()).toEqual(['Acasă', 'Angajați', 'Instruiri', 'Contul meu']);
+    expect(await barEntries()).toEqual(['Acasă', 'Lucrători', 'Instruiri', 'Contul meu']);
     expect(screen.getByTestId('home-my-data')).toBeTruthy();
   });
 

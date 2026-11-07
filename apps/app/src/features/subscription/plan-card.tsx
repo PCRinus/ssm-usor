@@ -238,7 +238,7 @@ export function PlanCard({
       if (subscription?.plan === 'profesional' && startProblem) {
         foot =
           startProblem.reason === 'start_employee_ceiling'
-            ? `Start nu este disponibil: acoperă cel mult 600 de angajați, iar tu ai ${formatCount(overview.usage.employees.used ?? 0)}.`
+            ? `Start nu este disponibil: acoperă cel mult 600 de lucrători, iar tu ai ${formatCount(overview.usage.employees.used ?? 0)}.`
             : `Start nu este disponibil: are cel mult 2 utilizatori, iar voi sunteți ${overview.usage.members.used ?? 0}.`;
       }
       break;

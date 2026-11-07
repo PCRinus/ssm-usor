@@ -28,7 +28,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Risk evaluator** (_evaluator de riscuri_): the person the organization names as coordinator of the risk evaluation in decision 1.2 and on the risk assessment: a name, a qualification printed after it and, optionally, a certificate, kept on the organization's Abilitări tab like the fire-safety technician; not a member role. Without one the documents name the member who generates, with the professional title from their profile, and the generation form says so without blocking. ADR 015, amendment of 2026-10-22. Avoid: specialist, which is the member who generates and still trains and signs.
 
-**Employee** (_angajat_): a person employed by a client, assigned to a job position and to the workplace they work at. Avoid: worker, staff, user.
+**Employee** (_lucrător_): a person employed by a client, assigned to a job position and to the workplace they work at. The interface says _lucrător_, the word of Legea 319/2006, and keeps _angajat_ for being hired (_Angajat din_, _data angajării_); the code says employee. Avoid: _angajat_ for the person, worker as the code's name, staff, user.
 
 **Responsible person** (_persoană responsabilă_): someone who holds a role in a client's safety organization: workplace manager, first-aider, member of the risk evaluation team. One person can hold several roles. May or may not be an employee. A role is not a job position.
 

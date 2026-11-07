@@ -76,7 +76,7 @@ export function PromoteLeadDialog({
             <DialogTitle>Transformi în client?</DialogTitle>
             <DialogDescription>
               <span className="font-medium text-foreground">{lead.legalName}</span> trece în lista
-              clienților, unde îl vede toată echipa, și i se pot adăuga angajați, posturi de lucru
+              clienților, unde îl vede toată echipa, și i se pot adăuga lucrători, posturi de lucru
               și documente. Notițele rămân vizibile doar administratorilor. Transformarea nu poate
               fi anulată.
             </DialogDescription>

@@ -148,7 +148,7 @@ describe('the imports button in the header', () => {
       },
       {
         title: 'Se citesc',
-        rows: ['Transport Delta Nord SRLImport angajați: 23 din 40 de fotografii citite'],
+        rows: ['Transport Delta Nord SRLImport lucrători: 23 din 40 de fotografii citite'],
       },
       {
         title: 'S-au oprit',
@@ -158,7 +158,7 @@ describe('the imports button in the header', () => {
     expect(within(list).queryByText('Altcineva SRL')).toBeNull();
     expect(
       within(list).getByRole('progressbar', {
-        name: 'Import angajați: 23 din 40 de fotografii citite',
+        name: 'Import lucrători: 23 din 40 de fotografii citite',
       })
     ).toBeTruthy();
     expect(within(list).getByRole('link', { name: 'Vezi importul' }).getAttribute('href')).toBe(

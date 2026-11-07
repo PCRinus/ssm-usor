@@ -62,8 +62,8 @@ export function workersRepresentativesRule(currentEmployeeCount: number, generat
   const needed = requiredWorkersRepresentatives(currentEmployeeCount);
   if (needed === 0) {
     return generated
-      ? `${count}. Decizia privind reprezentanții lucrătorilor este deja generată și rămâne în documentație, deși este necesară doar de la 10 angajați.`
-      : `${count}, așa că decizia privind reprezentanții lucrătorilor nu se generează. Este necesară de la 10 angajați.`;
+      ? `${count}. Decizia privind reprezentanții lucrătorilor este deja generată și rămâne în documentație, deși este necesară doar de la 10 lucrători.`
+      : `${count}, așa că decizia privind reprezentanții lucrătorilor nu se generează. Este necesară de la 10 lucrători.`;
   }
   if (generated) {
     const representatives =
@@ -119,9 +119,9 @@ export function fireSafetyHeadcountRule(
   ) => (typeKeys.length === 1 && typeKeys[0] !== 'fire_maintenance_schedules' ? singular : plural);
   const kept =
     generated.length > 0
-      ? ` ${sentence(named(generated))} există deja și ${one(generated, 'rămâne', 'rămân')} în documentație, deși ${one(generated, 'se cere', 'se cer')} doar de la 10 angajați.`
+      ? ` ${sentence(named(generated))} există deja și ${one(generated, 'rămâne', 'rămân')} în documentație, deși ${one(generated, 'se cere', 'se cer')} doar de la 10 lucrători.`
       : '';
   return lacking.length > 0
-    ? `${count}, așa că ${named(lacking)} nu se generează. ${one(lacking, 'Se cere', 'Se cer')} de la 10 angajați.${kept}`
+    ? `${count}, așa că ${named(lacking)} nu se generează. ${one(lacking, 'Se cere', 'Se cer')} de la 10 lucrători.${kept}`
     : `${count}.${kept}`;
 }

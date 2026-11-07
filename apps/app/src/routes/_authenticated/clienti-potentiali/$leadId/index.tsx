@@ -66,7 +66,7 @@ function LeadPage() {
               <span className="tabular-nums">{formatCui(lead.cui, lead.vatPayer)}</span>
             </HeaderFact>
             {lead.declaredEmployeeCount !== null && (
-              <HeaderFact label="Angajați declarați">
+              <HeaderFact label="Lucrători declarați">
                 <span className="tabular-nums" data-testid="lead-declared-employees">
                   {lead.declaredEmployeeCount}
                 </span>

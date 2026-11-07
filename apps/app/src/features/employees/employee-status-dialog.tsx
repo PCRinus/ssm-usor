@@ -39,7 +39,7 @@ export interface EmployeeStatusChange {
 
 function serverMessage(cause: unknown) {
   if (cause instanceof ApiHttpError) {
-    if (cause.status === 404) return 'Angajatul nu mai există la acest client.';
+    if (cause.status === 404) return 'Lucrătorul nu mai există la acest client.';
     if (cause.status === 409) return conflictMessage(cause.body as Partial<ApiErrorResponse>);
     if (cause.status === 401) {
       return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
@@ -53,16 +53,16 @@ function serverMessage(cause: unknown) {
 
 function conflictMessage(body: Partial<ApiErrorResponse> | undefined) {
   if (body?.reason === 'client_archived') {
-    return 'Clientul este arhivat; situația angajaților nu se mai schimbă.';
+    return 'Clientul este arhivat; situația lucrătorilor nu se mai schimbă.';
   }
   const message = body?.message ?? '';
   if (message.includes('CNP')) {
-    return 'Nu poate fi reactivat: un angajat actual al clientului are același CNP, de obicei rândul adăugat la reangajare.';
+    return 'Nu poate fi reactivat: un lucrător actual al clientului are același CNP, de obicei rândul adăugat la reangajare.';
   }
   if (message.includes('number')) {
-    return 'Nu poate fi reactivat: un angajat actual al clientului are aceeași marcă, de obicei rândul adăugat la reangajare.';
+    return 'Nu poate fi reactivat: un lucrător actual al clientului are aceeași marcă, de obicei rândul adăugat la reangajare.';
   }
-  return 'Situația angajatului nu a putut fi schimbată. Reîncarcă pagina și încearcă din nou.';
+  return 'Situația lucrătorului nu a putut fi schimbată. Reîncarcă pagina și încearcă din nou.';
 }
 
 // Marking a leaver asks for the leave date; reactivating is for undoing a mistake, since a
@@ -131,8 +131,8 @@ function StatusForm({
       ]);
       toast.success(
         action === 'terminate'
-          ? `${name} a fost trecut la foști angajați.`
-          : `${name} este din nou angajat actual.`
+          ? `${name} a fost trecut la foști lucrători.`
+          : `${name} este din nou lucrător actual.`
       );
       onClose();
     } catch (cause) {
@@ -148,19 +148,19 @@ function StatusForm({
       <form onSubmit={(event) => void submit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>
-            {action === 'terminate' ? 'Marchează plecarea' : 'Reactivează angajatul'}
+            {action === 'terminate' ? 'Marchează plecarea' : 'Reactivează lucrătorul'}
           </DialogTitle>
           <DialogDescription>
             {action === 'terminate' ? (
               <>
-                <span className="font-medium text-foreground">{name}</span> trece la foști angajați.
-                Dovezile instruirilor rămân la dosar.
+                <span className="font-medium text-foreground">{name}</span> trece la foști
+                lucrători. Dovezile instruirilor rămân la dosar.
               </>
             ) : (
               <>
-                <span className="font-medium text-foreground">{name}</span> revine printre angajații
-                actuali. Folosește acțiunea doar pentru a corecta o greșeală; o reangajare după o
-                pauză se înregistrează ca angajat nou.{' '}
+                <span className="font-medium text-foreground">{name}</span> revine printre
+                lucrătorii actuali. Folosește acțiunea doar pentru a corecta o greșeală; o
+                reangajare după o pauză se înregistrează ca lucrător nou.{' '}
                 <HelpLink topic="angajati.reactivare">Află mai mult</HelpLink>
               </>
             )}

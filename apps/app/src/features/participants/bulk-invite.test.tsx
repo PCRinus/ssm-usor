@@ -93,7 +93,7 @@ function Harness() {
   return (
     <>
       <button type="button" onClick={() => openBulkInvite(importId)}>
-        Invită în portal angajații din fișe
+        Invită în portal lucrătorii din fișe
       </button>
       {bulkInviteDialog}
     </>
@@ -183,7 +183,7 @@ describe('inviting the people of an employee import to the portal', () => {
     expect((field(dialog, 'Coman Daniela') as HTMLInputElement).value).toBe(
       'daniela.coman@yahoo.com'
     );
-    expect(withAddress.textContent).toContain('din datele angajatului');
+    expect(withAddress.textContent).toContain('din datele lucrătorului');
     const without = within(dialog).getByTestId('bulk-invite-without-address');
     expect(without.textContent).toContain('Fără email sau telefon pe fișă1');
     expect((field(dialog, 'Dobre Cristian') as HTMLInputElement).value).toBe('');
@@ -192,7 +192,7 @@ describe('inviting the people of an employee import to the portal', () => {
     );
     expect(within(dialog).queryByLabelText(/Bârsan Vasile/)).toBeNull();
     expect(within(dialog).getByTestId('bulk-invite-saved-note').textContent).toContain(
-      'Bârsan Vasile nu apare: e fost angajat.'
+      'Bârsan Vasile nu apare: e fost lucrător.'
     );
     expect(within(dialog).getByTestId('bulk-invite-count').textContent).toBe(
       '2 invitații, 1 rămâne neinvitat'
@@ -293,7 +293,7 @@ describe('inviting the people of an employee import to the portal', () => {
     await user.click(within(dialog).getByTestId('bulk-invite-submit'));
 
     expect((await within(dialog).findByTestId('bulk-invite-summary')).textContent).toContain(
-      'Am trimis 11 invitații. Pentru un angajat nu a mers: vezi rândul lui.'
+      'Am trimis 11 invitații. Pentru un lucrător nu a mers: vezi rândul lui.'
     );
     expect(sent().map((rows) => rows.length)).toEqual([10, 2]);
     expect(within(dialog).getAllByTestId('bulk-invite-row')[1]!.textContent).toContain(
@@ -398,7 +398,7 @@ describe('inviting the people of an employee import to the portal', () => {
     await user.click(within(dialog).getByTestId('bulk-invite-submit'));
 
     expect((await within(dialog).findByTestId('bulk-invite-summary')).textContent).toContain(
-      'Am trimis 2 invitații. Pentru 10 angajați nu a mers: vezi rândurile lor.'
+      'Am trimis 2 invitații. Pentru 10 lucrători nu a mers: vezi rândurile lor.'
     );
     expect(sent().map((rows) => rows.length)).toEqual([10, 2]);
     const rows = within(dialog).getAllByTestId('bulk-invite-row');
@@ -452,10 +452,10 @@ describe('bulk invitation wording', () => {
 
   it('says what was sent and for how many it did not work', () => {
     expect(sentSummary(0, 20)).toBe(
-      'Nicio invitație nu a plecat. Pentru 20 de angajați nu a mers: vezi rândurile lor.'
+      'Nicio invitație nu a plecat. Pentru 20 de lucrători nu a mers: vezi rândurile lor.'
     );
     expect(sentSummary(3, 1)).toBe(
-      'Am trimis 3 invitații. Pentru un angajat nu a mers: vezi rândul lui.'
+      'Am trimis 3 invitații. Pentru un lucrător nu a mers: vezi rândul lui.'
     );
     expect(sentSummary(21, 0)).toBe('Am trimis 21 de invitații.');
   });
@@ -479,8 +479,8 @@ describe('bulk invitation wording', () => {
       invitee(name, 'Ion', { current: false })
     );
     expect(formerEmployeesSentence(formers.slice(0, 2))).toBe(
-      'Bârsan Ion și Pop Ion nu apar: sunt foști angajați.'
+      'Bârsan Ion și Pop Ion nu apar: sunt foști lucrători.'
     );
-    expect(formerEmployeesSentence(formers)).toBe('4 foști angajați nu apar.');
+    expect(formerEmployeesSentence(formers)).toBe('4 foști lucrători nu apar.');
   });
 });

@@ -292,7 +292,7 @@ describe("the employee's portal access", () => {
       'SMS doar spre numere din România'
     );
     expect(within(dialog).getByTestId('participant-invite-sms-notice').textContent).toContain(
-      'Angajatul are doar un număr din Republica Moldova, iar SMS trimitem doar spre numere din România.'
+      'Lucrătorul are doar un număr din Republica Moldova, iar SMS trimitem doar spre numere din România.'
     );
     expect(within(dialog).getByRole('link', { name: 'Modifică datele' })).toBeTruthy();
     expect(within(dialog).queryByTestId('participant-invite-submit')).toBeNull();
@@ -537,7 +537,7 @@ describe("the client's Portal tab", () => {
         .map((item) => item.textContent)
     ).toEqual([
       'Administratorul clientului nu a fost invitat în portal.',
-      'Niciun angajat nu are încă acces la portal. Îi inviți de aici sau din pagina fiecărui angajat.',
+      'Niciun lucrător nu are încă acces la portal. Îi inviți de aici sau din pagina fiecărui lucrător.',
     ]);
     expect(within(page).getByTestId('client-administrator-empty')).toBeTruthy();
     expect(within(page).getByTestId('administrator-invite')).toBeTruthy();
@@ -552,7 +552,7 @@ describe("the client's Portal tab", () => {
     mountPortal();
     const notice = await screen.findByTestId('client-portal-missing');
     expect(within(notice).getByTestId('client-employees-with-access').textContent).toBe(
-      'Niciun angajat nu a intrat încă în portal; invitațiile trimise așteaptă primul cod.'
+      'Niciun lucrător nu a intrat încă în portal; invitațiile trimise așteaptă primul cod.'
     );
     expect(screen.getAllByTestId('portal-employee-row')).toHaveLength(1);
   });
@@ -566,7 +566,7 @@ describe("the client's Portal tab", () => {
     const picker = await screen.findByTestId('participant-pick-dialog');
     await user.click(within(picker).getByTestId('participant-pick-submit'));
     expect(within(picker).getByTestId('participant-pick-employee-error').textContent).toBe(
-      'Alege un angajat.'
+      'Alege un lucrător.'
     );
     await user.click(within(picker).getByTestId('participant-pick-employee'));
     await user.click(
@@ -713,9 +713,9 @@ describe('participant failures', () => {
   it('words each refusal in Romanian', () => {
     const message = (reason: string, status = 409) =>
       participantFailure(new ApiHttpError(status, { reason })).message;
-    expect(message('employee_has_participant')).toBe('Angajatul are deja acces la portal.');
+    expect(message('employee_has_participant')).toBe('Lucrătorul are deja acces la portal.');
     expect(message('address_has_participant')).toContain('aparține deja unui participant');
-    expect(message('address_not_of_employee')).toContain('nu mai este cea din datele angajatului');
+    expect(message('address_not_of_employee')).toContain('nu mai este cea din datele lucrătorului');
     expect(message('invalid_address')).toContain('nu poate primi o invitație');
     expect(message('client_archived')).toContain('arhivat');
     expect(message('client_is_lead')).toContain('client potențial');

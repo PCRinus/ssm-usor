@@ -43,7 +43,7 @@ export function testFailure(
     case testErrorReasons.builtIn:
       return 'O întrebare predefinită nu se modifică și nu se șterge: ascunde-o și scrie una proprie.';
     case testErrorReasons.notAwaiting:
-      return 'Testul nu așteaptă acum angajatul: rezultatul la angajare se înregistrează după instruirea la angajare și înainte de promovare, iar cel anual după primul test promovat.';
+      return 'Testul nu așteaptă acum lucrătorul: rezultatul la angajare se înregistrează după instruirea la angajare și înainte de promovare, iar cel anual după primul test promovat.';
     case testErrorReasons.examinerSigned:
       return 'Examinatorul a semnat deja fișa de test, așa că examinatorul rezultatului nu se mai schimbă.';
     case testErrorReasons.resultFromAttempt:

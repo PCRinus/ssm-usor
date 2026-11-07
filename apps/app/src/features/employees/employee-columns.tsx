@@ -28,7 +28,7 @@ export function employeeColumns(onStatusChange?: (change: EmployeeStatusChange) 
   return helper.columns([
     helper.accessor((row) => formatEmployeeName(row), {
       id: 'name',
-      header: 'Angajat',
+      header: 'Lucrător',
       enableSorting: true,
       meta: {
         cellClassName: 'font-medium',

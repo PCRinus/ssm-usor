@@ -325,10 +325,10 @@ describe('the rows of the generation form', () => {
         canEditOrganization: true,
       })[0]!.rows[0]!.detail;
     expect(detailFor(9)).toBe(
-      'Ales dintre angajații actuali. Decizia îl numește și când clientul are sub 10 angajați.'
+      'Ales dintre lucrătorii actuali. Decizia îl numește și când clientul are sub 10 lucrători.'
     );
-    expect(detailFor(10)).toBe('Ales dintre angajați. Clientul are cel puțin 10 angajați.');
-    expect(detailFor()).toBe('Ales dintre angajați. Clientul are cel puțin 10 angajați.');
+    expect(detailFor(10)).toBe('Ales dintre lucrători. Clientul are cel puțin 10 lucrători.');
+    expect(detailFor()).toBe('Ales dintre lucrători. Clientul are cel puțin 10 lucrători.');
   });
 });
 
@@ -426,7 +426,7 @@ describe("the rows of a training sheet's missing data", () => {
   it('lead each code to its field on the edit form, under the employee', () => {
     const groups = trainingSheetMissingGroups({ missing: missingSheetData, clientId, employeeId });
     expect(groups.map((group) => [group.place, group.heading])).toEqual([
-      ['employee', 'Datele angajatului'],
+      ['employee', 'Datele lucrătorului'],
     ]);
     expect(groups[0]!.rows.map((row) => row.label)).toEqual([
       'Traseul de deplasare',

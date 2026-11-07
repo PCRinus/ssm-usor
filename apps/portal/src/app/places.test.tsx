@@ -526,7 +526,7 @@ describe('Contul meu', () => {
   });
 });
 
-describe('Angajați', () => {
+describe('Lucrători', () => {
   beforeEach(() => {
     vi.mocked(useGetPortalMe).mockReturnValue(
       queryResult({
@@ -594,7 +594,7 @@ describe('Angajați', () => {
     await userEvent.clear(screen.getByTestId('employees-search'));
     await userEvent.type(screen.getByTestId('employees-search'), 'Zamfir');
     expect(screen.getByTestId('employees-no-match').textContent).toBe(
-      'Niciun angajat cu acest nume.'
+      'Niciun lucrător cu acest nume.'
     );
   });
 

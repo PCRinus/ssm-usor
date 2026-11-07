@@ -46,7 +46,7 @@ const account: Place = {
 const employees: Place = {
   to: '/angajati',
   testId: 'angajati',
-  label: msg`Angajați`,
+  label: msg`Lucrători`,
   icon: UsersRound,
 };
 

@@ -30,16 +30,16 @@ const addressReasons: Record<string, string> = {
   [participantErrorReasons.addressInvitedForAnotherPerson]:
     'La această adresă există deja o invitație deschisă pentru altă persoană a clientului.',
   [participantErrorReasons.addressNotOfEmployee]:
-    'Adresa nu mai este cea din datele angajatului. Reîncarcă pagina și încearcă din nou.',
+    'Adresa nu mai este cea din datele lucrătorului. Reîncarcă pagina și încearcă din nou.',
   [participantErrorReasons.invalidAddress]:
     'Adresa nu poate primi o invitație. Verifică emailul sau numărul de telefon.',
 };
 
 const requestReasons: Record<string, string> = {
-  [participantErrorReasons.employeeHasParticipant]: 'Angajatul are deja acces la portal.',
+  [participantErrorReasons.employeeHasParticipant]: 'Lucrătorul are deja acces la portal.',
   [participantErrorReasons.employeeAlreadyInvited]:
-    'Angajatul are deja o invitație deschisă la cealaltă adresă. Revoc-o înainte de a-l invita la aceasta.',
-  [participantErrorReasons.employeeRequired]: 'Alege angajatul care primește invitația.',
+    'Lucrătorul are deja o invitație deschisă la cealaltă adresă. Revoc-o înainte de a-l invita la aceasta.',
+  [participantErrorReasons.employeeRequired]: 'Alege lucrătorul care primește invitația.',
   [participantErrorReasons.fullNameRequired]: 'Completează numele persoanei invitate.',
   [participantErrorReasons.invitationAccepted]:
     'Invitația a fost acceptată între timp, așa că persoana are acces la portal.',

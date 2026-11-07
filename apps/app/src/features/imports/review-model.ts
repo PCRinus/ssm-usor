@@ -658,7 +658,7 @@ export function itemName(list: ItemList, values: Record<string, unknown>): strin
     case 'responsiblePersons':
       return String(values.fullName ?? '');
     case 'employees':
-      return personName(values) || 'Angajat fără nume';
+      return personName(values) || 'Lucrător fără nume';
     case 'fireEquipment':
       return [
         fireEquipmentKindLabels[values.kind as FireEquipmentKind] ?? String(values.kind),
@@ -697,7 +697,7 @@ const itemFieldLabels: Record<string, string> = {
   allocation: 'alocarea',
   jobPosition: 'postul',
   workplace: 'punctul de lucru',
-  employee: 'angajatul',
+  employee: 'lucrătorul',
   name: 'denumirea',
   fullName: 'numele',
   cnp: 'CNP-ul',
@@ -913,7 +913,7 @@ const sameAs: Partial<Record<ItemList, string>> = {
   workplaces: 'același punct de lucru ca',
   jobPositions: 'același post ca',
   responsiblePersons: 'aceeași persoană ca',
-  employees: 'același angajat ca',
+  employees: 'același lucrător ca',
 };
 
 const notAllowed: Record<string, string> = {

@@ -294,7 +294,7 @@ describe('TrainingSheetDownload preview', () => {
     await userEvent.click(await readyPreviewButton());
 
     expect(
-      await screen.findByText('Fișa nu se poate întocmi încă: lipsesc date ale angajatului.')
+      await screen.findByText('Fișa nu se poate întocmi încă: lipsesc date ale lucrătorului.')
     ).toBeTruthy();
     await waitFor(() =>
       expect(

@@ -110,9 +110,9 @@ describe("the organization's employees", () => {
     await user.click(await screen.findByTestId('nav-employees'));
     await screen.findByTestId('organization-employees-page');
     expect(runtime.router.state.location.pathname).toBe('/angajati');
-    expect(screen.getByRole('heading', { level: 1, name: 'Angajați' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Lucrători' })).toBeTruthy();
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
-    expect(within(breadcrumb).getByText('Angajați')).toBeTruthy();
+    expect(within(breadcrumb).getByText('Lucrători')).toBeTruthy();
 
     const rows = await screen.findAllByTestId('organization-employees-row');
     expect(rows).toHaveLength(2);
@@ -120,7 +120,7 @@ describe("the organization's employees", () => {
     expect(within(rows[0]!).getByText('OMV PETROM SA')).toBeTruthy();
     expect(within(rows[1]!).getByText('Șantierul Naval SA')).toBeTruthy();
     expect(within(rows[1]!).getByText('Marca A-17')).toBeTruthy();
-    expect(screen.getByTestId('organization-employees-count').textContent).toBe('2 angajați');
+    expect(screen.getByTestId('organization-employees-count').textContent).toBe('2 lucrători');
     const query = listRequests()[0]!.searchParams;
     expect(query.get('sort')).toBe('name');
     expect(query.has('q')).toBe(false);
@@ -219,14 +219,14 @@ describe("the organization's employees", () => {
     mockApi(() => Response.json(page([])));
     const runtime = mountApp(authFixture(makeSession()).client, '/angajati');
     const user = userEvent.setup();
-    expect(await screen.findByText('Niciun angajat încă')).toBeTruthy();
+    expect(await screen.findByText('Niciun lucrător încă')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Mergi la clienți' })).toBeTruthy();
 
     await user.type(screen.getByTestId('organization-employees-search'), 'zzz');
-    expect(await screen.findByText('Niciun angajat nu corespunde căutării')).toBeTruthy();
+    expect(await screen.findByText('Niciun lucrător nu corespunde căutării')).toBeTruthy();
     await user.click(screen.getByTestId('organization-employees-empty-clear-search'));
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
-    expect(await screen.findByText('Niciun angajat încă')).toBeTruthy();
+    expect(await screen.findByText('Niciun lucrător încă')).toBeTruthy();
     expect((screen.getByTestId('organization-employees-search') as HTMLInputElement).value).toBe(
       ''
     );

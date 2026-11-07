@@ -74,7 +74,7 @@ export const documentDetailsFormSchema = z
     (values) => !values.legalRepresentativeIsEmployee || values.legalRepresentativeEmployeeId,
     {
       path: ['legalRepresentativeEmployeeId'],
-      message: 'Alege angajatul din listă sau debifează căsuța.',
+      message: 'Alege lucrătorul din listă sau debifează căsuța.',
     }
   );
 

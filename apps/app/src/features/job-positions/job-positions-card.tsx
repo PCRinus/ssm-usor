@@ -111,7 +111,7 @@ export function JobPositionsCard({
       const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
       setError(
         body?.reason === 'job_position_held'
-          ? `Pe postul „${position.name}” mai sunt angajați. Mută-i pe alt post înainte să îl ștergi.`
+          ? `Pe postul „${position.name}” mai sunt lucrători. Mută-i pe alt post înainte să îl ștergi.`
           : cause instanceof ApiHttpError && cause.status === 404
             ? `Postul „${position.name}” nu mai există la acest client.`
             : 'Nu am putut șterge postul de lucru. Verifică conexiunea și încearcă din nou.'
@@ -174,7 +174,7 @@ export function JobPositionsCard({
         <p data-testid="job-positions-empty" className="text-sm text-muted-foreground">
           {readOnly
             ? 'Clientul nu are posturi de lucru și, fiind arhivat, nu i se mai adaugă.'
-            : 'Niciun post de lucru încă. Adaugă posturile clientului sau începe cu angajații: fiecare funcție nouă devine un post.'}
+            : 'Niciun post de lucru încă. Adaugă posturile clientului sau începe cu lucrătorii: fiecare funcție nouă devine un post.'}
         </p>
       ) : (
         <Table>
@@ -184,7 +184,7 @@ export function JobPositionsCard({
               <TableHead>Categorie de personal</TableHead>
               <TableHead>Instruire</TableHead>
               <TableHead>Zona de lucru</TableHead>
-              <TableHead>Angajați</TableHead>
+              <TableHead>Lucrători</TableHead>
               <TableHead>EIP</TableHead>
               <TableHead>Instrucțiuni</TableHead>
               <TableHead>Fișa de evaluare</TableHead>
@@ -381,7 +381,7 @@ export function JobPositionsCard({
                 <span className="font-medium text-foreground">{removing.name}</span>
                 {removing.employeeCount > 0
                   ? ` este ocupat acum: ${employeeCountLabel(removing.employeeCount).toLowerCase()}. Un post se poate șterge doar după ce oamenii de pe el trec pe alt post sau pleacă.`
-                  : ' nu va mai apărea în listă și nu va mai putea fi ales pentru un angajat. Dacă l-au ocupat oameni care au plecat, istoricul lor îl păstrează.'}
+                  : ' nu va mai apărea în listă și nu va mai putea fi ales pentru un lucrător. Dacă l-au ocupat oameni care au plecat, istoricul lor îl păstrează.'}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="mt-2">

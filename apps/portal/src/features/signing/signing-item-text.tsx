@@ -35,7 +35,7 @@ export function SigningItemText({
           {item.party === 'employee'
             ? t`Actul adițional prin care accepți să semnezi fișele de instruire în portal.`
             : item.employeeSignedAt
-              ? t`${item.employeeName}, semnat de angajat pe ${formatDate(item.employeeSignedAt.slice(0, 10), 'short')}; semnezi ca angajator.`
+              ? t`${item.employeeName}, semnat de lucrător pe ${formatDate(item.employeeSignedAt.slice(0, 10), 'short')}; semnezi ca angajator.`
               : t`${item.employeeName}; semnezi ca angajator.`}
         </span>
       </span>

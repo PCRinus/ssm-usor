@@ -70,14 +70,14 @@ test('an owner adds a lead, keeps notes, and turns it into a client the team the
   await page.getByTestId('contact-save').click();
   await expect(page.getByTestId('contact-phone')).toHaveText('0722 000 111');
   await expect(page).toHaveURL(/\/clienti-potentiali\/[0-9a-f-]+$/);
-  await page.getByTestId('owner-notes-body').fill('A cerut ofertă pentru 12 angajați.');
+  await page.getByTestId('owner-notes-body').fill('A cerut ofertă pentru 12 lucrători.');
   await page.getByTestId('owner-notes-save').click();
   await expect(page.getByText('Notițele au fost salvate.')).toBeVisible();
 
   // From the database again, not from the cache.
   await page.reload();
   await expect(page.getByTestId('owner-notes-body')).toHaveValue(
-    'A cerut ofertă pentru 12 angajați.'
+    'A cerut ofertă pentru 12 lucrători.'
   );
 
   await page.goto('/clienti-potentiali');
@@ -93,7 +93,7 @@ test('an owner adds a lead, keeps notes, and turns it into a client the team the
   await expect(page.getByTestId('client-details-page')).toBeVisible();
   await expect(page).toHaveURL(/\/clienti\/[0-9a-f-]+\/detalii$/);
   await expect(page.getByTestId('owner-notes-body')).toHaveValue(
-    'A cerut ofertă pentru 12 angajați.'
+    'A cerut ofertă pentru 12 lucrători.'
   );
   await page.goto('/clienti-potentiali');
   await expect(page.getByTestId('leads-empty')).toBeVisible();

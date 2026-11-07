@@ -80,7 +80,7 @@ export function OwnerNotesCard({
             placeholder={
               readOnly
                 ? 'Nicio notiță.'
-                : 'De exemplu: sunat pe 12.09, vrea ofertă pentru 15 angajați.'
+                : 'De exemplu: sunat pe 12.09, vrea ofertă pentru 15 lucrători.'
             }
             onChange={(event) => setTyped(event.target.value)}
           />

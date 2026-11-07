@@ -225,7 +225,7 @@ function ResultForm({
         message: testFailure(
           cause,
           'Nu am putut salva rezultatul. Verifică conexiunea și încearcă din nou.',
-          'Angajatul sau rezultatul nu mai există. Reîncarcă pagina.'
+          'Lucrătorul sau rezultatul nu mai există. Reîncarcă pagina.'
         ),
       });
     }

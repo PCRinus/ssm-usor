@@ -57,7 +57,7 @@ export function EmployeeLayout() {
               <dt className="sr-only">Situație</dt>
               <dd>
                 <Badge variant={former ? 'outline' : 'secondary'} data-testid="employee-status">
-                  {former ? 'Fost angajat' : 'Angajat actual'}
+                  {former ? 'Fost lucrător' : 'Lucrător actual'}
                 </Badge>
               </dd>
             </div>
@@ -89,7 +89,7 @@ export function EmployeeLayout() {
         }
         actionsWidth="wide"
       />
-      <SectionNav label="Secțiunile angajatului">
+      <SectionNav label="Secțiunile lucrătorului">
         {employeeSections.map(({ to, label, icon: Icon, exact }) => (
           <li key={to} className="shrink-0">
             <Link
@@ -117,13 +117,13 @@ export function EmployeeNotFound() {
   const { clientId } = employeeRoute.useParams();
   return (
     <div data-testid="employee-not-found" className="mx-auto grid max-w-lg gap-5 py-14">
-      <h1 className="text-2xl font-semibold">Angajatul nu a fost găsit</h1>
+      <h1 className="text-2xl font-semibold">Lucrătorul nu a fost găsit</h1>
       <p className="text-sm leading-relaxed text-muted-foreground">
-        Nu există niciun angajat cu acest identificator la acest client.
+        Nu există niciun lucrător cu acest identificator la acest client.
       </p>
       <Button asChild className="w-fit">
         <Link to="/clienti/$clientId/angajati" params={{ clientId }}>
-          Înapoi la angajați
+          Înapoi la lucrători
         </Link>
       </Button>
     </div>
@@ -137,10 +137,10 @@ export function EmployeeError({ error }: ErrorComponentProps) {
       ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
       : error instanceof ApiHttpError && error.status === 403
         ? 'Contul tău nu face parte dintr-o organizație. Contactează administratorul.'
-        : 'Nu am putut încărca datele angajatului. Încearcă din nou.';
+        : 'Nu am putut încărca datele lucrătorului. Încearcă din nou.';
   return (
     <div data-testid="employee-error" role="alert" className="mx-auto grid max-w-lg gap-5 py-14">
-      <h1 className="text-2xl font-semibold">Angajatul nu a putut fi încărcat</h1>
+      <h1 className="text-2xl font-semibold">Lucrătorul nu a putut fi încărcat</h1>
       <p className="text-sm leading-relaxed text-muted-foreground">{message}</p>
       <Button
         data-testid="employee-retry"

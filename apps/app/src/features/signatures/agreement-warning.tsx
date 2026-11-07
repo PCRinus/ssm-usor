@@ -14,8 +14,8 @@ export function AgreementWarning({ agreement }: { agreement: SigningAgreementSum
       data-testid="agreement-warning"
       title={
         awaitsEmployer
-          ? 'Angajatul a semnat actul adițional; mai lipsește semnătura administratorului clientului.'
-          : 'Angajatul nu a semnat actul adițional privind semnarea electronică.'
+          ? 'Lucrătorul a semnat actul adițional; mai lipsește semnătura administratorului clientului.'
+          : 'Lucrătorul nu a semnat actul adițional privind semnarea electronică.'
       }
       className="border-warning-border bg-warning text-warning-foreground"
     >

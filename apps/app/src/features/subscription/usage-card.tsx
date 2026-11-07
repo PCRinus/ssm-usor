@@ -102,10 +102,10 @@ export function UsageCard({
       employeeLimit === null
         ? 'Fără limită.'
         : employees <= billingPlans.start.includedEmployees
-          ? 'Start include 250 de angajați, Profesional 1.500.'
+          ? 'Start include 250 de lucrători, Profesional 1.500.'
           : startPacks <= (billingPlans.start.maxEmployeePacks ?? 0)
             ? `Start include 250; pentru ${formatCount(employees)} îți trebuie ${packsLabel('start', startPacks)}.`
-            : 'Start acoperă cel mult 600 de angajați; Profesional include 1.500.';
+            : 'Start acoperă cel mult 600 de lucrători; Profesional include 1.500.';
   } else {
     const included = billingPlans[choice.plan].includedEmployees;
     const size = packOf(choice.plan).employees;
@@ -197,7 +197,7 @@ export function UsageCard({
   const meters: Meter[] = [
     {
       key: 'employees',
-      label: 'Angajați la clienți',
+      label: 'Lucrători la clienți',
       used: employees,
       limit: employeeLimit,
       ticks,

@@ -118,7 +118,7 @@ function UploadForm({
           <DialogTitle>Încarcă fișiere</DialogTitle>
           {employee && (
             <DialogDescription data-testid="client-files-upload-employee">
-              Pentru angajatul{' '}
+              Pentru lucrătorul{' '}
               <span className="font-medium text-foreground">{formatEmployeeName(employee)}</span>.
             </DialogDescription>
           )}

@@ -256,14 +256,14 @@ export const documentMissingData: Record<
     detail: ({ currentEmployeeCount }) =>
       currentEmployeeCount !== undefined &&
       requiredWorkersRepresentatives(currentEmployeeCount) === 0
-        ? 'Ales dintre angajații actuali. Decizia îl numește și când clientul are sub 10 angajați.'
-        : 'Ales dintre angajați. Clientul are cel puțin 10 angajați.',
+        ? 'Ales dintre lucrătorii actuali. Decizia îl numește și când clientul are sub 10 lucrători.'
+        : 'Ales dintre lucrători. Clientul are cel puțin 10 lucrători.',
     target: ({ clientId }) => to.training(clientId, 'workers-representative'),
   },
   'responsible.workers_representatives_two': {
     place: 'training',
     label: 'Al doilea reprezentant al lucrătorilor',
-    detail: 'Clientul are cel puțin 50 de angajați.',
+    detail: 'Clientul are cel puțin 50 de lucrători.',
     target: ({ clientId }) => to.training(clientId, 'workers-representative'),
   },
   'responsible.workers_representative_is_legal_representative': {
@@ -674,12 +674,12 @@ export const trainingSheetMissingData: Record<
 > = {
   'employee.commute_route': {
     label: 'Traseul de deplasare',
-    detail: 'Drumul angajatului între domiciliu și locul de muncă, cerut de fișa SSM.',
+    detail: 'Drumul lucrătorului între domiciliu și locul de muncă, cerut de fișa SSM.',
     focus: 'commute-route',
   },
   'employee.workplace': {
     label: 'Punctul de lucru',
-    detail: 'Clientul are mai multe puncte de lucru active; alege-l pe cel al angajatului.',
+    detail: 'Clientul are mai multe puncte de lucru active; alege-l pe cel al lucrătorului.',
     focus: 'workplace',
   },
 };
@@ -697,7 +697,7 @@ export function trainingSheetMissingGroups({
   return [
     {
       place: 'employee',
-      heading: 'Datele angajatului',
+      heading: 'Datele lucrătorului',
       rows: missing.map((code) => ({
         key: code,
         label: trainingSheetMissingData[code].label,

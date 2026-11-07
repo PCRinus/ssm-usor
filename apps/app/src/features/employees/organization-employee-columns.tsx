@@ -15,7 +15,7 @@ const helper = createDataTableColumns<OrganizationEmployeeRow>();
 export const organizationEmployeeColumns = helper.columns([
   helper.accessor((row) => formatEmployeeName(row), {
     id: 'name',
-    header: 'Angajat',
+    header: 'Lucrător',
     enableSorting: true,
     meta: {
       cellClassName: 'font-medium',

@@ -125,7 +125,7 @@ function Form({
           cause instanceof ApiHttpError && cause.status === 400
             ? 'Postul ales nu mai există la acest client. Alege altul.'
             : cause instanceof ApiHttpError && cause.status === 404
-              ? 'Angajatul nu mai există la acest client.'
+              ? 'Lucrătorul nu mai există la acest client.'
               : 'Nu am putut schimba postul de lucru. Verifică conexiunea și încearcă din nou.',
       });
     }

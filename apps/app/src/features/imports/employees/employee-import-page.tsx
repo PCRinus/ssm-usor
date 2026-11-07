@@ -30,11 +30,11 @@ function EmployeeImportNotFound({ clientId }: { clientId: string }) {
     <div data-testid="employee-import-not-found" className="mx-auto grid max-w-lg gap-5 py-14">
       <h1 className="text-2xl font-semibold">Importul nu a fost găsit</h1>
       <p className="text-sm leading-relaxed text-muted-foreground">
-        Nu există niciun import de angajați cu acest identificator la acest client.
+        Nu există niciun import de lucrători cu acest identificator la acest client.
       </p>
       <Button asChild className="w-fit">
         <Link to="/clienti/$clientId/angajati" params={{ clientId }}>
-          Înapoi la angajați
+          Înapoi la lucrători
         </Link>
       </Button>
     </div>

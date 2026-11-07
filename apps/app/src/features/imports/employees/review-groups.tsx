@@ -189,7 +189,7 @@ export function TitleGroups({
           Posturile de pe fișe
         </h2>
         <p className="text-sm text-muted-foreground">
-          Fiecare angajat intră pe un post al clientului. Pentru același post scris pe mai multe
+          Fiecare lucrător intră pe un post al clientului. Pentru același post scris pe mai multe
           fișe hotărăști o singură dată.
         </p>
       </div>
@@ -315,7 +315,7 @@ export function WorkplaceGroups({
           Locurile de muncă de pe fișe
         </h2>
         <p className="text-sm text-muted-foreground">
-          Pentru același loc de muncă scris pe mai multe fișe hotărăști o singură dată. Un angajat
+          Pentru același loc de muncă scris pe mai multe fișe hotărăști o singură dată. Un lucrător
           fără loc de muncă se poate crea, iar locul îl completezi după.
         </p>
       </div>

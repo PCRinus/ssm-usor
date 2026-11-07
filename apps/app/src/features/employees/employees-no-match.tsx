@@ -4,7 +4,7 @@ import { SearchX } from 'lucide-react';
 import { EmptyState } from '@/components/empty-state';
 
 export function EmployeesNoMatch({
-  title = 'Niciun angajat nu corespunde căutării',
+  title = 'Niciun lucrător nu corespunde căutării',
   hint,
   testId,
   clearLabel = 'Șterge căutarea',

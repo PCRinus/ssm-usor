@@ -264,7 +264,7 @@ describe('client responsible persons', () => {
     expect(representative.hasAttribute('disabled')).toBe(true);
     expect(
       document.getElementById('responsible-role-workers_representative-description')?.textContent
-    ).toBe('Nu poate fi reprezentantul legal. Se alege dintre angajații clientului.');
+    ).toBe('Nu poate fi reprezentantul legal. Se alege dintre lucrătorii clientului.');
 
     await user.click(screen.getByTestId('responsible-role-first_aid'));
     await user.click(screen.getByTestId('responsible-save'));
@@ -553,7 +553,7 @@ describe('client responsible persons', () => {
     await user.click(screen.getByTestId('responsible-save'));
 
     expect((await screen.findByTestId('responsible-employee-error')).textContent).toContain(
-      'dintre angajații clientului'
+      'dintre lucrătorii clientului'
     );
     expect(requests(listPath, 'POST')).toEqual([]);
   });

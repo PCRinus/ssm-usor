@@ -37,7 +37,7 @@ test('a client has the posts its employees fill, and a specialist keeps the list
   const rows = page.getByTestId('job-position-row');
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText('Sudor');
-  await expect(rows.first().getByTestId('job-position-employees')).toHaveText('2 angajați');
+  await expect(rows.first().getByTestId('job-position-employees')).toHaveText('2 lucrători');
   await expect(rows.first().getByTestId('job-position-category-badge')).toHaveText('Execuție');
 
   // A position nobody fills yet.
@@ -53,7 +53,7 @@ test('a client has the posts its employees fill, and a specialist keeps the list
   await expect(accountant.getByTestId('job-position-category-badge')).toHaveText(
     'Tehnico-administrativ'
   );
-  await expect(accountant.getByTestId('job-position-employees')).toHaveText('Niciun angajat');
+  await expect(accountant.getByTestId('job-position-employees')).toHaveText('Niciun lucrător');
 
   // Both posts still have to decide their equipment and instructions; the list says so, and
   // each state leads to its section of the post's page, below the sticky header and tabs.
@@ -120,7 +120,7 @@ test('a client has the posts its employees fill, and a specialist keeps the list
 
   await rows.first().getByTestId('job-position-actions').click();
   await page.getByTestId('job-position-remove').click();
-  await expect(page.getByTestId('job-position-remove-dialog')).toContainText('2 angajați');
+  await expect(page.getByTestId('job-position-remove-dialog')).toContainText('2 lucrători');
   await expect(page.getByTestId('job-position-remove-confirm')).toBeDisabled();
 });
 
@@ -177,12 +177,12 @@ test('a new hire goes into a post from the employee form, and can be moved to an
   // The post exists now, with one person in it.
   await page.getByRole('link', { name: 'Posturi de lucru' }).click();
   const electrician = page.getByTestId('job-position-row').filter({ hasText: 'Electrician' });
-  await expect(electrician.getByTestId('job-position-employees')).toHaveText('Un angajat');
+  await expect(electrician.getByTestId('job-position-employees')).toHaveText('Un lucrător');
 
   // On the person's page the two facts stand apart, and the post can change on its own.
   await page
     .getByRole('navigation', { name: 'Secțiunile clientului' })
-    .getByRole('link', { name: 'Angajați' })
+    .getByRole('link', { name: 'Lucrători' })
     .click();
   await row.getByRole('link').first().click();
   await expect(page.getByTestId('employee-job-position')).toHaveText('Electrician');
@@ -212,7 +212,7 @@ test('a new hire goes into a post from the employee form, and can be moved to an
   // row menu; the post and the title stay.
   await page
     .getByRole('navigation', { name: 'breadcrumb' })
-    .getByRole('link', { name: 'Angajați' })
+    .getByRole('link', { name: 'Lucrători' })
     .click();
   await page
     .getByTestId('employees-row')
@@ -237,7 +237,7 @@ test('a new hire goes into a post from the employee form, and can be moved to an
   await expect(page.getByTestId('employee-workplace')).toBeFocused();
   await expect(page.getByTestId('employee-last-name')).toHaveValue('Electricu-Pop');
   await page.getByTestId('employee-submit').click();
-  await expect(page.getByText('Datele angajatului au fost salvate.')).toBeVisible();
+  await expect(page.getByText('Datele lucrătorului au fost salvate.')).toBeVisible();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Electricu-Pop Dan');
   await expect(page.getByRole('link', { name: '+40733111222' })).toBeVisible();
   await expect(page.getByTestId('employee-job-position')).toHaveText('Șef de echipă');

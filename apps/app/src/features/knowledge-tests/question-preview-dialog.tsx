@@ -58,7 +58,7 @@ function QuestionPreview({
   return (
     <DialogContent data-testid="test-question-preview-dialog" className="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>Cum vede angajatul întrebarea</DialogTitle>
+        <DialogTitle>Cum vede lucrătorul întrebarea</DialogTitle>
         <DialogDescription>
           În portal, o întrebare pe ecran, cu variantele amestecate. Răspunsul corect nu apare.
         </DialogDescription>
@@ -121,7 +121,7 @@ function QuestionPreview({
               data-testid="test-question-preview-no-explanation"
               className="text-sm text-muted-foreground"
             >
-              Întrebarea nu are explicație: angajatul vede doar că a greșit-o, fără varianta
+              Întrebarea nu are explicație: lucrătorul vede doar că a greșit-o, fără varianta
               corectă.
             </p>
           )}

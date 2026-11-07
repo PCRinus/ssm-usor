@@ -31,7 +31,7 @@ const isClientLevel = (kind: WorkSystem['kind']) => kind === 'sensitive_groups' 
 
 const descriptions: Partial<Record<WorkSystem['kind'], string>> = {
   job_position:
-    'Sarcina de muncă și persoanele expuse se iau din post: activitățile și angajații lui.',
+    'Sarcina de muncă și persoanele expuse se iau din post: activitățile și lucrătorii lui.',
   library: 'Când aplici evaluarea, aceste texte completează doar câmpurile goale ale fișei.',
 };
 

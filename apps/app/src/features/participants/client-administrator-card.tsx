@@ -35,7 +35,7 @@ export function ClientAdministratorCard({
     <SectionCard
       data-testid="client-administrator-card"
       title="Administratorul clientului"
-      description="Persoana care ține evidența SSM la client vede în portal angajații, stadiul instruirilor și fișele lor, și contrasemnează actele adiționale."
+      description="Persoana care ține evidența SSM la client vede în portal lucrătorii, stadiul instruirilor și fișele lor, și contrasemnează actele adiționale."
       action={
         !readOnly && (
           <Button

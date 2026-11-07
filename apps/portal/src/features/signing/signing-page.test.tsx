@@ -720,10 +720,10 @@ describe('the client administrator', () => {
     mountPortal(signedIn());
     const panel = await screen.findByTestId('home-todo');
     expect(within(panel).getAllByTestId('home-todo-item')).toHaveLength(2);
-    expect(panel.textContent).toContain('Pop Ana, semnat de angajat pe 17 oct. 2026');
+    expect(panel.textContent).toContain('Pop Ana, semnat de lucrător pe 17 oct. 2026');
     expect(screen.getByTestId('home-sign').textContent).toBe('Semnează (2)');
     expect(screen.getByTestId('home-client-signatures').textContent).toBe(
-      '2 semnături așteaptă la angajați'
+      '2 semnături așteaptă la lucrători'
     );
   });
 

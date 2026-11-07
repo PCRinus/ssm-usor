@@ -335,7 +335,7 @@ export const recordPaperTestResult: RouteHandler<
       );
     }
     if (lastPassedOn && (await hasPassedHiringTest(db, clientId, employeeId, body.domain))) {
-      throw notAwaiting('Angajatul a promovat deja testul la angajare.');
+      throw notAwaiting('Lucrătorul a promovat deja testul la angajare.');
     }
   }
   if (body.takenOn > romanianDay(new Date().toISOString())) {

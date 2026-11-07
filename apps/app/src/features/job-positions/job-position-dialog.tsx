@@ -195,7 +195,7 @@ function JobPositionForm({
           </DialogTitle>
           <DialogDescription>
             Riscurile, echipamentul și instruirea sunt legate de post. Funcția din contract se
-            păstrează separat pentru fiecare angajat
+            păstrează separat pentru fiecare lucrător
             {position || draft ? ', chiar dacă redenumești postul.' : '.'}
           </DialogDescription>
         </DialogHeader>

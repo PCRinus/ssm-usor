@@ -16,7 +16,7 @@ import { employeeFocus, focusSearch } from '@/features/missing-data/focus';
 export const Route = createFileRoute(
   '/_authenticated/clienti/$clientId/angajati/$employeeId_/editare'
 )({
-  staticData: { title: 'Modifică angajatul', fullPage: true },
+  staticData: { title: 'Modifică lucrătorul', fullPage: true },
   params: { parse: (params) => ({ employeeId: z.uuid().parse(params.employeeId) }) },
   validateSearch: focusSearch(employeeFocus),
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {

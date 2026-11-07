@@ -33,7 +33,7 @@ sources:
   - supabase/migrations/20261010150000_client_list_fire_safety.sql
 ---
 
-Un client e o firmă pentru care lucrezi. Pe pagina lui ții tot ce îi privește: datele firmei, angajații, posturile, mijloacele de apărare împotriva incendiilor, instruirile și documentele SSM și SU. Adaugi un client din **Clienți**, cu **Adaugă client** sau, la primul client, cu **Adaugă primul client**; ce cere formularul găsești în [Adăugarea și modificarea unui client](/clienti/adaugare-si-modificare/).
+Un client e o firmă pentru care lucrezi. Pe pagina lui ții tot ce îi privește: datele firmei, lucrătorii, posturile, mijloacele de apărare împotriva incendiilor, instruirile și documentele SSM și SU. Adaugi un client din **Clienți**, cu **Adaugă client** sau, la primul client, cu **Adaugă primul client**; ce cere formularul găsești în [Adăugarea și modificarea unui client](/clienti/adaugare-si-modificare/).
 
 ## Lista clienților
 
@@ -41,7 +41,7 @@ Un client e o firmă pentru care lucrezi. Pe pagina lui ții tot ce îi priveșt
 
 - **Companie**: denumirea, cu localitatea și județul sediului dedesubt;
 - **CUI**: cu prefixul RO când firma e plătitoare de TVA;
-- **Angajați**: câți angajați actuali are clientul; foștii angajați nu intră în număr;
+- **Lucrători**: câți lucrători actuali are clientul; foștii lucrători nu intră în număr;
 - **Documentație SSM** și **Documentație SU**: cât din fiecare set de documente e emis (vezi [Documentația SSM și SU](#documentația-ssm-și-su));
 - **Adăugat**: ziua în care firma a devenit client, adică ziua în care ai adăugat-o sau, dacă a fost întâi client potențial, ziua în care a devenit client.
 
@@ -63,16 +63,16 @@ Fiecare dintre cele două coloane arată unde se află un set de documente al cl
 
 Un document se numără ca emis de când are o versiune emisă, chiar dacă i-ai generat între timp o versiune nouă, încă ciornă.
 
-Câte documente i se aplică depinde de client. De exemplu, de la 10 angajați actuali ambele seturi cer documente în plus (vezi [De ce contează numărul de angajați](/clienti/angajati/#de-ce-contează-numărul-de-angajați)). Când clientul ajunge la 10 angajați, un set **Emisă** poate trece înapoi la **În lucru**.
+Câte documente i se aplică depinde de client. De exemplu, de la 10 lucrători actuali ambele seturi cer documente în plus (vezi [De ce contează numărul de lucrători](/clienti/angajati/#de-ce-contează-numărul-de-lucrători)). Când clientul ajunge la 10 lucrători, un set **Emisă** poate trece înapoi la **În lucru**.
 
 Poți ordona lista după aceste coloane ca să vezi întâi clienții la care mai ai de lucru.
 
 ## Pagina unui client
 
-În capul paginii vezi denumirea clientului, CUI-ul și câți angajați actuali are. Dedesubt sunt taburile clientului:
+În capul paginii vezi denumirea clientului, CUI-ul și câți lucrători actuali are. Dedesubt sunt taburile clientului:
 
 - **Detalii**: datele firmei, reprezentantul legal, sediul și punctele de lucru, persoana de contact și, pentru administratori, notițele. Vezi [Detalii](/clienti/detalii/);
-- **Angajați**: angajații clientului, cu instruirea și testarea lor. Vezi [Angajați](/clienti/angajati/);
+- **Lucrători**: lucrătorii clientului, cu instruirea și testarea lor. Vezi [Lucrători](/clienti/angajati/);
 - **Posturi de lucru**, **Mijloace de apărare**, **Instruire și responsabili** și **Instruiri ținute**: datele din care se întocmesc documentele și evidența instruirilor;
 - **Documente SSM** și **Documente SU**: cele două seturi de documente;
 - **Contract**: contractul de prestări servicii cu clientul, pe care îl văd doar administratorii;
@@ -84,7 +84,7 @@ Documentele se întocmesc din ce completezi în celelalte taburi. Când îți li
 
 Arhivezi un client cu care nu mai lucrezi. Doar administratorii pot arhiva și reactiva un client. Alege **Arhivează…** din capul paginii clientului sau din meniul rândului din listă, apoi confirmă.
 
-Arhivarea nu șterge nimic. Clientul iese din lista clienților activi, iar angajații, posturile și documentele lui rămân cum erau și le găsești din **Arhivați**.
+Arhivarea nu șterge nimic. Clientul iese din lista clienților activi, iar lucrătorii, posturile și documentele lui rămân cum erau și le găsești din **Arhivați**.
 
 Dacă unele documente ale clientului sunt încă ciorne, dialogul îți spune câte: „Un document este încă ciornă și nu va mai putea fi emis cât timp clientul este arhivat.” Dacă vrei să le emiți, emite-le înainte să arhivezi clientul.
 
@@ -94,10 +94,10 @@ Un client arhivat își păstrează CUI-ul. Nu poți adăuga un client nou cu ac
 
 Pe pagina unui client arhivat vezi „Client arhivat” și „Datele și documentele lui pot fi consultate și descărcate, dar nu modificate.”
 
-Nimic din ce ține de client nu se mai schimbă până la reactivare: nu poți modifica datele lui, adăuga sau modifica angajați, posturi și puncte de lucru, genera sau emite documente, înregistra instruiri ori trimite invitații în portal. Butoanele acestor acțiuni nu mai apar. Angajații lui nu mai apar nici în lista **Angajați** din meniul lateral.
+Nimic din ce ține de client nu se mai schimbă până la reactivare: nu poți modifica datele lui, adăuga sau modifica lucrători, posturi și puncte de lucru, genera sau emite documente, înregistra instruiri ori trimite invitații în portal. Butoanele acestor acțiuni nu mai apar. Lucrătorii lui nu mai apar nici în lista **Lucrători** din meniul lateral.
 
 Dacă un coleg a arhivat clientul cât timp lucrai la el, la salvare vezi „Clientul este arhivat; datele lui nu mai pot fi modificate.”
 
 ## Reactivarea unui client
 
-Un administrator reactivează un client cu **Reactivează…**, din capul paginii clientului arhivat sau din meniul rândului din lista **Arhivați**. Clientul revine în lista clienților activi, cu angajații, posturile și documentele lui, și poți lucra din nou la el.
+Un administrator reactivează un client cu **Reactivează…**, din capul paginii clientului arhivat sau din meniul rândului din lista **Arhivați**. Clientul revine în lista clienților activi, cu lucrătorii, posturile și documentele lui, și poți lucra din nou la el.

@@ -17,7 +17,7 @@ function employeesLine(
   employees: number,
   months: DashboardSummary['portfolio']['employeesAtMonthEnds']
 ) {
-  const noun = nounFor(employees, 'angajat', 'angajați');
+  const noun = nounFor(employees, 'lucrător', 'lucrători');
   const last = months.at(-1);
   const previous = months.at(-2);
   if (!last || !previous) return noun;
@@ -75,11 +75,11 @@ export function PortfolioCard({
       {first && last && (
         <div className="flex flex-col gap-2">
           <p className="text-[12.5px] text-muted-foreground sm:text-[13px]">
-            Angajați în ultimele 12 luni
+            Lucrători în ultimele 12 luni
           </p>
           <div
             role="img"
-            aria-label={`Angajați în ultimele 12 luni, de la ${first.employees} în ${monthOf(first.month).name} ${monthOf(first.month).year} la ${last.employees} în ${monthOf(last.month).name} ${monthOf(last.month).year}`}
+            aria-label={`Lucrători în ultimele 12 luni, de la ${first.employees} în ${monthOf(first.month).name} ${monthOf(first.month).year} la ${last.employees} în ${monthOf(last.month).name} ${monthOf(last.month).year}`}
             className="grid h-14 grid-cols-12 items-end gap-1 sm:h-16 sm:gap-[5px]"
           >
             {months.map((month, index) => {
@@ -97,7 +97,7 @@ export function PortfolioCard({
                       style={{ height: highest > 0 ? `${(month.employees / highest) * 100}%` : 0 }}
                     />
                   </TooltipTrigger>
-                  <TooltipContent>{`${name} ${year}: ${countOf(month.employees, 'angajat', 'angajați')}`}</TooltipContent>
+                  <TooltipContent>{`${name} ${year}: ${countOf(month.employees, 'lucrător', 'lucrători')}`}</TooltipContent>
                 </Tooltip>
               );
             })}

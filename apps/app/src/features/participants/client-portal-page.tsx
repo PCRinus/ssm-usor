@@ -66,8 +66,8 @@ export function ClientPortalPage({ client, userId }: { client: Client; userId: s
             {noEmployee && (
               <li data-testid="client-employees-with-access">
                 {employeeInvitations.length === 0
-                  ? 'Niciun angajat nu are încă acces la portal. Îi inviți de aici sau din pagina fiecărui angajat.'
-                  : 'Niciun angajat nu a intrat încă în portal; invitațiile trimise așteaptă primul cod.'}
+                  ? 'Niciun lucrător nu are încă acces la portal. Îi inviți de aici sau din pagina fiecărui lucrător.'
+                  : 'Niciun lucrător nu a intrat încă în portal; invitațiile trimise așteaptă primul cod.'}
               </li>
             )}
           </ul>
