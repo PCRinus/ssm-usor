@@ -197,6 +197,44 @@ describe('a sheet card with the confirm bar', () => {
     );
   });
 
+  it('names a sheet by its work, and offers its workplace and post in one click', async () => {
+    render(
+      <Harness
+        sheet={{
+          ...analyst,
+          libraryName: 'Dezvoltare software',
+          nameFrom: 'work',
+          workName: 'Dezvoltare software',
+          workplace: 'Sediu',
+        }}
+      />
+    );
+    const library = screen.getByTestId('risk-import-library');
+
+    expect(library.textContent).toContain('Intră ca evaluare nouă, cu numele Dezvoltare software.');
+    expect(screen.getByTestId('risk-import-library-name-note').textContent).toBe(
+      'Am numit-o după munca din fișă, care e pentru postul Analist programator.'
+    );
+    await userEvent.click(screen.getByTestId('risk-import-sheet-rename'));
+    const offered = screen.getAllByTestId('risk-import-sheet-name-suggestion');
+    expect(offered.map((each) => each.textContent)).toEqual(['Sediu', 'Analist programator']);
+    await userEvent.click(offered[0]!);
+    await userEvent.click(screen.getByTestId('risk-import-sheet-name-save'));
+    expect(summary()).toContain('adăugăm „Sediu” în bibliotecă');
+  });
+
+  it('says a name is the workplace in the sheet’s heading', () => {
+    render(
+      <Harness
+        sheet={{ ...analyst, libraryName: 'Sediu', nameFrom: 'workplace', workplace: 'Sediu' }}
+      />
+    );
+
+    expect(screen.getByTestId('risk-import-library-name-note').textContent).toBe(
+      'E locul de muncă din titlul fișei, care e pentru postul Analist programator.'
+    );
+  });
+
   it('asks a similar sheet to choose, then shows the name only when it goes in separately', async () => {
     render(
       <Harness

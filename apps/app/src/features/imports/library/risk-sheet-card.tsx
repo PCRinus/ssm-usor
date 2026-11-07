@@ -33,6 +33,7 @@ import {
   libraryChoiceLabels,
   type LibraryName,
   nameNote,
+  nameSuggestions,
   needsCheck,
   pendingLine,
   pendingOf,
@@ -721,13 +722,7 @@ function LibraryRows({
   }
 
   const note = nameNote(state, libraryNames);
-  const suggestions = [
-    ...new Set(
-      [sheet.libraryName, ...sheet.posts.map((post) => post.name), sheet.name]
-        .map((each) => each.trim())
-        .filter((each) => each.length >= 2 && !takenNameProblem(each, libraryNames, packNames))
-    ),
-  ].filter((each) => each !== state.libraryName);
+  const suggestions = nameSuggestions(state, libraryNames, packNames);
   return (
     <>
       {similarRow}

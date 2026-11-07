@@ -619,7 +619,17 @@ export function nameNote(state: SheetState, entries: readonly LibraryName[]): Na
     };
   }
   const posts = sheet.posts.map((post) => post.name);
+  const forPosts =
+    posts.length > 1
+      ? `, care e pentru posturile ${joinNames(posts)}`
+      : posts.length === 1
+        ? `, care e pentru postul ${posts[0]}`
+        : '';
   switch (sheet.nameFrom) {
+    case 'work':
+      return { text: `Am numit-o după munca din fișă${forPosts}.`, entry: null };
+    case 'workplace':
+      return { text: `E locul de muncă din titlul fișei${forPosts}.`, entry: null };
     case 'post':
       return { text: 'E numele postului din document.', entry: null };
     case 'heading':
@@ -633,6 +643,28 @@ export function nameNote(state: SheetState, entries: readonly LibraryName[]): Na
     default:
       return null;
   }
+}
+
+/** The names "Redenumește" offers in one click: the work, the workplace, the posts, as written. */
+export function nameSuggestions(
+  state: SheetState,
+  entries: readonly LibraryName[],
+  packNames: readonly string[]
+) {
+  const { sheet } = state;
+  return [
+    ...new Set(
+      [
+        sheet.libraryName,
+        sheet.workName,
+        sheet.workplace,
+        ...sheet.posts.map((post) => post.name),
+        sheet.name,
+      ]
+        .flatMap((each) => each?.trim() ?? [])
+        .filter((each) => each.length >= 2 && !takenNameProblem(each, entries, packNames))
+    ),
+  ].filter((each) => each !== state.libraryName);
 }
 
 export function takenNameProblem(

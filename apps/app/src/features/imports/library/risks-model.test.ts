@@ -14,6 +14,7 @@ import {
   type LibraryName,
   measureGap,
   nameNote,
+  nameSuggestions,
   needsCheck,
   pendingLine,
   pendingOf,
@@ -409,6 +410,54 @@ describe('the name a new entry takes', () => {
       'E numele din titlul fișei, care e pentru posturile Bucătar și Ajutor de bucătar.'
     );
     expect(nameNote(sheetState(sheet(), undefined, context()), entries)).toBeNull();
+  });
+
+  it('says when the name is the work the sheet evaluates or its workplace, with the posts', () => {
+    const work = sheet({
+      nameFrom: 'work',
+      libraryName: 'Prepararea hranei',
+      workName: 'Prepararea hranei',
+    });
+    expect(nameNote(sheetState(work, undefined, context()), entries)?.text).toBe(
+      'Am numit-o după munca din fișă, care e pentru postul Bucătar.'
+    );
+    const workplace = sheet({
+      nameFrom: 'workplace',
+      libraryName: 'Bucătărie caldă',
+      workplace: 'Bucătărie caldă',
+      posts: [
+        { name: 'Bucătar', existingFactors: 0, choice: null },
+        { name: 'Ajutor de bucătar', existingFactors: 0, choice: null },
+      ],
+    });
+    expect(nameNote(sheetState(workplace, undefined, context()), entries)?.text).toBe(
+      'E locul de muncă din titlul fișei, care e pentru posturile Bucătar și Ajutor de bucătar.'
+    );
+    expect(
+      nameNote(sheetState(sheet({ nameFrom: 'work', posts: [] }), undefined, context()), entries)
+        ?.text
+    ).toBe('Am numit-o după munca din fișă.');
+  });
+
+  it('offers the work, the workplace and the posts as names, leaving out those taken', () => {
+    const named = sheet({
+      nameFrom: 'work',
+      libraryName: 'Prepararea hranei',
+      workName: 'Prepararea hranei',
+      workplace: 'Bucătărie caldă',
+      name: 'BUCĂTAR',
+    });
+    expect(nameSuggestions(sheetState(named, undefined, context()), entries, [])).toEqual([
+      'Bucătărie caldă',
+    ]);
+    expect(
+      nameSuggestions(
+        sheetState(named, { libraryName: 'Bucătărie rece' }, context()),
+        [],
+        ['Bucătărie caldă']
+      )
+    ).toEqual(['Prepararea hranei', 'Bucătar', 'BUCĂTAR']);
+    expect(nameSuggestions(sheetState(sheet(), undefined, context()), [], [])).toEqual([]);
   });
 
   it('says why the client’s name was added, with the entry that holds the name, archived or not', () => {
