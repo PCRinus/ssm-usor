@@ -1,4 +1,4 @@
-import { riskLevel } from '@ssm-usor/contracts';
+import { riskLevel, type StaffCategory } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -108,28 +108,29 @@ describe('what is missing', () => {
     );
   });
 
-  it('requires an explicit decision for both categories and at least one interval', () => {
-    const withChoices = (
+  it('needs an interval for each category the client has posts in, and no other', () => {
+    const withIntervals = (
       administrative: number | null,
       worker: number | null,
-      administrativeExcluded: boolean,
-      workerExcluded: boolean
+      categories: readonly StaffCategory[] = ['technical_administrative', 'execution']
     ) =>
       missingDocumentData({
         ...facts,
-        staffCategoriesInUse: [],
+        jobPositions: facts.jobPositions.filter((position) =>
+          categories.includes(position.staffCategory)
+        ),
         client: {
           ...facts.client,
           administrativeTrainingIntervalMonths: administrative,
           workerTrainingIntervalMonths: worker,
-          administrativeTrainingNotApplicable: administrativeExcluded,
-          workerTrainingNotApplicable: workerExcluded,
         },
-      });
-    expect(withChoices(6, null, false, true)).toEqual([]);
-    expect(withChoices(null, 3, true, false)).toEqual([]);
-    expect(withChoices(6, null, false, false)).toContain('client.trainingSchedule');
-    expect(withChoices(null, null, true, true)).toContain('client.trainingSchedule');
+      }).includes('client.trainingSchedule');
+    expect(withIntervals(12, 6)).toBe(false);
+    expect(withIntervals(12, null)).toBe(true);
+    expect(withIntervals(null, 6)).toBe(true);
+    expect(withIntervals(12, null, ['technical_administrative'])).toBe(false);
+    expect(withIntervals(null, 6, ['execution'])).toBe(false);
+    expect(withIntervals(null, null, [])).toBe(false);
   });
 
   describe("workers' representatives", () => {
@@ -257,15 +258,16 @@ describe('what is missing', () => {
     });
   });
 
-  it('blocks a category with active employees from being excluded', () => {
+  it('needs the interval of a category whose posts nobody holds yet', () => {
     expect(
       missingDocumentData({
         ...facts,
-        client: {
-          ...facts.client,
-          workerTrainingIntervalMonths: null,
-          workerTrainingNotApplicable: true,
-        },
+        jobPositions: facts.jobPositions.map((position) => ({
+          ...position,
+          currentEmployeeCount: 0,
+          currentEmployees: [],
+        })),
+        client: { ...facts.client, workerTrainingIntervalMonths: null },
       })
     ).toContain('client.trainingSchedule');
   });
@@ -563,15 +565,12 @@ describe('the merge context', () => {
     expect(late.training.administrativeMonths).toBe('lunile mai și noiembrie');
   });
 
-  it('builds only the applicable category context', () => {
+  it('prints only the categories the client has posts in', () => {
+    const only = (category: StaffCategory) =>
+      facts.jobPositions.filter((position) => position.staffCategory === category);
     const administrativeOnly = buildDocumentContext({
       ...facts,
-      staffCategoriesInUse: ['technical_administrative'],
-      client: {
-        ...facts.client,
-        workerTrainingIntervalMonths: null,
-        workerTrainingNotApplicable: true,
-      },
+      jobPositions: only('technical_administrative'),
     });
     expect(administrativeOnly.training.worker).toBe(false);
     expect(administrativeOnly.training.intervalPhrase).toBe(
@@ -581,12 +580,8 @@ describe('the merge context', () => {
 
     const workerOnly = buildDocumentContext({
       ...facts,
-      staffCategoriesInUse: ['execution'],
-      client: {
-        ...facts.client,
-        administrativeTrainingIntervalMonths: null,
-        administrativeTrainingNotApplicable: true,
-      },
+      jobPositions: only('execution'),
+      client: { ...facts.client, administrativeTrainingIntervalMonths: null },
     });
     expect(workerOnly.training.administrative).toBe(false);
     expect(workerOnly.training).not.toHaveProperty('administrativeFrequency');

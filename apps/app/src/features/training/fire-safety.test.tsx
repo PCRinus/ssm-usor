@@ -150,8 +150,8 @@ describe('the fire-safety training card', () => {
     await user.click(await screen.findByTestId('fire-safety-edit'));
     expect(await screen.findByTestId('fire-safety-starting')).toBeTruthy();
     expect(value('fire-training-hours')).toBe('2');
-    expect(value('fire-administrative-interval')).toBe('3');
-    expect(value('fire-worker-interval')).toBe('3');
+    expect(value('fire-administrative-interval')).toBe('6');
+    expect(value('fire-worker-interval')).toBe('6');
     expect(value('fire-first-month')).toBe('2');
     expect(value('fire-day-from')).toBe('2');
     expect(value('fire-day-to')).toBe('7');
@@ -167,8 +167,8 @@ describe('the fire-safety training card', () => {
       expect(requests(firePath, 'PUT')).toEqual([
         {
           periodicTrainingHours: 2,
-          administrativeTrainingIntervalMonths: 3,
-          workerTrainingIntervalMonths: 3,
+          administrativeTrainingIntervalMonths: 6,
+          workerTrainingIntervalMonths: 6,
           trainingFirstMonth: 2,
           trainingDayFrom: 2,
           trainingDayTo: 7,

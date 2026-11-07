@@ -98,20 +98,17 @@ describe('the built-in templates', () => {
     ...facts,
     branding: false,
     workplaces: [],
-    client: {
-      ...facts.client,
-      administrativeTrainingIntervalMonths: null,
-      administrativeTrainingNotApplicable: true,
-    },
-    staffCategoriesInUse: ['execution'],
-    jobPositions: facts.jobPositions.map((position) => ({
-      ...position,
-      workZone: position.workZone ? null : 'Atelier',
-      needsProtectiveEquipment: false,
-      equipment: [],
-      needsInstructions: false,
-      instructions: [],
-    })),
+    client: { ...facts.client, administrativeTrainingIntervalMonths: null },
+    jobPositions: facts.jobPositions
+      .filter((position) => position.staffCategory === 'execution')
+      .map((position) => ({
+        ...position,
+        workZone: position.workZone ? null : 'Atelier',
+        needsProtectiveEquipment: false,
+        equipment: [],
+        needsInstructions: false,
+        instructions: [],
+      })),
     riskEvaluations: facts.riskEvaluations.map((evaluation) => ({
       ...evaluation,
       factors: evaluation.factors.map((factor) => ({

@@ -801,7 +801,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
     });
   });
 
-  it('allows a confirmed single category with no employees in the excluded category', async () => {
+  it('is ready when every post is in one category and the other has no interval', async () => {
     mockUpstream({
       clients: () =>
         Response.json({
@@ -809,15 +809,9 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
           worker_training_interval_months: null,
           worker_training_not_applicable: true,
         }),
-      employees: (_init, url) =>
-        new Response(null, {
-          headers: {
-            'content-range':
-              url?.searchParams.get('job_positions.staff_category') === 'eq.execution'
-                ? '*/0'
-                : '0-0/1',
-          },
-        }),
+      positions: () =>
+        Response.json([{ ...positionRow, staff_category: 'technical_administrative' }]),
+      employees: () => new Response(null, { headers: { 'content-range': '0-0/1' } }),
     });
     const response = await request(`/clients/${clientId}/documents/readiness`);
     expect(documentReadinessResponseSchema.parse(await response.json())).toEqual({
@@ -831,7 +825,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
     });
   });
 
-  it('blocks an excluded category when an active employee holds it', async () => {
+  it('needs the interval of a category with posts, though it was marked as not applicable', async () => {
     mockUpstream({
       clients: () =>
         Response.json({
@@ -1220,15 +1214,9 @@ describe('POST /clients/{clientId}/documents/generate', () => {
           worker_training_interval_months: null,
           worker_training_not_applicable: true,
         }),
-      employees: (_init, url) =>
-        new Response(null, {
-          headers: {
-            'content-range':
-              url?.searchParams.get('job_positions.staff_category') === 'eq.execution'
-                ? '*/0'
-                : '0-0/1',
-          },
-        }),
+      positions: () =>
+        Response.json([{ ...positionRow, staff_category: 'technical_administrative' }]),
+      employees: () => new Response(null, { headers: { 'content-range': '0-0/1' } }),
       documents: (init) => {
         if (init?.method === 'POST') return Response.json({ id: documentId });
         listed += 1;
@@ -1241,7 +1229,7 @@ describe('POST /clients/{clientId}/documents/generate', () => {
     expect(generateDocumentsResponseSchema.parse(await response.json()).created).toHaveLength(1);
   });
 
-  it('refuses generation after an employee moves into an excluded category', async () => {
+  it('refuses generation while a category with posts has no interval', async () => {
     mockUpstream({
       clients: () =>
         Response.json({

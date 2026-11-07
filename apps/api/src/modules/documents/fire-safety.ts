@@ -29,10 +29,12 @@ import { type AnnualReportContext, buildAnnualReport } from './annual-report';
 import {
   type AnnexContext,
   annexedModules,
+  categoryInterval,
   documentApplies,
   type DocumentFacts,
   months,
   printedDate,
+  staffCategoriesWithPosts,
 } from './context';
 import { extinguisherGroups, firmsOf, isGasAgent, otherEquipmentGroups } from './equipment';
 import { type ContextParts, gapRules } from './gaps';
@@ -274,14 +276,15 @@ export type FireContext = {
     periodicHours: number;
     /** "2 ore". */
     periodicLabel: string;
-    administrativeIntervalMonths: number;
+    /** The three of a category are left out while it has no posts. */
+    administrativeIntervalMonths?: number;
     /** "3 luni". */
-    administrativeIntervalLabel: string;
+    administrativeIntervalLabel?: string;
     /** "lunile februarie, mai, august și noiembrie". */
-    administrativeMonths: string;
-    workerIntervalMonths: number;
-    workerIntervalLabel: string;
-    workerMonths: string;
+    administrativeMonths?: string;
+    workerIntervalMonths?: number;
+    workerIntervalLabel?: string;
+    workerMonths?: string;
     firstMonth: number;
     /** "februarie". */
     firstMonthLabel: string;
@@ -428,12 +431,16 @@ export function missingFireSafetyData(
       card !== null &&
       [
         card.periodicTrainingHours,
-        card.administrativeTrainingIntervalMonths,
-        card.workerTrainingIntervalMonths,
         card.trainingFirstMonth,
         card.trainingDayFrom,
         card.trainingDayTo,
-      ].every((value) => value !== null),
+      ]
+        .concat(
+          staffCategoriesWithPosts(facts.jobPositions).map((category) =>
+            categoryInterval(card, category)
+          )
+        )
+        .every((value) => value !== null),
     'fire.smokingPolicy': card?.smokingPolicy != null,
     'fire.waste': (card?.wasteKinds ?? []).some(filled),
     'responsible.workplace_manager': held.has('workplace_manager'),
@@ -625,10 +632,6 @@ function fireStaffCategories({
   fireSafety,
 }: Pick<FireSafetySetFacts, 'jobPositions' | 'fireSafety'>) {
   const card = fireSafety.card!;
-  const intervalMonths: Record<StaffCategory, number> = {
-    technical_administrative: card.administrativeTrainingIntervalMonths!,
-    execution: card.workerTrainingIntervalMonths!,
-  };
   return (['technical_administrative', 'execution'] as const).flatMap((category) => {
     const positions = jobPositions.filter((position) => position.staffCategory === category);
     if (positions.length === 0) return [];
@@ -638,7 +641,7 @@ function fireStaffCategories({
         label: staffCategoryLabels[category],
         positions,
         posts: positions.map((position) => position.name.trim()),
-        intervalMonths: intervalMonths[category],
+        intervalMonths: categoryInterval(card, category)!,
       },
     ];
   });
@@ -784,19 +787,27 @@ function fireContext(
     schedule: {
       periodicHours: card.periodicTrainingHours!,
       periodicLabel,
-      administrativeIntervalMonths: card.administrativeTrainingIntervalMonths!,
-      administrativeIntervalLabel: countOf(
-        card.administrativeTrainingIntervalMonths!,
-        'lună',
-        'luni'
-      ),
-      administrativeMonths: months(
-        card.trainingFirstMonth!,
-        card.administrativeTrainingIntervalMonths!
-      ),
-      workerIntervalMonths: card.workerTrainingIntervalMonths!,
-      workerIntervalLabel: countOf(card.workerTrainingIntervalMonths!, 'lună', 'luni'),
-      workerMonths: months(card.trainingFirstMonth!, card.workerTrainingIntervalMonths!),
+      ...(administrative.length === 0
+        ? {}
+        : {
+            administrativeIntervalMonths: card.administrativeTrainingIntervalMonths!,
+            administrativeIntervalLabel: countOf(
+              card.administrativeTrainingIntervalMonths!,
+              'lună',
+              'luni'
+            ),
+            administrativeMonths: months(
+              card.trainingFirstMonth!,
+              card.administrativeTrainingIntervalMonths!
+            ),
+          }),
+      ...(execution.length === 0
+        ? {}
+        : {
+            workerIntervalMonths: card.workerTrainingIntervalMonths!,
+            workerIntervalLabel: countOf(card.workerTrainingIntervalMonths!, 'lună', 'luni'),
+            workerMonths: months(card.trainingFirstMonth!, card.workerTrainingIntervalMonths!),
+          }),
       firstMonth: card.trainingFirstMonth!,
       firstMonthLabel: monthNames[card.trainingFirstMonth! - 1]!,
       dayFrom: card.trainingDayFrom!,

@@ -194,14 +194,14 @@ const fireTrainingFields = {
 };
 
 /**
- * What the card opens on while a client has no fire-safety row: the law's minimum and the
- * sample's intervals. The first month and the days come from the occupational safety schedule
- * when it has them; nothing else is copied (ADR 018).
+ * What the card opens on while a client has no fire-safety row: the law's minimum duration and
+ * its longest interval. The first month and the days come from the occupational safety schedule
+ * when it has them; nothing else is copied (ADR 018, ADR 039).
  */
 export const fireSafetyStartingValues = {
   periodicTrainingHours: 2,
-  administrativeTrainingIntervalMonths: 3,
-  workerTrainingIntervalMonths: 3,
+  administrativeTrainingIntervalMonths: 6,
+  workerTrainingIntervalMonths: 6,
 } as const;
 
 export const clientFireSafetySchema = z.object({
