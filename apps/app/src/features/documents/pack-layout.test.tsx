@@ -309,7 +309,8 @@ describe('PackLayout', () => {
     });
 
     const next = screen.getByTestId('pack-next-section');
-    expect(next.textContent).toBe('Secțiunea următoare10. Planul de prevenire și protecție');
+    expect(next.textContent).toBe('Următoarea secțiune: 10. Planul de prevenire și protecție');
+    expect(next.dataset.slot).toBe('button');
     await userEvent.click(next);
     expect((await screen.findByTestId('pack-section-title')).textContent).toBe(
       'Planul de prevenire și protecție'
@@ -330,7 +331,7 @@ describe('PackLayout', () => {
     });
 
     expect(screen.getByTestId('pack-next-section').textContent).toBe(
-      'Secțiunea următoareAlte documente SSM'
+      'Următoarea secțiune: Alte documente SSM'
     );
   });
 

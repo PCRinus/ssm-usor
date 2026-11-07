@@ -67,6 +67,10 @@ export type FactorEditing = EditableFactor | 'new' | null;
 // border and cuts it.
 const legendClass = 'float-left col-span-full text-sm font-semibold';
 
+// The panel has the page's background, on which the fields' transparent one disappears.
+const cardFields =
+  '[&_[data-slot=input]]:bg-card [&_[data-slot=native-select]]:bg-card [&_[data-slot=textarea]]:bg-card [&_[role=combobox]]:bg-card';
+
 const addAnotherKey = 'ssm-usor:risk-factor-add-another';
 
 function readAddAnother() {
@@ -308,7 +312,7 @@ function RiskFactorForm({
   );
 
   const fields = (
-    <div className="grid gap-6 @container">
+    <div className={cn('grid gap-6 @container', cardFields)}>
       <div className="grid gap-5 pt-3 @md:grid-cols-2">
         <Field
           id="risk-factor-component"

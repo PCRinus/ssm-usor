@@ -1,7 +1,8 @@
 import type { DocumentSet } from '@ssm-usor/contracts';
+import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, ChevronLeft } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { SectionNumber } from './pack-contents';
@@ -69,22 +70,19 @@ export function PackSectionPane({
       </div>
       {children}
       {next && (
-        <Link
-          {...sectionLink(set, clientId, next)}
-          data-testid="pack-next-section"
+        <div
           className={cn(
-            'flex items-center justify-between gap-4 text-left outline-none hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50',
-            page
-              ? 'border-t bg-background/50 p-4 focus-visible:ring-inset'
-              : 'mt-2 rounded-lg px-3 py-4'
+            'flex justify-end',
+            page ? 'border-t bg-background/50 p-4' : 'mt-2 px-3 pt-2 pb-4'
           )}
         >
-          <span className="grid gap-0.5">
-            <span className="text-xs text-muted-foreground">Secțiunea următoare</span>
-            <span className="font-medium">{sectionLabel(next)}</span>
-          </span>
-          <ChevronRight aria-hidden="true" className="size-4 shrink-0" />
-        </Link>
+          <Button asChild className="h-auto min-h-9 py-2 text-left whitespace-normal max-sm:w-full">
+            <Link {...sectionLink(set, clientId, next)} data-testid="pack-next-section">
+              <span className="max-sm:flex-1">Următoarea secțiune: {sectionLabel(next)}</span>
+              <ArrowRight aria-hidden="true" />
+            </Link>
+          </Button>
+        </div>
       )}
     </section>
   );

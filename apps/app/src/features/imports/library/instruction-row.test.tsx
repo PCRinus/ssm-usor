@@ -155,4 +155,19 @@ describe('InstructionRow', () => {
     expect(screen.queryByTestId('library-instruction-pick-posts')).toBeNull();
     expect(screen.queryByTestId('library-instruction-pending')).toBeNull();
   });
+
+  it('names the switch by its state', async () => {
+    const user = userEvent.setup();
+    render(<Harness instruction={proposed()} />);
+    const title = 'Utilizarea autoturismelor în interes de serviciu';
+    expect(screen.getByRole('switch', { name: `Inclusă: ${title}` })).toBeTruthy();
+    expect(screen.getByTestId('library-instruction-included-label').textContent).toBe('Inclusă');
+
+    await user.click(screen.getByTestId('library-instruction-included'));
+
+    expect(screen.getByRole('switch', { name: `Nu e inclusă: ${title}` })).toBeTruthy();
+    expect(screen.getByTestId('library-instruction-included-label').textContent).toBe(
+      'Nu e inclusă'
+    );
+  });
 });
