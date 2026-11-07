@@ -1,5 +1,4 @@
 import { Button } from '@ssm-usor/ui/components/button';
-import { Input } from '@ssm-usor/ui/components/input';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import {
@@ -9,11 +8,9 @@ import {
   ListChecks,
   type LucideIcon,
   Plus,
-  Search,
   Undo2,
   UserRound,
   UsersRound,
-  X,
 } from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
 
@@ -29,7 +26,6 @@ import {
   type ExistingChoice,
   existingChoiceLabels,
   existingOutcome,
-  factorMatches,
   factorsLabel,
   type FactorState,
   kindLabels,
@@ -132,7 +128,6 @@ export function RiskSheetCard({
   const { sheet } = state;
   const [comparing, setComparing] = useState(false);
   const [showAll, setShowAll] = useState(false);
-  const [query, setQuery] = useState('');
   const [removedOpen, setRemovedOpen] = useState(true);
   const pending = readOnly ? [] : pendingOf(state, nameTaken);
   const ask = (open: boolean): Tone => (!readOnly && open ? 'todo' : 'done');
@@ -151,14 +146,8 @@ export function RiskSheetCard({
   if (attention.some((factor) => !listed.has(factor.factor.key))) {
     setListed(new Set([...listed, ...attention.map((factor) => factor.factor.key)]));
   }
-  const searching = query.trim() !== '';
-  const found = searching ? active.filter((factor) => factorMatches(factor, query)) : [];
-  const shown = searching
-    ? found
-    : showAll
-      ? active
-      : active.filter((factor) => listed.has(factor.factor.key));
-  const folded = !searching && !showAll && active.some((factor) => !listed.has(factor.factor.key));
+  const shown = showAll ? active : active.filter((factor) => listed.has(factor.factor.key));
+  const folded = !showAll && active.some((factor) => !listed.has(factor.factor.key));
   const sheetSource: LabelledSource = { file: sheet.file, quote: sheet.heading };
 
   const pickLibrary = (choice: LibraryChoice) =>
@@ -394,28 +383,12 @@ export function RiskSheetCard({
               </span>
             )}
           </DecisionRow>
-          {!readOnly && sheet.factors.length > 5 && active.length > 0 && (
-            <FactorSearch
-              query={query}
-              total={active.length}
-              found={found}
-              onQuery={setQuery}
-              onRemove={() => {
-                onSetIncluded(
-                  found.filter((factor) => factor.included),
-                  false
-                );
-                setQuery('');
-              }}
-            />
-          )}
           {shown.length > 0 && (
             <RiskFactorRows
               factors={shown}
               sheetFile={sheet.file}
               readOnly={readOnly}
               refused={refused}
-              query={query}
               onToggle={onToggleFactor}
               onEdit={onEditFactor}
               onSource={onSource}
@@ -484,95 +457,6 @@ function factorsLine(state: SheetState, removed: number) {
   if (state.incomplete > 0) parts.push(roCount(state.incomplete, 'incomplet', 'incompleți'));
   if (removed > 0) parts.push(roCount(removed, 'scos de tine', 'scoși de tine'));
   return parts.join(', ');
-}
-
-function FactorSearch({
-  query,
-  total,
-  found,
-  onQuery,
-  onRemove,
-}: {
-  query: string;
-  total: number;
-  found: readonly FactorState[];
-  onQuery: (query: string) => void;
-  onRemove: () => void;
-}) {
-  const id = useId();
-  const searching = query.trim() !== '';
-  const removable = found.filter((factor) => factor.included).length;
-  return (
-    <div
-      className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/70 px-4 py-2.5 sm:px-5"
-      data-testid="risk-import-factor-find"
-    >
-      <div className="relative w-full sm:w-80">
-        <Search
-          className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-          aria-hidden="true"
-        />
-        <Input
-          type="search"
-          value={query}
-          placeholder="Caută printre factori"
-          aria-label="Caută printre factori"
-          aria-describedby={searching ? `${id}-count` : undefined}
-          data-testid="risk-import-factor-search"
-          className="pr-9 pl-8 [&::-webkit-search-cancel-button]:hidden"
-          onChange={(event) => onQuery(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') onQuery('');
-          }}
-        />
-        {searching && (
-          <button
-            type="button"
-            aria-label="Golește căutarea"
-            className="absolute top-1/2 right-1.5 grid size-6 -translate-y-1/2 place-items-center rounded-md text-muted-foreground hover:bg-secondary focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
-            onClick={() => onQuery('')}
-          >
-            <X className="size-3.5" aria-hidden="true" />
-          </button>
-        )}
-      </div>
-      {searching && (
-        <>
-          <span
-            id={`${id}-count`}
-            className="text-sm text-muted-foreground"
-            data-testid="risk-import-factor-search-count"
-            aria-live="polite"
-          >
-            {found.length === 0
-              ? `Niciun factor nu conține „${query.trim()}”.`
-              : `${found.length} din ${factorsLabel(total)} ${found.length === 1 ? 'conține' : 'conțin'} „${query.trim()}”.`}
-          </span>
-          <div className="flex w-full flex-wrap gap-2 max-sm:[&>*]:flex-auto sm:ml-auto sm:w-auto">
-            {removable > 0 && (
-              <Button
-                type="button"
-                variant="outline"
-                data-testid="risk-import-factor-search-remove"
-                onClick={onRemove}
-              >
-                <X aria-hidden="true" />
-                {removable === 1 ? 'Scoate factorul găsit' : `Scoate cei ${removable} găsiți`}
-              </Button>
-            )}
-            <Button
-              type="button"
-              variant="ghost"
-              data-testid="risk-import-factor-search-cancel"
-              onClick={() => onQuery('')}
-            >
-              Anulează
-            </Button>
-          </div>
-        </>
-      )}
-    </div>
-  );
 }
 
 function ClientRow({

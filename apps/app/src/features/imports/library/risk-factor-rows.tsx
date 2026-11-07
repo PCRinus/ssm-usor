@@ -19,7 +19,6 @@ import {
   lacksText,
   measureGap,
   missingText,
-  searchRange,
 } from './risks-model';
 
 function FlagChip({ text, informs }: { text: string; informs: boolean }) {
@@ -54,27 +53,12 @@ function planLine(state: FactorState) {
     .join(' · ');
 }
 
-function Highlighted({ text, query }: { text: string; query: string }) {
-  const range = searchRange(text, query);
-  if (!range) return text;
-  return (
-    <>
-      {text.slice(0, range[0])}
-      <mark className="rounded-[3px] bg-warning px-px text-inherit">
-        {text.slice(range[0], range[1])}
-      </mark>
-      {text.slice(range[1])}
-    </>
-  );
-}
-
 export function FactorRow({
   state,
   sheetFile,
   readOnly,
   refused,
   removed = false,
-  query = '',
   onToggle,
   onEdit,
   onSource,
@@ -85,7 +69,6 @@ export function FactorRow({
   refused: boolean;
   // Listed under "Scoși de tine", where it can only be put back.
   removed?: boolean;
-  query?: string;
   onToggle: (included: boolean) => void;
   onEdit: () => void;
   onSource: (source: LabelledSource) => void;
@@ -128,10 +111,10 @@ export function FactorRow({
       )}
       <div className={cn('grid min-w-0 gap-1', muted && 'text-muted-foreground')}>
         <p className="text-sm wrap-anywhere" data-testid="risk-import-factor-description">
-          <Highlighted text={state.description} query={query} />
+          {state.description}
         </p>
         <p className="text-[13px] text-muted-foreground wrap-anywhere">
-          {state.group ? <Highlighted text={state.group} query={query} /> : 'Fără grupă'}
+          {state.group || 'Fără grupă'}
           {' · '}
           <span data-testid="risk-import-factor-classes">
             gravitate {state.gravityClass ?? '–'}, probabilitate {state.probabilityClass ?? '–'}
@@ -213,7 +196,6 @@ export function RiskFactorRows({
   sheetFile,
   readOnly,
   refused,
-  query = '',
   onToggle,
   onEdit,
   onSource,
@@ -222,7 +204,6 @@ export function RiskFactorRows({
   sheetFile: string;
   readOnly: boolean;
   refused: ReadonlySet<string>;
-  query?: string;
   onToggle: (state: FactorState, included: boolean) => void;
   onEdit: (state: FactorState) => void;
   onSource: (source: LabelledSource) => void;
@@ -246,7 +227,6 @@ export function RiskFactorRows({
                 sheetFile={sheetFile}
                 readOnly={readOnly}
                 refused={refused.has(state.factor.key)}
-                query={query}
                 onToggle={(included) => onToggle(state, included)}
                 onEdit={() => onEdit(state)}
                 onSource={onSource}

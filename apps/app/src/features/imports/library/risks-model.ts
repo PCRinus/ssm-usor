@@ -682,34 +682,6 @@ export function withIncluded(
   return { ...change, factors: next };
 }
 
-const foldChar = (char: string) => char.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
-
-/** Where a search falls in a text, ignoring case and diacritics; null when it does not. */
-export function searchRange(text: string, query: string): [number, number] | null {
-  const needle = [...query.trim()].map(foldChar).join('');
-  if (needle === '') return null;
-  const chars = [...text];
-  const folded = chars.map(foldChar);
-  const at = folded.join('').indexOf(needle);
-  if (at < 0) return null;
-  let offset = 0;
-  let start = -1;
-  let end = chars.length;
-  for (let index = 0; index < folded.length; index++) {
-    if (start < 0 && offset + folded[index]!.length > at) start = index;
-    offset += folded[index]!.length;
-    if (offset >= at + needle.length) {
-      end = index + 1;
-      break;
-    }
-  }
-  const before = chars.slice(0, start).join('').length;
-  return [before, before + chars.slice(start, end).join('').length];
-}
-
-export const factorMatches = (state: FactorState, query: string) =>
-  searchRange(state.description, query) !== null || searchRange(state.group, query) !== null;
-
 const classNames = { gravity: 'gravitate', probability: 'probabilitate' } as const;
 
 export function factorFlagText(flag: FactorFlag) {

@@ -160,33 +160,12 @@ describe('a sheet card with the confirm bar', () => {
     expect(screen.getByTestId('changes').textContent).toBe('{"factors":{"a.3":{}}}');
   });
 
-  it('finds factors by a word, ignoring diacritics, and takes out those found at once', async () => {
-    render(<Harness />);
-    await userEvent.type(screen.getByTestId('risk-import-factor-search'), 'auto');
-
-    expect(screen.getByTestId('risk-import-factor-search-count').textContent).toBe(
-      '2 din 6 factori conțin „auto”.'
-    );
-    expect(screen.getAllByTestId('risk-import-factor')).toHaveLength(2);
-    await userEvent.click(screen.getByTestId('risk-import-factor-search-remove'));
-
-    expect(summary()).toContain('cu 4 factori');
-    expect(screen.getByTestId('risk-import-factor-search')).toHaveProperty('value', '');
-    const removed = screen.getByTestId('risk-import-removed');
-    expect(within(removed).getAllByTestId('risk-import-factor')).toHaveLength(2);
-
-    await userEvent.type(screen.getByTestId('risk-import-factor-search'), 'sezand');
-    expect(screen.getByTestId('risk-import-factor-search-count').textContent).toBe(
-      '1 din 4 factori conține „sezand”.'
-    );
-    await userEvent.click(screen.getByTestId('risk-import-factor-search-cancel'));
-    expect(screen.queryByTestId('risk-import-factor-search-count')).toBeNull();
-  });
-
   it('says every factor is out and puts them all back at once', async () => {
     render(<Harness />);
-    await userEvent.type(screen.getByTestId('risk-import-factor-search'), 'r');
-    await userEvent.click(screen.getByTestId('risk-import-factor-search-remove'));
+    await userEvent.click(screen.getByTestId('risk-import-show-factors'));
+    for (const box of screen.getAllByTestId('risk-import-factor-included')) {
+      await userEvent.click(box);
+    }
 
     expect(screen.getByTestId('risk-import-factors-summary').textContent).toBe(
       'Ai scos toți cei 6 factori.'
