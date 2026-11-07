@@ -282,6 +282,10 @@ describe('a section of the review', () => {
     expect(within(representative).getByTestId('review-group-pending').textContent).toBe(
       'Mai ai de ales reprezentantul legal'
     );
+    expect(within(choice).getByRole('radio', { name: /^Decizie 1\.docx/ })).toBeTruthy();
+    expect(
+      within(choice).getByRole('radio', { name: /^Contract prestari SSM 2019\.pdf/ })
+    ).toBeTruthy();
     await userEvent.click(within(choice).getByRole('radio', { name: /Ioana Mureșan/ }));
     await waitFor(() => expect(saves).toBe(1));
     expect(savedChanges(0)).toEqual({
@@ -305,6 +309,35 @@ describe('a section of the review', () => {
         items: {},
       },
     });
+  });
+
+  it('names the files a choice comes from, the first one and how many more', async () => {
+    const proposal = proposalFixture();
+    const files = (count: number, first: string) =>
+      Array.from({ length: count }, (_, index) => ({
+        file: index === 0 ? first : `dosar-ssm.zip/Anexa ${index}.pdf (pagina 2)`,
+        quote: 'Salubris SA',
+      }));
+    proposal.fireSafety.wasteContractor.options[0]!.sources = files(
+      3,
+      'dosar-ssm.zip/PSI/Decizie privind organizarea activității de apărare împotriva incendiilor 2.1.docx'
+    );
+    proposal.fireSafety.wasteContractor.options[1]!.sources = files(21, 'b.pdf');
+    mockReview(readyDetail({ proposal }));
+    mount('/fire-safety');
+
+    const choice = (await screen.findAllByTestId('review-choice')).find((each) =>
+      each.textContent?.includes('Firma de salubritate')
+    )!;
+    const [three, many] = within(choice)
+      .getAllByRole('radio')
+      .slice(0, 2)
+      .map((radio) => radio.closest('[data-checked]') as HTMLElement);
+    const long =
+      'Decizie privind organizarea activității de apărare împotriva incendiilor 2.1.docx';
+    expect(three!.textContent).toContain(`${long} și încă 2 fișiere: Anexa 1.pdf, Anexa 2.pdf`);
+    expect(within(three!).getByTitle(`${long}, Anexa 1.pdf, Anexa 2.pdf`)).toBeTruthy();
+    expect(many!.textContent).toContain('b.pdf și încă 20 de fișiere');
   });
 
   it('opens only the field changed, marked as the one open, and marks the value changed', async () => {

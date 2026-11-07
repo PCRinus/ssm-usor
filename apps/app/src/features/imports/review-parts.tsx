@@ -4,7 +4,9 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { Check, FileSearch, Pencil, ShieldCheck, SpellCheck } from 'lucide-react';
 import { type ComponentProps, type ReactNode, use, useEffect, useId, useRef } from 'react';
 
+import { filesLabel } from './import-format';
 import { type LabelledSource, type SectionStatus, spellingCorrection } from './review-model';
+import { requestFileName } from './source-match';
 import { SourcePrefetchContext } from './source-query';
 import { type DiffRun, spellingDiff } from './spelling-diff';
 
@@ -332,6 +334,23 @@ export function PickOption({
       {action && <div className="col-start-2 sm:col-start-auto sm:self-center">{action}</div>}
       {below && <div className="col-[2/-1] min-w-0">{below}</div>}
     </div>
+  );
+}
+
+export function SourceFileNames({ sources }: { sources: LabelledSource[] }) {
+  const names = [...new Set(sources.map((source) => requestFileName(source.file)))];
+  if (names.length === 0) return 'În documente';
+  const others = names.slice(1);
+  return (
+    <span className="flex max-w-full min-w-0" title={names.join(', ')}>
+      <span className="truncate">{names[0]}</span>
+      {others.length > 0 && (
+        <span className="shrink-0 whitespace-pre">
+          {` și încă ${filesLabel(others.length)}`}
+          <span className="sr-only">: {others.join(', ')}</span>
+        </span>
+      )}
+    </span>
   );
 }
 

@@ -1130,10 +1130,6 @@ export function flagsAt(proposal: Proposal, prefix: string) {
   );
 }
 
-export function sourceFilesCount(sources: Source[]) {
-  return new Set(sources.map((source) => source.file)).size;
-}
-
 // A passage that proves several values is shown once, naming all of them.
 function labelled(groups: { label?: string; sources: Source[] }[]): LabelledSource[] {
   const kept: LabelledSource[] = [];

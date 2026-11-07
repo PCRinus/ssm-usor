@@ -58,7 +58,6 @@ import {
   sameCompanyName,
   sameValue,
   type SectionId,
-  sourceFilesCount,
   valueInForce,
   vatPayerPath,
   yesNoLabels,
@@ -73,6 +72,7 @@ import {
   PickOption,
   RowNote,
   SourceButton,
+  SourceFileNames,
   SpellingChoice,
   Tag,
 } from './review-parts';
@@ -331,7 +331,6 @@ function FieldEditor({
       tone="editing"
       top
       wide
-      pairedActions
       id={anchorOf(path)}
       testId="review-row-editing"
       label={
@@ -469,7 +468,6 @@ function ChoiceRow({ state, context }: { state: FieldState; context: FieldContex
       <PickList labelledBy={`${name}-label`}>
         {state.own.map((index) => {
           const option = state.options[index]!;
-          const files = sourceFilesCount(option.sources);
           const value = formatFieldValue(state.path, option.value, context.vatPayer);
           return (
             <PickOption
@@ -480,7 +478,7 @@ function ChoiceRow({ state, context }: { state: FieldState; context: FieldContex
                 setOtherOpen(false);
                 context.review.setField(state.path, { option: index });
               }}
-              heading={files === 1 ? 'Într-un fișier' : `În ${files} fișiere`}
+              heading={<SourceFileNames sources={option.sources} />}
               action={
                 <SourceButton
                   sources={option.sources}
@@ -566,7 +564,6 @@ function AnafRow({
       tone={anaf.picked === null ? 'todo' : 'done'}
       top
       wide
-      pairedActions
       id={anchorOf(state.path)}
       testId="review-anaf-choice"
       label={<span id={`${name}-label`}>{state.label}</span>}
@@ -623,7 +620,6 @@ function MissingRow({
     <DecisionRow
       tone="todo"
       wide
-      pairedActions
       id={anchorOf(state.path)}
       testId="review-row"
       label={state.label}
@@ -744,7 +740,6 @@ function ValueRow({
       tone={tone}
       top={Boolean(spelling) || unticked}
       wide
-      pairedActions
       id={anchorOf(state.path)}
       testId="review-row"
       label={state.label}
@@ -846,7 +841,6 @@ function NotApplicableRow({ state, context }: { state: FieldState; context: Fiel
     <DecisionRow
       tone="info"
       wide
-      pairedActions
       id={anchorOf(state.path)}
       testId="review-row"
       label={state.label}
@@ -995,7 +989,6 @@ export function ExistingFieldGroups({
               key={state.path}
               tone="done"
               wide
-              pairedActions
               id={anchorOf(state.path)}
               testId="review-row"
               label={state.label}
