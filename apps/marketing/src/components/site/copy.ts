@@ -43,7 +43,7 @@ export const page = {
 
 export const nav = [
   { href: '#cum', label: 'Cum funcționează' },
-  { href: '#angajati', label: 'Pentru lucrători' },
+  { href: '#lucratori', label: 'Pentru lucrători' },
   { href: '/preturi/', label: 'Prețuri' },
   { href: '#intrebari', label: 'Întrebări' },
 ];
