@@ -571,6 +571,7 @@ function LibraryRows({
             value={shown}
             disabled={readOnly}
             testIdPrefix="risk-import-library"
+            stackOnPhone
             onPick={onPick}
           />
         }
