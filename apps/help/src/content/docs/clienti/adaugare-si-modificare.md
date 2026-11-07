@@ -56,7 +56,7 @@ Formularul clientului cere doar CUI-ul și denumirea. Restul îl completezi cân
 
 ## Adăugarea unui client
 
-Din **Clienți**, alege **Adaugă client**. Orice membru al organizației poate adăuga un client. Obligatorii sunt:
+Din **Clienți**, alege **Adaugă client** (cât timp lista e goală, **Adaugă primul client**, în mijlocul ei). Orice membru al organizației poate adăuga un client. Obligatorii sunt:
 
 - **CUI**;
 - **Denumire**.

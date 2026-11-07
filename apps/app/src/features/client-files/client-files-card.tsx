@@ -17,6 +17,7 @@ import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { useMe } from '@/features/account/use-me';
 import type { Client } from '@/features/clients/client-form-schema';
+import { isEmptyOrLoading } from '@/lib/list-state';
 import { fileAddress, openDownload } from '@/lib/save-file';
 
 import { DeleteClientFileDialog, RenameClientFileDialog } from './client-file-dialogs';
@@ -153,7 +154,8 @@ export function ClientFilesCard({
           </>
         }
         action={
-          canUpload && (
+          canUpload &&
+          !isEmptyOrLoading(files.status, items.length) && (
             <Button
               variant="tonal"
               size="sm"
@@ -200,7 +202,12 @@ export function ClientFilesCard({
                 Niciun fișier încă. Trage fișierele aici sau alege-le de pe dispozitiv; poți încărca
                 mai multe deodată.
               </p>
-              <Button variant="outline" size="sm" onClick={() => setUploading([])}>
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="client-files-upload"
+                onClick={() => setUploading([])}
+              >
                 <Upload aria-hidden="true" />
                 Alege fișiere
               </Button>

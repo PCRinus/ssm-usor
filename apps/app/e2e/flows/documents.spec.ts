@@ -341,9 +341,13 @@ test('the own instructions are issued with their annex, which opens in the edito
   await expect(page.getByTestId('editor-frame')).toHaveAttribute('data-ready', 'true', {
     timeout: 30_000,
   });
-  await expect(page.getByTestId('editor-pinned-version')).toContainText(
-    'Este și versiunea curentă din bibliotecă'
+  const pinned = page.getByTestId('editor-pinned-version');
+  await expect(pinned).toContainText('Versiunea curentă din bibliotecă');
+  await expect(pinned).toHaveAttribute('title', /Este și versiunea curentă din bibliotecă\./);
+  await expect(page.getByTestId('editor-open-current')).toHaveAccessibleName(
+    'Deschide în bibliotecă'
   );
+  await expect(page.getByRole('navigation', { name: 'breadcrumb' })).toHaveCount(0);
   await expect(page.getByTestId('editor-save')).toHaveCount(0);
   await page.getByTestId('editor-back').click();
   await expect(annex).toBeVisible();

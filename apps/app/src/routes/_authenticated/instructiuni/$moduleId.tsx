@@ -6,10 +6,8 @@ import {
   getGetInstructionModuleQueryOptions,
 } from '@/api/generated/api';
 import { useAuth } from '@/features/auth/auth-context';
-import {
-  InstructionModulePage,
-  InstructionVersionView,
-} from '@/features/instructions/instruction-module-page';
+import { InstructionEditorPage } from '@/features/instructions/instruction-editor-page';
+import { InstructionModulePage } from '@/features/instructions/instruction-module-page';
 
 export const Route = createFileRoute('/_authenticated/instructiuni/$moduleId')({
   staticData: { title: 'Instrucțiune' },
@@ -36,7 +34,7 @@ function InstructionModuleRoute() {
   const { session } = useAuth();
   const userId = session?.user.id ?? '';
   return version ? (
-    <InstructionVersionView
+    <InstructionEditorPage
       key={version}
       moduleId={moduleId}
       userId={userId}

@@ -397,6 +397,65 @@ describe('clients list', () => {
     expect(within(breadcrumb).getByText('Client nou')).toBeTruthy();
   });
 
+  it('offers the first client only in the empty state, not again above the list', async () => {
+    mockApi();
+    mountApp(authFixture(makeSession()).client, '/clienti');
+    const empty = await screen.findByTestId('clients-empty');
+    expect(within(empty).getByTestId('clients-start-form')).toBeTruthy();
+    expect(within(empty).getByTestId('clients-start-import')).toBeTruthy();
+    expect(screen.queryByTestId('clients-add')).toBeNull();
+    expect(screen.queryByTestId('clients-import')).toBeNull();
+  });
+
+  it('shows the header actions once the loaded list has rows, and not while it loads', async () => {
+    let answer: ((response: Response) => void) | undefined;
+    mockApi({ list: () => new Promise<Response>((resolve) => (answer = resolve)) });
+    mountApp(authFixture(makeSession()).client, '/clienti');
+    await screen.findByTestId('clients-page');
+    await waitFor(() => expect(answer).toBeDefined());
+    expect(screen.queryByTestId('clients-add')).toBeNull();
+    expect(screen.queryByTestId('clients-import')).toBeNull();
+    answer!(Response.json(page([listed()])));
+    await screen.findByText('OMV PETROM SA');
+    expect(screen.getByTestId('clients-add')).toBeTruthy();
+    expect(screen.getByTestId('clients-import')).toBeTruthy();
+    expect(screen.queryByTestId('clients-empty')).toBeNull();
+  });
+
+  it('keeps the table, the pager and the header actions on a page past the last one', async () => {
+    mockApi({
+      list: (_init, url) => {
+        const requested = Number(url.searchParams.get('page'));
+        return Response.json(
+          requested > 2
+            ? page([], { page: requested, total: 30 })
+            : page([listed()], { page: requested, total: 30 })
+        );
+      },
+    });
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti?page=5');
+    expect((await screen.findByTestId('data-table-page-empty')).textContent).toBe(
+      'Pagina 5 nu are rânduri.'
+    );
+    expect(screen.getByTestId('clients-table')).toBeTruthy();
+    expect(screen.getByTestId('pager-summary')).toBeTruthy();
+    expect(screen.getByTestId('clients-add')).toBeTruthy();
+    expect(screen.queryByTestId('clients-empty')).toBeNull();
+    await userEvent.setup().click(screen.getByTestId('data-table-last-page'));
+    await screen.findByText('OMV PETROM SA');
+    expect(runtime.router.state.location.search).toEqual({ page: 2 });
+  });
+
+  it('keeps the header actions on an empty archived list, which offers none of its own', async () => {
+    mockApi();
+    mountApp(authFixture(makeSession()).client, '/clienti?status=archived');
+    const empty = await screen.findByTestId('clients-empty');
+    expect(empty.textContent).toContain('Niciun client arhivat');
+    expect(within(empty).queryByTestId('clients-start-ways')).toBeNull();
+    expect(screen.getByTestId('clients-add')).toBeTruthy();
+    expect(screen.getByTestId('clients-import')).toBeTruthy();
+  });
+
   it('uses the loaded client name and active section in the browser title', async () => {
     mockApi({ me: meAs('owner') });
     mountApp(authFixture(makeSession()).client, `/clienti/${sampleClient.id}/angajati`);
@@ -1085,12 +1144,12 @@ describe('client archiving', () => {
     const banner = await screen.findByTestId('client-archived-banner');
     expect(banner.textContent).toContain('Client arhivat');
     expect(screen.queryByTestId('client-archive')).toBeNull();
-    expect(screen.queryByTestId('employees-add')).toBeNull();
+    expect(screen.queryByTestId('employees-start-ways')).toBeNull();
     await user.click(await screen.findByTestId('client-restore'));
     await user.click(await screen.findByTestId('client-archive-confirm'));
     await screen.findByTestId('client-archive');
     expect(screen.queryByTestId('client-archived-banner')).toBeNull();
-    expect(screen.getByTestId('employees-add')).toBeTruthy();
+    expect(await screen.findByTestId('employees-start-ways')).toBeTruthy();
   });
 
   it('tells a specialist who can reactivate it', async () => {

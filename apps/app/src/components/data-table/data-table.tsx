@@ -1,4 +1,4 @@
-import type { PageMeta } from '@ssm-usor/contracts';
+import { pageCount, type PageMeta } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import {
@@ -14,6 +14,7 @@ import { type RowData, type SortingState, useTable } from '@tanstack/react-table
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { ListEmpty } from '@/components/empty-state';
 import { Pager } from '@/components/pager';
 
 import { type DataTableColumn, dataTableFeatures, type DataTableSort } from './columns';
@@ -36,6 +37,7 @@ export interface DataTableProps<TData extends RowData> {
   label: string;
   // Rendered inside the table in place of rows.
   error?: ReactNode;
+  // Rendered in place of the table and its pager when the whole list is empty.
   empty: ReactNode;
   testId?: string;
   rowTestId?: string;
@@ -85,6 +87,14 @@ export function DataTable<TData extends RowData>({
   });
   const columnCount = table.getAllLeafColumns().length;
   const leafColumns = table.getAllLeafColumns();
+
+  const pageEmpty = status === 'success' && table.getRowModel().rows.length === 0;
+
+  // Outside the table: on a phone the column headers are wider than the screen, and the empty
+  // state would be centred in that width, half out of view.
+  if (pageEmpty && meta.total === 0) {
+    return <ListEmpty>{empty}</ListEmpty>;
+  }
 
   return (
     <>
@@ -160,10 +170,22 @@ export function DataTable<TData extends RowData>({
                 ))}
               </TableRow>
             ))
-          ) : table.getRowModel().rows.length === 0 ? (
+          ) : pageEmpty ? (
+            // A page past the last one, from an old link or after rows went away.
             <TableRow className="hover:bg-transparent">
-              <TableCell colSpan={columnCount} className="h-64 px-5 text-center whitespace-normal">
-                {empty}
+              <TableCell colSpan={columnCount} className="h-48 px-5 text-center whitespace-normal">
+                <p data-testid="data-table-page-empty" className="text-sm text-muted-foreground">
+                  Pagina {meta.page} nu are rânduri.
+                </p>
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  data-testid="data-table-last-page"
+                  disabled={isFetching}
+                  onClick={() => onPageChange(pageCount(meta))}
+                >
+                  Mergi la pagina {pageCount(meta)}
+                </Button>
               </TableCell>
             </TableRow>
           ) : (

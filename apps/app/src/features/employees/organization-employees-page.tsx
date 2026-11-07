@@ -11,6 +11,7 @@ import {
 import { ApiHttpError } from '@/api/http';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
+import { EmptyState } from '@/components/empty-state';
 import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
 import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
@@ -280,28 +281,23 @@ export function OrganizationEmployeesPage() {
                 }
               />
             ) : (
-              <>
-                <UsersRound
-                  className="mx-auto mb-4 size-8 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <h3 className="text-base font-medium">
-                  {status === 'terminated' ? 'Niciun fost lucrător' : 'Niciun lucrător încă'}
-                </h3>
-                <p
-                  data-testid="organization-employees-empty"
-                  className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
-                >
-                  {status === 'terminated'
-                    ? 'Lucrătorii care pleacă rămân aici, cu dovezile lor.'
-                    : 'Lucrătorii se adaugă din pagina fiecărui client și apar aici, toți împreună.'}
-                </p>
-                {!status && !clientId && (
-                  <Button asChild variant="outline" className="mt-5">
-                    <Link to="/clienti">Mergi la clienți</Link>
-                  </Button>
-                )}
-              </>
+              <EmptyState
+                icon={UsersRound}
+                title={status === 'terminated' ? 'Niciun fost lucrător' : 'Niciun lucrător încă'}
+                data-testid="organization-employees-empty"
+                actions={
+                  !status &&
+                  !clientId && (
+                    <Button asChild variant="outline">
+                      <Link to="/clienti">Mergi la clienți</Link>
+                    </Button>
+                  )
+                }
+              >
+                {status === 'terminated'
+                  ? 'Lucrătorii care pleacă rămân aici, cu dovezile lor.'
+                  : 'Lucrătorii se adaugă din pagina fiecărui client și apar aici, toți împreună.'}
+              </EmptyState>
             )
           }
         />

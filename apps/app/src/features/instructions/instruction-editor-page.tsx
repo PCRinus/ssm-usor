@@ -1,7 +1,8 @@
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Link, useRouteContext } from '@tanstack/react-router';
-import { ArrowLeft, Download } from 'lucide-react';
+import { cn } from '@ssm-usor/ui/lib/utils';
+import { Link, useLocation, useRouteContext } from '@tanstack/react-router';
+import { ArrowLeft, BookOpenText, Download } from 'lucide-react';
 import { lazy, Suspense, useEffect, useState } from 'react';
 
 import {
@@ -11,9 +12,11 @@ import {
   useGetInstructionModule,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useEditorLayout } from '@/app/editor-layout';
 import { useBackToList } from '@/app/use-back-to-list';
 import { editorFrameClassName, saveAs } from '@/features/documents/editor-frame';
 import { EditorPlaceholder } from '@/features/documents/editor-placeholder';
+import { warningBadge } from '@/features/documents/pack-styles';
 import { formatRoDate } from '@/lib/dates';
 
 import { articleCountLabel, domainLabels, groupLabels } from './instruction-schema';
@@ -33,8 +36,12 @@ export function InstructionEditorPage({
   userId: string;
   pinnedVersionId?: string;
 }) {
+  useEditorLayout();
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const backToList = useBackToList();
+  const openedFromList = useLocation({
+    select: (location) => location.state.openedFromList === true,
+  });
   const query = useGetInstructionModule(moduleId, {
     request: apiRequest,
     query: { queryKey: [...getGetInstructionModuleQueryKey(moduleId), userId] },
@@ -99,10 +106,12 @@ export function InstructionEditorPage({
         to={module?.domain === 'su' ? '/instructiuni/su' : '/instructiuni/ssm'}
         data-testid="editor-back"
         onClick={backToList}
-        aria-label={pinned ? 'Înapoi' : 'Înapoi la instrucțiunile proprii'}
+        aria-label={openedFromList ? 'Înapoi' : 'Înapoi la instrucțiunile proprii'}
       >
         <ArrowLeft aria-hidden="true" />
-        <span className="hidden sm:inline">{pinned ? 'Înapoi' : 'Instrucțiuni proprii'}</span>
+        <span className="hidden sm:inline">
+          {openedFromList ? 'Înapoi' : 'Instrucțiuni proprii'}
+        </span>
       </Link>
     </Button>
   );
@@ -139,20 +148,63 @@ export function InstructionEditorPage({
     );
   }
 
+  const libraryIsNewer = pinned && module.version.number > loaded.number;
   const actions = (
     <div className="flex flex-wrap items-center gap-2 max-sm:flex-1">
-      <Badge variant="default" data-testid="editor-state">
+      <Badge
+        variant="default"
+        data-testid="editor-state"
+        title={
+          module.archivedAt && !pinned
+            ? 'Instrucțiunea e arhivată, așa că o poți doar citi, așa cum se tipărește. Reactiveaz-o din bibliotecă ca să o modifici.'
+            : undefined
+        }
+      >
         {module.archivedAt && !pinned ? 'Arhivată' : `Versiunea ${loaded.number}`}
       </Badge>
+      {pinned && (
+        <Badge
+          variant="outline"
+          data-testid="editor-pinned-version"
+          className={cn(libraryIsNewer && warningBadge)}
+          title={
+            libraryIsNewer
+              ? `Versiunea pe care o anexează documentul. Biblioteca are acum versiunea ${module.version.number}, din ${formatRoDate(module.version.createdAt.slice(0, 10))}.`
+              : 'Versiunea pe care o anexează documentul. Este și versiunea curentă din bibliotecă.'
+          }
+        >
+          <span aria-hidden="true" className="xl:hidden">
+            {libraryIsNewer ? 'Mai veche' : 'Curentă'}
+          </span>
+          <span className="max-xl:sr-only">
+            {libraryIsNewer ? 'Mai veche decât biblioteca' : 'Versiunea curentă din bibliotecă'}
+          </span>
+        </Badge>
+      )}
       <span className="hidden text-xs text-muted-foreground md:inline">
         {domainLabels[module.domain]} · {groupLabels[module.group]} ·{' '}
         {articleCountLabel(module.version.articleCount).toLowerCase()}
       </span>
+      {pinned && (
+        <Button asChild variant="ghost" size="sm" className="max-sm:ml-auto">
+          <Link
+            to="/instructiuni/$moduleId"
+            params={{ moduleId }}
+            data-testid="editor-open-current"
+            title={libraryIsNewer ? 'Deschide versiunea curentă' : 'Deschide în bibliotecă'}
+          >
+            <BookOpenText aria-hidden="true" />
+            <span className="max-xl:sr-only">
+              {libraryIsNewer ? 'Deschide versiunea curentă' : 'Deschide în bibliotecă'}
+            </span>
+          </Link>
+        </Button>
+      )}
       <Button
         variant="outline"
         size="sm"
         data-testid="editor-download"
-        className="max-sm:ml-auto"
+        className={cn(!pinned && 'max-sm:ml-auto')}
         onClick={download}
       >
         <Download aria-hidden="true" />
@@ -163,32 +215,6 @@ export function InstructionEditorPage({
 
   return (
     <div data-testid="instruction-editor-page" className="flex min-h-0 flex-1 flex-col gap-3">
-      {pinned ? (
-        <p
-          role="status"
-          data-testid="editor-pinned-version"
-          className="shrink-0 text-sm text-muted-foreground"
-        >
-          {module.version.number > loaded.number
-            ? `Versiunea pe care o anexează documentul. Biblioteca are acum versiunea ${module.version.number}, din ${formatRoDate(module.version.createdAt.slice(0, 10))}. `
-            : 'Versiunea pe care o anexează documentul. Este și versiunea curentă din bibliotecă. '}
-          <Link
-            to="/instructiuni/$moduleId"
-            params={{ moduleId }}
-            data-testid="editor-open-current"
-            className="font-medium text-foreground underline underline-offset-4"
-          >
-            {module.version.number > loaded.number
-              ? 'Deschide versiunea curentă'
-              : 'Deschide în bibliotecă'}
-          </Link>
-        </p>
-      ) : (
-        <p role="status" className="shrink-0 text-sm text-muted-foreground">
-          Instrucțiunea e arhivată, așa că o poți doar citi, așa cum se tipărește. Reactiveaz-o din
-          bibliotecă ca să o modifici.
-        </p>
-      )}
       {failed ? (
         <div
           data-testid="editor-failed"

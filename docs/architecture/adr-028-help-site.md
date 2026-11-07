@@ -94,6 +94,8 @@ Because the app only links through that union, a link to a topic that does not e
 - **The sidebar footer gains "Ajutor"** next to Actualizări. It opens the help site's home.
 - **All links open in one named tab, `ssm-usor-ajutor`.** A second click therefore reuses the help tab instead of piling up new ones, and the member's form stays as they left it.
 
+  (Amended 2026-11-07.) A browser finds a tab by name only among the tabs related to the one that looks: from a second app tab, opened with a modifier click or by hand, or from an app tab that went to another site and back, it opens a second help tab. So a plain click opens the help with `window.open` under that name and focuses the tab, and the help site, when a page loads in a tab of that name, tells the other tabs of that name to close; the newest is the one the member reads. The links keep their `href` and `target`, so a modifier click, or a browser that blocks the tab, still follows the link. They carry no `noopener`: in Chromium and WebKit it makes every click open a new tab, because the browser forgets the name. The reference the help site gets back to the app is harmless, as the site is ours.
+
 The help site's origin comes from the build environment, as the API's does. The app sends `help_opened` to PostHog with the topic id, which shows which rules people look up.
 
 ### Hints get shorter

@@ -6,6 +6,6 @@ export default defineConfig({
     // while another writes to it (ENOTEMPTY) whenever the lockfile changes.
     fsModuleCachePath: 'node_modules/.vitest-cache',
     name: '@ssm-usor/help',
-    include: ['scripts/**/*.test.ts'],
+    include: ['scripts/**/*.test.ts', 'src/**/*.test.ts'],
   },
 });

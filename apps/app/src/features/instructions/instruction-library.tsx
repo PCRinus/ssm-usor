@@ -12,6 +12,7 @@ import { useMemo, useState } from 'react';
 import { getListInstructionModulesQueryKey, useListInstructionModules } from '@/api/generated/api';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
+import { EmptyState } from '@/components/empty-state';
 import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
 
 import {
@@ -159,31 +160,24 @@ export function InstructionLibrary({
           </>
         }
         empty={
-          <div data-testid="instruction-empty">
-            {archived ? (
-              <>
-                <Archive className="mx-auto mb-4 size-8 text-muted-foreground" aria-hidden="true" />
-                <h3 className="text-base font-medium">
-                  {`Nicio instrucțiune proprie ${label} arhivată`}
-                </h3>
-                <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-                  Instrucțiunile arhivate vor apărea aici. Le poți reactiva oricând.
-                </p>
-              </>
-            ) : (
-              <>
-                <BookOpenText
-                  className="mx-auto mb-4 size-8 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <h3 className="text-base font-medium">{`Nicio instrucțiune proprie ${label} încă`}</h3>
-                <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
-                  Scrie câte o instrucțiune pentru fiecare activitate sau echipament, apoi aplic-o
-                  la posturile clienților tăi.
-                </p>
-              </>
-            )}
-          </div>
+          archived ? (
+            <EmptyState
+              icon={Archive}
+              title={`Nicio instrucțiune proprie ${label} arhivată`}
+              data-testid="instruction-empty"
+            >
+              Instrucțiunile arhivate vor apărea aici. Le poți reactiva oricând.
+            </EmptyState>
+          ) : (
+            <EmptyState
+              icon={BookOpenText}
+              title={`Nicio instrucțiune proprie ${label} încă`}
+              data-testid="instruction-empty"
+            >
+              Scrie câte o instrucțiune pentru fiecare activitate sau echipament, apoi aplic-o la
+              posturile clienților tăi.
+            </EmptyState>
+          )
         }
       />
       <InstructionModuleDialog editing={editing} onClose={() => setEditing(null)} />

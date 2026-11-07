@@ -26,6 +26,8 @@ import { EditorPlaceholder } from './editor-placeholder';
 import { pdfOf, pdfOfRevision, usePrint } from './print';
 
 const DocumentEditor = lazy(() => import('./document-editor'));
+const issuedNote =
+  'Un document emis nu se mai schimbă. „Modifică” pornește din el o ciornă nouă, iar el rămâne în vigoare până o emiți.';
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 type Loaded = { revisionId: string; bytes: Uint8Array; fileName: string };
@@ -242,11 +244,24 @@ export function DocumentEditorView({
 
   const actions = (
     <div className="flex flex-wrap items-center gap-2 max-sm:flex-1">
-      <Badge variant={editable ? 'secondary' : 'default'} data-testid="editor-state">
+      <Badge
+        variant={editable ? 'secondary' : 'default'}
+        data-testid="editor-state"
+        title={canStartDraft ? issuedNote : undefined}
+      >
         {document.draft
           ? `Ciornă · rev. ${document.draft.revision}`
           : `Emis · rev. ${revision.revision}`}
       </Badge>
+      {readOnly && (
+        <Badge
+          variant="outline"
+          data-testid="editor-read-only"
+          title="Clientul este arhivat: documentul poate fi doar citit."
+        >
+          Client arhivat
+        </Badge>
+      )}
       {editable && (
         <span
           data-testid="editor-saved-state"
@@ -279,6 +294,7 @@ export function DocumentEditorView({
         <Button
           size="sm"
           data-testid="editor-start-draft"
+          title={issuedNote}
           disabled={startDraft.isPending}
           onClick={() => void startDraftFromIssued()}
         >
@@ -302,13 +318,6 @@ export function DocumentEditorView({
 
   return (
     <div data-testid="document-editor-page" className="flex min-h-0 flex-1 flex-col gap-3">
-      {!editable && (
-        <p role="status" className="shrink-0 text-sm text-muted-foreground">
-          {readOnly
-            ? 'Clientul este arhivat: documentul poate fi doar citit.'
-            : 'Un document emis nu se mai schimbă. „Modifică” pornește din el o ciornă nouă, iar el rămâne în vigoare până o emiți.'}
-        </p>
-      )}
       {startError && (
         <Notice variant="destructive" data-testid="editor-start-draft-error">
           Nu am putut porni o ciornă nouă. Verifică conexiunea și încearcă din nou.

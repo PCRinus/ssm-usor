@@ -310,6 +310,36 @@ describe('toClientPayload', () => {
     expect(payload.quality.client).toEqual({ changed: 0, unticked: 0, kept: 0 });
   });
 
+  it("takes the member's VAT registration over ANAF's, and ANAF's for the CUI it registers", () => {
+    const registeredCompany = {
+      cui: '12345674',
+      legalName: 'BRUTĂRIA FICTIVĂ S.R.L.',
+      vatPayer: true,
+      inactive: false,
+    };
+    const payloadWith = (fields: Record<string, { value: string }>, cui?: string) =>
+      toClientPayload({
+        proposal: proposalOf(reading()),
+        changes: {
+          fields: { ...fields, ...(cui ? { 'client.cui': { value: cui } } : {}) },
+          items: {},
+        },
+        intoExistingClient: false,
+        existing: noExistingRecords,
+        registeredCompany,
+      }).payload.client;
+
+    expect(payloadWith({})).toMatchObject({ vat_payer: true });
+    expect(payloadWith({ 'client.vatPayer': { value: 'false' } })).toMatchObject({
+      vat_payer: false,
+    });
+    expect(payloadWith({}, '1590082')).not.toHaveProperty('vat_payer');
+    expect(payloadWith({ 'client.vatPayer': { value: 'true' } }, '1590082')).toMatchObject({
+      cui: '1590082',
+      vat_payer: true,
+    });
+  });
+
   it('applies what the member chose, wrote, ticked and unticked, and counts it without values', () => {
     const proposal = proposalOf(reading());
     const { payload, blockers } = toClientPayload({

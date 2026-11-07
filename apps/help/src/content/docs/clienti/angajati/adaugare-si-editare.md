@@ -81,7 +81,7 @@ Formularul lucrătorului e același când adaugi pe cineva și când corectezi c
 
 ## Adăugarea unui lucrător
 
-Din tabul **Lucrători** al clientului alege **Adaugă lucrător**. Angajatorul e clientul din care ai pornit și nu se poate schimba; pentru alt angajator, revino la lista de clienți.
+Din tabul **Lucrători** al clientului alege **Adaugă lucrător** (la un client fără lucrători, **Adaugă primul lucrător**, în locul listei). Angajatorul e clientul din care ai pornit și nu se poate schimba; pentru alt angajator, revino la lista de clienți.
 
 Obligatorii sunt:
 

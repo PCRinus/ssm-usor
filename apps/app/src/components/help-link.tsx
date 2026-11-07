@@ -3,7 +3,7 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { CircleHelp } from 'lucide-react';
 import type { ComponentProps, MouseEvent, ReactNode } from 'react';
 
-import { captureHelpOpened, helpHref, helpTarget } from '@/lib/help';
+import { captureHelpOpened, helpHref, helpTarget, openHelpTab } from '@/lib/help';
 
 type HelpLinkProps = Omit<ComponentProps<'a'>, 'href' | 'target' | 'children' | 'title'> & {
   topic: HelpTopic;
@@ -22,6 +22,7 @@ export function HelpLink({ topic, label, children, className, onClick, ...props 
       onClick={(event: MouseEvent<HTMLAnchorElement>) => {
         captureHelpOpened(topic);
         onClick?.(event);
+        openHelpTab(event);
       }}
       className={cn(
         'rounded-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',

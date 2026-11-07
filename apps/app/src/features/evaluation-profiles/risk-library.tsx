@@ -13,6 +13,7 @@ import {
 } from '@/api/generated/api';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
+import { EmptyState } from '@/components/empty-state';
 import { HelpLink } from '@/components/help-link';
 import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
 
@@ -188,32 +189,24 @@ export function RiskLibrary({ search, userId }: { search: RiskLibrarySearch; use
             </>
           }
           empty={
-            <div data-testid="risk-library-empty">
-              {archived ? (
-                <>
-                  <Archive
-                    className="mx-auto mb-4 size-8 text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                  <h3 className="text-base font-medium">Nicio evaluare arhivată</h3>
-                  <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-                    Evaluările arhivate vor apărea aici. Le poți reactiva oricând.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <Library
-                    className="mx-auto mb-4 size-8 text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                  <h3 className="text-base font-medium">Nicio evaluare încă</h3>
-                  <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-                    Salvează fișa de evaluare a unui post de la un client cu „Salvează în
-                    bibliotecă” sau pornește o evaluare goală cu „Evaluare nouă”.
-                  </p>
-                </>
-              )}
-            </div>
+            archived ? (
+              <EmptyState
+                icon={Archive}
+                title="Nicio evaluare arhivată"
+                data-testid="risk-library-empty"
+              >
+                Evaluările arhivate vor apărea aici. Le poți reactiva oricând.
+              </EmptyState>
+            ) : (
+              <EmptyState
+                icon={Library}
+                title="Nicio evaluare încă"
+                data-testid="risk-library-empty"
+              >
+                Salvează fișa de evaluare a unui post de la un client cu „Salvează în bibliotecă”
+                sau pornește o evaluare goală cu „Evaluare nouă”.
+              </EmptyState>
+            )
           }
         />
       </div>
