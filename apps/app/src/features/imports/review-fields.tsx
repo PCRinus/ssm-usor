@@ -12,7 +12,7 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Check, Copy, Split } from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { type Resolver, useForm, type UseFormReturn } from 'react-hook-form';
 import { z } from 'zod';
 
 import { Field } from '@/components/form-field';
@@ -457,6 +457,9 @@ function fieldKey(path: string) {
   return isClientField(path) ? path.split('.')[1]! : path.replace('.', '__');
 }
 
+// Client fields by their own name, the others by `fieldKey`.
+type GroupValues = ClientFormValues & Record<string, string | boolean>;
+
 function GroupForm({
   paths,
   context,
@@ -466,34 +469,32 @@ function GroupForm({
   context: FieldContext;
   onDone: () => void;
 }) {
-  const defaults: Record<string, string> = { ...emptyClientForm } as unknown as Record<
-    string,
-    string
-  >;
+  const defaults: GroupValues = { ...emptyClientForm };
   for (const path of paths) {
     const value = context.states[path]?.value;
     const text = value === null || value === undefined ? '' : String(value);
     defaults[fieldKey(path)] = path === 'client.cui' ? (normalizeCui(text)?.cui ?? text) : text;
   }
   const withVatPayer = paths.includes('client.cui') && !context.existingClient;
-  if (withVatPayer) (defaults as Record<string, unknown>).vatPayer = context.vatPayer;
-  const form = useForm<Record<string, string>>({
+  if (withVatPayer) defaults.vatPayer = context.vatPayer;
+  const form = useForm<GroupValues>({
+    // The schema is picked per group at run time, so its inferred type cannot name the group's keys.
     resolver: zodResolver(
       withVatPayer ? formSchema(paths).extend({ vatPayer: z.boolean() }) : formSchema(paths)
-    ) as never,
+    ) as unknown as Resolver<GroupValues>,
     defaultValues: defaults,
   });
-  const clientForm = form as unknown as Parameters<typeof RegistrationFields>[0]['form'];
+  const clientForm: UseFormReturn<ClientFormValues> = form;
   const has = (...names: string[]) => names.every((name) => paths.includes(`client.${name}`));
   const errors = form.formState.errors;
   const onSubmit = form.handleSubmit((values) => {
     saveValues(
       context,
-      Object.fromEntries(paths.map((path) => [path, values[fieldKey(path)] ?? '']))
+      Object.fromEntries(paths.map((path) => [path, String(values[fieldKey(path)] ?? '')]))
     );
     if (withVatPayer) {
-      const typed = normalizeCui(values.cui ?? '');
-      saveVatPayer(context, Boolean(values.vatPayer) || Boolean(typed?.vatPrefix), typed?.cui);
+      const typed = normalizeCui(values.cui);
+      saveVatPayer(context, values.vatPayer || Boolean(typed?.vatPrefix), typed?.cui);
     }
     onDone();
   });
