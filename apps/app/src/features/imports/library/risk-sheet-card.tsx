@@ -1,15 +1,18 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
+import { Link } from '@tanstack/react-router';
 import {
+  BookOpen,
   BriefcaseBusiness,
   GitCompare,
   ListChecks,
   type LucideIcon,
   Plus,
+  Undo2,
   UserRound,
   UsersRound,
 } from 'lucide-react';
-import { useId, useState } from 'react';
+import { type ReactNode, useId, useState } from 'react';
 
 import { roCount } from '@/features/employees/employee-format';
 
@@ -17,7 +20,7 @@ import type { LabelledSource } from '../review-model';
 import { SourceButton, Tag } from '../review-parts';
 import { DecisionRow, PendingNote, RenameRow, Segmented, type Tone } from './decision-row';
 import { RiskDifferences } from './risk-differences';
-import { RiskFactorRows } from './risk-factor-rows';
+import { FactorRow, RiskFactorRows } from './risk-factor-rows';
 import { RiskPlanRows } from './risk-plan-rows';
 import {
   type ExistingChoice,
@@ -28,14 +31,20 @@ import {
   kindLabels,
   type LibraryChoice,
   libraryChoiceLabels,
-  libraryOutcome,
+  type LibraryName,
+  nameNote,
+  nameSuggestions,
   needsCheck,
   pendingLine,
   pendingOf,
+  removedByMember,
   type RiskSheet,
   type SheetChange,
   sheetFlagText,
   type SheetState,
+  similarCounts,
+  takenNameProblem,
+  usedOutcome,
   withField,
 } from './risks-model';
 
@@ -50,7 +59,12 @@ const existingOptions = (['append', 'replace', 'keep'] as const).map((value) => 
   label: existingChoiceLabels[value],
 }));
 
-const nameProblem = (name: string) =>
+const libraryOptions = (['use_existing', 'add_new'] as const).map((value) => ({
+  value,
+  label: libraryChoiceLabels[value],
+}));
+
+const lengthProblem = (name: string) =>
   name.trim().length < 2
     ? 'Numele are cel puțin 2 caractere.'
     : name.trim().length > 160
@@ -75,6 +89,7 @@ function statusTag(state: SheetState) {
   const { sheet } = state;
   if (sheet.copyOf !== null) return <Tag tone="muted">La fel ca alta din pachet</Tag>;
   if (sheet.factors.length === 0) return <Tag tone="destructive">Fără factori</Tag>;
+  if (state.posts === null) return <Tag tone="muted">Doar la client</Tag>;
   if (sheet.status === 'identical') return <Tag tone="success">În biblioteca ta</Tag>;
   if (sheet.status === 'similar') return <Tag tone="warning">Asemănătoare</Tag>;
   return <Tag tone="info">Nouă</Tag>;
@@ -86,8 +101,11 @@ export function RiskSheetCard({
   readOnly,
   nameTaken,
   refused,
+  libraryNames,
+  packNames,
   onSheet,
   onToggleFactor,
+  onSetIncluded,
   onEditFactor,
   onPickPosts,
   onSource,
@@ -97,8 +115,12 @@ export function RiskSheetCard({
   readOnly: boolean;
   nameTaken: boolean;
   refused: ReadonlySet<string>;
+  libraryNames: readonly LibraryName[];
+  // The names the pack's other new entries take.
+  packNames: readonly string[];
   onSheet: (change: (current: SheetChange) => SheetChange) => void;
   onToggleFactor: (factor: FactorState, included: boolean) => void;
+  onSetIncluded: (factors: readonly FactorState[], included: boolean) => void;
   onEditFactor: (factor: FactorState) => void;
   onPickPosts: () => void;
   onSource: (source: LabelledSource) => void;
@@ -107,13 +129,16 @@ export function RiskSheetCard({
   const { sheet } = state;
   const [comparing, setComparing] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [removedOpen, setRemovedOpen] = useState(true);
   const pending = readOnly ? [] : pendingOf(state, nameTaken);
   const ask = (open: boolean): Tone => (!readOnly && open ? 'todo' : 'done');
   const Icon = kindIcons[sheet.kind];
   const unread = sheet.factors.length === 0;
   const swapped = sheet.flags.find((flag) => flag.kind === 'classes_swapped');
   const textFlags = sheet.flags.filter((flag) => flag.kind !== 'classes_swapped');
-  const attention = state.factors.filter(
+  const removed = state.factors.filter(removedByMember);
+  const active = state.factors.filter((factor) => !removedByMember(factor));
+  const attention = active.filter(
     (factor) =>
       refused.has(factor.factor.key) || (!factor.included && !factor.complete) || needsCheck(factor)
   );
@@ -122,10 +147,8 @@ export function RiskSheetCard({
   if (attention.some((factor) => !listed.has(factor.factor.key))) {
     setListed(new Set([...listed, ...attention.map((factor) => factor.factor.key)]));
   }
-  const shown = showAll
-    ? state.factors
-    : state.factors.filter((factor) => listed.has(factor.factor.key));
-  const singlePost = state.targets.length === 1;
+  const shown = showAll ? active : active.filter((factor) => listed.has(factor.factor.key));
+  const folded = !showAll && active.some((factor) => !listed.has(factor.factor.key));
   const sheetSource: LabelledSource = { file: sheet.file, quote: sheet.heading };
 
   const pickLibrary = (choice: LibraryChoice) =>
@@ -145,7 +168,7 @@ export function RiskSheetCard({
       data-key={sheet.key}
       data-status={sheet.copyOf !== null ? 'copy' : (sheet.status ?? 'unread')}
       aria-labelledby={`${id}-heading`}
-      className="overflow-hidden rounded-xl border bg-card shadow-xs"
+      className="scroll-mt-32 overflow-hidden rounded-xl border bg-card shadow-xs"
     >
       <div className="flex flex-wrap items-center gap-x-3.5 gap-y-3 px-4 py-4 sm:flex-nowrap sm:px-5">
         <span className="flex size-10 shrink-0 items-center justify-center self-start rounded-[10px] bg-secondary sm:self-center">
@@ -227,7 +250,7 @@ export function RiskSheetCard({
                 }
               >
                 <span>
-                  {singlePost ? 'Postul' : target.post.name} are deja o fișă cu{' '}
+                  {state.targets.length === 1 ? 'Postul' : target.post.name} are deja o fișă cu{' '}
                   {factorsLabel(target.existing)}.
                 </span>
                 <span className="text-[13px] text-muted-foreground">
@@ -266,36 +289,20 @@ export function RiskSheetCard({
             state={state}
             original={original}
             readOnly={readOnly}
+            nameTaken={nameTaken}
+            libraryNames={libraryNames}
+            packNames={packNames}
             comparing={comparing}
             onCompare={() => setComparing((open) => !open)}
             name={`${id}-library`}
             tone={ask(pending.includes('library'))}
             onPick={pickLibrary}
+            onRename={(next) =>
+              onSheet((current) =>
+                withField(current, 'libraryName', next === sheet.libraryName ? undefined : next)
+              )
+            }
           />
-
-          {sheet.copyOf === null &&
-            sheet.status !== 'identical' &&
-            (state.choice === 'add' || state.choice === 'add_new') && (
-              <RenameRow
-                label="Numele în bibliotecă"
-                value={state.libraryName}
-                written={null}
-                error={
-                  nameTaken
-                    ? 'Biblioteca are deja o evaluare cu acest nume. Schimbă-l ca să o poți adăuga.'
-                    : null
-                }
-                editable={!readOnly}
-                validate={nameProblem}
-                testIdPrefix="risk-import-sheet"
-                field="name"
-                onCommit={(next) =>
-                  onSheet((current) =>
-                    withField(current, 'libraryName', next === sheet.libraryName ? undefined : next)
-                  )
-                }
-              />
-            )}
 
           <DecisionRow
             tone="done"
@@ -326,23 +333,43 @@ export function RiskSheetCard({
             label="Factorii"
             testId="risk-import-factors-row"
             actions={
-              <Button
-                type="button"
-                variant="outline"
-                data-testid="risk-import-show-factors"
-                aria-expanded={showAll}
-                onClick={() => setShowAll((open) => !open)}
-              >
-                <ListChecks aria-hidden="true" />
-                {showAll
-                  ? listed.size > 0
-                    ? 'Arată doar ce e de verificat'
-                    : 'Ascunde factorii'
-                  : `Arată toți cei ${sheet.factors.length}`}
-              </Button>
+              active.length === 0 ? (
+                !readOnly && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    data-testid="risk-import-restore-all"
+                    onClick={() => onSetIncluded(removed, true)}
+                  >
+                    <Undo2 aria-hidden="true" />
+                    {removed.length === 1 ? 'Pune-l înapoi' : 'Pune-i înapoi pe toți'}
+                  </Button>
+                )
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  data-testid="risk-import-show-factors"
+                  aria-expanded={showAll}
+                  onClick={() => setShowAll((open) => !open)}
+                >
+                  <ListChecks aria-hidden="true" />
+                  {showAll
+                    ? listed.size > 0
+                      ? 'Arată doar ce e de verificat'
+                      : 'Ascunde factorii'
+                    : `Arată toți cei ${active.length}`}
+                </Button>
+              )
             }
           >
-            <span data-testid="risk-import-factors-summary">{factorsLine(state)}</span>
+            <span data-testid="risk-import-factors-summary">
+              {active.length === 0
+                ? removed.length === 1
+                  ? 'Ai scos singurul factor.'
+                  : `Ai scos toți cei ${removed.length} factori.`
+                : factorsLine(state, removed.length)}
+            </span>
             {swapped && (
               <span
                 className="text-[13px] font-medium text-warning-foreground"
@@ -351,7 +378,7 @@ export function RiskSheetCard({
                 {sheetFlagText(swapped)}
               </span>
             )}
-            {listed.size > 0 && !showAll && (
+            {listed.size > 0 && folded && (
               <span className="text-[13px] text-muted-foreground">
                 Mai jos sunt doar cei de verificat.
               </span>
@@ -368,6 +395,49 @@ export function RiskSheetCard({
               onSource={onSource}
             />
           )}
+          {removed.length > 0 && (
+            <section aria-labelledby={`${id}-removed`} data-testid="risk-import-removed">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border/70 bg-muted/45 px-4 py-2 sm:px-5">
+                <h4 id={`${id}-removed`} className="text-sm font-medium">
+                  Scoși de tine
+                </h4>
+                <Tag tone="muted">{removed.length}</Tag>
+                <span className="text-[13px] text-muted-foreground">
+                  {state.posts === null
+                    ? 'Nu ajung pe fișa clientului.'
+                    : 'Nu intră nici în bibliotecă, nici pe fișa postului.'}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="ml-auto"
+                  aria-expanded={removedOpen}
+                  data-testid="risk-import-removed-toggle"
+                  onClick={() => setRemovedOpen((open) => !open)}
+                >
+                  {removedOpen ? 'Ascunde-i' : 'Arată-i'}
+                </Button>
+              </div>
+              {removedOpen && (
+                <ul>
+                  {removed.map((factor) => (
+                    <FactorRow
+                      key={factor.factor.key}
+                      state={factor}
+                      sheetFile={sheet.file}
+                      readOnly={readOnly}
+                      refused={false}
+                      removed
+                      onToggle={(included) => onToggleFactor(factor, included)}
+                      onEdit={() => onEditFactor(factor)}
+                      onSource={onSource}
+                    />
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
           <RiskPlanRows
             state={state}
             readOnly={readOnly}
@@ -381,15 +451,12 @@ export function RiskSheetCard({
   );
 }
 
-function factorsLine(state: SheetState) {
+function factorsLine(state: SheetState, removed: number) {
   const taken = state.factors.filter((factor) => factor.included && factor.complete).length;
   const parts = [roCount(taken, 'preluat', 'preluați')];
   if (state.toCheck > 0) parts.push(`${state.toCheck} de verificat`);
   if (state.incomplete > 0) parts.push(roCount(state.incomplete, 'incomplet', 'incompleți'));
-  const otherLeftOut = state.leftOut - state.incomplete;
-  if (otherLeftOut > 0) {
-    parts.push(roCount(otherLeftOut, 'lăsat deoparte de tine', 'lăsați deoparte de tine'));
-  }
+  if (removed > 0) parts.push(roCount(removed, 'scos de tine', 'scoși de tine'));
   return parts.join(', ');
 }
 
@@ -414,6 +481,9 @@ function ClientRow({
           {sheet.kind === 'sensitive_groups'
             ? 'Fișa grupurilor sensibile'
             : `Fișa „${sheet.name}”, în afara posturilor`}
+        </span>
+        <span className="text-[13px] text-muted-foreground" data-testid="risk-import-client-only">
+          Nu ține de un post, așa că rămâne doar la client și nu intră în bibliotecă.
         </span>
       </DecisionRow>
     );
@@ -487,24 +557,49 @@ function ClientRow({
   );
 }
 
+const strong = (value: ReactNode) => <strong className="font-semibold">{value}</strong>;
+
+function LibraryLink({ id, children }: { id: string; children: ReactNode }) {
+  return (
+    <Link
+      to="/evaluari-de-risc/$profileId"
+      params={{ profileId: id }}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="w-fit text-[13px] font-medium text-foreground underline underline-offset-4 hover:text-primary"
+      data-testid="risk-import-library-link"
+    >
+      {children}
+    </Link>
+  );
+}
+
 function LibraryRows({
   state,
   original,
   readOnly,
+  nameTaken,
+  libraryNames,
+  packNames,
   comparing,
   onCompare,
   name,
   tone,
   onPick,
+  onRename,
 }: {
   state: SheetState;
   original: RiskSheet | null;
   readOnly: boolean;
+  nameTaken: boolean;
+  libraryNames: readonly LibraryName[];
+  packNames: readonly string[];
   comparing: boolean;
   onCompare: () => void;
   name: string;
   tone: Tone;
   onPick: (choice: LibraryChoice) => void;
+  onRename: (name: string) => void;
 }) {
   const { sheet } = state;
   if (sheet.copyOf !== null) {
@@ -516,71 +611,164 @@ function LibraryRows({
       </DecisionRow>
     );
   }
+  if (state.posts === null) return null;
   if (sheet.status === 'identical' && sheet.match) {
     return (
-      <DecisionRow tone="done" label="În bibliotecă" testId="risk-import-library">
-        <span>
-          E deja în biblioteca ta: <strong className="font-semibold">{sheet.match.name}</strong>.
+      <DecisionRow
+        tone="done"
+        label="În bibliotecă"
+        testId="risk-import-library"
+        actions={
+          <Button asChild variant="outline">
+            <Link
+              to="/evaluari-de-risc/$profileId"
+              params={{ profileId: sheet.match.evaluationId }}
+              target="_blank"
+              data-testid="risk-import-library-open"
+            >
+              <BookOpen aria-hidden="true" />
+              Deschide în bibliotecă
+            </Link>
+          </Button>
+        }
+      >
+        <span data-testid="risk-import-library-outcome">
+          Folosește evaluarea din bibliotecă: {strong(sheet.match.name)}.
         </span>
         <span className="text-[13px] text-muted-foreground">
-          Nu o adăugăm din nou; factorii clientului se leagă de ea.
+          Are aceiași factori și aceleași clase, așa că nu adăugăm una nouă. Factorii scriși pe fișa
+          postului se leagă de ea.
         </span>
       </DecisionRow>
     );
   }
-  const options = state.options.map((value) => ({ value, label: libraryChoiceLabels[value] }));
-  const shown = state.options.includes(state.choice as LibraryChoice) ? state.choice : null;
-  return (
-    <>
-      {sheet.status === 'similar' && sheet.match && (
-        <DecisionRow
-          tone="info"
-          label="Seamănă cu"
-          testId="risk-import-similar"
-          actions={
-            <Button
-              type="button"
-              variant="outline"
-              data-testid="risk-import-compare"
-              aria-expanded={comparing}
-              onClick={onCompare}
-            >
-              <GitCompare aria-hidden="true" />
-              {comparing ? 'Ascunde ce diferă' : 'Ce diferă'}
-            </Button>
-          }
-          below={comparing && <RiskDifferences sheet={sheet} />}
+
+  const similar = sheet.status === 'similar' && sheet.match;
+  const choice = state.options.includes(state.choice as LibraryChoice)
+    ? (state.choice as LibraryChoice)
+    : null;
+  const segmented = state.options.length > 0 && (
+    <Segmented
+      name={name}
+      label="În bibliotecă"
+      options={libraryOptions}
+      value={state.choicePicked ? choice : null}
+      disabled={readOnly}
+      testIdPrefix="risk-import-library"
+      stackOnPhone
+      onPick={onPick}
+    />
+  );
+  const similarRow = similar && (
+    <DecisionRow
+      tone="info"
+      label="Seamănă cu"
+      testId="risk-import-similar"
+      actions={
+        <Button
+          type="button"
+          variant="outline"
+          data-testid="risk-import-compare"
+          aria-expanded={comparing}
+          onClick={onCompare}
         >
-          <span>
-            Ai deja o evaluare asemănătoare:{' '}
-            <strong className="font-semibold">{sheet.match.name}</strong>
+          <GitCompare aria-hidden="true" />
+          {comparing ? 'Ascunde ce diferă' : 'Ce diferă'}
+        </Button>
+      }
+      below={comparing && <RiskDifferences sheet={sheet} />}
+    >
+      <span>Ai deja o evaluare asemănătoare: {strong(similar.name)}.</span>
+      <span className="text-[13px] text-muted-foreground" data-testid="risk-import-similar-counts">
+        {similarCounts(similar)}
+      </span>
+    </DecisionRow>
+  );
+
+  if (state.written === 0) {
+    return (
+      <>
+        {similarRow}
+        <DecisionRow tone="done" label="În bibliotecă" testId="risk-import-library">
+          <span data-testid="risk-import-library-outcome">
+            Fără factori, nu intră în bibliotecă și nu ajunge pe fișa postului.
           </span>
         </DecisionRow>
-      )}
-      <DecisionRow
-        tone={tone}
-        label="În bibliotecă"
-        testId="risk-import-library"
-        actions={
-          <Segmented
-            name={name}
-            label="În bibliotecă"
-            options={options}
-            value={shown}
-            disabled={readOnly}
-            testIdPrefix="risk-import-library"
-            stackOnPhone
-            onPick={onPick}
-          />
-        }
-      >
-        <span
-          className={cn(tone === 'todo' && 'text-warning-foreground')}
-          data-testid="risk-import-library-outcome"
+      </>
+    );
+  }
+
+  if (!state.createsEntry || (state.options.length > 0 && !state.choicePicked)) {
+    return (
+      <>
+        {similarRow}
+        <DecisionRow
+          tone={tone}
+          label="În bibliotecă"
+          testId="risk-import-library"
+          actions={segmented}
         >
-          {shown ? libraryOutcome(state) : 'Alege ce faci cu ea în bibliotecă.'}
-        </span>
-      </DecisionRow>
+          <span
+            className={cn(tone === 'todo' && 'text-warning-foreground')}
+            data-testid="risk-import-library-outcome"
+          >
+            {state.choicePicked && choice === 'use_existing'
+              ? usedOutcome(state)
+              : 'Alege dacă folosești evaluarea ta sau o adaugi pe aceasta separat.'}
+          </span>
+        </DecisionRow>
+      </>
+    );
+  }
+
+  const note = nameNote(state, libraryNames);
+  const suggestions = nameSuggestions(state, libraryNames, packNames);
+  return (
+    <>
+      {similarRow}
+      <RenameRow
+        label="În bibliotecă"
+        value={state.libraryName}
+        written={null}
+        error={
+          nameTaken
+            ? 'Biblioteca are deja o evaluare cu acest nume. Schimbă-l ca să o poți adăuga.'
+            : null
+        }
+        editable={!readOnly}
+        validate={(next) =>
+          lengthProblem(next) ??
+          (next.trim() === state.libraryName
+            ? null
+            : takenNameProblem(next, libraryNames, packNames))
+        }
+        testIdPrefix="risk-import-sheet"
+        field="name"
+        testId="risk-import-library"
+        display={(value) =>
+          similar ? (
+            <>Intră separat, cu numele {strong(value)}.</>
+          ) : (
+            <>Intră ca evaluare nouă, cu numele {strong(value)}.</>
+          )
+        }
+        note={
+          note && (
+            <span
+              className="grid justify-items-start gap-1 text-[13px] text-muted-foreground"
+              data-testid="risk-import-library-name-note"
+            >
+              <span>{note.text}</span>
+              {note.entry && (
+                <LibraryLink id={note.entry.id}>Vezi pe cea din bibliotecă</LibraryLink>
+              )}
+            </span>
+          )
+        }
+        actions={segmented}
+        suggestions={suggestions}
+        onCommit={onRename}
+      />
     </>
   );
 }

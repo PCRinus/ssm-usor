@@ -395,9 +395,8 @@ export async function readRiskEvaluations(
       askForPart(deps, row, risksPart, retype)
     )
   );
-  const read = readRisksAnswer(files, withRetyped(first, later), {
-    people: [...people, ...provider.people],
-  });
+  const named = [...people, ...provider.people];
+  const read = readRisksAnswer(files, withRetyped(first, later), { people: named });
 
   const library = await deps.store.riskLibrary(row.organization_id);
   const existing = row.client_id
@@ -409,6 +408,7 @@ export async function readRiskEvaluations(
     library: library.entries,
     takenNames: library.names,
     client,
+    people: named,
     existing,
   });
   const done = await deps.store.updateLibraryPart(importId, risksPart, attempt, {

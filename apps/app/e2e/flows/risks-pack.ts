@@ -84,6 +84,7 @@ function sheet(
     kind,
     name: heading.replace(/^Fișa de evaluare( a locului de muncă)?:?\s*/u, ''),
     posts,
+    workName: null,
     rows: { first: `R${rows + 1}`, last: `R${rows + factors.length}` },
     meansOfProduction: 'Calculator, imprimantă, telefon, mobilier de birou.',
     workEnvironment: 'Spațiu închis, iluminat natural și artificial, climatizat.',

@@ -53,7 +53,14 @@ test("a pack's risk evaluations are reviewed before the client is created, confi
     page.locator(`[data-testid="risk-import-sheet"][data-key="${key}"]`);
 
   const receptionist = sheet('receptionist');
-  await expect(receptionist.getByTestId('risk-import-library-add')).toBeChecked();
+  await expect(receptionist.getByTestId('risk-import-library')).toContainText(
+    'Intră ca evaluare nouă, cu numele Recepționer.'
+  );
+  await expect(receptionist.getByTestId('risk-import-library').getByRole('radio')).toHaveCount(0);
+  await expect(sheet('visitors').getByTestId('risk-import-library')).toHaveCount(0);
+  await expect(sheet('visitors').getByTestId('risk-import-client-only')).toContainText(
+    'rămâne doar la client'
+  );
   await expect(receptionist.getByTestId('risk-import-factor-flags').first()).toContainText(
     'Nivel în document: 2, după metodă: 3'
   );
@@ -145,7 +152,7 @@ test("a pack's risk evaluations are reviewed before the client is created, confi
 
   await expect(page.getByTestId('risk-import-left')).toContainText('Ai ales tot ce era de ales.');
   await expect(page.getByTestId('library-confirm-summary')).toContainText(
-    'Când confirmi, adăugăm 3 evaluări în bibliotecă, folosim una pe care o ai deja și scriem 19 factori pe 5 fișe ale clientului.'
+    'Când confirmi, adăugăm „Recepționer”, „Cameristă” și „Ospătar room-service” în bibliotecă, folosim „Bucătar” din biblioteca ta și scriem 19 factori pe 5 fișe ale clientului.'
   );
   await expect(page.getByRole('status').filter({ hasText: 'Se salvează…' })).toHaveCount(0);
 

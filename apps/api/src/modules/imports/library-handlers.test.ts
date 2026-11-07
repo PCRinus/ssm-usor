@@ -862,11 +862,22 @@ describe('the risk evaluations part', () => {
       }
     };
 
-  it('shows the part with its sheets, their posts and the counts of sheets', async () => {
+  it('shows the part with its sheets, their posts, the counts of sheets and the library’s names', async () => {
     mockUpstream(({ url, admin }) => {
       if (url.pathname === '/rest/v1/imports') return Response.json(importRow());
       if (url.pathname === '/rest/v1/import_library_parts') {
-        return Response.json([partRow(), riskRow()]);
+        return Response.json([
+          partRow(),
+          riskRow({
+            changes: { sheets: { 'sheet-1': { library: 'skip', libraryName: 'Brutar' } } },
+          }),
+        ]);
+      }
+      if (url.pathname === '/rest/v1/evaluation_profiles') {
+        return Response.json([
+          { id: libraryEntryId, name: 'Șofer', archived_at: null },
+          { id: bakerId, name: 'Brutar', archived_at: '2026-10-01T10:00:00+00:00' },
+        ]);
       }
       if (url.pathname === '/rest/v1/risk_evaluations') {
         return Response.json([
@@ -907,7 +918,11 @@ describe('the risk evaluations part', () => {
       postReferences: { Brutar: baker!.id, Șofer: driver!.id },
       existingFactors: { jobPositions: { [bakerId]: 3, [driverId]: 0 }, sheets: { 'sheet-3': 2 } },
       credits: 15,
-      changes: null,
+      changes: { sheets: { 'sheet-1': { libraryName: 'Brutar' } } },
+      libraryNames: [
+        { id: libraryEntryId, name: 'Șofer', archived: false },
+        { id: bakerId, name: 'Brutar', archived: true },
+      ],
     });
     expect(answer.parts[1]).not.toHaveProperty('domain');
     expect(answer.parts[1]!.proposal).toEqual(risks);
@@ -971,7 +986,7 @@ describe('the risk evaluations part', () => {
       version: 3,
       changes: {
         sheets: {
-          'sheet-9': { library: 'skip' },
+          'sheet-9': { library: 'use_existing' },
           'sheet-1': { library: 'use_existing', factors: { 'sheet-1.9': { included: false } } },
         },
       },
@@ -990,11 +1005,36 @@ describe('the risk evaluations part', () => {
       issues: [
         { path: 'changes.sheets.sheet-9', message: 'unknown' },
         { path: 'changes.sheets.sheet-1.factors.sheet-1.9', message: 'unknown' },
-        { path: 'changes.sheets.sheet-1.library', message: 'no_match' },
+        { path: 'changes.sheets.sheet-1.library', message: 'no_choice' },
       ],
     });
     expect(instructions.status).toBe(400);
     expect(empty.status).toBe(400);
+    expect(callsTo('/rest/v1/rpc/save_import_library_part_changes')).toEqual([]);
+  });
+
+  it('refuses to leave a sheet out of the library, or to choose for one not similar to an entry', async () => {
+    mockUpstream(({ url }) =>
+      url.pathname === '/rest/v1/import_library_parts' ? Response.json(riskRow()) : undefined
+    );
+    const save = (sheets: Record<string, unknown>) =>
+      request(`${parts}/risk_evaluations/changes`, 'PUT', { version: 3, changes: { sheets } });
+    const retired = await Promise.all(
+      ['add', 'skip'].map((library) => save({ 'sheet-1': { library } }))
+    );
+    const notSimilar = await save({
+      'sheet-1': { library: 'add_new' },
+      'sheet-3': { library: 'add_new' },
+    });
+
+    expect(retired.map((response) => response.status)).toEqual([400, 400]);
+    expect(notSimilar.status).toBe(400);
+    expect(await notSimilar.json()).toMatchObject({
+      issues: [
+        { path: 'changes.sheets.sheet-1.library', message: 'no_choice' },
+        { path: 'changes.sheets.sheet-3.library', message: 'no_choice' },
+      ],
+    });
     expect(callsTo('/rest/v1/rpc/save_import_library_part_changes')).toEqual([]);
   });
 

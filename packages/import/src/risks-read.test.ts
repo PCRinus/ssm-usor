@@ -66,6 +66,33 @@ describe('readRisksAnswer: copying', () => {
     expect(sensitive!.kind).toBe('sensitive_groups');
     expect(visitor).toMatchObject({ kind: 'other', name: 'VIZITATOR' });
   });
+
+  it('keeps a post sheet’s name for its work, unless it names one of the client’s people', () => {
+    const named = (workName: string | null | undefined) =>
+      readRisksAnswer(
+        [assessment, plan],
+        { ...answer, sheets: [{ ...answer.sheets[0]!, workName }] },
+        {
+          people: ['Maria Ionescu'],
+        }
+      ).sheets[0]!.workName;
+
+    expect(baker!.workName).toBe('Producție de panificație');
+    expect(named('  Lucrări   de sudură ')).toBe('Lucrări de sudură');
+    expect(named('Operare CNC')).toBe('Operare CNC');
+    expect(named('Atelier Maria Ionescu')).toBeNull();
+    expect(named(null)).toBeNull();
+    expect(named(undefined)).toBeNull();
+  });
+
+  it('keeps no name for the work of a client-level sheet', () => {
+    expect(
+      readRisksAnswer([assessment, plan], {
+        ...answer,
+        sheets: [{ ...answer.sheets[3]!, workName: 'Vizite în magazin' }],
+      }).sheets[0]!.workName
+    ).toBeNull();
+  });
 });
 
 describe('readRisksAnswer: checks', () => {

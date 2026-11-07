@@ -2251,6 +2251,7 @@ describe('the risk evaluations', () => {
         kind: 'job_position',
         name: 'BRUTAR',
         posts: ['Brutar'],
+        workName: 'Producție de panificație',
         firstRow: 'R2',
         lastRow: 'R3',
         meansOfProduction: {
@@ -2314,7 +2315,8 @@ describe('the risk evaluations', () => {
       ['sensitive_groups', [], 1, 'new', 'skip'],
     ]);
     expect(proposal.sheets[0]).toMatchObject({
-      libraryName: 'Brutar',
+      libraryName: 'Producție de panificație',
+      workplace: 'Brutărie',
       meansOfProduction: 'Cuptor electric cu trei vetre și malaxor de aluat.',
     });
 

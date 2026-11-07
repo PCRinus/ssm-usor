@@ -67,6 +67,7 @@ const sheetSchema = z.object({
   kind: z.enum(riskEvaluationKinds),
   name: z.string(),
   posts: z.array(z.string()),
+  workName: z.string().nullable(),
   firstRow: z.string(),
   lastRow: z.string(),
   columns: z.object({
@@ -128,6 +129,9 @@ export interface RisksAnswer {
     name: string;
     // The proposal's posts the sheet evaluates, as the list writes them.
     posts: string[];
+    // The model's name for the work, to reuse at other employers; null when it gave none, and
+    // absent from an answer kept before the reading asked for it.
+    workName?: string | null;
     // Row ids, "R212"; "" for a sheet whose factors have no rows.
     firstRow: string;
     lastRow: string;
@@ -210,6 +214,7 @@ sheets: one per evaluation sheet ("Fișa de evaluare a locului de muncă"), in t
 - file: the path exactly as given. heading: the sheet's subchapter heading as written, with the workplace and the post ("SUBCAPITOLUL V.II. … PENTRU LOCUL DE MUNCĂ : RESTAURANT, POSTUL DE LUCRU : BUCATAR").
 - kind: sensitive_groups for the sensitive groups (grupuri sensibile: pregnant women, young people, people with disabilities); other for a sheet that evaluates no post of the client but people or an activity, such as visitors (vizitator); job_position otherwise. name: the post, the groups or the other name as the heading writes it ("BUCATAR", "GRUPURI SENSIBILE", "VIZITATOR").
 - posts: for job_position, every post of the list below that the sheet evaluates, written as the list writes it. A heading that names several posts ("DIRECTOR GENERAL, DIRECTOR COMERCIAL, CONTABIL") gives each of them that the list has. [] when the list has none of them, and for the other kinds.
+- workName: for job_position, the name an SSM specialist would give this evaluation in a library of evaluations reused at other employers: the work it evaluates, not the post's title, in Romanian with diacritics, sentence case, 2 to 5 words ("Activități de birou", "Lucrări de sudură", "Întreținere spații verzi"). Never the client's name, a person's name, a brand or an address. Every sheet gets its own: two sheets never share a name, so a name tells apart sheets whose work is alike ("Livrări cu autoutilitara", "Livrări cu bicicleta"). "" for the other kinds.
 - firstRow, lastRow: the ids of the sheet's first and last factor rows, the rows with a description and classes; never the table's title rows, its header or its row of column numbers ("| 0 | 1 | 2 | …"). "" for a sheet with no numbered rows.
 - columns: which cell of a factor row holds the component (Mijloace de producție, Mediul de muncă, Sarcina de muncă, Executant), the group of factors ("Factori de risc mecanic"), the factor's description, the maximum foreseeable consequence, the gravity class, the probability class and the printed risk level; "" when the table has no such column, and for a sheet with no numbered rows.
 - meansOfProduction, workEnvironment: the sheet's own text that describes them, in the part that defines the work system before the factor table ("2. Mijloace de producție : …", "4. Mediul de muncă : …"): startWords from its first word after the label, endWords to its last word before the next point.

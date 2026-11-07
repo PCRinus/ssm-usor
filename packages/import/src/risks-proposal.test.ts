@@ -2,7 +2,7 @@ import { riskImportChangesSchema } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
 import { riskImportPayload } from './risks-payload';
-import { entryName, proposeRisks } from './risks-proposal';
+import { entryName, proposeRisks, workplaceOf } from './risks-proposal';
 import { readRisksAnswer } from './risks-read';
 import { risksProposalSchema } from './risks-schema';
 import { answer, assessment, plan } from './test/risks-pack';
@@ -29,7 +29,11 @@ describe('proposeRisks', () => {
       { name: 'Casier', existingFactors: 0, choice: null },
     ]);
     expect(shop!.undecided).toBe(false);
-    expect(shop!.libraryName).toBe('Vânzător, casier');
+    expect(shop).toMatchObject({
+      libraryName: 'Vânzare în magazin',
+      nameFrom: 'work',
+      takenName: null,
+    });
   });
 
   it('leaves a heading that names none of the posts undecided', () => {
@@ -41,7 +45,7 @@ describe('proposeRisks', () => {
       client: { name: 'Brutăria din curte' },
     }).sheets;
 
-    expect(sheet).toMatchObject({ posts: [], undecided: true, libraryName: 'Brutar' });
+    expect(sheet).toMatchObject({ posts: [], undecided: true });
   });
 
   it('ticks a factor only when its component and classes are known, with the grid’s level', () => {
@@ -87,12 +91,14 @@ describe('proposeRisks', () => {
 
   it('proposes the client’s name after a name the library has, and leaves a post with factors as it is', () => {
     const named = propose({
-      takenNames: ['Brutar'],
+      takenNames: ['Producție de panificație'],
       existing: { posts: { Brutar: 18 }, other: { Vizitator: 2 } },
     });
 
     expect(named.sheets[0]).toMatchObject({
-      libraryName: 'Brutar (Brutăria din curte)',
+      libraryName: 'Producție de panificație (Brutăria din curte)',
+      nameFrom: 'work',
+      takenName: 'Producție de panificație',
       posts: [{ name: 'Brutar', existingFactors: 18, choice: 'keep' }],
     });
     expect(named.sheets[3]!.existing).toEqual({ factors: 2, choice: 'keep' });
@@ -133,7 +139,7 @@ describe('proposeRisks', () => {
       read: {
         ...read,
         sheets: [
-          { ...read.sheets[0]!, posts: [], name: long },
+          { ...read.sheets[0]!, heading: long, workName: null, posts: [], name: long },
           { ...read.sheets[3]!, name: 'X' },
         ],
       },
@@ -144,6 +150,87 @@ describe('proposeRisks', () => {
     expect(named.sheets[0]!.libraryName).toMatch(/ \(Brutăria din curte .*\)$/);
     expect(named.sheets[0]!.libraryName.length).toBeLessThanOrEqual(160);
     expect(named.sheets[1]!.libraryName).toMatch(/^Subcapitolul v\.iv\. evaluarea riscurilor/);
+  });
+
+  it('names a post’s entry by the model’s name for its work, then the workplace, then the post', () => {
+    const baker = read.sheets[0]!;
+    const named = (sheet: Partial<typeof baker>) => {
+      const [proposed] = propose({ read: { ...read, sheets: [{ ...baker, ...sheet }] } }).sheets;
+      return [proposed!.libraryName, proposed!.nameFrom];
+    };
+
+    expect(named({})).toEqual(['Producție de panificație', 'work']);
+    expect(named({ workName: null })).toEqual(['Brutărie', 'workplace']);
+    expect(named({ workName: null, heading: 'SUBCAPITOLUL V.I. BRUTAR' })).toEqual([
+      'Brutar',
+      'post',
+    ]);
+    expect(
+      named({
+        workName: null,
+        heading: 'V.I. BRUTAR, PATISER',
+        name: 'BRUTAR , PATISER',
+        posts: [],
+      })
+    ).toEqual(['Brutar, patiser', 'heading']);
+    expect(named({ workName: 'PANIFICAȚIE INDUSTRIALĂ' })).toEqual([
+      'Panificație industrială',
+      'work',
+    ]);
+  });
+
+  it('passes over a name that names the client', () => {
+    const [sheet] = propose({
+      read: { ...read, sheets: [{ ...read.sheets[0]!, workName: 'Brutăria din curte' }] },
+      client: { name: 'S.C. Brutăria din curte S.R.L.' },
+    }).sheets;
+
+    expect(sheet).toMatchObject({ libraryName: 'Brutărie', workName: null, workplace: 'Brutărie' });
+  });
+
+  it('passes over a workplace that names one of the client’s people', () => {
+    const [sheet] = propose({
+      read: {
+        ...read,
+        sheets: [
+          {
+            ...read.sheets[0]!,
+            workName: null,
+            heading: 'PENTRU LOCUL DE MUNCĂ: ATELIER ION POPESCU, POSTUL DE LUCRU: BRUTAR',
+          },
+        ],
+      },
+      people: ['Ion Popescu'],
+    }).sheets;
+
+    expect(sheet).toMatchObject({ libraryName: 'Brutar', nameFrom: 'post', workplace: null });
+  });
+
+  it('shows the work’s name, the workplace and the posts the default comes from', () => {
+    expect(baker).toMatchObject({
+      workName: 'Producție de panificație',
+      workplace: 'Brutărie',
+      posts: [{ name: 'Brutar' }],
+    });
+    expect(shop).toMatchObject({ workName: 'Vânzare în magazin', workplace: 'Magazin' });
+  });
+
+  it('keeps the sensitive groups’ and a client-level sheet’s names whatever their workplace', () => {
+    expect([sensitive!.libraryName, visitor!.libraryName]).toEqual([
+      'Grupuri sensibile',
+      'Vizitator',
+    ]);
+    expect(visitor!.workplace).toBe('Magazin');
+  });
+
+  it('tells apart two sheets the model gave one name', () => {
+    const sheets = [read.sheets[0]!, { ...read.sheets[1]!, workName: 'Producție de panificație' }];
+    const named = propose({ read: { ...read, sheets } }).sheets.map((sheet) => sheet.libraryName);
+
+    expect(named).toEqual([
+      'Producție de panificație',
+      'Producție de panificație (Brutăria din curte)',
+    ]);
   });
 
   it('stores as its schema says', () => {
@@ -158,6 +245,47 @@ describe('proposeRisks', () => {
     }
 
     expect(risksProposalSchema.parse(stored).unmatchedPlanRows[0]).not.toHaveProperty('factor');
+  });
+
+  it('reads a proposal stored before the reading suggested names', () => {
+    const stored = JSON.parse(JSON.stringify(proposal)) as typeof proposal;
+    for (const sheet of stored.sheets) {
+      delete sheet.workName;
+      delete sheet.workplace;
+    }
+
+    expect(risksProposalSchema.parse(stored).sheets[0]).not.toHaveProperty('workplace');
+  });
+});
+
+describe('workplaceOf', () => {
+  it('reads the workplace a heading names, before its post', () => {
+    expect(
+      workplaceOf(
+        'SUBCAPITOLUL V.I. EVALUAREA RISCURILOR PENTRU LOCUL DE MUNCĂ : BIROU, POSTUL DE LUCRU : CONTABIL'
+      )
+    ).toBe('Birou');
+    expect(workplaceOf('LOCUL DE MUNCĂ: SPĂLĂTORIE AUTO POSTUL DE LUCRU: SPĂLĂTOR')).toBe(
+      'Spălătorie auto'
+    );
+    expect(
+      workplaceOf('PENTRU LOCUL DE MUNCĂ : DEPOZIT ,RAMPĂ , POSTUL DE LUCRU : MANIPULANT')
+    ).toBe('Depozit, rampă');
+  });
+
+  it('reads it with or without diacritics, in any case, and with no post after it', () => {
+    expect(workplaceOf('LOCUL DE MUNCA : MAGAZIN ; POSTUL DE LUCRU : VANZATOR')).toBe('Magazin');
+    expect(workplaceOf('LOCUL DE MUNCǍ : ATELIER TÂMPLĂRIE')).toBe('Atelier tâmplărie');
+    expect(workplaceOf('Loc de muncă: Atelier de tâmplărie, post de lucru: tâmplar')).toBe(
+      'Atelier de tâmplărie'
+    );
+  });
+
+  it('reads none from a heading that names no workplace', () => {
+    expect(
+      workplaceOf('SUBCAPITOLUL V.III. EVALUAREA RISCURILOR PENTRU GRUPURI SENSIBILE')
+    ).toBeNull();
+    expect(workplaceOf('LOCUL DE MUNCĂ : , POSTUL DE LUCRU : CURIER')).toBeNull();
   });
 });
 
@@ -189,8 +317,8 @@ describe('riskImportPayload', () => {
 
     expect(issues).toEqual([]);
     expect(payload.entries.map((entry) => [entry.key, entry.name, entry.factors.length])).toEqual([
-      ['sheet-1', 'Brutar', 6],
-      ['sheet-2', 'Vânzător, casier', 3],
+      ['sheet-1', 'Producție de panificație', 6],
+      ['sheet-2', 'Vânzare în magazin', 3],
     ]);
     expect(payload.entries[0]!.factors[1]!.responsible_person).toBeNull();
     const bakerSheet = payload.evaluations.find((evaluation) => evaluation.sheet === 'sheet-1')!;
@@ -226,7 +354,6 @@ describe('riskImportPayload', () => {
     const changes = riskImportChangesSchema.parse({
       sheets: {
         'sheet-1': {
-          library: 'skip',
           postChoices: {},
           factors: { 'sheet-1.7': { probabilityClass: 4 }, 'sheet-1.1': { included: false } },
         },
@@ -241,15 +368,74 @@ describe('riskImportPayload', () => {
       existing: { jobPositions: { 'jp-brutar': 18, 'jp-vanzator': 4 } },
     });
 
-    expect(payload.entries.map((entry) => entry.key)).toEqual(['sheet-2']);
+    expect(payload.entries.map((entry) => [entry.key, entry.factors.length])).toEqual([
+      ['sheet-1', 5],
+      ['sheet-2', 3],
+    ]);
     expect(payload.evaluations.map((evaluation) => [evaluation.sheet, evaluation.mode])).toEqual([
       ['sheet-2', 'replace'],
       ['sheet-3', 'append'],
       ['sheet-4', 'append'],
     ]);
-    expect(payload.evaluations[1]!.factors.map((factor) => factor.source)).toEqual(
-      Array(6).fill(null)
-    );
+    expect(payload.evaluations[1]!.factors.map((factor) => factor.source)).toEqual([
+      null,
+      ...[2, 3, 4, 5, 6].map((index) => ({ entry: 'sheet-1', factor: `sheet-1.${index}` })),
+    ]);
+  });
+
+  it('adds a post’s sheet stored as left out of the library, and never a client-level one', () => {
+    const stored = {
+      ...proposal,
+      sheets: proposal.sheets.map((sheet) =>
+        sheet.key === 'sheet-1' ? { ...sheet, choice: 'skip' as const } : sheet
+      ),
+    };
+    const { payload } = riskImportPayload({
+      proposal: stored,
+      changes: riskImportChangesSchema.parse({ sheets: { 'sheet-4': { library: 'add_new' } } }),
+      posts,
+      postReferences,
+    });
+
+    expect(payload.entries.map((entry) => entry.key)).toEqual(['sheet-1', 'sheet-2']);
+  });
+
+  it('never links a client-level sheet to the library, even one identical to an entry', () => {
+    const stored = {
+      ...proposal,
+      sheets: proposal.sheets.map((sheet) =>
+        sheet.key === 'sheet-4'
+          ? {
+              ...sheet,
+              status: 'identical' as const,
+              choice: 'use_existing' as const,
+              match: {
+                evaluationId: 'entry-visitors',
+                name: 'Vizitatori',
+                share: 1,
+                pairs: sheet.factors.map((factor) => ({
+                  factor: factor.key,
+                  libraryFactor: `library-${factor.key}`,
+                  similarity: 1,
+                  otherClasses: false,
+                  otherMeasures: false,
+                })),
+                onlyInPack: [],
+                onlyInLibrary: [],
+              },
+            }
+          : sheet
+      ),
+    };
+    const { payload } = riskImportPayload({
+      proposal: stored,
+      changes: null,
+      posts,
+      postReferences,
+    });
+
+    const visitors = payload.evaluations.find((evaluation) => evaluation.sheet === 'sheet-4')!;
+    expect(visitors.factors.map((factor) => factor.source)).toEqual([null]);
   });
 
   it('leaves a factor without a group unticked, and refuses it ticked', () => {

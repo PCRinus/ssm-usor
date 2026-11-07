@@ -1,7 +1,7 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { Info, Pencil, TriangleAlert } from 'lucide-react';
+import { Info, Pencil, TriangleAlert, Undo2 } from 'lucide-react';
 
 import { measureCountLabel } from '@/features/risk-evaluations/factor-list';
 import { componentLabels } from '@/features/risk-evaluations/risk-evaluation-schema';
@@ -53,11 +53,12 @@ function planLine(state: FactorState) {
     .join(' · ');
 }
 
-function FactorRow({
+export function FactorRow({
   state,
   sheetFile,
   readOnly,
   refused,
+  removed = false,
   onToggle,
   onEdit,
   onSource,
@@ -66,6 +67,8 @@ function FactorRow({
   sheetFile: string;
   readOnly: boolean;
   refused: boolean;
+  // Listed under "Scoși de tine", where it can only be put back.
+  removed?: boolean;
   onToggle: (included: boolean) => void;
   onEdit: () => void;
   onSource: (source: LabelledSource) => void;
@@ -150,13 +153,28 @@ function FactorRow({
         )}
       </div>
       <RowActions className="col-span-3 sm:col-span-1 sm:flex-nowrap">
-        <SourceButton
-          outlined
-          label="Vezi în document"
-          sources={[source]}
-          onOpen={() => onSource(source)}
-        />
-        {!readOnly && (
+        {removed ? (
+          !readOnly && (
+            <Button
+              type="button"
+              variant="outline"
+              data-testid="risk-import-factor-restore"
+              aria-label={`Pune înapoi factorul ${state.description}`}
+              onClick={() => onToggle(true)}
+            >
+              <Undo2 aria-hidden="true" />
+              Pune înapoi
+            </Button>
+          )
+        ) : (
+          <SourceButton
+            outlined
+            label="Vezi în document"
+            sources={[source]}
+            onOpen={() => onSource(source)}
+          />
+        )}
+        {!readOnly && !removed && (
           <Button
             type="button"
             variant="outline"

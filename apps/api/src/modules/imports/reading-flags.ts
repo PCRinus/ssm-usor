@@ -238,8 +238,13 @@ export function risksQuality(
   const factors = { changed: 0, unticked: 0, kept: 0 };
   for (const sheet of proposal.sheets) {
     const change = changes?.sheets[sheet.key];
-    if (change?.library === 'skip' && sheet.choice !== 'skip') sheets.unticked++;
-    else if (change && definedBesides(change, 'factors')) sheets.changed++;
+    const proposed = sheet.factors.filter((factor) => factor.included);
+    if (
+      proposed.length > 0 &&
+      proposed.every((factor) => change?.factors?.[factor.key]?.included === false)
+    ) {
+      sheets.unticked++;
+    } else if (change && definedBesides(change, 'factors')) sheets.changed++;
     else sheets.kept++;
     for (const factor of sheet.factors) {
       const own = change?.factors?.[factor.key];

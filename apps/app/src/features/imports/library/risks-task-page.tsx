@@ -39,6 +39,7 @@ import {
 } from './library-model';
 import { ReviewNotices } from './library-task-page';
 import { PostsPickerDialog, type PostsRequest } from './posts-picker-dialog';
+import { RiskConfirmBar } from './risk-confirm-bar';
 import { PlanRowText } from './risk-plan-rows';
 import { RiskSheetCard } from './risk-sheet-card';
 import {
@@ -50,6 +51,7 @@ import {
   factorsLabel,
   type FactorState,
   incompleteFactors,
+  incompleteText,
   isRisksLibraryPart,
   leftSentence,
   looseCells,
@@ -61,9 +63,11 @@ import {
   rowQuote,
   sheetsLabel,
   sheetState,
+  takenNamesText,
   takenSheets,
   unplacedPlanRows,
   withField,
+  withIncluded,
 } from './risks-model';
 import { useLibraryParts, useRiskReview } from './use-library-parts';
 
@@ -78,6 +82,14 @@ export function RisksTaskPage({ detail }: { detail: ImportDetail }) {
     );
   }
   const part = query.data?.parts.find(isRisksLibraryPart);
+  const back = (
+    <Button asChild variant="outline" className="w-fit">
+      <Link to="/clienti/import/$importId" params={{ importId: detail.id }}>
+        <ArrowLeft aria-hidden="true" />
+        Înapoi la import
+      </Link>
+    </Button>
+  );
   return (
     <div className="grid gap-6">
       {query.isError ? (
@@ -102,14 +114,10 @@ export function RisksTaskPage({ detail }: { detail: ImportDetail }) {
           detail={detail}
           part={part}
           posts={query.data?.posts ?? []}
+          back={back}
         />
       )}
-      <Button asChild variant="outline" className="w-fit">
-        <Link to="/clienti/import/$importId" params={{ importId: detail.id }}>
-          <ArrowLeft aria-hidden="true" />
-          Înapoi la import
-        </Link>
-      </Button>
+      {(query.isError || !part) && back}
     </div>
   );
 }
@@ -128,10 +136,6 @@ const confirmReasons: Record<string, string> = {
     'Altcineva a modificat evaluările de risc între timp. Reîncarcă pagina ca să vezi ce s-a schimbat.',
   [importErrorReasons.outdated]:
     'Clientul sau biblioteca s-au schimbat între timp: un post sau o evaluare nu mai există. Reîncarcă pagina și alege din nou.',
-  [importErrorReasons.incomplete]:
-    'Unii factori bifați nu au clasele, componenta sau grupa. Completează-i la factorii marcați mai jos sau debifează-i.',
-  [importErrorReasons.nameTaken]:
-    'Biblioteca are deja o evaluare cu numele ales. Schimbă numele marcate mai jos.',
   [importErrorReasons.refused]:
     'O valoare din fișe nu a fost primită. Verifică factorii și încearcă din nou.',
 };
@@ -164,10 +168,12 @@ function TaskContent({
   detail,
   part,
   posts,
+  back,
 }: {
   detail: ImportDetail;
   part: RisksPart;
   posts: LibraryPost[];
+  back: ReactNode;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const queryClient = useQueryClient();
@@ -301,15 +307,26 @@ function TaskContent({
           ? (cause.body as Partial<ApiErrorResponse> | undefined)
           : undefined;
       const reason = body?.reason;
-      if (reason === importErrorReasons.nameTaken) setTakenNames(takenSheets(body?.issues ?? []));
-      if (reason === importErrorReasons.incomplete) {
-        setRefused(incompleteFactors(body?.issues ?? []));
+      const named = (keys: Iterable<string>) =>
+        [...keys].map((key) => sheetByKey.get(key)?.name ?? key);
+      if (reason === importErrorReasons.nameTaken) {
+        const taken = takenSheets(body?.issues ?? []);
+        setTakenNames(taken);
+        setConfirmError(takenNamesText(named(taken)));
+      } else if (reason === importErrorReasons.incomplete) {
+        const incomplete = incompleteFactors(body?.issues ?? []);
+        setRefused(incomplete);
+        setConfirmError(incompleteText(named(incomplete.keys())));
+      } else {
+        setConfirmError(
+          reason && Object.hasOwn(confirmReasons, reason)
+            ? confirmReasons[reason]!
+            : importErrorMessage(
+                cause,
+                'Nu am putut confirma evaluările de risc. Încearcă din nou.'
+              )
+        );
       }
-      setConfirmError(
-        reason && Object.hasOwn(confirmReasons, reason)
-          ? confirmReasons[reason]!
-          : importErrorMessage(cause, 'Nu am putut confirma evaluările de risc. Încearcă din nou.')
-      );
     } finally {
       setConfirming(false);
     }
@@ -385,6 +402,16 @@ function TaskContent({
                   readOnly={readOnly}
                   nameTaken={takenNames.has(state.sheet.key)}
                   refused={refused.get(state.sheet.key) ?? new Set()}
+                  libraryNames={part.libraryNames}
+                  packNames={states
+                    .filter((other) => other !== state && other.createsEntry)
+                    .map((other) => other.libraryName)}
+                  onSetIncluded={(factors, included) => {
+                    for (const factor of factors) forgetRefusal(state.sheet.key, factor.factor.key);
+                    review.setSheet(state.sheet.key, (current) =>
+                      withIncluded(current, factors, included)
+                    );
+                  }}
                   onSheet={(change) => {
                     setTakenNames((current) => {
                       if (!current.has(state.sheet.key)) return current;
@@ -437,39 +464,31 @@ function TaskContent({
           </>
         )}
 
+        {back}
+
         {reviewable && (
-          <section
-            aria-label="Confirmarea evaluărilor de risc"
-            className="grid gap-3 rounded-xl border bg-card px-5 py-4 shadow-xs"
-            data-testid="library-confirm-bar"
+          <RiskConfirmBar
+            summary={confirmSentence(summary)}
+            note={
+              clientConfirmed && part.expiresAt
+                ? `Poți confirma până pe ${libraryDay(part.expiresAt)}.`
+                : `Le poți verifica de acum, iar ce schimbi se păstrează. Le confirmi după ce ${detail.intoExistingClient ? 'completezi' : 'creezi'} clientul, pentru că se aplică la posturile lui.`
+            }
+            error={confirmError}
           >
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <p className="max-w-2xl text-sm" data-testid="library-confirm-summary">
-                <span className="font-medium">{confirmSentence(summary)}</span>{' '}
-                <span className="text-muted-foreground">
-                  {clientConfirmed && part.expiresAt
-                    ? `Poți confirma până pe ${libraryDay(part.expiresAt)}.`
-                    : `Le poți verifica de acum, iar ce schimbi se păstrează. Le confirmi după ce ${detail.intoExistingClient ? 'completezi' : 'creezi'} clientul, pentru că se aplică la posturile lui.`}
-                </span>
-              </p>
-              <Button
-                data-testid="library-confirm"
-                disabled={!clientConfirmed || confirming}
-                onClick={() => void confirm()}
-              >
-                {!clientConfirmed
-                  ? 'Confirmă întâi clientul'
-                  : confirming
-                    ? 'Se confirmă…'
-                    : 'Confirmă evaluările'}
-              </Button>
-            </div>
-            {confirmError && (
-              <Notice variant="destructive" data-testid="library-confirm-error">
-                {confirmError}
-              </Notice>
-            )}
-          </section>
+            <Button
+              className="h-11 w-full sm:h-10 sm:w-auto sm:shrink-0"
+              data-testid="library-confirm"
+              disabled={!clientConfirmed || confirming}
+              onClick={() => void confirm()}
+            >
+              {!clientConfirmed
+                ? 'Confirmă întâi clientul'
+                : confirming
+                  ? 'Se confirmă…'
+                  : 'Confirmă evaluările'}
+            </Button>
+          </RiskConfirmBar>
         )}
 
         <SourceDialog importId={detail.id} request={source} onClose={() => setSource(null)} />
