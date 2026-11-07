@@ -1262,9 +1262,12 @@ describe('the module page', () => {
     const user = userEvent.setup();
     expect(await screen.findByTestId('fake-editor')).toBeTruthy();
     expect(screen.getByTestId('editor-state').textContent).toBe('Versiunea 1');
-    expect(screen.getByTestId('editor-pinned-version').textContent).toContain(
-      'Biblioteca are acum versiunea 2, din 26.09.2026'
-    );
+    const pinnedState = screen.getByTestId('editor-pinned-version');
+    expect(within(pinnedState).getByText('Mai veche decât biblioteca')).toBeTruthy();
+    expect(within(pinnedState).getByText('Mai veche').getAttribute('aria-hidden')).toBe('true');
+    expect(pinnedState.title).toContain('Biblioteca are acum versiunea 2, din 26.09.2026');
+    expect(screen.queryByRole('navigation', { name: 'breadcrumb' })).toBeNull();
+    expect(screen.getByRole('main').className).toContain('overflow-hidden');
     const download = fetchMock.mock.calls
       .map(([input]) => new URL(String(input)))
       .find((address) => address.pathname === `/instruction-modules/${ladders.id}/download`)!;
@@ -1273,6 +1276,7 @@ describe('the module page', () => {
     await user.click(screen.getByTestId('editor-open-current'));
     await waitFor(() => expect(screen.getByTestId('editor-state').textContent).toBe('Versiunea 2'));
     expect(runtime.router.history.location.search).toBe('');
+    expect(screen.getByRole('navigation', { name: 'breadcrumb' })).toBeTruthy();
   });
 
   it('marks an archived module', async () => {
@@ -1280,6 +1284,8 @@ describe('the module page', () => {
     mount(`/instructiuni/${ladders.id}`);
     await screen.findByTestId('fake-editor');
     expect(screen.getByTestId('editor-state').textContent).toBe('Arhivată');
+    expect(screen.queryByRole('navigation', { name: 'breadcrumb' })).toBeNull();
+    expect(screen.getByRole('main').className).toContain('overflow-hidden');
   });
 });
 

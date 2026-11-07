@@ -1,4 +1,5 @@
 import { Button } from '@ssm-usor/ui/components/button';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
@@ -16,9 +17,16 @@ import {
   ResponsibleSection,
   WorkplacesSection,
 } from './review-items';
-import { type Blocker, type SectionId, sectionIds, sectionLabels } from './review-model';
+import {
+  type Blocker,
+  type SectionId,
+  sectionIds,
+  sectionLabels,
+  type SectionStatus,
+  vatPayerInForce,
+} from './review-model';
 import { SavingNote } from './review-parts';
-import { fieldStates, reviewName } from './review-summary';
+import { fieldStates, reviewName, sectionStatuses } from './review-summary';
 import { SourceDialog, type SourceRequest } from './source-dialog';
 import { SourcePrefetchContext, useSourcePrefetch } from './source-query';
 import { useExistingValues, useImportReview } from './use-import-review';
@@ -43,13 +51,20 @@ export function ReviewSectionPage({
     changes: review.changes,
     review,
     states,
-    vatPayer: registered?.vatPayer ?? false,
+    vatPayer: vatPayerInForce(proposal, review.changes, registered),
     registered,
     existingClient: detail.intoExistingClient,
     openSource: (title, sources, otherCompanyName) =>
       setSource({ title, sources, otherCompanyName }),
     blockers: detail.blockers as Blocker[],
   };
+  const statuses = sectionStatuses(
+    proposal,
+    review.changes,
+    detail.blockers as Blocker[],
+    states,
+    registered
+  );
   const position = sectionIds.indexOf(section);
   const next = sectionIds[position + 1];
   const name = reviewName(detail, proposal, review.changes);
@@ -66,10 +81,8 @@ export function ReviewSectionPage({
                 : `${endSentence(name)} Valorile se preiau așa cum sunt, dacă nu le schimbi.`}
             </p>
           </div>
-          <div className="grid justify-items-end gap-1">
-            <span className="text-sm text-muted-foreground tabular-nums">
-              Secțiunea {position + 1} din {sectionIds.length}
-            </span>
+          <div className="grid w-full gap-1 sm:w-60">
+            <SectionSteps importId={detail.id} section={section} statuses={statuses} />
             <SavingNote saving={review.saving} />
           </div>
         </div>
@@ -110,5 +123,62 @@ export function ReviewSectionPage({
         <SourceDialog importId={detail.id} request={source} onClose={() => setSource(null)} />
       </div>
     </SourcePrefetchContext>
+  );
+}
+
+function SectionSteps({
+  importId,
+  section,
+  statuses,
+}: {
+  importId: string;
+  section: SectionId;
+  statuses: Record<SectionId, SectionStatus>;
+}) {
+  const position = sectionIds.indexOf(section);
+  const done = sectionIds.filter((id) => statuses[id].kind === 'done').length;
+  return (
+    <nav
+      aria-label="Secțiunile propunerii"
+      className="grid gap-1.5"
+      data-testid="import-section-steps"
+    >
+      <p className="flex items-baseline justify-between gap-3 text-sm tabular-nums">
+        <span className="font-medium" data-testid="import-section-position">
+          Secțiunea {position + 1} din {sectionIds.length}
+        </span>
+        <span className="text-muted-foreground">{done} gata</span>
+      </p>
+      <ol className="flex gap-1">
+        {sectionIds.map((id, index) => {
+          const current = id === section;
+          const finished = statuses[id].kind === 'done';
+          return (
+            <li key={id} className="flex-1">
+              <Link
+                to="/clienti/import/$importId/$section"
+                params={{ importId, section: id }}
+                aria-label={`${index + 1}. ${sectionLabels[id]}${finished ? ', gata' : ''}`}
+                title={sectionLabels[id]}
+                data-testid="import-section-step"
+                data-state={current ? 'current' : finished ? 'done' : 'open'}
+                className="group block rounded-sm py-1.5 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              >
+                <span
+                  className={cn(
+                    'block h-1.5 rounded-full transition-colors',
+                    current
+                      ? 'bg-primary'
+                      : finished
+                        ? 'bg-success-border group-hover:bg-primary/60'
+                        : 'bg-border group-hover:bg-primary/40'
+                  )}
+                />
+              </Link>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
   );
 }

@@ -846,6 +846,23 @@ export function anafMismatch(
   return registered;
 }
 
+export const vatPayerPath = 'client.vatPayer';
+
+export const anafVatPayer = (
+  registered: { cui: string; vatPayer: boolean } | null | undefined,
+  cui: unknown
+) => Boolean(registered && cui !== null && bareCui(cui) === registered.cui && registered.vatPayer);
+
+export function vatPayerInForce(
+  proposal: Proposal,
+  changes: Changes,
+  registered: { cui: string; vatPayer: boolean } | null | undefined
+) {
+  const chosen = changes.fields[vatPayerPath]?.value;
+  if (chosen === 'true' || chosen === 'false') return chosen === 'true';
+  return anafVatPayer(registered, fieldState(proposal, changes, 'client.cui').value);
+}
+
 export const anafMismatchNote = (registered: RegisteredCompany) =>
   `La ANAF, CUI-ul ${registered.cui} aparține firmei ${registered.legalName}, nu firmei din documente.`;
 

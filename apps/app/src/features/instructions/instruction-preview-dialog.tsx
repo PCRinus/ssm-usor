@@ -65,16 +65,28 @@ function PreviewContent({ request }: { request: PreviewRequest }) {
     <DialogContent
       data-testid="instruction-preview-dialog"
       showCloseButton
-      className="flex h-[calc(100svh-2rem)] max-w-[calc(100vw-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[min(1100px,calc(100vw-4rem))]"
+      className="flex h-[calc(100svh-2rem)] max-w-[calc(100vw-2rem)] flex-col gap-0 overflow-hidden p-0 max-sm:h-svh max-sm:max-h-svh max-sm:max-w-none max-sm:rounded-none max-sm:border-0 sm:max-w-[min(1100px,calc(100vw-4rem))]"
     >
-      <div className="grid gap-1 border-b px-5 pt-4 pb-3 pr-12">
-        <DialogTitle className="text-lg leading-snug">
-          Previzualizare: {codes[request.domain]} {request.title}
-        </DialogTitle>
-        <DialogDescription>
-          Anexa așa cum se tipărește, cu textul de acum, chiar nesalvat. Numărul anexei și numele
-          clientului se completează în documentele fiecărui client.
-        </DialogDescription>
+      <div className="flex min-h-14 items-center gap-3 border-b py-2 pr-12 pl-4 sm:pl-5">
+        <div className="grid min-w-0 flex-1 gap-0.5">
+          <DialogTitle className="truncate text-base leading-snug">
+            Previzualizare: {codes[request.domain]} {request.title}
+          </DialogTitle>
+          <DialogDescription className="truncate text-xs max-sm:sr-only">
+            Anexa așa cum se tipărește, cu textul de acum, chiar nesalvat. Numărul anexei și numele
+            clientului se completează în documentele fiecărui client.
+          </DialogDescription>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          data-testid="instruction-preview-download"
+          disabled={!bytes}
+          onClick={() => bytes && saveAs(bytes, fileName)}
+        >
+          <Download aria-hidden="true" />
+          <span className="max-sm:sr-only">Descarcă previzualizarea</span>
+        </Button>
       </div>
       <div
         className="relative min-h-0 flex-1 overflow-hidden bg-muted/60"
@@ -116,18 +128,6 @@ function PreviewContent({ request }: { request: PreviewRequest }) {
             )}
           </>
         )}
-      </div>
-      <div className="flex flex-wrap items-center justify-end gap-2 border-t px-5 py-3">
-        <Button
-          variant="outline"
-          size="sm"
-          data-testid="instruction-preview-download"
-          disabled={!bytes}
-          onClick={() => bytes && saveAs(bytes, fileName)}
-        >
-          <Download aria-hidden="true" />
-          Descarcă previzualizarea
-        </Button>
       </div>
     </DialogContent>
   );

@@ -63,6 +63,7 @@ import {
   lazy,
   type ReactNode,
   Suspense,
+  useCallback,
   useEffect,
   useState,
 } from 'react';
@@ -85,10 +86,11 @@ import { subscriptionPath } from '@/features/subscription/subscription-copy';
 import { newCount } from '@/features/updates/release-format';
 import { useReleases } from '@/features/updates/use-releases';
 import { useUpdateDialogOpen } from '@/features/updates/use-update-dialog-open';
-import { captureHelpOpened, helpHref, helpTarget } from '@/lib/help';
+import { captureHelpOpened, helpHref, helpTarget, openHelpTab } from '@/lib/help';
 
 import { releaseTag } from './build-version';
 import { CommitVersion } from './commit-version';
+import { EditorLayoutContext } from './editor-layout';
 import { ReportProblemContext } from './report-problem-context';
 import { ReportProblemDialog } from './report-problem-dialog';
 import { loaderCrumb } from './route-title';
@@ -322,8 +324,9 @@ function AppNavigation({
                   href={helpHome}
                   target={helpTarget}
                   data-testid="nav-ajutor"
-                  onClick={() => {
+                  onClick={(event) => {
                     captureHelpOpened();
+                    openHelpTab(event);
                     closeOnMobile();
                   }}
                 >
@@ -462,9 +465,15 @@ export function AppShell() {
         return label ? [{ to: match.pathname, label }] : [];
       }),
   });
-  const editorPage = useMatches({
+  const editorRoute = useMatches({
     select: (matches) => matches.some((match) => match.staticData.editorPage),
   });
+  const [editorViews, setEditorViews] = useState(0);
+  const countEditorViews = useCallback(
+    (change: 1 | -1) => setEditorViews((count) => count + change),
+    []
+  );
+  const editorPage = editorRoute || editorViews > 0;
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reportingByEmail, setReportingByEmail] = useState<{ note?: string } | null>(null);
@@ -620,7 +629,9 @@ export function AppShell() {
                   </Notice>
                 )}
                 <ReportProblemContext value={reportProblem}>
-                  <Outlet />
+                  <EditorLayoutContext value={countEditorViews}>
+                    <Outlet />
+                  </EditorLayoutContext>
                 </ReportProblemContext>
               </main>
               {!editorPage && (

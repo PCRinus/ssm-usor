@@ -86,7 +86,7 @@ Lista unui client e în tabul **Lucrători** al clientului. Fiecare rând arată
 
 Poți ordona lista după nume, post sau data angajării. Din meniul de la capătul rândului ajungi la **Modifică** și **Marchează plecarea…**. Un clic pe rând deschide pagina lucrătorului.
 
-Adaugi un lucrător cu **Adaugă lucrător**. Ce cere formularul găsești în [Adăugarea și modificarea unui lucrător](/clienti/angajati/adaugare-si-editare/). Lucrătorii unui client pe care îl preiei îi poți aduce și din fotografiile fișelor lor de instruire: vezi [Importul lucrătorilor din fișe](/clienti/import/#importul-lucrătorilor-din-fișe).
+Adaugi un lucrător cu **Adaugă lucrător** sau, la un client fără lucrători, cu **Adaugă primul lucrător**. Ce cere formularul găsești în [Adăugarea și modificarea unui lucrător](/clienti/angajati/adaugare-si-editare/). Lucrătorii unui client pe care îl preiei îi poți aduce și din fotografiile fișelor lor de instruire: vezi [Importul lucrătorilor din fișe](/clienti/import/#importul-lucrătorilor-din-fișe).
 
 ### Lucrători actuali și foști lucrători
 

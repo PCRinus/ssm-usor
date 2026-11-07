@@ -401,6 +401,9 @@ importers:
       '@ssm-usor/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens
+      '@ssm-usor/help-topics':
+        specifier: workspace:*
+        version: link:../../packages/help-topics
       astro:
         specifier: ^7.4.4
         version: 7.4.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)

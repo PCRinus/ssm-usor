@@ -336,7 +336,13 @@ describe('the document editor page', () => {
     expect(editor.dataset.editable).toBe('false');
     expect(screen.getByTestId('editor-state').textContent).toBe('Emis · rev. 1');
     expect(screen.queryByTestId('editor-save')).toBeNull();
-    expect(screen.getByRole('status').textContent).toContain('Un document emis nu se mai schimbă');
+    expect(screen.getByTestId('editor-state').title).toContain(
+      'Un document emis nu se mai schimbă'
+    );
+    expect(screen.getByTestId('editor-start-draft').title).toContain(
+      'pornește din el o ciornă nouă'
+    );
+    expect(screen.queryByRole('status')).toBeNull();
   });
 
   it('starts a draft from the issued document and opens it for editing', async () => {
@@ -388,6 +394,7 @@ describe('the document editor page', () => {
 
     expect((await screen.findByTestId('fake-editor')).dataset.editable).toBe('false');
     expect(screen.queryByTestId('editor-save')).toBeNull();
+    expect(screen.getByTestId('editor-read-only').textContent).toBe('Client arhivat');
   });
 
   it('offers the download when the editor cannot lay the document out', async () => {

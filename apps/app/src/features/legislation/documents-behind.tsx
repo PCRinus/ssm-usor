@@ -30,7 +30,7 @@ import {
   useStartDocumentRegeneration,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { EmptyState } from '@/components/empty-state';
+import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { behindInstructions, instructionChangesHint } from '@/features/documents/behind-labels';
@@ -198,13 +198,13 @@ export function DocumentsBehind({ userId }: { userId: string }) {
           Nu am putut încărca documentele în urmă.
         </Notice>
       ) : rows.length === 0 ? (
-        <div className="rounded-lg border bg-card px-5 py-12" data-testid="documents-behind-empty">
+        <ListEmpty className="rounded-lg border bg-card" data-testid="documents-behind-empty">
           <EmptyState icon={FileCheck2}>
             Toate documentele sunt generate din cea mai nouă versiune a șablonului lor și din
             instrucțiunile de acum. Când un șablon sau o instrucțiune se schimbă, clienții care
             trebuie regenerați apar aici.
           </EmptyState>
-        </div>
+        </ListEmpty>
       ) : (
         groups.map(({ set, rows: setRows }) => (
           <BehindSet key={set} set={set}>

@@ -15,6 +15,7 @@ import { getListClientsQueryKey, useListClients } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
+import { EmptyState } from '@/components/empty-state';
 import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
@@ -27,6 +28,7 @@ import { ClientDeleteDialog, type ClientToDelete } from '@/features/clients/clie
 import { ImportListCard } from '@/features/imports/import-list-card';
 import { ImportUploadDialog } from '@/features/imports/import-upload-dialog';
 import { StartWays } from '@/features/imports/start-ways';
+import { isEmptyOrLoading } from '@/lib/list-state';
 
 // Page, sort and the archived view live in the URL; defaults are omitted to keep links short.
 const defaultSort: DataTableSort & { sort: ClientSortKey } = { sort: 'legalName', order: 'asc' };
@@ -71,6 +73,7 @@ function ClientsPage() {
     },
   });
   const meta = clients.data ?? { page, pageSize: defaultPageSize, total: 0 };
+  const listStatus = !apiRequest.baseUrl ? 'error' : clients.status;
   const isOwner = useMe().data?.membership?.role === 'owner';
   const [archiveChange, setArchiveChange] = useState<ClientArchiveChange | null>(null);
   const [deleting, setDeleting] = useState<ClientToDelete | null>(null);
@@ -88,18 +91,24 @@ function ClientsPage() {
     <div data-testid="clients-page" className="space-y-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold tracking-tight">Clienți</h1>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" data-testid="clients-import" onClick={() => setImporting(true)}>
-            <ScanText aria-hidden="true" />
-            Importă din documente
-          </Button>
-          <Button asChild>
-            <Link to="/clienti/nou" data-testid="clients-add">
-              <Plus aria-hidden="true" />
-              Adaugă client
-            </Link>
-          </Button>
-        </div>
+        {(archived || !isEmptyOrLoading(listStatus, meta.total)) && (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              data-testid="clients-import"
+              onClick={() => setImporting(true)}
+            >
+              <ScanText aria-hidden="true" />
+              Importă din documente
+            </Button>
+            <Button asChild>
+              <Link to="/clienti/nou" data-testid="clients-add">
+                <Plus aria-hidden="true" />
+                Adaugă client
+              </Link>
+            </Button>
+          </div>
+        )}
       </div>
       {!archived && <ImportListCard />}
       <div className="overflow-hidden rounded-lg border bg-card">
@@ -136,7 +145,7 @@ function ClientsPage() {
           }
           meta={meta}
           noun={['client', 'clienți']}
-          status={!apiRequest.baseUrl ? 'error' : clients.status}
+          status={listStatus}
           isFetching={clients.isFetching}
           isPlaceholderData={clients.isPlaceholderData}
           sort={{ sort, order }}
@@ -178,28 +187,18 @@ function ClientsPage() {
           }
           empty={
             archived ? (
-              <>
-                <Archive className="mx-auto mb-4 size-8 text-muted-foreground" aria-hidden="true" />
-                <h3 className="text-base font-medium">Niciun client arhivat</h3>
-                <p
-                  data-testid="clients-empty"
-                  className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
-                >
-                  Clienții arhivați vor apărea aici. Îi poți reactiva oricând.
-                </p>
-              </>
+              <EmptyState icon={Archive} title="Niciun client arhivat" data-testid="clients-empty">
+                Clienții arhivați vor apărea aici. Îi poți reactiva oricând.
+              </EmptyState>
             ) : (
-              <>
-                <Users className="mx-auto mb-4 size-8 text-muted-foreground" aria-hidden="true" />
-                <h3 className="text-base font-medium">Niciun client încă</h3>
-                <p
-                  data-testid="clients-empty"
-                  className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
-                >
-                  Adaugă prima companie pentru a începe să îi organizezi documentele și termenele.
-                </p>
-                <StartWays onImport={() => setImporting(true)} />
-              </>
+              <EmptyState
+                icon={Users}
+                title="Niciun client încă"
+                data-testid="clients-empty"
+                actions={<StartWays onImport={() => setImporting(true)} />}
+              >
+                Adaugă prima companie pentru a începe să îi organizezi documentele și termenele.
+              </EmptyState>
             )
           }
         />

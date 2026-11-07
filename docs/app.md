@@ -140,7 +140,9 @@ defaults to the help dev server (`http://localhost:4331`) in development; a buil
 shows no help links, and the deployment refuses to build without the environment's `HELP_URL`.
 Every link opens in the one tab named `ssm-usor-ajutor`, without `noopener`, so a second click
 reuses the help tab, and sends `help_opened` to PostHog with the topic id (`home` for the site's
-home).
+home). A plain click opens the tab with `window.open` and focuses it, and the help site closes an
+older tab of that name when a newer one loads, so a second app tab does not leave a second help
+tab.
 
 - `Field`'s `help` puts a "?" link after the label, named "Ajutor: <label>". It sits outside the
   label, so the label's click handling is unchanged, and adds one tab stop before the control.

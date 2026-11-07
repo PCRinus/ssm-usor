@@ -126,7 +126,7 @@ function deferred() {
   return { promise, resolve };
 }
 
-async function openDialog(button: 'employees-import' | 'employees-import-found') {
+async function openDialog(button: 'employees-start-import' | 'employees-start-found') {
   mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/angajati`);
   await userEvent.click(await screen.findByTestId(button));
   return screen.findByTestId('employee-upload-dialog');
@@ -148,7 +148,7 @@ afterEach(() => {
 describe('photographs over the caps until they are shrunk', () => {
   it('takes a 30 MB photograph, and refuses it before uploading when it cannot be shrunk', async () => {
     mockUpload({ found: () => foundOf([]) });
-    const dialog = await openDialog('employees-import');
+    const dialog = await openDialog('employees-start-import');
     fireEvent.change(within(dialog).getByTestId('employee-upload-files-input'), {
       target: {
         files: [
@@ -170,7 +170,7 @@ describe('photographs over the caps until they are shrunk', () => {
 describe('how much fits in one import', () => {
   it('leaves the caps out while the selection is far below them', async () => {
     mockUpload();
-    const dialog = await openDialog('employees-import-found');
+    const dialog = await openDialog('employees-start-found');
     await within(dialog).findByTestId('employee-upload-chosen');
     expect(within(dialog).queryByTestId('employee-upload-limits')).toBeNull();
     expect(
@@ -186,7 +186,7 @@ describe('how much fits in one import', () => {
         return found;
       },
     });
-    const dialog = await openDialog('employees-import-found');
+    const dialog = await openDialog('employees-start-found');
     const meters = await within(dialog).findByTestId('employee-upload-limits');
     expect(meters.textContent).toContain('1 din 500 de fotografii și pagini');
     expect(meters.textContent).toContain('din 1 GB');
@@ -211,7 +211,7 @@ describe('an upload that fails after the import was created', () => {
       },
       abandon: () => abandoning.promise,
     });
-    const dialog = await openDialog('employees-import-found');
+    const dialog = await openDialog('employees-start-found');
     await waitFor(() =>
       expect(within(dialog).getByTestId('employee-upload-chosen').textContent).toContain(
         '2 fotografii de citit'
@@ -237,7 +237,7 @@ describe('an upload that fails after the import was created', () => {
         return refused('import_no_found_sheets');
       },
     });
-    const dialog = await openDialog('employees-import-found');
+    const dialog = await openDialog('employees-start-found');
     await waitFor(() =>
       expect(within(dialog).getByTestId('employee-upload-chosen').textContent).toContain(
         '2 fotografii de citit'
@@ -265,7 +265,7 @@ describe('a client without job positions', () => {
   it('hides the way to the documentation import while the photographs upload', async () => {
     const creating = deferred();
     mockUpload({ jobPositions: [], create: () => creating.promise });
-    const dialog = await openDialog('employees-import-found');
+    const dialog = await openDialog('employees-start-found');
     expect(await within(dialog).findByTestId('employee-upload-no-posts')).toBeTruthy();
     await waitFor(() =>
       expect(within(dialog).getByTestId('employee-upload-chosen').textContent).toContain(
@@ -286,7 +286,7 @@ describe('the chosen photographs', () => {
 
   async function choose(files: File[]) {
     mockUpload({ found: () => foundOf([]) });
-    const dialog = await openDialog('employees-import');
+    const dialog = await openDialog('employees-start-import');
     fireEvent.change(within(dialog).getByTestId('employee-upload-files-input'), {
       target: { files },
     });
@@ -356,7 +356,7 @@ describe('the chosen photographs', () => {
 
   it('gives a sheet from the documentation back to the offer it came from', async () => {
     mockUpload();
-    const dialog = await openDialog('employees-import-found');
+    const dialog = await openDialog('employees-start-found');
     await waitFor(() => expect(chosenTitle(dialog)).toBe('2 fotografii de citit'));
     expect(within(dialog).queryByTestId('employee-upload-found')).toBeNull();
 
@@ -371,7 +371,7 @@ describe('the chosen photographs', () => {
 describe('the credits an employee import uses', () => {
   it('counts one for each photograph and says what is left', async () => {
     mockUpload({ me: meWithCredits() });
-    const dialog = await openDialog('employees-import-found');
+    const dialog = await openDialog('employees-start-found');
     await waitFor(() =>
       expect(within(dialog).getByTestId('import-credits-line').textContent).toBe(
         'Folosește 2 credite, unul pe fotografie. Îți mai rămân 1.270 din 1.500 luna aceasta și 7.840 din cadoul de bun venit.'
@@ -381,7 +381,7 @@ describe('the credits an employee import uses', () => {
 
   it('keeps the button off while the photographs need more than is left, until some come out', async () => {
     mockUpload({ me: meWithCredits({ left: 1, giftLeft: 0, state: 'near' }) });
-    const dialog = await openDialog('employees-import-found');
+    const dialog = await openDialog('employees-start-found');
 
     const short = await within(dialog).findByTestId('import-credits-short');
     expect(short.textContent).toContain('Nu ajung creditele pentru toate fotografiile');
@@ -397,7 +397,7 @@ describe('the credits an employee import uses', () => {
 
   it("sends a PDF's pages as the browser counted them, which the start is charged for", async () => {
     mockUpload({ found: () => foundOf([]) });
-    const dialog = await openDialog('employees-import');
+    const dialog = await openDialog('employees-start-import');
     const pdf = new File(
       ['%PDF-1.4 /Type /Page /Type /Page /Type /Page /Type /Pages /Count 3'],
       'fise scanate.pdf',

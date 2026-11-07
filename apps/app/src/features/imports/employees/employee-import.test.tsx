@@ -14,6 +14,7 @@ import {
 } from '@/test/employee-import-fixture';
 import { bodyOf, fetchMock, mockApi, requestsTo } from '@/test/import-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
+import { noTests, untrained } from '@/test/training-fixture';
 
 const client = {
   id: clientId,
@@ -86,6 +87,7 @@ type Options = {
   confirm?: () => Response;
   invitees?: unknown[];
   confirmed?: unknown[];
+  employees?: unknown[];
 };
 
 function mockEmployeeImport({
@@ -95,6 +97,7 @@ function mockEmployeeImport({
   confirm,
   invitees = [],
   confirmed,
+  employees = [],
 }: Options = {}) {
   let version = detail.version;
   let confirmedHere: unknown[] = [];
@@ -140,11 +143,31 @@ function mockEmployeeImport({
       return Response.json({}, { status: 404 });
     }
     if (url.pathname === `/clients/${clientId}/employees`) {
-      return Response.json({ items: [], page: 1, pageSize: 25, total: 0 });
+      return Response.json({ items: employees, page: 1, pageSize: 25, total: employees.length });
     }
     return undefined;
   });
 }
+
+const baker = {
+  id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
+  clientId,
+  lastName: 'Popa',
+  firstName: 'Maria',
+  employeeNumber: null,
+  email: null,
+  phone: null,
+  jobTitle: 'Brutar',
+  jobPosition: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Brutar' },
+  hiredAt: '2024-03-01',
+  status: 'active',
+  terminatedAt: null,
+  training: untrained,
+  tests: noTests,
+  workplace: null,
+  createdAt: '2026-10-30T10:00:00+00:00',
+  updatedAt: '2026-10-30T10:00:00+00:00',
+};
 
 const mount = (path: string) => mountApp(authFixture(makeSession()).client, path);
 
@@ -171,23 +194,33 @@ afterEach(() => {
 
 describe("the client's Lucrători tab", () => {
   it('offers the sheets found in the documentation while some are untaken, and new photos', async () => {
-    mockEmployeeImport({ found: foundSheets });
+    mockEmployeeImport({ found: foundSheets, employees: [baker] });
     mount(`/clienti/${clientId}/angajati`);
     expect((await screen.findByTestId('employees-import-found')).textContent).toBe(
       'Importă din fișele găsite în documentație (2 fotografii)'
     );
     expect(screen.getByTestId('employees-import').textContent).toBe('Importă din fotografii noi');
+  });
+
+  it('offers the found sheets in the start ways of an empty list, without the header buttons', async () => {
+    mockEmployeeImport({ found: foundSheets });
+    mount(`/clienti/${clientId}/angajati`);
     const ways = await screen.findByTestId('employees-start-ways');
-    expect(within(ways).getByTestId('employees-start-found').textContent).toContain(
+    expect((await within(ways).findByTestId('employees-start-found')).textContent).toContain(
       'Ai deja 2 fotografii de fișe, din documentația importată pe 27 oct.'
     );
+    expect(within(ways).getByTestId('employees-start-import').textContent).toContain(
+      'Importă din fotografii noi'
+    );
+    expect(screen.queryByTestId('employees-import-found')).toBeNull();
+    expect(screen.queryByTestId('employees-import')).toBeNull();
+    expect(screen.queryByTestId('employees-add')).toBeNull();
   });
 
   it('offers one import from the sheets when none were found', async () => {
-    mockEmployeeImport();
+    mockEmployeeImport({ employees: [baker] });
     mount(`/clienti/${clientId}/angajati`);
-    await screen.findByTestId('employees-start-ways');
-    expect(screen.getByTestId('employees-import').textContent).toBe(
+    expect((await screen.findByTestId('employees-import')).textContent).toBe(
       'Importă din fișele de instruire'
     );
     expect(screen.queryByTestId('employees-import-found')).toBeNull();
@@ -209,7 +242,7 @@ describe("the client's Lucrători tab", () => {
   it('opens the upload with the found sheets already added', async () => {
     mockEmployeeImport({ found: foundSheets });
     mount(`/clienti/${clientId}/angajati`);
-    await userEvent.setup().click(await screen.findByTestId('employees-import-found'));
+    await userEvent.setup().click(await screen.findByTestId('employees-start-found'));
     const dialog = await screen.findByTestId('employee-upload-dialog');
     await waitFor(() =>
       expect(within(dialog).getByTestId('employee-upload-chosen').textContent).toContain(
