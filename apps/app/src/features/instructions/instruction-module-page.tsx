@@ -12,15 +12,6 @@ import { InstructionForm } from './instruction-form';
 import { InstructionModuleDialog } from './instruction-module-dialog';
 import { InstructionStartDialog, type StartValues } from './instruction-start-dialog';
 
-// The Word viewer needs a height of its own on a page that scrolls.
-export function InstructionVersionView(props: Parameters<typeof InstructionEditorPage>[0]) {
-  return (
-    <div className="flex h-[calc(100svh-12rem)] min-h-[32rem] flex-col">
-      <InstructionEditorPage {...props} />
-    </div>
-  );
-}
-
 function Unavailable({ notFound, onRetry }: { notFound: boolean; onRetry: () => void }) {
   return (
     <div data-testid="editor-unavailable" role="alert" className="grid max-w-lg gap-4 py-10">
@@ -69,7 +60,7 @@ export function InstructionModulePage({ moduleId, userId }: { moduleId: string; 
   }
   const { module, body } = query.data;
   if (openedArchived ?? module.archivedAt) {
-    return <InstructionVersionView moduleId={moduleId} userId={userId} />;
+    return <InstructionEditorPage moduleId={moduleId} userId={userId} />;
   }
   return (
     <>
