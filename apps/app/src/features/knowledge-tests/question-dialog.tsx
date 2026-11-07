@@ -122,7 +122,7 @@ function QuestionForm({
         <DialogHeader>
           <DialogTitle>{question ? 'Modifică întrebarea' : 'Adaugă o întrebare'}</DialogTitle>
           <DialogDescription>
-            Angajatul o primește în portal, cu variantele amestecate, iar testul tipărit o cuprinde
+            Lucrătorul o primește în portal, cu variantele amestecate, iar testul tipărit o cuprinde
             cu răspunsul corect. Conținutul este al tău: aplicația nu verifică dacă afirmațiile sunt
             corecte.
           </DialogDescription>
@@ -172,7 +172,7 @@ function QuestionForm({
             </legend>
             <p id="test-question-options-hint" className="-mt-1 text-xs text-muted-foreground">
               Între două și patru variante. Bifează-le pe cele corecte: întrebarea e corectă doar
-              când angajatul le alege exact pe ele.
+              când lucrătorul le alege exact pe ele.
             </p>
             <ol className="grid gap-2">
               {options.fields.map((option, index) => {
@@ -256,7 +256,7 @@ function QuestionForm({
             label="Explicația"
             mark="optional"
             error={errors.explanation}
-            hint="Două-trei propoziții pe înțelesul angajatului. O vede pe cardul de studiu dinaintea testului și după un răspuns greșit."
+            hint="Două-trei propoziții pe înțelesul lucrătorului. O vede pe cardul de studiu dinaintea testului și după un răspuns greșit."
           >
             <Textarea
               id="test-question-explanation"

@@ -51,7 +51,7 @@ const reasonMessages: Record<string, string> = {
   [importErrorReasons.tooManyScans]:
     'Cu acest fișier, sunt prea multe pagini scanate pentru un singur import: cel mult 150.',
   [importErrorReasons.photosOnly]:
-    'Importul angajaților citește doar fotografii și PDF-uri ale fișelor de instruire.',
+    'Importul lucrătorilor citește doar fotografii și PDF-uri ale fișelor de instruire.',
   [importErrorReasons.noFoundSheets]:
     'Fotografiile găsite în documentație nu mai sunt disponibile: le-a luat între timp alt import.',
   [importErrorReasons.wrongKind]: 'Importul este de alt fel. Reîncarcă pagina.',
@@ -59,7 +59,7 @@ const reasonMessages: Record<string, string> = {
 
 const employeeReasonMessages: Record<string, string> = {
   [importErrorReasons.tooLarge]:
-    'Într-un import de angajați intră cel mult 500 de fotografii sau pagini PDF și 1 GB în total, cel mult 25 MB un fișier.',
+    'Într-un import de lucrători intră cel mult 500 de fotografii sau pagini PDF și 1 GB în total, cel mult 25 MB un fișier.',
   [importErrorReasons.tooManyScans]:
     'Sunt prea multe fotografii și pagini pentru un singur import: cel mult 500.',
 };

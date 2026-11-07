@@ -6,8 +6,8 @@ import { EmployeeImportScope } from '@/features/imports/employees/employee-impor
 export const Route = createFileRoute('/_authenticated/clienti/$clientId/angajati/import/$importId')(
   {
     params: { parse: (params) => ({ importId: z.uuid().parse(params.importId) }) },
-    staticData: { title: 'Angajați din fișe', fullPage: true },
-    loader: () => ({ crumb: 'Angajați din fișe' }),
+    staticData: { title: 'Lucrători din fișe', fullPage: true },
+    loader: () => ({ crumb: 'Lucrători din fișe' }),
     component: EmployeeImportScope,
   }
 );

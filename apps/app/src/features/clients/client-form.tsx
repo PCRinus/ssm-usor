@@ -115,9 +115,9 @@ export function ClientForm({ lead, newStage }: { lead?: Client; newStage?: Clien
             {stage === 'lead' && (
               <Field
                 id="declaredEmployeeCount"
-                label="Număr de angajați"
+                label="Număr de lucrători"
                 mark="optional"
-                hint="Cât declară firma. Ca client, numărul vine din lista de angajați."
+                hint="Cât declară firma. Ca client, numărul vine din lista de lucrători."
                 error={errors.declaredEmployeeCount}
               >
                 <Input

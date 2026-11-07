@@ -127,8 +127,8 @@ describe("searching a client's employees", () => {
     mockApi((url) => Response.json(url.searchParams.get('q') ? page([]) : page([popescu])));
     const runtime = mountApp(authFixture(makeSession()).client, `${employeesPage}?q=zzz`);
     const user = userEvent.setup();
-    expect(await screen.findByText('Niciun angajat nu corespunde căutării')).toBeTruthy();
-    expect(screen.queryByRole('link', { name: 'Adaugă primul angajat' })).toBeNull();
+    expect(await screen.findByText('Niciun lucrător nu corespunde căutării')).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Adaugă primul lucrător' })).toBeNull();
     await user.click(screen.getByTestId('employees-empty-clear-search'));
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
     await screen.findByTestId('employees-row');

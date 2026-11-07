@@ -573,7 +573,7 @@ test("from 10 employees the set includes the decision on the workers' representa
   await expect(page.getByTestId('client-employee-count')).toHaveText('10');
   await page.getByTestId('documents-generate').click();
   await expect(page.getByTestId('generate-headcount')).toContainText(
-    '10 angajați în lista clientului, așa că se generează și decizia privind reprezentanții lucrătorilor'
+    '10 lucrători în lista clientului, așa că se generează și decizia privind reprezentanții lucrătorilor'
   );
   await expect(page.getByTestId('generate-missing-place')).toHaveCount(2);
   const rows = page.getByTestId('generate-missing-row');

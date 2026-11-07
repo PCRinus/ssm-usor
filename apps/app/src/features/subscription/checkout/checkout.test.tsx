@@ -363,7 +363,7 @@ describe('choosing a plan', () => {
 
     const start = await screen.findByTestId('plan-option-start');
     expect((start as HTMLButtonElement).disabled).toBe(true);
-    expect(start.textContent).toContain('Start acoperă cel mult 600 de angajați.');
+    expect(start.textContent).toContain('Start acoperă cel mult 600 de lucrători.');
     expect(screen.getByTestId('plan-option-profesional').getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByTestId('packs-value').textContent).toBe('1');
     expect((screen.getByTestId('packs-less') as HTMLButtonElement).disabled).toBe(true);
@@ -410,7 +410,7 @@ describe('choosing a plan', () => {
     expect(
       await within(dialog).findByRole('heading', { name: 'Treci la Profesional?' })
     ).toBeTruthy();
-    expect(dialog.textContent).toContain('2 pachete de angajați nu mai sunt necesare');
+    expect(dialog.textContent).toContain('2 pachete de lucrători nu mai sunt necesare');
     expect(dialog.textContent).toContain('Un utilizator în plus nu mai este necesar');
     await userEvent.click(within(dialog).getByTestId('change-confirm'));
 

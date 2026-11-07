@@ -264,8 +264,8 @@ export function EmployeeTrainingTab({ domain }: { domain: TrainingDomain }) {
             data-testid="training-records-empty"
             actions={recordButton}
           >
-            Nicio instruire înregistrată încă. Fiecare instruire {label} a angajatului apare aici și
-            în fișa lui individuală.
+            Nicio instruire înregistrată încă. Fiecare instruire {label} a lucrătorului apare aici
+            și în fișa lui individuală.
           </EmptyState>
         </ListEmpty>
       ) : (

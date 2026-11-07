@@ -58,7 +58,7 @@ export function AttendeeChecklist({
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Caută după nume"
-            aria-label="Caută printre angajați"
+            aria-label="Caută printre lucrători"
             data-testid="training-attendees-search"
             className="h-9 pl-8"
             disabled={disabled}
@@ -91,7 +91,7 @@ export function AttendeeChecklist({
       </p>
       {visible.length === 0 ? (
         <p className="py-3 text-center text-sm text-muted-foreground">
-          Niciun angajat nu corespunde căutării.
+          Niciun lucrător nu corespunde căutării.
         </p>
       ) : (
         <ul className="grid max-h-56 gap-0.5 overflow-y-auto">

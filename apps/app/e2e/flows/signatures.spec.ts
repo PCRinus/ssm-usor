@@ -169,7 +169,7 @@ test('a member signs two requests with one code from Semnături', async ({ page 
   await dialog.getByTestId('signing-code').fill(code!);
   await dialog.getByTestId('signing-submit').click();
   await expect(dialog.getByTestId('signing-result-summary')).toHaveText(
-    'Ai semnat 2 instruiri. Semnăturile sunt pe fișele angajaților.',
+    'Ai semnat 2 instruiri. Semnăturile sunt pe fișele lucrătorilor.',
     { timeout: 30_000 }
   );
   await expect(dialog.getByTestId('signing-signed')).toHaveCount(2);

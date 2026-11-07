@@ -270,7 +270,7 @@ export function ResponsiblePersonsCard({
                           data-testid="responsible-title-drift"
                           className="mt-1 flex flex-wrap items-center gap-x-2 text-xs whitespace-normal"
                         >
-                          În contractul angajatului: „{person.employeeJobTitle}”.
+                          În contractul lucrătorului: „{person.employeeJobTitle}”.
                           {!readOnly && (
                             <Button
                               variant="link"
@@ -365,7 +365,7 @@ export function ResponsiblePersonsCard({
               <DialogDescription>
                 <span className="font-medium text-foreground">{archiving.fullName}</span> nu va mai
                 fi numită în documentele generate de acum înainte. Documentele deja emise rămân
-                neschimbate, iar angajatul rămâne în lista de angajați.
+                neschimbate, iar lucrătorul rămâne în lista de lucrători.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="mt-2">

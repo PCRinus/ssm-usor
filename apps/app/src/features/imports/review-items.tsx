@@ -747,7 +747,7 @@ export function ResponsibleSection({ context }: { context: ItemsContext }) {
               }))
             }
           >
-            Nu-l face angajat
+            Nu-l face lucrător
           </LinkButton>
         ),
       ]}
@@ -789,8 +789,8 @@ export function ResponsibleSection({ context }: { context: ItemsContext }) {
       />
       {employees.length > 0 && (
         <ReviewCard
-          title="Devin angajați"
-          description="Doar cei pe care un rol îi cere angajați. Ceilalți angajați îi imporți după, din fișele de instruire."
+          title="Devin lucrători"
+          description="Doar cei pe care un rol îi cere lucrători. Ceilalți lucrători îi imporți după, din fișele de instruire."
           testId="review-list-employees"
         >
           {employees.some((state) => state.included) && (
@@ -801,9 +801,9 @@ export function ResponsibleSection({ context }: { context: ItemsContext }) {
           <OptionalBox
             states={left.filter(isLegalRepresentative)}
             context={context}
-            noun={() => 'ca angajat pe'}
+            noun={() => 'ca lucrător pe'}
             title="Doar dacă lucrează în firmă"
-            description="Reprezentantul legal devine angajat numai dacă face parte din personalul firmei. Bifează-l dacă e așa; îi vei scrie apoi data angajării."
+            description="Reprezentantul legal devine lucrător numai dacă face parte din personalul firmei. Bifează-l dacă e așa; îi vei scrie apoi data angajării."
             icon={<UserRound className="mt-0.5 size-4" aria-hidden="true" />}
             testId="review-legal-representative"
             detail={(state) =>
@@ -815,7 +815,7 @@ export function ResponsibleSection({ context }: { context: ItemsContext }) {
           <OtherCompanyBox
             states={left.filter((state) => !isLegalRepresentative(state))}
             context={context}
-            noun={() => 'ca angajat pe'}
+            noun={() => 'ca lucrător pe'}
           />
         </ReviewCard>
       )}

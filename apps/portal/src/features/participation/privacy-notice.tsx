@@ -41,9 +41,9 @@ export function PrivacyNoticeText({ participation }: { participation: Participat
       {administrator ? (
         <p data-testid="privacy-notice-administrator">
           <Trans>
-            Aici vezi, în numele angajatorului, angajații companiei cu stadiul instruirii lor,
+            Aici vezi, în numele angajatorului, lucrătorii companiei cu stadiul instruirii lor,
             instruirile fiecăruia și fișele lor individuale de instruire, precum și persoanele
-            responsabile desemnate de companie. Sunt date personale ale angajaților, puse la
+            responsabile desemnate de companie. Sunt date personale ale lucrătorilor, puse la
             dispoziția ta doar ca să urmărești aceste evidențe pentru companie. Despre tine păstrăm
             numele și adresa la care ai primit invitația, ca să te poți conecta.
           </Trans>
@@ -51,7 +51,7 @@ export function PrivacyNoticeText({ participation }: { participation: Participat
             <>
               {' '}
               <Trans>
-                Fiind și angajat, vezi și instruirile tale, fișele tale și datele tale de
+                Fiind și lucrător, vezi și instruirile tale, fișele tale și datele tale de
                 identificare.
               </Trans>
             </>

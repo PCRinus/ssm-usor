@@ -150,11 +150,11 @@ export const stepCopy: Record<SetupStepId, StepCopy> = {
     ],
   },
   employees: {
-    label: 'Adaugă angajații',
-    neutralLabel: 'Adaugă angajați',
+    label: 'Adaugă lucrătorii',
+    neutralLabel: 'Adaugă lucrători',
     sentence: 'Îi adaugi pe rând, fiecare cu postul și punctul lui de lucru.',
     actions: ({ clientId }) => [
-      { label: 'Adaugă angajat', kind: 'form', target: onClient(clientId, to.newEmployee) },
+      { label: 'Adaugă lucrător', kind: 'form', target: onClient(clientId, to.newEmployee) },
     ],
   },
   'responsible-persons': {
@@ -193,9 +193,9 @@ export const stepCopy: Record<SetupStepId, StepCopy> = {
     actions: documentsActions,
   },
   'portal-invitation': {
-    label: 'Invită angajații în portal',
-    neutralLabel: 'Invită angajați în portal',
-    sentence: 'În portal angajații își văd instruirile și documentele și semnează.',
+    label: 'Invită lucrătorii în portal',
+    neutralLabel: 'Invită lucrători în portal',
+    sentence: 'În portal lucrătorii își văd instruirile și documentele și semnează.',
     actions: ({ clientId }) => [
       { label: 'Deschide Portalul', kind: 'open', target: onClient(clientId, to.portal) },
     ],
@@ -215,7 +215,7 @@ export const stepCopy: Record<SetupStepId, StepCopy> = {
   signature: {
     label: 'Strânge prima semnătură electronică',
     neutralLabel: 'Strânge o semnătură electronică',
-    sentence: 'Trimiți fișa de instruire la semnat, iar angajatul o semnează din portal.',
+    sentence: 'Trimiți fișa de instruire la semnat, iar lucrătorul o semnează din portal.',
     actions: () => [{ label: 'Deschide Semnături', kind: 'open', target: to.signatures() }],
   },
 };
@@ -273,7 +273,7 @@ const lockReasons: Record<Exclude<SetupLock, 'needs-organization-data'>, string>
   'needs-professional-title': 'Completează-ți întâi titlul profesional.',
   'needs-basic-data': 'Se deblochează când clientul are toate datele de bază.',
   'needs-draft': 'Generează întâi documentația.',
-  'needs-employee': 'Adaugă întâi angajații clientului.',
+  'needs-employee': 'Adaugă întâi lucrătorii clientului.',
   'needs-training-record': 'Se deblochează după prima instruire.',
 };
 

@@ -9,6 +9,8 @@ import {
   vatPercent,
 } from '@ssm-usor/contracts';
 
+import { nounFor } from '@/features/dashboard/dashboard-format';
+
 // Grouped by hand: Romanian Intl leaves four digits ungrouped, and the price list writes 1.490 €.
 function grouped(value: number) {
   const sign = value < 0 ? '-' : '';
@@ -26,6 +28,9 @@ export function formatEuro(cents: number) {
 export function formatCount(value: number) {
   return grouped(value);
 }
+
+export const employeesLabel = (count: number) =>
+  `${formatCount(count)} ${nounFor(count, 'lucrător', 'lucrători')}`;
 
 export const shortPlanNames: Record<PaidPlan, string> = {
   start: 'Start',
@@ -46,12 +51,12 @@ export function packOf(plan: PaidPlan) {
   return employeePacks[billingPlans[plan].employeePack];
 }
 
-/** "1 pachet de 500 de angajați", "2 pachete de câte 50 de angajați". */
+/** "1 pachet de 500 de lucrători", "2 pachete de câte 50 de lucrători". */
 export function packsLabel(plan: PaidPlan, packs: number) {
   const size = packOf(plan).employees;
   return packs === 1
-    ? `1 pachet de ${size} de angajați`
-    : `${packs} pachete de câte ${size} de angajați`;
+    ? `1 pachet de ${size} de lucrători`
+    : `${packs} pachete de câte ${size} de lucrători`;
 }
 
 export function extraMembersLabel(members: number) {

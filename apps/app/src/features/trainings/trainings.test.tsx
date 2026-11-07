@@ -818,7 +818,7 @@ describe('training state in the employee lists', () => {
       `${employeesPage}?trainingState=overdue`
     );
     const user = userEvent.setup();
-    expect(await screen.findByText('Niciun angajat în această stare a instruirii')).toBeTruthy();
+    expect(await screen.findByText('Niciun lucrător în această stare a instruirii')).toBeTruthy();
     await user.click(screen.getByTestId('employees-empty-clear-training-state'));
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
     expect(await screen.findAllByTestId('employees-row')).toHaveLength(1);
@@ -1130,7 +1130,7 @@ describe("an employee's knowledge tests", () => {
     await user.type(dialog.getByTestId('test-result-examiner-job-title'), 'Șef atelier');
     await user.click(dialog.getByTestId('test-result-submit'));
     expect((await dialog.findByTestId('test-result-error')).textContent).toContain(
-      'Testul nu așteaptă acum angajatul'
+      'Testul nu așteaptă acum lucrătorul'
     );
   });
 
@@ -1253,7 +1253,7 @@ describe('test state in the employee lists', () => {
       )
     );
     await user.click(screen.getByTestId('employees-test-filter-none'));
-    expect(await screen.findByText('Niciun angajat în această stare a testării')).toBeTruthy();
+    expect(await screen.findByText('Niciun lucrător în această stare a testării')).toBeTruthy();
     await user.click(screen.getByTestId('employees-empty-clear-test-state'));
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
     expect(await screen.findAllByTestId('employees-row')).toHaveLength(2);

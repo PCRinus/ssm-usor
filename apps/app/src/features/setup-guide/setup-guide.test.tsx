@@ -396,7 +396,7 @@ describe('the steps', () => {
       'Completează-ți întâi titlul profesional.'
     );
     expect(lockReason('needs-employee', { ownerName: null, isOwner: false })).toBe(
-      'Adaugă întâi angajații clientului.'
+      'Adaugă întâi lucrătorii clientului.'
     );
   });
 
@@ -564,7 +564,7 @@ describe('the steps', () => {
 
     const card = step('employees');
     const action = within(card).getByTestId('setup-step-action-0');
-    expect(action.textContent).toBe('Adaugă angajat');
+    expect(action.textContent).toBe('Adaugă lucrător');
     expect(action.getAttribute('href')).toBe(`/clienti/${clientId}/angajati/nou`);
     expect(within(card).queryByText('Importă din fișe')).toBeNull();
     expect(step('responsible-persons').getAttribute('href')).toBe(`/clienti/${clientId}/instruire`);

@@ -645,7 +645,7 @@ describe("a position's risk evaluation page", () => {
     mount(welderEvaluationPage);
     const card = await screen.findByTestId('work-system-card');
     expect(card.textContent).toContain('Sudură electrică și autogenă.');
-    expect(card.textContent).toContain('3 angajați');
+    expect(card.textContent).toContain('3 lucrători');
     expect(within(card).getByTestId('work-system-means').textContent).toBe(
       'Aparat de sudură, polizor unghiular.'
     );

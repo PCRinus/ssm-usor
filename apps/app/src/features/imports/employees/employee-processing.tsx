@@ -128,7 +128,7 @@ export function EmployeeProcessing({
       </div>
       {running && (
         <Notice variant="info" data-testid="employee-processing-can-leave">
-          Poți închide pagina. Importul rămâne pe pagina Angajați a clientului, cu pasul la care a
+          Poți închide pagina. Importul rămâne pe pagina Lucrători a clientului, cu pasul la care a
           ajuns, și îl deschizi de acolo când persoanele sunt gata de verificat.
         </Notice>
       )}
@@ -214,7 +214,7 @@ export function EmployeeProcessing({
                         : null)}
                     {index === 1 && reached >= 1 && `${scansRead} din ${scans}`}
                     {index === 2 && 'După nume, CNP și ordinea pozelor'}
-                    {index === 3 && 'CNP, posturi, angajați existenți'}
+                    {index === 3 && 'CNP, posturi, lucrători existenți'}
                   </span>
                 </li>
               );
@@ -312,12 +312,12 @@ export function EmployeeProcessing({
           action={
             <Button asChild variant="outline" size="sm">
               <Link to="/clienti/$clientId/angajati" params={{ clientId }}>
-                Vezi angajații
+                Vezi lucrătorii
               </Link>
             </Button>
           }
         >
-          Angajații din acest import au fost creați.
+          Lucrătorii din acest import au fost creați.
         </Notice>
       )}
       <AbandonImportDialog

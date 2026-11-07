@@ -93,10 +93,10 @@ export function toJobPositionRequest(values: JobPositionFormValues): JobPosition
   };
 }
 
-/** "un angajat", "3 angajați", "20 de angajați". */
+/** "un lucrător", "3 lucrători", "20 de lucrători". */
 export function employeeCountLabel(count: number) {
-  if (count === 0) return 'Niciun angajat';
-  if (count === 1) return 'Un angajat';
+  if (count === 0) return 'Niciun lucrător';
+  if (count === 1) return 'Un lucrător';
   const tens = count % 100;
-  return tens === 0 || tens >= 20 ? `${count} de angajați` : `${count} angajați`;
+  return tens === 0 || tens >= 20 ? `${count} de lucrători` : `${count} lucrători`;
 }

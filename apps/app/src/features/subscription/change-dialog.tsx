@@ -26,7 +26,7 @@ import { billingErrorMessage, problemMessage } from './billing-errors';
 import {
   choiceLines,
   choiceSummary,
-  formatCount,
+  employeesLabel,
   formatEuro,
   packsLabel,
   perInterval,
@@ -160,7 +160,7 @@ function copyFor(
       const dropsPacks = current.employeePacks > 0 && target.employeePacks === 0;
       const droppedMembers = Math.max(0, current.extraMembers - target.extraMembers);
       const packsLine = dropsPacks
-        ? ` ${current.employeePacks === 1 ? 'Pachetul' : `Cele ${current.employeePacks} pachete`} de angajați nu mai ${current.employeePacks === 1 ? 'este necesar și se oprește' : 'sunt necesare și se opresc'}.`
+        ? ` ${current.employeePacks === 1 ? 'Pachetul' : `Cele ${current.employeePacks} pachete`} de lucrători nu mai ${current.employeePacks === 1 ? 'este necesar și se oprește' : 'sunt necesare și se opresc'}.`
         : '';
       const membersLine =
         droppedMembers > 0
@@ -168,7 +168,7 @@ function copyFor(
           : '';
       return {
         title: `Treci la ${targetName}?`,
-        lead: `${targetName} începe azi: ${formatCount(terms.includedEmployees)} de angajați, ${terms.includedMembers} utilizatori, ${terms.monthlySms} de SMS pe lună, fiecare coleg își vede clienții lui și documentele nu mai poartă marca SSM Ușor.${packsLine}${membersLine}`,
+        lead: `${targetName} începe azi: ${employeesLabel(terms.includedEmployees)}, ${terms.includedMembers} utilizatori, ${terms.monthlySms} de SMS pe lună, fiecare coleg își vede clienții lui și documentele nu mai poartă marca SSM Ușor.${packsLine}${membersLine}`,
         rows: nowRows(),
         note: prorationNote,
         confirm: `Treci la ${targetName}`,
@@ -182,7 +182,7 @@ function copyFor(
       ].filter(Boolean);
       return {
         title: `Treci la ${targetName} de pe ${applies}?`,
-        lead: `Până pe ${applies} rămâi pe ${currentName}, iar perioada plătită nu se returnează.${needs.length ? ` Pentru cei ${formatCount(usage.employees)} angajați și cei ${usage.members} utilizatori de azi, ${targetName} are nevoie de ${needs.join(' și de ')}.` : ''}`,
+        lead: `Până pe ${applies} rămâi pe ${currentName}, iar perioada plătită nu se returnează.${needs.length ? ` Pentru cei ${employeesLabel(usage.employees)} și cei ${usage.members} utilizatori de azi, ${targetName} are nevoie de ${needs.join(' și de ')}.` : ''}`,
         ...atRenewal(applies),
         losses: current.plan === 'profesional' ? proLosses : undefined,
         confirm: `Treci la ${targetName} pe ${applies}`,

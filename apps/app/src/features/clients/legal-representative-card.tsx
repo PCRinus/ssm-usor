@@ -115,7 +115,7 @@ export function LegalRepresentativeCard({
             {details.data.documentDetails.legalRepresentativeRole}
           </Fact>
           {details.data.documentDetails.legalRepresentativeEmployee && (
-            <Fact label="Și angajat al firmei" testId="legal-representative-employee">
+            <Fact label="Și lucrător al firmei" testId="legal-representative-employee">
               {formatEmployeeName(details.data.documentDetails.legalRepresentativeEmployee)},{' '}
               {details.data.documentDetails.legalRepresentativeEmployee.jobTitle}
             </Fact>
@@ -254,11 +254,11 @@ function LegalRepresentativeForm({
               />
               <div className="flex items-center gap-1">
                 <label htmlFor="details-representative-is-employee" className="text-sm font-medium">
-                  Administratorul este și angajat al firmei
+                  Administratorul este și lucrător al firmei
                 </label>
                 <HelpLink
                   topic="detalii.reprezentant-angajat"
-                  label="Ajutor: Administratorul este și angajat al firmei"
+                  label="Ajutor: Administratorul este și lucrător al firmei"
                 />
               </div>
             </div>
@@ -267,7 +267,7 @@ function LegalRepresentativeForm({
         {isEmployee && (
           <Field
             id="details-representative-employee"
-            label="Angajatul"
+            label="Lucrătorul"
             mark="required"
             error={errors.legalRepresentativeEmployeeId}
           >

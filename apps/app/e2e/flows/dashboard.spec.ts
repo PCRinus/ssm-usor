@@ -39,7 +39,7 @@ test("an owner sees what to do and how the clients' trainings stand, and opens a
   const ssm = page.getByTestId('dashboard-trainings-ssm');
   await expect(ssm.getByRole('img')).toHaveAttribute(
     'aria-label',
-    'Instruiri SSM, 1 angajat: 0 depășite, 0 scadente, 1 neinstruiți, 0 la zi'
+    'Instruiri SSM, 1 lucrător: 0 depășite, 0 scadente, 1 neinstruiți, 0 la zi'
   );
   await expect(page.getByTestId('dashboard-trainings-ssm-overdue-count')).toHaveText('0');
   await expect(page.getByTestId('dashboard-portfolio-clients')).toHaveText('1 client activ');

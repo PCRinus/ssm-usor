@@ -118,7 +118,7 @@ const navigation = [
     ownerOnly: true,
   },
   { to: '/clienti', testId: 'clients', label: 'Clienți', icon: Briefcase, ownerOnly: false },
-  { to: '/angajati', testId: 'employees', label: 'Angajați', icon: UsersRound, ownerOnly: false },
+  { to: '/angajati', testId: 'employees', label: 'Lucrători', icon: UsersRound, ownerOnly: false },
   { to: '/semnaturi', testId: 'signatures', label: 'Semnături', icon: Signature, ownerOnly: false },
   {
     to: '/instructiuni',

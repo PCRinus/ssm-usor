@@ -243,7 +243,7 @@ export function EmployeePersonPage({
             )}
             {declined && (
               <Notice variant="info" data-testid="person-declined-notice">
-                Îl creăm ca angajat nou, nu îl completăm pe {matchedName(person)} din aplicație.{' '}
+                Îl creăm ca lucrător nou, nu îl completăm pe {matchedName(person)} din aplicație.{' '}
                 <Button
                   type="button"
                   variant="link"
@@ -251,13 +251,13 @@ export function EmployeePersonPage({
                   className="h-auto px-0"
                   onClick={() => review.update((current) => withMatchRestored(current, person))}
                 >
-                  E totuși același angajat
+                  E totuși același lucrător
                 </Button>
               </Notice>
             )}
             {existing && (
               <Notice variant="info" data-testid="person-existing-notice">
-                {name} {former ? 'a fost' : 'e deja'} angajat al clientului, cu{' '}
+                {name} {former ? 'a fost' : 'e deja'} lucrător al clientului, cu{' '}
                 {person.existing?.matchedBy === 'cnp'
                   ? 'același CNP'
                   : person.existing?.matchedBy === 'name_only'
@@ -271,7 +271,7 @@ export function EmployeePersonPage({
                   params={{ clientId, employeeId: person.existing!.employeeId }}
                   className="underline"
                 >
-                  Deschide angajatul
+                  Deschide lucrătorul
                 </Link>
               </Notice>
             )}
@@ -324,9 +324,9 @@ export function EmployeePersonPage({
                     }
                   />
                   <span>
-                    Preia-l ca fost angajat, cu instruirile lui.{' '}
+                    Preia-l ca fost lucrător, cu instruirile lui.{' '}
                     <span className="text-muted-foreground">
-                      Fără bifă nu îl creăm; apare la Foști angajați dacă îl preiei.
+                      Fără bifă nu îl creăm; apare la Foști lucrători dacă îl preiei.
                     </span>
                   </span>
                 </label>

@@ -353,7 +353,7 @@ function SigningResult({
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription data-testid="signing-result-summary">
           {failed.length === 0
-            ? `Ai semnat ${trainingCount(signed.length)}. Semnăturile sunt pe fișele angajaților.`
+            ? `Ai semnat ${trainingCount(signed.length)}. Semnăturile sunt pe fișele lucrătorilor.`
             : signed.length === 0
               ? 'Nicio instruire nu a fost semnată. Vezi mai jos de ce.'
               : `Ai semnat ${signed.length} din ${trainingCount(requests.length)}. Celelalte rămân în listă.`}

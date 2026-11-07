@@ -6,6 +6,7 @@ import { HelpLink } from '@/components/help-link';
 
 import {
   employeeLimitOf,
+  employeesLabel,
   formatCount,
   formatEuro,
   packOf,
@@ -23,7 +24,7 @@ const planCopy: Record<PaidPlan, { who: string; lines: string[] }> = {
   start: {
     who: 'Pentru specialistul care lucrează singur.',
     lines: [
-      '250 de angajați, apoi pachete de 50, până la 600',
+      '250 de lucrători, apoi pachete de 50, până la 600',
       'Un utilizator; al doilea costă 15 € pe lună',
       '50 SMS pe lună, apoi 0,10 € fiecare',
       creditsLine('start'),
@@ -32,7 +33,7 @@ const planCopy: Record<PaidPlan, { who: string; lines: string[] }> = {
   profesional: {
     who: 'Pentru firmele cu o echipă de specialiști.',
     lines: [
-      '1.500 de angajați, apoi pachete de 500',
+      '1.500 de lucrători, apoi pachete de 500',
       '3 utilizatori, apoi 15 € pe lună fiecare',
       '300 SMS pe lună, apoi 0,10 € fiecare',
       creditsLine('profesional'),
@@ -186,7 +187,7 @@ export function PlanPicker({
           })}
         </div>
         <p className="text-[13px] leading-relaxed text-muted-foreground">
-          Peste 1.500 de angajați sau o echipă mare? Scrie-ne pentru o ofertă, la{' '}
+          Peste 1.500 de lucrători sau o echipă mare? Scrie-ne pentru o ofertă, la{' '}
           <a
             href={`mailto:${contactEmail}?subject=${encodeURIComponent('Ofertă Enterprise SSM Ușor')}`}
             className="font-semibold text-foreground underline-offset-2 hover:underline"
@@ -200,13 +201,13 @@ export function PlanPicker({
       <BillingCard aria-labelledby="pick-extras" data-testid="extras-picker">
         <div className="flex items-center gap-1">
           <h2 id="pick-extras" className="text-base font-semibold">
-            Angajați și utilizatori
+            Lucrători și utilizatori
           </h2>
-          <HelpLink topic="organizatie.pachete" label="Ajutor: Angajați și utilizatori" />
+          <HelpLink topic="organizatie.pachete" label="Ajutor: Lucrători și utilizatori" />
         </div>
         <Stepper
           name="packs"
-          label={`Pachete de ${pack.employees} de angajați`}
+          label={`Pachete de ${pack.employees} de lucrători`}
           price={`${formatEuro(pack.prices[choice.interval].unitAmount)} ${annual ? 'pe an' : 'pe lună'} fiecare`}
           value={choice.employeePacks}
           min={limits.minPacks}
@@ -217,8 +218,8 @@ export function PlanPicker({
           onChange={(employeePacks) => onChange({ ...choice, employeePacks })}
           hint={
             limits.minPacks > 0
-              ? `Ai ${formatCount(employees)} de angajați, iar ${name} include ${formatCount(terms.includedEmployees)}: îți trebuie cel puțin ${limits.minPacks} ${limits.minPacks === 1 ? 'pachet' : 'pachete'}. Acum acoperi ${formatCount(covered)}.`
-              : `${name} include ${formatCount(terms.includedEmployees)} de angajați, iar tu ai ${formatCount(employees)}. ${choice.employeePacks > 0 ? `Acum acoperi ${formatCount(covered)}.` : 'Nu ai nevoie de pachete acum.'}`
+              ? `Ai ${employeesLabel(employees)}, iar ${name} include ${formatCount(terms.includedEmployees)}: îți trebuie cel puțin ${limits.minPacks} ${limits.minPacks === 1 ? 'pachet' : 'pachete'}. Acum acoperi ${formatCount(covered)}.`
+              : `${name} include ${employeesLabel(terms.includedEmployees)}, iar tu ai ${formatCount(employees)}. ${choice.employeePacks > 0 ? `Acum acoperi ${formatCount(covered)}.` : 'Nu ai nevoie de pachete acum.'}`
           }
         />
         <div className="border-t pt-3.5">

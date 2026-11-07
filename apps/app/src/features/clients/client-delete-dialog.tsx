@@ -100,7 +100,7 @@ function ClientDeleteContent({
           <DialogTitle>Ștergi definitiv clientul?</DialogTitle>
           <DialogDescription>
             <span className="font-medium text-foreground">{client.legalName}</span> se șterge cu tot
-            ce ține de el: angajații și fișele lor, instruirile și semnăturile, testele, posturile,
+            ce ține de el: lucrătorii și fișele lor, instruirile și semnăturile, testele, posturile,
             locurile de muncă, evaluările de risc, datele SU, documentele, fișierele, accesul la
             portal și importurile din documentație. Ștergerea nu se poate anula.
           </DialogDescription>

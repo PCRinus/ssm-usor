@@ -76,7 +76,7 @@ export const voidReasonLabel = (reason: string) =>
 
 export const signerKindLabels: Record<SignerKind, string> = {
   member: 'organizația ta',
-  employee: 'angajat',
+  employee: 'lucrător',
   client_administrator: 'administratorul clientului',
 };
 
@@ -122,11 +122,11 @@ const signingMessages: Partial<Record<string, string>> = {
   [signatureErrorReasons.signerNameMismatch]:
     'Contul ales nu poartă numele tipărit în rubrică. Alege persoana cu acest nume sau folosește numele semnatarului.',
   [signatureErrorReasons.agreementRecorded]:
-    'Actul adițional are o stare înregistrată și rămâne în dosarul angajatului.',
+    'Actul adițional are o stare înregistrată și rămâne în dosarul lucrătorului.',
   [signatureErrorReasons.agreementSignedElectronically]:
     'Actul adițional este semnat electronic; starea lui nu se mai schimbă de aici.',
   [signatureErrorReasons.employeeHasNoAddress]:
-    'Angajatul nu are email sau telefon. Actul adițional spune unde primește codurile de semnare, așa că adaugă unul în datele lui.',
+    'Lucrătorul nu are email sau telefon. Actul adițional spune unde primește codurile de semnare, așa că adaugă unul în datele lui.',
   [clientConflictReasons.clientArchived]:
     'Clientul este arhivat; semnăturile lui nu se mai schimbă.',
 };
@@ -166,7 +166,7 @@ const sessionMessages: Partial<Record<string, string>> = {
   [signatureErrorReasons.signingItemNotFound]:
     'O instruire din listă nu mai așteaptă semnătura ta: a fost semnată, anulată sau modificată între timp. Închide și alege din nou.',
   [signatureErrorReasons.agreementSignedInPortal]:
-    'Actul adițional se semnează în portal, de angajat și de administratorul clientului.',
+    'Actul adițional se semnează în portal, de lucrător și de administratorul clientului.',
 };
 
 const errorBody = (cause: unknown) =>
@@ -217,11 +217,11 @@ export const signingItemFailures: Record<SignSessionResponseFailedItemReason, st
   request_not_pending:
     'Nu mai aștepta semnătura ta: a fost semnată, anulată sau instruirea s-a modificat.',
   agreement_not_awaiting: 'Actul adițional nu mai aștepta semnătura.',
-  sheet_busy: 'Fișa angajatului primea în același timp altă semnătură. Semnează din nou.',
+  sheet_busy: 'Fișa lucrătorului primea în același timp altă semnătură. Semnează din nou.',
   slot_not_on_sheet:
     'Fișa nu are o rubrică pentru această semnătură; marchează rubrica semnată pe hârtie.',
   missing_sheet_data:
-    'Fișa angajatului nu are toate datele (locul de muncă, traseul). Completează-le, apoi semnează din nou.',
+    'Fișa lucrătorului nu are toate datele (locul de muncă, traseul). Completează-le, apoi semnează din nou.',
   signer_unavailable: 'Serviciul de semnare nu a răspuns. Încearcă din nou mai târziu.',
   pdf_unavailable: 'Fișa nu a putut fi făcută PDF acum. Încearcă din nou mai târziu.',
   template_missing: 'Modelul fișei de instruire lipsește. Scrie-ne, ca să-l punem la loc.',

@@ -138,12 +138,12 @@ function ClientPendingLink({ participantId }: { participantId: string }) {
     >
       <span className="flex-1">
         {count === 0
-          ? t`Angajații nu au nimic de semnat.`
+          ? t`Lucrătorii nu au nimic de semnat.`
           : t({
               message: plural(count, {
-                one: 'O semnătură așteaptă la angajați',
-                few: '# semnături așteaptă la angajați',
-                other: '# de semnături așteaptă la angajați',
+                one: 'O semnătură așteaptă la lucrători',
+                few: '# semnături așteaptă la lucrători',
+                other: '# de semnături așteaptă la lucrători',
               }),
             })}
       </span>

@@ -661,7 +661,7 @@ describe('the files of an employee', () => {
     expect(await within(card).findByTestId('client-files-empty')).toBeTruthy();
     const dialog = await openUploadDialog(user);
     expect(within(dialog).getByTestId('client-files-upload-employee').textContent).toBe(
-      'Pentru angajatul Popescu Ion.'
+      'Pentru lucrătorul Popescu Ion.'
     );
     await user.upload(within(dialog).getByTestId('client-files-input'), pdf('fisa 2019.pdf'));
     await user.click(within(dialog).getByTestId('client-files-upload-submit'));
@@ -699,7 +699,7 @@ describe('the files of an employee', () => {
     await user.click(within(dialog).getByTestId('client-files-upload-submit'));
 
     expect((await within(dialog).findByTestId('client-file-upload-error')).textContent).toBe(
-      'Angajatul nu mai există la acest client.'
+      'Lucrătorul nu mai există la acest client.'
     );
   });
 
@@ -831,7 +831,7 @@ describe('the import folder', () => {
       'Fișe importate pe 27.10.2026 · un fișier'
     );
     expect(folder.textContent).toContain(
-      'Fișele scanate din care au fost transcrise instruirile. Fiecare angajat are la fișierele sale doar paginile lui.'
+      'Fișele scanate din care au fost transcrise instruirile. Fiecare lucrător are la fișierele sale doar paginile lui.'
     );
     expect(
       within(folder).getByTestId('client-import-folder-toggle').getAttribute('aria-label')

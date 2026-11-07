@@ -252,7 +252,7 @@ function UnplacedContent({
                 <span className="font-medium">Las-o deoparte</span>
               </span>
               <span className="text-muted-foreground">
-                Nu preluăm nimic de pe ea și nu o păstrăm la niciun angajat.
+                Nu preluăm nimic de pe ea și nu o păstrăm la niciun lucrător.
               </span>
             </label>
             <p className="text-[13px] text-muted-foreground">

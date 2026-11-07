@@ -490,7 +490,7 @@ function TrainingForm({
           form.setError(field, {
             message:
               field === 'employeeIds'
-                ? 'Un participant nu mai este angajat al clientului. Reîncarcă lista și alege din nou.'
+                ? 'Un participant nu mai este lucrător al clientului. Reîncarcă lista și alege din nou.'
                 : field === 'heldOn'
                   ? 'O instruire se înregistrează după ce a avut loc.'
                   : (signingMessage(cause, training) ?? message),
@@ -615,7 +615,7 @@ function TrainingForm({
             mark={phase === 'introductory_general' ? 'optional' : 'required'}
             hint={
               phase === 'introductory_general'
-                ? 'Instruirea introductiv-generală poate cuprinde angajați de pe orice post.'
+                ? 'Instruirea introductiv-generală poate cuprinde lucrători de pe orice post.'
                 : 'Participanții și materialul propus urmează postul.'
             }
             error={errors.jobPositionId}
@@ -671,7 +671,7 @@ function TrainingForm({
                 id="training-attendees"
                 className="rounded-md border border-dashed px-3 py-2.5 text-sm text-muted-foreground"
               >
-                Alege postul pentru a vedea angajații lui.
+                Alege postul pentru a vedea lucrătorii lui.
               </p>
             ) : options.length === 0 ? (
               <p
@@ -680,8 +680,8 @@ function TrainingForm({
                 className="rounded-md border border-dashed px-3 py-2.5 text-sm text-muted-foreground"
               >
                 {position
-                  ? `Postul „${position.name}” nu are angajați actuali.`
-                  : 'Clientul nu are angajați actuali.'}
+                  ? `Postul „${position.name}” nu are lucrători actuali.`
+                  : 'Clientul nu are lucrători actuali.'}
               </p>
             ) : (
               <Controller

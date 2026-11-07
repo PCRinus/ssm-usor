@@ -37,7 +37,7 @@ test('a member finds employees of every client from one page, without typing dia
   await expect(page).toHaveURL(/\/angajati$/);
   const rows = page.getByTestId('organization-employees-row');
   await expect(rows).toHaveCount(2);
-  await expect(page.getByTestId('organization-employees-count')).toHaveText('2 angajați');
+  await expect(page.getByTestId('organization-employees-count')).toHaveText('2 lucrători');
 
   const search = page.getByTestId('organization-employees-search');
   await search.fill('stefan taranu');
@@ -55,7 +55,7 @@ test('a member finds employees of every client from one page, without typing dia
   await expect(rows.first()).toContainText('Popescu Ion');
 
   await search.fill('nimeni');
-  await expect(page.getByText('Niciun angajat nu corespunde căutării')).toBeVisible();
+  await expect(page.getByText('Niciun lucrător nu corespunde căutării')).toBeVisible();
   await page.getByTestId('organization-employees-empty-clear-search').click();
   await expect(rows).toHaveCount(2);
 
@@ -72,5 +72,5 @@ test('a member finds employees of every client from one page, without typing dia
   await page.getByTestId('employees-search').fill('popesc');
   await expect(page.getByTestId('employees-row')).toHaveCount(1);
   await page.getByTestId('employees-search').fill('stefan');
-  await expect(page.getByText('Niciun angajat nu corespunde căutării')).toBeVisible();
+  await expect(page.getByText('Niciun lucrător nu corespunde căutării')).toBeVisible();
 });

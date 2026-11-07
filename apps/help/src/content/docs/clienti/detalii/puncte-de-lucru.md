@@ -49,7 +49,7 @@ sources:
   - apps/app/src/features/missing-data/missing-rows.ts
 ---
 
-Un punct de lucru e un loc în care lucrează angajații clientului: sediul, un magazin, un birou, un atelier, un șantier. Fiecare angajat are punctul lui de lucru (vezi [Punctul de lucru](/clienti/angajati/adaugare-si-editare/#punctul-de-lucru)), iar documentele SU tipăresc fiecare punct de lucru activ, cu activitatea, adresa și mijloacele lui de apărare împotriva incendiilor.
+Un punct de lucru e un loc în care lucrează lucrătorii clientului: sediul, un magazin, un birou, un atelier, un șantier. Fiecare lucrător are punctul lui de lucru (vezi [Punctul de lucru](/clienti/angajati/adaugare-si-editare/#punctul-de-lucru)), iar documentele SU tipăresc fiecare punct de lucru activ, cu activitatea, adresa și mijloacele lui de apărare împotriva incendiilor.
 
 ## Lista punctelor de lucru
 
@@ -59,7 +59,7 @@ Un clic pe rând deschide punctul de lucru ca să-l modifici. Din meniul de la c
 
 ## Adăugarea unui punct de lucru
 
-Alege **Adaugă** pe cardul **Sediu și puncte de lucru**. Același dialog se deschide și din formularul angajatului, cu **Adaugă un punct de lucru nou…**.
+Alege **Adaugă** pe cardul **Sediu și puncte de lucru**. Același dialog se deschide și din formularul lucrătorului, cu **Adaugă un punct de lucru nou…**.
 
 Doar denumirea e obligatorie. Poți salva și fără datele SU: ce lipsește îți cere aplicația când generezi documentele SU.
 
@@ -89,7 +89,7 @@ Contează doar ce e completat în datele firmei: un câmp gol acolo nu e o difer
 
 Arhivezi un punct de lucru în care clientul nu mai lucrează. Alege **Arhivează** din meniul rândului și confirmă. Punctul de lucru nu mai apare în listă și nici în documentele generate de acum înainte. Documentele deja emise rămân neschimbate.
 
-Angajații care îl aveau îl păstrează, marcat **Arhivat**, dar nu mai poate fi ales din nou.
+Lucrătorii care îl aveau îl păstrează, marcat **Arhivat**, dar nu mai poate fi ales din nou.
 
 ## Datele SU
 

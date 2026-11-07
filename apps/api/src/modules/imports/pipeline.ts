@@ -143,9 +143,9 @@ export const fileReasons = {
   trainingMaterial:
     'Material de instruire introductiv-generală: text general, nu conține date despre client. Îl citim doar dacă ceri.',
   noClientData: 'Nu conține date despre client.',
-  trainingSheet: 'Fișă de instruire individuală: rămâne pentru importul angajaților.',
+  trainingSheet: 'Fișă de instruire individuală: rămâne pentru importul lucrătorilor.',
   notASheet:
-    'Nu este o fotografie sau un PDF: importul angajaților citește doar fișele fotografiate sau scanate.',
+    'Nu este o fotografie sau un PDF: importul lucrătorilor citește doar fișele fotografiate sau scanate.',
 } as const;
 
 export const importReasons = {
@@ -169,7 +169,7 @@ export const importReasons = {
     client:
       'Fișierele depășesc limitele unui import: cel mult 150 de fișiere și 100 MiB, fiecare fișier de cel mult 20 MiB.',
     employees:
-      'Fișierele depășesc limitele unui import de angajați: cel mult 500 de fișiere și 1 GiB, fiecare fișier de cel mult 25 MiB.',
+      'Fișierele depășesc limitele unui import de lucrători: cel mult 500 de fișiere și 1 GiB, fiecare fișier de cel mult 25 MiB.',
   },
   creditsShort:
     'Fișierele au mai multe pagini decât s-au numărat la încărcare, iar creditele rămase nu ajung pentru toate.',

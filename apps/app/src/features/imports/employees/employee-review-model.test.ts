@@ -577,7 +577,7 @@ describe('the employee a person completes', () => {
   }));
 
   it('asks whether a name-only match is the same employee', () => {
-    expect(tags(nameOnly.context(), 'lazar')).toEqual(['Angajat de confirmat']);
+    expect(tags(nameOnly.context(), 'lazar')).toEqual(['Lucrător de confirmat']);
     const confirmed = withPersonChange(emptyChanges(), 'lazar', () => ({ existing: true }));
     expect(tags(nameOnly.context(confirmed), 'lazar')).toEqual([]);
   });
@@ -650,9 +650,9 @@ describe('the employee a person completes', () => {
     const twice = withPerson('pop', () => ({
       existing: { employeeId: existingEmployeeId, matchedBy: 'cnp' },
     }));
-    expect(tags(twice.context(), 'pop')).toContain('Același angajat la două persoane');
-    expect(tags(twice.context(), 'lazar')).toContain('Același angajat la două persoane');
+    expect(tags(twice.context(), 'pop')).toContain('Același lucrător la două persoane');
+    expect(tags(twice.context(), 'lazar')).toContain('Același lucrător la două persoane');
     const aside = withPersonChange(emptyChanges(), 'pop', () => ({ state: 'set_aside' }));
-    expect(tags(twice.context(aside), 'lazar')).not.toContain('Același angajat la două persoane');
+    expect(tags(twice.context(aside), 'lazar')).not.toContain('Același lucrător la două persoane');
   });
 });

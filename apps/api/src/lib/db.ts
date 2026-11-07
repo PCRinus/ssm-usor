@@ -121,7 +121,7 @@ const testErrors: Record<string, { code: 'conflict' | 'validation_error'; messag
     code: 'validation_error',
     message: 'Răspunsul nu se potrivește cu întrebările testului.',
   },
-  TST05: { code: 'conflict', message: 'Testul nu așteaptă acum angajatul.' },
+  TST05: { code: 'conflict', message: 'Testul nu așteaptă acum lucrătorul.' },
   TST06: {
     code: 'conflict',
     message: 'Un rezultat din portal se schimbă numai în examinator și nu se șterge.',

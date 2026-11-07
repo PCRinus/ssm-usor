@@ -60,7 +60,7 @@ test('the fire-safety set asks for its own data and the first decision number, i
   await page.reload();
   await page.getByTestId('documents-generate').click();
   await expect(page.getByTestId('generate-headcount')).toContainText(
-    'Niciun angajat în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare nu se generează.'
+    'Niciun lucrător în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare nu se generează.'
   );
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('4');
@@ -126,7 +126,7 @@ test('the fire-safety set asks for its own data and the first decision number, i
   await page.reload();
   await page.getByTestId('documents-generate').click();
   await expect(page.getByTestId('generate-headcount')).toHaveText(
-    '10 angajați în lista clientului, așa că se generează și decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare.'
+    '10 lucrători în lista clientului, așa că se generează și decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare.'
   );
   await expect(page.getByTestId('generate-period')).toBeVisible();
   await page.getByTestId('generate-period').fill('2026');

@@ -152,7 +152,7 @@ export function sectionDescription(
       const missingDate = representative && !representative.values.hiredAt;
       return `${people.length === 1 ? 'O persoană' : `${people.length} persoane`} cu ${roles === 1 ? 'un rol' : `${roles} roluri`}.${
         representative
-          ? ` ${roleLabel('workers_representative')} devine angajat${missingDate ? ' și are nevoie de data angajării' : ''}.`
+          ? ` ${roleLabel('workers_representative')} devine lucrător${missingDate ? ' și are nevoie de data angajării' : ''}.`
           : ''
       }${others(['responsiblePersons'], 'persoane')}`;
     }
@@ -304,8 +304,8 @@ export function confirmLines(proposal: Proposal, changes: Changes) {
     lines.push({
       icon: 'users',
       count: employees.length,
-      label: employees.length === 1 ? 'angajat' : 'angajați',
-      detail: `${names}. Ceilalți angajați îi imporți după, din fișe.`,
+      label: employees.length === 1 ? 'lucrător' : 'lucrători',
+      detail: `${names}. Ceilalți lucrători îi imporți după, din fișe.`,
     });
   }
   if (fireMeans + installations > 0) {

@@ -142,8 +142,8 @@ export function ClientArchiveDialog({
                   ? ' iese din lista clienților potențiali activi. Datele, contactul și notițele lui rămân neschimbate în lista „Arhivați”, de unde poate fi reactivat.'
                   : ' revine în lista clienților potențiali activi.'
                 : change.action === 'archive'
-                  ? ' iese din lista clienților activi. Angajații, posturile și documentele lui rămân neschimbate și pot fi consultate din lista „Arhivați”, de unde clientul poate fi reactivat.'
-                  : ' revine în lista clienților activi, cu angajații, posturile și documentele lui.'}
+                  ? ' iese din lista clienților activi. Lucrătorii, posturile și documentele lui rămân neschimbate și pot fi consultate din lista „Arhivați”, de unde clientul poate fi reactivat.'
+                  : ' revine în lista clienților activi, cu lucrătorii, posturile și documentele lui.'}
             </DialogDescription>
           </DialogHeader>
           {drafts > 0 && (

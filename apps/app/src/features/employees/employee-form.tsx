@@ -72,7 +72,7 @@ export function EmployeeForm({
     <div data-testid={employee ? 'edit-employee-page' : 'new-employee-page'} className="space-y-7">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">
-          {employee ? `Modifică: ${formatEmployeeName(employee)}` : 'Angajat nou'}
+          {employee ? `Modifică: ${formatEmployeeName(employee)}` : 'Lucrător nou'}
         </h1>
       </div>
       <form
@@ -88,7 +88,7 @@ export function EmployeeForm({
             title="Angajator"
             description={
               employee
-                ? 'Angajatorul acestui angajat nu poate fi schimbat.'
+                ? 'Angajatorul acestui lucrător nu poate fi schimbat.'
                 : 'Pentru alt angajator, revino la lista de clienți.'
             }
           >
@@ -566,7 +566,7 @@ export function EmployeeForm({
         )}
         <div className="flex flex-wrap gap-3">
           <Button type="submit" className="h-11" data-testid="employee-submit" disabled={isSaving}>
-            {isSaving ? 'Se salvează…' : employee ? 'Salvează modificările' : 'Salvează angajatul'}
+            {isSaving ? 'Se salvează…' : employee ? 'Salvează modificările' : 'Salvează lucrătorul'}
           </Button>
           <Button asChild type="button" variant="ghost" className="h-11">
             {employee ? (

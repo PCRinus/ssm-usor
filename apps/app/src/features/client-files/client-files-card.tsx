@@ -143,7 +143,7 @@ export function ClientFilesCard({
         description={
           <>
             {employee
-              ? 'Fișele de instruire completate pe hârtie, fotografiate sau scanate, și alte fișiere despre angajat.'
+              ? 'Fișele de instruire completate pe hârtie, fotografiate sau scanate, și alte fișiere despre lucrător.'
               : 'Certificatul de înregistrare, procese-verbale ITM, fișe de aptitudine și alte fișiere despre client.'}
             {lead && (
               <span data-testid="client-files-lead-hint">

@@ -233,7 +233,7 @@ describe('client documents', () => {
     const sections = screen.getAllByTestId('client-section').map((link) => link.textContent);
     expect(sections).toEqual([
       'Detalii',
-      'Angajați',
+      'Lucrători',
       'Posturi de lucru',
       'Mijloace de apărare',
       'Instruire și responsabili',
@@ -416,15 +416,15 @@ describe('client documents', () => {
   it.each([
     [
       6,
-      '6 angajați în lista clientului, așa că decizia privind reprezentanții lucrătorilor nu se generează',
+      '6 lucrători în lista clientului, așa că decizia privind reprezentanții lucrătorilor nu se generează',
     ],
     [
       12,
-      '12 angajați în lista clientului, așa că se generează și decizia privind reprezentanții lucrătorilor, cu cel puțin un reprezentant',
+      '12 lucrători în lista clientului, așa că se generează și decizia privind reprezentanții lucrătorilor, cu cel puțin un reprezentant',
     ],
     [
       50,
-      '50 de angajați în lista clientului, așa că se generează și decizia privind reprezentanții lucrătorilor, cu cel puțin doi reprezentanți',
+      '50 de lucrători în lista clientului, așa că se generează și decizia privind reprezentanții lucrătorilor, cu cel puțin doi reprezentanți',
     ],
   ])('says before generating what %i employees mean for decision 1.5', async (count, rule) => {
     mockApi({ currentEmployeeCount: count });
@@ -505,9 +505,9 @@ describe('client documents', () => {
     mount();
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('documents-generate'));
-    expect((await screen.findByTestId('generate-headcount')).textContent).toContain('12 angajați');
+    expect((await screen.findByTestId('generate-headcount')).textContent).toContain('12 lucrători');
     expect((await screen.findByTestId('generate-missing-place')).textContent).toContain(
-      'Reprezentantul lucrătorilorAles dintre angajați.'
+      'Reprezentantul lucrătorilorAles dintre lucrători.'
     );
   });
 
@@ -1624,7 +1624,7 @@ describe('client documents', () => {
     await regenerateRow(user, 'reprezentanții lucrătorilor');
     const row = await screen.findByTestId('documents-missing-row');
     expect(row.textContent).toBe(
-      'Reprezentantul lucrătorilorAles dintre angajații actuali. Decizia îl numește și când clientul are sub 10 angajați.'
+      'Reprezentantul lucrătorilorAles dintre lucrătorii actuali. Decizia îl numește și când clientul are sub 10 lucrători.'
     );
     expect(row.getAttribute('href')).toBe(
       `/clienti/${clientId}/instruire?focus=workers-representative`

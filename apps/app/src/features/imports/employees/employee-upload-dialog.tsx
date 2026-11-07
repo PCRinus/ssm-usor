@@ -243,13 +243,13 @@ function UploadForm({
       >
         <form onSubmit={onSubmit} aria-busy={busy} noValidate>
           <DialogHeader>
-            <DialogTitle>Angajați din fișele de instruire</DialogTitle>
+            <DialogTitle>Lucrători din fișele de instruire</DialogTitle>
             <DialogDescription>
               <span className="block">
-                Citim fișele de instruire de la {client.legalName} și îți propunem angajații.
+                Citim fișele de instruire de la {client.legalName} și îți propunem lucrătorii.
               </span>
               <span className="block">
-                Nu creăm niciun angajat până nu confirmi.{' '}
+                Nu creăm niciun lucrător până nu confirmi.{' '}
                 <HelpLink topic="import.angajati">Află mai mult</HelpLink>
               </span>
             </DialogDescription>
@@ -274,8 +274,8 @@ function UploadForm({
                     data-testid="employee-upload-no-posts"
                   >
                     <p>
-                      Fiecare angajat intră pe un post al clientului. Îți recomandăm să imporți
-                      întâi documentația clientului: aduce posturile, iar angajații din fișe intră
+                      Fiecare lucrător intră pe un post al clientului. Îți recomandăm să imporți
+                      întâi documentația clientului: aduce posturile, iar lucrătorii din fișe intră
                       direct pe ele. Dacă mergi mai departe acum, adaugi posturile pe parcurs, câte
                       unul pentru fiecare post scris pe fișe.
                     </p>
@@ -425,7 +425,7 @@ function UploadForm({
                     Ai ales {pagesAndPhotos(totals.pages)}, cu {bytesLabel} în total. Într-un import
                     intră cel mult {limits.scannedPages} și 1 GB. Scoate o parte și păstreaz-o
                     pentru un import următor, cu toate fotografiile unei persoane în același import.
-                    Importul următor completează angajații creați de acesta.
+                    Importul următor completează lucrătorii creați de acesta.
                   </Notice>
                 )}
                 {totals.count > 0 && (

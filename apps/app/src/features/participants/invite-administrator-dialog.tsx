@@ -135,9 +135,9 @@ function InviteAdministratorForm({
         <DialogHeader>
           <DialogTitle>Invită administratorul clientului</DialogTitle>
           <DialogDescription>
-            Administratorul clientului vede în portal angajații, stadiul instruirilor și fișele lor.
-            Intră cu un cod primit la adresa de mai jos, fără parolă. Invitația este valabilă 30 de
-            zile.
+            Administratorul clientului vede în portal lucrătorii, stadiul instruirilor și fișele
+            lor. Intră cu un cod primit la adresa de mai jos, fără parolă. Invitația este valabilă
+            30 de zile.
           </DialogDescription>
         </DialogHeader>
         <div className="mt-5 grid gap-5">
@@ -156,13 +156,13 @@ function InviteAdministratorForm({
               )}
             />
             <label htmlFor="administrator-is-employee" className="text-sm font-medium">
-              Este angajat al clientului
+              Este lucrător al clientului
             </label>
           </div>
           {isEmployee ? (
             <Field
               id="administrator-employee"
-              label="Angajatul"
+              label="Lucrătorul"
               mark="required"
               error={errors.employeeId}
             >

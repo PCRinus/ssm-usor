@@ -101,11 +101,11 @@ const count = (value: number, one: string, many: string) =>
   roCount(value, one, many).replace(/^\d+ /, '');
 
 const issueFallback =
-  'Nu am putut crea angajații: o valoare nu se poate salva. Verifică persoanele și încearcă din nou.';
+  'Nu am putut crea lucrătorii: o valoare nu se poate salva. Verifică persoanele și încearcă din nou.';
 
 const conflictReasons: Record<string, string> = {
   [importErrorReasons.outdated]:
-    'Clientul s-a schimbat între timp: un post, un loc de muncă sau un angajat ales nu mai există. Reîncarcă pagina și alege din nou.',
+    'Clientul s-a schimbat între timp: un post, un loc de muncă sau un lucrător ales nu mai există. Reîncarcă pagina și alege din nou.',
 };
 
 export function EmployeeConfirmDialog({
@@ -192,7 +192,7 @@ export function EmployeeConfirmDialog({
             ? conflictReasons[reason]!
             : importErrorMessage(
                 cause,
-                'Nu am putut crea angajații. Încearcă din nou.',
+                'Nu am putut crea lucrătorii. Încearcă din nou.',
                 'employees'
               )
         );
@@ -212,8 +212,8 @@ export function EmployeeConfirmDialog({
         <DialogHeader>
           <DialogTitle>
             {left.length > 0
-              ? `Creezi angajații fără ${left.length === 1 ? 'cel neverificat' : `cei ${roCount(left.length, 'neverificat', 'neverificați')}`}?`
-              : `Creezi angajații clientului ${clientName}?`}
+              ? `Creezi lucrătorii fără ${left.length === 1 ? 'cel neverificat' : `cei ${roCount(left.length, 'neverificat', 'neverificați')}`}?`
+              : `Creezi lucrătorii clientului ${clientName}?`}
           </DialogTitle>
           <DialogDescription>
             {left.length > 0
@@ -221,7 +221,7 @@ export function EmployeeConfirmDialog({
               : total === 1
                 ? 'Persoana de pe fișe e verificată.'
                 : `Toate cele ${roCount(total, 'persoană', 'persoane')} de pe fișe sunt verificate.`}{' '}
-            Preluăm ce ai verificat; orice poți modifica după, din pagina fiecărui angajat.
+            Preluăm ce ai verificat; orice poți modifica după, din pagina fiecărui lucrător.
           </DialogDescription>
         </DialogHeader>
         <DialogBody className="mt-4 grid gap-4">
@@ -248,7 +248,7 @@ export function EmployeeConfirmDialog({
                   );
                 })}
               </ul>
-              Rămân în afara acestui import: nu creăm angajații lor. Îi poți aduce mai târziu,
+              Rămân în afara acestui import: nu creăm lucrătorii lor. Îi poți aduce mai târziu,
               într-un import nou, din fotografiile fișelor lor.
             </Notice>
           )}
@@ -257,7 +257,7 @@ export function EmployeeConfirmDialog({
               <Line
                 icon={<UserPlus className="size-4" />}
                 count={summary.created.length}
-                label={count(summary.created.length, 'angajat nou', 'angajați noi')}
+                label={count(summary.created.length, 'lucrător nou', 'lucrători noi')}
                 detail="Cu postul ales pentru fiecare."
               />
             )}
@@ -273,8 +273,8 @@ export function EmployeeConfirmDialog({
               <Line
                 icon={<UserMinus className="size-4" />}
                 count={summary.leavers.length}
-                label={count(summary.leavers.length, 'fost angajat', 'foști angajați')}
-                detail={`${join(summary.leavers.map(nameOf))}, cu instruirile lor. Apar la Foști angajați.`}
+                label={count(summary.leavers.length, 'fost lucrător', 'foști lucrători')}
+                detail={`${join(summary.leavers.map(nameOf))}, cu instruirile lor. Apar la Foști lucrători.`}
               />
             )}
             {summary.trainingsHeld > 0 && (
@@ -302,7 +302,7 @@ export function EmployeeConfirmDialog({
                 icon={<FileImage className="size-4" />}
                 count={summary.files}
                 label={count(summary.files, 'fotografie', 'fotografii')}
-                detail={`La fișierele fiecărui angajat, lângă instruirile transcrise din ele.${summary.filesLeft > 0 ? ` ${photosLabel(summary.filesLeft)} ${summary.filesLeft === 1 ? 'rămâne' : 'rămân'} deoparte.` : ''}`}
+                detail={`La fișierele fiecărui lucrător, lângă instruirile transcrise din ele.${summary.filesLeft > 0 ? ` ${photosLabel(summary.filesLeft)} ${summary.filesLeft === 1 ? 'rămâne' : 'rămân'} deoparte.` : ''}`}
               />
             )}
           </Group>
@@ -330,8 +330,8 @@ export function EmployeeConfirmDialog({
                   count={summary.noContact.length}
                   label={count(
                     summary.noContact.length,
-                    'angajat fără email sau telefon',
-                    'angajați fără email sau telefon'
+                    'lucrător fără email sau telefon',
+                    'lucrători fără email sau telefon'
                   )}
                   detail="Fișele nu le au. Le adaugi când îi inviți în portal."
                 />
@@ -346,7 +346,7 @@ export function EmployeeConfirmDialog({
                     'test la angajare neverificat pe fișă',
                     'teste la angajare neverificate pe fișă'
                   )}
-                  detail={`${join(summary.untested.map(({ person, domain }) => `${nameOf(person)} (${trainingDomainLabels[domain]})`))}: pe fișă nu se vede testul verificat. Poți înregistra rezultatul pe pagina angajatului.`}
+                  detail={`${join(summary.untested.map(({ person, domain }) => `${nameOf(person)} (${trainingDomainLabels[domain]})`))}: pe fișă nu se vede testul verificat. Poți înregistra rezultatul pe pagina lucrătorului.`}
                 />
               )}
               {summary.noCommute.length > 0 && (
@@ -356,10 +356,10 @@ export function EmployeeConfirmDialog({
                   count={summary.noCommute.length}
                   label={count(
                     summary.noCommute.length,
-                    'angajat fără traseul de deplasare',
-                    'angajați fără traseul de deplasare'
+                    'lucrător fără traseul de deplasare',
+                    'lucrători fără traseul de deplasare'
                   )}
-                  detail={`${join(summary.noCommute.map(nameOf))}. Fișa individuală îl cere; îl completezi din datele angajatului.`}
+                  detail={`${join(summary.noCommute.map(nameOf))}. Fișa individuală îl cere; îl completezi din datele lucrătorului.`}
                 />
               )}
               {summary.unusual.length > 0 && (
@@ -392,7 +392,7 @@ export function EmployeeConfirmDialog({
           {issues.length > 0 && (
             <Notice
               variant="destructive"
-              title="Nu am putut crea angajații"
+              title="Nu am putut crea lucrătorii"
               data-testid="employee-confirm-error"
             >
               <ul

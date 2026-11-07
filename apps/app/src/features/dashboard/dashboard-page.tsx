@@ -222,7 +222,7 @@ function DashboardSections({ data, now }: { data: DashboardSummary; now: Date })
             label="Totul e la zi"
             detail={
               nextDue
-                ? `Următoarea instruire scadentă: ${formatDueDay(nextDue.on)}, pentru ${countOf(nextDue.employees, 'angajat', 'angajați')}`
+                ? `Următoarea instruire scadentă: ${formatDueDay(nextDue.on)}, pentru ${countOf(nextDue.employees, 'lucrător', 'lucrători')}`
                 : undefined
             }
             className="border-dashed"
@@ -263,7 +263,7 @@ function DashboardSections({ data, now }: { data: DashboardSummary; now: Date })
 
       <div className={cn(autoFitGrid, 'items-start gap-4')}>
         {waiting.length > 0 && (
-          <ItemsCard id="dashboard-waiting" title="Așteptăm de la angajați" items={waiting} />
+          <ItemsCard id="dashboard-waiting" title="Așteptăm de la lucrători" items={waiting} />
         )}
         <PortfolioCard portfolio={portfolio} alone={bottomCards === 1} />
         {contractItems.length > 0 && (

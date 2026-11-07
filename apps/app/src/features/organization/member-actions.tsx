@@ -119,7 +119,7 @@ export function MemberActions({
             <DialogTitle>Elimini membrul din organizație?</DialogTitle>
             <DialogDescription>
               <span className="font-medium text-foreground">{name}</span> nu va mai avea acces la
-              clienții și angajații organizației. Contul și datele introduse până acum rămân, iar
+              clienții și lucrătorii organizației. Contul și datele introduse până acum rămân, iar
               dacă te răzgândești poți trimite o nouă invitație.
             </DialogDescription>
           </DialogHeader>

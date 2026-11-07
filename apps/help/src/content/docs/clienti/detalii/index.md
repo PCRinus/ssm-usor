@@ -11,7 +11,7 @@ topics:
   - id: detalii.functia-reprezentantului
     heading: Funcția
   - id: detalii.reprezentant-angajat
-    heading: Administratorul este și angajat al firmei
+    heading: Administratorul este și lucrător al firmei
   - id: detalii.persoana-de-contact
     heading: Persoana de contact
   - id: detalii.contact-email
@@ -58,7 +58,7 @@ Cardul **Date firmă** arată denumirea, CUI-ul, numărul din Registrul Comerțu
 
 Persoana care reprezintă legal firma, de obicei administratorul. Numele și funcția lui se tipăresc în deciziile generate, în alte documente din seturile SSM și SU, cum e fișa obiectivului, și în actul adițional privind semnarea electronică.
 
-Cât timp lipsește numele sau funcția, seturile de documente SSM și SU nu se pot genera, iar angajații nu pot primi actul adițional în portal. Contractul de prestări servicii le cere și el.
+Cât timp lipsește numele sau funcția, seturile de documente SSM și SU nu se pot genera, iar lucrătorii nu pot primi actul adițional în portal. Contractul de prestări servicii le cere și el.
 
 ### Numele și prenumele
 
@@ -68,20 +68,20 @@ Așa cum vrei să apară în documente, de exemplu „Ion Popescu”: documentel
 
 Funcția lui în firmă, de exemplu „Administrator” sau „Director general”. Între 2 și 80 de caractere.
 
-### Administratorul este și angajat al firmei
+### Administratorul este și lucrător al firmei
 
-Bifează căsuța când reprezentantul legal e și pe lista de angajați a clientului, ca la o firmă cu un singur om, unde administratorul e și angajat. Apoi alege-l din listă la **Angajatul**.
+Bifează căsuța când reprezentantul legal e și pe lista de lucrători a clientului, ca la o firmă cu un singur om, unde administratorul e și lucrător. Apoi alege-l din listă la **Lucrătorul**.
 
-Cu legătura făcută, documentele îl numesc o singură dată, nu o dată ca administrator și încă o dată ca angajat. Tot după ea aplicația îl deosebește pe administrator de angajați, de exemplu când verifică dacă reprezentantul lucrătorilor nu e chiar reprezentantul legal.
+Cu legătura făcută, documentele îl numesc o singură dată, nu o dată ca administrator și încă o dată ca lucrător. Tot după ea aplicația îl deosebește pe administrator de lucrători, de exemplu când verifică dacă reprezentantul lucrătorilor nu e chiar reprezentantul legal.
 
-Fără legătură, aplicația compară numele, fără să țină cont de litere mari, diacritice sau ordinea cuvintelor. Comparația poate să încurce doi oameni cu același nume, așa că fă legătura când reprezentantul e și angajat.
+Fără legătură, aplicația compară numele, fără să țină cont de litere mari, diacritice sau ordinea cuvintelor. Comparația poate să încurce doi oameni cu același nume, așa că fă legătura când reprezentantul e și lucrător.
 
 Ca să-ți fie mai ușor:
 
-- când bifezi căsuța și un singur angajat are numele scris la **Nume și prenume**, aplicația îl alege singură;
-- când alegi angajatul și numele e încă gol, aplicația îl completează din numele angajatului.
+- când bifezi căsuța și un singur lucrător are numele scris la **Nume și prenume**, aplicația îl alege singură;
+- când alegi lucrătorul și numele e încă gol, aplicația îl completează din numele lucrătorului.
 
-„Alege angajatul din listă sau debifează căsuța.” apare când ai bifat căsuța, dar nu ai ales niciun angajat.
+„Alege lucrătorul din listă sau debifează căsuța.” apare când ai bifat căsuța, dar nu ai ales niciun lucrător.
 
 ## Persoana de contact
 
@@ -89,7 +89,7 @@ Omul cu care vorbești la client. Poate fi altcineva decât reprezentantul legal
 
 Fișa obiectivului din setul SU tipărește telefonul și emailul ca date de contact ale firmei. Dacă persoana de contact e chiar reprezentantul legal, cu același nume, fișa tipărește telefonul și ca telefon de serviciu al administratorului. Contractul de prestări servicii tipărește telefonul.
 
-Persoana de contact nu are acces în portal. Angajații intră în portal cu emailul și telefonul lor, din pagina fiecăruia.
+Persoana de contact nu are acces în portal. Lucrătorii intră în portal cu emailul și telefonul lor, din pagina fiecăruia.
 
 ### Emailul
 

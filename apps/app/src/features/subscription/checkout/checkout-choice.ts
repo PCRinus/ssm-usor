@@ -39,7 +39,7 @@ export function clampChoice(choice: BillingChoice, owner: BillingOwner): Billing
 
 export function unavailableReason(plan: PaidPlan, owner: BillingOwner) {
   const reasons = owner.choices[plan].problems.map((problem) => problem.reason);
-  if (reasons.includes('start_employee_ceiling')) return 'Start acoperă cel mult 600 de angajați.';
+  if (reasons.includes('start_employee_ceiling')) return 'Start acoperă cel mult 600 de lucrători.';
   if (reasons.includes('start_member_ceiling')) return 'Start are cel mult 2 utilizatori.';
   return null;
 }

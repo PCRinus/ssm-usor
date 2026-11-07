@@ -143,7 +143,7 @@ test('an employee signs the agreement and a training with one code, and the clie
   await signIn(page, administratorEmail);
   // The trainer's request, addressed to the specialist, waits whatever the employee did.
   await expect(page.getByTestId('home-client-signatures')).toHaveText(
-    signing ? 'O semnătură așteaptă la angajați' : '2 semnături așteaptă la angajați'
+    signing ? 'O semnătură așteaptă la lucrători' : '2 semnături așteaptă la lucrători'
   );
   await page.getByTestId('home-client-signatures').click();
   await expect(page.getByTestId('client-pending-employee')).toContainText('Pop Ana');
