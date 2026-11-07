@@ -9,8 +9,10 @@ import { getListClientsQueryKey, useListClients } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
+import { EmptyState } from '@/components/empty-state';
 import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
 import { useAuth } from '@/features/auth/auth-context';
+import { isEmptyOrLoading } from '@/lib/list-state';
 
 import { type ClientArchiveChange, ClientArchiveDialog } from './client-archive-dialog';
 import type { ClientRow } from './client-columns';
@@ -57,6 +59,7 @@ export function LeadsPage() {
     },
   });
   const meta = leads.data ?? { page, pageSize: defaultPageSize, total: 0 };
+  const listStatus = !apiRequest.baseUrl ? 'error' : leads.status;
   const [archiveChange, setArchiveChange] = useState<ClientArchiveChange | null>(null);
   const [promoting, setPromoting] = useState<ClientRow | null>(null);
   const columns = useMemo(() => leadColumns(setArchiveChange, setPromoting), []);
@@ -65,12 +68,14 @@ export function LeadsPage() {
     <div data-testid="leads-page" className="space-y-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold tracking-tight">Clienți potențiali</h1>
-        <Button asChild>
-          <Link to="/clienti-potentiali/nou" data-testid="leads-add">
-            <Plus aria-hidden="true" />
-            Adaugă client potențial
-          </Link>
-        </Button>
+        {(archived || !isEmptyOrLoading(listStatus, meta.total)) && (
+          <Button asChild>
+            <Link to="/clienti-potentiali/nou" data-testid="leads-add">
+              <Plus aria-hidden="true" />
+              Adaugă client potențial
+            </Link>
+          </Button>
+        )}
       </div>
       <div className="overflow-hidden rounded-lg border bg-card">
         <ListCardHeader>
@@ -106,7 +111,7 @@ export function LeadsPage() {
           }
           meta={meta}
           noun={['client potențial', 'clienți potențiali']}
-          status={!apiRequest.baseUrl ? 'error' : leads.status}
+          status={listStatus}
           isFetching={leads.isFetching}
           isPlaceholderData={leads.isPlaceholderData}
           sort={{ sort, order }}
@@ -149,37 +154,30 @@ export function LeadsPage() {
           }
           empty={
             archived ? (
-              <>
-                <Archive className="mx-auto mb-4 size-8 text-muted-foreground" aria-hidden="true" />
-                <h3 className="text-base font-medium">Niciun client potențial arhivat</h3>
-                <p
-                  data-testid="leads-empty"
-                  className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
-                >
-                  Clienții potențiali arhivați vor apărea aici. Îi poți reactiva oricând.
-                </p>
-              </>
+              <EmptyState
+                icon={Archive}
+                title="Niciun client potențial arhivat"
+                data-testid="leads-empty"
+              >
+                Clienții potențiali arhivați vor apărea aici. Îi poți reactiva oricând.
+              </EmptyState>
             ) : (
-              <>
-                <Handshake
-                  className="mx-auto mb-4 size-8 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <h3 className="text-base font-medium">Niciun client potențial încă</h3>
-                <p
-                  data-testid="leads-empty"
-                  className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
-                >
-                  Adaugă o companie cu care discuți. Când semnați contractul, o poți transforma în
-                  client împreună cu notițele și datele salvate.
-                </p>
-                <Button asChild variant="outline" className="mt-5">
-                  <Link to="/clienti-potentiali/nou">
-                    <Plus aria-hidden="true" />
-                    Adaugă primul client potențial
-                  </Link>
-                </Button>
-              </>
+              <EmptyState
+                icon={Handshake}
+                title="Niciun client potențial încă"
+                data-testid="leads-empty"
+                actions={
+                  <Button asChild>
+                    <Link to="/clienti-potentiali/nou" data-testid="leads-add">
+                      <Plus aria-hidden="true" />
+                      Adaugă primul client potențial
+                    </Link>
+                  </Button>
+                }
+              >
+                Adaugă o companie cu care discuți. Când semnați contractul, o poți transforma în
+                client împreună cu notițele și datele salvate.
+              </EmptyState>
             )
           }
         />

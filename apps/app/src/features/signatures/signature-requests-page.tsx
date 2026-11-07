@@ -13,7 +13,7 @@ import {
   useListMySignatureRequests,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { EmptyState } from '@/components/empty-state';
+import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
 import { formatDate } from '@/features/employees/employee-format';
@@ -130,12 +130,12 @@ export function SignatureRequestsPage() {
           <Skeleton className="h-32 w-full rounded-lg" />
         </div>
       ) : items.length === 0 ? (
-        <div className="rounded-lg border bg-card px-5 py-10">
+        <ListEmpty className="rounded-lg border bg-card">
           <EmptyState icon={Signature} data-testid="signature-requests-empty">
             Nu ai nimic de semnat. Când înregistrezi o instruire și te alegi semnatar, rândul ei
             apare aici.
           </EmptyState>
-        </div>
+        </ListEmpty>
       ) : (
         <div className="grid gap-5">
           {byClient(items).map((group) => {

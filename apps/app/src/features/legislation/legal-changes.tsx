@@ -6,7 +6,7 @@ import { useRouteContext } from '@tanstack/react-router';
 import { Scale } from 'lucide-react';
 
 import { getListLegalChangesQueryKey, useListLegalChanges } from '@/api/generated/api';
-import { EmptyState } from '@/components/empty-state';
+import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
 import { formatRoDate } from '@/lib/dates';
 
@@ -47,12 +47,12 @@ export function LegalChanges({ userId }: { userId: string }) {
             </Notice>
           </div>
         ) : items.length === 0 ? (
-          <div className="px-5 py-12" data-testid="legal-changes-empty">
+          <ListEmpty data-testid="legal-changes-empty">
             <EmptyState icon={Scale}>
               Nicio modificare legislativă de când sunt urmărite actele. O formă consolidată nouă a
               unui act apare aici în ziua în care o găsește verificarea.
             </EmptyState>
-          </div>
+          </ListEmpty>
         ) : (
           <ul className="divide-y">
             {items.map((change) => (

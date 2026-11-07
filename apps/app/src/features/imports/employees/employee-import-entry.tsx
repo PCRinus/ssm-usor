@@ -27,6 +27,7 @@ import { uninvitedOf, useImportInvitees } from '@/features/participants/use-impo
 
 import { AbandonImportDialog } from '../abandon-import-dialog';
 import { importListPollMs, isRunning, isUploadUnderway, photosLabel } from '../import-format';
+import { WayBadge, wayClass } from '../start-ways';
 import {
   type EmployeesImported,
   forgetEmployeesImported,
@@ -92,20 +93,6 @@ export function EmployeeImportButtons({
   );
 }
 
-const wayClass =
-  'grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-3.5 gap-y-1 rounded-xl border bg-card p-4 text-left transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none';
-
-function WayBadge({ children }: { children: ReactNode }) {
-  return (
-    <span
-      className="row-span-2 grid size-10 place-items-center rounded-lg bg-secondary"
-      aria-hidden="true"
-    >
-      {children}
-    </span>
-  );
-}
-
 export function EmployeeStartWays({
   clientId,
   onStart,
@@ -117,10 +104,7 @@ export function EmployeeStartWays({
   const batches = found.data?.items ?? [];
   const sheets = allSheets(batches);
   return (
-    <div
-      className="mx-auto mt-6 grid max-w-[40rem] gap-3 text-left"
-      data-testid="employees-start-ways"
-    >
+    <div className="grid w-full max-w-[40rem] gap-3 text-left" data-testid="employees-start-ways">
       <Link to="/clienti/$clientId/angajati/nou" params={{ clientId }} className={wayClass}>
         <WayBadge>
           <PenLine className="size-5" />

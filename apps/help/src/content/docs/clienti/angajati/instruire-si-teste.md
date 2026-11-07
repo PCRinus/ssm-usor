@@ -67,7 +67,7 @@ Pe pagina unui angajat, **Instruire SSM** și **Instruire SU** adună tot ce ți
 
 ## Taburile de instruire
 
-Cele două taburi arată la fel. Sus ai **Descarcă fișa SSM** (sau **SU**), **Previzualizează** și **Înregistrează o instruire**. Dedesubt:
+Cele două taburi arată la fel. Sus ai **Descarcă fișa SSM** (sau **SU**), **Previzualizează** și **Înregistrează o instruire**; cât timp angajatul nu are nicio instruire în acel domeniu, **Înregistrează o instruire** e în lista goală de jos. Dedesubt:
 
 - **Starea instruirii**: Neinstruit, La zi, Scadentă sau Depășită (vezi [Starea instruirii](/clienti/angajati/));
 - **Următoarea instruire**: termenul, sau de ce nu există încă unul;

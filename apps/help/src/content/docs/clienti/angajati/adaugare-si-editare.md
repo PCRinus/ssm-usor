@@ -81,7 +81,7 @@ Formularul angajatului e același când adaugi pe cineva și când corectezi ce 
 
 ## Adăugarea unui angajat
 
-Din tabul **Angajați** al clientului alege **Adaugă angajat**. Angajatorul e clientul din care ai pornit și nu se poate schimba; pentru alt angajator, revino la lista de clienți.
+Din tabul **Angajați** al clientului alege **Adaugă angajat** (la un client fără angajați, **Adaugă primul angajat**, în locul listei). Angajatorul e clientul din care ai pornit și nu se poate schimba; pentru alt angajator, revino la lista de clienți.
 
 Obligatorii sunt:
 

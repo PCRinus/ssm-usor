@@ -99,7 +99,7 @@ const refusedStart = (reason: string) => () =>
 
 async function uploadFrom(path: string, files: File[]) {
   const runtime = mountApp(authFixture(makeSession()).client, path);
-  await userEvent.click(await screen.findByTestId('clients-import'));
+  await userEvent.click(await screen.findByTestId('clients-start-import'));
   await screen.findByTestId('import-upload-dialog');
   choose(files);
   await screen.findByTestId('import-chosen');
@@ -154,7 +154,7 @@ describe('starting an import from the client list', () => {
     mockImportApi();
     const runtime = mountApp(authFixture(makeSession()).client, '/clienti');
 
-    await userEvent.click(await screen.findByTestId('clients-import'));
+    await userEvent.click(await screen.findByTestId('clients-start-import'));
     await screen.findByTestId('import-upload-dialog');
     choose([
       zip({
@@ -249,7 +249,7 @@ describe('starting an import from the client list', () => {
     );
     const runtime = mountApp(authFixture(makeSession()).client, '/clienti');
 
-    await userEvent.click(await screen.findByTestId('clients-import'));
+    await userEvent.click(await screen.findByTestId('clients-start-import'));
     await screen.findByTestId('import-upload-dialog');
     choose([new File(['%PDF'], 'a.pdf', { type: 'application/pdf' })]);
     await screen.findByTestId('import-chosen');
@@ -272,7 +272,7 @@ describe('starting an import from the client list', () => {
     mockImportApi();
     mountApp(authFixture(makeSession()).client, '/clienti');
 
-    await userEvent.click(await screen.findByTestId('clients-import'));
+    await userEvent.click(await screen.findByTestId('clients-start-import'));
     await screen.findByTestId('import-upload-dialog');
     choose(Array.from({ length: 151 }, (_, index) => new File(['%PDF'], `f${index}.pdf`)));
 
@@ -286,7 +286,7 @@ describe('starting an import from the client list', () => {
     mockImportApi();
     mountApp(authFixture(makeSession()).client, '/clienti');
 
-    await userEvent.click(await screen.findByTestId('clients-import'));
+    await userEvent.click(await screen.findByTestId('clients-start-import'));
     await screen.findByTestId('import-upload-dialog');
     choose([
       zip(Object.fromEntries(Array.from({ length: 151 }, (_, index) => [`f${index}.pdf`, 'x']))),
@@ -301,7 +301,7 @@ describe('starting an import from the client list', () => {
   it('keeps out a file removed while a zip opens', async () => {
     mockImportApi();
     mountApp(authFixture(makeSession()).client, '/clienti');
-    await userEvent.click(await screen.findByTestId('clients-import'));
+    await userEvent.click(await screen.findByTestId('clients-start-import'));
     await screen.findByTestId('import-upload-dialog');
     choose([new File(['%PDF'], 'Contract 2019.pdf')]);
     await screen.findByTestId('import-chosen');
@@ -323,7 +323,7 @@ describe('starting an import from the client list', () => {
   it('says so when a dropped folder cannot be read', async () => {
     mockImportApi();
     mountApp(authFixture(makeSession()).client, '/clienti');
-    await userEvent.click(await screen.findByTestId('clients-import'));
+    await userEvent.click(await screen.findByTestId('clients-start-import'));
     await screen.findByTestId('import-upload-dialog');
 
     const folder = {
@@ -356,7 +356,7 @@ describe('starting an import from the client list', () => {
     });
     mountApp(authFixture(makeSession()).client, '/clienti');
 
-    await userEvent.click(await screen.findByTestId('clients-import'));
+    await userEvent.click(await screen.findByTestId('clients-start-import'));
     await screen.findByTestId('import-upload-dialog');
     choose([new File(['%PDF'], 'a.pdf'), new File(['%PDF'], 'b.pdf')]);
     await screen.findByTestId('import-chosen');
@@ -523,7 +523,7 @@ describe('the imports on the client list', () => {
 
 async function openDialog() {
   mountApp(authFixture(makeSession()).client, '/clienti');
-  await userEvent.click(await screen.findByTestId('clients-import'));
+  await userEvent.click(await screen.findByTestId('clients-start-import'));
   return screen.findByTestId('import-upload-dialog');
 }
 

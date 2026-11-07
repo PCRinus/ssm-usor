@@ -86,7 +86,7 @@ Lista unui client e în tabul **Angajați** al clientului. Fiecare rând arată:
 
 Poți ordona lista după nume, post sau data angajării. Din meniul de la capătul rândului ajungi la **Modifică** și **Marchează plecarea…**. Un clic pe rând deschide pagina angajatului.
 
-Adaugi un angajat cu **Adaugă angajat**. Ce cere formularul găsești în [Adăugarea și modificarea unui angajat](/clienti/angajati/adaugare-si-editare/). Angajații unui client pe care îl preiei îi poți aduce și din fotografiile fișelor lor de instruire: vezi [Importul angajaților din fișe](/clienti/import/#importul-angajaților-din-fișe).
+Adaugi un angajat cu **Adaugă angajat** sau, la un client fără angajați, cu **Adaugă primul angajat**. Ce cere formularul găsești în [Adăugarea și modificarea unui angajat](/clienti/angajati/adaugare-si-editare/). Angajații unui client pe care îl preiei îi poți aduce și din fotografiile fișelor lor de instruire: vezi [Importul angajaților din fișe](/clienti/import/#importul-angajaților-din-fișe).
 
 ### Angajați actuali și foști angajați
 

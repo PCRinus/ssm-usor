@@ -33,7 +33,7 @@ sources:
   - supabase/migrations/20261010150000_client_list_fire_safety.sql
 ---
 
-Un client e o firmă pentru care lucrezi. Pe pagina lui ții tot ce îi privește: datele firmei, angajații, posturile, mijloacele de apărare împotriva incendiilor, instruirile și documentele SSM și SU. Adaugi un client din **Clienți**, cu **Adaugă client**; ce cere formularul găsești în [Adăugarea și modificarea unui client](/clienti/adaugare-si-modificare/).
+Un client e o firmă pentru care lucrezi. Pe pagina lui ții tot ce îi privește: datele firmei, angajații, posturile, mijloacele de apărare împotriva incendiilor, instruirile și documentele SSM și SU. Adaugi un client din **Clienți**, cu **Adaugă client** sau, la primul client, cu **Adaugă primul client**; ce cere formularul găsești în [Adăugarea și modificarea unui client](/clienti/adaugare-si-modificare/).
 
 ## Lista clienților
 

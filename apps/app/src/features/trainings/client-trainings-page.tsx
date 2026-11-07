@@ -37,12 +37,13 @@ import {
   type TrainingListResponseItemsItem,
   useListTrainings,
 } from '@/api/generated/api';
-import { EmptyState } from '@/components/empty-state';
+import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
 import { formatDate } from '@/features/employees/employee-format';
 import { trainingLocks } from '@/features/signatures/use-record-signatures';
+import { isEmptyOrLoading } from '@/lib/list-state';
 
 import { DeleteTrainingDialog, type TrainingToDelete } from './delete-training-dialog';
 import { TrainingDialog, type TrainingDialogTarget } from './training-dialog';
@@ -107,7 +108,7 @@ export function ClientTrainingsPage() {
     <div data-testid="client-trainings-page" className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">Instruiri ținute</h2>
-        {!readOnly && (
+        {!readOnly && !isEmptyOrLoading(trainings.status, items.length) && (
           <Button data-testid="trainings-record" onClick={record}>
             <Plus aria-hidden="true" />
             Înregistrează o instruire
@@ -185,13 +186,13 @@ export function ClientTrainingsPage() {
             <Skeleton className="h-10 w-full" />
           </div>
         ) : items.length === 0 ? (
-          <div className="px-5 py-10">
+          <ListEmpty>
             <EmptyState
               icon={ClipboardCheck}
               data-testid="trainings-empty"
               actions={
                 !readOnly && (
-                  <Button variant="outline" onClick={record}>
+                  <Button data-testid="trainings-record" onClick={record}>
                     <Plus aria-hidden="true" />
                     Înregistrează o instruire
                   </Button>
@@ -200,7 +201,7 @@ export function ClientTrainingsPage() {
             >
               {emptyMessage(domain, phase)}
             </EmptyState>
-          </div>
+          </ListEmpty>
         ) : (
           <Table
             data-testid="trainings-table"
