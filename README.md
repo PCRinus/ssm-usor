@@ -82,3 +82,10 @@ pnpm deploy:dry-run
 ```
 
 The three `deploy:*` scripts publish the corresponding application with Wrangler after Cloudflare authentication and domain configuration are in place.
+
+## License
+
+The source is public, but SSM Ușor is not open source. It is licensed under the
+[PolyForm Noncommercial License 1.0.0](LICENSE.md): you may read, run, change and share it for
+personal, research, educational and other noncommercial purposes, but not use it in a
+commercial product or service. For a commercial license, write to contact@ssmusor.ro.
