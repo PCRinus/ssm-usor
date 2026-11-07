@@ -58,10 +58,10 @@ export const start: PricedPlan = {
   annual: 390,
   lines: [
     { text: 'Oricâți clienți', bold: 'Oricâți clienți' },
-    { text: 'Până la 250 de angajați la clienții tăi', bold: '250 de angajați' },
+    { text: 'Până la 250 de lucrători la clienții tăi', bold: '250 de lucrători' },
     { text: 'Documentele SSM și SU, completate din datele clientului' },
-    { text: 'Fișe de instruire semnate de angajați pe telefon' },
-    { text: 'Clientul vede instruirile și fișele angajaților, fără să te sune' },
+    { text: 'Fișe de instruire semnate de lucrători pe telefon' },
+    { text: 'Clientul vede instruirile și fișele lucrătorilor, fără să te sune' },
     { text: 'Un utilizator; al doilea costă 15 € pe lună' },
   ],
 };
@@ -74,7 +74,7 @@ export const profesional: PricedPlan = {
   annual: 1490,
   lead: 'Tot ce include Start, plus:',
   lines: [
-    { text: 'Până la 1.500 de angajați la clienții tăi', bold: '1.500 de angajați' },
+    { text: 'Până la 1.500 de lucrători la clienții tăi', bold: '1.500 de lucrători' },
     { text: '3 utilizatori, apoi 15 € pe lună pentru fiecare', bold: '3 utilizatori' },
     { text: 'Fiecare coleg își vede clienții lui' },
     { text: 'Documente fără marca SSM Ușor' },
@@ -90,7 +90,7 @@ export const enterprise: QuotedPlan = {
   askNote: 'După mărimea firmei tale',
   lead: 'Tot ce include Profesional, plus:',
   lines: [
-    { text: 'Peste 1.500 de angajați și oricâți utilizatori' },
+    { text: 'Peste 1.500 de lucrători și oricâți utilizatori' },
     { text: 'Te ajutăm să-ți aduci clienții existenți' },
     { text: 'Autentificare unică cu contul firmei, la cerere' },
     { text: 'Acord de prelucrare a datelor după cerințele firmei tale' },
@@ -120,10 +120,10 @@ export function annualNote(plan: PricedPlan): string {
 export const addOns = {
   title: 'Ai mai mulți clienți? Adaugi doar ce-ți lipsește.',
   items: [
-    { label: '50 de angajați în plus', hint: 'aproximativ 15 clienți mici', price: '15 € / lună' },
+    { label: '50 de lucrători în plus', hint: 'aproximativ 15 clienți mici', price: '15 € / lună' },
     { label: 'Un coleg în plus', price: '15 € / lună' },
   ],
-  note: 'Dacă treci de limită, lucrezi mai departe cu tot ce ai. Îți propunem un pachet, iar după o lună, ca să adaugi angajați noi, îl adaugi întâi.',
+  note: 'Dacă treci de limită, lucrezi mai departe cu tot ce ai. Îți propunem un pachet, iar după o lună, ca să adaugi lucrători noi, îl adaugi întâi.',
 };
 
 export const paymentFacts = {
@@ -164,11 +164,11 @@ export const compare = {
       rows: [
         { label: 'Clienți și clienți potențiali', cells: ['Oricâți', 'Oricâți', 'Oricâți'] },
         {
-          label: 'Angajați la clienții tăi',
+          label: 'Lucrători la clienții tăi',
           cells: ['Până la 250', 'Până la 1.500', 'După nevoie'],
         },
         {
-          label: 'Angajați în plus',
+          label: 'Lucrători în plus',
           cells: ['15 € pentru 50, până la 600', '40 € pentru 500', 'În ofertă'],
         },
         { label: 'Utilizatori', cells: ['1', '3', 'După nevoie'] },
@@ -206,7 +206,7 @@ export const compare = {
             'După nevoie',
           ],
         },
-        { label: 'Clientul vede instruirile și fișele angajaților', cells: [true, true, true] },
+        { label: 'Clientul vede instruirile și fișele lucrătorilor', cells: [true, true, true] },
       ],
     },
     {
@@ -232,22 +232,22 @@ export const compare = {
 export const pricingPage = {
   title: 'Prețuri: program SSM și SU de la 39 € pe lună | SSM Ușor',
   description:
-    'Start 39 €, Profesional 149 € pe lună + TVA, cu oricâți clienți. Prețul depinde de câți angajați au clienții tăi. La lansare: 30 de zile gratuite.',
+    'Start 39 €, Profesional 149 € pe lună + TVA, cu oricâți clienți. Prețul depinde de câți lucrători au clienții tăi. La lansare: 30 de zile gratuite.',
   eyebrow: 'Prețuri',
   heading: 'Toți clienții tăi, de la 39 € pe lună',
   intro:
-    'Prețul depinde de câți angajați au clienții tăi, în total. Orice plan include documentele SSM și SU, instruirile, testele și semnăturile angajaților.',
+    'Prețul depinde de câți lucrători au clienții tăi, în total. Orice plan include documentele SSM și SU, instruirile, testele și semnăturile lucrătorilor.',
   calculatorPrompt: 'Nu știi ce plan ți se potrivește?',
   calculatorLink: 'Calculează cât plătești',
   footnote: 'Prețurile sunt în euro, fără TVA.',
   faq: [
     {
-      q: 'Ce angajați se numără?',
-      a: 'Numărăm angajații activi ai tuturor clienților tăi activi. Foștii angajați, clienții potențiali și clienții arhivați nu se numără.',
+      q: 'Ce lucrători se numără?',
+      a: 'Numărăm lucrătorii activi ai tuturor clienților tăi activi. Foștii lucrători, clienții potențiali și clienții arhivați nu se numără.',
     },
     {
       q: 'Ce se întâmplă dacă trec de limită?',
-      a: 'Lucrezi mai departe cu tot ce ai. Îți arătăm pachetul de angajați în plus al planului tău (50 pe Start, 500 pe Profesional); dacă după o lună nu l-ai adăugat, nu mai poți adăuga angajați noi până nu o faci sau arhivezi clienții cu care nu mai lucrezi.',
+      a: 'Lucrezi mai departe cu tot ce ai. Îți arătăm pachetul de lucrători în plus al planului tău (50 pe Start, 500 pe Profesional); dacă după o lună nu l-ai adăugat, nu mai poți adăuga lucrători noi până nu o faci sau arhivezi clienții cu care nu mai lucrezi.',
     },
     {
       q: 'Pot încerca înainte să plătesc?',
@@ -255,7 +255,7 @@ export const pricingPage = {
     },
     {
       q: 'Ce sunt creditele pentru import?',
-      a: 'Cu ele aduci clienții și angajații în aplicație din documentația și fișele pe care le ai deja. Documentele unui client folosesc 25 de credite, plus unul pentru fiecare pagină scanată; fiecare fotografie a unei fișe folosește unul. Creditele lunii nu trec în luna următoare. Creditele de bun venit, 2.500 pe Start și 10.000 pe Profesional, le primești o dată, la prima plată, și nu expiră. Dacă ai nevoie de mai multe, ne scrii și ți le adăugăm.',
+      a: 'Cu ele aduci clienții și lucrătorii în aplicație din documentația și fișele pe care le ai deja. Documentele unui client folosesc 25 de credite, plus unul pentru fiecare pagină scanată; fiecare fotografie a unei fișe folosește unul. Creditele lunii nu trec în luna următoare. Creditele de bun venit, 2.500 pe Start și 10.000 pe Profesional, le primești o dată, la prima plată, și nu expiră. Dacă ai nevoie de mai multe, ne scrii și ți le adăugăm.',
     },
     {
       q: 'Pot renunța oricând?',
@@ -267,7 +267,7 @@ export const pricingPage = {
 export const pricingSection = {
   title: 'Un abonament pentru tot portofoliul, nu pentru fiecare client.',
   intro:
-    'Prețul depinde de câți angajați au clienții tăi, în total. Documentele SSM și SU, instruirile, testele și semnăturile sunt incluse în orice plan.',
+    'Prețul depinde de câți lucrători au clienții tăi, în total. Documentele SSM și SU, instruirile, testele și semnăturile sunt incluse în orice plan.',
   calculator: 'Calculează cât plătești',
   compare: 'Compară planurile',
 };
@@ -300,10 +300,10 @@ export function quote(employees: number, members: number): Quote {
   const profMembers = Math.max(0, members - 3);
   const profTotal = profesional.monthly + 40 * profPacks + 15 * profMembers;
   const packs = (n: number, size: number) =>
-    `${n === 1 ? 'Un pachet' : `${n} pachete`} de ${size} de angajați`;
+    `${n === 1 ? 'Un pachet' : `${n} pachete`} de ${size} de lucrători`;
 
   if (startFits && startTotal <= profTotal) {
-    const lines = [{ label: 'Start, până la 250 de angajați', value: eur(start.monthly) }];
+    const lines = [{ label: 'Start, până la 250 de lucrători', value: eur(start.monthly) }];
     if (startPacks) lines.push({ label: packs(startPacks, 50), value: eur(15 * startPacks) });
     if (startMembers) lines.push({ label: 'Un coleg în plus', value: eur(15) });
     return {
@@ -312,13 +312,13 @@ export function quote(employees: number, members: number): Quote {
       lines,
       advice:
         profTotal - startTotal <= 20
-          ? 'Ești aproape de Profesional: la același preț ai până la 1.500 de angajați și trei utilizatori.'
-          : 'Plătești mai mult doar când treci de numărul de angajați inclus.',
+          ? 'Ești aproape de Profesional: la același preț ai până la 1.500 de lucrători și trei utilizatori.'
+          : 'Plătești mai mult doar când treci de numărul de lucrători inclus.',
     };
   }
 
   const lines = [
-    { label: 'Profesional, până la 1.500 de angajați', value: eur(profesional.monthly) },
+    { label: 'Profesional, până la 1.500 de lucrători', value: eur(profesional.monthly) },
   ];
   if (profPacks) lines.push({ label: packs(profPacks, 500), value: eur(40 * profPacks) });
   if (profMembers) {
@@ -332,7 +332,7 @@ export function quote(employees: number, members: number): Quote {
     advice =
       members > 2
         ? 'Start acoperă cel mult doi utilizatori, așa că o echipă merge pe Profesional.'
-        : 'Start acoperă cel mult 600 de angajați. Profesional are 1.500 incluși.';
+        : 'Start acoperă cel mult 600 de lucrători. Profesional are 1.500 incluși.';
   }
   return { plan: profesional, total: profTotal, lines, advice };
 }
@@ -340,23 +340,23 @@ export function quote(employees: number, members: number): Quote {
 export const calculator = {
   title: 'Calculator de preț | SSM Ușor',
   description:
-    'Află cât plătești pentru SSM Ușor după câți angajați au clienții tăi și câte persoane folosesc aplicația. Prețuri în euro, fără TVA.',
+    'Află cât plătești pentru SSM Ușor după câți lucrători au clienții tăi și câte persoane folosesc aplicația. Prețuri în euro, fără TVA.',
   back: '← Prețuri',
   heading: 'Calculează cât plătești',
   intro:
-    'Oricâți clienți. Prețul depinde doar de câți angajați au clienții tăi, în total, și de câte persoane folosesc aplicația.',
-  employees: 'Câți angajați au clienții tăi, în total?',
+    'Oricâți clienți. Prețul depinde doar de câți lucrători au clienții tăi, în total, și de câte persoane folosesc aplicația.',
+  employees: 'Câți lucrători au clienții tăi, în total?',
   minEmployees: 50,
   maxEmployees: 2000,
   /** About 3.5 employees per client among the small firms our first testers serve. */
   employeesPerClient: 3.5,
   examples: 'Exemple',
   presets: [
-    { label: 'La început · 90 de angajați', employees: 90, members: 1 },
-    { label: '70 de clienți mici · 250 de angajați', employees: 250, members: 1 },
-    { label: '100 de clienți · 350 de angajați', employees: 350, members: 1 },
-    { label: '100 de clienți, cu un coleg · 350 de angajați', employees: 350, members: 2 },
-    { label: 'Firmă cu 3 specialiști · 1.000 de angajați', employees: 1000, members: 3 },
+    { label: 'La început · 90 de lucrători', employees: 90, members: 1 },
+    { label: '70 de clienți mici · 250 de lucrători', employees: 250, members: 1 },
+    { label: '100 de clienți · 350 de lucrători', employees: 350, members: 1 },
+    { label: '100 de clienți, cu un coleg · 350 de lucrători', employees: 350, members: 2 },
+    { label: 'Firmă cu 3 specialiști · 1.000 de lucrători', employees: 1000, members: 3 },
   ],
   members: 'Câte persoane folosesc aplicația, cu tot cu tine?',
   maxMembers: 10,
@@ -367,11 +367,11 @@ export const calculator = {
   summaries: [
     {
       title: 'Start · 39 € + TVA pe lună',
-      text: 'Până la 250 de angajați la clienții tăi, apoi 15 € pentru fiecare 50. Un utilizator; al doilea costă 15 € pe lună.',
+      text: 'Până la 250 de lucrători la clienții tăi, apoi 15 € pentru fiecare 50. Un utilizator; al doilea costă 15 € pe lună.',
     },
     {
       title: 'Profesional · 149 € + TVA pe lună',
-      text: 'Până la 1.500 de angajați și 3 utilizatori. Fiecare coleg își vede clienții lui.',
+      text: 'Până la 1.500 de lucrători și 3 utilizatori. Fiecare coleg își vede clienții lui.',
     },
   ],
   enterprise: {

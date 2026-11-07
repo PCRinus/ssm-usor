@@ -72,7 +72,7 @@ describe('the published prices match the plan catalogue Stripe is set up from', 
       `${grouped(start.monthlyCredits)} pe lună + ${grouped(start.welcomeCredits)} la prima plată`,
       `${grouped(profesional.monthlyCredits)} pe lună + ${grouped(profesional.welcomeCredits)} la prima plată`,
     ]);
-    expect(cells('Angajați la clienții tăi')).toEqual([
+    expect(cells('Lucrători la clienții tăi')).toEqual([
       `Până la ${start.includedEmployees.toLocaleString('ro-RO')}`,
       `Până la ${profesional.includedEmployees.toLocaleString('ro-RO')}`,
     ]);
@@ -80,7 +80,7 @@ describe('the published prices match the plan catalogue Stripe is set up from', 
       String(start.includedMembers),
       String(profesional.includedMembers),
     ]);
-    expect(cells('Angajați în plus')).toEqual([
+    expect(cells('Lucrători în plus')).toEqual([
       `${eur(euro(startPack.prices.month.unitAmount))} pentru ${startPack.employees}, până la ${startMaxEmployees}`,
       `${eur(euro(profesionalPack.prices.month.unitAmount))} pentru ${profesionalPack.employees}`,
     ]);

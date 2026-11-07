@@ -9,8 +9,8 @@ const M = legalEntity.filled ? 'span' : 'mark';
 
 <LegalPage
   title="Politica de confidențialitate"
-  description="Cum prelucrează SSM Ușor datele personale ale vizitatorilor, ale furnizorilor și ale angajaților clienților lor."
-  updated="4 noiembrie 2026"
+  description="Cum prelucrează SSM Ușor datele personale ale vizitatorilor, ale furnizorilor și ale lucrătorilor clienților lor."
+  updated="7 noiembrie 2026"
 >
   {!legalEntity.filled && (
     <p class="note">
@@ -37,7 +37,7 @@ const M = legalEntity.filled ? 'span' : 'mark';
   <h2>2. Două roluri diferite</h2>
   <p>
     Pentru datele vizitatorilor site-ului și ale utilizatorilor care își creează cont, suntem{' '}
-    <strong>operator</strong>. Pentru datele angajaților și ale reprezentanților firmelor client
+    <strong>operator</strong>. Pentru datele lucrătorilor și ale reprezentanților firmelor client
     încărcate în platformă de un serviciu extern de prevenire și protecție, suntem{' '}
     <strong>persoană împuternicită</strong>: prelucrăm aceste date doar în numele și conform
     instrucțiunilor serviciului extern, care este operatorul lor. Relația este reglementată prin{' '}
@@ -71,19 +71,19 @@ const M = legalEntity.filled ? 'span' : 'mark';
     </li>
     <li>
       <strong>Datele din platformă.</strong> Datele firmelor client, ale punctelor de lucru, ale
-      angajaților (nume, funcție, loc de muncă, date de instruire, rezultate la teste, semnături) și
-      documentele generate. Singura dată privind sănătatea pe care platforma o ține în evidențe este
-      grupa sanguină cu Rh-ul, trecută pe fișa individuală de instruire. Prelucrăm aceste date ca
-      persoană împuternicită, pentru ca serviciul extern să își îndeplinească obligațiile legale de
-      securitate și sănătate în muncă.
+      lucrătorilor (nume, funcție, loc de muncă, date de instruire, rezultate la teste, semnături)
+      și documentele generate. Singura dată privind sănătatea pe care platforma o ține în evidențe
+      este grupa sanguină cu Rh-ul, trecută pe fișa individuală de instruire. Prelucrăm aceste date
+      ca persoană împuternicită, pentru ca serviciul extern să își îndeplinească obligațiile legale
+      de securitate și sănătate în muncă.
     </li>
     <li>
       <strong>Importul din documente.</strong> Când serviciul extern importă documentele existente
       ale unei firme client sau fotografiile fișelor de instruire, textul și imaginile lor, cu
-      datele angajaților din ele (inclusiv CNP-ul și grupa sanguină), sunt citite de un model de
-      inteligență artificială al OpenAI, care propune datele firmei și ale angajaților. Specialistul
-      verifică propunerea și nimic nu se salvează până nu o confirmă. Prelucrăm aceste date tot ca
-      persoană împuternicită a serviciului extern.
+      datele lucrătorilor din ele (inclusiv CNP-ul și grupa sanguină), sunt citite de un model de
+      inteligență artificială al OpenAI, care propune datele firmei și ale lucrătorilor.
+      Specialistul verifică propunerea și nimic nu se salvează până nu o confirmă. Prelucrăm aceste
+      date tot ca persoană împuternicită a serviciului extern.
     </li>
     <li>
       <strong>Îmbunătățirea platformei.</strong> Serviciul extern ne autorizează, prin Acordul de
@@ -123,7 +123,7 @@ const M = legalEntity.filled ? 'span' : 'mark';
       îmbunătăți serviciul și de a acorda asistență.
     </li>
     <li>
-      <strong>Analiză și erori în portalul angajaților.</strong> După ce un angajat sau un
+      <strong>Analiză și erori în portalul lucrătorilor.</strong> După ce un lucrător sau un
       reprezentant al unei firme client se conectează în portal (portal.ssmusor.ro), folosim PostHog
       pentru paginile accesate, clicuri, erori JavaScript, detalii tehnice despre cererile eșuate și
       înregistrări ale sesiunii. Le asociem cu numele persoanei, cu adresa de email sau numărul de
@@ -147,7 +147,7 @@ const M = legalEntity.filled ? 'span' : 'mark';
     <code>?analytics=off</code> la sfârșitul adresei; alegerea se reține în stocarea locală a
     browserului și se șterge cu <code>?analytics=auto</code>. Platforma folosește stocarea locală
     pentru autentificare și, după autentificare, pentru PostHog: identificarea sesiunii, analiza
-    utilizării, înregistrări ale sesiunii și conversațiile de asistență. Portalul angajaților
+    utilizării, înregistrări ale sesiunii și conversațiile de asistență. Portalul lucrătorilor
     folosește stocarea locală la fel, fără conversațiile de asistență. PostHog nu se încarcă pe
     paginile de autentificare.
   </p>

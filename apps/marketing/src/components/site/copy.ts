@@ -35,7 +35,7 @@ export const waitlist = {
 export const page = {
   title: 'Program SSM și SU (PSI) pentru servicii externe | SSM Ușor',
   description:
-    'Documentele SSM și SU ale clienților, completate din datele lor. Instruiri la zi și fișe semnate de angajați pe telefon. Pentru servicii externe SSM.',
+    'Documentele SSM și SU ale clienților, completate din datele lor. Instruiri la zi și fișe semnate de lucrători pe telefon. Pentru servicii externe SSM.',
   siteName: 'SSM Ușor',
   imageAlt:
     'Sigla SSM Ușor, titlul „De la clientul nou la fișa semnată.” și pagina de start din aplicație',
@@ -43,7 +43,7 @@ export const page = {
 
 export const nav = [
   { href: '#cum', label: 'Cum funcționează' },
-  { href: '#angajati', label: 'Pentru angajați' },
+  { href: '#angajati', label: 'Pentru lucrători' },
   { href: '/preturi/', label: 'Prețuri' },
   { href: '#intrebari', label: 'Întrebări' },
 ];
@@ -55,7 +55,7 @@ export function navHref(href: string, home = '/'): string {
 
 export const hero = {
   title: 'Mai puțin timp în Word. Mai mult timp la clienți.',
-  lede: 'SSM Ușor pregătește documentele SSM și SU ale fiecărui client, îți arată ce instruiri urmează și le trimite angajaților fișele de semnat pe telefon. Tu verifici, ei semnează.',
+  lede: 'SSM Ușor pregătește documentele SSM și SU ale fiecărui client, îți arată ce instruiri urmează și le trimite lucrătorilor fișele de semnat pe telefon. Tu verifici, ei semnează.',
   status: {
     before: 'Conturile noi se deschid în curând.',
     link: 'Lasă-ne adresa',
@@ -63,7 +63,7 @@ export const hero = {
   },
   stageLabel: 'Pagina de start din aplicație și semnarea de pe telefon',
   dashboardAlt: 'Pagina de start: ce ai de făcut și situația instruirilor la toți clienții',
-  phoneAlt: 'Portalul angajatului: alege ce semnează',
+  phoneAlt: 'Portalul lucrătorului: alege ce semnează',
 };
 
 export type FactMark = 'eu' | 'signature' | 'legislation' | 'formats' | 'payment';
@@ -120,7 +120,7 @@ export const steps = {
     {
       tab: 'Aduci clientul',
       title: 'Aduci clientul, cu tot cu dosarul lui.',
-      text: 'Încarci documentația pe care o ai și fotografiile fișelor, iar firma, posturile și angajații intră în aplicație. Pentru un client nou, scrii CUI-ul și datele firmei se completează singure.',
+      text: 'Încarci documentația pe care o ai și fotografiile fișelor, iar firma, posturile și lucrătorii intră în aplicație. Pentru un client nou, scrii CUI-ul și datele firmei se completează singure.',
       visual: {
         kind: 'desktop',
         shot: {
@@ -144,21 +144,21 @@ export const steps = {
     {
       tab: 'Instruiești și testezi',
       title: 'Instruiești și testezi.',
-      text: 'Notezi instruirea pentru tot grupul deodată. Angajații dau testul de pe telefon, iar tu vezi pe loc cine a trecut și când urmează următoarea instruire.',
+      text: 'Notezi instruirea pentru tot grupul deodată. Lucrătorii dau testul de pe telefon, iar tu vezi pe loc cine a trecut și când urmează următoarea instruire.',
       visual: {
         kind: 'phones',
         first: { screen: 'phonePortalTest', alt: 'O întrebare din test, pe telefon' },
-        second: { screen: 'phonePortalHome', alt: 'Prima pagină a angajatului în portal' },
+        second: { screen: 'phonePortalHome', alt: 'Prima pagină a lucrătorului în portal' },
       },
     },
     {
       tab: 'Semnează toată lumea',
       title: 'Semnează toată lumea, de pe telefon.',
-      text: 'Angajații semnează fișele fără parolă și fără nimic de instalat. Tu semnezi alături, din aplicație. Nu mai treci pe la fiecare om cu hârtiile ca să strângi semnăturile.',
+      text: 'Lucrătorii semnează fișele fără parolă și fără nimic de instalat. Tu semnezi alături, din aplicație. Nu mai treci pe la fiecare om cu hârtiile ca să strângi semnăturile.',
       visual: {
         kind: 'combo',
         desktop: { screen: 'signatures', alt: 'Lista ta de semnături, pe clienți' },
-        phone: { screen: 'phonePortalSign', alt: 'Angajatul alege ce semnează' },
+        phone: { screen: 'phonePortalSign', alt: 'Lucrătorul alege ce semnează' },
       },
     },
   ] satisfies Step[],
@@ -178,10 +178,10 @@ export interface TrainingSheet {
 export const importSection = {
   title: 'Încarci dosarul vechi. Nu scrii nimic de la capăt.',
   intro:
-    'Încarci documentația unui client și fotografiile fișelor de instruire. Datele firmei, posturile și angajații intră în aplicație cu instruirile lor, iar tu verifici totul înainte să se salveze.',
-  stageLabel: 'Fișele de instruire de pe hârtie devin lista de angajați din aplicație',
+    'Încarci documentația unui client și fotografiile fișelor de instruire. Datele firmei, posturile și lucrătorii intră în aplicație cu instruirile lor, iar tu verifici totul înainte să se salveze.',
+  stageLabel: 'Fișele de instruire de pe hârtie devin lista de lucrători din aplicație',
   shotAlt:
-    'Angajații unui client, creați din fișele de instruire, cu instruirile SSM și SU și testele de pe fișe',
+    'Lucrătorii unui client, creați din fișele de instruire, cu instruirile SSM și SU și testele de pe fișe',
   outcomes: [
     {
       mark: 'documents',
@@ -190,8 +190,8 @@ export const importSection = {
     },
     {
       mark: 'sheets',
-      title: 'Angajații, din fișele de instruire',
-      text: 'Fotografiezi fișele de pe hârtie, în orice ordine. Fiecare angajat apare cu instruirile și testele lui.',
+      title: 'Lucrătorii, din fișele de instruire',
+      text: 'Fotografiezi fișele de pe hârtie, în orice ordine. Fiecare lucrător apare cu instruirile și testele lui.',
     },
     {
       mark: 'kept',
@@ -318,12 +318,12 @@ export const contract = {
 };
 
 export const portal = {
-  title: 'Angajații semnează de pe telefon, nu pe hârtie.',
+  title: 'Lucrătorii semnează de pe telefon, nu pe hârtie.',
   intro:
     'Primesc un mesaj pe email sau SMS și intră în portal fără parolă. Citesc materialul, dau testul și semnează fișa. Administratorul firmei vede cine a terminat și cine mai are de semnat.',
-  note: 'Fișele semnate rămân la dosarul fiecărui angajat, gata de arătat la control.',
+  note: 'Fișele semnate rămân la dosarul fiecărui lucrător, gata de arătat la control.',
   phones: [
-    { screen: 'phonePortalHome', alt: 'Portal: prima pagină a angajatului' },
+    { screen: 'phonePortalHome', alt: 'Portal: prima pagină a lucrătorului' },
     { screen: 'phonePortalTest', alt: 'Portal: o întrebare din test' },
     { screen: 'phonePortalSign', alt: 'Portal: alegerea fișelor de semnat' },
   ] satisfies Shot[],
@@ -356,10 +356,10 @@ export const faq = {
     },
     {
       q: 'Pentru cine e SSM Ușor?',
-      a: 'Pentru serviciile externe SSM și SU, de la specialistul care lucrează singur la echipele cu mai mulți colegi. Clienții tăi și angajații lor intră doar în portal, invitați de tine.',
+      a: 'Pentru serviciile externe SSM și SU, de la specialistul care lucrează singur la echipele cu mai mulți colegi. Clienții tăi și lucrătorii lor intră doar în portal, invitați de tine.',
     },
     {
-      q: 'Trebuie să instaleze angajații ceva?',
+      q: 'Trebuie să instaleze lucrătorii ceva?',
       a: 'Nu. Primesc un mesaj pe email sau SMS și deschid portalul din browserul telefonului, fără parolă.',
     },
     {
@@ -376,7 +376,7 @@ export const faq = {
     },
     {
       q: 'Am mulți clienți. Trebuie să îi introduc pe toți de la zero?',
-      a: 'Nu. Încarci documentația pe care o ai deja și fotografiile fișelor de instruire. Aplicația preia din ele datele firmei, posturile și angajații, cu instruirile lor. Nu se salvează nimic până nu verifici și confirmi, iar instruirile făcute pe hârtie nu se refac.',
+      a: 'Nu. Încarci documentația pe care o ai deja și fotografiile fișelor de instruire. Aplicația preia din ele datele firmei, posturile și lucrătorii, cu instruirile lor. Nu se salvează nimic până nu verifici și confirmi, iar instruirile făcute pe hârtie nu se refac.',
     },
     {
       q: 'Cum evaluați riscurile?',
@@ -392,7 +392,7 @@ export const faq = {
     },
     {
       q: 'Cât costă?',
-      a: 'De la 39 € + TVA pe lună, cu oricâți clienți. Prețul depinde de câți angajați au clienții tăi în total; detaliile sunt pe pagina de prețuri.',
+      a: 'De la 39 € + TVA pe lună, cu oricâți clienți. Prețul depinde de câți lucrători au clienții tăi în total; detaliile sunt pe pagina de prețuri.',
       link: { text: 'pagina de prețuri', href: '/preturi/' },
     },
   ] satisfies Faq[],
