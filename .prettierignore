@@ -32,3 +32,6 @@ packages/legislation/fixtures/*-actions.json
 
 # Written by toMatchFileSnapshot and compared byte for byte; reformatting would fail the tests.
 apps/api/src/modules/documents/*.snapshot.json
+
+# The PolyForm text verbatim, as published.
+LICENSE.md
