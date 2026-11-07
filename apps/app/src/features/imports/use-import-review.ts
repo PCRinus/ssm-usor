@@ -203,6 +203,16 @@ export function useImportReview(detail: ImportDetail) {
       return { ...current, fields };
     });
 
+  const setFields = (changed: Record<string, FieldChange | null>) =>
+    update((current) => {
+      const fields = { ...current.fields };
+      for (const [path, change] of Object.entries(changed)) {
+        if (change === null) delete fields[path];
+        else fields[path] = change;
+      }
+      return { ...current, fields };
+    });
+
   const setItem = (id: string, change: (current: ItemChange) => ItemChange) =>
     update((current) => ({
       ...current,
@@ -212,6 +222,7 @@ export function useImportReview(detail: ImportDetail) {
   return {
     changes,
     setField,
+    setFields,
     setItem,
     saving: pending > 0,
     conflict,

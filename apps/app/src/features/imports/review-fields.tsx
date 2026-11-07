@@ -31,9 +31,11 @@ import {
   emptyClientForm,
 } from '@/features/clients/client-form-schema';
 import { CountyCombobox } from '@/features/clients/county-combobox';
+import { fireIntervalChoices } from '@/features/training/fire-safety-schema';
 
 import { endSentence } from './import-format';
 import { DecisionRow, PendingNote, Segmented, type Tone } from './library/decision-row';
+import { phoneDiff } from './phone-diff';
 import {
   anafMismatch,
   anafMismatchNote,
@@ -41,6 +43,7 @@ import {
   anchorOf,
   appliesAt,
   type Blocker,
+  categoryOf,
   type Changes,
   fieldGroups,
   fieldInfo,
@@ -51,7 +54,7 @@ import {
   formatFieldValue,
   inferenceNote,
   integerPaths,
-  intervalOfNotApplicable,
+  isNotApplicablePath,
   type LabelledSource,
   type Proposal,
   type RegisteredCompany,
@@ -60,6 +63,7 @@ import {
   type SectionId,
   valueInForce,
   vatPayerPath,
+  wholeNumberText,
   yesNoLabels,
 } from './review-model';
 import {
@@ -68,6 +72,7 @@ import {
   EditedTag,
   KindLine,
   LinkButton,
+  PhoneDigits,
   PickList,
   PickOption,
   RowNote,
@@ -76,6 +81,8 @@ import {
   SpellingChoice,
   Tag,
 } from './review-parts';
+import { categoryStateIn, formatCategoryValue } from './training-category';
+import { CategoryDifferRow, TrainingCategoryRow } from './training-category-row';
 import type { ImportReview } from './use-import-review';
 
 export type OpenSource = (
@@ -101,7 +108,7 @@ const requiredPaths = new Set(['client.legalName', 'client.cui']);
 function fieldValue(path: string, raw: string): string | number | null {
   const text = raw.trim();
   if (text === '') return null;
-  if (integerPaths.has(path)) return Number(text);
+  if (integerPaths.has(path)) return Number(wholeNumberText(text));
   if (path === 'client.cui') return normalizeCui(text)?.cui ?? text;
   return text;
 }
@@ -169,8 +176,8 @@ const formSchema = (paths: string[]) => {
         integerPaths.has(path)
           ? z
               .string()
-              .trim()
-              .regex(/^([0-9]{1,4})?$/, 'Scrie un număr întreg.')
+              .transform(wholeNumberText)
+              .pipe(z.string().regex(/^([0-9]{1,4})?$/, 'Scrie un număr întreg.'))
           : path === 'fireSafety.wasteKinds'
             ? z.string().trim().max(3000, 'Cel mult 3000 de caractere.')
             : z.string().trim().max(240, 'Cel mult 240 de caractere.'),
@@ -186,11 +193,34 @@ function fieldKey(path: string) {
 // Client fields by their own name, the others by `fieldKey`.
 type EditValues = ClientFormValues & Record<string, string | boolean>;
 
+const fireIntervalPaths = new Set([
+  'fireSafety.workerTrainingIntervalMonths',
+  'fireSafety.administrativeTrainingIntervalMonths',
+]);
+
+function fireIntervalOptions(current: string): (readonly [string, string])[] {
+  const options = fireIntervalChoices.map(({ value, label }) => [value, label] as const);
+  return current === '' || options.some(([value]) => value === current)
+    ? options
+    : [...options, [current, `La ${current} luni`] as const];
+}
+
 const nounOf = (path: string, kind: 'choose' | 'write') =>
   (fieldInfo[path]?.[kind] ?? path).replace(/^\S+\s/, '');
 
 function pendingOf(state: FieldState, context: FieldContext): string | null {
-  if (!appliesAt(context.states, state.path)) return null;
+  if (!appliesAt(context.states, state.path) || isNotApplicablePath(state.path)) return null;
+  const category = categoryOf(state.path);
+  if (category) {
+    const invalid = context.blockers.some(
+      (blocker) =>
+        blocker.code === 'invalid' &&
+        (blocker.path === category.interval || blocker.path === category.notApplicable)
+    );
+    return categoryStateIn(context, category).status === 'choice' || invalid
+      ? `de ales ${nounOf(state.path, 'choose')}`
+      : null;
+  }
   if (state.status === 'choice') return `de ales ${nounOf(state.path, 'choose')}`;
   if (state.anaf?.picked === null) return `de văzut ${nounOf(state.path, 'choose')}`;
   if (state.value === null && requiredPaths.has(state.path) && !context.existingClient) {
@@ -312,7 +342,9 @@ function FieldEditor({
     ? (Object.entries(yesNo) as [string, string][])
     : path === 'fireSafety.smokingPolicy'
       ? fireSmokingPolicies.map((policy) => [policy, fireSmokingPolicyLabels[policy]] as const)
-      : null;
+      : fireIntervalPaths.has(path)
+        ? fireIntervalOptions(text)
+        : null;
   const comboProps = {
     id,
     onBlur: () => undefined,
@@ -453,6 +485,10 @@ function ChoiceRow({ state, context }: { state: FieldState; context: FieldContex
   const decided = change?.option !== undefined || isOther;
   const person =
     state.path === 'client.legalRepresentativeName' || state.path === 'client.contactName';
+  const phones =
+    state.path === 'client.contactPhone'
+      ? phoneDiff(state.own.map((index) => String(state.options[index]!.value)))
+      : null;
   return (
     <DecisionRow
       tone={decided ? 'done' : 'todo'}
@@ -465,8 +501,11 @@ function ChoiceRow({ state, context }: { state: FieldState; context: FieldContex
       <KindLine icon={<Split aria-hidden="true" />} tone={decided ? undefined : 'warning'}>
         Documentele dau {state.own.length} variante. Alege-o pe cea de acum.
       </KindLine>
+      {phones?.some((runs) => runs.some((run) => run.changed)) && (
+        <RowNote testId="review-phone-differs">Numerele diferă prin cifrele marcate.</RowNote>
+      )}
       <PickList labelledBy={`${name}-label`}>
-        {state.own.map((index) => {
+        {state.own.map((index, position) => {
           const option = state.options[index]!;
           const value = formatFieldValue(state.path, option.value, context.vatPayer);
           return (
@@ -486,7 +525,7 @@ function ChoiceRow({ state, context }: { state: FieldState; context: FieldContex
                 />
               }
             >
-              {value}
+              {phones ? <PhoneDigits runs={phones[position]!} /> : value}
             </PickOption>
           );
         })}
@@ -521,6 +560,9 @@ function ChoiceRow({ state, context }: { state: FieldState; context: FieldContex
                     value={other}
                     onChange={(event) => setOther(event.target.value)}
                   />
+                  {fireIntervalPaths.has(state.path) && (
+                    <span className="self-center text-sm text-muted-foreground">luni</span>
+                  )}
                   <Button type="submit" variant="outline">
                     Folosește
                   </Button>
@@ -678,6 +720,25 @@ function FieldRow({
   if (!appliesAt(context.states, state.path)) {
     return <NotApplicableRow state={state} context={context} />;
   }
+  const category = categoryOf(state.path);
+  if (category) {
+    const categoryState = categoryStateIn(context, category);
+    if (categoryState.status !== 'unticked') {
+      return (
+        <TrainingCategoryRow
+          state={categoryState}
+          context={context}
+          editing={editing}
+          onEdit={onEdit}
+          onDone={onDone}
+        />
+      );
+    }
+    const unticked = [category.interval, category.notApplicable]
+      .map((path) => context.states[path]!)
+      .find((each) => each.status === 'unticked')!;
+    return <ValueRow state={unticked} context={context} onEdit={onEdit} />;
+  }
   if (editing) return <FieldEditor state={state} context={context} onDone={onDone} />;
   if (state.own.length > 1) return <ChoiceRow state={state} context={context} />;
   if (state.anaf) return <AnafRow state={state} context={context} onEdit={onEdit} />;
@@ -722,16 +783,12 @@ function ValueRow({
     state.value !== null &&
     sameValue(registered.cui, String(state.value).replace(/^RO/i, ''));
   const edited = state.edited && !spelling?.keptWritten;
-  const tooBoth =
-    state.value === 'true' &&
-    intervalOfNotApplicable[state.path] &&
-    context.states[intervalOfNotApplicable[state.path]!]?.value != null;
   const unticked = state.status === 'unticked';
   const tone: Tone = unticked
     ? 'info'
     : spelling
       ? 'spelling'
-      : mismatch || tooBoth || flags.length > 0
+      : mismatch || flags.length > 0
         ? 'warning'
         : 'done';
 
@@ -814,11 +871,6 @@ function ValueRow({
           Nu-l prelua
         </LinkButton>
       )}
-      {tooBoth && (
-        <RowNote tone="danger">
-          Documentele dau și o periodicitate. Păstrează doar una dintre ele.
-        </RowNote>
-      )}
       {mismatch && (
         <RowNote tone="warning" testId="review-anaf-mismatch">
           {anafMismatchNote(mismatch)}
@@ -880,16 +932,18 @@ const groupLooks: Record<string, { icon: LucideIcon; description: string }> = {
 
 function FieldRows({ states, context }: { states: FieldState[]; context: FieldContext }) {
   const [editing, setEditing] = useState<string | null>(null);
-  return states.map((state) => (
-    <FieldRow
-      key={state.path}
-      state={state}
-      context={context}
-      editing={editing === state.path}
-      onEdit={() => setEditing(state.path)}
-      onDone={() => setEditing(null)}
-    />
-  ));
+  return states
+    .filter((state) => !isNotApplicablePath(state.path))
+    .map((state) => (
+      <FieldRow
+        key={state.path}
+        state={state}
+        context={context}
+        editing={editing === state.path}
+        onEdit={() => setEditing(state.path)}
+        onDone={() => setEditing(null)}
+      />
+    ));
 }
 
 export function FieldGroupCard({
@@ -922,10 +976,16 @@ export function ExistingFieldGroups({
   paths: string[];
   context: FieldContext;
 }) {
-  const all = paths.map((path) => context.states[path]!);
-  const choices = all.filter(
-    (state) => state.own.length > 1 && appliesAt(context.states, state.path)
-  );
+  const all = paths
+    .filter((path) => !isNotApplicablePath(path))
+    .map((path) => context.states[path]!);
+  const isChoice = (state: FieldState) => {
+    const category = categoryOf(state.path);
+    if (!category) return state.own.length > 1;
+    const categoryState = categoryStateIn(context, category);
+    return categoryState.status === 'choice' || categoryState.candidates.length > 1;
+  };
+  const choices = all.filter((state) => isChoice(state) && appliesAt(context.states, state.path));
   const states = all.filter(
     (state) => appliesAt(context.states, state.path) && !choices.includes(state)
   );
@@ -950,9 +1010,21 @@ export function ExistingFieldGroups({
           pending={pendingLine(choices, context)}
           testId="review-choices"
         >
-          {choices.map((state) => (
-            <ChoiceRow key={state.path} state={state} context={context} />
-          ))}
+          {choices.map((state) => {
+            const category = categoryOf(state.path);
+            return category ? (
+              <TrainingCategoryRow
+                key={state.path}
+                state={categoryStateIn(context, category)}
+                context={context}
+                editing={false}
+                onEdit={() => undefined}
+                onDone={() => undefined}
+              />
+            ) : (
+              <ChoiceRow key={state.path} state={state} context={context} />
+            );
+          })}
         </FieldCard>
       )}
       {added.length > 0 && (
@@ -972,9 +1044,18 @@ export function ExistingFieldGroups({
           icon={GitCompare}
           description="Clientul are deja o valoare, iar documentele scriu alta. Păstrăm valoarea ta dacă nu alegi altfel."
         >
-          {differs.map((state) => (
-            <DifferRow key={state.path} state={state} context={context} />
-          ))}
+          {differs.map((state) => {
+            const category = categoryOf(state.path);
+            return category ? (
+              <CategoryDifferRow
+                key={state.path}
+                state={categoryStateIn(context, category)}
+                context={context}
+              />
+            ) : (
+              <DifferRow key={state.path} state={state} context={context} />
+            );
+          })}
         </FieldCard>
       )}
       {same.length + notApplicable.length > 0 && (
@@ -984,24 +1065,29 @@ export function ExistingFieldGroups({
           icon={Equal}
           description="Aceleași în aplicație și în documente, sau doar în aplicație. Nu le schimbăm."
         >
-          {same.map((state) => (
-            <DecisionRow
-              key={state.path}
-              tone="done"
-              wide
-              id={anchorOf(state.path)}
-              testId="review-row"
-              label={state.label}
-              actions={rowActions(state, context)}
-            >
-              <span className="font-medium">
-                {formatFieldValue(state.path, state.existing, context.vatPayer)}
-              </span>
-              <RowNote>
-                {state.value === null ? 'Doar în aplicație' : 'La fel în documente'}
-              </RowNote>
-            </DecisionRow>
-          ))}
+          {same.map((state) => {
+            const category = categoryOf(state.path);
+            const categoryState = category ? categoryStateIn(context, category) : null;
+            const value = categoryState ? categoryState.value : state.value;
+            return (
+              <DecisionRow
+                key={state.path}
+                tone="done"
+                wide
+                id={anchorOf(state.path)}
+                testId="review-row"
+                label={state.label}
+                actions={rowActions(state, context, undefined, categoryState?.sources)}
+              >
+                <span className="font-medium">
+                  {categoryState
+                    ? formatCategoryValue(categoryState.category, categoryState.existing)
+                    : formatFieldValue(state.path, state.existing, context.vatPayer)}
+                </span>
+                <RowNote>{value === null ? 'Doar în aplicație' : 'La fel în documente'}</RowNote>
+              </DecisionRow>
+            );
+          })}
           {notApplicable.map((state) => (
             <NotApplicableRow key={state.path} state={state} context={context} />
           ))}
@@ -1015,6 +1101,10 @@ function DifferRow({ state, context }: { state: FieldState; context: FieldContex
   const name = useId();
   const change = context.changes.fields[state.path];
   const replaced = state.comparison === 'replaced';
+  const phones =
+    state.path === 'client.contactPhone'
+      ? phoneDiff([String(state.existing ?? ''), String(state.value ?? '')])
+      : null;
   return (
     <DecisionRow
       tone="done"
@@ -1035,7 +1125,11 @@ function DifferRow({ state, context }: { state: FieldState; context: FieldContex
           heading="În aplicație"
           testId="review-keep-app"
         >
-          {formatFieldValue(state.path, state.existing, context.vatPayer)}
+          {phones ? (
+            <PhoneDigits runs={phones[0]!} />
+          ) : (
+            formatFieldValue(state.path, state.existing, context.vatPayer)
+          )}
         </PickOption>
         <PickOption
           name={name}
@@ -1050,9 +1144,16 @@ function DifferRow({ state, context }: { state: FieldState; context: FieldContex
             />
           }
         >
-          {formatFieldValue(state.path, state.value, context.vatPayer)}
+          {phones ? (
+            <PhoneDigits runs={phones[1]!} />
+          ) : (
+            formatFieldValue(state.path, state.value, context.vatPayer)
+          )}
         </PickOption>
       </PickList>
+      {phones?.some((runs) => runs.some((run) => run.changed)) && (
+        <RowNote testId="review-phone-differs">Numerele diferă prin cifrele marcate.</RowNote>
+      )}
     </DecisionRow>
   );
 }

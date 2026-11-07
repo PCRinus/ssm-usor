@@ -150,24 +150,24 @@ export const fieldInfo: Record<string, FieldInfo> = {
     write: 'Scrie durata instruirii periodice',
   },
   'trainingSchedule.administrativeTrainingIntervalMonths': {
-    label: 'Periodicitate, tehnico-administrativ',
+    label: 'Instruirea periodică, tehnico-administrativ',
     choose: 'Alege periodicitatea pentru tehnico-administrativ',
-    write: 'Scrie periodicitatea pentru tehnico-administrativ',
+    write: 'Alege periodicitatea pentru tehnico-administrativ',
   },
   'trainingSchedule.workerTrainingIntervalMonths': {
-    label: 'Periodicitate, execuție',
+    label: 'Instruirea periodică, execuție',
     choose: 'Alege periodicitatea pentru execuție',
-    write: 'Scrie periodicitatea pentru execuție',
+    write: 'Alege periodicitatea pentru execuție',
   },
   'trainingSchedule.workerTrainingNotApplicable': {
     label: 'Instruirea periodică, execuție',
-    choose: 'Alege dacă instruirea periodică se aplică pentru execuție',
-    write: 'Alege dacă instruirea periodică se aplică pentru execuție',
+    choose: 'Alege periodicitatea pentru execuție',
+    write: 'Alege periodicitatea pentru execuție',
   },
   'trainingSchedule.administrativeTrainingNotApplicable': {
     label: 'Instruirea periodică, tehnico-administrativ',
-    choose: 'Alege dacă instruirea periodică se aplică pentru tehnico-administrativ',
-    write: 'Alege dacă instruirea periodică se aplică pentru tehnico-administrativ',
+    choose: 'Alege periodicitatea pentru tehnico-administrativ',
+    write: 'Alege periodicitatea pentru tehnico-administrativ',
   },
   'trainingSchedule.trainingFirstMonth': {
     label: 'Prima lună a instruirii',
@@ -256,12 +256,43 @@ export const yesNoLabels: Record<string, Record<'true' | 'false', string>> = {
   'fireSafety.hasThirdParties': { true: 'Da', false: 'Nu' },
 };
 
-// A staff category has an interval or "Nu se aplică", never both (ADR 008).
-export const intervalOfNotApplicable: Record<string, string> = {
-  'trainingSchedule.workerTrainingNotApplicable': 'trainingSchedule.workerTrainingIntervalMonths',
-  'trainingSchedule.administrativeTrainingNotApplicable':
-    'trainingSchedule.administrativeTrainingIntervalMonths',
+export type TrainingCategory = {
+  interval: string;
+  notApplicable: string;
+  name: string;
+  maxMonths: number;
 };
+
+// A staff category has an interval or "Nu se aplică", never both (ADR 008), so the review shows
+// the two fields as one row, at the interval's path.
+export const trainingCategories: TrainingCategory[] = [
+  {
+    interval: 'trainingSchedule.workerTrainingIntervalMonths',
+    notApplicable: 'trainingSchedule.workerTrainingNotApplicable',
+    name: 'execuție',
+    maxMonths: 6,
+  },
+  {
+    interval: 'trainingSchedule.administrativeTrainingIntervalMonths',
+    notApplicable: 'trainingSchedule.administrativeTrainingNotApplicable',
+    name: 'tehnico-administrativ',
+    maxMonths: 12,
+  },
+];
+
+export const categoryOf = (path: string) =>
+  trainingCategories.find(
+    (category) => category.interval === path || category.notApplicable === path
+  );
+
+export const isNotApplicablePath = (path: string) =>
+  trainingCategories.some((category) => category.notApplicable === path);
+
+export const rowPathOf = (path: string) => categoryOf(path)?.interval ?? path;
+
+// "6 luni", "60 de minute": the unit a member writes after the number is the field's own.
+export const wholeNumberText = (text: string) =>
+  text.trim().replace(/^(\d+)\s*(de\s+)?\p{L}+\.?$/u, '$1');
 
 export const fieldGroups: { section: SectionId; title: string; paths: string[] }[] = [
   {
@@ -342,15 +373,10 @@ export const integerPaths = new Set(
   )
 );
 
-const categoryOfNotApplicable: Record<string, string> = {
-  'trainingSchedule.workerTrainingNotApplicable': 'execuție',
-  'trainingSchedule.administrativeTrainingNotApplicable': 'tehnico-administrativ',
-};
-
 export function inferenceNote(path: string, inferred: ImportInference | undefined): string | null {
   switch (inferred) {
     case 'no_posts_in_category':
-      return `Niciun post nu este în categoria ${categoryOfNotApplicable[path] ?? 'aceasta'}, așa că instruirea periodică nu se aplică. Poți s-o schimbi.`;
+      return `Niciun post nu este în categoria ${categoryOf(path)?.name ?? 'aceasta'}, așa că instruirea periodică nu se aplică. Poți s-o schimbi.`;
     case 'ssm_training_schedule':
       return 'Preluată din programul de instruire SSM, fiindcă documentele SU nu o dau. Poți s-o schimbi.';
     case 'office_work':
@@ -886,12 +912,13 @@ export function blockerLink(proposal: Proposal, changes: Changes, blocker: Block
   const [root, second, field] = parts as [string, string | undefined, string | undefined];
   const info = fieldInfo[`${root}.${second}`];
   if (info) {
+    const category = categoryOf(`${root}.${second}`);
     return {
       section,
-      anchor: anchorOf(`${root}.${second}`),
+      anchor: anchorOf(rowPathOf(`${root}.${second}`)),
       code: blocker.code,
       text:
-        blocker.code === 'choice'
+        blocker.code === 'choice' || (category && blocker.code === 'invalid')
           ? info.choose
           : blocker.code === 'invalid'
             ? `Corectează ${info.label.toLowerCase()}`

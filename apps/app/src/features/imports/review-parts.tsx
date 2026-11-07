@@ -256,6 +256,17 @@ function DiffText({ runs, markClassName }: { runs: DiffRun[]; markClassName: str
   );
 }
 
+export function PhoneDigits({ runs }: { runs: DiffRun[] }) {
+  return (
+    <span className="tabular-nums" data-testid="review-phone">
+      <DiffText
+        runs={runs}
+        markClassName="bg-warning-border underline decoration-2 underline-offset-[3px]"
+      />
+    </span>
+  );
+}
+
 export function PickList({
   labelledBy,
   label,
