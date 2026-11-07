@@ -73,6 +73,8 @@ sources:
   - apps/app/src/features/imports/library/next-steps-model.ts
   - apps/api/src/modules/credits/usage.ts
   - apps/app/src/features/imports/import-credits.ts
+  - apps/app/src/features/imports/review-fields.tsx
+  - apps/api/src/modules/imports/payload.ts
   - apps/app/src/features/imports/credits-notices.tsx
   - apps/api/src/modules/imports/handlers.ts
   - apps/api/src/modules/imports/employees.ts
@@ -143,9 +145,19 @@ Dacă un import se oprește înainte să fie gata de verificat, primești înapo
 
 Pornești din **Clienți**, cu **Importă din documente**, pentru un client nou, sau de pe pagina unui client existent, cu **Completează din documentație**. Încarci documentația unei singure firme: fișiere, un folder sau o arhivă ZIP, în PDF, DOC, DOCX, JPG, PNG sau HEIC, cel mult 150 de fișiere și 100 MB în total. Arhiva o deschide aplicația înainte de încărcare, așa că vezi ce intră.
 
-Aplicația pune deoparte ce nu poartă date despre client (coperți, formulare goale, texte de lege), citește restul și îți propune datele firmei, punctele de lucru, posturile, persoanele cu atribuții, programul de instruire, datele SU și echipamentul de protecție. Le verifici pe secțiuni, cu sursa fiecărei valori la un clic, apoi confirmi. La un client existent, o valoare pe care o ai deja în aplicație nu se schimbă decât dacă alegi tu valoarea din documente.
+Aplicația pune deoparte ce nu poartă date despre client (coperți, formulare goale, texte de lege), citește restul și îți propune datele firmei, punctele de lucru, posturile, persoanele cu atribuții, programul de instruire, datele SU și echipamentul de protecție. Le verifici pe secțiuni, apoi confirmi. Cu **Vezi în document**, lângă fiecare valoare, deschizi locul din document de unde a fost luată. La un client existent, o valoare pe care o ai deja în aplicație nu se schimbă decât dacă alegi tu valoarea din documente.
 
-La un client nou, **Schimbă** de pe cardul **Date firmă** deschide câmpurile firmei, cu **Plătitor de TVA** lângă CUI, ca la un client adăugat de mână. Căsuța e bifată când ANAF arată firma înregistrată în scopuri de TVA, iar un CUI scris cu prefixul RO o bifează la salvare. Pe card, CUI-ul unei firme plătitoare de TVA apare cu prefixul RO.
+### Ce intră în documente
+
+Pe fiecare card, coloana **Ce intră în documente** arată valoarea care se scrie în documentele clientului. Unde ai de ales între două variante, ele stau una sub alta, iar cea aleasă are eticheta **Intră în documente**:
+
+- **Scrierea corectată sau ca în document.** Un text scris numai cu majuscule sau fără diacritice e propus corectat, cu cuvintele schimbate marcate. Corectura atinge doar majusculele și diacriticele; numele, codurile și adresele rămân cum le scriu documentele. Scrierea corectată e aleasă din start; dacă vrei textul exact ca în document, alege **Ca în document**.
+- **Denumirea de la ANAF sau din documente.** Când la ANAF CUI-ul este înregistrat cu altă denumire decât cea din documente, e aleasă din start denumirea de la ANAF, cea valabilă acum. Dacă ai dreptate cu denumirea din documente, verifică întâi CUI-ul, apoi alege **În documente**. Până alegi una, cardul **Date firmă** îți amintește să te uiți la denumire.
+- **Mai multe variante în documente.** Când documentele dau valori diferite, de exemplu două reguli de fumat, alegi una dintre ele. Dacă niciuna nu mai e valabilă, alege **Altă valoare** și scrie-o tu.
+
+**Schimbă** deschide doar câmpul de pe rândul lui, încadrat și marcat cu „Schimbi acum”; ce salvezi intră în documente în locul valorii din import. La un client nou, lângă CUI apare și **Plătitor de TVA**, ca la un client adăugat de mână. Căsuța e bifată când ANAF arată firma înregistrată în scopuri de TVA, iar un CUI scris cu prefixul RO o bifează la salvare. Pe card, CUI-ul unei firme plătitoare de TVA apare cu prefixul RO. Un câmp care lipsește din documente îl completezi cu **Completează**, iar o întrebare cu da sau nu o lămurești direct din rând.
+
+La sfârșitul primei secțiuni, **Găsite în alte secțiuni** îți arată ce mai e de văzut în celelalte: corecturile de scriere, alegerile de făcut și datele lipsă, fiecare cu **Deschide secțiunea**.
 
 Instrucțiunile proprii (IPSSM și IPSU) și evaluările de risc nu intră în propunerea clientului: le citim separat, pentru bibliotecile tale, și nu te țin pe loc când creezi clientul.
 
