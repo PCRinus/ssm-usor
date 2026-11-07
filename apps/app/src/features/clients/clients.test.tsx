@@ -489,6 +489,16 @@ describe('clients list', () => {
 });
 
 describe('client section navigation', () => {
+  it('marks only the open section as the current page', async () => {
+    mockApi({ me: meAs('owner') });
+    mountApp(authFixture(makeSession()).client, `/clienti/${sampleClient.id}/angajati`);
+    const nav = await screen.findByRole('navigation', { name: 'Secțiunile clientului' });
+    const current = within(nav)
+      .getAllByTestId('client-section')
+      .filter((link) => link.getAttribute('aria-current') === 'page');
+    expect(current.map((link) => link.textContent)).toEqual(['Lucrători']);
+  });
+
   it('shows directional controls only when more sections are offscreen', async () => {
     mockApi({ me: meAs('owner') });
     mountApp(authFixture(makeSession()).client, `/clienti/${sampleClient.id}/angajati`);

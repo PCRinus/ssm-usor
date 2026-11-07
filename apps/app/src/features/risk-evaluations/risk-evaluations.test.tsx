@@ -438,6 +438,27 @@ describe("a position's risk evaluation page", () => {
     ]);
   });
 
+  it('switches the component tabs with the arrow keys', async () => {
+    mockApi();
+    mount(welderEvaluationPage);
+    const tablist = await screen.findByRole('tablist', { name: 'Componente' });
+    const [all, equipment, worker] = within(tablist).getAllByRole('tab');
+    expect(all!.getAttribute('aria-selected')).toBe('true');
+    expect(all!.tabIndex).toBe(0);
+    expect(equipment!.tabIndex).toBe(-1);
+
+    const user = userEvent.setup();
+    all!.focus();
+    await user.keyboard('{ArrowRight}');
+    expect(equipment!.getAttribute('aria-selected')).toBe('true');
+    expect(document.activeElement).toBe(equipment);
+    expect(screen.getAllByTestId('risk-factor-row')).toHaveLength(3);
+
+    await user.keyboard('{End}');
+    expect(worker!.getAttribute('aria-selected')).toBe('true');
+    expect(screen.getAllByTestId('risk-factor-row')).toHaveLength(1);
+  });
+
   it('shows the classes with their meaning, the level with the unacceptable ones marked, and the measures', async () => {
     mockApi();
     mount(welderEvaluationPage);
