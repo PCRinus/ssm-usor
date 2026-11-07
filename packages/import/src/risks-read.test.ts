@@ -180,7 +180,8 @@ describe('readRisksAnswer: measures and plan', () => {
       ],
       actions: 'Revizuirea instrucțiunii.',
       deadline: 'Imediat; Periodic',
-      responsiblePerson: 'Cond. loc munca; Serv extern',
+      responsiblePerson:
+        'Conducătorul locului de muncă; Serviciul extern de prevenire și protecție',
       observations: null,
     });
   });
@@ -430,7 +431,7 @@ describe('readRisksAnswer: a PDF’s measures', () => {
       measuresFrom: 'plan',
       actions: 'Revizuirea instrucțiunii.',
       deadline: 'Periodic',
-      responsiblePerson: 'Cond. loc muncă',
+      responsiblePerson: 'Conducătorul locului de muncă',
       observations: null,
     });
     expect(planned!.flags).toEqual([{ kind: 'retyped' }]);

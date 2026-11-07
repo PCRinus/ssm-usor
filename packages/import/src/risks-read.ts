@@ -8,6 +8,7 @@ import {
 
 import { findQuotes, foldName } from './match';
 import type { RetypedFactor, RisksAnswer } from './risks-request';
+import { planRoles } from './risks-roles';
 import {
   type NumberedRows,
   numberRows,
@@ -550,8 +551,10 @@ function setPlanFields(
   people: readonly string[]
 ) {
   for (const field of planFields) {
-    const value = fields[field];
-    if (value === null) continue;
+    const written = fields[field];
+    if (written === null) continue;
+    const roles = field === 'responsiblePerson' ? planRoles(written) : written;
+    const value = roles.length <= planFieldLimits[field] ? roles : written;
     factor[field] = value;
     factor.flags = factor.flags.filter(
       (flag) => !(flag.kind === 'person_named' && flag.field === field)
