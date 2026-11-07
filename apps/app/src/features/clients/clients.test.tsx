@@ -422,6 +422,30 @@ describe('clients list', () => {
     expect(screen.queryByTestId('clients-empty')).toBeNull();
   });
 
+  it('keeps the table, the pager and the header actions on a page past the last one', async () => {
+    mockApi({
+      list: (_init, url) => {
+        const requested = Number(url.searchParams.get('page'));
+        return Response.json(
+          requested > 2
+            ? page([], { page: requested, total: 30 })
+            : page([listed()], { page: requested, total: 30 })
+        );
+      },
+    });
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti?page=5');
+    expect((await screen.findByTestId('data-table-page-empty')).textContent).toBe(
+      'Pagina 5 nu are rânduri.'
+    );
+    expect(screen.getByTestId('clients-table')).toBeTruthy();
+    expect(screen.getByTestId('pager-summary')).toBeTruthy();
+    expect(screen.getByTestId('clients-add')).toBeTruthy();
+    expect(screen.queryByTestId('clients-empty')).toBeNull();
+    await userEvent.setup().click(screen.getByTestId('data-table-last-page'));
+    await screen.findByText('OMV PETROM SA');
+    expect(runtime.router.state.location.search).toEqual({ page: 2 });
+  });
+
   it('keeps the header actions on an empty archived list, which offers none of its own', async () => {
     mockApi();
     mountApp(authFixture(makeSession()).client, '/clienti?status=archived');
