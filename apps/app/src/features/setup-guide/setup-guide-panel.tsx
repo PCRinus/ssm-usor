@@ -111,7 +111,7 @@ function NextLine({ guide, phone }: { guide: SetupGuide; phone: boolean }) {
         data-testid="setup-guide-waiting"
         className={cn('m-0 text-[13.5px] text-dashboard-quiet', phone && 'mr-3 text-sm')}
       >
-        Așteaptă administratorul
+        Așteaptă adminul
       </p>
     ) : null;
   }

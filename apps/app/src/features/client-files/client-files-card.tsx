@@ -104,7 +104,7 @@ export function ClientFilesCard({
       await setClientFileOwnersOnly(client.id, file.id, { ownersOnly }, apiRequest);
       toast.success(
         ownersOnly
-          ? `„${file.name}” este acum vizibil doar pentru administratori.`
+          ? `„${file.name}” este acum vizibil doar pentru admini.`
           : `„${file.name}” este acum vizibil pentru toată echipa.`
       );
     } catch {
@@ -148,7 +148,7 @@ export function ClientFilesCard({
             {lead && (
               <span data-testid="client-files-lead-hint">
                 {' '}
-                Până devine client, fișierele lui sunt vizibile doar administratorilor.
+                Până devine client, fișierele lui sunt vizibile doar adminilor.
               </span>
             )}
           </>

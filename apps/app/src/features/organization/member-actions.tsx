@@ -34,7 +34,7 @@ type Member = OrganizationMemberListResponse['items'][number];
 function actionMessage(cause: unknown, name: string) {
   if (cause instanceof ApiHttpError) {
     if (cause.status === 404) return `${name} nu mai face parte din organizație.`;
-    if (cause.status === 403) return 'Doar administratorii organizației pot gestiona membrii.';
+    if (cause.status === 403) return 'Doar adminii organizației pot gestiona membrii.';
     if (cause.status === 401) {
       return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
     }

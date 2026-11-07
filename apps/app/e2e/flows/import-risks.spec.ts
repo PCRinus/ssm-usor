@@ -48,7 +48,7 @@ test("a pack's risk evaluations are reviewed before the client is created, confi
   await expect(page.getByTestId('library-confirm')).toHaveText('Confirmă întâi clientul');
   await expect(page.getByTestId('library-confirm')).toBeDisabled();
   await expect(page.getByTestId('risk-import-sheet')).toHaveCount(6);
-  await expect(page.getByTestId('risk-import-left')).toContainText('Mai ai de ales la 2 fișe.');
+  await expect(page.getByTestId('risk-import-left')).toContainText('Mai ai de ales la 2 evaluări.');
   const sheet = (key: string) =>
     page.locator(`[data-testid="risk-import-sheet"][data-key="${key}"]`);
 
@@ -176,13 +176,13 @@ test("a pack's risk evaluations are reviewed before the client is created, confi
   const reminder = page.getByTestId('client-library-tasks-notice');
   await expect(reminder).toContainText('Evaluări de risc: de verificat');
   await reminder.getByTestId('client-library-tasks-open').click();
-  await expect(page.getByTestId('import-next-step-open')).toHaveText('Verifică fișele');
+  await expect(page.getByTestId('import-next-step-open')).toHaveText('Verifică evaluările');
   await page.getByTestId('import-next-step-open').click();
   await expect(page.getByTestId('library-confirm')).toHaveText('Confirmă evaluările');
   await page.getByTestId('library-confirm').click();
 
   await expect(page.getByTestId('import-finished')).toContainText(
-    'Datele clientului și fișele de evaluare sunt preluate.'
+    'Datele clientului și evaluările de risc sunt preluate.'
   );
   await expect(page.getByTestId('import-done-part')).toHaveAttribute(
     'data-part',

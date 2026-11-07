@@ -35,7 +35,7 @@ export function takenSentence(confirmed: readonly { part: ImportLibraryPart }[])
   const names = [
     'Datele clientului',
     ...(confirmed.some((part) => !isRisks(part)) ? ['instrucțiunile'] : []),
-    ...(confirmed.some(isRisks) ? ['fișele de evaluare'] : []),
+    ...(confirmed.some(isRisks) ? ['evaluările de risc'] : []),
   ];
   return `${joinNames(names)} sunt preluate. Poți genera documentația clientului.`;
 }
@@ -50,7 +50,7 @@ export function foundSentence(
   );
   const names = [
     ...(unknown.some((part) => !isRisks(part)) ? ['instrucțiuni'] : []),
-    ...(unknown.some(isRisks) ? ['fișe de evaluare'] : []),
+    ...(unknown.some(isRisks) ? ['evaluări de risc'] : []),
   ];
   return names.length > 0 ? `Am găsit în pachet ${names.join(' și ')} pe care nu le ai.` : null;
 }

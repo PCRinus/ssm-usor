@@ -135,7 +135,7 @@ export function LeadsPage() {
                 {leads.error instanceof ApiHttpError && leads.error.status === 401
                   ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
                   : leads.error instanceof ApiHttpError && leads.error.status === 403
-                    ? 'Doar administratorii organizației lucrează cu clienții potențiali.'
+                    ? 'Doar adminii organizației lucrează cu clienții potențiali.'
                     : 'Nu am putut încărca lista clienților potențiali. Încearcă din nou.'}
               </p>
               {apiRequest.baseUrl &&

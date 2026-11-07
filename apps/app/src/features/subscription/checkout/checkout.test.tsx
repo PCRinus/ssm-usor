@@ -519,7 +519,7 @@ describe('choosing a plan', () => {
     mount();
 
     expect((await screen.findByTestId('choose-plan-owner-only')).textContent).toContain(
-      'Doar administratorul organizației alege și schimbă planul.'
+      'Doar adminul organizației alege și schimbă planul.'
     );
   });
 });

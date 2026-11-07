@@ -162,7 +162,7 @@ describe('organization page', () => {
     expect(rows).toHaveLength(2);
     expect(within(rows[0]!).getByText('Ana Popescu')).toBeTruthy();
     expect(within(rows[0]!).getByText('(tu)')).toBeTruthy();
-    expect(within(rows[0]!).getByText('Administrator')).toBeTruthy();
+    expect(within(rows[0]!).getByText('Admin')).toBeTruthy();
     expect(within(rows[1]!).getByText('Fără nume')).toBeTruthy();
     expect(within(rows[1]!).getByText('ion@example.test')).toBeTruthy();
 
@@ -340,14 +340,14 @@ describe('managing members', () => {
     expect(screen.queryByTestId('member-actions')).toBeNull();
   });
 
-  it('switches a specialist to administrator and refreshes the list', async () => {
+  it('switches a specialist to admin and refreshes the list', async () => {
     mockApi();
     mount();
     const user = await openMenu();
 
     await user.click(await screen.findByTestId('member-switch-role'));
 
-    expect(await screen.findByText('ion@example.test este acum administrator.')).toBeTruthy();
+    expect(await screen.findByText('ion@example.test este acum admin.')).toBeTruthy();
     const [, init] = requests('/organization/members/user-two', 'PATCH')[0]!;
     expect(JSON.parse(init?.body as string)).toEqual({ role: 'owner' });
     await waitFor(() => expect(requests('/organization/members')).toHaveLength(2));

@@ -43,7 +43,7 @@ function serverMessage(cause: unknown) {
     if (cause.status === 401) {
       return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
     }
-    if (cause.status === 403) return 'Doar administratorii organizației pot trimite invitații.';
+    if (cause.status === 403) return 'Doar adminii organizației pot trimite invitații.';
     if (cause.status === 503) {
       return 'Invitația nu a putut fi trimisă pe email. Încearcă din nou în câteva momente.';
     }
@@ -117,7 +117,7 @@ function InviteForm({ onClose }: { onClose: () => void }) {
             id="invite-role"
             label="Rol"
             mark="required"
-            hint="Specialiștii lucrează cu clienții și lucrătorii. Administratorii pot, în plus, să invite alți membri."
+            hint="Specialiștii lucrează cu clienții și cu lucrătorii lor. Adminii pot, în plus, să invite alți membri."
             error={errors.role}
           >
             <NativeSelect

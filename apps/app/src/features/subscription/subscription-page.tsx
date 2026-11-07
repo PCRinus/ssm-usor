@@ -167,7 +167,7 @@ function SubscriptionContent({
     <div data-testid="subscription-page" data-view={view} className="grid gap-4 sm:gap-5">
       {impersonating && isOwner && (
         <Notice variant="info">
-          Vezi abonamentul ca administratorul organizației. Doar el îl poate schimba.
+          Vezi abonamentul ca adminul organizației. Doar el îl poate schimba.
         </Notice>
       )}
       {notice}
@@ -428,11 +428,10 @@ function MemberNote({ overview }: { overview: BillingOverview }) {
           <Info aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
           <div className="grid gap-1.5">
             <strong className="text-[15px] font-semibold">
-              Administratorul organizației se ocupă de abonament.
+              Adminul organizației se ocupă de abonament.
             </strong>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Dacă ai nevoie de mai mulți lucrători sau de un coleg în plus, scrie-i
-              administratorului.
+              Dacă ai nevoie de mai mulți lucrători sau de un coleg în plus, scrie-i adminului.
             </p>
           </div>
         </div>

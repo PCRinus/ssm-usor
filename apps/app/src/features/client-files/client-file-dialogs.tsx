@@ -44,7 +44,7 @@ function changeFailure(cause: unknown, fallback: string) {
   if (cause.status === 404) return 'Fișierul nu mai există la acest client.';
   if (cause.status === 409) return archivedMessage;
   if (cause.status === 403) {
-    return 'Doar cine a încărcat fișierul sau un administrator îl poate modifica.';
+    return 'Doar cine a încărcat fișierul sau un admin îl poate modifica.';
   }
   return fallback;
 }

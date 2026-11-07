@@ -229,8 +229,8 @@ export function RisksGroup({ detail }: { detail: ImportDetail }) {
       progress={null}
       intro={
         clientConfirmed
-          ? 'Fișele de evaluare din pachet, pentru biblioteca ta și pentru posturile clientului. Le confirmi în cel mult 14 zile de la crearea clientului.'
-          : 'Fișele de evaluare din pachet, pentru biblioteca ta și pentru posturile clientului. Le poți verifica de acum, dar le confirmi după client: nu te opresc să-l creezi.'
+          ? 'Evaluările de risc din pachet, pentru biblioteca ta și pentru posturile clientului. Le confirmi în cel mult 14 zile de la crearea clientului.'
+          : 'Evaluările de risc din pachet, pentru biblioteca ta și pentru posturile clientului. Le poți verifica de acum, dar le confirmi după client: nu te opresc să-l creezi.'
       }
       error={query.isError ? 'Nu am putut încărca evaluările de risc. Reîncarcă pagina.' : null}
       pending={query.isPending}
@@ -244,7 +244,7 @@ export function RisksGroup({ detail }: { detail: ImportDetail }) {
             }}
             part={part.part}
             icon={ShieldAlert}
-            label="Fișe de evaluare"
+            label="Evaluări de risc"
             description={risksPartDescription(part, clientConfirmed)}
             status={<PartStatusTag part={part} />}
           />

@@ -100,7 +100,7 @@ La un client activ, după salvare factorii fișei arată că sunt în evaluarea 
 Pagina unei evaluări din bibliotecă are aceleași carduri ca o fișă: **Rezultatul evaluării**, **Sistemul de muncă** și **Factori de risc**, pe care le completezi la fel ca în [fișa de evaluare a unui client](#fișa-de-evaluare-a-unui-client). Diferențele:
 
 - **Sistemul de muncă** are doar mijloacele de producție, mediul de muncă și expunerea, toate opționale. Sarcina de muncă și persoanele expuse vin din postul clientului. O expunere lăsată goală lasă fiecărei fișe expunerea ei.
-- **Termenele și responsabilii** din plan sunt valori implicite: se copiază în fișă și le schimbi acolo pentru fiecare client.
+- **Termenele și persoanele care răspund** din plan sunt valori implicite: se copiază în fișă și le schimbi acolo pentru fiecare client.
 - Ce schimbi aici nu ajunge în fișele în care ai aplicat deja evaluarea.
 
 Sus ai **Redenumește…**, **Arhivează…** sau **Reactivează…** și, pentru o evaluare nefolosită, **Șterge…**. Arhivarea și reactivarea îți cer confirmarea, ca în listă.
@@ -118,7 +118,7 @@ Pe pagina fișei unui client, în cardul **Factori de risc**, **Aplică din bibl
 
 - **Factorii** evaluării, cu clasele, măsurile și câmpurile planului, se adaugă după cei pe care fișa îi are deja. Poți aplica astfel două evaluări la aceeași fișă, de exemplu una de birou și una de condus auto.
 - **Textele sistemului de muncă** (mijloacele de producție, mediul de muncă și expunerea) completează doar câmpurile goale ale fișei; un text scris deja în fișă nu se înlocuiește. Expunerea contează ca goală cât timp e „8 h / schimb”. Dacă aplici două evaluări una după alta, textele vin de la prima.
-- **Termenele și responsabilii** se copiază ca în bibliotecă. Îi schimbi în fișă cu persoanele și termenele clientului.
+- **Termenele și persoanele care răspund** se copiază ca în bibliotecă. Le schimbi în fișă cu persoanele și termenele clientului.
 
 După aplicare, ajustează clasele la acest client: evaluarea e judecata ta profesională, iar aplicația nu alege nicio clasă în locul tău.
 

@@ -24,7 +24,7 @@ function ContractPage() {
   if (me.data?.membership?.role !== 'owner') {
     return (
       <Notice variant="info" data-testid="contract-owners-only">
-        Doar administratorii organizației pot vedea contractul de prestări servicii al clientului.
+        Doar adminii organizației pot vedea contractul de prestări servicii al clientului.
       </Notice>
     );
   }

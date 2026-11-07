@@ -284,14 +284,12 @@ export function lockReason(
   if (lock !== 'needs-organization-data') return lockReasons[lock];
   if (isOwner) return 'Completează întâi datele firmei și cadrul tehnic PSI.';
   return ownerName
-    ? `Așteaptă datele firmei de la administrator, ${ownerName}.`
-    : 'Așteaptă datele firmei de la un administrator.';
+    ? `Așteaptă datele firmei de la admin, ${ownerName}.`
+    : 'Așteaptă datele firmei de la un admin.';
 }
 
 export const ownerOnlyNote = (ownerName: string | null) =>
-  ownerName
-    ? `Doar administratorul poate completa · ${ownerName}`
-    : 'Doar un administrator poate completa';
+  ownerName ? `Doar adminul poate completa · ${ownerName}` : 'Doar un admin poate completa';
 
 export function doneNote(
   id: SetupStepId,

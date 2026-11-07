@@ -136,7 +136,7 @@ export function EmployeeError({ error }: ErrorComponentProps) {
     error instanceof ApiHttpError && error.status === 401
       ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
       : error instanceof ApiHttpError && error.status === 403
-        ? 'Contul tău nu face parte dintr-o organizație. Contactează administratorul.'
+        ? 'Contul tău nu face parte dintr-o organizație. Contactează adminul.'
         : 'Nu am putut încărca datele lucrătorului. Încearcă din nou.';
   return (
     <div data-testid="employee-error" role="alert" className="mx-auto grid max-w-lg gap-5 py-14">

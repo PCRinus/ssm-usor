@@ -73,7 +73,7 @@ test('a person registers, confirms their address, and sets up their organization
 
   await page.getByTestId('nav-organization').click();
   await expect(page.getByTestId('invite-open')).toBeVisible();
-  await expect(page.getByTestId('member-row')).toContainText('Administrator');
+  await expect(page.getByTestId('member-row')).toContainText('Admin');
 
   await page.goto('/organizatie/date-firma');
   await expect(page.getByTestId('company-cui')).toHaveValue('1590082');

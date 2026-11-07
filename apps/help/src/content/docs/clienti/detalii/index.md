@@ -46,7 +46,7 @@ sources:
   - supabase/migrations/20261022100000_legal_representative_employee.sql
 ---
 
-**Detalii** e primul tab al clientului și ține ce știi despre firmă: datele ei, reprezentantul legal, sediul și punctele de lucru, persoana de contact și, pentru administratori, notițele. Fiecare card se modifică separat: **Modifică** deschide pe loc câmpurile lui, iar pe un card gol butonul se numește **Adaugă**.
+**Detalii** e primul tab al clientului și ține ce știi despre firmă: datele ei, reprezentantul legal, sediul și punctele de lucru, persoana de contact și, pentru admini, notițele. Fiecare card se modifică separat: **Modifică** deschide pe loc câmpurile lui, iar pe un card gol butonul se numește **Adaugă**.
 
 Pe un client arhivat cardurile se pot doar citi (vezi [Un client arhivat](/clienti/#un-client-arhivat)).
 
@@ -101,7 +101,7 @@ Scrie-l cum vrei să apară pe documente, de exemplu „0721 000 000”. Aplica�
 
 ## Notițele
 
-Cardul **Notițe** îl văd doar administratorii organizației. Aici ții discuțiile, prețurile și pașii următori cu clientul, în cel mult 5000 de caractere. Notițele nu apar în niciun document și nici în portal.
+Cardul **Notițe** îl văd doar adminii organizației. Aici ții discuțiile, prețurile și pașii următori cu clientul, în cel mult 5000 de caractere. Notițele nu apar în niciun document și nici în portal.
 
 Salvezi cu **Salvează notițele**. Până atunci vezi „Modificări nesalvate”. Un client care a fost întâi client potențial își păstrează notițele de atunci.
 

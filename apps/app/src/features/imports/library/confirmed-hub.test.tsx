@@ -103,14 +103,14 @@ describe('a confirmed client import with parts still open', () => {
       'Până pe 19 noiembrie · mai ai 14 zile'
     );
     expect(panel.textContent).toContain(
-      'Am găsit în pachet instrucțiuni și fișe de evaluare pe care nu le ai.'
+      'Am găsit în pachet instrucțiuni și evaluări de risc pe care nu le ai.'
     );
     expect(partsOf('import-next-step')).toEqual(['instructions_ssm', 'risk_evaluations']);
     const [ipssm, sheets] = within(panel).getAllByTestId('import-next-step-open');
     expect(ipssm!.textContent).toBe('Verifică IPSSM');
     expect(ipssm!.getAttribute('href')).toBe(`/clienti/import/${importId}/instructiuni/ssm`);
     expect(ipssm!.getAttribute('data-variant')).toBe('default');
-    expect(sheets!.textContent).toBe('Verifică fișele');
+    expect(sheets!.textContent).toBe('Verifică evaluările');
     expect(sheets!.getAttribute('href')).toBe(`/clienti/import/${importId}/evaluari-de-risc`);
     expect(sheets!.getAttribute('data-variant')).toBe('outline');
     expect(within(panel).getAllByTestId('import-next-step-description')[0]!.textContent).toBe(
@@ -161,7 +161,7 @@ describe('a confirmed client import with parts still open', () => {
       within(panel)
         .getAllByTestId('import-next-step-open')
         .map((link) => link.textContent)
-    ).toEqual(['Vezi IPSSM', 'Vezi fișele']);
+    ).toEqual(['Vezi IPSSM', 'Vezi evaluările']);
     expect(panel.textContent).not.toContain('Am găsit în pachet');
   });
 
@@ -184,7 +184,7 @@ describe('a confirmed client import with nothing left open', () => {
     const finished = await screen.findByTestId('import-finished');
     expect(within(finished).getByRole('heading', { name: 'Importul e încheiat.' })).toBeDefined();
     expect(finished.textContent).toContain(
-      'Datele clientului, instrucțiunile și fișele de evaluare sunt preluate. Poți genera documentația clientului.'
+      'Datele clientului, instrucțiunile și evaluările de risc sunt preluate. Poți genera documentația clientului.'
     );
     expect(within(finished).getByTestId('import-open-client').getAttribute('data-variant')).toBe(
       'default'

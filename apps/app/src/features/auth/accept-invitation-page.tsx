@@ -42,11 +42,11 @@ const closedMessages: Record<string, { title: string; text: string }> = {
   },
   revoked: {
     title: 'Invitația a fost revocată',
-    text: 'Cere administratorului organizației să îți trimită una nouă.',
+    text: 'Cere adminului organizației să îți trimită una nouă.',
   },
   expired: {
     title: 'Invitația a expirat',
-    text: 'Linkul a fost valabil 7 zile. Cere administratorului organizației să îți trimită o invitație nouă.',
+    text: 'Linkul a fost valabil 7 zile. Cere adminului organizației să îți trimită o invitație nouă.',
   },
 };
 
@@ -56,9 +56,9 @@ function acceptMessage(cause: unknown) {
     case 'invitation_accepted':
       return 'Invitația a fost deja acceptată. Autentifică-te ca să intri în organizație.';
     case 'invitation_revoked':
-      return 'Invitația a fost revocată între timp. Cere una nouă administratorului.';
+      return 'Invitația a fost revocată între timp. Cere una nouă adminului.';
     case 'invitation_expired':
-      return 'Invitația a expirat între timp. Cere una nouă administratorului.';
+      return 'Invitația a expirat între timp. Cere una nouă adminului.';
     case 'account_exists':
       return 'Există deja un cont cu această adresă. Reîncarcă pagina și autentifică-te ca să accepți.';
     case 'already_in_organization':
@@ -67,7 +67,7 @@ function acceptMessage(cause: unknown) {
       return 'Invitația a fost trimisă pe altă adresă decât cea a contului tău.';
   }
   if (cause instanceof ApiHttpError && cause.status === 404) {
-    return 'Invitația nu mai există. Cere una nouă administratorului.';
+    return 'Invitația nu mai există. Cere una nouă adminului.';
   }
   return 'Nu am putut accepta invitația. Verifică conexiunea și încearcă din nou.';
 }
@@ -123,7 +123,7 @@ export function AcceptInvitationPage() {
     return (
       <Frame
         title="Link de invitație invalid"
-        description="Linkul este incomplet sau a fost înlocuit de o invitație mai nouă. Deschide cel mai recent email primit sau cere o invitație nouă administratorului."
+        description="Linkul este incomplet sau a fost înlocuit de o invitație mai nouă. Deschide cel mai recent email primit sau cere o invitație nouă adminului."
       />
     );
   }

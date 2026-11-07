@@ -59,7 +59,7 @@ describe('the SMS meter', () => {
     expect(forOwner.hint).toContain('Cele 600 peste plan: 60 € + TVA');
     const forMember = smsMeterFor(sms, member);
     expect(forMember.raiseCap).toBe(false);
-    expect(forMember.hint).toContain('Administratorul poate ridica limita.');
+    expect(forMember.hint).toContain('Adminul poate ridica limita.');
     expect(forMember.hint).not.toContain('€');
   });
 
@@ -139,7 +139,7 @@ describe('the SMS bar', () => {
     });
     const forMember = smsBarFor(capped, { ...member, canAct: false })!;
     expect(forMember.link).toBeNull();
-    expect(forMember.detail).toContain('administratorul poate ridica limita');
+    expect(forMember.detail).toContain('adminul poate ridica limita');
     expect(smsBarFor(capped, { ...owner, canAct: false })!.link).toBe('usage');
   });
 

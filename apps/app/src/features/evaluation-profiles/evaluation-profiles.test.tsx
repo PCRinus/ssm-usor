@@ -610,7 +610,7 @@ describe('a profile page', () => {
     const card = await screen.findByTestId('risk-factors-card');
     expect(
       within(card).getByText(
-        'Termenele și responsabilii din plan se copiază în fișă ca valori implicite; le schimbi acolo pentru fiecare client.'
+        'Termenele și persoanele care răspund de măsuri, din plan, se copiază în fișă ca valori implicite; le schimbi acolo pentru fiecare client.'
       )
     ).toBeTruthy();
   });

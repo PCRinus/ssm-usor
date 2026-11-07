@@ -81,7 +81,7 @@ test('an owner invites a person, who creates an account, joins, and is then mana
   await expect(page.getByTestId('invitations-card')).toHaveCount(0);
   await openMemberMenu(page, row);
   await page.getByTestId('member-switch-role').click();
-  await expect(row).toContainText('Administrator');
+  await expect(row).toContainText('Admin');
 
   await openMemberMenu(page, row);
   await page.getByTestId('member-remove').click();

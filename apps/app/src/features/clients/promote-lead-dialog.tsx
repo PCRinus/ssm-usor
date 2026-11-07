@@ -20,7 +20,7 @@ function serverMessage(cause: unknown) {
     if (cause.status === 404) return 'Clientul potențial nu mai există în organizația ta.';
     if (cause.status === 409) return 'Clientul potențial este arhivat. Reactivează-l mai întâi.';
     if (cause.status === 403) {
-      return 'Doar un administrator al organizației poate transforma un client potențial în client.';
+      return 'Doar un admin al organizației poate transforma un client potențial în client.';
     }
     if (cause.status === 401) {
       return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
@@ -77,8 +77,8 @@ export function PromoteLeadDialog({
             <DialogDescription>
               <span className="font-medium text-foreground">{lead.legalName}</span> trece în lista
               clienților, unde îl vede toată echipa, și i se pot adăuga lucrători, posturi de lucru
-              și documente. Notițele rămân vizibile doar administratorilor. Transformarea nu poate
-              fi anulată.
+              și documente. Notițele rămân vizibile doar adminilor. Transformarea nu poate fi
+              anulată.
             </DialogDescription>
           </DialogHeader>
           {signed === false && (

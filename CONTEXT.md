@@ -6,7 +6,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Organization** (_organizație_): a provider of occupational safety services, the app's customer. Owns everything below it. Avoid: tenant, company, firm.
 
-**Member**: a user who belongs to an organization, as **owner** or **specialist**. Avoid: user (when the role matters), admin.
+**Member**: a user who belongs to an organization, as **owner** or **specialist**. The interface names the owner _admin_, since testers read _administrator_ as a client's legal representative. Avoid: user (when the role matters), administrator for the owner.
 
 **Participant** (_participant_): a person of a client with an account: an employee of that client, or its client administrator. Made by a member from the employee's page or the client's Portal tab, invited to one address, email or phone, and signed in with a code sent there; no password. One per person and client, and one account can be a participant at several clients. Never a member, and a member never acts as one: the app's routes act on the membership, the portal's on the participations. ADR 022. Avoid: user, portal user, external user, and client user, which does not say which person.
 

@@ -78,7 +78,7 @@ export function FileRow({
               {showOwnersOnly && file.ownersOnly && (
                 <Badge variant="secondary" data-testid="client-file-owners-only">
                   <Lock aria-hidden="true" />
-                  Doar administratori
+                  Doar admini
                 </Badge>
               )}
             </div>
@@ -138,7 +138,7 @@ export function FileRow({
                     disabled={switching}
                     onCheckedChange={(checked) => onOwnersOnly(checked === true)}
                   >
-                    Doar pentru administratori
+                    Doar pentru admini
                   </DropdownMenuCheckboxItem>
                 )}
                 <DropdownMenuSeparator />

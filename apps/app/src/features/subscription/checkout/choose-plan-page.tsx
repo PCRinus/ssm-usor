@@ -73,7 +73,7 @@ export function ChoosePlanPage({ search }: { search: ChoosePlanSearch }) {
   if (!isOwner || !owner) {
     return (
       <Notice variant="info" data-testid="choose-plan-owner-only" action={back}>
-        Doar administratorul organizației alege și schimbă planul.
+        Doar adminul organizației alege și schimbă planul.
       </Notice>
     );
   }

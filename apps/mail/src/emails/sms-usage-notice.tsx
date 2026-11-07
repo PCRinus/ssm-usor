@@ -118,7 +118,7 @@ export default function SmsUsageNotice(props: SmsUsageNoticeProps) {
   const where = planName ? `incluse în ${planName}` : 'incluse în perioada de probă';
   const includedLabel = planName ? 'Incluse în plan' : 'Incluse';
   const price = euro(overageCents);
-  const reason = `Primești acest email pentru că ești administratorul organizației ${organizationName} în SSM Ușor. Îl trimitem o singură dată pe lună, când se întâmplă.`;
+  const reason = `Primești acest email pentru că ești adminul organizației ${organizationName} în SSM Ușor. Îl trimitem o singură dată pe lună, când se întâmplă.`;
   const noSmsUntilRenewal = `Până pe ${renewal}, lucrătorii cu email primesc codul pe email. Cei fără email nu pot semna până atunci; în portal li se spune să vorbească cu specialistul lor.`;
 
   if (kind === 'sms_80') {

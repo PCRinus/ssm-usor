@@ -195,7 +195,7 @@ function UploadForm({
               />
               <div className="grid gap-0.5">
                 <label htmlFor="client-files-owners-only" className="text-sm font-medium">
-                  Doar pentru administratori
+                  Doar pentru admini
                 </label>
                 <p id="client-files-owners-only-hint" className="text-xs text-muted-foreground">
                   Se aplică tuturor fișierelor din listă. Specialiștii nu le vor vedea.
@@ -208,7 +208,7 @@ function UploadForm({
               data-testid="client-files-upload-lead-hint"
               className="text-sm text-muted-foreground"
             >
-              Până devine client, fișierele lui sunt vizibile doar administratorilor.
+              Până devine client, fișierele lui sunt vizibile doar adminilor.
             </p>
           )}
         </DialogBody>

@@ -169,7 +169,7 @@ function ClientsPage() {
                 {clients.error instanceof ApiHttpError && clients.error.status === 401
                   ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
                   : clients.error instanceof ApiHttpError && clients.error.status === 403
-                    ? 'Contul tău nu face parte dintr-o organizație. Contactează administratorul.'
+                    ? 'Contul tău nu face parte dintr-o organizație. Contactează adminul.'
                     : 'Nu am putut încărca lista clienților. Încearcă din nou.'}
               </p>
               {apiRequest.baseUrl && (

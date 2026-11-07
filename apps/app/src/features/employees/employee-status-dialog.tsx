@@ -45,7 +45,7 @@ function serverMessage(cause: unknown) {
       return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
     }
     if (cause.status === 403) {
-      return 'Contul tău nu face parte dintr-o organizație. Contactează administratorul.';
+      return 'Contul tău nu face parte dintr-o organizație. Contactează adminul.';
     }
   }
   return 'Nu am putut salva modificarea. Verifică conexiunea și încearcă din nou.';

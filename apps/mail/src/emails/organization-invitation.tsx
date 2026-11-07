@@ -29,7 +29,7 @@ export default function OrganizationInvitation({
   return (
     <Layout
       preview={`${inviterName ?? organizationName} te invită în SSM Ușor.`}
-      reason={`Ai primit acest email pentru că un administrator al organizației ${organizationName} a introdus adresa ta în SSM Ușor. Dacă nu te aștepți la această invitație, îl poți ignora: fără acceptare nu se creează niciun cont.`}
+      reason={`Ai primit acest email pentru că un admin al organizației ${organizationName} a introdus adresa ta în SSM Ușor. Dacă nu te aștepți la această invitație, îl poți ignora: fără acceptare nu se creează niciun cont.`}
     >
       <Title>Alătură-te echipei {organizationName}</Title>
       <Paragraph>
