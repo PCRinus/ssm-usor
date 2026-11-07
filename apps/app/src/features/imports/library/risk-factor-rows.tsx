@@ -17,6 +17,7 @@ import {
   factorSource,
   type FactorState,
   lacksText,
+  measureGap,
   missingText,
 } from './risks-model';
 
@@ -70,6 +71,10 @@ function FactorRow({
   onSource: (source: LabelledSource) => void;
 }) {
   const plan = planLine(state);
+  const gap = state.included && !readOnly ? measureGap(state) : null;
+  const flags = gap?.explainsLevel
+    ? state.flags.filter((flag) => flag.kind !== 'level_mismatch')
+    : state.flags;
   const source = factorSource(state, sheetFile);
   const muted = !state.included;
   return (
@@ -127,9 +132,18 @@ function FactorRow({
               : 'E bifat, dar nu a fost primit. Verifică-l sau debifează-l.'}
           </p>
         )}
-        {state.flags.length > 0 && (
+        {gap && (
+          <p
+            className="flex items-start gap-1.5 text-[13px] font-medium text-warning-foreground"
+            data-testid="risk-import-factor-measure-gap"
+          >
+            <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+            <span>{gap.text}</span>
+          </p>
+        )}
+        {flags.length > 0 && (
           <ul className="flex flex-wrap gap-1.5" data-testid="risk-import-factor-flags">
-            {state.flags.map((flag, index) => (
+            {flags.map((flag, index) => (
               <FlagChip key={index} text={factorFlagText(flag)} informs={!asksToCheck(flag)} />
             ))}
           </ul>

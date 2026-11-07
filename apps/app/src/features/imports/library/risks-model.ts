@@ -1,4 +1,5 @@
 import {
+  isUnacceptableRiskLevel,
   type PreventionMeasureKind,
   type RiskImportChanges,
   type RiskImportExistingChoice,
@@ -18,6 +19,7 @@ import type {
   RisksProposalUnmatchedPlanRowsItem,
 } from '@/api/generated/api';
 import { roCount } from '@/features/employees/employee-format';
+import { missingMeasureText } from '@/features/risk-evaluations/risk-evaluation-schema';
 
 import { isExpired, joinNames, libraryDay, type LibraryPost } from './library-model';
 
@@ -173,6 +175,23 @@ export function factorState(factor: ProposedFactor, change?: FactorChange): Fact
 
 /** A flag that asks the member to look again; a person named in a plan field only informs. */
 export const asksToCheck = (flag: FactorFlag) => flag.kind !== 'person_named';
+
+export type MeasureGap = { text: string; explainsLevel: boolean };
+
+export function measureGap(state: FactorState): MeasureGap | null {
+  const { level, gravityClass, probabilityClass } = state;
+  if (level === null || gravityClass === null || probabilityClass === null) return null;
+  if (!isUnacceptableRiskLevel(level) || state.measures.length > 0) return null;
+  const mismatch = state.flags.find((flag) => flag.kind === 'level_mismatch');
+  const printedLevel = mismatch?.kind === 'level_mismatch' ? mismatch.printed : null;
+  return {
+    text: missingMeasureText({ level, gravityClass, probabilityClass, printedLevel }),
+    explainsLevel: printedLevel !== null && !isUnacceptableRiskLevel(printedLevel),
+  };
+}
+
+export const needsCheck = (state: FactorState) =>
+  state.included && (state.flags.some(asksToCheck) || measureGap(state) !== null);
 
 const sameMeasures = (a: readonly Measure[], b: readonly Measure[]) =>
   a.length === b.length &&
@@ -383,9 +402,7 @@ export function sheetState(
     written,
     incomplete,
     leftOut: factors.filter((factor) => !factor.included).length,
-    toCheck: factors.filter(
-      (factor) => factor.included && factor.flags.some((flag) => asksToCheck(flag))
-    ).length,
+    toCheck: factors.filter(needsCheck).length,
     choice,
     choicePicked: change?.library !== undefined,
     options,

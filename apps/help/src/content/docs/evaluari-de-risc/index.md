@@ -177,7 +177,7 @@ Evaluarea riscurilor tipărește descrierea postului din aceste texte și din da
 
 Cu **Adaugă încă unul** bifat, formularul se golește după salvare și păstrează componenta și grupa, ca să scrii la rând factorii aceleiași grupe.
 
-Lista se poate filtra pe componente și ordona după nivel, gravitate, probabilitate sau măsuri. În grila metodei din **Rezultatul evaluării**, o celulă aleasă îți arată doar factorii ei. Un factor căruia îi lipsește ceva pentru documente spune ce lipsește chiar în rândul lui.
+Lista se poate filtra pe componente și ordona după nivel, gravitate, probabilitate sau măsuri. În grila metodei din **Rezultatul evaluării**, o celulă aleasă îți arată doar factorii ei. Un factor căruia îi lipsește ceva pentru documente spune ce lipsește chiar în rândul lui. Un factor inacceptabil fără măsuri spune, de exemplu, „Planul de prevenire nu are nicio măsură pentru acest factor, iar nivelul 4 cere una. Adaugă o măsură.”
 
 ### Gravitatea, probabilitatea și nivelul de risc
 
