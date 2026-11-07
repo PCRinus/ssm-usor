@@ -184,7 +184,7 @@ describe('dashboard authentication and routing', () => {
     );
     expect(screen.getByRole('banner').contains(screen.getByTestId('app-logo'))).toBe(true);
     expect(screen.getByTestId('commit-version').textContent).toMatch(/^Versiune \S+$/);
-    expect(screen.getByTestId('clients-table')).toBeTruthy();
+    expect(await screen.findByTestId('clients-empty')).toBeTruthy();
   });
 
   it('shows the support address when the support chat cannot open', async () => {

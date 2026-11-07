@@ -9,6 +9,7 @@ import { getListEmployeesQueryKey, useListEmployees } from '@/api/generated/api'
 import { ApiHttpError } from '@/api/http';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
+import { EmptyState } from '@/components/empty-state';
 import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
 import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
@@ -22,6 +23,7 @@ import { EmployeeUploadDialog } from '@/features/imports/employees/employee-uplo
 import { ImportUploadDialog } from '@/features/imports/import-upload-dialog';
 import { TestStateFilter } from '@/features/knowledge-tests/test-state-filter';
 import { TrainingStateFilter } from '@/features/trainings/training-state-filter';
+import { isEmptyOrLoading } from '@/lib/list-state';
 
 import { employeeColumns, type EmployeeRow } from './employee-columns';
 import { employeeStatusLabels } from './employee-format';
@@ -80,6 +82,8 @@ export function EmployeesPage() {
     },
   });
   const meta = employees.data ?? { page, pageSize: defaultPageSize, total: 0 };
+  const listStatus = !apiRequest.baseUrl ? 'error' : employees.status;
+  const startsFromEmpty = !readOnly && !status && !q && !trainingState && !testState;
   const [change, setChange] = useState<EmployeeStatusChange | null>(null);
   const columns = useMemo(() => employeeColumns(readOnly ? undefined : setChange), [readOnly]);
 
@@ -87,7 +91,9 @@ export function EmployeesPage() {
     <div data-testid="employees-page" className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">Angajați</h2>
-        {!readOnly && <EmployeeImportButtons clientId={clientId} onStart={setImporting} />}
+        {!readOnly && !(startsFromEmpty && isEmptyOrLoading(listStatus, meta.total)) && (
+          <EmployeeImportButtons clientId={clientId} onStart={setImporting} />
+        )}
       </div>
       <EmployeesImportedCard clientId={clientId} />
       {!readOnly && <OpenEmployeeImports clientId={clientId} />}
@@ -168,7 +174,7 @@ export function EmployeesPage() {
           }
           meta={meta}
           noun={['angajat', 'angajați']}
-          status={!apiRequest.baseUrl ? 'error' : employees.status}
+          status={listStatus}
           isFetching={employees.isFetching}
           isPlaceholderData={employees.isPlaceholderData}
           sort={{ sort, order }}
@@ -252,26 +258,20 @@ export function EmployeesPage() {
                 }
               />
             ) : (
-              <>
-                <UserRound
-                  className="mx-auto mb-4 size-8 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <h3 className="text-base font-medium">
-                  {status === 'terminated' ? 'Niciun fost angajat' : 'Niciun angajat încă'}
-                </h3>
-                <p
-                  data-testid="employees-empty"
-                  className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
-                >
-                  {status === 'terminated'
-                    ? 'Angajații care pleacă rămân aici, cu dovezile lor.'
-                    : 'Adaugă angajații clientului pentru a le organiza instruirile și documentele.'}
-                </p>
-                {!status && !readOnly && (
-                  <EmployeeStartWays clientId={clientId} onStart={setImporting} />
-                )}
-              </>
+              <EmptyState
+                icon={UserRound}
+                title={status === 'terminated' ? 'Niciun fost angajat' : 'Niciun angajat încă'}
+                data-testid="employees-empty"
+                actions={
+                  startsFromEmpty && (
+                    <EmployeeStartWays clientId={clientId} onStart={setImporting} />
+                  )
+                }
+              >
+                {status === 'terminated'
+                  ? 'Angajații care pleacă rămân aici, cu dovezile lor.'
+                  : 'Adaugă angajații clientului pentru a le organiza instruirile și documentele.'}
+              </EmptyState>
             )
           }
         />
