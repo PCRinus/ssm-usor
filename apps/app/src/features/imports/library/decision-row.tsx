@@ -2,16 +2,18 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { Check, Pencil, TriangleAlert } from 'lucide-react';
+import { Check, Pencil, SpellCheck, TriangleAlert } from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
 
-export type Tone = 'done' | 'todo' | 'info' | 'warning';
+export type Tone = 'done' | 'todo' | 'info' | 'warning' | 'spelling' | 'editing';
 
 const toneLabels: Record<Tone, string> = {
   done: 'Gata',
   todo: 'De ales',
   info: 'De știut',
   warning: 'Atenționare',
+  spelling: 'Scriere corectată',
+  editing: 'Schimbi acum',
 };
 
 export function StatusDot({ tone }: { tone: Tone }) {
@@ -22,7 +24,9 @@ export function StatusDot({ tone }: { tone: Tone }) {
         tone === 'done' && 'border border-success-border bg-success text-success-foreground',
         tone === 'todo' && 'border border-warning-border bg-warning',
         tone === 'info' && 'border border-info-border bg-info',
-        tone === 'warning' && 'text-warning-foreground'
+        tone === 'warning' && 'text-warning-foreground',
+        tone === 'spelling' && 'border border-info-border bg-info text-info-foreground',
+        tone === 'editing' && 'bg-primary text-primary-foreground'
       )}
     >
       <span className="sr-only">{toneLabels[tone]}</span>
@@ -30,6 +34,10 @@ export function StatusDot({ tone }: { tone: Tone }) {
       {tone === 'todo' && <span className="size-2 rounded-full bg-chart-3" aria-hidden="true" />}
       {tone === 'info' && <span className="h-0.5 w-2 rounded-full bg-ring" aria-hidden="true" />}
       {tone === 'warning' && <TriangleAlert className="size-4" aria-hidden="true" />}
+      {tone === 'spelling' && (
+        <SpellCheck className="size-3" strokeWidth={2.4} aria-hidden="true" />
+      )}
+      {tone === 'editing' && <Pencil className="size-3" strokeWidth={2.4} aria-hidden="true" />}
     </span>
   );
 }
@@ -40,6 +48,10 @@ export function DecisionRow({
   actions,
   below,
   testId,
+  id,
+  wide = false,
+  top = false,
+  pairedActions = false,
   children,
 }: {
   tone: Tone;
@@ -47,22 +59,36 @@ export function DecisionRow({
   actions?: ReactNode;
   below?: ReactNode;
   testId?: string;
+  id?: string;
+  // Field names such as "Periodicitate SU, tehnico-administrativ" wrap in the narrow column.
+  wide?: boolean;
+  top?: boolean;
+  pairedActions?: boolean;
   children: ReactNode;
 }) {
   return (
     <div
+      id={id}
       data-testid={testId}
       data-tone={tone}
       className={cn(
-        'grid grid-cols-[1.25rem_minmax(0,1fr)] items-start gap-x-3 gap-y-1 border-t border-border/70 px-4 py-3 sm:min-h-14 sm:grid-cols-[1.25rem_10.5rem_minmax(0,1fr)_auto] sm:items-center sm:gap-x-4 sm:px-5',
-        tone === 'todo' && 'bg-warning/40'
+        'grid scroll-mt-32 grid-cols-[1.25rem_minmax(0,1fr)] items-start gap-x-3 gap-y-1 border-t border-border/70 px-4 py-3 sm:min-h-14 sm:grid-cols-[1.25rem_10.5rem_minmax(0,1fr)_auto] sm:gap-x-4 sm:px-5',
+        wide && 'sm:grid-cols-[1.25rem_12rem_minmax(0,1fr)_auto]',
+        !top && 'sm:items-center',
+        tone === 'todo' && 'bg-warning/40',
+        tone === 'editing' && 'bg-info/60 shadow-[inset_0_0_0_2px_var(--color-ring)]'
       )}
     >
       <StatusDot tone={tone} />
       <span className="text-sm font-medium">{label}</span>
       <div className="col-start-2 grid min-w-0 gap-1 text-sm sm:col-start-auto">{children}</div>
       {actions && (
-        <div className="col-start-2 mt-2 grid gap-2 sm:col-start-auto sm:mt-0 sm:flex sm:flex-wrap sm:justify-end">
+        <div
+          className={cn(
+            'col-start-2 mt-2 grid gap-2 sm:col-start-auto sm:mt-0 sm:flex sm:flex-wrap sm:justify-end',
+            pairedActions && 'grid-cols-2 max-sm:[&>button]:px-2.5 [&>:only-child]:col-span-2'
+          )}
+        >
           {actions}
         </div>
       )}

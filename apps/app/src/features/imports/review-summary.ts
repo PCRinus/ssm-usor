@@ -14,15 +14,20 @@ import type { ImportDetail } from '@/api/generated/api';
 import { filesLabel } from './import-format';
 import {
   anafMismatch,
+  anchorOf,
   appliesAt,
   type Blocker,
   blockerLink,
   type Changes,
   fieldGroups,
+  fieldSpelling,
   type FieldState,
   fieldState,
   formatFieldValue,
   type ItemList,
+  itemName,
+  itemSpellingLabel,
+  itemSpellings,
   itemStates,
   type Proposal,
   type RegisteredCompany,
@@ -37,15 +42,17 @@ import {
 
 export type ExistingValueAt = (path: string) => string | number | null | undefined;
 
+// `registered` is ANAF's company, whose name a new client takes by default.
 export function fieldStates(
   proposal: Proposal,
   changes: Changes,
-  valueAt: ExistingValueAt
+  valueAt: ExistingValueAt,
+  registered: RegisteredCompany | null = null
 ): Record<string, FieldState> {
   return Object.fromEntries(
     fieldGroups
       .flatMap((group) => group.paths)
-      .map((path) => [path, fieldState(proposal, changes, path, valueAt(path))])
+      .map((path) => [path, fieldState(proposal, changes, path, valueAt(path), registered)])
   );
 }
 
@@ -104,11 +111,13 @@ export function sectionDescription(
       const registered = detail.registeredCompany;
       const anaf = !registered
         ? 'Denumire, CUI, adresă, reprezentant legal și persoană de contact.'
-        : anafMismatch(proposal, changes, registered)
-          ? 'La ANAF, CUI-ul aparține altei firme.'
-          : registered.inactive
-            ? 'Firmă inactivă la ANAF.'
-            : 'Denumire și CUI verificate la ANAF.';
+        : states['client.legalName']?.anaf?.picked === null
+          ? 'Documentele dau altă denumire decât ANAF. Am ales-o pe cea de la ANAF.'
+          : anafMismatch(proposal, changes, registered)
+            ? 'La ANAF, CUI-ul aparține altei firme.'
+            : registered.inactive
+              ? 'Firmă inactivă la ANAF.'
+              : 'Denumire și CUI verificate la ANAF.';
       return `${anaf}${choiceText}`;
     }
     case 'workplaces': {
@@ -350,8 +359,72 @@ export const sectionIcons: Record<SectionId, LucideIcon> = {
 
 export function reviewName(detail: ImportDetail, proposal: Proposal, changes: Changes) {
   if (detail.client) return detail.client.legalName;
-  const { value } = fieldState(proposal, changes, 'client.legalName');
+  const registered = detail.intoExistingClient ? null : detail.registeredCompany;
+  const { value } = fieldState(proposal, changes, 'client.legalName', undefined, registered);
   if (typeof value === 'string' && value) return value;
   const own = proposal.client.legalName.options.find((option) => option.otherCompanyName === null);
   return String(own?.value ?? detail.companyName ?? 'Client nou');
+}
+
+const itemLists: ItemList[] = [
+  'workplaces',
+  'jobPositions',
+  'responsiblePersons',
+  'fireEquipment',
+  'fireInstallations',
+  'protectiveEquipment',
+  'employees',
+];
+
+type Correction = {
+  where: string;
+  field: string;
+  corrected: string;
+  written: string;
+  anchor: string;
+};
+
+export function sectionCorrections(
+  section: SectionId,
+  proposal: Proposal,
+  changes: Changes,
+  states: Record<string, FieldState>
+): Correction[] {
+  const fields = fieldGroups
+    .filter((group) => group.section === section)
+    .flatMap((group) =>
+      group.paths.flatMap((path) => {
+        const state = states[path];
+        const spelling = state && fieldSpelling(state, changes.fields[path]);
+        return spelling && !spelling.keptWritten
+          ? [
+              {
+                where: group.title,
+                field: state.label.toLowerCase(),
+                corrected: spelling.corrected,
+                written: spelling.written,
+                anchor: anchorOf(path),
+              },
+            ]
+          : [];
+      })
+    );
+  const items = itemLists
+    .filter((list) => sectionOf(list) === section)
+    .flatMap((list) =>
+      itemStates(proposal, changes, list)
+        .filter((state) => state.included)
+        .flatMap((state) =>
+          itemSpellings(state, changes)
+            .filter((spelling) => !spelling.keptWritten)
+            .map((spelling) => ({
+              where: itemName(list, state.values),
+              field: itemSpellingLabel(spelling.field).toLowerCase(),
+              corrected: spelling.value,
+              written: spelling.written,
+              anchor: anchorOf(`${list}.${state.item.id}`),
+            }))
+        )
+    );
+  return [...fields, ...items];
 }

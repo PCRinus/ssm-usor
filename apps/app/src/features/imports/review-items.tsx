@@ -48,6 +48,7 @@ import {
   type ItemList,
   itemName,
   itemSources,
+  itemSpellingLabel,
   itemSpellings,
   type ItemState,
   itemStates,
@@ -65,7 +66,7 @@ import {
   ReviewCard,
   RowNote,
   SourceButton,
-  SpellingPair,
+  SpellingChoice,
 } from './review-parts';
 
 type ItemsContext = FieldContext & { blockers: Blocker[] };
@@ -124,21 +125,6 @@ function changedValues(state: ItemState, next: Record<string, unknown>) {
   return values;
 }
 
-const spellingLabels: Record<string, string> = {
-  name: 'Denumire',
-  activity: 'Activitate',
-  workZone: 'Zona de lucru',
-  activities: 'Activități',
-  item: 'Articol',
-  risk: 'Risc',
-  room: 'Încăpere',
-  assemblyPoint: 'Punctul de adunare',
-  combustibleMaterials: 'Materiale combustibile',
-  ignitionSources: 'Surse de aprindere',
-  fireRiskEquipment: 'Echipamente și mijloace de lucru',
-  specificMeasures: 'Măsuri specifice',
-};
-
 function ItemRow({
   state,
   context,
@@ -182,19 +168,25 @@ function ItemRow({
             {detail}
           </span>
         ))}
-        {itemSpellings(state, context.changes).map(({ field, value, written }) => (
-          <SpellingPair
-            key={field}
-            label={spellingLabels[field] ?? itemFieldLabel(field)}
-            value={value}
-            written={written}
-            onKeep={() =>
-              context.review.setItem(state.item.id, (current) => ({
-                ...current,
-                values: { ...current.values, [field]: written },
-              }))
-            }
-          />
+        {itemSpellings(state, context.changes).map(({ field, value, written, keptWritten }) => (
+          <div key={field} className="mt-1 grid gap-1">
+            <span className="text-[13px] font-medium">{itemSpellingLabel(field)}</span>
+            <SpellingChoice
+              label={itemSpellingLabel(field)}
+              corrected={value}
+              written={written}
+              keptWritten={keptWritten}
+              onPick={(keep) =>
+                context.review.setItem(state.item.id, (current) => {
+                  const values = Object.fromEntries(
+                    Object.entries(current.values ?? {}).filter(([key]) => key !== field)
+                  );
+                  if (keep) values[field] = written;
+                  return { ...current, values };
+                })
+              }
+            />
+          </div>
         ))}
         {blockers.map((blocker) => {
           const field = blocker.path.split('.')[2];
@@ -218,7 +210,7 @@ function ItemRow({
           </RowNote>
         ))}
       </div>
-      <div className="flex flex-wrap items-start gap-4 sm:justify-end">
+      <div className="mt-1 grid grid-cols-2 gap-2 sm:mt-0 sm:flex sm:items-start sm:justify-end [&>:only-child]:col-span-2">
         <SourceButton
           sources={sources}
           onOpen={() => context.openSource(title, sources, state.item.otherCompanyName)}
@@ -410,7 +402,7 @@ function oneOf<T extends string>(values: readonly T[], value: unknown): T | '' {
   return values.includes(value as T) ? (value as T) : '';
 }
 
-function fireSheetDetails(values: Record<string, unknown>): string[] {
+function fireSheetDetails(values: Record<string, unknown>, spelled: Set<string>): string[] {
   const norm = values.extinguisherNorm as FireExtinguisherNorm | null | undefined;
   const space = [
     values.kind ? (workplaceKindLabels[values.kind as WorkplaceKind] ?? String(values.kind)) : null,
@@ -420,7 +412,7 @@ function fireSheetDetails(values: Record<string, unknown>): string[] {
   return [
     space.join(' · '),
     ...fireTexts.flatMap(([field, label]) =>
-      text(values[field]) ? [`${label}: ${String(values[field])}`] : []
+      text(values[field]) && !spelled.has(field) ? [`${label}: ${String(values[field])}`] : []
     ),
   ].filter(Boolean);
 }
@@ -505,7 +497,10 @@ export function WorkplacesSection({ context }: { context: ItemsContext }) {
               details={[
                 address || 'Fără adresă în documente',
                 rooms.length > 0 ? `Încăperi: ${rooms.join(', ')}` : null,
-                ...fireSheetDetails(state.values),
+                ...fireSheetDetails(
+                  state.values,
+                  new Set(itemSpellings(state, context.changes).map(({ field }) => field))
+                ),
               ]}
               sources={workplaceSources(state.item)}
               onEdit={() => setEditing(state)}

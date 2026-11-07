@@ -8,6 +8,7 @@ import type { ImportDetail } from '@/api/generated/api';
 import { useScrollToHash } from '@/app/use-scroll-to-hash';
 
 import { endSentence } from './import-format';
+import { OtherSections } from './other-sections';
 import { type FieldContext, FieldsSection } from './review-fields';
 import { ConflictNotice } from './review-hub';
 import {
@@ -44,9 +45,14 @@ export function ReviewSectionPage({
   const [source, setSource] = useState<SourceRequest | null>(null);
   const prefetchSource = useSourcePrefetch(detail.id);
   useScrollToHash(existing.ready);
-  const states = fieldStates(proposal, review.changes, existing.valueAt);
   const registered = detail.registeredCompany;
-  const context: FieldContext & { blockers: Blocker[] } = {
+  const states = fieldStates(
+    proposal,
+    review.changes,
+    existing.valueAt,
+    detail.intoExistingClient ? null : registered
+  );
+  const context: FieldContext = {
     proposal,
     changes: review.changes,
     review,
@@ -78,7 +84,7 @@ export function ReviewSectionPage({
             <p className="text-sm text-muted-foreground">
               {detail.intoExistingClient
                 ? `Completezi clientul existent ${endSentence(name)} Ce are deja în aplicație nu se schimbă fără alegerea ta.`
-                : `${endSentence(name)} Valorile se preiau așa cum sunt, dacă nu le schimbi.`}
+                : `${endSentence(name)} Valorile se preiau așa cum sunt, dacă nu le schimbi. Unde sunt casete de ales, intră în documente cea aleasă.`}
             </p>
           </div>
           <div className="grid w-full gap-1 sm:w-60">
@@ -89,6 +95,15 @@ export function ReviewSectionPage({
         <ConflictNotice review={review} />
         {(section === 'identity' || section === 'training') && (
           <FieldsSection section={section} context={context} />
+        )}
+        {section === 'identity' && (
+          <OtherSections
+            importId={detail.id}
+            proposal={proposal}
+            changes={review.changes}
+            states={states}
+            statuses={statuses}
+          />
         )}
         {section === 'fire-safety' && (
           <>
