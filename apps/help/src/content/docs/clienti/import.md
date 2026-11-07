@@ -74,6 +74,7 @@ sources:
   - apps/api/src/modules/credits/usage.ts
   - apps/app/src/features/imports/import-credits.ts
   - apps/app/src/features/imports/review-fields.tsx
+  - apps/app/src/features/imports/phone-diff.ts
   - apps/api/src/modules/imports/payload.ts
   - apps/app/src/features/imports/credits-notices.tsx
   - apps/api/src/modules/imports/handlers.ts
@@ -154,6 +155,7 @@ Pe fiecare card, coloana **Ce intră în documente** arată valoarea care se scr
 - **Scrierea corectată sau ca în document.** Un text scris numai cu majuscule sau fără diacritice e propus corectat, cu cuvintele schimbate marcate. Corectura atinge doar majusculele și diacriticele; numele, codurile și adresele rămân cum le scriu documentele. Scrierea corectată e aleasă din start; dacă vrei textul exact ca în document, alege **Ca în document**.
 - **Denumirea de la ANAF sau din documente.** Când la ANAF CUI-ul este înregistrat cu altă denumire decât cea din documente, e aleasă din start denumirea de la ANAF, cea valabilă acum. Dacă ai dreptate cu denumirea din documente, verifică întâi CUI-ul, apoi alege **În documente**. Până alegi una, cardul **Date firmă** îți amintește să te uiți la denumire.
 - **Mai multe variante în documente.** Când documentele dau valori diferite, de exemplu două reguli de fumat, alegi una dintre ele. Dacă niciuna nu mai e valabilă, alege **Altă valoare** și scrie-o tu.
+- **Două numere de telefon.** Numerele care au aceleași cifre, scrise cu alte spații sau cu +40 în față, sunt socotite unul singur. Când documentele dau numere cu cifre diferite, le vezi scrise la fel, grupate ca un număr de mobil sau de fix, iar cifrele prin care diferă sunt marcate, ca să deosebești o greșeală de tastare. Numărul ales intră în documente așa cum e scris în documentul lui.
 
 **Schimbă** deschide doar câmpul de pe rândul lui, încadrat și marcat cu „Schimbi acum”; ce salvezi intră în documente în locul valorii din import. La un client nou, lângă CUI apare și **Plătitor de TVA**, ca la un client adăugat de mână. Căsuța e bifată când ANAF arată firma înregistrată în scopuri de TVA, iar un CUI scris cu prefixul RO o bifează la salvare. Pe card, CUI-ul unei firme plătitoare de TVA apare cu prefixul RO. Un câmp care lipsește din documente îl completezi cu **Completează**, iar o întrebare cu da sau nu o lămurești direct din rând.
 

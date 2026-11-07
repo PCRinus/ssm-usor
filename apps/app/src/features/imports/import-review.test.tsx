@@ -1863,3 +1863,44 @@ describe('the credits the import used', () => {
     expect(within(dialog).queryByTestId('import-credits-used')).toBeNull();
   });
 });
+
+describe('two phone numbers the documents give', () => {
+  const twoPhones = () => {
+    const proposal = proposalFixture();
+    proposal.client.contactPhone = {
+      options: [
+        {
+          value: '0722 315 408',
+          sources: [{ file: 'dosar-ssm.zip/Decizie 1.docx', quote: 'Tel. 0722 315 408' }],
+          otherCompanyName: null,
+        },
+        {
+          value: '0722 351408',
+          sources: [{ file: 'Contract prestari SSM 2019.pdf', quote: 'telefon 0722 351408' }],
+          otherCompanyName: null,
+        },
+      ],
+    };
+    return readyDetail({ proposal });
+  };
+
+  it('shows both in one format, marks the digits they differ by, and keeps the one picked as written', async () => {
+    mockReview(twoPhones());
+    mount('/identity');
+
+    await screen.findByText('Telefon');
+    const row = document.getElementById('review-client-contactPhone')!;
+    expect(within(row).getByTestId('review-phone-differs').textContent).toBe(
+      'Numerele diferă prin cifrele marcate.'
+    );
+    const [first, second] = within(row).getAllByTestId('review-phone');
+    expect(first!.textContent).toBe('0722 315 408');
+    expect(second!.textContent).toBe('0722 351 408');
+    expect([...first!.querySelectorAll('mark')].map((mark) => mark.textContent)).toEqual(['15']);
+    expect([...second!.querySelectorAll('mark')].map((mark) => mark.textContent)).toEqual(['51']);
+
+    await userEvent.click(within(row).getByRole('radio', { name: /Contract prestari/ }));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({ 'client.contactPhone': { option: 1 } });
+  });
+});

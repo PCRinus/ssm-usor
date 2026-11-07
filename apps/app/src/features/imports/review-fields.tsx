@@ -34,6 +34,7 @@ import { CountyCombobox } from '@/features/clients/county-combobox';
 
 import { endSentence } from './import-format';
 import { DecisionRow, PendingNote, Segmented, type Tone } from './library/decision-row';
+import { phoneDiff } from './phone-diff';
 import {
   anafMismatch,
   anafMismatchNote,
@@ -68,6 +69,7 @@ import {
   EditedTag,
   KindLine,
   LinkButton,
+  PhoneDigits,
   PickList,
   PickOption,
   RowNote,
@@ -453,6 +455,10 @@ function ChoiceRow({ state, context }: { state: FieldState; context: FieldContex
   const decided = change?.option !== undefined || isOther;
   const person =
     state.path === 'client.legalRepresentativeName' || state.path === 'client.contactName';
+  const phones =
+    state.path === 'client.contactPhone'
+      ? phoneDiff(state.own.map((index) => String(state.options[index]!.value)))
+      : null;
   return (
     <DecisionRow
       tone={decided ? 'done' : 'todo'}
@@ -465,8 +471,11 @@ function ChoiceRow({ state, context }: { state: FieldState; context: FieldContex
       <KindLine icon={<Split aria-hidden="true" />} tone={decided ? undefined : 'warning'}>
         Documentele dau {state.own.length} variante. Alege-o pe cea de acum.
       </KindLine>
+      {phones?.some((runs) => runs.some((run) => run.changed)) && (
+        <RowNote testId="review-phone-differs">Numerele diferă prin cifrele marcate.</RowNote>
+      )}
       <PickList labelledBy={`${name}-label`}>
-        {state.own.map((index) => {
+        {state.own.map((index, position) => {
           const option = state.options[index]!;
           const value = formatFieldValue(state.path, option.value, context.vatPayer);
           return (
@@ -486,7 +495,7 @@ function ChoiceRow({ state, context }: { state: FieldState; context: FieldContex
                 />
               }
             >
-              {value}
+              {phones ? <PhoneDigits runs={phones[position]!} /> : value}
             </PickOption>
           );
         })}
@@ -1015,6 +1024,10 @@ function DifferRow({ state, context }: { state: FieldState; context: FieldContex
   const name = useId();
   const change = context.changes.fields[state.path];
   const replaced = state.comparison === 'replaced';
+  const phones =
+    state.path === 'client.contactPhone'
+      ? phoneDiff([String(state.existing ?? ''), String(state.value ?? '')])
+      : null;
   return (
     <DecisionRow
       tone="done"
@@ -1035,7 +1048,11 @@ function DifferRow({ state, context }: { state: FieldState; context: FieldContex
           heading="În aplicație"
           testId="review-keep-app"
         >
-          {formatFieldValue(state.path, state.existing, context.vatPayer)}
+          {phones ? (
+            <PhoneDigits runs={phones[0]!} />
+          ) : (
+            formatFieldValue(state.path, state.existing, context.vatPayer)
+          )}
         </PickOption>
         <PickOption
           name={name}
@@ -1050,9 +1067,16 @@ function DifferRow({ state, context }: { state: FieldState; context: FieldContex
             />
           }
         >
-          {formatFieldValue(state.path, state.value, context.vatPayer)}
+          {phones ? (
+            <PhoneDigits runs={phones[1]!} />
+          ) : (
+            formatFieldValue(state.path, state.value, context.vatPayer)
+          )}
         </PickOption>
       </PickList>
+      {phones?.some((runs) => runs.some((run) => run.changed)) && (
+        <RowNote testId="review-phone-differs">Numerele diferă prin cifrele marcate.</RowNote>
+      )}
     </DecisionRow>
   );
 }
