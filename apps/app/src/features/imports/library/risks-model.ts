@@ -1,4 +1,5 @@
 import {
+  foldText,
   isUnacceptableRiskLevel,
   type PreventionMeasureKind,
   type RiskImportChanges,
@@ -34,6 +35,7 @@ export type FactorChange = RiskImportFactorChange;
 export type RiskChanges = { sheets: Record<string, SheetChange> };
 export type LibraryChoice = RiskImportLibraryChoice;
 export type ExistingChoice = RiskImportExistingChoice;
+export type LibraryName = RisksPart['libraryNames'][number];
 type Measure = { kind: PreventionMeasureKind; description: string };
 
 export const isRisksLibraryPart = (part: ImportLibraryPart): part is RisksPart =>
@@ -243,7 +245,7 @@ export type SheetState = {
   leftOut: number;
   toCheck: number;
   // Null for a copy of another sheet of the pack, which follows that sheet's choice.
-  choice: LibraryChoice | null;
+  choice: RiskSheet['choice'];
   choicePicked: boolean;
   options: LibraryChoice[];
   createsEntry: boolean;
@@ -331,28 +333,29 @@ export function sheetState(
   ).length;
   const incomplete = factors.filter((factor) => !factor.included && !factor.complete).length;
 
-  let choice: LibraryChoice | null = null;
+  const jobPosition = sheet.kind === 'job_position';
+  // A post's new sheet always goes to the library and a client-level one never does (ADR 036).
+  let choice: RiskSheet['choice'] = null;
   let options: LibraryChoice[] = [];
   if (sheet.copyOf === null) {
     if (sheet.status === 'identical') choice = 'use_existing';
-    else if (sheet.factors.length === 0) choice = 'skip';
+    else if (!jobPosition || sheet.factors.length === 0) choice = 'skip';
     else if (sheet.status === 'similar') {
       options = ['use_existing', 'add_new'];
       choice = change?.library ?? sheet.choice;
-    } else {
-      options = ['add', 'skip'];
-      choice = change?.library ?? sheet.choice ?? 'add';
-    }
+    } else choice = 'add';
   }
   const createsEntry =
+    jobPosition &&
     sheet.copyOf === null &&
     sheet.status !== 'identical' &&
     (choice === 'add' || choice === 'add_new') &&
     written > 0;
   const usesLibrary =
-    sheet.status === 'identical' || (sheet.status === 'similar' && choice === 'use_existing');
+    jobPosition &&
+    sheet.copyOf === null &&
+    (sheet.status === 'identical' || (sheet.status === 'similar' && choice === 'use_existing'));
 
-  const jobPosition = sheet.kind === 'job_position';
   const posts = jobPosition
     ? (change?.posts ?? defaultSheetPosts(sheet, context.postReferences))
     : null;
@@ -423,9 +426,7 @@ export type Pending = 'posts' | 'library' | 'name';
 export function pendingOf(state: SheetState, nameTaken: boolean): Pending[] {
   return [
     ...(state.postsOpen || state.postsGone ? (['posts'] as const) : []),
-    ...(state.sheet.status === 'similar' && state.sheet.copyOf === null && !state.choicePicked
-      ? (['library'] as const)
-      : []),
+    ...(state.options.length > 0 && !state.choicePicked ? (['library'] as const) : []),
     ...(nameTaken && state.createsEntry ? (['name'] as const) : []),
   ];
 }
@@ -468,52 +469,84 @@ export function leftSentence(states: readonly SheetState[], open: number) {
   return lines.join(' ');
 }
 
-export type RiskSummary = { created: number; used: number; sheets: number; factors: number };
+export type RiskSummary = {
+  // The entries confirming adds, with the factors each takes.
+  created: { name: string; factors: number }[];
+  // The library's entries the client's factors are linked to.
+  used: string[];
+  sheets: number;
+  factors: number;
+  // The post whose sheet is the only one written, if it is a post's.
+  post: string | null;
+};
 
 export function riskSummary(states: readonly SheetState[]): RiskSummary {
-  const summary = { created: 0, used: 0, sheets: 0, factors: 0 };
+  const summary: RiskSummary = { created: [], used: [], sheets: 0, factors: 0, post: null };
+  const writing: (string | null)[] = [];
   for (const state of states) {
-    if (state.createsEntry) summary.created += 1;
-    else if (state.sheet.copyOf === null && state.usesLibrary && state.written > 0) {
-      summary.used += 1;
+    if (state.createsEntry) {
+      summary.created.push({ name: state.libraryName, factors: state.written });
+    } else if (state.usesLibrary && state.written > 0 && state.sheet.match) {
+      summary.used.push(state.sheet.match.name);
     }
     if (state.written === 0) continue;
-    const sheets =
+    const targets =
       state.posts === null
         ? (state.existing?.choice ?? 'append') === 'keep'
-          ? 0
-          : 1
-        : state.targets.filter((target) => target.choice !== 'keep').length;
-    summary.sheets += sheets;
-    summary.factors += sheets * state.written;
+          ? []
+          : [null]
+        : state.targets
+            .filter((target) => target.choice !== 'keep')
+            .map((target) => target.post.name);
+    summary.sheets += targets.length;
+    summary.factors += targets.length * state.written;
+    writing.push(...targets);
   }
+  summary.post = writing.length === 1 ? writing[0]! : null;
   return summary;
 }
 
+const quoted = (names: readonly string[]) => joinNames(names.map((name) => `„${name}”`));
+
+const factorsCount = (count: number) => (count === 1 ? 'un factor' : factorsLabel(count));
+
 export function confirmSentence(summary: RiskSummary) {
+  const { created, used } = summary;
   const parts = [
-    ...(summary.created > 0
+    ...(created.length === 1
       ? [
-          `adăugăm ${summary.created === 1 ? 'o evaluare' : evaluationsLabel(summary.created)} în bibliotecă`,
+          `adăugăm ${quoted([created[0]!.name])} în bibliotecă, cu ${factorsCount(created[0]!.factors)}`,
         ]
-      : []),
-    ...(summary.used > 0
+      : created.length > 1
+        ? [
+            `adăugăm ${created.length > 3 ? evaluationsLabel(created.length) : quoted(created.map((entry) => entry.name))} în bibliotecă`,
+          ]
+        : []),
+    ...(used.length > 0
       ? [
-          summary.used === 1
-            ? 'folosim una pe care o ai deja'
-            : `folosim ${evaluationsLabel(summary.used)} pe care le ai deja`,
+          `folosim ${used.length > 3 ? evaluationsLabel(used.length) : quoted(used)} din biblioteca ta`,
         ]
       : []),
   ];
+  // The factor count after one entry's name is an aside, closed by a comma before "și".
+  const join = (list: readonly string[]) =>
+    created.length === 1 && list.length > 1
+      ? `${list.slice(0, -1).join(', ')}, și ${list.at(-1)}`
+      : joinNames(list);
   if (summary.sheets === 0) {
     return parts.length === 0
       ? 'Nu adăugăm nimic în bibliotecă și nu scriem nimic pe fișele clientului.'
-      : `Când confirmi, ${joinNames(parts)}, fără să scriem factori pe fișele clientului.`;
+      : `Când confirmi, ${join(parts)}, fără să scriem factori pe fișele clientului.`;
   }
-  const factors = summary.factors === 1 ? 'un factor' : factorsLabel(summary.factors);
-  const sheets =
-    summary.sheets === 1 ? 'o fișă a clientului' : `${sheetsLabel(summary.sheets)} ale clientului`;
-  return `Când confirmi, ${joinNames([...parts, `scriem ${factors} pe ${sheets}`])}.`;
+  const target = summary.post
+    ? `fișa postului ${quoted([summary.post])}`
+    : summary.sheets === 1
+      ? 'o fișă a clientului'
+      : `${sheetsLabel(summary.sheets)} ale clientului`;
+  if (created.length === 1 && used.length === 0 && created[0]!.factors === summary.factors) {
+    return `Când confirmi, ${parts[0]}, și îi scriem pe ${target}.`;
+  }
+  return `Când confirmi, ${join([...parts, `scriem ${factorsCount(summary.factors)} pe ${target}`])}.`;
 }
 
 export const kindLabels: Record<RiskSheet['kind'], string> = {
@@ -523,8 +556,6 @@ export const kindLabels: Record<RiskSheet['kind'], string> = {
 };
 
 export const libraryChoiceLabels: Record<LibraryChoice, string> = {
-  add: 'Adaugă în bibliotecă',
-  skip: 'Nu adăuga',
   use_existing: 'Folosește ce ai',
   add_new: 'Adaugă ca nouă',
 };
@@ -536,62 +567,88 @@ export const existingChoiceLabels: Record<ExistingChoice, string> = {
 };
 
 function clientTarget(state: SheetState) {
-  if (state.posts === null) {
+  const writing = state.targets.filter((target) => target.choice !== 'keep').length;
+  if (writing > 1) return { sheet: `fișele celor ${writing} posturi`, plural: true };
+  return writing === 1 ? { sheet: 'fișa postului', plural: false } : null;
+}
+
+/** What "Folosește ce ai" does with a post's sheet similar to an entry. */
+export function usedOutcome(state: SheetState) {
+  const client = state.toClient ? clientTarget(state) : null;
+  if (client) {
+    return `Evaluarea ta rămâne cum e; ${client.sheet} ${client.plural ? 'primesc' : 'primește'} factorii din pachet, legați de ea.`;
+  }
+  if (state.targets.length > 1) {
+    return 'Evaluarea ta rămâne cum e, iar fișele posturilor rămân cum sunt.';
+  }
+  if (state.targets.length === 1)
+    return 'Evaluarea ta rămâne cum e, iar fișa postului rămâne cum e.';
+  return 'Evaluarea ta rămâne cum e, iar factorii din pachet nu ajung nicăieri.';
+}
+
+export function similarCounts(match: NonNullable<RiskSheet['match']>) {
+  return `${joinNames([
+    roCount(match.pairs.length, 'factor la fel', 'factori la fel'),
+    ...(match.onlyInPack.length > 0 ? [`${match.onlyInPack.length} doar în pachet`] : []),
+    ...(match.onlyInLibrary.length > 0
+      ? [`${match.onlyInLibrary.length} doar în evaluarea ta`]
+      : []),
+  ])}.`;
+}
+
+export type NameNote = { text: string; entry: LibraryName | null };
+
+/** Why a new entry has the name it has, and the library's entry that holds the name it lost. */
+export function nameNote(state: SheetState, entries: readonly LibraryName[]): NameNote | null {
+  const { sheet } = state;
+  if (state.libraryName !== sheet.libraryName) {
+    return { text: `Numele l-ai ales tu; propunerea era „${sheet.libraryName}”.`, entry: null };
+  }
+  if (sheet.takenName) {
+    const taken = foldText(sheet.takenName);
+    if (sheet.match && foldText(sheet.match.name) === taken) {
+      return {
+        text: `Numele „${sheet.takenName}” e al evaluării tale asemănătoare, așa că am adăugat numele clientului.`,
+        entry: null,
+      };
+    }
+    const entry = entries.find((each) => foldText(each.name) === taken) ?? null;
     return {
-      sheet:
-        state.sheet.kind === 'sensitive_groups'
-          ? 'fișa grupurilor sensibile'
-          : `fișa „${state.sheet.name}”`,
-      plural: false,
+      text: `Ai deja o evaluare${entry?.archived ? ' arhivată' : ''} numită „${sheet.takenName}”, cu alți factori, așa că am adăugat numele clientului.`,
+      entry,
     };
   }
-  const writing = state.targets.filter((target) => target.choice !== 'keep').length;
-  return writing > 1
-    ? { sheet: `fișele celor ${writing} posturi`, plural: true }
-    : { sheet: 'fișa postului', plural: false };
-}
-
-// The pack's factors reach no sheet of the client because the member kept the existing ones,
-// or, with null, because the sheet goes to no post.
-function keptSheets(state: SheetState) {
-  if (state.posts === null) return 'fișa clientului rămâne cum e';
-  if (state.targets.length > 1) return 'fișele posturilor rămân cum sunt';
-  if (state.targets.length === 1) return 'fișa postului rămâne cum e';
-  return null;
-}
-
-export function libraryOutcome(state: SheetState) {
-  const client = state.toClient ? clientTarget(state) : null;
-  const gets = client?.plural ? 'primesc' : 'primește';
-  const kept = keptSheets(state);
-  switch (state.choice) {
-    case 'add':
-      return client
-        ? `Intră în bibliotecă ca evaluare nouă, iar ${client.sheet} ${gets} factorii din pachet.`
-        : kept
-          ? `Intră în bibliotecă ca evaluare nouă, iar ${kept}.`
-          : 'Intră în bibliotecă ca evaluare nouă, fără să ajungă la vreun post.';
-    case 'add_new':
-      return client
-        ? `Factorii din pachet intră în bibliotecă ca evaluare separată, iar ${client.sheet} îi ${gets} tot pe ei.`
-        : kept
-          ? `Factorii din pachet intră în bibliotecă ca evaluare separată, iar ${kept}.`
-          : 'Factorii din pachet intră în bibliotecă ca evaluare separată.';
-    case 'use_existing':
-      return client
-        ? `Evaluarea ta rămâne cum e; ${client.sheet} ${gets} factorii din pachet, legați de ea.`
-        : kept
-          ? `Evaluarea ta rămâne cum e, iar ${kept}.`
-          : 'Evaluarea ta rămâne cum e, iar factorii din pachet nu ajung nicăieri.';
-    case 'skip':
-      return client
-        ? `Biblioteca rămâne cum e; factorii din pachet ajung doar pe ${client.sheet}.`
-        : kept
-          ? `Biblioteca rămâne cum e, iar ${kept}: factorii din pachet nu ajung nicăieri.`
-          : 'Nu ajunge nicăieri: nici în bibliotecă, nici la vreun post.';
+  const posts = sheet.posts.map((post) => post.name);
+  switch (sheet.nameFrom) {
+    case 'post':
+      return { text: 'E numele postului din document.', entry: null };
+    case 'heading':
+      return {
+        text:
+          posts.length > 1
+            ? `E numele din titlul fișei, care e pentru posturile ${joinNames(posts)}.`
+            : 'E numele din titlul fișei.',
+        entry: null,
+      };
     default:
-      return '';
+      return null;
   }
+}
+
+export function takenNameProblem(
+  name: string,
+  entries: readonly LibraryName[],
+  packNames: readonly string[]
+) {
+  const folded = foldText(name);
+  const entry = entries.find((each) => foldText(each.name) === folded);
+  if (entry) {
+    return `Biblioteca are deja o evaluare${entry.archived ? ' arhivată' : ''} cu acest nume. Alege alt nume.`;
+  }
+  if (packNames.some((other) => foldText(other) === folded)) {
+    return 'Altă evaluare din pachet are deja acest nume. Alege alt nume.';
+  }
+  return null;
 }
 
 export function existingOutcome(choice: ExistingChoice, factors: number) {
@@ -606,6 +663,52 @@ export function existingOutcome(choice: ExistingChoice, factors: number) {
       return 'Fișa rămâne cum e: factorii din pachet nu ajung pe ea.';
   }
 }
+
+export const removedByMember = (state: FactorState) => !state.included && state.complete;
+
+export function withIncluded(
+  change: SheetChange,
+  factors: readonly FactorState[],
+  included: boolean
+): SheetChange {
+  const next = { ...change.factors };
+  for (const state of factors) {
+    next[state.factor.key] = withField(
+      next[state.factor.key] ?? {},
+      'included',
+      included === state.factor.included ? undefined : included
+    );
+  }
+  return { ...change, factors: next };
+}
+
+const foldChar = (char: string) => char.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+
+/** Where a search falls in a text, ignoring case and diacritics; null when it does not. */
+export function searchRange(text: string, query: string): [number, number] | null {
+  const needle = [...query.trim()].map(foldChar).join('');
+  if (needle === '') return null;
+  const chars = [...text];
+  const folded = chars.map(foldChar);
+  const at = folded.join('').indexOf(needle);
+  if (at < 0) return null;
+  let offset = 0;
+  let start = -1;
+  let end = chars.length;
+  for (let index = 0; index < folded.length; index++) {
+    if (start < 0 && offset + folded[index]!.length > at) start = index;
+    offset += folded[index]!.length;
+    if (offset >= at + needle.length) {
+      end = index + 1;
+      break;
+    }
+  }
+  const before = chars.slice(0, start).join('').length;
+  return [before, before + chars.slice(start, end).join('').length];
+}
+
+export const factorMatches = (state: FactorState, query: string) =>
+  searchRange(state.description, query) !== null || searchRange(state.group, query) !== null;
 
 const classNames = { gravity: 'gravitate', probability: 'probabilitate' } as const;
 
@@ -682,6 +785,15 @@ export function takenSheets(issues: readonly { path: string }[]) {
     })
   );
 }
+
+const atEvaluations = (names: readonly string[]) =>
+  names.length === 1 ? `la evaluarea ${quoted(names)}` : `la evaluările ${quoted(names)}`;
+
+export const takenNamesText = (names: readonly string[]) =>
+  `Biblioteca are deja o evaluare cu numele ales. Schimbă ${names.length === 1 ? 'numele marcat' : 'numele marcate'} ${atEvaluations(names)}.`;
+
+export const incompleteText = (names: readonly string[]) =>
+  `Unii factori bifați nu au clasele, componenta sau grupa. Completează-i la factorii marcați ${atEvaluations(names)} sau debifează-i.`;
 
 export function incompleteFactors(issues: readonly { path: string }[]) {
   const bySheet = new Map<string, Set<string>>();

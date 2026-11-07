@@ -14,6 +14,7 @@ import {
   type SheetChange,
   sheetState,
   withField,
+  withIncluded,
 } from './risks-model';
 
 const ownFactor: ProposedFactor = {
@@ -137,7 +138,12 @@ function Harness({
       readOnly={readOnly}
       nameTaken={false}
       refused={new Set()}
+      libraryNames={[]}
+      packNames={[]}
       onSheet={(update) => setChange(update)}
+      onSetIncluded={(factors, included) =>
+        setChange((current) => withIncluded(current, factors, included))
+      }
       onToggleFactor={(factor, included) =>
         setFactor(factor.factor.key, (factors) =>
           withField(

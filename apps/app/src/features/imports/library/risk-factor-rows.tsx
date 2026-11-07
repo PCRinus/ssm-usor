@@ -1,7 +1,7 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { Info, Pencil, TriangleAlert } from 'lucide-react';
+import { Info, Pencil, TriangleAlert, Undo2 } from 'lucide-react';
 
 import { measureCountLabel } from '@/features/risk-evaluations/factor-list';
 import { componentLabels } from '@/features/risk-evaluations/risk-evaluation-schema';
@@ -19,6 +19,7 @@ import {
   lacksText,
   measureGap,
   missingText,
+  searchRange,
 } from './risks-model';
 
 function FlagChip({ text, informs }: { text: string; informs: boolean }) {
@@ -53,11 +54,27 @@ function planLine(state: FactorState) {
     .join(' · ');
 }
 
-function FactorRow({
+function Highlighted({ text, query }: { text: string; query: string }) {
+  const range = searchRange(text, query);
+  if (!range) return text;
+  return (
+    <>
+      {text.slice(0, range[0])}
+      <mark className="rounded-[3px] bg-warning px-px text-inherit">
+        {text.slice(range[0], range[1])}
+      </mark>
+      {text.slice(range[1])}
+    </>
+  );
+}
+
+export function FactorRow({
   state,
   sheetFile,
   readOnly,
   refused,
+  removed = false,
+  query = '',
   onToggle,
   onEdit,
   onSource,
@@ -66,6 +83,9 @@ function FactorRow({
   sheetFile: string;
   readOnly: boolean;
   refused: boolean;
+  // Listed under "Scoși de tine", where it can only be put back.
+  removed?: boolean;
+  query?: string;
   onToggle: (included: boolean) => void;
   onEdit: () => void;
   onSource: (source: LabelledSource) => void;
@@ -108,10 +128,10 @@ function FactorRow({
       )}
       <div className={cn('grid min-w-0 gap-1', muted && 'text-muted-foreground')}>
         <p className="text-sm wrap-anywhere" data-testid="risk-import-factor-description">
-          {state.description}
+          <Highlighted text={state.description} query={query} />
         </p>
         <p className="text-[13px] text-muted-foreground wrap-anywhere">
-          {state.group || 'Fără grupă'}
+          {state.group ? <Highlighted text={state.group} query={query} /> : 'Fără grupă'}
           {' · '}
           <span data-testid="risk-import-factor-classes">
             gravitate {state.gravityClass ?? '–'}, probabilitate {state.probabilityClass ?? '–'}
@@ -150,13 +170,28 @@ function FactorRow({
         )}
       </div>
       <RowActions className="col-span-3 sm:col-span-1 sm:flex-nowrap">
-        <SourceButton
-          outlined
-          label="Vezi în document"
-          sources={[source]}
-          onOpen={() => onSource(source)}
-        />
-        {!readOnly && (
+        {removed ? (
+          !readOnly && (
+            <Button
+              type="button"
+              variant="outline"
+              data-testid="risk-import-factor-restore"
+              aria-label={`Pune înapoi factorul ${state.description}`}
+              onClick={() => onToggle(true)}
+            >
+              <Undo2 aria-hidden="true" />
+              Pune înapoi
+            </Button>
+          )
+        ) : (
+          <SourceButton
+            outlined
+            label="Vezi în document"
+            sources={[source]}
+            onOpen={() => onSource(source)}
+          />
+        )}
+        {!readOnly && !removed && (
           <Button
             type="button"
             variant="outline"
@@ -178,6 +213,7 @@ export function RiskFactorRows({
   sheetFile,
   readOnly,
   refused,
+  query = '',
   onToggle,
   onEdit,
   onSource,
@@ -186,6 +222,7 @@ export function RiskFactorRows({
   sheetFile: string;
   readOnly: boolean;
   refused: ReadonlySet<string>;
+  query?: string;
   onToggle: (state: FactorState, included: boolean) => void;
   onEdit: (state: FactorState) => void;
   onSource: (source: LabelledSource) => void;
@@ -209,6 +246,7 @@ export function RiskFactorRows({
                 sheetFile={sheetFile}
                 readOnly={readOnly}
                 refused={refused.has(state.factor.key)}
+                query={query}
                 onToggle={(included) => onToggle(state, included)}
                 onEdit={() => onEdit(state)}
                 onSource={onSource}

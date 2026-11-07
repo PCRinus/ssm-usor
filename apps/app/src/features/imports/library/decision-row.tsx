@@ -189,6 +189,11 @@ export function RenameRow({
   validate,
   testIdPrefix,
   field,
+  testId,
+  display,
+  note,
+  actions,
+  suggestions = [],
   onCommit,
 }: {
   label: string;
@@ -201,6 +206,13 @@ export function RenameRow({
   validate: (value: string) => string | null;
   testIdPrefix: string;
   field: 'title' | 'name';
+  testId?: string;
+  // The sentence the value sits in while the row is closed.
+  display?: (value: ReactNode) => ReactNode;
+  note?: ReactNode;
+  // Before Redenumește, and kept while the field is open.
+  actions?: ReactNode;
+  suggestions?: readonly string[];
   onCommit: (value: string) => void;
 }) {
   const id = useId();
@@ -226,35 +238,48 @@ export function RenameRow({
     setRenaming(false);
   }
 
+  const renameActions = open ? (
+    <>
+      <Button type="button" variant="outline" onClick={cancel}>
+        Renunță
+      </Button>
+      <Button type="button" data-testid={`${testIdPrefix}-${field}-save`} onClick={commit}>
+        {field === 'title' ? 'Salvează titlul' : 'Salvează numele'}
+      </Button>
+    </>
+  ) : (
+    <Button
+      type="button"
+      variant="outline"
+      data-testid={`${testIdPrefix}-rename`}
+      onClick={() => {
+        setDraft(value);
+        setRenaming(true);
+      }}
+    >
+      <Pencil aria-hidden="true" />
+      Redenumește
+    </Button>
+  );
+  const valueText = (
+    <span className="wrap-anywhere" data-testid={`${testIdPrefix}-library-${field}`}>
+      {value}
+    </span>
+  );
+  const offered = open ? suggestions.filter((suggestion) => suggestion !== draft.trim()) : [];
+
   return (
     <DecisionRow
       tone={editable && shownError ? 'todo' : 'done'}
       label={open ? <Label htmlFor={`${id}-input`}>{label}</Label> : label}
+      testId={testId}
       actions={
-        editable &&
-        (open ? (
+        (actions || editable) && (
           <>
-            <Button type="button" variant="outline" onClick={cancel}>
-              Renunță
-            </Button>
-            <Button type="button" data-testid={`${testIdPrefix}-${field}-save`} onClick={commit}>
-              {field === 'title' ? 'Salvează titlul' : 'Salvează numele'}
-            </Button>
+            {actions}
+            {editable && renameActions}
           </>
-        ) : (
-          <Button
-            type="button"
-            variant="outline"
-            data-testid={`${testIdPrefix}-rename`}
-            onClick={() => {
-              setDraft(value);
-              setRenaming(true);
-            }}
-          >
-            <Pencil aria-hidden="true" />
-            Redenumește
-          </Button>
-        ))
+        )
       }
     >
       {open ? (
@@ -279,10 +304,31 @@ export function RenameRow({
             }
           }}
         />
+      ) : display ? (
+        <span>{display(valueText)}</span>
       ) : (
-        <span className="wrap-anywhere" data-testid={`${testIdPrefix}-library-${field}`}>
-          {value}
-        </span>
+        valueText
+      )}
+      {offered.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 text-[13px] text-muted-foreground">
+          <span>Sau alege:</span>
+          {offered.map((suggestion) => (
+            <Button
+              key={suggestion}
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 max-w-full rounded-full px-2.5 text-[13px]"
+              data-testid={`${testIdPrefix}-${field}-suggestion`}
+              onClick={() => {
+                setDraft(suggestion);
+                setDraftError(null);
+              }}
+            >
+              <span className="truncate">{suggestion}</span>
+            </Button>
+          ))}
+        </div>
       )}
       {shownError ? (
         <span
@@ -293,16 +339,18 @@ export function RenameRow({
           {shownError}
         </span>
       ) : (
-        written !== null &&
-        written !== value && (
-          <span
-            id={`${id}-written`}
-            className="truncate text-[13px] text-muted-foreground"
-            title={written}
-          >
-            Din document: {written}
-          </span>
-        )
+        <>
+          {written !== null && written !== value && (
+            <span
+              id={`${id}-written`}
+              className="truncate text-[13px] text-muted-foreground"
+              title={written}
+            >
+              Din document: {written}
+            </span>
+          )}
+          {!open && note}
+        </>
       )}
     </DecisionRow>
   );

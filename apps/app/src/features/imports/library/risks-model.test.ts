@@ -8,10 +8,12 @@ import {
   factorChangeFrom,
   factorState,
   incompleteFactors,
+  incompleteText,
   lacksText,
   leftSentence,
-  libraryOutcome,
+  type LibraryName,
   measureGap,
+  nameNote,
   needsCheck,
   pendingLine,
   pendingOf,
@@ -28,8 +30,13 @@ import {
   type SheetContext,
   sheetFlagText,
   sheetState,
+  similarCounts,
+  takenNameProblem,
+  takenNamesText,
   takenSheets,
   unplacedPlanRows,
+  usedOutcome,
+  withIncluded,
 } from './risks-model';
 
 const factor = (overrides: Partial<ProposedFactor> = {}): ProposedFactor => ({
@@ -230,17 +237,44 @@ describe('an unacceptable factor without a measure', () => {
 });
 
 describe('a sheet of the pack', () => {
-  it('adds a new sheet to the library and writes it on its post', () => {
+  it('adds a post’s new sheet to the library, with nothing to choose, and writes it on its post', () => {
     const state = sheetState(sheet(), undefined, context());
     expect(state.choice).toBe('add');
+    expect(state.options).toEqual([]);
     expect(state.createsEntry).toBe(true);
     expect(state.targets.map((target) => [target.post.name, target.choice])).toEqual([
       ['Bucătar', 'append'],
     ]);
     expect(pendingOf(state, false)).toEqual([]);
-    expect(libraryOutcome(state)).toBe(
-      'Intră în bibliotecă ca evaluare nouă, iar fișa postului primește factorii din pachet.'
-    );
+  });
+
+  it('adds a post’s sheet the reading left out of the library, as a proposal stored before', () => {
+    const state = sheetState(sheet({ choice: 'skip' }), undefined, context());
+    expect(state.choice).toBe('add');
+    expect(state.createsEntry).toBe(true);
+  });
+
+  it('keeps a client-level sheet out of the library, with nothing to choose, even like an entry', () => {
+    const visitors = sheet({
+      key: 'visitors',
+      kind: 'other',
+      name: 'Vizitatori',
+      posts: [],
+      existing: { factors: 0, choice: null },
+      choice: 'skip',
+    });
+    for (const each of [
+      visitors,
+      { ...visitors, status: 'similar' as const, match },
+      { ...visitors, status: 'identical' as const, match, choice: 'use_existing' as const },
+    ]) {
+      const state = sheetState(each, undefined, context());
+      expect(state.options).toEqual([]);
+      expect(state.createsEntry).toBe(false);
+      expect(state.usesLibrary).toBe(false);
+      expect(state.toClient).toBe(true);
+      expect(pendingOf(state, true)).toEqual([]);
+    }
   });
 
   it('asks about a similar sheet until a choice is picked, even the proposed one', () => {
@@ -248,10 +282,24 @@ describe('a sheet of the pack', () => {
     const before = sheetState(similar, undefined, context());
     expect(before.choice).toBe('add_new');
     expect(pendingOf(before, false)).toEqual(['library']);
+    expect(before.options).toEqual(['use_existing', 'add_new']);
     const after = sheetState(similar, { library: 'use_existing' }, context());
     expect(pendingOf(after, false)).toEqual([]);
     expect(after.usesLibrary).toBe(true);
     expect(after.createsEntry).toBe(false);
+    expect(usedOutcome(after)).toBe(
+      'Evaluarea ta rămâne cum e; fișa postului primește factorii din pachet, legați de ea.'
+    );
+    expect(sheetState(similar, { library: 'add_new' }, context()).createsEntry).toBe(true);
+    expect(similarCounts(match)).toBe('1 factor la fel și 1 doar în pachet.');
+    expect(
+      similarCounts({
+        ...match,
+        pairs: Array(38).fill(match.pairs[0]),
+        onlyInPack: Array(5).fill('x'),
+        onlyInLibrary: ['f9', 'f10'],
+      })
+    ).toBe('38 de factori la fel, 5 doar în pachet și 2 doar în evaluarea ta.');
   });
 
   it('keeps a post that already has factors as it is, unless the member says otherwise', () => {
@@ -262,9 +310,7 @@ describe('a sheet of the pack', () => {
     const kept = sheetState(chambermaid, undefined, context([chambermaid]));
     expect(kept.targets[0]).toMatchObject({ existing: 18, choice: 'keep', picked: false });
     expect(kept.toClient).toBe(false);
-    expect(libraryOutcome(kept)).toBe(
-      'Intră în bibliotecă ca evaluare nouă, iar fișa postului rămâne cum e.'
-    );
+    expect(kept.createsEntry).toBe(true);
     const appended = sheetState(
       chambermaid,
       { postChoices: { 'position-2': 'append' } },
@@ -336,7 +382,72 @@ describe('a sheet of the pack', () => {
     const state = sheetState(sheet(), undefined, context());
     expect(pendingOf(state, true)).toEqual(['name']);
     expect(pendingLine(['posts', 'name'])).toBe('Mai ai 2 lucruri de făcut');
-    expect(pendingOf(sheetState(sheet(), { library: 'skip' }, context()), true)).toEqual([]);
+    const removed = withIncluded({}, state.factors, false);
+    expect(pendingOf(sheetState(sheet(), removed, context()), true)).toEqual([]);
+  });
+});
+
+describe('the name a new entry takes', () => {
+  const entries: LibraryName[] = [
+    { id: 'p1', name: 'Bucătar', archived: false },
+    { id: 'p2', name: 'Ospătar', archived: true },
+  ];
+
+  it('says where the proposed name comes from', () => {
+    expect(
+      nameNote(sheetState(sheet({ nameFrom: 'post' }), undefined, context()), entries)
+    ).toEqual({ text: 'E numele postului din document.', entry: null });
+    const shared = sheet({
+      nameFrom: 'heading',
+      libraryName: 'Personal de bucătărie',
+      posts: [
+        { name: 'Bucătar', existingFactors: 0, choice: null },
+        { name: 'Ajutor de bucătar', existingFactors: 0, choice: null },
+      ],
+    });
+    expect(nameNote(sheetState(shared, undefined, context()), entries)?.text).toBe(
+      'E numele din titlul fișei, care e pentru posturile Bucătar și Ajutor de bucătar.'
+    );
+    expect(nameNote(sheetState(sheet(), undefined, context()), entries)).toBeNull();
+  });
+
+  it('says why the client’s name was added, with the entry that holds the name, archived or not', () => {
+    const taken = sheet({ libraryName: 'Bucătar (Hanul Verde)', takenName: 'Bucătar' });
+    expect(nameNote(sheetState(taken, undefined, context()), entries)).toEqual({
+      text: 'Ai deja o evaluare numită „Bucătar”, cu alți factori, așa că am adăugat numele clientului.',
+      entry: entries[0],
+    });
+    const archived = sheet({ libraryName: 'Ospătar (Hanul Verde)', takenName: 'Ospătar' });
+    expect(nameNote(sheetState(archived, undefined, context()), entries)?.text).toBe(
+      'Ai deja o evaluare arhivată numită „Ospătar”, cu alți factori, așa că am adăugat numele clientului.'
+    );
+    const similar = sheet({
+      libraryName: 'Bucătar (Hanul Verde)',
+      takenName: 'Bucătar',
+      status: 'similar',
+      match,
+      choice: 'add_new',
+    });
+    expect(nameNote(sheetState(similar, { library: 'add_new' }, context()), entries)).toEqual({
+      text: 'Numele „Bucătar” e al evaluării tale asemănătoare, așa că am adăugat numele clientului.',
+      entry: null,
+    });
+    expect(
+      nameNote(sheetState(taken, { libraryName: 'Bucătărie caldă' }, context()), entries)?.text
+    ).toBe('Numele l-ai ales tu; propunerea era „Bucătar (Hanul Verde)”.');
+  });
+
+  it('refuses a name the library or another new entry of the pack has', () => {
+    expect(takenNameProblem('bucatar', entries, [])).toBe(
+      'Biblioteca are deja o evaluare cu acest nume. Alege alt nume.'
+    );
+    expect(takenNameProblem('Ospătar', entries, [])).toBe(
+      'Biblioteca are deja o evaluare arhivată cu acest nume. Alege alt nume.'
+    );
+    expect(takenNameProblem('Recepție', entries, ['Recepție'])).toBe(
+      'Altă evaluare din pachet are deja acest nume. Alege alt nume.'
+    );
+    expect(takenNameProblem('Bucătărie caldă', entries, ['Recepție'])).toBeNull();
   });
 });
 
@@ -434,7 +545,16 @@ describe('the plan rows placed on a sheet', () => {
 });
 
 describe('the confirm bar and the header', () => {
-  it('says what confirming adds to the library and writes on the client', () => {
+  const visitors = sheet({
+    key: 'visitors',
+    kind: 'other',
+    name: 'Vizitatori',
+    posts: [],
+    existing: { factors: 0, choice: null },
+    choice: 'skip',
+  });
+
+  it('names what confirming adds to the library and counts what it writes on the client', () => {
     const states = [
       sheetState(sheet(), undefined, context()),
       sheetState(
@@ -442,26 +562,59 @@ describe('the confirm bar and the header', () => {
         undefined,
         context()
       ),
-      sheetState(
-        sheet({
-          key: 'visitors',
-          kind: 'other',
-          name: 'Vizitatori',
-          posts: [],
-          existing: { factors: 0, choice: null },
-          choice: 'skip',
-        }),
-        undefined,
-        context()
-      ),
+      sheetState(visitors, undefined, context()),
     ];
     const summary = riskSummary(states);
-    expect(summary).toEqual({ created: 1, used: 1, sheets: 3, factors: 6 });
+    expect(summary).toEqual({
+      created: [{ name: 'Bucătar', factors: 2 }],
+      used: ['Bucătar'],
+      sheets: 3,
+      factors: 6,
+      post: null,
+    });
     expect(confirmSentence(summary)).toBe(
-      'Când confirmi, adăugăm o evaluare în bibliotecă, folosim una pe care o ai deja și scriem 6 factori pe 3 fișe ale clientului.'
+      'Când confirmi, adăugăm „Bucătar” în bibliotecă, cu 2 factori, folosim „Bucătar” din biblioteca ta, și scriem 6 factori pe 3 fișe ale clientului.'
     );
-    expect(confirmSentence({ created: 0, used: 0, sheets: 0, factors: 0 })).toBe(
+    expect(confirmSentence({ created: [], used: [], sheets: 0, factors: 0, post: null })).toBe(
       'Nu adăugăm nimic în bibliotecă și nu scriem nimic pe fișele clientului.'
+    );
+    expect(
+      confirmSentence({
+        created: ['A', 'B', 'C', 'D'].map((name) => ({ name, factors: 1 })),
+        used: [],
+        sheets: 0,
+        factors: 0,
+        post: null,
+      })
+    ).toBe(
+      'Când confirmi, adăugăm 4 evaluări în bibliotecă, fără să scriem factori pe fișele clientului.'
+    );
+  });
+
+  it('names the evaluation and its post, one factor fewer once one is unticked', () => {
+    const one = sheet();
+    const all = sheetState(one, undefined, context());
+    expect(confirmSentence(riskSummary([all]))).toBe(
+      'Când confirmi, adăugăm „Bucătar” în bibliotecă, cu 2 factori, și îi scriem pe fișa postului „Bucătar”.'
+    );
+    const unticked = sheetState(one, withIncluded({}, [all.factors[0]!], false), context());
+    expect(confirmSentence(riskSummary([unticked]))).toBe(
+      'Când confirmi, adăugăm „Bucătar” în bibliotecă, cu un factor, și îi scriem pe fișa postului „Bucătar”.'
+    );
+    const renamed = sheetState(one, { libraryName: 'Bucătărie caldă' }, context());
+    expect(
+      confirmSentence(riskSummary([renamed, sheetState(visitors, undefined, context())]))
+    ).toBe(
+      'Când confirmi, adăugăm „Bucătărie caldă” în bibliotecă, cu 2 factori, și scriem 4 factori pe 2 fișe ale clientului.'
+    );
+  });
+
+  it('names the evaluations a refused confirm asks to change', () => {
+    expect(takenNamesText(['Contabil'])).toBe(
+      'Biblioteca are deja o evaluare cu numele ales. Schimbă numele marcat la evaluarea „Contabil”.'
+    );
+    expect(incompleteText(['Bucătar', 'Ospătar'])).toBe(
+      'Unii factori bifați nu au clasele, componenta sau grupa. Completează-i la factorii marcați la evaluările „Bucătar” și „Ospătar” sau debifează-i.'
     );
   });
 
@@ -484,12 +637,12 @@ describe('the changes and the refusals', () => {
     const changes: { sheets: Record<string, SheetChange> } = {
       sheets: {
         cook: { factors: { 'cook.1': {} }, postChoices: {} },
-        chambermaid: { library: 'skip', factors: { 'chambermaid.1': { included: false } } },
+        chambermaid: { library: 'add_new', factors: { 'chambermaid.1': { included: false } } },
       },
     };
     expect(cleanRiskChanges(changes)).toEqual({
       sheets: {
-        chambermaid: { library: 'skip', factors: { 'chambermaid.1': { included: false } } },
+        chambermaid: { library: 'add_new', factors: { 'chambermaid.1': { included: false } } },
       },
     });
   });
@@ -519,6 +672,7 @@ describe('the risk evaluations task on the hub', () => {
     credits: 15,
     postReferences: {},
     existingFactors: null,
+    libraryNames: [],
     proposal: null,
     ...overrides,
   });
