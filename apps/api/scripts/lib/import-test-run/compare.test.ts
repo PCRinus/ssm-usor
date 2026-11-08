@@ -147,7 +147,9 @@ describe('a client import', () => {
       'missed jobPositions.name',
       'wrong client.legal_representative_name',
     ]);
-    expect(comparison.sections.client).toMatchObject({ found: 3, missed: 1, wrong: 1 });
+    // The posts have no category, so they count as execution personnel, as confirming writes them,
+    // and both sides give that category the law's longest interval.
+    expect(comparison.sections.client).toMatchObject({ found: 4, missed: 1, wrong: 1 });
   });
 
   it('finds every value of a reading that gives back the confirmed proposal unchanged', () => {
