@@ -2043,6 +2043,11 @@ describe('the training cards', () => {
 
     const su = await screen.findByTestId('review-training-su');
     expect(su.textContent).toContain('Preluată din programul de instruire SSM');
+    expect(
+      within(block('fireSafety.trainingFirstMonth')).getByRole('button', {
+        name: 'Vezi în document',
+      })
+    ).toBeTruthy();
     await userEvent.selectOptions(within(su).getByTestId('review-su-first-month'), '9');
     await waitFor(() => expect(saves).toBe(1));
     expect(savedChanges(0).changes.fields).toEqual({

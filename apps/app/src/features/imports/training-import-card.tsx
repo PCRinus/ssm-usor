@@ -151,7 +151,7 @@ function sourceLine(field: TrainingField, context: FieldContext, label: string):
   if (state.option !== null && !state.edited) {
     const inferred = state.options[state.option]?.inferred === 'ssm_training_schedule';
     return inferred ? (
-      <SourceLine>
+      <SourceLine action={button}>
         Preluată din programul de instruire SSM, fiindcă documentele SU nu o dau. Poți s-o schimbi.
       </SourceLine>
     ) : (
