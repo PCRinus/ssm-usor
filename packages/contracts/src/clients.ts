@@ -200,6 +200,9 @@ export const companyLookupSchema = z.object({
   countyCode: countyCodeSchema.nullable(),
   locality: z.string().nullable(),
   addressLine: z.string().nullable(),
+  phone: z.string().nullable(),
+  // Without spaces; `formatIban` prints it.
+  iban: z.string().nullable(),
   registrationStatus: z.string().nullable(),
   inactive: z.boolean(),
 });

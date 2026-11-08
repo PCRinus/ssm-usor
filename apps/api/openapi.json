@@ -1694,6 +1694,14 @@
                 "type": "string",
                 "nullable": true
               },
+              "phone": {
+                "type": "string",
+                "nullable": true
+              },
+              "iban": {
+                "type": "string",
+                "nullable": true
+              },
               "registrationStatus": {
                 "type": "string",
                 "nullable": true
@@ -1711,6 +1719,8 @@
               "countyCode",
               "locality",
               "addressLine",
+              "phone",
+              "iban",
               "registrationStatus",
               "inactive"
             ]

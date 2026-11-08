@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { isValidCuiInput, normalizeCui } from '@ssm-usor/contracts';
+import { formatIban, isValidCuiInput, normalizeCui } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card } from '@ssm-usor/ui/components/card';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
@@ -149,6 +149,9 @@ function CompanyDetailsForm({
       form.setValue('countyCode', company.countyCode ?? '', fill);
       form.setValue('locality', company.locality ?? '', fill);
       form.setValue('addressLine', company.addressLine ?? '', fill);
+      // ANAF rarely holds them, so an empty answer keeps what the owner wrote.
+      if (company.phone) form.setValue('phone', company.phone, fill);
+      if (company.iban) form.setValue('iban', formatIban(company.iban), fill);
       setLookup({
         status: 'done',
         inactive: company.inactive,
