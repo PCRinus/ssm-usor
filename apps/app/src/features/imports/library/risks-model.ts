@@ -796,7 +796,7 @@ export const takenNamesText = (names: readonly string[]) =>
   `Biblioteca are deja o evaluare cu numele ales. Schimbă ${names.length === 1 ? 'numele marcat' : 'numele marcate'} ${atEvaluations(names)}.`;
 
 export const incompleteText = (names: readonly string[]) =>
-  `Unii factori bifați nu au clasele, componenta sau grupa. Completează-i la factorii marcați ${atEvaluations(names)} sau debifează-i.`;
+  `Unii factori incluși nu au clasele, componenta sau grupa. Completează-i la factorii marcați ${atEvaluations(names)} sau oprește-i.`;
 
 export function incompleteFactors(issues: readonly { path: string }[]) {
   const bySheet = new Map<string, Set<string>>();

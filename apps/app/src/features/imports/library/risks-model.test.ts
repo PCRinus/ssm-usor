@@ -663,7 +663,7 @@ describe('the confirm bar and the header', () => {
       'Biblioteca are deja o evaluare cu numele ales. Schimbă numele marcat la evaluarea „Contabil”.'
     );
     expect(incompleteText(['Bucătar', 'Ospătar'])).toBe(
-      'Unii factori bifați nu au clasele, componenta sau grupa. Completează-i la factorii marcați la evaluările „Bucătar” și „Ospătar” sau debifează-i.'
+      'Unii factori incluși nu au clasele, componenta sau grupa. Completează-i la factorii marcați la evaluările „Bucătar” și „Ospătar” sau oprește-i.'
     );
   });
 
