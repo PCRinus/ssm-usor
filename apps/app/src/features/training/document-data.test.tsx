@@ -355,6 +355,11 @@ describe('client document data', () => {
     expect((await screen.findByTestId('details-day-to-error')).textContent).toBe(
       'Ultima zi vine după prima. Scrie o zi între 12 și 31.'
     );
+    const described = [
+      screen.getByRole('group', { name: 'Zilele lunii' }),
+      screen.getByTestId('details-day-from'),
+    ].map((element) => element.getAttribute('aria-describedby'));
+    expect(described).toEqual([null, null]);
 
     await user.clear(screen.getByTestId('details-day-from'));
     await user.type(screen.getByTestId('details-day-from'), '40');

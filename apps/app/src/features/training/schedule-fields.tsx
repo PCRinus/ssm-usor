@@ -340,7 +340,10 @@ export function TrainingScheduleFields({
           {notes.firstMonth}
         </div>
 
-        <fieldset className="grid gap-2" aria-describedby={`${ids.days}-hint`}>
+        <fieldset
+          className="grid gap-2"
+          aria-describedby={controls.days || dayProblem ? undefined : `${ids.days}-hint`}
+        >
           <legend className={cn(fieldLabel, 'mb-3')}>Zilele lunii</legend>
           {controls.days ?? (
             <>
@@ -363,7 +366,13 @@ export function TrainingScheduleFields({
                       disabled={disabled}
                       value={value}
                       aria-invalid={Boolean(errors[key])}
-                      aria-describedby={errors[key] ? `${ids[key]}-error` : `${ids.days}-hint`}
+                      aria-describedby={
+                        errors[key]
+                          ? `${ids[key]}-error`
+                          : dayProblem
+                            ? undefined
+                            : `${ids.days}-hint`
+                      }
                       onChange={(event) => onChange(event.target.value)}
                     />
                   </div>
