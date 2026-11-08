@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 export function PublicFrame({
   testId,
+  progress,
   title,
   description,
   footer,
@@ -10,6 +11,7 @@ export function PublicFrame({
   children,
 }: {
   testId: string;
+  progress?: ReactNode;
   title: ReactNode;
   description?: ReactNode;
   footer?: ReactNode;
@@ -31,6 +33,7 @@ export function PublicFrame({
           className="h-auto w-48"
         />
         <Card className="w-full gap-7 py-8">
+          {progress && <div className="px-6 sm:px-8">{progress}</div>}
           <CardHeader className="gap-2 text-center sm:px-8">
             <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
             {description && (
