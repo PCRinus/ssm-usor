@@ -11,6 +11,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
+import { inTurn } from '@/lib/in-turn';
 
 import {
   documentDetailsFormSchema,
@@ -37,8 +38,8 @@ export function useDocumentDetails(clientId: string, userId: string) {
 }
 
 // The route replaces every field, and two cards each edit their own. A card sends its fields
-// over what is saved now, not over what was saved when it mounted, so saving one card never
-// takes back what the other saved in the meantime.
+// over what is saved now, not over what was saved when it mounted, and waits for a save of the
+// other card still on its way, so saving one card never takes back what the other saved.
 export function useDocumentDetailsForm({
   saved,
   client,
@@ -73,12 +74,17 @@ export function useDocumentDetailsForm({
 
   const onSubmit = form.handleSubmit(async (values) => {
     const own = Object.fromEntries(fields.map((field) => [field, values[field]]));
-    const latest =
-      queryClient.getQueryData<ClientDocumentDetailsResponse>(queryKey)?.documentDetails;
-    const data = toDocumentDetailsRequest({ ...toDocumentDetailsForm(latest ?? saved), ...own });
     try {
-      const response = await update.mutateAsync({ clientId: client.id, data });
-      queryClient.setQueryData(queryKey, response);
+      await inTurn(queryKey.join('/'), async () => {
+        const latest =
+          queryClient.getQueryData<ClientDocumentDetailsResponse>(queryKey)?.documentDetails;
+        const data = toDocumentDetailsRequest({
+          ...toDocumentDetailsForm(latest ?? saved),
+          ...own,
+        });
+        const response = await update.mutateAsync({ clientId: client.id, data });
+        queryClient.setQueryData(queryKey, response);
+      });
       // The client itself carries the representative's name too.
       await Promise.all([
         queryClient.invalidateQueries({ queryKey }),
