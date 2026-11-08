@@ -158,19 +158,23 @@ export function sectionDescription(
       }${others(['responsiblePersons'], 'persoane')}`;
     }
     case 'training': {
-      const parts = (
-        [
-          ['trainingSchedule.workerTrainingIntervalMonths', 'execuție'],
-          ['trainingSchedule.administrativeTrainingIntervalMonths', 'tehnico-administrativ'],
-        ] as const
-      ).flatMap(([path, name]) => {
-        const value = valueInForce(states[path]);
-        return value === null || value === undefined
-          ? []
-          : [`${formatFieldValue(path, value)} pentru ${name}`];
-      });
-      return parts.length > 0
-        ? `Periodic ${parts.join(' și ')}.${choiceText}`
+      const schedule = (label: string, root: 'trainingSchedule' | 'fireSafety') => {
+        const parts = (
+          [
+            [`${root}.workerTrainingIntervalMonths`, 'execuție'],
+            [`${root}.administrativeTrainingIntervalMonths`, 'tehnico-administrativ'],
+          ] as const
+        ).flatMap(([path, name]) => {
+          const value = valueInForce(states[path]);
+          return value === null || value === undefined
+            ? []
+            : [`${formatFieldValue(path, value)} pentru ${name}`];
+        });
+        return parts.length > 0 ? [`${label} ${parts.join(' și ')}.`] : [];
+      };
+      const schedules = [...schedule('SSM', 'trainingSchedule'), ...schedule('SU', 'fireSafety')];
+      return schedules.length > 0
+        ? `${schedules.join(' ')}${choiceText}`
         : `Programul instruirii periodice.${choiceText}`;
     }
     case 'fire-safety': {
