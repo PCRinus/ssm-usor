@@ -1,4 +1,8 @@
-import { fireSafetyStartingValues, type FireSmokingPolicy } from '@ssm-usor/contracts';
+import {
+  fireSafetyStartingValues,
+  type FireSmokingPolicy,
+  type StaffCategory,
+} from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import type {
@@ -7,7 +11,8 @@ import type {
   UpdateClientFireSafetyRequest,
 } from '@/api/generated/api';
 
-import { monthNames } from './document-details-schema';
+import { dayOrderProblem, monthNames } from './document-details-schema';
+import { type CategoryPosts, intervalChoices, intervalFieldId } from './schedule-rules';
 
 export type FireSafety = ClientFireSafetyResponse['fireSafety'];
 type DocumentDetails = ClientDocumentDetailsResponse['documentDetails'];
@@ -16,11 +21,6 @@ export const fireSmokingChoices: Record<FireSmokingPolicy, string> = {
   forbidden_everywhere: 'Interzis în toată unitatea',
   designated_places: 'Permis numai în locuri amenajate',
 };
-
-export const fireHourChoices = [2, 3, 4, 5, 6, 7, 8].map((hours) => ({
-  value: String(hours),
-  label: `${hours} ore`,
-}));
 
 const intervalNames: Record<number, string> = {
   1: 'Lunar',
@@ -31,11 +31,6 @@ const intervalNames: Record<number, string> = {
 export const fireIntervalChoices = [1, 2, 3, 4, 5, 6].map((months) => ({
   value: String(months),
   label: intervalNames[months] ?? `La ${months} luni`,
-}));
-
-export const monthChoices = monthNames.map((label, index) => ({
-  value: String(index + 1),
-  label,
 }));
 
 export const maxWasteKinds = 12;
@@ -68,31 +63,35 @@ const day = z
   .refine(
     (value) =>
       value === '' || (/^[0-9]+$/.test(value) && Number(value) >= 1 && Number(value) <= 31),
-    'Introdu o zi între 1 și 31.'
+    'Scrie o zi între 1 și 31.'
   );
+
+const fireHours = ['2', '3', '4', '5', '6', '7', '8'];
+const fireIntervals = intervalChoices('su', 'execution').map(String);
 
 // Form values are strings so inputs stay controlled. Everything is optional here, as on the
 // occupational safety card: generating the fire-safety set is what asks for it.
-export const fireSafetyFormSchema = z
+export const fireScheduleFormSchema = z
   .object({
-    periodicTrainingHours: choice(
-      fireHourChoices.map(({ value }) => value),
-      'Alege o durată din listă.'
-    ),
-    administrativeTrainingIntervalMonths: choice(
-      fireIntervalChoices.map(({ value }) => value),
-      'Alege un interval din listă.'
-    ),
-    workerTrainingIntervalMonths: choice(
-      fireIntervalChoices.map(({ value }) => value),
-      'Alege un interval din listă.'
-    ),
+    periodicTrainingHours: choice(fireHours, 'Alege o durată.'),
+    administrativeTrainingIntervalMonths: choice(fireIntervals, 'Alege un interval.'),
+    workerTrainingIntervalMonths: choice(fireIntervals, 'Alege un interval.'),
     trainingFirstMonth: choice(
-      monthChoices.map(({ value }) => value),
+      monthNames.map((_, index) => String(index + 1)),
       'Alege o lună din listă.'
     ),
     trainingDayFrom: day,
     trainingDayTo: day,
+  })
+  .superRefine((values, context) => {
+    const problem = dayOrderProblem(values.trainingDayFrom, values.trainingDayTo);
+    if (problem) context.addIssue({ code: 'custom', path: ['trainingDayTo'], message: problem });
+  });
+
+export type FireScheduleFormValues = z.infer<typeof fireScheduleFormSchema>;
+
+export const fireRulesFormSchema = z
+  .object({
     smokingPolicy: choice(Object.keys(fireSmokingChoices), 'Alege o regulă din listă.'),
     smokingPlace: z.string(),
     wasteKinds: z.array(z.string()),
@@ -117,17 +116,6 @@ export const fireSafetyFormSchema = z
     hasThirdParties: z.boolean(),
   })
   .superRefine((values, context) => {
-    if (
-      values.trainingDayFrom !== '' &&
-      values.trainingDayTo !== '' &&
-      Number(values.trainingDayFrom) > Number(values.trainingDayTo)
-    ) {
-      context.addIssue({
-        code: 'custom',
-        path: ['trainingDayTo'],
-        message: 'Ultima zi nu poate fi înaintea primei zile.',
-      });
-    }
     const place = values.smokingPlace.trim();
     if (values.smokingPolicy === 'designated_places' && place !== '') {
       if (place.length < 2) {
@@ -149,60 +137,111 @@ export const fireSafetyFormSchema = z
     if (problem) context.addIssue({ code: 'custom', path: ['wasteDraft'], message: problem });
   });
 
-export type FireSafetyFormValues = z.infer<typeof fireSafetyFormSchema>;
+export type FireRulesFormValues = z.infer<typeof fireRulesFormSchema>;
 
 const text = (value: number | string | null) => (value === null ? '' : String(value));
 
-// Before the first save the card opens on the law's minimum, the sample's intervals and the
-// occupational safety calendar, which belongs to the client, not to a law (ADR 018).
-export function startingFireSafety(
+const scheduleFields = [
+  'periodicTrainingHours',
+  'administrativeTrainingIntervalMonths',
+  'workerTrainingIntervalMonths',
+  'trainingFirstMonth',
+  'trainingDayFrom',
+  'trainingDayTo',
+] as const;
+
+/**
+ * While nothing of the schedule is saved, the card opens on the law's minimum duration, its
+ * longest interval and the occupational safety calendar, which belongs to the client, not to a
+ * law (ADR 018, ADR 039). A row the smoking card saved first still has no schedule.
+ */
+export function startingFireSchedule(
   saved: FireSafety,
-  exists: boolean,
   occupational: Pick<
     DocumentDetails,
     'trainingFirstMonth' | 'trainingDayFrom' | 'trainingDayTo'
   > | null
-): FireSafety {
-  if (exists) return saved;
+): { start: FireSafety; starting: boolean } {
+  if (scheduleFields.some((field) => saved[field] !== null))
+    return { start: saved, starting: false };
   return {
-    ...saved,
-    ...fireSafetyStartingValues,
-    trainingFirstMonth: occupational?.trainingFirstMonth ?? null,
-    trainingDayFrom: occupational?.trainingDayFrom ?? null,
-    trainingDayTo: occupational?.trainingDayTo ?? null,
+    start: {
+      ...saved,
+      ...fireSafetyStartingValues,
+      trainingFirstMonth: occupational?.trainingFirstMonth ?? null,
+      trainingDayFrom: occupational?.trainingDayFrom ?? null,
+      trainingDayTo: occupational?.trainingDayTo ?? null,
+    },
+    starting: true,
   };
 }
 
-export function toFireSafetyForm(start: FireSafety): FireSafetyFormValues {
+export const fireIntervalField = {
+  execution: 'workerTrainingIntervalMonths',
+  technical_administrative: 'administrativeTrainingIntervalMonths',
+} as const satisfies Record<StaffCategory, keyof FireScheduleFormValues>;
+
+export function toFireScheduleForm(start: FireSafety): FireScheduleFormValues {
+  return Object.fromEntries(
+    scheduleFields.map((field) => [field, text(start[field])])
+  ) as FireScheduleFormValues;
+}
+
+export function toFireRulesForm(saved: FireSafety): FireRulesFormValues {
   return {
-    periodicTrainingHours: text(start.periodicTrainingHours),
-    administrativeTrainingIntervalMonths: text(start.administrativeTrainingIntervalMonths),
-    workerTrainingIntervalMonths: text(start.workerTrainingIntervalMonths),
-    trainingFirstMonth: text(start.trainingFirstMonth),
-    trainingDayFrom: text(start.trainingDayFrom),
-    trainingDayTo: text(start.trainingDayTo),
-    smokingPolicy: start.smokingPolicy ?? '',
-    smokingPlace: start.smokingPlace ?? '',
-    wasteKinds: start.wasteKinds,
+    smokingPolicy: saved.smokingPolicy ?? '',
+    smokingPlace: saved.smokingPlace ?? '',
+    wasteKinds: saved.wasteKinds,
     wasteDraft: '',
-    wasteContractor: start.wasteContractor ?? '',
-    wasteCollectors: start.wasteCollectors ?? '',
-    hasThirdParties: start.hasThirdParties,
+    wasteContractor: saved.wasteContractor ?? '',
+    wasteCollectors: saved.wasteCollectors ?? '',
+    hasThirdParties: saved.hasThirdParties,
   };
 }
 
 const numberOrNull = (value: string) => (value ? Number(value) : null);
 
-// The route replaces every field, so an emptied input clears what was saved.
-export function toFireSafetyRequest(values: FireSafetyFormValues): UpdateClientFireSafetyRequest {
-  const draft = values.wasteDraft.trim();
+export function fireSafetyRequest(saved: FireSafety): UpdateClientFireSafetyRequest {
+  return {
+    periodicTrainingHours: saved.periodicTrainingHours,
+    administrativeTrainingIntervalMonths: saved.administrativeTrainingIntervalMonths,
+    workerTrainingIntervalMonths: saved.workerTrainingIntervalMonths,
+    trainingFirstMonth: saved.trainingFirstMonth,
+    trainingDayFrom: saved.trainingDayFrom,
+    trainingDayTo: saved.trainingDayTo,
+    smokingPolicy: saved.smokingPolicy,
+    smokingPlace: saved.smokingPlace,
+    wasteKinds: saved.wasteKinds,
+    wasteContractor: saved.wasteContractor,
+    wasteCollectors: saved.wasteCollectors,
+    hasThirdParties: saved.hasThirdParties,
+  };
+}
+
+// An interval saved for a category without posts is sent back as it was (ADR 039).
+export function fireScheduleChange(
+  values: FireScheduleFormValues,
+  categories: readonly CategoryPosts[]
+): Partial<UpdateClientFireSafetyRequest> {
   return {
     periodicTrainingHours: numberOrNull(values.periodicTrainingHours),
-    administrativeTrainingIntervalMonths: numberOrNull(values.administrativeTrainingIntervalMonths),
-    workerTrainingIntervalMonths: numberOrNull(values.workerTrainingIntervalMonths),
     trainingFirstMonth: numberOrNull(values.trainingFirstMonth),
     trainingDayFrom: numberOrNull(values.trainingDayFrom),
     trainingDayTo: numberOrNull(values.trainingDayTo),
+    ...Object.fromEntries(
+      categories.map(({ category }) => [
+        fireIntervalField[category],
+        numberOrNull(values[fireIntervalField[category]]),
+      ])
+    ),
+  };
+}
+
+export function fireRulesChange(
+  values: FireRulesFormValues
+): Partial<UpdateClientFireSafetyRequest> {
+  const draft = values.wasteDraft.trim();
+  return {
     smokingPolicy: (values.smokingPolicy || null) as FireSmokingPolicy | null,
     // The place stays in the form while another rule is picked, in case the pick is undone.
     smokingPlace:
@@ -214,50 +253,39 @@ export function toFireSafetyRequest(values: FireSafetyFormValues): UpdateClientF
   };
 }
 
+export const fireCategoryInterval = (saved: FireSafety, category: StaffCategory) =>
+  saved[fireIntervalField[category]];
+
 export type FireSchedule = {
   periodicTrainingHours: number;
-  administrativeTrainingIntervalMonths: number;
-  workerTrainingIntervalMonths: number;
   trainingFirstMonth: number;
   trainingDayFrom: number;
   trainingDayTo: number;
 };
 
-export function completeFireSchedule(saved: FireSafety): FireSchedule | null {
-  const {
-    periodicTrainingHours,
-    administrativeTrainingIntervalMonths,
-    workerTrainingIntervalMonths,
-    trainingFirstMonth,
-    trainingDayFrom,
-    trainingDayTo,
-  } = saved;
+export function completeFireSchedule(
+  saved: FireSafety,
+  categories: readonly CategoryPosts[]
+): FireSchedule | null {
+  const { periodicTrainingHours, trainingFirstMonth, trainingDayFrom, trainingDayTo } = saved;
   if (
     periodicTrainingHours === null ||
-    administrativeTrainingIntervalMonths === null ||
-    workerTrainingIntervalMonths === null ||
     trainingFirstMonth === null ||
     trainingDayFrom === null ||
-    trainingDayTo === null
+    trainingDayTo === null ||
+    categories.some(({ category }) => fireCategoryInterval(saved, category) === null)
   ) {
     return null;
   }
-  return {
-    periodicTrainingHours,
-    administrativeTrainingIntervalMonths,
-    workerTrainingIntervalMonths,
-    trainingFirstMonth,
-    trainingDayFrom,
-    trainingDayTo,
-  };
+  return { periodicTrainingHours, trainingFirstMonth, trainingDayFrom, trainingDayTo };
 }
 
-export function firstFireScheduleField(saved: FireSafety) {
-  if (saved.periodicTrainingHours === null) return 'fire-training-hours';
-  if (saved.administrativeTrainingIntervalMonths === null) return 'fire-administrative-interval';
-  if (saved.workerTrainingIntervalMonths === null) return 'fire-worker-interval';
+export function firstFireScheduleField(saved: FireSafety, categories: readonly CategoryPosts[]) {
+  const unset = categories.find(({ category }) => fireCategoryInterval(saved, category) === null);
+  if (unset) return intervalFieldId('fire', unset.category);
   if (saved.trainingFirstMonth === null) return 'fire-first-month';
   if (saved.trainingDayFrom === null) return 'fire-day-from';
   if (saved.trainingDayTo === null) return 'fire-day-to';
-  return 'fire-training-hours';
+  if (saved.periodicTrainingHours === null) return 'fire-training-duration';
+  return categories[0] ? intervalFieldId('fire', categories[0].category) : 'fire-first-month';
 }
