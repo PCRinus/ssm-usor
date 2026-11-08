@@ -35,6 +35,7 @@ import type { JobPosition } from '@/features/job-positions/job-position-schema';
 import { useJobPositionOptions } from '@/features/job-positions/use-job-position-options';
 import { type FireTrainingFocus, useFocusRequest } from '@/features/missing-data/focus';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
+import { inTurn } from '@/lib/in-turn';
 
 import {
   completeFireSchedule,
@@ -142,7 +143,7 @@ export function FireSafetySection({
 }
 
 // The route replaces every field and two cards edit the row, so each sends its own fields over
-// what is saved when it saves.
+// what is saved when its turn to save comes.
 function useFireSafetySave<Values extends FieldValues>({
   form,
   saved,
@@ -169,13 +170,15 @@ function useFireSafetySave<Values extends FieldValues>({
   const queryKey = [...getGetClientFireSafetyQueryKey(clientId), userId];
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      // `saved` is from the last render, and the other card may have saved since.
-      const latest = queryClient.getQueryData<ClientFireSafetyResponse>(queryKey)?.fireSafety;
-      const response = await update.mutateAsync({
-        clientId,
-        data: { ...fireSafetyRequest(latest ?? saved), ...change(values) },
+      await inTurn(queryKey.join('/'), async () => {
+        // `saved` is from the last render, and the other card may have saved since.
+        const latest = queryClient.getQueryData<ClientFireSafetyResponse>(queryKey)?.fireSafety;
+        const response = await update.mutateAsync({
+          clientId,
+          data: { ...fireSafetyRequest(latest ?? saved), ...change(values) },
+        });
+        queryClient.setQueryData(queryKey, response);
       });
-      queryClient.setQueryData(queryKey, response);
       await queryClient.invalidateQueries({ queryKey });
       savedToast(successMessage);
       onDone();

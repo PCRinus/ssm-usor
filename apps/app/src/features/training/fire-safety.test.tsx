@@ -365,6 +365,39 @@ describe('the fire-safety training card', () => {
     release();
   });
 
+  it('waits for a save of the other card still on its way before saving over it', async () => {
+    mockApi({ fireSafety: savedFireSafety, exists: true, positions: [cook, manager] });
+    const answer = fetchMock.getMockImplementation()!;
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    fetchMock.mockImplementation(async (input, init) => {
+      const write = new URL(String(input)).pathname === firePath && init?.method === 'PUT';
+      if (write && requests(firePath, 'PUT').length === 1) await held;
+      return answer(input, init);
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('fire-safety-edit'));
+    await user.click(screen.getByTestId('fire-rules-edit'));
+    await user.click(screen.getByTestId('fire-worker-interval-1'));
+    await user.click(screen.getByTestId('fire-safety-save'));
+    await waitFor(() => expect(requests(firePath, 'PUT')).toHaveLength(1));
+    await user.type(screen.getByTestId('fire-waste-input'), 'deșeuri menajere{Enter}');
+    await user.click(screen.getByTestId('fire-rules-save'));
+    expect(requests(firePath, 'PUT')).toHaveLength(1);
+
+    release();
+    await waitFor(() => expect(requests(firePath, 'PUT')).toHaveLength(2));
+    expect(requests(firePath, 'PUT')[1]).toEqual({
+      ...savedFireSafety,
+      workerTrainingIntervalMonths: 1,
+      wasteKinds: [...savedFireSafety.wasteKinds, 'deșeuri menajere'],
+    });
+  });
+
   it('saves the smoking and waste of a client without a row, leaving the schedule empty', async () => {
     mockApi();
     mount();
