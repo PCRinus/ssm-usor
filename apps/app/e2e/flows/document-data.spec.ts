@@ -123,31 +123,32 @@ test("a specialist sets a client's representative role and training schedule", a
   await page.getByTestId('details-day-from').fill('12');
   await page.getByTestId('details-day-to').fill('7');
   await page.getByTestId('training-program-save').click();
-  await expect(page.getByTestId('details-day-to-error')).toContainText('Ultima zi');
+  await expect(page.getByTestId('details-day-to-error')).toHaveText(
+    'Ultima zi vine după prima. Scrie o zi între 12 și 31.'
+  );
 
-  await page.getByTestId('details-training-duration').click();
-  await page.getByRole('option', { name: '1 oră și 30 de minute' }).click();
-  await page.getByTestId('details-first-month').click();
-  await page.getByRole('option', { name: 'Februarie' }).click();
-  await page.getByTestId('details-administrative-interval').click();
-  await page.getByRole('option', { name: 'Semestrial (la 6 luni)' }).click();
-  await page.getByTestId('details-worker-interval').click();
-  await page.getByRole('option', { name: 'Trimestrial (la 3 luni)' }).click();
-  // The preview follows the selects while typing, before anything is saved.
-  await expect(page.getByText('Lunile: Februarie, Mai, August, Noiembrie')).toBeVisible();
+  // The carpenter's post is execution personnel, so only that category asks for an interval,
+  // starting at the longest the law allows.
+  await expect(page.getByTestId('details-worker-interval-6')).toBeChecked();
+  await expect(page.getByTestId('details-category-technical_administrative')).toHaveCount(0);
+  await page.getByTestId('details-training-duration-90').click();
+  await page.getByTestId('details-first-month').selectOption('2');
+  await page.getByTestId('details-worker-interval-3').click();
+  await expect(page.getByTestId('details-category-execution-months')).toHaveText(
+    'Februarie, mai, august, noiembrie'
+  );
   await page.getByTestId('details-day-from').fill('2');
   await page.getByTestId('training-program-save').click();
   await expect(page.getByText('Programul de instruire a fost salvat.')).toBeVisible();
 
   await page.reload();
-  // A complete program reads as a summary; the form is one click away.
-  await expect(page.getByTestId('training-program-execution')).toContainText('la 3 luni');
+  await expect(page.getByTestId('training-program-execution')).toContainText('La 3 luni');
   await expect(page.getByTestId('training-program-execution')).toContainText(
-    'Februarie, Mai, August, Noiembrie'
+    'Februarie, mai, august, noiembrie'
   );
   await expect(page.getByTestId('training-program-session')).toContainText('1 oră și 30 de minute');
   await page.getByTestId('training-program-edit').click();
-  await expect(page.getByTestId('details-worker-interval')).toHaveText('Trimestrial (la 3 luni)');
+  await expect(page.getByTestId('details-worker-interval-3')).toBeChecked();
 
   // Saving the program sent the representative back as the other tab saved it.
   await page.getByRole('link', { name: 'Detalii' }).click();
