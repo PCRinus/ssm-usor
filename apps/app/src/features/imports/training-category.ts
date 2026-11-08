@@ -1,5 +1,6 @@
 import {
   importedTrainingInterval,
+  postsAfterImport,
   type StaffCategory,
   type TrainingDomain,
   trainingIntervalChoices,
@@ -114,20 +115,25 @@ export function trainingField(
   return field('value', inForce, true);
 }
 
-/** The posts the client keeps, by name, as the import would leave them. */
 export function keptPosts(
   proposal: Proposal,
   changes: Changes,
-  existing: readonly { name: string; staffCategory: StaffCategory }[]
+  existing: readonly { id: string; name: string; staffCategory: StaffCategory }[]
 ) {
-  const imported = itemStates(proposal, changes, 'jobPositions')
-    .filter((item) => item.included && item.values.staffCategory)
-    .map((item) => ({
-      name: String(item.values.name ?? ''),
-      staffCategory: item.values.staffCategory as StaffCategory,
-    }));
-  const names = new Set(imported.map((post) => post.name.trim().toLowerCase()));
-  return [...imported, ...existing.filter((post) => !names.has(post.name.trim().toLowerCase()))];
+  return postsAfterImport(
+    existing,
+    itemStates(proposal, changes, 'jobPositions')
+      .filter((item) => item.included)
+      .map((item) => {
+        const change = changes.items[item.item.id];
+        return {
+          name: String(item.values.name ?? ''),
+          staffCategory: (item.values.staffCategory ?? null) as StaffCategory | null,
+          existingId: change?.existingId,
+          replacesCategory: change?.replace?.includes('staffCategory'),
+        };
+      })
+  );
 }
 
 export const intervalChoicesOf = (domain: TrainingDomain, category: StaffCategory) =>

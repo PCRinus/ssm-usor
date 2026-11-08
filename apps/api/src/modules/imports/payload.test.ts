@@ -944,6 +944,44 @@ describe('toClientPayload', () => {
     });
   });
 
+  it("counts an existing client's post by the category confirming leaves it, not the imported one", () => {
+    const base = reading();
+    const seller = '2a3b4c5d-6e7f-4081-9a2b-3c4d5e6f7a8b';
+    const payloadWith = (items: ImportChanges['items']) =>
+      toClientPayload({
+        proposal: proposalOf(
+          reading({
+            jobPositionFacts: [
+              {
+                jobPosition: 'Vânzător',
+                field: 'staffCategory',
+                value: 'technical_administrative',
+                ...quoted(),
+              },
+            ],
+          })
+        ),
+        changes: { fields: {}, items },
+        intoExistingClient: true,
+        existing: {
+          ...noExistingRecords,
+          client: { cui: '12345674' },
+          jobPositions: [{ id: seller, name: 'vânzător', staff_category: 'execution' }],
+        },
+      });
+
+    expect(payloadWith({}).payload.client).not.toHaveProperty(
+      'administrative_training_interval_months'
+    );
+    const replaced = payloadWith({
+      'position-2': { existingId: seller, replace: ['staffCategory'] },
+    });
+    expect(replaced.payload.client).toMatchObject({ administrative_training_interval_months: 12 });
+    expect(base.facts).not.toContainEqual(
+      expect.objectContaining({ field: 'trainingSchedule.administrativeTrainingIntervalMonths' })
+    );
+  });
+
   it('blocks a fire-safety value the checks found outside what the database takes', () => {
     const base = reading();
     const proposal = withChecks(

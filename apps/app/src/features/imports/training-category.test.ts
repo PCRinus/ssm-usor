@@ -139,14 +139,29 @@ describe('the posts the client keeps', () => {
     ],
   } as unknown as Proposal;
 
-  it('are the ticked posts with a category, and the client’s own under another name', () => {
+  it('are the ticked posts, one without a category as execution, beside the client’s own', () => {
     const kept = keptPosts(proposal, { fields: {}, items: { 'p-2': { included: false } } }, [
-      { name: 'brutar', staffCategory: 'execution' },
-      { name: 'Secretar', staffCategory: 'technical_administrative' },
+      { id: 'e-1', name: 'Secretar', staffCategory: 'technical_administrative' },
     ]);
     expect(kept).toEqual([
-      { name: 'Brutar', staffCategory: 'execution' },
       { name: 'Secretar', staffCategory: 'technical_administrative' },
+      { name: 'Brutar', staffCategory: 'execution' },
+      { name: 'Paznic', staffCategory: 'execution' },
     ]);
+  });
+
+  it("keep the client's category for a post of the same name, as confirming does", () => {
+    const existing = [{ id: 'e-1', name: 'contabil', staffCategory: 'execution' }] as const;
+    expect(keptPosts(proposal, none, existing).map((post) => post.staffCategory)).toEqual([
+      'execution',
+      'execution',
+      'execution',
+    ]);
+    const replaced = keptPosts(
+      proposal,
+      { fields: {}, items: { 'p-2': { existingId: 'e-1', replace: ['staffCategory'] } } },
+      existing
+    );
+    expect(replaced[0]).toEqual({ name: 'contabil', staffCategory: 'technical_administrative' });
   });
 });

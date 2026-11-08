@@ -3,6 +3,7 @@ import {
   type ImportChanges,
   importedTrainingInterval,
   maxEquipmentDurationMonths,
+  postsAfterImport,
   staffCategoriesWithPosts,
   type StaffCategory,
 } from '@ssm-usor/contracts';
@@ -792,16 +793,23 @@ export function toClientPayload(input: {
     }
   }
 
-  const withPosts = staffCategoriesWithPosts([
-    ...jobPositions.map((row) => ({
-      staffCategory: (row.staff_category ?? null) as StaffCategory,
-    })),
-    ...(intoExistingClient
-      ? existing.jobPositions.map((position) => ({
-          staffCategory: (position.staff_category ?? null) as StaffCategory | null,
-        }))
-      : []),
-  ]);
+  const withPosts = staffCategoriesWithPosts(
+    postsAfterImport(
+      intoExistingClient
+        ? existing.jobPositions.map((position) => ({
+            id: position.id,
+            name: position.name,
+            staffCategory: (position.staff_category ?? 'execution') as StaffCategory,
+          }))
+        : [],
+      jobPositions.map((row) => ({
+        name: String(row.name ?? ''),
+        staffCategory: (row.staff_category ?? null) as StaffCategory | null,
+        existingId: row.id as string | undefined,
+        replacesCategory: (row.replace as string[] | undefined)?.includes('staff_category'),
+      }))
+    )
+  );
   const fireScheduleKept =
     scheduleColumns.some((column) => fireSafety[column] !== undefined) ||
     (intoExistingClient && scheduleColumns.some((column) => !empty(existing.fireSafety?.[column])));

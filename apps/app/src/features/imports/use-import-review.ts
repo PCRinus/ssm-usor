@@ -265,6 +265,7 @@ export function useExistingValues(detail: ImportDetail) {
   return {
     ready: client.isSuccess && details.isSuccess && !fireSafety.isPending && !positions.isPending,
     positions: (positions.data?.items ?? []).map((position) => ({
+      id: position.id,
       name: position.name,
       staffCategory: position.staffCategory,
     })),
