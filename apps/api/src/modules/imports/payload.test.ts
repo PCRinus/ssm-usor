@@ -1108,6 +1108,44 @@ describe('toClientPayload', () => {
     });
   });
 
+  it('blocks a last training day before the first, as the database would refuse it', () => {
+    const base = reading();
+    const payloadWith = (
+      fields: ImportChanges['fields'],
+      intoExistingClient = false,
+      client: Record<string, unknown> | null = null
+    ) =>
+      toClientPayload({
+        proposal: proposalOf(
+          reading({
+            facts: [
+              ...base.facts,
+              fact('trainingSchedule.trainingDayFrom', '12'),
+              fact('trainingSchedule.trainingDayTo', '15'),
+            ],
+          })
+        ),
+        changes: { fields, items: {} },
+        intoExistingClient,
+        existing: { ...noExistingRecords, client },
+      });
+
+    expect(payloadWith({}).blockers).toEqual([]);
+    expect(payloadWith({ 'trainingSchedule.trainingDayTo': { value: 7 } }).blockers).toEqual([
+      { path: 'trainingSchedule.trainingDayTo', code: 'invalid' },
+    ]);
+    expect(payloadWith({ 'fireSafety.trainingDayFrom': { value: 20 } }).blockers).toContainEqual({
+      path: 'fireSafety.trainingDayTo',
+      code: 'invalid',
+    });
+    const existingDays = { cui: '12345674', training_day_from: 1, training_day_to: 10 };
+    expect(payloadWith({}, true, existingDays).blockers).toEqual([]);
+    expect(
+      payloadWith({ 'trainingSchedule.trainingDayFrom': { replace: true } }, true, existingDays)
+        .blockers
+    ).toEqual([{ path: 'trainingSchedule.trainingDayTo', code: 'invalid' }]);
+  });
+
   it('blocks a fire-safety value the checks found outside what the database takes', () => {
     const base = reading();
     const proposal = withChecks(

@@ -18,7 +18,7 @@ import {
 import { type ReactNode, useId, useState } from 'react';
 
 import { Segmented } from '@/components/segmented';
-import { monthNames } from '@/features/training/document-details-schema';
+import { dayOrderProblem, monthNames } from '@/features/training/document-details-schema';
 import { TrainingScheduleFields } from '@/features/training/schedule-fields';
 import { categoriesWithPosts, lawOf } from '@/features/training/schedule-rules';
 
@@ -628,6 +628,7 @@ export function TrainingImportCard({
       if (Number(text) !== field.value) save(field.state, Number(text));
     }
   };
+  const dayOrder = dayOrderProblem(String(dayFrom.value ?? ''), String(dayTo.value ?? ''));
   const look = titles[domain];
   const Icon = look.icon;
   const law = lawOf[domain];
@@ -742,8 +743,10 @@ export function TrainingImportCard({
                 : undefined,
             dayTo:
               plain(dayTo) && invalidAt(dayTo, context)
-                ? { message: dayProblem(days.to) ?? dayRefused }
-                : undefined,
+                ? { message: dayProblem(days.to) ?? dayOrder ?? dayRefused }
+                : plain(dayTo) && dayOrder
+                  ? { message: dayOrder }
+                  : undefined,
           }}
           firstMonth={month.value}
           dayFrom={days.from}
@@ -820,6 +823,15 @@ export function TrainingImportCard({
                             />
                           </div>
                         )
+                      )}
+                      {dayOrder && (
+                        <p
+                          role="alert"
+                          data-testid={`review-${domain}-day-order`}
+                          className="text-[13px] text-destructive"
+                        >
+                          {dayOrder}
+                        </p>
                       )}
                     </div>
                   ),

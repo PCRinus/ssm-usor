@@ -1962,6 +1962,29 @@ describe('the training cards', () => {
     expect(within(block('trainingSchedule.trainingDayFrom')).getByRole('textbox')).toBeTruthy();
   });
 
+  it('says when the last day comes before the first, once the member leaves the field', async () => {
+    mockReview(
+      trainingDetail((proposal) => {
+        proposal.trainingSchedule.trainingDayFrom = { options: [option(12)] } as never;
+        proposal.trainingSchedule.trainingDayTo = { options: [option(15)] } as never;
+      })
+    );
+    mount('/training');
+
+    const to = await screen.findByTestId('review-ssm-day-to');
+    await userEvent.clear(to);
+    await userEvent.type(to, '7');
+    expect(screen.queryByTestId('review-ssm-day-to-error')).toBeNull();
+    await userEvent.tab();
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({
+      'trainingSchedule.trainingDayTo': { value: 7 },
+    });
+    expect(screen.getByTestId('review-ssm-day-to-error').textContent).toBe(
+      'Ultima zi vine după prima. Scrie o zi între 12 și 31.'
+    );
+  });
+
   it('shows a duration outside the list as not to be picked, with the list open', async () => {
     mockReview(
       trainingDetail((proposal) => {

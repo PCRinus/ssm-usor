@@ -862,6 +862,24 @@ export function toClientPayload(input: {
   }
   if (clientReplace.length) client.replace = clientReplace;
   if (fireReplace.length) fireSafety.replace = fireReplace;
+  // `clients` and `client_fire_safety` refuse a last day before the first.
+  for (const [group, row, current, replaced] of [
+    ['trainingSchedule', client, existing.client, clientReplace],
+    ['fireSafety', fireSafety, existing.fireSafety, fireReplace],
+  ] as const) {
+    const day = (column: string) =>
+      row[column] !== undefined &&
+      (!intoExistingClient || empty(current?.[column]) || replaced.includes(column))
+        ? row[column]
+        : intoExistingClient
+          ? current?.[column]
+          : undefined;
+    const from = day('training_day_from');
+    const to = day('training_day_to');
+    if (typeof from === 'number' && typeof to === 'number' && from > to) {
+      block(`${group}.trainingDayTo`, 'invalid');
+    }
+  }
   const fireScheduleKept =
     scheduleColumns.some((column) => fireSafety[column] !== undefined) ||
     (intoExistingClient && scheduleColumns.some((column) => !empty(existing.fireSafety?.[column])));
