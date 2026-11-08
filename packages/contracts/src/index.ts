@@ -8,6 +8,7 @@ import { profileSchema } from './profile';
 import { subscriptionSummarySchema } from './subscriptions';
 
 export * from './admin-imports';
+export * from './banks';
 export * from './billing';
 export * from './caen';
 export * from './client-files';
