@@ -24,6 +24,7 @@ import {
   type PlanRow,
   planRowsLine,
   type ProposedFactor,
+  removedByMember,
   type RiskSheet,
   type RisksPart,
   risksPartDescription,
@@ -785,5 +786,26 @@ describe('the factor switches and what confirming writes', () => {
       state.factors.filter((each) => each.included).map((each) => each.factor.key)
     );
     expect(reviewed.get('cook')!.map((each) => each.key)).toEqual(['cook.1', 'cook.4']);
+  });
+});
+
+describe('the factors a sheet counts as left out', () => {
+  it('are the ones that collapse: proposed and switched off, not proposed off', () => {
+    const own = sheet({
+      factors: [
+        factor(),
+        factor({ key: 'cook.2', gravityClass: null, included: false, level: null }),
+      ],
+    });
+    const state = sheetState(
+      own,
+      {
+        factors: { 'cook.1': { included: false }, 'cook.2': { included: false, gravityClass: 3 } },
+      },
+      context([own])
+    );
+    expect(state.factors.filter(removedByMember).map((each) => each.factor.key)).toEqual([
+      'cook.1',
+    ]);
   });
 });

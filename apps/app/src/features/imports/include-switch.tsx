@@ -2,6 +2,7 @@ import { Switch } from '@ssm-usor/ui/components/switch';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { type ReactNode, useEffect } from 'react';
 
+import { leftOutByMember } from './include-rule';
 import { RowActions } from './library/decision-row';
 
 // The word agrees with the thing left out: "inclusă" for an instrucțiune, instruire or valoare.
@@ -73,8 +74,7 @@ function IncludeSwitch({
 
 /**
  * Something the import can leave out. `included` is what confirming writes and `proposed` what
- * the documents proposed: switched off by the member, a proposed thing collapses to one line;
- * one proposed off stays open, since its row says why.
+ * the documents proposed; the row collapses when `leftOutByMember`.
  */
 export function Includable({
   id,
@@ -113,7 +113,7 @@ export function Includable({
       onChange={onChange}
     />
   );
-  if (included || !proposed) return children(toggle);
+  if (!leftOutByMember(included, proposed)) return children(toggle);
   if (collapsed) return collapsed(toggle);
   return (
     <div

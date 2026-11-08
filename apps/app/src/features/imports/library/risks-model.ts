@@ -22,6 +22,7 @@ import type {
 import { roCount } from '@/features/employees/employee-format';
 import { missingMeasureText } from '@/features/risk-evaluations/risk-evaluation-schema';
 
+import { leftOutByMember } from '../include-rule';
 import { isExpired, joinNames, libraryDay, type LibraryPost } from './library-model';
 
 export type RisksPart = RisksLibraryPart;
@@ -695,7 +696,8 @@ export function existingOutcome(choice: ExistingChoice, factors: number) {
   }
 }
 
-export const removedByMember = (state: FactorState) => !state.included && state.complete;
+export const removedByMember = (state: FactorState) =>
+  leftOutByMember(state.included, state.factor.included);
 
 export function withIncluded(
   change: SheetChange,

@@ -13,7 +13,7 @@ import {
 import { ApiHttpError, type ApiRequestOptions } from '@/api/http';
 
 import { importErrorMessage } from '../import-format';
-import { type Changes, changesOf } from './employee-review-model';
+import { type Changes, changesOf, type Proposal, statesOf } from './employee-review-model';
 
 type Snapshot = { changes: Changes; conflict: boolean; error: string | null; pending: number };
 
@@ -113,7 +113,11 @@ export class EmployeeReviewStore {
               import: {
                 ...old.import,
                 version,
-                employees: { ...old.import.employees, changes, states: statesOf(old, changes) },
+                employees: {
+                  ...old.import.employees,
+                  changes,
+                  states: statesOf(old.import.employees.proposal as Proposal, changes),
+                },
               },
             }
           : old
@@ -143,13 +147,6 @@ export class EmployeeReviewStore {
     this.sent = reloaded;
     this.set({ changes: reloaded, conflict: false, error: null });
   };
-}
-
-function statesOf(old: ImportDetailResponse, changes: Changes) {
-  const people = old.import.employees?.proposal.people ?? [];
-  return Object.fromEntries(
-    people.map((person) => [person.id, changes.people[person.id]?.state ?? 'to_check'])
-  ) as Record<string, 'to_check' | 'checked' | 'set_aside'>;
 }
 
 export class EmployeeReviewStores {

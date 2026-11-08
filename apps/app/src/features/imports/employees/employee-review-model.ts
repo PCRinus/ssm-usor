@@ -73,9 +73,14 @@ export type ReviewContext = {
 export const stateOf = (context: Pick<ReviewContext, 'states'>, personId: string): PersonState =>
   context.states[personId] ?? 'to_check';
 
+/** The review state, never checked for someone out of the import, whatever was saved. */
 export const statesOf = (proposal: Proposal, changes: Changes): Record<string, PersonState> =>
   Object.fromEntries(
-    proposal.people.map((person) => [person.id, changes.people[person.id]?.state ?? 'to_check'])
+    proposal.people.map((person) => {
+      const state = changes.people[person.id]?.state ?? 'to_check';
+      const out = state === 'checked' && !personIncluded({ proposal, changes }, person);
+      return [person.id, out ? 'set_aside' : state];
+    })
   );
 
 export const fieldLabels: Record<FieldName, string> = {
@@ -242,10 +247,11 @@ export function withPersonIncluded(
   person: Person,
   included: boolean
 ): Changes {
+  if (included === personIncluded(context, person)) return context.changes;
   const proposed = proposedPersonIncluded(context, person);
   return withPersonChange(context.changes, person.id, (change) => ({
     ...change,
-    state: included ? (change.state === 'set_aside' ? undefined : change.state) : 'set_aside',
+    state: included ? undefined : 'set_aside',
     included: included && !proposed ? true : undefined,
   }));
 }
@@ -1053,7 +1059,12 @@ export function withMatchRestored(changes: Changes, person: Person): Changes {
 /** Moving on from a person with nothing left to decide checks them. */
 export function leaving(context: ReviewContext, person: Person): Changes {
   if (stateOf(context, person.id) !== 'to_check') return context.changes;
-  if (!personIncluded(context, person)) return withPersonIncluded(context, person, false);
+  if (!personIncluded(context, person)) {
+    return withPersonChange(context.changes, person.id, (current) => ({
+      ...current,
+      state: 'set_aside',
+    }));
+  }
   if (decisionsOf(context, person).length > 0) return context.changes;
   return withPersonChange(context.changes, person.id, (current) => ({
     ...current,
@@ -1069,6 +1080,13 @@ export function reopened(context: Omit<ReviewContext, 'states'>): Changes {
   const full = { ...context, states: statesOf(context.proposal, context.changes) };
   let changes = context.changes;
   for (const person of context.proposal.people) {
+    if (context.changes.people[person.id]?.state === 'checked' && !personIncluded(full, person)) {
+      changes = withPersonChange(changes, person.id, (current) => ({
+        ...current,
+        state: 'set_aside',
+      }));
+      continue;
+    }
     if (stateOf(full, person.id) !== 'checked') continue;
     if (decisionsOf(full, person).length === 0) continue;
     changes = withPersonChange(changes, person.id, (current) => ({ ...current, state: undefined }));

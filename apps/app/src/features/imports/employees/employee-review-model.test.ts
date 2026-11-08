@@ -35,6 +35,7 @@ import {
   resolveField,
   type ReviewContext,
   rowIncluded,
+  statesOf,
   testIncluded,
   toCheckGroups,
   trainingsByDomain,
@@ -54,9 +55,7 @@ function contextOf(changes: Changes = emptyChanges(), workplaceCount = 2): Revie
   return {
     proposal,
     changes,
-    states: Object.fromEntries(
-      proposal.people.map((person) => [person.id, changes.people[person.id]?.state ?? 'to_check'])
-    ),
+    states: statesOf(proposal, changes),
     workplaceCount,
     today: '2026-10-31',
   };
@@ -706,19 +705,93 @@ describe('the switches and what confirming writes', () => {
     changes = withField(changes, 'pop', 'leftOn', { value: '2025-06-30' });
     changes = checked(checked(changes, 'toma'), 'pop');
     for (const takePop of [false, true]) {
-      const { context, payload } = decided(
-        withPersonIncluded(extended(changes), person('pop'), takePop)
-      );
+      const switched = withPersonIncluded(extended(changes), person('pop'), takePop);
+      if (takePop) {
+        expect(switched.people.pop?.state).toBeUndefined();
+        expect(decided(switched).payload.employees.map((each) => each.key)).not.toContain('pop');
+      }
+      const { context, payload } = decided(takePop ? checked(switched, 'pop') : switched);
       const written = new Set(payload.employees.map((employee) => employee.key));
       expect(written.has('toma')).toBe(true);
       expect(written.has('pop')).toBe(takePop);
       for (const each of context.proposal.people) {
         expect(written.has(each.id)).toBe(isWritten(context, each));
-        if (context.states[each.id] === 'checked') {
-          expect(written.has(each.id)).toBe(personIncluded(context, each));
-        }
+        expect(context.states[each.id] === 'checked').toBe(written.has(each.id));
       }
     }
+  });
+
+  it('sets aside a checked person once a leave date takes them out', () => {
+    let changes = withTitle(emptyChanges(), 'title-helper', bakerId);
+    changes = withWorkplace(changes, 'place-none', null);
+    changes = checked(checked(changes, 'toma'), 'pop');
+    expect(decided(changes).payload.employees.map((each) => each.key)).toContain('pop');
+    const dated = withField(changes, 'pop', 'leftOn', { value: '2025-06-30' });
+    expect(statesOf(proposal, dated).pop).toBe('set_aside');
+    const saved = reopened({ ...contextOf(dated), changes: dated });
+    expect(saved.people.pop?.state).toBe('set_aside');
+    const { context, payload } = decided(saved);
+    expect(payload.employees.map((each) => each.key)).not.toContain('pop');
+    expect(isWritten(context, person('pop'))).toBe(false);
+  });
+
+  it('reads old saved changes, a checked leaver not taken, as set aside, and saves them so', () => {
+    const old = withPersonChange(
+      withField(emptyChanges(), 'pop', 'leftOn', { value: '2025-06-30' }),
+      'pop',
+      (change) => ({ ...change, state: 'checked', included: false })
+    );
+    expect(statesOf(proposal, old).pop).toBe('set_aside');
+    expect(reopened({ ...contextOf(old), changes: old }).people.pop?.state).toBe('set_aside');
+    const back = withPersonIncluded(contextOf(old), person('pop'), true);
+    expect(back.people.pop?.state).toBeUndefined();
+    expect(back.people.pop?.included).toBe(true);
+  });
+
+  it('keeps an existing worker with a leave date in, and writes them once checked', () => {
+    let changes = withTitle(emptyChanges(), 'title-helper', bakerId);
+    changes = withWorkplace(changes, 'place-none', null);
+    changes = withField(changes, 'lazar', 'leftOn', { value: '2025-06-30' });
+    changes = checked(changes, 'lazar');
+    const context = extended(changes);
+    expect(personIncluded(context, person('lazar'))).toBe(true);
+    const { payload } = toEmployeePayload({
+      proposal: context.proposal as never,
+      changes: context.changes as never,
+      records: {
+        jobPositions: [{ id: bakerId }, { id: sellerId }],
+        workplaces,
+        employees: [
+          {
+            id: existingEmployeeId,
+            lastName: 'Lazăr',
+            firstName: 'Radu',
+            cnp: null,
+            employeeNumber: null,
+            birthDate: null,
+            birthPlace: null,
+            homeAddress: 'Str. Viitorului nr. 3, Sibiu',
+            education: null,
+            qualification: null,
+            bloodGroup: null,
+            rhFactor: null,
+            jobTitle: 'Brutar',
+            hiredAt: '2019-04-03',
+            terminatedAt: null,
+            workplaceId: null,
+            commuteRoute: null,
+            commuteMinutes: null,
+            hasContact: false,
+            trainings: [],
+            testResults: [],
+          },
+        ],
+      },
+      today: '2026-10-31',
+    });
+    expect(payload.employees.map((each) => each.key)).toEqual(['lazar']);
+    expect(isWritten(context, person('lazar'))).toBe(true);
+    expect(context.states.lazar).toBe('checked');
   });
 
   it('sets aside a leaver not taken once the member moves on, so the list says the same', () => {
