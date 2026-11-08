@@ -95,8 +95,8 @@ export function FireSafetySection({
   if (fireSafety.isPending || details.isPending || positions.isPending) {
     return <Skeleton className="h-56 w-full rounded-xl" />;
   }
-  if (fireSafety.isError || positions.isError) {
-    const failed = fireSafety.isError ? fireSafety : positions;
+  if (fireSafety.isError || positions.isError || details.isError) {
+    const failed = fireSafety.isError ? fireSafety : positions.isError ? positions : details;
     return (
       <Card data-testid="fire-safety-unavailable">
         <CardContent>
@@ -124,7 +124,7 @@ export function FireSafetySection({
       <FireScheduleCard
         saved={saved}
         exists={exists}
-        occupational={details.data?.documentDetails ?? null}
+        occupational={details.data.documentDetails}
         positions={positions.data.items}
         client={client}
         userId={userId}

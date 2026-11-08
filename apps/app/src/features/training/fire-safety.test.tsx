@@ -317,6 +317,21 @@ describe('the fire-safety training card', () => {
     expect(requests(firePath, 'PUT')).toEqual([]);
   });
 
+  it('offers to load again instead of a calendar when the occupational schedule fails to load', async () => {
+    mockApi();
+    const answer = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (input, init) =>
+      new URL(String(input)).pathname === `/clients/${clientId}/document-details`
+        ? Response.json({ reason: 'internal' }, { status: 500 })
+        : answer(input, init)
+    );
+    mount();
+
+    const failed = await screen.findByTestId('fire-safety-unavailable');
+    expect(failed.textContent).toContain('Nu am putut încărca instruirea SU.');
+    expect(screen.queryByTestId('fire-safety-card')).toBeNull();
+  });
+
   it('saves one card over what the other just saved, before the page reads the row again', async () => {
     mockApi({ fireSafety: savedFireSafety, exists: true, positions: [cook, manager] });
     const answer = fetchMock.getMockImplementation()!;
