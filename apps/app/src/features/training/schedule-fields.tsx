@@ -296,7 +296,7 @@ export function TrainingScheduleFields({
                         onPick={(value) => onIntervalChange(entry.category, Number(value))}
                       />
                       {entry.error ? (
-                        <FieldMessage id={`${id}-error`} error={entry.error as never} />
+                        <FieldMessage id={`${id}-error`} error={entry.error} />
                       ) : (
                         <p id={`${id}-hint`} className={hintText}>
                           {intervalHint(domain, entry.category)}
@@ -368,7 +368,7 @@ export function TrainingScheduleFields({
             </>
           )}
           {errors.firstMonth ? (
-            <FieldMessage id={`${ids.firstMonth}-error`} error={errors.firstMonth as never} />
+            <FieldMessage id={`${ids.firstMonth}-error`} error={errors.firstMonth} />
           ) : (
             <p id={`${ids.firstMonth}-hint`} className={hintText}>
               Celelalte luni urmează din intervalul fiecărei categorii.
@@ -418,8 +418,8 @@ export function TrainingScheduleFields({
               </div>
               {dayProblem ? (
                 <>
-                  <FieldMessage id={`${ids.dayFrom}-error`} error={errors.dayFrom as never} />
-                  <FieldMessage id={`${ids.dayTo}-error`} error={errors.dayTo as never} />
+                  <FieldMessage id={`${ids.dayFrom}-error`} error={errors.dayFrom} />
+                  <FieldMessage id={`${ids.dayTo}-error`} error={errors.dayTo} />
                 </>
               ) : (
                 <p id={`${ids.days}-hint`} className={hintText}>
@@ -457,7 +457,7 @@ export function TrainingScheduleFields({
                 onPick={(value) => onDurationChange(Number(value))}
               />
               {errors.duration ? (
-                <FieldMessage id={`${ids.duration}-error`} error={errors.duration as never} />
+                <FieldMessage id={`${ids.duration}-error`} error={errors.duration} />
               ) : (
                 domain === 'su' && (
                   <p id={`${ids.duration}-hint`} className={hintText}>

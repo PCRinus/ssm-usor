@@ -12,7 +12,7 @@ export function FieldMessage({
   help,
 }: {
   id: string;
-  error?: FieldError;
+  error?: Pick<FieldError, 'message'>;
   help?: HelpTopic;
 }) {
   if (!error) return null;
