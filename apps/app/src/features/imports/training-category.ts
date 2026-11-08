@@ -98,6 +98,13 @@ export function trainingField(
   if (state.comparison === 'kept' || state.comparison === 'replaced') {
     return field('differs', asNumber(valueInForce(state)), true);
   }
+  const inForce = asNumber(valueInForce(state));
+  // Confirming writes the law's longest for every category with posts left without a value, so a
+  // value cleared in an older review stands at it too.
+  if (legal && state.status !== 'choice' && inForce === null) {
+    const { months, legalMaximum } = importedTrainingInterval({ ...legal, settled: null });
+    if (legalMaximum) return field('legal_maximum', months, false);
+  }
   if (state.own.length > 1) {
     return field('choice', asNumber(state.value), state.status !== 'choice');
   }
@@ -106,15 +113,8 @@ export function trainingField(
   if (choices && proposed !== null && !choices.includes(proposed) && !hasExisting) {
     return field('outside', state.edited ? asNumber(state.value) : null, state.edited);
   }
-  const inForce = asNumber(valueInForce(state));
-  if (legal && state.own.length === 0 && (inForce === null || state.edited)) {
-    const { months, legalMaximum } = importedTrainingInterval({
-      ...legal,
-      settled: state.edited ? inForce : null,
-    });
-    if (legalMaximum || state.edited) {
-      return field('legal_maximum', months, state.edited);
-    }
+  if (legal && state.own.length === 0 && state.edited) {
+    return field('legal_maximum', inForce, true);
   }
   return field('value', inForce, true);
 }

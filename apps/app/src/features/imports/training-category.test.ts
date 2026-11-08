@@ -89,6 +89,15 @@ describe('a field of a training schedule', () => {
     });
   });
 
+  it('stands at the longest legal interval, still to confirm, where an older review cleared the value', () => {
+    const cleared: Changes = { fields: { [path]: { value: null } }, items: {} };
+    for (const options of [[], [option(3)], [option(3), option(4)]]) {
+      expect(trainingField(statesOf(path, options, cleared), path, intervals, legal)).toMatchObject(
+        { mode: 'legal_maximum', value: 6, settled: false }
+      );
+    }
+  });
+
   it('has no interval for a category without posts', () => {
     expect(
       trainingField(statesOf(path, []), path, intervals, { ...legal, hasPosts: false })
