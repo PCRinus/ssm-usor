@@ -830,7 +830,7 @@ const durationRange = `între 1 și ${maxEquipmentDurationMonths} de luni`;
 
 export const secondRegisteredOffice = 'Două sedii sociale: păstrează unul';
 
-export const secondRegisteredOfficeNote = `${secondRegisteredOffice}. Lasă unul nebifat, sau modifică-l și debifează «Este sediul social».`;
+export const secondRegisteredOfficeNote = `${secondRegisteredOffice}. Nu-l include pe unul, sau modifică-l și debifează «Este sediul social».`;
 
 export function durationBlockerNote(code: Blocker['code'], values: Record<string, unknown>) {
   if (code === 'missing') {

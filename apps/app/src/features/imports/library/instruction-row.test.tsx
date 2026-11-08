@@ -149,25 +149,29 @@ describe('InstructionRow', () => {
     const user = userEvent.setup();
     render(<Harness instruction={proposed()} />);
     await user.click(screen.getByTestId('library-instruction-included'));
-    expect(screen.getByTestId('library-instruction-left-out').textContent).toContain(
-      'Nu o incluzi'
+    expect(screen.getByTestId('library-instruction-included-word').textContent).toBe(
+      'Nu e inclusă'
     );
     expect(screen.queryByTestId('library-instruction-pick-posts')).toBeNull();
     expect(screen.queryByTestId('library-instruction-pending')).toBeNull();
+    expect(screen.queryByTestId('review-source')).toBeNull();
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
   });
 
-  it('names the switch by its state', async () => {
+  it('names the switch by its state and shows a word only when left out', async () => {
     const user = userEvent.setup();
     render(<Harness instruction={proposed()} />);
     const title = 'Utilizarea autoturismelor în interes de serviciu';
     expect(screen.getByRole('switch', { name: `Inclusă: ${title}` })).toBeTruthy();
-    expect(screen.getByTestId('library-instruction-included-label').textContent).toBe('Inclusă');
+    expect(screen.queryByTestId('library-instruction-included-word')).toBeNull();
 
     await user.click(screen.getByTestId('library-instruction-included'));
 
     expect(screen.getByRole('switch', { name: `Nu e inclusă: ${title}` })).toBeTruthy();
-    expect(screen.getByTestId('library-instruction-included-label').textContent).toBe(
-      'Nu e inclusă'
-    );
+
+    await user.click(screen.getByTestId('library-instruction-included'));
+
+    expect(screen.getByRole('switch', { name: `Inclusă: ${title}` })).toBeTruthy();
+    expect(screen.getByTestId('library-instruction-pick-posts')).toBeTruthy();
   });
 });

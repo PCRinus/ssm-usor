@@ -303,7 +303,9 @@ describe('a section of the review', () => {
       .getAllByTestId('review-row')
       .find((row) => row.textContent?.includes('office@lactate.ro'))!;
     expect(email.textContent).toContain('Posibil de la alt client');
-    await userEvent.click(within(email).getByTestId('review-include-field'));
+    expect(email.textContent).toContain('Nu e inclusă');
+    expect(within(email).queryByRole('checkbox')).toBeNull();
+    await userEvent.click(within(email).getByRole('switch', { name: 'Nu e inclusă: Email' }));
     await waitFor(() => expect(saves).toBe(2));
     expect(savedChanges(1)).toEqual({
       version: 4,
@@ -314,6 +316,16 @@ describe('a section of the review', () => {
         },
         items: {},
       },
+    });
+
+    const included = screen
+      .getAllByTestId('review-row')
+      .find((row) => row.textContent?.includes('office@lactate.ro'))!;
+    expect(included.textContent).not.toContain('Nu e inclusă');
+    await userEvent.click(within(included).getByRole('switch', { name: 'Inclusă: Email' }));
+    await waitFor(() => expect(saves).toBe(3));
+    expect(savedChanges(2).changes.fields).toEqual({
+      'client.legalRepresentativeName': { option: 0 },
     });
   });
 
@@ -822,7 +834,7 @@ describe('a company name that ends in a period', () => {
     expect(section.textContent).toContain(
       'S.C. BRUTĂRIA SPICUL AURIU S.R.L. Valorile se preiau așa cum sunt'
     );
-    expect(section.textContent).toContain('copiate de la LACTATE CÂMPIA S.R.L. Îl preluăm');
+    expect(section.textContent).toContain('copiate de la LACTATE CÂMPIA S.R.L. Valoarea se preia');
     expect(section.textContent).not.toContain('S.R.L..');
   });
 });
@@ -958,20 +970,26 @@ describe('the employees an import creates', () => {
     const optional = within(employees).getByTestId('review-legal-representative');
     expect(optional.textContent).toContain('Mureșan Ioana');
     expect(optional.textContent).toContain('reprezentantul legal · Administrator');
-    const tick = within(optional).getByRole('checkbox', {
-      name: 'Preia ca lucrător pe Mureșan Ioana',
-    });
+    const tick = within(optional).getByRole('switch', { name: 'Nu e inclus: Mureșan Ioana' });
     expect(tick.getAttribute('aria-checked')).toBe('false');
 
     await userEvent.click(tick);
     await waitFor(() => expect(saves).toBe(1));
     expect(savedChanges(0).changes.items).toEqual({ 'employee-2': { included: true } });
+    expect(within(employees).queryByTestId('review-legal-representative')).toBeNull();
     const ticked = within(employees)
       .getAllByTestId('review-item')
       .find((row) => row.textContent?.includes('Mureșan Ioana'))!;
-    await userEvent.click(within(ticked).getByRole('button', { name: 'Nu-l face lucrător' }));
+    expect(
+      within(employees)
+        .getAllByTestId('review-item')
+        .find((row) => row.textContent?.includes('Lazăr Radu'))!
+        .querySelector('[role="switch"]')
+    ).toBeNull();
+    await userEvent.click(within(ticked).getByRole('switch', { name: 'Inclus: Mureșan Ioana' }));
     await waitFor(() => expect(saves).toBe(2));
-    expect(savedChanges(1).changes.items).toEqual({ 'employee-2': { included: false } });
+    expect(savedChanges(1).changes.items).toEqual({});
+    expect(within(employees).getByTestId('review-legal-representative')).toBeTruthy();
   });
 });
 
@@ -1178,7 +1196,7 @@ describe('two workplaces marked as the registered office', () => {
     mount('/workplaces');
     const [first, second] = await screen.findAllByTestId('review-item');
     expect(second!.textContent).toContain(
-      'Două sedii sociale: păstrează unul. Lasă unul nebifat, sau modifică-l și debifează «Este sediul social».'
+      'Două sedii sociale: păstrează unul. Nu-l include pe unul, sau modifică-l și debifează «Este sediul social».'
     );
     expect(first!.textContent).not.toContain('Două sedii sociale');
   });
@@ -1255,12 +1273,19 @@ describe('a post that is only the running of the firm', () => {
     expect(screen.getAllByTestId('review-item').map((row) => row.textContent)).toEqual([
       expect.stringContaining('Brutar'),
     ]);
-    const tick = within(held).getByRole('checkbox', { name: 'Preia postul Administrator' });
+    expect(held.textContent).toContain('Include postul dacă cine îl ocupă');
+    const tick = within(held).getByRole('switch', { name: 'Nu e inclus: Administrator' });
     expect(tick.getAttribute('aria-checked')).toBe('false');
 
     await userEvent.click(tick);
     await waitFor(() => expect(saves).toBe(1));
     expect(savedChanges(0).changes.items).toEqual({ 'position-3': { included: true } });
+    expect(screen.queryByTestId('review-management-only')).toBeNull();
+    const joined = screen
+      .getAllByTestId('review-item')
+      .find((row) => row.textContent?.includes('Administrator'))!;
+    expect(within(joined).getByRole('switch', { name: 'Inclus: Administrator' })).toBeTruthy();
+    expect(within(joined).getByTestId('review-edit')).toBeTruthy();
   });
 
   it('keeps its equipment with it, until an entry is moved to another post', async () => {
@@ -1275,16 +1300,23 @@ describe('a post that is only the running of the firm', () => {
     ]);
 
     await userEvent.click(
-      within(held).getByRole('checkbox', { name: 'Preia articolul Vestă reflectorizantă' })
+      within(held).getByRole('switch', { name: 'Nu e inclus: Vestă reflectorizantă' })
     );
     await waitFor(() => expect(saves).toBe(1));
     expect(savedChanges(0).changes.items).toEqual({ 'equipment-entry-2': { included: true } });
     const moved = screen
       .getAllByTestId('review-item')
       .find((row) => row.textContent?.includes('Vestă reflectorizantă'))!;
-    await userEvent.click(within(moved).getByRole('button', { name: 'Lasă-l cu postul' }));
+    await userEvent.click(
+      within(moved).getByRole('switch', { name: 'Inclus: Vestă reflectorizantă' })
+    );
     await waitFor(() => expect(saves).toBe(2));
-    expect(savedChanges(1).changes.items).toEqual({ 'equipment-entry-2': { included: false } });
+    expect(savedChanges(1).changes.items).toEqual({});
+    expect(
+      within(screen.getByTestId('review-position-left-out')).getByRole('switch', {
+        name: 'Nu e inclus: Vestă reflectorizantă',
+      })
+    ).toBeTruthy();
   });
 
   it('is told apart in the summaries and left out of what is confirmed', async () => {
@@ -1337,36 +1369,41 @@ function secondPost(changes: unknown = null) {
 }
 
 describe('a post the import proposed that the member leaves out', () => {
-  it('moves to a box of its own, and comes back when ticked', async () => {
+  it('collapses in place to its name and switch, and opens again when switched on', async () => {
     mockReview(secondPost());
     mount('/job-positions');
 
     const rowOf = async (name: string) =>
       (await screen.findAllByTestId('review-item')).find((row) => row.textContent?.includes(name))!;
+    const card = await screen.findByTestId('review-list-jobPositions');
+    expect(card.textContent).toContain('2 posturi');
+    expect(card.textContent).toContain('Oprește comutatorul la un post pe care nu îl preiei');
     expect(
-      within(await rowOf('Brutar')).getByRole('button', { name: 'Nu prelua postul' })
+      within(await rowOf('Brutar')).getByRole('switch', { name: 'Inclus: Brutar' })
     ).toBeTruthy();
+    expect(within(await rowOf('Brutar')).queryByTestId('review-include-item-word')).toBeNull();
     await userEvent.click(
-      within(await rowOf('Vânzător')).getByRole('button', { name: 'Nu prelua postul' })
+      within(await rowOf('Vânzător')).getByRole('switch', { name: 'Inclus: Vânzător' })
     );
     await waitFor(() => expect(saves).toBe(1));
     expect(savedChanges(0).changes.items).toEqual({ 'position-3': { included: false } });
 
-    const aside = await screen.findByTestId('review-left-out');
-    expect(aside.textContent).toContain('Lăsate deoparte');
-    expect(aside.textContent).toContain('Vânzarea produselor de panificație');
+    const collapsed = await rowOf('Vânzător');
+    expect(collapsed.textContent).toBe('VânzătorNu e inclus');
+    expect(within(collapsed).queryAllByRole('button')).toHaveLength(0);
+    expect(screen.queryByTestId('review-left-out')).toBeNull();
     expect(screen.getByTestId('review-other-company').textContent).not.toContain('Vânzător');
     expect(screen.getAllByTestId('review-item').map((row) => row.textContent)).toEqual([
       expect.stringContaining('Brutar'),
+      'VânzătorNu e inclus',
     ]);
-    const tick = within(aside).getByRole('checkbox', { name: 'Preia postul Vânzător' });
-    expect(tick.getAttribute('aria-checked')).toBe('false');
+    expect(card.querySelector('h2')?.textContent).toBe('2 posturi, unul inclus');
 
-    await userEvent.click(tick);
+    await userEvent.click(within(collapsed).getByRole('switch', { name: 'Nu e inclus: Vânzător' }));
     await waitFor(() => expect(saves).toBe(2));
-    expect(savedChanges(1).changes.items).toEqual({ 'position-3': { included: true } });
-    expect(screen.queryByTestId('review-left-out')).toBeNull();
-    expect(await rowOf('Vânzător')).toBeTruthy();
+    expect(savedChanges(1).changes.items).toEqual({});
+    expect((await rowOf('Vânzător')).textContent).toContain('Vânzarea produselor de panificație');
+    expect(within(await rowOf('Vânzător')).getByTestId('review-edit')).toBeTruthy();
   });
 
   it('keeps its equipment with it', async () => {
