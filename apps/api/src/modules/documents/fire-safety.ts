@@ -276,7 +276,7 @@ export type FireContext = {
     periodicHours: number;
     /** "2 ore". */
     periodicLabel: string;
-    /** The three of a category are left out while it has no posts. */
+    /** Absent for a category without posts, whose saved interval no document uses (ADR 039). */
     administrativeIntervalMonths?: number;
     /** "3 luni". */
     administrativeIntervalLabel?: string;
