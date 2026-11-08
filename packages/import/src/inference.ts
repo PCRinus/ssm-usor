@@ -1,4 +1,5 @@
-import { maxFireTrainingIntervalMonths } from './checks';
+import { offeredTrainingInterval } from '@ssm-usor/contracts';
+
 import { foldText } from './match';
 import { type Field, type Option, type Proposal } from './proposal';
 
@@ -8,8 +9,8 @@ const ownOptions = <T>(field: Field<T>) =>
 const calendarFields = ['trainingFirstMonth', 'trainingDayFrom', 'trainingDayTo'] as const;
 
 const intervalFields = [
-  'administrativeTrainingIntervalMonths',
-  'workerTrainingIntervalMonths',
+  ['administrativeTrainingIntervalMonths', 'technical_administrative'],
+  ['workerTrainingIntervalMonths', 'execution'],
 ] as const;
 
 const fromSsm = (option: Option<number>): Option<number> => ({
@@ -28,12 +29,12 @@ export function inferFireTrainingFromSsm(proposal: Proposal) {
       fire[name].options.push(fromSsm(own[0]!));
     }
   }
-  for (const name of intervalFields) {
+  for (const [name, category] of intervalFields) {
     const own = ownOptions(ssm[name]);
     if (
       fire[name].options.length === 0 &&
       own.length === 1 &&
-      own[0]!.value <= maxFireTrainingIntervalMonths
+      offeredTrainingInterval('su', category, own[0]!.value)
     ) {
       fire[name].options.push(fromSsm(own[0]!));
     }

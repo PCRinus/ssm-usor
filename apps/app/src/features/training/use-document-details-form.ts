@@ -49,6 +49,7 @@ export function useDocumentDetailsForm({
   successMessage,
   onSaved,
   starting = {},
+  refuse,
 }: {
   saved: DocumentDetails;
   client: ClientSummary;
@@ -58,6 +59,10 @@ export function useDocumentDetailsForm({
   onSaved?: () => void;
   // Values the form opens on that are not saved yet; saving keeps them.
   starting?: Partial<DocumentDetailsFormValues>;
+  // The shared form schema checks every card's fields, so a rule for this card's fields only goes here.
+  refuse?: (
+    values: DocumentDetailsFormValues
+  ) => { field: DocumentDetailsField; message: string }[];
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const savedToast = useSavedToast();
@@ -74,6 +79,11 @@ export function useDocumentDetailsForm({
   const busy = update.isPending;
 
   const onSubmit = form.handleSubmit(async (values) => {
+    const refused = refuse?.(values) ?? [];
+    if (refused.length > 0) {
+      for (const { field, message } of refused) form.setError(field, { message });
+      return;
+    }
     const own = Object.fromEntries(fields.map((field) => [field, values[field]]));
     try {
       await inTurn(hashKey(queryKey), async () => {

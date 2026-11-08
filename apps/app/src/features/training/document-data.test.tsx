@@ -187,6 +187,39 @@ describe('client document data', () => {
     expect(screen.getByTestId('details-administrative-interval-12')).toBeTruthy();
   });
 
+  it('offers execution personnel every month from one to six', async () => {
+    mockApi({ positions: [welder] });
+    mount();
+
+    await screen.findByTestId('details-category-execution');
+    for (const months of [1, 2, 3, 4, 5, 6]) {
+      expect(screen.getByTestId(`details-worker-interval-${months}`)).toBeTruthy();
+    }
+  });
+
+  it('loads a saved interval outside the list, and asks for one from the list before saving', async () => {
+    mockApi({
+      details: { ...savedDetails, administrativeTrainingIntervalMonths: 9 },
+      positions: [welder, director],
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('training-program-edit'));
+    const administrative = screen.getByTestId('details-category-technical_administrative');
+    expect(administrative.textContent).toContain(
+      'Intervalul salvat, la 9 luni, nu mai e în listă. Alege unul din listă.'
+    );
+    await user.click(screen.getByTestId('training-program-save'));
+    expect(saves()).toEqual([]);
+
+    await user.click(screen.getByTestId('details-administrative-interval-6'));
+    await user.click(screen.getByTestId('training-program-save'));
+    await waitFor(() =>
+      expect(saves()).toEqual([{ ...savedDetails, administrativeTrainingIntervalMonths: 6 }])
+    );
+  });
+
   it('picks no duration or interval when the member clicks their label', async () => {
     mockApi({ positions: [welder] });
     mount();

@@ -1,4 +1,4 @@
-import type { StaffCategory } from '@ssm-usor/contracts';
+import { offeredTrainingInterval, type StaffCategory } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent } from '@ssm-usor/ui/components/card';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
@@ -25,7 +25,7 @@ import {
   type CategoryPosts,
   durationText,
   intervalFieldId,
-  legalMaxInterval,
+  startingInterval,
   trainingMonthsText,
 } from './schedule-rules';
 import {
@@ -341,6 +341,9 @@ function UnsavedIntervalNote({
   );
 }
 
+const formNumber = (value: string | undefined) =>
+  value && value !== notApplicable && /^[0-9]+$/.test(value) ? Number(value) : null;
+
 function TrainingProgramForm({
   saved,
   categories,
@@ -360,12 +363,25 @@ function TrainingProgramForm({
     .map(({ category }) => category)
     .filter((category) => savedInterval(saved, category) === null);
   const starting: Partial<DocumentDetailsFormValues> = Object.fromEntries(
-    unsaved.map((category) => [intervalField[category], String(legalMaxInterval('ssm', category))])
+    unsaved.map((category) => [intervalField[category], String(startingInterval('ssm', category))])
   );
   const startedBefore =
     sharedFields.some((field) => saved[field] !== null) ||
     categories.some(({ category }) => savedInterval(saved, category) !== null) ||
     categories.some(({ category }) => markedNotApplicable(saved, category));
+  const outsideList = (values: Partial<DocumentDetailsFormValues>) =>
+    categories.flatMap(({ category }) => {
+      const months = formNumber(values[intervalField[category]]);
+      return months !== null && !offeredTrainingInterval('ssm', category, months)
+        ? [
+            {
+              category,
+              field: intervalField[category],
+              message: `Intervalul salvat, la ${months} luni, nu mai e în listă. Alege unul din listă.`,
+            },
+          ]
+        : [];
+    });
   const { form, onSubmit, busy, locked } = useDocumentDetailsForm({
     saved,
     client,
@@ -373,6 +389,7 @@ function TrainingProgramForm({
     fields: [...sharedFields, ...categories.map(({ category }) => intervalField[category])],
     successMessage: 'Programul de instruire a fost salvat.',
     starting,
+    refuse: outsideList,
   });
   const formRef = useRevealErrors(form);
   const { errors, isDirty, isSubmitted } = form.formState;
@@ -384,8 +401,7 @@ function TrainingProgramForm({
     form.setValue(field, value, { shouldDirty: true });
     if (isSubmitted) void form.trigger(['trainingDayFrom', 'trainingDayTo']);
   };
-  const number = (value: string | undefined) =>
-    value && value !== notApplicable && /^[0-9]+$/.test(value) ? Number(value) : null;
+  const outside = outsideList(values);
 
   return (
     <form
@@ -401,8 +417,10 @@ function TrainingProgramForm({
         idPrefix="details"
         categories={categories.map((entry) => ({
           ...entry,
-          interval: number(values[intervalField[entry.category]]),
-          error: errors[intervalField[entry.category]],
+          interval: formNumber(values[intervalField[entry.category]]),
+          error:
+            errors[intervalField[entry.category]] ??
+            outside.find((problem) => problem.category === entry.category),
           fieldNote: (
             <OwnIntervalNote
               positions={ownInterval(positions, entry.category)}
@@ -414,14 +432,14 @@ function TrainingProgramForm({
               <UnsavedIntervalNote
                 saved={saved}
                 category={entry.category}
-                domainMax={legalMaxInterval('ssm', entry.category)}
+                domainMax={startingInterval('ssm', entry.category)}
               />
             ) : null,
         }))}
-        firstMonth={number(values.trainingFirstMonth)}
+        firstMonth={formNumber(values.trainingFirstMonth)}
         dayFrom={values.trainingDayFrom ?? ''}
         dayTo={values.trainingDayTo ?? ''}
-        duration={number(values.periodicTrainingMinutes)}
+        duration={formNumber(values.periodicTrainingMinutes)}
         disabled={locked}
         errors={{
           firstMonth: errors.trainingFirstMonth,
