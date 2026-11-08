@@ -60,22 +60,28 @@ export function useDocumentDetailsForm({
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const savedToast = useSavedToast();
   const update = useUpdateClientDocumentDetails({ request: apiRequest });
+  const queryKey = [...getGetClientDocumentDetailsQueryKey(client.id), userId];
+  // Saving sends only the card's own fields, so a starting value outside them would show and be lost.
+  const opening = Object.fromEntries(
+    fields.flatMap((field) => (field in starting ? [[field, starting[field]]] : []))
+  );
   const form = useForm<DocumentDetailsFormValues>({
     resolver: zodResolver(documentDetailsFormSchema),
-    defaultValues: { ...toDocumentDetailsForm(saved), ...starting },
+    defaultValues: { ...toDocumentDetailsForm(saved), ...opening },
   });
   const busy = update.isPending;
 
   const onSubmit = form.handleSubmit(async (values) => {
     const own = Object.fromEntries(fields.map((field) => [field, values[field]]));
-    const data = toDocumentDetailsRequest({ ...toDocumentDetailsForm(saved), ...own });
+    const latest =
+      queryClient.getQueryData<ClientDocumentDetailsResponse>(queryKey)?.documentDetails;
+    const data = toDocumentDetailsRequest({ ...toDocumentDetailsForm(latest ?? saved), ...own });
     try {
-      await update.mutateAsync({ clientId: client.id, data });
+      const response = await update.mutateAsync({ clientId: client.id, data });
+      queryClient.setQueryData(queryKey, response);
       // The client itself carries the representative's name too.
       await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: [...getGetClientDocumentDetailsQueryKey(client.id), userId],
-        }),
+        queryClient.invalidateQueries({ queryKey }),
         queryClient.invalidateQueries({ queryKey: getGetClientQueryKey(client.id) }),
       ]);
       savedToast(successMessage);
