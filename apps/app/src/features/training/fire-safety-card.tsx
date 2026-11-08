@@ -150,6 +150,7 @@ function useFireSafetySave<Values extends FieldValues>({
   userId,
   change,
   successMessage,
+  failureMessage,
   onDone,
 }: {
   form: UseFormReturn<Values>;
@@ -158,6 +159,7 @@ function useFireSafetySave<Values extends FieldValues>({
   userId: string;
   change: (values: Values) => Partial<UpdateClientFireSafetyRequest>;
   successMessage: string;
+  failureMessage: string;
   onDone: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
@@ -189,7 +191,7 @@ function useFireSafetySave<Values extends FieldValues>({
               ? 'Clientul nu mai există în organizația ta.'
               : status === 401
                 ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-                : 'Nu am putut salva instruirea SU. Verifică conexiunea și încearcă din nou.',
+                : failureMessage,
       });
     }
   });
@@ -342,6 +344,7 @@ function FireScheduleForm({
     userId,
     change: (values) => fireScheduleChange(values, categories),
     successMessage: 'Instruirea SU a fost salvată.',
+    failureMessage: 'Nu am putut salva instruirea SU. Verifică conexiunea și încearcă din nou.',
     onDone,
   });
   const formRef = useRevealErrors(form);
@@ -563,6 +566,8 @@ function FireRulesForm({
     userId,
     change: fireRulesChange,
     successMessage: 'Fumatul și deșeurile au fost salvate.',
+    failureMessage:
+      'Nu am putut salva fumatul și deșeurile. Verifică conexiunea și încearcă din nou.',
     onDone,
   });
   const formRef = useRevealErrors(form);
