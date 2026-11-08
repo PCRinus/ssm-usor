@@ -475,20 +475,22 @@ function MonthControl({
   );
 }
 
+const dayRefused = 'Scrie o zi între 1 și 31.';
+
 const dayProblem = (text: string) =>
-  /^\d{1,2}$/.test(text.trim()) && Number(text) >= 1 && Number(text) <= 31
-    ? null
-    : 'Scrie o zi între 1 și 31.';
+  /^\d{1,2}$/.test(text.trim()) && Number(text) >= 1 && Number(text) <= 31 ? null : dayRefused;
 
 function DayControl({
   id,
   label,
   value,
+  refused = null,
   onSave,
 }: {
   id: string;
   label: string;
   value: number | null;
+  refused?: string | null;
   onSave: (day: number) => void;
 }) {
   const [draft, setDraft] = useState(value === null ? '' : String(value));
@@ -507,7 +509,7 @@ function DayControl({
           inputMode="numeric"
           className="w-28"
           value={draft}
-          aria-invalid={Boolean(problem)}
+          aria-invalid={Boolean(problem ?? refused)}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
@@ -520,16 +522,20 @@ function DayControl({
           Folosește
         </Button>
       </span>
-      {problem && <span className="text-[13px] text-destructive">{problem}</span>}
+      {(problem ?? refused) && (
+        <span className="text-[13px] text-destructive">{problem ?? refused}</span>
+      )}
     </div>
   );
 }
 
 const plain = (field: TrainingField) => field.mode === 'value';
 
-const pendingOf = (field: TrainingField, context: FieldContext) =>
-  !field.settled ||
+const invalidAt = (field: TrainingField, context: FieldContext) =>
   context.blockers.some((blocker) => blocker.path === field.path && blocker.code === 'invalid');
+
+const pendingOf = (field: TrainingField, context: FieldContext) =>
+  !field.settled || invalidAt(field, context);
 
 function NoPostsImported({
   context,
@@ -719,6 +725,26 @@ export function TrainingImportCard({
               fieldNote: plain(field) ? sourceLine(field, context, 'La câte luni') : undefined,
             };
           })}
+          anchors={{
+            firstMonth: anchorOf(paths.firstMonth),
+            dayFrom: anchorOf(paths.dayFrom),
+            dayTo: anchorOf(paths.dayTo),
+            duration: anchorOf(paths.duration),
+          }}
+          errors={{
+            firstMonth:
+              plain(month) && invalidAt(month, context)
+                ? { message: 'Alege prima lună din listă.' }
+                : undefined,
+            dayFrom:
+              plain(dayFrom) && invalidAt(dayFrom, context)
+                ? { message: dayProblem(days.from) ?? dayRefused }
+                : undefined,
+            dayTo:
+              plain(dayTo) && invalidAt(dayTo, context)
+                ? { message: dayProblem(days.to) ?? dayRefused }
+                : undefined,
+          }}
           firstMonth={month.value}
           dayFrom={days.from}
           dayTo={days.to}
@@ -756,17 +782,26 @@ export function TrainingImportCard({
                         ] as const
                       ).map(([field, label]) =>
                         plain(field) ? (
-                          <div key={field.path} className="grid gap-2">
+                          <div
+                            key={field.path}
+                            id={anchorOf(field.path)}
+                            className="grid scroll-mt-32 gap-2"
+                          >
                             <span className="text-sm">{label}</span>
                             <DayControl
                               id={`review-${domain}-${field.path}-input`}
                               label={label}
                               value={field.value}
+                              refused={invalidAt(field, context) ? dayRefused : null}
                               onSave={(day) => save(field.state, day)}
                             />
                           </div>
                         ) : (
-                          <div key={field.path} id={anchorOf(field.path)} className="grid gap-2">
+                          <div
+                            key={field.path}
+                            id={anchorOf(field.path)}
+                            className="grid scroll-mt-32 gap-2"
+                          >
                             <span className="text-sm">{label}</span>
                             <FieldPicker
                               key={field.mode}

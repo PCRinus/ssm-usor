@@ -1933,6 +1933,35 @@ describe('the training cards', () => {
     expect(screen.getByTestId('import-confirm').getAttribute('aria-disabled')).toBe('true');
   });
 
+  it('gives every calendar field a place the hub links to, and says what a refused day needs', async () => {
+    mockReview(
+      readyDetail({
+        proposal: (() => {
+          const proposal = proposalFixture();
+          proposal.trainingSchedule.trainingDayFrom = { options: [option(35)] } as never;
+          return proposal;
+        })(),
+        blockers: [{ path: 'trainingSchedule.trainingDayFrom', code: 'invalid' }],
+      })
+    );
+    mount('/training');
+
+    expect((await screen.findByTestId('review-ssm-day-from-error')).textContent).toBe(
+      'Scrie o zi între 1 și 31.'
+    );
+    for (const path of [
+      'trainingSchedule.trainingFirstMonth',
+      'trainingSchedule.trainingDayFrom',
+      'trainingSchedule.trainingDayTo',
+      'trainingSchedule.periodicTrainingMinutes',
+      'fireSafety.trainingFirstMonth',
+      'fireSafety.periodicTrainingHours',
+    ]) {
+      expect(block(path)).toBeTruthy();
+    }
+    expect(within(block('trainingSchedule.trainingDayFrom')).getByRole('textbox')).toBeTruthy();
+  });
+
   it('shows a duration outside the list as not to be picked, with the list open', async () => {
     mockReview(
       trainingDetail((proposal) => {

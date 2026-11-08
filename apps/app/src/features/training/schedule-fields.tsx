@@ -199,6 +199,7 @@ export type ScheduleFieldsProps = {
   disabled: boolean;
   errors?: { firstMonth?: Problem; dayFrom?: Problem; dayTo?: Problem; duration?: Problem };
   notes?: CalendarSlots;
+  anchors?: { firstMonth?: string; dayFrom?: string; dayTo?: string; duration?: string };
   // In place of a field's own control, as `control` is for an interval.
   controls?: CalendarSlots;
   // Where posts are added; it ends the sentence about a category without posts.
@@ -231,6 +232,7 @@ export function TrainingScheduleFields({
   disabled,
   errors = {},
   notes = {},
+  anchors = {},
   controls = {},
   postsLink,
   noPostsAction,
@@ -343,7 +345,7 @@ export function TrainingScheduleFields({
           Calendarul instruirii
         </h3>
 
-        <div className="grid gap-2">
+        <div id={anchors.firstMonth} className="grid scroll-mt-32 gap-2">
           <label htmlFor={ids.firstMonth} className={fieldLabel}>
             Prima lună
           </label>
@@ -399,7 +401,7 @@ export function TrainingScheduleFields({
                     ['dayTo', 'Până la ziua', dayTo, onDayToChange],
                   ] as const
                 ).map(([key, label, value, onChange]) => (
-                  <div key={key} className="grid gap-2 sm:w-28">
+                  <div key={key} id={anchors[key]} className="grid scroll-mt-32 gap-2 sm:w-28">
                     <label htmlFor={ids[key]} className="text-sm leading-none">
                       {label}
                     </label>
@@ -439,7 +441,7 @@ export function TrainingScheduleFields({
           {notes.days}
         </fieldset>
 
-        <div className="grid gap-2">
+        <div id={anchors.duration} className="grid scroll-mt-32 gap-2">
           <p className={fieldLabel}>{durationChoices.label}</p>
           {controls.duration ?? (
             <>
