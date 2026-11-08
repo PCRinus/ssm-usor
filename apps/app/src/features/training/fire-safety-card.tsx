@@ -19,6 +19,7 @@ import {
 
 import {
   type ApiErrorResponse,
+  type ClientFireSafetyResponse,
   getGetClientFireSafetyQueryKey,
   type UpdateClientFireSafetyRequest,
   useGetClientFireSafety,
@@ -163,15 +164,17 @@ function useFireSafetySave<Values extends FieldValues>({
   const savedToast = useSavedToast();
   const update = useUpdateClientFireSafety({ request: apiRequest });
 
+  const queryKey = [...getGetClientFireSafetyQueryKey(clientId), userId];
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      await update.mutateAsync({
+      // `saved` is from the last render, and the other card may have saved since.
+      const latest = queryClient.getQueryData<ClientFireSafetyResponse>(queryKey)?.fireSafety;
+      const response = await update.mutateAsync({
         clientId,
-        data: { ...fireSafetyRequest(saved), ...change(values) },
+        data: { ...fireSafetyRequest(latest ?? saved), ...change(values) },
       });
-      await queryClient.invalidateQueries({
-        queryKey: [...getGetClientFireSafetyQueryKey(clientId), userId],
-      });
+      queryClient.setQueryData(queryKey, response);
+      await queryClient.invalidateQueries({ queryKey });
       savedToast(successMessage);
       onDone();
     } catch (cause) {
