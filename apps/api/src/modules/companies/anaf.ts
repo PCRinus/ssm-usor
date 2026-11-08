@@ -1,4 +1,9 @@
-import { type CompanyLookup, countyCodeSchema } from '@ssm-usor/contracts';
+import {
+  type CompanyLookup,
+  countyCodeSchema,
+  isValidIban,
+  normalizeIban,
+} from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import { ApiError } from '../../lib/errors';
@@ -17,6 +22,8 @@ const anafResponseSchema = z.object({
         nrRegCom: text,
         cod_CAEN: text,
         stare_inregistrare: text,
+        telefon: text,
+        iban: text,
       }),
       inregistrare_scop_Tva: z
         .object({ scpTVA: z.boolean().catch(false) })
@@ -49,6 +56,25 @@ const clean = (value: string | undefined) => {
   return normalized ? normalized : null;
 };
 
+// Two numbers or a note in ANAF's field leave the phone empty rather than half filled.
+const phoneCharacters = /^\+?[0-9\s.()-]+$/;
+
+export function anafPhone(value: string) {
+  const input = value.trim();
+  if (!phoneCharacters.test(input)) return null;
+  const phone = input
+    .replace(/[.()-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const digits = phone.replace(/\D/g, '').length;
+  return digits >= 6 && digits <= 15 && phone.length <= 20 ? phone : null;
+}
+
+export function anafIban(value: string) {
+  const iban = normalizeIban(value);
+  return /^RO[0-9A-Z]{22}$/.test(iban) && isValidIban(iban) ? iban : null;
+}
+
 export function mapAnafCompany(
   entry: z.infer<typeof anafResponseSchema>['found'][number]
 ): CompanyLookup {
@@ -69,6 +95,8 @@ export function mapAnafCompany(
     countyCode: county.success ? county.data : null,
     locality: clean(office.sdenumire_Localitate),
     addressLine: addressLine || null,
+    phone: anafPhone(general.telefon),
+    iban: anafIban(general.iban),
     registrationStatus: clean(general.stare_inregistrare),
     inactive: entry.stare_inactiv.statusInactivi,
   };

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
 import type { ApiEnv } from '../../lib/env';
-import { anafLookupUrl, normalizeDiacritics } from './anaf';
+import { anafIban, anafLookupUrl, anafPhone, normalizeDiacritics } from './anaf';
 
 const env: ApiEnv['Bindings'] = {
   SUPABASE_URL: 'https://example.supabase.co',
@@ -99,6 +99,8 @@ describe('GET /companies/lookup', () => {
         countyCode: 'B',
         locality: 'Sector 1 Mun. București',
         addressLine: 'Str. Coralilor, nr. 22, (PETROM CITY)',
+        phone: null,
+        iban: null,
         registrationStatus: 'INREGISTRAT din data 23.10.1997',
         inactive: false,
       },
@@ -109,6 +111,32 @@ describe('GET /companies/lookup', () => {
       { cui: 1590082, data: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
     ]);
     expect(init?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('maps the phone and the IBAN ANAF holds', async () => {
+    mockUpstream(() =>
+      Response.json({
+        found: [
+          {
+            date_generale: {
+              cui: 12345674,
+              denumire: 'BRUTĂRIA FICTIVĂ SRL',
+              nrRegCom: 'J35/123/2015',
+              cod_CAEN: '1071',
+              telefon: ' 0256 000 111 ',
+              iban: 'ro49 aaaa 1b31 0075 9384 0000',
+            },
+          },
+        ],
+        notFound: [],
+      })
+    );
+    const response = await lookup('12345674');
+    expect(response.status).toBe(200);
+    expect(companyLookupResponseSchema.parse(await response.json()).company).toMatchObject({
+      phone: '0256 000 111',
+      iban: 'RO49AAAA1B31007593840000',
+    });
   });
 
   it('tolerates missing optional blocks', async () => {
@@ -132,6 +160,8 @@ describe('GET /companies/lookup', () => {
       countyCode: null,
       locality: null,
       addressLine: null,
+      phone: null,
+      iban: null,
       inactive: false,
     });
   });
@@ -198,4 +228,29 @@ describe('GET /companies/lookup', () => {
 
 it('normalizes cedilla diacritics to comma-below forms', () => {
   expect(normalizeDiacritics('Bucureşti Ţara Şoseaua ţ')).toBe('București Țara Șoseaua ț');
+});
+
+it.each([
+  ['0256000111', '0256000111'],
+  ['+40 256 000 111', '+40 256 000 111'],
+  ['(0256) 000-111', '0256 000 111'],
+  ['0256.000.111', '0256 000 111'],
+  ['', null],
+  ['0', null],
+  ['0256000111 / 0745000222', null],
+  ['tel 0256000111', null],
+  ['0256+000111', null],
+])('reads the ANAF phone %j as %j', (value, phone) => {
+  expect(anafPhone(value)).toBe(phone);
+});
+
+it.each([
+  ['RO49AAAA1B31007593840000', 'RO49AAAA1B31007593840000'],
+  ['ro49 aaaa 1b31 0075 9384 0000', 'RO49AAAA1B31007593840000'],
+  ['', null],
+  ['RO49AAAA1B3100759384000', null],
+  ['RO48AAAA1B31007593840000', null],
+  ['DE89370400440532013000', null],
+])('reads the ANAF IBAN %j as %j', (value, iban) => {
+  expect(anafIban(value)).toBe(iban);
 });

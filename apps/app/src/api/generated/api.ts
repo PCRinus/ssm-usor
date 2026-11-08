@@ -1266,6 +1266,10 @@ export type CompanyLookupResponseCompany = {
   /** @nullable */
   addressLine: string | null;
   /** @nullable */
+  phone: string | null;
+  /** @nullable */
+  iban: string | null;
+  /** @nullable */
   registrationStatus: string | null;
   inactive: boolean;
 };

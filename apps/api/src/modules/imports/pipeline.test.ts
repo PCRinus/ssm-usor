@@ -737,6 +737,8 @@ function deps(overrides: Partial<PipelineDeps> = {}): PipelineDeps {
               countyCode: 'TM',
               locality: 'Timișoara',
               addressLine: null,
+              phone: null,
+              iban: null,
               registrationStatus: null,
               inactive: false,
             }
