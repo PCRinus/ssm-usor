@@ -165,6 +165,7 @@ export const intervalOptions = [
   { months: 2, label: 'La 2 luni' },
   { months: 3, label: 'Trimestrial (la 3 luni)' },
   { months: 4, label: 'La 4 luni' },
+  { months: 5, label: 'La 5 luni' },
   { months: 6, label: 'Semestrial (la 6 luni)' },
   { months: 12, label: 'Anual (la 12 luni)' },
 ] as const;
