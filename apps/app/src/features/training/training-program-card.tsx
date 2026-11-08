@@ -2,7 +2,6 @@ import type { StaffCategory } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent } from '@ssm-usor/ui/components/card';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { Link } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
 import { useWatch } from 'react-hook-form';
 
@@ -14,7 +13,13 @@ import { useJobPositionOptions } from '@/features/job-positions/use-job-position
 import { useFocusRequest } from '@/features/missing-data/focus';
 
 import { type DocumentDetailsFormValues, notApplicable } from './document-details-schema';
-import { CategoryBlock, NoPostsBlock, TrainingScheduleFields } from './schedule-fields';
+import { PositionsButton, PositionsLink } from './positions-links';
+import {
+  CategoryBlock,
+  NoPostsBlock,
+  SessionSentence,
+  TrainingScheduleFields,
+} from './schedule-fields';
 import {
   categoriesWithPosts,
   type CategoryPosts,
@@ -210,50 +215,6 @@ function TrainingProgramCard({
         </p>
       )}
     </SectionCard>
-  );
-}
-
-function PositionsLink({ clientId }: { clientId: string }) {
-  return (
-    <Link
-      to="/clienti/$clientId/posturi"
-      params={{ clientId }}
-      className="underline underline-offset-4"
-    >
-      Posturi de lucru
-    </Link>
-  );
-}
-
-function PositionsButton({ clientId }: { clientId: string }) {
-  return (
-    <Button asChild variant="outline" size="sm">
-      <Link to="/clienti/$clientId/posturi" params={{ clientId }}>
-        Deschide Posturi de lucru
-      </Link>
-    </Button>
-  );
-}
-
-export function SessionSentence({
-  duration,
-  dayFrom,
-  dayTo,
-}: {
-  duration: string;
-  dayFrom: number;
-  dayTo: number;
-}) {
-  return (
-    <>
-      Fiecare instruire durează <span className="font-medium">{duration}</span> și are loc{' '}
-      <span className="font-medium">
-        {dayFrom === dayTo
-          ? `în ziua de ${dayFrom} a lunii`
-          : `între zilele ${dayFrom} și ${dayTo} ale lunii`}
-      </span>
-      .
-    </>
   );
 }
 
