@@ -19,12 +19,12 @@ import {
   Plus,
   Wrench,
 } from 'lucide-react';
-import { useId, useState } from 'react';
+import { type ReactNode, useId, useState } from 'react';
 
 import { Segmented } from '@/components/segmented';
 import { articleCountLabel, groupLabels } from '@/features/instructions/instruction-schema';
 
-import { IncludeSwitch } from '../include-switch';
+import { Includable } from '../include-switch';
 import { EditedTag, SourceButton, Tag } from '../review-parts';
 import { DecisionRow, PendingNote, RenameRow, type Tone } from './decision-row';
 import { LibraryDifferences } from './library-differences';
@@ -134,7 +134,7 @@ export function InstructionRow({
       : `${shownArticles}, ca în document`;
   const flags = flagLines(instruction.flags);
 
-  return (
+  const card = (toggle: ReactNode, open: boolean) => (
     <article
       data-testid="library-instruction"
       data-status={instruction.status}
@@ -142,7 +142,7 @@ export function InstructionRow({
       aria-labelledby={`${id}-title`}
       className={cn(
         'overflow-hidden rounded-xl border bg-card shadow-xs',
-        !row.included && 'bg-muted/40 shadow-none'
+        !open && 'bg-muted/40 shadow-none'
       )}
     >
       <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-start gap-x-3.5 gap-y-1.5 px-4 py-4 sm:grid-cols-[2.5rem_minmax(0,1fr)_auto_auto] sm:items-center sm:gap-x-4 sm:px-5">
@@ -150,7 +150,7 @@ export function InstructionRow({
           className={cn(
             'flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-secondary',
             editable && 'row-span-2 sm:row-span-1',
-            !row.included && 'text-muted-foreground'
+            !open && 'text-muted-foreground'
           )}
         >
           <Icon className="size-5" aria-hidden="true" />
@@ -161,17 +161,17 @@ export function InstructionRow({
               id={`${id}-title`}
               className={cn(
                 'text-base leading-snug font-semibold wrap-anywhere',
-                !row.included && 'text-muted-foreground'
+                !open && 'text-muted-foreground'
               )}
               data-testid="library-instruction-title"
             >
               {row.usesLibrary && instruction.match ? instruction.match.title : row.title}
             </h3>
-            {row.included &&
+            {open &&
               (similar ? <Tag tone="warning">Asemănătoare</Tag> : <Tag tone="info">Nouă</Tag>)}
-            {row.included && row.edited.body && <EditedTag>Modificată de tine</EditedTag>}
+            {open && row.edited.body && <EditedTag>Modificată de tine</EditedTag>}
           </div>
-          {row.included && (
+          {open && (
             <p className="flex flex-wrap gap-x-3.5 text-[13px] text-muted-foreground">
               {row.usesLibrary && <span>{groupLabels[row.category]}</span>}
               <span>{articleCountLabel(instruction.articleCount).toLowerCase()}</span>
@@ -187,21 +187,12 @@ export function InstructionRow({
             />
           </div>
         )}
-        <IncludeSwitch
-          id={`include-instruction-${instruction.key}`}
-          name={row.title}
-          included={row.included}
-          agreement="feminine"
-          disabled={readOnly}
-          testId="library-instruction-included"
-          className="col-start-3 row-start-1 mt-0.5 justify-self-end sm:col-start-4 sm:mt-0"
-          onChange={(checked) =>
-            onChange((current) => withChange(current, 'included', checked ? undefined : false))
-          }
-        />
+        <div className="col-start-3 row-start-1 mt-0.5 justify-self-end sm:col-start-4 sm:mt-0">
+          {toggle}
+        </div>
       </div>
 
-      {row.included && (
+      {open && (
         <>
           {similar && instruction.match && (
             <>
@@ -409,5 +400,22 @@ export function InstructionRow({
         </>
       )}
     </article>
+  );
+  return (
+    <Includable
+      id={`include-instruction-${instruction.key}`}
+      name={row.title}
+      included={row.included}
+      proposed
+      agreement="feminine"
+      disabled={readOnly}
+      testId="library-instruction-included"
+      collapsed={(toggle) => card(toggle, false)}
+      onChange={(checked) =>
+        onChange((current) => withChange(current, 'included', checked ? undefined : false))
+      }
+    >
+      {(toggle) => card(toggle, true)}
+    </Includable>
   );
 }

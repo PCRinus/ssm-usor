@@ -37,7 +37,7 @@ import {
 import { CountyCombobox } from '@/features/clients/county-combobox';
 
 import { endSentence } from './import-format';
-import { IncludeSwitch } from './include-switch';
+import { Includable } from './include-switch';
 import { DecisionRow, PendingNote, type Tone } from './library/decision-row';
 import { phoneDiff } from './phone-diff';
 import {
@@ -740,7 +740,7 @@ function ValueRow({
         ? 'warning'
         : 'done';
 
-  return (
+  const row = (toggle?: ReactNode) => (
     <DecisionRow
       tone={tone}
       top={Boolean(spelling) || unticked}
@@ -749,20 +749,7 @@ function ValueRow({
       testId="review-row"
       label={state.label}
       actions={rowActions(state, context, unticked ? undefined : onEdit)}
-      toggle={
-        excludable && (
-          <IncludeSwitch
-            id={`include-${state.path}`}
-            name={state.label}
-            included={!unticked}
-            agreement="feminine"
-            testId="review-include-field"
-            onChange={(included) =>
-              context.review.setField(state.path, included === ownValue ? null : { included })
-            }
-          />
-        )
-      }
+      toggle={toggle}
     >
       {unticked ? (
         <>
@@ -829,6 +816,23 @@ function ValueRow({
         </RowNote>
       ))}
     </DecisionRow>
+  );
+  if (!excludable) return row();
+  return (
+    <Includable
+      id={`include-${state.path}`}
+      name={state.label}
+      included={!unticked}
+      proposed={ownValue}
+      agreement="feminine"
+      testId="review-include-field"
+      collapsedClassName="border-t border-border/70 px-4 py-3 sm:px-5"
+      onChange={(included) =>
+        context.review.setField(state.path, included === ownValue ? null : { included })
+      }
+    >
+      {row}
+    </Includable>
   );
 }
 

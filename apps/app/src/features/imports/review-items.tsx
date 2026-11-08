@@ -32,7 +32,7 @@ import {
 } from '@/features/job-positions/job-position-schema';
 import { allocationLabels } from '@/features/protective-equipment/equipment-schema';
 
-import { type Agreement, IncludeSwitch, LeftOutRow, SwitchRow } from './include-switch';
+import { type Agreement, Includable, SwitchRow } from './include-switch';
 import { type ItemDialogField, ItemEditDialog } from './item-edit-dialog';
 import type { FieldContext } from './review-fields';
 import {
@@ -211,97 +211,104 @@ function ItemRow({
       (field !== 'roles' || roles.includes(role ?? ''))
     );
   });
+  const row = (toggle?: ReactNode) => (
+    <SwitchRow
+      title={
+        <>
+          <span className="text-sm font-medium wrap-anywhere">{title}</span>
+          {state.edited && <EditedTag />}
+        </>
+      }
+      toggle={toggle}
+      details={
+        <>
+          {state.item.otherCompanyName && (
+            <Tag tone="info" className="w-fit">
+              De la {state.item.otherCompanyName}
+            </Tag>
+          )}
+          {details.filter(Boolean).map((detail, index) => (
+            <span key={index} className="text-[13px] text-muted-foreground wrap-anywhere">
+              {detail}
+            </span>
+          ))}
+          {itemSpellings(state, context.changes).map(({ field, value, written, keptWritten }) => (
+            <div key={field} className="mt-1 grid gap-1">
+              <span className="text-[13px] font-medium">{itemSpellingLabel(field)}</span>
+              <SpellingChoice
+                label={itemSpellingLabel(field)}
+                corrected={value}
+                written={written}
+                keptWritten={keptWritten}
+                onPick={(keep) =>
+                  context.review.setItem(state.item.id, (current) => {
+                    const values = Object.fromEntries(
+                      Object.entries(current.values ?? {}).filter(([key]) => key !== field)
+                    );
+                    if (keep) values[field] = written;
+                    return { ...current, values };
+                  })
+                }
+              />
+            </div>
+          ))}
+          {blockers.map((blocker) => {
+            const field = blocker.path.split('.')[2];
+            return (
+              <RowNote key={`${blocker.path}-${blocker.code}`} tone="danger">
+                {state.list === 'protectiveEquipment' && field === 'durationMonths'
+                  ? durationBlockerNote(blocker.code, state.values)
+                  : state.list === 'workplaces' && field === 'isRegisteredOffice'
+                    ? secondRegisteredOfficeNote
+                    : blocker.code === 'unknown_reference'
+                      ? `Alege ${itemFieldLabel(field ?? 'workplace')}.`
+                      : blocker.code === 'invalid'
+                        ? `Corectează ${field ? itemFieldLabel(field) : 'datele'}.`
+                        : `Lipsește ${field ? itemFieldLabel(field) : 'o dată obligatorie'}.`}
+              </RowNote>
+            );
+          })}
+          <NameChoice state={state} context={context} />
+          {flags.map((flag) => (
+            <RowNote key={`${flag.path}-${flag.code}`}>
+              {flagNote(flag, context.proposal, context.changes)}
+            </RowNote>
+          ))}
+        </>
+      }
+      actions={
+        <>
+          <SourceButton
+            sources={sources}
+            onOpen={() => context.openSource(title, sources, state.item.otherCompanyName)}
+          />
+          {onEdit && <EditButton onClick={onEdit} />}
+        </>
+      }
+    />
+  );
   return (
     <li
       id={anchorOf(`${state.list}.${state.item.id}`)}
       data-testid="review-item"
+      data-included={state.included}
       className="scroll-mt-32 py-3"
     >
-      <SwitchRow
-        title={
-          <>
-            <span className="text-sm font-medium wrap-anywhere">{title}</span>
-            {state.edited && <EditedTag />}
-          </>
-        }
-        toggle={
-          excludable && (
-            <IncludeSwitch
-              id={switchIdOf(state)}
-              name={title}
-              included
-              agreement={agreement}
-              testId="review-include-item"
-              onChange={(included) => setIncluded(context, state, included)}
-            />
-          )
-        }
-        details={
-          <>
-            {state.item.otherCompanyName && (
-              <Tag tone="info" className="w-fit">
-                De la {state.item.otherCompanyName}
-              </Tag>
-            )}
-            {details.filter(Boolean).map((detail, index) => (
-              <span key={index} className="text-[13px] text-muted-foreground wrap-anywhere">
-                {detail}
-              </span>
-            ))}
-            {itemSpellings(state, context.changes).map(({ field, value, written, keptWritten }) => (
-              <div key={field} className="mt-1 grid gap-1">
-                <span className="text-[13px] font-medium">{itemSpellingLabel(field)}</span>
-                <SpellingChoice
-                  label={itemSpellingLabel(field)}
-                  corrected={value}
-                  written={written}
-                  keptWritten={keptWritten}
-                  onPick={(keep) =>
-                    context.review.setItem(state.item.id, (current) => {
-                      const values = Object.fromEntries(
-                        Object.entries(current.values ?? {}).filter(([key]) => key !== field)
-                      );
-                      if (keep) values[field] = written;
-                      return { ...current, values };
-                    })
-                  }
-                />
-              </div>
-            ))}
-            {blockers.map((blocker) => {
-              const field = blocker.path.split('.')[2];
-              return (
-                <RowNote key={`${blocker.path}-${blocker.code}`} tone="danger">
-                  {state.list === 'protectiveEquipment' && field === 'durationMonths'
-                    ? durationBlockerNote(blocker.code, state.values)
-                    : state.list === 'workplaces' && field === 'isRegisteredOffice'
-                      ? secondRegisteredOfficeNote
-                      : blocker.code === 'unknown_reference'
-                        ? `Alege ${itemFieldLabel(field ?? 'workplace')}.`
-                        : blocker.code === 'invalid'
-                          ? `Corectează ${field ? itemFieldLabel(field) : 'datele'}.`
-                          : `Lipsește ${field ? itemFieldLabel(field) : 'o dată obligatorie'}.`}
-                </RowNote>
-              );
-            })}
-            <NameChoice state={state} context={context} />
-            {flags.map((flag) => (
-              <RowNote key={`${flag.path}-${flag.code}`}>
-                {flagNote(flag, context.proposal, context.changes)}
-              </RowNote>
-            ))}
-          </>
-        }
-        actions={
-          <>
-            <SourceButton
-              sources={sources}
-              onOpen={() => context.openSource(title, sources, state.item.otherCompanyName)}
-            />
-            {onEdit && <EditButton onClick={onEdit} />}
-          </>
-        }
-      />
+      {excludable ? (
+        <Includable
+          id={switchIdOf(state)}
+          name={title}
+          included={state.included}
+          proposed={state.proposed}
+          agreement={agreement}
+          testId="review-include-item"
+          onChange={(included) => setIncluded(context, state, included)}
+        >
+          {row}
+        </Includable>
+      ) : (
+        row()
+      )}
     </li>
   );
 }
@@ -367,32 +374,37 @@ function OptionalBox({
               data-testid="review-optional-item"
               className="py-2.5"
             >
-              <SwitchRow
-                title={<span className="text-sm font-medium wrap-anywhere">{name}</span>}
-                toggle={
-                  <IncludeSwitch
-                    id={switchIdOf(state)}
-                    name={name}
-                    included={state.included}
-                    agreement={agreement}
-                    testId="review-include-item"
-                    onChange={(included) => setIncluded(context, state, included)}
-                  />
-                }
-                details={
-                  line && (
-                    <span className="text-[13px] text-muted-foreground wrap-anywhere">{line}</span>
-                  )
-                }
-                actions={
-                  <SourceButton
-                    sources={itemSources(state)}
-                    onOpen={() =>
-                      context.openSource(name, itemSources(state), state.item.otherCompanyName)
+              <Includable
+                id={switchIdOf(state)}
+                name={name}
+                included={state.included}
+                proposed={state.proposed}
+                agreement={agreement}
+                testId="review-include-item"
+                onChange={(included) => setIncluded(context, state, included)}
+              >
+                {(toggle) => (
+                  <SwitchRow
+                    title={<span className="text-sm font-medium wrap-anywhere">{name}</span>}
+                    toggle={toggle}
+                    details={
+                      line && (
+                        <span className="text-[13px] text-muted-foreground wrap-anywhere">
+                          {line}
+                        </span>
+                      )
+                    }
+                    actions={
+                      <SourceButton
+                        sources={itemSources(state)}
+                        onOpen={() =>
+                          context.openSource(name, itemSources(state), state.item.otherCompanyName)
+                        }
+                      />
                     }
                   />
-                }
-              />
+                )}
+              </Includable>
             </li>
           );
         })}
@@ -447,29 +459,7 @@ function ListCard({
       {rows.length === 0 ? (
         <p className="py-2 text-sm text-muted-foreground">{empty}</p>
       ) : (
-        <ul className="divide-y">
-          {rows.map((state) =>
-            state.included ? (
-              render(state)
-            ) : (
-              <li
-                key={state.item.id}
-                id={anchorOf(`${state.list}.${state.item.id}`)}
-                data-testid="review-item"
-                data-included="false"
-                className="scroll-mt-32 py-3"
-              >
-                <LeftOutRow
-                  switchId={switchIdOf(state)}
-                  name={itemName(state.list, state.values)}
-                  agreement={agreement}
-                  switchTestId="review-include-item"
-                  onInclude={() => setIncluded(context, state, true)}
-                />
-              </li>
-            )
-          )}
-        </ul>
+        <ul className="divide-y">{rows.map(render)}</ul>
       )}
       {untickedBox?.(aside.filter((state) => state.untickedReason !== 'other_company'))}
       <OtherCompanyBox

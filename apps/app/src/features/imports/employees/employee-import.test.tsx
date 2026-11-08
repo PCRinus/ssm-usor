@@ -394,50 +394,57 @@ describe('the person page', () => {
     expect(saved(0).changes.people).toEqual({ pop: { state: 'checked' } });
   });
 
-  it('sets a person aside with the switch beside the name, and says the state it keeps', async () => {
+  it('sets a person aside with the one switch beside the name, and takes them back', async () => {
     mockEmployeeImport();
     const user = userEvent.setup();
     mount(`${importPath}/pop`);
     await screen.findByTestId('person-page');
     expect(screen.queryByRole('button', { name: 'Lasă-l deoparte' })).toBeNull();
-    expect(screen.queryByRole('switch', { name: 'Inclus: Pop Elena' })).toBeNull();
+    expect(screen.getByTestId('person-state').textContent).toBe('De verificat');
 
-    await user.click(screen.getByRole('switch', { name: 'De verificat: Pop Elena' }));
+    await user.click(screen.getByRole('switch', { name: 'Inclus: Pop Elena' }));
     await waitFor(() =>
       expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(1)
     );
     expect(saved(0).changes.people.pop).toEqual({ state: 'set_aside' });
-    expect(screen.getByTestId('person-state').textContent).toBe('Lăsat deoparte');
-    expect(screen.queryByTestId('person-set-aside-word')).toBeNull();
+    expect(screen.getByTestId('person-page').dataset.state).toBe('set_aside');
+    expect(screen.queryByTestId('person-state')).toBeNull();
+    expect(screen.getByTestId('person-include-word').textContent).toBe('Nu e inclus');
 
-    await user.click(screen.getByRole('switch', { name: 'Lăsat deoparte: Pop Elena' }));
+    await user.click(screen.getByRole('switch', { name: 'Nu e inclus: Pop Elena' }));
     await waitFor(() =>
       expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(2)
     );
     expect(saved(1).changes.people.pop?.state).toBeUndefined();
     expect(screen.getByTestId('person-state').textContent).toBe('De verificat');
-    expect(document.activeElement).toBe(
-      screen.getByRole('switch', { name: 'De verificat: Pop Elena' })
-    );
+    expect(document.activeElement).toBe(screen.getByRole('switch', { name: 'Inclus: Pop Elena' }));
   });
 
-  it('leaves the decision on a leaver to the leaving card, with no switch beside the name', async () => {
+  it('takes a leaver with the same switch beside the name, which the leaving card explains', async () => {
     mockEmployeeImport({ detail: popWith({ leftOn: '2025-06-30' }) });
     const user = userEvent.setup();
     mount(`${importPath}/pop`);
     const card = await screen.findByTestId('person-decide-leaver');
-    expect(screen.queryByTestId('person-set-aside')).toBeNull();
-
-    await user.click(
-      within(card).getByRole('switch', { name: 'Nu e inclus: Pop Elena, ca fost lucrător' })
+    expect(within(card).queryByRole('switch')).toBeNull();
+    expect(screen.getAllByRole('switch', { name: /: Pop Elena$/ })).toHaveLength(1);
+    expect(screen.getByTestId('person-leaver-note').textContent).toContain(
+      'Nu îl preluăm decât dacă pornești comutatorul de lângă nume'
     );
+
+    await user.click(screen.getByRole('switch', { name: 'Nu e inclus: Pop Elena' }));
     await waitFor(() =>
       expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(1)
     );
     expect(saved(0).changes.people.pop).toEqual({ included: true });
-    expect(
-      within(card).getByRole('switch', { name: 'Inclus: Pop Elena, ca fost lucrător' })
-    ).toBeTruthy();
+    expect(screen.getByTestId('person-leaver-note').textContent).toContain(
+      'Îl preluăm ca fost lucrător'
+    );
+
+    await user.click(screen.getByRole('switch', { name: 'Inclus: Pop Elena' }));
+    await waitFor(() =>
+      expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(2)
+    );
+    expect(saved(1).changes.people.pop).toEqual({ state: 'set_aside' });
   });
 
   it('keeps an annual test the sheet proposed off open with its reason', async () => {

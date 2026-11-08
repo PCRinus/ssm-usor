@@ -26,7 +26,7 @@ import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { roCount } from '@/features/employees/employee-format';
 
-import { IncludeSwitch, LeftOutRow } from '../include-switch';
+import { Includable } from '../include-switch';
 import { Tag } from '../review-parts';
 import {
   type Changes,
@@ -121,19 +121,6 @@ function TrainingRow({
   const name = `Instruirea ${trainingPhaseLabels[row.phase].toLowerCase()} din ${date ?? 'data necitită'}`;
   const include = (next: boolean) =>
     onChange((current) => withRow(current, row.id, (change) => ({ ...change, included: next })));
-  if (!included && proposedRowIncluded(row, matched)) {
-    return (
-      <li className="py-2.5" data-testid="person-training-row" data-included={false}>
-        <LeftOutRow
-          switchId={`include-row-${row.id}`}
-          name={name}
-          agreement="feminine"
-          switchTestId="person-row-include"
-          onInclude={() => include(true)}
-        />
-      </li>
-    );
-  }
   const note = rowNote(row, values, included, personName(context, person));
   const missing = (value: unknown, label: string) =>
     value === null || value === '' ? (
@@ -147,60 +134,71 @@ function TrainingRow({
       data-testid="person-training-row"
       data-included={included}
     >
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 sm:grid-cols-[1.5rem_6.5rem_5rem_minmax(0,1fr)_auto_auto]">
-        <span className="col-start-1 row-start-1 flex flex-wrap items-center gap-1.5 text-sm tabular-nums sm:col-start-2">
-          {date ?? missing(null, 'Data nu se citește')}
-        </span>
-        <IncludeSwitch
-          id={`include-row-${row.id}`}
-          name={name}
-          included={included}
-          agreement="feminine"
-          testId="person-row-include"
-          className="col-start-2 row-start-1 h-6 sm:col-start-6"
-          onChange={include}
-        />
-        <span className="order-last col-span-2 flex items-center gap-3 sm:contents">
-          <span className="flex sm:col-start-1 sm:row-start-1">
-            <PageButton pages={pages} pageId={page.id} />
-          </span>
-          <span className="flex sm:col-start-5 sm:row-start-1">
-            <Button
-              type="button"
-              variant="link"
-              size="sm"
-              className="h-6 px-1"
-              onClick={() => onEdit(row)}
-            >
-              Schimbă<span className="sr-only"> instruirea din {date ?? 'data necitită'}</span>
-            </Button>
-          </span>
-        </span>
-        {row.phase !== 'periodic' && (
-          <span className="col-span-2 text-sm sm:hidden">{trainingPhaseLabels[row.phase]}</span>
+      <Includable
+        id={`include-row-${row.id}`}
+        name={name}
+        included={included}
+        proposed={proposedRowIncluded(row, matched)}
+        agreement="feminine"
+        testId="person-row-include"
+        onChange={include}
+      >
+        {(toggle) => (
+          <>
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 sm:grid-cols-[1.5rem_6.5rem_5rem_minmax(0,1fr)_auto_auto]">
+              <span className="col-start-1 row-start-1 flex flex-wrap items-center gap-1.5 text-sm tabular-nums sm:col-start-2">
+                {date ?? missing(null, 'Data nu se citește')}
+              </span>
+              <span className="col-start-2 row-start-1 flex h-6 items-center sm:col-start-6">
+                {toggle}
+              </span>
+              <span className="order-last col-span-2 flex items-center gap-3 sm:contents">
+                <span className="flex sm:col-start-1 sm:row-start-1">
+                  <PageButton pages={pages} pageId={page.id} />
+                </span>
+                <span className="flex sm:col-start-5 sm:row-start-1">
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-6 px-1"
+                    onClick={() => onEdit(row)}
+                  >
+                    Schimbă
+                    <span className="sr-only"> instruirea din {date ?? 'data necitită'}</span>
+                  </Button>
+                </span>
+              </span>
+              {row.phase !== 'periodic' && (
+                <span className="col-span-2 text-sm sm:hidden">
+                  {trainingPhaseLabels[row.phase]}
+                </span>
+              )}
+              <span className="col-span-2 flex flex-wrap items-center gap-1.5 text-sm tabular-nums sm:col-span-1 sm:col-start-3 sm:row-start-1">
+                {durationLabel(values.durationMinutes) ?? missing(null, 'Durata nu se citește')}
+              </span>
+              <span className="col-span-2 text-sm sm:col-span-1 sm:col-start-4 sm:row-start-1">
+                {trainerText(values) || missing(null, 'Instructorul nu se citește')}
+              </span>
+              <span className="col-span-2 grid gap-1 text-sm sm:col-start-2 sm:col-end-5">
+                <span className="line-clamp-2">
+                  {row.phase === 'supplementary' && values.supplementaryReason
+                    ? `${supplementaryTrainingReasonLabels[values.supplementaryReason as SupplementaryTrainingReason] ?? ''}. `
+                    : ''}
+                  {values.material ?? missing(null, 'Materialul lipsește')}
+                </span>
+                <span className="flex flex-wrap gap-1 empty:hidden">
+                  {row.flags.includes('unusual_duration') && included && (
+                    <Tag tone="warning">Verifică pe fotografie</Tag>
+                  )}
+                  <RowTags row={row} included={included} />
+                </span>
+              </span>
+            </div>
+            {note && <p className="text-[13px] text-muted-foreground sm:pl-9">{note}</p>}
+          </>
         )}
-        <span className="col-span-2 flex flex-wrap items-center gap-1.5 text-sm tabular-nums sm:col-span-1 sm:col-start-3 sm:row-start-1">
-          {durationLabel(values.durationMinutes) ?? missing(null, 'Durata nu se citește')}
-        </span>
-        <span className="col-span-2 text-sm sm:col-span-1 sm:col-start-4 sm:row-start-1">
-          {trainerText(values) || missing(null, 'Instructorul nu se citește')}
-        </span>
-        <span className="col-span-2 grid gap-1 text-sm sm:col-start-2 sm:col-end-5">
-          <span className="line-clamp-2">
-            {row.phase === 'supplementary' && values.supplementaryReason
-              ? `${supplementaryTrainingReasonLabels[values.supplementaryReason as SupplementaryTrainingReason] ?? ''}. `
-              : ''}
-            {values.material ?? missing(null, 'Materialul lipsește')}
-          </span>
-          <span className="flex flex-wrap gap-1 empty:hidden">
-            {row.flags.includes('unusual_duration') && included && (
-              <Tag tone="warning">Verifică pe fotografie</Tag>
-            )}
-            <RowTags row={row} included={included} />
-          </span>
-        </span>
-      </div>
-      {note && <p className="text-[13px] text-muted-foreground sm:pl-9">{note}</p>}
+      </Includable>
     </li>
   );
 }
@@ -243,81 +241,74 @@ function TestLine({
       }))
     );
   const switchId = `include-test-${row.id}`;
-  if (!included && proposedTestIncluded(row, matched)) {
-    return (
-      <div
-        className="rounded-lg bg-muted/50 px-3 py-2.5"
-        data-testid="person-test"
-        data-included={false}
-      >
-        <LeftOutRow
-          switchId={switchId}
-          name={name}
-          switchTestId="person-test-include"
-          onInclude={() => take(true)}
-        />
-      </div>
-    );
-  }
   return (
     <div
-      className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 rounded-lg bg-muted/50 px-3 py-2.5 text-sm sm:grid-cols-[minmax(0,1fr)_auto_auto]"
+      className="rounded-lg bg-muted/50 px-3 py-2.5 text-sm"
       data-testid="person-test"
       data-included={included}
     >
-      <span className="col-start-1 row-start-1 font-medium">
-        Testul la angajare: verificat pe fișă
-      </span>
-      <IncludeSwitch
+      <Includable
         id={switchId}
         name={name}
         included={included}
+        proposed={proposedTestIncluded(row, matched)}
         testId="person-test-include"
-        className="col-start-2 row-start-1 h-6 sm:col-start-3"
         onChange={take}
-      />
-      <span className="order-last col-span-2 flex sm:col-span-1 sm:col-start-2 sm:row-start-1">
-        <PageButton pages={pages} pageId={page.id} />
-      </span>
-      <span className="col-span-2 grid gap-1 sm:col-span-3">
-        {inApp ? (
-          <span className="text-muted-foreground">Testul e deja promovat în aplicație.</span>
-        ) : test.verified ? (
-          <span className="text-muted-foreground">
-            Examinator:{' '}
-            {[examinerName, examinerTitle].filter(Boolean).join(', ') || 'nu se citește'}. Semnătura
-            e în rubrica «Verificat» a instruirii {trainingPhaseLabels[row.phase].toLowerCase()}
-            {heldOn ? ` din ${dateLabel(heldOn)}` : ''}.
-          </span>
-        ) : (
-          <span className="text-muted-foreground">
-            Pe fișă nu se vede semnătura celui care a verificat cunoștințele. Include-l dacă
-            semnătura e pe originalul pe hârtie.
-          </span>
+      >
+        {(toggle) => (
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+            <span className="col-start-1 row-start-1 font-medium">
+              Testul la angajare: verificat pe fișă
+            </span>
+            <span className="col-start-2 row-start-1 flex h-6 items-center sm:col-start-3">
+              {toggle}
+            </span>
+            <span className="order-last col-span-2 flex sm:col-span-1 sm:col-start-2 sm:row-start-1">
+              <PageButton pages={pages} pageId={page.id} />
+            </span>
+            <span className="col-span-2 grid gap-1 sm:col-span-3">
+              {inApp ? (
+                <span className="text-muted-foreground">Testul e deja promovat în aplicație.</span>
+              ) : test.verified ? (
+                <span className="text-muted-foreground">
+                  Examinator:{' '}
+                  {[examinerName, examinerTitle].filter(Boolean).join(', ') || 'nu se citește'}.
+                  Semnătura e în rubrica «Verificat» a instruirii{' '}
+                  {trainingPhaseLabels[row.phase].toLowerCase()}
+                  {heldOn ? ` din ${dateLabel(heldOn)}` : ''}.
+                </span>
+              ) : (
+                <span className="text-muted-foreground">
+                  Pe fișă nu se vede semnătura celui care a verificat cunoștințele. Include-l dacă
+                  semnătura e pe originalul pe hârtie.
+                </span>
+              )}
+              {!included && !inApp && (
+                <span data-testid="person-test-unverified">
+                  Testul la angajare nu a putut fi verificat pe fișă: semnătura nu se vede clar sau
+                  lipsește.
+                </span>
+              )}
+              {included && (!examinerName || !examinerTitle) && (
+                <span className="grid gap-2 sm:grid-cols-2">
+                  <Input
+                    aria-label="Numele examinatorului"
+                    placeholder="Numele examinatorului"
+                    defaultValue={examinerName ?? ''}
+                    onBlur={(event) => setExaminer('examinerName', event.target.value)}
+                  />
+                  <Input
+                    aria-label="Funcția examinatorului"
+                    placeholder="Funcția examinatorului"
+                    defaultValue={examinerTitle ?? ''}
+                    onBlur={(event) => setExaminer('examinerJobTitle', event.target.value)}
+                  />
+                </span>
+              )}
+            </span>
+          </div>
         )}
-        {!included && !inApp && (
-          <span data-testid="person-test-unverified">
-            Testul la angajare nu a putut fi verificat pe fișă: semnătura nu se vede clar sau
-            lipsește.
-          </span>
-        )}
-        {included && (!examinerName || !examinerTitle) && (
-          <span className="grid gap-2 sm:grid-cols-2">
-            <Input
-              aria-label="Numele examinatorului"
-              placeholder="Numele examinatorului"
-              defaultValue={examinerName ?? ''}
-              onBlur={(event) => setExaminer('examinerName', event.target.value)}
-            />
-            <Input
-              aria-label="Funcția examinatorului"
-              placeholder="Funcția examinatorului"
-              defaultValue={examinerTitle ?? ''}
-              onBlur={(event) => setExaminer('examinerJobTitle', event.target.value)}
-            />
-          </span>
-        )}
-      </span>
+      </Includable>
     </div>
   );
 }
@@ -454,62 +445,53 @@ function DomainSection({
         const take = (next: boolean) =>
           onChange((current) => withRow(current, row.id, (change) => ({ ...change, test: next })));
         const switchId = `include-test-${row.id}`;
-        if (!included && proposedTestIncluded(row, matched)) {
-          return (
-            <div
-              key={row.id}
-              className="rounded-lg bg-muted/50 px-3 py-2.5"
-              data-testid="person-annual-test"
-              data-included={false}
-            >
-              <LeftOutRow
-                switchId={switchId}
-                name={name}
-                switchTestId="person-annual-test-include"
-                onInclude={() => take(true)}
-              />
-            </div>
-          );
-        }
         return (
           <div
             key={row.id}
-            className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 rounded-lg bg-muted/50 px-3 py-2.5 text-sm sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]"
+            className="rounded-lg bg-muted/50 px-3 py-2.5 text-sm"
             data-testid="person-annual-test"
             data-included={included}
           >
-            <span className="col-start-1 row-start-1">
-              <span className="font-medium">Testul anual {label}</span>, la{' '}
-              {dateLabel(heldOn) ?? 'o dată necitită'}: promovat pe fișă
-            </span>
-            <IncludeSwitch
+            <Includable
               id={switchId}
               name={name}
               included={included}
+              proposed={proposedTestIncluded(row, matched)}
               testId="person-annual-test-include"
-              className="col-start-2 row-start-1 h-6 sm:col-start-4"
               onChange={take}
-            />
-            <span className="col-span-2 flex items-center gap-3 sm:contents">
-              <span className="flex sm:col-start-2 sm:row-start-1">
-                <PageButton pages={pages} pageId={page.id} />
-              </span>
-              <span className="flex sm:col-start-3 sm:row-start-1">
-                <Button
-                  type="button"
-                  variant="link"
-                  size="sm"
-                  className="h-6 px-1"
-                  onClick={() => onEditTest(row)}
-                >
-                  Schimbă
-                  <span className="sr-only">
-                    {' '}
-                    testul anual din {dateLabel(heldOn) ?? 'data necitită'}
+            >
+              {(toggle) => (
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
+                  <span className="col-start-1 row-start-1">
+                    <span className="font-medium">Testul anual {label}</span>, la{' '}
+                    {dateLabel(heldOn) ?? 'o dată necitită'}: promovat pe fișă
                   </span>
-                </Button>
-              </span>
-            </span>
+                  <span className="col-start-2 row-start-1 flex h-6 items-center sm:col-start-4">
+                    {toggle}
+                  </span>
+                  <span className="col-span-2 flex items-center gap-3 sm:contents">
+                    <span className="flex sm:col-start-2 sm:row-start-1">
+                      <PageButton pages={pages} pageId={page.id} />
+                    </span>
+                    <span className="flex sm:col-start-3 sm:row-start-1">
+                      <Button
+                        type="button"
+                        variant="link"
+                        size="sm"
+                        className="h-6 px-1"
+                        onClick={() => onEditTest(row)}
+                      >
+                        Schimbă
+                        <span className="sr-only">
+                          {' '}
+                          testul anual din {dateLabel(heldOn) ?? 'data necitită'}
+                        </span>
+                      </Button>
+                    </span>
+                  </span>
+                </div>
+              )}
+            </Includable>
           </div>
         );
       })}

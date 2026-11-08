@@ -6,7 +6,7 @@ import { measureCountLabel } from '@/features/risk-evaluations/factor-list';
 import { componentLabels } from '@/features/risk-evaluations/risk-evaluation-schema';
 import { RiskLevelTile } from '@/features/risk-evaluations/risk-level-tile';
 
-import { IncludeSwitch, LeftOutRow, SwitchRow } from '../include-switch';
+import { Includable, SwitchRow } from '../include-switch';
 import type { LabelledSource } from '../review-model';
 import { SourceButton } from '../review-parts';
 import {
@@ -18,7 +18,6 @@ import {
   lacksText,
   measureGap,
   missingText,
-  removedByMember,
 } from './risks-model';
 
 function FlagChip({ text, informs }: { text: string; informs: boolean }) {
@@ -73,24 +72,6 @@ function FactorRow({
   onSource: (source: LabelledSource) => void;
 }) {
   const switchId = `include-factor-${sheetKey}-${state.factor.key}`;
-  if (removedByMember(state)) {
-    return (
-      <li
-        data-testid="risk-import-factor"
-        data-key={state.factor.key}
-        className="border-t border-border/70 px-4 py-3 sm:px-5"
-      >
-        <LeftOutRow
-          switchId={switchId}
-          className="pl-12 sm:pl-13"
-          name={state.description}
-          disabled={readOnly}
-          switchTestId="risk-import-factor-included"
-          onInclude={() => onToggle(true)}
-        />
-      </li>
-    );
-  }
   const plan = planLine(state);
   const gap = state.included && !readOnly ? measureGap(state) : null;
   const flags = gap?.explainsLevel
@@ -108,103 +89,112 @@ function FactorRow({
         refused && 'bg-destructive-soft/40'
       )}
     >
-      <SwitchRow
-        leading={
-          state.level !== null ? (
-            <RiskLevelTile level={state.level} className={cn(muted && 'opacity-50')} />
-          ) : (
-            <span
-              className="inline-grid size-9 place-items-center rounded-[9px] border border-dashed text-muted-foreground"
-              title="Lipsește o clasă"
-            >
-              <span aria-hidden="true">–</span>
-              <span className="sr-only">Fără nivel: lipsește o clasă</span>
-            </span>
-          )
-        }
-        title={
-          <p
-            className={cn('text-sm wrap-anywhere', muted && 'text-muted-foreground')}
-            data-testid="risk-import-factor-description"
-          >
-            {state.description}
-          </p>
-        }
-        toggle={
-          <IncludeSwitch
-            id={switchId}
-            name={state.description}
-            included={state.included}
-            disabled={readOnly}
-            testId="risk-import-factor-included"
-            onChange={onToggle}
-          />
-        }
-        details={
-          <>
-            <p className="text-[13px] text-muted-foreground wrap-anywhere">
-              {state.group || 'Fără grupă'}
-              {' · '}
-              <span data-testid="risk-import-factor-classes">
-                gravitate {state.gravityClass ?? '–'}, probabilitate {state.probabilityClass ?? '–'}
-              </span>
-              {' · '}
-              {measureCountLabel(state.measures.length).toLowerCase()}
-            </p>
-            {plan && <p className="text-[13px] text-muted-foreground wrap-anywhere">{plan}</p>}
-            {!state.complete && !readOnly && (
-              <p className="text-[13px] font-medium text-warning-foreground">
-                Alege {missingText(state.missing)} ca să-l poți prelua.
-              </p>
-            )}
-            {refused && (
-              <p className="text-[13px] font-medium text-destructive" role="alert">
-                {state.missing.length > 0
-                  ? `E inclus, dar ${lacksText(state.missing)}. Completează-l sau oprește-l.`
-                  : 'E inclus, dar nu a fost primit. Verifică-l sau oprește-l.'}
-              </p>
-            )}
-            {gap && (
+      <Includable
+        id={switchId}
+        name={state.description}
+        included={state.included}
+        proposed={state.factor.included}
+        disabled={readOnly}
+        testId="risk-import-factor-included"
+        collapsedClassName="pl-12 sm:pl-13"
+        onChange={onToggle}
+      >
+        {(toggle) => (
+          <SwitchRow
+            leading={
+              state.level !== null ? (
+                <RiskLevelTile level={state.level} className={cn(muted && 'opacity-50')} />
+              ) : (
+                <span
+                  className="inline-grid size-9 place-items-center rounded-[9px] border border-dashed text-muted-foreground"
+                  title="Lipsește o clasă"
+                >
+                  <span aria-hidden="true">–</span>
+                  <span className="sr-only">Fără nivel: lipsește o clasă</span>
+                </span>
+              )
+            }
+            title={
               <p
-                className="flex items-start gap-1.5 text-[13px] font-medium text-warning-foreground"
-                data-testid="risk-import-factor-measure-gap"
+                className={cn('text-sm wrap-anywhere', muted && 'text-muted-foreground')}
+                data-testid="risk-import-factor-description"
               >
-                <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-                <span>{gap.text}</span>
+                {state.description}
               </p>
-            )}
-            {flags.length > 0 && (
-              <ul className="flex flex-wrap gap-1.5" data-testid="risk-import-factor-flags">
-                {flags.map((flag, index) => (
-                  <FlagChip key={index} text={factorFlagText(flag)} informs={!asksToCheck(flag)} />
-                ))}
-              </ul>
-            )}
-          </>
-        }
-        actions={
-          <>
-            <SourceButton
-              outlined
-              label="Vezi în document"
-              sources={[source]}
-              onOpen={() => onSource(source)}
-            />
-            {!readOnly && (
-              <Button
-                type="button"
-                variant="outline"
-                data-testid="risk-import-factor-edit"
-                aria-label={`Schimbă factorul ${state.description}`}
-                onClick={onEdit}
-              >
-                <Pencil aria-hidden="true" />
-                Schimbă
-              </Button>
-            )}
-          </>
-        }
-      />
+            }
+            toggle={toggle}
+            details={
+              <>
+                <p className="text-[13px] text-muted-foreground wrap-anywhere">
+                  {state.group || 'Fără grupă'}
+                  {' · '}
+                  <span data-testid="risk-import-factor-classes">
+                    gravitate {state.gravityClass ?? '–'}, probabilitate{' '}
+                    {state.probabilityClass ?? '–'}
+                  </span>
+                  {' · '}
+                  {measureCountLabel(state.measures.length).toLowerCase()}
+                </p>
+                {plan && <p className="text-[13px] text-muted-foreground wrap-anywhere">{plan}</p>}
+                {!state.complete && !readOnly && (
+                  <p className="text-[13px] font-medium text-warning-foreground">
+                    Alege {missingText(state.missing)} ca să-l poți prelua.
+                  </p>
+                )}
+                {refused && (
+                  <p className="text-[13px] font-medium text-destructive" role="alert">
+                    {state.missing.length > 0
+                      ? `E inclus, dar ${lacksText(state.missing)}. Completează-l sau oprește-l.`
+                      : 'E inclus, dar nu a fost primit. Verifică-l sau oprește-l.'}
+                  </p>
+                )}
+                {gap && (
+                  <p
+                    className="flex items-start gap-1.5 text-[13px] font-medium text-warning-foreground"
+                    data-testid="risk-import-factor-measure-gap"
+                  >
+                    <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+                    <span>{gap.text}</span>
+                  </p>
+                )}
+                {flags.length > 0 && (
+                  <ul className="flex flex-wrap gap-1.5" data-testid="risk-import-factor-flags">
+                    {flags.map((flag, index) => (
+                      <FlagChip
+                        key={index}
+                        text={factorFlagText(flag)}
+                        informs={!asksToCheck(flag)}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </>
+            }
+            actions={
+              <>
+                <SourceButton
+                  outlined
+                  label="Vezi în document"
+                  sources={[source]}
+                  onOpen={() => onSource(source)}
+                />
+                {!readOnly && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    data-testid="risk-import-factor-edit"
+                    aria-label={`Schimbă factorul ${state.description}`}
+                    onClick={onEdit}
+                  >
+                    <Pencil aria-hidden="true" />
+                    Schimbă
+                  </Button>
+                )}
+              </>
+            }
+          />
+        )}
+      </Includable>
     </li>
   );
 }

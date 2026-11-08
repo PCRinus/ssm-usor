@@ -1,6 +1,7 @@
 import {
   hiringTestRowIds as packageHiringTestRowIds,
   includedByDefault as packageIncludedByDefault,
+  toEmployeePayload,
 } from '@ssm-usor/import';
 import { describe, expect, it } from 'vitest';
 
@@ -10,6 +11,7 @@ import {
   existingEmployeeId,
   sellerId,
   sheetRow,
+  workplaces,
 } from '@/test/employee-import-fixture';
 
 import {
@@ -21,10 +23,12 @@ import {
   hiringTestRowIds,
   includedByDefault,
   includedOf,
+  isWritten,
   leaving,
   nextToCheck,
   notesOf,
   peopleViews,
+  personIncluded,
   personName,
   type Proposal,
   reopened,
@@ -33,11 +37,13 @@ import {
   rowIncluded,
   testIncluded,
   toCheckGroups,
+  trainingsByDomain,
   untestedDomains,
   withField,
   withMatchDeclined,
   withMatchRestored,
   withPersonChange,
+  withPersonIncluded,
   withRow,
 } from './employee-review-model';
 import { withPage, withTitle, withWorkplace } from './review-changes';
@@ -654,5 +660,105 @@ describe('the employee a person completes', () => {
     expect(tags(twice.context(), 'lazar')).toContain('Același lucrător la două persoane');
     const aside = withPersonChange(emptyChanges(), 'pop', () => ({ state: 'set_aside' }));
     expect(tags(twice.context(aside), 'lazar')).not.toContain('Același lucrător la două persoane');
+  });
+});
+
+describe('the switches and what confirming writes', () => {
+  const extended = withRows('p3', [
+    sheetRow('r10', { heldOn: '2025-08-11', flags: ['unsigned'], proposedIncluded: false }),
+    sheetRow('r11', {
+      heldOn: '2025-03-04',
+      testOnly: true,
+      flags: ['unsigned'],
+      proposedIncluded: false,
+      test: {
+        test: 'annual',
+        takenOn: '2025-03-04',
+        examinerName: 'Barbu Ionuț',
+        examinerJobTitle: 'inspector SSM',
+        verified: true,
+        inApp: false,
+      },
+    }),
+  ]);
+
+  function decided(changes: Changes) {
+    const context = extended(changes);
+    const { payload } = toEmployeePayload({
+      proposal: context.proposal as never,
+      changes: context.changes as never,
+      records: {
+        jobPositions: [{ id: bakerId }, { id: sellerId }],
+        workplaces,
+        employees: [],
+      },
+      today: '2026-10-31',
+    });
+    return { context, payload };
+  }
+
+  const checked = (changes: Changes, id: string) =>
+    withPersonChange(changes, id, (change) => ({ ...change, state: 'checked' }));
+
+  it('writes a person exactly when the switch beside the name is on and they are checked', () => {
+    let changes = withTitle(emptyChanges(), 'title-helper', bakerId);
+    changes = withWorkplace(changes, 'place-none', null);
+    changes = withField(changes, 'pop', 'leftOn', { value: '2025-06-30' });
+    changes = checked(checked(changes, 'toma'), 'pop');
+    for (const takePop of [false, true]) {
+      const { context, payload } = decided(
+        withPersonIncluded(extended(changes), person('pop'), takePop)
+      );
+      const written = new Set(payload.employees.map((employee) => employee.key));
+      expect(written.has('toma')).toBe(true);
+      expect(written.has('pop')).toBe(takePop);
+      for (const each of context.proposal.people) {
+        expect(written.has(each.id)).toBe(isWritten(context, each));
+        if (context.states[each.id] === 'checked') {
+          expect(written.has(each.id)).toBe(personIncluded(context, each));
+        }
+      }
+    }
+  });
+
+  it('sets aside a leaver not taken once the member moves on, so the list says the same', () => {
+    const left = withField(emptyChanges(), 'pop', 'leftOn', { value: '2025-06-30' });
+    expect(personIncluded(contextOf(left), person('pop'))).toBe(false);
+    expect(leaving(contextOf(left), person('pop')).people.pop?.state).toBe('set_aside');
+    const taken = withPersonIncluded(contextOf(left), person('pop'), true);
+    expect(taken.people.pop).toEqual({ fields: left.people.pop?.fields, included: true });
+    expect(leaving(contextOf(taken), person('pop')).people.pop?.state).not.toBe('set_aside');
+  });
+
+  it('writes the trainings and tests whose switches are on', () => {
+    let changes = withTitle(emptyChanges(), 'title-helper', bakerId);
+    changes = withWorkplace(changes, 'place-none', null);
+    changes = checked(checked(changes, 'toma'), 'pop');
+    changes = withRow(changes, 'r5', (change) => ({ ...change, included: false }));
+    changes = withRow(changes, 'r1', (change) => ({ ...change, test: false }));
+    changes = withRow(changes, 'r10', (change) => ({ ...change, included: true }));
+    changes = withRow(changes, 'r11', (change) => ({ ...change, test: true }));
+    const { context, payload } = decided(changes);
+    expect(payload.trainings.length).toBeGreaterThan(0);
+    expect(payload.test_results.filter((result) => result.test === 'annual')).toHaveLength(1);
+    for (const id of ['toma', 'pop']) {
+      const domains = trainingsByDomain(context, id);
+      const matched = false;
+      const rows = domains
+        .flatMap((domain) => [...domain.hiring.rows, ...domain.periodic])
+        .filter(({ row: each }) => rowIncluded(context.changes, each, matched));
+      const tests = domains.flatMap((domain) => [
+        ...(domain.hiring.test ? [domain.hiring.test] : []),
+        ...domain.annualTests,
+      ]);
+      expect(
+        payload.trainings.flatMap((training) =>
+          training.records.filter((record) => record.employee_key === id)
+        )
+      ).toHaveLength(rows.length);
+      expect(payload.test_results.filter((result) => result.employee_key === id)).toHaveLength(
+        tests.filter(({ row: each }) => testIncluded(context.changes, each, matched)).length
+      );
+    }
   });
 });

@@ -19,28 +19,22 @@ const includedWord = (included: boolean, agreement: Agreement = 'masculine') =>
 // the one mounted under the same id takes the focus back.
 let refocus: string | null = null;
 
-export function IncludeSwitch({
+function IncludeSwitch({
   id,
   name,
   included,
   onChange,
-  agreement = 'masculine',
-  stateLabel,
-  showWord = true,
-  disabled = false,
-  testId = 'include-switch',
-  className,
+  agreement,
+  disabled,
+  testId,
 }: {
   id: string;
   name: string;
   included: boolean;
   onChange: (included: boolean) => void;
-  agreement?: Agreement;
-  stateLabel?: string;
-  showWord?: boolean;
-  disabled?: boolean;
-  testId?: string;
-  className?: string;
+  agreement: Agreement;
+  disabled: boolean;
+  testId: string;
 }) {
   useEffect(() => {
     if (refocus !== id) return;
@@ -48,8 +42,8 @@ export function IncludeSwitch({
     document.getElementById(id)?.focus();
   }, [id]);
   return (
-    <span className={cn('inline-flex shrink-0 items-center gap-2.5', className)}>
-      {!included && showWord && (
+    <span className="inline-flex shrink-0 items-center gap-2.5">
+      {!included && (
         <span
           className="text-[13px] font-medium whitespace-nowrap text-muted-foreground"
           aria-hidden="true"
@@ -61,7 +55,7 @@ export function IncludeSwitch({
       <Switch
         id={id}
         data-testid={testId}
-        aria-label={`${stateLabel ?? includedWord(included, agreement)}: ${name}`}
+        aria-label={`${includedWord(included, agreement)}: ${name}`}
         checked={included}
         disabled={disabled}
         onCheckedChange={(next) => {
@@ -77,42 +71,59 @@ export function IncludeSwitch({
   );
 }
 
-export function LeftOutRow({
-  switchId,
+/**
+ * Something the import can leave out. `included` is what confirming writes and `proposed` what
+ * the documents proposed: switched off by the member, a proposed thing collapses to one line;
+ * one proposed off stays open, since its row says why.
+ */
+export function Includable({
+  id,
   name,
-  onInclude,
-  agreement,
-  disabled,
-  switchTestId,
-  className,
-  testId = 'left-out-row',
+  included,
+  proposed,
+  onChange,
+  agreement = 'masculine',
+  disabled = false,
+  testId = 'include-switch',
+  collapsedClassName,
+  collapsed,
+  children,
 }: {
-  switchId: string;
+  id: string;
   name: string;
-  onInclude: () => void;
+  included: boolean;
+  proposed: boolean;
+  onChange: (included: boolean) => void;
   agreement?: Agreement;
   disabled?: boolean;
-  switchTestId?: string;
-  className?: string;
   testId?: string;
+  collapsedClassName?: string;
+  // The collapsed line when the thing has a look of its own, as an instruction's card.
+  collapsed?: (toggle: ReactNode) => ReactNode;
+  children: (toggle: ReactNode) => ReactNode;
 }) {
+  const toggle = (
+    <IncludeSwitch
+      id={id}
+      name={name}
+      included={included}
+      agreement={agreement}
+      disabled={disabled}
+      testId={testId}
+      onChange={onChange}
+    />
+  );
+  if (included || !proposed) return children(toggle);
+  if (collapsed) return collapsed(toggle);
   return (
     <div
-      data-testid={testId}
-      className={cn('flex min-h-5 items-center justify-between gap-3', className)}
+      data-testid="left-out-row"
+      className={cn('flex min-h-5 items-center justify-between gap-3', collapsedClassName)}
     >
       <span className="min-w-0 text-sm font-medium wrap-anywhere text-muted-foreground">
         {name}
       </span>
-      <IncludeSwitch
-        id={switchId}
-        name={name}
-        included={false}
-        agreement={agreement}
-        disabled={disabled}
-        testId={switchTestId}
-        onChange={(included) => included && onInclude()}
-      />
+      {toggle}
     </div>
   );
 }

@@ -2,32 +2,33 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { CircleAlert } from 'lucide-react';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
 import { roCount } from '@/features/employees/employee-format';
 
-import { IncludeSwitch } from '../include-switch';
+import { Includable } from '../include-switch';
 import { Tag } from '../review-parts';
 import { SourceDialog, type SourceRequest } from '../source-dialog';
 import {
   decisionsOf,
   formerLeftOn,
-  includedOf,
   isExisting,
   leaving,
   matchedName,
   pagesOf,
   type Person,
+  personIncluded,
   personName,
   type PersonState,
   positionOf,
+  proposedPersonIncluded,
   resolveField,
   type ReviewContext,
   withMatchRestored,
   withoutContact,
-  withPersonChange,
+  withPersonIncluded,
 } from './employee-review-model';
 import {
   CnpDecision,
@@ -97,8 +98,7 @@ export function EmployeePersonPage({
   const declined = person.existing !== null && !existing;
   const leftOn = resolveField(context, person, 'leftOn').value;
   const former = existing ? formerLeftOn(person) : null;
-  const included = includedOf(context, person);
-  // A leaver is created only if the leaving card says so, so that card holds the decision.
+  const included = personIncluded(context, person);
   const leaver = leftOn !== null && !existing;
 
   const showPage = (pageId: string) => {
@@ -134,13 +134,32 @@ export function EmployeePersonPage({
     }
   };
 
-  const setAside = (aside: boolean) =>
-    review.update((current) =>
-      withPersonChange(current, person.id, (change) => ({
-        ...change,
-        state: aside ? 'set_aside' : undefined,
-      }))
-    );
+  const header = (toggle: ReactNode) => (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-1 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+      <h1 className="col-start-1 row-start-1 text-2xl font-semibold tracking-tight">{name}</h1>
+      <p className="col-span-2 row-start-2 text-sm text-muted-foreground sm:col-span-1">
+        Din {pagesPhotosLabel(pages)}.{' '}
+        {existing
+          ? 'Ce are deja în aplicație nu se schimbă fără alegerea ta.'
+          : 'Valorile se preiau așa cum sunt, dacă nu le schimbi.'}
+      </p>
+      <span className="col-start-2 row-start-1 flex h-8 items-center sm:col-start-3">{toggle}</span>
+      <div className="col-span-2 mt-1 flex flex-wrap items-center gap-3 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:mt-0 sm:h-8">
+        {state !== 'set_aside' && (
+          <Tag tone={stateLabels[state].tone} testId="person-state">
+            {stateLabels[state].label}
+          </Tag>
+        )}
+        <Link
+          to="/clienti/$clientId/angajati/import/$importId"
+          params={{ clientId, importId: detail.id }}
+          className="text-sm text-muted-foreground tabular-nums hover:underline"
+        >
+          Persoana {index + 1} din {people.length}
+        </Link>
+      </div>
+    </div>
+  );
 
   const postId = positionOf(context, person);
   const contact = withoutContact(context, person);
@@ -152,39 +171,21 @@ export function EmployeePersonPage({
   return (
     <ShowPageContext value={showPage}>
       <div className="grid gap-5" data-testid="person-page" data-state={state}>
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-1 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
-          <h1 className="col-start-1 row-start-1 text-2xl font-semibold tracking-tight">{name}</h1>
-          <p className="col-span-2 row-start-2 text-sm text-muted-foreground sm:col-span-1">
-            Din {pagesPhotosLabel(pages)}.{' '}
-            {existing
-              ? 'Ce are deja în aplicație nu se schimbă fără alegerea ta.'
-              : 'Valorile se preiau așa cum sunt, dacă nu le schimbi.'}
-          </p>
-          {(!leaver || state === 'set_aside') && (
-            <IncludeSwitch
-              id={`include-person-${person.id}`}
-              name={name}
-              included={state !== 'set_aside'}
-              stateLabel={stateLabels[state].label}
-              showWord={false}
-              testId="person-set-aside"
-              className="col-start-2 row-start-1 h-8 sm:col-start-3"
-              onChange={(next) => setAside(!next)}
-            />
-          )}
-          <div className="col-span-2 mt-1 flex flex-wrap items-center gap-3 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:mt-0 sm:h-8">
-            <Tag tone={stateLabels[state].tone} testId="person-state">
-              {stateLabels[state].label}
-            </Tag>
-            <Link
-              to="/clienti/$clientId/angajati/import/$importId"
-              params={{ clientId, importId: detail.id }}
-              className="text-sm text-muted-foreground tabular-nums hover:underline"
-            >
-              Persoana {index + 1} din {people.length}
-            </Link>
-          </div>
-        </div>
+        <Includable
+          id={`include-person-${person.id}`}
+          name={name}
+          included={included}
+          proposed={proposedPersonIncluded(context, person)}
+          testId="person-include"
+          collapsed={header}
+          onChange={(next) =>
+            review.update((current) =>
+              withPersonIncluded({ ...context, changes: current }, person, next)
+            )
+          }
+        >
+          {header}
+        </Includable>
         <SaveStatus review={review} />
         <div
           className={cn(
@@ -203,7 +204,7 @@ export function EmployeePersonPage({
           />
           <div className="grid min-w-0 gap-4">
             <PhotoThumbs detail={detail} pages={pages} name={name} onShow={showPage} />
-            {state === 'set_aside' && (
+            {state === 'set_aside' && !leaver && (
               <Notice variant="info">
                 {name} e lăsat deoparte: nu se creează la confirmare. Pornește comutatorul de lângă
                 nume ca să-l iei înapoi la verificat.
@@ -313,26 +314,11 @@ export function EmployeePersonPage({
                 id="leaver"
                 tone="warning"
                 title={`A plecat din firmă la ${dateLabel(String(leftOn))}`}
-                toggle={
-                  <IncludeSwitch
-                    id={`include-leaver-${person.id}`}
-                    name={`${name}, ca fost lucrător`}
-                    included={included}
-                    testId="person-leaver-include"
-                    onChange={(next) =>
-                      review.update((current) =>
-                        withPersonChange(current, person.id, (change) => ({
-                          ...change,
-                          included: next,
-                        }))
-                      )
-                    }
-                  />
-                }
               >
-                <p className="text-sm text-muted-foreground">
-                  Inclus, îl preluăm ca fost lucrător, cu instruirile lui, și apare la Foști
-                  lucrători. Oprit, nu îl creăm.
+                <p className="text-sm" data-testid="person-leaver-note">
+                  {included
+                    ? 'Îl preluăm ca fost lucrător, cu instruirile lui, și apare la Foști lucrători. Oprește comutatorul de lângă nume dacă nu vrei să-l preiei.'
+                    : 'Nu îl preluăm decât dacă pornești comutatorul de lângă nume: apare atunci la Foști lucrători, cu instruirile lui.'}
                 </p>
               </DecideCard>
             )}

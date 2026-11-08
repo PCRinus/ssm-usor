@@ -282,7 +282,7 @@ O pagină ajunge la o persoană după CNP, dacă cifra lui de control se potrive
 
 - **De verificat**: încă nu ai trecut prin ea sau are ceva de hotărât;
 - **Verificat**: o persoană fără nimic de hotărât devine verificată când treci de pe pagina ei la următoarea; una cu ceva de hotărât, după ce ai hotărât. Redevine **De verificat** când o corectură, o pagină pe care i-o dai sau o alegere îi lasă din nou ceva de hotărât;
-- **Lăsat deoparte**: nu se creează. O iei înapoi oricând, cu comutatorul de lângă numele ei, pe pagina ei.
+- **Lăsat deoparte**: nu se creează. Aici ajunge și cine a plecat din firmă, dacă treci mai departe fără să-l preiei. O iei înapoi oricând, cu comutatorul de lângă numele ei, pe pagina ei.
 
 Lista se filtrează după aceste stări. Persoanele de verificat sunt împărțite în **Cu ceva de hotărât** și **Încă nedeschise**. **Continuă cu …** te duce la următoarea persoană de verificat.
 
@@ -294,7 +294,7 @@ O pagină pe care aplicația nu o poate lega de nicio persoană apare sub listă
 
 ## Pagina unei persoane
 
-Pe pagina unei persoane vezi, alături, fotografiile fișelor ei; un clic pe una o mărește. Comutatorul de lângă nume o lasă deoparte când îl oprești și o ia înapoi la verificat când îl pornești; la confirmare se creează doar persoanele verificate. La cine a plecat din firmă nu e comutator lângă nume: hotărăști pe cardul plecării dacă îl preiei. Sus sunt lucrurile de hotărât, apoi datele citite, pe grupuri, și instruirile, pe domenii. O valoare citită greșit o corectezi cu **Schimbă**. Cu butoanele de jos treci la persoana anterioară sau la următoarea.
+Pe pagina unei persoane vezi, alături, fotografiile fișelor ei; un clic pe una o mărește. Comutatorul de lângă nume spune dacă persoana intră în import: oprit, o lasă deoparte; pornit din nou, o ia înapoi la verificat. La confirmare se creează doar persoanele incluse și verificate; cele încă de verificat rămân în afara importului. Sus sunt lucrurile de hotărât, apoi datele citite, pe grupuri, și instruirile, pe domenii. O valoare citită greșit o corectezi cu **Schimbă**. Cu butoanele de jos treci la persoana anterioară sau la următoarea.
 
 Ca să fie creat, un lucrător are nevoie de nume, prenume, funcția din contract, data angajării și un post. Emailul și telefonul nu sunt obligatorii: când lipsesc, vezi „Fără email sau telefon. Îl adaugi când îl inviți în portal.” Când fișele aceleiași persoane scriu valori diferite, de exemplu două date ale angajării, alegi una.
 
@@ -330,7 +330,7 @@ O instruire de pe fișă care e deja în aplicație, același domeniu, același 
 
 ### Cine a plecat din firmă
 
-O fișă cu data plecării e propusă cu comutatorul oprit, pe cardul plecării. Pornește-l dacă vrei să-l ai în evidență: îl preluăm ca fost lucrător, cu instruirile lui, și apare la **Foști lucrători**. Dacă ștergi data plecării, persoana e propusă inclusă, ca lucrător actual.
+O fișă cu data plecării e propusă cu comutatorul de lângă nume oprit, iar cardul plecării îți spune ce înseamnă. Pornește-l dacă vrei să-l ai în evidență: îl preluăm ca fost lucrător, cu instruirile lui, și apare la **Foști lucrători**. Dacă treci la persoana următoare fără să-l pornești, rămâne lăsat deoparte. Dacă ștergi data plecării, persoana e propusă inclusă, ca lucrător actual.
 
 Când persoana se potrivește cu un fost lucrător al clientului, vezi asta pe pagina ei. Dacă fișa scrie o dată a angajării de după plecarea lui, persoana a fost reangajată, iar în aplicație o reangajare e un lucrător nou (vezi [Reangajarea](/clienti/angajati/plecare/#reangajarea)). Importul nu reactivează fostul lucrător, iar persoana are ceva de hotărât până alegi una dintre:
 
