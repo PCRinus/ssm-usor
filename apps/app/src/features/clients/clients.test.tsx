@@ -65,6 +65,8 @@ const sampleCompany = {
   countyCode: 'B',
   locality: 'Sector 1 Mun. București',
   addressLine: 'Str. Coralilor, nr. 22',
+  phone: '0256 000 111',
+  iban: null,
   registrationStatus: 'INREGISTRAT din data 23.10.1997',
   inactive: false,
 };

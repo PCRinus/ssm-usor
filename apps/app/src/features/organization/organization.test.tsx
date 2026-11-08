@@ -2,7 +2,10 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { OrganizationAuthorizationsResponse } from '@/api/generated/api';
+import type {
+  OrganizationAuthorizationsResponse,
+  OrganizationCompanyDetailsResponse,
+} from '@/api/generated/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
@@ -41,7 +44,7 @@ const invitation = {
   createdAt: '2026-09-18T10:00:00.000Z',
 };
 
-const companyDetails = {
+const companyDetails: OrganizationCompanyDetailsResponse['companyDetails'] = {
   legalName: 'S.C. PROTECT SSM S.R.L.',
   cui: '1590082',
   vatPayer: false,
@@ -94,6 +97,7 @@ function mockApi({
   revoke = (() => new Response(null, { status: 204 })) as Route,
   changeRole = (() => new Response(null, { status: 204 })) as Route,
   removeMember = (() => new Response(null, { status: 204 })) as Route,
+  savedCompanyDetails = companyDetails,
   saveCompanyDetails = (() => Response.json({ companyDetails })) as Route,
   savedAuthorizations = authorizations,
   saveAuthorizations = (() => Response.json({ authorizations })) as Route,
@@ -106,7 +110,9 @@ function mockApi({
     if (pathname === '/me/invitations') return Response.json({ items: [] });
     if (pathname === '/organization/members') return Response.json({ items: members });
     if (pathname === '/organization/company-details') {
-      return method === 'PUT' ? saveCompanyDetails(init) : Response.json({ companyDetails });
+      return method === 'PUT'
+        ? saveCompanyDetails(init)
+        : Response.json({ companyDetails: savedCompanyDetails });
     }
     if (pathname === '/organization/authorizations') {
       return method === 'PUT'
@@ -488,6 +494,51 @@ describe('company details', () => {
       vatPayer: true,
       legalName: 'PROTECT SSM SRL',
     });
+  });
+
+  it('fills the phone and the IBAN from ANAF', async () => {
+    mockApi({
+      savedCompanyDetails: { ...companyDetails, iban: null },
+      lookup: () =>
+        Response.json({
+          company: { ...anafCompany, phone: '0256 000 111', iban: 'RO49AAAA1B31007593840000' },
+        }),
+    });
+    mountCompany();
+    const user = userEvent.setup();
+
+    await screen.findByTestId('company-cui');
+    await user.click(screen.getByTestId('company-lookup'));
+    await screen.findByTestId('company-lookup-status');
+    expect(screen.getByTestId<HTMLInputElement>('company-phone').value).toBe('0256 000 111');
+    expect(screen.getByTestId<HTMLInputElement>('company-iban').value).toBe(
+      'RO49 AAAA 1B31 0075 9384 0000'
+    );
+
+    await user.click(screen.getByTestId('company-details-save'));
+    await waitFor(() => expect(requests('/organization/company-details', 'PUT')).toHaveLength(1));
+    const [, init] = requests('/organization/company-details', 'PUT')[0]!;
+    expect(JSON.parse(String(init?.body))).toMatchObject({
+      phone: '0256 000 111',
+      iban: 'RO49 AAAA 1B31 0075 9384 0000',
+    });
+  });
+
+  it('keeps the phone and the IBAN already written when ANAF has none', async () => {
+    mockApi({
+      savedCompanyDetails: { ...companyDetails, phone: '0256 999 888' },
+      lookup: () => Response.json({ company: { ...anafCompany, phone: null, iban: null } }),
+    });
+    mountCompany();
+    const user = userEvent.setup();
+
+    await screen.findByTestId('company-cui');
+    await user.click(screen.getByTestId('company-lookup'));
+    await screen.findByTestId('company-lookup-status');
+    expect(screen.getByTestId<HTMLInputElement>('company-phone').value).toBe('0256 999 888');
+    expect(screen.getByTestId<HTMLInputElement>('company-iban').value).toBe(
+      'RO49 AAAA 1B31 0075 9384 0000'
+    );
   });
 
   it('warns when ANAF reports an inactive company', async () => {
