@@ -163,8 +163,18 @@ describe('a sheet card with the confirm bar', () => {
       '5 preluați, unul nu e inclus'
     );
 
+    expect(document.activeElement).toBe(
+      within(collapsed).getByRole('switch', { name: 'Nu e inclus: Curenți de aer în birou' })
+    );
+
     await userEvent.click(
       within(collapsed).getByRole('switch', { name: 'Nu e inclus: Curenți de aer în birou' })
+    );
+
+    expect(document.activeElement).toBe(
+      within(row('Curenți de aer')).getByRole('switch', {
+        name: 'Inclus: Curenți de aer în birou',
+      })
     );
 
     expect(summary()).toContain('cu 6 factori');

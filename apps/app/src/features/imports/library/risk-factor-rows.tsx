@@ -55,6 +55,7 @@ function planLine(state: FactorState) {
 
 function FactorRow({
   state,
+  sheetKey,
   sheetFile,
   readOnly,
   refused,
@@ -63,6 +64,7 @@ function FactorRow({
   onSource,
 }: {
   state: FactorState;
+  sheetKey: string;
   sheetFile: string;
   readOnly: boolean;
   refused: boolean;
@@ -70,6 +72,7 @@ function FactorRow({
   onEdit: () => void;
   onSource: (source: LabelledSource) => void;
 }) {
+  const switchId = `include-factor-${sheetKey}-${state.factor.key}`;
   if (removedByMember(state)) {
     return (
       <li
@@ -78,6 +81,8 @@ function FactorRow({
         className="border-t border-border/70 px-4 py-3 sm:px-5"
       >
         <LeftOutRow
+          switchId={switchId}
+          className="pl-12 sm:pl-13"
           name={state.description}
           disabled={readOnly}
           switchTestId="risk-import-factor-included"
@@ -127,6 +132,7 @@ function FactorRow({
         }
         toggle={
           <IncludeSwitch
+            id={switchId}
             name={state.description}
             included={state.included}
             disabled={readOnly}
@@ -205,6 +211,7 @@ function FactorRow({
 
 export function RiskFactorRows({
   factors,
+  sheetKey,
   sheetFile,
   readOnly,
   refused,
@@ -213,6 +220,7 @@ export function RiskFactorRows({
   onSource,
 }: {
   factors: readonly FactorState[];
+  sheetKey: string;
   sheetFile: string;
   readOnly: boolean;
   refused: ReadonlySet<string>;
@@ -236,6 +244,7 @@ export function RiskFactorRows({
               <FactorRow
                 key={state.factor.key}
                 state={state}
+                sheetKey={sheetKey}
                 sheetFile={sheetFile}
                 readOnly={readOnly}
                 refused={refused.has(state.factor.key)}

@@ -395,6 +395,7 @@ export function RiskSheetCard({
           {shown.length > 0 && (
             <RiskFactorRows
               factors={shown}
+              sheetKey={sheet.key}
               sheetFile={sheet.file}
               readOnly={readOnly}
               refused={refused}
