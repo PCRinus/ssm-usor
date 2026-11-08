@@ -46,7 +46,7 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   await expect(card.getByTestId('fire-safety-starting')).toBeVisible();
   await expect(card.getByTestId('fire-training-duration-2')).toBeChecked();
   await expect(card.getByTestId('fire-first-month')).toHaveValue('2');
-  await expect(card.getByTestId('fire-worker-interval-6')).toBeChecked();
+  await expect(card.getByTestId('fire-worker-interval-3')).toBeChecked();
   await card.getByTestId('fire-worker-interval-1').click();
   await card.getByTestId('fire-safety-save').click();
   await expect(page.getByText('Instruirea SU a fost salvată.')).toBeVisible();
