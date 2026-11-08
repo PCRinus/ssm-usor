@@ -27,7 +27,7 @@ import { intervalLabel, staffCategoryLabels } from '@/features/job-positions/job
 import { type FireTrainingFocus, useFocusRequest } from '@/features/missing-data/focus';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 
-import { monthNames } from './document-details-schema';
+import { monthList, monthNames } from './document-details-schema';
 import {
   completeFireSchedule,
   fireHourChoices,
@@ -44,7 +44,6 @@ import {
   toFireSafetyRequest,
   wasteKindProblem,
 } from './fire-safety-schema';
-import { CategoryProgram } from './training-program-card';
 import { type ClientSummary, describedBy, useDocumentDetails } from './use-document-details-form';
 
 function useFireSafety(clientId: string, userId: string) {
@@ -168,6 +167,28 @@ const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(
 
 const daysLabel = (from: number, to: number) =>
   from === to ? `în ziua de ${from} a lunii` : `între zilele ${from} și ${to} ale lunii`;
+
+function CategoryProgram({
+  testId,
+  label,
+  interval,
+  firstMonth,
+}: {
+  testId: string;
+  label: string;
+  interval: number;
+  firstMonth: number;
+}) {
+  return (
+    <div data-testid={testId} className="rounded-lg border bg-muted/40 p-4">
+      <p className="text-sm font-medium text-muted-foreground">{label}</p>
+      <p className="mt-1 text-2xl font-semibold tracking-tight first-letter:uppercase">
+        {intervalLabel(interval)}
+      </p>
+      <p className="mt-1 text-sm text-muted-foreground">{monthList(firstMonth, interval)}</p>
+    </div>
+  );
+}
 
 function FireSafetySummary({ saved, exists }: { saved: FireSafety; exists: boolean }) {
   const schedule = exists ? completeFireSchedule(saved) : null;

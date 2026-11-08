@@ -46,6 +46,7 @@ export function useDocumentDetailsForm({
   fields,
   successMessage,
   onSaved,
+  starting = {},
 }: {
   saved: DocumentDetails;
   client: ClientSummary;
@@ -53,13 +54,15 @@ export function useDocumentDetailsForm({
   fields: readonly DocumentDetailsField[];
   successMessage: string;
   onSaved?: () => void;
+  // Values the form opens on that are not saved yet; saving keeps them.
+  starting?: Partial<DocumentDetailsFormValues>;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const savedToast = useSavedToast();
   const update = useUpdateClientDocumentDetails({ request: apiRequest });
   const form = useForm<DocumentDetailsFormValues>({
     resolver: zodResolver(documentDetailsFormSchema),
-    defaultValues: toDocumentDetailsForm(saved),
+    defaultValues: { ...toDocumentDetailsForm(saved), ...starting },
   });
   const busy = update.isPending;
 

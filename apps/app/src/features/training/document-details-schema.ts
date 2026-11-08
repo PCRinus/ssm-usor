@@ -20,6 +20,15 @@ const wholeNumber = (min: number, max: number, message: string) =>
       return /^[0-9]+$/.test(value) && number >= min && number <= max;
     }, message);
 
+export function dayOrderProblem(from: string, to: string) {
+  if (!/^[0-9]+$/.test(from.trim()) || !/^[0-9]+$/.test(to.trim())) return null;
+  const first = Number(from);
+  return Number(to) < first && first <= 31
+    ? `Ultima zi vine după prima. Scrie o zi între ${first} și 31.`
+    : null;
+}
+
+// What ADR 008 saved for a category: kept as it was while the client has no posts in it.
 export const notApplicable = 'not_applicable';
 const categoryInterval = (max: number) =>
   z
@@ -29,7 +38,7 @@ const categoryInterval = (max: number) =>
         value === notApplicable ||
         value === '' ||
         (/^[0-9]+$/.test(value) && Number(value) >= 1 && Number(value) <= max),
-      'Alege un interval din listă sau „Nu se aplică”.'
+      'Alege un interval din listă.'
     );
 
 const durations: readonly string[] = periodicTrainingMinutesOptions.map(String);
@@ -60,16 +69,13 @@ export const documentDetailsFormSchema = z
     administrativeTrainingIntervalMonths: categoryInterval(12),
     workerTrainingIntervalMonths: categoryInterval(6),
     trainingFirstMonth: wholeNumber(1, 12, 'Alege o lună din listă.'),
-    trainingDayFrom: wholeNumber(1, 31, 'Introdu o zi între 1 și 31.'),
-    trainingDayTo: wholeNumber(1, 31, 'Introdu o zi între 1 și 31.'),
+    trainingDayFrom: wholeNumber(1, 31, 'Scrie o zi între 1 și 31.'),
+    trainingDayTo: wholeNumber(1, 31, 'Scrie o zi între 1 și 31.'),
   })
-  .refine(
-    (values) =>
-      values.trainingDayFrom === '' ||
-      values.trainingDayTo === '' ||
-      Number(values.trainingDayFrom) <= Number(values.trainingDayTo),
-    { path: ['trainingDayTo'], message: 'Ultima zi nu poate fi înaintea primei zile.' }
-  )
+  .superRefine((values, context) => {
+    const problem = dayOrderProblem(values.trainingDayFrom, values.trainingDayTo);
+    if (problem) context.addIssue({ code: 'custom', path: ['trainingDayTo'], message: problem });
+  })
   .refine(
     (values) => !values.legalRepresentativeIsEmployee || values.legalRepresentativeEmployeeId,
     {
