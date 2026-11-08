@@ -19,8 +19,7 @@ import {
   type HeldPosition,
   intervalChoices,
   intervalFieldId,
-  lawOf,
-  legalMaxInterval,
+  intervalHint,
   type ScheduleDomain,
   trainingMonthsText,
 } from './schedule-rules';
@@ -269,7 +268,6 @@ export function TrainingScheduleFields({
               const id = intervalFieldId(idPrefix, entry.category);
               const options = withPicked(intervalChoices(domain, entry.category), entry.interval);
               const outside = options.some((option) => option.invalid);
-              const max = legalMaxInterval(domain, entry.category);
               return (
                 <CategoryBlock
                   key={entry.category}
@@ -301,7 +299,7 @@ export function TrainingScheduleFields({
                         <FieldMessage id={`${id}-error`} error={entry.error as never} />
                       ) : (
                         <p id={`${id}-hint`} className={hintText}>
-                          Cel mult la {max} luni, după {lawOf[domain]}. Poți alege mai des.
+                          {intervalHint(domain, entry.category)}
                         </p>
                       )}
                     </>

@@ -2,6 +2,7 @@ import {
   formatTrainingDuration,
   legalMaxTrainingInterval,
   type StaffCategory,
+  startingTrainingIntervals,
   type TrainingDomain,
   trainingIntervalChoices,
   trainingMonths,
@@ -16,12 +17,19 @@ export type ScheduleDomain = TrainingDomain;
 export const intervalChoices = (domain: ScheduleDomain, category: StaffCategory) =>
   trainingIntervalChoices[domain][category];
 
-export const legalMaxInterval = legalMaxTrainingInterval;
+export const startingInterval = (domain: ScheduleDomain, category: StaffCategory) =>
+  startingTrainingIntervals[domain][category];
 
 export const lawOf: Record<ScheduleDomain, string> = {
   ssm: 'HG 1425/2006, art. 96',
   su: 'OMAI 712/2005, art. 26',
 };
+
+// Art. 26 sets its ranges by what the staff does, not by the two categories of a post.
+export const intervalHint = (domain: ScheduleDomain, category: StaffCategory) =>
+  domain === 'ssm'
+    ? `Cel mult la ${legalMaxTrainingInterval(domain, category)} luni, după ${lawOf.ssm}. Poți alege mai des.`
+    : `După ${lawOf.su}: cel mult o lună pentru personalul care sprijină serviciile de urgență, 1–3 luni pentru cel care lucrează direct cu mașini și instalații, 3–6 luni pentru personalul auxiliar, 1–6 luni pentru cel cu atribuții de organizare, conducere și control.`;
 
 export const durations: Record<ScheduleDomain, { label: string; values: readonly number[] }> = {
   ssm: { label: 'Durata unei instruiri, în minute', values: [60, 90, 120] },

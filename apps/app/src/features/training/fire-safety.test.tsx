@@ -171,8 +171,11 @@ describe('the fire-safety training card', () => {
     expect(await screen.findByTestId('fire-safety-starting')).toBeTruthy();
     expect(checked('fire-training-duration-2')).toBe(true);
     expect(checked('fire-administrative-interval-6')).toBe(true);
-    expect(checked('fire-worker-interval-6')).toBe(true);
+    expect(checked('fire-worker-interval-3')).toBe(true);
     expect(screen.queryByTestId('fire-worker-interval-12')).toBeNull();
+    expect(document.getElementById('fire-worker-interval-hint')!.textContent).toBe(
+      'După OMAI 712/2005, art. 26: cel mult o lună pentru personalul care sprijină serviciile de urgență, 1–3 luni pentru cel care lucrează direct cu mașini și instalații, 3–6 luni pentru personalul auxiliar, 1–6 luni pentru cel cu atribuții de organizare, conducere și control.'
+    );
     expect(value('fire-first-month')).toBe('2');
     expect(value('fire-day-from')).toBe('2');
     expect(value('fire-day-to')).toBe('7');

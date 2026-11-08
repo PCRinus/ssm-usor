@@ -69,7 +69,7 @@ import {
   categoriesWithPosts,
   type CategoryPosts,
   durationText,
-  legalMaxInterval,
+  startingInterval,
 } from './schedule-rules';
 import { type ClientSummary, describedBy, useDocumentDetails } from './use-document-details-form';
 
@@ -336,7 +336,7 @@ function FireScheduleForm({
       ...Object.fromEntries(
         unsaved.map((category) => [
           fireIntervalField[category],
-          String(legalMaxInterval('su', category)),
+          String(startingInterval('su', category)),
         ])
       ),
     },
@@ -374,7 +374,7 @@ function FireScheduleForm({
     >
       {starting && (
         <p data-testid="fire-safety-starting" className="-mb-4 text-sm text-muted-foreground">
-          Valori de pornire: durata minimă, intervalul cel mai lung permis de lege și calendarul
+          Valori de pornire: durata minimă, intervalul obișnuit al fiecărei categorii și calendarul
           instruirii SSM. Salvează programul ca să le păstrezi.
         </p>
       )}
@@ -391,8 +391,8 @@ function FireScheduleForm({
                 data-testid={`fire-safety-new-category-${entry.category}`}
                 className="text-xs text-muted-foreground"
               >
-                Intervalul nu e salvat încă. Am ales intervalul cel mai lung permis de lege;
-                salvează programul ca să-l păstrezi.
+                Intervalul nu e salvat încă. Am ales intervalul obișnuit, la{' '}
+                {startingInterval('su', entry.category)} luni; salvează programul ca să-l păstrezi.
               </p>
             ) : null,
         }))}
