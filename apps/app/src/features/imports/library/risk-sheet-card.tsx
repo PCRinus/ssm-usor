@@ -14,11 +14,12 @@ import {
 } from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
 
+import { Segmented } from '@/components/segmented';
 import { roCount } from '@/features/employees/employee-format';
 
 import type { LabelledSource } from '../review-model';
 import { SourceButton, Tag } from '../review-parts';
-import { DecisionRow, PendingNote, RenameRow, Segmented, type Tone } from './decision-row';
+import { DecisionRow, PendingNote, RenameRow, type Tone } from './decision-row';
 import { RiskDifferences } from './risk-differences';
 import { FactorRow, RiskFactorRows } from './risk-factor-rows';
 import { RiskPlanRows } from './risk-plan-rows';
@@ -244,7 +245,7 @@ export function RiskSheetCard({
                     value={target.choice}
                     disabled={readOnly}
                     testIdPrefix="risk-import-existing"
-                    stackOnPhone
+                    phone="stacked"
                     onPick={(choice) => pickExisting(target.reference, choice)}
                   />
                 }
@@ -271,7 +272,7 @@ export function RiskSheetCard({
                   value={state.existing.choice}
                   disabled={readOnly}
                   testIdPrefix="risk-import-existing"
-                  stackOnPhone
+                  phone="stacked"
                   onPick={(choice) => pickExisting(null, choice)}
                 />
               }
@@ -655,7 +656,7 @@ function LibraryRows({
       value={state.choicePicked ? choice : null}
       disabled={readOnly}
       testIdPrefix="risk-import-library"
-      stackOnPhone
+      phone="stacked"
       onPick={onPick}
     />
   );

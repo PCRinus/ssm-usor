@@ -23,6 +23,7 @@ import { type ReactNode, useId, useState } from 'react';
 import { Controller, type Resolver, useForm, type UseFormReturn } from 'react-hook-form';
 import { z } from 'zod';
 
+import { Segmented } from '@/components/segmented';
 import { CaenCombobox } from '@/features/clients/caen-combobox';
 import { VatPayerField } from '@/features/clients/client-fields';
 import {
@@ -34,7 +35,7 @@ import { CountyCombobox } from '@/features/clients/county-combobox';
 import { fireIntervalChoices } from '@/features/training/fire-safety-schema';
 
 import { endSentence } from './import-format';
-import { DecisionRow, PendingNote, Segmented, type Tone } from './library/decision-row';
+import { DecisionRow, PendingNote, type Tone } from './library/decision-row';
 import { phoneDiff } from './phone-diff';
 import {
   anafMismatch,

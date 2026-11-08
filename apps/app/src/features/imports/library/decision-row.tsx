@@ -96,62 +96,6 @@ export function DecisionRow({
   );
 }
 
-export type SegmentOption<T extends string> = { value: T; label: string };
-
-export function Segmented<T extends string>({
-  name,
-  label,
-  options,
-  value,
-  disabled,
-  testIdPrefix,
-  stackOnPhone = false,
-  onPick,
-}: {
-  name: string;
-  label: string;
-  options: readonly SegmentOption<T>[];
-  value: T | null;
-  disabled: boolean;
-  testIdPrefix: string;
-  // Three long labels do not fit side by side at 360 px.
-  stackOnPhone?: boolean;
-  onPick: (value: T) => void;
-}) {
-  return (
-    <div
-      role="radiogroup"
-      aria-label={label}
-      className={cn(
-        'grid rounded-lg border border-input bg-secondary p-0.5 sm:inline-flex',
-        stackOnPhone ? 'grid-cols-1' : 'grid-cols-2'
-      )}
-    >
-      {options.map((option) => (
-        <label
-          key={option.value}
-          className="relative inline-flex h-[30px] cursor-pointer items-center justify-center rounded-md px-3.5 text-sm font-medium whitespace-nowrap text-muted-foreground has-checked:bg-card has-checked:font-semibold has-checked:text-foreground has-checked:shadow-xs has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50 has-disabled:cursor-not-allowed"
-        >
-          <input
-            type="radio"
-            name={name}
-            value={option.value}
-            data-testid={`${testIdPrefix}-${option.value}`}
-            className="absolute inset-0 m-0 size-full cursor-pointer appearance-none opacity-0 disabled:cursor-not-allowed"
-            disabled={disabled}
-            checked={value === option.value}
-            onChange={() => onPick(option.value)}
-            // A checked radio fires no change, and picking the proposed choice is what clears the
-            // row's question.
-            onClick={() => onPick(option.value)}
-          />
-          {option.label}
-        </label>
-      ))}
-    </div>
-  );
-}
-
 export function PendingNote({ line, testId }: { line: string | null; testId: string }) {
   if (line === null) {
     return (
