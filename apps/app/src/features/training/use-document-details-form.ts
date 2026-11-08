@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { hashKey } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
@@ -75,7 +76,7 @@ export function useDocumentDetailsForm({
   const onSubmit = form.handleSubmit(async (values) => {
     const own = Object.fromEntries(fields.map((field) => [field, values[field]]));
     try {
-      await inTurn(queryKey.join('/'), async () => {
+      await inTurn(hashKey(queryKey), async () => {
         const latest =
           queryClient.getQueryData<ClientDocumentDetailsResponse>(queryKey)?.documentDetails;
         const data = toDocumentDetailsRequest({
