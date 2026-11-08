@@ -1,6 +1,6 @@
 import { Switch } from '@ssm-usor/ui/components/switch';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect } from 'react';
 
 import { RowActions } from './library/decision-row';
 
@@ -15,26 +15,41 @@ const words: Record<Agreement, { on: string; off: string }> = {
 const includedWord = (included: boolean, agreement: Agreement = 'masculine') =>
   included ? words[agreement].on : words[agreement].off;
 
+// A row that collapses or opens renders another tree, so the switch the member pressed unmounts;
+// the one mounted under the same id takes the focus back.
+let refocus: string | null = null;
+
 export function IncludeSwitch({
+  id,
   name,
   included,
   onChange,
   agreement = 'masculine',
+  stateLabel,
+  showWord = true,
   disabled = false,
   testId = 'include-switch',
   className,
 }: {
+  id: string;
   name: string;
   included: boolean;
   onChange: (included: boolean) => void;
   agreement?: Agreement;
+  stateLabel?: string;
+  showWord?: boolean;
   disabled?: boolean;
   testId?: string;
   className?: string;
 }) {
+  useEffect(() => {
+    if (refocus !== id) return;
+    refocus = null;
+    document.getElementById(id)?.focus();
+  }, [id]);
   return (
     <span className={cn('inline-flex shrink-0 items-center gap-2.5', className)}>
-      {!included && (
+      {!included && showWord && (
         <span
           className="text-[13px] font-medium whitespace-nowrap text-muted-foreground"
           aria-hidden="true"
@@ -44,11 +59,18 @@ export function IncludeSwitch({
         </span>
       )}
       <Switch
+        id={id}
         data-testid={testId}
-        aria-label={`${includedWord(included, agreement)}: ${name}`}
+        aria-label={`${stateLabel ?? includedWord(included, agreement)}: ${name}`}
         checked={included}
         disabled={disabled}
-        onCheckedChange={onChange}
+        onCheckedChange={(next) => {
+          refocus = id;
+          setTimeout(() => {
+            if (refocus === id) refocus = null;
+          }, 500);
+          onChange(next);
+        }}
         className="relative after:absolute after:-inset-x-1 after:-inset-y-3 after:rounded-xl"
       />
     </span>
@@ -56,6 +78,7 @@ export function IncludeSwitch({
 }
 
 export function LeftOutRow({
+  switchId,
   name,
   onInclude,
   agreement,
@@ -64,6 +87,7 @@ export function LeftOutRow({
   className,
   testId = 'left-out-row',
 }: {
+  switchId: string;
   name: string;
   onInclude: () => void;
   agreement?: Agreement;
@@ -81,6 +105,7 @@ export function LeftOutRow({
         {name}
       </span>
       <IncludeSwitch
+        id={switchId}
         name={name}
         included={false}
         agreement={agreement}

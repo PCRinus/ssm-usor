@@ -72,6 +72,7 @@ import {
   SourceButton,
   SourceFileNames,
   SpellingChoice,
+  Tag,
 } from './review-parts';
 
 type ItemsContext = FieldContext & { blockers: Blocker[] };
@@ -170,6 +171,8 @@ function NameChoice({ state, context }: { state: ItemState; context: ItemsContex
   );
 }
 
+const switchIdOf = (state: ItemState) => `include-${state.list}-${state.item.id}`;
+
 function setIncluded(context: ItemsContext, state: ItemState, included: boolean) {
   context.review.setItem(state.item.id, (current) => ({
     ...current,
@@ -224,6 +227,7 @@ function ItemRow({
         toggle={
           excludable && (
             <IncludeSwitch
+              id={switchIdOf(state)}
               name={title}
               included
               agreement={agreement}
@@ -234,6 +238,11 @@ function ItemRow({
         }
         details={
           <>
+            {state.item.otherCompanyName && (
+              <Tag tone="info" className="w-fit">
+                De la {state.item.otherCompanyName}
+              </Tag>
+            )}
             {details.filter(Boolean).map((detail, index) => (
               <span key={index} className="text-[13px] text-muted-foreground wrap-anywhere">
                 {detail}
@@ -362,6 +371,7 @@ function OptionalBox({
                 title={<span className="text-sm font-medium wrap-anywhere">{name}</span>}
                 toggle={
                   <IncludeSwitch
+                    id={switchIdOf(state)}
                     name={name}
                     included={state.included}
                     agreement={agreement}
@@ -450,6 +460,7 @@ function ListCard({
                 className="scroll-mt-32 py-3"
               >
                 <LeftOutRow
+                  switchId={switchIdOf(state)}
                   name={itemName(state.list, state.values)}
                   agreement={agreement}
                   switchTestId="review-include-item"

@@ -527,6 +527,13 @@ describe('a section of the review', () => {
     await userEvent.click(within(other).getByTestId('review-include-item'));
     await waitFor(() => expect(saves).toBe(1));
     expect(savedChanges(0).changes.items).toEqual({ 'position-2': { included: true } });
+    const joined = screen
+      .getAllByTestId('review-item')
+      .find((row) => row.textContent?.includes('Stivuitorist'))!;
+    expect(joined.textContent).toContain('De la Lactate Câmpia SRL');
+    expect(document.activeElement).toBe(
+      within(joined).getByRole('switch', { name: 'Inclus: Stivuitorist' })
+    );
 
     const brutar = screen
       .getAllByTestId('review-item')
@@ -1398,9 +1405,15 @@ describe('a post the import proposed that the member leaves out', () => {
       'VânzătorNu e inclus',
     ]);
     expect(card.querySelector('h2')?.textContent).toBe('2 posturi, unul inclus');
+    expect(document.activeElement).toBe(
+      within(collapsed).getByRole('switch', { name: 'Nu e inclus: Vânzător' })
+    );
 
     await userEvent.click(within(collapsed).getByRole('switch', { name: 'Nu e inclus: Vânzător' }));
     await waitFor(() => expect(saves).toBe(2));
+    expect(document.activeElement).toBe(
+      within(await rowOf('Vânzător')).getByRole('switch', { name: 'Inclus: Vânzător' })
+    );
     expect(savedChanges(1).changes.items).toEqual({});
     expect((await rowOf('Vânzător')).textContent).toContain('Vânzarea produselor de panificație');
     expect(within(await rowOf('Vânzător')).getByTestId('review-edit')).toBeTruthy();

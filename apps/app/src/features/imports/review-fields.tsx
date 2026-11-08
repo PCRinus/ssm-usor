@@ -752,6 +752,7 @@ function ValueRow({
       toggle={
         excludable && (
           <IncludeSwitch
+            id={`include-${state.path}`}
             name={state.label}
             included={!unticked}
             agreement="feminine"

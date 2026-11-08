@@ -188,6 +188,7 @@ export function InstructionRow({
           </div>
         )}
         <IncludeSwitch
+          id={`include-instruction-${instruction.key}`}
           name={row.title}
           included={row.included}
           agreement="feminine"
