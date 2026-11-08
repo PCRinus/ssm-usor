@@ -7,6 +7,7 @@ import {
   staffCategoriesWithPosts,
   type StaffCategory,
   type TrainingDomain,
+  trainingIntervalChoices,
 } from '@ssm-usor/contracts';
 import {
   type Field,
@@ -127,6 +128,11 @@ const intervalPaths: Record<string, { domain: TrainingDomain; category: StaffCat
     category: 'technical_administrative',
   },
 };
+
+const intervalPathOf = (domain: TrainingDomain, category: StaffCategory) =>
+  Object.entries(intervalPaths).find(
+    ([, interval]) => interval.domain === domain && interval.category === category
+  )![0];
 
 const scheduleColumns = [
   'periodic_training_hours',
@@ -404,6 +410,7 @@ export function toClientPayload(input: {
     : anafLegalName(proposal, changes, input.registeredCompany);
   const applyField = ({ section, path, field }: ReturnType<typeof fieldsOf>[number]) => {
     const change = changes.fields[path];
+    const interval = intervalPaths[path];
     const resolved: Resolution =
       path === 'client.legalName' && anafName !== null
         ? { value: anafName, option: null, choice: false, changed: false, unticked: false }
@@ -429,6 +436,14 @@ export function toClientPayload(input: {
       flagged(`${path}.options.${resolved.option}`).length
     ) {
       block(path, 'invalid');
+    } else if (
+      interval &&
+      written &&
+      !replace &&
+      change?.value === undefined &&
+      !trainingIntervalChoices[interval.domain][interval.category].includes(Number(value))
+    ) {
+      block(path, 'choice');
     }
     (inFireSafety ? fireSafety : client)[column] = value;
     if (replace) (inFireSafety ? fireReplace : clientReplace).push(column);
@@ -851,6 +866,8 @@ export function toClientPayload(input: {
         settled: null,
       });
       row[column] = months;
+      // Nobody read it in the documents, so it is written only once the member confirms it.
+      block(intervalPathOf(domain, category), 'choice');
     }
   }
   // An existing client's exclusion would otherwise keep the interval out (apply_client_import).

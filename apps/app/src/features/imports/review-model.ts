@@ -114,7 +114,8 @@ export const sectionOf = (path: string): SectionId =>
     ? 'training'
     : (sectionOfRoot[path.split('.')[0] ?? ''] ?? 'identity');
 
-type FieldInfo = { label: string; choose: string; write: string };
+// `confirm` is for a value no document gives, which the review proposes for the member to confirm.
+type FieldInfo = { label: string; choose: string; write: string; confirm?: string };
 
 export const fieldInfo: Record<string, FieldInfo> = {
   'client.legalName': { label: 'Denumire', choose: 'Alege denumirea', write: 'Scrie denumirea' },
@@ -166,11 +167,13 @@ export const fieldInfo: Record<string, FieldInfo> = {
     label: 'Instruirea periodică, tehnico-administrativ',
     choose: 'Alege periodicitatea pentru tehnico-administrativ',
     write: 'Alege periodicitatea pentru tehnico-administrativ',
+    confirm: 'Confirmă periodicitatea pentru tehnico-administrativ',
   },
   'trainingSchedule.workerTrainingIntervalMonths': {
     label: 'Instruirea periodică, execuție',
     choose: 'Alege periodicitatea pentru execuție',
     write: 'Alege periodicitatea pentru execuție',
+    confirm: 'Confirmă periodicitatea pentru execuție',
   },
   'trainingSchedule.trainingFirstMonth': {
     label: 'Prima lună a instruirii',
@@ -196,11 +199,13 @@ export const fieldInfo: Record<string, FieldInfo> = {
     label: 'Periodicitate SU, tehnico-administrativ',
     choose: 'Alege periodicitatea SU pentru tehnico-administrativ',
     write: 'Scrie periodicitatea SU pentru tehnico-administrativ',
+    confirm: 'Confirmă periodicitatea SU pentru tehnico-administrativ',
   },
   'fireSafety.workerTrainingIntervalMonths': {
     label: 'Periodicitate SU, execuție',
     choose: 'Alege periodicitatea SU pentru execuție',
     write: 'Scrie periodicitatea SU pentru execuție',
+    confirm: 'Confirmă periodicitatea SU pentru execuție',
   },
   'fireSafety.trainingFirstMonth': {
     label: 'Prima lună a instruirii SU',
@@ -854,16 +859,20 @@ export function blockerLink(proposal: Proposal, changes: Changes, blocker: Block
   const info = fieldInfo[`${root}.${second}`];
   if (info) {
     const picked = fireTrainingPaths.has(`${root}.${second}`) || root === 'trainingSchedule';
+    const state = fieldState(proposal, changes, `${root}.${second}`);
+    const noneGiven = state.status !== 'choice' && state.value === null;
     return {
       section,
       anchor: anchorOf(`${root}.${second}`),
       code: blocker.code,
       text:
-        blocker.code === 'choice' || (picked && blocker.code === 'invalid')
-          ? info.choose
-          : blocker.code === 'invalid'
-            ? `Corectează ${info.label.toLowerCase()}`
-            : info.write,
+        blocker.code === 'choice' && info.confirm && noneGiven
+          ? info.confirm
+          : blocker.code === 'choice' || (picked && blocker.code === 'invalid')
+            ? info.choose
+            : blocker.code === 'invalid'
+              ? `Corectează ${info.label.toLowerCase()}`
+              : info.write,
     };
   }
   const list = root as ItemList;

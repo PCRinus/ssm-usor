@@ -1911,6 +1911,28 @@ describe('the training cards', () => {
     ).toBeNull();
   });
 
+  it('keeps confirming waiting on the longest legal interval until the member confirms it', async () => {
+    const proposal = proposalFixture();
+    proposal.jobPositions.push(accountant as never);
+    proposal.trainingSchedule.administrativeTrainingIntervalMonths = { options: [] } as never;
+    mockReview(
+      readyDetail({
+        proposal,
+        blockers: [
+          { path: 'trainingSchedule.administrativeTrainingIntervalMonths', code: 'choice' },
+        ],
+      })
+    );
+    mount();
+
+    const link = await screen.findByTestId('import-blocker-link');
+    expect(link.textContent).toBe('Confirmă periodicitatea pentru tehnico-administrativ');
+    expect(link.getAttribute('href')).toContain(
+      '#review-trainingSchedule-administrativeTrainingIntervalMonths'
+    );
+    expect(screen.getByTestId('import-confirm').getAttribute('aria-disabled')).toBe('true');
+  });
+
   it('shows a duration outside the list as not to be picked, with the list open', async () => {
     mockReview(
       trainingDetail((proposal) => {

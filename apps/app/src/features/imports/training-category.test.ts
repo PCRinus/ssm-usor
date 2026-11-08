@@ -95,6 +95,12 @@ describe('a field of a training schedule', () => {
     ).toMatchObject({ mode: 'value', value: null, settled: true });
   });
 
+  it('waits on no value outside the list where an existing client has one, as confirming keeps it', () => {
+    expect(
+      trainingField(statesOf(path, [option(5)], none, 5), path, intervals, legal)
+    ).toMatchObject({ mode: 'value', value: 5, settled: true });
+  });
+
   it("keeps an existing client's value where the documents differ, and its own where they give none", () => {
     expect(
       trainingField(statesOf(path, [option(3)], none, 6), path, intervals, legal)

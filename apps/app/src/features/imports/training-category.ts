@@ -102,7 +102,8 @@ export function trainingField(
     return field('choice', asNumber(state.value), state.status !== 'choice');
   }
   const proposed = asNumber(state.proposedValue);
-  if (choices && proposed !== null && !choices.includes(proposed)) {
+  const hasExisting = state.existing !== null && state.existing !== '';
+  if (choices && proposed !== null && !choices.includes(proposed) && !hasExisting) {
     return field('outside', state.edited ? asNumber(state.value) : null, state.edited);
   }
   const inForce = asNumber(valueInForce(state));

@@ -416,13 +416,14 @@ describe('toClientPayload', () => {
       locality: 'Timisoara Nord',
     });
     // The bakers stay, so execution personnel take the law's longest interval in place of the
-    // documents' one the member left out.
+    // documents' one the member left out, which waits for the member to confirm it.
     expect(payload.client).toMatchObject({ worker_training_interval_months: 6 });
     expect(payload.workplaces.map((row) => row.key)).toEqual(['workplace-1']);
     expect(payload.equipment[1]).toMatchObject({ quantity: 2 });
     // The emergency lighting stood at the workplace the member left out.
     expect(blockers).toEqual([
       { path: 'fireInstallations.0.workplace', code: 'unknown_reference' },
+      { path: 'trainingSchedule.workerTrainingIntervalMonths', code: 'choice' },
     ]);
     expect(payload.quality.client).toEqual({ changed: 2, unticked: 0, kept: 0 });
     expect(payload.quality.trainingSchedule).toEqual({ changed: 0, unticked: 1, kept: 0 });
@@ -501,6 +502,7 @@ describe('toClientPayload', () => {
           'client.legalName': { option: 0 },
           'client.cui': { value: '12345674' },
           'client.countyCode': { value: 'TM' },
+          'trainingSchedule.workerTrainingIntervalMonths': { value: 6 },
         },
         items: {
           'equipment-entry-1': { values: { risk: 'Arsuri' } },
@@ -909,7 +911,7 @@ describe('toClientPayload', () => {
     expect(tooLong.payload.client).not.toHaveProperty('worker_training_interval_months');
   });
 
-  it('gives a category with posts the longest legal interval where the documents give none', () => {
+  it('gives a category with posts the longest legal interval where the documents give none, once the member confirms it', () => {
     const base = reading();
     const category = (jobPosition: string, value: string) => ({
       jobPosition,
@@ -917,7 +919,10 @@ describe('toClientPayload', () => {
       value,
       ...quoted(),
     });
-    const payloadOf = (categories: ReturnType<typeof category>[]) =>
+    const payloadOf = (
+      categories: ReturnType<typeof category>[],
+      fields: ImportChanges['fields'] = {}
+    ) =>
       toClientPayload({
         proposal: proposalOf(
           reading({
@@ -927,13 +932,15 @@ describe('toClientPayload', () => {
             jobPositionFacts: categories,
           })
         ),
-        changes: null,
+        changes: { fields, items: {} },
         intoExistingClient: false,
         existing: noExistingRecords,
       });
 
     const execution = payloadOf([category('Brutar', 'execution')]);
-    expect(execution.blockers).toEqual([]);
+    expect(execution.blockers).toEqual([
+      { path: 'trainingSchedule.workerTrainingIntervalMonths', code: 'choice' },
+    ]);
     expect(execution.payload.client).toMatchObject({ worker_training_interval_months: 6 });
     expect(execution.payload.client).not.toHaveProperty('administrative_training_interval_months');
     expect(execution.payload.client).not.toHaveProperty('administrative_training_not_applicable');
@@ -946,6 +953,50 @@ describe('toClientPayload', () => {
       worker_training_interval_months: 6,
       administrative_training_interval_months: 12,
     });
+    expect(both.blockers).toEqual([
+      { path: 'trainingSchedule.workerTrainingIntervalMonths', code: 'choice' },
+      { path: 'trainingSchedule.administrativeTrainingIntervalMonths', code: 'choice' },
+    ]);
+
+    const confirmed = payloadOf([category('Brutar', 'execution')], {
+      'trainingSchedule.workerTrainingIntervalMonths': { value: 6 },
+    });
+    expect(confirmed.blockers).toEqual([]);
+    expect(confirmed.payload.client).toMatchObject({ worker_training_interval_months: 6 });
+    // A "Nu se aplică" an older review saved is no confirmation.
+    const excluded = payloadOf([category('Brutar', 'execution')], {
+      'trainingSchedule.workerTrainingIntervalMonths': { value: null },
+    });
+    expect(excluded.blockers).toEqual([
+      { path: 'trainingSchedule.workerTrainingIntervalMonths', code: 'choice' },
+    ]);
+  });
+
+  it('waits for the member on an interval the documents give outside the list', () => {
+    const base = reading();
+    const payloadOf = (fields: ImportChanges['fields'] = {}) =>
+      toClientPayload({
+        proposal: proposalOf(
+          reading({
+            facts: [
+              ...base.facts.filter(
+                (each) => each.field !== 'trainingSchedule.workerTrainingIntervalMonths'
+              ),
+              fact('trainingSchedule.workerTrainingIntervalMonths', '5'),
+            ],
+          })
+        ),
+        changes: { fields, items: {} },
+        intoExistingClient: false,
+        existing: noExistingRecords,
+      });
+
+    expect(payloadOf().blockers).toEqual([
+      { path: 'trainingSchedule.workerTrainingIntervalMonths', code: 'choice' },
+    ]);
+    const picked = payloadOf({ 'trainingSchedule.workerTrainingIntervalMonths': { value: 4 } });
+    expect(picked.blockers).toEqual([]);
+    expect(picked.payload.client).toMatchObject({ worker_training_interval_months: 4 });
   });
 
   it('counts the posts an existing client has and writes over its exclusion of a category with posts', () => {
@@ -972,7 +1023,10 @@ describe('toClientPayload', () => {
       existing,
     });
 
-    expect(blockers).toEqual([]);
+    expect(blockers).toEqual([
+      { path: 'trainingSchedule.administrativeTrainingIntervalMonths', code: 'choice' },
+      { path: 'fireSafety.administrativeTrainingIntervalMonths', code: 'choice' },
+    ]);
     expect(payload.client).toMatchObject({
       administrative_training_interval_months: 12,
       replace: ['administrative_training_interval_months'],
