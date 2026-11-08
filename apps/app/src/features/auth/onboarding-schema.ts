@@ -1,4 +1,4 @@
-import { normalizeCui } from '@ssm-usor/contracts';
+import { bankNameForIban, isValidIban, normalizeCui, normalizeIban } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import type {
@@ -49,11 +49,42 @@ export function toOnboardingCompanyDetails(
       countyCode: found?.countyCode ?? null,
       locality: found?.locality ?? null,
       addressLine: found?.addressLine ?? null,
-      phone: null,
+      phone: anafPhone(found),
       legalRepresentativeName: null,
       legalRepresentativeRole: null,
-      iban: null,
-      bankName: null,
+      iban: anafIban(found),
+      bankName: bankNameForIban(anafIban(found) ?? ''),
     },
+  };
+}
+
+// ANAF's free-text fields are not checked against the bounds the save applies, and one field out
+// of bounds would refuse the whole save.
+function anafPhone(company: CompanyLookup | null) {
+  const phone = company?.phone?.trim();
+  return phone && phone.length >= 5 && phone.length <= 20 ? phone : null;
+}
+
+function anafIban(company: CompanyLookup | null) {
+  return company?.iban && isValidIban(company.iban) ? normalizeIban(company.iban) : null;
+}
+
+const listed = (items: string[]) =>
+  items.length > 1 ? `${items.slice(0, -1).join(', ')} și ${items.at(-1)}` : (items[0] ?? '');
+
+export function anafFoundMessage(company: CompanyLookup) {
+  const taken = [
+    'denumirea',
+    ...(company.addressLine || company.locality ? ['sediul'] : []),
+    ...(company.tradeRegisterNumber ? ['numărul de la registrul comerțului'] : []),
+    ...(anafPhone(company) ? ['telefonul'] : []),
+    ...(anafIban(company) ? ['contul bancar'] : []),
+  ];
+  const missing = anafIban(company)
+    ? 'Reprezentantul legal nu este la ANAF. Îl completezi în pasul următor.'
+    : 'Reprezentantul legal și contul bancar nu sunt la ANAF. Le completezi în pașii următori.';
+  return {
+    taken: `Am preluat de la ANAF ${listed(taken)} pentru ${company.legalName}.`,
+    missing,
   };
 }
