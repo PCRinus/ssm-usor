@@ -348,7 +348,6 @@ export function undecidedJobPositions(
     .filter((position) => position.undecided.length > 0);
 }
 
-/** The interval a schedule, occupational or fire-safety, sets for one category. */
 export const categoryInterval = (
   schedule: {
     administrativeTrainingIntervalMonths: number | null;

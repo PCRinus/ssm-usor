@@ -67,7 +67,6 @@ export function CategoryBlock({
   firstMonth: number | null;
   testId?: string;
   id?: string;
-  // Something in the block waits for the member.
   pending?: boolean;
   children?: ReactNode;
 }) {
@@ -164,10 +163,7 @@ type Problem = { message?: string };
 export type ScheduleCategory = CategoryPosts & {
   interval: number | null;
   error?: Problem;
-  // In place of the segmented control and its hint, such as a choice between values read
-  // elsewhere that gives the control back on demand.
   control?: ReactNode;
-  // Under the interval: a source line, a warning, the posts with an interval of their own.
   fieldNote?: ReactNode;
   blockNote?: ReactNode;
   pending?: boolean;
@@ -176,7 +172,6 @@ export type ScheduleCategory = CategoryPosts & {
 
 type CalendarSlots = { firstMonth?: ReactNode; days?: ReactNode; duration?: ReactNode };
 
-/** The picked value comes along when the list does not offer it, shown picked and wrong. */
 function withPicked(values: readonly number[], picked: number | null): SegmentOption<string>[] {
   const outside = picked !== null && !values.includes(picked);
   return [...values, ...(outside ? [picked] : [])]
@@ -200,12 +195,9 @@ export type ScheduleFieldsProps = {
   errors?: { firstMonth?: Problem; dayFrom?: Problem; dayTo?: Problem; duration?: Problem };
   notes?: CalendarSlots;
   anchors?: { firstMonth?: string; dayFrom?: string; dayTo?: string; duration?: string };
-  // In place of a field's own control, as `control` is for an interval.
   controls?: CalendarSlots;
-  // Where posts are added; it ends the sentence about a category without posts.
   postsLink?: ReactNode;
   noPostsAction?: ReactNode;
-  // In place of the default block and sentences about missing posts.
   noPosts?: ReactNode;
   absentNote?: (category: StaffCategory) => ReactNode;
   // Typing a day calls its handler on every key; this, once the member leaves the field.

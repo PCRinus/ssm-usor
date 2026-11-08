@@ -171,10 +171,6 @@ function withoutReplace(change: Record<string, unknown> | undefined) {
   return Object.keys(rest).length ? rest : null;
 }
 
-/**
- * A field the documents leave to the member: their values in boxes and the form's control behind
- * "Alt…", or the app's value against the documents' one for a client that has it.
- */
 function FieldPicker({
   field,
   kind,

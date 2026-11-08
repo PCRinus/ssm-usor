@@ -98,7 +98,6 @@ export type FieldContext = {
   vatPayer: boolean;
   registered: (RegisteredCompany & { vatPayer: boolean }) | null;
   existingClient: boolean;
-  // An existing client's posts, which count with the imported ones for its staff categories.
   existingPositions: { id: string; name: string; staffCategory: StaffCategory }[];
   importId: string;
   openSource: OpenSource;

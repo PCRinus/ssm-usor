@@ -55,32 +55,19 @@ export const durationChoices: Record<TrainingDomain, readonly number[]> = {
   su: [2, 3, 4, 5, 6, 7, 8],
 };
 
-export type TrainingFieldMode =
-  // The control itself, with where its value comes from under it.
-  | 'value'
-  // The documents give several values.
-  | 'choice'
-  // The documents' value is not one the control offers.
-  | 'outside'
-  // The documents give no interval for a category with posts: the law's longest stands.
-  | 'legal_maximum'
-  // Into an existing client, whose value the documents contradict.
-  | 'differs';
+export type TrainingFieldMode = 'value' | 'choice' | 'outside' | 'legal_maximum' | 'differs';
 
 export type TrainingField = {
   path: string;
   state: FieldState;
   mode: TrainingFieldMode;
-  // What goes into the client: null while nothing does or a choice waits.
   value: number | null;
-  // False while the member still has to pick.
   settled: boolean;
 };
 
 const asNumber = (value: unknown) =>
   value === null || value === undefined || value === '' ? null : Number(value);
 
-/** How the review shows one field of a training schedule, and whether it waits on the member. */
 export function trainingField(
   states: Record<string, FieldState>,
   path: string,
@@ -167,7 +154,6 @@ export function withoutAbsentCategories(
 export const intervalChoicesOf = (domain: TrainingDomain, category: StaffCategory) =>
   trainingIntervalChoices[domain][category];
 
-/** The change that makes `value` the field's, none where the documents already give it. */
 export function numberChange(
   state: FieldState,
   value: number,

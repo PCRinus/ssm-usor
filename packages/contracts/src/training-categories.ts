@@ -15,7 +15,6 @@ export const trainingIntervalChoices: Record<
 export const legalMaxTrainingInterval = (domain: TrainingDomain, category: StaffCategory) =>
   trainingIntervalChoices[domain][category].at(-1)!;
 
-// Execution personnel first, as the provider packs list them.
 export function staffCategoriesWithPosts(
   posts: readonly { staffCategory: StaffCategory | null }[]
 ): StaffCategory[] {
