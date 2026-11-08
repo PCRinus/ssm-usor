@@ -20,7 +20,8 @@ export function Segmented<T extends string>({
   describedBy,
   onPick,
 }: {
-  // Given to the picked option, else the first, so a label or a focus request can reach it.
+  // Given to the picked option, else the first, so a focus request can reach it. No label may
+  // point at it: a click on the label would pick that option.
   id?: string;
   name: string;
   label: string;

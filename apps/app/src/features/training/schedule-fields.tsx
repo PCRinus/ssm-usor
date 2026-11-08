@@ -249,9 +249,7 @@ export function TrainingScheduleFields({
                   firstMonth={firstMonth}
                   testId={`${idPrefix}-category-${entry.category}`}
                 >
-                  <label htmlFor={id} className={cn(fieldLabel, 'mb-1')}>
-                    La câte luni
-                  </label>
+                  <p className={cn(fieldLabel, 'mb-1')}>La câte luni</p>
                   {entry.control ?? (
                     <>
                       <Segmented
@@ -387,9 +385,7 @@ export function TrainingScheduleFields({
         </fieldset>
 
         <div className="grid gap-2">
-          <label htmlFor={ids.duration} className={fieldLabel}>
-            {durationChoices.label}
-          </label>
+          <p className={fieldLabel}>{durationChoices.label}</p>
           {controls.duration ?? (
             <>
               <Segmented

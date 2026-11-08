@@ -187,6 +187,21 @@ describe('client document data', () => {
     expect(screen.getByTestId('details-administrative-interval-12')).toBeTruthy();
   });
 
+  it('picks no duration or interval when the member clicks their label', async () => {
+    mockApi({ positions: [welder] });
+    mount();
+    const user = userEvent.setup();
+
+    await screen.findByTestId('details-category-execution');
+    await user.click(screen.getByText('Durata unei instruiri, în minute'));
+    await user.click(screen.getByText('La câte luni'));
+    expect(screen.getByTestId<HTMLInputElement>('details-training-duration-60').checked).toBe(
+      false
+    );
+    expect(screen.getByTestId<HTMLInputElement>('details-worker-interval-1').checked).toBe(false);
+    expect(screen.getByTestId<HTMLInputElement>('details-worker-interval-6').checked).toBe(true);
+  });
+
   it('saves the representative and the program apart, each over what the other saved', async () => {
     mockApi({ positions: [welder, director] });
     mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/detalii`);
