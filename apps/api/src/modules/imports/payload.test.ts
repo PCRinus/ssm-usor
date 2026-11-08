@@ -1071,6 +1071,43 @@ describe('toClientPayload', () => {
     );
   });
 
+  it("keeps an existing client's schedule value where the documents give two, until the member takes one", () => {
+    const base = reading();
+    const payloadWith = (fields: ImportChanges['fields']) =>
+      toClientPayload({
+        proposal: proposalOf(
+          reading({
+            facts: [
+              ...base.facts,
+              fact('trainingSchedule.workerTrainingIntervalMonths', '3', fire),
+              fact('trainingSchedule.trainingFirstMonth', '2'),
+              fact('trainingSchedule.trainingFirstMonth', '5', fire),
+            ],
+          })
+        ),
+        changes: { fields, items: {} },
+        intoExistingClient: true,
+        existing: {
+          ...noExistingRecords,
+          client: { cui: '12345674', worker_training_interval_months: 4, training_first_month: 1 },
+        },
+      });
+
+    const kept = payloadWith({});
+    expect(kept.blockers).toEqual([]);
+    expect(kept.payload.client).not.toHaveProperty('worker_training_interval_months');
+    expect(kept.payload.client).not.toHaveProperty('training_first_month');
+
+    const taken = payloadWith({
+      'trainingSchedule.workerTrainingIntervalMonths': { option: 1, replace: true },
+    });
+    expect(taken.blockers).toEqual([]);
+    expect(taken.payload.client).toMatchObject({
+      worker_training_interval_months: 3,
+      replace: ['worker_training_interval_months'],
+    });
+  });
+
   it('blocks a fire-safety value the checks found outside what the database takes', () => {
     const base = reading();
     const proposal = withChecks(

@@ -95,6 +95,14 @@ export function trainingField(
     value,
     settled,
   });
+  const hasExisting = state.existing !== null && state.existing !== '';
+  if (hasExisting && state.own.length > 1) {
+    return field(
+      'choice',
+      asNumber(state.status === 'choice' ? state.existing : valueInForce(state)),
+      true
+    );
+  }
   if (state.comparison === 'kept' || state.comparison === 'replaced') {
     return field('differs', asNumber(valueInForce(state)), true);
   }
@@ -109,7 +117,6 @@ export function trainingField(
     return field('choice', asNumber(state.value), state.status !== 'choice');
   }
   const proposed = asNumber(state.proposedValue);
-  const hasExisting = state.existing !== null && state.existing !== '';
   if (choices && proposed !== null && !choices.includes(proposed) && !hasExisting) {
     return field('outside', state.edited ? asNumber(state.value) : null, state.edited);
   }

@@ -129,6 +129,18 @@ const intervalPaths: Record<string, { domain: TrainingDomain; category: StaffCat
   },
 };
 
+const schedulePaths = new Set([
+  ...Object.keys(clientColumns).filter(
+    (path) => path.startsWith('trainingSchedule.') && !notApplicablePaths.has(path)
+  ),
+  'fireSafety.periodicTrainingHours',
+  'fireSafety.administrativeTrainingIntervalMonths',
+  'fireSafety.workerTrainingIntervalMonths',
+  'fireSafety.trainingFirstMonth',
+  'fireSafety.trainingDayFrom',
+  'fireSafety.trainingDayTo',
+]);
+
 const intervalPathOf = (domain: TrainingDomain, category: StaffCategory) =>
   Object.entries(intervalPaths).find(
     ([, interval]) => interval.domain === domain && interval.category === category
@@ -417,12 +429,14 @@ export function toClientPayload(input: {
         : resolveField(field, change);
     if (resolved.changed) quality[section].changed++;
     if (resolved.unticked) quality[section].unticked++;
-    if (resolved.choice) block(path, 'choice');
     const inFireSafety = path in fireSafetyColumns;
     const column = inFireSafety ? fireSafetyColumns[path] : clientColumns[path];
+    const current = column && (inFireSafety ? existing.fireSafety : existing.client)?.[column];
+    // An existing client's schedule keeps its own value unless the member takes the documents'.
+    const keepsOwn = intoExistingClient && schedulePaths.has(path) && !empty(current);
+    if (resolved.choice && !keepsOwn) block(path, 'choice');
     if (!column) return;
     const value = columnValue(column, resolved.value);
-    const current = (inFireSafety ? existing.fireSafety : existing.client)?.[column];
     const replace = Boolean(change?.replace) && intoExistingClient;
     const written = !intoExistingClient || empty(current) || replace;
     if (value === null) return;

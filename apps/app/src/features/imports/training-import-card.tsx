@@ -330,24 +330,41 @@ function FieldPicker({
     );
   }
 
+  const inApp = context.existingClient && state.existing !== null && state.existing !== '';
+  const takenFromDocuments = !inApp || Boolean(change?.replace);
   return (
     <div className="grid gap-2" data-testid="review-training-choice">
       <KindLine icon={<Split aria-hidden="true" />} tone={field.settled ? undefined : 'warning'}>
-        Documentele dau {state.own.length} {text.several}. {text.pick}
+        Documentele dau {state.own.length} {text.several}.{' '}
+        {inApp ? 'Păstrăm valoarea din aplicație dacă nu alegi altfel.' : text.pick}
       </KindLine>
       <PickList label={label}>
+        {inApp && (
+          <PickOption
+            name={name}
+            checked={!open && !takenFromDocuments}
+            onPick={() => {
+              setOtherOpen(false);
+              context.review.setField(state.path, null);
+            }}
+            heading="În aplicație"
+            testId="review-keep-app"
+          >
+            {shown(state.path, state.existing)}
+          </PickOption>
+        )}
         {state.own.map((index) => {
           const option = state.options[index]!;
           return (
             <PickOption
               key={index}
               name={name}
-              checked={!open && state.option === index && !state.edited}
+              checked={!open && takenFromDocuments && state.option === index && !state.edited}
               onPick={() => {
                 setOtherOpen(false);
                 context.review.setField(state.path, {
                   option: index,
-                  ...(change?.replace ? { replace: true } : {}),
+                  ...(inApp ? { replace: true } : {}),
                 });
               }}
               heading={<SourceFileNames sources={option.sources} />}

@@ -1998,6 +1998,40 @@ describe('the training cards', () => {
     });
   });
 
+  it("keeps an existing client's interval where the documents give two, without waiting on a pick", async () => {
+    const proposal = proposalFixture();
+    proposal.trainingSchedule.workerTrainingIntervalMonths = {
+      options: [option(6), option(4, themes)],
+    } as never;
+    const detail = readyDetail({
+      proposal,
+      intoExistingClient: true,
+      client: { id: clientId, legalName: 'Brutăria Spicul Auriu SRL' },
+      blockers: [],
+    });
+    mockReview(detail, { documentDetails: { workerTrainingIntervalMonths: 3 } });
+    mount('/training');
+
+    await waitFor(() =>
+      expect(
+        within(block('trainingSchedule.workerTrainingIntervalMonths')).getByTestId(
+          'review-keep-app'
+        )
+      ).toBeTruthy()
+    );
+    const worker = block('trainingSchedule.workerTrainingIntervalMonths');
+    expect(worker.textContent).toContain('Păstrăm valoarea din aplicație dacă nu alegi altfel.');
+    expect(worker.getAttribute('data-pending')).toBeNull();
+    expect(
+      (within(worker).getByRole('radio', { name: /În aplicație/ }) as HTMLInputElement).checked
+    ).toBe(true);
+    await userEvent.click(within(worker).getByRole('radio', { name: /La 4 luni/ }));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({
+      'trainingSchedule.workerTrainingIntervalMonths': { option: 1, replace: true },
+    });
+  });
+
   it("keeps an existing client's interval where the documents differ, until the member takes theirs", async () => {
     const detail = readyDetail({
       intoExistingClient: true,

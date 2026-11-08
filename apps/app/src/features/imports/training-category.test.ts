@@ -110,6 +110,16 @@ describe('a field of a training schedule', () => {
     ).toMatchObject({ mode: 'value', value: 5, settled: true });
   });
 
+  it("keeps an existing client's value while the documents give several, until one replaces it", () => {
+    expect(
+      trainingField(statesOf(path, [option(3), option(4)], none, 6), path, intervals, legal)
+    ).toMatchObject({ mode: 'choice', value: 6, settled: true });
+    const taken: Changes = { fields: { [path]: { option: 1, replace: true } }, items: {} };
+    expect(
+      trainingField(statesOf(path, [option(3), option(4)], taken, 6), path, intervals, legal)
+    ).toMatchObject({ mode: 'choice', value: 4, settled: true });
+  });
+
   it("keeps an existing client's value where the documents differ, and its own where they give none", () => {
     expect(
       trainingField(statesOf(path, [option(3)], none, 6), path, intervals, legal)
