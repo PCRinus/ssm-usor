@@ -6,6 +6,7 @@ import { useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
 import { useScrollToHash } from '@/app/use-scroll-to-hash';
+import { Notice } from '@/components/notice';
 
 import { endSentence } from './import-format';
 import { OtherSections } from './other-sections';
@@ -96,8 +97,27 @@ export function ReviewSectionPage({
           </div>
         </div>
         <ConflictNotice review={review} />
-        {(section === 'identity' || section === 'training') && (
-          <FieldsSection section={section} context={context} />
+        {section === 'training' && existing.positionsFailed ? (
+          <Notice
+            variant="destructive"
+            data-testid="import-review-positions-error"
+            action={
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={existing.positionsRetrying}
+                onClick={existing.retryPositions}
+              >
+                Încearcă din nou
+              </Button>
+            }
+          >
+            Nu am putut încărca posturile clientului, de care depind intervalele instruirii.
+          </Notice>
+        ) : (
+          (section === 'identity' || section === 'training') && (
+            <FieldsSection section={section} context={context} />
+          )
         )}
         {section === 'identity' && (
           <OtherSections

@@ -2055,6 +2055,27 @@ describe('the training cards', () => {
     });
   });
 
+  it("waits for an existing client's posts before showing its intervals, and offers to load them again", async () => {
+    let answers = 0;
+    mockReview(
+      readyDetail({
+        intoExistingClient: true,
+        client: { id: clientId, legalName: 'Brutăria Spicul Auriu SRL' },
+        blockers: [],
+      }),
+      {
+        positions: () =>
+          ++answers === 1 ? Response.json({}, { status: 404 }) : Response.json({ items: [] }),
+      }
+    );
+    mount('/training');
+
+    const failed = await screen.findByTestId('import-review-positions-error');
+    expect(screen.queryByTestId('review-training-ssm')).toBeNull();
+    await userEvent.click(within(failed).getByRole('button', { name: 'Încearcă din nou' }));
+    expect(await screen.findByTestId('review-training-ssm')).toBeTruthy();
+  });
+
   it("keeps an existing client's interval where the documents give two, without waiting on a pick", async () => {
     const proposal = proposalFixture();
     proposal.trainingSchedule.workerTrainingIntervalMonths = {

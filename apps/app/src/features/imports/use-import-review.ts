@@ -257,13 +257,25 @@ export function useExistingValues(detail: ImportDetail) {
     request: apiRequest,
     query: { queryKey: getListJobPositionsQueryKey(clientId), enabled },
   });
-  if (!enabled) return { ready: true, valueAt: () => undefined, positions: [] };
+  if (!enabled) {
+    return {
+      ready: true,
+      valueAt: () => undefined,
+      positions: [],
+      positionsFailed: false,
+      positionsRetrying: false,
+      retryPositions: () => undefined,
+    };
+  }
   const record = (value: unknown) => (value ?? {}) as Record<string, string | number | null>;
   const clientRow = record(client.data?.client);
   const detailsRow = record(details.data?.documentDetails);
   const fireRow = record(fireSafety.data?.fireSafety);
   return {
-    ready: client.isSuccess && details.isSuccess && !fireSafety.isPending && !positions.isPending,
+    ready: client.isSuccess && details.isSuccess && !fireSafety.isPending && positions.isSuccess,
+    positionsFailed: positions.isError,
+    positionsRetrying: positions.isFetching,
+    retryPositions: () => void positions.refetch(),
     positions: (positions.data?.items ?? []).map((position) => ({
       id: position.id,
       name: position.name,
