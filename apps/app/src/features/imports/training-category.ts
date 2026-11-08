@@ -1,202 +1,148 @@
-import type { ImportInference } from '@/api/generated/api';
-import { intervalOptions, notApplicable } from '@/features/training/document-details-schema';
+import {
+  importedTrainingInterval,
+  type StaffCategory,
+  type TrainingDomain,
+  trainingIntervalChoices,
+} from '@ssm-usor/contracts';
 
 import {
   type Changes,
   type FieldChange,
   type FieldState,
-  formatFieldValue,
-  type Source,
-  type TrainingCategory,
+  itemStates,
+  type Proposal,
+  valueInForce,
 } from './review-model';
 
-export type CategoryValue = number | typeof notApplicable;
+export const schedulePaths = {
+  ssm: {
+    duration: 'trainingSchedule.periodicTrainingMinutes',
+    firstMonth: 'trainingSchedule.trainingFirstMonth',
+    dayFrom: 'trainingSchedule.trainingDayFrom',
+    dayTo: 'trainingSchedule.trainingDayTo',
+    interval: {
+      execution: 'trainingSchedule.workerTrainingIntervalMonths',
+      technical_administrative: 'trainingSchedule.administrativeTrainingIntervalMonths',
+    },
+  },
+  su: {
+    duration: 'fireSafety.periodicTrainingHours',
+    firstMonth: 'fireSafety.trainingFirstMonth',
+    dayFrom: 'fireSafety.trainingDayFrom',
+    dayTo: 'fireSafety.trainingDayTo',
+    interval: {
+      execution: 'fireSafety.workerTrainingIntervalMonths',
+      technical_administrative: 'fireSafety.administrativeTrainingIntervalMonths',
+    },
+  },
+} as const satisfies Record<
+  TrainingDomain,
+  {
+    duration: string;
+    firstMonth: string;
+    dayFrom: string;
+    dayTo: string;
+    interval: Record<StaffCategory, string>;
+  }
+>;
 
-export type CategoryCandidate = {
-  value: CategoryValue;
-  sources: Source[];
-  inferred?: ImportInference;
+export const durationChoices: Record<TrainingDomain, readonly number[]> = {
+  ssm: [60, 90, 120],
+  su: [2, 3, 4, 5, 6, 7, 8],
+};
+
+export type TrainingFieldMode =
+  // The control itself, with where its value comes from under it.
+  | 'value'
+  // The documents give several values.
+  | 'choice'
+  // The documents' value is not one the control offers.
+  | 'outside'
+  // The documents give no interval for a category with posts: the law's longest stands.
+  | 'legal_maximum'
+  // Into an existing client, whose value the documents contradict.
+  | 'differs';
+
+export type TrainingField = {
   path: string;
-  option: number;
+  state: FieldState;
+  mode: TrainingFieldMode;
+  // What goes into the client: null while nothing does or a choice waits.
+  value: number | null;
+  // False while the member still has to pick.
+  settled: boolean;
 };
 
-export type CategoryState = {
-  category: TrainingCategory;
-  label: string;
-  status: 'value' | 'missing' | 'choice' | 'unticked';
-  value: CategoryValue | null;
-  // The documents' own values, an interval or "Nu se aplică" each.
-  candidates: CategoryCandidate[];
-  // Why an interval and "Nu se aplică" stand together: both from the documents, or one of them
-  // written by the member in a review saved before the two were one row.
-  conflict: 'documents' | 'member' | null;
-  inForce: CategoryCandidate | null;
-  edited: boolean;
-  proposed: CategoryValue | null;
-  sources: Source[];
-  existing: CategoryValue | null;
-  comparison: FieldState['comparison'];
-};
+const asNumber = (value: unknown) =>
+  value === null || value === undefined || value === '' ? null : Number(value);
 
-const candidateOf = (state: FieldState, index: number): CategoryCandidate => {
-  const option = state.options[index]!;
-  return {
-    value: option.value === 'true' ? notApplicable : Number(option.value),
-    sources: option.sources,
-    ...(option.inferred ? { inferred: option.inferred } : {}),
-    path: state.path,
-    option: index,
-  };
-};
-
-const present = (value: unknown) => value !== null && value !== undefined && value !== '';
-
-export function categoryState(
+/** How the review shows one field of a training schedule, and whether it waits on the member. */
+export function trainingField(
   states: Record<string, FieldState>,
-  category: TrainingCategory,
-  changes: Changes,
-  intoExistingClient: boolean
-): CategoryState {
-  const interval = states[category.interval]!;
-  const excluded = states[category.notApplicable]!;
-  const months = interval.value === null ? null : Number(interval.value);
-  const isExcluded = excluded.value === 'true';
-  const intervals = interval.own.map((index) => candidateOf(interval, index));
-  const exclusions = excluded.own
-    .filter((index) => excluded.options[index]!.value === 'true')
-    .map((index) => candidateOf(excluded, index));
-  const candidates = [...intervals, ...exclusions];
-  const both = months !== null && isExcluded;
-
-  let status: CategoryState['status'];
-  let value: CategoryValue | null = null;
-  if (both || interval.status === 'choice' || excluded.status === 'choice') status = 'choice';
-  else if (months !== null) {
-    status = 'value';
-    value = months;
-  } else if (isExcluded) {
-    status = 'value';
-    value = notApplicable;
-  } else if (interval.status === 'unticked' || excluded.status === 'unticked') status = 'unticked';
-  else status = 'missing';
-
-  const conflict = both
-    ? interval.edited || excluded.edited
-      ? 'member'
-      : 'documents'
-    : intervals.length > 0 && exclusions.length > 0
-      ? 'documents'
-      : null;
-  const inForce =
-    value === null
-      ? null
-      : value === notApplicable
-        ? excluded.option === null
-          ? null
-          : candidateOf(excluded, excluded.option)
-        : interval.option === null
-          ? null
-          : candidateOf(interval, interval.option);
-
-  const existing: CategoryValue | null =
-    excluded.existing === 'true'
-      ? notApplicable
-      : present(interval.existing)
-        ? Number(interval.existing)
-        : null;
-  let comparison: FieldState['comparison'] = 'none';
-  if (intoExistingClient) {
-    if (existing === null) comparison = value !== null ? 'added' : 'none';
-    else if (value === null || value === existing) comparison = 'same';
-    else {
-      const replacing = value === notApplicable ? category.notApplicable : category.interval;
-      comparison = changes.fields[replacing]?.replace ? 'replaced' : 'kept';
-    }
-  }
-
-  return {
-    category,
-    label: interval.label,
-    status,
+  path: string,
+  choices: readonly number[] | null,
+  legal: { domain: TrainingDomain; category: StaffCategory; hasPosts: boolean } | null = null
+): TrainingField {
+  const state = states[path]!;
+  const field = (mode: TrainingFieldMode, value: number | null, settled: boolean) => ({
+    path,
+    state,
+    mode,
     value,
-    candidates,
-    conflict,
-    inForce,
-    edited: value !== null && inForce === null,
-    proposed: candidates.length === 1 ? candidates[0]!.value : null,
-    sources: inForce?.sources ?? candidates.flatMap((candidate) => candidate.sources),
-    existing,
-    comparison,
-  };
-}
-
-export const formatCategoryValue = (category: TrainingCategory, value: CategoryValue | null) =>
-  value === null
-    ? ''
-    : value === notApplicable
-      ? 'Nu se aplică'
-      : formatFieldValue(category.interval, value);
-
-export function categoryChoices(category: TrainingCategory, current: CategoryValue | null) {
-  const choices: { value: number; label: string }[] = intervalOptions
-    .filter(({ months }) => months <= category.maxMonths)
-    .map(({ months, label }) => ({ value: months, label }));
-  if (typeof current === 'number' && !choices.some((choice) => choice.value === current)) {
-    choices.push({ value: current, label: `La ${current} luni` });
-    choices.sort((a, b) => a.value - b.value);
+    settled,
+  });
+  if (state.comparison === 'kept' || state.comparison === 'replaced') {
+    return field('differs', asNumber(valueInForce(state)), true);
   }
-  return choices;
-}
-
-// What the documents give when the member changes nothing: undefined while they give several.
-function proposedOf(state: FieldState) {
-  if (state.own.length > 1) return undefined;
-  return state.own.length === 1 ? state.options[state.own[0]!]!.value : null;
-}
-
-function optionChange(state: FieldState, option: number): FieldChange | null {
-  return state.own.length === 1 && state.own[0] === option ? null : { option };
-}
-
-const keepReplace = (change: FieldChange | null, previous: FieldChange | undefined) =>
-  previous?.replace ? { ...change, replace: true } : change;
-
-/**
- * Both fields of a category set to one value, so that the interval and "Nu se aplică" never
- * stand together; null for a field left as the documents give it.
- */
-export function categoryChanges(
-  states: Record<string, FieldState>,
-  category: TrainingCategory,
-  changes: Changes,
-  value: CategoryValue | null
-): Record<string, FieldChange | null> {
-  const interval = states[category.interval]!;
-  const excluded = states[category.notApplicable]!;
-  let intervalChange: FieldChange | null;
-  let excludedChange: FieldChange | null;
-  if (typeof value === 'number') {
-    const own = interval.own.find((index) => Number(interval.options[index]!.value) === value);
-    intervalChange = own === undefined ? { value } : optionChange(interval, own);
-    const proposed = proposedOf(excluded);
-    excludedChange = proposed === null || proposed === 'false' ? null : { value: 'false' };
-  } else {
-    intervalChange = proposedOf(interval) === null ? null : { value: null };
-    if (value === notApplicable) {
-      const own = excluded.own.find((index) => excluded.options[index]!.value === 'true');
-      excludedChange = own === undefined ? { value: 'true' } : optionChange(excluded, own);
-    } else {
-      const proposed = proposedOf(excluded);
-      excludedChange = proposed === null || proposed === 'false' ? null : { value: null };
+  if (state.own.length > 1) {
+    return field('choice', asNumber(state.value), state.status !== 'choice');
+  }
+  const proposed = asNumber(state.proposedValue);
+  if (choices && proposed !== null && !choices.includes(proposed)) {
+    return field('outside', state.edited ? asNumber(state.value) : null, state.edited);
+  }
+  const inForce = asNumber(valueInForce(state));
+  if (legal && state.own.length === 0 && (inForce === null || state.edited)) {
+    const { months, legalMaximum } = importedTrainingInterval({
+      ...legal,
+      settled: state.edited ? inForce : null,
+    });
+    if (legalMaximum || state.edited) {
+      return field('legal_maximum', months, state.edited);
     }
   }
-  return {
-    [category.interval]: keepReplace(intervalChange, changes.fields[category.interval]),
-    [category.notApplicable]: keepReplace(excludedChange, changes.fields[category.notApplicable]),
-  };
+  return field('value', inForce, true);
 }
 
-export const categoryStateIn = (
-  context: { states: Record<string, FieldState>; changes: Changes; existingClient: boolean },
-  category: TrainingCategory
-) => categoryState(context.states, category, context.changes, context.existingClient);
+/** The posts the client keeps, by name, as the import would leave them. */
+export function keptPosts(
+  proposal: Proposal,
+  changes: Changes,
+  existing: readonly { name: string; staffCategory: StaffCategory }[]
+) {
+  const imported = itemStates(proposal, changes, 'jobPositions')
+    .filter((item) => item.included && item.values.staffCategory)
+    .map((item) => ({
+      name: String(item.values.name ?? ''),
+      staffCategory: item.values.staffCategory as StaffCategory,
+    }));
+  const names = new Set(imported.map((post) => post.name.trim().toLowerCase()));
+  return [...imported, ...existing.filter((post) => !names.has(post.name.trim().toLowerCase()))];
+}
+
+export const intervalChoicesOf = (domain: TrainingDomain, category: StaffCategory) =>
+  trainingIntervalChoices[domain][category];
+
+/** The change that makes `value` the field's, none where the documents already give it. */
+export function numberChange(
+  state: FieldState,
+  value: number,
+  intoExistingClient: boolean
+): FieldChange | null {
+  if (intoExistingClient && state.existing !== null && state.existing !== '') {
+    return Number(state.existing) === value ? null : { value, replace: true };
+  }
+  const own = state.own.find((index) => Number(state.options[index]!.value) === value);
+  if (own === undefined) return { value };
+  return state.own.length === 1 ? null : { option: own };
+}

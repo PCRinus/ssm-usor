@@ -60,6 +60,8 @@ export function ReviewSectionPage({
     vatPayer: vatPayerInForce(proposal, review.changes, registered),
     registered,
     existingClient: detail.intoExistingClient,
+    existingPositions: existing.positions,
+    importId: detail.id,
     openSource: (title, sources, otherCompanyName) =>
       setSource({ title, sources, otherCompanyName }),
     blockers: detail.blockers as Blocker[],
@@ -123,7 +125,7 @@ export function ReviewSectionPage({
             </Link>
           </Button>
           {next && (
-            <Button asChild>
+            <Button asChild className="h-auto min-h-9 max-w-full py-2 whitespace-normal">
               <Link
                 to="/clienti/import/$importId/$section"
                 params={{ importId: detail.id, section: next }}

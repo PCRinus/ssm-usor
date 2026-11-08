@@ -1,21 +1,22 @@
-import { formatTrainingDuration, type StaffCategory, trainingMonths } from '@ssm-usor/contracts';
+import {
+  formatTrainingDuration,
+  legalMaxTrainingInterval,
+  type StaffCategory,
+  type TrainingDomain,
+  trainingIntervalChoices,
+  trainingMonths,
+} from '@ssm-usor/contracts';
 
 import { countOf } from '@/features/legislation/legislation-labels';
 
 import { monthNames } from './document-details-schema';
 
-export type ScheduleDomain = 'ssm' | 'su';
-
-const intervals: Record<ScheduleDomain, Record<StaffCategory, readonly number[]>> = {
-  ssm: { execution: [1, 2, 3, 4, 6], technical_administrative: [1, 2, 3, 4, 6, 12] },
-  su: { execution: [1, 2, 3, 4, 5, 6], technical_administrative: [1, 2, 3, 4, 5, 6] },
-};
+export type ScheduleDomain = TrainingDomain;
 
 export const intervalChoices = (domain: ScheduleDomain, category: StaffCategory) =>
-  intervals[domain][category];
+  trainingIntervalChoices[domain][category];
 
-export const legalMaxInterval = (domain: ScheduleDomain, category: StaffCategory) =>
-  intervals[domain][category].at(-1)!;
+export const legalMaxInterval = legalMaxTrainingInterval;
 
 export const lawOf: Record<ScheduleDomain, string> = {
   ssm: 'HG 1425/2006, art. 96',
@@ -30,7 +31,7 @@ export const durations: Record<ScheduleDomain, { label: string; values: readonly
 export const durationText = (domain: ScheduleDomain, duration: number) =>
   domain === 'ssm' ? formatTrainingDuration(duration) : countOf(duration, 'oră', 'ore');
 
-export type HeldPosition = { name: string; employeeCount: number };
+export type HeldPosition = { name: string; employeeCount?: number };
 
 export type CategoryPosts = { category: StaffCategory; positions: readonly HeldPosition[] };
 

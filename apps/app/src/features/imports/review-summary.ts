@@ -18,14 +18,12 @@ import {
   appliesAt,
   type Blocker,
   blockerLink,
-  categoryOf,
   type Changes,
   fieldGroups,
-  fieldInfo,
   fieldSpelling,
   type FieldState,
   fieldState,
-  isNotApplicablePath,
+  formatFieldValue,
   type ItemList,
   itemName,
   itemSpellingLabel,
@@ -38,11 +36,9 @@ import {
   sectionIds,
   sectionOf,
   sectionStatus,
-  trainingCategories,
   type UntickedReason,
   valueInForce,
 } from './review-model';
-import { categoryState, formatCategoryValue } from './training-category';
 
 export type ExistingValueAt = (path: string) => string | number | null | undefined;
 
@@ -58,12 +54,6 @@ export function fieldStates(
       .flatMap((group) => group.paths)
       .map((path) => [path, fieldState(proposal, changes, path, valueAt(path), registered)])
   );
-  for (const category of trainingCategories) {
-    const intoExistingClient = valueAt(category.interval) !== undefined;
-    const { comparison } = categoryState(states, category, changes, intoExistingClient);
-    states[category.interval] = { ...states[category.interval]!, comparison };
-    states[category.notApplicable] = { ...states[category.notApplicable]!, comparison: 'none' };
-  }
   return states;
 }
 
@@ -105,26 +95,17 @@ export function sectionDescription(
       ? ''
       : ` Alte ${left} ${noun} apar doar în pasaje copiate de la altă firmă și sunt lăsate deoparte.`;
   };
-  const categoryOfState = (state: FieldState) => {
-    const category = categoryOf(state.path);
-    return category
-      ? categoryState(states, category, changes, detail.intoExistingClient)
-      : undefined;
-  };
   const choices = Object.values(states).filter(
     (state) =>
       sectionOf(state.path) === section &&
-      !isNotApplicablePath(state.path) &&
-      (categoryOfState(state)?.status ?? state.status) === 'choice' &&
+      state.status === 'choice' &&
       appliesAt(states, state.path)
   );
   const choiceText = choices
-    .map((state) => {
-      const category = categoryOfState(state);
-      return category && category.candidates.length < 2
-        ? ` ${fieldInfo[state.path]?.choose ?? state.label}.`
-        : ` Documentele dau ${category?.candidates.length ?? state.own.length} variante pentru ${state.label.toLowerCase()}.`;
-    })
+    .map(
+      (state) =>
+        ` Documentele dau ${state.own.length} variante pentru ${state.label.toLowerCase()}.`
+    )
     .join('');
   switch (section) {
     case 'identity': {
@@ -177,11 +158,16 @@ export function sectionDescription(
       }${others(['responsiblePersons'], 'persoane')}`;
     }
     case 'training': {
-      const parts = trainingCategories.flatMap((category) => {
-        const { value } = categoryState(states, category, changes, detail.intoExistingClient);
-        return typeof value === 'number'
-          ? [`${formatCategoryValue(category, value)} pentru ${category.name}`]
-          : [];
+      const parts = (
+        [
+          ['trainingSchedule.workerTrainingIntervalMonths', 'execuție'],
+          ['trainingSchedule.administrativeTrainingIntervalMonths', 'tehnico-administrativ'],
+        ] as const
+      ).flatMap(([path, name]) => {
+        const value = valueInForce(states[path]);
+        return value === null || value === undefined
+          ? []
+          : [`${formatFieldValue(path, value)} pentru ${name}`];
       });
       return parts.length > 0
         ? `Periodic ${parts.join(' și ')}.${choiceText}`

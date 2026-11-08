@@ -300,6 +300,7 @@ export function PickOption({
   below,
   testId,
   inDocuments = checked,
+  disabled = false,
   children,
 }: {
   name: string;
@@ -311,6 +312,8 @@ export function PickOption({
   testId?: string;
   // False while a value the member is writing is not saved yet.
   inDocuments?: boolean;
+  // Shown for what the documents say, but not a value the client can take.
+  disabled?: boolean;
   children?: ReactNode;
 }) {
   const id = useId();
@@ -324,13 +327,17 @@ export function PickOption({
         id={id}
         type="radio"
         name={name}
-        className="mt-0.5 size-4 cursor-pointer accent-primary"
+        disabled={disabled}
+        className="mt-0.5 size-4 cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-40"
         checked={checked}
         onChange={onPick}
         // A checked radio fires no change, and picking the preselected one is what settles it.
         onClick={checked ? onPick : undefined}
       />
-      <label htmlFor={id} className="grid min-w-0 cursor-pointer gap-1">
+      <label
+        htmlFor={id}
+        className={cn('grid min-w-0 gap-1', disabled ? 'cursor-not-allowed' : 'cursor-pointer')}
+      >
         <span className="flex min-h-5 flex-wrap items-center gap-2 text-[12.5px] font-semibold text-muted-foreground">
           {heading}
           {checked && inDocuments && (

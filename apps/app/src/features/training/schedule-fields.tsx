@@ -37,13 +37,18 @@ const categoryInSentence: Record<StaffCategory, string> = {
 
 const listedPositions = 6;
 
+// An import's posts have no workers yet, so their line counts only the posts.
 function postsLine(positions: readonly HeldPosition[]) {
-  const workers = positions.reduce((sum, position) => sum + position.employeeCount, 0);
+  const counted = positions.every((position) => position.employeeCount !== undefined);
+  const workers = positions.reduce((sum, position) => sum + (position.employeeCount ?? 0), 0);
   const names = positions.slice(0, listedPositions).map((position) => position.name.trim());
   const rest = positions.length - names.length;
-  return `${countOf(positions.length, 'post', 'posturi')}, ${
-    workers === 0 ? 'fără lucrători' : countOf(workers, 'lucrător', 'lucrători')
-  }: ${names.join(', ')}${rest > 0 ? ` și încă ${rest}` : ''}`;
+  const people = !counted
+    ? ''
+    : `, ${workers === 0 ? 'fără lucrători' : countOf(workers, 'lucrător', 'lucrători')}`;
+  return `${countOf(positions.length, 'post', 'posturi')}${people}: ${names.join(', ')}${
+    rest > 0 ? ` și încă ${rest}` : ''
+  }`;
 }
 
 export function CategoryBlock({
@@ -52,6 +57,8 @@ export function CategoryBlock({
   interval,
   firstMonth,
   testId,
+  id,
+  pending = false,
   children,
 }: {
   category: StaffCategory;
@@ -59,14 +66,22 @@ export function CategoryBlock({
   interval: number | null;
   firstMonth: number | null;
   testId?: string;
+  id?: string;
+  // Something in the block waits for the member.
+  pending?: boolean;
   children?: ReactNode;
 }) {
   const Icon = categoryIcons[category];
   return (
     <section
+      id={id}
       data-testid={testId}
+      data-pending={pending || undefined}
       aria-label={staffCategoryLabels[category]}
-      className="grid gap-4 rounded-xl border bg-muted/40 p-4"
+      className={cn(
+        'grid scroll-mt-32 gap-4 rounded-xl border p-4',
+        pending ? 'border-warning-border bg-warning/50' : 'bg-muted/40'
+      )}
     >
       <div className="flex gap-3">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] border border-info-border bg-info text-info-foreground">
@@ -80,7 +95,14 @@ export function CategoryBlock({
             <p className="mt-0.5 text-[13.5px] text-muted-foreground">{postsLine(positions)}</p>
           </div>
           <div className="shrink-0 sm:text-right" aria-live="polite">
-            {interval === null ? (
+            {interval === null && pending ? (
+              <>
+                <p className="text-2xl leading-tight font-semibold tracking-tight text-muted-foreground">
+                  De ales
+                </p>
+                <p className="mt-0.5 text-[13.5px] text-muted-foreground">Alege intervalul</p>
+              </>
+            ) : interval === null ? (
               <p className="text-sm text-muted-foreground">Fără interval</p>
             ) : (
               <>
@@ -103,7 +125,11 @@ export function CategoryBlock({
           </div>
         </div>
       </div>
-      {children && <div className="grid gap-2 border-t pt-3.5">{children}</div>}
+      {children && (
+        <div className={cn('grid gap-2 border-t pt-3.5', pending && 'border-warning-border/70')}>
+          {children}
+        </div>
+      )}
     </section>
   );
 }
@@ -144,6 +170,8 @@ export type ScheduleCategory = CategoryPosts & {
   // Under the interval: a source line, a warning, the posts with an interval of their own.
   fieldNote?: ReactNode;
   blockNote?: ReactNode;
+  pending?: boolean;
+  id?: string;
 };
 
 type CalendarSlots = { firstMonth?: ReactNode; days?: ReactNode; duration?: ReactNode };
@@ -176,6 +204,11 @@ export type ScheduleFieldsProps = {
   // Where posts are added; it ends the sentence about a category without posts.
   postsLink?: ReactNode;
   noPostsAction?: ReactNode;
+  // In place of the default block and sentences about missing posts.
+  noPosts?: ReactNode;
+  absentNote?: (category: StaffCategory) => ReactNode;
+  // Typing a day calls its handler on every key; this, once the member leaves the field.
+  onDaysCommit?: () => void;
   onIntervalChange: (category: StaffCategory, months: number) => void;
   onFirstMonthChange: (month: number | null) => void;
   onDayFromChange: (day: string) => void;
@@ -201,6 +234,9 @@ export function TrainingScheduleFields({
   controls = {},
   postsLink,
   noPostsAction,
+  noPosts,
+  absentNote,
+  onDaysCommit,
   onIntervalChange,
   onFirstMonthChange,
   onDayFromChange,
@@ -232,7 +268,7 @@ export function TrainingScheduleFields({
           </p>
         </div>
         {categories.length === 0 ? (
-          <NoPostsBlock action={noPostsAction} />
+          (noPosts ?? <NoPostsBlock action={noPostsAction} />)
         ) : (
           <div className="grid gap-3">
             {categories.map((entry) => {
@@ -248,10 +284,12 @@ export function TrainingScheduleFields({
                   interval={outside ? null : entry.interval}
                   firstMonth={firstMonth}
                   testId={`${idPrefix}-category-${entry.category}`}
+                  id={entry.id}
+                  pending={entry.pending}
                 >
-                  <p className={cn(fieldLabel, 'mb-1')}>La câte luni</p>
                   {entry.control ?? (
                     <>
+                      <p className={cn(fieldLabel, 'mb-1')}>La câte luni</p>
                       <Segmented
                         id={id}
                         name={id}
@@ -287,8 +325,15 @@ export function TrainingScheduleFields({
             data-testid={`${idPrefix}-absent-${category}`}
             className="max-w-[68ch] text-sm text-muted-foreground"
           >
-            {categoryInSentence[category]} nu apare: clientul nu are posturi în această categorie.
-            {postsLink && <> Când adaugi unul în {postsLink}, îi alegi aici intervalul.</>}
+            {absentNote ? (
+              absentNote(category)
+            ) : (
+              <>
+                {categoryInSentence[category]} nu apare: clientul nu are posturi în această
+                categorie.
+                {postsLink && <> Când adaugi unul în {postsLink}, îi alegi aici intervalul.</>}
+              </>
+            )}
           </p>
         ))}
       </section>
@@ -328,14 +373,14 @@ export function TrainingScheduleFields({
                   ))}
                 </NativeSelect>
               </div>
-              {errors.firstMonth ? (
-                <FieldMessage id={`${ids.firstMonth}-error`} error={errors.firstMonth as never} />
-              ) : (
-                <p id={`${ids.firstMonth}-hint`} className={hintText}>
-                  Celelalte luni urmează din intervalul fiecărei categorii.
-                </p>
-              )}
             </>
+          )}
+          {errors.firstMonth ? (
+            <FieldMessage id={`${ids.firstMonth}-error`} error={errors.firstMonth as never} />
+          ) : (
+            <p id={`${ids.firstMonth}-hint`} className={hintText}>
+              Celelalte luni urmează din intervalul fiecărei categorii.
+            </p>
           )}
           {notes.firstMonth}
         </div>
@@ -374,6 +419,7 @@ export function TrainingScheduleFields({
                             : `${ids.days}-hint`
                       }
                       onChange={(event) => onChange(event.target.value)}
+                      onBlur={onDaysCommit}
                     />
                   </div>
                 ))}
@@ -409,10 +455,24 @@ export function TrainingScheduleFields({
                 invalid={
                   durationOptions.some((option) => option.invalid) || Boolean(errors.duration)
                 }
-                describedBy={errors.duration ? `${ids.duration}-error` : undefined}
+                describedBy={
+                  errors.duration
+                    ? `${ids.duration}-error`
+                    : domain === 'su'
+                      ? `${ids.duration}-hint`
+                      : undefined
+                }
                 onPick={(value) => onDurationChange(Number(value))}
               />
-              <FieldMessage id={`${ids.duration}-error`} error={errors.duration as never} />
+              {errors.duration ? (
+                <FieldMessage id={`${ids.duration}-error`} error={errors.duration as never} />
+              ) : (
+                domain === 'su' && (
+                  <p id={`${ids.duration}-hint`} className={hintText}>
+                    Cel puțin 2 ore, după OMAI 712/2005, art. 21.
+                  </p>
+                )
+              )}
             </>
           )}
           {notes.duration}

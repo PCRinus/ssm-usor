@@ -1,12 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { fireSmokingPolicies, fireSmokingPolicyLabels, normalizeCui } from '@ssm-usor/contracts';
+import {
+  fireSmokingPolicies,
+  fireSmokingPolicyLabels,
+  normalizeCui,
+  type StaffCategory,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import {
   Building2,
-  CalendarClock,
   ClipboardList,
   Copy,
   Equal,
@@ -32,7 +36,6 @@ import {
   emptyClientForm,
 } from '@/features/clients/client-form-schema';
 import { CountyCombobox } from '@/features/clients/county-combobox';
-import { fireIntervalChoices } from '@/features/training/fire-safety-schema';
 
 import { endSentence } from './import-format';
 import { DecisionRow, PendingNote, type Tone } from './library/decision-row';
@@ -44,7 +47,6 @@ import {
   anchorOf,
   appliesAt,
   type Blocker,
-  categoryOf,
   type Changes,
   fieldGroups,
   fieldInfo,
@@ -54,8 +56,6 @@ import {
   flagsAt,
   formatFieldValue,
   inferenceNote,
-  integerPaths,
-  isNotApplicablePath,
   type LabelledSource,
   type Proposal,
   type RegisteredCompany,
@@ -64,7 +64,6 @@ import {
   type SectionId,
   valueInForce,
   vatPayerPath,
-  wholeNumberText,
   yesNoLabels,
 } from './review-model';
 import {
@@ -82,8 +81,7 @@ import {
   SpellingChoice,
   Tag,
 } from './review-parts';
-import { categoryStateIn, formatCategoryValue } from './training-category';
-import { CategoryDifferRow, TrainingCategoryRow } from './training-category-row';
+import { TrainingImportCard } from './training-import-card';
 import type { ImportReview } from './use-import-review';
 
 export type OpenSource = (
@@ -100,6 +98,9 @@ export type FieldContext = {
   vatPayer: boolean;
   registered: (RegisteredCompany & { vatPayer: boolean }) | null;
   existingClient: boolean;
+  // An existing client's posts, which count with the imported ones for its staff categories.
+  existingPositions: { name: string; staffCategory: StaffCategory }[];
+  importId: string;
   openSource: OpenSource;
   blockers: Blocker[];
 };
@@ -109,7 +110,6 @@ const requiredPaths = new Set(['client.legalName', 'client.cui']);
 function fieldValue(path: string, raw: string): string | number | null {
   const text = raw.trim();
   if (text === '') return null;
-  if (integerPaths.has(path)) return Number(wholeNumberText(text));
   if (path === 'client.cui') return normalizeCui(text)?.cui ?? text;
   return text;
 }
@@ -174,14 +174,9 @@ const formSchema = (paths: string[]) => {
     Object.fromEntries(
       others.map((path) => [
         fieldKey(path),
-        integerPaths.has(path)
-          ? z
-              .string()
-              .transform(wholeNumberText)
-              .pipe(z.string().regex(/^([0-9]{1,4})?$/, 'Scrie un număr întreg.'))
-          : path === 'fireSafety.wasteKinds'
-            ? z.string().trim().max(3000, 'Cel mult 3000 de caractere.')
-            : z.string().trim().max(240, 'Cel mult 240 de caractere.'),
+        path === 'fireSafety.wasteKinds'
+          ? z.string().trim().max(3000, 'Cel mult 3000 de caractere.')
+          : z.string().trim().max(240, 'Cel mult 240 de caractere.'),
       ])
     )
   );
@@ -194,34 +189,11 @@ function fieldKey(path: string) {
 // Client fields by their own name, the others by `fieldKey`.
 type EditValues = ClientFormValues & Record<string, string | boolean>;
 
-const fireIntervalPaths = new Set([
-  'fireSafety.workerTrainingIntervalMonths',
-  'fireSafety.administrativeTrainingIntervalMonths',
-]);
-
-function fireIntervalOptions(current: string): (readonly [string, string])[] {
-  const options = fireIntervalChoices.map(({ value, label }) => [value, label] as const);
-  return current === '' || options.some(([value]) => value === current)
-    ? options
-    : [...options, [current, `La ${current} luni`] as const];
-}
-
 const nounOf = (path: string, kind: 'choose' | 'write') =>
   (fieldInfo[path]?.[kind] ?? path).replace(/^\S+\s/, '');
 
 function pendingOf(state: FieldState, context: FieldContext): string | null {
-  if (!appliesAt(context.states, state.path) || isNotApplicablePath(state.path)) return null;
-  const category = categoryOf(state.path);
-  if (category) {
-    const invalid = context.blockers.some(
-      (blocker) =>
-        blocker.code === 'invalid' &&
-        (blocker.path === category.interval || blocker.path === category.notApplicable)
-    );
-    return categoryStateIn(context, category).status === 'choice' || invalid
-      ? `de ales ${nounOf(state.path, 'choose')}`
-      : null;
-  }
+  if (!appliesAt(context.states, state.path)) return null;
   if (state.status === 'choice') return `de ales ${nounOf(state.path, 'choose')}`;
   if (state.anaf?.picked === null) return `de văzut ${nounOf(state.path, 'choose')}`;
   if (state.value === null && requiredPaths.has(state.path) && !context.existingClient) {
@@ -343,9 +315,7 @@ function FieldEditor({
     ? (Object.entries(yesNo) as [string, string][])
     : path === 'fireSafety.smokingPolicy'
       ? fireSmokingPolicies.map((policy) => [policy, fireSmokingPolicyLabels[policy]] as const)
-      : fireIntervalPaths.has(path)
-        ? fireIntervalOptions(text)
-        : null;
+      : null;
   const comboProps = {
     id,
     onBlur: () => undefined,
@@ -430,9 +400,9 @@ function FieldEditor({
           <Input
             id={id}
             data-testid={id}
-            className={integerPaths.has(path) ? 'sm:max-w-40' : undefined}
+            className={undefined}
             autoFocus
-            inputMode={integerPaths.has(path) ? 'numeric' : undefined}
+            inputMode={undefined}
             aria-invalid={Boolean(error)}
             aria-describedby={describedBy}
             {...form.register(key)}
@@ -555,15 +525,11 @@ function ChoiceRow({ state, context }: { state: FieldState; context: FieldContex
                     data-testid="review-other-value"
                     className="max-w-sm"
                     autoFocus={!isOther}
-                    inputMode={integerPaths.has(state.path) ? 'numeric' : undefined}
                     aria-invalid={Boolean(otherError)}
                     aria-describedby={otherError ? `${name}-other-error` : undefined}
                     value={other}
                     onChange={(event) => setOther(event.target.value)}
                   />
-                  {fireIntervalPaths.has(state.path) && (
-                    <span className="self-center text-sm text-muted-foreground">luni</span>
-                  )}
                   <Button type="submit" variant="outline">
                     Folosește
                   </Button>
@@ -720,25 +686,6 @@ function FieldRow({
 }) {
   if (!appliesAt(context.states, state.path)) {
     return <NotApplicableRow state={state} context={context} />;
-  }
-  const category = categoryOf(state.path);
-  if (category) {
-    const categoryState = categoryStateIn(context, category);
-    if (categoryState.status !== 'unticked') {
-      return (
-        <TrainingCategoryRow
-          state={categoryState}
-          context={context}
-          editing={editing}
-          onEdit={onEdit}
-          onDone={onDone}
-        />
-      );
-    }
-    const unticked = [category.interval, category.notApplicable]
-      .map((path) => context.states[path]!)
-      .find((each) => each.status === 'unticked')!;
-    return <ValueRow state={unticked} context={context} onEdit={onEdit} />;
   }
   if (editing) return <FieldEditor state={state} context={context} onDone={onDone} />;
   if (state.own.length > 1) return <ChoiceRow state={state} context={context} />;
@@ -917,34 +864,24 @@ const groupLooks: Record<string, { icon: LucideIcon; description: string }> = {
   'Date firmă': { icon: Building2, description: 'Se preiau la crearea clientului.' },
   'Reprezentant legal': { icon: UserRound, description: 'Semnează documentele clientului.' },
   'Persoană de contact': { icon: Phone, description: 'Se trece pe fișa clientului.' },
-  'Programul de instruire SSM': {
-    icon: ClipboardList,
-    description: 'Intră în documentele SSM ale clientului.',
-  },
   'Reguli de apărare împotriva incendiilor': {
     icon: Flame,
-    description: 'Intră în documentele SU ale clientului.',
-  },
-  'Programul de instruire SU': {
-    icon: CalendarClock,
     description: 'Intră în documentele SU ale clientului.',
   },
 };
 
 function FieldRows({ states, context }: { states: FieldState[]; context: FieldContext }) {
   const [editing, setEditing] = useState<string | null>(null);
-  return states
-    .filter((state) => !isNotApplicablePath(state.path))
-    .map((state) => (
-      <FieldRow
-        key={state.path}
-        state={state}
-        context={context}
-        editing={editing === state.path}
-        onEdit={() => setEditing(state.path)}
-        onDone={() => setEditing(null)}
-      />
-    ));
+  return states.map((state) => (
+    <FieldRow
+      key={state.path}
+      state={state}
+      context={context}
+      editing={editing === state.path}
+      onEdit={() => setEditing(state.path)}
+      onDone={() => setEditing(null)}
+    />
+  ));
 }
 
 export function FieldGroupCard({
@@ -977,15 +914,8 @@ export function ExistingFieldGroups({
   paths: string[];
   context: FieldContext;
 }) {
-  const all = paths
-    .filter((path) => !isNotApplicablePath(path))
-    .map((path) => context.states[path]!);
-  const isChoice = (state: FieldState) => {
-    const category = categoryOf(state.path);
-    if (!category) return state.own.length > 1;
-    const categoryState = categoryStateIn(context, category);
-    return categoryState.status === 'choice' || categoryState.candidates.length > 1;
-  };
+  const all = paths.map((path) => context.states[path]!);
+  const isChoice = (state: FieldState) => state.own.length > 1;
   const choices = all.filter((state) => isChoice(state) && appliesAt(context.states, state.path));
   const states = all.filter(
     (state) => appliesAt(context.states, state.path) && !choices.includes(state)
@@ -1011,21 +941,9 @@ export function ExistingFieldGroups({
           pending={pendingLine(choices, context)}
           testId="review-choices"
         >
-          {choices.map((state) => {
-            const category = categoryOf(state.path);
-            return category ? (
-              <TrainingCategoryRow
-                key={state.path}
-                state={categoryStateIn(context, category)}
-                context={context}
-                editing={false}
-                onEdit={() => undefined}
-                onDone={() => undefined}
-              />
-            ) : (
-              <ChoiceRow key={state.path} state={state} context={context} />
-            );
-          })}
+          {choices.map((state) => (
+            <ChoiceRow key={state.path} state={state} context={context} />
+          ))}
         </FieldCard>
       )}
       {added.length > 0 && (
@@ -1045,18 +963,9 @@ export function ExistingFieldGroups({
           icon={GitCompare}
           description="Clientul are deja o valoare, iar documentele scriu alta. Păstrăm valoarea ta dacă nu alegi altfel."
         >
-          {differs.map((state) => {
-            const category = categoryOf(state.path);
-            return category ? (
-              <CategoryDifferRow
-                key={state.path}
-                state={categoryStateIn(context, category)}
-                context={context}
-              />
-            ) : (
-              <DifferRow key={state.path} state={state} context={context} />
-            );
-          })}
+          {differs.map((state) => (
+            <DifferRow key={state.path} state={state} context={context} />
+          ))}
         </FieldCard>
       )}
       {same.length + notApplicable.length > 0 && (
@@ -1066,29 +975,24 @@ export function ExistingFieldGroups({
           icon={Equal}
           description="Aceleași în aplicație și în documente, sau doar în aplicație. Nu le schimbăm."
         >
-          {same.map((state) => {
-            const category = categoryOf(state.path);
-            const categoryState = category ? categoryStateIn(context, category) : null;
-            const value = categoryState ? categoryState.value : state.value;
-            return (
-              <DecisionRow
-                key={state.path}
-                tone="done"
-                wide
-                id={anchorOf(state.path)}
-                testId="review-row"
-                label={state.label}
-                actions={rowActions(state, context, undefined, categoryState?.sources)}
-              >
-                <span className="font-medium">
-                  {categoryState
-                    ? formatCategoryValue(categoryState.category, categoryState.existing)
-                    : formatFieldValue(state.path, state.existing, context.vatPayer)}
-                </span>
-                <RowNote>{value === null ? 'Doar în aplicație' : 'La fel în documente'}</RowNote>
-              </DecisionRow>
-            );
-          })}
+          {same.map((state) => (
+            <DecisionRow
+              key={state.path}
+              tone="done"
+              wide
+              id={anchorOf(state.path)}
+              testId="review-row"
+              label={state.label}
+              actions={rowActions(state, context)}
+            >
+              <span className="font-medium">
+                {formatFieldValue(state.path, state.existing, context.vatPayer)}
+              </span>
+              <RowNote>
+                {state.value === null ? 'Doar în aplicație' : 'La fel în documente'}
+              </RowNote>
+            </DecisionRow>
+          ))}
           {notApplicable.map((state) => (
             <NotApplicableRow key={state.path} state={state} context={context} />
           ))}
@@ -1160,6 +1064,14 @@ function DifferRow({ state, context }: { state: FieldState; context: FieldContex
 }
 
 export function FieldsSection({ section, context }: { section: SectionId; context: FieldContext }) {
+  if (section === 'training') {
+    return (
+      <>
+        <TrainingImportCard domain="ssm" context={context} />
+        <TrainingImportCard domain="su" context={context} />
+      </>
+    );
+  }
   const groups = fieldGroups.filter((group) => group.section === section);
   if (context.existingClient) {
     return <ExistingFieldGroups paths={groups.flatMap((group) => group.paths)} context={context} />;

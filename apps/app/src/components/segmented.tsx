@@ -70,7 +70,7 @@ export function Segmented<T extends string>({
             onChange={() => onPick(option.value)}
             // A checked radio fires no change, and picking the proposed choice is what clears the
             // row's question.
-            onClick={() => onPick(option.value)}
+            onClick={value === option.value ? () => onPick(option.value) : undefined}
           />
           {option.label}
         </label>
