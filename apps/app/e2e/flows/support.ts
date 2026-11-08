@@ -585,6 +585,12 @@ export async function createLibraryImport(input: {
     facts: [
       { field: 'client.legalName', value: input.legalName, ...quote(input.legalName) },
       { field: 'client.cui', value: input.cui, ...quote(input.cui) },
+      // Posts without a category are execution staff, whose interval would otherwise wait to be confirmed.
+      {
+        field: 'trainingSchedule.workerTrainingIntervalMonths',
+        value: '3 luni',
+        ...quote('la 3 luni'),
+      },
     ],
     workplaces: [],
     workplaceFacts: [],
