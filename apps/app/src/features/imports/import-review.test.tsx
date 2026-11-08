@@ -1962,6 +1962,22 @@ describe('the training cards', () => {
     expect(within(block('trainingSchedule.trainingDayFrom')).getByRole('textbox')).toBeTruthy();
   });
 
+  it('asks to write a refused day again rather than to pick one', async () => {
+    const proposal = proposalFixture();
+    proposal.trainingSchedule.trainingDayFrom = { options: [option(35)] } as never;
+    mockReview(
+      readyDetail({
+        proposal,
+        blockers: [{ path: 'trainingSchedule.trainingDayFrom', code: 'invalid' }],
+      })
+    );
+    mount();
+
+    expect((await screen.findByTestId('import-blocker-link')).textContent).toBe(
+      'Scrie ziua de început a instruirii'
+    );
+  });
+
   it('says when the last day comes before the first, once the member leaves the field', async () => {
     mockReview(
       trainingDetail((proposal) => {

@@ -859,6 +859,7 @@ export function blockerLink(proposal: Proposal, changes: Changes, blocker: Block
   const info = fieldInfo[`${root}.${second}`];
   if (info) {
     const picked = fireTrainingPaths.has(`${root}.${second}`) || root === 'trainingSchedule';
+    const typed = second === 'trainingDayFrom' || second === 'trainingDayTo';
     const state = fieldState(proposal, changes, `${root}.${second}`);
     const noneGiven = state.status !== 'choice' && state.value === null;
     return {
@@ -868,9 +869,9 @@ export function blockerLink(proposal: Proposal, changes: Changes, blocker: Block
       text:
         blocker.code === 'choice' && info.confirm && noneGiven
           ? info.confirm
-          : blocker.code === 'choice' || (picked && blocker.code === 'invalid')
+          : blocker.code === 'choice' || (picked && !typed && blocker.code === 'invalid')
             ? info.choose
-            : blocker.code === 'invalid'
+            : blocker.code === 'invalid' && !typed
               ? `Corectează ${info.label.toLowerCase()}`
               : info.write,
     };

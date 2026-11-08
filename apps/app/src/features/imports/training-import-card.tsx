@@ -491,6 +491,13 @@ function DayControl({
 }) {
   const [draft, setDraft] = useState(value === null ? '' : String(value));
   const [problem, setProblem] = useState<string | null>(null);
+  // A value picked or saved elsewhere replaces what the box shows.
+  const [shown, setShown] = useState(value);
+  if (shown !== value) {
+    setShown(value);
+    setDraft(value === null ? '' : String(value));
+    setProblem(null);
+  }
   const save = () => {
     const found = dayProblem(draft);
     setProblem(found);
