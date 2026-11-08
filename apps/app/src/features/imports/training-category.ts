@@ -1,6 +1,9 @@
 import {
+  type HeldPost,
   importedTrainingInterval,
   postsAfterImport,
+  staffCategories,
+  staffCategoriesWithPosts,
   type StaffCategory,
   type TrainingDomain,
   trainingIntervalChoices,
@@ -134,6 +137,23 @@ export function keptPosts(
         };
       })
   );
+}
+
+// A category without kept posts has no training, so its interval neither waits for the member nor
+// differs from the app's.
+export function withoutAbsentCategories(
+  states: Record<string, FieldState>,
+  posts: readonly HeldPost[]
+): Record<string, FieldState> {
+  const held = new Set(staffCategoriesWithPosts(posts));
+  const absent = new Set(
+    (['ssm', 'su'] as const).flatMap((domain) =>
+      staffCategories
+        .filter((category) => !held.has(category))
+        .map((category) => schedulePaths[domain].interval[category] as string)
+    )
+  );
+  return Object.fromEntries(Object.entries(states).filter(([path]) => !absent.has(path)));
 }
 
 export const intervalChoicesOf = (domain: TrainingDomain, category: StaffCategory) =>

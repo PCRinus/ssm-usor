@@ -866,12 +866,47 @@ describe('toClientPayload', () => {
 
     const written = payloadWith({
       'fireSafety.trainingFirstMonth': { value: 9 },
-      'fireSafety.administrativeTrainingIntervalMonths': { value: 6 },
+      'fireSafety.workerTrainingIntervalMonths': { value: 3 },
     });
     expect(written.payload.fire_safety).toMatchObject({
       training_first_month: 9,
-      administrative_training_interval_months: 6,
+      worker_training_interval_months: 3,
     });
+  });
+
+  it('writes and waits for no interval of a category without kept posts, whatever the documents give', () => {
+    const base = reading();
+    const intervals = (worker: string[], administrative: string[]) => [
+      ...base.facts.filter(
+        (each) => each.field !== 'trainingSchedule.workerTrainingIntervalMonths'
+      ),
+      ...worker.map((months) => fact('trainingSchedule.workerTrainingIntervalMonths', months)),
+      ...administrative.map((months, index) =>
+        fact(
+          'trainingSchedule.administrativeTrainingIntervalMonths',
+          months,
+          `Dosar/Decizia ${index}.docx`
+        )
+      ),
+    ];
+    const payloadOf = (facts: Reading['facts'], items: ImportChanges['items'] = {}) =>
+      toClientPayload({
+        proposal: withChecks(proposalOf(reading({ facts })), { files: {} }),
+        changes: { fields: {}, items },
+        intoExistingClient: false,
+        existing: noExistingRecords,
+      });
+
+    const both = payloadOf(intervals(['6'], ['6', '12']));
+    expect(both.blockers).toEqual([]);
+    expect(both.payload.client).not.toHaveProperty('administrative_training_interval_months');
+
+    const tooLong = payloadOf(intervals(['12'], []), {
+      'position-1': { included: false },
+      'position-2': { included: false },
+    });
+    expect(tooLong.blockers).toEqual([]);
+    expect(tooLong.payload.client).not.toHaveProperty('worker_training_interval_months');
   });
 
   it('gives a category with posts the longest legal interval where the documents give none', () => {

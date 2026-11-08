@@ -53,12 +53,14 @@ function mockReview(
     confirm,
     me,
     documentDetails = {},
+    positions = () => Response.json({ items: [] }),
   }: {
     save?: (body: unknown) => Response | Promise<Response>;
     read?: (call: number) => Promise<void> | undefined;
     confirm?: () => Response;
     me?: unknown;
     documentDetails?: Record<string, unknown>;
+    positions?: () => Response;
   } = {}
 ) {
   saves = 0;
@@ -111,6 +113,7 @@ function mockReview(
         },
       });
     }
+    if (url.pathname === `/clients/${clientId}/job-positions`) return positions();
     if (url.pathname === `/clients/${clientId}/fire-safety`) {
       return Response.json({ fireSafety: null });
     }
@@ -1405,6 +1408,15 @@ describe('completing an existing client (E2)', () => {
       client: { id: clientId, legalName: 'Brutăria Spicul Auriu SRL' },
       blockers: [],
     });
+
+  it('leaves a category none of its posts is in off what to check, whatever its interval', async () => {
+    mockReview(existing(), { documentDetails: { administrativeTrainingIntervalMonths: 6 } });
+    mount();
+
+    const kept = await screen.findByTestId('import-kept');
+    await waitFor(() => expect(kept.textContent).toContain('Telefon'));
+    expect(kept.textContent).not.toContain('tehnico-administrativ');
+  });
 
   it("keeps the app's value where the documents differ, without blocking, until the member takes theirs", async () => {
     mockReview(existing());

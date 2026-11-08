@@ -6,6 +6,7 @@ import {
   postsAfterImport,
   staffCategoriesWithPosts,
   type StaffCategory,
+  type TrainingDomain,
 } from '@ssm-usor/contracts';
 import {
   type Field,
@@ -112,6 +113,19 @@ const notApplicablePaths = new Set([
 const intervalColumns: Record<StaffCategory, string> = {
   execution: 'worker_training_interval_months',
   technical_administrative: 'administrative_training_interval_months',
+};
+
+const intervalPaths: Record<string, { domain: TrainingDomain; category: StaffCategory }> = {
+  'trainingSchedule.workerTrainingIntervalMonths': { domain: 'ssm', category: 'execution' },
+  'trainingSchedule.administrativeTrainingIntervalMonths': {
+    domain: 'ssm',
+    category: 'technical_administrative',
+  },
+  'fireSafety.workerTrainingIntervalMonths': { domain: 'su', category: 'execution' },
+  'fireSafety.administrativeTrainingIntervalMonths': {
+    domain: 'su',
+    category: 'technical_administrative',
+  },
 };
 
 const scheduleColumns = [
@@ -388,11 +402,7 @@ export function toClientPayload(input: {
   const anafName = intoExistingClient
     ? null
     : anafLegalName(proposal, changes, input.registeredCompany);
-  for (const { section, path, field } of fieldsOf(proposal)) {
-    if (path === 'fireSafety.smokingPlace' && placeDropped) continue;
-    // A category applies when the client keeps posts in it, so a declared exclusion is not
-    // written, nor waited for (ADR 039).
-    if (notApplicablePaths.has(path)) continue;
+  const applyField = ({ section, path, field }: ReturnType<typeof fieldsOf>[number]) => {
     const change = changes.fields[path];
     const resolved: Resolution =
       path === 'client.legalName' && anafName !== null
@@ -403,13 +413,13 @@ export function toClientPayload(input: {
     if (resolved.choice) block(path, 'choice');
     const inFireSafety = path in fireSafetyColumns;
     const column = inFireSafety ? fireSafetyColumns[path] : clientColumns[path];
-    if (!column) continue;
+    if (!column) return;
     const value = columnValue(column, resolved.value);
     const current = (inFireSafety ? existing.fireSafety : existing.client)?.[column];
     const replace = Boolean(change?.replace) && intoExistingClient;
     const written = !intoExistingClient || empty(current) || replace;
-    if (value === null) continue;
-    if (column === 'cui' && intoExistingClient) continue;
+    if (value === null) return;
+    if (column === 'cui' && intoExistingClient) return;
     if (intoExistingClient && !empty(current) && !replace && differs(current, value)) {
       quality[section].kept++;
     }
@@ -422,6 +432,14 @@ export function toClientPayload(input: {
     }
     (inFireSafety ? fireSafety : client)[column] = value;
     if (replace) (inFireSafety ? fireReplace : clientReplace).push(column);
+  };
+  for (const entry of fieldsOf(proposal)) {
+    if (entry.path === 'fireSafety.smokingPlace' && placeDropped) continue;
+    // A category applies when the client keeps posts in it, so a declared exclusion is not
+    // written, nor waited for (ADR 039).
+    if (notApplicablePaths.has(entry.path)) continue;
+    if (entry.path in intervalPaths) continue;
+    applyField(entry);
   }
   if (!intoExistingClient) {
     for (const [path, column] of [
@@ -443,9 +461,6 @@ export function toClientPayload(input: {
       client.vat_payer = input.registeredCompany.vatPayer;
     }
   }
-  if (clientReplace.length) client.replace = clientReplace;
-  if (fireReplace.length) fireSafety.replace = fireReplace;
-
   type Included<T> = { item: T; index: number; values: Record<string, unknown> };
   const included = <L extends ItemList>(
     list: L,
@@ -810,6 +825,14 @@ export function toClientPayload(input: {
       }))
     )
   );
+  // A category without kept posts has no training, so what the documents give for it is neither
+  // written nor waited for.
+  for (const entry of fieldsOf(proposal)) {
+    const interval = intervalPaths[entry.path];
+    if (interval && withPosts.includes(interval.category)) applyField(entry);
+  }
+  if (clientReplace.length) client.replace = clientReplace;
+  if (fireReplace.length) fireSafety.replace = fireReplace;
   const fireScheduleKept =
     scheduleColumns.some((column) => fireSafety[column] !== undefined) ||
     (intoExistingClient && scheduleColumns.some((column) => !empty(existing.fireSafety?.[column])));

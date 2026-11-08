@@ -30,6 +30,7 @@ import { SavingNote } from './review-parts';
 import { fieldStates, reviewName, sectionStatuses } from './review-summary';
 import { SourceDialog, type SourceRequest } from './source-dialog';
 import { SourcePrefetchContext, useSourcePrefetch } from './source-query';
+import { keptPosts, withoutAbsentCategories } from './training-category';
 import { useExistingValues, useImportReview } from './use-import-review';
 
 export function ReviewSectionPage({
@@ -70,7 +71,7 @@ export function ReviewSectionPage({
     proposal,
     review.changes,
     detail.blockers as Blocker[],
-    states,
+    withoutAbsentCategories(states, keptPosts(proposal, review.changes, existing.positions)),
     registered
   );
   const position = sectionIds.indexOf(section);
