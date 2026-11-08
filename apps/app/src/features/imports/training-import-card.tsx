@@ -1,8 +1,4 @@
-import {
-  legalMaxTrainingInterval,
-  type StaffCategory,
-  type TrainingDomain,
-} from '@ssm-usor/contracts';
+import type { StaffCategory, TrainingDomain } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
@@ -20,7 +16,12 @@ import { type ReactNode, useId, useState } from 'react';
 import { Segmented } from '@/components/segmented';
 import { dayOrderProblem, monthNames } from '@/features/training/document-details-schema';
 import { TrainingScheduleFields } from '@/features/training/schedule-fields';
-import { categoriesWithPosts, lawOf } from '@/features/training/schedule-rules';
+import {
+  categoriesWithPosts,
+  intervalHint,
+  lawOf,
+  startingInterval,
+} from '@/features/training/schedule-rules';
 
 import { PendingNote } from './library/decision-row';
 import type { FieldContext } from './review-fields';
@@ -37,6 +38,7 @@ import {
 } from './review-parts';
 import {
   durationChoices,
+  fireScheduleStart,
   intervalChoicesOf,
   keptPosts,
   numberChange,
@@ -177,14 +179,16 @@ function FieldPicker({
   context,
   label,
   control,
-  legal,
+  starting,
+  choices,
 }: {
   field: TrainingField;
   kind: Kind;
   context: FieldContext;
   label: string;
   control: ReactNode;
-  legal?: { months: number; law: string };
+  starting?: { months: number; domain: TrainingDomain };
+  choices?: readonly number[];
 }) {
   const name = useId();
   const { state } = field;
@@ -192,7 +196,7 @@ function FieldPicker({
   const change = context.changes.fields[state.path];
   const [otherOpen, setOtherOpen] = useState(
     field.mode === 'outside' ||
-      (state.edited && (field.mode !== 'legal_maximum' || field.value !== legal?.months))
+      (state.edited && (field.mode !== 'starting' || field.value !== starting?.months))
   );
   const open = field.mode === 'outside' || otherOpen;
   const sourceButton = (sources = state.sources) => (
@@ -214,6 +218,7 @@ function FieldPicker({
 
   if (field.mode === 'differs') {
     const replaced = state.comparison === 'replaced';
+    const listed = !choices || choices.includes(Number(state.value));
     return (
       <div className="grid gap-2" data-testid="review-training-differs">
         <KindLine icon={<GitCompare aria-hidden="true" />}>
@@ -232,9 +237,21 @@ function FieldPicker({
           </PickOption>
           <PickOption
             name={name}
-            checked={replaced}
+            checked={replaced && listed}
+            disabled={!listed}
             onPick={() => context.review.setField(state.path, { ...change, replace: true })}
-            heading="În documente"
+            heading={
+              listed ? (
+                'În documente'
+              ) : (
+                <>
+                  În documente
+                  <Tag tone="destructive" testId="review-training-not-listed">
+                    Nu e în listă
+                  </Tag>
+                </>
+              )
+            }
             testId="review-use-documents"
             action={sourceButton()}
           >
@@ -245,10 +262,11 @@ function FieldPicker({
     );
   }
 
-  if (field.mode === 'legal_maximum' && legal) {
-    const atMaximum = !open;
+  if (field.mode === 'starting' && starting) {
+    const atStart = !open;
+    const occupational = starting.domain === 'ssm';
     return (
-      <div className="grid gap-2" data-testid="review-training-legal-maximum">
+      <div className="grid gap-2" data-testid="review-training-starting">
         <KindLine
           icon={<TriangleAlert aria-hidden="true" />}
           tone={field.settled ? undefined : 'warning'}
@@ -258,15 +276,17 @@ function FieldPicker({
         <PickList label={label}>
           <PickOption
             name={name}
-            checked={atMaximum}
+            checked={atStart}
             onPick={() => {
               setOtherOpen(false);
-              context.review.setField(state.path, { value: legal.months });
+              context.review.setField(state.path, { value: starting.months });
             }}
-            heading={`Maximul legal, după ${legal.law}`}
-            testId="review-training-legal-pick"
+            heading={occupational ? `Maximul legal, după ${lawOf.ssm}` : 'Valoarea obișnuită'}
+            testId="review-training-starting-pick"
           >
-            {shown(state.path, legal.months)}
+            {occupational
+              ? shown(state.path, starting.months)
+              : `${shown(state.path, starting.months)} (${lawOf.su})`}
           </PickOption>
           <PickOption
             name={name}
@@ -279,15 +299,18 @@ function FieldPicker({
           >
             {!open && (
               <span className="text-muted-foreground">
-                Îl alegi tu, dacă clientul face instruirea mai des.
+                {occupational
+                  ? 'Îl alegi tu, dacă clientul face instruirea mai des.'
+                  : 'Îl alegi tu, dacă clientul face instruirea la alt interval.'}
               </span>
             )}
           </PickOption>
         </PickList>
         {!field.settled && (
-          <RowNote testId="review-training-legal-note">
-            Am ales maximul legal, fiindcă documentele nu dau intervalul. Dacă clientul face
-            instruirea mai des, alege „{text.other}”.
+          <RowNote testId="review-training-starting-note">
+            {occupational
+              ? `Am ales maximul legal, fiindcă documentele nu dau intervalul. Dacă clientul face instruirea mai des, alege „${text.other}”.`
+              : `Am ales valoarea obișnuită, fiindcă documentele nu dau intervalul. Dacă personalul sprijină serviciile de urgență, intervalul e de cel mult o lună (${lawOf.su}); alege „${text.other}”.`}
           </RowNote>
         )}
       </div>
@@ -402,10 +425,7 @@ function IntervalControl({
         phone="one-row"
         onPick={(picked) => onPick(Number(picked))}
       />
-      <span className="text-xs text-muted-foreground">
-        Cel mult la {legalMaxTrainingInterval(domain, category)} luni, după {lawOf[domain]}. Poți
-        alege mai des.
-      </span>
+      <span className="text-xs text-muted-foreground">{intervalHint(domain, category)}</span>
     </div>
   );
 }
@@ -534,6 +554,14 @@ function DayControl({
 
 const plain = (field: TrainingField) => field.mode === 'value';
 
+type ShownField = TrainingField & { started: boolean };
+
+// A value the documents leave empty that confirming takes from the SU schedule's starting values.
+const started = (field: TrainingField, fill: number | undefined): ShownField =>
+  plain(field) && field.value === null && fill !== undefined
+    ? { ...field, value: fill, started: true }
+    : { ...field, started: false };
+
 const invalidAt = (field: TrainingField, context: FieldContext) =>
   context.blockers.some((blocker) => blocker.path === field.path && blocker.code === 'invalid');
 
@@ -608,36 +636,65 @@ export function TrainingImportCard({
       category,
       hasPosts: present.has(category),
     });
-  const month = trainingField(states, paths.firstMonth, null);
-  const dayFrom = trainingField(states, paths.dayFrom, null);
-  const dayTo = trainingField(states, paths.dayTo, null);
-  const duration = trainingField(states, paths.duration, durationChoices[domain]);
+  const fills =
+    domain === 'su'
+      ? fireScheduleStart(
+          states,
+          categories.map(({ category }) => category)
+        )
+      : {};
+  const month = started(trainingField(states, paths.firstMonth, null), fills.trainingFirstMonth);
+  const dayFrom = started(trainingField(states, paths.dayFrom, null), fills.trainingDayFrom);
+  const dayTo = started(trainingField(states, paths.dayTo, null), fills.trainingDayTo);
+  const duration = started(
+    trainingField(states, paths.duration, durationChoices[domain]),
+    fills.periodicTrainingHours
+  );
   const intervals = categories.map(({ category }) => ({ category, field: intervalOf(category) }));
   const pending = [...intervals.map(({ field }) => field), month, dayFrom, dayTo, duration].filter(
     (field) => pendingOf(field, context)
   ).length;
   const save = (state: FieldState, value: number) =>
     review.setField(state.path, numberChange(state, value, existingClient));
-  const [days, setDays] = useState({
+  const shownDays = {
     from: dayFrom.value === null ? '' : String(dayFrom.value),
     to: dayTo.value === null ? '' : String(dayTo.value),
-  });
+  };
+  const [days, setDays] = useState(shownDays);
+  // The days taken from the SSM schedule follow it while the member edits that card.
+  const startedDays = `${dayFrom.started ? shownDays.from : ''}|${dayTo.started ? shownDays.to : ''}`;
+  const [daysStartedFrom, setDaysStartedFrom] = useState(startedDays);
+  if (daysStartedFrom !== startedDays) {
+    setDaysStartedFrom(startedDays);
+    setDays(shownDays);
+  }
+  // Writing one day leaves both to the member, so a day still taken from SSM is saved with it.
   const commitDays = () => {
-    for (const [field, text] of [
-      [dayFrom, days.from],
-      [dayTo, days.to],
-    ] as const) {
-      if (!plain(field) || dayProblem(text)) continue;
-      if (Number(text) !== field.value) save(field.state, Number(text));
+    const typed = (
+      [
+        [dayFrom, days.from],
+        [dayTo, days.to],
+      ] as const
+    ).filter(([field, text]) => plain(field) && !dayProblem(text));
+    if (typed.every(([field, text]) => Number(text) === field.value)) return;
+    for (const [field, text] of typed) {
+      if (Number(text) !== field.value || field.started) save(field.state, Number(text));
     }
   };
   const dayOrder = dayOrderProblem(String(dayFrom.value ?? ''), String(dayTo.value ?? ''));
   const look = titles[domain];
   const Icon = look.icon;
-  const law = lawOf[domain];
 
   const daysLine = (() => {
     if (!plain(dayFrom) || !plain(dayTo)) return null;
+    if (dayFrom.started || dayTo.started) {
+      return (
+        <SourceLine>
+          Lipsesc din documentele SU. Le-am preluat din programul de instruire SSM; poți să le
+          schimbi.
+        </SourceLine>
+      );
+    }
     const edited = dayFrom.state.edited || dayTo.state.edited;
     if (edited) {
       const from = dayFrom.state.proposedValue;
@@ -723,7 +780,8 @@ export function TrainingImportCard({
                   context={context}
                   label={`La câte luni, ${held.category === 'execution' ? 'execuție' : 'tehnico-administrativ'}`}
                   control={control}
-                  legal={{ months: legalMaxTrainingInterval(domain, category), law }}
+                  starting={{ months: startingInterval(domain, category), domain }}
+                  choices={intervalChoicesOf(domain, category)}
                 />
               ),
               fieldNote: plain(field) ? sourceLine(field, context, 'La câte luni') : undefined,
@@ -862,9 +920,22 @@ export function TrainingImportCard({
                 }),
           }}
           notes={{
-            firstMonth: plain(month) ? sourceLine(month, context, 'Prima lună') : undefined,
+            firstMonth: month.started ? (
+              <SourceLine>
+                Lipsește din documentele SU. Am preluat-o din programul de instruire SSM; poți s-o
+                schimbi.
+              </SourceLine>
+            ) : plain(month) ? (
+              sourceLine(month, context, 'Prima lună')
+            ) : undefined,
             days: daysLine,
-            duration: plain(duration) ? sourceLine(duration, context, 'Durata') : undefined,
+            duration: duration.started ? (
+              <SourceLine>
+                Lipsește din documente. Am pus durata minimă; poți alege alta.
+              </SourceLine>
+            ) : plain(duration) ? (
+              sourceLine(duration, context, 'Durata')
+            ) : undefined,
           }}
           noPosts={
             <NoPostsImported

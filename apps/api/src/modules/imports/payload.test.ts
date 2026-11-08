@@ -226,6 +226,7 @@ describe('toClientPayload', () => {
     expect(payload.fire_safety).toEqual({
       smoking_policy: 'forbidden_everywhere',
       worker_training_interval_months: 6,
+      periodic_training_hours: 2,
     });
     expect(payload.workplaces).toEqual([
       {
@@ -503,6 +504,7 @@ describe('toClientPayload', () => {
           'client.cui': { value: '12345674' },
           'client.countyCode': { value: 'TM' },
           'trainingSchedule.workerTrainingIntervalMonths': { value: 6 },
+          'fireSafety.workerTrainingIntervalMonths': { value: 3 },
         },
         items: {
           'equipment-entry-1': { values: { risk: 'Arsuri' } },
@@ -696,6 +698,7 @@ describe('toClientPayload', () => {
       waste_collectors: 'vânzătorii de serviciu',
       has_third_parties: false,
       worker_training_interval_months: 6,
+      periodic_training_hours: 2,
     });
     expect(payload.workplaces[0]).toMatchObject({
       floor_area_m2: 120,
@@ -876,6 +879,105 @@ describe('toClientPayload', () => {
     });
   });
 
+  it('starts an empty SU schedule as the client card would: the usual interval to confirm, two hours and the SSM calendar', () => {
+    const base = reading();
+    const payloadWith = (
+      fields: ImportChanges['fields'],
+      existing: ExistingRecords = noExistingRecords,
+      facts: Reading['facts'] = []
+    ) =>
+      toClientPayload({
+        proposal: proposalOf(
+          reading({
+            facts: [
+              ...base.facts.filter(
+                (each) => each.field !== 'trainingSchedule.workerTrainingIntervalMonths'
+              ),
+              fact('trainingSchedule.trainingFirstMonth', '3'),
+              fact('trainingSchedule.workerTrainingIntervalMonths', '2'),
+              fact('trainingSchedule.workerTrainingIntervalMonths', '4', fire),
+              ...facts,
+            ],
+          })
+        ),
+        changes: {
+          fields: { 'trainingSchedule.workerTrainingIntervalMonths': { option: 0 }, ...fields },
+          items: {},
+        },
+        intoExistingClient: existing !== noExistingRecords,
+        existing,
+      });
+
+    const pending = payloadWith({ 'trainingSchedule.trainingDayFrom': { value: 10 } });
+    expect(pending.blockers).toEqual([
+      { path: 'fireSafety.workerTrainingIntervalMonths', code: 'choice' },
+    ]);
+    expect(pending.payload.fire_safety).toEqual({
+      smoking_policy: 'forbidden_everywhere',
+      worker_training_interval_months: 3,
+      periodic_training_hours: 2,
+      training_first_month: 3,
+      training_day_from: 10,
+    });
+
+    const confirmed = payloadWith({ 'fireSafety.workerTrainingIntervalMonths': { value: 3 } });
+    expect(confirmed.blockers).toEqual([]);
+    expect(confirmed.payload.fire_safety).toMatchObject({
+      worker_training_interval_months: 3,
+      periodic_training_hours: 2,
+      training_first_month: 3,
+    });
+
+    const smokingOnly: ExistingRecords = {
+      ...noExistingRecords,
+      client: {
+        cui: '12345674',
+        training_first_month: 9,
+        training_day_from: 1,
+        training_day_to: 5,
+      },
+      fireSafety: { smoking_policy: 'designated_places' },
+    };
+    const existingClient = payloadWith(
+      { 'fireSafety.workerTrainingIntervalMonths': { value: 2 } },
+      smokingOnly
+    );
+    expect(existingClient.payload.fire_safety).toMatchObject({
+      worker_training_interval_months: 2,
+      periodic_training_hours: 2,
+      training_first_month: 3,
+      training_day_from: 1,
+      training_day_to: 5,
+    });
+
+    const started = payloadWith(
+      {},
+      {
+        ...smokingOnly,
+        fireSafety: { periodic_training_hours: 4, worker_training_interval_months: 1 },
+      }
+    );
+    expect(started.blockers).toEqual([]);
+    expect(started.payload.fire_safety).not.toHaveProperty('periodic_training_hours');
+    expect(started.payload.fire_safety).not.toHaveProperty('training_day_from');
+  });
+
+  it('writes no SU schedule where the client keeps no posts and the documents give none', () => {
+    const { payload, blockers } = toClientPayload({
+      proposal: proposalOf(
+        reading({ facts: reading().facts.filter((each) => !each.field.endsWith('IntervalMonths')) })
+      ),
+      changes: {
+        fields: {},
+        items: { 'position-1': { included: false }, 'position-2': { included: false } },
+      },
+      intoExistingClient: false,
+      existing: noExistingRecords,
+    });
+    expect(blockers.filter((blocker) => blocker.path.startsWith('fireSafety.'))).toEqual([]);
+    expect(payload.fire_safety).toEqual({ smoking_policy: 'forbidden_everywhere' });
+  });
+
   it('writes and waits for no interval of a category without kept posts, whatever the documents give', () => {
     const base = reading();
     const intervals = (worker: string[], administrative: string[]) => [
@@ -911,7 +1013,7 @@ describe('toClientPayload', () => {
     expect(tooLong.payload.client).not.toHaveProperty('worker_training_interval_months');
   });
 
-  it('gives a category with posts the longest legal interval where the documents give none, once the member confirms it', () => {
+  it('gives a category with posts its starting interval in both schedules where the documents give none, once the member confirms it', () => {
     const base = reading();
     const category = (jobPosition: string, value: string) => ({
       jobPosition,
@@ -940,8 +1042,10 @@ describe('toClientPayload', () => {
     const execution = payloadOf([category('Brutar', 'execution')]);
     expect(execution.blockers).toEqual([
       { path: 'trainingSchedule.workerTrainingIntervalMonths', code: 'choice' },
+      { path: 'fireSafety.workerTrainingIntervalMonths', code: 'choice' },
     ]);
     expect(execution.payload.client).toMatchObject({ worker_training_interval_months: 6 });
+    expect(execution.payload.fire_safety).toMatchObject({ worker_training_interval_months: 3 });
     expect(execution.payload.client).not.toHaveProperty('administrative_training_interval_months');
     expect(execution.payload.client).not.toHaveProperty('administrative_training_not_applicable');
 
@@ -953,50 +1057,70 @@ describe('toClientPayload', () => {
       worker_training_interval_months: 6,
       administrative_training_interval_months: 12,
     });
+    expect(both.payload.fire_safety).toMatchObject({
+      worker_training_interval_months: 3,
+      administrative_training_interval_months: 6,
+    });
     expect(both.blockers).toEqual([
       { path: 'trainingSchedule.workerTrainingIntervalMonths', code: 'choice' },
       { path: 'trainingSchedule.administrativeTrainingIntervalMonths', code: 'choice' },
+      { path: 'fireSafety.workerTrainingIntervalMonths', code: 'choice' },
+      { path: 'fireSafety.administrativeTrainingIntervalMonths', code: 'choice' },
     ]);
 
     const confirmed = payloadOf([category('Brutar', 'execution')], {
       'trainingSchedule.workerTrainingIntervalMonths': { value: 6 },
+      'fireSafety.workerTrainingIntervalMonths': { value: 3 },
     });
     expect(confirmed.blockers).toEqual([]);
     expect(confirmed.payload.client).toMatchObject({ worker_training_interval_months: 6 });
+    expect(confirmed.payload.fire_safety).toMatchObject({ worker_training_interval_months: 3 });
     // A "Nu se aplică" an older review saved is no confirmation.
     const excluded = payloadOf([category('Brutar', 'execution')], {
       'trainingSchedule.workerTrainingIntervalMonths': { value: null },
+      'fireSafety.workerTrainingIntervalMonths': { value: 3 },
     });
     expect(excluded.blockers).toEqual([
       { path: 'trainingSchedule.workerTrainingIntervalMonths', code: 'choice' },
     ]);
   });
 
-  it('waits for the member on an interval the documents give outside the list', () => {
+  it('waits for the member on an interval outside the list, whoever gave it', () => {
     const base = reading();
+    const path = 'trainingSchedule.administrativeTrainingIntervalMonths';
     const payloadOf = (fields: ImportChanges['fields'] = {}) =>
       toClientPayload({
         proposal: proposalOf(
           reading({
             facts: [
-              ...base.facts.filter(
-                (each) => each.field !== 'trainingSchedule.workerTrainingIntervalMonths'
-              ),
-              fact('trainingSchedule.workerTrainingIntervalMonths', '5'),
+              ...base.facts,
+              fact(path, '5'),
+              fact('fireSafety.workerTrainingIntervalMonths', '3'),
+            ],
+            jobPositionFacts: [
+              ...base.jobPositionFacts,
+              {
+                jobPosition: 'Vânzător',
+                field: 'staffCategory',
+                value: 'technical_administrative',
+                ...quoted(),
+              },
             ],
           })
         ),
-        changes: { fields, items: {} },
+        changes: {
+          fields: { 'fireSafety.administrativeTrainingIntervalMonths': { value: 6 }, ...fields },
+          items: {},
+        },
         intoExistingClient: false,
         existing: noExistingRecords,
       });
 
-    expect(payloadOf().blockers).toEqual([
-      { path: 'trainingSchedule.workerTrainingIntervalMonths', code: 'choice' },
-    ]);
-    const picked = payloadOf({ 'trainingSchedule.workerTrainingIntervalMonths': { value: 4 } });
+    expect(payloadOf().blockers).toContainEqual(expect.objectContaining({ path }));
+    expect(payloadOf({ [path]: { value: 9 } }).blockers).toEqual([{ path, code: 'choice' }]);
+    const picked = payloadOf({ [path]: { value: 4 } });
     expect(picked.blockers).toEqual([]);
-    expect(picked.payload.client).toMatchObject({ worker_training_interval_months: 4 });
+    expect(picked.payload.client).toMatchObject({ administrative_training_interval_months: 4 });
   });
 
   it('counts the posts an existing client has and writes over its exclusion of a category with posts', () => {
@@ -1090,6 +1214,7 @@ describe('toClientPayload', () => {
         existing: {
           ...noExistingRecords,
           client: { cui: '12345674', worker_training_interval_months: 4, training_first_month: 1 },
+          fireSafety: { worker_training_interval_months: 3 },
         },
       });
 

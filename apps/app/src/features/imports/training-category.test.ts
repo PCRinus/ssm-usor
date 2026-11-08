@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { type Changes, fieldState, type Option, type Proposal } from './review-model';
 import {
   durationChoices,
+  fireScheduleStart,
   intervalChoicesOf,
   keptPosts,
   numberChange,
+  schedulePaths,
   trainingField,
 } from './training-category';
 
@@ -75,25 +77,25 @@ describe('a field of a training schedule', () => {
     });
   });
 
-  it('stands at the longest legal interval for a category with posts the documents leave out, until confirmed', () => {
+  it('stands at the starting interval for a category with posts the documents leave out, until confirmed', () => {
     expect(trainingField(statesOf(path, []), path, intervals, legal)).toMatchObject({
-      mode: 'legal_maximum',
+      mode: 'starting',
       value: 6,
       settled: false,
     });
     const confirmed = statesOf(path, [], { fields: { [path]: { value: 6 } }, items: {} });
     expect(trainingField(confirmed, path, intervals, legal)).toMatchObject({
-      mode: 'legal_maximum',
+      mode: 'starting',
       value: 6,
       settled: true,
     });
   });
 
-  it('stands at the longest legal interval, still to confirm, where an older review cleared the value', () => {
+  it('stands at the starting interval, still to confirm, where an older review cleared the value', () => {
     const cleared: Changes = { fields: { [path]: { value: null } }, items: {} };
     for (const options of [[], [option(3)], [option(3), option(4)]]) {
       expect(trainingField(statesOf(path, options, cleared), path, intervals, legal)).toMatchObject(
-        { mode: 'legal_maximum', value: 6, settled: false }
+        { mode: 'starting', value: 6, settled: false }
       );
     }
   });
@@ -127,6 +129,81 @@ describe('a field of a training schedule', () => {
     expect(trainingField(statesOf(path, [], none, 6), path, intervals, legal)).toMatchObject({
       mode: 'value',
       value: 6,
+    });
+  });
+});
+
+describe('an SU schedule the import starts', () => {
+  const su = { domain: 'su', hasPosts: true } as const;
+  const paths = [
+    ...Object.values(schedulePaths.ssm).flatMap((each) =>
+      typeof each === 'string' ? [each] : Object.values(each)
+    ),
+    ...Object.values(schedulePaths.su).flatMap((each) =>
+      typeof each === 'string' ? [each] : Object.values(each)
+    ),
+  ];
+  function schedule(
+    given: Record<string, number[]>,
+    changes: Changes = none,
+    existing: Record<string, number> = {}
+  ) {
+    const proposal = { trainingSchedule: {}, fireSafety: {} } as Record<
+      string,
+      Record<string, unknown>
+    >;
+    for (const each of paths) {
+      const [group, name] = each.split('.') as [string, string];
+      proposal[group]![name] = { options: (given[each] ?? []).map(option) };
+    }
+    return Object.fromEntries(
+      paths.map((each) => [
+        each,
+        fieldState(proposal as unknown as Proposal, changes, each, existing[each] ?? null),
+      ])
+    );
+  }
+
+  it('starts each category at its usual interval, to confirm, as confirming writes it', () => {
+    const states = schedule({});
+    const execution = schedulePaths.su.interval.execution;
+    const administrative = schedulePaths.su.interval.technical_administrative;
+    expect(
+      trainingField(states, execution, intervalChoicesOf('su', 'execution'), {
+        ...su,
+        category: 'execution',
+      })
+    ).toMatchObject({ mode: 'starting', value: 3, settled: false });
+    expect(
+      trainingField(states, administrative, intervalChoicesOf('su', 'technical_administrative'), {
+        ...su,
+        category: 'technical_administrative',
+      })
+    ).toMatchObject({ mode: 'starting', value: 6, settled: false });
+  });
+
+  it('takes two hours and the SSM calendar where the documents leave them, as confirming writes them', () => {
+    const states = schedule(
+      { [schedulePaths.ssm.firstMonth]: [3] },
+      { fields: { [schedulePaths.ssm.dayFrom]: { value: 10 } }, items: {} }
+    );
+    expect(fireScheduleStart(states, ['execution'])).toEqual({
+      periodicTrainingHours: 2,
+      trainingFirstMonth: 3,
+      trainingDayFrom: 10,
+    });
+    expect(
+      fireScheduleStart(schedule({ [schedulePaths.su.duration]: [4] }), ['execution'])
+    ).toEqual({});
+  });
+
+  it("adds nothing to an existing client's SU schedule, nor where nothing of it is written", () => {
+    expect(
+      fireScheduleStart(schedule({}, none, { [schedulePaths.su.duration]: 4 }), ['execution'])
+    ).toEqual({});
+    expect(fireScheduleStart(schedule({ [schedulePaths.ssm.firstMonth]: [3] }), [])).toEqual({});
+    expect(fireScheduleStart(schedule({ [schedulePaths.su.firstMonth]: [5] }), [])).toEqual({
+      periodicTrainingHours: 2,
     });
   });
 });

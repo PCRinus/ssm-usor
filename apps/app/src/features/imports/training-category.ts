@@ -1,4 +1,5 @@
 import {
+  fireScheduleStartFills,
   type HeldPost,
   importedTrainingInterval,
   postsAfterImport,
@@ -55,7 +56,7 @@ export const durationChoices: Record<TrainingDomain, readonly number[]> = {
   su: [2, 3, 4, 5, 6, 7, 8],
 };
 
-export type TrainingFieldMode = 'value' | 'choice' | 'outside' | 'legal_maximum' | 'differs';
+export type TrainingFieldMode = 'value' | 'choice' | 'outside' | 'starting' | 'differs';
 
 export type TrainingField = {
   path: string;
@@ -91,14 +92,19 @@ export function trainingField(
     );
   }
   if (state.comparison === 'kept' || state.comparison === 'replaced') {
-    return field('differs', asNumber(valueInForce(state)), true);
+    const unlisted = choices !== null && !choices.includes(Number(state.value));
+    return field(
+      'differs',
+      asNumber(valueInForce(state)),
+      !(state.comparison === 'replaced' && unlisted)
+    );
   }
   const inForce = asNumber(valueInForce(state));
-  // Confirming writes the law's longest for every category with posts left without a value, so a
-  // value cleared in an older review stands at it too.
+  // Confirming writes the starting interval for every category with posts left without a value,
+  // so a value cleared in an older review stands at it too.
   if (legal && state.status !== 'choice' && inForce === null) {
-    const { months, legalMaximum } = importedTrainingInterval({ ...legal, settled: null });
-    if (legalMaximum) return field('legal_maximum', months, false);
+    const { months, starting } = importedTrainingInterval({ ...legal, settled: null });
+    if (starting) return field('starting', months, false);
   }
   if (state.own.length > 1) {
     return field('choice', asNumber(state.value), state.status !== 'choice');
@@ -108,7 +114,7 @@ export function trainingField(
     return field('outside', state.edited ? asNumber(state.value) : null, state.edited);
   }
   if (legal && state.own.length === 0 && state.edited) {
-    return field('legal_maximum', inForce, true);
+    return field('starting', inForce, true);
   }
   return field('value', inForce, true);
 }
@@ -165,4 +171,57 @@ export function numberChange(
   const own = state.own.find((index) => Number(state.options[index]!.value) === value);
   if (own === undefined) return { value };
   return state.own.length === 1 ? null : { option: own };
+}
+
+const fireSchedulePaths = [
+  schedulePaths.su.duration,
+  schedulePaths.su.interval.execution,
+  schedulePaths.su.interval.technical_administrative,
+  schedulePaths.su.firstMonth,
+  schedulePaths.su.dayFrom,
+  schedulePaths.su.dayTo,
+];
+
+const hasExisting = (state: FieldState | undefined) =>
+  state !== undefined && state.existing !== null && state.existing !== '';
+
+// As confirming writes it: an existing client's own value stays while the documents give several.
+function scheduleValue(state: FieldState | undefined) {
+  if (!state) return null;
+  if (state.status === 'choice') return hasExisting(state) ? asNumber(state.existing) : null;
+  return asNumber(valueInForce(state));
+}
+
+export type FireScheduleFills = ReturnType<typeof fireScheduleStartFills>;
+
+/**
+ * The starting values confirming adds to the SU schedule, as `toClientPayload` adds them: where
+ * the client has no SU schedule yet and the import writes some of it.
+ */
+export function fireScheduleStart(
+  states: Record<string, FieldState>,
+  withPosts: readonly StaffCategory[]
+): FireScheduleFills {
+  if (fireSchedulePaths.some((path) => hasExisting(states[path]))) return {};
+  const value = (path: string) => scheduleValue(states[path]);
+  const calendar = [
+    schedulePaths.su.duration,
+    schedulePaths.su.firstMonth,
+    schedulePaths.su.dayFrom,
+    schedulePaths.su.dayTo,
+  ];
+  if (withPosts.length === 0 && calendar.every((path) => value(path) === null)) return {};
+  return fireScheduleStartFills(
+    {
+      periodicTrainingHours: value(schedulePaths.su.duration),
+      trainingFirstMonth: value(schedulePaths.su.firstMonth),
+      trainingDayFrom: value(schedulePaths.su.dayFrom),
+      trainingDayTo: value(schedulePaths.su.dayTo),
+    },
+    {
+      trainingFirstMonth: value(schedulePaths.ssm.firstMonth),
+      trainingDayFrom: value(schedulePaths.ssm.dayFrom),
+      trainingDayTo: value(schedulePaths.ssm.dayTo),
+    }
+  );
 }

@@ -1,13 +1,14 @@
 import {
+  fireScheduleStartFills,
   type ImportBlocker,
   type ImportChanges,
   importedTrainingInterval,
   maxEquipmentDurationMonths,
+  offeredTrainingInterval,
   postsAfterImport,
   staffCategoriesWithPosts,
   type StaffCategory,
   type TrainingDomain,
-  trainingIntervalChoices,
 } from '@ssm-usor/contracts';
 import {
   type Field,
@@ -453,9 +454,7 @@ export function toClientPayload(input: {
     } else if (
       interval &&
       written &&
-      !replace &&
-      change?.value === undefined &&
-      !trainingIntervalChoices[interval.domain][interval.category].includes(Number(value))
+      !offeredTrainingInterval(interval.domain, interval.category, Number(value))
     ) {
       block(path, 'choice');
     }
@@ -862,32 +861,31 @@ export function toClientPayload(input: {
   }
   if (clientReplace.length) client.replace = clientReplace;
   if (fireReplace.length) fireSafety.replace = fireReplace;
+  const inForce = (row: Row, current: Row | null, replaced: string[], column: string) =>
+    row[column] !== undefined &&
+    (!intoExistingClient || empty(current?.[column]) || replaced.includes(column))
+      ? row[column]
+      : intoExistingClient
+        ? current?.[column]
+        : undefined;
   // `clients` and `client_fire_safety` refuse a last day before the first.
   for (const [group, row, current, replaced] of [
     ['trainingSchedule', client, existing.client, clientReplace],
     ['fireSafety', fireSafety, existing.fireSafety, fireReplace],
   ] as const) {
-    const day = (column: string) =>
-      row[column] !== undefined &&
-      (!intoExistingClient || empty(current?.[column]) || replaced.includes(column))
-        ? row[column]
-        : intoExistingClient
-          ? current?.[column]
-          : undefined;
-    const from = day('training_day_from');
-    const to = day('training_day_to');
+    const from = inForce(row, current, replaced, 'training_day_from');
+    const to = inForce(row, current, replaced, 'training_day_to');
     if (typeof from === 'number' && typeof to === 'number' && from > to) {
       block(`${group}.trainingDayTo`, 'invalid');
     }
   }
-  const fireScheduleKept =
-    scheduleColumns.some((column) => fireSafety[column] !== undefined) ||
-    (intoExistingClient && scheduleColumns.some((column) => !empty(existing.fireSafety?.[column])));
-  for (const [domain, row, current, kept] of [
-    ['ssm', client, existing.client, true],
-    ['su', fireSafety, existing.fireSafety, fireScheduleKept],
+  const fireScheduleStarts = !(
+    intoExistingClient && scheduleColumns.some((column) => !empty(existing.fireSafety?.[column]))
+  );
+  for (const [domain, row, current] of [
+    ['ssm', client, existing.client],
+    ['su', fireSafety, existing.fireSafety],
   ] as const) {
-    if (!kept) continue;
     for (const category of withPosts) {
       const column = intervalColumns[category];
       if (row[column] !== undefined || (intoExistingClient && !empty(current?.[column]))) continue;
@@ -900,6 +898,32 @@ export function toClientPayload(input: {
       row[column] = months;
       // Nobody read it in the documents, so it is written only once the member confirms it.
       block(intervalPathOf(domain, category), 'choice');
+    }
+  }
+  if (fireScheduleStarts && scheduleColumns.some((column) => fireSafety[column] !== undefined)) {
+    const number = (value: unknown) => (typeof value === 'number' ? value : null);
+    const occupational = (column: string) =>
+      number(inForce(client, existing.client, clientReplace, column));
+    const fills = fireScheduleStartFills(
+      {
+        periodicTrainingHours: number(fireSafety.periodic_training_hours),
+        trainingFirstMonth: number(fireSafety.training_first_month),
+        trainingDayFrom: number(fireSafety.training_day_from),
+        trainingDayTo: number(fireSafety.training_day_to),
+      },
+      {
+        trainingFirstMonth: occupational('training_first_month'),
+        trainingDayFrom: occupational('training_day_from'),
+        trainingDayTo: occupational('training_day_to'),
+      }
+    );
+    for (const [field, column] of [
+      ['periodicTrainingHours', 'periodic_training_hours'],
+      ['trainingFirstMonth', 'training_first_month'],
+      ['trainingDayFrom', 'training_day_from'],
+      ['trainingDayTo', 'training_day_to'],
+    ] as const) {
+      if (fills[field] !== undefined) fireSafety[column] = fills[field];
     }
   }
   // An existing client's exclusion would otherwise keep the interval out (apply_client_import).

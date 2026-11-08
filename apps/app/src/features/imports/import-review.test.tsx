@@ -1895,9 +1895,9 @@ describe('the training cards', () => {
 
     await screen.findByTestId('review-training-ssm');
     const administrative = block('trainingSchedule.administrativeTrainingIntervalMonths');
-    expect(within(administrative).getByTestId('review-training-legal-maximum')).toBeTruthy();
+    expect(within(administrative).getByTestId('review-training-starting')).toBeTruthy();
     expect(administrative.textContent).toContain('La 12 luni');
-    expect(within(administrative).getByTestId('review-training-legal-note')).toBeTruthy();
+    expect(within(administrative).getByTestId('review-training-starting-note')).toBeTruthy();
 
     await userEvent.click(within(administrative).getByRole('radio', { name: /Maximul legal/ }));
     await waitFor(() => expect(saves).toBe(1));
@@ -1906,9 +1906,84 @@ describe('the training cards', () => {
     });
     expect(
       within(block('trainingSchedule.administrativeTrainingIntervalMonths')).queryByTestId(
-        'review-training-legal-note'
+        'review-training-starting-note'
       )
     ).toBeNull();
+  });
+
+  it('starts SU at the usual interval of each category with posts, citing art. 26, until the member confirms it', async () => {
+    mockReview(
+      trainingDetail((proposal) => {
+        proposal.jobPositions.push(accountant as never);
+      })
+    );
+    mount('/training');
+
+    await screen.findByTestId('review-training-su');
+    const execution = block('fireSafety.workerTrainingIntervalMonths');
+    const administrative = block('fireSafety.administrativeTrainingIntervalMonths');
+    expect(execution.getAttribute('data-pending')).toBe('true');
+    expect(administrative.getAttribute('data-pending')).toBe('true');
+    const pick = (where: HTMLElement) =>
+      within(where).getByTestId('review-training-starting-pick').textContent;
+    expect(pick(execution)).toContain('Valoarea obișnuită');
+    expect(pick(execution)).toContain('La 3 luni (OMAI 712/2005, art. 26)');
+    expect(pick(administrative)).toContain('La 6 luni (OMAI 712/2005, art. 26)');
+    expect(execution.textContent).not.toContain('Maximul legal');
+
+    await userEvent.click(within(execution).getByRole('radio', { name: /Valoarea obișnuită/ }));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({
+      'fireSafety.workerTrainingIntervalMonths': { value: 3 },
+    });
+  });
+
+  it('shows the SU duration and calendar confirming starts an empty SU schedule with', async () => {
+    mockReview(
+      trainingDetail((proposal) => {
+        proposal.trainingSchedule.trainingFirstMonth = { options: [option(3)] } as never;
+        proposal.trainingSchedule.trainingDayFrom = { options: [option(10)] } as never;
+        proposal.trainingSchedule.trainingDayTo = { options: [option(20)] } as never;
+      })
+    );
+    mount('/training');
+
+    const su = await screen.findByTestId('review-training-su');
+    expect(
+      (within(su).getByTestId('review-su-training-duration-2') as HTMLInputElement).checked
+    ).toBe(true);
+    expect(su.textContent).toContain(
+      'Lipsește din documente. Am pus durata minimă; poți alege alta.'
+    );
+    expect((within(su).getByTestId('review-su-first-month') as HTMLSelectElement).value).toBe('3');
+    expect((within(su).getByTestId('review-su-day-from') as HTMLInputElement).value).toBe('10');
+    expect((within(su).getByTestId('review-su-day-to') as HTMLInputElement).value).toBe('20');
+    expect(su.textContent).toContain('Le-am preluat din programul de instruire SSM');
+
+    await userEvent.clear(within(su).getByTestId('review-su-day-from'));
+    await userEvent.type(within(su).getByTestId('review-su-day-from'), '12');
+    await userEvent.tab();
+    await waitFor(() =>
+      expect(savedChanges(saves - 1).changes.fields).toEqual({
+        'fireSafety.trainingDayFrom': { value: 12 },
+        'fireSafety.trainingDayTo': { value: 20 },
+      })
+    );
+  });
+
+  it('marks an SU interval as waiting and links it from the hub, as confirming blocks it', async () => {
+    mockReview(
+      readyDetail({
+        proposal: proposalFixture(),
+        blockers: [{ path: 'fireSafety.workerTrainingIntervalMonths', code: 'choice' }],
+      })
+    );
+    mount();
+
+    const link = await screen.findByTestId('import-blocker-link');
+    expect(link.textContent).toBe('Confirmă periodicitatea SU pentru execuție');
+    expect(link.getAttribute('href')).toContain('#review-fireSafety-workerTrainingIntervalMonths');
+    expect(screen.getByTestId('import-confirm').getAttribute('aria-disabled')).toBe('true');
   });
 
   it('keeps confirming waiting on the longest legal interval until the member confirms it', async () => {
