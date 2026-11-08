@@ -66,6 +66,21 @@ test('a person registers, confirms their address, and sets up their organization
   await page.getByTestId('onboarding-terms').click();
   await page.getByTestId('onboarding-submit').click();
 
+  await expect(page).toHaveURL(/\/configurare\/cine-semneaza$/);
+  await expect(page.getByTestId('onboarding-representative-name')).toHaveValue(
+    'Felicia Fondatoare'
+  );
+  await page.getByTestId('onboarding-representative-role').fill('Administrator');
+  await page.getByTestId('onboarding-professional-title').fill('Inspector SSM');
+  await page.getByTestId('onboarding-continue').click();
+
+  await expect(page).toHaveURL(/\/configurare\/contract$/);
+  await page.reload();
+  await expect(page).toHaveURL(/\/configurare\/contract$/);
+  await page.getByTestId('onboarding-iban').fill('RO92 BTRL RONC RT05 8193 0101');
+  await expect(page.getByTestId('onboarding-bank')).toHaveValue('Banca Transilvania');
+  await page.getByTestId('onboarding-later').click();
+
   await expect(page).toHaveURL(/\/dashboard$/);
   await page.getByTestId('setup-guide').getByTestId('setup-guide-close').click();
   await expect(page.getByTestId('account-name')).toHaveText('Felicia Fondatoare');
@@ -77,6 +92,11 @@ test('a person registers, confirms their address, and sets up their organization
 
   await page.goto('/organizatie/date-firma');
   await expect(page.getByTestId('company-cui')).toHaveValue('1590082');
+  await expect(page.getByTestId('company-legalRepresentativeName')).toHaveValue(
+    'Felicia Fondatoare'
+  );
+  await expect(page.getByTestId('company-legalRepresentativeRole')).toHaveValue('Administrator');
+  await expect(page.getByTestId('company-iban')).toHaveValue('');
 
   await signOut(page);
   await page.goto(link);

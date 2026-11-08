@@ -29,7 +29,9 @@ import { AnafLookupButton } from '@/features/clients/anaf-lookup-button';
 import { roleLabels } from '@/features/organization/labels';
 
 import { useAuth } from './auth-context';
+import { OnboardingProgress, SignedInAs } from './onboarding-frame';
 import {
+  anafFoundMessage,
   type CompanyLookup,
   onboardingSchema,
   type OnboardingValues,
@@ -38,6 +40,9 @@ import {
 
 export function OnboardingPage() {
   const me = useMe();
+  // Set once this page creates the organization, whose next steps follow; the refreshed account
+  // must not send the new owner straight to the app.
+  const [created, setCreated] = useState(false);
 
   if (me.isPending) {
     return (
@@ -61,9 +66,9 @@ export function OnboardingPage() {
       </PublicFrame>
     );
   }
-  if (me.data.membership) return <Navigate to="/dashboard" replace />;
+  if (me.data.membership && !created) return <Navigate to="/dashboard" replace />;
 
-  return <OnboardingForm me={me.data} />;
+  return <OnboardingForm me={me.data} onCreated={() => setCreated(true)} />;
 }
 
 // Google fills `full_name`, and `name` with the same value, on an account it made (ADR 027).
@@ -77,9 +82,9 @@ type LookupState =
   | { status: 'found'; company: CompanyLookup }
   | { status: 'error'; message: string };
 
-function OnboardingForm({ me }: { me: MeResponse }) {
+function OnboardingForm({ me, onCreated }: { me: MeResponse; onCreated: () => void }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const { auth, session } = useAuth();
+  const { session } = useAuth();
   const navigate = useNavigate();
   const create = useCreateOrganization({ request: apiRequest });
   const saveCompanyDetails = useUpdateOrganizationCompanyDetails({ request: apiRequest });
@@ -171,6 +176,7 @@ function OnboardingForm({ me }: { me: MeResponse }) {
       }
     }
     if (created) {
+      onCreated();
       const details = toOnboardingCompanyDetails(
         cui,
         lookup.status === 'found' ? lookup.company : null
@@ -182,19 +188,17 @@ function OnboardingForm({ me }: { me: MeResponse }) {
       if (details) await saveDetails(details.request);
     }
     await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-    await navigate({ to: '/dashboard', replace: true });
+    // Someone who turned out to be a member already has nothing to set up here.
+    await navigate({ to: created ? '/configurare/cine-semneaza' : '/dashboard', replace: true });
   });
 
-  async function signOut() {
-    await auth.signOut().catch(() => undefined);
-    await navigate({ to: '/autentificare', replace: true });
-  }
-
   const pending = invitations.data?.items ?? [];
+  const searched = lookup.status === 'found' || lookup.status === 'error';
 
   return (
     <PublicFrame
       testId="onboarding-page"
+      progress={<OnboardingProgress step={1} name="Firma" />}
       title="Configurează-ți organizația"
       description="Adaugă datele serviciului tău extern de prevenire și protecție. Vei putea invita echipa după configurare."
     >
@@ -228,34 +232,16 @@ function OnboardingForm({ me }: { me: MeResponse }) {
         onSubmit={(event) => void onSubmit(event)}
       >
         <Field
-          id="onboarding-full-name"
-          label="Nume și prenume"
-          mark="required"
-          error={errors.fullName}
-        >
-          <Input
-            id="onboarding-full-name"
-            data-testid="onboarding-full-name"
-            className="h-11"
-            autoComplete="name"
-            disabled={isSubmitting}
-            aria-invalid={Boolean(errors.fullName)}
-            aria-describedby={errors.fullName ? 'onboarding-full-name-error' : undefined}
-            {...form.register('fullName')}
-          />
-        </Field>
-        <Field
           id="onboarding-cui"
-          label="CUI"
-          mark="optional"
-          hint="Caută-l la ANAF ca să preiei denumirea, sediul și numărul de înregistrare ale firmei."
+          label="CUI-ul firmei tale"
+          hint="Cu el preluăm noi datele firmei de la ANAF. Poți continua și fără el: le completezi mai târziu, la Organizație."
           error={errors.cui}
         >
-          <div className="flex flex-wrap gap-2">
+          <div className="grid gap-2 sm:flex">
             <Input
               id="onboarding-cui"
               data-testid="onboarding-cui"
-              className="h-11 max-w-56"
+              className="h-11 sm:flex-1"
               inputMode="numeric"
               autoComplete="off"
               disabled={busy}
@@ -265,6 +251,8 @@ function OnboardingForm({ me }: { me: MeResponse }) {
             />
             <AnafLookupButton
               testId="onboarding-lookup"
+              primary={!searched}
+              again={lookup.status === 'found'}
               loading={lookup.status === 'loading'}
               disabled={busy}
               onClick={() => void lookupCui()}
@@ -276,10 +264,12 @@ function OnboardingForm({ me }: { me: MeResponse }) {
             variant={lookup.company.inactive ? 'warning' : 'success'}
             data-testid="onboarding-lookup-status"
           >
-            Date preluate de la ANAF pentru {lookup.company.legalName}.{' '}
-            {lookup.company.inactive
-              ? 'Atenție: compania figurează ca inactivă.'
-              : 'Le găsești apoi în Organizație → Date firmă.'}
+            <p>{anafFoundMessage(lookup.company).taken}</p>
+            <p className="mt-1">
+              {lookup.company.inactive
+                ? 'Atenție: compania figurează ca inactivă.'
+                : anafFoundMessage(lookup.company).missing}
+            </p>
           </Notice>
         )}
         {lookup.status === 'error' && (
@@ -291,7 +281,7 @@ function OnboardingForm({ me }: { me: MeResponse }) {
           id="onboarding-organization"
           label="Numele organizației"
           mark="required"
-          hint="Așa cum vrei să apară pentru echipa ta, de exemplu denumirea firmei."
+          hint="Așa cum vrei să apară pentru echipa ta. Îl poți scurta."
           error={errors.organizationName}
         >
           <Input
@@ -307,6 +297,26 @@ function OnboardingForm({ me }: { me: MeResponse }) {
                 : 'onboarding-organization-hint'
             }
             {...form.register('organizationName')}
+          />
+        </Field>
+        <Field
+          id="onboarding-full-name"
+          label="Numele tău"
+          hint="Tu, cel care folosește contul."
+          mark="required"
+          error={errors.fullName}
+        >
+          <Input
+            id="onboarding-full-name"
+            data-testid="onboarding-full-name"
+            className="h-11"
+            autoComplete="name"
+            disabled={isSubmitting}
+            aria-invalid={Boolean(errors.fullName)}
+            aria-describedby={
+              errors.fullName ? 'onboarding-full-name-error' : 'onboarding-full-name-hint'
+            }
+            {...form.register('fullName')}
           />
         </Field>
         <div className="grid gap-2">
@@ -388,21 +398,16 @@ function OnboardingForm({ me }: { me: MeResponse }) {
             {errors.root.server.message}
           </p>
         )}
-        <PublicFrameAction data-testid="onboarding-submit" type="submit" disabled={busy}>
+        <PublicFrameAction
+          data-testid="onboarding-submit"
+          type="submit"
+          variant={searched ? 'default' : 'outline'}
+          disabled={busy}
+        >
           {isSubmitting ? 'Se creează organizația…' : 'Creează organizația'}
         </PublicFrameAction>
       </form>
-      <p className="text-center text-sm text-muted-foreground">
-        Autentificat ca {me.user.email}.{' '}
-        <button
-          type="button"
-          data-testid="onboarding-sign-out"
-          className="underline underline-offset-4 hover:text-foreground"
-          onClick={() => void signOut()}
-        >
-          Deconectează-te
-        </button>
-      </p>
+      <SignedInAs email={me.user.email} />
     </PublicFrame>
   );
 }

@@ -524,6 +524,47 @@ describe('company details', () => {
     });
   });
 
+  it('names the bank from the IBAN as it is typed, and follows a new IBAN', async () => {
+    mockApi({ savedCompanyDetails: { ...companyDetails, iban: null, bankName: null } });
+    mountCompany();
+    const user = userEvent.setup();
+
+    const iban = await screen.findByTestId<HTMLInputElement>('company-iban');
+    const bank = screen.getByTestId<HTMLInputElement>('company-bankName');
+    await user.type(iban, 'RO49 BTRL 0301 2050 9384 0001');
+    expect(bank.value).toBe('Banca Transilvania');
+
+    await user.clear(iban);
+    await user.type(iban, 'RO49 AAAA 1B31 0075 9384 0000');
+    expect(bank.value).toBe('');
+  });
+
+  it('keeps a bank the owner wrote when the IBAN changes', async () => {
+    mockApi({ savedCompanyDetails: { ...companyDetails, iban: null, bankName: 'BT Timișoara' } });
+    mountCompany();
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByTestId('company-iban'), 'RO49RZBR0000000000000001');
+    expect(screen.getByTestId<HTMLInputElement>('company-bankName').value).toBe('BT Timișoara');
+  });
+
+  it('names the bank of an IBAN taken from ANAF', async () => {
+    mockApi({
+      savedCompanyDetails: { ...companyDetails, iban: null, bankName: null },
+      lookup: () =>
+        Response.json({ company: { ...anafCompany, iban: 'RO49BTRL0301205093840001' } }),
+    });
+    mountCompany();
+    const user = userEvent.setup();
+
+    await screen.findByTestId('company-cui');
+    await user.click(screen.getByTestId('company-lookup'));
+    await screen.findByTestId('company-lookup-status');
+    expect(screen.getByTestId<HTMLInputElement>('company-bankName').value).toBe(
+      'Banca Transilvania'
+    );
+  });
+
   it('keeps the phone and the IBAN already written when ANAF has none', async () => {
     mockApi({
       savedCompanyDetails: { ...companyDetails, phone: '0256 999 888' },

@@ -5,6 +5,7 @@
 - Amended 2026-10-24: onboarding takes an optional CUI and looks it up at ANAF; see the amendment below.
 - Amended by [ADR 027](adr-027-sign-in-with-google.md): an account made with Google needs no emailed confirmation.
 - Amended 2026-10-31: CAPTCHA is on for every auth call Supabase gates; see the amendment below.
+- Amended 2026-11-08: two optional steps follow the creation of the organization; see the amendment below.
 
 ## Context
 
@@ -79,3 +80,23 @@ The widget is the marketing waitlist's, `ssm-usor-marketing-subscribe`, in manag
 Locally and in the browser flow tests the stack uses Cloudflare's public test secret, which accepts only the dummy token that the test site key gives. The deployed SPA check cannot pass a real challenge from a CI runner, so it gets its session from a magic link the Auth Admin API makes, and the login form is left to the flow tests.
 
 The consequence above, that anyone who finds the switch can make us send confirmation emails, now needs a browser that passes Turnstile for each one.
+
+## Amendment (2026-11-08): two optional steps after the organization exists
+
+The first set of documents cannot be generated without the provider's legal representative and the specialist's professional title, and the service contract asks for the provider's phone and bank account. ANAF holds none of them reliably, and the person creating the account knows them by heart. Until now they waited for the setup guide of [ADR 031](adr-031-setup-guide.md) and the missing-data lists. Mircea chose, on a design canvas of 2026-11-08 ("Onboarding cu pași opționali", variant B), to ask for them right after the organization is created, in two steps anyone can skip.
+
+Onboarding becomes three steps, counted "Pasul 1 din 3" on each:
+
+1. **Firma**, at `/configurare`: the screen above, with the CUI first. It creates the organization and holds the acceptance of the terms, so it cannot be skipped; the CUI stays optional. The ANAF search now also keeps the phone and the IBAN the lookup returns, when they fit the bounds of the company details, and the bank the IBAN names. Its message says what ANAF does not have and that the next steps ask for it.
+2. **Cine semnează**, at `/configurare/cine-semneaza`: the legal representative's name and function, with "Eu sunt reprezentantul legal" ticked by default, which copies the name the person gave at step 1 (their profile name) and empties the field when unticked; and the person's professional title, saved on their profile.
+3. **Datele pentru contract**, at `/configurare/contract`: the phone and the IBAN, prefilled from what step 1 kept, and the bank recognised from the IBAN. It shows even when everything is filled, so the count never changes on the way.
+
+Each of steps 2 and 3 has one filled button that saves and goes on, "Completez mai târziu", which goes on without saving, and on step 2 "Sari peste restul și intră în aplicație". A field's error shows only when the person saves. Steps 2 and 3 have addresses of their own, outside the app shell, so a reload keeps the person in the flow; they serve an owner only, send an account without an organization back to step 1, and anyone else into the app. `/configurare` itself still sends a member into the app, except the owner whose organization it has just created.
+
+Both steps write into the organization created at step 1, through the existing routes: the company details for the representative, phone, IBAN and bank, the profile for the title. The company-details route replaces every field, so a step sends the record it has just read with its own fields over it. A partial route was not added for this: the step reads the record when it opens, and the new organization's owner is the only one writing it. No database change.
+
+The bank comes from the four letters after a Romanian IBAN's check digits, the bank's BIC prefix, mapped to its name in a list kept with the IBAN helpers; an unknown code leaves the bank empty. Organizație → Date firmă fills the bank the same way.
+
+The setup guide does not change: fifteen steps, the same ticks and the same locks. Someone who completes both steps after an ANAF search lands with _Completează datele firmei_ and _Completează-ți titlul profesional_ ticked by the guide's own rules, at 3 of 15; someone who skips them sees the guide as before. The phone and the bank account stay outside the company step's tick, as ADR 031 decided.
+
+Two PostHog events join `organization_created`: `onboarding_step_completed` and `onboarding_step_skipped`, each with `step` (2 or 3) and `skipped_rest`, true when the person skipped all the steps left. They carry no personal or company data and, like the others, wait in the browser for the member's first session. The question they answer is how many skip step 2, and whether more people reach their first generated set in their first week than before; if step 3 is skipped often, it can be removed without touching the rest.

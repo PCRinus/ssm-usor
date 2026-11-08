@@ -28,33 +28,70 @@ const anafCompany = {
   inactive: false,
 };
 
+const noDetails = {
+  legalName: null,
+  cui: null,
+  vatPayer: false,
+  tradeRegisterNumber: null,
+  countyCode: null,
+  locality: null,
+  addressLine: null,
+  phone: null,
+  legalRepresentativeName: null,
+  legalRepresentativeRole: null,
+  iban: null,
+  bankName: null,
+};
+
+type Profile = { fullName: string; professionalTitle?: string | null };
+
 function mockApi({
   invitations = [] as unknown[],
   create = () => Response.json({ organization, role: 'owner' }, { status: 201 }),
-  profile = null as { fullName: string } | null,
+  profile = null as Profile | null,
+  member = false,
+  role = 'owner',
+  details = noDetails as Record<string, unknown>,
   lookup = () => Response.json({ company: anafCompany }),
-  saveDetails = (body: unknown) => Response.json({ companyDetails: body }),
+  saveDetails = (body: Record<string, unknown>) => Response.json({ companyDetails: body }),
+  loadDetails = () => Response.json({ companyDetails: details }),
 } = {}) {
-  let member = false;
+  let saved = details;
+  let account = profile;
   fetchMock.mockImplementation(async (input, init) => {
     const { pathname } = new URL(String(input));
     const method = init?.method ?? 'GET';
     if (pathname === '/me') {
       return Response.json({
         user: { id: 'user-one', email: 'review@example.test' },
-        profile: profile && { ...profile, termsVersion: null, termsAcceptedAt: null },
-        membership: member ? { organization, role: 'owner' } : null,
+        profile: account && {
+          professionalTitle: null,
+          ...account,
+          termsVersion: null,
+          termsAcceptedAt: null,
+        },
+        membership: member ? { organization, role } : null,
       });
     }
     if (pathname === '/me/invitations') return Response.json({ items: invitations });
+    if (pathname === '/me/profile' && method === 'PATCH') {
+      account = JSON.parse(init?.body as string) as Profile;
+      return Response.json({ ...account, termsVersion: null, termsAcceptedAt: null });
+    }
     if (pathname === '/organization' && method === 'POST') {
       const response = create();
       member = response.ok || response.status === 409;
+      if (response.ok) account = { fullName: JSON.parse(init?.body as string).fullName };
       return response;
     }
     if (pathname === '/companies/lookup') return lookup();
     if (pathname === '/organization/company-details' && method === 'PUT') {
-      return saveDetails(JSON.parse(init?.body as string));
+      const response = saveDetails(JSON.parse(init?.body as string));
+      if (response.ok) saved = JSON.parse(init?.body as string);
+      return response;
+    }
+    if (pathname === '/organization/company-details') {
+      return saved === details ? loadDetails() : Response.json({ companyDetails: saved });
     }
     throw new Error(`Unexpected request: ${method} ${pathname}`);
   });
@@ -71,6 +108,11 @@ const savedDetails = () =>
       ([input, init]) =>
         String(input).endsWith('/organization/company-details') && init?.method === 'PUT'
     )
+    .map(([, init]) => JSON.parse(init?.body as string));
+
+const profileUpdates = () =>
+  fetchMock.mock.calls
+    .filter(([input, init]) => String(input).endsWith('/me/profile') && init?.method === 'PATCH')
     .map(([, init]) => JSON.parse(init?.body as string));
 
 const authError = (code: string) => ({ message: code, code });
@@ -216,13 +258,15 @@ describe('onboarding', () => {
     await user.click(screen.getByTestId('onboarding-submit'));
   }
 
-  it('creates the organization with the accepted terms version and opens the app', async () => {
+  it('creates the organization with the accepted terms version and goes on to who signs', async () => {
     const runtime = mount();
     const user = userEvent.setup();
 
     await fill(user);
 
-    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe('/configurare/cine-semneaza')
+    );
     expect(created()).toEqual([
       {
         fullName: 'Ana Popescu',
@@ -231,8 +275,8 @@ describe('onboarding', () => {
         acceptsSpecialClauses: true,
       },
     ]);
-    await waitFor(() =>
-      expect(screen.getByTestId('account-organization').textContent).toBe('Protect SSM SRL')
+    expect((await screen.findByTestId('onboarding-created')).textContent).toContain(
+      'Protect SSM SRL'
     );
     expect(savedDetails()).toEqual([]);
     expect(captured).toHaveBeenCalledExactlyOnceWith('user-one', 'organization_created', {
@@ -242,12 +286,20 @@ describe('onboarding', () => {
   });
 
   it('names the organization after the ANAF record and saves what ANAF gives', async () => {
+    mockApi({
+      lookup: () =>
+        Response.json({
+          company: { ...anafCompany, phone: '0256 000 111', iban: 'RO92BTRLRONCRT0581930101' },
+        }),
+    });
     const runtime = mount();
     const user = userEvent.setup();
 
     await fill(user, { cui: 'RO1590082', lookup: true, name: '' });
 
-    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe('/configurare/cine-semneaza')
+    );
     expect(created()).toEqual([
       {
         fullName: 'Ana Popescu',
@@ -265,11 +317,11 @@ describe('onboarding', () => {
         countyCode: 'B',
         locality: 'Sector 1 Mun. București',
         addressLine: 'Str. Coralilor, nr. 22',
-        phone: null,
+        phone: '0256 000 111',
         legalRepresentativeName: null,
         legalRepresentativeRole: null,
-        iban: null,
-        bankName: null,
+        iban: 'RO92BTRLRONCRT0581930101',
+        bankName: 'Banca Transilvania',
       },
     ]);
     expect(captured).toHaveBeenCalledExactlyOnceWith('user-one', 'organization_created', {
@@ -302,7 +354,9 @@ describe('onboarding', () => {
     );
     await fill(user);
 
-    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe('/configurare/cine-semneaza')
+    );
     expect(savedDetails()).toEqual([
       expect.objectContaining({ cui: '1590082', legalName: null, vatPayer: false, locality: null }),
     ]);
@@ -338,7 +392,7 @@ describe('onboarding', () => {
     expect(created()).toEqual([]);
   });
 
-  it('opens the app and points to the firm details when saving them fails', async () => {
+  it('goes on and points to the firm details when saving them fails', async () => {
     mockApi({
       saveDetails: () => Response.json({ error: 'internal_error', message: 'x' }, { status: 500 }),
     });
@@ -347,7 +401,9 @@ describe('onboarding', () => {
 
     await fill(user, { cui: '1590082', lookup: true, name: '' });
 
-    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe('/configurare/cine-semneaza')
+    );
     expect(
       await screen.findByText(/nu am putut salva datele firmei/, { exact: false })
     ).toBeTruthy();
@@ -459,5 +515,213 @@ describe('onboarding', () => {
     const runtime = mountApp(authFixture().client, '/configurare');
 
     await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/autentificare'));
+  });
+});
+
+describe('onboarding search', () => {
+  const mount = () => mountApp(authFixture(makeSession()).client, '/configurare');
+
+  it('leads with the ANAF search until it runs, then with creating the organization', async () => {
+    mount();
+    const user = userEvent.setup();
+
+    const lookup = await screen.findByTestId('onboarding-lookup');
+    expect(lookup.getAttribute('data-variant')).toBe('default');
+    expect(screen.getByTestId('onboarding-submit').getAttribute('data-variant')).toBe('outline');
+
+    await user.type(screen.getByTestId('onboarding-cui'), '1590082');
+    await user.click(lookup);
+    const status = await screen.findByTestId('onboarding-lookup-status');
+
+    expect(lookup.textContent).toBe('Caută din nou');
+    expect(lookup.getAttribute('data-variant')).toBe('outline');
+    expect(screen.getByTestId('onboarding-submit').getAttribute('data-variant')).toBe('default');
+    expect(status.textContent).toContain(
+      'Am preluat de la ANAF denumirea, sediul și numărul de la registrul comerțului pentru OMV PETROM SA.'
+    );
+    expect(status.textContent).toContain(
+      'Reprezentantul legal și contul bancar nu sunt la ANAF. Le completezi în pașii următori.'
+    );
+  });
+
+  it('names the phone and the account when ANAF has them', async () => {
+    mockApi({
+      lookup: () =>
+        Response.json({
+          company: { ...anafCompany, phone: '0256 000 111', iban: 'RO92BTRLRONCRT0581930101' },
+        }),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByTestId('onboarding-cui'), '1590082');
+    await user.click(screen.getByTestId('onboarding-lookup'));
+    const status = await screen.findByTestId('onboarding-lookup-status');
+
+    expect(status.textContent).toContain(
+      'numărul de la registrul comerțului, telefonul și contul bancar'
+    );
+    expect(status.textContent).toContain('Reprezentantul legal nu este la ANAF.');
+  });
+});
+
+describe('onboarding steps', () => {
+  const anafDetails = {
+    ...noDetails,
+    cui: '1590082',
+    legalName: 'PROTECT SSM SRL',
+    countyCode: 'TM',
+    locality: 'Timișoara',
+    addressLine: 'Str. Florilor 1',
+    phone: '0256 000 111',
+  };
+
+  const mountStep = (path: string, options: Parameters<typeof mockApi>[0] = {}) => {
+    mockApi({
+      member: true,
+      profile: { fullName: 'Ana Popescu' },
+      details: anafDetails,
+      ...options,
+    });
+    return mountApp(authFixture(makeSession()).client, path);
+  };
+
+  it('fills the representative with the person, and empties it when they are not', async () => {
+    mountStep('/configurare/cine-semneaza');
+    const user = userEvent.setup();
+
+    const name = await screen.findByTestId<HTMLInputElement>('onboarding-representative-name');
+    const isMe = screen.getByTestId('onboarding-representative-is-me');
+    expect(name.value).toBe('Ana Popescu');
+    expect(isMe.getAttribute('aria-checked')).toBe('true');
+
+    await user.click(isMe);
+    expect(name.value).toBe('');
+    await user.click(isMe);
+    expect(name.value).toBe('Ana Popescu');
+
+    await user.type(name, 'x');
+    expect(isMe.getAttribute('aria-checked')).toBe('false');
+  });
+
+  it('saves the representative over what step 1 saved, and the title on the profile', async () => {
+    const runtime = mountStep('/configurare/cine-semneaza');
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByTestId('onboarding-representative-role'), 'Administrator');
+    await user.type(screen.getByTestId('onboarding-professional-title'), 'Inspector SSM');
+    await user.click(screen.getByTestId('onboarding-continue'));
+
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe('/configurare/contract')
+    );
+    expect(savedDetails()).toEqual([
+      {
+        ...anafDetails,
+        legalRepresentativeName: 'Ana Popescu',
+        legalRepresentativeRole: 'Administrator',
+      },
+    ]);
+    expect(profileUpdates()).toEqual([
+      { fullName: 'Ana Popescu', professionalTitle: 'Inspector SSM' },
+    ]);
+    expect(captured).toHaveBeenCalledExactlyOnceWith('user-one', 'onboarding_step_completed', {
+      step: 2,
+      skipped_rest: false,
+    });
+  });
+
+  it('shows a field error only on Continuă, and saves nothing when skipped', async () => {
+    const runtime = mountStep('/configurare/cine-semneaza');
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByTestId('onboarding-representative-role'), 'A');
+    expect(screen.queryByTestId('onboarding-representative-role-error')).toBeNull();
+    await user.click(screen.getByTestId('onboarding-continue'));
+    expect(await screen.findByTestId('onboarding-representative-role-error')).toBeTruthy();
+
+    await user.click(screen.getByTestId('onboarding-later'));
+
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe('/configurare/contract')
+    );
+    expect(savedDetails()).toEqual([]);
+    expect(profileUpdates()).toEqual([]);
+    expect(captured).toHaveBeenCalledExactlyOnceWith('user-one', 'onboarding_step_skipped', {
+      step: 2,
+      skipped_rest: false,
+    });
+  });
+
+  it('enters the app from step 2 when the rest is skipped', async () => {
+    const runtime = mountStep('/configurare/cine-semneaza');
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('onboarding-skip-rest'));
+
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
+    expect(savedDetails()).toEqual([]);
+    expect(captured).toHaveBeenCalledExactlyOnceWith('user-one', 'onboarding_step_skipped', {
+      step: 2,
+      skipped_rest: true,
+    });
+  });
+
+  it('prefills the phone from ANAF, names the bank from the IBAN, and keeps the rest', async () => {
+    const runtime = mountStep('/configurare/contract', {
+      details: { ...anafDetails, legalRepresentativeName: 'Ana Popescu' },
+    });
+    const user = userEvent.setup();
+
+    expect((await screen.findByTestId<HTMLInputElement>('onboarding-phone')).value).toBe(
+      '0256 000 111'
+    );
+    expect(screen.getByTestId('onboarding-contract-page').textContent).toContain(
+      'telefonul l-am găsit, contul bancar nu'
+    );
+    await user.type(screen.getByTestId('onboarding-iban'), 'RO92 BTRL RONC RT05 8193 0101');
+    expect(screen.getByTestId<HTMLInputElement>('onboarding-bank').value).toBe(
+      'Banca Transilvania'
+    );
+    await user.click(screen.getByTestId('onboarding-continue'));
+
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
+    expect(savedDetails()).toEqual([
+      {
+        ...anafDetails,
+        legalRepresentativeName: 'Ana Popescu',
+        iban: 'RO92 BTRL RONC RT05 8193 0101',
+        bankName: 'Banca Transilvania',
+      },
+    ]);
+    expect(captured).toHaveBeenCalledExactlyOnceWith('user-one', 'onboarding_step_completed', {
+      step: 3,
+      skipped_rest: false,
+    });
+  });
+
+  it('keeps a reload on the step instead of sending the member to the app', async () => {
+    const runtime = mountStep('/configurare/contract');
+
+    expect(await screen.findByTestId('onboarding-contract-page')).toBeTruthy();
+    expect(runtime.router.state.location.pathname).toBe('/configurare/contract');
+  });
+
+  it('sends a specialist who opens a step to the app', async () => {
+    const runtime = mountStep('/configurare/cine-semneaza', { role: 'specialist' });
+
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
+  });
+
+  it('sends an account without an organization to step 1', async () => {
+    const runtime = mountApp(authFixture(makeSession()).client, '/configurare/contract');
+
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/configurare'));
+  });
+
+  it('still sends a member who opens step 1 to the app', async () => {
+    const runtime = mountStep('/configurare');
+
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
   });
 });

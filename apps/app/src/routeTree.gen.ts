@@ -33,6 +33,9 @@ import { Route as AuthenticatedSemnaturiRouteImport } from './routes/_authentica
 import { Route as AuthenticatedSetariRouteImport } from './routes/_authenticated/setari';
 import { Route as AuthenticatedTesteRouteImport } from './routes/_authenticated/teste';
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback';
+import { Route as ConfigurareIndexRouteImport } from './routes/configurare/index';
+import { Route as ConfigurareCineSemneazaRouteImport } from './routes/configurare/cine-semneaza';
+import { Route as ConfigurareContractRouteImport } from './routes/configurare/contract';
 import { Route as AuthenticatedActualizariIndexRouteImport } from './routes/_authenticated/actualizari/index';
 import { Route as AuthenticatedActualizariTagRouteImport } from './routes/_authenticated/actualizari/$tag';
 import { Route as AuthenticatedAngajatiIndexRouteImport } from './routes/_authenticated/angajati/index';
@@ -233,6 +236,21 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
+} as any);
+const ConfigurareIndexRoute = ConfigurareIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ConfigurareRoute,
+} as any);
+const ConfigurareCineSemneazaRoute = ConfigurareCineSemneazaRouteImport.update({
+  id: '/cine-semneaza',
+  path: '/cine-semneaza',
+  getParentRoute: () => ConfigurareRoute,
+} as any);
+const ConfigurareContractRoute = ConfigurareContractRouteImport.update({
+  id: '/contract',
+  path: '/contract',
+  getParentRoute: () => ConfigurareRoute,
 } as any);
 const AuthenticatedActualizariIndexRoute =
   AuthenticatedActualizariIndexRouteImport.update({
@@ -698,7 +716,7 @@ const AuthenticatedClientiClientIdAngajatiImportImportIdPersonIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
   '/autentificare': typeof AutentificareRoute;
-  '/configurare': typeof ConfigurareRoute;
+  '/configurare': typeof ConfigurareRouteWithChildren;
   '/confirmare-email': typeof ConfirmareEmailRoute;
   '/contract': typeof ContractRoute;
   '/inregistrare': typeof InregistrareRoute;
@@ -719,6 +737,9 @@ export interface FileRoutesByFullPath {
   '/setari': typeof AuthenticatedSetariRoute;
   '/teste': typeof AuthenticatedTesteRouteWithChildren;
   '/auth/callback': typeof AuthCallbackRoute;
+  '/configurare/cine-semneaza': typeof ConfigurareCineSemneazaRoute;
+  '/configurare/contract': typeof ConfigurareContractRoute;
+  '/configurare/': typeof ConfigurareIndexRoute;
   '/actualizari/$tag': typeof AuthenticatedActualizariTagRoute;
   '/clienti-potentiali/$leadId': typeof AuthenticatedClientiPotentialiLeadIdRouteWithChildren;
   '/clienti-potentiali/nou': typeof AuthenticatedClientiPotentialiNouRoute;
@@ -797,7 +818,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
   '/autentificare': typeof AutentificareRoute;
-  '/configurare': typeof ConfigurareRoute;
   '/confirmare-email': typeof ConfirmareEmailRoute;
   '/contract': typeof ContractRoute;
   '/inregistrare': typeof InregistrareRoute;
@@ -810,6 +830,9 @@ export interface FileRoutesByTo {
   '/semnaturi': typeof AuthenticatedSemnaturiRoute;
   '/setari': typeof AuthenticatedSetariRoute;
   '/auth/callback': typeof AuthCallbackRoute;
+  '/configurare/cine-semneaza': typeof ConfigurareCineSemneazaRoute;
+  '/configurare/contract': typeof ConfigurareContractRoute;
+  '/configurare': typeof ConfigurareIndexRoute;
   '/actualizari/$tag': typeof AuthenticatedActualizariTagRoute;
   '/clienti-potentiali/nou': typeof AuthenticatedClientiPotentialiNouRoute;
   '/clienti/nou': typeof AuthenticatedClientiNouRoute;
@@ -877,7 +900,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute;
   '/_authenticated': typeof AuthenticatedRouteWithChildren;
   '/autentificare': typeof AutentificareRoute;
-  '/configurare': typeof ConfigurareRoute;
+  '/configurare': typeof ConfigurareRouteWithChildren;
   '/confirmare-email': typeof ConfirmareEmailRoute;
   '/contract': typeof ContractRoute;
   '/inregistrare': typeof InregistrareRoute;
@@ -898,6 +921,9 @@ export interface FileRoutesById {
   '/_authenticated/setari': typeof AuthenticatedSetariRoute;
   '/_authenticated/teste': typeof AuthenticatedTesteRouteWithChildren;
   '/auth/callback': typeof AuthCallbackRoute;
+  '/configurare/cine-semneaza': typeof ConfigurareCineSemneazaRoute;
+  '/configurare/contract': typeof ConfigurareContractRoute;
+  '/configurare/': typeof ConfigurareIndexRoute;
   '/_authenticated/actualizari/$tag': typeof AuthenticatedActualizariTagRoute;
   '/_authenticated/clienti-potentiali/$leadId': typeof AuthenticatedClientiPotentialiLeadIdRouteWithChildren;
   '/_authenticated/clienti-potentiali/nou': typeof AuthenticatedClientiPotentialiNouRoute;
@@ -1001,6 +1027,9 @@ export interface FileRouteTypes {
     | '/setari'
     | '/teste'
     | '/auth/callback'
+    | '/configurare/cine-semneaza'
+    | '/configurare/contract'
+    | '/configurare/'
     | '/actualizari/$tag'
     | '/clienti-potentiali/$leadId'
     | '/clienti-potentiali/nou'
@@ -1079,7 +1108,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/autentificare'
-    | '/configurare'
     | '/confirmare-email'
     | '/contract'
     | '/inregistrare'
@@ -1092,6 +1120,9 @@ export interface FileRouteTypes {
     | '/semnaturi'
     | '/setari'
     | '/auth/callback'
+    | '/configurare/cine-semneaza'
+    | '/configurare/contract'
+    | '/configurare'
     | '/actualizari/$tag'
     | '/clienti-potentiali/nou'
     | '/clienti/nou'
@@ -1179,6 +1210,9 @@ export interface FileRouteTypes {
     | '/_authenticated/setari'
     | '/_authenticated/teste'
     | '/auth/callback'
+    | '/configurare/cine-semneaza'
+    | '/configurare/contract'
+    | '/configurare/'
     | '/_authenticated/actualizari/$tag'
     | '/_authenticated/clienti-potentiali/$leadId'
     | '/_authenticated/clienti-potentiali/nou'
@@ -1261,7 +1295,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren;
   AutentificareRoute: typeof AutentificareRoute;
-  ConfigurareRoute: typeof ConfigurareRoute;
+  ConfigurareRoute: typeof ConfigurareRouteWithChildren;
   ConfirmareEmailRoute: typeof ConfirmareEmailRoute;
   ContractRoute: typeof ContractRoute;
   InregistrareRoute: typeof InregistrareRoute;
@@ -1441,6 +1475,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/callback';
       preLoaderRoute: typeof AuthCallbackRouteImport;
       parentRoute: typeof rootRouteImport;
+    };
+    '/configurare/': {
+      id: '/configurare/';
+      path: '/';
+      fullPath: '/configurare/';
+      preLoaderRoute: typeof ConfigurareIndexRouteImport;
+      parentRoute: typeof ConfigurareRoute;
+    };
+    '/configurare/cine-semneaza': {
+      id: '/configurare/cine-semneaza';
+      path: '/cine-semneaza';
+      fullPath: '/configurare/cine-semneaza';
+      preLoaderRoute: typeof ConfigurareCineSemneazaRouteImport;
+      parentRoute: typeof ConfigurareRoute;
+    };
+    '/configurare/contract': {
+      id: '/configurare/contract';
+      path: '/contract';
+      fullPath: '/configurare/contract';
+      preLoaderRoute: typeof ConfigurareContractRouteImport;
+      parentRoute: typeof ConfigurareRoute;
     };
     '/_authenticated/actualizari/': {
       id: '/_authenticated/actualizari/';
@@ -2496,11 +2551,27 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 );
 
+interface ConfigurareRouteChildren {
+  ConfigurareCineSemneazaRoute: typeof ConfigurareCineSemneazaRoute;
+  ConfigurareContractRoute: typeof ConfigurareContractRoute;
+  ConfigurareIndexRoute: typeof ConfigurareIndexRoute;
+}
+
+const ConfigurareRouteChildren: ConfigurareRouteChildren = {
+  ConfigurareCineSemneazaRoute: ConfigurareCineSemneazaRoute,
+  ConfigurareContractRoute: ConfigurareContractRoute,
+  ConfigurareIndexRoute: ConfigurareIndexRoute,
+};
+
+const ConfigurareRouteWithChildren = ConfigurareRoute._addFileChildren(
+  ConfigurareRouteChildren,
+);
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AutentificareRoute: AutentificareRoute,
-  ConfigurareRoute: ConfigurareRoute,
+  ConfigurareRoute: ConfigurareRouteWithChildren,
   ConfirmareEmailRoute: ConfirmareEmailRoute,
   ContractRoute: ContractRoute,
   InregistrareRoute: InregistrareRoute,

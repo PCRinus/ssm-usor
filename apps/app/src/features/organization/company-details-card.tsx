@@ -1,5 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { formatIban, isValidCuiInput, normalizeCui } from '@ssm-usor/contracts';
+import {
+  bankNameAfterIbanChange,
+  formatIban,
+  isValidCuiInput,
+  normalizeCui,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card } from '@ssm-usor/ui/components/card';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
@@ -131,6 +136,12 @@ function CompanyDetailsForm({
   const { errors, isDirty } = form.formState;
   const busy = update.isPending || lookup.status === 'loading';
   const locked = busy || !canEdit;
+  function followIban(iban: string) {
+    const bankName = bankNameAfterIbanChange(iban, form.getValues('bankName'));
+    if (bankName !== form.getValues('bankName')) {
+      form.setValue('bankName', bankName, { shouldDirty: true, shouldValidate: false });
+    }
+  }
 
   async function lookupCui() {
     const input = form.getValues('cui');
@@ -151,7 +162,10 @@ function CompanyDetailsForm({
       form.setValue('addressLine', company.addressLine ?? '', fill);
       // ANAF rarely holds them, so an empty answer keeps what the owner wrote.
       if (company.phone) form.setValue('phone', company.phone, fill);
-      if (company.iban) form.setValue('iban', formatIban(company.iban), fill);
+      if (company.iban) {
+        form.setValue('iban', formatIban(company.iban), fill);
+        followIban(company.iban);
+      }
       setLookup({
         status: 'done',
         inactive: company.inactive,
@@ -192,7 +206,13 @@ function CompanyDetailsForm({
   const text = (
     name: TextField,
     label: string,
-    options: { hint?: string; className?: string; autoComplete?: string; type?: string } = {}
+    options: {
+      hint?: string;
+      className?: string;
+      autoComplete?: string;
+      type?: string;
+      onChange?: (value: string) => void;
+    } = {}
   ) => {
     const id = `company-${name}`;
     return (
@@ -211,7 +231,9 @@ function CompanyDetailsForm({
           disabled={locked}
           aria-invalid={Boolean(errors[name])}
           aria-describedby={errors[name] ? `${id}-error` : options.hint ? `${id}-hint` : undefined}
-          {...form.register(name)}
+          {...form.register(name, {
+            onChange: options.onChange && ((event) => options.onChange?.(event.target.value)),
+          })}
         />
       </Field>
     );
@@ -339,8 +361,11 @@ function CompanyDetailsForm({
         <FormSection title="Cont bancar" description="Apare în contractele cu clienții.">
           {text('iban', 'IBAN', {
             hint: 'Cu sau fără spații, de exemplu RO49 AAAA 1B31 0075 9384 0000.',
+            onChange: followIban,
           })}
-          {text('bankName', 'Banca', { hint: 'De exemplu „Banca Transilvania”.' })}
+          {text('bankName', 'Banca', {
+            hint: 'Se completează din IBAN pentru băncile din România. O poți corecta.',
+          })}
         </FormSection>
       </Card>
 
