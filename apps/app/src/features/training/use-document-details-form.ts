@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { hashKey } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
@@ -11,6 +12,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
+import { inTurn } from '@/lib/in-turn';
 
 import {
   documentDetailsFormSchema,
@@ -37,8 +39,8 @@ export function useDocumentDetails(clientId: string, userId: string) {
 }
 
 // The route replaces every field, and two cards each edit their own. A card sends its fields
-// over what is saved now, not over what was saved when it mounted, so saving one card never
-// takes back what the other saved in the meantime.
+// over what is saved now, not over what was saved when it mounted, and waits for a save of the
+// other card still on its way, so saving one card never takes back what the other saved.
 export function useDocumentDetailsForm({
   saved,
   client,
@@ -46,6 +48,8 @@ export function useDocumentDetailsForm({
   fields,
   successMessage,
   onSaved,
+  starting = {},
+  refuse,
 }: {
   saved: DocumentDetails;
   client: ClientSummary;
@@ -53,26 +57,48 @@ export function useDocumentDetailsForm({
   fields: readonly DocumentDetailsField[];
   successMessage: string;
   onSaved?: () => void;
+  // Values the form opens on that are not saved yet; saving keeps them.
+  starting?: Partial<DocumentDetailsFormValues>;
+  // The shared form schema checks every card's fields, so a rule for this card's fields only goes here.
+  refuse?: (
+    values: DocumentDetailsFormValues
+  ) => { field: DocumentDetailsField; message: string }[];
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const savedToast = useSavedToast();
   const update = useUpdateClientDocumentDetails({ request: apiRequest });
+  const queryKey = [...getGetClientDocumentDetailsQueryKey(client.id), userId];
+  // Saving sends only the card's own fields, so a starting value outside them would show and be lost.
+  const opening = Object.fromEntries(
+    fields.flatMap((field) => (field in starting ? [[field, starting[field]]] : []))
+  );
   const form = useForm<DocumentDetailsFormValues>({
     resolver: zodResolver(documentDetailsFormSchema),
-    defaultValues: toDocumentDetailsForm(saved),
+    defaultValues: { ...toDocumentDetailsForm(saved), ...opening },
   });
   const busy = update.isPending;
 
   const onSubmit = form.handleSubmit(async (values) => {
+    const refused = refuse?.(values) ?? [];
+    if (refused.length > 0) {
+      for (const { field, message } of refused) form.setError(field, { message });
+      return;
+    }
     const own = Object.fromEntries(fields.map((field) => [field, values[field]]));
-    const data = toDocumentDetailsRequest({ ...toDocumentDetailsForm(saved), ...own });
     try {
-      await update.mutateAsync({ clientId: client.id, data });
+      await inTurn(hashKey(queryKey), async () => {
+        const latest =
+          queryClient.getQueryData<ClientDocumentDetailsResponse>(queryKey)?.documentDetails;
+        const data = toDocumentDetailsRequest({
+          ...toDocumentDetailsForm(latest ?? saved),
+          ...own,
+        });
+        const response = await update.mutateAsync({ clientId: client.id, data });
+        queryClient.setQueryData(queryKey, response);
+      });
       // The client itself carries the representative's name too.
       await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: [...getGetClientDocumentDetailsQueryKey(client.id), userId],
-        }),
+        queryClient.invalidateQueries({ queryKey }),
         queryClient.invalidateQueries({ queryKey: getGetClientQueryKey(client.id) }),
       ]);
       savedToast(successMessage);

@@ -3,7 +3,6 @@ import {
   fireSafetyDocumentTypeKeys,
   fireSafetyTypeKeysFromTenEmployees,
   type ResponsiblePersonRole,
-  type StaffCategory,
 } from '@ssm-usor/contracts';
 
 import { type DataClient, fromDatabaseError } from '../../lib/db';
@@ -37,7 +36,6 @@ export async function loadDocumentFacts(
   clientId: string,
   preparer: Preparer
 ): Promise<StoredDocumentFacts> {
-  const categories: StaffCategory[] = ['technical_administrative', 'execution'];
   const [
     client,
     organization,
@@ -60,12 +58,11 @@ export async function loadDocumentFacts(
     participants,
     openInvitations,
     testQuestions,
-    ...employeeCounts
   ] = await Promise.all([
     db
       .from('clients')
       .select(
-        'legal_name, legal_representative_name, legal_representative_role, legal_representative_employee_id, periodic_training_minutes, administrative_training_interval_months, administrative_training_not_applicable, worker_training_interval_months, worker_training_not_applicable, training_first_month, training_day_from, training_day_to, caen_code, cui, trade_register_number, county_code, locality, address_line, contact_name, contact_phone, contact_email, archived_at, sensitive_groups_state'
+        'legal_name, legal_representative_name, legal_representative_role, legal_representative_employee_id, periodic_training_minutes, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to, caen_code, cui, trade_register_number, county_code, locality, address_line, contact_name, contact_phone, contact_email, archived_at, sensitive_groups_state'
       )
       .eq('id', clientId)
       .maybeSingle(),
@@ -196,15 +193,6 @@ export async function loadDocumentFacts(
       .is('revoked_at', null)
       .gt('expires_at', new Date().toISOString()),
     loadTestQuestions(db, preparer.organizationId),
-    ...categories.map((category) =>
-      db
-        .from('employees')
-        .select('id, job_positions!inner(staff_category)', { count: 'exact', head: true })
-        .eq('client_id', clientId)
-        .eq('status', 'active')
-        .is('archived_at', null)
-        .eq('job_positions.staff_category', category)
-    ),
   ]);
   if (client.error) throw fromDatabaseError(client.error, 'document facts: client');
   if (!client.data) {
@@ -243,9 +231,6 @@ export async function loadDocumentFacts(
   if (openInvitations.error) {
     throw fromDatabaseError(openInvitations.error, 'document facts: participant invitations');
   }
-  for (const count of employeeCounts) {
-    if (count.error) throw fromDatabaseError(count.error, 'document facts: employee categories');
-  }
 
   return {
     // Every plan carries the line for now; the switch arrives with billing (docs/document-branding.md).
@@ -276,9 +261,7 @@ export async function loadDocumentFacts(
       representativeEmployeeId: client.data.legal_representative_employee_id,
       periodicTrainingMinutes: client.data.periodic_training_minutes,
       administrativeTrainingIntervalMonths: client.data.administrative_training_interval_months,
-      administrativeTrainingNotApplicable: client.data.administrative_training_not_applicable,
       workerTrainingIntervalMonths: client.data.worker_training_interval_months,
-      workerTrainingNotApplicable: client.data.worker_training_not_applicable,
       trainingFirstMonth: client.data.training_first_month,
       trainingDayFrom: client.data.training_day_from,
       trainingDayTo: client.data.training_day_to,
@@ -451,7 +434,6 @@ export async function loadDocumentFacts(
         allocation: entry.allocation as EquipmentAllocation,
       })),
     })),
-    staffCategoriesInUse: categories.filter((_, index) => (employeeCounts[index]?.count ?? 0) > 0),
     currentEmployeeCount: headcount.count ?? 0,
     hasParticipants: (participants.count ?? 0) + (openInvitations.count ?? 0) > 0,
     workersRepresentativeDecisionGenerated: generated.has('decision_workers_representative'),

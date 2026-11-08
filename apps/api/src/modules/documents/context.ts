@@ -17,6 +17,7 @@ import {
   type ResponsiblePersonRole,
   type RiskEvaluationGap,
   type SensitiveGroupsState,
+  staffCategoriesWithPosts,
   type StaffCategory,
   trainingMonths,
 } from '@ssm-usor/contracts';
@@ -92,9 +93,7 @@ export type DocumentFacts = {
     representativeEmployeeId: string | null;
     periodicTrainingMinutes: number | null;
     administrativeTrainingIntervalMonths: number | null;
-    administrativeTrainingNotApplicable: boolean;
     workerTrainingIntervalMonths: number | null;
-    workerTrainingNotApplicable: boolean;
     trainingFirstMonth: number | null;
     trainingDayFrom: number | null;
     trainingDayTo: number | null;
@@ -158,8 +157,6 @@ export type DocumentFacts = {
       allocation: EquipmentAllocation;
     }[];
   }[];
-  /** Categories held by at least one current employee, based on their job position. */
-  staffCategoriesInUse: StaffCategory[];
   currentEmployeeCount: number;
   /** A participant not revoked, or an invitation still open: someone who signs in the portal. */
   hasParticipants: boolean;
@@ -351,6 +348,17 @@ export function undecidedJobPositions(
     .filter((position) => position.undecided.length > 0);
 }
 
+export const categoryInterval = (
+  schedule: {
+    administrativeTrainingIntervalMonths: number | null;
+    workerTrainingIntervalMonths: number | null;
+  },
+  category: StaffCategory
+) =>
+  category === 'execution'
+    ? schedule.workerTrainingIntervalMonths
+    : schedule.administrativeTrainingIntervalMonths;
+
 /**
  * What is in the way of generating, in the order the form lists it. Empty when ready. With a
  * `typeKey`, what generating that one document again needs.
@@ -363,17 +371,11 @@ export function missingDocumentData(facts: DocumentFacts, typeKey?: string): Mis
     client.trainingDayFrom,
     client.trainingDayTo,
   ];
-  const administrative = client.administrativeTrainingIntervalMonths;
-  const worker = client.workerTrainingIntervalMonths;
   const scheduleReady =
     sharedSchedule.every((value) => value !== null) &&
-    (administrative !== null || client.administrativeTrainingNotApplicable) &&
-    (worker !== null || client.workerTrainingNotApplicable) &&
-    (administrative !== null || worker !== null) &&
-    !(client.administrativeTrainingNotApplicable && administrative !== null) &&
-    !(client.workerTrainingNotApplicable && worker !== null) &&
-    (!facts.staffCategoriesInUse.includes('technical_administrative') || administrative !== null) &&
-    (!facts.staffCategoriesInUse.includes('execution') || worker !== null);
+    staffCategoriesWithPosts(facts.jobPositions).every(
+      (category) => categoryInterval(client, category) !== null
+    );
   const held = new Set(facts.responsiblePersons.flatMap((person) => person.roles));
   // A 1.5 kept below 10 employees still names someone when it is generated again (ADR 010).
   const representativesNeeded = Math.max(
@@ -477,6 +479,7 @@ const printedAs = {
   'responsible.workers_representatives_two': workersRepresentativeNames,
   'responsible.workers_representative_is_legal_representative': workersRepresentativeNames,
   'positions.any': [
+    'training',
     'positions',
     'equippedPositions',
     'hasEquippedPositions',
@@ -657,10 +660,13 @@ function contextParts(facts: DocumentFacts): ContextParts<DocumentContext> {
     legalRepresentative
   ).map(asPerson);
   const intervalOf = (position: DocumentFacts['jobPositions'][number]) =>
-    position.trainingIntervalMonths ??
-    (position.staffCategory === 'execution'
-      ? client.workerTrainingIntervalMonths
-      : client.administrativeTrainingIntervalMonths);
+    position.trainingIntervalMonths ?? categoryInterval(client, position.staffCategory);
+  const withPosts = staffCategoriesWithPosts(facts.jobPositions);
+  // An interval saved for a category without posts stays saved and is not printed.
+  const printedInterval = (category: StaffCategory) =>
+    withPosts.includes(category) ? categoryInterval(client, category) : null;
+  const administrativeInterval = printedInterval('technical_administrative');
+  const workerInterval = printedInterval('execution');
   const positionContext = (position: DocumentFacts['jobPositions'][number]): PositionContext => ({
     name: position.name.trim(),
     activities: position.activities?.trim() || '—',
@@ -736,26 +742,22 @@ function contextParts(facts: DocumentFacts): ContextParts<DocumentContext> {
     training: () => ({
       periodicDuration: unbroken(formatTrainingDuration(client.periodicTrainingMinutes!)),
       intervalPhrase:
-        client.administrativeTrainingIntervalMonths !== null &&
-        client.workerTrainingIntervalMonths !== null
+        administrativeInterval !== null && workerInterval !== null
           ? 'se stabilesc următoarele intervale de timp'
           : 'se stabilește următorul interval de timp',
-      administrative: client.administrativeTrainingIntervalMonths !== null,
-      worker: client.workerTrainingIntervalMonths !== null,
-      ...(client.administrativeTrainingIntervalMonths === null
+      administrative: administrativeInterval !== null,
+      worker: workerInterval !== null,
+      ...(administrativeInterval === null
         ? {}
         : {
-            administrativeFrequency: frequency(client.administrativeTrainingIntervalMonths),
-            administrativeMonths: months(
-              client.trainingFirstMonth!,
-              client.administrativeTrainingIntervalMonths
-            ),
+            administrativeFrequency: frequency(administrativeInterval),
+            administrativeMonths: months(client.trainingFirstMonth!, administrativeInterval),
           }),
-      ...(client.workerTrainingIntervalMonths === null
+      ...(workerInterval === null
         ? {}
         : {
-            workerFrequency: frequency(client.workerTrainingIntervalMonths),
-            workerMonths: months(client.trainingFirstMonth!, client.workerTrainingIntervalMonths),
+            workerFrequency: frequency(workerInterval),
+            workerMonths: months(client.trainingFirstMonth!, workerInterval),
           }),
       dayFrom: client.trainingDayFrom!,
       dayTo: client.trainingDayTo!,

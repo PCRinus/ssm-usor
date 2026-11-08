@@ -1,79 +1,87 @@
-import { formatTrainingDuration, periodicTrainingMinutesOptions } from '@ssm-usor/contracts';
+import { offeredTrainingInterval, type StaffCategory } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent } from '@ssm-usor/ui/components/card';
-import { Input } from '@ssm-usor/ui/components/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from '@ssm-usor/ui/components/select';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { Link } from '@tanstack/react-router';
-import { FileText } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { Controller, useWatch } from 'react-hook-form';
+import { useWatch } from 'react-hook-form';
 
-import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { EditAction, SectionCard } from '@/components/section-card';
 import { useRevealErrors } from '@/components/use-reveal-errors';
-import { intervalLabel, staffCategoryLabels } from '@/features/job-positions/job-position-schema';
+import { intervalLabel, type JobPosition } from '@/features/job-positions/job-position-schema';
 import { useJobPositionOptions } from '@/features/job-positions/use-job-position-options';
 import { useFocusRequest } from '@/features/missing-data/focus';
 
-import { intervalOptions, monthList, monthNames, notApplicable } from './document-details-schema';
-import { ExcludedCategoryWarning } from './excluded-category-warning';
+import { type DocumentDetailsFormValues, notApplicable } from './document-details-schema';
+import { PositionsButton, PositionsLink } from './positions-links';
+import {
+  CategoryBlock,
+  NoPostsBlock,
+  SessionSentence,
+  TrainingScheduleFields,
+} from './schedule-fields';
+import {
+  categoriesWithPosts,
+  type CategoryPosts,
+  durationText,
+  intervalFieldId,
+  startingInterval,
+  trainingMonthsText,
+} from './schedule-rules';
 import {
   type ClientSummary,
-  describedBy,
   type DocumentDetails,
+  type DocumentDetailsField,
   useDocumentDetails,
   useDocumentDetailsForm,
 } from './use-document-details-form';
 
-const fields = [
+const intervalField = {
+  execution: 'workerTrainingIntervalMonths',
+  technical_administrative: 'administrativeTrainingIntervalMonths',
+} as const satisfies Record<StaffCategory, DocumentDetailsField>;
+
+const sharedFields = [
   'periodicTrainingMinutes',
-  'administrativeTrainingIntervalMonths',
-  'workerTrainingIntervalMonths',
   'trainingFirstMonth',
   'trainingDayFrom',
   'trainingDayTo',
-] as const;
+] as const satisfies readonly DocumentDetailsField[];
+
+const savedInterval = (saved: DocumentDetails, category: StaffCategory) =>
+  category === 'execution'
+    ? saved.workerTrainingIntervalMonths
+    : saved.administrativeTrainingIntervalMonths;
+
+const markedNotApplicable = (saved: DocumentDetails, category: StaffCategory) =>
+  category === 'execution'
+    ? saved.workerTrainingNotApplicable
+    : saved.administrativeTrainingNotApplicable;
 
 type Program = {
-  periodicTrainingMinutes: number;
-  administrativeTrainingIntervalMonths: number | null;
-  workerTrainingIntervalMonths: number | null;
-  trainingFirstMonth: number;
-  trainingDayFrom: number;
-  trainingDayTo: number;
+  minutes: number;
+  firstMonth: number;
+  dayFrom: number;
+  dayTo: number;
 };
 
-function completeProgram(saved: DocumentDetails): Program | null {
-  const administrative = saved.administrativeTrainingIntervalMonths;
-  const worker = saved.workerTrainingIntervalMonths;
+// A category without posts is not asked for, whatever was saved for it (ADR 039).
+function completeProgram(saved: DocumentDetails, categories: readonly CategoryPosts[]) {
   if (
-    (administrative === null && !saved.administrativeTrainingNotApplicable) ||
-    (worker === null && !saved.workerTrainingNotApplicable) ||
-    (administrative === null && worker === null) ||
     saved.periodicTrainingMinutes === null ||
     saved.trainingFirstMonth === null ||
     saved.trainingDayFrom === null ||
-    saved.trainingDayTo === null
+    saved.trainingDayTo === null ||
+    categories.some(({ category }) => savedInterval(saved, category) === null)
   ) {
     return null;
   }
   return {
-    periodicTrainingMinutes: saved.periodicTrainingMinutes,
-    administrativeTrainingIntervalMonths: administrative,
-    workerTrainingIntervalMonths: worker,
-    trainingFirstMonth: saved.trainingFirstMonth,
-    trainingDayFrom: saved.trainingDayFrom,
-    trainingDayTo: saved.trainingDayTo,
-  };
+    minutes: saved.periodicTrainingMinutes,
+    firstMonth: saved.trainingFirstMonth,
+    dayFrom: saved.trainingDayFrom,
+    dayTo: saved.trainingDayTo,
+  } satisfies Program;
 }
 
 export function TrainingProgramSection({
@@ -86,8 +94,12 @@ export function TrainingProgramSection({
   focus?: boolean;
 }) {
   const details = useDocumentDetails(client.id, userId);
-  if (details.isPending) return <Skeleton className="h-64 w-full rounded-xl" />;
-  if (details.isError) {
+  const positions = useJobPositionOptions(client.id, userId);
+  if (details.isPending || positions.isPending) {
+    return <Skeleton className="h-64 w-full rounded-xl" />;
+  }
+  if (details.isError || positions.isError) {
+    const failed = details.isError ? details : positions;
     return (
       <Card data-testid="document-details-unavailable">
         <CardContent>
@@ -96,8 +108,8 @@ export function TrainingProgramSection({
             action={
               <Button
                 variant="outline"
-                disabled={details.isFetching}
-                onClick={() => void details.refetch()}
+                disabled={failed.isFetching}
+                onClick={() => void failed.refetch()}
               >
                 Încearcă din nou
               </Button>
@@ -112,6 +124,7 @@ export function TrainingProgramSection({
   return (
     <TrainingProgramCard
       saved={details.data.documentDetails}
+      positions={positions.data.items}
       client={client}
       userId={userId}
       focus={focus}
@@ -119,40 +132,39 @@ export function TrainingProgramSection({
   );
 }
 
-// A complete schedule still counts as missing when a category marked "Nu se aplică" has
-// employees, and that is fixed in the first field.
-function firstFieldToFill(saved: DocumentDetails) {
-  if (
-    saved.administrativeTrainingIntervalMonths === null &&
-    !saved.administrativeTrainingNotApplicable
-  )
-    return 'details-administrative-interval';
-  if (saved.workerTrainingIntervalMonths === null && !saved.workerTrainingNotApplicable)
-    return 'details-worker-interval';
+function firstFieldToFill(saved: DocumentDetails, categories: readonly CategoryPosts[]) {
+  const unset = categories.find(({ category }) => savedInterval(saved, category) === null);
+  if (unset) return intervalFieldId('details', unset.category);
   if (saved.trainingFirstMonth === null) return 'details-first-month';
-  if (saved.periodicTrainingMinutes === null) return 'details-training-duration';
   if (saved.trainingDayFrom === null) return 'details-day-from';
   if (saved.trainingDayTo === null) return 'details-day-to';
-  return 'details-administrative-interval';
+  if (saved.periodicTrainingMinutes === null) return 'details-training-duration';
+  return categories[0] ? intervalFieldId('details', categories[0].category) : 'details-first-month';
 }
 
 function TrainingProgramCard({
   saved,
+  positions,
   client,
   userId,
   focus,
 }: {
   saved: DocumentDetails;
+  positions: readonly JobPosition[];
   client: ClientSummary;
   userId: string;
   focus: boolean;
 }) {
+  const categories = categoriesWithPosts(positions);
   const savedKey = [
-    ...fields.map((field) => saved[field]),
+    ...sharedFields.map((field) => saved[field]),
+    saved.administrativeTrainingIntervalMonths,
+    saved.workerTrainingIntervalMonths,
     saved.administrativeTrainingNotApplicable,
     saved.workerTrainingNotApplicable,
+    ...categories.map(({ category }) => category),
   ].join('|');
-  const program = completeProgram(saved);
+  const program = completeProgram(saved, categories);
   const readOnly = client.archivedAt !== null;
   // Editing belongs to what was saved when it began, so a save goes back to the summary.
   const [editedKey, setEditedKey] = useState<string | null>(null);
@@ -161,7 +173,7 @@ function TrainingProgramCard({
   useFocusRequest(focus, {
     anchor: () => editRef.current,
     open: readOnly ? undefined : () => setEditedKey(savedKey),
-    field: readOnly ? undefined : firstFieldToFill(saved),
+    field: readOnly ? undefined : firstFieldToFill(saved, categories),
   });
 
   return (
@@ -183,12 +195,20 @@ function TrainingProgramCard({
         <TrainingProgramForm
           key={savedKey}
           saved={saved}
+          categories={categories}
+          positions={positions}
           client={client}
           userId={userId}
           onCancel={program ? () => setEditedKey(null) : undefined}
         />
       ) : program ? (
-        <TrainingProgramSummary program={program} clientId={client.id} userId={userId} />
+        <TrainingProgramSummary
+          program={program}
+          saved={saved}
+          categories={categories}
+          positions={positions}
+          clientId={client.id}
+        />
       ) : (
         <p data-testid="training-program-empty" className="text-sm text-muted-foreground">
           Programul de instruire nu a fost completat.
@@ -198,263 +218,190 @@ function TrainingProgramCard({
   );
 }
 
-export function CategoryProgram({
-  testId,
-  label,
-  interval,
-  firstMonth,
-}: {
-  testId: string;
-  label: string;
-  interval: number;
-  firstMonth: number;
-}) {
-  return (
-    <div data-testid={testId} className="rounded-lg border bg-muted/40 p-4">
-      <p className="text-sm font-medium text-muted-foreground">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tracking-tight first-letter:uppercase">
-        {intervalLabel(interval)}
-      </p>
-      <p className="mt-1 text-sm text-muted-foreground">{monthList(firstMonth, interval)}</p>
-    </div>
+const ownInterval = (positions: readonly JobPosition[], category?: StaffCategory) =>
+  positions.filter(
+    (position) =>
+      position.trainingIntervalMonths !== null &&
+      (category === undefined || position.staffCategory === category)
   );
-}
 
 function TrainingProgramSummary({
   program,
+  saved,
+  categories,
+  positions,
   clientId,
-  userId,
 }: {
   program: Program;
+  saved: DocumentDetails;
+  categories: readonly CategoryPosts[];
+  positions: readonly JobPosition[];
   clientId: string;
-  userId: string;
 }) {
-  const positions = useJobPositionOptions(clientId, userId);
-  const exceptions = (positions.data?.items ?? []).filter(
-    (position) =>
-      position.trainingIntervalMonths !== null &&
-      (position.staffCategory === 'execution'
-        ? program.workerTrainingIntervalMonths !== null
-        : program.administrativeTrainingIntervalMonths !== null)
-  );
-  const excludedCategories = [
-    ...(program.workerTrainingIntervalMonths === null ? (['execution'] as const) : []),
-    ...(program.administrativeTrainingIntervalMonths === null
-      ? (['technical_administrative'] as const)
-      : []),
-  ];
+  const exceptions = ownInterval(positions);
 
   return (
     <div className="grid gap-4">
-      <ExcludedCategoryWarning
-        excluded={excludedCategories}
-        positions={positions.data?.items ?? []}
-        action={() => 'Modifică programul înainte de a genera documentele.'}
-      />
-      <div
-        className={`grid gap-3 ${
-          program.workerTrainingIntervalMonths !== null &&
-          program.administrativeTrainingIntervalMonths !== null
-            ? 'sm:grid-cols-2'
-            : 'lg:grid-cols-2'
-        }`}
-      >
-        {program.workerTrainingIntervalMonths !== null && (
-          <CategoryProgram
-            testId="training-program-execution"
-            label={staffCategoryLabels.execution}
-            interval={program.workerTrainingIntervalMonths}
-            firstMonth={program.trainingFirstMonth}
-          />
-        )}
-        {program.administrativeTrainingIntervalMonths !== null && (
-          <CategoryProgram
-            testId="training-program-administrative"
-            label={staffCategoryLabels.technical_administrative}
-            interval={program.administrativeTrainingIntervalMonths}
-            firstMonth={program.trainingFirstMonth}
-          />
-        )}
-      </div>
+      {categories.length === 0 ? (
+        <NoPostsBlock action={<PositionsButton clientId={clientId} />} />
+      ) : (
+        <div className="grid gap-3">
+          {categories.map(({ category, positions: held }) => (
+            <CategoryBlock
+              key={category}
+              testId={`training-program-${category === 'execution' ? 'execution' : 'administrative'}`}
+              category={category}
+              positions={held}
+              interval={savedInterval(saved, category)}
+              firstMonth={program.firstMonth}
+            />
+          ))}
+        </div>
+      )}
       <p data-testid="training-program-session" className="text-sm">
-        Fiecare instruire durează{' '}
-        <span className="font-medium">
-          {formatTrainingDuration(program.periodicTrainingMinutes)}
-        </span>{' '}
-        și are loc{' '}
-        <span className="font-medium">
-          {program.trainingDayFrom === program.trainingDayTo
-            ? `în ziua de ${program.trainingDayFrom} a lunii`
-            : `între zilele ${program.trainingDayFrom} și ${program.trainingDayTo} ale lunii`}
-        </span>
-        .
+        <SessionSentence
+          duration={durationText('ssm', program.minutes)}
+          dayFrom={program.dayFrom}
+          dayTo={program.dayTo}
+        />
       </p>
-      <div className="border-t pt-4">
-        <h3 className="text-sm font-medium">Posturi cu alt interval</h3>
-        {exceptions.length === 0 ? (
-          <p className="mt-1 text-sm text-muted-foreground">
-            Toate posturile urmează intervalul categoriei lor. Poți seta un interval diferit în{' '}
-            <Link
-              to="/clienti/$clientId/posturi"
-              params={{ clientId }}
-              className="underline underline-offset-4"
-            >
-              Posturi de lucru
-            </Link>
-            .
+      {exceptions.length > 0 && (
+        <div className="border-t pt-4">
+          <h3 className="text-sm font-medium">Posturi cu alt interval</h3>
+          <ul data-testid="training-program-exceptions" className="mt-2 grid gap-1.5 text-sm">
+            {exceptions.map((position) => (
+              <li key={position.id} className="flex flex-wrap items-baseline gap-x-2">
+                <span className="font-medium">{position.name}</span>
+                <span>{intervalLabel(position.trainingIntervalMonths!)}</span>
+                <span className="text-muted-foreground">
+                  {trainingMonthsText(
+                    program.firstMonth,
+                    position.trainingIntervalMonths!
+                  ).toLocaleLowerCase('ro')}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Intervalele proprii se schimbă din <PositionsLink clientId={clientId} />.
           </p>
-        ) : (
-          <>
-            <ul data-testid="training-program-exceptions" className="mt-2 grid gap-1.5 text-sm">
-              {exceptions.map((position) => (
-                <li key={position.id} className="flex flex-wrap items-baseline gap-x-2">
-                  <span className="font-medium">{position.name}</span>
-                  <span>{intervalLabel(position.trainingIntervalMonths!)}</span>
-                  <span className="text-muted-foreground">
-                    {monthList(program.trainingFirstMonth, position.trainingIntervalMonths!)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Decizia de instruire include doar intervalele pe categorii. Intervalele speciale se
-              schimbă din{' '}
-              <Link
-                to="/clienti/$clientId/posturi"
-                params={{ clientId }}
-                className="underline underline-offset-4"
-              >
-                Posturi de lucru
-              </Link>
-              .
-            </p>
-          </>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
 
-type SelectOption = { value: string; label: string };
-
-function ProgramSelect({
-  id,
-  value,
-  onChange,
-  disabled,
-  invalid,
-  describedBy,
-  placeholder,
-  options,
-  allowNotApplicable = false,
+function OwnIntervalNote({
+  positions,
+  clientId,
 }: {
-  id: string;
-  value: string;
-  onChange: (value: string) => void;
-  disabled: boolean;
-  invalid: boolean;
-  describedBy?: string;
-  placeholder: string;
-  options: readonly SelectOption[];
-  allowNotApplicable?: boolean;
+  positions: readonly JobPosition[];
+  clientId: string;
 }) {
+  if (positions.length === 0) return null;
+  const names = positions.map(
+    (position) => `${position.name.trim()} (${intervalLabel(position.trainingIntervalMonths!)})`
+  );
   return (
-    <Select
-      value={value}
-      onValueChange={(next) => onChange(next === 'undecided' ? '' : next)}
-      disabled={disabled}
-    >
-      <SelectTrigger
-        id={id}
-        data-testid={id}
-        aria-invalid={invalid}
-        aria-describedby={describedBy}
-        className="w-full"
-      >
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        {value && (
-          <>
-            <SelectItem value="undecided">Șterge alegerea</SelectItem>
-            <SelectSeparator />
-          </>
-        )}
-        {options.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
-            {option.label}
-          </SelectItem>
-        ))}
-        {allowNotApplicable && (
-          <>
-            <SelectSeparator />
-            <SelectItem value={notApplicable}>Nu se aplică</SelectItem>
-          </>
-        )}
-      </SelectContent>
-    </Select>
+    <p className="text-xs text-muted-foreground">
+      {positions.length === 1
+        ? `${positions[0]!.name.trim()} are interval propriu, ${intervalLabel(positions[0]!.trainingIntervalMonths!)}. Îl schimbi din `
+        : `${names.join(', ')} au interval propriu. Le schimbi din `}
+      <PositionsLink clientId={clientId} />.
+    </p>
   );
 }
 
-const intervalChoices: SelectOption[] = intervalOptions.map(({ months, label }) => ({
-  value: String(months),
-  label,
-}));
-const monthChoices: SelectOption[] = monthNames.map((label, index) => ({
-  value: String(index + 1),
-  label,
-}));
-const durationChoices: SelectOption[] = periodicTrainingMinutesOptions.map((minutes) => ({
-  value: String(minutes),
-  label: formatTrainingDuration(minutes),
-}));
+function UnsavedIntervalNote({
+  saved,
+  category,
+  domainMax,
+}: {
+  saved: DocumentDetails;
+  category: StaffCategory;
+  domainMax: number;
+}) {
+  if (markedNotApplicable(saved, category)) {
+    return (
+      <Notice variant="warning" data-testid={`training-program-was-not-applicable-${category}`}>
+        Categoria era marcată „Nu se aplică”, dar clientul are posturi în ea, deci are nevoie de un
+        interval. Am ales intervalul cel mai lung permis de lege, la {domainMax} luni; salvează
+        programul sau alege mai des.
+      </Notice>
+    );
+  }
+  return (
+    <p
+      data-testid={`training-program-new-category-${category}`}
+      className="text-xs text-muted-foreground"
+    >
+      Intervalul nu e salvat încă. Am ales intervalul cel mai lung permis de lege; salvează
+      programul ca să-l păstrezi.
+    </p>
+  );
+}
+
+const formNumber = (value: string | undefined) =>
+  value && value !== notApplicable && /^[0-9]+$/.test(value) ? Number(value) : null;
 
 function TrainingProgramForm({
   saved,
+  categories,
+  positions,
   client,
   userId,
   onCancel,
 }: {
   saved: DocumentDetails;
+  categories: readonly CategoryPosts[];
+  positions: readonly JobPosition[];
   client: ClientSummary;
   userId: string;
   onCancel?: () => void;
 }) {
+  const unsaved = categories
+    .map(({ category }) => category)
+    .filter((category) => savedInterval(saved, category) === null);
+  const starting: Partial<DocumentDetailsFormValues> = Object.fromEntries(
+    unsaved.map((category) => [intervalField[category], String(startingInterval('ssm', category))])
+  );
+  const startedBefore =
+    sharedFields.some((field) => saved[field] !== null) ||
+    categories.some(({ category }) => savedInterval(saved, category) !== null) ||
+    categories.some(({ category }) => markedNotApplicable(saved, category));
+  const outsideList = (values: Partial<DocumentDetailsFormValues>) =>
+    categories.flatMap(({ category }) => {
+      const months = formNumber(values[intervalField[category]]);
+      return months !== null && !offeredTrainingInterval('ssm', category, months)
+        ? [
+            {
+              category,
+              field: intervalField[category],
+              message: `Intervalul salvat, la ${months} luni, nu mai e în listă. Alege unul din listă.`,
+            },
+          ]
+        : [];
+    });
   const { form, onSubmit, busy, locked } = useDocumentDetailsForm({
     saved,
     client,
     userId,
-    fields,
+    fields: [...sharedFields, ...categories.map(({ category }) => intervalField[category])],
     successMessage: 'Programul de instruire a fost salvat.',
+    starting,
+    refuse: outsideList,
   });
   const formRef = useRevealErrors(form);
-  const { errors, isDirty } = form.formState;
-  const [firstMonth, administrativeInterval, workerInterval, duration, dayFrom, dayTo] = useWatch({
-    control: form.control,
-    name: [
-      'trainingFirstMonth',
-      'administrativeTrainingIntervalMonths',
-      'workerTrainingIntervalMonths',
-      'periodicTrainingMinutes',
-      'trainingDayFrom',
-      'trainingDayTo',
-    ],
-  });
-  const positions = useJobPositionOptions(client.id, userId);
-  const excludedCategories = [
-    ...(administrativeInterval === notApplicable ? (['technical_administrative'] as const) : []),
-    ...(workerInterval === notApplicable ? (['execution'] as const) : []),
-  ];
-  const preview = (interval: string) =>
-    firstMonth && interval && interval !== notApplicable
-      ? monthList(Number(firstMonth), Number(interval))
-      : null;
-  const administrativeMonths = preview(administrativeInterval);
-  const workerMonths = preview(workerInterval);
-  const hasAdministrativeInterval = Boolean(
-    administrativeInterval && administrativeInterval !== notApplicable
-  );
-  const hasWorkerInterval = Boolean(workerInterval && workerInterval !== notApplicable);
+  const { errors, isDirty, isSubmitted } = form.formState;
+  const values = useWatch({ control: form.control });
+  const set = (field: DocumentDetailsField, value: string) =>
+    form.setValue(field, value, { shouldDirty: true, shouldValidate: isSubmitted });
+  // Each day's message depends on the other day.
+  const setDay = (field: 'trainingDayFrom' | 'trainingDayTo', value: string) => {
+    form.setValue(field, value, { shouldDirty: true });
+    if (isSubmitted) void form.trigger(['trainingDayFrom', 'trainingDayTo']);
+  };
+  const outside = outsideList(values);
 
   return (
     <form
@@ -463,278 +410,65 @@ function TrainingProgramForm({
       onSubmit={(event) => void onSubmit(event)}
       aria-busy={busy}
       noValidate
-      className="grid gap-6"
+      className="grid gap-8"
     >
-      <Notice variant="info" title="Pentru generarea documentelor">
-        Poți salva programul incomplet. Alege un interval sau „Nu se aplică” pentru fiecare
-        categorie; cel puțin una trebuie să aibă interval.
-      </Notice>
-
-      <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
-        <section className="grid content-start gap-4" aria-labelledby="training-categories-title">
-          <div>
-            <h3 id="training-categories-title" className="font-semibold">
-              Categoriile de personal
-            </h3>
-          </div>
-          <div className="grid gap-4">
-            <Field
-              id="details-administrative-interval"
-              label={staffCategoryLabels.technical_administrative}
-              mark="required"
-              hint="Cel mult la 12 luni."
-              error={errors.administrativeTrainingIntervalMonths}
-            >
-              <Controller
-                name="administrativeTrainingIntervalMonths"
-                control={form.control}
-                render={({ field }) => (
-                  <ProgramSelect
-                    id="details-administrative-interval"
-                    value={field.value}
-                    onChange={field.onChange}
-                    disabled={locked}
-                    invalid={Boolean(errors.administrativeTrainingIntervalMonths)}
-                    describedBy={describedBy(
-                      'details-administrative-interval',
-                      errors.administrativeTrainingIntervalMonths,
-                      true
-                    )}
-                    placeholder="Alege intervalul"
-                    options={intervalChoices}
-                    allowNotApplicable
-                  />
-                )}
+      <TrainingScheduleFields
+        domain="ssm"
+        idPrefix="details"
+        categories={categories.map((entry) => ({
+          ...entry,
+          interval: formNumber(values[intervalField[entry.category]]),
+          error:
+            errors[intervalField[entry.category]] ??
+            outside.find((problem) => problem.category === entry.category),
+          fieldNote: (
+            <OwnIntervalNote
+              positions={ownInterval(positions, entry.category)}
+              clientId={client.id}
+            />
+          ),
+          blockNote:
+            startedBefore && unsaved.includes(entry.category) ? (
+              <UnsavedIntervalNote
+                saved={saved}
+                category={entry.category}
+                domainMax={startingInterval('ssm', entry.category)}
               />
-            </Field>
-            <Field
-              id="details-worker-interval"
-              label={staffCategoryLabels.execution}
-              mark="required"
-              hint="Cel mult la 6 luni."
-              error={errors.workerTrainingIntervalMonths}
-            >
-              <Controller
-                name="workerTrainingIntervalMonths"
-                control={form.control}
-                render={({ field }) => (
-                  <ProgramSelect
-                    id="details-worker-interval"
-                    value={field.value}
-                    onChange={field.onChange}
-                    disabled={locked}
-                    invalid={Boolean(errors.workerTrainingIntervalMonths)}
-                    describedBy={describedBy(
-                      'details-worker-interval',
-                      errors.workerTrainingIntervalMonths,
-                      true
-                    )}
-                    placeholder="Alege intervalul"
-                    options={intervalChoices.filter(({ value }) => Number(value) <= 6)}
-                    allowNotApplicable
-                  />
-                )}
-              />
-            </Field>
-          </div>
-          <ExcludedCategoryWarning
-            excluded={excludedCategories}
-            positions={positions.data?.items ?? []}
-            action={(categories) =>
-              categories === 1
-                ? 'Alege un interval pentru această categorie înainte de a genera documentele.'
-                : 'Alege un interval pentru aceste categorii înainte de a genera documentele.'
-            }
-          />
-        </section>
-
-        <section
-          className="grid content-start gap-4 border-t pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0"
-          aria-labelledby="training-dates-title"
-        >
-          <div>
-            <h3 id="training-dates-title" className="font-semibold">
-              Programarea instruirii
-            </h3>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field
-              id="details-first-month"
-              label="Prima lună"
-              mark="required"
-              error={errors.trainingFirstMonth}
-            >
-              <Controller
-                name="trainingFirstMonth"
-                control={form.control}
-                render={({ field }) => (
-                  <ProgramSelect
-                    id="details-first-month"
-                    value={field.value}
-                    onChange={field.onChange}
-                    disabled={locked}
-                    invalid={Boolean(errors.trainingFirstMonth)}
-                    describedBy={describedBy('details-first-month', errors.trainingFirstMonth)}
-                    placeholder="Alege luna"
-                    options={monthChoices}
-                  />
-                )}
-              />
-            </Field>
-            <Field
-              id="details-training-duration"
-              label="Durata"
-              mark="required"
-              error={errors.periodicTrainingMinutes}
-            >
-              <Controller
-                name="periodicTrainingMinutes"
-                control={form.control}
-                render={({ field }) => (
-                  <ProgramSelect
-                    id="details-training-duration"
-                    value={field.value}
-                    onChange={field.onChange}
-                    disabled={locked}
-                    invalid={Boolean(errors.periodicTrainingMinutes)}
-                    describedBy={describedBy(
-                      'details-training-duration',
-                      errors.periodicTrainingMinutes
-                    )}
-                    placeholder="Alege durata"
-                    options={durationChoices}
-                  />
-                )}
-              />
-            </Field>
-          </div>
-          <fieldset className="grid gap-2">
-            <legend className="mb-2 text-sm font-medium">
-              Zilele lunii în care are loc instruirea
-            </legend>
-            <div className="grid grid-cols-2 gap-4">
-              <Field
-                id="details-day-from"
-                label="De la ziua"
-                mark="required"
-                error={errors.trainingDayFrom}
-              >
-                <Input
-                  id="details-day-from"
-                  data-testid="details-day-from"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  placeholder="10"
-                  disabled={locked}
-                  aria-invalid={Boolean(errors.trainingDayFrom)}
-                  aria-describedby={
-                    errors.trainingDayFrom ? 'details-day-from-error' : 'details-days-hint'
-                  }
-                  className="w-full"
-                  {...form.register('trainingDayFrom')}
-                />
-              </Field>
-              <Field
-                id="details-day-to"
-                label="Până la ziua"
-                mark="required"
-                error={errors.trainingDayTo}
-              >
-                <Input
-                  id="details-day-to"
-                  data-testid="details-day-to"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  placeholder="15"
-                  disabled={locked}
-                  aria-invalid={Boolean(errors.trainingDayTo)}
-                  aria-describedby={
-                    errors.trainingDayTo ? 'details-day-to-error' : 'details-days-hint'
-                  }
-                  className="w-full"
-                  {...form.register('trainingDayTo')}
-                />
-              </Field>
-            </div>
-            <p id="details-days-hint" className="text-xs text-muted-foreground">
-              Numai ziua din lună (1–31); lunile vin din interval și prima lună.
-            </p>
-          </fieldset>
-        </section>
-      </div>
-
-      {hasAdministrativeInterval || hasWorkerInterval ? (
-        <section
-          className="rounded-xl border border-info-border bg-info p-5"
-          aria-labelledby="training-preview-title"
-          aria-live="polite"
-        >
-          <div className="mb-5 flex items-center gap-2.5">
-            <FileText aria-hidden="true" className="size-5 text-primary" />
-            <h3 id="training-preview-title" className="font-semibold">
-              În decizia de instruire
-            </h3>
-          </div>
-          <div
-            className={`grid gap-5 ${hasAdministrativeInterval && hasWorkerInterval ? 'sm:grid-cols-2' : ''}`}
-          >
-            {hasAdministrativeInterval && (
-              <div className="border-l-2 border-primary pl-4">
-                <p className="text-sm text-muted-foreground">
-                  {staffCategoryLabels.technical_administrative}
-                </p>
-                <p className="mt-1 text-xl font-semibold tracking-tight">
-                  {intervalLabel(Number(administrativeInterval))}
-                </p>
-                {administrativeMonths && (
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Lunile: {administrativeMonths}
-                  </p>
-                )}
-              </div>
-            )}
-            {hasWorkerInterval && (
-              <div className="border-l-2 border-primary pl-4">
-                <p className="text-sm text-muted-foreground">{staffCategoryLabels.execution}</p>
-                <p className="mt-1 text-xl font-semibold tracking-tight">
-                  {intervalLabel(Number(workerInterval))}
-                </p>
-                {workerMonths && (
-                  <p className="mt-1 text-sm text-muted-foreground">Lunile: {workerMonths}</p>
-                )}
-              </div>
-            )}
-          </div>
-          {(duration || (dayFrom && dayTo)) && (
-            <div className="mt-5 flex flex-wrap gap-x-8 gap-y-3 border-t border-info-border pt-4 text-sm">
-              {duration && (
-                <p>
-                  <span className="text-muted-foreground">Durata</span>{' '}
-                  <strong className="font-semibold">
-                    {formatTrainingDuration(Number(duration))}
-                  </strong>
-                </p>
-              )}
-              {dayFrom && dayTo && (
-                <p>
-                  <span className="text-muted-foreground">Zilele lunii</span>{' '}
-                  <strong className="font-semibold">
-                    {dayFrom === dayTo ? dayFrom : `${dayFrom}–${dayTo}`}
-                  </strong>
-                </p>
-              )}
-            </div>
-          )}
-        </section>
-      ) : null}
+            ) : null,
+        }))}
+        firstMonth={formNumber(values.trainingFirstMonth)}
+        dayFrom={values.trainingDayFrom ?? ''}
+        dayTo={values.trainingDayTo ?? ''}
+        duration={formNumber(values.periodicTrainingMinutes)}
+        disabled={locked}
+        errors={{
+          firstMonth: errors.trainingFirstMonth,
+          dayFrom: errors.trainingDayFrom,
+          dayTo: errors.trainingDayTo,
+          duration: errors.periodicTrainingMinutes,
+        }}
+        postsLink={<PositionsLink clientId={client.id} />}
+        noPostsAction={<PositionsButton clientId={client.id} />}
+        onIntervalChange={(category, months) => set(intervalField[category], String(months))}
+        onFirstMonthChange={(month) =>
+          set('trainingFirstMonth', month === null ? '' : String(month))
+        }
+        onDayFromChange={(day) => setDay('trainingDayFrom', day)}
+        onDayToChange={(day) => setDay('trainingDayTo', day)}
+        onDurationChange={(minutes) => set('periodicTrainingMinutes', String(minutes))}
+      />
 
       {errors.root?.server && (
         <Notice variant="destructive" data-testid="training-program-error">
           {errors.root.server.message}
         </Notice>
       )}
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" data-testid="training-program-save" disabled={busy || !isDirty}>
+      <div className="grid gap-2 sm:flex sm:flex-wrap">
+        <Button
+          type="submit"
+          data-testid="training-program-save"
+          disabled={busy || (!isDirty && unsaved.length === 0)}
+        >
           {busy ? 'Se salvează…' : 'Salvează programul'}
         </Button>
         {onCancel && (

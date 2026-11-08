@@ -24,6 +24,7 @@ import {
   sectionIcons,
   sectionStatuses,
 } from './review-summary';
+import { keptPosts, withoutAbsentCategories } from './training-category';
 import { type ImportReview, useExistingValues, useImportReview } from './use-import-review';
 
 export function ConflictNotice({ review }: { review: ImportReview }) {
@@ -75,15 +76,19 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
     existing.valueAt,
     detail.intoExistingClient ? null : detail.registeredCompany
   );
+  const applying = withoutAbsentCategories(
+    states,
+    keptPosts(proposal, review.changes, existing.positions)
+  );
   const statuses = sectionStatuses(
     proposal,
     review.changes,
     blockers,
-    states,
+    applying,
     detail.registeredCompany
   );
   const links = blockerLinks(proposal, review.changes, blockers);
-  const kept = keptPaths(states);
+  const kept = keptPaths(applying);
   const done = sectionIds.filter((section) => statuses[section].kind === 'done').length;
   const name = reviewName(detail, proposal, review.changes);
   const read = detail.files.filter((file) => file.state === 'read').length;
@@ -197,7 +202,7 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
                   <span className="grid min-w-0 gap-0.5">
                     <span className="font-semibold">{sectionLabels[section]}</span>
                     <span className="text-sm text-muted-foreground max-sm:hidden">
-                      {sectionDescription(section, detail, proposal, review.changes, states)}
+                      {sectionDescription(section, detail, proposal, review.changes, applying)}
                     </span>
                   </span>
                   <span className="justify-self-end">
@@ -254,7 +259,7 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
         detail={detail}
         proposal={proposal}
         review={review}
-        states={states}
+        states={applying}
         name={name}
         onClose={() => setConfirming(false)}
       />

@@ -94,7 +94,7 @@ test('generating waits for the data the documents print, and says where it is fi
 
   await rows.nth(5).click();
   await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/instruire$`));
-  await expect(page.getByTestId('details-administrative-interval')).toBeFocused();
+  await expect(page.getByTestId('details-first-month')).toBeFocused();
 });
 
 test('a row leads to its field, and the toast of the save leads back to generating', async ({

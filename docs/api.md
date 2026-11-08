@@ -1770,7 +1770,11 @@ document is what will require them.
 The two `PUT` routes on details replace the whole set, so a field left out or null is
 cleared, which is what a form that shows every field wants. The organization's CUI accepts an
 `RO` prefix and spacing and is stored as digits. The training days must be in order, and the
-worker interval stops at six months, as the database checks too.
+worker interval stops at six months, as the database checks too. Each interval is one of the
+app's list for its category (`trainingIntervalChoices`, ADR 039): every month from one to six
+for execution staff, and 1, 2, 3, 4, 6 or 12 for technical-administrative staff, whose column
+takes any month up to twelve. A value outside the list is `400` with the issue on the field,
+unless it is the one already saved, which every card of the client's details sends back.
 
 Workplaces and responsible persons are created with `POST`, replaced with `PUT`, and archived
 with `DELETE`; archived rows leave the lists. An archived client takes no new ones (`409`). A
@@ -1792,8 +1796,8 @@ asks for nor prints.
 The `fire-safety` module holds the rest of the fire-safety set's client data (ADR 018).
 `GET …/fire-safety` answers with every field null, `wasteKinds` empty and `exists` false until
 the first `PUT` creates the row; the app then opens the form on its starting values (two hours,
-three months for both categories, and the occupational safety schedule's first month and days),
-which `fireSafetyStartingValues` names. The `PUT` replaces the whole set like the details above,
+three months for execution staff and six for technical-administrative staff, and the
+occupational safety schedule's first month and days), which `fireSafetyStartingValues` names. The `PUT` replaces the whole set like the details above,
 with OMAI 712/2005's bounds: two to eight hours, one to six months for each category, the days
 in order, at most twelve distinct kinds of waste of up to 240 characters each, and
 `wasteCollectors` up to 160 characters (ADR 018, amended); `hasThirdParties` left out is false

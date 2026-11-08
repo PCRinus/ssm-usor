@@ -461,6 +461,40 @@ describe('/clients/{clientId}/document-details', () => {
     expect(calls('/rest/v1/clients')).toHaveLength(0);
   });
 
+  it('takes every month from one to six for execution staff', async () => {
+    mockUpstream({ clients: () => Response.json(documentDetailsRow) });
+    const response = await request(path, 'PUT', { workerTrainingIntervalMonths: 5 });
+    expect(response.status).toBe(200);
+    expect(sentBody('/rest/v1/clients')).toMatchObject({ worker_training_interval_months: 5 });
+  });
+
+  it('refuses a technical-administrative interval outside the list unless it is the saved one', async () => {
+    mockUpstream({ clients: () => Response.json(documentDetailsRow) });
+    const changed = await request(path, 'PUT', { administrativeTrainingIntervalMonths: 9 });
+    expect(changed.status).toBe(400);
+    expect(apiErrorResponseSchema.parse(await changed.json()).issues?.[0]?.path).toBe(
+      'administrativeTrainingIntervalMonths'
+    );
+    expect(calls('/rest/v1/clients').filter(([, init]) => init?.method === 'PATCH')).toHaveLength(
+      0
+    );
+
+    fetchMock.mockReset();
+    mockUpstream({
+      clients: () =>
+        Response.json({ ...documentDetailsRow, administrative_training_interval_months: 9 }),
+    });
+    const kept = await request(path, 'PUT', {
+      administrativeTrainingIntervalMonths: 9,
+      legalRepresentativeRole: 'Director',
+    });
+    expect(kept.status).toBe(200);
+    expect(sentBody('/rest/v1/clients', 1)).toMatchObject({
+      administrative_training_interval_months: 9,
+      legal_representative_role: 'Director',
+    });
+  });
+
   it('saves an explicit category exclusion without inventing an interval', async () => {
     mockUpstream({ clients: () => Response.json(documentDetailsRow) });
     const response = await request(path, 'PUT', {

@@ -1,202 +1,227 @@
-import type { ImportInference } from '@/api/generated/api';
-import { intervalOptions, notApplicable } from '@/features/training/document-details-schema';
+import {
+  fireScheduleStartFills,
+  type HeldPost,
+  importedTrainingInterval,
+  postsAfterImport,
+  staffCategories,
+  staffCategoriesWithPosts,
+  type StaffCategory,
+  type TrainingDomain,
+  trainingIntervalChoices,
+} from '@ssm-usor/contracts';
 
 import {
   type Changes,
   type FieldChange,
   type FieldState,
-  formatFieldValue,
-  type Source,
-  type TrainingCategory,
+  itemStates,
+  type Proposal,
+  valueInForce,
 } from './review-model';
 
-export type CategoryValue = number | typeof notApplicable;
+export const schedulePaths = {
+  ssm: {
+    duration: 'trainingSchedule.periodicTrainingMinutes',
+    firstMonth: 'trainingSchedule.trainingFirstMonth',
+    dayFrom: 'trainingSchedule.trainingDayFrom',
+    dayTo: 'trainingSchedule.trainingDayTo',
+    interval: {
+      execution: 'trainingSchedule.workerTrainingIntervalMonths',
+      technical_administrative: 'trainingSchedule.administrativeTrainingIntervalMonths',
+    },
+  },
+  su: {
+    duration: 'fireSafety.periodicTrainingHours',
+    firstMonth: 'fireSafety.trainingFirstMonth',
+    dayFrom: 'fireSafety.trainingDayFrom',
+    dayTo: 'fireSafety.trainingDayTo',
+    interval: {
+      execution: 'fireSafety.workerTrainingIntervalMonths',
+      technical_administrative: 'fireSafety.administrativeTrainingIntervalMonths',
+    },
+  },
+} as const satisfies Record<
+  TrainingDomain,
+  {
+    duration: string;
+    firstMonth: string;
+    dayFrom: string;
+    dayTo: string;
+    interval: Record<StaffCategory, string>;
+  }
+>;
 
-export type CategoryCandidate = {
-  value: CategoryValue;
-  sources: Source[];
-  inferred?: ImportInference;
+export const durationChoices: Record<TrainingDomain, readonly number[]> = {
+  ssm: [60, 90, 120],
+  su: [2, 3, 4, 5, 6, 7, 8],
+};
+
+export type TrainingFieldMode = 'value' | 'choice' | 'outside' | 'starting' | 'differs';
+
+export type TrainingField = {
   path: string;
-  option: number;
+  state: FieldState;
+  mode: TrainingFieldMode;
+  value: number | null;
+  settled: boolean;
 };
 
-export type CategoryState = {
-  category: TrainingCategory;
-  label: string;
-  status: 'value' | 'missing' | 'choice' | 'unticked';
-  value: CategoryValue | null;
-  // The documents' own values, an interval or "Nu se aplică" each.
-  candidates: CategoryCandidate[];
-  // Why an interval and "Nu se aplică" stand together: both from the documents, or one of them
-  // written by the member in a review saved before the two were one row.
-  conflict: 'documents' | 'member' | null;
-  inForce: CategoryCandidate | null;
-  edited: boolean;
-  proposed: CategoryValue | null;
-  sources: Source[];
-  existing: CategoryValue | null;
-  comparison: FieldState['comparison'];
-};
+const asNumber = (value: unknown) =>
+  value === null || value === undefined || value === '' ? null : Number(value);
 
-const candidateOf = (state: FieldState, index: number): CategoryCandidate => {
-  const option = state.options[index]!;
-  return {
-    value: option.value === 'true' ? notApplicable : Number(option.value),
-    sources: option.sources,
-    ...(option.inferred ? { inferred: option.inferred } : {}),
-    path: state.path,
-    option: index,
-  };
-};
-
-const present = (value: unknown) => value !== null && value !== undefined && value !== '';
-
-export function categoryState(
+export function trainingField(
   states: Record<string, FieldState>,
-  category: TrainingCategory,
-  changes: Changes,
-  intoExistingClient: boolean
-): CategoryState {
-  const interval = states[category.interval]!;
-  const excluded = states[category.notApplicable]!;
-  const months = interval.value === null ? null : Number(interval.value);
-  const isExcluded = excluded.value === 'true';
-  const intervals = interval.own.map((index) => candidateOf(interval, index));
-  const exclusions = excluded.own
-    .filter((index) => excluded.options[index]!.value === 'true')
-    .map((index) => candidateOf(excluded, index));
-  const candidates = [...intervals, ...exclusions];
-  const both = months !== null && isExcluded;
-
-  let status: CategoryState['status'];
-  let value: CategoryValue | null = null;
-  if (both || interval.status === 'choice' || excluded.status === 'choice') status = 'choice';
-  else if (months !== null) {
-    status = 'value';
-    value = months;
-  } else if (isExcluded) {
-    status = 'value';
-    value = notApplicable;
-  } else if (interval.status === 'unticked' || excluded.status === 'unticked') status = 'unticked';
-  else status = 'missing';
-
-  const conflict = both
-    ? interval.edited || excluded.edited
-      ? 'member'
-      : 'documents'
-    : intervals.length > 0 && exclusions.length > 0
-      ? 'documents'
-      : null;
-  const inForce =
-    value === null
-      ? null
-      : value === notApplicable
-        ? excluded.option === null
-          ? null
-          : candidateOf(excluded, excluded.option)
-        : interval.option === null
-          ? null
-          : candidateOf(interval, interval.option);
-
-  const existing: CategoryValue | null =
-    excluded.existing === 'true'
-      ? notApplicable
-      : present(interval.existing)
-        ? Number(interval.existing)
-        : null;
-  let comparison: FieldState['comparison'] = 'none';
-  if (intoExistingClient) {
-    if (existing === null) comparison = value !== null ? 'added' : 'none';
-    else if (value === null || value === existing) comparison = 'same';
-    else {
-      const replacing = value === notApplicable ? category.notApplicable : category.interval;
-      comparison = changes.fields[replacing]?.replace ? 'replaced' : 'kept';
-    }
-  }
-
-  return {
-    category,
-    label: interval.label,
-    status,
+  path: string,
+  choices: readonly number[] | null,
+  legal: { domain: TrainingDomain; category: StaffCategory; hasPosts: boolean } | null = null
+): TrainingField {
+  const state = states[path]!;
+  const field = (mode: TrainingFieldMode, value: number | null, settled: boolean) => ({
+    path,
+    state,
+    mode,
     value,
-    candidates,
-    conflict,
-    inForce,
-    edited: value !== null && inForce === null,
-    proposed: candidates.length === 1 ? candidates[0]!.value : null,
-    sources: inForce?.sources ?? candidates.flatMap((candidate) => candidate.sources),
-    existing,
-    comparison,
-  };
-}
-
-export const formatCategoryValue = (category: TrainingCategory, value: CategoryValue | null) =>
-  value === null
-    ? ''
-    : value === notApplicable
-      ? 'Nu se aplică'
-      : formatFieldValue(category.interval, value);
-
-export function categoryChoices(category: TrainingCategory, current: CategoryValue | null) {
-  const choices: { value: number; label: string }[] = intervalOptions
-    .filter(({ months }) => months <= category.maxMonths)
-    .map(({ months, label }) => ({ value: months, label }));
-  if (typeof current === 'number' && !choices.some((choice) => choice.value === current)) {
-    choices.push({ value: current, label: `La ${current} luni` });
-    choices.sort((a, b) => a.value - b.value);
+    settled,
+  });
+  const hasExisting = state.existing !== null && state.existing !== '';
+  if (hasExisting && state.own.length > 1) {
+    return field(
+      'choice',
+      asNumber(state.status === 'choice' ? state.existing : valueInForce(state)),
+      true
+    );
   }
-  return choices;
+  if (state.comparison === 'kept' || state.comparison === 'replaced') {
+    const unlisted = choices !== null && !choices.includes(Number(state.value));
+    return field(
+      'differs',
+      asNumber(valueInForce(state)),
+      !(state.comparison === 'replaced' && unlisted)
+    );
+  }
+  const inForce = asNumber(valueInForce(state));
+  // Confirming writes the starting interval for every category with posts left without a value,
+  // so a value cleared in an older review stands at it too.
+  if (legal && state.status !== 'choice' && inForce === null) {
+    const { months, starting } = importedTrainingInterval({ ...legal, settled: null });
+    if (starting) return field('starting', months, false);
+  }
+  if (state.own.length > 1) {
+    return field('choice', asNumber(state.value), state.status !== 'choice');
+  }
+  const proposed = asNumber(state.proposedValue);
+  if (choices && proposed !== null && !choices.includes(proposed) && !hasExisting) {
+    return field('outside', state.edited ? asNumber(state.value) : null, state.edited);
+  }
+  if (legal && state.own.length === 0 && state.edited) {
+    return field('starting', inForce, true);
+  }
+  return field('value', inForce, true);
 }
 
-// What the documents give when the member changes nothing: undefined while they give several.
-function proposedOf(state: FieldState) {
-  if (state.own.length > 1) return undefined;
-  return state.own.length === 1 ? state.options[state.own[0]!]!.value : null;
+export function keptPosts(
+  proposal: Proposal,
+  changes: Changes,
+  existing: readonly { id: string; name: string; staffCategory: StaffCategory }[]
+) {
+  return postsAfterImport(
+    existing,
+    itemStates(proposal, changes, 'jobPositions')
+      .filter((item) => item.included)
+      .map((item) => {
+        const change = changes.items[item.item.id];
+        return {
+          name: String(item.values.name ?? ''),
+          staffCategory: (item.values.staffCategory ?? null) as StaffCategory | null,
+          existingId: change?.existingId,
+          replacesCategory: change?.replace?.includes('staffCategory'),
+        };
+      })
+  );
 }
 
-function optionChange(state: FieldState, option: number): FieldChange | null {
-  return state.own.length === 1 && state.own[0] === option ? null : { option };
+// A category without kept posts has no training, so its interval neither waits for the member nor
+// differs from the app's.
+export function withoutAbsentCategories(
+  states: Record<string, FieldState>,
+  posts: readonly HeldPost[]
+): Record<string, FieldState> {
+  const held = new Set(staffCategoriesWithPosts(posts));
+  const absent = new Set(
+    (['ssm', 'su'] as const).flatMap((domain) =>
+      staffCategories
+        .filter((category) => !held.has(category))
+        .map((category) => schedulePaths[domain].interval[category] as string)
+    )
+  );
+  return Object.fromEntries(Object.entries(states).filter(([path]) => !absent.has(path)));
 }
 
-const keepReplace = (change: FieldChange | null, previous: FieldChange | undefined) =>
-  previous?.replace ? { ...change, replace: true } : change;
+export const intervalChoicesOf = (domain: TrainingDomain, category: StaffCategory) =>
+  trainingIntervalChoices[domain][category];
+
+export function numberChange(
+  state: FieldState,
+  value: number,
+  intoExistingClient: boolean
+): FieldChange | null {
+  if (intoExistingClient && state.existing !== null && state.existing !== '') {
+    return Number(state.existing) === value ? null : { value, replace: true };
+  }
+  const own = state.own.find((index) => Number(state.options[index]!.value) === value);
+  if (own === undefined) return { value };
+  return state.own.length === 1 ? null : { option: own };
+}
+
+const fireSchedulePaths = [
+  schedulePaths.su.duration,
+  schedulePaths.su.interval.execution,
+  schedulePaths.su.interval.technical_administrative,
+  schedulePaths.su.firstMonth,
+  schedulePaths.su.dayFrom,
+  schedulePaths.su.dayTo,
+];
+
+const hasExisting = (state: FieldState | undefined) =>
+  state !== undefined && state.existing !== null && state.existing !== '';
+
+// As confirming writes it: an existing client's own value stays while the documents give several.
+function scheduleValue(state: FieldState | undefined) {
+  if (!state) return null;
+  if (state.status === 'choice') return hasExisting(state) ? asNumber(state.existing) : null;
+  return asNumber(valueInForce(state));
+}
+
+export type FireScheduleFills = ReturnType<typeof fireScheduleStartFills>;
 
 /**
- * Both fields of a category set to one value, so that the interval and "Nu se aplică" never
- * stand together; null for a field left as the documents give it.
+ * The starting values confirming adds to the SU schedule, as `toClientPayload` adds them: where
+ * the client has no SU schedule yet and the import writes some of it.
  */
-export function categoryChanges(
+export function fireScheduleStart(
   states: Record<string, FieldState>,
-  category: TrainingCategory,
-  changes: Changes,
-  value: CategoryValue | null
-): Record<string, FieldChange | null> {
-  const interval = states[category.interval]!;
-  const excluded = states[category.notApplicable]!;
-  let intervalChange: FieldChange | null;
-  let excludedChange: FieldChange | null;
-  if (typeof value === 'number') {
-    const own = interval.own.find((index) => Number(interval.options[index]!.value) === value);
-    intervalChange = own === undefined ? { value } : optionChange(interval, own);
-    const proposed = proposedOf(excluded);
-    excludedChange = proposed === null || proposed === 'false' ? null : { value: 'false' };
-  } else {
-    intervalChange = proposedOf(interval) === null ? null : { value: null };
-    if (value === notApplicable) {
-      const own = excluded.own.find((index) => excluded.options[index]!.value === 'true');
-      excludedChange = own === undefined ? { value: 'true' } : optionChange(excluded, own);
-    } else {
-      const proposed = proposedOf(excluded);
-      excludedChange = proposed === null || proposed === 'false' ? null : { value: null };
+  withPosts: readonly StaffCategory[]
+): FireScheduleFills {
+  if (fireSchedulePaths.some((path) => hasExisting(states[path]))) return {};
+  const value = (path: string) => scheduleValue(states[path]);
+  const calendar = [
+    schedulePaths.su.duration,
+    schedulePaths.su.firstMonth,
+    schedulePaths.su.dayFrom,
+    schedulePaths.su.dayTo,
+  ];
+  if (withPosts.length === 0 && calendar.every((path) => value(path) === null)) return {};
+  return fireScheduleStartFills(
+    {
+      periodicTrainingHours: value(schedulePaths.su.duration),
+      trainingFirstMonth: value(schedulePaths.su.firstMonth),
+      trainingDayFrom: value(schedulePaths.su.dayFrom),
+      trainingDayTo: value(schedulePaths.su.dayTo),
+    },
+    {
+      trainingFirstMonth: value(schedulePaths.ssm.firstMonth),
+      trainingDayFrom: value(schedulePaths.ssm.dayFrom),
+      trainingDayTo: value(schedulePaths.ssm.dayTo),
     }
-  }
-  return {
-    [category.interval]: keepReplace(intervalChange, changes.fields[category.interval]),
-    [category.notApplicable]: keepReplace(excludedChange, changes.fields[category.notApplicable]),
-  };
+  );
 }
-
-export const categoryStateIn = (
-  context: { states: Record<string, FieldState>; changes: Changes; existingClient: boolean },
-  category: TrainingCategory
-) => categoryState(context.states, category, context.changes, context.existingClient);

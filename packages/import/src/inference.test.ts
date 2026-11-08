@@ -36,80 +36,12 @@ function answerWith(change: (answer: Answer) => void) {
 }
 
 describe('a staff category none of the posts is in', () => {
-  it('is proposed as not applicable, from no passage', () => {
+  it('gets no exclusion: the client applies the categories it keeps posts in (ADR 039)', () => {
     const proposal = fromWire(
       answerWith((answer) => answer.jobPositionFacts.push(categoryFact('Vânzător', 'execution')))
     );
 
-    expect(proposal.trainingSchedule.administrativeTrainingNotApplicable.options).toEqual([
-      { value: 'true', sources: [], otherCompanyName: null, inferred: 'no_posts_in_category' },
-    ]);
-    expect(proposal.trainingSchedule.workerTrainingNotApplicable.options).toEqual([]);
-  });
-
-  it('is left undecided while a post has no category', () => {
-    const proposal = fromWire(answerWith(() => {}));
-
     expect(proposal.trainingSchedule.administrativeTrainingNotApplicable.options).toEqual([]);
-  });
-
-  it('is left undecided while a post is in it', () => {
-    const proposal = fromWire(
-      answerWith((answer) =>
-        answer.jobPositionFacts.push(categoryFact('Vânzător', 'technical_administrative'))
-      )
-    );
-
-    expect(proposal.trainingSchedule.administrativeTrainingNotApplicable.options).toEqual([]);
-  });
-
-  it('is left undecided without the other category’s interval', () => {
-    const proposal = fromWire(
-      answerWith((answer) => {
-        answer.jobPositionFacts.push(categoryFact('Vânzător', 'execution'));
-        answer.facts = answer.facts.filter(
-          (each) => each.field !== 'trainingSchedule.workerTrainingIntervalMonths'
-        );
-      })
-    );
-
-    expect(proposal.trainingSchedule.administrativeTrainingNotApplicable.options).toEqual([]);
-  });
-
-  it('counts no post proposed unticked, as a management-only one', () => {
-    const proposal = fromWire(
-      answerWith((answer) => {
-        answer.jobPositionFacts.push(categoryFact('Vânzător', 'execution'));
-        answer.jobPositions.push({
-          ...answer.jobPositions[1]!,
-          name: 'Administrator',
-          managementOnly: true,
-        });
-        answer.jobPositionFacts.push(categoryFact('Administrator', 'technical_administrative'));
-      })
-    );
-
-    expect(proposal.trainingSchedule.administrativeTrainingNotApplicable.options).toHaveLength(1);
-  });
-
-  it('keeps what the decision says of the category', () => {
-    const proposal = fromWire(
-      answerWith((answer) => {
-        answer.jobPositionFacts.push(categoryFact('Vânzător', 'execution'));
-        answer.facts.push(
-          fact(
-            'trainingSchedule.administrativeTrainingIntervalMonths',
-            'ANUAL',
-            'personalul tehnico-administrativ anual'
-          )
-        );
-      })
-    );
-
-    expect(proposal.trainingSchedule.administrativeTrainingNotApplicable.options).toEqual([]);
-    expect(proposal.trainingSchedule.administrativeTrainingIntervalMonths.options[0]!.value).toBe(
-      12
-    );
   });
 });
 

@@ -103,6 +103,19 @@ describe('what the fire-safety set is missing', () => {
     ]);
   });
 
+  it('asks the interval of a category only while the client has posts in it', () => {
+    const executionOnly = (changes: Partial<typeof card>): DocumentFacts => ({
+      ...withCard(changes),
+      jobPositions: facts.jobPositions.filter((position) => position.staffCategory === 'execution'),
+    });
+    expect(
+      missingFireSafetyData(executionOnly({ administrativeTrainingIntervalMonths: null }))
+    ).toEqual([]);
+    expect(missingFireSafetyData(executionOnly({ workerTrainingIntervalMonths: null }))).toEqual([
+      'fire.trainingSchedule',
+    ]);
+  });
+
   it('asks for the smoking rule, not where smoking is allowed', () => {
     expect(missingFireSafetyData(withCard({ smokingPolicy: null, smokingPlace: null }))).toEqual([
       'fire.smokingPolicy',
@@ -345,6 +358,15 @@ describe('the fire-safety context', () => {
     expect(monthly.periodicLabel).toBe('1 oră');
     expect(monthly.workerIntervalLabel).toBe('1 lună');
     expect(monthly.administrativeMonths).toBe('lunile iunie și decembrie');
+  });
+
+  it('leaves out the schedule of a category without posts', () => {
+    const schedule = buildFireSafetyContext({
+      ...withCard({ administrativeTrainingIntervalMonths: null }),
+      jobPositions: facts.jobPositions.filter((position) => position.staffCategory === 'execution'),
+    }).fire.schedule;
+    expect(schedule).not.toHaveProperty('administrativeIntervalLabel');
+    expect(schedule.workerIntervalLabel).toBe('3 luni');
   });
 
   it('names the posts by staff category, and nothing else of them', () => {

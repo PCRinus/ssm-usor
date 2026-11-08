@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { startingTrainingIntervals } from './training-categories';
+
 export const fireSmokingPolicies = ['forbidden_everywhere', 'designated_places'] as const;
 
 export const fireSmokingPolicySchema = z.enum(fireSmokingPolicies);
@@ -183,7 +185,8 @@ export const fireInstallationKindLabels: Record<FireInstallationKind, string> = 
 
 const optionalText = (min: number, max: number) => z.string().trim().min(min).max(max).nullish();
 
-// OMAI 712/2005: art. 21 asks two hours at least, art. 26 six months at most for any category.
+// OMAI 712/2005: art. 21 asks two hours at least; art. 26 sets ranges by kind of staff, none past six
+// months, so every interval its list offers is in this range.
 const fireTrainingFields = {
   periodicTrainingHours: z.int().min(2).max(8),
   administrativeTrainingIntervalMonths: z.int().min(1).max(6),
@@ -194,15 +197,44 @@ const fireTrainingFields = {
 };
 
 /**
- * What the card opens on while a client has no fire-safety row: the law's minimum and the
- * sample's intervals. The first month and the days come from the occupational safety schedule
- * when it has them; nothing else is copied (ADR 018).
+ * What the card opens on while a client has no fire-safety schedule: the law's minimum duration and
+ * each category's starting interval. The first month and the days come from the occupational safety
+ * schedule when it has them; nothing else is copied (ADR 018, ADR 039).
  */
 export const fireSafetyStartingValues = {
   periodicTrainingHours: 2,
-  administrativeTrainingIntervalMonths: 3,
-  workerTrainingIntervalMonths: 3,
+  administrativeTrainingIntervalMonths: startingTrainingIntervals.su.technical_administrative,
+  workerTrainingIntervalMonths: startingTrainingIntervals.su.execution,
 } as const;
+
+type FireCalendar = {
+  trainingFirstMonth: number | null;
+  trainingDayFrom: number | null;
+  trainingDayTo: number | null;
+};
+
+/**
+ * What an import adds to a fire-safety schedule it writes where the client had none: the card shows
+ * its starting values only while nothing of the schedule is saved, so the duration and the
+ * calendar the import leaves empty take them, as the card would have shown them (ADR 039).
+ */
+export function fireScheduleStartFills(
+  fire: FireCalendar & { periodicTrainingHours: number | null },
+  occupational: FireCalendar
+): Partial<Record<keyof FireCalendar | 'periodicTrainingHours', number>> {
+  const fills: Partial<Record<keyof FireCalendar | 'periodicTrainingHours', number>> = {};
+  if (fire.periodicTrainingHours === null) {
+    fills.periodicTrainingHours = fireSafetyStartingValues.periodicTrainingHours;
+  }
+  if (fire.trainingFirstMonth === null && occupational.trainingFirstMonth !== null) {
+    fills.trainingFirstMonth = occupational.trainingFirstMonth;
+  }
+  if (fire.trainingDayFrom === null && fire.trainingDayTo === null) {
+    if (occupational.trainingDayFrom !== null) fills.trainingDayFrom = occupational.trainingDayFrom;
+    if (occupational.trainingDayTo !== null) fills.trainingDayTo = occupational.trainingDayTo;
+  }
+  return fills;
+}
 
 export const clientFireSafetySchema = z.object({
   periodicTrainingHours: fireTrainingFields.periodicTrainingHours.nullable(),

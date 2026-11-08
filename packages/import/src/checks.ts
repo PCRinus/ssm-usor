@@ -9,6 +9,7 @@ import {
   maxTrainingIntervalMonths,
   normalizeCnp,
   periodicTrainingMinutesOptions,
+  trainingIntervalChoices,
   workplaceKinds,
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
@@ -270,8 +271,6 @@ const oneOf =
   (value) =>
     values.includes(value);
 
-export const maxFireTrainingIntervalMonths = 6;
-
 // As the database's length checks count them, after trimming.
 const textOf =
   (min: number, max: number): Allowed =>
@@ -306,8 +305,10 @@ const allowedFacts: Record<string, Record<string, Allowed>> = {
   },
   trainingSchedule: {
     periodicTrainingMinutes: oneOf(periodicTrainingMinutesOptions),
-    administrativeTrainingIntervalMonths: between(1, 12),
-    workerTrainingIntervalMonths: between(1, 6),
+    administrativeTrainingIntervalMonths: oneOf(
+      trainingIntervalChoices.ssm.technical_administrative
+    ),
+    workerTrainingIntervalMonths: oneOf(trainingIntervalChoices.ssm.execution),
     trainingFirstMonth: between(1, 12),
     trainingDayFrom: between(1, 31),
     trainingDayTo: between(1, 31),
@@ -315,8 +316,10 @@ const allowedFacts: Record<string, Record<string, Allowed>> = {
   // OMAI 712/2005 art. 21 and 26.
   fireSafety: {
     periodicTrainingHours: between(2, 8),
-    administrativeTrainingIntervalMonths: between(1, maxFireTrainingIntervalMonths),
-    workerTrainingIntervalMonths: between(1, maxFireTrainingIntervalMonths),
+    administrativeTrainingIntervalMonths: oneOf(
+      trainingIntervalChoices.su.technical_administrative
+    ),
+    workerTrainingIntervalMonths: oneOf(trainingIntervalChoices.su.execution),
     trainingFirstMonth: between(1, 12),
     trainingDayFrom: between(1, 31),
     trainingDayTo: between(1, 31),

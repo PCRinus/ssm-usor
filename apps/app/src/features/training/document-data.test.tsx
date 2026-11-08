@@ -74,6 +74,14 @@ const welder = {
   updatedAt: '2026-09-20T10:00:00+00:00',
 };
 
+const director = {
+  ...welder,
+  id: '6e1f2b0a-3b7c-4d4e-9f80-2b3c4d5e6f70',
+  name: 'Director',
+  staffCategory: 'technical_administrative',
+  trainingIntervalMonths: null as number | null,
+};
+
 function mockApi({
   client = sampleClient,
   details = emptyDetails as DetailsInput,
@@ -115,15 +123,6 @@ const saves = () =>
 
 const mount = () => mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/instruire`);
 
-async function chooseOption(
-  user: ReturnType<typeof userEvent.setup>,
-  testId: string,
-  option: string
-) {
-  await user.click(screen.getByTestId(testId));
-  await user.click(await screen.findByRole('option', { name: option }));
-}
-
 beforeEach(() => {
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
@@ -158,39 +157,86 @@ describe('client document data', () => {
     expect(screen.queryByTestId('workplaces-card')).toBeNull();
   });
 
-  it('previews the training months as the first month and the intervals are chosen', async () => {
-    mockApi();
+  it('shows a block for each category the client has posts in, at the legal maximum', async () => {
+    mockApi({ positions: [welder, director] });
     mount();
     const user = userEvent.setup();
 
-    await screen.findByTestId('details-first-month');
-    await chooseOption(user, 'details-first-month', 'Februarie');
-    await chooseOption(user, 'details-administrative-interval', 'Semestrial (la 6 luni)');
-    await chooseOption(user, 'details-worker-interval', 'Trimestrial (la 3 luni)');
+    const execution = await screen.findByTestId('details-category-execution');
+    expect(screen.getByTestId<HTMLInputElement>('details-worker-interval-6').checked).toBe(true);
+    expect(screen.getByTestId<HTMLInputElement>('details-administrative-interval-12').checked).toBe(
+      true
+    );
+    expect(execution.textContent).toContain('1 post, 1 lucrător: Sudor');
+    expect(screen.queryByTestId('details-absent-execution')).toBeNull();
 
-    expect(screen.getByText('Lunile: Februarie, August')).toBeTruthy();
-    expect(screen.getByText('Lunile: Februarie, Mai, August, Noiembrie')).toBeTruthy();
+    await user.selectOptions(screen.getByTestId('details-first-month'), '2');
+    await user.click(screen.getByTestId('details-worker-interval-3'));
+    expect(screen.getByTestId('details-category-execution-interval').textContent).toBe('La 3 luni');
+    expect(screen.getByTestId('details-category-execution-months').textContent).toBe(
+      'Februarie, mai, august, noiembrie'
+    );
   });
 
-  it('offers workers no interval above six months', async () => {
-    mockApi();
+  it('offers execution personnel no interval above six months', async () => {
+    mockApi({ positions: [welder, director] });
     mount();
 
+    await screen.findByTestId('details-category-execution');
+    expect(screen.queryByTestId('details-worker-interval-12')).toBeNull();
+    expect(screen.getByTestId('details-administrative-interval-12')).toBeTruthy();
+  });
+
+  it('offers execution personnel every month from one to six', async () => {
+    mockApi({ positions: [welder] });
+    mount();
+
+    await screen.findByTestId('details-category-execution');
+    for (const months of [1, 2, 3, 4, 5, 6]) {
+      expect(screen.getByTestId(`details-worker-interval-${months}`)).toBeTruthy();
+    }
+  });
+
+  it('loads a saved interval outside the list, and asks for one from the list before saving', async () => {
+    mockApi({
+      details: { ...savedDetails, administrativeTrainingIntervalMonths: 9 },
+      positions: [welder, director],
+    });
+    mount();
     const user = userEvent.setup();
-    const trigger = await screen.findByTestId('details-worker-interval');
-    expect(trigger.textContent).toContain('Alege intervalul');
-    await user.click(trigger);
-    expect(screen.queryByRole('option', { name: 'Alege intervalul' })).toBeNull();
-    expect(screen.getByRole('option', { name: 'Nu se aplică' })).toBeTruthy();
-    expect(screen.queryByRole('option', { name: 'Anual (la 12 luni)' })).toBeNull();
-    await user.click(screen.getByRole('option', { name: 'Trimestrial (la 3 luni)' }));
-    await user.click(trigger);
-    await user.click(screen.getByRole('option', { name: 'Șterge alegerea' }));
-    expect(trigger.textContent).toContain('Alege intervalul');
+
+    await user.click(await screen.findByTestId('training-program-edit'));
+    const administrative = screen.getByTestId('details-category-technical_administrative');
+    expect(administrative.textContent).toContain(
+      'Intervalul salvat, la 9 luni, nu mai e în listă. Alege unul din listă.'
+    );
+    await user.click(screen.getByTestId('training-program-save'));
+    expect(saves()).toEqual([]);
+
+    await user.click(screen.getByTestId('details-administrative-interval-6'));
+    await user.click(screen.getByTestId('training-program-save'));
+    await waitFor(() =>
+      expect(saves()).toEqual([{ ...savedDetails, administrativeTrainingIntervalMonths: 6 }])
+    );
+  });
+
+  it('picks no duration or interval when the member clicks their label', async () => {
+    mockApi({ positions: [welder] });
+    mount();
+    const user = userEvent.setup();
+
+    await screen.findByTestId('details-category-execution');
+    await user.click(screen.getByText('Durata unei instruiri, în minute'));
+    await user.click(screen.getByText('La câte luni'));
+    expect(screen.getByTestId<HTMLInputElement>('details-training-duration-60').checked).toBe(
+      false
+    );
+    expect(screen.getByTestId<HTMLInputElement>('details-worker-interval-1').checked).toBe(false);
+    expect(screen.getByTestId<HTMLInputElement>('details-worker-interval-6').checked).toBe(true);
   });
 
   it('saves the representative and the program apart, each over what the other saved', async () => {
-    mockApi();
+    mockApi({ positions: [welder, director] });
     mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/detalii`);
     const user = userEvent.setup();
 
@@ -211,10 +257,10 @@ describe('client document data', () => {
     expect(await screen.findByText('Reprezentantul legal a fost salvat.')).toBeTruthy();
 
     await user.click(screen.getByRole('link', { name: 'Instruire și responsabili' }));
-    await chooseOption(user, 'details-training-duration', '2 ore');
-    await chooseOption(user, 'details-first-month', 'Februarie');
-    await chooseOption(user, 'details-administrative-interval', 'Semestrial (la 6 luni)');
-    await chooseOption(user, 'details-worker-interval', 'Trimestrial (la 3 luni)');
+    await user.click(await screen.findByTestId('details-training-duration-120'));
+    await user.selectOptions(screen.getByTestId('details-first-month'), '2');
+    await user.click(screen.getByTestId('details-administrative-interval-6'));
+    await user.click(screen.getByTestId('details-worker-interval-3'));
     await user.type(screen.getByTestId('details-day-from'), '2');
     await user.type(screen.getByTestId('details-day-to'), '7');
     await user.click(screen.getByTestId('training-program-save'));
@@ -224,18 +270,18 @@ describe('client document data', () => {
     expect(await screen.findByText('Programul de instruire a fost salvat.')).toBeTruthy();
   });
 
-  it('shows a complete program as a summary, with the posts that differ from their category', async () => {
+  it('shows a complete program as blocks, with the posts that differ from their category', async () => {
     mockApi({
       details: savedDetails,
-      positions: [welder, { ...welder, id: 'x', name: 'Contabil', trainingIntervalMonths: null }],
+      positions: [welder, { ...director, name: 'Contabil' }],
     });
     mount();
 
     const execution = await screen.findByTestId('training-program-execution');
-    expect(execution.textContent).toContain('la 3 luni');
-    expect(execution.textContent).toContain('Februarie, Mai, August, Noiembrie');
+    expect(execution.textContent).toContain('La 3 luni');
+    expect(execution.textContent).toContain('Februarie, mai, august, noiembrie');
     expect(screen.getByTestId('training-program-administrative').textContent).toContain(
-      'la 6 luni'
+      'La 6 luni'
     );
     expect(screen.getByTestId('training-program-session').textContent).toContain(
       'durează 2 ore și are loc între zilele 2 și 7 ale lunii'
@@ -247,111 +293,91 @@ describe('client document data', () => {
     expect(screen.queryByTestId('training-program-form')).toBeNull();
   });
 
-  it('keeps a blank category undecided until the specialist excludes it', async () => {
+  it('leaves out a category without posts and keeps what was saved for it', async () => {
+    mockApi({ details: savedDetails, positions: [welder] });
+    mount();
+    const user = userEvent.setup();
+
+    expect(await screen.findByTestId('training-program-execution')).toBeTruthy();
+    expect(screen.queryByTestId('training-program-administrative')).toBeNull();
+
+    await user.click(screen.getByTestId('training-program-edit'));
+    expect(screen.getByTestId('details-absent-technical_administrative').textContent).toContain(
+      'Personalul tehnico-administrativ nu apare'
+    );
+    await user.clear(screen.getByTestId('details-day-to'));
+    await user.type(screen.getByTestId('details-day-to'), '9');
+    await user.click(screen.getByTestId('training-program-save'));
+    await waitFor(() => expect(saves()).toEqual([{ ...savedDetails, trainingDayTo: 9 }]));
+  });
+
+  it('asks for the interval of a category marked as not applicable that has posts', async () => {
     mockApi({
       details: {
         ...savedDetails,
         workerTrainingIntervalMonths: null,
+        workerTrainingNotApplicable: true,
       },
+      positions: [welder, director],
     });
     mount();
     const user = userEvent.setup();
 
     expect(await screen.findByTestId('training-program-form')).toBeTruthy();
-    await chooseOption(user, 'details-worker-interval', 'Nu se aplică');
+    expect(screen.getByTestId('training-program-was-not-applicable-execution')).toBeTruthy();
+    expect(screen.getByTestId<HTMLInputElement>('details-worker-interval-6').checked).toBe(true);
     await user.click(screen.getByTestId('training-program-save'));
 
     await waitFor(() =>
       expect(saves()[0]).toMatchObject({
-        administrativeTrainingIntervalMonths: 6,
-        administrativeTrainingNotApplicable: false,
-        workerTrainingIntervalMonths: null,
-        workerTrainingNotApplicable: true,
+        workerTrainingIntervalMonths: 6,
+        workerTrainingNotApplicable: false,
       })
     );
-    expect(await screen.findByTestId('training-program-administrative')).toBeTruthy();
-    expect(screen.queryByTestId('training-program-execution')).toBeNull();
+    expect(await screen.findByTestId('training-program-execution')).toBeTruthy();
   });
 
-  it('warns when an employee holds an excluded category', async () => {
-    mockApi({
-      details: {
-        ...savedDetails,
-        workerTrainingIntervalMonths: null,
-        workerTrainingNotApplicable: true,
-      },
-      positions: [
-        { ...welder, employeeCount: 2 },
-        { ...welder, id: 'b', name: 'Contabil' },
-        { ...welder, id: 'c', name: 'Director', staffCategory: 'technical_administrative' },
-      ],
-    });
-    mount();
-
-    expect((await screen.findByTestId('training-program-category-warning')).textContent).toBe(
-      '3 lucrători pe posturile Sudor (2) și Contabil (1) sunt în categoria „Personal de execuție”, marcată „Nu se aplică”. Modifică programul înainte de a genera documentele.'
-    );
-    expect(screen.getByTestId('training-program-administrative')).toBeTruthy();
-  });
-
-  it('names the first five posts of an excluded category, then counts the rest', async () => {
-    mockApi({
-      details: { ...savedDetails, workerTrainingIntervalMonths: null },
-      positions: ['Sudor', 'Lăcătuș', 'Strungar', 'Vopsitor', 'Electrician', 'Zidar', 'Fierar'].map(
-        (name, index) => ({ ...welder, id: String(index), name, employeeCount: 7 - index })
-      ),
-    });
+  it('takes the calendar of a client with no posts and points to the posts', async () => {
+    mockApi();
     mount();
     const user = userEvent.setup();
 
-    expect(await screen.findByTestId('training-program-form')).toBeTruthy();
-    await chooseOption(user, 'details-worker-interval', 'Nu se aplică');
+    expect(await screen.findByTestId('training-no-positions')).toBeTruthy();
+    expect(screen.queryByTestId('details-absent-execution')).toBeNull();
+    await user.selectOptions(screen.getByTestId('details-first-month'), '3');
+    await user.type(screen.getByTestId('details-day-from'), '5');
+    await user.type(screen.getByTestId('details-day-to'), '5');
+    await user.click(screen.getByTestId('details-training-duration-60'));
+    await user.click(screen.getByTestId('training-program-save'));
 
-    expect((await screen.findByTestId('training-program-category-warning')).textContent).toBe(
-      '28 de lucrători pe posturile Sudor (7), Lăcătuș (6), Strungar (5), Vopsitor (4), Electrician (3) și încă 2 sunt în categoria „Personal de execuție”, marcată „Nu se aplică”. Alege un interval pentru această categorie înainte de a genera documentele.'
+    await waitFor(() =>
+      expect(saves()[0]).toEqual({
+        ...emptyDetails,
+        periodicTrainingMinutes: 60,
+        trainingFirstMonth: 3,
+        trainingDayFrom: 5,
+        trainingDayTo: 5,
+      })
     );
+    expect(await screen.findByTestId('training-program-session')).toBeTruthy();
+    expect(screen.getByTestId('training-no-positions')).toBeTruthy();
   });
 
-  it('warns about both categories at once when both are excluded while held', async () => {
-    mockApi({
-      details: {
-        ...savedDetails,
-        administrativeTrainingIntervalMonths: null,
-        administrativeTrainingNotApplicable: true,
-        workerTrainingIntervalMonths: null,
-        workerTrainingNotApplicable: true,
-      },
-      positions: [
-        { ...welder, employeeCount: 2 },
-        { ...welder, id: 'b', name: 'Contabil' },
-        { ...welder, id: 'c', name: 'Director', staffCategory: 'technical_administrative' },
-      ],
-    });
-    mount();
-
-    expect(await screen.findByTestId('training-program-form')).toBeTruthy();
-    expect((await screen.findByTestId('training-program-category-warning')).textContent).toBe(
-      '1 lucrător pe postul Director este în categoria „Tehnico-administrativ și conducători de locuri de muncă”, marcată „Nu se aplică”. 3 lucrători pe posturile Sudor (2) și Contabil (1) sunt în categoria „Personal de execuție”, marcată „Nu se aplică”. Alege un interval pentru aceste categorii înainte de a genera documentele.'
-    );
-  });
-
-  it('edits a saved program from the summary, and clears a field that is emptied', async () => {
-    mockApi({ details: savedDetails });
+  it('edits a saved program from the blocks, and clears a field that is emptied', async () => {
+    mockApi({ details: savedDetails, positions: [welder, director] });
     mount();
     const user = userEvent.setup();
 
     await user.click(await screen.findByTestId('training-program-edit'));
-    await chooseOption(user, 'details-training-duration', 'Șterge alegerea');
+    await user.selectOptions(screen.getByTestId('details-first-month'), '');
     await user.click(screen.getByTestId('training-program-save'));
 
-    await waitFor(() =>
-      expect(saves()).toEqual([{ ...savedDetails, periodicTrainingMinutes: null }])
-    );
+    await waitFor(() => expect(saves()).toEqual([{ ...savedDetails, trainingFirstMonth: null }]));
     // An incomplete program has no summary to show, so the form stays.
     expect(await screen.findByTestId('training-program-form')).toBeTruthy();
   });
 
-  it('refuses days out of order and a day that is not a number, without calling the API', async () => {
+  it('says which days to write when they are out of order or not a day, without calling the API', async () => {
     mockApi();
     mount();
     const user = userEvent.setup();
@@ -359,21 +385,30 @@ describe('client document data', () => {
     await user.type(await screen.findByTestId('details-day-from'), '12');
     await user.type(screen.getByTestId('details-day-to'), '7');
     await user.click(screen.getByTestId('training-program-save'));
-    expect((await screen.findByTestId('details-day-to-error')).textContent).toContain(
-      'Ultima zi nu poate fi înaintea primei zile.'
+    expect((await screen.findByTestId('details-day-to-error')).textContent).toBe(
+      'Ultima zi vine după prima. Scrie o zi între 12 și 31.'
     );
+    const described = [
+      screen.getByRole('group', { name: 'Zilele lunii' }),
+      screen.getByTestId('details-day-from'),
+    ].map((element) => element.getAttribute('aria-describedby'));
+    expect(described).toEqual([null, null]);
 
     await user.clear(screen.getByTestId('details-day-from'));
     await user.type(screen.getByTestId('details-day-from'), '40');
     await user.click(screen.getByTestId('training-program-save'));
-    expect((await screen.findByTestId('details-day-from-error')).textContent).toContain(
-      'între 1 și 31'
+    expect((await screen.findByTestId('details-day-from-error')).textContent).toBe(
+      'Scrie o zi între 1 și 31.'
     );
     expect(saves()).toEqual([]);
   });
 
   it('reports a failed save inline and keeps what was typed', async () => {
-    mockApi({ details: savedDetails, save: () => new Response(null, { status: 500 }) });
+    mockApi({
+      details: savedDetails,
+      positions: [welder, director],
+      save: () => new Response(null, { status: 500 }),
+    });
     mount();
     const user = userEvent.setup();
 
@@ -393,6 +428,7 @@ describe('client document data', () => {
     mockApi({
       client: { ...sampleClient, archivedAt: '2026-09-18T10:00:00+00:00' },
       details: savedDetails,
+      positions: [welder],
     });
     mount();
 
@@ -403,13 +439,16 @@ describe('client document data', () => {
 
   it.each([
     [
-      'a schedule missing a choice',
-      { workerTrainingIntervalMonths: null },
-      'details-worker-interval',
+      'a schedule missing an interval',
+      { administrativeTrainingIntervalMonths: null },
+      'details-administrative-interval',
     ],
-    ['a complete schedule', {}, 'details-administrative-interval'],
+    ['a complete schedule', {}, 'details-worker-interval'],
   ])('opens %s at the first choice to make when a row asks for it', async (_, change, field) => {
-    mockApi({ details: { ...savedDetails, ...change } as DetailsInput });
+    mockApi({
+      details: { ...savedDetails, ...change } as DetailsInput,
+      positions: [welder, director],
+    });
     const runtime = mountApp(
       authFixture(makeSession()).client,
       `/clienti/${clientId}/instruire?focus=training-schedule`

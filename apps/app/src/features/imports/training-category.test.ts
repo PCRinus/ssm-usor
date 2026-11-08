@@ -1,190 +1,269 @@
 import { describe, expect, it } from 'vitest';
 
+import { type Changes, fieldState, type Option, type Proposal } from './review-model';
 import {
-  type Changes,
-  fieldState,
-  type Option,
-  type Proposal,
-  trainingCategories,
-  wholeNumberText,
-} from './review-model';
-import { categoryChanges, categoryChoices, categoryState } from './training-category';
+  durationChoices,
+  fireScheduleStart,
+  intervalChoicesOf,
+  keptPosts,
+  numberChange,
+  schedulePaths,
+  trainingField,
+} from './training-category';
 
-const worker = trainingCategories[0]!;
+const path = 'trainingSchedule.workerTrainingIntervalMonths';
+const minutes = 'trainingSchedule.periodicTrainingMinutes';
 const source = [{ file: 'Decizie 1.docx', quote: 'la 6 luni' }];
-const option = (value: string | number, extra: Partial<Option> = {}): Option => ({
-  value,
-  sources: source,
-  otherCompanyName: null,
-  ...extra,
-});
-const inferredNotApplicable = option('true', {
-  sources: [],
-  inferred: 'no_posts_in_category',
-});
+const option = (value: number): Option => ({ value, sources: source, otherCompanyName: null });
+const none: Changes = { fields: {}, items: {} };
 
-function stateOf(
-  intervals: Option[],
-  exclusions: Option[],
-  changes: Changes = { fields: {}, items: {} },
-  existing?: { interval: number | null; notApplicable: string | null }
+function statesOf(
+  field: string,
+  options: Option[],
+  changes: Changes = none,
+  existing?: number | null
 ) {
   const proposal = {
-    trainingSchedule: {
-      workerTrainingIntervalMonths: { options: intervals },
-      workerTrainingNotApplicable: { options: exclusions },
-    },
+    trainingSchedule: { [field.split('.')[1]!]: { options } },
   } as unknown as Proposal;
-  const states = {
-    [worker.interval]: fieldState(proposal, changes, worker.interval, existing?.interval),
-    [worker.notApplicable]: fieldState(
-      proposal,
-      changes,
-      worker.notApplicable,
-      existing?.notApplicable
-    ),
-  };
-  return {
-    states,
-    changes,
-    category: categoryState(states, worker, changes, existing !== undefined),
-  };
+  return { [field]: fieldState(proposal, changes, field, existing) };
 }
 
-describe('a staff category in the review', () => {
-  it('is the interval the documents give', () => {
-    const { category } = stateOf([option(6)], []);
-    expect(category).toMatchObject({ status: 'value', value: 6, edited: false, conflict: null });
-  });
+const legal = { domain: 'ssm', category: 'execution', hasPosts: true } as const;
+const intervals = intervalChoicesOf('ssm', 'execution');
 
-  it('is "Nu se aplică" when the import infers it', () => {
-    const { category } = stateOf([], [inferredNotApplicable]);
-    expect(category).toMatchObject({ status: 'value', value: 'not_applicable', edited: false });
-    expect(category.inForce?.inferred).toBe('no_posts_in_category');
-  });
-
-  it('is a choice when the documents give an interval and "Nu se aplică"', () => {
-    const { category } = stateOf([option(6)], [option('true')]);
-    expect(category).toMatchObject({ status: 'choice', value: null, conflict: 'documents' });
-    expect(category.candidates.map((candidate) => candidate.value)).toEqual([6, 'not_applicable']);
-  });
-
-  it("is a choice, said as the member's, when an interval was saved beside an inferred exclusion", () => {
-    const { category } = stateOf([], [inferredNotApplicable], {
-      fields: { [worker.interval]: { value: 6 } },
-      items: {},
-    });
-    expect(category).toMatchObject({ status: 'choice', conflict: 'member' });
-  });
-
-  it("is the member's interval once they set the exclusion aside, as the tester's saved review did", () => {
-    const { category } = stateOf([], [inferredNotApplicable], {
-      fields: { [worker.interval]: { value: 6 }, [worker.notApplicable]: { value: 'false' } },
-      items: {},
-    });
-    expect(category).toMatchObject({ status: 'value', value: 6, edited: true });
-    expect(category.proposed).toBe('not_applicable');
-  });
-
-  it('is missing when the documents give neither', () => {
-    expect(stateOf([], []).category.status).toBe('missing');
-  });
-
-  it('compares with what the client has, as one value', () => {
-    const existing = { interval: null, notApplicable: 'true' };
-    expect(stateOf([option(6)], [], undefined, existing).category).toMatchObject({
-      existing: 'not_applicable',
-      comparison: 'kept',
-    });
-    const replaced = stateOf(
-      [option(6)],
-      [],
-      { fields: { [worker.interval]: { replace: true } }, items: {} },
-      existing
-    );
-    expect(replaced.category.comparison).toBe('replaced');
-    expect(stateOf([], [option('true')], undefined, existing).category.comparison).toBe('same');
-    expect(
-      stateOf([option(6)], [], undefined, { interval: null, notApplicable: null }).category
-        .comparison
-    ).toBe('added');
-  });
-});
-
-describe('setting a staff category', () => {
-  it('takes an interval and sets "Nu se aplică" aside', () => {
-    const { states, changes } = stateOf([], [inferredNotApplicable]);
-    expect(categoryChanges(states, worker, changes, 4)).toEqual({
-      [worker.interval]: { value: 4 },
-      [worker.notApplicable]: { value: 'false' },
-    });
-  });
-
-  it("takes the documents' own option when the member picks it", () => {
-    const { states, changes } = stateOf([option(6)], [option('true')]);
-    expect(categoryChanges(states, worker, changes, 6)).toEqual({
-      [worker.interval]: null,
-      [worker.notApplicable]: { value: 'false' },
-    });
-    expect(categoryChanges(states, worker, changes, 'not_applicable')).toEqual({
-      [worker.interval]: { value: null },
-      [worker.notApplicable]: null,
-    });
-  });
-
-  it('writes "Nu se aplică" the documents do not give', () => {
-    const { states, changes } = stateOf([option(6)], []);
-    expect(categoryChanges(states, worker, changes, 'not_applicable')).toEqual({
-      [worker.interval]: { value: null },
-      [worker.notApplicable]: { value: 'true' },
-    });
-  });
-
-  it('clears both, back to the documents where they give nothing', () => {
-    const { states, changes } = stateOf([], [inferredNotApplicable], {
-      fields: { [worker.interval]: { value: 6 } },
-      items: {},
-    });
-    expect(categoryChanges(states, worker, changes, null)).toEqual({
-      [worker.interval]: null,
-      [worker.notApplicable]: { value: null },
-    });
-  });
-
-  it('keeps the choice to replace what the client has', () => {
-    const changes = { fields: { [worker.interval]: { replace: true } }, items: {} };
-    const { states } = stateOf([option(6)], [], changes);
-    expect(categoryChanges(states, worker, changes, 3)[worker.interval]).toEqual({
+describe('a field of a training schedule', () => {
+  it('is the control with the documents’ value when they give one the list offers', () => {
+    expect(trainingField(statesOf(path, [option(3)]), path, intervals, legal)).toMatchObject({
+      mode: 'value',
       value: 3,
-      replace: true,
+      settled: true,
+    });
+  });
+
+  it('waits for a pick while the documents give several values', () => {
+    const states = statesOf(path, [option(3), option(6)]);
+    expect(trainingField(states, path, intervals, legal)).toMatchObject({
+      mode: 'choice',
+      value: null,
+      settled: false,
+    });
+    const picked = statesOf(path, [option(3), option(6)], {
+      fields: { [path]: { option: 1 } },
+      items: {},
+    });
+    expect(trainingField(picked, path, intervals, legal)).toMatchObject({
+      mode: 'choice',
+      value: 6,
+      settled: true,
+    });
+  });
+
+  it('takes no value outside the list, and waits for one from it', () => {
+    const states = statesOf(minutes, [option(45)]);
+    expect(trainingField(states, minutes, durationChoices.ssm)).toMatchObject({
+      mode: 'outside',
+      value: null,
+      settled: false,
+    });
+    const written = statesOf(minutes, [option(45)], {
+      fields: { [minutes]: { value: 60 } },
+      items: {},
+    });
+    expect(trainingField(written, minutes, durationChoices.ssm)).toMatchObject({
+      mode: 'outside',
+      value: 60,
+      settled: true,
+    });
+  });
+
+  it('stands at the starting interval for a category with posts the documents leave out, until confirmed', () => {
+    expect(trainingField(statesOf(path, []), path, intervals, legal)).toMatchObject({
+      mode: 'starting',
+      value: 6,
+      settled: false,
+    });
+    const confirmed = statesOf(path, [], { fields: { [path]: { value: 6 } }, items: {} });
+    expect(trainingField(confirmed, path, intervals, legal)).toMatchObject({
+      mode: 'starting',
+      value: 6,
+      settled: true,
+    });
+  });
+
+  it('stands at the starting interval, still to confirm, where an older review cleared the value', () => {
+    const cleared: Changes = { fields: { [path]: { value: null } }, items: {} };
+    for (const options of [[], [option(3)], [option(3), option(4)]]) {
+      expect(trainingField(statesOf(path, options, cleared), path, intervals, legal)).toMatchObject(
+        { mode: 'starting', value: 6, settled: false }
+      );
+    }
+  });
+
+  it('has no interval for a category without posts', () => {
+    expect(
+      trainingField(statesOf(path, []), path, intervals, { ...legal, hasPosts: false })
+    ).toMatchObject({ mode: 'value', value: null, settled: true });
+  });
+
+  it('waits on no value outside the list where an existing client has one, as confirming keeps it', () => {
+    expect(
+      trainingField(statesOf(path, [option(5)], none, 5), path, intervals, legal)
+    ).toMatchObject({ mode: 'value', value: 5, settled: true });
+  });
+
+  it("keeps an existing client's value while the documents give several, until one replaces it", () => {
+    expect(
+      trainingField(statesOf(path, [option(3), option(4)], none, 6), path, intervals, legal)
+    ).toMatchObject({ mode: 'choice', value: 6, settled: true });
+    const taken: Changes = { fields: { [path]: { option: 1, replace: true } }, items: {} };
+    expect(
+      trainingField(statesOf(path, [option(3), option(4)], taken, 6), path, intervals, legal)
+    ).toMatchObject({ mode: 'choice', value: 4, settled: true });
+  });
+
+  it("keeps an existing client's value where the documents differ, and its own where they give none", () => {
+    expect(
+      trainingField(statesOf(path, [option(3)], none, 6), path, intervals, legal)
+    ).toMatchObject({ mode: 'differs', value: 6, settled: true });
+    expect(trainingField(statesOf(path, [], none, 6), path, intervals, legal)).toMatchObject({
+      mode: 'value',
+      value: 6,
     });
   });
 });
 
-describe('the intervals offered for a category', () => {
-  it("are the client form's, up to the category's limit, and the documents' own beside them", () => {
-    expect(categoryChoices(worker, null).map((choice) => choice.value)).toEqual([1, 2, 3, 4, 6]);
-    expect(categoryChoices(worker, 5).map((choice) => choice.label)).toEqual([
-      'Lunar',
-      'La 2 luni',
-      'Trimestrial (la 3 luni)',
-      'La 4 luni',
-      'La 5 luni',
-      'Semestrial (la 6 luni)',
+describe('an SU schedule the import starts', () => {
+  const su = { domain: 'su', hasPosts: true } as const;
+  const paths = [
+    ...Object.values(schedulePaths.ssm).flatMap((each) =>
+      typeof each === 'string' ? [each] : Object.values(each)
+    ),
+    ...Object.values(schedulePaths.su).flatMap((each) =>
+      typeof each === 'string' ? [each] : Object.values(each)
+    ),
+  ];
+  function schedule(
+    given: Record<string, number[]>,
+    changes: Changes = none,
+    existing: Record<string, number> = {}
+  ) {
+    const proposal = { trainingSchedule: {}, fireSafety: {} } as Record<
+      string,
+      Record<string, unknown>
+    >;
+    for (const each of paths) {
+      const [group, name] = each.split('.') as [string, string];
+      proposal[group]![name] = { options: (given[each] ?? []).map(option) };
+    }
+    return Object.fromEntries(
+      paths.map((each) => [
+        each,
+        fieldState(proposal as unknown as Proposal, changes, each, existing[each] ?? null),
+      ])
+    );
+  }
+
+  it('starts each category at its usual interval, to confirm, as confirming writes it', () => {
+    const states = schedule({});
+    const execution = schedulePaths.su.interval.execution;
+    const administrative = schedulePaths.su.interval.technical_administrative;
+    expect(
+      trainingField(states, execution, intervalChoicesOf('su', 'execution'), {
+        ...su,
+        category: 'execution',
+      })
+    ).toMatchObject({ mode: 'starting', value: 3, settled: false });
+    expect(
+      trainingField(states, administrative, intervalChoicesOf('su', 'technical_administrative'), {
+        ...su,
+        category: 'technical_administrative',
+      })
+    ).toMatchObject({ mode: 'starting', value: 6, settled: false });
+  });
+
+  it('takes two hours and the SSM calendar where the documents leave them, as confirming writes them', () => {
+    const states = schedule(
+      { [schedulePaths.ssm.firstMonth]: [3] },
+      { fields: { [schedulePaths.ssm.dayFrom]: { value: 10 } }, items: {} }
+    );
+    expect(fireScheduleStart(states, ['execution'])).toEqual({
+      periodicTrainingHours: 2,
+      trainingFirstMonth: 3,
+      trainingDayFrom: 10,
+    });
+    expect(
+      fireScheduleStart(schedule({ [schedulePaths.su.duration]: [4] }), ['execution'])
+    ).toEqual({});
+  });
+
+  it("adds nothing to an existing client's SU schedule, nor where nothing of it is written", () => {
+    expect(
+      fireScheduleStart(schedule({}, none, { [schedulePaths.su.duration]: 4 }), ['execution'])
+    ).toEqual({});
+    expect(fireScheduleStart(schedule({ [schedulePaths.ssm.firstMonth]: [3] }), [])).toEqual({});
+    expect(fireScheduleStart(schedule({ [schedulePaths.su.firstMonth]: [5] }), [])).toEqual({
+      periodicTrainingHours: 2,
+    });
+  });
+});
+
+describe('the change a pick makes', () => {
+  it('is none where the documents give the value, and the value otherwise', () => {
+    const [state] = Object.values(statesOf(path, [option(3)]));
+    expect(numberChange(state!, 3, false)).toBeNull();
+    expect(numberChange(state!, 2, false)).toEqual({ value: 2 });
+  });
+
+  it('is the documents’ option where they give several', () => {
+    const [state] = Object.values(statesOf(path, [option(3), option(6)]));
+    expect(numberChange(state!, 6, false)).toEqual({ option: 1 });
+  });
+
+  it("replaces an existing client's value, and drops back to it", () => {
+    const [state] = Object.values(statesOf(path, [option(3)], none, 6));
+    expect(numberChange(state!, 2, true)).toEqual({ value: 2, replace: true });
+    expect(numberChange(state!, 6, true)).toBeNull();
+  });
+});
+
+describe('the posts the client keeps', () => {
+  const proposal = {
+    jobPositions: [
+      { id: 'p-1', name: 'Brutar', staffCategory: 'execution', otherCompanyName: null },
+      {
+        id: 'p-2',
+        name: 'Contabil',
+        staffCategory: 'technical_administrative',
+        otherCompanyName: null,
+      },
+      { id: 'p-3', name: 'Paznic', staffCategory: null, otherCompanyName: null },
+    ],
+  } as unknown as Proposal;
+
+  it('are the ticked posts, one without a category as execution, beside the client’s own', () => {
+    const kept = keptPosts(proposal, { fields: {}, items: { 'p-2': { included: false } } }, [
+      { id: 'e-1', name: 'Secretar', staffCategory: 'technical_administrative' },
+    ]);
+    expect(kept).toEqual([
+      { name: 'Secretar', staffCategory: 'technical_administrative' },
+      { name: 'Brutar', staffCategory: 'execution' },
+      { name: 'Paznic', staffCategory: 'execution' },
     ]);
   });
-});
 
-describe('a whole number written with its unit', () => {
-  it('keeps the number', () => {
-    expect(wholeNumberText('6 luni')).toBe('6');
-    expect(wholeNumberText(' 60 de minute ')).toBe('60');
-    expect(wholeNumberText('2 ore.')).toBe('2');
-    expect(wholeNumberText('12')).toBe('12');
-  });
-
-  it('leaves anything else to be refused', () => {
-    expect(wholeNumberText('6 sau 12 luni')).toBe('6 sau 12 luni');
-    expect(wholeNumberText('șase luni')).toBe('șase luni');
+  it("keep the client's category for a post of the same name, as confirming does", () => {
+    const existing = [{ id: 'e-1', name: 'contabil', staffCategory: 'execution' }] as const;
+    expect(keptPosts(proposal, none, existing).map((post) => post.staffCategory)).toEqual([
+      'execution',
+      'execution',
+      'execution',
+    ]);
+    const replaced = keptPosts(
+      proposal,
+      { fields: {}, items: { 'p-2': { existingId: 'e-1', replace: ['staffCategory'] } } },
+      existing
+    );
+    expect(replaced[0]).toEqual({ name: 'contabil', staffCategory: 'technical_administrative' });
   });
 });

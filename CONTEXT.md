@@ -54,9 +54,9 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Staff category** (_categorie de personal_): one of two kinds of job position, each with its own interval of periodic training: _tehnico-administrativ și conducători de locuri de muncă_, or _personal de execuție_.
 
-**Training schedule** (_program de instruire_): the client's periodic training plan. For each staff category, it records an interval or the specialist's explicit decision that the category does not apply; a blank choice remains undecided.
+**Training schedule** (_program de instruire_): the client's periodic training plan: an interval for each staff category the client has job positions in, and a duration, a first month and its days shared by both. A category without posts has no interval to set (ADR 039).
 
-**Fire-safety training schedule** (_programul de instruire SU_): the client's periodic fire-safety training plan under OMAI 712/2005: a duration in hours, an interval for each staff category, the first month and its days. Separate from the occupational safety training schedule, which lends it only its first month and days while it is still empty. ADR 018. Avoid: SU or PSI interval as a setting of the training schedule.
+**Fire-safety training schedule** (_programul de instruire SU_): the client's periodic fire-safety training plan under OMAI 712/2005: a duration in hours, an interval for each staff category the client has job positions in, the first month and its days. Separate from the occupational safety training schedule, which lends it only its first month and days while it is still empty. ADR 018. Avoid: SU or PSI interval as a setting of the training schedule.
 
 **Smoking rule** (_reglementarea fumatului_): how a client regulates smoking against fire: forbidden everywhere on its premises, or allowed only in places set up outside its buildings, with one optional text saying where. Kept on the client's fire-safety card; decision 4 prints it, the posted instructions and the posted workplace sheet repeat it. The fire-safety coordinator supervises it. ADR 018, ADR 019. Avoid: smoking ban, which is one of the two rules, and smoking area.
 

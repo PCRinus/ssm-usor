@@ -359,9 +359,9 @@ calendar will read the same columns:
 | ----------------------------------------- | ------------------------------------------------------------------------ |
 | `periodic_training_minutes`               | Duration of a periodic training: 60, 90 or 120.                          |
 | `administrative_training_interval_months` | Technical and administrative staff and workplace managers, 1 to 12.      |
-| `administrative_training_not_applicable`  | Explicit exclusion; false with a null interval means undecided.          |
+| `administrative_training_not_applicable`  | Not read since ADR 039; a category applies when it has posts.            |
 | `worker_training_interval_months`         | Execution personnel, 1 to 6.                                             |
-| `worker_training_not_applicable`          | Explicit exclusion; false with a null interval means undecided.          |
+| `worker_training_not_applicable`          | Not read since ADR 039; a category applies when it has posts.            |
 | `training_first_month`                    | A month with a training; the others follow by interval, around the year. |
 | `training_day_from`, `training_day_to`    | The days of that month, for example 2 to 7; ordered by a check.          |
 | `sensitive_groups_state`                  | `undecided`, `none` (declared without such workers) or `evaluated`.      |
@@ -452,7 +452,7 @@ the check, and switching back starts from an empty place.
 
 This is the fire-safety training schedule, and it is not linked to the occupational safety one
 on `clients`. While no row exists, which the API reports, the app opens the form on a starting
-state: 2 hours, 3 months for both categories, and `clients.training_first_month`,
+state: 2 hours, 6 months for both categories, the legal maximum (ADR 039), and `clients.training_first_month`,
 `training_day_from` and `training_day_to` when they are set. Nothing else is copied:
 `periodic_training_minutes` belongs to another law, and the occupational safety administrative
 interval allows up to 12 months where OMAI 712/2005 allows 6. No fire-safety document reads the
@@ -1555,7 +1555,10 @@ values, JSON null or absent leaving the default:
   those listed in `replace`, the columns where the member took the documents' value. A
   training interval and its "not applicable" are one choice: an interval fills only a client
   that has not declared the category not applicable, and replacing it clears the declaration;
-  "not applicable" fills a category that has no interval.
+  "not applicable" fills a category that has no interval. Since ADR 039 the payload sends no
+  "not applicable", gives each category with kept posts an interval (the law's longest where
+  the documents and the member give none), and lists the interval in `replace` where the
+  client had declared the category not applicable.
   `cui`, when given, must be the client's.
 - A workplace or a job position with `id` is an existing row of the client, filled the same
   way; a job position without `id` named like an active one of the client is that one, as the

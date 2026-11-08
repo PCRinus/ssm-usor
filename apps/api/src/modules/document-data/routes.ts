@@ -176,7 +176,7 @@ export const updateClientDocumentDetailsRoute = createRoute({
   operationId: 'updateClientDocumentDetails',
   summary: "Replace the representative's role and the training schedule of a client",
   description:
-    'A field left out or null is cleared. Each staff category has a training interval, an explicit not-applicable choice, or an undecided blank. The first month and the days say when in the year trainings fall.',
+    'A field left out or null is cleared. Each staff category has a training interval, an explicit not-applicable choice, or an undecided blank. An interval outside the list the app offers for its category is refused unless it is the one already saved. The first month and the days say when in the year trainings fall.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {

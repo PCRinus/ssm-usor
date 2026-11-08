@@ -40,31 +40,37 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   }
   await signIn(page, owner.email, `/clienti/${clientId}/instruire`);
   const card = page.getByTestId('fire-safety-card');
-  await expect(card.getByTestId('fire-schedule-facts')).toContainText('Necompletat');
+  const rules = page.getByTestId('fire-rules-card');
+  await expect(card.getByTestId('fire-schedule-empty')).toBeVisible();
   await card.getByTestId('fire-safety-edit').click();
   await expect(card.getByTestId('fire-safety-starting')).toBeVisible();
-  await expect(card.getByTestId('fire-training-hours')).toHaveValue('2');
+  await expect(card.getByTestId('fire-training-duration-2')).toBeChecked();
   await expect(card.getByTestId('fire-first-month')).toHaveValue('2');
-  await card.getByTestId('fire-worker-interval').selectOption('1');
-  await expect(card.getByTestId('fire-smoking-place-input')).toHaveCount(0);
-  await card.getByTestId('fire-smoking-select').selectOption('designated_places');
-  await card
-    .getByTestId('fire-smoking-place-input')
-    .fill('În curtea interioară, lângă poarta de acces auto');
-  await card.getByTestId('fire-waste-input').fill('deșeuri de carton și hârtie');
-  await card.getByTestId('fire-waste-input').press('Enter');
-  await card.getByTestId('fire-waste-input').fill('uleiuri uzate');
-  await card.getByTestId('fire-waste-contractor-input').fill('Salubris SA');
+  await expect(card.getByTestId('fire-worker-interval-3')).toBeChecked();
+  await card.getByTestId('fire-worker-interval-1').click();
   await card.getByTestId('fire-safety-save').click();
   await expect(page.getByText('Instruirea SU a fost salvată.')).toBeVisible();
   await expect(card.getByTestId('fire-schedule-session')).toHaveText(
     'Fiecare instruire durează 2 ore și are loc între zilele 2 și 7 ale lunii.'
   );
   await expect(card.getByTestId('fire-schedule-execution')).toContainText(
-    'Ianuarie, Februarie, Martie'
+    'Ianuarie, februarie, martie'
   );
-  await expect(card.getByTestId('fire-waste-kinds')).toContainText('uleiuri uzate');
-  await expect(card.getByTestId('fire-smoking-place')).toHaveText(
+
+  await rules.getByTestId('fire-rules-edit').click();
+  await expect(rules.getByTestId('fire-smoking-place-input')).toHaveCount(0);
+  await rules.getByTestId('fire-smoking-select').selectOption('designated_places');
+  await rules
+    .getByTestId('fire-smoking-place-input')
+    .fill('În curtea interioară, lângă poarta de acces auto');
+  await rules.getByTestId('fire-waste-input').fill('deșeuri de carton și hârtie');
+  await rules.getByTestId('fire-waste-input').press('Enter');
+  await rules.getByTestId('fire-waste-input').fill('uleiuri uzate');
+  await rules.getByTestId('fire-waste-contractor-input').fill('Salubris SA');
+  await rules.getByTestId('fire-rules-save').click();
+  await expect(page.getByText('Fumatul și deșeurile au fost salvate.')).toBeVisible();
+  await expect(rules.getByTestId('fire-waste-kinds')).toContainText('uleiuri uzate');
+  await expect(rules.getByTestId('fire-smoking-place')).toHaveText(
     'În curtea interioară, lângă poarta de acces auto'
   );
 
@@ -178,22 +184,22 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   await expect(means.getByTestId('fire-building-edit')).toHaveCount(0);
   await expect(page.getByTestId('fire-substance-row')).toHaveCount(1);
   await page.goto(`/clienti/${clientId}/instruire`);
-  await expect(card.getByTestId('fire-smoking-place')).toHaveText(
+  await expect(rules.getByTestId('fire-smoking-place')).toHaveText(
     'În curtea interioară, lângă poarta de acces auto'
   );
-  await card.getByTestId('fire-safety-edit').click();
-  await card.getByTestId('fire-smoking-select').selectOption('forbidden_everywhere');
-  await expect(card.getByTestId('fire-smoking-place-input')).toHaveCount(0);
-  await card.getByTestId('fire-safety-save').click();
-  await expect(page.getByText('Instruirea SU a fost salvată.')).toBeVisible();
+  await rules.getByTestId('fire-rules-edit').click();
+  await rules.getByTestId('fire-smoking-select').selectOption('forbidden_everywhere');
+  await expect(rules.getByTestId('fire-smoking-place-input')).toHaveCount(0);
+  await rules.getByTestId('fire-rules-save').click();
+  await expect(page.getByText('Fumatul și deșeurile au fost salvate.')).toBeVisible();
   await page.reload();
   await expect(page.getByTestId('fire-smoking')).toHaveText('Interzis în toată unitatea');
   await expect(page.getByTestId('fire-smoking-place')).toHaveCount(0);
   await expect(page.getByTestId('fire-waste-contractor')).toHaveText('Salubris SA');
-  await card.getByTestId('fire-safety-edit').click();
-  await card.getByTestId('fire-smoking-select').selectOption('designated_places');
-  await expect(card.getByTestId('fire-smoking-place-input')).toHaveValue('');
-  await card.getByRole('button', { name: 'Renunță' }).click();
+  await rules.getByTestId('fire-rules-edit').click();
+  await rules.getByTestId('fire-smoking-select').selectOption('designated_places');
+  await expect(rules.getByTestId('fire-smoking-place-input')).toHaveValue('');
+  await rules.getByRole('button', { name: 'Renunță' }).click();
 
   await page.goto('/organizatie/abilitari');
   await page.getByTestId('authorizations-fireSafetyTechnicianName').fill('Radu Stan');

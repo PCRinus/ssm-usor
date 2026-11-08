@@ -52,11 +52,15 @@ function mockReview(
     read,
     confirm,
     me,
+    documentDetails = {},
+    positions = () => Response.json({ items: [] }),
   }: {
     save?: (body: unknown) => Response | Promise<Response>;
     read?: (call: number) => Promise<void> | undefined;
     confirm?: () => Response;
     me?: unknown;
+    documentDetails?: Record<string, unknown>;
+    positions?: () => Response;
   } = {}
 ) {
   saves = 0;
@@ -105,9 +109,11 @@ function mockReview(
           trainingFirstMonth: null,
           trainingDayFrom: null,
           trainingDayTo: null,
+          ...documentDetails,
         },
       });
     }
+    if (url.pathname === `/clients/${clientId}/job-positions`) return positions();
     if (url.pathname === `/clients/${clientId}/fire-safety`) {
       return Response.json({ fireSafety: null });
     }
@@ -1403,6 +1409,15 @@ describe('completing an existing client (E2)', () => {
       blockers: [],
     });
 
+  it('leaves a category none of its posts is in off what to check, whatever its interval', async () => {
+    mockReview(existing(), { documentDetails: { administrativeTrainingIntervalMonths: 6 } });
+    mount();
+
+    const kept = await screen.findByTestId('import-kept');
+    await waitFor(() => expect(kept.textContent).toContain('Telefon'));
+    expect(kept.textContent).not.toContain('tehnico-administrativ');
+  });
+
   it("keeps the app's value where the documents differ, without blocking, until the member takes theirs", async () => {
     mockReview(existing());
     mount();
@@ -1510,33 +1525,6 @@ describe('what the import now fills for the fire-safety and safety sets', () => 
     expect(document.getElementById('review-fireSafety-hasThirdParties')!.textContent).toContain(
       'Da'
     );
-  });
-
-  it('offers the interval and "Nu se aplică" the documents both give as one choice', async () => {
-    mockReview(fireSheetProposal());
-    mount('/training');
-
-    await screen.findAllByText('Instruirea periodică, execuție');
-    expect(
-      document.getElementById('review-trainingSchedule-workerTrainingNotApplicable')
-    ).toBeNull();
-    const row = document.getElementById('review-trainingSchedule-workerTrainingIntervalMonths')!;
-    expect(row.textContent).toContain(
-      'Documentele dau și o periodicitate, și „Nu se aplică”. Alege-o pe cea valabilă.'
-    );
-
-    await userEvent.click(within(row).getByRole('radio', { name: /la 6 luni/ }));
-    await waitFor(() => expect(saves).toBe(1));
-    expect(savedChanges(0).changes.fields).toEqual({
-      'trainingSchedule.workerTrainingNotApplicable': { value: 'false' },
-    });
-
-    const picked = document.getElementById('review-trainingSchedule-workerTrainingIntervalMonths')!;
-    await userEvent.click(within(picked).getByRole('radio', { name: /Nu se aplică/ }));
-    await waitFor(() => expect(saves).toBe(2));
-    expect(savedChanges(1).changes.fields).toEqual({
-      'trainingSchedule.workerTrainingIntervalMonths': { value: null },
-    });
   });
 });
 
@@ -1812,127 +1800,6 @@ describe('a value the import inferred', () => {
     return readyDetail({ proposal });
   };
 
-  it('says a category none of the posts is in has no periodic training', async () => {
-    mockReview(inferredDetail());
-    mount('/training');
-
-    await screen.findByText('Instruirea periodică, tehnico-administrativ');
-    const row = document.getElementById(
-      'review-trainingSchedule-administrativeTrainingIntervalMonths'
-    )!;
-    expect(row.textContent).toContain('Nu se aplică');
-    expect(within(row).getByTestId('review-inferred').textContent).toBe(
-      'Niciun post nu este în categoria tehnico-administrativ, așa că instruirea periodică nu se aplică. Poți s-o schimbi.'
-    );
-    expect(within(row).queryByTestId('review-source')).toBeNull();
-  });
-
-  it('changes a category from "Nu se aplică" to an interval in one control, never leaving both', async () => {
-    mockReview(inferredDetail());
-    mount('/training');
-
-    await screen.findByText('Instruirea periodică, tehnico-administrativ');
-    const row = document.getElementById(
-      'review-trainingSchedule-administrativeTrainingIntervalMonths'
-    )!;
-    await userEvent.click(within(row).getByTestId('review-edit'));
-    const select = await screen.findByTestId('review-category-select');
-    expect([...(select as HTMLSelectElement).options].map((option) => option.text)).toEqual([
-      'Nespecificat',
-      'Lunar',
-      'La 2 luni',
-      'Trimestrial (la 3 luni)',
-      'La 4 luni',
-      'Semestrial (la 6 luni)',
-      'Anual (la 12 luni)',
-      'Nu se aplică',
-    ]);
-    await userEvent.selectOptions(select, 'Anual (la 12 luni)');
-    await userEvent.click(screen.getByTestId('review-group-save'));
-    await waitFor(() => expect(saves).toBe(1));
-    expect(savedChanges(0).changes.fields).toEqual({
-      'trainingSchedule.administrativeTrainingIntervalMonths': { value: 12 },
-      'trainingSchedule.administrativeTrainingNotApplicable': { value: 'false' },
-    });
-
-    const edited = document.getElementById(
-      'review-trainingSchedule-administrativeTrainingIntervalMonths'
-    )!;
-    expect(edited.textContent).toContain('la 12 luni');
-    expect(edited.textContent).toContain('Din documente: Nu se aplică');
-    expect(within(edited).queryByTestId('review-inferred')).toBeNull();
-    expect(edited.textContent).not.toContain('Păstrează doar una');
-  });
-
-  it('asks to settle an interval saved beside an inferred "Nu se aplică" before the two were one row', async () => {
-    const detail = inferredDetail();
-    detail.changes = {
-      fields: { 'trainingSchedule.administrativeTrainingIntervalMonths': { value: 6 } },
-      items: {},
-    } as never;
-    mockReview(detail);
-    mount('/training');
-
-    await screen.findByText('Instruirea periodică, tehnico-administrativ');
-    const row = document.getElementById(
-      'review-trainingSchedule-administrativeTrainingIntervalMonths'
-    )!;
-    expect(row.textContent).toContain(
-      'Periodicitatea și „Nu se aplică” nu pot rămâne amândouă. Alege una.'
-    );
-    expect(row.textContent).not.toContain('Documentele dau și o periodicitate');
-    expect((within(row).getByTestId('review-category-select') as HTMLSelectElement).value).toBe(
-      '6'
-    );
-    await userEvent.click(within(row).getByRole('button', { name: 'Folosește' }));
-    await waitFor(() => expect(saves).toBe(1));
-    expect(savedChanges(0).changes.fields).toEqual({
-      'trainingSchedule.administrativeTrainingIntervalMonths': { value: 6 },
-      'trainingSchedule.administrativeTrainingNotApplicable': { value: 'false' },
-    });
-  });
-
-  it('picks a fire-safety interval from the list of months', async () => {
-    mockReview(inferredDetail());
-    mount('/fire-safety');
-
-    await screen.findByText('Periodicitate SU, execuție');
-    const row = document.getElementById('review-fireSafety-workerTrainingIntervalMonths')!;
-    await userEvent.click(within(row).getByTestId('review-complete'));
-    const select = await screen.findByRole('combobox', { name: /Periodicitate SU, execuție/ });
-    await userEvent.selectOptions(select, 'Semestrial (la 6 luni)');
-    await userEvent.click(screen.getByTestId('review-group-save'));
-    await waitFor(() => expect(saves).toBe(1));
-    expect(savedChanges(0).changes.fields).toEqual({
-      'fireSafety.workerTrainingIntervalMonths': { value: 6 },
-    });
-  });
-
-  it('says the fire-safety calendar was taken from the SSM one, until the member writes over it', async () => {
-    mockReview(inferredDetail());
-    mount('/fire-safety');
-
-    await screen.findByText('Prima lună a instruirii SU');
-    const row = document.getElementById('review-fireSafety-trainingFirstMonth')!;
-    expect(row.textContent).toContain('martie');
-    expect(within(row).getByTestId('review-inferred').textContent).toContain(
-      'Preluată din programul de instruire SSM'
-    );
-
-    await userEvent.click(within(row).getByTestId('review-edit'));
-    const month = await screen.findByTestId('review-input-fireSafety__trainingFirstMonth');
-    await userEvent.clear(month);
-    await userEvent.type(month, '9');
-    await userEvent.click(screen.getByTestId('review-group-save'));
-    await waitFor(() => expect(saves).toBe(1));
-    expect(savedChanges(0).changes.fields).toEqual({
-      'fireSafety.trainingFirstMonth': { value: 9 },
-    });
-    const edited = document.getElementById('review-fireSafety-trainingFirstMonth')!;
-    expect(edited.textContent).toContain('septembrie');
-    expect(within(edited).queryByTestId('review-inferred')).toBeNull();
-  });
-
   it('says an office post was proposed without equipment, and leaves it undecided on request', async () => {
     mockReview(inferredDetail());
     mount('/job-positions');
@@ -1946,6 +1813,413 @@ describe('a value the import inferred', () => {
     expect(
       within(screen.getByTestId('review-equipment-decision')).queryByTestId('review-inferred')
     ).toBeNull();
+  });
+});
+
+describe('the training cards', () => {
+  const decision = 'dosar-ssm.zip/Decizie instruire 2025.docx';
+  const themes = 'dosar-ssm.zip/Tematica instruire SSM.docx';
+  const option = (value: number, file = decision, inferred?: string) => ({
+    value,
+    sources: [{ file, quote: String(value) }],
+    otherCompanyName: null,
+    ...(inferred ? { inferred } : {}),
+  });
+  const accountant = {
+    ...proposalFixture().jobPositions[0]!,
+    id: 'position-3',
+    name: 'Contabil',
+    staffCategory: 'technical_administrative',
+  };
+  const trainingDetail = (change: (proposal: ReturnType<typeof proposalFixture>) => void) => {
+    const proposal = proposalFixture();
+    change(proposal);
+    return readyDetail({ proposal, blockers: [] });
+  };
+  const block = (path: string) => document.getElementById(`review-${path.replace('.', '-')}`)!;
+
+  it('puts the SU schedule under Instruire, beside the SSM one', async () => {
+    mockReview(trainingDetail(() => {}));
+    mount('/training');
+
+    expect(await screen.findByTestId('review-training-ssm')).toBeTruthy();
+    expect(screen.getByTestId('review-training-su')).toBeTruthy();
+    expect(screen.queryByText('Nu se aplică')).toBeNull();
+  });
+
+  it('keeps the fire rules, not the SU schedule, under the fire-safety section', async () => {
+    mockReview(trainingDetail(() => {}));
+    mount('/fire-safety');
+
+    await screen.findByText('Deșeuri colectate');
+    expect(screen.queryByTestId('review-training-su')).toBeNull();
+  });
+
+  it('offers each document’s interval in a box and saves the one picked', async () => {
+    mockReview(
+      trainingDetail((proposal) => {
+        proposal.trainingSchedule.workerTrainingIntervalMonths = {
+          options: [option(3), option(6, themes)],
+        } as never;
+      })
+    );
+    mount('/training');
+
+    await screen.findByTestId('review-training-ssm');
+    const worker = block('trainingSchedule.workerTrainingIntervalMonths');
+    expect(worker.textContent).toContain('De ales');
+    expect(worker.textContent).toContain('Documentele dau 2 intervale. Alege-l pe cel de acum.');
+    expect(
+      within(screen.getByTestId('review-training-ssm')).getByTestId('review-group-pending')
+        .textContent
+    ).toContain('Mai ai un lucru de făcut');
+
+    await userEvent.click(within(worker).getByRole('radio', { name: /La 3 luni/ }));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({
+      'trainingSchedule.workerTrainingIntervalMonths': { option: 0 },
+    });
+    expect(block('trainingSchedule.workerTrainingIntervalMonths').textContent).toContain(
+      'La 3 luni'
+    );
+  });
+
+  it('picks the longest legal interval for a category with posts the documents give none, until the member confirms it', async () => {
+    mockReview(
+      trainingDetail((proposal) => {
+        proposal.jobPositions.push(accountant as never);
+        proposal.trainingSchedule.administrativeTrainingIntervalMonths = { options: [] } as never;
+      })
+    );
+    mount('/training');
+
+    await screen.findByTestId('review-training-ssm');
+    const administrative = block('trainingSchedule.administrativeTrainingIntervalMonths');
+    expect(within(administrative).getByTestId('review-training-starting')).toBeTruthy();
+    expect(administrative.textContent).toContain('La 12 luni');
+    expect(within(administrative).getByTestId('review-training-starting-note')).toBeTruthy();
+
+    await userEvent.click(within(administrative).getByRole('radio', { name: /Maximul legal/ }));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({
+      'trainingSchedule.administrativeTrainingIntervalMonths': { value: 12 },
+    });
+    expect(
+      within(block('trainingSchedule.administrativeTrainingIntervalMonths')).queryByTestId(
+        'review-training-starting-note'
+      )
+    ).toBeNull();
+  });
+
+  it('starts SU at the usual interval of each category with posts, citing art. 26, until the member confirms it', async () => {
+    mockReview(
+      trainingDetail((proposal) => {
+        proposal.jobPositions.push(accountant as never);
+      })
+    );
+    mount('/training');
+
+    await screen.findByTestId('review-training-su');
+    const execution = block('fireSafety.workerTrainingIntervalMonths');
+    const administrative = block('fireSafety.administrativeTrainingIntervalMonths');
+    expect(execution.getAttribute('data-pending')).toBe('true');
+    expect(administrative.getAttribute('data-pending')).toBe('true');
+    const pick = (where: HTMLElement) =>
+      within(where).getByTestId('review-training-starting-pick').textContent;
+    expect(pick(execution)).toContain('Valoarea obișnuită');
+    expect(pick(execution)).toContain('La 3 luni (OMAI 712/2005, art. 26)');
+    expect(pick(administrative)).toContain('La 6 luni (OMAI 712/2005, art. 26)');
+    expect(execution.textContent).not.toContain('Maximul legal');
+
+    await userEvent.click(within(execution).getByRole('radio', { name: /Valoarea obișnuită/ }));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({
+      'fireSafety.workerTrainingIntervalMonths': { value: 3 },
+    });
+  });
+
+  it('shows the SU duration and calendar confirming starts an empty SU schedule with', async () => {
+    mockReview(
+      trainingDetail((proposal) => {
+        proposal.trainingSchedule.trainingFirstMonth = { options: [option(3)] } as never;
+        proposal.trainingSchedule.trainingDayFrom = { options: [option(10)] } as never;
+        proposal.trainingSchedule.trainingDayTo = { options: [option(20)] } as never;
+      })
+    );
+    mount('/training');
+
+    const su = await screen.findByTestId('review-training-su');
+    expect(
+      (within(su).getByTestId('review-su-training-duration-2') as HTMLInputElement).checked
+    ).toBe(true);
+    expect(su.textContent).toContain(
+      'Lipsește din documente. Am pus durata minimă; poți alege alta.'
+    );
+    expect((within(su).getByTestId('review-su-first-month') as HTMLSelectElement).value).toBe('3');
+    expect((within(su).getByTestId('review-su-day-from') as HTMLInputElement).value).toBe('10');
+    expect((within(su).getByTestId('review-su-day-to') as HTMLInputElement).value).toBe('20');
+    expect(su.textContent).toContain('Le-am preluat din programul de instruire SSM');
+
+    await userEvent.clear(within(su).getByTestId('review-su-day-from'));
+    await userEvent.type(within(su).getByTestId('review-su-day-from'), '12');
+    await userEvent.tab();
+    await waitFor(() =>
+      expect(savedChanges(saves - 1).changes.fields).toEqual({
+        'fireSafety.trainingDayFrom': { value: 12 },
+        'fireSafety.trainingDayTo': { value: 20 },
+      })
+    );
+  });
+
+  it('marks an SU interval as waiting and links it from the hub, as confirming blocks it', async () => {
+    mockReview(
+      readyDetail({
+        proposal: proposalFixture(),
+        blockers: [{ path: 'fireSafety.workerTrainingIntervalMonths', code: 'choice' }],
+      })
+    );
+    mount();
+
+    const link = await screen.findByTestId('import-blocker-link');
+    expect(link.textContent).toBe('Confirmă periodicitatea SU pentru execuție');
+    expect(link.getAttribute('href')).toContain('#review-fireSafety-workerTrainingIntervalMonths');
+    expect(screen.getByTestId('import-confirm').getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('keeps confirming waiting on the longest legal interval until the member confirms it', async () => {
+    const proposal = proposalFixture();
+    proposal.jobPositions.push(accountant as never);
+    proposal.trainingSchedule.administrativeTrainingIntervalMonths = { options: [] } as never;
+    mockReview(
+      readyDetail({
+        proposal,
+        blockers: [
+          { path: 'trainingSchedule.administrativeTrainingIntervalMonths', code: 'choice' },
+        ],
+      })
+    );
+    mount();
+
+    const link = await screen.findByTestId('import-blocker-link');
+    expect(link.textContent).toBe('Confirmă periodicitatea pentru tehnico-administrativ');
+    expect(link.getAttribute('href')).toContain(
+      '#review-trainingSchedule-administrativeTrainingIntervalMonths'
+    );
+    expect(screen.getByTestId('import-confirm').getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('gives every calendar field a place the hub links to, and says what a refused day needs', async () => {
+    mockReview(
+      readyDetail({
+        proposal: (() => {
+          const proposal = proposalFixture();
+          proposal.trainingSchedule.trainingDayFrom = { options: [option(35)] } as never;
+          return proposal;
+        })(),
+        blockers: [{ path: 'trainingSchedule.trainingDayFrom', code: 'invalid' }],
+      })
+    );
+    mount('/training');
+
+    expect((await screen.findByTestId('review-ssm-day-from-error')).textContent).toBe(
+      'Scrie o zi între 1 și 31.'
+    );
+    for (const path of [
+      'trainingSchedule.trainingFirstMonth',
+      'trainingSchedule.trainingDayFrom',
+      'trainingSchedule.trainingDayTo',
+      'trainingSchedule.periodicTrainingMinutes',
+      'fireSafety.trainingFirstMonth',
+      'fireSafety.periodicTrainingHours',
+    ]) {
+      expect(block(path)).toBeTruthy();
+    }
+    expect(within(block('trainingSchedule.trainingDayFrom')).getByRole('textbox')).toBeTruthy();
+  });
+
+  it('asks to write a refused day again rather than to pick one', async () => {
+    const proposal = proposalFixture();
+    proposal.trainingSchedule.trainingDayFrom = { options: [option(35)] } as never;
+    mockReview(
+      readyDetail({
+        proposal,
+        blockers: [{ path: 'trainingSchedule.trainingDayFrom', code: 'invalid' }],
+      })
+    );
+    mount();
+
+    expect((await screen.findByTestId('import-blocker-link')).textContent).toBe(
+      'Scrie ziua de început a instruirii'
+    );
+  });
+
+  it('says when the last day comes before the first, once the member leaves the field', async () => {
+    mockReview(
+      trainingDetail((proposal) => {
+        proposal.trainingSchedule.trainingDayFrom = { options: [option(12)] } as never;
+        proposal.trainingSchedule.trainingDayTo = { options: [option(15)] } as never;
+      })
+    );
+    mount('/training');
+
+    const to = await screen.findByTestId('review-ssm-day-to');
+    await userEvent.clear(to);
+    await userEvent.type(to, '7');
+    expect(screen.queryByTestId('review-ssm-day-to-error')).toBeNull();
+    await userEvent.tab();
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({
+      'trainingSchedule.trainingDayTo': { value: 7 },
+    });
+    expect(screen.getByTestId('review-ssm-day-to-error').textContent).toBe(
+      'Ultima zi vine după prima. Scrie o zi între 12 și 31.'
+    );
+  });
+
+  it('shows a duration outside the list as not to be picked, with the list open', async () => {
+    mockReview(
+      trainingDetail((proposal) => {
+        proposal.trainingSchedule.periodicTrainingMinutes = { options: [option(45)] } as never;
+      })
+    );
+    mount('/training');
+
+    const outside = await screen.findByTestId('review-training-outside');
+    expect(within(outside).getByTestId('review-training-not-listed').textContent).toBe(
+      'Nu e în listă'
+    );
+    expect(
+      (within(outside).getByRole('radio', { name: /45 de minute/ }) as HTMLInputElement).disabled
+    ).toBe(true);
+    await userEvent.click(within(outside).getByTestId('review-ssm-duration-other-60'));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({
+      'trainingSchedule.periodicTrainingMinutes': { value: 60 },
+    });
+  });
+
+  it('leaves out a category none of the kept posts is in, and says its interval comes back with a post', async () => {
+    mockReview(trainingDetail(() => {}));
+    mount('/training');
+
+    const absent = await screen.findByTestId('review-ssm-absent-technical_administrative');
+    expect(absent.textContent).toContain('nu preiei niciun post din această categorie');
+    expect(absent.textContent).toContain('Documentele dau pentru tehnico-administrativ la 12 luni');
+    expect(
+      document.getElementById('review-trainingSchedule-administrativeTrainingIntervalMonths')
+    ).toBeNull();
+  });
+
+  it('asks for posts before intervals when the import keeps none', async () => {
+    mockReview(
+      trainingDetail((proposal) => {
+        proposal.jobPositions = [];
+      })
+    );
+    mount('/training');
+
+    expect(await screen.findAllByTestId('review-training-no-posts')).toHaveLength(2);
+  });
+
+  it('says the SU calendar was taken from the SSM one, and saves a month picked over it', async () => {
+    mockReview(
+      trainingDetail((proposal) => {
+        proposal.trainingSchedule.trainingFirstMonth = { options: [option(3)] } as never;
+        Object.assign(proposal.fireSafety, {
+          trainingFirstMonth: { options: [option(3, decision, 'ssm_training_schedule')] },
+        });
+      })
+    );
+    mount('/training');
+
+    const su = await screen.findByTestId('review-training-su');
+    expect(su.textContent).toContain('Preluată din programul de instruire SSM');
+    expect(
+      within(block('fireSafety.trainingFirstMonth')).getByRole('button', {
+        name: 'Vezi în document',
+      })
+    ).toBeTruthy();
+    await userEvent.selectOptions(within(su).getByTestId('review-su-first-month'), '9');
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({
+      'fireSafety.trainingFirstMonth': { value: 9 },
+    });
+  });
+
+  it("waits for an existing client's posts before showing its intervals, and offers to load them again", async () => {
+    let answers = 0;
+    mockReview(
+      readyDetail({
+        intoExistingClient: true,
+        client: { id: clientId, legalName: 'Brutăria Spicul Auriu SRL' },
+        blockers: [],
+      }),
+      {
+        positions: () =>
+          ++answers === 1 ? Response.json({}, { status: 404 }) : Response.json({ items: [] }),
+      }
+    );
+    mount('/training');
+
+    const failed = await screen.findByTestId('import-review-positions-error');
+    expect(screen.queryByTestId('review-training-ssm')).toBeNull();
+    await userEvent.click(within(failed).getByRole('button', { name: 'Încearcă din nou' }));
+    expect(await screen.findByTestId('review-training-ssm')).toBeTruthy();
+  });
+
+  it("keeps an existing client's interval where the documents give two, without waiting on a pick", async () => {
+    const proposal = proposalFixture();
+    proposal.trainingSchedule.workerTrainingIntervalMonths = {
+      options: [option(6), option(4, themes)],
+    } as never;
+    const detail = readyDetail({
+      proposal,
+      intoExistingClient: true,
+      client: { id: clientId, legalName: 'Brutăria Spicul Auriu SRL' },
+      blockers: [],
+    });
+    mockReview(detail, { documentDetails: { workerTrainingIntervalMonths: 3 } });
+    mount('/training');
+
+    await waitFor(() =>
+      expect(
+        within(block('trainingSchedule.workerTrainingIntervalMonths')).getByTestId(
+          'review-keep-app'
+        )
+      ).toBeTruthy()
+    );
+    const worker = block('trainingSchedule.workerTrainingIntervalMonths');
+    expect(worker.textContent).toContain('Păstrăm valoarea din aplicație dacă nu alegi altfel.');
+    expect(worker.getAttribute('data-pending')).toBeNull();
+    expect(
+      (within(worker).getByRole('radio', { name: /În aplicație/ }) as HTMLInputElement).checked
+    ).toBe(true);
+    await userEvent.click(within(worker).getByRole('radio', { name: /La 4 luni/ }));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({
+      'trainingSchedule.workerTrainingIntervalMonths': { option: 1, replace: true },
+    });
+  });
+
+  it("keeps an existing client's interval where the documents differ, until the member takes theirs", async () => {
+    const detail = readyDetail({
+      intoExistingClient: true,
+      client: { id: clientId, legalName: 'Brutăria Spicul Auriu SRL' },
+      blockers: [],
+    });
+    mockReview(detail, { documentDetails: { workerTrainingIntervalMonths: 3 } });
+    mount('/training');
+
+    const differs = await screen.findByTestId('review-training-differs');
+    expect(
+      (within(differs).getByRole('radio', { name: /În aplicație/ }) as HTMLInputElement).checked
+    ).toBe(true);
+    expect(within(differs).getByTestId('review-keep-app').textContent).toContain('La 3 luni');
+    await userEvent.click(within(differs).getByRole('radio', { name: /În documente/ }));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({
+      'trainingSchedule.workerTrainingIntervalMonths': { replace: true },
+    });
   });
 });
 

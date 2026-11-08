@@ -4,11 +4,14 @@ import {
   isLegalRepresentative,
   normalizeCui,
   normalizeIban,
+  offeredTrainingInterval,
   type OrganizationAuthorizations,
   type OrganizationCompanyDetails,
   type ResponsiblePerson,
   responsiblePersonConflictReasons,
   type ResponsiblePersonRequest,
+  type StaffCategory,
+  type UpdateClientDocumentDetailsRequest,
   type Workplace,
   type WorkplaceRequest,
 } from '@ssm-usor/contracts';
@@ -271,6 +274,7 @@ export const updateClientDocumentDetails: RouteHandler<
   const body = c.req.valid('json');
   const db = createDataClient(c);
   await refuseEmployeeOfAnotherClient(db, clientId, body.legalRepresentativeEmployeeId);
+  await refuseIntervalOutsideList(db, clientId, body);
   const { data, error } = await db
     .from('clients')
     .update({
@@ -294,6 +298,46 @@ export const updateClientDocumentDetails: RouteHandler<
   if (!data) throw noSuchClient();
   return c.json({ documentDetails: toDocumentDetails(data) }, 200);
 };
+
+const intervalFields = {
+  execution: ['workerTrainingIntervalMonths', 'worker_training_interval_months'],
+  technical_administrative: [
+    'administrativeTrainingIntervalMonths',
+    'administrative_training_interval_months',
+  ],
+} as const satisfies Record<StaffCategory, readonly [string, string]>;
+
+// The database takes any month up to a category's longest, and every card of the client's details
+// sends the schedule back, so an interval saved outside the list goes through as long as it is
+// unchanged.
+async function refuseIntervalOutsideList(
+  db: DataClient,
+  clientId: string,
+  body: UpdateClientDocumentDetailsRequest
+) {
+  const outside = (
+    Object.entries(intervalFields) as [StaffCategory, (typeof intervalFields)[StaffCategory]][]
+  ).filter(([category, [field]]) => {
+    const months = body[field];
+    return months != null && !offeredTrainingInterval('ssm', category, months);
+  });
+  if (outside.length === 0) return;
+  const { data, error } = await db
+    .from('clients')
+    .select('administrative_training_interval_months, worker_training_interval_months')
+    .eq('id', clientId)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'client document details');
+  if (!data) throw noSuchClient();
+  const changed = outside.filter(([, [field, column]]) => data[column] !== body[field]);
+  if (changed.length === 0) return;
+  const message = 'Pick a training interval from the list.';
+  throw new ApiError(
+    'validation_error',
+    message,
+    changed.map(([, [field]]) => ({ path: field, message }))
+  );
+}
 
 const employeeNotOfClient = () => {
   const message = 'This employee is not a current employee of this client.';

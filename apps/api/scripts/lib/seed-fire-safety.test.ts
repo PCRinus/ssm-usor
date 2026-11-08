@@ -35,7 +35,7 @@ describe('fireSafetyFor', () => {
     );
     expect(row).toMatchObject({
       periodic_training_hours: 2,
-      administrative_training_interval_months: 3,
+      administrative_training_interval_months: 6,
       worker_training_interval_months: 3,
       training_first_month: 3,
       training_day_from: 4,

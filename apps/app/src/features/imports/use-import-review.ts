@@ -9,12 +9,14 @@ import {
   getGetClientFireSafetyQueryKey,
   getGetClientQueryKey,
   getGetImportQueryKey,
+  getListJobPositionsQueryKey,
   type ImportDetail,
   type ImportDetailResponse,
   saveImportChanges,
   useGetClient,
   useGetClientDocumentDetails,
   useGetClientFireSafety,
+  useListJobPositions,
 } from '@/api/generated/api';
 import { ApiHttpError, type ApiRequestOptions } from '@/api/http';
 
@@ -251,13 +253,34 @@ export function useExistingValues(detail: ImportDetail) {
     request: apiRequest,
     query: { queryKey: getGetClientFireSafetyQueryKey(clientId), enabled },
   });
-  if (!enabled) return { ready: true, valueAt: () => undefined };
+  const positions = useListJobPositions(clientId, {
+    request: apiRequest,
+    query: { queryKey: getListJobPositionsQueryKey(clientId), enabled },
+  });
+  if (!enabled) {
+    return {
+      ready: true,
+      valueAt: () => undefined,
+      positions: [],
+      positionsFailed: false,
+      positionsRetrying: false,
+      retryPositions: () => undefined,
+    };
+  }
   const record = (value: unknown) => (value ?? {}) as Record<string, string | number | null>;
   const clientRow = record(client.data?.client);
   const detailsRow = record(details.data?.documentDetails);
   const fireRow = record(fireSafety.data?.fireSafety);
   return {
-    ready: client.isSuccess && details.isSuccess && !fireSafety.isPending,
+    ready: client.isSuccess && details.isSuccess && !fireSafety.isPending && positions.isSuccess,
+    positionsFailed: positions.isError,
+    positionsRetrying: positions.isFetching,
+    retryPositions: () => void positions.refetch(),
+    positions: (positions.data?.items ?? []).map((position) => ({
+      id: position.id,
+      name: position.name,
+      staffCategory: position.staffCategory,
+    })),
     valueAt: (path: string): string | number | null | undefined => {
       const [group, name] = path.split('.') as [string, string];
       if (group === 'client') {
@@ -265,13 +288,7 @@ export function useExistingValues(detail: ImportDetail) {
           ? (detailsRow[name] ?? null)
           : (clientRow[name] ?? null);
       }
-      if (group === 'trainingSchedule') {
-        if (!name.endsWith('NotApplicable')) return detailsRow[name] ?? null;
-        // Without an interval, a category not declared "not applicable" is still undecided.
-        const interval = detailsRow[name.replace('NotApplicable', 'IntervalMonths')] ?? null;
-        const declared = (detailsRow[name] as unknown) === true;
-        return declared ? 'true' : interval === null ? null : 'false';
-      }
+      if (group === 'trainingSchedule') return detailsRow[name] ?? null;
       if (group === 'fireSafety') {
         const value = fireRow[name] as unknown;
         // The card's defaults stand in for a row the client does not have yet.

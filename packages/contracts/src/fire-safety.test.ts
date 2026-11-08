@@ -8,6 +8,7 @@ import {
   fireEquipmentRequestSchema,
   fireInstallationRequestSchema,
   fireMaintenanceItemRequestSchema,
+  fireScheduleStartFills,
   fireSubstanceDetailLabels,
   fireSubstanceDetails,
   fireSubstanceRequestSchema,
@@ -322,5 +323,35 @@ describe('the building of a workplace', () => {
     ]) {
       expect(fireBuildingRequestSchema.safeParse(building).success).toBe(false);
     }
+  });
+});
+
+describe('the starting values an import adds to an SU schedule', () => {
+  const empty = {
+    periodicTrainingHours: null,
+    trainingFirstMonth: null,
+    trainingDayFrom: null,
+    trainingDayTo: null,
+  };
+
+  it('are two hours and the SSM calendar, where the SU schedule leaves them', () => {
+    expect(
+      fireScheduleStartFills(empty, {
+        trainingFirstMonth: 3,
+        trainingDayFrom: 10,
+        trainingDayTo: 20,
+      })
+    ).toEqual({
+      periodicTrainingHours: 2,
+      trainingFirstMonth: 3,
+      trainingDayFrom: 10,
+      trainingDayTo: 20,
+    });
+    expect(
+      fireScheduleStartFills(
+        { ...empty, periodicTrainingHours: 4, trainingDayTo: 25 },
+        { trainingFirstMonth: null, trainingDayFrom: 10, trainingDayTo: 20 }
+      )
+    ).toEqual({});
   });
 });

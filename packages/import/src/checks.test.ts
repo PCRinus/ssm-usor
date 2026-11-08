@@ -267,6 +267,20 @@ describe('checkAllowedValues', () => {
     ]);
   });
 
+  it('takes a schedule interval only from the list the app offers its category', () => {
+    const value = proposal();
+    const option = value.trainingSchedule.workerTrainingIntervalMonths.options[0]!;
+    value.trainingSchedule.workerTrainingIntervalMonths.options = [{ ...option, value: 5 }];
+    value.trainingSchedule.administrativeTrainingIntervalMonths.options = [{ ...option, value: 5 }];
+    value.fireSafety.workerTrainingIntervalMonths.options = [{ ...option, value: 5 }];
+    value.fireSafety.administrativeTrainingIntervalMonths.options = [{ ...option, value: 12 }];
+
+    expect(codes(checkAllowedValues(value))).toEqual([
+      'trainingSchedule.administrativeTrainingIntervalMonths.options.0 value_not_allowed',
+      'fireSafety.administrativeTrainingIntervalMonths.options.0 value_not_allowed',
+    ]);
+  });
+
   it('flags a duration past the app’s limit, and any duration on a consumable', () => {
     const value = proposal();
     const entry = value.protectiveEquipment[0]!;

@@ -1,6 +1,6 @@
 # ADR 008: Explicitly choose the staff categories in a training schedule
 
-- Status: accepted
+- Status: superseded by [ADR 039](adr-039-training-categories-from-job-positions.md) (accepted 2026-11-08): a category applies when the client has posts in it, and the specialist no longer chooses.
 - Date: 2026-09-21
 
 ## Context

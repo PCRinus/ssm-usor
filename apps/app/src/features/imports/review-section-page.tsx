@@ -6,6 +6,7 @@ import { useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
 import { useScrollToHash } from '@/app/use-scroll-to-hash';
+import { Notice } from '@/components/notice';
 
 import { endSentence } from './import-format';
 import { OtherSections } from './other-sections';
@@ -30,6 +31,7 @@ import { SavingNote } from './review-parts';
 import { fieldStates, reviewName, sectionStatuses } from './review-summary';
 import { SourceDialog, type SourceRequest } from './source-dialog';
 import { SourcePrefetchContext, useSourcePrefetch } from './source-query';
+import { keptPosts, withoutAbsentCategories } from './training-category';
 import { useExistingValues, useImportReview } from './use-import-review';
 
 export function ReviewSectionPage({
@@ -60,6 +62,8 @@ export function ReviewSectionPage({
     vatPayer: vatPayerInForce(proposal, review.changes, registered),
     registered,
     existingClient: detail.intoExistingClient,
+    existingPositions: existing.positions,
+    importId: detail.id,
     openSource: (title, sources, otherCompanyName) =>
       setSource({ title, sources, otherCompanyName }),
     blockers: detail.blockers as Blocker[],
@@ -68,7 +72,7 @@ export function ReviewSectionPage({
     proposal,
     review.changes,
     detail.blockers as Blocker[],
-    states,
+    withoutAbsentCategories(states, keptPosts(proposal, review.changes, existing.positions)),
     registered
   );
   const position = sectionIds.indexOf(section);
@@ -93,8 +97,27 @@ export function ReviewSectionPage({
           </div>
         </div>
         <ConflictNotice review={review} />
-        {(section === 'identity' || section === 'training') && (
-          <FieldsSection section={section} context={context} />
+        {section === 'training' && existing.positionsFailed ? (
+          <Notice
+            variant="destructive"
+            data-testid="import-review-positions-error"
+            action={
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={existing.positionsRetrying}
+                onClick={existing.retryPositions}
+              >
+                Încearcă din nou
+              </Button>
+            }
+          >
+            Nu am putut încărca posturile clientului, de care depind intervalele instruirii.
+          </Notice>
+        ) : (
+          (section === 'identity' || section === 'training') && (
+            <FieldsSection section={section} context={context} />
+          )
         )}
         {section === 'identity' && (
           <OtherSections
@@ -123,7 +146,7 @@ export function ReviewSectionPage({
             </Link>
           </Button>
           {next && (
-            <Button asChild>
+            <Button asChild className="h-auto min-h-9 max-w-full py-2 whitespace-normal">
               <Link
                 to="/clienti/import/$importId/$section"
                 params={{ importId: detail.id, section: next }}

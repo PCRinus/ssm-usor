@@ -1,8 +1,4 @@
-import {
-  maxTrainingIntervalMonths,
-  staffCategories,
-  type StaffCategory,
-} from '@ssm-usor/contracts';
+import { staffCategories, type StaffCategory, trainingIntervalChoices } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import type { JobPositionListResponse, JobPositionRequest } from '@/api/generated/api';
@@ -22,7 +18,7 @@ export const staffCategoryShortLabels: Record<StaffCategory, string> = {
 };
 
 export const intervalOptionsFor = (category: StaffCategory) =>
-  intervalOptions.filter(({ months }) => months <= maxTrainingIntervalMonths[category]);
+  intervalOptions.filter(({ months }) => trainingIntervalChoices.ssm[category].includes(months));
 
 /** "la 2 luni", as it reads inside a sentence or a table cell. */
 export function intervalLabel(months: number) {

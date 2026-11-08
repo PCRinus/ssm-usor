@@ -38,7 +38,7 @@ topics:
     heading: Semnăturile unei instruiri
 sources:
   - docs/architecture/adr-006-job-positions.md
-  - docs/architecture/adr-008-applicable-training-categories.md
+  - docs/architecture/adr-039-training-categories-from-job-positions.md
   - docs/architecture/adr-021-training-records-and-individual-sheets.md
   - docs/architecture/adr-023-advanced-electronic-signature.md
   - docs/architecture/adr-024-knowledge-tests.md
@@ -98,7 +98,7 @@ Intervalul vine din locuri diferite în cele două domenii:
 
 În SSM, intervalul se stabilește prin programul de instruire-testare și nu poate depăși 6 luni; pentru personalul tehnico-administrativ, cel mult 12 luni (HG 1425/2006, art. 96 alin. (2), (2¹) și (3)).
 
-**Nestabilit** înseamnă că programul clientului nu are încă un interval pentru categoria lucrătorului, sau că specialistul a ales „Nu se aplică” pentru ea. **Stabilește intervalul** te duce în programul de instruire al clientului.
+**Nestabilit** înseamnă că programul clientului nu are încă un interval pentru categoria lucrătorului. **Stabilește intervalul** te duce în programul de instruire al clientului.
 
 ## Înregistrarea unei instruiri
 

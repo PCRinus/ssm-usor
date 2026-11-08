@@ -385,13 +385,22 @@ describe("a client's job positions", () => {
       '2',
       '3',
       '4',
+      '5',
       '6',
     ]);
     await user.selectOptions(
       screen.getByTestId('job-position-category'),
       'technical_administrative'
     );
-    expect([...interval.options].map((option) => option.value)).toContain('12');
+    expect([...interval.options].map((option) => option.value)).toEqual([
+      '',
+      '1',
+      '2',
+      '3',
+      '4',
+      '6',
+      '12',
+    ]);
     await user.selectOptions(interval, '12');
     // A year is not an interval for execution staff: going back drops it with its option.
     await user.selectOptions(screen.getByTestId('job-position-category'), 'execution');

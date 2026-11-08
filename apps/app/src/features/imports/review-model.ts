@@ -98,10 +98,24 @@ const sectionOfRoot: Record<string, SectionId> = {
   protectiveEquipment: 'equipment',
 };
 
-export const sectionOf = (path: string): SectionId =>
-  sectionOfRoot[path.split('.')[0] ?? ''] ?? 'identity';
+// The fire-safety schedule sits under Instruire beside the occupational one; the rest of the
+// fire-safety record stays with the fire rules.
+const fireTrainingPaths = new Set([
+  'fireSafety.periodicTrainingHours',
+  'fireSafety.workerTrainingIntervalMonths',
+  'fireSafety.administrativeTrainingIntervalMonths',
+  'fireSafety.trainingFirstMonth',
+  'fireSafety.trainingDayFrom',
+  'fireSafety.trainingDayTo',
+]);
 
-type FieldInfo = { label: string; choose: string; write: string };
+export const sectionOf = (path: string): SectionId =>
+  fireTrainingPaths.has(path.split('.').slice(0, 2).join('.'))
+    ? 'training'
+    : (sectionOfRoot[path.split('.')[0] ?? ''] ?? 'identity');
+
+// `confirm` is for a value no document gives, which the review proposes for the member to confirm.
+type FieldInfo = { label: string; choose: string; write: string; confirm?: string };
 
 export const fieldInfo: Record<string, FieldInfo> = {
   'client.legalName': { label: 'Denumire', choose: 'Alege denumirea', write: 'Scrie denumirea' },
@@ -153,21 +167,13 @@ export const fieldInfo: Record<string, FieldInfo> = {
     label: 'Instruirea periodică, tehnico-administrativ',
     choose: 'Alege periodicitatea pentru tehnico-administrativ',
     write: 'Alege periodicitatea pentru tehnico-administrativ',
+    confirm: 'Confirmă periodicitatea pentru tehnico-administrativ',
   },
   'trainingSchedule.workerTrainingIntervalMonths': {
     label: 'Instruirea periodică, execuție',
     choose: 'Alege periodicitatea pentru execuție',
     write: 'Alege periodicitatea pentru execuție',
-  },
-  'trainingSchedule.workerTrainingNotApplicable': {
-    label: 'Instruirea periodică, execuție',
-    choose: 'Alege periodicitatea pentru execuție',
-    write: 'Alege periodicitatea pentru execuție',
-  },
-  'trainingSchedule.administrativeTrainingNotApplicable': {
-    label: 'Instruirea periodică, tehnico-administrativ',
-    choose: 'Alege periodicitatea pentru tehnico-administrativ',
-    write: 'Alege periodicitatea pentru tehnico-administrativ',
+    confirm: 'Confirmă periodicitatea pentru execuție',
   },
   'trainingSchedule.trainingFirstMonth': {
     label: 'Prima lună a instruirii',
@@ -193,11 +199,13 @@ export const fieldInfo: Record<string, FieldInfo> = {
     label: 'Periodicitate SU, tehnico-administrativ',
     choose: 'Alege periodicitatea SU pentru tehnico-administrativ',
     write: 'Scrie periodicitatea SU pentru tehnico-administrativ',
+    confirm: 'Confirmă periodicitatea SU pentru tehnico-administrativ',
   },
   'fireSafety.workerTrainingIntervalMonths': {
     label: 'Periodicitate SU, execuție',
     choose: 'Alege periodicitatea SU pentru execuție',
     write: 'Scrie periodicitatea SU pentru execuție',
+    confirm: 'Confirmă periodicitatea SU pentru execuție',
   },
   'fireSafety.trainingFirstMonth': {
     label: 'Prima lună a instruirii SU',
@@ -248,51 +256,8 @@ export const fieldInfo: Record<string, FieldInfo> = {
 
 // The proposal's yes or no, which the app's own forms word for each field.
 export const yesNoLabels: Record<string, Record<'true' | 'false', string>> = {
-  'trainingSchedule.workerTrainingNotApplicable': { true: 'Nu se aplică', false: 'Se aplică' },
-  'trainingSchedule.administrativeTrainingNotApplicable': {
-    true: 'Nu se aplică',
-    false: 'Se aplică',
-  },
   'fireSafety.hasThirdParties': { true: 'Da', false: 'Nu' },
 };
-
-export type TrainingCategory = {
-  interval: string;
-  notApplicable: string;
-  name: string;
-  maxMonths: number;
-};
-
-// A staff category has an interval or "Nu se aplică", never both (ADR 008), so the review shows
-// the two fields as one row, at the interval's path.
-export const trainingCategories: TrainingCategory[] = [
-  {
-    interval: 'trainingSchedule.workerTrainingIntervalMonths',
-    notApplicable: 'trainingSchedule.workerTrainingNotApplicable',
-    name: 'execuție',
-    maxMonths: 6,
-  },
-  {
-    interval: 'trainingSchedule.administrativeTrainingIntervalMonths',
-    notApplicable: 'trainingSchedule.administrativeTrainingNotApplicable',
-    name: 'tehnico-administrativ',
-    maxMonths: 12,
-  },
-];
-
-export const categoryOf = (path: string) =>
-  trainingCategories.find(
-    (category) => category.interval === path || category.notApplicable === path
-  );
-
-export const isNotApplicablePath = (path: string) =>
-  trainingCategories.some((category) => category.notApplicable === path);
-
-export const rowPathOf = (path: string) => categoryOf(path)?.interval ?? path;
-
-// "6 luni", "60 de minute": the unit a member writes after the number is the field's own.
-export const wholeNumberText = (text: string) =>
-  text.trim().replace(/^(\d+)\s*(de\s+)?\p{L}+\.?$/u, '$1');
 
 export const fieldGroups: { section: SectionId; title: string; paths: string[] }[] = [
   {
@@ -324,9 +289,7 @@ export const fieldGroups: { section: SectionId; title: string; paths: string[] }
     paths: [
       'trainingSchedule.periodicTrainingMinutes',
       'trainingSchedule.workerTrainingIntervalMonths',
-      'trainingSchedule.workerTrainingNotApplicable',
       'trainingSchedule.administrativeTrainingIntervalMonths',
-      'trainingSchedule.administrativeTrainingNotApplicable',
       'trainingSchedule.trainingFirstMonth',
       'trainingSchedule.trainingDayFrom',
       'trainingSchedule.trainingDayTo',
@@ -345,7 +308,7 @@ export const fieldGroups: { section: SectionId; title: string; paths: string[] }
     ],
   },
   {
-    section: 'fire-safety',
+    section: 'training',
     title: 'Programul de instruire SU',
     paths: [
       'fireSafety.periodicTrainingHours',
@@ -358,25 +321,8 @@ export const fieldGroups: { section: SectionId; title: string; paths: string[] }
   },
 ];
 
-export const integerPaths = new Set(
-  Object.keys(fieldInfo).filter(
-    (path) =>
-      (path.startsWith('trainingSchedule.') && !(path in yesNoLabels)) ||
-      [
-        'fireSafety.periodicTrainingHours',
-        'fireSafety.administrativeTrainingIntervalMonths',
-        'fireSafety.workerTrainingIntervalMonths',
-        'fireSafety.trainingFirstMonth',
-        'fireSafety.trainingDayFrom',
-        'fireSafety.trainingDayTo',
-      ].includes(path)
-  )
-);
-
 export function inferenceNote(path: string, inferred: ImportInference | undefined): string | null {
   switch (inferred) {
-    case 'no_posts_in_category':
-      return `Niciun post nu este în categoria ${categoryOf(path)?.name ?? 'aceasta'}, așa că instruirea periodică nu se aplică. Poți s-o schimbi.`;
     case 'ssm_training_schedule':
       return 'Preluată din programul de instruire SSM, fiindcă documentele SU nu o dau. Poți s-o schimbi.';
     case 'office_work':
@@ -912,17 +858,22 @@ export function blockerLink(proposal: Proposal, changes: Changes, blocker: Block
   const [root, second, field] = parts as [string, string | undefined, string | undefined];
   const info = fieldInfo[`${root}.${second}`];
   if (info) {
-    const category = categoryOf(`${root}.${second}`);
+    const picked = fireTrainingPaths.has(`${root}.${second}`) || root === 'trainingSchedule';
+    const typed = second === 'trainingDayFrom' || second === 'trainingDayTo';
+    const state = fieldState(proposal, changes, `${root}.${second}`);
+    const noneGiven = state.status !== 'choice' && state.value === null;
     return {
       section,
-      anchor: anchorOf(rowPathOf(`${root}.${second}`)),
+      anchor: anchorOf(`${root}.${second}`),
       code: blocker.code,
       text:
-        blocker.code === 'choice' || (category && blocker.code === 'invalid')
-          ? info.choose
-          : blocker.code === 'invalid'
-            ? `Corectează ${info.label.toLowerCase()}`
-            : info.write,
+        blocker.code === 'choice' && info.confirm && noneGiven
+          ? info.confirm
+          : blocker.code === 'choice' || (picked && !typed && blocker.code === 'invalid')
+            ? info.choose
+            : blocker.code === 'invalid' && !typed
+              ? `Corectează ${info.label.toLowerCase()}`
+              : info.write,
     };
   }
   const list = root as ItemList;

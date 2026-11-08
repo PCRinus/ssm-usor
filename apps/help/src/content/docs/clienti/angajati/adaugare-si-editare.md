@@ -56,7 +56,7 @@ topics:
     heading: Când nu se salvează
 sources:
   - docs/architecture/adr-006-job-positions.md
-  - docs/architecture/adr-008-applicable-training-categories.md
+  - docs/architecture/adr-039-training-categories-from-job-positions.md
   - docs/architecture/adr-021-training-records-and-individual-sheets.md
   - docs/architecture/adr-022-participants-and-the-portal.md
   - docs/architecture/adr-023-advanced-electronic-signature.md
@@ -138,7 +138,7 @@ Dacă postul ales a fost arhivat între timp, vezi sub câmp „Postul ales nu m
 
 Un lucrător ocupă un singur post. Cine face muncă mixtă ocupă un post care spune asta, de exemplu „Administrator – vânzător”.
 
-Pentru documentele SSM, programul de instruire al clientului trebuie să aibă un interval pentru fiecare categorie de personal în care are lucrători actuali. Un lucrător pus pe un post dintr-o categorie fără interval nu schimbă singur programul; aplicația îți cere intervalul când generezi documentele.
+Programul de instruire al clientului, SSM și SU, are câte un interval pentru fiecare categorie de personal în care clientul are posturi, ocupate sau nu. Un post nou într-o categorie fără interval nu schimbă singur programul; aplicația îți cere intervalul când generezi documentele.
 
 ### Funcția din contract
 

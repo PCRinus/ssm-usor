@@ -6,14 +6,23 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
+import { hashKey } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { Plus, X } from 'lucide-react';
-import type { KeyboardEvent, ReactNode } from 'react';
-import { Controller, type FieldError, useForm, useWatch } from 'react-hook-form';
+import type { KeyboardEvent } from 'react';
+import {
+  Controller,
+  type FieldValues,
+  useForm,
+  type UseFormReturn,
+  useWatch,
+} from 'react-hook-form';
 
 import {
   type ApiErrorResponse,
+  type ClientFireSafetyResponse,
   getGetClientFireSafetyQueryKey,
+  type UpdateClientFireSafetyRequest,
   useGetClientFireSafety,
   useUpdateClientFireSafety,
 } from '@/api/generated/api';
@@ -23,28 +32,45 @@ import { Notice } from '@/components/notice';
 import { EditAction, Fact, FactList, SectionCard } from '@/components/section-card';
 import { useInPlaceEdit } from '@/components/use-in-place-edit';
 import { useRevealErrors } from '@/components/use-reveal-errors';
-import { intervalLabel, staffCategoryLabels } from '@/features/job-positions/job-position-schema';
+import type { JobPosition } from '@/features/job-positions/job-position-schema';
+import { useJobPositionOptions } from '@/features/job-positions/use-job-position-options';
 import { type FireTrainingFocus, useFocusRequest } from '@/features/missing-data/focus';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
+import { inTurn } from '@/lib/in-turn';
 
-import { monthNames } from './document-details-schema';
 import {
   completeFireSchedule,
-  fireHourChoices,
-  fireIntervalChoices,
+  fireCategoryInterval,
+  fireIntervalField,
+  fireRulesChange,
+  fireRulesFormSchema,
+  type FireRulesFormValues,
   type FireSafety,
-  fireSafetyFormSchema,
-  type FireSafetyFormValues,
+  fireSafetyRequest,
+  fireScheduleChange,
+  fireScheduleFormSchema,
+  type FireScheduleFormValues,
   fireSmokingChoices,
   firstFireScheduleField,
   maxWasteKinds,
-  monthChoices,
-  startingFireSafety,
-  toFireSafetyForm,
-  toFireSafetyRequest,
+  startingFireSchedule,
+  toFireRulesForm,
+  toFireScheduleForm,
   wasteKindProblem,
 } from './fire-safety-schema';
-import { CategoryProgram } from './training-program-card';
+import { PositionsButton, PositionsLink } from './positions-links';
+import {
+  CategoryBlock,
+  NoPostsBlock,
+  SessionSentence,
+  TrainingScheduleFields,
+} from './schedule-fields';
+import {
+  categoriesWithPosts,
+  type CategoryPosts,
+  durationText,
+  startingInterval,
+} from './schedule-rules';
 import { type ClientSummary, describedBy, useDocumentDetails } from './use-document-details-form';
 
 function useFireSafety(clientId: string, userId: string) {
@@ -67,10 +93,12 @@ export function FireSafetySection({
   const fireSafety = useFireSafety(client.id, userId);
   // The starting calendar is the occupational safety card's, which loads the same query.
   const details = useDocumentDetails(client.id, userId);
-  if (fireSafety.isPending || details.isPending) {
+  const positions = useJobPositionOptions(client.id, userId);
+  if (fireSafety.isPending || details.isPending || positions.isPending) {
     return <Skeleton className="h-56 w-full rounded-xl" />;
   }
-  if (fireSafety.isError) {
+  if (fireSafety.isError || positions.isError || details.isError) {
+    const failed = fireSafety.isError ? fireSafety : positions.isError ? positions : details;
     return (
       <Card data-testid="fire-safety-unavailable">
         <CardContent>
@@ -79,8 +107,8 @@ export function FireSafetySection({
             action={
               <Button
                 variant="outline"
-                disabled={fireSafety.isFetching}
-                onClick={() => void fireSafety.refetch()}
+                disabled={failed.isFetching}
+                onClick={() => void failed.refetch()}
               >
                 Încearcă din nou
               </Button>
@@ -94,45 +122,114 @@ export function FireSafetySection({
   }
   const { fireSafety: saved, exists } = fireSafety.data;
   return (
-    <FireSafetyCard
-      saved={saved}
-      exists={exists}
-      start={startingFireSafety(saved, exists, details.data?.documentDetails ?? null)}
-      client={client}
-      userId={userId}
-      focus={focus}
-    />
+    <>
+      <FireScheduleCard
+        saved={saved}
+        exists={exists}
+        occupational={details.data.documentDetails}
+        positions={positions.data.items}
+        client={client}
+        userId={userId}
+        focus={focus === 'fire-training-schedule'}
+      />
+      <FireRulesCard
+        saved={saved}
+        exists={exists}
+        client={client}
+        userId={userId}
+        focus={focus === 'fire-smoking' || focus === 'fire-waste' ? focus : undefined}
+      />
+    </>
   );
 }
 
-function FireSafetyCard({
+// The route replaces every field and two cards edit the row, so each sends its own fields over
+// what is saved when its turn to save comes.
+function useFireSafetySave<Values extends FieldValues>({
+  form,
+  saved,
+  clientId,
+  userId,
+  change,
+  successMessage,
+  failureMessage,
+  onDone,
+}: {
+  form: UseFormReturn<Values>;
+  saved: FireSafety;
+  clientId: string;
+  userId: string;
+  change: (values: Values) => Partial<UpdateClientFireSafetyRequest>;
+  successMessage: string;
+  failureMessage: string;
+  onDone: () => void;
+}) {
+  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const savedToast = useSavedToast();
+  const update = useUpdateClientFireSafety({ request: apiRequest });
+
+  const queryKey = [...getGetClientFireSafetyQueryKey(clientId), userId];
+  const onSubmit = form.handleSubmit(async (values) => {
+    try {
+      await inTurn(hashKey(queryKey), async () => {
+        // `saved` is from the last render, and the other card may have saved since.
+        const latest = queryClient.getQueryData<ClientFireSafetyResponse>(queryKey)?.fireSafety;
+        const response = await update.mutateAsync({
+          clientId,
+          data: { ...fireSafetyRequest(latest ?? saved), ...change(values) },
+        });
+        queryClient.setQueryData(queryKey, response);
+      });
+      await queryClient.invalidateQueries({ queryKey });
+      savedToast(successMessage);
+      onDone();
+    } catch (cause) {
+      const status = cause instanceof ApiHttpError ? cause.status : null;
+      const reason =
+        cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>).reason : null;
+      form.setError('root.server' as never, {
+        message:
+          status === 409 && reason === 'client_archived'
+            ? 'Clientul este arhivat; datele lui nu se mai schimbă.'
+            : status === 404
+              ? 'Clientul nu mai există în organizația ta.'
+              : status === 401
+                ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
+                : failureMessage,
+      });
+    }
+  });
+
+  return { onSubmit, busy: update.isPending };
+}
+
+function FireScheduleCard({
   saved,
   exists,
-  start,
+  occupational,
+  positions,
   client,
   userId,
   focus,
 }: {
   saved: FireSafety;
   exists: boolean;
-  start: FireSafety;
+  occupational: Parameters<typeof startingFireSchedule>[1];
+  positions: readonly JobPosition[];
   client: ClientSummary;
   userId: string;
-  focus?: FireTrainingFocus;
+  focus: boolean;
 }) {
   const readOnly = client.archivedAt !== null;
+  const categories = categoriesWithPosts(positions);
+  const { start, starting } = startingFireSchedule(saved, occupational);
   const { editing, editRef, open, close } = useInPlaceEdit();
-  useFocusRequest(focus !== undefined, {
+  useFocusRequest(focus, {
     anchor: () => editRef.current,
     open: readOnly ? undefined : open,
-    field: readOnly
-      ? undefined
-      : focus === 'fire-waste'
-        ? 'fire-waste-input'
-        : focus === 'fire-smoking'
-          ? 'fire-smoking'
-          : firstFireScheduleField(start),
+    field: readOnly ? undefined : firstFireScheduleField(start, categories),
   });
+  const empty = !exists || starting;
 
   return (
     <SectionCard
@@ -141,22 +238,204 @@ function FireSafetyCard({
       action={
         !readOnly &&
         !editing && (
-          <EditAction ref={editRef} empty={!exists} data-testid="fire-safety-edit" onClick={open} />
+          <EditAction ref={editRef} empty={empty} data-testid="fire-safety-edit" onClick={open} />
         )
       }
     >
       {editing ? (
-        <FireSafetyForm
+        <FireScheduleForm
+          saved={saved}
           start={start}
-          exists={exists}
+          starting={starting}
+          categories={categories}
           clientId={client.id}
           userId={userId}
           onDone={close}
         />
+      ) : empty ? (
+        <p data-testid="fire-schedule-empty" className="text-sm text-muted-foreground">
+          Programul instruirii SU nu a fost completat.
+        </p>
       ) : (
-        <FireSafetySummary saved={saved} exists={exists} />
+        <FireScheduleSummary saved={saved} categories={categories} clientId={client.id} />
       )}
     </SectionCard>
+  );
+}
+
+function FireScheduleSummary({
+  saved,
+  categories,
+  clientId,
+}: {
+  saved: FireSafety;
+  categories: readonly CategoryPosts[];
+  clientId: string;
+}) {
+  const schedule = completeFireSchedule(saved, categories);
+  return (
+    <div className="grid gap-4">
+      {categories.length === 0 ? (
+        <NoPostsBlock action={<PositionsButton clientId={clientId} />} />
+      ) : (
+        <div className="grid gap-3">
+          {categories.map(({ category, positions }) => (
+            <CategoryBlock
+              key={category}
+              testId={`fire-schedule-${category === 'execution' ? 'execution' : 'administrative'}`}
+              category={category}
+              positions={positions}
+              interval={fireCategoryInterval(saved, category)}
+              firstMonth={saved.trainingFirstMonth}
+            />
+          ))}
+        </div>
+      )}
+      {schedule ? (
+        <p data-testid="fire-schedule-session" className="text-sm">
+          <SessionSentence
+            duration={durationText('su', schedule.periodicTrainingHours)}
+            dayFrom={schedule.trainingDayFrom}
+            dayTo={schedule.trainingDayTo}
+          />
+        </p>
+      ) : (
+        <p data-testid="fire-schedule-incomplete" className="text-sm text-muted-foreground">
+          Programul nu e complet: alege la Modifică ce lipsește dintre intervale, prima lună, zile
+          și durată.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function FireScheduleForm({
+  saved,
+  start,
+  starting,
+  categories,
+  clientId,
+  userId,
+  onDone,
+}: {
+  saved: FireSafety;
+  start: FireSafety;
+  starting: boolean;
+  categories: readonly CategoryPosts[];
+  clientId: string;
+  userId: string;
+  onDone: () => void;
+}) {
+  const unsaved = categories
+    .map(({ category }) => category)
+    .filter((category) => fireCategoryInterval(start, category) === null);
+  const form = useForm<FireScheduleFormValues>({
+    resolver: zodResolver(fireScheduleFormSchema),
+    defaultValues: {
+      ...toFireScheduleForm(start),
+      ...Object.fromEntries(
+        unsaved.map((category) => [
+          fireIntervalField[category],
+          String(startingInterval('su', category)),
+        ])
+      ),
+    },
+  });
+  const { onSubmit, busy } = useFireSafetySave({
+    form,
+    saved,
+    clientId,
+    userId,
+    change: (values) => fireScheduleChange(values, categories),
+    successMessage: 'Instruirea SU a fost salvată.',
+    failureMessage: 'Nu am putut salva instruirea SU. Verifică conexiunea și încearcă din nou.',
+    onDone,
+  });
+  const formRef = useRevealErrors(form);
+  const { errors, isDirty, isSubmitted } = form.formState;
+  const values = useWatch({ control: form.control });
+  const set = (field: keyof FireScheduleFormValues, value: string) =>
+    form.setValue(field, value, { shouldDirty: true, shouldValidate: isSubmitted });
+  // Each day's message depends on the other day.
+  const setDay = (field: 'trainingDayFrom' | 'trainingDayTo', value: string) => {
+    form.setValue(field, value, { shouldDirty: true });
+    if (isSubmitted) void form.trigger(['trainingDayFrom', 'trainingDayTo']);
+  };
+  const number = (value: string | undefined) => (value ? Number(value) : null);
+
+  return (
+    <form
+      ref={formRef}
+      data-testid="fire-safety-form"
+      onSubmit={(event) => void onSubmit(event)}
+      aria-busy={busy}
+      noValidate
+      className="grid gap-8"
+    >
+      {starting && (
+        <p data-testid="fire-safety-starting" className="-mb-4 text-sm text-muted-foreground">
+          Valori de pornire: durata minimă, intervalul obișnuit al fiecărei categorii și calendarul
+          instruirii SSM. Salvează programul ca să le păstrezi.
+        </p>
+      )}
+      <TrainingScheduleFields
+        domain="su"
+        idPrefix="fire"
+        categories={categories.map((entry) => ({
+          ...entry,
+          interval: number(values[fireIntervalField[entry.category]]),
+          error: errors[fireIntervalField[entry.category]],
+          blockNote:
+            !starting && unsaved.includes(entry.category) ? (
+              <p
+                data-testid={`fire-safety-new-category-${entry.category}`}
+                className="text-xs text-muted-foreground"
+              >
+                Intervalul nu e salvat încă. Am ales intervalul obișnuit, la{' '}
+                {startingInterval('su', entry.category)} luni; salvează programul ca să-l păstrezi.
+              </p>
+            ) : null,
+        }))}
+        firstMonth={number(values.trainingFirstMonth)}
+        dayFrom={values.trainingDayFrom ?? ''}
+        dayTo={values.trainingDayTo ?? ''}
+        duration={number(values.periodicTrainingHours)}
+        disabled={busy}
+        errors={{
+          firstMonth: errors.trainingFirstMonth,
+          dayFrom: errors.trainingDayFrom,
+          dayTo: errors.trainingDayTo,
+          duration: errors.periodicTrainingHours,
+        }}
+        postsLink={<PositionsLink clientId={clientId} />}
+        noPostsAction={<PositionsButton clientId={clientId} />}
+        onIntervalChange={(category, months) => set(fireIntervalField[category], String(months))}
+        onFirstMonthChange={(month) =>
+          set('trainingFirstMonth', month === null ? '' : String(month))
+        }
+        onDayFromChange={(day) => setDay('trainingDayFrom', day)}
+        onDayToChange={(day) => setDay('trainingDayTo', day)}
+        onDurationChange={(hours) => set('periodicTrainingHours', String(hours))}
+      />
+
+      {errors.root?.server && (
+        <Notice variant="destructive" data-testid="fire-safety-error">
+          {errors.root.server.message}
+        </Notice>
+      )}
+      <div className="grid gap-2 sm:flex sm:flex-wrap">
+        <Button
+          type="submit"
+          data-testid="fire-safety-save"
+          disabled={busy || (!starting && !isDirty && unsaved.length === 0)}
+        >
+          {busy ? 'Se salvează…' : 'Salvează programul'}
+        </Button>
+        <Button type="button" variant="ghost" disabled={busy} onClick={onDone}>
+          Renunță
+        </Button>
+      </div>
+    </form>
   );
 }
 
@@ -164,92 +443,72 @@ const unset = (label = 'Necompletat') => (
   <span className="font-normal text-muted-foreground">{label}</span>
 );
 
-const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
-
-const daysLabel = (from: number, to: number) =>
-  from === to ? `în ziua de ${from} a lunii` : `între zilele ${from} și ${to} ale lunii`;
-
-function FireSafetySummary({ saved, exists }: { saved: FireSafety; exists: boolean }) {
-  const schedule = exists ? completeFireSchedule(saved) : null;
-  const { trainingDayFrom: dayFrom, trainingDayTo: dayTo } = saved;
+function FireRulesCard({
+  saved,
+  exists,
+  client,
+  userId,
+  focus,
+}: {
+  saved: FireSafety;
+  exists: boolean;
+  client: ClientSummary;
+  userId: string;
+  focus?: 'fire-smoking' | 'fire-waste';
+}) {
+  const readOnly = client.archivedAt !== null;
+  const { editing, editRef, open, close } = useInPlaceEdit();
+  const empty =
+    !exists ||
+    (saved.smokingPolicy === null &&
+      saved.wasteKinds.length === 0 &&
+      saved.wasteContractor === null &&
+      saved.wasteCollectors === null &&
+      !saved.hasThirdParties);
+  useFocusRequest(focus !== undefined, {
+    anchor: () => editRef.current,
+    open: readOnly ? undefined : open,
+    field: readOnly ? undefined : focus === 'fire-waste' ? 'fire-waste-input' : 'fire-smoking',
+  });
 
   return (
-    <div className="grid gap-5">
-      {schedule ? (
-        <>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <CategoryProgram
-              testId="fire-schedule-execution"
-              label={staffCategoryLabels.execution}
-              interval={schedule.workerTrainingIntervalMonths}
-              firstMonth={schedule.trainingFirstMonth}
-            />
-            <CategoryProgram
-              testId="fire-schedule-administrative"
-              label={staffCategoryLabels.technical_administrative}
-              interval={schedule.administrativeTrainingIntervalMonths}
-              firstMonth={schedule.trainingFirstMonth}
-            />
-          </div>
-          <p data-testid="fire-schedule-session" className="text-sm">
-            Fiecare instruire durează{' '}
-            <span className="font-medium">{schedule.periodicTrainingHours} ore</span> și are loc{' '}
-            <span className="font-medium">
-              {daysLabel(schedule.trainingDayFrom, schedule.trainingDayTo)}
-            </span>
-            .
-          </p>
-        </>
+    <SectionCard
+      data-testid="fire-rules-card"
+      title="Fumat și deșeuri"
+      action={
+        !readOnly &&
+        !editing && (
+          <EditAction ref={editRef} empty={empty} data-testid="fire-rules-edit" onClick={open} />
+        )
+      }
+    >
+      {editing ? (
+        <FireRulesForm saved={saved} clientId={client.id} userId={userId} onDone={close} />
       ) : (
-        <FactList data-testid="fire-schedule-facts">
-          <Fact label="Durata">
-            {saved.periodicTrainingHours === null ? unset() : `${saved.periodicTrainingHours} ore`}
+        <FactList>
+          <Fact label="Fumatul" testId="fire-smoking">
+            {saved.smokingPolicy ? fireSmokingChoices[saved.smokingPolicy] : unset('Nestabilit')}
           </Fact>
-          <Fact label={staffCategoryLabels.execution}>
-            {saved.workerTrainingIntervalMonths === null
-              ? unset()
-              : capitalized(intervalLabel(saved.workerTrainingIntervalMonths))}
+          {saved.smokingPolicy === 'designated_places' && (
+            <Fact label="Locul pentru fumat" testId="fire-smoking-place">
+              {saved.smokingPlace ?? unset()}
+            </Fact>
+          )}
+          <Fact label="Firma care preia deșeurile" testId="fire-waste-contractor">
+            {saved.wasteContractor}
           </Fact>
-          <Fact label={staffCategoryLabels.technical_administrative}>
-            {saved.administrativeTrainingIntervalMonths === null
-              ? unset()
-              : capitalized(intervalLabel(saved.administrativeTrainingIntervalMonths))}
+          <Fact label="Cine colectează deșeurile" testId="fire-waste-collectors">
+            {saved.wasteCollectors ?? unset('Lucrătorii aflați la program')}
           </Fact>
-          <Fact label="Prima lună">
-            {saved.trainingFirstMonth === null ? unset() : monthNames[saved.trainingFirstMonth - 1]}
+          <Fact label="Alte firme în spațiile clientului" testId="fire-third-parties">
+            {saved.hasThirdParties ? 'Da' : 'Nu'}
           </Fact>
-          <Fact label="Zilele lunii">
-            {dayFrom === null || dayTo === null
-              ? unset()
-              : dayFrom === dayTo
-                ? String(dayFrom)
-                : `${dayFrom}–${dayTo}`}
+          <Fact label="Deșeuri colectate" wide testId="fire-waste-kinds">
+            {saved.wasteKinds.length === 0 ? unset() : <WasteChips kinds={saved.wasteKinds} />}
           </Fact>
         </FactList>
       )}
-      <FactList className="border-t pt-5">
-        <Fact label="Fumatul" testId="fire-smoking">
-          {saved.smokingPolicy ? fireSmokingChoices[saved.smokingPolicy] : unset('Nestabilit')}
-        </Fact>
-        {saved.smokingPolicy === 'designated_places' && (
-          <Fact label="Locul pentru fumat" testId="fire-smoking-place">
-            {saved.smokingPlace ?? unset()}
-          </Fact>
-        )}
-        <Fact label="Firma care preia deșeurile" testId="fire-waste-contractor">
-          {saved.wasteContractor}
-        </Fact>
-        <Fact label="Cine colectează deșeurile" testId="fire-waste-collectors">
-          {saved.wasteCollectors ?? unset('Lucrătorii aflați la program')}
-        </Fact>
-        <Fact label="Alte firme în spațiile clientului" testId="fire-third-parties">
-          {saved.hasThirdParties ? 'Da' : 'Nu'}
-        </Fact>
-        <Fact label="Deșeuri colectate" wide testId="fire-waste-kinds">
-          {saved.wasteKinds.length === 0 ? unset() : <WasteChips kinds={saved.wasteKinds} />}
-        </Fact>
-      </FactList>
-    </div>
+    </SectionCard>
   );
 }
 
@@ -289,92 +548,32 @@ function WasteChips({
   );
 }
 
-function ProgramField({
-  id,
-  label,
-  error,
-  hint,
-  describedById,
-  children,
-}: {
-  id: string;
-  label: string;
-  error?: FieldError;
-  hint?: string;
-  describedById?: string;
-  children: (props: { 'aria-invalid': boolean; 'aria-describedby'?: string }) => ReactNode;
-}) {
-  return (
-    <Field id={id} label={label} mark="required" hint={hint} error={error}>
-      {children({
-        'aria-invalid': Boolean(error),
-        'aria-describedby': error ? `${id}-error` : (describedById ?? (hint && `${id}-hint`)),
-      })}
-    </Field>
-  );
-}
-
-function useFireSafetyForm({
-  start,
+function FireRulesForm({
+  saved,
   clientId,
   userId,
   onDone,
 }: {
-  start: FireSafety;
+  saved: FireSafety;
   clientId: string;
   userId: string;
   onDone: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const savedToast = useSavedToast();
-  const update = useUpdateClientFireSafety({ request: apiRequest });
-  const form = useForm<FireSafetyFormValues>({
-    resolver: zodResolver(fireSafetyFormSchema),
-    defaultValues: toFireSafetyForm(start),
+  const form = useForm<FireRulesFormValues>({
+    resolver: zodResolver(fireRulesFormSchema),
+    defaultValues: toFireRulesForm(saved),
   });
-
-  const onSubmit = form.handleSubmit(async (values) => {
-    try {
-      await update.mutateAsync({ clientId, data: toFireSafetyRequest(values) });
-      await queryClient.invalidateQueries({
-        queryKey: [...getGetClientFireSafetyQueryKey(clientId), userId],
-      });
-      savedToast('Instruirea SU a fost salvată.');
-      onDone();
-    } catch (cause) {
-      const status = cause instanceof ApiHttpError ? cause.status : null;
-      const reason =
-        cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>).reason : null;
-      form.setError('root.server', {
-        message:
-          status === 409 && reason === 'client_archived'
-            ? 'Clientul este arhivat; datele lui nu se mai schimbă.'
-            : status === 404
-              ? 'Clientul nu mai există în organizația ta.'
-              : status === 401
-                ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-                : 'Nu am putut salva instruirea SU. Verifică conexiunea și încearcă din nou.',
-      });
-    }
+  const { onSubmit, busy } = useFireSafetySave({
+    form,
+    saved,
+    clientId,
+    userId,
+    change: fireRulesChange,
+    successMessage: 'Fumatul și deșeurile au fost salvate.',
+    failureMessage:
+      'Nu am putut salva fumatul și deșeurile. Verifică conexiunea și încearcă din nou.',
+    onDone,
   });
-
-  return { form, onSubmit, busy: update.isPending };
-}
-
-function FireSafetyForm({
-  start,
-  exists,
-  clientId,
-  userId,
-  onDone,
-}: {
-  start: FireSafety;
-  exists: boolean;
-  clientId: string;
-  userId: string;
-  onDone: () => void;
-}) {
-  const { form, onSubmit, busy } = useFireSafetyForm({ start, clientId, userId, onDone });
   const formRef = useRevealErrors(form);
   const { errors, isDirty } = form.formState;
   const [wasteKinds, wasteDraft, smokingPolicy] = useWatch({
@@ -401,289 +600,169 @@ function FireSafetyForm({
     addWasteKind();
   }
 
-  const select = (
-    name:
-      | 'periodicTrainingHours'
-      | 'administrativeTrainingIntervalMonths'
-      | 'workerTrainingIntervalMonths'
-      | 'trainingFirstMonth',
-    id: string,
-    placeholder: string,
-    choices: readonly { value: string; label: string }[],
-    describedById?: string
-  ) => (
-    <ProgramField
-      id={id}
-      label={fieldLabels[name]}
-      error={errors[name]}
-      describedById={describedById}
-    >
-      {(aria) => (
-        <NativeSelect id={id} data-testid={id} disabled={busy} {...aria} {...form.register(name)}>
-          <NativeSelectOption value="">{placeholder}</NativeSelectOption>
-          {choices.map((choice) => (
-            <NativeSelectOption key={choice.value} value={choice.value}>
-              {choice.label}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-      )}
-    </ProgramField>
-  );
-
   return (
     <form
       ref={formRef}
-      data-testid="fire-safety-form"
+      data-testid="fire-rules-form"
       onSubmit={(event) => void onSubmit(event)}
       aria-busy={busy}
       noValidate
       className="grid gap-6"
     >
-      {!exists && (
-        <p data-testid="fire-safety-starting" className="text-sm text-muted-foreground">
-          Valori de pornire; salvează pentru a le păstra.
-        </p>
-      )}
-
-      <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
-        <section className="grid content-start gap-4" aria-labelledby="fire-training-title">
-          <h3 id="fire-training-title" className="font-semibold">
-            Instruirea periodică
-          </h3>
-          {select('periodicTrainingHours', 'fire-training-hours', 'Alege durata', fireHourChoices)}
-          {select(
-            'workerTrainingIntervalMonths',
-            'fire-worker-interval',
-            'Alege intervalul',
-            fireIntervalChoices,
-            'fire-interval-law'
-          )}
-          {select(
-            'administrativeTrainingIntervalMonths',
-            'fire-administrative-interval',
-            'Alege intervalul',
-            fireIntervalChoices,
-            'fire-interval-law'
-          )}
-          <p id="fire-interval-law" className="-mt-1 text-xs text-muted-foreground">
-            Cel mult la 6 luni, după OMAI 712/2005 art. 26.
-          </p>
-        </section>
-
-        <section
-          className="grid content-start gap-4 border-t pt-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8"
-          aria-labelledby="fire-dates-title"
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field id="fire-smoking" label="Fumatul" mark="required" error={errors.smokingPolicy}>
+          <NativeSelect
+            id="fire-smoking"
+            data-testid="fire-smoking-select"
+            disabled={busy}
+            aria-invalid={Boolean(errors.smokingPolicy)}
+            {...form.register('smokingPolicy')}
+          >
+            <NativeSelectOption value="">Nestabilit</NativeSelectOption>
+            {Object.entries(fireSmokingChoices).map(([value, label]) => (
+              <NativeSelectOption key={value} value={value}>
+                {label}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </Field>
+        {smokingPolicy === 'designated_places' && (
+          <Field
+            id="fire-smoking-place-input"
+            label="Locul pentru fumat"
+            mark="optional"
+            hint="Dacă îl lași gol, decizia privind fumatul spune doar că locurile sunt marcate „LOC PENTRU FUMAT”."
+            error={errors.smokingPlace}
+          >
+            <Input
+              id="fire-smoking-place-input"
+              data-testid="fire-smoking-place-input"
+              autoComplete="off"
+              placeholder="de exemplu, în curtea interioară, lângă poarta de acces auto"
+              disabled={busy}
+              aria-invalid={Boolean(errors.smokingPlace)}
+              aria-describedby={describedBy('fire-smoking-place-input', errors.smokingPlace, true)}
+              {...form.register('smokingPlace')}
+            />
+          </Field>
+        )}
+        <Field
+          id="fire-waste-contractor-input"
+          label="Firma care preia deșeurile"
+          mark="optional"
+          error={errors.wasteContractor}
         >
-          <h3 id="fire-dates-title" className="font-semibold">
-            Programarea instruirii
-          </h3>
-          {select('trainingFirstMonth', 'fire-first-month', 'Alege luna', monthChoices)}
-          <fieldset className="grid gap-2">
-            <legend className="mb-2 text-sm font-medium">
-              Zilele lunii în care are loc instruirea
-            </legend>
-            <div className="grid grid-cols-2 gap-4">
-              {(['trainingDayFrom', 'trainingDayTo'] as const).map((name) => {
-                const id = name === 'trainingDayFrom' ? 'fire-day-from' : 'fire-day-to';
-                return (
-                  <ProgramField
-                    key={name}
-                    id={id}
-                    label={fieldLabels[name]}
-                    error={errors[name]}
-                    describedById="fire-days-hint"
-                  >
-                    {(aria) => (
-                      <Input
-                        id={id}
-                        data-testid={id}
-                        inputMode="numeric"
-                        autoComplete="off"
-                        placeholder={name === 'trainingDayFrom' ? '10' : '15'}
-                        disabled={busy}
-                        {...aria}
-                        {...form.register(name)}
-                      />
-                    )}
-                  </ProgramField>
-                );
-              })}
-            </div>
-            <p id="fire-days-hint" className="text-xs text-muted-foreground">
-              Numai ziua din lună (1–31); lunile vin din interval și prima lună.
-            </p>
-          </fieldset>
-        </section>
+          <Input
+            id="fire-waste-contractor-input"
+            data-testid="fire-waste-contractor-input"
+            autoComplete="off"
+            disabled={busy}
+            aria-invalid={Boolean(errors.wasteContractor)}
+            aria-describedby={describedBy('fire-waste-contractor-input', errors.wasteContractor)}
+            {...form.register('wasteContractor')}
+          />
+        </Field>
+        <Field
+          id="fire-waste-collectors-input"
+          label="Cine colectează deșeurile"
+          mark="optional"
+          hint="Dacă îl lași gol, decizia privind deșeurile numește „lucrătorii aflați la program din cadrul unității”."
+          error={errors.wasteCollectors}
+        >
+          <Input
+            id="fire-waste-collectors-input"
+            data-testid="fire-waste-collectors-input"
+            autoComplete="off"
+            placeholder="de exemplu, muncitorii necalificați și șeful de șantier"
+            disabled={busy}
+            aria-invalid={Boolean(errors.wasteCollectors)}
+            aria-describedby={describedBy(
+              'fire-waste-collectors-input',
+              errors.wasteCollectors,
+              true
+            )}
+            {...form.register('wasteCollectors')}
+          />
+        </Field>
+      </div>
+      <Field
+        id="fire-waste-input"
+        label="Deșeuri colectate"
+        mark="required"
+        hint={`Scrie un tip de deșeu și apasă Enter. Cel mult ${maxWasteKinds}.`}
+        error={errors.wasteDraft}
+      >
+        {wasteKinds.length > 0 && (
+          <WasteChips
+            kinds={wasteKinds}
+            disabled={busy}
+            onRemove={(kind) =>
+              form.setValue(
+                'wasteKinds',
+                wasteKinds.filter((item) => item !== kind),
+                { shouldDirty: true }
+              )
+            }
+          />
+        )}
+        <div className="flex gap-2">
+          <Input
+            id="fire-waste-input"
+            data-testid="fire-waste-input"
+            autoComplete="off"
+            placeholder="de exemplu, deșeuri de carton, hârtie și plastic"
+            disabled={busy}
+            aria-invalid={Boolean(errors.wasteDraft)}
+            aria-describedby={describedBy('fire-waste-input', errors.wasteDraft, true)}
+            onKeyDown={onDraftKey}
+            {...form.register('wasteDraft')}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 shrink-0"
+            data-testid="fire-waste-add"
+            disabled={busy || !wasteDraft.trim()}
+            onClick={addWasteKind}
+          >
+            <Plus aria-hidden="true" />
+            Adaugă
+          </Button>
+        </div>
+      </Field>
+      <div className="grid gap-1">
+        <div className="flex items-center gap-3">
+          <Controller
+            control={form.control}
+            name="hasThirdParties"
+            render={({ field }) => (
+              <Checkbox
+                id="fire-third-parties-input"
+                data-testid="fire-third-parties-input"
+                checked={field.value}
+                disabled={busy}
+                aria-describedby="fire-third-parties-hint"
+                onCheckedChange={(checked) => field.onChange(checked === true)}
+                onBlur={field.onBlur}
+              />
+            )}
+          />
+          <Label htmlFor="fire-third-parties-input">
+            În spațiile clientului lucrează și alte firme (chiriași, prestatori)
+          </Label>
+        </div>
+        <p id="fire-third-parties-hint" className="pl-7 text-xs text-muted-foreground">
+          Decizia privind controlul propriu adaugă controlul trimestrial al acestor firme.
+        </p>
       </div>
 
-      <section className="grid gap-4 border-t pt-6" aria-labelledby="fire-rules-title">
-        <h3 id="fire-rules-title" className="font-semibold">
-          Fumat și deșeuri
-        </h3>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field id="fire-smoking" label="Fumatul" mark="required" error={errors.smokingPolicy}>
-            <NativeSelect
-              id="fire-smoking"
-              data-testid="fire-smoking-select"
-              disabled={busy}
-              aria-invalid={Boolean(errors.smokingPolicy)}
-              {...form.register('smokingPolicy')}
-            >
-              <NativeSelectOption value="">Nestabilit</NativeSelectOption>
-              {Object.entries(fireSmokingChoices).map(([value, label]) => (
-                <NativeSelectOption key={value} value={value}>
-                  {label}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-          </Field>
-          {smokingPolicy === 'designated_places' && (
-            <Field
-              id="fire-smoking-place-input"
-              label="Locul pentru fumat"
-              mark="optional"
-              hint="Dacă îl lași gol, decizia privind fumatul spune doar că locurile sunt marcate „LOC PENTRU FUMAT”."
-              error={errors.smokingPlace}
-            >
-              <Input
-                id="fire-smoking-place-input"
-                data-testid="fire-smoking-place-input"
-                autoComplete="off"
-                placeholder="de exemplu, în curtea interioară, lângă poarta de acces auto"
-                disabled={busy}
-                aria-invalid={Boolean(errors.smokingPlace)}
-                aria-describedby={describedBy(
-                  'fire-smoking-place-input',
-                  errors.smokingPlace,
-                  true
-                )}
-                {...form.register('smokingPlace')}
-              />
-            </Field>
-          )}
-          <Field
-            id="fire-waste-contractor-input"
-            label="Firma care preia deșeurile"
-            mark="optional"
-            error={errors.wasteContractor}
-          >
-            <Input
-              id="fire-waste-contractor-input"
-              data-testid="fire-waste-contractor-input"
-              autoComplete="off"
-              disabled={busy}
-              aria-invalid={Boolean(errors.wasteContractor)}
-              aria-describedby={describedBy('fire-waste-contractor-input', errors.wasteContractor)}
-              {...form.register('wasteContractor')}
-            />
-          </Field>
-          <Field
-            id="fire-waste-collectors-input"
-            label="Cine colectează deșeurile"
-            mark="optional"
-            hint="Dacă îl lași gol, decizia privind deșeurile numește „lucrătorii aflați la program din cadrul unității”."
-            error={errors.wasteCollectors}
-          >
-            <Input
-              id="fire-waste-collectors-input"
-              data-testid="fire-waste-collectors-input"
-              autoComplete="off"
-              placeholder="de exemplu, muncitorii necalificați și șeful de șantier"
-              disabled={busy}
-              aria-invalid={Boolean(errors.wasteCollectors)}
-              aria-describedby={describedBy(
-                'fire-waste-collectors-input',
-                errors.wasteCollectors,
-                true
-              )}
-              {...form.register('wasteCollectors')}
-            />
-          </Field>
-        </div>
-        <Field
-          id="fire-waste-input"
-          label="Deșeuri colectate"
-          mark="required"
-          hint={`Scrie un tip de deșeu și apasă Enter. Cel mult ${maxWasteKinds}.`}
-          error={errors.wasteDraft}
-        >
-          {wasteKinds.length > 0 && (
-            <WasteChips
-              kinds={wasteKinds}
-              disabled={busy}
-              onRemove={(kind) =>
-                form.setValue(
-                  'wasteKinds',
-                  wasteKinds.filter((item) => item !== kind),
-                  { shouldDirty: true }
-                )
-              }
-            />
-          )}
-          <div className="flex gap-2">
-            <Input
-              id="fire-waste-input"
-              data-testid="fire-waste-input"
-              autoComplete="off"
-              placeholder="de exemplu, deșeuri de carton, hârtie și plastic"
-              disabled={busy}
-              aria-invalid={Boolean(errors.wasteDraft)}
-              aria-describedby={describedBy('fire-waste-input', errors.wasteDraft, true)}
-              onKeyDown={onDraftKey}
-              {...form.register('wasteDraft')}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              className="h-11 shrink-0"
-              data-testid="fire-waste-add"
-              disabled={busy || !wasteDraft.trim()}
-              onClick={addWasteKind}
-            >
-              <Plus aria-hidden="true" />
-              Adaugă
-            </Button>
-          </div>
-        </Field>
-        <div className="grid gap-1">
-          <div className="flex items-center gap-3">
-            <Controller
-              control={form.control}
-              name="hasThirdParties"
-              render={({ field }) => (
-                <Checkbox
-                  id="fire-third-parties-input"
-                  data-testid="fire-third-parties-input"
-                  checked={field.value}
-                  disabled={busy}
-                  aria-describedby="fire-third-parties-hint"
-                  onCheckedChange={(checked) => field.onChange(checked === true)}
-                  onBlur={field.onBlur}
-                />
-              )}
-            />
-            <Label htmlFor="fire-third-parties-input">
-              În spațiile clientului lucrează și alte firme (chiriași, prestatori)
-            </Label>
-          </div>
-          <p id="fire-third-parties-hint" className="pl-7 text-xs text-muted-foreground">
-            Decizia privind controlul propriu adaugă controlul trimestrial al acestor firme.
-          </p>
-        </div>
-      </section>
-
       {errors.root?.server && (
-        <Notice variant="destructive" data-testid="fire-safety-error">
+        <Notice variant="destructive" data-testid="fire-rules-error">
           {errors.root.server.message}
         </Notice>
       )}
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="submit"
-          data-testid="fire-safety-save"
-          disabled={busy || (exists && !isDirty)}
-        >
+      <div className="grid gap-2 sm:flex sm:flex-wrap">
+        <Button type="submit" data-testid="fire-rules-save" disabled={busy || !isDirty}>
           {busy ? 'Se salvează…' : 'Salvează'}
         </Button>
         <Button type="button" variant="ghost" disabled={busy} onClick={onDone}>
@@ -693,12 +772,3 @@ function FireSafetyForm({
     </form>
   );
 }
-
-const fieldLabels = {
-  periodicTrainingHours: 'Durata',
-  workerTrainingIntervalMonths: staffCategoryLabels.execution,
-  administrativeTrainingIntervalMonths: staffCategoryLabels.technical_administrative,
-  trainingFirstMonth: 'Prima lună',
-  trainingDayFrom: 'De la ziua',
-  trainingDayTo: 'Până la ziua',
-} as const;

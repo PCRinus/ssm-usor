@@ -56,6 +56,7 @@ export * from './signer-http';
 export * from './sms';
 export * from './subscriptions';
 export * from './tests';
+export * from './training-categories';
 export * from './training-sheets';
 export * from './trainings';
 export * from './waitlist';

@@ -226,6 +226,7 @@ describe('toClientPayload', () => {
     expect(payload.fire_safety).toEqual({
       smoking_policy: 'forbidden_everywhere',
       worker_training_interval_months: 6,
+      periodic_training_hours: 2,
     });
     expect(payload.workplaces).toEqual([
       {
@@ -415,12 +416,15 @@ describe('toClientPayload', () => {
       legal_representative_name: 'Petrescu Ion',
       locality: 'Timisoara Nord',
     });
-    expect(payload.client).not.toHaveProperty('worker_training_interval_months');
+    // The bakers stay, so execution personnel take the law's longest interval in place of the
+    // documents' one the member left out, which waits for the member to confirm it.
+    expect(payload.client).toMatchObject({ worker_training_interval_months: 6 });
     expect(payload.workplaces.map((row) => row.key)).toEqual(['workplace-1']);
     expect(payload.equipment[1]).toMatchObject({ quantity: 2 });
     // The emergency lighting stood at the workplace the member left out.
     expect(blockers).toEqual([
       { path: 'fireInstallations.0.workplace', code: 'unknown_reference' },
+      { path: 'trainingSchedule.workerTrainingIntervalMonths', code: 'choice' },
     ]);
     expect(payload.quality.client).toEqual({ changed: 2, unticked: 0, kept: 0 });
     expect(payload.quality.trainingSchedule).toEqual({ changed: 0, unticked: 1, kept: 0 });
@@ -499,6 +503,8 @@ describe('toClientPayload', () => {
           'client.legalName': { option: 0 },
           'client.cui': { value: '12345674' },
           'client.countyCode': { value: 'TM' },
+          'trainingSchedule.workerTrainingIntervalMonths': { value: 6 },
+          'fireSafety.workerTrainingIntervalMonths': { value: 3 },
         },
         items: {
           'equipment-entry-1': { values: { risk: 'Arsuri' } },
@@ -685,13 +691,14 @@ describe('toClientPayload', () => {
 
     const { payload, blockers } = payloadWith({});
     expect(blockers).toEqual([]);
-    expect(payload.client).toMatchObject({ administrative_training_not_applicable: true });
+    expect(payload.client).not.toHaveProperty('administrative_training_not_applicable');
     expect(payload.fire_safety).toEqual({
       smoking_policy: 'forbidden_everywhere',
       waste_kinds: ['deșeuri menajere', 'carton'],
       waste_collectors: 'vânzătorii de serviciu',
       has_third_parties: false,
       worker_training_interval_months: 6,
+      periodic_training_hours: 2,
     });
     expect(payload.workplaces[0]).toMatchObject({
       floor_area_m2: 120,
@@ -789,9 +796,9 @@ describe('toClientPayload', () => {
     });
   });
 
-  it('blocks a category given both an interval and "not applicable"', () => {
+  it('writes no declared exclusion, so an interval beside one blocks nothing', () => {
     const base = reading();
-    const { blockers } = toClientPayload({
+    const { payload, blockers } = toClientPayload({
       proposal: proposalOf(
         reading({
           facts: [...base.facts, fact('trainingSchedule.workerTrainingNotApplicable', 'da')],
@@ -802,9 +809,9 @@ describe('toClientPayload', () => {
       existing: noExistingRecords,
     });
 
-    expect(blockers).toEqual([
-      { path: 'trainingSchedule.workerTrainingNotApplicable', code: 'invalid' },
-    ]);
+    expect(blockers).toEqual([]);
+    expect(payload.client).toMatchObject({ worker_training_interval_months: 6 });
+    expect(payload.client).not.toHaveProperty('worker_training_not_applicable');
   });
 
   it('blocks a second registered office the member ticks until they untick one or leave one out', () => {
@@ -864,41 +871,404 @@ describe('toClientPayload', () => {
 
     const written = payloadWith({
       'fireSafety.trainingFirstMonth': { value: 9 },
-      'fireSafety.administrativeTrainingIntervalMonths': { value: 6 },
+      'fireSafety.workerTrainingIntervalMonths': { value: 3 },
     });
     expect(written.payload.fire_safety).toMatchObject({
       training_first_month: 9,
-      administrative_training_interval_months: 6,
+      worker_training_interval_months: 3,
     });
   });
 
-  it('writes a staff category none of the posts is in as without periodic training', () => {
+  it('starts an empty SU schedule as the client card would: the usual interval to confirm, two hours and the SSM calendar', () => {
     const base = reading();
-    const category = (jobPosition: string) => ({
-      jobPosition,
-      field: 'staffCategory' as const,
-      value: 'execution',
-      ...quoted(),
-    });
-    const proposal = proposalOf(
-      reading({ jobPositionFacts: [category('Brutar'), category('Vânzător')] })
-    );
+    const payloadWith = (
+      fields: ImportChanges['fields'],
+      existing: ExistingRecords = noExistingRecords,
+      facts: Reading['facts'] = []
+    ) =>
+      toClientPayload({
+        proposal: proposalOf(
+          reading({
+            facts: [
+              ...base.facts.filter(
+                (each) => each.field !== 'trainingSchedule.workerTrainingIntervalMonths'
+              ),
+              fact('trainingSchedule.trainingFirstMonth', '3'),
+              fact('trainingSchedule.workerTrainingIntervalMonths', '2'),
+              fact('trainingSchedule.workerTrainingIntervalMonths', '4', fire),
+              ...facts,
+            ],
+          })
+        ),
+        changes: {
+          fields: { 'trainingSchedule.workerTrainingIntervalMonths': { option: 0 }, ...fields },
+          items: {},
+        },
+        intoExistingClient: existing !== noExistingRecords,
+        existing,
+      });
 
+    const pending = payloadWith({ 'trainingSchedule.trainingDayFrom': { value: 10 } });
+    expect(pending.blockers).toEqual([
+      { path: 'fireSafety.workerTrainingIntervalMonths', code: 'choice' },
+    ]);
+    expect(pending.payload.fire_safety).toEqual({
+      smoking_policy: 'forbidden_everywhere',
+      worker_training_interval_months: 3,
+      periodic_training_hours: 2,
+      training_first_month: 3,
+      training_day_from: 10,
+    });
+
+    const confirmed = payloadWith({ 'fireSafety.workerTrainingIntervalMonths': { value: 3 } });
+    expect(confirmed.blockers).toEqual([]);
+    expect(confirmed.payload.fire_safety).toMatchObject({
+      worker_training_interval_months: 3,
+      periodic_training_hours: 2,
+      training_first_month: 3,
+    });
+
+    const smokingOnly: ExistingRecords = {
+      ...noExistingRecords,
+      client: {
+        cui: '12345674',
+        training_first_month: 9,
+        training_day_from: 1,
+        training_day_to: 5,
+      },
+      fireSafety: { smoking_policy: 'designated_places' },
+    };
+    const existingClient = payloadWith(
+      { 'fireSafety.workerTrainingIntervalMonths': { value: 2 } },
+      smokingOnly
+    );
+    expect(existingClient.payload.fire_safety).toMatchObject({
+      worker_training_interval_months: 2,
+      periodic_training_hours: 2,
+      training_first_month: 3,
+      training_day_from: 1,
+      training_day_to: 5,
+    });
+
+    const started = payloadWith(
+      {},
+      {
+        ...smokingOnly,
+        fireSafety: { periodic_training_hours: 4, worker_training_interval_months: 1 },
+      }
+    );
+    expect(started.blockers).toEqual([]);
+    expect(started.payload.fire_safety).not.toHaveProperty('periodic_training_hours');
+    expect(started.payload.fire_safety).not.toHaveProperty('training_day_from');
+  });
+
+  it('writes no SU schedule where the client keeps no posts and the documents give none', () => {
     const { payload, blockers } = toClientPayload({
-      proposal,
-      changes: null,
+      proposal: proposalOf(
+        reading({ facts: reading().facts.filter((each) => !each.field.endsWith('IntervalMonths')) })
+      ),
+      changes: {
+        fields: {},
+        items: { 'position-1': { included: false }, 'position-2': { included: false } },
+      },
       intoExistingClient: false,
       existing: noExistingRecords,
     });
+    expect(blockers.filter((blocker) => blocker.path.startsWith('fireSafety.'))).toEqual([]);
+    expect(payload.fire_safety).toEqual({ smoking_policy: 'forbidden_everywhere' });
+  });
 
-    expect(blockers).toEqual([]);
-    expect(payload.client).toMatchObject({
-      worker_training_interval_months: 6,
-      administrative_training_not_applicable: true,
+  it('writes and waits for no interval of a category without kept posts, whatever the documents give', () => {
+    const base = reading();
+    const intervals = (worker: string[], administrative: string[]) => [
+      ...base.facts.filter(
+        (each) => each.field !== 'trainingSchedule.workerTrainingIntervalMonths'
+      ),
+      ...worker.map((months) => fact('trainingSchedule.workerTrainingIntervalMonths', months)),
+      ...administrative.map((months, index) =>
+        fact(
+          'trainingSchedule.administrativeTrainingIntervalMonths',
+          months,
+          `Dosar/Decizia ${index}.docx`
+        )
+      ),
+    ];
+    const payloadOf = (facts: Reading['facts'], items: ImportChanges['items'] = {}) =>
+      toClientPayload({
+        proposal: withChecks(proposalOf(reading({ facts })), { files: {} }),
+        changes: { fields: {}, items },
+        intoExistingClient: false,
+        existing: noExistingRecords,
+      });
+
+    const both = payloadOf(intervals(['6'], ['6', '12']));
+    expect(both.blockers).toEqual([]);
+    expect(both.payload.client).not.toHaveProperty('administrative_training_interval_months');
+
+    const tooLong = payloadOf(intervals(['12'], []), {
+      'position-1': { included: false },
+      'position-2': { included: false },
     });
-    expect(base.facts).not.toContainEqual(
-      expect.objectContaining({ field: 'trainingSchedule.administrativeTrainingNotApplicable' })
+    expect(tooLong.blockers).toEqual([]);
+    expect(tooLong.payload.client).not.toHaveProperty('worker_training_interval_months');
+  });
+
+  it('gives a category with posts its starting interval in both schedules where the documents give none, once the member confirms it', () => {
+    const base = reading();
+    const category = (jobPosition: string, value: string) => ({
+      jobPosition,
+      field: 'staffCategory' as const,
+      value,
+      ...quoted(),
+    });
+    const payloadOf = (
+      categories: ReturnType<typeof category>[],
+      fields: ImportChanges['fields'] = {}
+    ) =>
+      toClientPayload({
+        proposal: proposalOf(
+          reading({
+            facts: base.facts.filter(
+              (each) => each.field !== 'trainingSchedule.workerTrainingIntervalMonths'
+            ),
+            jobPositionFacts: categories,
+          })
+        ),
+        changes: { fields, items: {} },
+        intoExistingClient: false,
+        existing: noExistingRecords,
+      });
+
+    const execution = payloadOf([category('Brutar', 'execution')]);
+    expect(execution.blockers).toEqual([
+      { path: 'trainingSchedule.workerTrainingIntervalMonths', code: 'choice' },
+      { path: 'fireSafety.workerTrainingIntervalMonths', code: 'choice' },
+    ]);
+    expect(execution.payload.client).toMatchObject({ worker_training_interval_months: 6 });
+    expect(execution.payload.fire_safety).toMatchObject({ worker_training_interval_months: 3 });
+    expect(execution.payload.client).not.toHaveProperty('administrative_training_interval_months');
+    expect(execution.payload.client).not.toHaveProperty('administrative_training_not_applicable');
+
+    const both = payloadOf([
+      category('Brutar', 'execution'),
+      category('Vânzător', 'technical_administrative'),
+    ]);
+    expect(both.payload.client).toMatchObject({
+      worker_training_interval_months: 6,
+      administrative_training_interval_months: 12,
+    });
+    expect(both.payload.fire_safety).toMatchObject({
+      worker_training_interval_months: 3,
+      administrative_training_interval_months: 6,
+    });
+    expect(both.blockers).toEqual([
+      { path: 'trainingSchedule.workerTrainingIntervalMonths', code: 'choice' },
+      { path: 'trainingSchedule.administrativeTrainingIntervalMonths', code: 'choice' },
+      { path: 'fireSafety.workerTrainingIntervalMonths', code: 'choice' },
+      { path: 'fireSafety.administrativeTrainingIntervalMonths', code: 'choice' },
+    ]);
+
+    const confirmed = payloadOf([category('Brutar', 'execution')], {
+      'trainingSchedule.workerTrainingIntervalMonths': { value: 6 },
+      'fireSafety.workerTrainingIntervalMonths': { value: 3 },
+    });
+    expect(confirmed.blockers).toEqual([]);
+    expect(confirmed.payload.client).toMatchObject({ worker_training_interval_months: 6 });
+    expect(confirmed.payload.fire_safety).toMatchObject({ worker_training_interval_months: 3 });
+    // A "Nu se aplică" an older review saved is no confirmation.
+    const excluded = payloadOf([category('Brutar', 'execution')], {
+      'trainingSchedule.workerTrainingIntervalMonths': { value: null },
+      'fireSafety.workerTrainingIntervalMonths': { value: 3 },
+    });
+    expect(excluded.blockers).toEqual([
+      { path: 'trainingSchedule.workerTrainingIntervalMonths', code: 'choice' },
+    ]);
+  });
+
+  it('waits for the member on an interval outside the list, whoever gave it', () => {
+    const base = reading();
+    const path = 'trainingSchedule.administrativeTrainingIntervalMonths';
+    const payloadOf = (fields: ImportChanges['fields'] = {}) =>
+      toClientPayload({
+        proposal: proposalOf(
+          reading({
+            facts: [
+              ...base.facts,
+              fact(path, '5'),
+              fact('fireSafety.workerTrainingIntervalMonths', '3'),
+            ],
+            jobPositionFacts: [
+              ...base.jobPositionFacts,
+              {
+                jobPosition: 'Vânzător',
+                field: 'staffCategory',
+                value: 'technical_administrative',
+                ...quoted(),
+              },
+            ],
+          })
+        ),
+        changes: {
+          fields: { 'fireSafety.administrativeTrainingIntervalMonths': { value: 6 }, ...fields },
+          items: {},
+        },
+        intoExistingClient: false,
+        existing: noExistingRecords,
+      });
+
+    expect(payloadOf().blockers).toContainEqual(expect.objectContaining({ path }));
+    expect(payloadOf({ [path]: { value: 9 } }).blockers).toEqual([{ path, code: 'choice' }]);
+    const picked = payloadOf({ [path]: { value: 4 } });
+    expect(picked.blockers).toEqual([]);
+    expect(picked.payload.client).toMatchObject({ administrative_training_interval_months: 4 });
+  });
+
+  it('counts the posts an existing client has and writes over its exclusion of a category with posts', () => {
+    const existing: ExistingRecords = {
+      ...noExistingRecords,
+      client: {
+        cui: '12345678',
+        worker_training_interval_months: 6,
+        administrative_training_interval_months: null,
+        administrative_training_not_applicable: true,
+      },
+      jobPositions: [
+        {
+          id: '1c8b6b1f-4d62-4b40-8e1f-6b2c3d4e5f60',
+          name: 'Contabil',
+          staff_category: 'technical_administrative',
+        },
+      ],
+    };
+    const { payload, blockers } = toClientPayload({
+      proposal: proposalOf(reading()),
+      changes: null,
+      intoExistingClient: true,
+      existing,
+    });
+
+    expect(blockers).toEqual([
+      { path: 'trainingSchedule.administrativeTrainingIntervalMonths', code: 'choice' },
+      { path: 'fireSafety.administrativeTrainingIntervalMonths', code: 'choice' },
+    ]);
+    expect(payload.client).toMatchObject({
+      administrative_training_interval_months: 12,
+      replace: ['administrative_training_interval_months'],
+    });
+  });
+
+  it("counts an existing client's post by the category confirming leaves it, not the imported one", () => {
+    const base = reading();
+    const seller = '2a3b4c5d-6e7f-4081-9a2b-3c4d5e6f7a8b';
+    const payloadWith = (items: ImportChanges['items']) =>
+      toClientPayload({
+        proposal: proposalOf(
+          reading({
+            jobPositionFacts: [
+              {
+                jobPosition: 'Vânzător',
+                field: 'staffCategory',
+                value: 'technical_administrative',
+                ...quoted(),
+              },
+            ],
+          })
+        ),
+        changes: { fields: {}, items },
+        intoExistingClient: true,
+        existing: {
+          ...noExistingRecords,
+          client: { cui: '12345674' },
+          jobPositions: [{ id: seller, name: 'vânzător', staff_category: 'execution' }],
+        },
+      });
+
+    expect(payloadWith({}).payload.client).not.toHaveProperty(
+      'administrative_training_interval_months'
     );
+    const replaced = payloadWith({
+      'position-2': { existingId: seller, replace: ['staffCategory'] },
+    });
+    expect(replaced.payload.client).toMatchObject({ administrative_training_interval_months: 12 });
+    expect(base.facts).not.toContainEqual(
+      expect.objectContaining({ field: 'trainingSchedule.administrativeTrainingIntervalMonths' })
+    );
+  });
+
+  it("keeps an existing client's schedule value where the documents give two, until the member takes one", () => {
+    const base = reading();
+    const payloadWith = (fields: ImportChanges['fields']) =>
+      toClientPayload({
+        proposal: proposalOf(
+          reading({
+            facts: [
+              ...base.facts,
+              fact('trainingSchedule.workerTrainingIntervalMonths', '3', fire),
+              fact('trainingSchedule.trainingFirstMonth', '2'),
+              fact('trainingSchedule.trainingFirstMonth', '5', fire),
+            ],
+          })
+        ),
+        changes: { fields, items: {} },
+        intoExistingClient: true,
+        existing: {
+          ...noExistingRecords,
+          client: { cui: '12345674', worker_training_interval_months: 4, training_first_month: 1 },
+          fireSafety: { worker_training_interval_months: 3 },
+        },
+      });
+
+    const kept = payloadWith({});
+    expect(kept.blockers).toEqual([]);
+    expect(kept.payload.client).not.toHaveProperty('worker_training_interval_months');
+    expect(kept.payload.client).not.toHaveProperty('training_first_month');
+
+    const taken = payloadWith({
+      'trainingSchedule.workerTrainingIntervalMonths': { option: 1, replace: true },
+    });
+    expect(taken.blockers).toEqual([]);
+    expect(taken.payload.client).toMatchObject({
+      worker_training_interval_months: 3,
+      replace: ['worker_training_interval_months'],
+    });
+  });
+
+  it('blocks a last training day before the first, as the database would refuse it', () => {
+    const base = reading();
+    const payloadWith = (
+      fields: ImportChanges['fields'],
+      intoExistingClient = false,
+      client: Record<string, unknown> | null = null
+    ) =>
+      toClientPayload({
+        proposal: proposalOf(
+          reading({
+            facts: [
+              ...base.facts,
+              fact('trainingSchedule.trainingDayFrom', '12'),
+              fact('trainingSchedule.trainingDayTo', '15'),
+            ],
+          })
+        ),
+        changes: { fields, items: {} },
+        intoExistingClient,
+        existing: { ...noExistingRecords, client },
+      });
+
+    expect(payloadWith({}).blockers).toEqual([]);
+    expect(payloadWith({ 'trainingSchedule.trainingDayTo': { value: 7 } }).blockers).toEqual([
+      { path: 'trainingSchedule.trainingDayTo', code: 'invalid' },
+    ]);
+    expect(payloadWith({ 'fireSafety.trainingDayFrom': { value: 20 } }).blockers).toContainEqual({
+      path: 'fireSafety.trainingDayTo',
+      code: 'invalid',
+    });
+    const existingDays = { cui: '12345674', training_day_from: 1, training_day_to: 10 };
+    expect(payloadWith({}, true, existingDays).blockers).toEqual([]);
+    expect(
+      payloadWith({ 'trainingSchedule.trainingDayFrom': { replace: true } }, true, existingDays)
+        .blockers
+    ).toEqual([{ path: 'trainingSchedule.trainingDayTo', code: 'invalid' }]);
   });
 
   it('blocks a fire-safety value the checks found outside what the database takes', () => {

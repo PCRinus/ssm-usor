@@ -22,10 +22,11 @@ import {
 } from 'lucide-react';
 import { useId, useState } from 'react';
 
+import { Segmented } from '@/components/segmented';
 import { articleCountLabel, groupLabels } from '@/features/instructions/instruction-schema';
 
 import { EditedTag, SourceButton, Tag } from '../review-parts';
-import { DecisionRow, PendingNote, RenameRow, Segmented, type Tone } from './decision-row';
+import { DecisionRow, PendingNote, RenameRow, type Tone } from './decision-row';
 import { LibraryDifferences } from './library-differences';
 import {
   categoriesOf,
