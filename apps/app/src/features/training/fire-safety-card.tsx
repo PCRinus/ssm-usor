@@ -6,6 +6,7 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
+import { hashKey } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { Plus, X } from 'lucide-react';
 import type { KeyboardEvent } from 'react';
@@ -170,7 +171,7 @@ function useFireSafetySave<Values extends FieldValues>({
   const queryKey = [...getGetClientFireSafetyQueryKey(clientId), userId];
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      await inTurn(queryKey.join('/'), async () => {
+      await inTurn(hashKey(queryKey), async () => {
         // `saved` is from the last render, and the other card may have saved since.
         const latest = queryClient.getQueryData<ClientFireSafetyResponse>(queryKey)?.fireSafety;
         const response = await update.mutateAsync({
