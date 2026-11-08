@@ -282,7 +282,7 @@ O pagină ajunge la o persoană după CNP, dacă cifra lui de control se potrive
 
 - **De verificat**: încă nu ai trecut prin ea sau are ceva de hotărât;
 - **Verificat**: o persoană fără nimic de hotărât devine verificată când treci de pe pagina ei la următoarea; una cu ceva de hotărât, după ce ai hotărât. Redevine **De verificat** când o corectură, o pagină pe care i-o dai sau o alegere îi lasă din nou ceva de hotărât;
-- **Lăsat deoparte**: nu se creează. O iei înapoi oricând, de pe pagina ei.
+- **Lăsat deoparte**: nu se creează. O iei înapoi oricând, cu comutatorul de lângă numele ei, pe pagina ei.
 
 Lista se filtrează după aceste stări. Persoanele de verificat sunt împărțite în **Cu ceva de hotărât** și **Încă nedeschise**. **Continuă cu …** te duce la următoarea persoană de verificat.
 
@@ -294,7 +294,7 @@ O pagină pe care aplicația nu o poate lega de nicio persoană apare sub listă
 
 ## Pagina unei persoane
 
-Pe pagina unei persoane vezi, alături, fotografiile fișelor ei; un clic pe una o mărește. Sus sunt lucrurile de hotărât, apoi datele citite, pe grupuri, și instruirile, pe domenii. O valoare citită greșit o corectezi cu **Schimbă**. Cu butoanele de jos treci la persoana anterioară sau la următoarea.
+Pe pagina unei persoane vezi, alături, fotografiile fișelor ei; un clic pe una o mărește. Comutatorul de lângă nume hotărăște dacă persoana se creează: oprit, o lasă deoparte, pornit din nou, o ia înapoi la verificat. Sus sunt lucrurile de hotărât, apoi datele citite, pe grupuri, și instruirile, pe domenii. O valoare citită greșit o corectezi cu **Schimbă**. Cu butoanele de jos treci la persoana anterioară sau la următoarea.
 
 Ca să fie creat, un lucrător are nevoie de nume, prenume, funcția din contract, data angajării și un post. Emailul și telefonul nu sunt obligatorii: când lipsesc, vezi „Fără email sau telefon. Îl adaugi când îl inviți în portal.” Când fișele aceleiași persoane scriu valori diferite, de exemplu două date ale angajării, alegi una.
 
@@ -330,7 +330,7 @@ O instruire de pe fișă care e deja în aplicație, același domeniu, același 
 
 ### Cine a plecat din firmă
 
-O fișă cu data plecării e propusă nebifată. Bifează **Preia-l ca fost lucrător, cu instruirile lui** dacă vrei să-l ai în evidență: apare la **Foști lucrători**. Dacă ștergi data plecării, persoana e propusă bifată, ca lucrător actual.
+O fișă cu data plecării e propusă cu comutatorul oprit, pe cardul plecării. Pornește-l dacă vrei să-l ai în evidență: îl preluăm ca fost lucrător, cu instruirile lui, și apare la **Foști lucrători**. Dacă ștergi data plecării, persoana e propusă inclusă, ca lucrător actual.
 
 Când persoana se potrivește cu un fost lucrător al clientului, vezi asta pe pagina ei. Dacă fișa scrie o dată a angajării de după plecarea lui, persoana a fost reangajată, iar în aplicație o reangajare e un lucrător nou (vezi [Reangajarea](/clienti/angajati/plecare/#reangajarea)). Importul nu reactivează fostul lucrător, iar persoana are ceva de hotărât până alegi una dintre:
 
@@ -340,13 +340,13 @@ Când persoana se potrivește cu un fost lucrător al clientului, vezi asta pe p
 
 ### Rândurile de instruire
 
-Se preiau toate instruirile de pe fișă, nu doar cele de care depinde termenul: introductiv-generală, la locul de muncă, periodice și suplimentare, cu ziua, durata, cine a instruit, funcția lui și materialul. „Admis la lucru”, cu ziua și cine l-a admis, merge la instruirea la locul de muncă. Un rând îl corectezi cu **Schimbă** sau îl scoți debifându-l.
+Se preiau toate instruirile de pe fișă, nu doar cele de care depinde termenul: introductiv-generală, la locul de muncă, periodice și suplimentare, cu ziua, durata, cine a instruit, funcția lui și materialul. „Admis la lucru”, cu ziua și cine l-a admis, merge la instruirea la locul de muncă. Un rând îl corectezi cu **Schimbă** sau îl scoți oprind comutatorul din dreapta lui: se strânge pe loc la felul și data instruirii, cu „Nu e inclusă”, și îl pornești din nou oricând. Testul la angajare și testul anual au și ele comutatorul lor.
 
 Unele rânduri poartă o etichetă:
 
 - **Doar luna pe fișă**: fișa scrie doar luna și anul; ziua devine prima zi a lunii;
 - **Din tematica clientului**: instructorul, funcția lui sau materialul lipseau de pe fișă și au fost luate din tematica și instructorul clientului;
-- **Nesemnat pe fișă**: rândul e completat, dar rubrica de semnătură e goală; e propus nebifat și se preia doar dacă îl bifezi;
+- **Nesemnat pe fișă**: rândul e completat, dar rubrica de semnătură e goală; e propus oprit și se preia doar dacă îl pornești;
 - **Semnătura nu se vede clar**: verifică pe fotografie.
 
 O durată scrisă în ore, de exemplu „8 ore” sau „1h30”, e citită în minute. Sunt semnalate, dar nu opresc nimic:
@@ -368,7 +368,7 @@ Testul anual SU consemnat în tabelul instruirilor periodice devine un rezultat 
 
 Instruirea la angajare se încheie cu testul. În SSM, rezultatul se consemnează în fișă (HG 1425/2006, art. 89 alin. (1) și (2)); în SU, cei instruiți sunt verificați pe bază de teste la sfârșitul instructajului introductiv general și înainte de admiterea definitivă la lucru (OMAI 712/2005, art. 14 și 20). Pe fișă, cel care a verificat cunoștințele semnează în rubrica „Verificat”. Când semnătura lui se vede, importul înregistrează testul la angajare ca promovat pe hârtie, cu el ca examinator: testul SSM din blocul fișei SSM, testul SU din blocul fișei SU. Testul ia ziua rândului semnat, așa cum o lași după corecturi, și urmează paginile când le muți de la o persoană la alta.
 
-Când semnătura nu se vede, vezi „Testul la angajare nu a putut fi verificat pe fișă: semnătura nu se vede clar sau lipsește.” Dacă semnătura e pe original, bifează **Testul la angajare: verificat pe fișă** și completează examinatorul, dacă nu s-a citit. Altfel, lucrătorul ajunge cu testarea în starea **Neverificat pe fișă** (vezi [Starea testării](/clienti/angajati/#starea-testării)), iar rezultatul îl poți înregistra și mai târziu, pe pagina lui.
+Când semnătura nu se vede, vezi „Testul la angajare nu a putut fi verificat pe fișă: semnătura nu se vede clar sau lipsește.” Dacă semnătura e pe original, pornește comutatorul de la **Testul la angajare: verificat pe fișă** și completează examinatorul, dacă nu s-a citit. Altfel, lucrătorul ajunge cu testarea în starea **Neverificat pe fișă** (vezi [Starea testării](/clienti/angajati/#starea-testării)), iar rezultatul îl poți înregistra și mai târziu, pe pagina lui.
 
 ## Salvarea și cele 14 zile
 

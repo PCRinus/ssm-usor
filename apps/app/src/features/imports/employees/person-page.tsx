@@ -1,5 +1,4 @@
 import { Button } from '@ssm-usor/ui/components/button';
-import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { CircleAlert } from 'lucide-react';
@@ -9,6 +8,7 @@ import type { ImportDetail } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
 import { roCount } from '@/features/employees/employee-format';
 
+import { IncludeSwitch } from '../include-switch';
 import { Tag } from '../review-parts';
 import { SourceDialog, type SourceRequest } from '../source-dialog';
 import {
@@ -150,17 +150,22 @@ export function EmployeePersonPage({
   return (
     <ShowPageContext value={showPage}>
       <div className="grid gap-5" data-testid="person-page" data-state={state}>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="grid gap-1">
-            <h1 className="text-2xl font-semibold tracking-tight">{name}</h1>
-            <p className="text-sm text-muted-foreground">
-              Din {pagesPhotosLabel(pages)}.{' '}
-              {existing
-                ? 'Ce are deja în aplicație nu se schimbă fără alegerea ta.'
-                : 'Valorile se preiau așa cum sunt, dacă nu le schimbi.'}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-1 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+          <h1 className="col-start-1 row-start-1 text-2xl font-semibold tracking-tight">{name}</h1>
+          <p className="col-span-2 row-start-2 text-sm text-muted-foreground sm:col-span-1">
+            Din {pagesPhotosLabel(pages)}.{' '}
+            {existing
+              ? 'Ce are deja în aplicație nu se schimbă fără alegerea ta.'
+              : 'Valorile se preiau așa cum sunt, dacă nu le schimbi.'}
+          </p>
+          <IncludeSwitch
+            name={name}
+            included={state !== 'set_aside'}
+            testId="person-set-aside"
+            className="col-start-2 row-start-1 h-8 sm:col-start-3"
+            onChange={(next) => setAside(!next)}
+          />
+          <div className="col-span-2 mt-1 flex flex-wrap items-center gap-3 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:mt-0 sm:h-8">
             <Tag tone={stateLabels[state].tone} testId="person-state">
               {stateLabels[state].label}
             </Tag>
@@ -171,14 +176,6 @@ export function EmployeePersonPage({
             >
               Persoana {index + 1} din {people.length}
             </Link>
-            <Button
-              variant="outline"
-              size="sm"
-              data-testid="person-set-aside"
-              onClick={() => setAside(state !== 'set_aside')}
-            >
-              {state === 'set_aside' ? 'Ia-l înapoi la verificat' : 'Lasă-l deoparte'}
-            </Button>
           </div>
         </div>
         <SaveStatus review={review} />
@@ -201,8 +198,8 @@ export function EmployeePersonPage({
             <PhotoThumbs detail={detail} pages={pages} name={name} onShow={showPage} />
             {state === 'set_aside' && (
               <Notice variant="info">
-                {name} e lăsat deoparte: nu se creează la confirmare. Îl poți lua înapoi oricând
-                înainte de confirmare.
+                {name} e lăsat deoparte: nu se creează la confirmare. Pornește comutatorul de lângă
+                nume ca să-l iei înapoi la verificat.
               </Notice>
             )}
             {decisions.length > 0 && (
@@ -309,27 +306,26 @@ export function EmployeePersonPage({
                 id="leaver"
                 tone="warning"
                 title={`A plecat din firmă la ${dateLabel(String(leftOn))}`}
-              >
-                <label className="flex items-start gap-3 text-sm">
-                  <Checkbox
-                    checked={included}
-                    data-testid="person-leaver-include"
-                    onCheckedChange={(checked) =>
+                toggle={
+                  <IncludeSwitch
+                    name={`${name}, ca fost lucrător`}
+                    included={included}
+                    testId="person-leaver-include"
+                    onChange={(next) =>
                       review.update((current) =>
                         withPersonChange(current, person.id, (change) => ({
                           ...change,
-                          included: checked === true,
+                          included: next,
                         }))
                       )
                     }
                   />
-                  <span>
-                    Preia-l ca fost lucrător, cu instruirile lui.{' '}
-                    <span className="text-muted-foreground">
-                      Fără bifă nu îl creăm; apare la Foști lucrători dacă îl preiei.
-                    </span>
-                  </span>
-                </label>
+                }
+              >
+                <p className="text-sm text-muted-foreground">
+                  Inclus, îl preluăm ca fost lucrător, cu instruirile lui, și apare la Foști
+                  lucrători. Oprit, nu îl creăm.
+                </p>
               </DecideCard>
             )}
             {existing ? (

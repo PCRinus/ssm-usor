@@ -7,7 +7,6 @@ import {
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card } from '@ssm-usor/ui/components/card';
-import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import {
   Dialog,
   DialogBody,
@@ -27,6 +26,7 @@ import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { roCount } from '@/features/employees/employee-format';
 
+import { IncludeSwitch, LeftOutRow } from '../include-switch';
 import { Tag } from '../review-parts';
 import {
   type Changes,
@@ -36,6 +36,7 @@ import {
   pagesOf,
   type Person,
   personName,
+  proposedRowIncluded,
   type ReviewContext,
   rowIncluded,
   type RowValues,
@@ -76,7 +77,7 @@ function RowTags({ row, included }: { row: SheetRow; included: boolean }) {
 
 function rowNote(row: SheetRow, values: RowValues, included: boolean, who: string) {
   if (row.flags.includes('unsigned') && !included) {
-    return `Rândul e completat, dar rubrica semnăturii lui ${who} e goală. Nu-l preluăm decât dacă îl bifezi.`;
+    return `Rândul e completat, dar rubrica semnăturii lui ${who} e goală. Nu-l preluăm decât dacă îl incluzi.`;
   }
   if (!included) return null;
   const notes: string[] = [];
@@ -93,31 +94,6 @@ function rowNote(row: SheetRow, values: RowValues, included: boolean, who: strin
     );
   }
   return notes.length > 0 ? notes.join(' ') : null;
-}
-
-function IncludeBox({
-  row,
-  included,
-  label,
-  onChange,
-}: {
-  row: SheetRow;
-  included: boolean;
-  label: string;
-  onChange: Update;
-}) {
-  return (
-    <Checkbox
-      checked={included}
-      aria-label={label}
-      data-testid="person-row-include"
-      onCheckedChange={(checked) =>
-        onChange((current) =>
-          withRow(current, row.id, (change) => ({ ...change, included: checked === true }))
-        )
-      }
-    />
-  );
 }
 
 function TrainingRow({
@@ -137,9 +113,25 @@ function TrainingRow({
   onEdit: (row: SheetRow) => void;
   onChange: Update;
 }) {
+  const matched = isExisting(context, person);
   const values = rowValues(context.changes, row);
-  const included = rowIncluded(context.changes, row, isExisting(context, person));
+  const included = rowIncluded(context.changes, row, matched);
   const date = values.heldOn ? dateLabel(values.heldOn) : null;
+  const name = `Instruirea ${trainingPhaseLabels[row.phase].toLowerCase()} din ${date ?? 'data necitită'}`;
+  const include = (next: boolean) =>
+    onChange((current) => withRow(current, row.id, (change) => ({ ...change, included: next })));
+  if (!included && proposedRowIncluded(row, matched)) {
+    return (
+      <li className="py-2.5" data-testid="person-training-row" data-included={false}>
+        <LeftOutRow
+          name={name}
+          agreement="feminine"
+          switchTestId="person-row-include"
+          onInclude={() => include(true)}
+        />
+      </li>
+    );
+  }
   const note = rowNote(row, values, included, personName(context, person));
   const missing = (value: unknown, label: string) =>
     value === null || value === '' ? (
@@ -153,31 +145,14 @@ function TrainingRow({
       data-testid="person-training-row"
       data-included={included}
     >
-      <div className="grid grid-cols-[1.25rem_minmax(0,1fr)_auto_auto] items-start gap-x-3 gap-y-1 sm:grid-cols-[1.25rem_1.5rem_6.5rem_5rem_minmax(0,1fr)_auto]">
-        <IncludeBox
-          row={row}
-          included={included}
-          label={`Preia instruirea ${trainingPhaseLabels[row.phase].toLowerCase()} din ${date ?? 'data necitită'}`}
-          onChange={onChange}
-        />
-        <span className="col-start-3 row-start-1 flex sm:col-start-auto sm:row-start-auto">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_auto_auto] items-start gap-x-3 gap-y-1 sm:grid-cols-[1.5rem_6.5rem_5rem_minmax(0,1fr)_auto_auto]">
+        <span className="col-start-2 row-start-1 flex sm:col-start-1">
           <PageButton pages={pages} pageId={page.id} />
         </span>
-        <span className="col-start-2 flex flex-wrap items-center gap-1.5 text-sm tabular-nums sm:col-start-auto">
+        <span className="col-start-1 row-start-1 flex flex-wrap items-center gap-1.5 text-sm tabular-nums sm:col-start-2">
           {date ?? missing(null, 'Data nu se citește')}
         </span>
-        {row.phase !== 'periodic' && (
-          <span className="col-span-3 col-start-2 text-sm sm:hidden">
-            {trainingPhaseLabels[row.phase]}
-          </span>
-        )}
-        <span className="col-span-3 col-start-2 flex flex-wrap items-center gap-1.5 text-sm tabular-nums sm:col-span-1 sm:col-start-auto">
-          {durationLabel(values.durationMinutes) ?? missing(null, 'Durata nu se citește')}
-        </span>
-        <span className="col-span-3 col-start-2 text-sm sm:col-span-1 sm:col-start-auto">
-          {trainerText(values) || missing(null, 'Instructorul nu se citește')}
-        </span>
-        <span className="col-start-4 row-start-1 flex sm:col-start-auto sm:row-start-auto">
+        <span className="col-start-3 row-start-1 flex sm:col-start-5">
           <Button
             type="button"
             variant="link"
@@ -188,7 +163,24 @@ function TrainingRow({
             Schimbă<span className="sr-only"> instruirea din {date ?? 'data necitită'}</span>
           </Button>
         </span>
-        <span className="col-span-3 col-start-2 grid gap-1 text-sm sm:col-start-3">
+        <IncludeSwitch
+          name={name}
+          included={included}
+          agreement="feminine"
+          testId="person-row-include"
+          className="col-start-4 row-start-1 h-6 sm:col-start-6"
+          onChange={include}
+        />
+        {row.phase !== 'periodic' && (
+          <span className="col-span-4 text-sm sm:hidden">{trainingPhaseLabels[row.phase]}</span>
+        )}
+        <span className="col-span-4 flex flex-wrap items-center gap-1.5 text-sm tabular-nums sm:col-span-1 sm:col-start-3 sm:row-start-1">
+          {durationLabel(values.durationMinutes) ?? missing(null, 'Durata nu se citește')}
+        </span>
+        <span className="col-span-4 text-sm sm:col-span-1 sm:col-start-4 sm:row-start-1">
+          {trainerText(values) || missing(null, 'Instructorul nu se citește')}
+        </span>
+        <span className="col-span-4 grid gap-1 text-sm sm:col-start-2 sm:col-end-5">
           <span className="line-clamp-2">
             {row.phase === 'supplementary' && values.supplementaryReason
               ? `${supplementaryTrainingReasonLabels[values.supplementaryReason as SupplementaryTrainingReason] ?? ''}. `
@@ -203,7 +195,7 @@ function TrainingRow({
           </span>
         </span>
       </div>
-      {note && <p className="pl-8 text-[13px] text-muted-foreground sm:pl-17">{note}</p>}
+      {note && <p className="text-[13px] text-muted-foreground sm:pl-9">{note}</p>}
     </li>
   );
 }
@@ -213,6 +205,7 @@ function TestLine({
   row,
   page,
   pages,
+  label,
   matched,
   onChange,
 }: {
@@ -220,6 +213,7 @@ function TestLine({
   row: SheetRow;
   page: SheetPage;
   pages: SheetPage[];
+  label: string;
   matched: boolean;
   onChange: Update;
 }) {
@@ -233,33 +227,43 @@ function TestLine({
   const examinerTitle = (
     'examinerJobTitle' in values ? values.examinerJobTitle : test.examinerJobTitle
   ) as string | null;
-  const id = `test-${row.id}`;
-  const setExaminer = (name: 'examinerName' | 'examinerJobTitle', value: string) =>
+  const name = `Testul la angajare ${label}`;
+  const take = (next: boolean) =>
+    onChange((current) => withRow(current, row.id, (change) => ({ ...change, test: next })));
+  const setExaminer = (field: 'examinerName' | 'examinerJobTitle', value: string) =>
     onChange((current) =>
       withRow(current, row.id, (change) => ({
         ...change,
-        values: { ...change.values, [name]: value.trim() === '' ? null : value },
+        values: { ...change.values, [field]: value.trim() === '' ? null : value },
       }))
     );
+  if (!included && test.verified && !inApp) {
+    return (
+      <div
+        className="rounded-lg bg-muted/50 px-3 py-2.5"
+        data-testid="person-test"
+        data-included={false}
+      >
+        <LeftOutRow name={name} switchTestId="person-test-include" onInclude={() => take(true)} />
+      </div>
+    );
+  }
   return (
     <div
-      className="grid grid-cols-[1.25rem_minmax(0,1fr)_auto] items-start gap-3 rounded-lg bg-muted/50 px-3 py-2.5"
+      className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-start gap-x-3 gap-y-1 rounded-lg bg-muted/50 px-3 py-2.5 text-sm"
       data-testid="person-test"
       data-included={included}
     >
-      <Checkbox
-        id={id}
-        checked={included}
-        onCheckedChange={(checked) =>
-          onChange((current) =>
-            withRow(current, row.id, (change) => ({ ...change, test: checked === true }))
-          )
-        }
+      <span className="font-medium">Testul la angajare: verificat pe fișă</span>
+      <PageButton pages={pages} pageId={page.id} />
+      <IncludeSwitch
+        name={name}
+        included={included}
+        testId="person-test-include"
+        className="h-6"
+        onChange={take}
       />
-      <span className="grid gap-1 text-sm">
-        <label htmlFor={id} className="font-medium">
-          Testul la angajare: verificat pe fișă
-        </label>
+      <span className="col-span-3 grid gap-1">
         {inApp ? (
           <span className="text-muted-foreground">Testul e deja promovat în aplicație.</span>
         ) : test.verified ? (
@@ -271,8 +275,8 @@ function TestLine({
           </span>
         ) : (
           <span className="text-muted-foreground">
-            Pe fișă nu se vede semnătura celui care a verificat cunoștințele. Bifează dacă semnătura
-            e pe originalul pe hârtie.
+            Pe fișă nu se vede semnătura celui care a verificat cunoștințele. Include-l dacă
+            semnătura e pe originalul pe hârtie.
           </span>
         )}
         {!included && !inApp && (
@@ -298,7 +302,6 @@ function TestLine({
           </span>
         )}
       </span>
-      <PageButton pages={pages} pageId={page.id} />
     </div>
   );
 }
@@ -395,6 +398,7 @@ function DomainSection({
               row={domain.hiring.test.row}
               page={domain.hiring.test.page}
               pages={pages}
+              label={label}
               matched={matched}
               onChange={onChange}
             />
@@ -430,21 +434,32 @@ function DomainSection({
       {domain.annualTests.map(({ row, page }) => {
         const included = testIncluded(context.changes, row, matched);
         const heldOn = rowValues(context.changes, row).heldOn;
+        const name = `Testul anual ${label}, la ${dateLabel(heldOn) ?? 'o dată necitită'}`;
+        const take = (next: boolean) =>
+          onChange((current) => withRow(current, row.id, (change) => ({ ...change, test: next })));
+        if (!included && row.test?.verified && !testInApp(row, matched)) {
+          return (
+            <div
+              key={row.id}
+              className="rounded-lg bg-muted/50 px-3 py-2.5"
+              data-testid="person-annual-test"
+              data-included={false}
+            >
+              <LeftOutRow
+                name={name}
+                switchTestId="person-annual-test-include"
+                onInclude={() => take(true)}
+              />
+            </div>
+          );
+        }
         return (
           <div
             key={row.id}
-            className="grid grid-cols-[1.25rem_minmax(0,1fr)_auto_auto] items-start gap-3 rounded-lg bg-muted/50 px-3 py-2.5 text-sm"
+            className="grid grid-cols-[minmax(0,1fr)_auto_auto_auto] items-start gap-3 rounded-lg bg-muted/50 px-3 py-2.5 text-sm"
             data-testid="person-annual-test"
+            data-included={included}
           >
-            <Checkbox
-              checked={included}
-              aria-label={`Preia testul anual din ${dateLabel(heldOn) ?? 'data necitită'}`}
-              onCheckedChange={(checked) =>
-                onChange((current) =>
-                  withRow(current, row.id, (change) => ({ ...change, test: checked === true }))
-                )
-              }
-            />
             <span>
               <span className="font-medium">Testul anual {label}</span>, la{' '}
               {dateLabel(heldOn) ?? 'o dată necitită'}: promovat pe fișă
@@ -463,6 +478,13 @@ function DomainSection({
                 testul anual din {dateLabel(heldOn) ?? 'data necitită'}
               </span>
             </Button>
+            <IncludeSwitch
+              name={name}
+              included={included}
+              testId="person-annual-test-include"
+              className="h-6"
+              onChange={take}
+            />
           </div>
         );
       })}

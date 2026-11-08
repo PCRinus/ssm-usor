@@ -44,11 +44,13 @@ export function DecideCard({
   id,
   title,
   tone = 'destructive',
+  toggle,
   children,
 }: {
   id: string;
   title: ReactNode;
   tone?: 'destructive' | 'warning';
+  toggle?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -61,9 +63,12 @@ export function DecideCard({
       )}
       data-testid={`person-decide-${id}`}
     >
-      <h2 id={`${id}-title`} className="text-base font-semibold">
-        {title}
-      </h2>
+      <div className="flex items-start justify-between gap-3">
+        <h2 id={`${id}-title`} className="text-base font-semibold">
+          {title}
+        </h2>
+        {toggle && <div className="flex h-6 items-center">{toggle}</div>}
+      </div>
       {children}
     </section>
   );

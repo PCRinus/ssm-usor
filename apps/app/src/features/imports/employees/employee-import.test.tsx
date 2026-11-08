@@ -346,6 +346,49 @@ describe('the person page', () => {
     expect(saved(0).changes.people).toEqual({ pop: { state: 'checked' } });
   });
 
+  it('sets a person aside with the switch beside the name, and takes them back', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(`${importPath}/pop`);
+    await screen.findByTestId('person-page');
+    expect(screen.queryByRole('button', { name: 'Lasă-l deoparte' })).toBeNull();
+
+    await user.click(screen.getByRole('switch', { name: 'Inclus: Pop Elena' }));
+    await waitFor(() =>
+      expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(1)
+    );
+    expect(saved(0).changes.people.pop).toEqual({ state: 'set_aside' });
+    expect(screen.getByTestId('person-state').textContent).toBe('Lăsat deoparte');
+    expect(screen.getByTestId('person-set-aside-word').textContent).toBe('Nu e inclus');
+
+    await user.click(screen.getByRole('switch', { name: 'Nu e inclus: Pop Elena' }));
+    await waitFor(() =>
+      expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(2)
+    );
+    expect(saved(1).changes.people.pop?.state).toBeUndefined();
+    expect(screen.getByTestId('person-state').textContent).toBe('De verificat');
+  });
+
+  it('collapses a training switched off to one line with no buttons, and opens it again', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(`${importPath}/pop`);
+    const row = () => screen.getByTestId('person-training-row');
+    await screen.findByTestId('person-page');
+    expect(within(row()).getByRole('button', { name: /^Schimbă/ })).toBeTruthy();
+
+    await user.click(
+      within(row()).getByRole('switch', { name: /^Inclusă: Instruirea periodică din / })
+    );
+
+    expect(row().textContent).toMatch(/^Instruirea periodică din .+Nu e inclusă$/);
+    expect(within(row()).queryAllByRole('button')).toHaveLength(0);
+    await user.click(
+      within(row()).getByRole('switch', { name: /^Nu e inclusă: Instruirea periodică din / })
+    );
+    expect(within(row()).getByRole('button', { name: /^Schimbă/ })).toBeTruthy();
+  });
+
   it('marks the names, job title and hire date a new employee needs, and the rest optional', async () => {
     mockEmployeeImport();
     const user = userEvent.setup();

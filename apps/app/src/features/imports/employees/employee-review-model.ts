@@ -279,7 +279,7 @@ export function workplaceOf(context: ReviewContext, person: Person) {
 
 // `matched`: the row's person still completes the employee the proposal found, whose
 // trainings and passes the flags compare with.
-const proposedRowIncluded = (row: SheetRow, matched: boolean) =>
+export const proposedRowIncluded = (row: SheetRow, matched: boolean) =>
   !row.flags.includes('unsigned') &&
   !row.flags.includes('repeated') &&
   !(matched && row.flags.includes('in_app'));
