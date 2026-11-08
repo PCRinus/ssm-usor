@@ -15,6 +15,7 @@ import {
   fireSubstanceDetails,
   type FireSubstancesState,
   type ResponsiblePersonRole,
+  staffCategoriesWithPosts,
   type StaffCategory,
   trainingMonths,
   unfilledMark,
@@ -34,7 +35,6 @@ import {
   type DocumentFacts,
   months,
   printedDate,
-  staffCategoriesWithPosts,
 } from './context';
 import { extinguisherGroups, firmsOf, isGasAgent, otherEquipmentGroups } from './equipment';
 import { type ContextParts, gapRules } from './gaps';

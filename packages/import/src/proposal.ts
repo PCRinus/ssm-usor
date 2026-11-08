@@ -26,9 +26,10 @@ const traced = {
 // when the value is as written.
 const spelling = z.string().min(1).optional();
 
-// Why the import proposes a value no passage states: a staff category none of the posts is in
-// has no periodic training, the fire-safety training calendar follows the SSM one where the
-// fire-safety documents give none, and an office post with no equipment entry needs none.
+// Why the import proposes a value no passage states: the fire-safety training calendar follows
+// the SSM one where the fire-safety documents give none, and an office post with no equipment
+// entry needs none. `no_posts_in_category` is no longer proposed (ADR 039); reviews saved
+// before still hold it.
 export const inferenceCodes = [
   'no_posts_in_category',
   'ssm_training_schedule',

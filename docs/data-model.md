@@ -1555,7 +1555,10 @@ values, JSON null or absent leaving the default:
   those listed in `replace`, the columns where the member took the documents' value. A
   training interval and its "not applicable" are one choice: an interval fills only a client
   that has not declared the category not applicable, and replacing it clears the declaration;
-  "not applicable" fills a category that has no interval.
+  "not applicable" fills a category that has no interval. Since ADR 039 the payload sends no
+  "not applicable", gives each category with kept posts an interval (the law's longest where
+  the documents and the member give none), and lists the interval in `replace` where the
+  client had declared the category not applicable.
   `cui`, when given, must be the client's.
 - A workplace or a job position with `id` is an existing row of the client, filled the same
   way; a job position without `id` named like an active one of the client is that one, as the

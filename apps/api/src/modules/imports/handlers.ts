@@ -293,7 +293,11 @@ export async function existingRecords(db: DataClient, clientId: string): Promise
       .select('id, name, address_line')
       .eq('client_id', clientId)
       .is('archived_at', null),
-    db.from('job_positions').select('id, name').eq('client_id', clientId).is('archived_at', null),
+    db
+      .from('job_positions')
+      .select('id, name, staff_category')
+      .eq('client_id', clientId)
+      .is('archived_at', null),
     db
       .from('employees')
       .select('id, last_name, first_name, cnp')

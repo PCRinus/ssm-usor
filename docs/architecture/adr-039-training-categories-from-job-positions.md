@@ -32,6 +32,6 @@ The specialist no longer decides which categories apply, and a post added in a n
 
 A draft generated before this change can show as changed where a category without posts had an interval, because the decision no longer prints that paragraph.
 
-The import still proposes "Nu se aplică" for a category the documents leave out and saves it as before; nothing reads it. Its review is being redrawn separately and will drop the choice.
+The import follows the same rule. Its review shows the client form's blocks for the categories with kept posts, and confirming writes no exclusion: a category with posts gets the documents' interval, the member's, or the law's longest, which the review shows as chosen until the member confirms it. An existing client's exclusion of a category with posts gives way to the interval. The reader no longer proposes "Nu se aplică" for a category none of the posts is in.
 
-The two columns can be dropped once the import stops writing them.
+Nothing writes the two columns any more apart from the client form's pass-through of what was saved, so they can be dropped in a later migration.

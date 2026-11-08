@@ -1,7 +1,10 @@
 import {
   type ImportBlocker,
   type ImportChanges,
+  importedTrainingInterval,
   maxEquipmentDurationMonths,
+  staffCategoriesWithPosts,
+  type StaffCategory,
 } from '@ssm-usor/contracts';
 import {
   type Field,
@@ -30,7 +33,7 @@ export interface ExistingRecords {
   client: Row | null;
   fireSafety: Row | null;
   workplaces: { id: string; name: string; address_line: string | null }[];
-  jobPositions: { id: string; name: string }[];
+  jobPositions: { id: string; name: string; staff_category?: string }[];
   employees: { id: string; last_name: string; first_name: string; cnp: string | null }[];
   responsiblePersons: { full_name: string }[];
 }
@@ -99,6 +102,25 @@ const integerColumns = new Set([
   'training_day_to',
   'periodic_training_hours',
 ]);
+
+const notApplicablePaths = new Set([
+  'trainingSchedule.administrativeTrainingNotApplicable',
+  'trainingSchedule.workerTrainingNotApplicable',
+]);
+
+const intervalColumns: Record<StaffCategory, string> = {
+  execution: 'worker_training_interval_months',
+  technical_administrative: 'administrative_training_interval_months',
+};
+
+const scheduleColumns = [
+  'periodic_training_hours',
+  'administrative_training_interval_months',
+  'worker_training_interval_months',
+  'training_first_month',
+  'training_day_from',
+  'training_day_to',
+];
 
 // The proposal's yes or no is "true" or "false".
 const booleanColumns = new Set([
@@ -367,6 +389,9 @@ export function toClientPayload(input: {
     : anafLegalName(proposal, changes, input.registeredCompany);
   for (const { section, path, field } of fieldsOf(proposal)) {
     if (path === 'fireSafety.smokingPlace' && placeDropped) continue;
+    // A category applies when the client keeps posts in it, so a declared exclusion is not
+    // written, nor waited for (ADR 039).
+    if (notApplicablePaths.has(path)) continue;
     const change = changes.fields[path];
     const resolved: Resolution =
       path === 'client.legalName' && anafName !== null
@@ -415,15 +440,6 @@ export function toClientPayload(input: {
       input.registeredCompany.cui === client.cui
     ) {
       client.vat_payer = input.registeredCompany.vatPayer;
-    }
-  }
-  // `clients` refuses an interval beside its category's "not applicable".
-  for (const scope of ['administrative', 'worker'] as const) {
-    if (
-      client[`${scope}_training_interval_months`] !== undefined &&
-      client[`${scope}_training_not_applicable`] === true
-    ) {
-      block(`trainingSchedule.${scope}TrainingNotApplicable`, 'invalid');
     }
   }
   if (clientReplace.length) client.replace = clientReplace;
@@ -773,6 +789,47 @@ export function toClientPayload(input: {
       ) {
         quality.jobPositions.kept++;
       }
+    }
+  }
+
+  const withPosts = staffCategoriesWithPosts([
+    ...jobPositions.map((row) => ({
+      staffCategory: (row.staff_category ?? null) as StaffCategory,
+    })),
+    ...(intoExistingClient
+      ? existing.jobPositions.map((position) => ({
+          staffCategory: (position.staff_category ?? null) as StaffCategory | null,
+        }))
+      : []),
+  ]);
+  const fireScheduleKept =
+    scheduleColumns.some((column) => fireSafety[column] !== undefined) ||
+    (intoExistingClient && scheduleColumns.some((column) => !empty(existing.fireSafety?.[column])));
+  for (const [domain, row, current, kept] of [
+    ['ssm', client, existing.client, true],
+    ['su', fireSafety, existing.fireSafety, fireScheduleKept],
+  ] as const) {
+    if (!kept) continue;
+    for (const category of withPosts) {
+      const column = intervalColumns[category];
+      if (row[column] !== undefined || (intoExistingClient && !empty(current?.[column]))) continue;
+      const { months } = importedTrainingInterval({
+        domain,
+        category,
+        hasPosts: true,
+        settled: null,
+      });
+      row[column] = months;
+    }
+  }
+  // An existing client's exclusion would otherwise keep the interval out (apply_client_import).
+  if (intoExistingClient) {
+    for (const category of withPosts) {
+      const column = intervalColumns[category];
+      const excluded = existing.client?.[column.replace('interval_months', 'not_applicable')];
+      if (client[column] === undefined || excluded !== true) continue;
+      const replace = (client.replace as string[] | undefined) ?? [];
+      if (!replace.includes(column)) client.replace = [...replace, column];
     }
   }
 

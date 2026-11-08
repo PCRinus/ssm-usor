@@ -17,7 +17,7 @@ import {
   type ResponsiblePersonRole,
   type RiskEvaluationGap,
   type SensitiveGroupsState,
-  staffCategories,
+  staffCategoriesWithPosts,
   type StaffCategory,
   trainingMonths,
 } from '@ssm-usor/contracts';
@@ -346,15 +346,6 @@ export function undecidedJobPositions(
       ),
     }))
     .filter((position) => position.undecided.length > 0);
-}
-
-/** The categories the client has posts in; a category without posts has no training to set. */
-export function staffCategoriesWithPosts(
-  positions: readonly { staffCategory: StaffCategory }[]
-): StaffCategory[] {
-  return staffCategories.filter((category) =>
-    positions.some((position) => position.staffCategory === category)
-  );
 }
 
 /** The interval a schedule, occupational or fire-safety, sets for one category. */

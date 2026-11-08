@@ -415,7 +415,9 @@ describe('toClientPayload', () => {
       legal_representative_name: 'Petrescu Ion',
       locality: 'Timisoara Nord',
     });
-    expect(payload.client).not.toHaveProperty('worker_training_interval_months');
+    // The bakers stay, so execution personnel take the law's longest interval in place of the
+    // documents' one the member left out.
+    expect(payload.client).toMatchObject({ worker_training_interval_months: 6 });
     expect(payload.workplaces.map((row) => row.key)).toEqual(['workplace-1']);
     expect(payload.equipment[1]).toMatchObject({ quantity: 2 });
     // The emergency lighting stood at the workplace the member left out.
@@ -685,7 +687,7 @@ describe('toClientPayload', () => {
 
     const { payload, blockers } = payloadWith({});
     expect(blockers).toEqual([]);
-    expect(payload.client).toMatchObject({ administrative_training_not_applicable: true });
+    expect(payload.client).not.toHaveProperty('administrative_training_not_applicable');
     expect(payload.fire_safety).toEqual({
       smoking_policy: 'forbidden_everywhere',
       waste_kinds: ['deșeuri menajere', 'carton'],
@@ -789,9 +791,9 @@ describe('toClientPayload', () => {
     });
   });
 
-  it('blocks a category given both an interval and "not applicable"', () => {
+  it('writes no declared exclusion, so an interval beside one blocks nothing', () => {
     const base = reading();
-    const { blockers } = toClientPayload({
+    const { payload, blockers } = toClientPayload({
       proposal: proposalOf(
         reading({
           facts: [...base.facts, fact('trainingSchedule.workerTrainingNotApplicable', 'da')],
@@ -802,9 +804,9 @@ describe('toClientPayload', () => {
       existing: noExistingRecords,
     });
 
-    expect(blockers).toEqual([
-      { path: 'trainingSchedule.workerTrainingNotApplicable', code: 'invalid' },
-    ]);
+    expect(blockers).toEqual([]);
+    expect(payload.client).toMatchObject({ worker_training_interval_months: 6 });
+    expect(payload.client).not.toHaveProperty('worker_training_not_applicable');
   });
 
   it('blocks a second registered office the member ticks until they untick one or leave one out', () => {
@@ -872,33 +874,74 @@ describe('toClientPayload', () => {
     });
   });
 
-  it('writes a staff category none of the posts is in as without periodic training', () => {
+  it('gives a category with posts the longest legal interval where the documents give none', () => {
     const base = reading();
-    const category = (jobPosition: string) => ({
+    const category = (jobPosition: string, value: string) => ({
       jobPosition,
       field: 'staffCategory' as const,
-      value: 'execution',
+      value,
       ...quoted(),
     });
-    const proposal = proposalOf(
-      reading({ jobPositionFacts: [category('Brutar'), category('Vânzător')] })
-    );
+    const payloadOf = (categories: ReturnType<typeof category>[]) =>
+      toClientPayload({
+        proposal: proposalOf(
+          reading({
+            facts: base.facts.filter(
+              (each) => each.field !== 'trainingSchedule.workerTrainingIntervalMonths'
+            ),
+            jobPositionFacts: categories,
+          })
+        ),
+        changes: null,
+        intoExistingClient: false,
+        existing: noExistingRecords,
+      });
 
+    const execution = payloadOf([category('Brutar', 'execution')]);
+    expect(execution.blockers).toEqual([]);
+    expect(execution.payload.client).toMatchObject({ worker_training_interval_months: 6 });
+    expect(execution.payload.client).not.toHaveProperty('administrative_training_interval_months');
+    expect(execution.payload.client).not.toHaveProperty('administrative_training_not_applicable');
+
+    const both = payloadOf([
+      category('Brutar', 'execution'),
+      category('Vânzător', 'technical_administrative'),
+    ]);
+    expect(both.payload.client).toMatchObject({
+      worker_training_interval_months: 6,
+      administrative_training_interval_months: 12,
+    });
+  });
+
+  it('counts the posts an existing client has and writes over its exclusion of a category with posts', () => {
+    const existing: ExistingRecords = {
+      ...noExistingRecords,
+      client: {
+        cui: '12345678',
+        worker_training_interval_months: 6,
+        administrative_training_interval_months: null,
+        administrative_training_not_applicable: true,
+      },
+      jobPositions: [
+        {
+          id: '1c8b6b1f-4d62-4b40-8e1f-6b2c3d4e5f60',
+          name: 'Contabil',
+          staff_category: 'technical_administrative',
+        },
+      ],
+    };
     const { payload, blockers } = toClientPayload({
-      proposal,
+      proposal: proposalOf(reading()),
       changes: null,
-      intoExistingClient: false,
-      existing: noExistingRecords,
+      intoExistingClient: true,
+      existing,
     });
 
     expect(blockers).toEqual([]);
     expect(payload.client).toMatchObject({
-      worker_training_interval_months: 6,
-      administrative_training_not_applicable: true,
+      administrative_training_interval_months: 12,
+      replace: ['administrative_training_interval_months'],
     });
-    expect(base.facts).not.toContainEqual(
-      expect.objectContaining({ field: 'trainingSchedule.administrativeTrainingNotApplicable' })
-    );
   });
 
   it('blocks a fire-safety value the checks found outside what the database takes', () => {

@@ -1,37 +1,9 @@
 import { maxFireTrainingIntervalMonths } from './checks';
 import { foldText } from './match';
-import { type Field, type Option, type Proposal, proposedIncluded } from './proposal';
+import { type Field, type Option, type Proposal } from './proposal';
 
 const ownOptions = <T>(field: Field<T>) =>
   field.options.filter((option) => option.otherCompanyName === null);
-
-const categoryScopes = [
-  { category: 'technical_administrative', scope: 'administrative', other: 'worker' },
-  { category: 'execution', scope: 'worker', other: 'administrative' },
-] as const;
-
-export function inferCategoriesWithoutPosts(proposal: Proposal) {
-  const posts = proposal.jobPositions.filter(proposedIncluded);
-  // A post without a category may be in the one that seems to have none.
-  if (posts.length === 0 || posts.some((post) => post.staffCategory === null)) return;
-  const schedule = proposal.trainingSchedule;
-  for (const { category, scope, other } of categoryScopes) {
-    const notApplicable = schedule[`${scope}TrainingNotApplicable`];
-    if (
-      schedule[`${scope}TrainingIntervalMonths`].options.length === 0 &&
-      notApplicable.options.length === 0 &&
-      ownOptions(schedule[`${other}TrainingIntervalMonths`]).length > 0 &&
-      !posts.some((post) => post.staffCategory === category)
-    ) {
-      notApplicable.options.push({
-        value: 'true',
-        sources: [],
-        otherCompanyName: null,
-        inferred: 'no_posts_in_category',
-      });
-    }
-  }
-}
 
 const calendarFields = ['trainingFirstMonth', 'trainingDayFrom', 'trainingDayTo'] as const;
 
@@ -132,7 +104,6 @@ export function inferOfficePosts(proposal: Proposal) {
 }
 
 export function inferValues(proposal: Proposal): Proposal {
-  inferCategoriesWithoutPosts(proposal);
   inferFireTrainingFromSsm(proposal);
   inferOfficePosts(proposal);
   return proposal;
