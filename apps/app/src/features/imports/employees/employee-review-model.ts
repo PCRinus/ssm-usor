@@ -289,15 +289,16 @@ export const rowIncluded = (changes: Changes, row: SheetRow, matched: boolean) =
 
 export const testInApp = (row: SheetRow, matched: boolean) => matched && row.test?.inApp === true;
 
+export const proposedTestIncluded = (row: SheetRow, matched: boolean) =>
+  row.test?.verified === true &&
+  !testInApp(row, matched) &&
+  (!row.testOnly || proposedRowIncluded(row, matched));
+
 /** Whether the test a row carries is ticked; it is written only on a row of `testedRows`. */
 export function testIncluded(changes: Changes, row: SheetRow, matched: boolean) {
-  const test = row.test;
-  if (!test) return false;
+  if (!row.test) return false;
   const change = changes.rows[row.id];
-  const proposed =
-    test.verified &&
-    !testInApp(row, matched) &&
-    (!row.testOnly || proposedRowIncluded(row, matched));
+  const proposed = proposedTestIncluded(row, matched);
   return change?.test ?? (row.testOnly ? (change?.included ?? proposed) : proposed);
 }
 

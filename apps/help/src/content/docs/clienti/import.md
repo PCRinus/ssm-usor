@@ -294,7 +294,7 @@ O pagină pe care aplicația nu o poate lega de nicio persoană apare sub listă
 
 ## Pagina unei persoane
 
-Pe pagina unei persoane vezi, alături, fotografiile fișelor ei; un clic pe una o mărește. Comutatorul de lângă nume hotărăște dacă persoana se creează: oprit, o lasă deoparte, pornit din nou, o ia înapoi la verificat. Sus sunt lucrurile de hotărât, apoi datele citite, pe grupuri, și instruirile, pe domenii. O valoare citită greșit o corectezi cu **Schimbă**. Cu butoanele de jos treci la persoana anterioară sau la următoarea.
+Pe pagina unei persoane vezi, alături, fotografiile fișelor ei; un clic pe una o mărește. Comutatorul de lângă nume o lasă deoparte când îl oprești și o ia înapoi la verificat când îl pornești; la confirmare se creează doar persoanele verificate. La cine a plecat din firmă nu e comutator lângă nume: hotărăști pe cardul plecării dacă îl preiei. Sus sunt lucrurile de hotărât, apoi datele citite, pe grupuri, și instruirile, pe domenii. O valoare citită greșit o corectezi cu **Schimbă**. Cu butoanele de jos treci la persoana anterioară sau la următoarea.
 
 Ca să fie creat, un lucrător are nevoie de nume, prenume, funcția din contract, data angajării și un post. Emailul și telefonul nu sunt obligatorii: când lipsesc, vezi „Fără email sau telefon. Îl adaugi când îl inviți în portal.” Când fișele aceleiași persoane scriu valori diferite, de exemplu două date ale angajării, alegi una.
 

@@ -98,6 +98,8 @@ export function EmployeePersonPage({
   const leftOn = resolveField(context, person, 'leftOn').value;
   const former = existing ? formerLeftOn(person) : null;
   const included = includedOf(context, person);
+  // A leaver is created only if the leaving card says so, so that card holds the decision.
+  const leaver = leftOn !== null && !existing;
 
   const showPage = (pageId: string) => {
     setCurrent(pageId);
@@ -158,13 +160,18 @@ export function EmployeePersonPage({
               ? 'Ce are deja în aplicație nu se schimbă fără alegerea ta.'
               : 'Valorile se preiau așa cum sunt, dacă nu le schimbi.'}
           </p>
-          <IncludeSwitch
-            name={name}
-            included={state !== 'set_aside'}
-            testId="person-set-aside"
-            className="col-start-2 row-start-1 h-8 sm:col-start-3"
-            onChange={(next) => setAside(!next)}
-          />
+          {(!leaver || state === 'set_aside') && (
+            <IncludeSwitch
+              id={`include-person-${person.id}`}
+              name={name}
+              included={state !== 'set_aside'}
+              stateLabel={stateLabels[state].label}
+              showWord={false}
+              testId="person-set-aside"
+              className="col-start-2 row-start-1 h-8 sm:col-start-3"
+              onChange={(next) => setAside(!next)}
+            />
+          )}
           <div className="col-span-2 mt-1 flex flex-wrap items-center gap-3 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:mt-0 sm:h-8">
             <Tag tone={stateLabels[state].tone} testId="person-state">
               {stateLabels[state].label}
@@ -301,13 +308,14 @@ export function EmployeePersonPage({
                 onChange={review.update}
               />
             ))}
-            {leftOn !== null && !existing && (
+            {leaver && (
               <DecideCard
                 id="leaver"
                 tone="warning"
                 title={`A plecat din firmă la ${dateLabel(String(leftOn))}`}
                 toggle={
                   <IncludeSwitch
+                    id={`include-leaver-${person.id}`}
                     name={`${name}, ca fost lucrător`}
                     included={included}
                     testId="person-leaver-include"
