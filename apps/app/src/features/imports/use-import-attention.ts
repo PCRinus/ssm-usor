@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef } from 'react';
 
 import { scrollAndFocus } from '@/features/missing-data/focus';
 
-export function useImportAttention(ready = true) {
+export function useImportAttention(ready = true, section?: string) {
   const hash = useLocation({ select: (location) => location.hash });
   const navigation = useLocation({
     select: (location) => location.state.__TSR_key ?? location.href,
@@ -28,11 +28,12 @@ export function useImportAttention(ready = true) {
   }, []);
 
   useEffect(() => {
-    if (!ready || !hash.startsWith('review-') || handled.current === navigation) return;
+    const destination = `${navigation}:${section ?? ''}`;
+    if (!ready || !hash.startsWith('review-') || handled.current === destination) return;
     if (!document.getElementById(hash)) return;
-    handled.current = navigation;
+    handled.current = destination;
     reveal([hash]);
-  }, [ready, hash, navigation, reveal]);
+  }, [ready, hash, navigation, reveal, section]);
 
   useEffect(() => () => stop.current(), [navigation]);
   return reveal;

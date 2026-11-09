@@ -1375,6 +1375,79 @@ function secondPost(changes: unknown = null) {
   return readyDetail({ proposal, blockers: [], changes });
 }
 
+describe('reviewing related import data', () => {
+  it('labels equipment details and opens the referenced proposal post without changing data', async () => {
+    mockReview(secondPost());
+    mount('/equipment');
+
+    const [equipment] = await screen.findAllByTestId('review-item');
+    expect(within(equipment!).getByText('Risc acoperit')).toBeDefined();
+    expect(within(equipment!).getByText('Murdărire')).toBeDefined();
+    expect(within(equipment!).getByText('Dotare')).toBeDefined();
+    expect(within(equipment!).queryByRole('link', { name: 'Murdărire' })).toBeNull();
+    const post = within(equipment!).getByRole('link', { name: 'Brutar' });
+    expect(post.getAttribute('href')).toContain('/job-positions#review-jobPositions-position-1');
+
+    await userEvent.click(post);
+    await waitFor(() => expect(document.activeElement?.id).toBe('review-jobPositions-position-1'));
+    expect(saves).toBe(0);
+  });
+
+  it('does not link an unresolved equipment post to a nonexistent proposal item', async () => {
+    mockReview(
+      secondPost({
+        fields: {},
+        items: { 'equipment-entry-1': { values: { jobPosition: 'not-in-proposal' } } },
+      })
+    );
+    mount('/equipment');
+
+    const [equipment] = await screen.findAllByTestId('review-item');
+    expect(within(equipment!).queryByTestId('import-reference-link')).toBeNull();
+    expect(within(equipment!).getByText('Postul lipsește')).toBeDefined();
+  });
+
+  it('shows the workplace address and rooms as labelled review data', async () => {
+    mockReview(readyDetail());
+    mount('/workplaces');
+
+    const card = await screen.findByTestId('review-list-workplaces');
+    expect(within(card).getByText('Adresă')).toBeDefined();
+    expect(within(card).getByText('Str. Morilor nr. 14, Sibiu, jud. Sibiu')).toBeDefined();
+    expect(within(card).getByText('Încăperi')).toBeDefined();
+    expect(within(card).getByText('Laborator')).toBeDefined();
+    expect(within(card).getByText('Magazin')).toBeDefined();
+    expect(card.textContent).not.toContain('Oprește comutatorul');
+  });
+
+  it('keeps a person’s all-workplaces coverage distinct from an unresolved reference', async () => {
+    mockReview(readyDetail());
+    mount('/responsible');
+
+    const card = await screen.findByTestId('review-list-responsiblePersons');
+    expect(within(card).getByText('Toate punctele de lucru')).toBeDefined();
+    expect(within(card).queryByText('Punct de lucru neidentificat')).toBeNull();
+    expect(within(card).queryByTestId('import-reference-link')).toBeNull();
+  });
+
+  it('links a responsible person’s resolved workplace without inventing a job-title link', async () => {
+    mockReview(
+      readyDetail({
+        changes: { fields: {}, items: { 'person-1': { values: { workplace: 'workplace-1' } } } },
+      })
+    );
+    mount('/responsible');
+
+    const card = await screen.findByTestId('review-list-responsiblePersons');
+    expect(within(card).getByText('Funcție')).toBeDefined();
+    expect(within(card).getByText('Responsabilități')).toBeDefined();
+    expect(within(card).getByRole('link', { name: 'Sediu' }).getAttribute('href')).toContain(
+      '/workplaces#review-workplaces-workplace-1'
+    );
+    expect(within(card).queryByRole('link', { name: 'Brutar' })).toBeNull();
+  });
+});
+
 describe('a post the import proposed that the member leaves out', () => {
   it('collapses in place to its name and switch, and opens again when switched on', async () => {
     mockReview(secondPost());
@@ -1384,7 +1457,7 @@ describe('a post the import proposed that the member leaves out', () => {
       (await screen.findAllByTestId('review-item')).find((row) => row.textContent?.includes(name))!;
     const card = await screen.findByTestId('review-list-jobPositions');
     expect(card.textContent).toContain('2 posturi');
-    expect(card.textContent).toContain('Oprește comutatorul la un post pe care nu îl preiei');
+    expect(card.textContent).not.toContain('Oprește comutatorul');
     expect(
       within(await rowOf('Brutar')).getByRole('switch', { name: 'Inclus: Brutar' })
     ).toBeTruthy();

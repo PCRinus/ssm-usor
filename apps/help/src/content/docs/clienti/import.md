@@ -77,6 +77,7 @@ sources:
   - apps/app/src/features/imports/import-credits.ts
   - apps/app/src/features/imports/review-fields.tsx
   - apps/app/src/features/imports/review-parts.tsx
+  - apps/app/src/features/imports/review-items.tsx
   - apps/app/src/features/imports/review-summary.ts
   - apps/app/src/features/imports/import-upload-dialog.tsx
   - apps/app/src/features/imports/import-processing-page.tsx
@@ -178,7 +179,11 @@ Pe fiecare card, coloana **Ce intră în documente** arată valoarea care se scr
 
 **Schimbă** deschide doar câmpul de pe rândul lui, încadrat și marcat cu „Schimbi acum”; ce salvezi intră în documente în locul valorii din import. La un client nou, lângă CUI apare și **Plătitor de TVA**, ca la un client adăugat de mână. Căsuța e bifată când ANAF arată firma înregistrată în scopuri de TVA, iar un CUI scris cu prefixul RO o bifează la salvare. Pe card, CUI-ul unei firme plătitoare de TVA apare cu prefixul RO. Un câmp care lipsește din documente îl completezi cu **Completează**, iar o întrebare cu da sau nu o lămurești direct din rând.
 
-Punctele de lucru, posturile, persoanele cu atribuții, mijloacele de stingere, instalațiile și articolele de echipament au fiecare un comutator în dreapta primului rând. Pornit, se preia. Oprit, nu se creează la client: un rând propus de import se strânge pe loc la nume și „Nu e inclus” (sau „Nu e inclusă”), fără detalii și fără butoane, iar unul pe care l-ai pornit dintr-o casetă se întoarce în caseta lui. Îl pornești din nou oricând. Ce înseamnă să lași deoparte un lucru scrie o singură dată, sub titlul cardului. Unele sunt propuse oprite, într-o casetă sub listă care spune de ce: un post doar de conducere a firmei, reprezentantul legal ca lucrător, ce apare doar în pasaje copiate de la altă firmă și echipamentul unui post pe care nu îl preiei. Când pornești unul, intră în listă. O valoare a firmei care pare copiată de la altă firmă are și ea comutatorul pe rândul ei, oprit din start.
+Punctele de lucru, posturile, persoanele cu atribuții, mijloacele de stingere, instalațiile și articolele de echipament au fiecare un comutator în dreapta primului rând. Pornit, se preia. Oprit, nu se creează la client: un rând propus de import se strânge pe loc la nume și „Nu e inclus” (sau „Nu e inclusă”), fără detalii și fără butoane, iar unul pe care l-ai pornit dintr-o casetă se întoarce în caseta lui. Îl pornești din nou oricând. Unele sunt propuse oprite, într-o casetă sub listă care spune de ce: un post doar de conducere a firmei, reprezentantul legal ca lucrător, ce apare doar în pasaje copiate de la altă firmă și echipamentul unui post pe care nu îl preiei. Când pornești unul, intră în listă. O valoare a firmei care pare copiată de la altă firmă are și ea comutatorul pe rândul ei, oprit din start.
+
+La punctele de lucru, **Adresă** și **Încăperi** sunt afișate separat, pentru verificare. La responsabili vezi **Funcție**, **Responsabilități** și **Punct de lucru**. Când punctul de lucru este identificat în propunere, numele lui te duce la rândul său din import.
+
+La echipamentul de protecție, **Post** te duce la postul identificat în propunere. **Risc acoperit** este textul preluat din lista de dotare cu echipament, iar **Dotare** arată cantitatea, durata și modul de acordare. Riscul acoperit nu este o legătură automată la un factor din evaluarea riscurilor. Cu **Vezi în document** verifici rândul original din lista de echipament.
 
 La sfârșitul primei secțiuni, **Găsite în alte secțiuni** îți arată ce mai e de văzut în celelalte: corecturile de scriere, alegerile de făcut și datele lipsă, fiecare cu **Deschide secțiunea**.
 

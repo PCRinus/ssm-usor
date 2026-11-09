@@ -53,7 +53,7 @@ export function ReviewSectionPage({
   const existing = useExistingValues(detail);
   const [source, setSource] = useState<SourceRequest | null>(null);
   const prefetchSource = useSourcePrefetch(detail.id);
-  const reveal = useImportAttention(existing.ready);
+  const reveal = useImportAttention(existing.ready, section);
   const registered = detail.registeredCompany;
   const states = fieldStates(
     proposal,

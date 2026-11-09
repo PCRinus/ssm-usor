@@ -16,7 +16,22 @@ import {
   workplaceKindLabels,
   workplaceKinds,
 } from '@ssm-usor/contracts';
-import { Copy, HardHat, Split, UserRound } from 'lucide-react';
+import { Button } from '@ssm-usor/ui/components/button';
+import { Link } from '@tanstack/react-router';
+import {
+  ArrowRight,
+  BadgeCheck,
+  BriefcaseBusiness,
+  Copy,
+  DoorOpen,
+  HardHat,
+  type LucideIcon,
+  MapPin,
+  Package,
+  ShieldCheck,
+  Split,
+  UserRound,
+} from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
 
 import { WorkplaceDialog, type WorkplaceDraft } from '@/features/clients/workplace-dialog';
@@ -110,6 +125,65 @@ const referenceId = (value: unknown) =>
     : typeof value === 'string'
       ? value
       : '';
+
+function ReferenceValue({
+  context,
+  list,
+  value,
+  fallback,
+}: {
+  context: ItemsContext;
+  list: 'workplaces' | 'jobPositions';
+  value: unknown;
+  fallback: string;
+}) {
+  const name = referenceName(context, list, value) ?? fallback;
+  const id = referenceId(value);
+  const target =
+    id && itemStates(context.proposal, context.changes, list).find((state) => state.item.id === id);
+  if (!target) return name;
+  return (
+    <Button
+      asChild
+      variant="outline"
+      size="sm"
+      className="h-auto min-h-8 max-w-full justify-start whitespace-normal text-left max-sm:min-h-11"
+    >
+      <Link
+        to="/clienti/import/$importId/$section"
+        params={{
+          importId: context.importId,
+          section: list === 'workplaces' ? 'workplaces' : 'job-positions',
+        }}
+        hash={anchorOf(`${list}.${target.item.id}`)}
+        data-testid="import-reference-link"
+      >
+        <span className="min-w-0 wrap-anywhere">{name}</span>
+        <ArrowRight aria-hidden="true" className="size-3.5" />
+      </Link>
+    </Button>
+  );
+}
+
+function ReviewDatum({
+  icon: Icon,
+  label,
+  children,
+}: {
+  icon: LucideIcon;
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="grid min-w-0 content-start grid-cols-[1rem_minmax(0,1fr)] gap-x-2 gap-y-1">
+      <Icon aria-hidden="true" className="row-span-2 mt-0.5 size-4 text-muted-foreground" />
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="col-start-2 min-w-0 text-sm font-medium wrap-anywhere text-foreground">
+        {children}
+      </dd>
+    </div>
+  );
+}
 
 const blank = (value: unknown) => (value === '' || value === undefined ? null : value);
 
@@ -244,9 +318,9 @@ function ItemRow({
             </Tag>
           )}
           {details.filter(Boolean).map((detail, index) => (
-            <span key={index} className="text-[13px] text-muted-foreground wrap-anywhere">
+            <div key={index} className="min-w-0 text-[13px] text-muted-foreground wrap-anywhere">
               {detail}
-            </span>
+            </div>
           ))}
           {itemSpellings(state, context.changes).map(({ field, value, written, keptWritten }) => (
             <div key={field} className="mt-1 grid gap-1">
@@ -430,7 +504,6 @@ const includedCount = (count: number, agreement: Agreement) =>
 
 function ListCard({
   title,
-  description,
   list,
   context,
   agreement,
@@ -439,7 +512,6 @@ function ListCard({
   untickedBox,
 }: {
   title: (count: number) => string;
-  description: string;
   list: ItemList;
   context: ItemsContext;
   agreement: Agreement;
@@ -454,7 +526,6 @@ function ListCard({
   return (
     <ReviewCard
       title={`${title(rows.length)}${kept < rows.length ? `, ${includedCount(kept, agreement)}` : ''}`}
-      description={rows.length > 0 ? description : undefined}
       testId={`review-list-${list}`}
     >
       {rows.length === 0 ? (
@@ -583,7 +654,6 @@ export function WorkplacesSection({ context }: { context: ItemsContext }) {
         list="workplaces"
         context={context}
         agreement="masculine"
-        description="Oprește comutatorul la un punct de lucru pe care nu îl preiei: nu intră la punctele de lucru ale clientului."
         empty="Documentele nu numesc niciun punct de lucru."
         render={(state) => {
           const address = [
@@ -603,8 +673,25 @@ export function WorkplacesSection({ context }: { context: ItemsContext }) {
               context={context}
               title={`${itemName('workplaces', state.values)}${state.values.isRegisteredOffice ? ' · sediu social' : ''}`}
               details={[
-                address || 'Fără adresă în documente',
-                rooms.length > 0 ? `Încăperi: ${rooms.join(', ')}` : null,
+                <dl className="my-2 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                  <ReviewDatum icon={MapPin} label="Adresă">
+                    {address || 'Fără adresă în documente'}
+                  </ReviewDatum>
+                  {rooms.length > 0 && (
+                    <ReviewDatum icon={DoorOpen} label="Încăperi">
+                      <ul className="flex flex-wrap gap-1.5">
+                        {rooms.map((room, index) => (
+                          <li
+                            key={`${room}-${index}`}
+                            className="rounded-md bg-secondary px-2 py-1"
+                          >
+                            {room}
+                          </li>
+                        ))}
+                      </ul>
+                    </ReviewDatum>
+                  )}
+                </dl>,
                 ...fireSheetDetails(
                   state.values,
                   new Set(itemSpellings(state, context.changes).map(({ field }) => field))
@@ -668,7 +755,6 @@ export function JobPositionsSection({ context }: { context: ItemsContext }) {
         list="jobPositions"
         context={context}
         agreement="masculine"
-        description="Oprește comutatorul la un post pe care nu îl preiei: nu intră la posturile clientului și nu primește evaluare de risc sau instruire."
         empty="Documentele nu numesc niciun post de lucru."
         untickedBox={(states) => (
           <OptionalBox
@@ -838,7 +924,6 @@ export function ResponsibleSection({ context }: { context: ItemsContext }) {
         list="responsiblePersons"
         context={context}
         agreement="feminine"
-        description="Oprește comutatorul la o persoană pe care nu o preiei: nu intră la responsabilii clientului."
         empty="Documentele nu numesc niciun responsabil."
         render={(state) => {
           const roles = (state.values.roles as string[] | undefined) ?? [];
@@ -850,14 +935,30 @@ export function ResponsibleSection({ context }: { context: ItemsContext }) {
               context={context}
               title={itemName('responsiblePersons', state.values)}
               details={[
-                text(state.values.jobTitle) ?? 'Funcția lipsește',
-                roles
-                  .map((role) =>
-                    unproven.has(role) ? `${roleLabel(role)} (pasaj negăsit)` : roleLabel(role)
-                  )
-                  .join(', '),
-                referenceName(context, 'workplaces', state.values.workplace) ??
-                  'Toate punctele de lucru',
+                <dl className="my-2 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                  <ReviewDatum icon={BriefcaseBusiness} label="Funcție">
+                    {text(state.values.jobTitle) ?? 'Funcția lipsește'}
+                  </ReviewDatum>
+                  <ReviewDatum icon={BadgeCheck} label="Responsabilități">
+                    {roles
+                      .map((role) =>
+                        unproven.has(role) ? `${roleLabel(role)} (pasaj negăsit)` : roleLabel(role)
+                      )
+                      .join(', ') || 'Rolurile lipsesc'}
+                  </ReviewDatum>
+                  <ReviewDatum icon={MapPin} label="Punct de lucru">
+                    <ReferenceValue
+                      context={context}
+                      list="workplaces"
+                      value={state.values.workplace}
+                      fallback={
+                        referenceId(state.values.workplace)
+                          ? 'Punct de lucru neidentificat'
+                          : 'Toate punctele de lucru'
+                      }
+                    />
+                  </ReviewDatum>
+                </dl>,
               ]}
               agreement="feminine"
               onEdit={() => open(state, personFields)}
@@ -967,7 +1068,6 @@ export function FireMeansSection({ context }: { context: ItemsContext }) {
         list="fireEquipment"
         context={context}
         agreement="masculine"
-        description="Oprește comutatorul la un mijloc pe care nu îl preiei: nu intră la mijloacele de stingere ale clientului."
         empty="Documentele nu numesc mijloace de stingere."
         render={(state) => (
           <ItemRow
@@ -993,7 +1093,6 @@ export function FireMeansSection({ context }: { context: ItemsContext }) {
         list="fireInstallations"
         context={context}
         agreement="feminine"
-        description="Oprește comutatorul la o instalație pe care nu o preiei: nu intră la instalațiile clientului."
         empty="Documentele nu numesc instalații de apărare împotriva incendiilor."
         render={(state) => (
           <ItemRow
@@ -1041,7 +1140,6 @@ export function EquipmentSection({ context }: { context: ItemsContext }) {
         list="protectiveEquipment"
         context={context}
         agreement="masculine"
-        description="Oprește comutatorul la un articol pe care nu îl preiei: postul lui nu îl primește."
         empty="Documentele nu numesc echipament de protecție."
         untickedBox={(states) => (
           <OptionalBox
@@ -1064,15 +1162,30 @@ export function EquipmentSection({ context }: { context: ItemsContext }) {
             context={context}
             title={itemName('protectiveEquipment', state.values)}
             details={[
-              referenceName(context, 'jobPositions', state.values.jobPosition),
-              [
-                text(state.values.risk) ?? 'Riscul lipsește',
-                state.values.quantity ? `${state.values.quantity} buc.` : null,
-                state.values.durationMonths ? `${state.values.durationMonths} luni` : null,
-                state.values.allocation ? allocationLabel(String(state.values.allocation)) : null,
-              ]
-                .filter(Boolean)
-                .join(' · '),
+              <dl className="my-2 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                <ReviewDatum icon={BriefcaseBusiness} label="Post">
+                  <ReferenceValue
+                    context={context}
+                    list="jobPositions"
+                    value={state.values.jobPosition}
+                    fallback="Postul lipsește"
+                  />
+                </ReviewDatum>
+                <ReviewDatum icon={ShieldCheck} label="Risc acoperit">
+                  {text(state.values.risk) ?? 'Riscul lipsește'}
+                </ReviewDatum>
+                <ReviewDatum icon={Package} label="Dotare">
+                  {[
+                    state.values.quantity ? `${state.values.quantity} buc.` : null,
+                    state.values.durationMonths ? `${state.values.durationMonths} luni` : null,
+                    state.values.allocation
+                      ? allocationLabel(String(state.values.allocation))
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ') || 'Nespecificată'}
+                </ReviewDatum>
+              </dl>,
             ]}
             agreement="masculine"
             onEdit={() => open(state, fields)}
