@@ -1991,24 +1991,18 @@ describe('a value proposed with its spelling corrected', () => {
     await waitFor(() => expect(checked(row, /Scrierea corectată/)).toBe(true));
   });
 
-  it('lists the corrections of the other sections at the end of the first', async () => {
+  it('keeps corrections in their own sections instead of repeating them on identity', async () => {
     mockReview({ ...spellingDetail(), blockers: [] });
     mount('/identity');
 
-    const others = await screen.findByTestId('review-other-sections');
-    const rows = within(others).getAllByTestId('review-other-section');
-    expect(rows.map((row) => row.textContent)).toEqual([
-      expect.stringContaining('Posturi de lucru'),
-      expect.stringContaining('Apărarea împotriva incendiilor'),
-    ]);
-    expect(rows[0]!.textContent).toContain('2 corecturi de scriere');
-    expect(rows[1]!.textContent).toContain(
-      'Reguli de apărare împotriva incendiilor · locul pentru fumat'
-    );
-    expect(markedWords(rows[1]!)).toEqual(['În', 'In']);
-    expect(
-      within(rows[1]!).getByTestId('review-other-section-open').getAttribute('href')
-    ).toContain('/fire-safety#review-fireSafety-smokingPlace');
+    await screen.findByTestId('import-review-section');
+    expect(screen.queryByTestId('review-other-sections')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Găsite în alte secțiuni' })).toBeNull();
+    await userEvent.click(screen.getByRole('link', { name: /^3\. Posturi de lucru/ }));
+    await screen.findByRole('heading', { level: 1, name: 'Posturi de lucru' });
+    const row = (await screen.findAllByTestId('review-item'))[0]!;
+    expect(within(row).getAllByTestId('review-spelling')).toHaveLength(2);
+    expect(saves).toBe(0);
   });
 
   it('sums up the hub with the corrected value', async () => {

@@ -188,8 +188,6 @@ La punctele de lucru, **Adresă** și **Încăperi** sunt afișate separat, pent
 
 Articolele de echipament sunt numerotate în ordinea afișării. Datele și variantele de scriere folosesc lățimea rândului. Pe un ecran îngust sau cu meniul lateral deschis, butoanele de verificare și modificare trec sub nume. La echipamentul de protecție, **Post** te duce la postul identificat în propunere. **Risc acoperit** este textul preluat din lista de dotare cu echipament, **Alocare** arată modul de acordare, iar **Cantitate** și **Durată** sunt afișate separat când sunt precizate. Riscul acoperit nu este o legătură automată la un factor din evaluarea riscurilor. Cu **Vezi în document** verifici rândul original din lista de echipament.
 
-La sfârșitul primei secțiuni, **Găsite în alte secțiuni** îți arată ce mai e de văzut în celelalte: corecturile de scriere, alegerile de făcut și datele lipsă, fiecare cu **Deschide secțiunea**.
-
 În **Fișierele importului**, instrucțiunile cu tip cunoscut sunt grupate sub **Instrucțiuni pentru bibliotecă**. Când sarcina este disponibilă, **Vezi IPSSM** sau **Vezi IPSU** o deschide. Celelalte fișiere lăsate deoparte pot fi adăugate cu **Include în citirea clientului**, dacă e cazul.
 
 Instrucțiunile proprii (IPSSM și IPSU) și evaluările de risc nu intră în propunerea clientului: le citim separat, pentru bibliotecile tale, și nu te țin pe loc când creezi clientul.

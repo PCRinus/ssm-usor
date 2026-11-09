@@ -20,14 +20,11 @@ import {
   blockerLink,
   type Changes,
   fieldGroups,
-  fieldSpelling,
   type FieldState,
   fieldState,
   formatFieldValue,
   type ItemList,
   itemName,
-  itemSpellingLabel,
-  itemSpellings,
   itemStates,
   type Proposal,
   type RegisteredCompany,
@@ -423,67 +420,4 @@ export function reviewName(detail: ImportDetail, proposal: Proposal, changes: Ch
   if (typeof value === 'string' && value) return value;
   const own = proposal.client.legalName.options.find((option) => option.otherCompanyName === null);
   return String(own?.value ?? detail.companyName ?? 'Client nou');
-}
-
-const itemLists: ItemList[] = [
-  'workplaces',
-  'jobPositions',
-  'responsiblePersons',
-  'fireEquipment',
-  'fireInstallations',
-  'protectiveEquipment',
-  'employees',
-];
-
-type Correction = {
-  where: string;
-  field: string;
-  corrected: string;
-  written: string;
-  anchor: string;
-};
-
-export function sectionCorrections(
-  section: SectionId,
-  proposal: Proposal,
-  changes: Changes,
-  states: Record<string, FieldState>
-): Correction[] {
-  const fields = fieldGroups
-    .filter((group) => group.section === section)
-    .flatMap((group) =>
-      group.paths.flatMap((path) => {
-        const state = states[path];
-        const spelling = state && fieldSpelling(state, changes.fields[path]);
-        return spelling && !spelling.keptWritten
-          ? [
-              {
-                where: group.title,
-                field: state.label.toLowerCase(),
-                corrected: spelling.corrected,
-                written: spelling.written,
-                anchor: anchorOf(path),
-              },
-            ]
-          : [];
-      })
-    );
-  const items = itemLists
-    .filter((list) => sectionOf(list) === section)
-    .flatMap((list) =>
-      itemStates(proposal, changes, list)
-        .filter((state) => state.included)
-        .flatMap((state) =>
-          itemSpellings(state, changes)
-            .filter((spelling) => !spelling.keptWritten)
-            .map((spelling) => ({
-              where: itemName(list, state.values),
-              field: itemSpellingLabel(spelling.field).toLowerCase(),
-              corrected: spelling.value,
-              written: spelling.written,
-              anchor: anchorOf(`${list}.${state.item.id}`),
-            }))
-        )
-    );
-  return [...fields, ...items];
 }
