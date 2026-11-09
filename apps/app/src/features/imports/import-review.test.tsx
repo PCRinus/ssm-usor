@@ -1376,6 +1376,48 @@ function secondPost(changes: unknown = null) {
 }
 
 describe('reviewing related import data', () => {
+  it('labels the post category, work zone, training override and activities without changing them', async () => {
+    const proposal = proposalFixture();
+    Object.assign(proposal.jobPositions[0]!, {
+      staffCategory: 'execution',
+      workZone: 'Laborator de panificație',
+      trainingIntervalMonths: 3,
+      activities: 'Pregătește aluatul și coace produsele de panificație.',
+    });
+    mockReview(readyDetail({ proposal }));
+    mount('/job-positions');
+
+    const row = await screen.findByRole('listitem', { name: 'Brutar' });
+    const details = Array.from(row.querySelectorAll('dt')).map((label) => [
+      label.textContent,
+      label.nextElementSibling?.textContent,
+    ]);
+    expect(details).toEqual([
+      ['Categorie de personal', 'Execuție'],
+      ['Zona de lucru', 'Laborator de panificație'],
+      ['Interval de instruire', 'La 3 luni'],
+      ['Activități', 'Pregătește aluatul și coace produsele de panificație.'],
+    ]);
+    expect(saves).toBe(0);
+  });
+
+  it('does not invent a post-specific training interval or absent optional details', async () => {
+    const proposal = proposalFixture();
+    Object.assign(proposal.jobPositions[0]!, {
+      workZone: null,
+      activities: null,
+      trainingIntervalMonths: null,
+    });
+    mockReview(readyDetail({ proposal }));
+    mount('/job-positions');
+
+    const row = await screen.findByRole('listitem', { name: 'Brutar' });
+    expect(Array.from(row.querySelectorAll('dt'), (label) => label.textContent)).toEqual([
+      'Categorie de personal',
+    ]);
+    expect(saves).toBe(0);
+  });
+
   it('numbers the displayed equipment entries and keeps their numbers when one is left out', async () => {
     mockReview(secondPost());
     mount('/equipment');

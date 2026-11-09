@@ -17,6 +17,7 @@ import {
   workplaceKinds,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import {
   ArrowRight,
@@ -27,12 +28,14 @@ import {
   DoorOpen,
   HardHat,
   Hash,
+  ListChecks,
   type LucideIcon,
   MapPin,
   Package,
   ShieldCheck,
   Split,
   UserRound,
+  UsersRound,
 } from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
 
@@ -171,13 +174,15 @@ function ReviewDatum({
   icon: Icon,
   label,
   children,
+  className,
 }: {
   icon: LucideIcon;
   label: string;
   children: ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="grid min-w-0 max-w-full content-start gap-1 sm:max-w-md">
+    <div className={cn('grid min-w-0 max-w-full content-start gap-1 sm:max-w-md', className)}>
       <dt className="flex items-center gap-2 text-xs text-muted-foreground">
         <Icon aria-hidden="true" className="size-4 shrink-0" />
         {label}
@@ -809,10 +814,36 @@ export function JobPositionsSection({ context }: { context: ItemsContext }) {
             context={context}
             title={itemName('jobPositions', state.values)}
             details={[
-              text(state.values.activities),
-              state.values.staffCategory
-                ? staffCategoryShortLabels[state.values.staffCategory as StaffCategory]
-                : 'Categoria de personal lipsește',
+              <dl className="my-2 grid gap-x-8 gap-y-3 sm:flex sm:flex-wrap sm:items-start">
+                <ReviewDatum icon={UsersRound} label="Categorie de personal">
+                  {state.values.staffCategory
+                    ? staffCategoryShortLabels[state.values.staffCategory as StaffCategory]
+                    : 'Categoria de personal lipsește'}
+                </ReviewDatum>
+                {text(state.values.workZone) && (
+                  <ReviewDatum icon={MapPin} label="Zona de lucru">
+                    {text(state.values.workZone)}
+                  </ReviewDatum>
+                )}
+                {state.values.trainingIntervalMonths != null && (
+                  <ReviewDatum icon={Clock} label="Interval de instruire">
+                    {state.values.trainingIntervalMonths === 1
+                      ? 'Lunar'
+                      : `La ${String(state.values.trainingIntervalMonths)} luni`}
+                  </ReviewDatum>
+                )}
+                {text(state.values.activities) && (
+                  <ReviewDatum
+                    icon={ListChecks}
+                    label="Activități"
+                    className="basis-full sm:max-w-none"
+                  >
+                    <span className="max-w-prose whitespace-pre-line">
+                      {text(state.values.activities)}
+                    </span>
+                  </ReviewDatum>
+                )}
+              </dl>,
               <EquipmentDecision key="equipment" state={state} context={context} />,
             ]}
             agreement="masculine"
