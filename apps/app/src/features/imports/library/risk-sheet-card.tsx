@@ -136,7 +136,8 @@ export function RiskSheetCard({
   const swapped = sheet.flags.find((flag) => flag.kind === 'classes_swapped');
   const textFlags = sheet.flags.filter((flag) => flag.kind !== 'classes_swapped');
   const removed = state.factors.filter(removedByMember);
-  const allRemoved = removed.length === state.factors.length;
+  const noneIncluded =
+    state.factors.length > 0 && state.factors.every((factor) => !factor.included);
   const attention = state.factors.filter(
     (factor) =>
       refused.has(factor.factor.key) || (!factor.included && !factor.complete) || needsCheck(factor)
@@ -147,10 +148,10 @@ export function RiskSheetCard({
     setListed(new Set([...listed, ...attention.map((factor) => factor.factor.key)]));
   }
   const shown =
-    showAll || allRemoved
+    showAll || noneIncluded
       ? state.factors
       : state.factors.filter((factor) => listed.has(factor.factor.key));
-  const folded = !showAll && !allRemoved && shown.length < state.factors.length;
+  const folded = !showAll && !noneIncluded && shown.length < state.factors.length;
   const sheetSource: LabelledSource = { file: sheet.file, quote: sheet.heading };
 
   const pickLibrary = (choice: LibraryChoice) =>
@@ -335,8 +336,9 @@ export function RiskSheetCard({
             label="Factorii"
             testId="risk-import-factors-row"
             actions={
-              allRemoved ? (
-                !readOnly && (
+              noneIncluded ? (
+                !readOnly &&
+                removed.length > 0 && (
                   <Button
                     type="button"
                     variant="outline"
@@ -365,10 +367,10 @@ export function RiskSheetCard({
             }
           >
             <span data-testid="risk-import-factors-summary">
-              {allRemoved
-                ? removed.length === 1
+              {noneIncluded
+                ? state.factors.length === 1
                   ? 'Singurul factor nu e inclus.'
-                  : `Niciunul dintre cei ${removed.length} factori nu e inclus.`
+                  : `Niciunul dintre cei ${state.factors.length} factori nu e inclus.`
                 : factorsLine(state, removed.length)}
             </span>
             {!readOnly && (

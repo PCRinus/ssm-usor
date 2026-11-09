@@ -200,6 +200,31 @@ describe('a sheet card with the confirm bar', () => {
     expect(summary()).toContain('cu 6 factori');
   });
 
+  it('keeps the list open when the factors left are proposed off, and includes only the ones switched off', async () => {
+    const unclassed = { ...factor('a.7', 'Zgomot de la imprimantă', 'Zgomot'), gravityClass: null };
+    render(
+      <Harness
+        sheet={{ ...analyst, factors: [...analyst.factors, { ...unclassed, included: false }] }}
+      />
+    );
+    await userEvent.click(screen.getByTestId('risk-import-show-factors'));
+    for (const toggle of screen
+      .getAllByRole('switch')
+      .filter((each) => each.getAttribute('aria-checked') === 'true')) {
+      await userEvent.click(toggle);
+    }
+
+    expect(screen.getByTestId('risk-import-factors-summary').textContent).toBe(
+      'Niciunul dintre cei 7 factori nu e inclus.'
+    );
+    expect(screen.getAllByTestId('risk-import-factor')).toHaveLength(7);
+    await userEvent.click(screen.getByRole('button', { name: 'Include-i pe toți' }));
+    expect(summary()).toContain('cu 6 factori');
+    expect(
+      within(row('Zgomot de la imprimantă')).getByRole('switch').getAttribute('aria-checked')
+    ).toBe('false');
+  });
+
   it('refuses a name the library has when it is saved', async () => {
     render(<Harness />);
     await userEvent.click(screen.getByTestId('risk-import-sheet-rename'));
