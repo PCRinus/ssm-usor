@@ -164,7 +164,7 @@ function TaskContent({
   const proposal = part.proposal;
   const reviewable = isReviewable(part.status) && proposal !== null && !expired;
   const readOnly = !reviewable || Boolean(review.closed);
-  const name = detail.client?.legalName ?? detail.companyName ?? 'clientul importat';
+  const name = detail.client?.legalName ?? detail.companyName ?? 'Client importat';
   const instructions = proposal?.instructions ?? [];
   const rows = reviewedInstructions(instructions).map((instruction) =>
     rowState(instruction, review.changes.instructions[instruction.key], part.positionPosts)
@@ -282,17 +282,11 @@ function TaskContent({
     }
   }
 
-  const intro =
-    domain === 'ssm'
-      ? `Instrucțiunile proprii SSM din documentația lui ${name}, pentru biblioteca ta.`
-      : `Instrucțiunile proprii SU din documentația lui ${name}, pentru biblioteca ta.`;
-
   return (
     <SourcePrefetchContext value={prefetchSource}>
       <div ref={root} className="grid gap-6" data-testid="library-task" data-part={part.part}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="grid max-w-3xl gap-1">
-            <span className="text-sm text-muted-foreground">Instrucțiuni proprii din import</span>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <h1 className="text-3xl font-semibold tracking-tight">{label}</h1>
               <PartStatusTag part={part} />
@@ -301,7 +295,7 @@ function TaskContent({
                 label="Ajutor: instrucțiunile din import"
               />
             </div>
-            <p className="text-sm text-muted-foreground">{intro}</p>
+            <p className="text-sm text-muted-foreground">{name}</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <ReportImportButton importId={detail.id} part={part.part} />

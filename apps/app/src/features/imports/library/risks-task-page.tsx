@@ -198,7 +198,7 @@ function TaskContent({
   const proposal = part.proposal;
   const reviewable = isReviewable(part.status) && proposal !== null && !expired;
   const readOnly = !reviewable || Boolean(review.closed);
-  const name = detail.client?.legalName ?? detail.companyName ?? 'clientul importat';
+  const name = detail.client?.legalName ?? detail.companyName ?? 'Client importat';
   const sheets = useMemo(() => proposal?.sheets ?? [], [proposal]);
   const pickable = pickablePosts(posts, clientConfirmed);
   const postsById = postsByReference(pickable);
@@ -372,16 +372,12 @@ function TaskContent({
       <div ref={root} className="grid gap-6" data-testid="library-task" data-part={part.part}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="grid max-w-3xl gap-1">
-            <span className="text-sm text-muted-foreground">Din import</span>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <h1 className="text-3xl font-semibold tracking-tight">Evaluări de risc</h1>
               <PartStatusTag part={part} />
               <HelpLink topic="import.evaluari-de-risc" label="Ajutor: evaluările din import" />
             </div>
-            <p className="text-sm text-muted-foreground">
-              Evaluările de risc pentru {name}. Clasele rămân cele din document; diferențele față de
-              metodă sunt marcate la factori.
-            </p>
+            <p className="text-sm text-muted-foreground">{name}</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <ReportImportButton importId={detail.id} part={part.part} />
