@@ -401,7 +401,7 @@ function TaskContent({
             <section aria-labelledby="risk-sheets-heading" className="grid gap-3">
               <div className="grid gap-1">
                 <h2 id="risk-sheets-heading" className="text-lg font-semibold">
-                  Ce verifici înainte să confirmi
+                  {readOnly ? 'Evaluările din import' : 'Ce verifici înainte să confirmi'}{' '}
                   <span className="ml-2 text-sm font-normal text-muted-foreground tabular-nums">
                     {sheets.length === 1 ? 'o evaluare' : evaluationsLabel(sheets.length)}
                   </span>

@@ -123,7 +123,7 @@ function ArticleText({
       data-testid="instruction-article-text"
       rows={2}
       className={cn(
-        'min-h-20 bg-card leading-relaxed dark:bg-input/30',
+        'min-h-20 leading-relaxed',
         marked && 'border-amber-500 focus-visible:border-amber-500'
       )}
       placeholder={placeholder}

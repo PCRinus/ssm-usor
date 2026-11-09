@@ -85,7 +85,7 @@ function EmployeeList({ participantId }: { participantId: string }) {
             type="search"
             data-testid="employees-search"
             placeholder={t`Caută după nume`}
-            className="h-12 bg-card pl-9 sm:h-11"
+            className="h-12 pl-9 sm:h-11"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />

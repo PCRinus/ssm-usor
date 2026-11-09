@@ -1060,7 +1060,7 @@ describe("a protective-equipment entry's duration", () => {
     mount('/equipment');
 
     const [gloves, mask] = await screen.findAllByTestId('review-item');
-    expect(gloves!.textContent).toContain(
+    expect(within(gloves!).getByRole('note', { name: 'Date de corectat' }).textContent).toContain(
       'Lipsește durata de utilizare. Scrie-o, sau alege alocarea Consum dacă articolul se consumă.'
     );
     expect(mask!.textContent).toContain(
@@ -1375,6 +1375,162 @@ function secondPost(changes: unknown = null) {
   return readyDetail({ proposal, blockers: [], changes });
 }
 
+describe('reviewing related import data', () => {
+  it('labels the post category, work zone, training override and activities without changing them', async () => {
+    const proposal = proposalFixture();
+    Object.assign(proposal.jobPositions[0]!, {
+      staffCategory: 'execution',
+      workZone: 'Laborator de panificație',
+      trainingIntervalMonths: 3,
+      activities: 'Pregătește aluatul și coace produsele de panificație.',
+    });
+    mockReview(readyDetail({ proposal }));
+    mount('/job-positions');
+
+    const row = await screen.findByRole('listitem', { name: 'Brutar' });
+    const details = Array.from(row.querySelectorAll('dt')).map((label) => [
+      label.textContent,
+      label.nextElementSibling?.textContent,
+    ]);
+    expect(details).toEqual([
+      ['Categorie de personal', 'Execuție'],
+      ['Zona de lucru', 'Laborator de panificație'],
+      ['Interval de instruire', 'La 3 luni'],
+      ['Activități', 'Pregătește aluatul și coace produsele de panificație.'],
+    ]);
+    expect(saves).toBe(0);
+  });
+
+  it('does not invent a post-specific training interval or absent optional details', async () => {
+    const proposal = proposalFixture();
+    Object.assign(proposal.jobPositions[0]!, {
+      workZone: null,
+      activities: null,
+      trainingIntervalMonths: null,
+    });
+    mockReview(readyDetail({ proposal }));
+    mount('/job-positions');
+
+    const row = await screen.findByRole('listitem', { name: 'Brutar' });
+    expect(Array.from(row.querySelectorAll('dt'), (label) => label.textContent)).toEqual([
+      'Categorie de personal',
+    ]);
+    expect(saves).toBe(0);
+  });
+
+  it('numbers the displayed equipment entries and keeps their numbers when one is left out', async () => {
+    mockReview(secondPost());
+    mount('/equipment');
+
+    const list = await screen.findByRole('list', { name: 'Articole de echipament' });
+    expect(list.tagName).toBe('OL');
+    expect(
+      within(list)
+        .getAllByTestId('equipment-item-number')
+        .map((item) => item.textContent)
+    ).toEqual(['1', '2']);
+    const first = within(list).getAllByTestId('review-item')[0]!;
+    await userEvent.click(within(first).getByRole('switch'));
+    await waitFor(() => expect(saves).toBe(1));
+
+    expect(
+      within(list)
+        .getAllByTestId('equipment-item-number')
+        .map((item) => item.textContent)
+    ).toEqual(['1', '2']);
+    expect(within(first).queryByTestId('review-edit')).toBeNull();
+    expect(within(first).getByText('Nu e inclus')).toBeDefined();
+  });
+
+  it('numbers visible equipment consecutively when an earlier source entry is set aside', async () => {
+    mockReview(secondPost({ fields: {}, items: { 'position-1': { included: false } } }));
+    mount('/equipment');
+
+    const list = await screen.findByRole('list', { name: 'Articole de echipament' });
+    expect(
+      within(list)
+        .getAllByTestId('equipment-item-number')
+        .map((item) => item.textContent)
+    ).toEqual(['1']);
+    expect(list.textContent).toContain('Halat de protecție');
+    expect(
+      screen.getByTestId('review-list-protectiveEquipment').querySelector('h2')?.textContent
+    ).toBe('Un articol');
+  });
+
+  it('labels equipment details and opens the referenced proposal post without changing data', async () => {
+    mockReview(secondPost());
+    mount('/equipment');
+
+    const [equipment] = await screen.findAllByTestId('review-item');
+    expect(within(equipment!).getByText('Risc acoperit')).toBeDefined();
+    expect(within(equipment!).getByText('Murdărire')).toBeDefined();
+    expect(within(equipment!).getByText('Alocare')).toBeDefined();
+    expect(within(equipment!).getByText('Cantitate')).toBeDefined();
+    expect(within(equipment!).queryByRole('link', { name: 'Murdărire' })).toBeNull();
+    const post = within(equipment!).getByRole('link', { name: 'Brutar' });
+    expect(post.getAttribute('href')).toContain('/job-positions#review-jobPositions-position-1');
+
+    await userEvent.click(post);
+    await waitFor(() => expect(document.activeElement?.id).toBe('review-jobPositions-position-1'));
+    expect(saves).toBe(0);
+  });
+
+  it('does not link an unresolved equipment post to a nonexistent proposal item', async () => {
+    mockReview(
+      secondPost({
+        fields: {},
+        items: { 'equipment-entry-1': { values: { jobPosition: 'not-in-proposal' } } },
+      })
+    );
+    mount('/equipment');
+
+    const [equipment] = await screen.findAllByTestId('review-item');
+    expect(within(equipment!).queryByTestId('import-reference-link')).toBeNull();
+    expect(within(equipment!).getByText('Postul lipsește')).toBeDefined();
+  });
+
+  it('shows the workplace address and rooms as labelled review data', async () => {
+    mockReview(readyDetail());
+    mount('/workplaces');
+
+    const card = await screen.findByTestId('review-list-workplaces');
+    expect(within(card).getByText('Adresă')).toBeDefined();
+    expect(within(card).getByText('Str. Morilor nr. 14, Sibiu, jud. Sibiu')).toBeDefined();
+    expect(within(card).getByText('Încăperi')).toBeDefined();
+    expect(within(card).getByText('Laborator')).toBeDefined();
+    expect(within(card).getByText('Magazin')).toBeDefined();
+    expect(card.textContent).not.toContain('Oprește comutatorul');
+  });
+
+  it('keeps a person’s all-workplaces coverage distinct from an unresolved reference', async () => {
+    mockReview(readyDetail());
+    mount('/responsible');
+
+    const card = await screen.findByTestId('review-list-responsiblePersons');
+    expect(within(card).getByText('Toate punctele de lucru')).toBeDefined();
+    expect(within(card).queryByText('Punct de lucru neidentificat')).toBeNull();
+    expect(within(card).queryByTestId('import-reference-link')).toBeNull();
+  });
+
+  it('links a responsible person’s resolved workplace without inventing a job-title link', async () => {
+    mockReview(
+      readyDetail({
+        changes: { fields: {}, items: { 'person-1': { values: { workplace: 'workplace-1' } } } },
+      })
+    );
+    mount('/responsible');
+
+    const card = await screen.findByTestId('review-list-responsiblePersons');
+    expect(within(card).getByText('Funcție')).toBeDefined();
+    expect(within(card).getByText('Responsabilități')).toBeDefined();
+    expect(within(card).getByRole('link', { name: 'Sediu' }).getAttribute('href')).toContain(
+      '/workplaces#review-workplaces-workplace-1'
+    );
+    expect(within(card).queryByRole('link', { name: 'Brutar' })).toBeNull();
+  });
+});
+
 describe('a post the import proposed that the member leaves out', () => {
   it('collapses in place to its name and switch, and opens again when switched on', async () => {
     mockReview(secondPost());
@@ -1384,7 +1540,7 @@ describe('a post the import proposed that the member leaves out', () => {
       (await screen.findAllByTestId('review-item')).find((row) => row.textContent?.includes(name))!;
     const card = await screen.findByTestId('review-list-jobPositions');
     expect(card.textContent).toContain('2 posturi');
-    expect(card.textContent).toContain('Oprește comutatorul la un post pe care nu îl preiei');
+    expect(card.textContent).not.toContain('Oprește comutatorul');
     expect(
       within(await rowOf('Brutar')).getByRole('switch', { name: 'Inclus: Brutar' })
     ).toBeTruthy();
@@ -1718,7 +1874,7 @@ describe('a value proposed with its spelling corrected', () => {
   };
 
   const checked = (scope: HTMLElement, name: RegExp) =>
-    (within(scope).getByRole('radio', { name }) as HTMLInputElement).checked;
+    within(scope).getByRole('radio', { name }).matches(':checked');
 
   it('offers the corrected value over the document’s, one above the other, and takes either', async () => {
     mockReview(spellingDetail());
@@ -1732,6 +1888,8 @@ describe('a value proposed with its spelling corrected', () => {
       'Scrierea corectată: majuscule și diacriticeScrierea corectatăIntră în documenteÎngrijitor hotelCa în documentINGRIJITOR HOTEL'
     );
     expect(checked(name!, /Scrierea corectată/)).toBe(true);
+    expect(within(name!).queryByText('Compară')).toBeNull();
+    expect(saves).toBe(0);
     expect(markedWords(name!)).toEqual(['Îngrijitor', 'INGRIJITOR']);
     expect(zone!.textContent).toContain('Scrierea corectată: majuscule');
     expect(zone!.textContent).not.toContain('diacritice');
@@ -2358,6 +2516,68 @@ describe('two phone numbers the documents give', () => {
 });
 
 describe('the persistent import review bar', () => {
+  it('explains a non-blocking review status and points to the default-excluded person without including them', async () => {
+    const proposal = proposalFixture();
+    mockReview(
+      readyDetail({
+        proposal: {
+          ...proposal,
+          employees: [
+            {
+              ...proposal.employees[0]!,
+              id: 'employee-legal',
+              role: 'legal_representative',
+              lastName: 'Popescu',
+              firstName: 'Ioana',
+              hiredAt: null,
+            },
+          ],
+        },
+        blockers: [],
+      })
+    );
+    mount();
+    const hub = await screen.findByTestId('import-review-hub');
+    const link = within(hub)
+      .getAllByTestId('import-section-link')
+      .find((entry) => entry.dataset.section === 'responsible')!;
+    expect(link.textContent).toContain('Reprezentant legal nepreluat automat');
+    expect(link.textContent).toContain('De verificat');
+    expect(screen.getByTestId('import-confirm').getAttribute('aria-disabled')).toBeNull();
+    await userEvent.click(link);
+    const note = await screen.findByTestId('import-section-advisories');
+    expect(note.textContent).toContain('nu împiedică confirmarea');
+    await userEvent.click(within(note).getByRole('button', { name: /Popescu Ioana/ }));
+    const item = document.getElementById('review-employees-employee-legal')!;
+    await waitFor(() => expect(document.activeElement).toBe(item));
+    expect(within(item).getByRole('switch').getAttribute('aria-checked')).toBe('false');
+    expect(saves).toBe(0);
+  });
+
+  it('distinguishes optional empty fields from required missing data', async () => {
+    const proposal = proposalFixture();
+    proposal.client.contactEmail.options = [];
+    proposal.client.cui.options = [];
+    mockReview(
+      readyDetail({
+        proposal,
+        registeredCompany: null,
+        blockers: [{ path: 'client.cui', code: 'missing' }],
+      })
+    );
+    mount('/identity');
+    await screen.findByTestId('import-review-section');
+    const optional = document.getElementById('review-client-contactEmail')!;
+    const required = document.getElementById('review-client-cui')!;
+    expect(optional.dataset.tone).toBe('optional');
+    expect(optional.textContent).toContain('Opțional.');
+    expect(optional.textContent).not.toContain('De ales');
+    expect(required.dataset.tone).toBe('todo');
+    expect(required.textContent).toContain('obligatoriu');
+    const bar = screen.getByRole('region', { name: 'Navigarea prin propunere' });
+    expect(within(bar).getByRole('button', { name: '1 dată lipsă' })).toBeTruthy();
+  });
+
   it('shows the section readiness independently of a save still in progress', async () => {
     let release = () => {};
     const held = new Promise<void>((resolve) => {

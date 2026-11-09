@@ -571,6 +571,7 @@ export async function createLibraryImport(input: {
   legalName: string;
   cui: string;
   posts: string[];
+  clientProposal?: ReturnType<typeof toProposal>;
   proposal?: InstructionsProposal;
   risks?: RisksProposal;
   partStatus?: 'to_review' | 'failed';
@@ -581,37 +582,39 @@ export async function createLibraryImport(input: {
     quote: text,
     otherCompany: null,
   });
-  const clientProposal = toProposal({
-    facts: [
-      { field: 'client.legalName', value: input.legalName, ...quote(input.legalName) },
-      { field: 'client.cui', value: input.cui, ...quote(input.cui) },
-      // Posts without a category are execution staff, whose interval would otherwise wait to be confirmed.
-      {
-        field: 'trainingSchedule.workerTrainingIntervalMonths',
-        value: '3 luni',
-        ...quote('la 3 luni'),
-      },
-    ],
-    workplaces: [],
-    workplaceFacts: [],
-    jobPositionFacts: [],
-    jobPositions: input.posts.map((name) => ({
-      name,
-      staffCategory: null,
-      trainingIntervalMonths: null,
-      workZone: null,
-      activities: null,
-      managementOnly: false,
-      needsProtectiveEquipment: null,
-      ...quote(name),
-    })),
-    responsiblePersons: [],
-    fireEquipment: [],
-    fireInstallations: [],
-    protectiveEquipment: [],
-    employees: [],
-    notes: [],
-  });
+  const clientProposal =
+    input.clientProposal ??
+    toProposal({
+      facts: [
+        { field: 'client.legalName', value: input.legalName, ...quote(input.legalName) },
+        { field: 'client.cui', value: input.cui, ...quote(input.cui) },
+        // Posts without a category are execution staff, whose interval would otherwise wait to be confirmed.
+        {
+          field: 'trainingSchedule.workerTrainingIntervalMonths',
+          value: '3 luni',
+          ...quote('la 3 luni'),
+        },
+      ],
+      workplaces: [],
+      workplaceFacts: [],
+      jobPositionFacts: [],
+      jobPositions: input.posts.map((name) => ({
+        name,
+        staffCategory: null,
+        trainingIntervalMonths: null,
+        workZone: null,
+        activities: null,
+        managementOnly: false,
+        needsProtectiveEquipment: null,
+        ...quote(name),
+      })),
+      responsiblePersons: [],
+      fireEquipment: [],
+      fireInstallations: [],
+      protectiveEquipment: [],
+      employees: [],
+      notes: [],
+    });
   const now = new Date().toISOString();
   const created = await admin
     .from('imports')

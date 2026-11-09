@@ -4,6 +4,8 @@ import { Link } from '@tanstack/react-router';
 import {
   BookOpen,
   BriefcaseBusiness,
+  ChevronDown,
+  FileText,
   GitCompare,
   ListChecks,
   type LucideIcon,
@@ -129,6 +131,7 @@ export function RiskSheetCard({
   const { sheet } = state;
   const [comparing, setComparing] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [showSourceHeading, setShowSourceHeading] = useState(false);
   const pending = readOnly ? [] : pendingOf(state, nameTaken);
   const ask = (open: boolean): Tone => (!readOnly && open ? 'todo' : 'done');
   const Icon = kindIcons[sheet.kind];
@@ -153,6 +156,7 @@ export function RiskSheetCard({
     : state.factors.filter((factor) => listed.has(factor.factor.key));
   const folded = !showAll && shown.length < state.factors.length;
   const sheetSource: LabelledSource = { file: sheet.file, quote: sheet.heading };
+  const title = state.libraryName.trim() || sheet.name?.trim() || kindLabels[sheet.kind];
 
   const pickLibrary = (choice: LibraryChoice) =>
     onSheet((current) =>
@@ -173,8 +177,8 @@ export function RiskSheetCard({
       aria-labelledby={`${id}-heading`}
       className="scroll-mt-32 overflow-hidden rounded-xl border bg-card shadow-xs"
     >
-      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-3 px-4 py-4 sm:flex-nowrap sm:px-5">
-        <span className="flex size-10 shrink-0 items-center justify-center self-start rounded-[10px] bg-secondary sm:self-center">
+      <div className="flex flex-wrap items-start gap-x-3.5 gap-y-3 px-4 py-4 sm:flex-nowrap sm:px-5">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-secondary">
           <Icon className="size-5" aria-hidden="true" />
         </span>
         <div className="grid min-w-0 flex-1 basis-56 gap-0.5">
@@ -184,7 +188,7 @@ export function RiskSheetCard({
               className="text-base leading-snug font-semibold wrap-anywhere"
               data-testid="risk-import-sheet-heading"
             >
-              {sheet.heading}
+              {title}
             </h3>
             {statusTag(state)}
           </div>
@@ -192,6 +196,38 @@ export function RiskSheetCard({
             <span data-testid="risk-import-sheet-kind">{kindLabels[sheet.kind]}</span>
             {!unread && <span>{factorsLabel(sheet.factors.length)}</span>}
           </p>
+          {sheet.heading !== title && (
+            <div className="mt-2 grid min-w-0 justify-items-start gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="max-w-full max-sm:h-11"
+                aria-expanded={showSourceHeading}
+                aria-controls={`${id}-source-heading`}
+                onClick={() => setShowSourceHeading((open) => !open)}
+              >
+                <FileText aria-hidden="true" />
+                Titlul din document
+                <ChevronDown
+                  aria-hidden="true"
+                  className={cn(
+                    'transition-transform motion-reduce:transition-none',
+                    showSourceHeading && 'rotate-180'
+                  )}
+                />
+              </Button>
+              <div
+                id={`${id}-source-heading`}
+                hidden={!showSourceHeading}
+                className="w-full min-w-0 rounded-md border bg-background/60 px-3 py-2"
+                data-testid="risk-import-source-heading"
+              >
+                <p className="text-xs font-medium text-muted-foreground">În document</p>
+                <p className="mt-1 text-sm wrap-anywhere">{sheet.heading}</p>
+              </div>
+            </div>
+          )}
         </div>
         {!readOnly && !unread && (
           <div className="flex w-full items-center gap-4 sm:w-auto sm:shrink-0">

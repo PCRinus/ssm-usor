@@ -24,6 +24,7 @@ import {
   reviewName,
   sectionDescription,
   sectionIcons,
+  sectionReviewHints,
   sectionStatuses,
 } from './review-summary';
 import { keptPosts, withoutAbsentCategories } from './training-category';
@@ -150,6 +151,10 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
         <ul className="divide-y overflow-hidden rounded-xl border bg-card shadow-xs">
           {sectionIds.map((section) => {
             const Icon = sectionIcons[section];
+            const hint =
+              statuses[section].kind === 'check'
+                ? sectionReviewHints(section, proposal, review.changes)[0]
+                : undefined;
             return (
               <li key={section}>
                 <Link
@@ -170,6 +175,16 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
                     <span className="text-sm text-muted-foreground max-sm:hidden">
                       {sectionDescription(section, detail, proposal, review.changes, applying)}
                     </span>
+                    {hint && (
+                      <span
+                        className={cn(
+                          'text-[13px] text-info-foreground',
+                          section === 'job-positions' && 'sm:hidden'
+                        )}
+                      >
+                        {hint.summary}
+                      </span>
+                    )}
                   </span>
                   <span className="justify-self-end">
                     <StatusTag status={statuses[section]} />

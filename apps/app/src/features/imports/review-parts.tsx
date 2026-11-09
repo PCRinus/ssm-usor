@@ -1,7 +1,7 @@
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { Check, FileSearch, Pencil, ShieldCheck, SpellCheck } from 'lucide-react';
+import { Check, FileSearch, Pencil, ShieldCheck, SpellCheck, TriangleAlert } from 'lucide-react';
 import { type ComponentProps, type ReactNode, use, useEffect, useId, useRef } from 'react';
 
 import { filesLabel } from './import-format';
@@ -172,7 +172,8 @@ export function SummaryRow({
 }
 
 const noteTones = {
-  danger: 'text-destructive',
+  danger:
+    'flex items-start gap-2 rounded-md border border-destructive-border bg-destructive-soft px-3 py-2 font-medium text-destructive-foreground',
   warning: 'font-medium text-warning-foreground',
 };
 
@@ -187,10 +188,13 @@ export function RowNote({
 }) {
   return (
     <span
+      role={tone === 'danger' ? 'note' : undefined}
+      aria-label={tone === 'danger' ? 'Date de corectat' : undefined}
       className={cn('text-[13px]', tone ? noteTones[tone] : 'text-muted-foreground')}
       data-testid={testId}
     >
-      {children}
+      {tone === 'danger' && <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />}
+      {tone === 'danger' ? <span>{children}</span> : children}
     </span>
   );
 }
@@ -336,9 +340,12 @@ export function PickOption({
       />
       <label
         htmlFor={id}
-        className={cn('grid min-w-0 gap-1', disabled ? 'cursor-not-allowed' : 'cursor-pointer')}
+        className={cn(
+          'grid w-full min-w-0 gap-1',
+          disabled ? 'cursor-not-allowed' : 'cursor-pointer'
+        )}
       >
-        <span className="flex min-h-5 flex-wrap items-center gap-2 text-[12.5px] font-semibold text-muted-foreground">
+        <span className="flex min-h-5 w-full min-w-0 flex-wrap items-center gap-2 text-[12.5px] font-semibold text-muted-foreground">
           {heading}
           {checked && inDocuments && (
             <span className="inline-flex h-5 items-center gap-1 rounded-[5px] bg-primary px-1.5 text-[11.5px] font-semibold text-primary-foreground">
@@ -360,8 +367,8 @@ export function SourceFileNames({ sources }: { sources: LabelledSource[] }) {
   if (names.length === 0) return 'În documente';
   const others = names.slice(1);
   return (
-    <span className="flex max-w-full min-w-0" title={names.join(', ')}>
-      <span className="truncate">{names[0]}</span>
+    <span className="flex max-w-full min-w-0 flex-[0_1_auto]" title={names.join(', ')}>
+      <span className="min-w-0 truncate">{names[0]}</span>
       {others.length > 0 && (
         <span className="shrink-0 whitespace-pre">
           {` și încă ${filesLabel(others.length)}`}

@@ -421,17 +421,11 @@ function TaskContent({
             ) : (
               <section aria-labelledby="library-rows-heading" className="grid gap-3">
                 <h2 id="library-rows-heading" className="text-lg font-semibold">
-                  Ce verifici înainte să confirmi
+                  {readOnly ? 'Instrucțiunile din import' : 'Ce verifici înainte să confirmi'}{' '}
                   <span className="ml-2 text-sm font-normal text-muted-foreground tabular-nums">
                     {instructionsLabel(rows.length)}
                   </span>
                 </h2>
-                {!readOnly && (
-                  <p className="-mt-1 max-w-3xl text-sm text-muted-foreground">
-                    Oprește comutatorul la o instrucțiune pe care nu o preiei: nu intră în
-                    bibliotecă și nu se aplică la niciun post.
-                  </p>
-                )}
                 {rows.map((row) => (
                   <InstructionRow
                     key={row.instruction.key}

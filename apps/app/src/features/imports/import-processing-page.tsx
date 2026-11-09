@@ -49,6 +49,10 @@ import { useUploadStalled } from './use-upload-stalled';
 
 type ImportFile = ImportDetailFilesItem;
 
+const isLibraryInstructionFile = (file: ImportFile) =>
+  file.documentKind === 'own_instructions' &&
+  (file.documentDomain === 'ssm' || file.documentDomain === 'su');
+
 const stepOrder = ['preparing', 'sorting', 'reading', 'checking'] as const;
 
 const sortedStates = new Set(['read', 'set_aside', 'for_employees', 'other_company']);
@@ -147,7 +151,12 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
   const documents = files.filter((file) => file.state === 'read' && !file.isScan);
   const scans = files.filter(isScanToRead);
   const forEmployees = files.filter((file) => file.state === 'for_employees');
-  const setAside = files.filter((file) => file.state === 'set_aside');
+  const libraryInstructions = files.filter(
+    (file) => file.state === 'set_aside' && isLibraryInstructionFile(file)
+  );
+  const setAside = files.filter(
+    (file) => file.state === 'set_aside' && !isLibraryInstructionFile(file)
+  );
   const otherCompany = files.filter((file) => file.state === 'other_company');
   const unsorted = files.filter((file) => file.state === 'uploaded' || file.state === 'prepared');
   const summary = uploadSummary(files);
@@ -356,18 +365,57 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
           </ul>
         </Card>
       )}
+      {libraryInstructions.length > 0 && (
+        <FileGroup
+          testId="import-group-library"
+          title="Instrucțiuni pentru bibliotecă"
+          files={libraryInstructions}
+          aside="Se citesc separat de datele clientului, în IPSSM sau IPSU."
+          render={(file) => {
+            const domain = file.documentDomain === 'ssm' ? 'ssm' : 'su';
+            const part = domain === 'ssm' ? 'instructions_ssm' : 'instructions_su';
+            const canOpen =
+              (detail.status === 'ready' || detail.status === 'confirmed') &&
+              detail.libraryParts.some((each) => each.part === part);
+            return (
+              <FileRow
+                file={file}
+                action={canOpen}
+                status={
+                  canOpen ? (
+                    <Button asChild variant="outline" size="xs">
+                      <Link
+                        to="/clienti/import/$importId/instructiuni/$domain"
+                        params={{ importId: detail.id, domain }}
+                        data-testid="import-library-file-open"
+                      >
+                        {domain === 'ssm' ? 'Vezi IPSSM' : 'Vezi IPSU'}
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Status muted>{domain === 'ssm' ? 'IPSSM' : 'IPSU'}</Status>
+                  )
+                }
+              />
+            );
+          }}
+        />
+      )}
       {setAside.length > 0 && (
         <FileGroup
           testId="import-group-set-aside"
-          title="Puse deoparte"
+          title="Neincluse în citirea clientului"
           files={setAside}
-          aside="Instrucțiuni proprii, formulare goale, coperte și texte generale"
+          aside="Fișiere din care nu preluăm datele clientului."
           render={(file) => (
             <FileRow
               file={file}
+              action={detail.status === 'ready'}
               detail={
-                file.reason ??
-                (file.documentKind ? documentKindLabels[file.documentKind] : undefined)
+                file.documentKind === 'own_instructions'
+                  ? 'Instrucțiuni proprii fără domeniu SSM sau SU identificat.'
+                  : (file.reason ??
+                    (file.documentKind ? documentKindLabels[file.documentKind] : undefined))
               }
               status={
                 detail.status === 'ready' ? (
@@ -481,11 +529,17 @@ function countsAfterSorting(files: ImportFile[]) {
   ).length;
   const parts = [`${toRead} de citit`];
   const employees = files.filter((file) => file.state === 'for_employees').length;
-  const aside = files.filter((file) => file.state === 'set_aside').length;
+  const library = files.filter(
+    (file) => file.state === 'set_aside' && isLibraryInstructionFile(file)
+  ).length;
+  const aside = files.filter(
+    (file) => file.state === 'set_aside' && !isLibraryInstructionFile(file)
+  ).length;
   const other = files.filter((file) => file.state === 'other_company').length;
   if (employees > 0)
     parts.push(employees === 1 ? 'o fișă de lucrător' : `${employees} fișe de lucrători`);
-  if (aside > 0) parts.push(`${aside} deoparte`);
+  if (library > 0) parts.push(`${library} pentru bibliotecă`);
+  if (aside > 0) parts.push(`${aside} ${aside === 1 ? 'neinclus' : 'neincluse'}`);
   if (other > 0) parts.push(`${other} ale altei firme`);
   return parts.join(', ');
 }
@@ -714,15 +768,22 @@ function FileRow({
   icon,
   detail,
   status,
+  action = false,
 }: {
   file: ImportFile;
   icon?: ReactNode;
   detail?: string;
   status?: ReactNode;
+  action?: boolean;
 }) {
   const shownDetail = detail ?? fileDetail(file);
   return (
-    <div className="grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 py-2.5">
+    <div
+      className={cn(
+        'grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 py-2.5',
+        action && 'max-sm:grid-cols-[2rem_minmax(0,1fr)]'
+      )}
+    >
       {icon ?? (
         <span className="grid size-8 place-items-center rounded-md bg-secondary" aria-hidden="true">
           {file.mimeType.startsWith('image/') ? (
@@ -738,7 +799,11 @@ function FileRow({
         </span>
         {shownDetail && <span className="block text-xs text-muted-foreground">{shownDetail}</span>}
       </span>
-      {status ?? <span />}
+      {status && (
+        <div className={cn('min-w-0', action && 'max-sm:col-start-2 max-sm:justify-self-start')}>
+          {status}
+        </div>
+      )}
     </div>
   );
 }

@@ -27,8 +27,14 @@ import {
   type SectionStatus,
   vatPayerInForce,
 } from './review-model';
-import { StatusTag } from './review-parts';
-import { blockerLinks, fieldStates, reviewName, sectionStatuses } from './review-summary';
+import { LinkButton, StatusTag } from './review-parts';
+import {
+  blockerLinks,
+  fieldStates,
+  reviewName,
+  sectionReviewHints,
+  sectionStatuses,
+} from './review-summary';
 import { SourceDialog, type SourceRequest } from './source-dialog';
 import { SourcePrefetchContext, useSourcePrefetch } from './source-query';
 import { keptPosts, withoutAbsentCategories } from './training-category';
@@ -47,7 +53,7 @@ export function ReviewSectionPage({
   const existing = useExistingValues(detail);
   const [source, setSource] = useState<SourceRequest | null>(null);
   const prefetchSource = useSourcePrefetch(detail.id);
-  const reveal = useImportAttention(existing.ready);
+  const reveal = useImportAttention(existing.ready, section);
   const registered = detail.registeredCompany;
   const states = fieldStates(
     proposal,
@@ -79,6 +85,8 @@ export function ReviewSectionPage({
   const links = blockerLinks(proposal, review.changes, detail.blockers as Blocker[]).filter(
     (link) => link.section === section
   );
+  const hints =
+    statuses[section].kind === 'check' ? sectionReviewHints(section, proposal, review.changes) : [];
   const position = sectionIds.indexOf(section);
   const previous = sectionIds[position - 1];
   const next = sectionIds[position + 1];
@@ -93,13 +101,35 @@ export function ReviewSectionPage({
             <p className="text-sm text-muted-foreground">
               {detail.intoExistingClient
                 ? `Completezi clientul existent ${endSentence(name)} Ce are deja în aplicație nu se schimbă fără alegerea ta.`
-                : `${endSentence(name)} Valorile se preiau cum sunt, dacă nu le schimbi.`}
+                : section === 'identity'
+                  ? `${endSentence(name)} Valorile se preiau cum sunt, dacă nu le schimbi.`
+                  : name}
             </p>
           </div>
           <div className="grid w-full gap-1 sm:w-60">
             <SectionSteps importId={detail.id} section={section} statuses={statuses} />
           </div>
         </div>
+        {hints.length > 0 && (
+          <Notice
+            variant="info"
+            title="De verificat în această secțiune"
+            data-testid="import-section-advisories"
+          >
+            <ul className="grid gap-1">
+              {hints.map((hint, index) => (
+                <li key={`${hint.anchor}-${index}`}>
+                  <LinkButton className="text-left underline" onClick={() => reveal([hint.anchor])}>
+                    {hint.text}
+                  </LinkButton>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-[13px] text-muted-foreground">
+              Aceste verificări nu împiedică confirmarea importului.
+            </p>
+          </Notice>
+        )}
         {section === 'training' && existing.positionsFailed ? (
           <Notice
             variant="destructive"

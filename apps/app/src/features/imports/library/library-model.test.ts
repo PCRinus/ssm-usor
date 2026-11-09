@@ -169,10 +169,8 @@ describe('what confirming does', () => {
 });
 
 describe('the task on the hub', () => {
-  it('says what is left to check, and that it waits for the client', () => {
-    expect(partDescription(part(), false)).toBe(
-      'De verificat: 2 noi și una asemănătoare. 7 deja în bibliotecă. Le confirmi după client.'
-    );
+  it('describes the contents without repeating the status or the group prerequisite', () => {
+    expect(partDescription(part(), false)).toBe('2 noi și una asemănătoare. 7 deja în bibliotecă.');
     expect(
       partDescription(
         part({ status: 'nothing_new', counts: { identical: 3, similar: 0, new: 0, unread: 0 } }),

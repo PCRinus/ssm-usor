@@ -102,10 +102,7 @@ export function sectionDescription(
       appliesAt(states, state.path)
   );
   const choiceText = choices
-    .map(
-      (state) =>
-        ` Documentele dau ${state.own.length} variante pentru ${state.label.toLowerCase()}.`
-    )
+    .map((state) => ` ${state.label}: ${state.own.length} variante în documente.`)
     .join('');
   switch (section) {
     case 'identity': {
@@ -208,6 +205,62 @@ export function sectionDescription(
       return `${items.length === 1 ? 'Un articol' : `${items.length} articole`} pentru ${positions === 1 ? 'un post' : `${positions} posturi`}.${withPositionText}${others(['protectiveEquipment'], 'articole')}`;
     }
   }
+}
+
+export type SectionReviewHint = { anchor: string; summary: string; text: string };
+
+export function sectionReviewHints(
+  section: SectionId,
+  proposal: Proposal,
+  changes: Changes
+): SectionReviewHint[] {
+  const lists = [
+    'workplaces',
+    'jobPositions',
+    'responsiblePersons',
+    'fireEquipment',
+    'fireInstallations',
+    'protectiveEquipment',
+    'employees',
+  ] as const;
+  const items = lists
+    .filter((list) => sectionOf(list) === section)
+    .flatMap((list) => itemStates(proposal, changes, list));
+  const hints: SectionReviewHint[] = items
+    .filter((state) => !state.proposed)
+    .map((state) => {
+      const name = itemName(state.list, state.values);
+      const anchor = anchorOf(`${state.list}.${state.item.id}`);
+      switch (state.untickedReason) {
+        case 'legal_representative':
+          return {
+            anchor,
+            summary: 'Reprezentant legal nepreluat automat',
+            text: `${name}: nu este preluat automat ca lucrător. Verifică dacă face parte din personalul firmei.`,
+          };
+        case 'management_only':
+          return {
+            anchor,
+            summary: 'Post de conducere nepreluat automat',
+            text: `${name}: se preia doar dacă este ocupat cu contract de muncă.`,
+          };
+        case 'position_left_out':
+          return {
+            anchor,
+            summary: 'Articol cu postul lăsat deoparte',
+            text: `${name}: verifică alocarea; postul asociat este lăsat deoparte.`,
+          };
+        default:
+          return {
+            anchor,
+            summary: 'Date din pasaje despre altă firmă',
+            text: `${name}: apare în pasaje despre altă firmă. Verifică dacă îl preiei.`,
+          };
+      }
+    });
+  return hints.filter(
+    (hint, index) => hints.findIndex((other) => other.anchor === hint.anchor) === index
+  );
 }
 
 export function sectionStatuses(

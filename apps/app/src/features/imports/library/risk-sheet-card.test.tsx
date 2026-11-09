@@ -77,9 +77,11 @@ const libraryNames: LibraryName[] = [{ id: 'p1', name: 'Birou', archived: false 
 function Harness({
   sheet = analyst,
   initialChange = {},
+  readOnly = false,
 }: {
   sheet?: RiskSheet;
   initialChange?: SheetChange;
+  readOnly?: boolean;
 }) {
   const [change, setChange] = useState<SheetChange>(initialChange);
   const state = sheetState(sheet, change, {
@@ -95,7 +97,7 @@ function Harness({
       <RiskSheetCard
         state={state}
         original={null}
-        readOnly={false}
+        readOnly={readOnly}
         nameTaken={false}
         refused={new Set()}
         libraryNames={libraryNames}
@@ -312,6 +314,50 @@ describe('a sheet card with the confirm bar', () => {
     await userEvent.click(offered[0]!);
     await userEvent.click(screen.getByTestId('risk-import-sheet-name-save'));
     expect(summary()).toContain('adăugăm „Sediu” în bibliotecă');
+  });
+
+  it('leads with the current concise name and keeps the complete source heading in a read-only disclosure', async () => {
+    const heading =
+      'SUBCAPITOLUL V. EVALUAREA RISCURILOR PENTRU POSTUL DE LUCRU ANALIST PROGRAMATOR';
+    render(
+      <Harness sheet={{ ...analyst, heading }} initialChange={{ libraryName: 'Birou tehnic' }} />
+    );
+    expect(screen.getByTestId('risk-import-sheet-heading').textContent).toBe('Birou tehnic');
+    const disclosure = screen.getByTestId('risk-import-source-heading');
+    const trigger = screen.getByRole('button', { name: 'Titlul din document' });
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    expect(trigger.getAttribute('aria-controls')).toBe(disclosure.id);
+    expect(disclosure.hidden).toBe(true);
+    expect(disclosure.textContent).toContain(heading);
+    expect(within(disclosure).queryByRole('textbox')).toBeNull();
+    await userEvent.click(trigger);
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+    expect(disclosure.hidden).toBe(false);
+    expect(disclosure.textContent).toContain(heading);
+    expect(screen.getByTestId('risk-import-sheet-heading').textContent).toBe('Birou tehnic');
+    await userEvent.click(trigger);
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    expect(disclosure.hidden).toBe(true);
+  });
+
+  it('lets a read-only review show the complete source heading without editing the chosen name', async () => {
+    render(<Harness readOnly />);
+
+    const trigger = screen.getByRole('button', { name: 'Titlul din document' });
+    await userEvent.click(trigger);
+
+    expect(trigger.hasAttribute('disabled')).toBe(false);
+    expect(screen.getByTestId('risk-import-source-heading').hidden).toBe(false);
+    expect(screen.getByTestId('risk-import-source-heading').textContent).toContain(analyst.heading);
+    expect(screen.getByTestId('risk-import-sheet-heading').textContent).toBe(analyst.libraryName);
+    expect(screen.queryByTestId('risk-import-sheet-rename')).toBeNull();
+  });
+
+  it('does not offer a source-heading disclosure when the document already has the displayed title', () => {
+    render(<Harness sheet={{ ...analyst, heading: analyst.libraryName }} />);
+
+    expect(screen.queryByRole('button', { name: 'Titlul din document' })).toBeNull();
+    expect(screen.queryByTestId('risk-import-source-heading')).toBeNull();
   });
 
   it('says a name is the workplace in the sheet’s heading', () => {

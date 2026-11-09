@@ -57,6 +57,17 @@ describe('scrollAndFocus', () => {
     expect(container.querySelector('[data-pointed]')).toBeNull();
   });
 
+  it('aligns a container taller than the unobscured viewport below the header', () => {
+    const { container } = mount();
+    vi.mocked(container.getClientRects).mockReturnValue(Object.assign([], { item: () => null }));
+    vi.spyOn(container, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 300, 400, 900));
+
+    scrollAndFocus(container);
+
+    expect(container.scrollIntoView).toHaveBeenCalledWith({ block: 'start', behavior: 'smooth' });
+    expect(document.activeElement).toBe(container);
+  });
+
   it('does not move focus after the request is cancelled', () => {
     const { container, before } = mount();
 

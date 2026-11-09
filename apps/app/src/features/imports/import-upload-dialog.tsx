@@ -210,7 +210,7 @@ function UploadForm({
                 Citim documentația SSM și SU a firmei și îți propunem datele clientului.
               </span>
               <span className="block">
-                Nu salvăm nimic până nu le verifici.{' '}
+                Clientul se creează sau se completează doar când confirmi.{' '}
                 <HelpLink topic="import.client">Află mai mult</HelpLink>
               </span>
             </DialogDescription>

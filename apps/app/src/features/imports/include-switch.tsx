@@ -128,25 +128,6 @@ export function Includable({
   );
 }
 
-const switchRowLayouts = {
-  plain: {
-    grid: 'gap-x-5 grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_auto_auto]',
-    line: 'min-h-5',
-    title: 'col-start-1',
-    toggle: 'col-start-2 sm:col-start-3',
-    details: 'col-span-2 sm:col-span-1 sm:col-start-1',
-    actions: 'col-span-2 sm:col-span-1 sm:col-start-2 sm:-mt-2',
-  },
-  leading: {
-    grid: 'gap-x-3 grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-4 sm:grid-cols-[auto_minmax(0,1fr)_auto_auto]',
-    line: 'min-h-9',
-    title: 'col-start-2',
-    toggle: 'col-start-3 sm:col-start-4',
-    details: 'col-span-2 col-start-2 sm:col-span-1 sm:col-start-2',
-    actions: 'col-span-3 col-start-1 sm:col-span-1 sm:col-start-3 sm:mt-0',
-  },
-};
-
 export function SwitchRow({
   leading,
   title,
@@ -162,38 +143,26 @@ export function SwitchRow({
   actions?: ReactNode;
   className?: string;
 }) {
-  const layout = switchRowLayouts[leading ? 'leading' : 'plain'];
   return (
-    <div className={cn('grid gap-y-1', layout.grid, className)}>
-      {leading && <div className="col-start-1 row-start-1">{leading}</div>}
-      <div
-        className={cn(
-          'row-start-1 flex min-w-0 flex-wrap items-center gap-2',
-          layout.line,
-          layout.title
-        )}
-      >
-        {title}
-      </div>
-      {toggle && (
-        <div
-          className={cn('row-start-1 flex items-center justify-end', layout.line, layout.toggle)}
-        >
-          {toggle}
+    <div className={cn('@container/import-row min-w-0', className)}>
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-3 @3xl/import-row:grid-cols-[minmax(0,1fr)_auto_auto]">
+        <div className="col-start-1 row-start-1 flex min-h-9 min-w-0 items-start gap-3">
+          {leading && <div className="shrink-0">{leading}</div>}
+          <div className="flex min-h-9 min-w-0 flex-wrap items-center gap-2">{title}</div>
         </div>
-      )}
+        {actions && (
+          <RowActions className="col-span-2 col-start-1 row-start-2 @3xl/import-row:col-span-1 @3xl/import-row:col-start-2 @3xl/import-row:row-start-1 @3xl/import-row:justify-end">
+            {actions}
+          </RowActions>
+        )}
+        {toggle && (
+          <div className="col-start-2 row-start-1 flex min-h-9 items-center justify-end @3xl/import-row:col-start-3">
+            {toggle}
+          </div>
+        )}
+      </div>
       {details && (
-        <div className={cn('grid min-w-0 gap-1 sm:row-start-2', layout.details)}>{details}</div>
-      )}
-      {actions && (
-        <RowActions
-          className={cn(
-            'mt-1 self-start sm:row-span-2 sm:row-start-1 sm:justify-end',
-            layout.actions
-          )}
-        >
-          {actions}
-        </RowActions>
+        <div className={cn('mt-2 grid min-w-0 gap-1', leading && 'pl-12')}>{details}</div>
       )}
     </div>
   );

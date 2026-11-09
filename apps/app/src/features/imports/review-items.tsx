@@ -16,7 +16,27 @@ import {
   workplaceKindLabels,
   workplaceKinds,
 } from '@ssm-usor/contracts';
-import { Copy, HardHat, Split, UserRound } from 'lucide-react';
+import { Button } from '@ssm-usor/ui/components/button';
+import { cn } from '@ssm-usor/ui/lib/utils';
+import { Link } from '@tanstack/react-router';
+import {
+  ArrowRight,
+  BadgeCheck,
+  BriefcaseBusiness,
+  Clock,
+  Copy,
+  DoorOpen,
+  HardHat,
+  Hash,
+  ListChecks,
+  type LucideIcon,
+  MapPin,
+  Package,
+  ShieldCheck,
+  Split,
+  UserRound,
+  UsersRound,
+} from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
 
 import { WorkplaceDialog, type WorkplaceDraft } from '@/features/clients/workplace-dialog';
@@ -111,6 +131,69 @@ const referenceId = (value: unknown) =>
       ? value
       : '';
 
+function ReferenceValue({
+  context,
+  list,
+  value,
+  fallback,
+}: {
+  context: ItemsContext;
+  list: 'workplaces' | 'jobPositions';
+  value: unknown;
+  fallback: string;
+}) {
+  const name = referenceName(context, list, value) ?? fallback;
+  const id = referenceId(value);
+  const target =
+    id && itemStates(context.proposal, context.changes, list).find((state) => state.item.id === id);
+  if (!target) return name;
+  return (
+    <Button
+      asChild
+      variant="outline"
+      size="sm"
+      className="h-auto min-h-8 max-w-full justify-start whitespace-normal text-left max-sm:min-h-11"
+    >
+      <Link
+        to="/clienti/import/$importId/$section"
+        params={{
+          importId: context.importId,
+          section: list === 'workplaces' ? 'workplaces' : 'job-positions',
+        }}
+        hash={anchorOf(`${list}.${target.item.id}`)}
+        data-testid="import-reference-link"
+      >
+        <span className="min-w-0 wrap-anywhere">{name}</span>
+        <ArrowRight aria-hidden="true" className="size-3.5" />
+      </Link>
+    </Button>
+  );
+}
+
+function ReviewDatum({
+  icon: Icon,
+  label,
+  children,
+  className,
+}: {
+  icon: LucideIcon;
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn('grid min-w-0 max-w-full content-start gap-1 sm:max-w-md', className)}>
+      <dt className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Icon aria-hidden="true" className="size-4 shrink-0" />
+        {label}
+      </dt>
+      <dd className="flex min-h-8 min-w-0 items-center pl-6 text-sm font-medium wrap-anywhere text-foreground max-sm:min-h-11">
+        {children}
+      </dd>
+    </div>
+  );
+}
+
 const blank = (value: unknown) => (value === '' || value === undefined ? null : value);
 
 function changedValues(state: ItemState, next: Record<string, unknown>) {
@@ -189,6 +272,7 @@ function ItemRow({
   onEdit,
   agreement,
   excludable = true,
+  ordinal,
 }: {
   state: ItemState;
   context: ItemsContext;
@@ -198,6 +282,7 @@ function ItemRow({
   onEdit?: () => void;
   agreement: Agreement;
   excludable?: boolean;
+  ordinal?: number;
 }) {
   const prefix = `${state.list}.${state.index}`;
   const blockers = context.blockers.filter(
@@ -211,26 +296,56 @@ function ItemRow({
       (field !== 'roles' || roles.includes(role ?? ''))
     );
   });
+  const numberedTitle = (
+    <span className="inline-flex min-w-0 items-start gap-2">
+      {ordinal !== undefined && (
+        <span
+          aria-hidden="true"
+          data-testid="equipment-item-number"
+          className="grid size-5 shrink-0 place-items-center rounded-md bg-secondary text-xs font-semibold tabular-nums"
+        >
+          {ordinal}
+        </span>
+      )}
+      <span className="min-w-0 text-sm font-medium wrap-anywhere">{title}</span>
+    </span>
+  );
   const row = (toggle?: ReactNode) => (
     <SwitchRow
       title={
         <>
-          <span className="text-sm font-medium wrap-anywhere">{title}</span>
+          {numberedTitle}
           {state.edited && <EditedTag />}
         </>
       }
       toggle={toggle}
       details={
         <>
+          {blockers.map((blocker) => {
+            const field = blocker.path.split('.')[2];
+            return (
+              <RowNote key={`${blocker.path}-${blocker.code}`} tone="danger">
+                {state.list === 'protectiveEquipment' && field === 'durationMonths'
+                  ? durationBlockerNote(blocker.code, state.values)
+                  : state.list === 'workplaces' && field === 'isRegisteredOffice'
+                    ? secondRegisteredOfficeNote
+                    : blocker.code === 'unknown_reference'
+                      ? `Alege ${itemFieldLabel(field ?? 'workplace')}.`
+                      : blocker.code === 'invalid'
+                        ? `Corectează ${field ? itemFieldLabel(field) : 'datele'}.`
+                        : `Lipsește ${field ? itemFieldLabel(field) : 'o dată obligatorie'}.`}
+              </RowNote>
+            );
+          })}
           {state.item.otherCompanyName && (
             <Tag tone="info" className="w-fit">
               De la {state.item.otherCompanyName}
             </Tag>
           )}
           {details.filter(Boolean).map((detail, index) => (
-            <span key={index} className="text-[13px] text-muted-foreground wrap-anywhere">
+            <div key={index} className="min-w-0 text-[13px] text-muted-foreground wrap-anywhere">
               {detail}
-            </span>
+            </div>
           ))}
           {itemSpellings(state, context.changes).map(({ field, value, written, keptWritten }) => (
             <div key={field} className="mt-1 grid gap-1">
@@ -252,22 +367,6 @@ function ItemRow({
               />
             </div>
           ))}
-          {blockers.map((blocker) => {
-            const field = blocker.path.split('.')[2];
-            return (
-              <RowNote key={`${blocker.path}-${blocker.code}`} tone="danger">
-                {state.list === 'protectiveEquipment' && field === 'durationMonths'
-                  ? durationBlockerNote(blocker.code, state.values)
-                  : state.list === 'workplaces' && field === 'isRegisteredOffice'
-                    ? secondRegisteredOfficeNote
-                    : blocker.code === 'unknown_reference'
-                      ? `Alege ${itemFieldLabel(field ?? 'workplace')}.`
-                      : blocker.code === 'invalid'
-                        ? `Corectează ${field ? itemFieldLabel(field) : 'datele'}.`
-                        : `Lipsește ${field ? itemFieldLabel(field) : 'o dată obligatorie'}.`}
-              </RowNote>
-            );
-          })}
           <NameChoice state={state} context={context} />
           {flags.map((flag) => (
             <RowNote key={`${flag.path}-${flag.code}`}>
@@ -293,7 +392,7 @@ function ItemRow({
       aria-label={title}
       data-testid="review-item"
       data-included={state.included}
-      className="scroll-mt-32 py-3"
+      className={ordinal === undefined ? 'scroll-mt-32 py-3' : 'scroll-mt-32 py-6 sm:py-8'}
     >
       {excludable ? (
         <Includable
@@ -304,6 +403,11 @@ function ItemRow({
           agreement={agreement}
           testId="review-include-item"
           onChange={(included) => setIncluded(context, state, included)}
+          collapsed={
+            ordinal === undefined
+              ? undefined
+              : (toggle) => <SwitchRow title={numberedTitle} toggle={toggle} />
+          }
         >
           {row}
         </Includable>
@@ -430,37 +534,43 @@ const includedCount = (count: number, agreement: Agreement) =>
 
 function ListCard({
   title,
-  description,
   list,
   context,
   agreement,
   render,
   empty,
   untickedBox,
+  numbered = false,
 }: {
   title: (count: number) => string;
-  description: string;
   list: ItemList;
   context: ItemsContext;
   agreement: Agreement;
-  render: (state: ItemState) => ReactNode;
+  render: (state: ItemState, ordinal: number) => ReactNode;
   empty: string;
   untickedBox?: (states: ItemState[]) => ReactNode;
+  numbered?: boolean;
 }) {
   const states = itemStates(context.proposal, context.changes, list);
   const rows = states.filter(listed);
   const aside = states.filter((state) => !listed(state));
   const kept = rows.filter((state) => state.included).length;
+  const List = numbered ? 'ol' : 'ul';
   return (
     <ReviewCard
       title={`${title(rows.length)}${kept < rows.length ? `, ${includedCount(kept, agreement)}` : ''}`}
-      description={rows.length > 0 ? description : undefined}
       testId={`review-list-${list}`}
     >
       {rows.length === 0 ? (
         <p className="py-2 text-sm text-muted-foreground">{empty}</p>
       ) : (
-        <ul className="divide-y">{rows.map(render)}</ul>
+        <List
+          className="divide-y"
+          role={numbered ? 'list' : undefined}
+          aria-label={numbered ? 'Articole de echipament' : undefined}
+        >
+          {rows.map((state, index) => render(state, index + 1))}
+        </List>
       )}
       {untickedBox?.(aside.filter((state) => state.untickedReason !== 'other_company'))}
       <OtherCompanyBox
@@ -476,9 +586,9 @@ const quoteAside = (sources: Source[], openSource: () => void) => {
   const first = sources[0];
   if (!first) return null;
   return (
-    <figure className="grid gap-1.5 rounded-lg bg-muted/50 p-3 text-sm sm:col-span-2">
+    <figure className="grid min-w-0 gap-1.5 rounded-lg bg-muted/50 p-3 text-sm wrap-anywhere sm:col-span-2">
       <figcaption className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
-        <span>Propus din {first.file.split('/').at(-1)}</span>
+        <span className="min-w-0">Propus din {first.file.split('/').at(-1)}</span>
         <button
           type="button"
           className="font-medium text-primary hover:underline"
@@ -583,7 +693,6 @@ export function WorkplacesSection({ context }: { context: ItemsContext }) {
         list="workplaces"
         context={context}
         agreement="masculine"
-        description="Oprește comutatorul la un punct de lucru pe care nu îl preiei: nu intră la punctele de lucru ale clientului."
         empty="Documentele nu numesc niciun punct de lucru."
         render={(state) => {
           const address = [
@@ -603,8 +712,25 @@ export function WorkplacesSection({ context }: { context: ItemsContext }) {
               context={context}
               title={`${itemName('workplaces', state.values)}${state.values.isRegisteredOffice ? ' · sediu social' : ''}`}
               details={[
-                address || 'Fără adresă în documente',
-                rooms.length > 0 ? `Încăperi: ${rooms.join(', ')}` : null,
+                <dl className="my-2 grid gap-x-8 gap-y-3 sm:flex sm:flex-wrap sm:items-start">
+                  <ReviewDatum icon={MapPin} label="Adresă">
+                    {address || 'Fără adresă în documente'}
+                  </ReviewDatum>
+                  {rooms.length > 0 && (
+                    <ReviewDatum icon={DoorOpen} label="Încăperi">
+                      <ul className="flex flex-wrap gap-1.5">
+                        {rooms.map((room, index) => (
+                          <li
+                            key={`${room}-${index}`}
+                            className="rounded-md bg-secondary px-2 py-1"
+                          >
+                            {room}
+                          </li>
+                        ))}
+                      </ul>
+                    </ReviewDatum>
+                  )}
+                </dl>,
                 ...fireSheetDetails(
                   state.values,
                   new Set(itemSpellings(state, context.changes).map(({ field }) => field))
@@ -668,7 +794,6 @@ export function JobPositionsSection({ context }: { context: ItemsContext }) {
         list="jobPositions"
         context={context}
         agreement="masculine"
-        description="Oprește comutatorul la un post pe care nu îl preiei: nu intră la posturile clientului și nu primește evaluare de risc sau instruire."
         empty="Documentele nu numesc niciun post de lucru."
         untickedBox={(states) => (
           <OptionalBox
@@ -689,10 +814,36 @@ export function JobPositionsSection({ context }: { context: ItemsContext }) {
             context={context}
             title={itemName('jobPositions', state.values)}
             details={[
-              text(state.values.activities),
-              state.values.staffCategory
-                ? staffCategoryShortLabels[state.values.staffCategory as StaffCategory]
-                : 'Categoria de personal lipsește',
+              <dl className="my-2 grid gap-x-8 gap-y-3 sm:flex sm:flex-wrap sm:items-start">
+                <ReviewDatum icon={UsersRound} label="Categorie de personal">
+                  {state.values.staffCategory
+                    ? staffCategoryShortLabels[state.values.staffCategory as StaffCategory]
+                    : 'Categoria de personal lipsește'}
+                </ReviewDatum>
+                {text(state.values.workZone) && (
+                  <ReviewDatum icon={MapPin} label="Zona de lucru">
+                    {text(state.values.workZone)}
+                  </ReviewDatum>
+                )}
+                {state.values.trainingIntervalMonths != null && (
+                  <ReviewDatum icon={Clock} label="Interval de instruire">
+                    {state.values.trainingIntervalMonths === 1
+                      ? 'Lunar'
+                      : `La ${String(state.values.trainingIntervalMonths)} luni`}
+                  </ReviewDatum>
+                )}
+                {text(state.values.activities) && (
+                  <ReviewDatum
+                    icon={ListChecks}
+                    label="Activități"
+                    className="basis-full sm:max-w-none"
+                  >
+                    <span className="max-w-prose whitespace-pre-line">
+                      {text(state.values.activities)}
+                    </span>
+                  </ReviewDatum>
+                )}
+              </dl>,
               <EquipmentDecision key="equipment" state={state} context={context} />,
             ]}
             agreement="masculine"
@@ -838,7 +989,6 @@ export function ResponsibleSection({ context }: { context: ItemsContext }) {
         list="responsiblePersons"
         context={context}
         agreement="feminine"
-        description="Oprește comutatorul la o persoană pe care nu o preiei: nu intră la responsabilii clientului."
         empty="Documentele nu numesc niciun responsabil."
         render={(state) => {
           const roles = (state.values.roles as string[] | undefined) ?? [];
@@ -850,14 +1000,30 @@ export function ResponsibleSection({ context }: { context: ItemsContext }) {
               context={context}
               title={itemName('responsiblePersons', state.values)}
               details={[
-                text(state.values.jobTitle) ?? 'Funcția lipsește',
-                roles
-                  .map((role) =>
-                    unproven.has(role) ? `${roleLabel(role)} (pasaj negăsit)` : roleLabel(role)
-                  )
-                  .join(', '),
-                referenceName(context, 'workplaces', state.values.workplace) ??
-                  'Toate punctele de lucru',
+                <dl className="my-2 grid gap-x-8 gap-y-3 sm:flex sm:flex-wrap sm:items-start">
+                  <ReviewDatum icon={BriefcaseBusiness} label="Funcție">
+                    {text(state.values.jobTitle) ?? 'Funcția lipsește'}
+                  </ReviewDatum>
+                  <ReviewDatum icon={BadgeCheck} label="Responsabilități">
+                    {roles
+                      .map((role) =>
+                        unproven.has(role) ? `${roleLabel(role)} (pasaj negăsit)` : roleLabel(role)
+                      )
+                      .join(', ') || 'Rolurile lipsesc'}
+                  </ReviewDatum>
+                  <ReviewDatum icon={MapPin} label="Punct de lucru">
+                    <ReferenceValue
+                      context={context}
+                      list="workplaces"
+                      value={state.values.workplace}
+                      fallback={
+                        referenceId(state.values.workplace)
+                          ? 'Punct de lucru neidentificat'
+                          : 'Toate punctele de lucru'
+                      }
+                    />
+                  </ReviewDatum>
+                </dl>,
               ]}
               agreement="feminine"
               onEdit={() => open(state, personFields)}
@@ -967,7 +1133,6 @@ export function FireMeansSection({ context }: { context: ItemsContext }) {
         list="fireEquipment"
         context={context}
         agreement="masculine"
-        description="Oprește comutatorul la un mijloc pe care nu îl preiei: nu intră la mijloacele de stingere ale clientului."
         empty="Documentele nu numesc mijloace de stingere."
         render={(state) => (
           <ItemRow
@@ -993,7 +1158,6 @@ export function FireMeansSection({ context }: { context: ItemsContext }) {
         list="fireInstallations"
         context={context}
         agreement="feminine"
-        description="Oprește comutatorul la o instalație pe care nu o preiei: nu intră la instalațiile clientului."
         empty="Documentele nu numesc instalații de apărare împotriva incendiilor."
         render={(state) => (
           <ItemRow
@@ -1039,9 +1203,9 @@ export function EquipmentSection({ context }: { context: ItemsContext }) {
       <ListCard
         title={(count) => (count === 1 ? 'Un articol' : `${count} articole`)}
         list="protectiveEquipment"
+        numbered
         context={context}
         agreement="masculine"
-        description="Oprește comutatorul la un articol pe care nu îl preiei: postul lui nu îl primește."
         empty="Documentele nu numesc echipament de protecție."
         untickedBox={(states) => (
           <OptionalBox
@@ -1057,22 +1221,42 @@ export function EquipmentSection({ context }: { context: ItemsContext }) {
             }
           />
         )}
-        render={(state) => (
+        render={(state, ordinal) => (
           <ItemRow
             key={state.item.id}
             state={state}
             context={context}
             title={itemName('protectiveEquipment', state.values)}
+            ordinal={ordinal}
             details={[
-              referenceName(context, 'jobPositions', state.values.jobPosition),
-              [
-                text(state.values.risk) ?? 'Riscul lipsește',
-                state.values.quantity ? `${state.values.quantity} buc.` : null,
-                state.values.durationMonths ? `${state.values.durationMonths} luni` : null,
-                state.values.allocation ? allocationLabel(String(state.values.allocation)) : null,
-              ]
-                .filter(Boolean)
-                .join(' · '),
+              <dl className="my-2 grid gap-x-8 gap-y-3 sm:flex sm:flex-wrap sm:items-start">
+                <ReviewDatum icon={BriefcaseBusiness} label="Post">
+                  <ReferenceValue
+                    context={context}
+                    list="jobPositions"
+                    value={state.values.jobPosition}
+                    fallback="Postul lipsește"
+                  />
+                </ReviewDatum>
+                <ReviewDatum icon={ShieldCheck} label="Risc acoperit">
+                  {text(state.values.risk) ?? 'Riscul lipsește'}
+                </ReviewDatum>
+                <ReviewDatum icon={Package} label="Alocare">
+                  {state.values.allocation
+                    ? allocationLabel(String(state.values.allocation))
+                    : 'Nespecificată'}
+                </ReviewDatum>
+                {state.values.quantity != null && (
+                  <ReviewDatum icon={Hash} label="Cantitate">
+                    {String(state.values.quantity)} buc.
+                  </ReviewDatum>
+                )}
+                {state.values.durationMonths != null && (
+                  <ReviewDatum icon={Clock} label="Durată">
+                    {String(state.values.durationMonths)} luni
+                  </ReviewDatum>
+                )}
+              </dl>,
             ]}
             agreement="masculine"
             onEdit={() => open(state, fields)}

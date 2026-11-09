@@ -251,7 +251,6 @@ function EquipmentForm({
                 <NativeSelect
                   id="fire-equipment-agent"
                   data-testid="fire-equipment-agent"
-                  className="bg-card"
                   disabled={busy}
                   aria-invalid={Boolean(errors.agent)}
                   aria-describedby={errors.agent ? 'fire-equipment-agent-error' : undefined}
@@ -277,7 +276,7 @@ function EquipmentForm({
                     data-testid="fire-equipment-capacity"
                     inputMode="numeric"
                     autoComplete="off"
-                    className="bg-card pr-12"
+                    className="pr-12"
                     disabled={busy}
                     aria-invalid={Boolean(errors.capacity)}
                     aria-describedby={errors.capacity ? 'fire-equipment-capacity-error' : undefined}
@@ -307,7 +306,6 @@ function EquipmentForm({
                     <Checkbox
                       id="fire-equipment-wheeled"
                       data-testid="fire-equipment-wheeled"
-                      className="bg-card"
                       checked={field.value}
                       onCheckedChange={(checked) => field.onChange(checked === true)}
                       disabled={busy}
