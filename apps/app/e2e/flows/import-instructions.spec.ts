@@ -94,8 +94,15 @@ test("a pack's own instructions are reviewed before the client is created, confi
   await expect(page.getByTestId('library-confirm-summary')).toContainText(
     'Când confirmi, adăugăm 2 instrucțiuni în bibliotecă, folosim una pe care o ai deja și le aplicăm la 3 posturi.'
   );
+  // A reload while the last choice is still saving cancels it.
+  await expect(page.getByRole('status').filter({ hasText: 'Se salvează…' })).toHaveCount(0);
 
   await page.reload();
+  await expect(
+    page
+      .locator('[data-testid="library-instruction"][data-status="similar"]')
+      .getByTestId('library-instruction-library-title')
+  ).toHaveText(`Scări metalice (${bakery.name})`);
   await expect(
     page
       .locator('[data-testid="library-instruction"][data-status="new"]')
