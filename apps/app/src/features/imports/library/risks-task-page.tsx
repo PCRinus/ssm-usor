@@ -39,13 +39,12 @@ import {
   pickablePosts,
   postsByReference,
 } from './library-model';
-import { ReviewNotices } from './library-task-page';
+import { ClientPrerequisiteNote, ReviewNotices } from './library-task-page';
 import { PostsPickerDialog, type PostsRequest } from './posts-picker-dialog';
 import { RiskConfirmBar } from './risk-confirm-bar';
 import { PlanRowText } from './risk-plan-rows';
 import { RiskSheetCard } from './risk-sheet-card';
 import {
-  confirmSentence,
   defaultSheetPosts,
   evaluationsLabel,
   existingByReference,
@@ -61,7 +60,6 @@ import {
   placedPlanRows,
   planFieldsLine,
   type RisksPart,
-  riskSummary,
   rowQuote,
   sheetsLabel,
   sheetState,
@@ -222,7 +220,6 @@ function TaskContent({
   const open = readOnly
     ? 0
     : states.filter((state) => pendingOf(state, takenNames.has(state.sheet.key)).length > 0).length;
-  const summary = riskSummary(states);
   const decisions = states.map((state) => ({
     state,
     pending: pendingOf(state, takenNames.has(state.sheet.key)),
@@ -233,10 +230,6 @@ function TaskContent({
     (count, { pending }) => count + pending.filter((value) => value !== 'name').length,
     0
   );
-  const checked = states.filter((state) => state.toCheck > 0);
-  const toCheck = checked.reduce((count, state) => count + state.toCheck, 0);
-  const taking = states.filter((state) => state.written > 0);
-  const takingFactors = taking.reduce((count, state) => count + state.written, 0);
 
   function pointToSheet(key: string) {
     const element = [
@@ -494,17 +487,7 @@ function TaskContent({
         <RiskConfirmBar
           summary={
             <div className="flex flex-wrap items-center gap-x-3">
-              {(!reviewable || (names.length === 0 && choicesCount === 0 && toCheck === 0)) && (
-                <span>
-                  {part.status === 'confirmed'
-                    ? 'Evaluări confirmate'
-                    : expired
-                      ? 'Propunere expirată'
-                      : !proposal || part.status === 'reading' || part.status === 'failed'
-                        ? 'Evaluări de risc'
-                        : `${evaluationsLabel(taking.length)} · ${factorsLabel(takingFactors)}`}
-                </span>
-              )}
+              <PartStatusTag part={part} />
               {reviewable && names.length > 0 && (
                 <ImportIssueBadge
                   tone="destructive"
@@ -523,14 +506,6 @@ function TaskContent({
                     : `${choicesCount} alegeri de verificat`}
                 </ImportIssueBadge>
               )}
-              {reviewable && toCheck > 0 && (
-                <ImportIssueBadge
-                  tone="warning"
-                  onClick={() => pointToSheet(checked[0]!.sheet.key)}
-                >
-                  {factorsLabel(toCheck)} de verificat
-                </ImportIssueBadge>
-              )}
             </div>
           }
           save={
@@ -539,15 +514,14 @@ function TaskContent({
               : undefined
           }
           note={
-            review.closed
-              ? 'Reîncarcă pagina pentru starea actuală.'
-              : reviewable
-                ? clientConfirmed && part.expiresAt
-                  ? `Poți confirma până pe ${libraryDay(part.expiresAt)}.`
-                  : 'Confirmă întâi clientul.'
-                : undefined
+            review.closed ? (
+              'Reîncarcă pagina pentru starea actuală.'
+            ) : !reviewable ? undefined : !clientConfirmed ? (
+              <ClientPrerequisiteNote intoExistingClient={detail.intoExistingClient} />
+            ) : part.expiresAt ? (
+              `Poți confirma până pe ${libraryDay(part.expiresAt)}.`
+            ) : undefined
           }
-          details={reviewable && !review.closed ? confirmSentence(summary) : undefined}
           error={confirmError}
         >
           {back}

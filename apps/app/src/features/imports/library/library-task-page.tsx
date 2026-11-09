@@ -3,7 +3,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
-import { ArrowLeft, LoaderCircle, RotateCcw } from 'lucide-react';
+import { ArrowLeft, LoaderCircle, LockKeyhole, RotateCcw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import {
@@ -17,7 +17,6 @@ import {
 import { ApiHttpError } from '@/api/http';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
-import { roCount } from '@/features/employees/employee-format';
 import { invalidateLibrary } from '@/features/instructions/instruction-schema';
 import { scrollAndFocus } from '@/features/missing-data/focus';
 
@@ -32,7 +31,6 @@ import { BodyEditDialog, type BodyRequest } from './body-edit-dialog';
 import { InstructionRow } from './instruction-row';
 import { PartStatusTag } from './library-group';
 import {
-  confirmSummary,
   identicalInstructions,
   identicalSentence,
   instructionPending,
@@ -188,7 +186,6 @@ function TaskContent({
     });
     undecidedByPost.set(post, notes);
   }
-  const summary = confirmSummary(instructions, review.changes, part.positionPosts, postsById);
   const decisions = rows.map((row) => ({
     row,
     pending: instructionPending(row, postsById, takenTitles.has(row.instruction.key)),
@@ -507,9 +504,9 @@ function TaskContent({
               className="flex flex-wrap items-center gap-x-3"
               data-testid="library-confirm-summary"
             >
-              {reviewable ? (
+              <PartStatusTag part={part} />
+              {reviewable && (
                 <>
-                  <span>{instructionsLabel(summary.created + summary.used)}</span>
                   {titles.length > 0 && (
                     <ImportIssueBadge
                       tone="destructive"
@@ -531,25 +528,18 @@ function TaskContent({
                     </ImportIssueBadge>
                   )}
                 </>
-              ) : part.status === 'confirmed' ? (
-                'Instrucțiuni confirmate'
-              ) : expired ? (
-                'Propunere expirată'
-              ) : (
-                label
               )}
             </div>
           }
           note={
-            review.closed
-              ? 'Reîncarcă pagina pentru starea actuală.'
-              : reviewable
-                ? clientConfirmed && part.expiresAt
-                  ? `Poți confirma până pe ${libraryDay(part.expiresAt)}.`
-                  : 'Confirmă întâi clientul.'
-                : undefined
+            review.closed ? (
+              'Reîncarcă pagina pentru starea actuală.'
+            ) : !reviewable ? undefined : !clientConfirmed ? (
+              <ClientPrerequisiteNote intoExistingClient={detail.intoExistingClient} />
+            ) : part.expiresAt ? (
+              `Poți confirma până pe ${libraryDay(part.expiresAt)}.`
+            ) : undefined
           }
-          details={reviewable && !review.closed ? confirmSentence(summary) : undefined}
           error={confirmError}
         >
           <Button asChild variant="outline">
@@ -597,28 +587,13 @@ function TaskContent({
   );
 }
 
-function confirmSentence(summary: { created: number; used: number; posts: number }) {
-  const parts = [
-    ...(summary.created > 0
-      ? [
-          `adăugăm ${summary.created === 1 ? 'o instrucțiune' : instructionsLabel(summary.created)} în bibliotecă`,
-        ]
-      : []),
-    ...(summary.used > 0
-      ? [
-          summary.used === 1
-            ? 'folosim una pe care o ai deja'
-            : `folosim ${instructionsLabel(summary.used)} pe care le ai deja`,
-        ]
-      : []),
-  ];
-  if (parts.length === 0) return 'Nu adăugăm și nu aplicăm nicio instrucțiune.';
-  const them = summary.created + summary.used === 1 ? 'o' : 'le';
-  const posts =
-    summary.posts === 0
-      ? `, fără să ${them} aplicăm la vreun post`
-      : ` și ${them} aplicăm la ${summary.posts === 1 ? 'un post' : roCount(summary.posts, 'post', 'posturi')}`;
-  return `Când confirmi, ${parts.join(', ')}${posts}.`;
+export function ClientPrerequisiteNote({ intoExistingClient }: { intoExistingClient: boolean }) {
+  return (
+    <strong className="inline-flex items-start gap-1.5 font-medium text-foreground">
+      <LockKeyhole aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+      {intoExistingClient ? 'Confirmă întâi completarea clientului.' : 'Creează întâi clientul.'}
+    </strong>
+  );
 }
 
 function StateNotices({

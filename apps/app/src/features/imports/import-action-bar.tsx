@@ -16,7 +16,6 @@ export function ImportActionBar({
   save,
   summary,
   note,
-  details,
   error,
   children,
   testId = 'import-action-bar',
@@ -25,7 +24,6 @@ export function ImportActionBar({
   save?: ImportSaveState;
   summary?: ReactNode;
   note?: ReactNode;
-  details?: ReactNode;
   error?: string | null;
   children: ReactNode;
   testId?: string;
@@ -130,23 +128,8 @@ export function ImportActionBar({
               )}
               {save && <ImportSaveStatus save={save} />}
             </div>
-            {!keyboard.open && (note || details) && (
-              <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-                {note && <span className="text-[13px] text-muted-foreground">{note}</span>}
-                {details && (
-                  <details
-                    className="max-w-3xl text-sm open:basis-full"
-                    data-testid="import-action-details"
-                  >
-                    <summary className="w-fit cursor-pointer rounded-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring">
-                      Ce se schimbă
-                    </summary>
-                    <div className="mt-2 max-h-48 overflow-auto text-muted-foreground">
-                      {details}
-                    </div>
-                  </details>
-                )}
-              </div>
+            {!keyboard.open && note && (
+              <span className="text-[13px] text-muted-foreground">{note}</span>
             )}
           </div>
           {!keyboard.open && (

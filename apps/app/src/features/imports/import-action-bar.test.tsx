@@ -29,7 +29,6 @@ function ReviewBar({ save }: { save: ImportSaveState }) {
           </>
         }
         note="Clientul se creează după confirmare."
-        details="Adăugăm articolele alese la client."
       >
         <button type="button">Înapoi</button>
         <button type="button">Continuă</button>
@@ -92,18 +91,6 @@ describe('the import action bar', () => {
       expect(screen.getByRole('button', { name: '1 alegere' })).toBeTruthy();
     }
   );
-
-  it('reveals the full consequence summary only when requested', async () => {
-    render(<ReviewBar save={saved()} />);
-
-    const details = screen.getByTestId('import-action-details') as HTMLDetailsElement;
-    expect(details.open).toBe(false);
-
-    await userEvent.click(screen.getByText('Ce se schimbă'));
-
-    expect(details.open).toBe(true);
-    expect(within(details).getByText('Adăugăm articolele alese la client.')).toBeTruthy();
-  });
 
   it('keeps save recovery and review counts above the phone keyboard while navigation is collapsed', async () => {
     const viewport = Object.assign(new EventTarget(), { height: 844, width: 390, offsetTop: 0 });
