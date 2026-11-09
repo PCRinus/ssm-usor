@@ -586,16 +586,12 @@ const quoteAside = (sources: Source[], openSource: () => void) => {
   const first = sources[0];
   if (!first) return null;
   return (
-    <figure className="grid min-w-0 gap-1.5 rounded-lg bg-muted/50 p-3 text-sm wrap-anywhere sm:col-span-2">
-      <figcaption className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
-        <span className="min-w-0">Propus din {first.file.split('/').at(-1)}</span>
-        <button
-          type="button"
-          className="font-medium text-primary hover:underline"
-          onClick={openSource}
-        >
-          Vezi contextul
-        </button>
+    <figure className="col-span-full grid min-w-0 gap-1.5 rounded-lg bg-muted/50 p-3 text-sm wrap-anywhere">
+      <figcaption className="flex flex-wrap items-center justify-between gap-2 max-sm:[&>button]:h-11">
+        <span className="min-w-0 text-xs text-muted-foreground">
+          Propus din {first.file.split('/').at(-1)}
+        </span>
+        <SourceButton sources={sources} onOpen={openSource} />
       </figcaption>
       <blockquote className="border-l-2 border-primary/40 pl-3 italic">„{first.quote}”</blockquote>
     </figure>

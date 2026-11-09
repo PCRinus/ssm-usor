@@ -1376,6 +1376,30 @@ function secondPost(changes: unknown = null) {
 }
 
 describe('reviewing related import data', () => {
+  it.each([
+    ['/workplaces', 'Sursa: Sediu'],
+    ['/job-positions', 'Sursa: Brutar'],
+    ['/responsible', 'Sursa: Radu Lazăr'],
+    ['/fire-safety', 'Sursa: Stingător, Pulbere'],
+    ['/equipment', 'Sursa: Mănuși termorezistente'],
+  ])(
+    'opens the original document from the %s edit dialog without saving the draft',
+    async (section, sourceTitle) => {
+      mockReview(secondPost());
+      mount(section);
+
+      const row = (await screen.findAllByTestId('review-item'))[0]!;
+      await userEvent.click(within(row).getByTestId('review-edit'));
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).queryByText('Vezi contextul')).toBeNull();
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Vezi în document' }));
+
+      const source = await screen.findByTestId('import-source-dialog');
+      expect(within(source).getByRole('heading', { name: sourceTitle })).toBeTruthy();
+      expect(saves).toBe(0);
+    }
+  );
+
   it('labels the post category, work zone, training override and activities without changing them', async () => {
     const proposal = proposalFixture();
     Object.assign(proposal.jobPositions[0]!, {
