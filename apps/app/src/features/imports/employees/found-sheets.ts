@@ -2,9 +2,9 @@ import { useRouteContext } from '@tanstack/react-router';
 
 import {
   type FoundSheetsResponse,
-  getGetClientFileDownloadQueryKey,
+  getListClientFilesQueryKey,
   getListFoundSheetsQueryKey,
-  useGetClientFileDownload,
+  useListClientFiles,
   useListFoundSheets,
 } from '@/api/generated/api';
 import { useAuth } from '@/features/auth/auth-context';
@@ -37,19 +37,23 @@ export function foundIn(sheets: Pick<FoundSheet, 'uploadPath'>[]) {
 export const drawableSheet = (sheet: Pick<FoundSheet, 'mimeType'>) =>
   sheet.mimeType === 'image/jpeg' || sheet.mimeType === 'image/png';
 
-// A link lives a minute; the image loads once from it.
 const linkLifeMs = 50_000;
 
 export function useFoundSheetUrl(clientId: string, sheet: FoundSheet) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { session } = useAuth();
   const drawable = drawableSheet(sheet);
-  const link = useGetClientFileDownload(clientId, sheet.clientFileId, {
+  const link = useListClientFiles(clientId, undefined, {
     request: apiRequest,
     query: {
-      queryKey: getGetClientFileDownloadQueryKey(clientId, sheet.clientFileId),
+      queryKey: [...getListClientFilesQueryKey(clientId), session?.user.id],
       enabled: drawable,
       staleTime: linkLifeMs,
     },
   });
-  return { drawable, url: link.data?.url, failed: link.isError };
+  return {
+    drawable,
+    url: link.data?.items.find((file) => file.id === sheet.clientFileId)?.link.url,
+    failed: link.isError,
+  };
 }

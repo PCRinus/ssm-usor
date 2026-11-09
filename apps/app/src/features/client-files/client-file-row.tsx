@@ -9,8 +9,8 @@ import {
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
 import { TableCell, TableRow } from '@ssm-usor/ui/components/table';
-import type { MouseEvent } from 'react';
 import { Download, Lock, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import type { MouseEvent } from 'react';
 
 import { rowClickProps } from '@/components/data-table/row-click';
 
@@ -58,7 +58,11 @@ export function FileRow({
   const date = formatUploadDate(file.createdAt);
   const uploader = file.uploadedBy ? (file.uploadedBy.fullName ?? 'Fără nume') : null;
   return (
-    <TableRow data-testid="client-file-row" {...rowClickProps(onActivate)} className="cursor-pointer">
+    <TableRow
+      data-testid="client-file-row"
+      {...rowClickProps(onActivate)}
+      className="cursor-pointer"
+    >
       <TableCell className="min-w-56 whitespace-normal">
         <div
           className="flex min-w-0 items-start gap-3"

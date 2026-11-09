@@ -374,7 +374,7 @@ export const getPortalTrainingSheetLink: RouteHandler<
   const { sequence } = c.req.valid('query');
   const employee = ownEmployee(participationOf(c, participantId));
   return c.json(
-    await storedSheetLink(c, createDataClient(c), { ...employee, domain, sequence }),
+    await storedSheetLink(c, createPortalReadClient(c), { ...employee, domain, sequence }),
     200
   );
 };
@@ -414,7 +414,7 @@ export const getPortalEmployeeTrainingSheetLink: RouteHandler<
   const { sequence } = c.req.valid('query');
   const employee = administeredEmployee(c, participantId, employeeId);
   return c.json(
-    await storedSheetLink(c, createDataClient(c), { ...employee, domain, sequence }),
+    await storedSheetLink(c, createPortalReadClient(c), { ...employee, domain, sequence }),
     200
   );
 };

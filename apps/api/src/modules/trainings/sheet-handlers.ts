@@ -188,7 +188,7 @@ export async function drawTrainingSheet(
   const identity = await loadSheetFacts(db, clientId, employeeId);
   const stored = await currentSheetPdf(
     {
-      // The caller's own policies have shown the sheet's row, so its file is one they may read.
+      // The route has authorized this sheet, through member policies or the participation.
       store: supabaseSheetStore(db),
       files: { readDocument: (path) => adminFileStore(c.env, c.req.raw.signal).readDocument(path) },
       pdf: createPdfConverter(c),
@@ -270,7 +270,7 @@ export async function storedSheetLink(
   // sleep in between.
   const expiresInSeconds = 600;
   return {
-    // The caller's own policies have shown the sheet's row, so its file is one they may read.
+    // The route has authorized this sheet, through member policies or the participation.
     url: await adminFileStore(c.env, c.req.raw.signal).documentLink(
       stored.storagePath,
       expiresInSeconds

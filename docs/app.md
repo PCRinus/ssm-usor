@@ -847,12 +847,14 @@ their tab bars read.
   says that making the PDF can take a few seconds, and a `503` with `pdf_unavailable` says
   that nothing was issued.
   A `400` says the file is not a `.docx` or is over 15 MB, and how to get one from a `.doc`. The
-  Word files and the PDF are real anchors (`FileMenuItem`, `src/components/file-menu-item.tsx`)
+  Stored Word files and the PDF are real anchors (`FileMenuItem`, `src/components/file-menu-item.tsx`)
   to `GET /files/download`, which names the file with its diacritics; the link behind each is
   signed through `GET …/revisions/{revisionId}/download` when the menu opens and renewed on a
   stale tap. The Word files are served as attachments and the PDF `inline`, in a tab of its
   own, which is what the in-app browser of a mail client can open. A `404` or `409` reloads the
-  list. An archived client only gets the downloads.
+  list. An archived client only gets the downloads. Word files with own-instruction
+  annexes and individual annexes are assembled on request through the Word and annex routes
+  and downloaded as blobs, since there is no stored file to link to.
   "Descarcă documentația" in the card's header downloads the whole set as one zip, of the Word
   files or of the issued PDFs (disabled until one exists, with the count of issued documents);
   `apiFetch` returns a zip or PDF as a `File` named from `Content-Disposition`.

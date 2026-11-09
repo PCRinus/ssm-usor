@@ -921,7 +921,7 @@ export async function storedAgreementLink(
   // sleep in between.
   const expiresInSeconds = 600;
   return {
-    // The caller's own policies have shown the row, so its file is one they may read.
+    // The route has authorized this agreement, through member policies or the participation.
     url: await createAdminFileStore(c).documentLink(stored.data.storage_path, expiresInSeconds),
     fileName: agreementFileName({
       lastName: employee.data.last_name,
@@ -1049,7 +1049,7 @@ export const getPortalSigningAgreementLink: RouteHandler<
 > = async (c) => {
   const { participantId } = c.req.valid('param');
   return c.json(
-    await storedAgreementLink(c, createDataClient(c), ownEmployee(c, participantId)),
+    await storedAgreementLink(c, createPortalReadClient(c), ownEmployee(c, participantId)),
     200
   );
 };
@@ -1133,5 +1133,8 @@ export const getPortalEmployeeSigningAgreementLink: RouteHandler<
 > = async (c) => {
   const { participantId, employeeId } = c.req.valid('param');
   const clientId = administeredClient(c, participantId);
-  return c.json(await storedAgreementLink(c, createDataClient(c), { clientId, employeeId }), 200);
+  return c.json(
+    await storedAgreementLink(c, createPortalReadClient(c), { clientId, employeeId }),
+    200
+  );
 };

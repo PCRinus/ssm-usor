@@ -838,7 +838,7 @@ describe('Instruiri and Contul meu', () => {
       { sequence: 1 },
       expect.anything()
     );
-    const draft = screen.getByTestId('training-sheet-psi-open');
+    const draft = screen.getByTestId('training-sheet-su-open');
     expect(draft.tagName).toBe('BUTTON');
     expect(draft.getAttribute('href')).toBeNull();
   });

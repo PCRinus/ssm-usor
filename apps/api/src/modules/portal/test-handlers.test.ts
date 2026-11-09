@@ -647,7 +647,7 @@ describe('GET /portal/participants/{participantId}/materials/{domain}/link', () 
 
   it('answers 404 with a reason while none is issued', async () => {
     mockUpstream({ material: () => Response.json([]) });
-    const response = await request(own('/materials/psi/link'));
+    const response = await request(own('/materials/su/link'));
     expect(response.status).toBe(404);
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('material_not_issued');
   });

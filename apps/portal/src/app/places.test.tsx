@@ -619,7 +619,7 @@ describe('Lucrători', () => {
     const stored = { ready: true, missing: [], stored: true, sequences: [1] };
     vi.mocked(useListPortalEmployeeTrainingRecords).mockReturnValue(queryResult(trainingRecords()));
     vi.mocked(useGetPortalEmployeeTrainingSheets).mockReturnValue(
-      queryResult({ ssm: stored, psi: stored })
+      queryResult({ ssm: stored, su: stored })
     );
     vi.mocked(getPortalEmployeeTrainingSheetLink).mockImplementation(
       async (_participant, employeeId, domain, params) =>

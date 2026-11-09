@@ -1487,9 +1487,7 @@ describe('client documents', () => {
     expect(within(issuedGroup).getByTestId('document-download-issued').textContent).toBe(
       'Descarcă Word'
     );
-    expect(within(issuedGroup).getByTestId('document-download-pdf').textContent).toBe(
-      'Descarcă PDF'
-    );
+    expect(within(issuedGroup).getByTestId('document-open-pdf').textContent).toBe('Deschide PDF');
     expect(screen.queryByTestId('document-start-draft')).toBeNull();
     await user.keyboard('{Escape}');
 

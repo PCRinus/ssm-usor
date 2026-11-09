@@ -2824,7 +2824,7 @@ export function useGetPortalTrainingSheet<
 
 export const getGetPortalTrainingSheetLinkUrl = (
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalTrainingSheetLinkParams
 ) => {
   const normalizedParams = new URLSearchParams();
@@ -2848,7 +2848,7 @@ export const getGetPortalTrainingSheetLinkUrl = (
  */
 export const getPortalTrainingSheetLink = async (
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalTrainingSheetLinkParams,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<FileLinkResponse> => {
@@ -2863,7 +2863,7 @@ export const getPortalTrainingSheetLink = async (
 
 export const getGetPortalTrainingSheetLinkQueryKey = (
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalTrainingSheetLinkParams
 ) => {
   return [
@@ -2877,7 +2877,7 @@ export const getGetPortalTrainingSheetLinkQueryOptions = <
   TError = ErrorType<ApiErrorResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalTrainingSheetLinkParams,
   options?: {
     query?: Partial<
@@ -2919,7 +2919,7 @@ export function useGetPortalTrainingSheetLink<
   TError = ErrorType<ApiErrorResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params: undefined | GetPortalTrainingSheetLinkParams,
   options: {
     query: Partial<
@@ -2942,7 +2942,7 @@ export function useGetPortalTrainingSheetLink<
   TError = ErrorType<ApiErrorResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalTrainingSheetLinkParams,
   options?: {
     query?: Partial<
@@ -2965,7 +2965,7 @@ export function useGetPortalTrainingSheetLink<
   TError = ErrorType<ApiErrorResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalTrainingSheetLinkParams,
   options?: {
     query?: Partial<
@@ -2984,7 +2984,7 @@ export function useGetPortalTrainingSheetLink<
   TError = ErrorType<ApiErrorResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalTrainingSheetLinkParams,
   options?: {
     query?: Partial<
@@ -3684,7 +3684,7 @@ export function useGetPortalEmployeeTrainingSheet<
 export const getGetPortalEmployeeTrainingSheetLinkUrl = (
   participantId: string,
   employeeId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalEmployeeTrainingSheetLinkParams
 ) => {
   const normalizedParams = new URLSearchParams();
@@ -3709,7 +3709,7 @@ export const getGetPortalEmployeeTrainingSheetLinkUrl = (
 export const getPortalEmployeeTrainingSheetLink = async (
   participantId: string,
   employeeId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalEmployeeTrainingSheetLinkParams,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<FileLinkResponse> => {
@@ -3725,7 +3725,7 @@ export const getPortalEmployeeTrainingSheetLink = async (
 export const getGetPortalEmployeeTrainingSheetLinkQueryKey = (
   participantId: string,
   employeeId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalEmployeeTrainingSheetLinkParams
 ) => {
   return [
@@ -3740,7 +3740,7 @@ export const getGetPortalEmployeeTrainingSheetLinkQueryOptions = <
 >(
   participantId: string,
   employeeId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalEmployeeTrainingSheetLinkParams,
   options?: {
     query?: Partial<
@@ -3792,7 +3792,7 @@ export function useGetPortalEmployeeTrainingSheetLink<
 >(
   participantId: string,
   employeeId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params: undefined | GetPortalEmployeeTrainingSheetLinkParams,
   options: {
     query: Partial<
@@ -3816,7 +3816,7 @@ export function useGetPortalEmployeeTrainingSheetLink<
 >(
   participantId: string,
   employeeId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalEmployeeTrainingSheetLinkParams,
   options?: {
     query?: Partial<
@@ -3840,7 +3840,7 @@ export function useGetPortalEmployeeTrainingSheetLink<
 >(
   participantId: string,
   employeeId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalEmployeeTrainingSheetLinkParams,
   options?: {
     query?: Partial<
@@ -3860,7 +3860,7 @@ export function useGetPortalEmployeeTrainingSheetLink<
 >(
   participantId: string,
   employeeId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   params?: GetPortalEmployeeTrainingSheetLinkParams,
   options?: {
     query?: Partial<
@@ -4763,7 +4763,7 @@ export function useGetPortalMaterial<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export const getGetPortalMaterialLinkUrl = (participantId: string, domain: 'ssm' | 'psi') => {
+export const getGetPortalMaterialLinkUrl = (participantId: string, domain: 'ssm' | 'su') => {
   return `/portal/participants/${participantId}/materials/${domain}/link`;
 };
 
@@ -4773,7 +4773,7 @@ export const getGetPortalMaterialLinkUrl = (participantId: string, domain: 'ssm'
  */
 export const getPortalMaterialLink = async (
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<FileLinkResponse> => {
   return apiFetch<FileLinkResponse>(getGetPortalMaterialLinkUrl(participantId, domain), {
@@ -4782,7 +4782,7 @@ export const getPortalMaterialLink = async (
   });
 };
 
-export const getGetPortalMaterialLinkQueryKey = (participantId: string, domain: 'ssm' | 'psi') => {
+export const getGetPortalMaterialLinkQueryKey = (participantId: string, domain: 'ssm' | 'su') => {
   return [`/portal/participants/${participantId}/materials/${domain}/link`] as const;
 };
 
@@ -4791,7 +4791,7 @@ export const getGetPortalMaterialLinkQueryOptions = <
   TError = ErrorType<ApiErrorResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalMaterialLink>>, TError, TData>
@@ -4831,7 +4831,7 @@ export function useGetPortalMaterialLink<
   TError = ErrorType<ApiErrorResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalMaterialLink>>, TError, TData>
@@ -4853,7 +4853,7 @@ export function useGetPortalMaterialLink<
   TError = ErrorType<ApiErrorResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalMaterialLink>>, TError, TData>
@@ -4875,7 +4875,7 @@ export function useGetPortalMaterialLink<
   TError = ErrorType<ApiErrorResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalMaterialLink>>, TError, TData>
@@ -4893,7 +4893,7 @@ export function useGetPortalMaterialLink<
   TError = ErrorType<ApiErrorResponse>,
 >(
   participantId: string,
-  domain: 'ssm' | 'psi',
+  domain: 'ssm' | 'su',
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalMaterialLink>>, TError, TData>

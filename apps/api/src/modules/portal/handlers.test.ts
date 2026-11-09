@@ -706,7 +706,7 @@ describe('the sheets', () => {
     expect(signed?.headers.get('Authorization')).toBe(`Bearer ${env.SUPABASE_SECRET_KEY}`);
     expect(signed?.body).toEqual({ expiresIn: 600 });
     expect(calls('/rest/v1/signed_sheets')[0]?.headers.get('Authorization')).toBe(
-      'Bearer user-token'
+      `Bearer ${env.SUPABASE_SECRET_KEY}`
     );
     expect(convertDocx).not.toHaveBeenCalled();
   });
@@ -714,7 +714,7 @@ describe('the sheets', () => {
   it('has no link for a sheet drawn up on the spot', async () => {
     mockUpstream();
 
-    const response = await request(own('/sheets/psi/link'));
+    const response = await request(own('/sheets/su/link'));
 
     expect(response.status).toBe(404);
     expect(convertDocx).not.toHaveBeenCalled();

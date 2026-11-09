@@ -13,7 +13,7 @@ import {
 import { buildTestSheetData, testSheetTypeKey } from '@ssm-usor/document-engine';
 import type { Context } from 'hono';
 
-import { type AdminClient, createLastingAdminClient } from '../../lib/admin-db';
+import { type AdminClient, createAdminClient, createLastingAdminClient } from '../../lib/admin-db';
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
@@ -658,7 +658,7 @@ export async function storedTestSheetLink(
   resultId: string,
   fileName: string
 ): Promise<FileLinkResponse> {
-  const sheet = await storedTestSheet(adminClient(c.env), resultId);
+  const sheet = await storedTestSheet(createAdminClient(c), resultId);
   if (!sheet) throw testSheetNotAvailable();
   const expiresInSeconds = 600;
   return {

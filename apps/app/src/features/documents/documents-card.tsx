@@ -73,7 +73,7 @@ import { Notice } from '@/components/notice';
 import { useFocusRequest } from '@/features/missing-data/focus';
 import { endWayBack } from '@/features/missing-data/way-back';
 import { formatRoDate } from '@/lib/dates';
-import { openDownload, saveFile } from '@/lib/save-file';
+import { saveFile } from '@/lib/save-file';
 
 import { AnnexRow } from './annex-row';
 import { behindInstructions, instructionChangesHint } from './behind-labels';
@@ -304,21 +304,11 @@ export function DocumentsCard<Set extends DocumentSet>({
     await queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) });
   }
 
-  async function download(
-    document: ClientDocument,
-    revision: Revision,
-    format: 'docx' | 'pdf' = 'docx'
-  ) {
+  async function download(document: ClientDocument, revision: Revision) {
     setError(null);
     try {
-      // Storage holds the common part alone; the API appends the annexes (ADR 034).
-      if (format === 'docx' && revision.annexes.length > 0) {
-        const file = await getDocumentWord(document.id, revision.id, apiRequest);
-        saveFile(file, file instanceof File ? file.name : `${document.title}.docx`);
-        return;
-      }
-      const link = await getDocumentDownload(document.id, revision.id, { format }, apiRequest);
-      openDownload(apiRequest.baseUrl, link);
+      const file = await getDocumentWord(document.id, revision.id, apiRequest);
+      saveFile(file, file instanceof File ? file.name : `${document.title}.docx`);
     } catch {
       setError(
         `Nu am putut descărca „${document.title}”. Verifică conexiunea și încearcă din nou.`
@@ -569,13 +559,13 @@ export function DocumentsCard<Set extends DocumentSet>({
                       </DropdownMenuItem>
                     )}
                     {document.draft.annexes.length > 0 ? (
-                    <DropdownMenuItem
-                      data-testid="document-download-draft"
-                      onSelect={() => void download(document, document.draft!)}
-                    >
-                      <Download aria-hidden="true" />
-                      Descarcă Word
-                    </DropdownMenuItem>
+                      <DropdownMenuItem
+                        data-testid="document-download-draft"
+                        onSelect={() => void download(document, document.draft!)}
+                      >
+                        <Download aria-hidden="true" />
+                        Descarcă Word
+                      </DropdownMenuItem>
                     ) : (
                       <FileMenuItem
                         testId="document-download-draft"
@@ -603,13 +593,13 @@ export function DocumentsCard<Set extends DocumentSet>({
                       Documentul emis · rev. {document.issued.revision}
                     </DropdownMenuLabel>
                     {document.issued.annexes.length > 0 ? (
-                    <DropdownMenuItem
-                      data-testid="document-download-issued"
-                      onSelect={() => void download(document, document.issued!)}
-                    >
-                      <Download aria-hidden="true" />
-                      Descarcă Word
-                    </DropdownMenuItem>
+                      <DropdownMenuItem
+                        data-testid="document-download-issued"
+                        onSelect={() => void download(document, document.issued!)}
+                      >
+                        <Download aria-hidden="true" />
+                        Descarcă Word
+                      </DropdownMenuItem>
                     ) : (
                       <FileMenuItem
                         testId="document-download-issued"

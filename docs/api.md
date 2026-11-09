@@ -99,7 +99,6 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/files`                                       | Verified user with a membership       | `201 { "file": { … } }` from the bytes in the body; `?fileName=&name=&note=&ownersOnly=&employeeId=`                                                                                               |
 | `PATCH /clients/{clientId}/files/{fileId}`                             | Uploader or owner                     | `{ "file": { … } }` after renaming or annotating it                                                                                                                                                |
 | `PUT /clients/{clientId}/files/{fileId}/owners-only`                   | Owner                                 | `{ "file": { … } }` after keeping it for owners or opening it to the team                                                                                                                          |
-| `GET /clients/{clientId}/files/{fileId}/download`                      | Verified user with a membership       | `{ "url", "fileName", "disposition", "expiresInSeconds" }`, a link valid for a minute                                                                                                              |
 | `DELETE /clients/{clientId}/files/{fileId}`                            | Uploader or owner                     | `204` after deleting the stored file and the row                                                                                                                                                   |
 | `POST /imports`                                                        | Verified user with a membership       | `201 { "import": { … } }`, an import from documents `uploading`, for a new client or `{ clientId }`; `{ clientId, kind: "employees", addFoundSheets? }` for an employee import                     |
 | `GET /imports`                                                         | Verified user with a membership       | `{ "items": [ … ] }`, the open imports of `?kind=` (client imports by default), failed ones included, newest first; `?clientId=` for one client's; `?status=confirmed` the last ten confirmed      |
@@ -244,10 +243,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /evaluation-profiles/{profileId}/factors`                        | Verified user with a membership       | `201 { "profile": { … } }` after adding a factor with its measures                                                                                                                                 |
 | `PUT /evaluation-profiles/{profileId}/factors/{factorId}`              | Verified user with a membership       | `{ "profile": { … } }` after replacing a factor and its measures                                                                                                                                   |
 | `DELETE /evaluation-profiles/{profileId}/factors/{factorId}`           | Verified user with a membership       | `{ "profile": { … } }` after removing a factor                                                                                                                                                     |
-| `GET /clients/{clientId}/employees/{employeeId}/training-sheet/link`   | Verified user with a membership       | `{ "url", "fileName", "expiresInSeconds" }`, a ten-minute link to one stored sheet; `?domain=&sequence=`; `404` while nothing is stored, `409 several_sheets`                |
-| `POST /instruction-modules/upload`                                     | Verified user with a membership       | `201 { "module": { … } }` from the `.docx` in the body; `?title=&group=&domain=`                                                                                             |
-| `GET /instruction-modules/{moduleId}/file-link`                        | Verified user with a membership       | `{ "url", "fileName", "expiresAt" }`, a one-minute link to the current file                                                                                                  |
-| `PUT /instruction-modules/{moduleId}/file`                             | Verified user with a membership       | `{ "module": { … } }` with the body stored as the next version                                                                                                               |
+| `GET /clients/{clientId}/employees/{employeeId}/training-sheet/link`   | Verified user with a membership       | `{ "url", "fileName", "expiresInSeconds" }`, a ten-minute link to one stored sheet; `?domain=&sequence=`; `404` while nothing is stored, `409 several_sheets`                                      |
 
 `/health` checks the Worker, not Supabase connectivity. `/me` returns the user's ID and email
 (nullable), their profile, and their organization with their role. It answers an account
@@ -775,7 +771,7 @@ under (cut to 200 characters, keeping the extension); `disposition`, `inline` fo
 JPEG or a PNG, `attachment` for the rest; and `expiresInSeconds`. The SPA puts each on a real
 anchor and fetches the list again before the links expire.
 
-**Real links to files.** Every file a person opens from the app or the portal is a plain anchor
+**Real links to files.** Every stored file a person opens from the app or the portal is a plain anchor
 to `GET /files/download?source=<signed Storage link>&name=&disposition=`, never a blob the page
 fetched with its bearer token: the in-app browser a mail client opens on Android (Gmail's is a
 Firefox custom tab) shows a blob URL blank and cannot download at all, but opens a PDF served
@@ -789,10 +785,10 @@ those anchors sign for ten minutes when the page keeps the link ready and renews
 file's `link`, a stored training sheet's `…/training-sheet/link`, a stored signing
 agreement's `…/signing-agreement/link`, a stored test sheet's `…/sheet/link`, the portal's
 issued test material's `…/materials/{domain}/link`, the public contract return's), and for a minute when
-the app signs on opening a menu (a document revision's `…/download`, an instruction module's
-`…/file-link`). Only a file that exists in Storage has a link: a sheet drawn up on the spot, the
+the app signs on opening a menu (a document revision's `…/download`). Only a file that exists in Storage has a link: a sheet drawn up on the spot, the
 merged reading copy of several sheets, an agreement nobody has signed yet, a test sheet the pass
-could not draw up and the pack archive are built when asked for, and still come through the
+could not draw up, Word files with own-instruction annexes, individual annexes and the pack
+archive are built when asked for, and still come through the
 page as a blob.
 
 Data access goes through `src/lib/db.ts`: a per-request supabase-js client that forwards the
@@ -1280,39 +1276,39 @@ The routes under `/portal` are the portal's and nothing else's. Each carries the
 `portal`, which is what puts it in the portal's generated client ([API client](api-client.md));
 no route outside the prefix has the tag.
 
-| Route                                                             | Who                  | Response                                                                                        |
-| ----------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------- |
-| `GET /portal/me`                                                  | Participant          | `{ participations: [ … ] }`, never empty                                                        |
-| `POST /portal/participants/{participantId}/notice`                | Participant          | `204` after recording `{ version }` of the privacy notice                                       |
-| `PUT /portal/participants/{participantId}/language`               | Participant          | `204` after saving `{ language }`, `ro` or `en`                                                 |
-| `GET …/{participantId}/training-records`                          | Employee             | `{ items, training }`: own records newest first with their `slots`, the states                  |
-| `GET …/{participantId}/data`                                      | Employee             | _Datele mele_: what the sheets print, and the provider                                          |
-| `GET …/{participantId}/sheets`                                    | Employee             | `{ ssm, su }`, each `{ ready, missing, stored, sequences }`                                     |
-| `GET …/{participantId}/sheets/{domain}`                           | Employee             | `200 application/pdf`, as stored once signing has started; `409 missing_sheet_data`             |
-| `GET …/{participantId}/employees`                                 | Client administrator | `{ items }`: current employees with their training states                                       |
-| `GET …/{participantId}/employees/{employeeId}/training-records`   | Client administrator | As the employee's own                                                                           |
-| `GET …/{participantId}/employees/{employeeId}/sheets`             | Client administrator | As the employee's own                                                                           |
-| `GET …/{participantId}/employees/{employeeId}/sheets/{domain}`    | Client administrator | As the employee's own                                                                           |
-| `GET …/{participantId}/responsible-persons`                       | Client administrator | `{ items }`: the client's active responsible persons                                            |
-| `GET …/{participantId}/signature-requests`                        | Participant          | `{ items }`: the pending requests addressed to them                                             |
-| `GET …/{participantId}/employees/signature-requests`              | Client administrator | `{ items }`: the client's pending requests                                                      |
-| `GET …/{participantId}/signing-agreement`                         | Employee             | `200 application/pdf`, their own signing agreement                                              |
-| `GET …/{participantId}/signing-agreement/state`                   | Employee             | `{ agreement, unavailable }`: null until they sign it or the specialist records one             |
-| `GET …/{participantId}/employees/signing-agreements`              | Client administrator | `{ items }`: agreements awaiting the employer, then those signed electronically                 |
-| `GET …/{participantId}/employees/{employeeId}/signing-agreement`  | Client administrator | `200 application/pdf`, as the employee's own                                                    |
-| `POST …/{participantId}/signing-sessions`                         | Participant          | `201 { sessionId, channel, addressHint, expiresAt, items }`; the code is sent                   |
-| `POST …/{participantId}/signing-sessions/{sessionId}/sign`        | Participant          | `{ signed, failed, agreements }` after `{ code }`                                               |
-| `GET …/{participantId}/tests`                                     | Employee             | `{ ssm, su }`, each `{ status, results, attempts, inProgress }`                                 |
-| `GET …/{participantId}/tests/{domain}/{test}/study-card`          | Employee             | `{ explanations, material }`; `material` null while none is issued                              |
-| `POST …/{participantId}/tests/{domain}/{test}/attempts`           | Employee             | `{ attempt }`, started or resumed; `409 test_not_awaiting`                                      |
-| `PUT …/{participantId}/test-attempts/{attemptId}/answers/{index}` | Employee             | `{ attempt }` after `{ chosen }`; `400 option_out_of_range`, `409 attempt_finished`             |
-| `POST …/{participantId}/test-attempts/{attemptId}/finish`         | Employee             | `{ id, score, total, passed, mistakes, … }`                                                     |
-| `GET …/{participantId}/materials/{domain}`                        | Participant          | `200 application/pdf`, the issued material; `404 material_not_issued`                           |
-| `GET …/{participantId}/tests/results/{resultId}/sheet`            | Participant          | `200 application/pdf` inline, the [test sheet](#the-test-sheet); `404 test_sheet_not_available` |
-| `GET …/{participantId}/sheets/{domain}/link`                          | Employee             | `{ url, fileName, expiresInSeconds }`, a ten-minute link to one stored sheet        |
-| `GET …/{participantId}/employees/{employeeId}/sheets/{domain}/link`   | Client administrator | As the employee's own                                                               |
-| `GET …/{participantId}/signing-agreement/link`                        | Employee             | `{ url, fileName, expiresInSeconds }`, a ten-minute link to the stored agreement    |
-| `GET …/{participantId}/employees/{employeeId}/signing-agreement/link` | Client administrator | As the employee's own                                                               |
+| Route                                                                 | Who                  | Response                                                                                        |
+| --------------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------- |
+| `GET /portal/me`                                                      | Participant          | `{ participations: [ … ] }`, never empty                                                        |
+| `POST /portal/participants/{participantId}/notice`                    | Participant          | `204` after recording `{ version }` of the privacy notice                                       |
+| `PUT /portal/participants/{participantId}/language`                   | Participant          | `204` after saving `{ language }`, `ro` or `en`                                                 |
+| `GET …/{participantId}/training-records`                              | Employee             | `{ items, training }`: own records newest first with their `slots`, the states                  |
+| `GET …/{participantId}/data`                                          | Employee             | _Datele mele_: what the sheets print, and the provider                                          |
+| `GET …/{participantId}/sheets`                                        | Employee             | `{ ssm, su }`, each `{ ready, missing, stored, sequences }`                                     |
+| `GET …/{participantId}/sheets/{domain}`                               | Employee             | `200 application/pdf`, as stored once signing has started; `409 missing_sheet_data`             |
+| `GET …/{participantId}/employees`                                     | Client administrator | `{ items }`: current employees with their training states                                       |
+| `GET …/{participantId}/employees/{employeeId}/training-records`       | Client administrator | As the employee's own                                                                           |
+| `GET …/{participantId}/employees/{employeeId}/sheets`                 | Client administrator | As the employee's own                                                                           |
+| `GET …/{participantId}/employees/{employeeId}/sheets/{domain}`        | Client administrator | As the employee's own                                                                           |
+| `GET …/{participantId}/responsible-persons`                           | Client administrator | `{ items }`: the client's active responsible persons                                            |
+| `GET …/{participantId}/signature-requests`                            | Participant          | `{ items }`: the pending requests addressed to them                                             |
+| `GET …/{participantId}/employees/signature-requests`                  | Client administrator | `{ items }`: the client's pending requests                                                      |
+| `GET …/{participantId}/signing-agreement`                             | Employee             | `200 application/pdf`, their own signing agreement                                              |
+| `GET …/{participantId}/signing-agreement/state`                       | Employee             | `{ agreement, unavailable }`: null until they sign it or the specialist records one             |
+| `GET …/{participantId}/employees/signing-agreements`                  | Client administrator | `{ items }`: agreements awaiting the employer, then those signed electronically                 |
+| `GET …/{participantId}/employees/{employeeId}/signing-agreement`      | Client administrator | `200 application/pdf`, as the employee's own                                                    |
+| `POST …/{participantId}/signing-sessions`                             | Participant          | `201 { sessionId, channel, addressHint, expiresAt, items }`; the code is sent                   |
+| `POST …/{participantId}/signing-sessions/{sessionId}/sign`            | Participant          | `{ signed, failed, agreements }` after `{ code }`                                               |
+| `GET …/{participantId}/tests`                                         | Employee             | `{ ssm, su }`, each `{ status, results, attempts, inProgress }`                                 |
+| `GET …/{participantId}/tests/{domain}/{test}/study-card`              | Employee             | `{ explanations, material }`; `material` null while none is issued                              |
+| `POST …/{participantId}/tests/{domain}/{test}/attempts`               | Employee             | `{ attempt }`, started or resumed; `409 test_not_awaiting`                                      |
+| `PUT …/{participantId}/test-attempts/{attemptId}/answers/{index}`     | Employee             | `{ attempt }` after `{ chosen }`; `400 option_out_of_range`, `409 attempt_finished`             |
+| `POST …/{participantId}/test-attempts/{attemptId}/finish`             | Employee             | `{ id, score, total, passed, mistakes, … }`                                                     |
+| `GET …/{participantId}/materials/{domain}`                            | Participant          | `200 application/pdf`, the issued material; `404 material_not_issued`                           |
+| `GET …/{participantId}/tests/results/{resultId}/sheet`                | Participant          | `200 application/pdf` inline, the [test sheet](#the-test-sheet); `404 test_sheet_not_available` |
+| `GET …/{participantId}/sheets/{domain}/link`                          | Employee             | `{ url, fileName, expiresInSeconds }`, a ten-minute link to one stored sheet                    |
+| `GET …/{participantId}/employees/{employeeId}/sheets/{domain}/link`   | Client administrator | As the employee's own                                                                           |
+| `GET …/{participantId}/signing-agreement/link`                        | Employee             | `{ url, fileName, expiresInSeconds }`, a ten-minute link to the stored agreement                |
+| `GET …/{participantId}/employees/{employeeId}/signing-agreement/link` | Client administrator | As the employee's own                                                                           |
 | `GET …/{participantId}/materials/{domain}/link`                       | Participant          | `{ url, fileName, expiresInSeconds }`, a ten-minute link to the issued material                 |
 | `GET …/{participantId}/tests/results/{resultId}/sheet/link`           | Participant          | `{ url, fileName, expiresInSeconds }`, a ten-minute link to the stored test sheet               |
 

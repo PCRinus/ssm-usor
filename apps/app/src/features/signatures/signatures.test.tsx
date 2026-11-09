@@ -1042,7 +1042,7 @@ describe("the employee's signing agreement", () => {
           expiresInSeconds: 600,
         }),
     });
-    mount(employeePath);
+    mount(employeePage);
     const card = await screen.findByTestId('signing-agreement-card');
     await waitFor(() =>
       expect(within(card).getByTestId('signing-agreement-download').getAttribute('href')).toContain(
