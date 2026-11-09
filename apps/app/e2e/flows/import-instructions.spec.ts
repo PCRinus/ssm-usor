@@ -51,7 +51,7 @@ test("a pack's own instructions are reviewed before the client is created, confi
   await expect(page.getByTestId('library-undecided')).toContainText('Vânzător');
   await expect(page.getByTestId('library-confirm')).toHaveCount(0);
   await expect(page.getByTestId('library-confirm-bar')).toContainText('Confirmă întâi clientul.');
-  await expect(page.getByTestId('library-back-to-import')).toHaveText('Înapoi la raport');
+  await expect(page.getByTestId('library-back-to-import')).toHaveText('Înapoi la propunere');
 
   const rows = page.getByTestId('library-instruction');
   await expect(rows).toHaveCount(2);

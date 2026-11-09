@@ -212,7 +212,7 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
               }}
             />
           ) : (
-            'Propunerea e completă.'
+            <StatusTag status={{ kind: 'done' }} />
           )
         }
       >

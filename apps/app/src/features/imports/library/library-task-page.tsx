@@ -24,6 +24,7 @@ import { scrollAndFocus } from '@/features/missing-data/focus';
 import { ImportActionBar } from '../import-action-bar';
 import { creditsLabel } from '../import-credits';
 import { importErrorMessage } from '../import-format';
+import { ImportIssueBadge } from '../import-review-issues';
 import { ReportImportButton } from '../report-import-button';
 import { SourceDialog, type SourceRequest } from '../source-dialog';
 import { SourcePrefetchContext, useSourcePrefetch } from '../source-query';
@@ -108,7 +109,7 @@ export function LibraryTaskPage({
         <Button asChild variant="outline" className="w-fit">
           <Link to="/clienti/import/$importId" params={{ importId: detail.id }}>
             <ArrowLeft aria-hidden="true" />
-            Înapoi la raport
+            Înapoi la propunere
           </Link>
         </Button>
       )}
@@ -510,26 +511,24 @@ function TaskContent({
                 <>
                   <span>{instructionsLabel(summary.created + summary.used)}</span>
                   {titles.length > 0 && (
-                    <button
-                      type="button"
-                      className="min-h-11 rounded-sm text-destructive cursor-pointer underline underline-offset-4 transition-colors hover:text-foreground hover:decoration-2 focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0"
+                    <ImportIssueBadge
+                      tone="destructive"
                       onClick={() => pointToInstruction(titles[0]!.row.instruction.key)}
                     >
                       {titles.length === 1
                         ? 'Un titlu de schimbat'
                         : `${titles.length} titluri de schimbat`}
-                    </button>
+                    </ImportIssueBadge>
                   )}
                   {choicesCount > 0 && (
-                    <button
-                      type="button"
-                      className="min-h-11 rounded-sm text-warning-foreground cursor-pointer underline underline-offset-4 transition-colors hover:text-foreground hover:decoration-2 focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0"
+                    <ImportIssueBadge
+                      tone="warning"
                       onClick={() => pointToInstruction(choices[0]!.row.instruction.key)}
                     >
                       {choicesCount === 1
                         ? 'O alegere de verificat'
                         : `${choicesCount} alegeri de verificat`}
-                    </button>
+                    </ImportIssueBadge>
                   )}
                 </>
               ) : part.status === 'confirmed' ? (
@@ -560,7 +559,7 @@ function TaskContent({
               data-testid="library-back-to-import"
             >
               <ArrowLeft aria-hidden="true" />
-              Înapoi la raport
+              Înapoi la propunere
             </Link>
           </Button>
           {reviewable && clientConfirmed && (

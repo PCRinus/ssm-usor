@@ -725,7 +725,7 @@ describe('one review across its pages', () => {
     await userEvent.click(
       within(await legalNameBlock()).getByRole('radio', { name: /Spicul Auriu Panificație SRL/ })
     );
-    await userEvent.click(screen.getByRole('link', { name: 'Înapoi la raport' }));
+    await userEvent.click(screen.getByRole('link', { name: 'Înapoi la propunere' }));
 
     await screen.findByTestId('import-review-hub');
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
@@ -2358,6 +2358,50 @@ describe('two phone numbers the documents give', () => {
 });
 
 describe('the persistent import review bar', () => {
+  it('shows the section readiness independently of a save still in progress', async () => {
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    mockReview(readyDetail({ blockers: [] }), {
+      save: () => held.then(() => Response.json({ version: 4, blockers: [] })),
+    });
+    mount('/workplaces');
+
+    const bar = await screen.findByRole('region', { name: 'Navigarea prin propunere' });
+    expect(within(bar).getByTestId('section-status').textContent).toBe('Gata');
+    await userEvent.click(screen.getByRole('switch', { name: /Inclus:/ }));
+    expect(within(bar).getByTestId('section-status').textContent).toBe('Gata');
+    expect(within(bar).getByTestId('import-save-status').textContent).toBe('Se salvează…');
+
+    release();
+    await waitFor(() =>
+      expect(within(bar).getByTestId('import-save-status').textContent).toBe('Salvat în propunere')
+    );
+    expect(within(bar).getByTestId('section-status').textContent).toBe('Gata');
+  });
+
+  it('does not label an advisory section ready merely because it has no blockers', async () => {
+    const proposal = proposalFixture();
+    mockReview(
+      readyDetail({
+        proposal: {
+          ...proposal,
+          workplaces: proposal.workplaces.map((workplace) => ({
+            ...workplace,
+            otherCompanyName: 'Altă firmă SRL',
+          })),
+        },
+        blockers: [],
+      })
+    );
+    mount('/workplaces');
+
+    const bar = await screen.findByRole('region', { name: 'Navigarea prin propunere' });
+    expect(within(bar).queryByTestId('section-status')).toBeNull();
+    expect(within(bar).getByTestId('import-save-status').textContent).toBe('Salvat în propunere');
+  });
+
   it('keeps missing data and choices visible while another change saves', async () => {
     const proposal = proposalFixture();
     proposal.client.cui.options = [];

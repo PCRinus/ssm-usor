@@ -27,6 +27,7 @@ import {
   type SectionStatus,
   vatPayerInForce,
 } from './review-model';
+import { StatusTag } from './review-parts';
 import { blockerLinks, fieldStates, reviewName, sectionStatuses } from './review-summary';
 import { SourceDialog, type SourceRequest } from './source-dialog';
 import { SourcePrefetchContext, useSourcePrefetch } from './source-query';
@@ -144,12 +145,14 @@ export function ReviewSectionPage({
           label="Navigarea prin propunere"
           save={review}
           summary={
-            links.length > 0 && (
+            links.length > 0 ? (
               <ImportReviewIssues
                 links={links}
                 onReveal={(matching) => reveal(matching.map((link) => link.anchor))}
               />
-            )
+            ) : statuses[section].kind === 'done' ? (
+              <StatusTag status={statuses[section]} />
+            ) : null
           }
           note={next ? `Urmează: ${sectionLabels[next]}` : 'Ultima secțiune a propunerii'}
         >
@@ -168,7 +171,7 @@ export function ReviewSectionPage({
           {next && (
             <Button asChild variant="outline">
               <Link to="/clienti/import/$importId" params={{ importId: detail.id }}>
-                Înapoi la raport
+                Înapoi la propunere
               </Link>
             </Button>
           )}

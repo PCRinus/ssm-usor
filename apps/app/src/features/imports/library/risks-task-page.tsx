@@ -24,6 +24,7 @@ import { RiskFactorDialog } from '@/features/risk-evaluations/risk-factor-dialog
 
 import { creditsLabel } from '../import-credits';
 import { importErrorMessage } from '../import-format';
+import { ImportIssueBadge } from '../import-review-issues';
 import { ReportImportButton } from '../report-import-button';
 import type { LabelledSource } from '../review-model';
 import { SourceButton, Tag } from '../review-parts';
@@ -91,7 +92,7 @@ export function RisksTaskPage({ detail }: { detail: ImportDetail }) {
         data-testid="library-back-to-import"
       >
         <ArrowLeft aria-hidden="true" />
-        Înapoi la raport
+        Înapoi la propunere
       </Link>
     </Button>
   );
@@ -505,33 +506,30 @@ function TaskContent({
                 </span>
               )}
               {reviewable && names.length > 0 && (
-                <button
-                  type="button"
-                  className="min-h-11 rounded-sm text-destructive cursor-pointer underline underline-offset-4 transition-colors hover:text-foreground hover:decoration-2 focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0"
+                <ImportIssueBadge
+                  tone="destructive"
                   onClick={() => pointToSheet(names[0]!.state.sheet.key)}
                 >
                   {names.length === 1 ? 'Un nume de schimbat' : `${names.length} nume de schimbat`}
-                </button>
+                </ImportIssueBadge>
               )}
               {reviewable && choicesCount > 0 && (
-                <button
-                  type="button"
-                  className="min-h-11 rounded-sm text-warning-foreground cursor-pointer underline underline-offset-4 transition-colors hover:text-foreground hover:decoration-2 focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0"
+                <ImportIssueBadge
+                  tone="warning"
                   onClick={() => pointToSheet(choices[0]!.state.sheet.key)}
                 >
                   {choicesCount === 1
                     ? 'O alegere de verificat'
                     : `${choicesCount} alegeri de verificat`}
-                </button>
+                </ImportIssueBadge>
               )}
               {reviewable && toCheck > 0 && (
-                <button
-                  type="button"
-                  className="min-h-11 rounded-sm text-warning-foreground cursor-pointer underline underline-offset-4 transition-colors hover:text-foreground hover:decoration-2 focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0"
+                <ImportIssueBadge
+                  tone="warning"
                   onClick={() => pointToSheet(checked[0]!.sheet.key)}
                 >
                   {factorsLabel(toCheck)} de verificat
-                </button>
+                </ImportIssueBadge>
               )}
             </div>
           }

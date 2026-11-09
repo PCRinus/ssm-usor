@@ -47,7 +47,7 @@ test("a pack's risk evaluations are reviewed before the client is created, confi
 
   await expect(page.getByTestId('library-confirm')).toHaveCount(0);
   await expect(page.getByTestId('library-confirm-bar')).toContainText('Confirmă întâi clientul.');
-  await expect(page.getByTestId('library-back-to-import')).toHaveText('Înapoi la raport');
+  await expect(page.getByTestId('library-back-to-import')).toHaveText('Înapoi la propunere');
   await expect(page.getByTestId('risk-import-sheet')).toHaveCount(6);
   await expect(page.getByTestId('risk-import-left')).toContainText('Mai ai de ales la 2 evaluări.');
   const sheet = (key: string) =>
