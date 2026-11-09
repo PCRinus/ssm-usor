@@ -22,9 +22,11 @@ import {
   ArrowRight,
   BadgeCheck,
   BriefcaseBusiness,
+  Clock,
   Copy,
   DoorOpen,
   HardHat,
+  Hash,
   type LucideIcon,
   MapPin,
   Package,
@@ -175,12 +177,12 @@ function ReviewDatum({
   children: ReactNode;
 }) {
   return (
-    <div className="grid min-w-0 content-start grid-cols-[1rem_minmax(0,1fr)] gap-x-2 gap-y-1">
-      <Icon aria-hidden="true" className="row-span-2 mt-0.5 size-4 text-muted-foreground" />
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="col-start-2 min-w-0 text-sm font-medium wrap-anywhere text-foreground">
-        {children}
-      </dd>
+    <div className="grid min-w-0 max-w-full content-start gap-1 sm:max-w-md">
+      <dt className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Icon aria-hidden="true" className="size-4 shrink-0" />
+        {label}
+      </dt>
+      <dd className="min-w-0 pl-6 text-sm font-medium wrap-anywhere text-foreground">{children}</dd>
     </div>
   );
 }
@@ -673,7 +675,7 @@ export function WorkplacesSection({ context }: { context: ItemsContext }) {
               context={context}
               title={`${itemName('workplaces', state.values)}${state.values.isRegisteredOffice ? ' · sediu social' : ''}`}
               details={[
-                <dl className="my-2 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                <dl className="my-2 grid gap-x-8 gap-y-3 sm:flex sm:flex-wrap sm:items-start">
                   <ReviewDatum icon={MapPin} label="Adresă">
                     {address || 'Fără adresă în documente'}
                   </ReviewDatum>
@@ -935,7 +937,7 @@ export function ResponsibleSection({ context }: { context: ItemsContext }) {
               context={context}
               title={itemName('responsiblePersons', state.values)}
               details={[
-                <dl className="my-2 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                <dl className="my-2 grid gap-x-8 gap-y-3 sm:flex sm:flex-wrap sm:items-start">
                   <ReviewDatum icon={BriefcaseBusiness} label="Funcție">
                     {text(state.values.jobTitle) ?? 'Funcția lipsește'}
                   </ReviewDatum>
@@ -1162,7 +1164,7 @@ export function EquipmentSection({ context }: { context: ItemsContext }) {
             context={context}
             title={itemName('protectiveEquipment', state.values)}
             details={[
-              <dl className="my-2 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+              <dl className="my-2 grid gap-x-8 gap-y-3 sm:flex sm:flex-wrap sm:items-start">
                 <ReviewDatum icon={BriefcaseBusiness} label="Post">
                   <ReferenceValue
                     context={context}
@@ -1174,17 +1176,21 @@ export function EquipmentSection({ context }: { context: ItemsContext }) {
                 <ReviewDatum icon={ShieldCheck} label="Risc acoperit">
                   {text(state.values.risk) ?? 'Riscul lipsește'}
                 </ReviewDatum>
-                <ReviewDatum icon={Package} label="Dotare">
-                  {[
-                    state.values.quantity ? `${state.values.quantity} buc.` : null,
-                    state.values.durationMonths ? `${state.values.durationMonths} luni` : null,
-                    state.values.allocation
-                      ? allocationLabel(String(state.values.allocation))
-                      : null,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ') || 'Nespecificată'}
+                <ReviewDatum icon={Package} label="Alocare">
+                  {state.values.allocation
+                    ? allocationLabel(String(state.values.allocation))
+                    : 'Nespecificată'}
                 </ReviewDatum>
+                {state.values.quantity != null && (
+                  <ReviewDatum icon={Hash} label="Cantitate">
+                    {String(state.values.quantity)} buc.
+                  </ReviewDatum>
+                )}
+                {state.values.durationMonths != null && (
+                  <ReviewDatum icon={Clock} label="Durată">
+                    {String(state.values.durationMonths)} luni
+                  </ReviewDatum>
+                )}
               </dl>,
             ]}
             agreement="masculine"

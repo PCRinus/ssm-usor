@@ -1383,7 +1383,8 @@ describe('reviewing related import data', () => {
     const [equipment] = await screen.findAllByTestId('review-item');
     expect(within(equipment!).getByText('Risc acoperit')).toBeDefined();
     expect(within(equipment!).getByText('Murdărire')).toBeDefined();
-    expect(within(equipment!).getByText('Dotare')).toBeDefined();
+    expect(within(equipment!).getByText('Alocare')).toBeDefined();
+    expect(within(equipment!).getByText('Cantitate')).toBeDefined();
     expect(within(equipment!).queryByRole('link', { name: 'Murdărire' })).toBeNull();
     const post = within(equipment!).getByRole('link', { name: 'Brutar' });
     expect(post.getAttribute('href')).toContain('/job-positions#review-jobPositions-position-1');
