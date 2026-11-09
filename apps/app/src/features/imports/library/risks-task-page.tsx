@@ -507,7 +507,7 @@ function TaskContent({
               {reviewable && names.length > 0 && (
                 <button
                   type="button"
-                  className="min-h-11 rounded-sm text-destructive underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0"
+                  className="min-h-11 rounded-sm text-destructive cursor-pointer underline underline-offset-4 transition-colors hover:text-foreground hover:decoration-2 focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0"
                   onClick={() => pointToSheet(names[0]!.state.sheet.key)}
                 >
                   {names.length === 1 ? 'Un nume de schimbat' : `${names.length} nume de schimbat`}
@@ -516,7 +516,7 @@ function TaskContent({
               {reviewable && choicesCount > 0 && (
                 <button
                   type="button"
-                  className="min-h-11 rounded-sm text-warning-foreground underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0"
+                  className="min-h-11 rounded-sm text-warning-foreground cursor-pointer underline underline-offset-4 transition-colors hover:text-foreground hover:decoration-2 focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0"
                   onClick={() => pointToSheet(choices[0]!.state.sheet.key)}
                 >
                   {choicesCount === 1
@@ -527,7 +527,7 @@ function TaskContent({
               {reviewable && toCheck > 0 && (
                 <button
                   type="button"
-                  className="min-h-11 rounded-sm text-warning-foreground underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0"
+                  className="min-h-11 rounded-sm text-warning-foreground cursor-pointer underline underline-offset-4 transition-colors hover:text-foreground hover:decoration-2 focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0"
                   onClick={() => pointToSheet(checked[0]!.sheet.key)}
                 >
                   {factorsLabel(toCheck)} de verificat

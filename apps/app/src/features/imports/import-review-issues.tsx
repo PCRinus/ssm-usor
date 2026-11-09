@@ -36,7 +36,7 @@ export function ImportReviewIssues({
             key={codes[0]}
             type="button"
             onClick={() => onReveal(matching)}
-            className="min-h-11 rounded-sm sm:min-h-0 text-left underline underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="min-h-11 rounded-sm sm:min-h-0 text-left cursor-pointer underline underline-offset-4 transition-colors hover:text-foreground hover:decoration-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
             title="Mergi la prima secțiune care are nevoie de atenție"
           >
             {label(matching.length)}

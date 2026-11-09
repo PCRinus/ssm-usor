@@ -512,7 +512,7 @@ function TaskContent({
                   {titles.length > 0 && (
                     <button
                       type="button"
-                      className="min-h-11 rounded-sm text-destructive underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0"
+                      className="min-h-11 rounded-sm text-destructive cursor-pointer underline underline-offset-4 transition-colors hover:text-foreground hover:decoration-2 focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0"
                       onClick={() => pointToInstruction(titles[0]!.row.instruction.key)}
                     >
                       {titles.length === 1
@@ -523,7 +523,7 @@ function TaskContent({
                   {choicesCount > 0 && (
                     <button
                       type="button"
-                      className="min-h-11 rounded-sm text-warning-foreground underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0"
+                      className="min-h-11 rounded-sm text-warning-foreground cursor-pointer underline underline-offset-4 transition-colors hover:text-foreground hover:decoration-2 focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0"
                       onClick={() => pointToInstruction(choices[0]!.row.instruction.key)}
                     >
                       {choicesCount === 1
