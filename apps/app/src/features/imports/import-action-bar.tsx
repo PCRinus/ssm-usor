@@ -116,7 +116,7 @@ export function ImportActionBar({
         )}
       >
         {error && (
-          <p role="alert" className="text-sm text-destructive" data-testid="library-confirm-error">
+          <p role="alert" className="text-sm text-destructive" data-testid="import-action-error">
             {error}
           </p>
         )}

@@ -108,7 +108,7 @@ export function LibraryTaskPage({
         <Button asChild variant="outline" className="w-fit">
           <Link to="/clienti/import/$importId" params={{ importId: detail.id }}>
             <ArrowLeft aria-hidden="true" />
-            Înapoi la import
+            Înapoi la raport
           </Link>
         </Button>
       )}
