@@ -227,6 +227,7 @@ const saved = (index: number) =>
     changes: {
       people: Record<string, { state?: string; cnpCorrection?: boolean }>;
       jobTitles: Record<string, { jobPositionId: string }>;
+      rows: Record<string, { test?: boolean }>;
     };
   };
 
