@@ -4,6 +4,7 @@ import {
   confirmSummary,
   flagLines,
   identicalSentence,
+  instructionPending,
   isOpenPart,
   type LibraryPart,
   partDescription,
@@ -106,6 +107,24 @@ describe('a proposed instruction as the member left it', () => {
   it('drops a change set back to what the proposal says', () => {
     expect(withChange({ title: 'Altul', posts: [] }, 'title', undefined)).toEqual({ posts: [] });
     expect(withChange({}, 'included', false)).toEqual({ included: false });
+  });
+});
+
+describe('the decisions still visible in an instruction', () => {
+  it('keeps the source choice and the missing post together without changing the effective default', () => {
+    const row = rowState(
+      instruction('similar', { status: 'similar', match, choice: 'use_existing' }),
+      undefined,
+      positionPosts
+    );
+    expect(instructionPending(row, new Map(), true)).toEqual(['ce primesc posturile', 'posturile']);
+    expect(row.usesLibrary).toBe(true);
+  });
+
+  it('counts a refused new title separately from posts, and ignores instructions left out', () => {
+    const row = rowState(instruction('new'), undefined, positionPosts);
+    expect(instructionPending(row, new Map(), true)).toEqual(['title', 'posturile']);
+    expect(instructionPending({ ...row, included: false }, new Map(), true)).toEqual([]);
   });
 });
 

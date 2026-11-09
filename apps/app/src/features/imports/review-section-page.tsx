@@ -5,13 +5,13 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
-import { useScrollToHash } from '@/app/use-scroll-to-hash';
 import { Notice } from '@/components/notice';
 
+import { ImportActionBar } from './import-action-bar';
 import { endSentence } from './import-format';
+import { ImportReviewIssues } from './import-review-issues';
 import { OtherSections } from './other-sections';
 import { type FieldContext, FieldsSection } from './review-fields';
-import { ConflictNotice } from './review-hub';
 import {
   EquipmentSection,
   FireMeansSection,
@@ -27,11 +27,11 @@ import {
   type SectionStatus,
   vatPayerInForce,
 } from './review-model';
-import { SavingNote } from './review-parts';
-import { fieldStates, reviewName, sectionStatuses } from './review-summary';
+import { blockerLinks, fieldStates, reviewName, sectionStatuses } from './review-summary';
 import { SourceDialog, type SourceRequest } from './source-dialog';
 import { SourcePrefetchContext, useSourcePrefetch } from './source-query';
 import { keptPosts, withoutAbsentCategories } from './training-category';
+import { useImportAttention } from './use-import-attention';
 import { useExistingValues, useImportReview } from './use-import-review';
 
 export function ReviewSectionPage({
@@ -46,7 +46,7 @@ export function ReviewSectionPage({
   const existing = useExistingValues(detail);
   const [source, setSource] = useState<SourceRequest | null>(null);
   const prefetchSource = useSourcePrefetch(detail.id);
-  useScrollToHash(existing.ready);
+  const reveal = useImportAttention(existing.ready);
   const registered = detail.registeredCompany;
   const states = fieldStates(
     proposal,
@@ -75,7 +75,11 @@ export function ReviewSectionPage({
     withoutAbsentCategories(states, keptPosts(proposal, review.changes, existing.positions)),
     registered
   );
+  const links = blockerLinks(proposal, review.changes, detail.blockers as Blocker[]).filter(
+    (link) => link.section === section
+  );
   const position = sectionIds.indexOf(section);
+  const previous = sectionIds[position - 1];
   const next = sectionIds[position + 1];
   const name = reviewName(detail, proposal, review.changes);
 
@@ -88,15 +92,13 @@ export function ReviewSectionPage({
             <p className="text-sm text-muted-foreground">
               {detail.intoExistingClient
                 ? `Completezi clientul existent ${endSentence(name)} Ce are deja în aplicație nu se schimbă fără alegerea ta.`
-                : `${endSentence(name)} Valorile se preiau așa cum sunt, dacă nu le schimbi. Unde sunt casete de ales, intră în documente cea aleasă.`}
+                : `${endSentence(name)} Valorile se preiau cum sunt, dacă nu le schimbi.`}
             </p>
           </div>
           <div className="grid w-full gap-1 sm:w-60">
             <SectionSteps importId={detail.id} section={section} statuses={statuses} />
-            <SavingNote saving={review.saving} />
           </div>
         </div>
-        <ConflictNotice review={review} />
         {section === 'training' && existing.positionsFailed ? (
           <Notice
             variant="destructive"
@@ -138,26 +140,61 @@ export function ReviewSectionPage({
         {section === 'job-positions' && <JobPositionsSection context={context} />}
         {section === 'responsible' && <ResponsibleSection context={context} />}
         {section === 'equipment' && <EquipmentSection context={context} />}
-        <div className="flex flex-wrap justify-between gap-2">
-          <Button asChild variant="outline">
-            <Link to="/clienti/import/$importId" params={{ importId: detail.id }}>
-              <ArrowLeft aria-hidden="true" />
-              Înapoi la listă
-            </Link>
-          </Button>
+        <ImportActionBar
+          label="Navigarea prin propunere"
+          save={review}
+          summary={
+            links.length > 0 && (
+              <ImportReviewIssues
+                links={links}
+                onReveal={(matching) => reveal(matching.map((link) => link.anchor))}
+              />
+            )
+          }
+          note={next ? `Urmează: ${sectionLabels[next]}` : 'Ultima secțiune a propunerii'}
+        >
+          {previous && (
+            <Button asChild variant="outline" size="icon">
+              <Link
+                to="/clienti/import/$importId/$section"
+                params={{ importId: detail.id, section: previous }}
+                aria-label={`Înapoi la ${sectionLabels[previous]}`}
+                title={`Înapoi la ${sectionLabels[previous]}`}
+              >
+                <ArrowLeft aria-hidden="true" />
+              </Link>
+            </Button>
+          )}
           {next && (
-            <Button asChild className="h-auto min-h-9 max-w-full py-2 whitespace-normal">
+            <Button asChild variant="outline">
+              <Link to="/clienti/import/$importId" params={{ importId: detail.id }}>
+                Înapoi la raport
+              </Link>
+            </Button>
+          )}
+          <Button asChild>
+            {next ? (
               <Link
                 to="/clienti/import/$importId/$section"
                 params={{ importId: detail.id, section: next }}
                 data-testid="import-next-section"
+                aria-label={`Continuă: ${sectionLabels[next]}`}
               >
-                Următoarea secțiune: {sectionLabels[next]}
+                Continuă
                 <ArrowRight aria-hidden="true" />
               </Link>
-            </Button>
-          )}
-        </div>
+            ) : (
+              <Link
+                to="/clienti/import/$importId"
+                params={{ importId: detail.id }}
+                data-testid="import-review-overview"
+              >
+                Revizuiește importul
+                <ArrowRight aria-hidden="true" />
+              </Link>
+            )}
+          </Button>
+        </ImportActionBar>
         <SourceDialog importId={detail.id} request={source} onClose={() => setSource(null)} />
       </div>
     </SourcePrefetchContext>

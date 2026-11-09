@@ -219,6 +219,13 @@ function scrollThen(element: HTMLElement, then: () => void) {
 
 export const scrollAndPoint = (element: HTMLElement) => scrollThen(element, () => {});
 
+export function scrollAndFocus(element: HTMLElement) {
+  if (!element.hasAttribute('tabindex')) element.tabIndex = -1;
+  return scrollThen(element, () => {
+    if (element.isConnected) element.focus({ preventScroll: true });
+  });
+}
+
 function focusField(element: HTMLElement) {
   if (!inView(element)) {
     element.scrollIntoView({ block: 'center', behavior: stillMotion() ? 'auto' : 'smooth' });

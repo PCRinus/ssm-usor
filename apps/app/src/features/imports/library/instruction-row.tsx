@@ -33,6 +33,7 @@ import {
   type Choice,
   flagLines,
   type InstructionChange,
+  instructionPending,
   type LibraryPost,
   type RowState,
   sourceQuote,
@@ -111,13 +112,7 @@ export function InstructionRow({
       ? 'Biblioteca are deja o instrucțiune cu acest titlu. Schimbă-l ca să o poți adăuga.'
       : null;
   const choiceOpen = similar && !row.choicePicked;
-  const pending = editable
-    ? [
-        ...(shownTitleError && !row.usesLibrary ? ['title'] : []),
-        ...(choiceOpen ? ['ce primesc posturile'] : []),
-        ...(postNames.length === 0 ? ['posturile'] : []),
-      ]
-    : [];
+  const pending = editable ? instructionPending(row, postsById, titleTaken) : [];
   const ask = (open: boolean): Tone => (editable && open ? 'todo' : 'done');
 
   function pickChoice(choice: Choice) {

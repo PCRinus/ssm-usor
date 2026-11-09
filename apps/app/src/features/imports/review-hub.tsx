@@ -9,7 +9,9 @@ import { Notice } from '@/components/notice';
 
 import { AbandonImportDialog } from './abandon-import-dialog';
 import { ConfirmImportDialog } from './confirm-import-dialog';
+import { ImportActionBar } from './import-action-bar';
 import { filesLabel, uploadSummary, usageLine } from './import-format';
+import { ImportReviewIssues } from './import-review-issues';
 import { LibraryGroup, RisksGroup } from './library/library-group';
 import { ReportImportButton } from './report-import-button';
 import { anchorOf, type Blocker, sectionIds, sectionLabels, sectionOf } from './review-model';
@@ -25,42 +27,7 @@ import {
   sectionStatuses,
 } from './review-summary';
 import { keptPosts, withoutAbsentCategories } from './training-category';
-import { type ImportReview, useExistingValues, useImportReview } from './use-import-review';
-
-export function ConflictNotice({ review }: { review: ImportReview }) {
-  if (review.conflict) {
-    return (
-      <Notice
-        variant="destructive"
-        data-testid="import-review-conflict"
-        action={
-          <Button variant="outline" size="sm" onClick={() => void review.reload()}>
-            Reîncarcă propunerea
-          </Button>
-        }
-      >
-        Altcineva a modificat propunerea între timp, așa că schimbarea ta nu a fost salvată.
-        Reîncarcă propunerea și fă-o din nou.
-      </Notice>
-    );
-  }
-  if (review.error) {
-    return (
-      <Notice
-        variant="destructive"
-        data-testid="import-review-error"
-        action={
-          <Button variant="outline" size="sm" onClick={review.retry}>
-            Salvează din nou
-          </Button>
-        }
-      >
-        {review.error}
-      </Notice>
-    );
-  }
-  return null;
-}
+import { useExistingValues, useImportReview } from './use-import-review';
 
 export function ReviewHub({ detail }: { detail: ImportDetail }) {
   const proposal = detail.proposal!;
@@ -95,7 +62,7 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
   const summary = uploadSummary(detail.files);
   const intoExisting = detail.intoExistingClient;
   const blocked = blockers.length > 0;
-  const { heading, resolve } = blockerHeading(blockers);
+  const { heading } = blockerHeading(blockers);
 
   return (
     <div data-testid="import-review-hub" className="grid gap-6">
@@ -109,8 +76,8 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
             Propunere {read === 1 ? 'dintr-un fișier citit' : `din ${filesLabel(read)} citite`}
             {summary ? ` din ${summary}` : ''}.{' '}
             {intoExisting
-              ? 'Nu schimbăm nimic la client până nu confirmi.'
-              : 'Nu salvăm nimic până nu creezi clientul.'}
+              ? 'Alegerile se salvează în propunere. Clientul se completează când confirmi.'
+              : 'Alegerile se salvează în propunere. Clientul se creează când confirmi.'}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -130,7 +97,6 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
           <ReportImportButton importId={detail.id} />
         </div>
       </div>
-      <ConflictNotice review={review} />
       {blocked && (
         <Notice variant="destructive" title={heading} data-testid="import-blockers">
           <ul className="mt-1 grid gap-1">
@@ -218,35 +184,6 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
           })}
         </ul>
       </section>
-      <section
-        aria-label={intoExisting ? 'Completarea clientului' : 'Crearea clientului'}
-        className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card px-5 py-4 shadow-xs"
-      >
-        <p className="text-sm">
-          {blocked ? (
-            <>
-              <span className="font-medium">{resolve}</span>{' '}
-              <span className="text-muted-foreground">
-                ca să poți {intoExisting ? 'completa' : 'crea'} clientul.
-              </span>
-            </>
-          ) : (
-            <span className="font-medium">
-              Totul e verificat. Poți {intoExisting ? 'completa' : 'crea'} clientul.
-            </span>
-          )}
-        </p>
-        <Button
-          data-testid="import-confirm"
-          aria-disabled={blocked || undefined}
-          className={cn(blocked && 'opacity-50')}
-          onClick={() => {
-            if (!blocked) setConfirming(true);
-          }}
-        >
-          {intoExisting ? 'Completează clientul' : 'Creează clientul'}
-        </Button>
-      </section>
       <LibraryGroup detail={detail} />
       <RisksGroup detail={detail} />
       {detail.usage && (
@@ -254,6 +191,42 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
           {usageLine(detail.usage)}
         </p>
       )}
+      <ImportActionBar
+        label={intoExisting ? 'Completarea clientului' : 'Crearea clientului'}
+        save={review}
+        summary={
+          blocked ? (
+            <ImportReviewIssues
+              links={links}
+              onReveal={(matching) => {
+                const first = [...matching].sort(
+                  (left, right) =>
+                    sectionIds.indexOf(left.section) - sectionIds.indexOf(right.section)
+                )[0];
+                if (first)
+                  void navigate({
+                    to: '/clienti/import/$importId/$section',
+                    params: { importId: detail.id, section: first.section },
+                    hash: first.anchor,
+                  });
+              }}
+            />
+          ) : (
+            'Propunerea e completă.'
+          )
+        }
+      >
+        <Button
+          data-testid="import-confirm"
+          aria-disabled={blocked || review.conflict || Boolean(review.error) || undefined}
+          className={cn((blocked || review.conflict || review.error) && 'opacity-50')}
+          onClick={() => {
+            if (!blocked && !review.conflict && !review.error) setConfirming(true);
+          }}
+        >
+          {intoExisting ? 'Completează clientul' : 'Creează clientul'}
+        </Button>
+      </ImportActionBar>
       <ConfirmImportDialog
         open={confirming}
         detail={detail}

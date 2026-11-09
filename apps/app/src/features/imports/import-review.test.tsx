@@ -491,7 +491,7 @@ describe('a section of the review', () => {
     const choice = await screen.findByTestId('review-choice');
     await userEvent.click(within(choice).getByRole('radio', { name: /Dorin Mureșan/ }));
     expect((await screen.findByTestId('import-review-conflict')).textContent).toContain(
-      'Altcineva a modificat propunerea între timp'
+      'Propunerea s-a schimbat. Schimbarea ta nu s-a salvat.'
     );
   });
 
@@ -725,7 +725,7 @@ describe('one review across its pages', () => {
     await userEvent.click(
       within(await legalNameBlock()).getByRole('radio', { name: /Spicul Auriu Panificație SRL/ })
     );
-    await userEvent.click(screen.getByRole('link', { name: /Înapoi la listă/ }));
+    await userEvent.click(screen.getByRole('link', { name: 'Înapoi la raport' }));
 
     await screen.findByTestId('import-review-hub');
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
@@ -760,7 +760,7 @@ describe('one review across its pages', () => {
     const choice = await screen.findByTestId('review-choice');
     await userEvent.click(within(choice).getByRole('radio', { name: /Dorin Mureșan/ }));
     const error = await screen.findByTestId('import-review-error');
-    expect(error.textContent).toContain('Nu am putut salva ultima schimbare.');
+    expect(error.textContent).toContain('Ultima schimbare nu s-a salvat.');
 
     failing = false;
     await userEvent.click(within(error).getByRole('button', { name: 'Salvează din nou' }));
@@ -839,7 +839,7 @@ describe('a company name that ends in a period', () => {
 
     const section = await screen.findByTestId('import-review-section');
     expect(section.textContent).toContain(
-      'S.C. BRUTĂRIA SPICUL AURIU S.R.L. Valorile se preiau așa cum sunt'
+      'S.C. BRUTĂRIA SPICUL AURIU S.R.L. Valorile se preiau cum sunt'
     );
     expect(section.textContent).toContain('copiate de la LACTATE CÂMPIA S.R.L. Valoarea se preia');
     expect(section.textContent).not.toContain('S.R.L..');
@@ -1571,7 +1571,9 @@ describe('what the import now fills for the fire-safety and safety sets', () => 
     mount('/fire-safety');
 
     const waste = await screen.findByText('Deșeuri colectate');
-    expect(waste.closest('[id]')!.textContent).toContain('deșeuri menajere; carton');
+    expect(waste.closest('[data-testid="review-row"]')!.textContent).toContain(
+      'deșeuri menajere; carton'
+    );
     expect(document.getElementById('review-fireSafety-hasThirdParties')!.textContent).toContain(
       'Da'
     );
@@ -2352,5 +2354,98 @@ describe('two phone numbers the documents give', () => {
     await userEvent.click(within(row).getByRole('radio', { name: /Contract prestari/ }));
     await waitFor(() => expect(saves).toBe(1));
     expect(savedChanges(0).changes.fields).toEqual({ 'client.contactPhone': { option: 1 } });
+  });
+});
+
+describe('the persistent import review bar', () => {
+  it('keeps missing data and choices visible while another change saves', async () => {
+    const proposal = proposalFixture();
+    proposal.client.cui.options = [];
+    const blockers = [
+      { path: 'client.cui', code: 'missing' },
+      { path: 'client.legalRepresentativeName', code: 'choice' },
+    ];
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    mockReview(readyDetail({ proposal, blockers, registeredCompany: null }), {
+      save: () => held.then(() => Response.json({ version: 4, blockers })),
+    });
+    mount('/identity');
+
+    const bar = await screen.findByRole('region', { name: 'Navigarea prin propunere' });
+    await userEvent.click(screen.getByTestId('review-include-field'));
+    expect(within(bar).getByRole('button', { name: '1 dată lipsă' })).toBeTruthy();
+    expect(within(bar).getByRole('button', { name: '1 alegere' })).toBeTruthy();
+    expect(within(bar).getByTestId('import-save-status').textContent).toContain('Se salvează…');
+    expect(within(bar).queryByText('Salvat în propunere')).toBeNull();
+
+    release();
+    await waitFor(() =>
+      expect(within(bar).getByTestId('import-save-status').textContent).toContain(
+        'Salvat în propunere'
+      )
+    );
+    expect(within(bar).getByRole('button', { name: '1 dată lipsă' })).toBeTruthy();
+    expect(within(bar).getByRole('button', { name: '1 alegere' })).toBeTruthy();
+  });
+
+  it('focuses only the first remaining outer container in page order without suggesting a choice', async () => {
+    const proposal = proposalFixture();
+    proposal.client.contactPhone.options.push({
+      ...proposal.client.contactPhone.options[0]!,
+      value: '0269 214 399',
+    });
+    const phone = { path: 'client.contactPhone', code: 'choice' };
+    mockReview(
+      readyDetail({
+        proposal,
+        blockers: [phone, { path: 'client.legalRepresentativeName', code: 'choice' }],
+      }),
+      {
+        save: () => Response.json({ version: 4, blockers: [phone] }),
+      }
+    );
+    mount('/identity');
+    const bar = await screen.findByRole('region', { name: 'Navigarea prin propunere' });
+    const first = document.getElementById('review-client-legalRepresentativeName')!;
+
+    await userEvent.click(within(bar).getByRole('button', { name: '2 alegeri' }));
+    await waitFor(() => expect(document.activeElement).toBe(first));
+    expect(first.querySelector(':focus')).toBeNull();
+    expect(first.querySelector('[data-pointed]')).toBeNull();
+    expect(
+      within(first)
+        .getAllByRole<HTMLInputElement>('radio')
+        .every((option) => !option.checked)
+    ).toBe(true);
+
+    await userEvent.click(within(bar).getByRole('button', { name: '2 alegeri' }));
+    await waitFor(() => expect(document.activeElement).toBe(first));
+    await userEvent.click(within(first).getByRole('radio', { name: /Dorin Mureșan/ }));
+    await waitFor(() =>
+      expect(within(bar).getByRole('button', { name: '1 alegere' })).toBeTruthy()
+    );
+    await userEvent.click(within(bar).getByRole('button', { name: '1 alegere' }));
+    const next = document.getElementById('review-client-contactPhone')!;
+    await waitFor(() => expect(document.activeElement).toBe(next));
+    expect(next.querySelector(':focus')).toBeNull();
+    expect(
+      within(next)
+        .getAllByRole<HTMLInputElement>('radio')
+        .every((option) => !option.checked)
+    ).toBe(true);
+  });
+
+  it('returns from the last section to the import overview before client confirmation', async () => {
+    mockReview(readyDetail());
+    const runtime = mount('/equipment');
+    const review = await screen.findByRole('link', { name: /Revizuiește importul/ });
+    await userEvent.click(review);
+    await screen.findByTestId('import-review-hub');
+    expect(runtime.router.state.location.pathname).toBe(`/clienti/import/${importId}`);
+    expect(screen.queryByTestId('import-confirm-dialog')).toBeNull();
+    expect(requestsTo(`/imports/${importId}/confirm`, 'POST')).toHaveLength(0);
   });
 });

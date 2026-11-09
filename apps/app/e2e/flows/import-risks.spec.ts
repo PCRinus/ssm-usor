@@ -45,8 +45,9 @@ test("a pack's risk evaluations are reviewed before the client is created, confi
   await expect(task.getByTestId('library-part-status')).toHaveText('De verificat');
   await task.click();
 
-  await expect(page.getByTestId('library-confirm')).toHaveText('Confirmă întâi clientul');
-  await expect(page.getByTestId('library-confirm')).toBeDisabled();
+  await expect(page.getByTestId('library-confirm')).toHaveCount(0);
+  await expect(page.getByTestId('library-confirm-bar')).toContainText('Confirmă întâi clientul.');
+  await expect(page.getByTestId('library-back-to-import')).toHaveText('Înapoi la raport');
   await expect(page.getByTestId('risk-import-sheet')).toHaveCount(6);
   await expect(page.getByTestId('risk-import-left')).toContainText('Mai ai de ales la 2 evaluări.');
   const sheet = (key: string) =>
@@ -151,7 +152,8 @@ test("a pack's risk evaluations are reviewed before the client is created, confi
   await existing.getByTestId('risk-import-existing-append').check();
 
   await expect(page.getByTestId('risk-import-left')).toContainText('Ai ales tot ce era de ales.');
-  await expect(page.getByTestId('library-confirm-summary')).toContainText(
+  await page.getByTestId('import-action-details').locator('summary').click();
+  await expect(page.getByTestId('import-action-details')).toContainText(
     'Când confirmi, adăugăm „Recepționer”, „Cameristă” și „Ospătar room-service” în bibliotecă, folosim „Bucătar” din biblioteca ta și scriem 19 factori pe 5 fișe ale clientului.'
   );
   await expect(page.getByRole('status').filter({ hasText: 'Se salvează…' })).toHaveCount(0);
