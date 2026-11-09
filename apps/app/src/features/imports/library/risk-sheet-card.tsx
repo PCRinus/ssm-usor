@@ -138,6 +138,7 @@ export function RiskSheetCard({
   const removed = state.factors.filter(removedByMember);
   const noneIncluded =
     state.factors.length > 0 && state.factors.every((factor) => !factor.included);
+  if (noneIncluded && !showAll) setShowAll(true);
   const attention = state.factors.filter(
     (factor) =>
       refused.has(factor.factor.key) || (!factor.included && !factor.complete) || needsCheck(factor)
@@ -147,11 +148,10 @@ export function RiskSheetCard({
   if (attention.some((factor) => !listed.has(factor.factor.key))) {
     setListed(new Set([...listed, ...attention.map((factor) => factor.factor.key)]));
   }
-  const shown =
-    showAll || noneIncluded
-      ? state.factors
-      : state.factors.filter((factor) => listed.has(factor.factor.key));
-  const folded = !showAll && !noneIncluded && shown.length < state.factors.length;
+  const shown = showAll
+    ? state.factors
+    : state.factors.filter((factor) => listed.has(factor.factor.key));
+  const folded = !showAll && shown.length < state.factors.length;
   const sheetSource: LabelledSource = { file: sheet.file, quote: sheet.heading };
 
   const pickLibrary = (choice: LibraryChoice) =>

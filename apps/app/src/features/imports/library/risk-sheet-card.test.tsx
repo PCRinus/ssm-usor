@@ -74,8 +74,14 @@ const analyst: RiskSheet = {
 
 const libraryNames: LibraryName[] = [{ id: 'p1', name: 'Birou', archived: false }];
 
-function Harness({ sheet = analyst }: { sheet?: RiskSheet }) {
-  const [change, setChange] = useState<SheetChange>({});
+function Harness({
+  sheet = analyst,
+  initialChange = {},
+}: {
+  sheet?: RiskSheet;
+  initialChange?: SheetChange;
+}) {
+  const [change, setChange] = useState<SheetChange>(initialChange);
   const state = sheetState(sheet, change, {
     postReferences: { 'Analist programator': 'position-1' },
     postsById: new Map([
@@ -199,6 +205,43 @@ describe('a sheet card with the confirm bar', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Include-i pe toți' }));
     expect(summary()).toContain('cu 6 factori');
   });
+
+  it.each(['one', 'all'] as const)(
+    'keeps a reopened all-excluded list open when restoring %s',
+    async (restore) => {
+      const user = userEvent.setup();
+      render(
+        <Harness
+          initialChange={{
+            factors: Object.fromEntries(
+              analyst.factors.map((each) => [each.key, { included: false }])
+            ),
+          }}
+        />
+      );
+      expect(screen.getAllByTestId('risk-import-factor')).toHaveLength(6);
+
+      if (restore === 'one') {
+        const toggle = within(row('Curenți de aer')).getByRole('switch');
+        toggle.focus();
+        await user.keyboard(' ');
+        expect(document.activeElement).toBe(
+          within(row('Curenți de aer')).getByRole('switch', {
+            name: 'Inclus: Curenți de aer în birou',
+          })
+        );
+      } else {
+        await user.click(screen.getByRole('button', { name: 'Include-i pe toți' }));
+      }
+
+      expect(screen.getAllByTestId('risk-import-factor')).toHaveLength(6);
+      const showFactors = screen.getByTestId('risk-import-show-factors');
+      expect(showFactors.getAttribute('aria-expanded')).toBe('true');
+      expect(summary()).toContain(restore === 'one' ? 'cu un factor' : 'cu 6 factori');
+      await user.click(showFactors);
+      expect(screen.queryAllByTestId('risk-import-factor')).toHaveLength(0);
+    }
+  );
 
   it('keeps the list open when the factors left are proposed off, and includes only the ones switched off', async () => {
     const unclassed = { ...factor('a.7', 'Zgomot de la imprimantă', 'Zgomot'), gravityClass: null };
