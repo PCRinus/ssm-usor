@@ -10,6 +10,7 @@ import {
   employeeDetail,
   importId,
   positions,
+  sheetRow,
   workplaces,
 } from '@/test/employee-import-fixture';
 import { bodyOf, fetchMock, mockApi, requestsTo } from '@/test/import-fixture';
@@ -171,6 +172,53 @@ const baker = {
 
 const mount = (path: string) => mountApp(authFixture(makeSession()).client, path);
 
+const unsignedAnnualTest = sheetRow('r9', {
+  heldOn: '2025-03-04',
+  testOnly: true,
+  flags: ['unsigned'],
+  proposedIncluded: false,
+  test: {
+    test: 'annual',
+    takenOn: '2025-03-04',
+    examinerName: 'Barbu Ionuț',
+    examinerJobTitle: 'inspector SSM',
+    verified: true,
+    inApp: false,
+  },
+});
+
+function popWith(fields: Record<string, string>, rows: unknown[] = []) {
+  const base = employeeDetail();
+  const proposal = base.employees!.proposal;
+  return employeeDetail({
+    employees: {
+      ...base.employees!,
+      proposal: {
+        ...proposal,
+        pages: proposal.pages.map((page) =>
+          page.id === 'p3' ? { ...page, rows: [...page.rows, ...rows] } : page
+        ),
+        people: proposal.people.map((each) =>
+          each.id === 'pop'
+            ? {
+                ...each,
+                fields: {
+                  ...each.fields,
+                  ...Object.fromEntries(
+                    Object.entries(fields).map(([field, value]) => [
+                      field,
+                      { options: [{ value, pageIds: ['p3'] }] },
+                    ])
+                  ),
+                },
+              }
+            : each
+        ),
+      },
+    },
+  });
+}
+
 const importPath = `/clienti/${clientId}/angajati/import/${importId}`;
 
 const saved = (index: number) =>
@@ -179,6 +227,7 @@ const saved = (index: number) =>
     changes: {
       people: Record<string, { state?: string; cnpCorrection?: boolean }>;
       jobTitles: Record<string, { jobPositionId: string }>;
+      rows: Record<string, { test?: boolean }>;
     };
   };
 
@@ -344,6 +393,122 @@ describe('the person page', () => {
       expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(1)
     );
     expect(saved(0).changes.people).toEqual({ pop: { state: 'checked' } });
+  });
+
+  it('sets a person aside with the one switch beside the name, and takes them back', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(`${importPath}/pop`);
+    await screen.findByTestId('person-page');
+    expect(screen.queryByRole('button', { name: 'Lasă-l deoparte' })).toBeNull();
+    expect(screen.getByTestId('person-state').textContent).toBe('De verificat');
+
+    await user.click(screen.getByRole('switch', { name: 'Inclus: Pop Elena' }));
+    await waitFor(() =>
+      expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(1)
+    );
+    expect(saved(0).changes.people.pop).toEqual({ state: 'set_aside' });
+    expect(screen.getByTestId('person-page').dataset.state).toBe('set_aside');
+    expect(screen.queryByTestId('person-state')).toBeNull();
+    expect(screen.getByTestId('person-include-word').textContent).toBe('Nu e inclus');
+
+    await user.click(screen.getByRole('switch', { name: 'Nu e inclus: Pop Elena' }));
+    await waitFor(() =>
+      expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(2)
+    );
+    expect(saved(1).changes.people.pop?.state).toBeUndefined();
+    expect(screen.getByTestId('person-state').textContent).toBe('De verificat');
+    expect(document.activeElement).toBe(screen.getByRole('switch', { name: 'Inclus: Pop Elena' }));
+  });
+
+  it('takes a leaver with the same switch beside the name, which the leaving card explains', async () => {
+    mockEmployeeImport({ detail: popWith({ leftOn: '2025-06-30' }) });
+    const user = userEvent.setup();
+    mount(`${importPath}/pop`);
+    const card = await screen.findByTestId('person-decide-leaver');
+    expect(within(card).queryByRole('switch')).toBeNull();
+    expect(screen.getAllByRole('switch', { name: /: Pop Elena$/ })).toHaveLength(1);
+    expect(screen.getByTestId('person-leaver-note').textContent).toContain(
+      'Nu îl preluăm decât dacă pornești comutatorul de lângă nume'
+    );
+
+    await user.click(screen.getByRole('switch', { name: 'Nu e inclus: Pop Elena' }));
+    await waitFor(() =>
+      expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(1)
+    );
+    expect(saved(0).changes.people.pop).toEqual({ included: true });
+    expect(screen.getByTestId('person-leaver-note').textContent).toContain(
+      'Îl preluăm ca fost lucrător'
+    );
+
+    await user.click(screen.getByRole('switch', { name: 'Inclus: Pop Elena' }));
+    await waitFor(() =>
+      expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(2)
+    );
+    expect(saved(1).changes.people.pop).toEqual({ state: 'set_aside' });
+  });
+
+  it('keeps an annual test the sheet proposed off open with its reason', async () => {
+    mockEmployeeImport({ detail: popWith({}, [unsignedAnnualTest]) });
+    mount(`${importPath}/pop`);
+    const test = await screen.findByTestId('person-annual-test');
+    expect(
+      within(test).getByRole('switch', { name: /^Nu e inclus: Testul anual SSM, la / })
+    ).toBeTruthy();
+    expect(within(test).getByRole('button', { name: /^Schimbă/ })).toBeTruthy();
+    expect(test.textContent).toContain('promovat pe fișă');
+  });
+
+  it('collapses a training switched off to one line with no buttons, and opens it again', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(`${importPath}/pop`);
+    const row = () => screen.getByTestId('person-training-row');
+    await screen.findByTestId('person-page');
+    expect(within(row()).getByRole('button', { name: /^Schimbă/ })).toBeTruthy();
+
+    await user.click(
+      within(row()).getByRole('switch', { name: /^Inclusă: Instruirea periodică din / })
+    );
+
+    expect(row().textContent).toMatch(/^Instruirea periodică din .+Nu e inclusă$/);
+    expect(within(row()).queryAllByRole('button')).toHaveLength(0);
+    expect(document.activeElement).toBe(within(row()).getByRole('switch'));
+    await user.click(
+      within(row()).getByRole('switch', { name: /^Nu e inclusă: Instruirea periodică din / })
+    );
+    expect(within(row()).getByRole('button', { name: /^Schimbă/ })).toBeTruthy();
+    expect(document.activeElement).toBe(
+      within(row()).getByRole('switch', { name: /^Inclusă: Instruirea periodică din / })
+    );
+  });
+
+  it('collapses a verified hiring test switched off to one line, and opens it again', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const test = async () => screen.findByTestId('person-test');
+    expect((await test()).textContent).toContain('Testul la angajare: verificat pe fișă');
+
+    await user.click(
+      within(await test()).getByRole('switch', { name: /^Inclus: Testul la angajare / })
+    );
+    await waitFor(() =>
+      expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(1)
+    );
+    expect(saved(0).changes.rows.r1).toEqual({ test: false });
+    expect((await test()).textContent).toMatch(/^Testul la angajare .+Nu e inclus$/);
+    expect(within(await test()).queryAllByRole('button')).toHaveLength(0);
+    expect(within(await test()).queryAllByRole('textbox')).toHaveLength(0);
+    expect(document.activeElement).toBe(within(await test()).getByRole('switch'));
+
+    await user.click(
+      within(await test()).getByRole('switch', { name: /^Nu e inclus: Testul la angajare / })
+    );
+    expect((await test()).textContent).toContain('Testul la angajare: verificat pe fișă');
+    expect(document.activeElement).toBe(
+      within(await test()).getByRole('switch', { name: /^Inclus: Testul la angajare / })
+    );
   });
 
   it('marks the names, job title and hire date a new employee needs, and the rest optional', async () => {

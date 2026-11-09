@@ -196,7 +196,7 @@ function SourceContent({
           >
             Pasajul numește altă firmă,{' '}
             <strong className="font-semibold">{endSentence(request.otherCompanyName)}</strong> Pare
-            copiat din dosarul ei, așa că valoarea nu e bifată.
+            copiat din dosarul ei, așa că valoarea nu e inclusă.
           </Notice>
         )}
         {(kind === 'scan' || kind === 'image') && current.quote && (

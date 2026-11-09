@@ -1,3 +1,4 @@
+import { reviewedRiskFactors } from '@ssm-usor/import';
 import { describe, expect, it } from 'vitest';
 
 import type { LibraryPost } from './library-model';
@@ -23,6 +24,7 @@ import {
   type PlanRow,
   planRowsLine,
   type ProposedFactor,
+  removedByMember,
   type RiskSheet,
   type RisksPart,
   risksPartDescription,
@@ -663,7 +665,7 @@ describe('the confirm bar and the header', () => {
       'Biblioteca are deja o evaluare cu numele ales. Schimbă numele marcat la evaluarea „Contabil”.'
     );
     expect(incompleteText(['Bucătar', 'Ospătar'])).toBe(
-      'Unii factori bifați nu au clasele, componenta sau grupa. Completează-i la factorii marcați la evaluările „Bucătar” și „Ospătar” sau debifează-i.'
+      'Unii factori incluși nu au clasele, componenta sau grupa. Completează-i la factorii marcați la evaluările „Bucătar” și „Ospătar” sau oprește-i.'
     );
   });
 
@@ -755,5 +757,55 @@ describe('a sheet’s warnings', () => {
     expect(sheetFlagText({ kind: 'classes_swapped' })).toBe(
       'Gravitatea și probabilitatea par inversate în document: verifică clasele.'
     );
+  });
+});
+
+describe('the factor switches and what confirming writes', () => {
+  it('writes the factors whose switch is on, and only those', () => {
+    const own = sheet({
+      factors: [
+        factor(),
+        factor({ key: 'cook.2', description: 'Tăiere cu cuțitul' }),
+        factor({ key: 'cook.3', description: 'Alunecare pe pardoseala udă' }),
+        factor({ key: 'cook.4', gravityClass: null, included: false, level: null }),
+      ],
+    });
+    const factors = {
+      'cook.2': { included: false },
+      'cook.3': { included: false },
+      'cook.4': { included: true, gravityClass: 3 },
+    };
+    const changes = { sheets: { cook: { factors } } };
+    const state = sheetState(own, changes.sheets.cook as never, context([own]));
+    const { reviewed, issues } = reviewedRiskFactors(
+      { sheets: [own], unplacedRows: [], unmatchedPlanRows: [], unmatchedMeasureRows: [] } as never,
+      changes as never
+    );
+    expect(issues).toEqual([]);
+    expect(reviewed.get('cook')!.map((each) => each.key)).toEqual(
+      state.factors.filter((each) => each.included).map((each) => each.factor.key)
+    );
+    expect(reviewed.get('cook')!.map((each) => each.key)).toEqual(['cook.1', 'cook.4']);
+  });
+});
+
+describe('the factors a sheet counts as left out', () => {
+  it('are the ones that collapse: proposed and switched off, not proposed off', () => {
+    const own = sheet({
+      factors: [
+        factor(),
+        factor({ key: 'cook.2', gravityClass: null, included: false, level: null }),
+      ],
+    });
+    const state = sheetState(
+      own,
+      {
+        factors: { 'cook.1': { included: false }, 'cook.2': { included: false, gravityClass: 3 } },
+      },
+      context([own])
+    );
+    expect(state.factors.filter(removedByMember).map((each) => each.factor.key)).toEqual([
+      'cook.1',
+    ]);
   });
 });

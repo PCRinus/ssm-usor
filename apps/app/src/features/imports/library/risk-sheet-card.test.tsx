@@ -74,8 +74,14 @@ const analyst: RiskSheet = {
 
 const libraryNames: LibraryName[] = [{ id: 'p1', name: 'Birou', archived: false }];
 
-function Harness({ sheet = analyst }: { sheet?: RiskSheet }) {
-  const [change, setChange] = useState<SheetChange>({});
+function Harness({
+  sheet = analyst,
+  initialChange = {},
+}: {
+  sheet?: RiskSheet;
+  initialChange?: SheetChange;
+}) {
+  const [change, setChange] = useState<SheetChange>(initialChange);
   const state = sheetState(sheet, change, {
     postReferences: { 'Analist programator': 'position-1' },
     postsById: new Map([
@@ -134,47 +140,132 @@ describe('a sheet card with the confirm bar', () => {
     expect(screen.queryByText('Nu adăuga')).toBeNull();
   });
 
-  it('counts one factor fewer in the bar once one is unticked, and puts it back', async () => {
+  it('counts one factor fewer in the bar once one is switched off, and collapses it in place', async () => {
     render(<Harness />);
     await userEvent.click(screen.getByTestId('risk-import-show-factors'));
     expect(summary()).toContain(
       'Când confirmi, adăugăm „Analist programator” în bibliotecă, cu 6 factori, și îi scriem pe fișa postului „Analist programator”.'
     );
+    expect(screen.getByTestId('risk-import-factors-row').textContent).toContain(
+      'Un factor oprit nu intră nici în bibliotecă, nici pe fișa postului.'
+    );
+    expect(
+      within(row('Curenți de aer')).getByRole('button', { name: /^Schimbă factorul/ })
+    ).toBeTruthy();
 
-    await userEvent.click(within(row('Curenți de aer')).getByTestId('risk-import-factor-included'));
+    await userEvent.click(
+      within(row('Curenți de aer')).getByRole('switch', {
+        name: 'Inclus: Curenți de aer în birou',
+      })
+    );
 
     expect(summary()).toContain('cu 5 factori');
-    const removed = screen.getByTestId('risk-import-removed');
-    expect(removed.textContent).toContain('Scoși de tine');
-    expect(within(removed).getByTestId('risk-import-factor').textContent).toContain(
-      'Curenți de aer în birou'
-    );
+    const collapsed = row('Curenți de aer');
+    expect(collapsed.textContent).toBe('Curenți de aer în birouNu e inclus');
+    expect(within(collapsed).queryAllByRole('button')).toHaveLength(0);
+    expect(screen.getAllByTestId('risk-import-factor').indexOf(collapsed)).toBe(2);
+    expect(screen.queryByText('Scoși de tine')).toBeNull();
     expect(screen.getByTestId('risk-import-factors-summary').textContent).toBe(
-      '5 preluați, 1 scos de tine'
+      '5 preluați, unul nu e inclus'
     );
 
-    await userEvent.click(within(removed).getByTestId('risk-import-factor-restore'));
+    expect(document.activeElement).toBe(
+      within(collapsed).getByRole('switch', { name: 'Nu e inclus: Curenți de aer în birou' })
+    );
 
-    expect(screen.queryByTestId('risk-import-removed')).toBeNull();
+    await userEvent.click(
+      within(collapsed).getByRole('switch', { name: 'Nu e inclus: Curenți de aer în birou' })
+    );
+
+    expect(document.activeElement).toBe(
+      within(row('Curenți de aer')).getByRole('switch', {
+        name: 'Inclus: Curenți de aer în birou',
+      })
+    );
+
     expect(summary()).toContain('cu 6 factori');
+    expect(within(row('Curenți de aer')).getByTestId('risk-import-factor-edit')).toBeTruthy();
     expect(screen.getByTestId('changes').textContent).toBe('{"factors":{"a.3":{}}}');
   });
 
-  it('says every factor is out and puts them all back at once', async () => {
+  it('says every factor is out and includes them all at once', async () => {
     render(<Harness />);
     await userEvent.click(screen.getByTestId('risk-import-show-factors'));
-    for (const box of screen.getAllByTestId('risk-import-factor-included')) {
-      await userEvent.click(box);
+    for (const toggle of screen.getAllByTestId('risk-import-factor-included')) {
+      await userEvent.click(toggle);
     }
 
     expect(screen.getByTestId('risk-import-factors-summary').textContent).toBe(
-      'Ai scos toți cei 6 factori.'
+      'Niciunul dintre cei 6 factori nu e inclus.'
     );
+    expect(screen.getAllByTestId('risk-import-factor')).toHaveLength(6);
     expect(screen.getByTestId('risk-import-library').textContent).toContain(
       'Fără factori, nu intră în bibliotecă și nu ajunge pe fișa postului.'
     );
-    await userEvent.click(screen.getByTestId('risk-import-restore-all'));
+    await userEvent.click(screen.getByRole('button', { name: 'Include-i pe toți' }));
     expect(summary()).toContain('cu 6 factori');
+  });
+
+  it.each(['one', 'all'] as const)(
+    'keeps a reopened all-excluded list open when restoring %s',
+    async (restore) => {
+      const user = userEvent.setup();
+      render(
+        <Harness
+          initialChange={{
+            factors: Object.fromEntries(
+              analyst.factors.map((each) => [each.key, { included: false }])
+            ),
+          }}
+        />
+      );
+      expect(screen.getAllByTestId('risk-import-factor')).toHaveLength(6);
+
+      if (restore === 'one') {
+        const toggle = within(row('Curenți de aer')).getByRole('switch');
+        toggle.focus();
+        await user.keyboard(' ');
+        expect(document.activeElement).toBe(
+          within(row('Curenți de aer')).getByRole('switch', {
+            name: 'Inclus: Curenți de aer în birou',
+          })
+        );
+      } else {
+        await user.click(screen.getByRole('button', { name: 'Include-i pe toți' }));
+      }
+
+      expect(screen.getAllByTestId('risk-import-factor')).toHaveLength(6);
+      const showFactors = screen.getByTestId('risk-import-show-factors');
+      expect(showFactors.getAttribute('aria-expanded')).toBe('true');
+      expect(summary()).toContain(restore === 'one' ? 'cu un factor' : 'cu 6 factori');
+      await user.click(showFactors);
+      expect(screen.queryAllByTestId('risk-import-factor')).toHaveLength(0);
+    }
+  );
+
+  it('keeps the list open when the factors left are proposed off, and includes only the ones switched off', async () => {
+    const unclassed = { ...factor('a.7', 'Zgomot de la imprimantă', 'Zgomot'), gravityClass: null };
+    render(
+      <Harness
+        sheet={{ ...analyst, factors: [...analyst.factors, { ...unclassed, included: false }] }}
+      />
+    );
+    await userEvent.click(screen.getByTestId('risk-import-show-factors'));
+    for (const toggle of screen
+      .getAllByRole('switch')
+      .filter((each) => each.getAttribute('aria-checked') === 'true')) {
+      await userEvent.click(toggle);
+    }
+
+    expect(screen.getByTestId('risk-import-factors-summary').textContent).toBe(
+      'Niciunul dintre cei 7 factori nu e inclus.'
+    );
+    expect(screen.getAllByTestId('risk-import-factor')).toHaveLength(7);
+    await userEvent.click(screen.getByRole('button', { name: 'Include-i pe toți' }));
+    expect(summary()).toContain('cu 6 factori');
+    expect(
+      within(row('Zgomot de la imprimantă')).getByRole('switch').getAttribute('aria-checked')
+    ).toBe('false');
   });
 
   it('refuses a name the library has when it is saved', async () => {

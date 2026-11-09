@@ -73,9 +73,14 @@ export type ReviewContext = {
 export const stateOf = (context: Pick<ReviewContext, 'states'>, personId: string): PersonState =>
   context.states[personId] ?? 'to_check';
 
+/** The review state, never checked for someone out of the import, whatever was saved. */
 export const statesOf = (proposal: Proposal, changes: Changes): Record<string, PersonState> =>
   Object.fromEntries(
-    proposal.people.map((person) => [person.id, changes.people[person.id]?.state ?? 'to_check'])
+    proposal.people.map((person) => {
+      const state = changes.people[person.id]?.state ?? 'to_check';
+      const out = state === 'checked' && !personIncluded({ proposal, changes }, person);
+      return [person.id, out ? 'set_aside' : state];
+    })
   );
 
 export const fieldLabels: Record<FieldName, string> = {
@@ -216,12 +221,39 @@ export const withoutContact = (context: Pick<ReviewContext, 'changes'>, person: 
 export const includedByDefault = (leftOn: string | null, existing: boolean) =>
   leftOn === null || existing;
 
-export function includedOf(context: Pick<ReviewContext, 'proposal' | 'changes'>, person: Person) {
+export function proposedPersonIncluded(
+  context: Pick<ReviewContext, 'proposal' | 'changes'>,
+  person: Person
+) {
   const leftOn = resolveField(context, person, 'leftOn').value;
-  return (
-    context.changes.people[person.id]?.included ??
-    includedByDefault(typeof leftOn === 'string' ? leftOn : null, isExisting(context, person))
-  );
+  return includedByDefault(typeof leftOn === 'string' ? leftOn : null, isExisting(context, person));
+}
+
+export const includedOf = (context: Pick<ReviewContext, 'proposal' | 'changes'>, person: Person) =>
+  context.changes.people[person.id]?.included ?? proposedPersonIncluded(context, person);
+
+/**
+ * Whether the person is in the import: written at confirm once checked, as the payload's
+ * `state === 'checked' && included` reads. Set aside, or a leaver not taken, is out.
+ */
+export const personIncluded = (
+  context: Pick<ReviewContext, 'proposal' | 'changes'>,
+  person: Person
+) => context.changes.people[person.id]?.state !== 'set_aside' && includedOf(context, person);
+
+/** The one switch for a person: out sets them aside, in takes them back to check. */
+export function withPersonIncluded(
+  context: Pick<ReviewContext, 'proposal' | 'changes'>,
+  person: Person,
+  included: boolean
+): Changes {
+  if (included === personIncluded(context, person)) return context.changes;
+  const proposed = proposedPersonIncluded(context, person);
+  return withPersonChange(context.changes, person.id, (change) => ({
+    ...change,
+    state: included ? undefined : 'set_aside',
+    included: included && !proposed ? true : undefined,
+  }));
 }
 
 // While the pages disagree on a name, the person goes by the one most pages give, which comes first.
@@ -279,7 +311,7 @@ export function workplaceOf(context: ReviewContext, person: Person) {
 
 // `matched`: the row's person still completes the employee the proposal found, whose
 // trainings and passes the flags compare with.
-const proposedRowIncluded = (row: SheetRow, matched: boolean) =>
+export const proposedRowIncluded = (row: SheetRow, matched: boolean) =>
   !row.flags.includes('unsigned') &&
   !row.flags.includes('repeated') &&
   !(matched && row.flags.includes('in_app'));
@@ -289,15 +321,16 @@ export const rowIncluded = (changes: Changes, row: SheetRow, matched: boolean) =
 
 export const testInApp = (row: SheetRow, matched: boolean) => matched && row.test?.inApp === true;
 
+export const proposedTestIncluded = (row: SheetRow, matched: boolean) =>
+  row.test?.verified === true &&
+  !testInApp(row, matched) &&
+  (!row.testOnly || proposedRowIncluded(row, matched));
+
 /** Whether the test a row carries is ticked; it is written only on a row of `testedRows`. */
 export function testIncluded(changes: Changes, row: SheetRow, matched: boolean) {
-  const test = row.test;
-  if (!test) return false;
+  if (!row.test) return false;
   const change = changes.rows[row.id];
-  const proposed =
-    test.verified &&
-    !testInApp(row, matched) &&
-    (!row.testOnly || proposedRowIncluded(row, matched));
+  const proposed = proposedTestIncluded(row, matched);
   return change?.test ?? (row.testOnly ? (change?.included ?? proposed) : proposed);
 }
 
@@ -545,8 +578,7 @@ function holdersOf(context: Pick<ReviewContext, 'proposal' | 'changes'>): Holder
     if (key !== null) holders[name].set(key, [...(holders[name].get(key) ?? []), personId]);
   };
   for (const person of context.proposal.people) {
-    const change = context.changes.people[person.id];
-    if (change?.state === 'set_aside' || !includedOf(context, person)) continue;
+    if (!personIncluded(context, person)) continue;
     for (const name of ['cnp', 'employeeNumber'] as const) {
       hold(name, uniqueValue(context, person, name), person.id);
     }
@@ -1027,6 +1059,12 @@ export function withMatchRestored(changes: Changes, person: Person): Changes {
 /** Moving on from a person with nothing left to decide checks them. */
 export function leaving(context: ReviewContext, person: Person): Changes {
   if (stateOf(context, person.id) !== 'to_check') return context.changes;
+  if (!personIncluded(context, person)) {
+    return withPersonChange(context.changes, person.id, (current) => ({
+      ...current,
+      state: 'set_aside',
+    }));
+  }
   if (decisionsOf(context, person).length > 0) return context.changes;
   return withPersonChange(context.changes, person.id, (current) => ({
     ...current,
@@ -1042,6 +1080,13 @@ export function reopened(context: Omit<ReviewContext, 'states'>): Changes {
   const full = { ...context, states: statesOf(context.proposal, context.changes) };
   let changes = context.changes;
   for (const person of context.proposal.people) {
+    if (context.changes.people[person.id]?.state === 'checked' && !personIncluded(full, person)) {
+      changes = withPersonChange(changes, person.id, (current) => ({
+        ...current,
+        state: 'set_aside',
+      }));
+      continue;
+    }
     if (stateOf(full, person.id) !== 'checked') continue;
     if (decisionsOf(full, person).length === 0) continue;
     changes = withPersonChange(changes, person.id, (current) => ({ ...current, state: undefined }));
@@ -1129,7 +1174,7 @@ export function heldWith(context: ReviewContext, personId: string, row: SheetRow
 }
 
 export const isWritten = (context: ReviewContext, person: Person) =>
-  stateOf(context, person.id) === 'checked' && includedOf(context, person);
+  stateOf(context, person.id) === 'checked' && personIncluded(context, person);
 
 // The phase of the hiring record whose test the app waits for, as `employee_test_due` reads it.
 const testedHiringPhase: Record<TrainingDomain, TrainingPhase> = {

@@ -221,7 +221,7 @@ describe('the plan rows on a sheet card', () => {
       within(row)
         .getAllByRole('button')
         .map((button) => button.textContent)
-    ).toEqual(['Modifică', 'Scoate de pe fișă', 'Vezi în document']);
+    ).toEqual(['Schimbă', 'Scoate de pe fișă', 'Vezi în document']);
 
     await userEvent.click(screen.getByTestId('risk-import-plan-row-remove'));
 

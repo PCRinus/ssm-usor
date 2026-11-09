@@ -16,8 +16,7 @@ import {
   workplaceKindLabels,
   workplaceKinds,
 } from '@ssm-usor/contracts';
-import { Checkbox } from '@ssm-usor/ui/components/checkbox';
-import { CircleMinus, Copy, HardHat, Split, UserRound } from 'lucide-react';
+import { Copy, HardHat, Split, UserRound } from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
 
 import { WorkplaceDialog, type WorkplaceDraft } from '@/features/clients/workplace-dialog';
@@ -33,8 +32,8 @@ import {
 } from '@/features/job-positions/job-position-schema';
 import { allocationLabels } from '@/features/protective-equipment/equipment-schema';
 
+import { type Agreement, Includable, SwitchRow } from './include-switch';
 import { type ItemDialogField, ItemEditDialog } from './item-edit-dialog';
-import { RowActions } from './library/decision-row';
 import type { FieldContext } from './review-fields';
 import {
   allocationLabel,
@@ -73,6 +72,7 @@ import {
   SourceButton,
   SourceFileNames,
   SpellingChoice,
+  Tag,
 } from './review-parts';
 
 type ItemsContext = FieldContext & { blockers: Blocker[] };
@@ -171,6 +171,15 @@ function NameChoice({ state, context }: { state: ItemState; context: ItemsContex
   );
 }
 
+const switchIdOf = (state: ItemState) => `include-${state.list}-${state.item.id}`;
+
+function setIncluded(context: ItemsContext, state: ItemState, included: boolean) {
+  context.review.setItem(state.item.id, (current) => ({
+    ...current,
+    included: included === state.proposed ? undefined : included,
+  }));
+}
+
 function ItemRow({
   state,
   context,
@@ -178,6 +187,8 @@ function ItemRow({
   details,
   sources = itemSources(state),
   onEdit,
+  agreement,
+  excludable = true,
 }: {
   state: ItemState;
   context: ItemsContext;
@@ -185,6 +196,8 @@ function ItemRow({
   details: ReactNode[];
   sources?: LabelledSource[];
   onEdit?: () => void;
+  agreement: Agreement;
+  excludable?: boolean;
 }) {
   const prefix = `${state.list}.${state.index}`;
   const blockers = context.blockers.filter(
@@ -198,72 +211,104 @@ function ItemRow({
       (field !== 'roles' || roles.includes(role ?? ''))
     );
   });
+  const row = (toggle?: ReactNode) => (
+    <SwitchRow
+      title={
+        <>
+          <span className="text-sm font-medium wrap-anywhere">{title}</span>
+          {state.edited && <EditedTag />}
+        </>
+      }
+      toggle={toggle}
+      details={
+        <>
+          {state.item.otherCompanyName && (
+            <Tag tone="info" className="w-fit">
+              De la {state.item.otherCompanyName}
+            </Tag>
+          )}
+          {details.filter(Boolean).map((detail, index) => (
+            <span key={index} className="text-[13px] text-muted-foreground wrap-anywhere">
+              {detail}
+            </span>
+          ))}
+          {itemSpellings(state, context.changes).map(({ field, value, written, keptWritten }) => (
+            <div key={field} className="mt-1 grid gap-1">
+              <span className="text-[13px] font-medium">{itemSpellingLabel(field)}</span>
+              <SpellingChoice
+                label={itemSpellingLabel(field)}
+                corrected={value}
+                written={written}
+                keptWritten={keptWritten}
+                onPick={(keep) =>
+                  context.review.setItem(state.item.id, (current) => {
+                    const values = Object.fromEntries(
+                      Object.entries(current.values ?? {}).filter(([key]) => key !== field)
+                    );
+                    if (keep) values[field] = written;
+                    return { ...current, values };
+                  })
+                }
+              />
+            </div>
+          ))}
+          {blockers.map((blocker) => {
+            const field = blocker.path.split('.')[2];
+            return (
+              <RowNote key={`${blocker.path}-${blocker.code}`} tone="danger">
+                {state.list === 'protectiveEquipment' && field === 'durationMonths'
+                  ? durationBlockerNote(blocker.code, state.values)
+                  : state.list === 'workplaces' && field === 'isRegisteredOffice'
+                    ? secondRegisteredOfficeNote
+                    : blocker.code === 'unknown_reference'
+                      ? `Alege ${itemFieldLabel(field ?? 'workplace')}.`
+                      : blocker.code === 'invalid'
+                        ? `Corectează ${field ? itemFieldLabel(field) : 'datele'}.`
+                        : `Lipsește ${field ? itemFieldLabel(field) : 'o dată obligatorie'}.`}
+              </RowNote>
+            );
+          })}
+          <NameChoice state={state} context={context} />
+          {flags.map((flag) => (
+            <RowNote key={`${flag.path}-${flag.code}`}>
+              {flagNote(flag, context.proposal, context.changes)}
+            </RowNote>
+          ))}
+        </>
+      }
+      actions={
+        <>
+          <SourceButton
+            sources={sources}
+            onOpen={() => context.openSource(title, sources, state.item.otherCompanyName)}
+          />
+          {onEdit && <EditButton onClick={onEdit} />}
+        </>
+      }
+    />
+  );
   return (
     <li
       id={anchorOf(`${state.list}.${state.item.id}`)}
       data-testid="review-item"
-      className="grid scroll-mt-32 gap-x-6 gap-y-1 py-3 sm:grid-cols-[minmax(0,1fr)_auto]"
+      data-included={state.included}
+      className="scroll-mt-32 py-3"
     >
-      <div className="grid min-w-0 gap-1">
-        <span className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium wrap-anywhere">{title}</span>
-          {state.edited && <EditedTag />}
-        </span>
-        {details.filter(Boolean).map((detail, index) => (
-          <span key={index} className="text-[13px] text-muted-foreground wrap-anywhere">
-            {detail}
-          </span>
-        ))}
-        {itemSpellings(state, context.changes).map(({ field, value, written, keptWritten }) => (
-          <div key={field} className="mt-1 grid gap-1">
-            <span className="text-[13px] font-medium">{itemSpellingLabel(field)}</span>
-            <SpellingChoice
-              label={itemSpellingLabel(field)}
-              corrected={value}
-              written={written}
-              keptWritten={keptWritten}
-              onPick={(keep) =>
-                context.review.setItem(state.item.id, (current) => {
-                  const values = Object.fromEntries(
-                    Object.entries(current.values ?? {}).filter(([key]) => key !== field)
-                  );
-                  if (keep) values[field] = written;
-                  return { ...current, values };
-                })
-              }
-            />
-          </div>
-        ))}
-        {blockers.map((blocker) => {
-          const field = blocker.path.split('.')[2];
-          return (
-            <RowNote key={`${blocker.path}-${blocker.code}`} tone="danger">
-              {state.list === 'protectiveEquipment' && field === 'durationMonths'
-                ? durationBlockerNote(blocker.code, state.values)
-                : state.list === 'workplaces' && field === 'isRegisteredOffice'
-                  ? secondRegisteredOfficeNote
-                  : blocker.code === 'unknown_reference'
-                    ? `Alege ${itemFieldLabel(field ?? 'workplace')}.`
-                    : blocker.code === 'invalid'
-                      ? `Corectează ${field ? itemFieldLabel(field) : 'datele'}.`
-                      : `Lipsește ${field ? itemFieldLabel(field) : 'o dată obligatorie'}.`}
-            </RowNote>
-          );
-        })}
-        <NameChoice state={state} context={context} />
-        {flags.map((flag) => (
-          <RowNote key={`${flag.path}-${flag.code}`}>
-            {flagNote(flag, context.proposal, context.changes)}
-          </RowNote>
-        ))}
-      </div>
-      <RowActions className="mt-1 sm:mt-0 sm:items-start sm:justify-end">
-        <SourceButton
-          sources={sources}
-          onOpen={() => context.openSource(title, sources, state.item.otherCompanyName)}
-        />
-        {onEdit && <EditButton onClick={onEdit} />}
-      </RowActions>
+      {excludable ? (
+        <Includable
+          id={switchIdOf(state)}
+          name={title}
+          included={state.included}
+          proposed={state.proposed}
+          agreement={agreement}
+          testId="review-include-item"
+          onChange={(included) => setIncluded(context, state, included)}
+        >
+          {row}
+        </Includable>
+      ) : (
+        row()
+      )}
     </li>
   );
 }
@@ -271,13 +316,13 @@ function ItemRow({
 function OtherCompanyBox(props: {
   states: ItemState[];
   context: ItemsContext;
-  noun: (state: ItemState) => string;
+  agreement: Agreement;
 }) {
   return (
     <OptionalBox
       {...props}
       title="Posibil de la alt client"
-      description="Apar doar în pasaje copiate din documentele altei firme. Le preluăm numai dacă le bifezi."
+      description="Apar doar în pasaje copiate din documentele altei firme. Le preluăm numai dacă le incluzi."
       icon={<Copy className="mt-0.5 size-4" aria-hidden="true" />}
       testId="review-other-company"
     />
@@ -287,7 +332,7 @@ function OtherCompanyBox(props: {
 function OptionalBox({
   states,
   context,
-  noun,
+  agreement,
   title,
   description,
   icon,
@@ -296,7 +341,7 @@ function OptionalBox({
 }: {
   states: ItemState[];
   context: ItemsContext;
-  noun: (state: ItemState) => string;
+  agreement: Agreement;
   title: string;
   description: string;
   icon: ReactNode;
@@ -316,45 +361,50 @@ function OptionalBox({
         <span className="text-sm font-medium">{title}</span>
         <span className="col-start-2 text-[13px] text-muted-foreground">{description}</span>
       </div>
-      <ul className="grid gap-1">
+      <ul className="grid divide-y divide-border/70">
         {states.map((state) => {
           const name = itemName(state.list, state.values);
+          const line = state.item.otherCompanyName
+            ? `De la ${state.item.otherCompanyName}`
+            : detail?.(state);
           return (
             <li
               key={state.item.id}
               id={anchorOf(`${state.list}.${state.item.id}`)}
-              className="grid grid-cols-[1rem_minmax(0,1fr)_auto] items-start gap-2.5 py-1"
+              data-testid="review-optional-item"
+              className="py-2.5"
             >
-              <Checkbox
-                className="mt-0.5"
-                data-testid="review-include-item"
-                checked={state.included}
-                aria-label={`Preia ${noun(state)} ${name}`}
-                onCheckedChange={(checked) =>
-                  context.review.setItem(state.item.id, (current) => ({
-                    ...current,
-                    included: checked === true,
-                  }))
-                }
-              />
-              <span className="grid text-sm">
-                <span className="font-medium">{name}</span>
-                {state.item.otherCompanyName ? (
-                  <span className="text-[13px] text-muted-foreground">
-                    De la {state.item.otherCompanyName}
-                  </span>
-                ) : (
-                  detail?.(state) && (
-                    <span className="text-[13px] text-muted-foreground">{detail(state)}</span>
-                  )
+              <Includable
+                id={switchIdOf(state)}
+                name={name}
+                included={state.included}
+                proposed={state.proposed}
+                agreement={agreement}
+                testId="review-include-item"
+                onChange={(included) => setIncluded(context, state, included)}
+              >
+                {(toggle) => (
+                  <SwitchRow
+                    title={<span className="text-sm font-medium wrap-anywhere">{name}</span>}
+                    toggle={toggle}
+                    details={
+                      line && (
+                        <span className="text-[13px] text-muted-foreground wrap-anywhere">
+                          {line}
+                        </span>
+                      )
+                    }
+                    actions={
+                      <SourceButton
+                        sources={itemSources(state)}
+                        onOpen={() =>
+                          context.openSource(name, itemSources(state), state.item.otherCompanyName)
+                        }
+                      />
+                    }
+                  />
                 )}
-              </span>
-              <SourceButton
-                sources={itemSources(state)}
-                onOpen={() =>
-                  context.openSource(name, itemSources(state), state.item.otherCompanyName)
-                }
-              />
+              </Includable>
             </li>
           );
         })}
@@ -363,50 +413,59 @@ function OptionalBox({
   );
 }
 
-// Ticked, an entry kept apart from its post joins the list, whose row is where its post is chosen.
-const listed = (state: ItemState) =>
-  state.included && (state.proposed || state.untickedReason === 'position_left_out');
+// An entry the documents leave out joins the list once included, so it can be edited there.
+const listed = (state: ItemState) => state.proposed || state.included;
+
+const includedCount = (count: number, agreement: Agreement) =>
+  count === 0
+    ? agreement === 'feminine'
+      ? 'niciuna inclusă'
+      : 'niciunul inclus'
+    : count === 1
+      ? agreement === 'feminine'
+        ? 'una inclusă'
+        : 'unul inclus'
+      : `${count} incluse`;
 
 function ListCard({
   title,
+  description,
   list,
   context,
-  noun,
+  agreement,
   render,
   empty,
   untickedBox,
-  leftOutBox,
 }: {
   title: (count: number) => string;
+  description: string;
   list: ItemList;
   context: ItemsContext;
-  noun: (state: ItemState) => string;
+  agreement: Agreement;
   render: (state: ItemState) => ReactNode;
   empty: string;
   untickedBox?: (states: ItemState[]) => ReactNode;
-  leftOutBox?: (states: ItemState[]) => ReactNode;
 }) {
   const states = itemStates(context.proposal, context.changes, list);
-  const kept = states.filter(listed);
+  const rows = states.filter(listed);
   const aside = states.filter((state) => !listed(state));
-  const leftOut = aside.filter((state) => state.proposed);
+  const kept = rows.filter((state) => state.included).length;
   return (
-    <ReviewCard title={title(kept.length)} testId={`review-list-${list}`}>
-      {kept.length === 0 ? (
+    <ReviewCard
+      title={`${title(rows.length)}${kept < rows.length ? `, ${includedCount(kept, agreement)}` : ''}`}
+      description={rows.length > 0 ? description : undefined}
+      testId={`review-list-${list}`}
+    >
+      {rows.length === 0 ? (
         <p className="py-2 text-sm text-muted-foreground">{empty}</p>
       ) : (
-        <ul className="divide-y">{kept.map(render)}</ul>
+        <ul className="divide-y">{rows.map(render)}</ul>
       )}
-      {leftOutBox?.(leftOut)}
-      {untickedBox?.(
-        aside.filter((state) => !state.proposed && state.untickedReason !== 'other_company')
-      )}
+      {untickedBox?.(aside.filter((state) => state.untickedReason !== 'other_company'))}
       <OtherCompanyBox
-        states={aside
-          .filter((state) => state.untickedReason === 'other_company')
-          .concat(leftOutBox ? [] : leftOut)}
+        states={aside.filter((state) => state.untickedReason === 'other_company')}
         context={context}
-        noun={noun}
+        agreement={agreement}
       />
     </ReviewCard>
   );
@@ -522,7 +581,8 @@ export function WorkplacesSection({ context }: { context: ItemsContext }) {
         title={(count) => plural(count, 'punct de lucru', 'puncte de lucru')}
         list="workplaces"
         context={context}
-        noun={() => 'punctul de lucru'}
+        agreement="masculine"
+        description="Oprește comutatorul la un punct de lucru pe care nu îl preiei: nu intră la punctele de lucru ale clientului."
         empty="Documentele nu numesc niciun punct de lucru."
         render={(state) => {
           const address = [
@@ -550,6 +610,7 @@ export function WorkplacesSection({ context }: { context: ItemsContext }) {
                 ),
               ]}
               sources={workplaceSources(state.item)}
+              agreement="masculine"
               onEdit={() => setEditing(state)}
             />
           );
@@ -605,27 +666,16 @@ export function JobPositionsSection({ context }: { context: ItemsContext }) {
         title={(count) => plural(count, 'post', 'posturi')}
         list="jobPositions"
         context={context}
-        noun={() => 'postul'}
+        agreement="masculine"
+        description="Oprește comutatorul la un post pe care nu îl preiei: nu intră la posturile clientului și nu primește evaluare de risc sau instruire."
         empty="Documentele nu numesc niciun post de lucru."
-        leftOutBox={(states) => (
-          <OptionalBox
-            states={states}
-            context={context}
-            noun={() => 'postul'}
-            title="Lăsate deoparte"
-            description="Posturi pe care ai ales să nu le preiei. Bifează unul ca să îl preiei totuși."
-            icon={<CircleMinus className="mt-0.5 size-4" aria-hidden="true" />}
-            testId="review-left-out"
-            detail={(state) => text(state.values.activities) ?? ''}
-          />
-        )}
         untickedBox={(states) => (
           <OptionalBox
             states={states}
             context={context}
-            noun={() => 'postul'}
+            agreement="masculine"
             title="Doar dacă lucrează în firmă cu contract de muncă"
-            description="Doar conducerea firmei, fără altă meserie. Un administrator numit prin mandat nu e lucrător și nu are nevoie de post, evaluare sau instruire. Bifează postul dacă cine îl ocupă are contract de muncă."
+            description="Doar conducerea firmei, fără altă meserie. Un administrator numit prin mandat nu e lucrător și nu are nevoie de post, evaluare sau instruire. Include postul dacă cine îl ocupă are contract de muncă."
             icon={<UserRound className="mt-0.5 size-4" aria-hidden="true" />}
             testId="review-management-only"
             detail={(state) => text(state.values.activities) ?? ''}
@@ -643,19 +693,8 @@ export function JobPositionsSection({ context }: { context: ItemsContext }) {
                 ? staffCategoryShortLabels[state.values.staffCategory as StaffCategory]
                 : 'Categoria de personal lipsește',
               <EquipmentDecision key="equipment" state={state} context={context} />,
-              <LinkButton
-                key="leave-out"
-                className="w-fit text-[13px]"
-                onClick={() =>
-                  context.review.setItem(state.item.id, (current) => ({
-                    ...current,
-                    included: false,
-                  }))
-                }
-              >
-                Nu prelua postul
-              </LinkButton>,
             ]}
+            agreement="masculine"
             onEdit={() => setEditing(state)}
           />
         )}
@@ -784,20 +823,9 @@ export function ResponsibleSection({ context }: { context: ItemsContext }) {
         state.values.hiredAt
           ? `Angajat din ${String(state.values.hiredAt).split('-').reverse().join('.')}`
           : null,
-        !state.proposed && (
-          <LinkButton
-            className="w-fit text-[13px]"
-            onClick={() =>
-              context.review.setItem(state.item.id, (current) => ({
-                ...current,
-                included: false,
-              }))
-            }
-          >
-            Nu-l face lucrător
-          </LinkButton>
-        ),
       ]}
+      agreement="masculine"
+      excludable={!state.proposed}
       onEdit={() => open(state, employeeFields)}
     />
   );
@@ -808,7 +836,8 @@ export function ResponsibleSection({ context }: { context: ItemsContext }) {
         title={(count) => (count === 1 ? 'O persoană' : `${count} persoane`)}
         list="responsiblePersons"
         context={context}
-        noun={() => 'persoana'}
+        agreement="feminine"
+        description="Oprește comutatorul la o persoană pe care nu o preiei: nu intră la responsabilii clientului."
         empty="Documentele nu numesc niciun responsabil."
         render={(state) => {
           const roles = (state.values.roles as string[] | undefined) ?? [];
@@ -829,6 +858,7 @@ export function ResponsibleSection({ context }: { context: ItemsContext }) {
                 referenceName(context, 'workplaces', state.values.workplace) ??
                   'Toate punctele de lucru',
               ]}
+              agreement="feminine"
               onEdit={() => open(state, personFields)}
             />
           );
@@ -848,9 +878,9 @@ export function ResponsibleSection({ context }: { context: ItemsContext }) {
           <OptionalBox
             states={left.filter(isLegalRepresentative)}
             context={context}
-            noun={() => 'ca lucrător pe'}
+            agreement="masculine"
             title="Doar dacă lucrează în firmă"
-            description="Reprezentantul legal devine lucrător numai dacă face parte din personalul firmei. Bifează-l dacă e așa; îi vei scrie apoi data angajării."
+            description="Reprezentantul legal devine lucrător numai dacă face parte din personalul firmei. Include-l dacă e așa; îi vei scrie apoi data angajării."
             icon={<UserRound className="mt-0.5 size-4" aria-hidden="true" />}
             testId="review-legal-representative"
             detail={(state) =>
@@ -862,7 +892,7 @@ export function ResponsibleSection({ context }: { context: ItemsContext }) {
           <OtherCompanyBox
             states={left.filter((state) => !isLegalRepresentative(state))}
             context={context}
-            noun={() => 'ca lucrător pe'}
+            agreement="masculine"
           />
         </ReviewCard>
       )}
@@ -935,7 +965,8 @@ export function FireMeansSection({ context }: { context: ItemsContext }) {
         title={(count) => (count === 1 ? 'Un mijloc de stingere' : `${count} mijloace de stingere`)}
         list="fireEquipment"
         context={context}
-        noun={() => 'mijlocul'}
+        agreement="masculine"
+        description="Oprește comutatorul la un mijloc pe care nu îl preiei: nu intră la mijloacele de stingere ale clientului."
         empty="Documentele nu numesc mijloace de stingere."
         render={(state) => (
           <ItemRow
@@ -951,6 +982,7 @@ export function FireMeansSection({ context }: { context: ItemsContext }) {
                 .filter(Boolean)
                 .join(' · '),
             ]}
+            agreement="masculine"
             onEdit={() => open(state, equipmentFields)}
           />
         )}
@@ -959,7 +991,8 @@ export function FireMeansSection({ context }: { context: ItemsContext }) {
         title={(count) => (count === 1 ? 'O instalație' : `${count} instalații`)}
         list="fireInstallations"
         context={context}
-        noun={() => 'instalația'}
+        agreement="feminine"
+        description="Oprește comutatorul la o instalație pe care nu o preiei: nu intră la instalațiile clientului."
         empty="Documentele nu numesc instalații de apărare împotriva incendiilor."
         render={(state) => (
           <ItemRow
@@ -971,6 +1004,7 @@ export function FireMeansSection({ context }: { context: ItemsContext }) {
               text(state.values.description),
               referenceName(context, 'workplaces', state.values.workplace),
             ]}
+            agreement="feminine"
             onEdit={() => open(state, installationFields)}
           />
         )}
@@ -1005,15 +1039,16 @@ export function EquipmentSection({ context }: { context: ItemsContext }) {
         title={(count) => (count === 1 ? 'Un articol' : `${count} articole`)}
         list="protectiveEquipment"
         context={context}
-        noun={() => 'articolul'}
+        agreement="masculine"
+        description="Oprește comutatorul la un articol pe care nu îl preiei: postul lui nu îl primește."
         empty="Documentele nu numesc echipament de protecție."
         untickedBox={(states) => (
           <OptionalBox
             states={states}
             context={context}
-            noun={() => 'articolul'}
+            agreement="masculine"
             title="Pentru posturi pe care nu le preiei"
-            description="Se preiau odată cu postul lor. Bifează un articol doar ca să-l muți pe alt post."
+            description="Se preiau odată cu postul lor. Include un articol doar ca să-l muți pe alt post."
             icon={<HardHat className="mt-0.5 size-4" aria-hidden="true" />}
             testId="review-position-left-out"
             detail={(state) =>
@@ -1037,20 +1072,8 @@ export function EquipmentSection({ context }: { context: ItemsContext }) {
               ]
                 .filter(Boolean)
                 .join(' · '),
-              !state.proposed && (
-                <LinkButton
-                  className="w-fit text-[13px]"
-                  onClick={() =>
-                    context.review.setItem(state.item.id, (current) => ({
-                      ...current,
-                      included: false,
-                    }))
-                  }
-                >
-                  Lasă-l cu postul
-                </LinkButton>
-              ),
             ]}
+            agreement="masculine"
             onEdit={() => open(state, fields)}
           />
         )}

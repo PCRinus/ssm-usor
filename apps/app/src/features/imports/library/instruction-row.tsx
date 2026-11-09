@@ -6,7 +6,6 @@ import {
 import { Button } from '@ssm-usor/ui/components/button';
 import { Label } from '@ssm-usor/ui/components/label';
 import { NativeSelect } from '@ssm-usor/ui/components/native-select';
-import { Switch } from '@ssm-usor/ui/components/switch';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import {
   BriefcaseBusiness,
@@ -20,11 +19,12 @@ import {
   Plus,
   Wrench,
 } from 'lucide-react';
-import { useId, useState } from 'react';
+import { type ReactNode, useId, useState } from 'react';
 
 import { Segmented } from '@/components/segmented';
 import { articleCountLabel, groupLabels } from '@/features/instructions/instruction-schema';
 
+import { Includable } from '../include-switch';
 import { EditedTag, SourceButton, Tag } from '../review-parts';
 import { DecisionRow, PendingNote, RenameRow, type Tone } from './decision-row';
 import { LibraryDifferences } from './library-differences';
@@ -67,8 +67,6 @@ const choices: readonly { value: Choice; label: string; outcome: string }[] = [
     outcome: 'Textul din pachet intră în bibliotecă ca instrucțiune separată.',
   },
 ];
-
-const includedLabel = (included: boolean) => (included ? 'Inclusă' : 'Nu e inclusă');
 
 function pendingLine(pending: readonly string[]) {
   if (pending.length > 1) return `Mai ai ${pending.length} lucruri de făcut`;
@@ -136,7 +134,7 @@ export function InstructionRow({
       : `${shownArticles}, ca în document`;
   const flags = flagLines(instruction.flags);
 
-  return (
+  const card = (toggle: ReactNode, open: boolean) => (
     <article
       data-testid="library-instruction"
       data-status={instruction.status}
@@ -144,80 +142,57 @@ export function InstructionRow({
       aria-labelledby={`${id}-title`}
       className={cn(
         'overflow-hidden rounded-xl border bg-card shadow-xs',
-        !row.included && 'bg-muted/40 shadow-none'
+        !open && 'bg-muted/40 shadow-none'
       )}
     >
-      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-3 px-4 py-4 sm:flex-nowrap sm:px-5">
+      <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-start gap-x-3.5 gap-y-1.5 px-4 py-4 sm:grid-cols-[2.5rem_minmax(0,1fr)_auto_auto] sm:items-center sm:gap-x-4 sm:px-5">
         <span
           className={cn(
-            'flex size-10 shrink-0 items-center justify-center self-start rounded-[10px] bg-secondary sm:self-center',
-            !row.included && 'text-muted-foreground'
+            'flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-secondary',
+            editable && 'row-span-2 sm:row-span-1',
+            !open && 'text-muted-foreground'
           )}
         >
           <Icon className="size-5" aria-hidden="true" />
         </span>
-        <div className="grid min-w-0 flex-1 basis-56 gap-0.5">
+        <div className="col-start-2 row-start-1 grid min-w-0 gap-0.5 sm:self-center">
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
             <h3
               id={`${id}-title`}
               className={cn(
                 'text-base leading-snug font-semibold wrap-anywhere',
-                !row.included && 'text-muted-foreground'
+                !open && 'text-muted-foreground'
               )}
               data-testid="library-instruction-title"
             >
               {row.usesLibrary && instruction.match ? instruction.match.title : row.title}
             </h3>
-            {row.included &&
+            {open &&
               (similar ? <Tag tone="warning">Asemănătoare</Tag> : <Tag tone="info">Nouă</Tag>)}
-            {row.included && row.edited.body && <EditedTag>Modificată de tine</EditedTag>}
+            {open && row.edited.body && <EditedTag>Modificată de tine</EditedTag>}
           </div>
-          {row.included ? (
+          {open && (
             <p className="flex flex-wrap gap-x-3.5 text-[13px] text-muted-foreground">
               {row.usesLibrary && <span>{groupLabels[row.category]}</span>}
               <span>{articleCountLabel(instruction.articleCount).toLowerCase()}</span>
               {instruction.number && <span>nr. {instruction.number} din pachet</span>}
             </p>
-          ) : (
-            <p
-              className="text-[13px] text-muted-foreground"
-              data-testid="library-instruction-left-out"
-            >
-              Nu o incluzi: nu intră în bibliotecă și nu se aplică la niciun post.
-            </p>
           )}
         </div>
-        <div className="flex w-full items-center gap-4 sm:w-auto sm:shrink-0">
-          {editable && (
+        {editable && (
+          <div className="col-start-2 row-start-2 sm:col-start-3 sm:row-start-1">
             <PendingNote
               line={pending.length > 0 ? pendingLine(pending) : null}
               testId="library-instruction-pending"
             />
-          )}
-          <div className="ml-auto flex items-center gap-2.5 sm:border-l sm:border-border/70 sm:pl-4">
-            <Switch
-              id={`${id}-included`}
-              data-testid="library-instruction-included"
-              aria-label={`${includedLabel(row.included)}: ${row.title}`}
-              checked={row.included}
-              disabled={readOnly}
-              onCheckedChange={(checked) =>
-                onChange((current) => withChange(current, 'included', checked ? undefined : false))
-              }
-            />
-            <Label
-              htmlFor={`${id}-included`}
-              className={cn('text-[13px] sm:min-w-20', !row.included && 'text-muted-foreground')}
-              aria-hidden="true"
-              data-testid="library-instruction-included-label"
-            >
-              {includedLabel(row.included)}
-            </Label>
           </div>
+        )}
+        <div className="col-start-3 row-start-1 mt-0.5 justify-self-end sm:col-start-4 sm:mt-0">
+          {toggle}
         </div>
       </div>
 
-      {row.included && (
+      {open && (
         <>
           {similar && instruction.match && (
             <>
@@ -425,5 +400,22 @@ export function InstructionRow({
         </>
       )}
     </article>
+  );
+  return (
+    <Includable
+      id={`include-instruction-${instruction.key}`}
+      name={row.title}
+      included={row.included}
+      proposed
+      agreement="feminine"
+      disabled={readOnly}
+      testId="library-instruction-included"
+      collapsed={(toggle) => card(toggle, false)}
+      onChange={(checked) =>
+        onChange((current) => withChange(current, 'included', checked ? undefined : false))
+      }
+    >
+      {(toggle) => card(toggle, true)}
+    </Includable>
   );
 }

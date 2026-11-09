@@ -200,7 +200,7 @@ export function ConfirmImportDialog({
           <DialogDescription>
             {existing
               ? 'Preluăm ce ai verificat. Ce avea deja clientul rămâne cum era, în afară de valorile pe care le-ai ales din documente.'
-              : 'Preluăm datele pe care le-ai bifat. Le poți modifica oricând din pagina clientului.'}
+              : 'Preluăm datele pe care le-ai inclus. Le poți modifica oricând din pagina clientului.'}
           </DialogDescription>
         </DialogHeader>
         <DialogBody className="mt-4 grid gap-4">

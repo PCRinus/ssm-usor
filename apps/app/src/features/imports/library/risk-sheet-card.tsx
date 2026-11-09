@@ -8,7 +8,6 @@ import {
   ListChecks,
   type LucideIcon,
   Plus,
-  Undo2,
   UserRound,
   UsersRound,
 } from 'lucide-react';
@@ -21,7 +20,7 @@ import type { LabelledSource } from '../review-model';
 import { SourceButton, Tag } from '../review-parts';
 import { DecisionRow, PendingNote, RenameRow, type Tone } from './decision-row';
 import { RiskDifferences } from './risk-differences';
-import { FactorRow, RiskFactorRows } from './risk-factor-rows';
+import { RiskFactorRows } from './risk-factor-rows';
 import { RiskPlanRows } from './risk-plan-rows';
 import {
   type ExistingChoice,
@@ -130,7 +129,6 @@ export function RiskSheetCard({
   const { sheet } = state;
   const [comparing, setComparing] = useState(false);
   const [showAll, setShowAll] = useState(false);
-  const [removedOpen, setRemovedOpen] = useState(true);
   const pending = readOnly ? [] : pendingOf(state, nameTaken);
   const ask = (open: boolean): Tone => (!readOnly && open ? 'todo' : 'done');
   const Icon = kindIcons[sheet.kind];
@@ -138,8 +136,10 @@ export function RiskSheetCard({
   const swapped = sheet.flags.find((flag) => flag.kind === 'classes_swapped');
   const textFlags = sheet.flags.filter((flag) => flag.kind !== 'classes_swapped');
   const removed = state.factors.filter(removedByMember);
-  const active = state.factors.filter((factor) => !removedByMember(factor));
-  const attention = active.filter(
+  const noneIncluded =
+    state.factors.length > 0 && state.factors.every((factor) => !factor.included);
+  if (noneIncluded && !showAll) setShowAll(true);
+  const attention = state.factors.filter(
     (factor) =>
       refused.has(factor.factor.key) || (!factor.included && !factor.complete) || needsCheck(factor)
   );
@@ -148,8 +148,10 @@ export function RiskSheetCard({
   if (attention.some((factor) => !listed.has(factor.factor.key))) {
     setListed(new Set([...listed, ...attention.map((factor) => factor.factor.key)]));
   }
-  const shown = showAll ? active : active.filter((factor) => listed.has(factor.factor.key));
-  const folded = !showAll && active.some((factor) => !listed.has(factor.factor.key));
+  const shown = showAll
+    ? state.factors
+    : state.factors.filter((factor) => listed.has(factor.factor.key));
+  const folded = !showAll && shown.length < state.factors.length;
   const sheetSource: LabelledSource = { file: sheet.file, quote: sheet.heading };
 
   const pickLibrary = (choice: LibraryChoice) =>
@@ -334,16 +336,16 @@ export function RiskSheetCard({
             label="Factorii"
             testId="risk-import-factors-row"
             actions={
-              active.length === 0 ? (
-                !readOnly && (
+              noneIncluded ? (
+                !readOnly &&
+                removed.length > 0 && (
                   <Button
                     type="button"
                     variant="outline"
                     data-testid="risk-import-restore-all"
                     onClick={() => onSetIncluded(removed, true)}
                   >
-                    <Undo2 aria-hidden="true" />
-                    {removed.length === 1 ? 'Pune-l înapoi' : 'Pune-i înapoi pe toți'}
+                    {removed.length === 1 ? 'Include-l' : 'Include-i pe toți'}
                   </Button>
                 )
               ) : (
@@ -359,18 +361,25 @@ export function RiskSheetCard({
                     ? listed.size > 0
                       ? 'Arată doar ce e de verificat'
                       : 'Ascunde factorii'
-                    : `Arată toți cei ${active.length}`}
+                    : `Arată toți cei ${state.factors.length}`}
                 </Button>
               )
             }
           >
             <span data-testid="risk-import-factors-summary">
-              {active.length === 0
-                ? removed.length === 1
-                  ? 'Ai scos singurul factor.'
-                  : `Ai scos toți cei ${removed.length} factori.`
+              {noneIncluded
+                ? state.factors.length === 1
+                  ? 'Singurul factor nu e inclus.'
+                  : `Niciunul dintre cei ${state.factors.length} factori nu e inclus.`
                 : factorsLine(state, removed.length)}
             </span>
+            {!readOnly && (
+              <span className="text-[13px] text-muted-foreground">
+                {state.posts === null
+                  ? 'Un factor oprit nu ajunge pe fișa clientului.'
+                  : 'Un factor oprit nu intră nici în bibliotecă, nici pe fișa postului.'}
+              </span>
+            )}
             {swapped && (
               <span
                 className="text-[13px] font-medium text-warning-foreground"
@@ -388,6 +397,7 @@ export function RiskSheetCard({
           {shown.length > 0 && (
             <RiskFactorRows
               factors={shown}
+              sheetKey={sheet.key}
               sheetFile={sheet.file}
               readOnly={readOnly}
               refused={refused}
@@ -395,49 +405,6 @@ export function RiskSheetCard({
               onEdit={onEditFactor}
               onSource={onSource}
             />
-          )}
-          {removed.length > 0 && (
-            <section aria-labelledby={`${id}-removed`} data-testid="risk-import-removed">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border/70 bg-muted/45 px-4 py-2 sm:px-5">
-                <h4 id={`${id}-removed`} className="text-sm font-medium">
-                  Scoși de tine
-                </h4>
-                <Tag tone="muted">{removed.length}</Tag>
-                <span className="text-[13px] text-muted-foreground">
-                  {state.posts === null
-                    ? 'Nu ajung pe fișa clientului.'
-                    : 'Nu intră nici în bibliotecă, nici pe fișa postului.'}
-                </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="ml-auto"
-                  aria-expanded={removedOpen}
-                  data-testid="risk-import-removed-toggle"
-                  onClick={() => setRemovedOpen((open) => !open)}
-                >
-                  {removedOpen ? 'Ascunde-i' : 'Arată-i'}
-                </Button>
-              </div>
-              {removedOpen && (
-                <ul>
-                  {removed.map((factor) => (
-                    <FactorRow
-                      key={factor.factor.key}
-                      state={factor}
-                      sheetFile={sheet.file}
-                      readOnly={readOnly}
-                      refused={false}
-                      removed
-                      onToggle={(included) => onToggleFactor(factor, included)}
-                      onEdit={() => onEditFactor(factor)}
-                      onSource={onSource}
-                    />
-                  ))}
-                </ul>
-              )}
-            </section>
           )}
           <RiskPlanRows
             state={state}
@@ -457,7 +424,7 @@ function factorsLine(state: SheetState, removed: number) {
   const parts = [roCount(taken, 'preluat', 'preluați')];
   if (state.toCheck > 0) parts.push(`${state.toCheck} de verificat`);
   if (state.incomplete > 0) parts.push(roCount(state.incomplete, 'incomplet', 'incompleți'));
-  if (removed > 0) parts.push(roCount(removed, 'scos de tine', 'scoși de tine'));
+  if (removed > 0) parts.push(removed === 1 ? 'unul nu e inclus' : `${removed} nu sunt incluși`);
   return parts.join(', ');
 }
 

@@ -244,3 +244,20 @@ describe('flagLines', () => {
     ]);
   });
 });
+
+describe('the instruction switches and what confirming writes', () => {
+  it('adds an instruction exactly when its switch is on, as the confirm reads `included`', () => {
+    const changes = [
+      undefined,
+      {},
+      { included: false },
+      { included: true },
+      { title: 'Alt titlu' },
+    ];
+    for (const change of changes) {
+      expect(rowState(instruction('mincer'), change, positionPosts).included).toBe(
+        change?.included !== false
+      );
+    }
+  });
+});

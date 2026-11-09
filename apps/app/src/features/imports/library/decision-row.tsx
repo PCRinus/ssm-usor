@@ -44,7 +44,14 @@ export function StatusDot({ tone }: { tone: Tone }) {
 
 export function RowActions({ className, children }: { className?: string; children: ReactNode }) {
   return (
-    <div className={cn('flex flex-wrap gap-2 max-sm:[&>*]:flex-auto', className)}>{children}</div>
+    <div
+      className={cn(
+        'flex flex-wrap gap-2 max-sm:[&>*]:flex-auto max-sm:[&>[data-slot=button]]:h-11',
+        className
+      )}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -52,6 +59,7 @@ export function DecisionRow({
   tone,
   label,
   actions,
+  toggle,
   below,
   testId,
   id,
@@ -62,6 +70,7 @@ export function DecisionRow({
   tone: Tone;
   label: ReactNode;
   actions?: ReactNode;
+  toggle?: ReactNode;
   below?: ReactNode;
   testId?: string;
   id?: string;
@@ -78,6 +87,8 @@ export function DecisionRow({
       className={cn(
         'grid scroll-mt-32 grid-cols-[1.25rem_minmax(0,1fr)] items-start gap-x-3 gap-y-1 border-t border-border/70 px-4 py-3 sm:min-h-14 sm:grid-cols-[1.25rem_10.5rem_minmax(0,1fr)_auto] sm:gap-x-4 sm:px-5',
         wide && 'sm:grid-cols-[1.25rem_12rem_minmax(0,1fr)_auto]',
+        toggle &&
+          'grid-cols-[1.25rem_minmax(0,1fr)_auto] sm:grid-cols-[1.25rem_12rem_minmax(0,1fr)_auto_auto]',
         !top && 'sm:items-center',
         tone === 'todo' && 'bg-warning/40',
         tone === 'editing' && 'bg-info/60 shadow-[inset_0_0_0_2px_var(--color-ring)]'
@@ -85,13 +96,30 @@ export function DecisionRow({
     >
       <StatusDot tone={tone} />
       <span className="text-sm font-medium">{label}</span>
-      <div className="col-start-2 grid min-w-0 gap-1 text-sm sm:col-start-auto">{children}</div>
+      {toggle && (
+        <div className="col-start-3 row-start-1 flex min-h-5 items-center justify-end sm:col-start-5 sm:min-h-9">
+          {toggle}
+        </div>
+      )}
+      <div
+        className={cn(
+          'col-start-2 grid min-w-0 gap-1 text-sm sm:col-start-auto',
+          toggle && 'col-end-[-1] sm:col-end-auto'
+        )}
+      >
+        {children}
+      </div>
       {actions && (
-        <RowActions className="col-start-2 mt-2 sm:col-start-auto sm:mt-0 sm:justify-end">
+        <RowActions
+          className={cn(
+            'col-start-2 mt-2 sm:col-start-auto sm:mt-0 sm:justify-end',
+            toggle && 'col-end-[-1] sm:col-end-auto'
+          )}
+        >
           {actions}
         </RowActions>
       )}
-      {below && <div className="col-start-2 mt-2 min-w-0 sm:col-span-3">{below}</div>}
+      {below && <div className="col-start-2 col-end-[-1] mt-2 min-w-0 sm:col-start-2">{below}</div>}
     </div>
   );
 }

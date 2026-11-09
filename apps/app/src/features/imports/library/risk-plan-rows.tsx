@@ -86,11 +86,11 @@ function PlanRowItem({
               type="button"
               variant="outline"
               data-testid="risk-import-plan-row-edit"
-              aria-label={`Modifică factorul ${state.description}`}
+              aria-label={`Schimbă factorul ${state.description}`}
               onClick={onAdd}
             >
               <Pencil aria-hidden="true" />
-              Modifică
+              Schimbă
             </Button>
             <Button
               type="button"

@@ -6,7 +6,6 @@ import {
   type StaffCategory,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import {
@@ -38,6 +37,7 @@ import {
 import { CountyCombobox } from '@/features/clients/county-combobox';
 
 import { endSentence } from './import-format';
+import { Includable } from './include-switch';
 import { DecisionRow, PendingNote, type Tone } from './library/decision-row';
 import { phoneDiff } from './phone-diff';
 import {
@@ -71,7 +71,6 @@ import {
   EditButton,
   EditedTag,
   KindLine,
-  LinkButton,
   PhoneDigits,
   PickList,
   PickOption,
@@ -731,6 +730,8 @@ function ValueRow({
     sameValue(registered.cui, String(state.value).replace(/^RO/i, ''));
   const edited = state.edited && !spelling?.keptWritten;
   const unticked = state.status === 'unticked';
+  const ownValue = state.own.length > 0;
+  const excludable = unticked || (!ownValue && change?.included === true);
   const tone: Tone = unticked
     ? 'info'
     : spelling
@@ -739,7 +740,7 @@ function ValueRow({
         ? 'warning'
         : 'done';
 
-  return (
+  const row = (toggle?: ReactNode) => (
     <DecisionRow
       tone={tone}
       top={Boolean(spelling) || unticked}
@@ -748,33 +749,27 @@ function ValueRow({
       testId="review-row"
       label={state.label}
       actions={rowActions(state, context, unticked ? undefined : onEdit)}
+      toggle={toggle}
     >
       {unticked ? (
         <>
-          <label className="flex items-start gap-2">
-            <Checkbox
-              className="mt-0.5"
-              data-testid="review-include-field"
-              checked={false}
-              onCheckedChange={() => context.review.setField(state.path, { included: true })}
-              aria-label={`Preia ${state.label.toLowerCase()}`}
-            />
-            <span className="text-muted-foreground">
-              {formatFieldValue(
-                state.path,
-                state.options[state.own[0] ?? 0]?.value,
-                context.vatPayer
-              )}
-            </span>
-          </label>
-          <RowNote>
-            <Copy className="mr-1 inline size-3.5" aria-hidden="true" />
-            Posibil de la alt client: apare doar în pasaje copiate de la{' '}
-            {endSentence(
-              state.otherCompanyName ?? state.options[0]?.otherCompanyName ?? 'altă firmă'
-            )}{' '}
-            Îl preluăm numai dacă îl bifezi.
-          </RowNote>
+          <span className="text-muted-foreground wrap-anywhere">
+            {formatFieldValue(
+              state.path,
+              state.options[state.own[0] ?? 0]?.value,
+              context.vatPayer
+            )}
+          </span>
+          {!ownValue && (
+            <RowNote>
+              <Copy className="mr-1 inline size-3.5" aria-hidden="true" />
+              Posibil de la alt client: apare doar în pasaje copiate de la{' '}
+              {endSentence(
+                state.otherCompanyName ?? state.options[0]?.otherCompanyName ?? 'altă firmă'
+              )}{' '}
+              Valoarea se preia numai dacă o incluzi.
+            </RowNote>
+          )}
         </>
       ) : spelling ? (
         <SpellingChoice
@@ -810,14 +805,6 @@ function ValueRow({
           Din documente: {formatFieldValue(state.path, state.proposedValue, context.vatPayer)}
         </RowNote>
       )}
-      {!unticked && change?.included === true && (
-        <LinkButton
-          className="w-fit text-[13px]"
-          onClick={() => context.review.setField(state.path, null)}
-        >
-          Nu-l prelua
-        </LinkButton>
-      )}
       {mismatch && (
         <RowNote tone="warning" testId="review-anaf-mismatch">
           {anafMismatchNote(mismatch)}
@@ -829,6 +816,23 @@ function ValueRow({
         </RowNote>
       ))}
     </DecisionRow>
+  );
+  if (!excludable) return row();
+  return (
+    <Includable
+      id={`include-${state.path}`}
+      name={state.label}
+      included={!unticked}
+      proposed={ownValue}
+      agreement="feminine"
+      testId="review-include-field"
+      collapsedClassName="border-t border-border/70 px-4 py-3 sm:px-5"
+      onChange={(included) =>
+        context.review.setField(state.path, included === ownValue ? null : { included })
+      }
+    >
+      {row}
+    </Includable>
   );
 }
 
