@@ -30,7 +30,7 @@ export function ImportActionBar({
 }) {
   const bar = useRef<HTMLElement>(null);
   const space = useRef<HTMLDivElement>(null);
-  const [bounds, setBounds] = useState<{ left: number; width: number }>();
+  const [bounds, setBounds] = useState<{ left: number; width: number; bottom: number }>();
   const [keyboard, setKeyboard] = useState({ open: false, bottom: 0 });
 
   useEffect(() => {
@@ -76,26 +76,40 @@ export function ImportActionBar({
     const element = bar.current;
     const placeholder = space.current;
     if (!element || !placeholder) return;
+    const content = placeholder.closest('main');
     const root = document.documentElement;
     const previous = root.style.scrollPaddingBottom;
     const update = () => {
       const height = element.getBoundingClientRect().height;
-      placeholder.style.height = `${height}px`;
+      if (placeholder.style.height !== `${height}px`) placeholder.style.height = `${height}px`;
       const { left, width } = placeholder.getBoundingClientRect();
-      setBounds({ left, width });
-      root.style.scrollPaddingBottom = `${height + 16}px`;
+      const boundary = content?.getBoundingClientRect();
+      const bottom =
+        !keyboard.open && boundary && boundary.height > 0
+          ? Math.max(0, window.innerHeight - boundary.bottom)
+          : 0;
+      setBounds((previous) =>
+        previous?.left === left && previous.width === width && previous.bottom === bottom
+          ? previous
+          : { left, width, bottom }
+      );
+      const padding = `${height + bottom + 16}px`;
+      if (root.style.scrollPaddingBottom !== padding) root.style.scrollPaddingBottom = padding;
     };
     update();
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update);
     observer?.observe(element);
     observer?.observe(placeholder);
+    if (content) observer?.observe(content);
     window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, { passive: true });
     return () => {
       observer?.disconnect();
       window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update);
       root.style.scrollPaddingBottom = previous;
     };
-  }, []);
+  }, [keyboard.open]);
 
   return (
     <div ref={space} className="-mx-5 -mb-6 sm:-mx-8 lg:-mx-10">
@@ -105,9 +119,9 @@ export function ImportActionBar({
         data-testid={testId}
         data-import-action-bar=""
         data-keyboard-open={keyboard.open || undefined}
-        style={{ bottom: keyboard.bottom, ...bounds }}
+        style={{ ...bounds, bottom: keyboard.open ? keyboard.bottom : (bounds?.bottom ?? 0) }}
         className={cn(
-          'fixed bottom-0 z-20 grid gap-3 border-t bg-card px-5 pt-3 shadow-[0_-10px_24px_-10px_rgba(24,52,46,0.18)] sm:px-8 sm:pt-4 lg:px-10',
+          'fixed bottom-0 z-20 grid gap-3 border-t border-sidebar-border bg-sidebar px-5 pt-3 text-sidebar-foreground sm:px-8 sm:pt-4 lg:px-10',
           keyboard.open
             ? 'pb-3'
             : 'pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(1rem+env(safe-area-inset-bottom))]'
