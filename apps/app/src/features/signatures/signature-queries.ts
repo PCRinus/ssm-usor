@@ -13,9 +13,11 @@ export function invalidateSignatures(queryClient: QueryClient, clientId: string)
   const clientRequests = getListClientSignatureRequestsQueryKey(clientId)[0];
   const myRequests = getListMySignatureRequestsQueryKey()[0];
   return queryClient.invalidateQueries({
-    predicate: ({ queryKey: [key] }) =>
+    predicate: ({ queryKey: [key, scope] }) =>
       typeof key === 'string' &&
-      ((key.startsWith(recordsPrefix) && key.endsWith('/signatures')) ||
+      ((scope === clientId &&
+        ['signing-agreement-link', 'training-sheet-link', 'test-sheet-link'].includes(key)) ||
+        (key.startsWith(recordsPrefix) && key.endsWith('/signatures')) ||
         (key.startsWith(employeesPrefix) && key.endsWith('/tests')) ||
         key === clientRequests ||
         key === myRequests),

@@ -701,7 +701,7 @@ their tab bars read.
   components). For one stored sheet (ADR 023) the button and "Previzualizează"
   (`training-sheet-{domain}-preview`) are real anchors to `GET /files/download`, one
   `attachment` and one `inline` in a tab of its own, signed through
-  `GET …/training-sheet/link` by `useFileLink` (`src/lib/file-link.ts`) and renewed before they
+  `GET …/training-sheet/link` by `useFileLink` (`@ssm-usor/api-http/file-link`) and renewed before they
   expire; the originals of a sheet with continuation sheets are anchors of the same kind in
   their menu, signed when it opens. A sheet drawn up on the spot and the merged reading copy
   have no stored file, so they still come through the page: the download fetches the PDF from

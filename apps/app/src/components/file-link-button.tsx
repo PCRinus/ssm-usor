@@ -1,7 +1,6 @@
+import type { useFileLink } from '@ssm-usor/api-http/file-link';
 import { Button } from '@ssm-usor/ui/components/button';
 import type { ComponentProps, ReactNode } from 'react';
-
-import type { useFileLink } from '@/lib/file-link';
 
 type Link = Pick<
   ReturnType<typeof useFileLink>,

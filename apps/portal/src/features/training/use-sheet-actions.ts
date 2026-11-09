@@ -1,12 +1,12 @@
 import type { MessageDescriptor } from '@lingui/core';
 import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react/macro';
+import { type Disposition, type FileLink, useFileLink } from '@ssm-usor/api-http/file-link';
 import type { ApiErrorResponse, TrainingDomain } from '@ssm-usor/contracts';
 import { useState } from 'react';
 
 import type { PortalTrainingSheetsResponse } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { type Disposition, type FileLink, useFileLink } from '@/lib/file-link';
 import { trainingDomainMessages } from '@/lib/labels';
 import { useApiRequest } from '@/lib/request';
 import { openPreview, PreviewBlockedError, saveFile } from '@/lib/save-file';

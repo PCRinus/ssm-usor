@@ -137,6 +137,9 @@ const signingQuery =
 
 export function invalidateSigningQueries(queryClient: QueryClient) {
   return queryClient.invalidateQueries({
-    predicate: ({ queryKey: [key] }) => typeof key === 'string' && signingQuery.test(key),
+    predicate: ({ queryKey: [key] }) =>
+      typeof key === 'string' &&
+      (signingQuery.test(key) ||
+        ['signing-agreement-link', 'training-sheet-link', 'test-sheet-link'].includes(key)),
   });
 }

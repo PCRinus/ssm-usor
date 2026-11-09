@@ -1,6 +1,7 @@
 import type { MessageDescriptor } from '@lingui/core';
 import { msg } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
+import { useFileLink } from '@ssm-usor/api-http/file-link';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { FileText, LoaderCircle } from 'lucide-react';
@@ -18,7 +19,6 @@ import {
   isAdministrator,
   type Participation,
 } from '@/features/participation/participation-context';
-import { useFileLink } from '@/lib/file-link';
 import { useApiRequest } from '@/lib/request';
 import { openPreview, PreviewBlockedError } from '@/lib/save-file';
 

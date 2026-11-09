@@ -680,7 +680,17 @@ importers:
         version: 4.155.0(@cloudflare/workers-types@5.20261029.1)(@types/node@24.19.2)
 
   packages/api-http:
+    dependencies:
+      '@tanstack/react-query':
+        specifier: ^5.104.5
+        version: 5.104.5(@types/react@19.3.0)(react@19.3.1)
+      react:
+        specifier: ^19.3.1
+        version: 19.3.1
     devDependencies:
+      '@types/react':
+        specifier: ^19.3.0
+        version: 19.3.0
       typescript:
         specifier: ^7.0.2
         version: 7.0.2

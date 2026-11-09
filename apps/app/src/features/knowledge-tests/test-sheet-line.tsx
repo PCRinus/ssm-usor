@@ -1,3 +1,4 @@
+import { useFileLink } from '@ssm-usor/api-http/file-link';
 import {
   signatureErrorReasons,
   type SignatureSlotState,
@@ -35,7 +36,6 @@ import {
   slotStateLabels,
 } from '@/features/signatures/signature-format';
 import { invalidateSignatures } from '@/features/signatures/signature-queries';
-import { useFileLink } from '@/lib/file-link';
 import { openPreview, PreviewBlockedError } from '@/lib/save-file';
 
 import { invalidateEmployeeTests } from './test-format';

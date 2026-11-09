@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -619,6 +619,34 @@ describe('changing a client file', () => {
     expect(downloadedAddress.searchParams.get('name')).toBe('oferta.xlsx');
     expect(downloaded.getAttribute('target')).toBeNull();
     expect(requests(filesPath, 'GET')).toHaveLength(1);
+  });
+
+  it('keeps the page and reports an error when refreshing an expired file link fails', async () => {
+    mockApi();
+    const runtime = mount();
+    const [row] = await screen.findAllByTestId('client-file-row');
+    const open = vi.spyOn(window, 'open').mockReturnValue(window);
+    const fallback = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (input, init) =>
+      new URL(String(input)).pathname === filesPath
+        ? Response.json({}, { status: 503 })
+        : fallback(input, init)
+    );
+    const query = runtime.queryClient
+      .getQueryCache()
+      .find({ queryKey: [filesPath], exact: false })!;
+    act(() => {
+      runtime.queryClient.setQueryData(query.queryKey, query.state.data, {
+        updatedAt: Date.now() - 601_000,
+      });
+    });
+
+    await userEvent.click(within(row!).getByTestId('client-file-open'));
+
+    expect((await screen.findByTestId('client-files-error')).textContent).toContain(
+      'Nu am putut deschide'
+    );
+    expect(open).not.toHaveBeenCalled();
   });
 });
 

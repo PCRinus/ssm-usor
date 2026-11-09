@@ -1,3 +1,4 @@
+import { fileAddress } from '@ssm-usor/api-http/file-link';
 import { Button } from '@ssm-usor/ui/components/button';
 import { useQuery } from '@tanstack/react-query';
 import { getRouteApi, useRouteContext } from '@tanstack/react-router';
@@ -14,7 +15,6 @@ import { ApiHttpError } from '@/api/http';
 import { PublicFrame } from '@/app/public-frame';
 import { Notice } from '@/components/notice';
 import { formatRoDate } from '@/lib/dates';
-import { fileAddress } from '@/lib/save-file';
 
 const contractReturnRoute = getRouteApi('/contract');
 
@@ -188,8 +188,10 @@ function ReturnForm({
     const lifetime = (link.data?.expiresInSeconds ?? 600) * 1_000;
     if (Date.now() - link.dataUpdatedAt < lifetime - 30_000) return;
     event.preventDefault();
-    const { data } = await link.refetch();
-    if (data) window.location.assign(fileAddress(apiRequest.baseUrl, data, 'inline'));
+    const refreshed = await link.refetch();
+    if (refreshed.isSuccess) {
+      window.location.assign(fileAddress(apiRequest.baseUrl, refreshed.data, 'inline'));
+    }
   }
 
   async function send() {

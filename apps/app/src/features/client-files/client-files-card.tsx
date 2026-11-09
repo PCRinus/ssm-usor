@@ -1,3 +1,10 @@
+import {
+  type Disposition,
+  fileAddress,
+  linkTarget,
+  openAddress,
+  renewalMs,
+} from '@ssm-usor/api-http/file-link';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@ssm-usor/ui/components/table';
@@ -16,9 +23,7 @@ import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { useMe } from '@/features/account/use-me';
 import type { Client } from '@/features/clients/client-form-schema';
-import { type Disposition, linkTarget, openAddress, renewalMs } from '@/lib/file-link';
 import { isEmptyOrLoading } from '@/lib/list-state';
-import { fileAddress } from '@/lib/save-file';
 
 import { DeleteClientFileDialog, RenameClientFileDialog } from './client-file-dialogs';
 import { type ClientFile, type ClientFileEmployee } from './client-file-format';
@@ -85,8 +90,10 @@ export function ClientFilesCard({
 
   async function openFile(file: ClientFile, how: 'open' | 'download') {
     setError(null);
-    const { data } = await files.refetch();
-    const fresh = data?.items.find((item) => item.id === file.id);
+    const refreshed = await files.refetch();
+    const fresh = refreshed.isSuccess
+      ? refreshed.data.items.find((item) => item.id === file.id)
+      : undefined;
     if (!fresh) {
       setError(`Nu am putut deschide „${file.name}”. Verifică conexiunea și încearcă din nou.`);
       return;

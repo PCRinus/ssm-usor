@@ -1,4 +1,5 @@
 import { Trans, useLingui } from '@lingui/react/macro';
+import { useFileLink } from '@ssm-usor/api-http/file-link';
 import {
   testErrorReasons,
   testPassMarkPercent,
@@ -13,7 +14,6 @@ import { getPortalMaterialLink, type TestStudyCard } from '@/api/generated/api';
 import { FileLinkButton } from '@/components/file-link-button';
 import { Notice } from '@/components/notice';
 import { cardClass, SectionLabel } from '@/components/page';
-import { useFileLink } from '@/lib/file-link';
 import { romanianDayOf, useFormatDate } from '@/lib/format';
 import { useApiRequest } from '@/lib/request';
 

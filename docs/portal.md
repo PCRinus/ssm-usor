@@ -77,7 +77,7 @@ that the app's login pages use too, with the portal's own version line as its fo
 
 A stored sheet, its originals, a signed agreement, a stored test sheet and the issued test
 material are real anchors to `GET /files/download`
-(`useFileLink` in `src/lib/file-link.ts`, the link signed through the portal's `…/link` routes
+(`useFileLink` in `@ssm-usor/api-http/file-link`, the link signed through the portal's `…/link` routes
 and renewed before it expires): the PDF is shown `inline`, in a tab of its own, which the in-app
 browser of a mail client can open where it cannot download, and _Descarcă_ is an attachment. A
 sheet drawn up on the spot, the merged reading copy, an agreement nobody has signed yet and a

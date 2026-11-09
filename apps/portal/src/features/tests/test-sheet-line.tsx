@@ -1,6 +1,7 @@
 import type { MessageDescriptor } from '@lingui/core';
 import { msg } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
+import { useFileLink } from '@ssm-usor/api-http/file-link';
 import { type SignatureSlotState, testErrorReasons } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { useQueryClient } from '@tanstack/react-query';
@@ -16,7 +17,6 @@ import {
 import { FileLinkButton } from '@/components/file-link-button';
 import { Notice } from '@/components/notice';
 import { invalidateSigningQueries } from '@/features/signing/signing-items';
-import { useFileLink } from '@/lib/file-link';
 import { testSheetTitleMessage } from '@/lib/labels';
 import { useApiRequest } from '@/lib/request';
 import { openPreview, PreviewBlockedError } from '@/lib/save-file';

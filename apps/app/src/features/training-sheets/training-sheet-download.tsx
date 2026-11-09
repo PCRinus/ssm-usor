@@ -1,3 +1,4 @@
+import { useFileLink } from '@ssm-usor/api-http/file-link';
 import {
   type ApiErrorResponse,
   type TrainingDomain,
@@ -23,7 +24,6 @@ import {
 import { ApiHttpError } from '@/api/http';
 import { FileLinkButton } from '@/components/file-link-button';
 import { FileMenuItem } from '@/components/file-menu-item';
-import { useFileLink } from '@/lib/file-link';
 import { openPreview, PreviewBlockedError, saveFile } from '@/lib/save-file';
 
 import { useTrainingSheets } from './use-training-sheets';

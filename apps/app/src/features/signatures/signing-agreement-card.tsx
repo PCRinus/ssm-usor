@@ -1,3 +1,4 @@
+import { useFileLink } from '@ssm-usor/api-http/file-link';
 import { formatEmployeeName, signatureErrorReasons } from '@ssm-usor/contracts';
 import { signingContractClauseText } from '@ssm-usor/document-engine/signing';
 import { Badge } from '@ssm-usor/ui/components/badge';
@@ -37,7 +38,6 @@ import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { useMe } from '@/features/account/use-me';
 import { formatDay } from '@/features/participants/participant-format';
-import { useFileLink } from '@/lib/file-link';
 import { saveFile } from '@/lib/save-file';
 
 import {
@@ -126,7 +126,13 @@ export function SigningAgreementCard({
   // own; before that it is drawn up when asked for, and comes through the page.
   const stored = Boolean(agreement?.employeeSignedAt || agreement?.employerSignedAt);
   const storedLink = useFileLink({
-    queryKey: ['signing-agreement-link', employee.clientId, employee.id],
+    queryKey: [
+      'signing-agreement-link',
+      employee.clientId,
+      employee.id,
+      agreement?.employeeSignedAt,
+      agreement?.employerSignedAt,
+    ],
     load: (signal) =>
       getSigningAgreementLink(employee.clientId, employee.id, { ...apiRequest, signal }),
     enabled: stored,

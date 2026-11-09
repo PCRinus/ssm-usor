@@ -1,9 +1,9 @@
+import { type Disposition, type FileLink, useFileLink } from '@ssm-usor/api-http/file-link';
 import { DropdownMenuItem } from '@ssm-usor/ui/components/dropdown-menu';
 import type { QueryKey } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
 import type { ApiRequestOptions } from '@/api/http';
-import { type Disposition, type FileLink, useFileLink } from '@/lib/file-link';
 
 export function FileMenuItem({
   queryKey,
