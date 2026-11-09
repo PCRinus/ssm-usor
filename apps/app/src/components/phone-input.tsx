@@ -133,7 +133,7 @@ export function PhoneInput({
 
   return (
     <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-2">
-      <div className="relative flex h-11 items-center gap-1.5 rounded-md border border-input bg-transparent pr-8 pl-3 text-base shadow-xs transition-[color,box-shadow] has-[select:disabled]:opacity-50 has-[select:focus-visible]:border-ring has-[select:focus-visible]:ring-[3px] has-[select:focus-visible]:ring-ring/50 md:text-sm dark:bg-input/30">
+      <div className="relative flex h-11 items-center gap-1.5 rounded-md border border-input bg-card pr-8 pl-3 text-base shadow-xs transition-[color,box-shadow] has-[select:disabled]:opacity-50 has-[select:focus-visible]:border-ring has-[select:focus-visible]:ring-[3px] has-[select:focus-visible]:ring-ring/50 md:text-sm dark:bg-input/30">
         <span aria-hidden="true" className="tabular-nums">
           <span className="text-muted-foreground">{current.country}</span> +
           {getCountryCallingCode(current.country)}

@@ -87,7 +87,7 @@ export function DatePicker({
             type="button"
             variant="outline"
             size="icon"
-            className="size-11 shrink-0"
+            className="size-11 shrink-0 bg-card"
             data-testid={testId ? `${testId}-calendar` : undefined}
             aria-label="Deschide calendarul"
             disabled={disabled}
