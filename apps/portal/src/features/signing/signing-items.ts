@@ -1,5 +1,6 @@
+import { signatureFileLinkKinds } from '@ssm-usor/api-http/file-link';
 import { SIGNING_SESSION_MAX_ITEMS, type SigningAgreementState } from '@ssm-usor/contracts';
-import type { QueryClient } from '@tanstack/react-query';
+import type { QueryClient, QueryFilters } from '@tanstack/react-query';
 
 import {
   type PortalSignatureRequestsResponse,
@@ -135,11 +136,11 @@ export function defaultChoice(items: SigningItem[], keys?: ReadonlySet<string>) 
 const signingQuery =
   /\/portal\/participants\/[^/]+\/(?:.*\/)?(?:signature-requests|signing-agreements?|training-records|sheets|tests)(?:\/|$)/;
 
-export function invalidateSigningQueries(queryClient: QueryClient) {
-  return queryClient.invalidateQueries({
+export async function invalidateSigningQueries(queryClient: QueryClient) {
+  const queries: QueryFilters = {
     predicate: ({ queryKey: [key] }) =>
-      typeof key === 'string' &&
-      (signingQuery.test(key) ||
-        ['signing-agreement-link', 'training-sheet-link', 'test-sheet-link'].includes(key)),
-  });
+      typeof key === 'string' && (signingQuery.test(key) || signatureFileLinkKinds.includes(key)),
+  };
+  await queryClient.cancelQueries(queries);
+  return queryClient.invalidateQueries(queries);
 }

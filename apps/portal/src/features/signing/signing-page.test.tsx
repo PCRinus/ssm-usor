@@ -152,8 +152,8 @@ beforeEach(() => {
   vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(employeeData()));
   vi.mocked(useGetPortalTrainingSheets).mockReturnValue(
     queryResult({
-      ssm: { ready: true, missing: [], stored: true, sequences: [1] },
-      su: { ready: true, missing: [], stored: false, sequences: [] },
+      ssm: { ready: true, missing: [], stored: true, sequences: [1], versions: {} },
+      su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
     })
   );
   vi.mocked(useListPortalClientEmployees).mockReturnValue(queryPending());
@@ -855,11 +855,39 @@ describe('Instruiri and Contul meu', () => {
     );
   });
 
+  it.each(['/instruiri', '/'])(
+    'renews the cached sheet after a remote signature on %s',
+    async (path) => {
+      const sheets = {
+        ssm: { ready: true, missing: [], stored: true, sequences: [1], versions: { 1: 'sheet:1' } },
+        su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
+      };
+      vi.mocked(useGetPortalTrainingSheets).mockImplementation(() => queryResult(sheets));
+      vi.mocked(getPortalTrainingSheetLink).mockImplementation(async () => ({
+        url: `https://files.example.test/${sheets.ssm.versions[1]}.pdf`,
+        fileName: 'sheet.pdf',
+        expiresInSeconds: 600,
+      }));
+      const runtime = mountPortal(signedIn(), path);
+      const testId = path === '/' ? 'training-summary-sheet-ssm' : 'training-sheet-ssm-open';
+      const source = () =>
+        new URL(screen.getByTestId(testId).getAttribute('href')!).searchParams.get('source');
+      await waitFor(() => expect(source()).toBe('https://files.example.test/sheet:1.pdf'));
+
+      await act(() => runtime.router.navigate({ to: '/contul-meu' }));
+      sheets.ssm.versions[1] = 'sheet:2';
+      await act(() => runtime.router.navigate({ to: path }));
+
+      await waitFor(() => expect(source()).toBe('https://files.example.test/sheet:2.pdf'));
+      expect(getPortalTrainingSheetLink).toHaveBeenCalledTimes(2);
+    }
+  );
+
   it('offers the originals of a sheet continued on a second one beside the reading copy', async () => {
     vi.mocked(useGetPortalTrainingSheets).mockReturnValue(
       queryResult({
-        ssm: { ready: true, missing: [], stored: true, sequences: [1, 2] },
-        su: { ready: true, missing: [], stored: false, sequences: [] },
+        ssm: { ready: true, missing: [], stored: true, sequences: [1, 2], versions: {} },
+        su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
       })
     );
     mountPortal(signedIn(), '/instruiri');
@@ -897,6 +925,37 @@ describe('Instruiri and Contul meu', () => {
     expect(address.searchParams.get('disposition')).toBe('inline');
     expect(screen.getByTestId('agreement-pdf').getAttribute('target')).toBe('_blank');
     expect(screen.getByTestId('agreement-pdf').tagName).toBe('A');
+  });
+
+  it('renews the cached agreement after the employer signs remotely', async () => {
+    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
+      queryResult({ unavailable: null, agreement: agreementAwaitingEmployer })
+    );
+    const runtime = mountPortal(signedIn(), '/contul-meu');
+    const source = () =>
+      new URL(screen.getByTestId('agreement-pdf').getAttribute('href')!).searchParams.get('source');
+    await waitFor(() => expect(source()).toBe('https://files.example.test/signed/agreement'));
+
+    await act(() => runtime.router.navigate({ to: '/instruiri' }));
+    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
+      queryResult({
+        unavailable: null,
+        agreement: {
+          ...agreementAwaitingEmployer,
+          employerSignedAt: '2026-10-18T09:00:00Z',
+          awaiting: null,
+        },
+      })
+    );
+    vi.mocked(getPortalSigningAgreementLink).mockResolvedValue({
+      url: 'https://files.example.test/signed/agreement-v2',
+      fileName: 'agreement.pdf',
+      expiresInSeconds: 600,
+    });
+    await act(() => runtime.router.navigate({ to: '/contul-meu' }));
+
+    await waitFor(() => expect(source()).toBe('https://files.example.test/signed/agreement-v2'));
+    expect(getPortalSigningAgreementLink).toHaveBeenCalledTimes(2);
   });
 
   it.each([

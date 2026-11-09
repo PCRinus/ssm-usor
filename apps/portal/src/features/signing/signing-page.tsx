@@ -452,7 +452,7 @@ function ChooseRow({
           <AgreementPdfButton
             participation={participation}
             employeeId={item.employeeId}
-            stored={item.party === 'employer' && item.employeeSignedAt !== null}
+            signedAt={item.party === 'employer' ? item.employeeSignedAt : null}
           />
         )}
       </div>

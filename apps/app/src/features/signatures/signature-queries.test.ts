@@ -27,6 +27,37 @@ describe('invalidateSignatures', () => {
 });
 
 describe('signatures refresh prepared files of the client', () => {
+  it('discards an initial link response that was read before the signatures changed', async () => {
+    const client = new QueryClient();
+    const key = ['training-sheet-link', clientId, employeeId, 'ssm', 1];
+    let finishOld!: (link: { url: string }) => void;
+    const old = new Promise<{ url: string }>((resolve) => {
+      finishOld = resolve;
+    });
+    const load = vi
+      .fn<() => Promise<{ url: string }>>()
+      .mockReturnValueOnce(old)
+      .mockResolvedValueOnce({ url: 'v2.pdf' });
+    const observer = new QueryObserver(client, {
+      queryKey: key,
+      queryFn: load,
+      staleTime: 540_000,
+    });
+    const unsubscribe = observer.subscribe(() => {});
+    try {
+      expect(load).toHaveBeenCalledTimes(1);
+      await invalidateSignatures(client, clientId);
+      expect(observer.getCurrentResult().data?.url).toBe('v2.pdf');
+      finishOld({ url: 'v1.pdf' });
+      await old;
+      expect(load).toHaveBeenCalledTimes(2);
+      expect(client.getQueryData(key)).toEqual({ url: 'v2.pdf' });
+    } finally {
+      unsubscribe();
+      client.clear();
+    }
+  });
+
   it.each(['signing-agreement-link', 'training-sheet-link', 'test-sheet-link'])(
     'refreshes %s without touching another client',
     async (kind) => {

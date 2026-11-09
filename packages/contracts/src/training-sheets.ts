@@ -36,6 +36,8 @@ export const trainingSheetReadinessSchema = z.object({
    * is served as signed with `sequence`; without it, several come merged into a copy to read.
    */
   sequences: z.array(z.int().min(1)),
+  /** Opaque file revisions by sequence, so links follow signatures made from another app. */
+  versions: z.record(z.string(), z.string()),
 });
 
 export type TrainingSheetReadiness = z.infer<typeof trainingSheetReadinessSchema>;

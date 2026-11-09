@@ -241,8 +241,8 @@ function mockApi(routes: Partial<Record<string, Handler>> = {}) {
         return Response.json(employeeTests());
       case `GET ${employeePath}/training-sheets`:
         return Response.json({
-          ssm: { ready: true, missing: [], stored: false, sequences: [] },
-          su: { ready: true, missing: [], stored: false, sequences: [] },
+          ssm: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
+          su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
         });
       case `GET ${employeePath}/participant`:
         return Response.json({ participant: null, invitation: null });

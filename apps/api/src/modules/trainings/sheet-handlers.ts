@@ -121,19 +121,15 @@ export async function loadSheetFacts(
   };
 }
 
-async function storedSequences(db: DataClient, clientId: string, employeeId: string) {
+async function storedSheets(db: DataClient, clientId: string, employeeId: string) {
   const { data, error } = await db
     .from('signed_sheets')
-    .select('domain, sequence')
+    .select('id, domain, sequence, version')
     .eq('employee_id', employeeId)
     .eq('client_id', clientId)
     .order('sequence');
   if (error) throw fromDatabaseError(error, 'stored sheets');
-  const sequences = new Map<TrainingDomain, number[]>();
-  for (const row of data) {
-    sequences.set(row.domain, [...(sequences.get(row.domain) ?? []), row.sequence]);
-  }
-  return sequences;
+  return data;
 }
 
 export async function trainingSheetReadiness(
@@ -143,13 +139,18 @@ export async function trainingSheetReadiness(
 ): Promise<TrainingSheetsResponse> {
   const [facts, stored] = await Promise.all([
     loadSheetFacts(db, clientId, employeeId),
-    storedSequences(db, clientId, employeeId),
+    storedSheets(db, clientId, employeeId),
   ]);
   const readiness = (domain: TrainingDomain) => {
-    const sequences = stored.get(domain) ?? [];
-    if (sequences.length > 0) return { ready: true, missing: [], stored: true, sequences };
+    const sheets = stored.filter((sheet) => sheet.domain === domain);
+    const sequences = sheets.map((sheet) => sheet.sequence);
+    const versions = Object.fromEntries(
+      sheets.map((sheet) => [sheet.sequence, `${sheet.id}:${sheet.version}`])
+    );
+    if (sequences.length > 0)
+      return { ready: true, missing: [], stored: true, sequences, versions };
     const missing = missingSheetDataOf({ ...facts, domain });
-    return { ready: missing.length === 0, missing, stored: false, sequences };
+    return { ready: missing.length === 0, missing, stored: false, sequences, versions };
   };
   return Object.fromEntries(
     trainingDomains.map((domain) => [domain, readiness(domain)])

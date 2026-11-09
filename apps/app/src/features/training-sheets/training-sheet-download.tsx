@@ -66,7 +66,14 @@ export function TrainingSheetDownload({
   const storedSequence = sheet?.stored && sheet.sequences.length === 1 ? sheet.sequences[0]! : null;
 
   const linkOf = (sequence: number) => ({
-    queryKey: ['training-sheet-link', clientId, employeeId, domain, sequence],
+    queryKey: [
+      'training-sheet-link',
+      clientId,
+      employeeId,
+      domain,
+      sequence,
+      sheet?.versions[sequence],
+    ],
     load: (signal: AbortSignal) =>
       getTrainingSheetLink(clientId, employeeId, { domain, sequence }, { ...apiRequest, signal }),
   });

@@ -7,6 +7,12 @@ export type FileLink = { url: string; fileName: string; expiresInSeconds: number
 
 export type Disposition = 'attachment' | 'inline';
 
+export const signatureFileLinkKinds = [
+  'signing-agreement-link',
+  'training-sheet-link',
+  'test-sheet-link',
+];
+
 // For a file in Storage: the API passes it through under its real name, which Storage's own
 // header loses. `inline` shows a PDF in the browser's viewer, which the in-app browser of Gmail
 // on Android (a Firefox custom tab) can do where it cannot download at all.

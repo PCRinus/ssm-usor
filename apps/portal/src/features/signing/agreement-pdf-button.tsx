@@ -22,30 +22,30 @@ import {
 import { useApiRequest } from '@/lib/request';
 import { openPreview, PreviewBlockedError } from '@/lib/save-file';
 
-// `stored` is an agreement a party has signed electronically: a file with a link of its own.
-// Before that it is drawn up when asked for, and comes through the page.
+// Unsigned agreements are drawn up on demand, so only signed agreements have a stored link.
 export function AgreementPdfButton({
   participation,
   employeeId,
-  stored = false,
+  signedAt,
   className,
 }: {
   participation: Participation;
   employeeId: string;
-  stored?: boolean;
+  signedAt?: string | null;
   className?: string;
 }) {
   const { t, i18n } = useLingui();
   const apiRequest = useApiRequest();
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<MessageDescriptor | null>(null);
+  const stored = Boolean(signedAt);
   const administrator = isAdministrator(participation);
   const load = () =>
     administrator
       ? getPortalEmployeeSigningAgreement(participation.participantId, employeeId, apiRequest)
       : getPortalSigningAgreement(participation.participantId, apiRequest);
   const link = useFileLink({
-    queryKey: ['signing-agreement-link', participation.participantId, employeeId],
+    queryKey: ['signing-agreement-link', participation.participantId, employeeId, signedAt],
     load: (signal) =>
       administrator
         ? getPortalEmployeeSigningAgreementLink(participation.participantId, employeeId, {

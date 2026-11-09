@@ -658,8 +658,8 @@ describe('the sheets', () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
-      ssm: { ready: true, missing: [], stored: false, sequences: [] },
-      su: { ready: true, missing: [], stored: false, sequences: [] },
+      ssm: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
+      su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
     });
   });
 
@@ -671,8 +671,14 @@ describe('the sheets', () => {
 
     const readiness = await request(own('/sheets'));
     expect(await readiness.json()).toEqual({
-      ssm: { ready: true, missing: [], stored: true, sequences: [1] },
-      su: { ready: true, missing: [], stored: false, sequences: [] },
+      ssm: {
+        ready: true,
+        missing: [],
+        stored: true,
+        sequences: [1],
+        versions: { 1: `${storedSheetRow.id}:${storedSheetRow.version}` },
+      },
+      su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
     });
 
     const response = await request(own('/sheets/ssm'));

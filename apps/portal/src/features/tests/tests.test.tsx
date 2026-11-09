@@ -114,8 +114,8 @@ beforeEach(() => {
   vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(employeeData()));
   vi.mocked(useGetPortalTrainingSheets).mockReturnValue(
     queryResult({
-      ssm: { ready: true, missing: [], stored: false, sequences: [] },
-      su: { ready: true, missing: [], stored: false, sequences: [] },
+      ssm: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
+      su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
     })
   );
   vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [] }));

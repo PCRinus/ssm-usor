@@ -232,8 +232,8 @@ function mockApi(routes: Partial<Record<string, Handler>> = {}) {
         return Response.json(employeeTests());
       case `GET ${employeePath}/training-sheets`:
         return Response.json({
-          ssm: { ready: true, missing: [], stored: false, sequences: [] },
-          su: { ready: true, missing: [], stored: false, sequences: [] },
+          ssm: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
+          su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
         });
       case `GET /clients/${clientId}/job-positions`:
         return Response.json({
@@ -436,8 +436,14 @@ describe("an employee's training tabs", () => {
     mockApi({
       [`GET ${employeePath}/training-sheets`]: () =>
         Response.json({
-          ssm: { ready: false, missing: ['employee.commute_route'], stored: false, sequences: [] },
-          su: { ready: true, missing: [], stored: false, sequences: [] },
+          ssm: {
+            ready: false,
+            missing: ['employee.commute_route'],
+            stored: false,
+            sequences: [],
+            versions: {},
+          },
+          su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
         }),
     });
     mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/ssm`);

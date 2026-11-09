@@ -2789,12 +2789,15 @@ export const TrainingSheetsResponseSsmMissingItem = {
   employeeworkplace: 'employee.workplace',
 } as const;
 
+export type TrainingSheetsResponseSsmVersions = { [key: string]: string };
+
 export type TrainingSheetsResponseSsm = {
   ready: boolean;
   missing: TrainingSheetsResponseSsmMissingItem[];
   stored: boolean;
   /** @items.minimum 1 */
   sequences: number[];
+  versions: TrainingSheetsResponseSsmVersions;
 };
 
 export type TrainingSheetsResponseSuMissingItem =
@@ -2805,12 +2808,15 @@ export const TrainingSheetsResponseSuMissingItem = {
   employeeworkplace: 'employee.workplace',
 } as const;
 
+export type TrainingSheetsResponseSuVersions = { [key: string]: string };
+
 export type TrainingSheetsResponseSu = {
   ready: boolean;
   missing: TrainingSheetsResponseSuMissingItem[];
   stored: boolean;
   /** @items.minimum 1 */
   sequences: number[];
+  versions: TrainingSheetsResponseSuVersions;
 };
 
 export interface TrainingSheetsResponse {

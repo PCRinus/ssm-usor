@@ -60,7 +60,7 @@ export function AgreementSection({ participation }: { participation: Participati
           <AgreementPdfButton
             participation={participation}
             employeeId={employeeId}
-            stored={Boolean(agreement?.employeeSignedAt || agreement?.employerSignedAt)}
+            signedAt={agreement?.employerSignedAt ?? agreement?.employeeSignedAt}
           />
         </div>
       )}

@@ -3637,9 +3637,15 @@
                   "type": "integer",
                   "minimum": 1
                 }
+              },
+              "versions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
               }
             },
-            "required": ["ready", "missing", "stored", "sequences"]
+            "required": ["ready", "missing", "stored", "sequences", "versions"]
           },
           "su": {
             "type": "object",
@@ -3663,9 +3669,15 @@
                   "type": "integer",
                   "minimum": 1
                 }
+              },
+              "versions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
               }
             },
-            "required": ["ready", "missing", "stored", "sequences"]
+            "required": ["ready", "missing", "stored", "sequences", "versions"]
           }
         },
         "required": ["ssm", "su"]
@@ -23073,9 +23085,15 @@
                   "type": "integer",
                   "minimum": 1
                 }
+              },
+              "versions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
               }
             },
-            "required": ["ready", "missing", "stored", "sequences"]
+            "required": ["ready", "missing", "stored", "sequences", "versions"]
           },
           "su": {
             "type": "object",
@@ -23099,9 +23117,15 @@
                   "type": "integer",
                   "minimum": 1
                 }
+              },
+              "versions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
               }
             },
-            "required": ["ready", "missing", "stored", "sequences"]
+            "required": ["ready", "missing", "stored", "sequences", "versions"]
           }
         },
         "required": ["ssm", "su"]

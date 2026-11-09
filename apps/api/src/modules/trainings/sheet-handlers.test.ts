@@ -234,8 +234,8 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheets', () =>
     const response = await request(sheetsPath);
     expect(response.status).toBe(200);
     expect(trainingSheetsResponseSchema.parse(await response.json())).toEqual({
-      ssm: { ready: true, missing: [], stored: false, sequences: [] },
-      su: { ready: true, missing: [], stored: false, sequences: [] },
+      ssm: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
+      su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
     });
     expect(calls('/rest/v1/training_records')).toHaveLength(0);
     const query = new URL(String(calls('/rest/v1/employees')[0]![0])).searchParams;
@@ -257,8 +257,15 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheets', () =>
         missing: ['employee.commute_route', 'employee.workplace'],
         stored: false,
         sequences: [],
+        versions: {},
       },
-      su: { ready: false, missing: ['employee.workplace'], stored: false, sequences: [] },
+      su: {
+        ready: false,
+        missing: ['employee.workplace'],
+        stored: false,
+        sequences: [],
+        versions: {},
+      },
     });
   });
 
@@ -268,7 +275,13 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheets', () =>
       workplaces: () => Response.json([workshop]),
     });
     const body = trainingSheetsResponseSchema.parse(await (await request(sheetsPath)).json());
-    expect(body.ssm).toEqual({ ready: true, missing: [], stored: false, sequences: [] });
+    expect(body.ssm).toEqual({
+      ready: true,
+      missing: [],
+      stored: false,
+      sequences: [],
+      versions: {},
+    });
   });
 
   it('answers a stored signed sheet as ready, whatever the employee now lacks', async () => {
@@ -276,14 +289,26 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheets', () =>
       employees: () => Response.json([{ ...employeeRow, commute_route: null }]),
       sheets: () =>
         Response.json([
-          { domain: 'su', sequence: 1 },
-          { domain: 'su', sequence: 2 },
+          { id: 'sheet-1', domain: 'su', sequence: 1, version: 2 },
+          { id: 'sheet-2', domain: 'su', sequence: 2, version: 1 },
         ]),
     });
     const body = trainingSheetsResponseSchema.parse(await (await request(sheetsPath)).json());
     expect(body).toEqual({
-      ssm: { ready: false, missing: ['employee.commute_route'], stored: false, sequences: [] },
-      su: { ready: true, missing: [], stored: true, sequences: [1, 2] },
+      ssm: {
+        ready: false,
+        missing: ['employee.commute_route'],
+        stored: false,
+        sequences: [],
+        versions: {},
+      },
+      su: {
+        ready: true,
+        missing: [],
+        stored: true,
+        sequences: [1, 2],
+        versions: { 1: 'sheet-1:2', 2: 'sheet-2:1' },
+      },
     });
     const query = new URL(String(calls('/rest/v1/signed_sheets')[0]![0])).searchParams;
     expect(query.get('employee_id')).toBe(`eq.${employeeId}`);

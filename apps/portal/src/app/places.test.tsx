@@ -54,8 +54,8 @@ vi.mock('@/api/generated/api', async (importOriginal) => ({
 }));
 
 const sheetsReady = {
-  ssm: { ready: true, missing: [], stored: false, sequences: [] },
-  su: { ready: true, missing: [], stored: false, sequences: [] },
+  ssm: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
+  su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
 };
 
 const agreementSignedOnPaper = {
@@ -401,8 +401,15 @@ describe('Instruiri', () => {
           missing: ['employee.commute_route', 'employee.workplace'],
           stored: false,
           sequences: [],
+          versions: {},
         },
-        su: { ready: false, missing: ['employee.workplace'], stored: false, sequences: [] },
+        su: {
+          ready: false,
+          missing: ['employee.workplace'],
+          stored: false,
+          sequences: [],
+          versions: {},
+        },
       })
     );
     mountPortal(signedIn(), '/instruiri');
@@ -616,7 +623,7 @@ describe('Lucrători', () => {
   });
 
   it("gives each employee's stored sheet its own link", async () => {
-    const stored = { ready: true, missing: [], stored: true, sequences: [1] };
+    const stored = { ready: true, missing: [], stored: true, sequences: [1], versions: {} };
     vi.mocked(useListPortalEmployeeTrainingRecords).mockReturnValue(queryResult(trainingRecords()));
     vi.mocked(useGetPortalEmployeeTrainingSheets).mockReturnValue(
       queryResult({ ssm: stored, su: stored })

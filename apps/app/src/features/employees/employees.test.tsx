@@ -211,8 +211,8 @@ function mockApi(
     }
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}/training-sheets`) {
       return Response.json({
-        ssm: { ready: true, missing: [], stored: false, sequences: [] },
-        su: { ready: true, missing: [], stored: false, sequences: [] },
+        ssm: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
+        su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
       });
     }
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}/status` && method === 'PATCH') {

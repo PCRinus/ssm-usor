@@ -53,12 +53,19 @@ export const storedSequenceOf = (
 export function useStoredSheetLink(
   domain: TrainingDomain,
   sequence: number | null,
+  sheet: PortalTrainingSheetsResponse[TrainingDomain] | undefined,
   { loadLink, linkScope }: SheetLinks,
   disposition: Disposition
 ) {
   const apiRequest = useApiRequest();
   return useFileLink({
-    queryKey: ['training-sheet-link', ...linkScope, domain, sequence],
+    queryKey: [
+      'training-sheet-link',
+      ...linkScope,
+      domain,
+      sequence,
+      sequence === null ? null : sheet?.versions[sequence],
+    ],
     load: (signal) => loadLink(domain, sequence ?? 0, signal),
     enabled: sequence !== null,
     apiRequest,

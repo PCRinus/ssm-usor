@@ -547,12 +547,15 @@ export const PortalTrainingSheetsResponseSsmMissingItem = {
   employeeworkplace: 'employee.workplace',
 } as const;
 
+export type PortalTrainingSheetsResponseSsmVersions = { [key: string]: string };
+
 export type PortalTrainingSheetsResponseSsm = {
   ready: boolean;
   missing: PortalTrainingSheetsResponseSsmMissingItem[];
   stored: boolean;
   /** @items.minimum 1 */
   sequences: number[];
+  versions: PortalTrainingSheetsResponseSsmVersions;
 };
 
 export type PortalTrainingSheetsResponseSuMissingItem =
@@ -563,12 +566,15 @@ export const PortalTrainingSheetsResponseSuMissingItem = {
   employeeworkplace: 'employee.workplace',
 } as const;
 
+export type PortalTrainingSheetsResponseSuVersions = { [key: string]: string };
+
 export type PortalTrainingSheetsResponseSu = {
   ready: boolean;
   missing: PortalTrainingSheetsResponseSuMissingItem[];
   stored: boolean;
   /** @items.minimum 1 */
   sequences: number[];
+  versions: PortalTrainingSheetsResponseSuVersions;
 };
 
 export interface PortalTrainingSheetsResponse {

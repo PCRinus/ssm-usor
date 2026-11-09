@@ -187,7 +187,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PATCH /clients/{clientId}/employees/{employeeId}/status`              | Verified user with a membership       | `{ "employee": { … } }` after marking a leaver (with `terminatedAt`) or reactivating                                                                                                               |
 | `PATCH /clients/{clientId}/employees/{employeeId}/job-position`        | Verified user with a membership       | `{ "employee": { … } }` in the new job position                                                                                                                                                    |
 | `GET /clients/{clientId}/employees/{employeeId}/training-records`      | Verified user with a membership       | `{ "items": [ … ] }`, each record with its `training`, `signed`, `hasSignatures`, newest first; `?domain=`                                                                                         |
-| `GET /clients/{clientId}/employees/{employeeId}/training-sheets`       | Verified user with a membership       | `{ "ssm": { ready, missing, stored, sequences }, "su": { … } }`: whether each individual training sheet can be drawn up, or is stored                                                              |
+| `GET /clients/{clientId}/employees/{employeeId}/training-sheets`       | Verified user with a membership       | `{ "ssm": { ready, missing, stored, sequences, versions }, "su": { … } }`: whether each individual training sheet can be drawn up, or is stored                                                    |
 | `GET /clients/{clientId}/employees/{employeeId}/training-sheet`        | Verified user with a membership       | `200 application/pdf`, the stored signed sheet, a merged copy, or the sheet built on the spot; `?domain=ssm\|su&sequence=`; `409 missing_sheet_data`, `503 pdf_unavailable`                        |
 | `GET /clients/{clientId}/trainings`                                    | Verified user with a membership       | `{ "items": [ … ] }`, newest first, each with `attendeeCount`, `attendees`, `signed`, `hasSignatures`; `?domain=&phase=`                                                                           |
 | `GET /clients/{clientId}/trainings/proposal`                           | Verified user with a membership       | `{ durationMinutes, material, trainer, … }`; `?domain=&phase=&heldOn=&jobPositionId=&employeeIds=` (the attendees so far, comma-separated)                                                         |
@@ -534,11 +534,13 @@ and never stored, until signing starts: from then on the sheet of that employee 
 the stored signed sheet ([ADR 023](architecture/adr-023-advanced-electronic-signature.md),
 [PDF](pdf.md#the-signed-sheet)), and both routes answer it instead.
 `GET …/employees/{employeeId}/training-sheets` answers for both domains `stored`, `sequences`
-(the stored sheet and its continuation sheets by number, empty before signing), and whether
-the sheet can be drawn up and, when not, the codes of what is missing:
+(the stored sheet and its continuation sheets by number, empty before signing), `versions`
+(opaque file revisions keyed by sequence, empty before signing), and whether the sheet can be drawn up and, when not, the codes of what is missing:
 `employee.commute_route` on the occupational safety sheet while the route is empty, and
 `employee.workplace` on both while the employee has no workplace at a client with more than one
-active workplace. Nothing else blocks a sheet, and a leaver's sheets are drawn up too.
+active workplace. A file revision changes when signing or voiding changes that PDF; the app
+and portal include it in the link cache key so refreshed readiness follows remote changes.
+Nothing else blocks a sheet, and a leaver's sheets are drawn up too.
 `GET …/employees/{employeeId}/training-sheet?domain=ssm|su` builds the merge data from the
 employee, the position, the workplace and the domain's training records
 ([document engine](document-engine.md#sheets)), merges the newest registered version of the
@@ -1283,7 +1285,7 @@ no route outside the prefix has the tag.
 | `PUT /portal/participants/{participantId}/language`                   | Participant          | `204` after saving `{ language }`, `ro` or `en`                                                 |
 | `GET …/{participantId}/training-records`                              | Employee             | `{ items, training }`: own records newest first with their `slots`, the states                  |
 | `GET …/{participantId}/data`                                          | Employee             | _Datele mele_: what the sheets print, and the provider                                          |
-| `GET …/{participantId}/sheets`                                        | Employee             | `{ ssm, su }`, each `{ ready, missing, stored, sequences }`                                     |
+| `GET …/{participantId}/sheets`                                        | Employee             | `{ ssm, su }`, each `{ ready, missing, stored, sequences, versions }`                           |
 | `GET …/{participantId}/sheets/{domain}`                               | Employee             | `200 application/pdf`, as stored once signing has started; `409 missing_sheet_data`             |
 | `GET …/{participantId}/employees`                                     | Client administrator | `{ items }`: current employees with their training states                                       |
 | `GET …/{participantId}/employees/{employeeId}/training-records`       | Client administrator | As the employee's own                                                                           |

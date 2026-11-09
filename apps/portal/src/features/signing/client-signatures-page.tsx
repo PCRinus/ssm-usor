@@ -161,7 +161,7 @@ function AgreementRow({
         <AgreementPdfButton
           participation={participation}
           employeeId={item.employee.id}
-          stored={Boolean(agreement.employeeSignedAt || agreement.employerSignedAt)}
+          signedAt={agreement.employerSignedAt ?? agreement.employeeSignedAt}
         />
         {item.awaitingEmployer && (
           <Button asChild className="h-10 px-4">
