@@ -540,7 +540,9 @@ describe('a section of the review', () => {
       .find((row) => row.textContent?.includes('Brutar'))!;
     await userEvent.click(within(brutar).getByTestId('review-edit'));
     const dialog = await screen.findByTestId('job-position-dialog');
-    expect(within(dialog).getByRole('heading').textContent).toBe('Modifică postul de lucru');
+    expect(within(dialog).getByRole('heading', { level: 2 }).textContent).toBe(
+      'Modifică postul de lucru'
+    );
     const activities = within(dialog).getByTestId('job-position-activities');
     await userEvent.clear(activities);
     await userEvent.type(activities, 'Coacere');
@@ -1376,6 +1378,22 @@ function secondPost(changes: unknown = null) {
 }
 
 describe('reviewing related import data', () => {
+  it('separates the source heading and filename and preserves the original excerpt verbatim', async () => {
+    const proposal = proposalFixture();
+    const quote = 'LOC DE MUNCĂ: LABORATOR\n| Brutar | Frământare și coacere |';
+    proposal.jobPositions[0]!.sources = [{ file: 'dosar-ssm.zip/Fisa_post_Brutar.doc', quote }];
+    mockReview(readyDetail({ proposal }));
+    mount('/job-positions');
+
+    const row = (await screen.findAllByTestId('review-item'))[0]!;
+    await userEvent.click(within(row).getByTestId('review-edit'));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('heading', { name: 'Din document', level: 3 })).toBeTruthy();
+    expect(within(dialog).getByText('Fisa_post_Brutar.doc')).toBeTruthy();
+    expect(dialog.querySelector('blockquote')?.textContent).toBe(quote);
+    expect(saves).toBe(0);
+  });
+
   it.each([
     ['/workplaces', 'Sursa: Sediu'],
     ['/job-positions', 'Sursa: Brutar'],

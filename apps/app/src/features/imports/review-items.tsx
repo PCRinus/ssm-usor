@@ -586,14 +586,21 @@ const quoteAside = (sources: Source[], openSource: () => void) => {
   const first = sources[0];
   if (!first) return null;
   return (
-    <figure className="col-span-full grid min-w-0 gap-1.5 rounded-lg bg-muted/50 p-3 text-sm wrap-anywhere">
-      <figcaption className="flex flex-wrap items-center justify-between gap-2 max-sm:[&>button]:h-11">
-        <span className="min-w-0 text-xs text-muted-foreground">
-          Propus din {first.file.split('/').at(-1)}
-        </span>
+    <figure className="col-span-full min-w-0 rounded-lg border border-info-border/70 bg-info/60">
+      <figcaption className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3 p-4 max-sm:[&>button]:h-11 max-sm:[&>button]:w-full">
+        <div className="grid min-w-0 flex-1 basis-48 gap-1">
+          <h3 className="text-base leading-snug font-semibold text-foreground">Din document</h3>
+          <p className="text-sm leading-5 wrap-anywhere text-muted-foreground">
+            {first.file.split('/').at(-1)}
+          </p>
+        </div>
         <SourceButton sources={sources} onOpen={openSource} />
       </figcaption>
-      <blockquote className="border-l-2 border-primary/40 pl-3 italic">„{first.quote}”</blockquote>
+      {first.quote && (
+        <blockquote className="mx-4 mb-4 rounded-r-md border-l-2 border-info-border bg-card/70 px-3 py-2.5 text-sm leading-6 whitespace-pre-wrap wrap-anywhere text-foreground">
+          {first.quote}
+        </blockquote>
+      )}
     </figure>
   );
 };
