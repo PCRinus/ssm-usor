@@ -252,7 +252,7 @@ function ItemRow({
             <div key={field} className="mt-1 grid gap-1">
               <SpellingChoice
                 label={itemSpellingLabel(field)}
-                showValue={false}
+                showLabel
                 corrected={value}
                 written={written}
                 keptWritten={keptWritten}

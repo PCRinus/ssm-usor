@@ -1060,7 +1060,7 @@ describe("a protective-equipment entry's duration", () => {
     mount('/equipment');
 
     const [gloves, mask] = await screen.findAllByTestId('review-item');
-    expect(gloves!.textContent).toContain(
+    expect(within(gloves!).getByRole('note', { name: 'Date de corectat' }).textContent).toContain(
       'Lipsește durata de utilizare. Scrie-o, sau alege alocarea Consum dacă articolul se consumă.'
     );
     expect(mask!.textContent).toContain(
@@ -1717,8 +1717,9 @@ describe('a value proposed with its spelling corrected', () => {
     return readyDetail({ proposal });
   };
 
-  const checked = (scope: HTMLElement, name: RegExp) =>
-    (within(scope).getByRole('radio', { name }) as HTMLInputElement).checked;
+  const picked = (scope: HTMLElement, variant: 'written' | 'corrected') =>
+    within(within(scope).getByTestId(`review-spelling-${variant}`)).queryByText('Se preia') !==
+    null;
 
   it('offers the corrected value over the document’s, one above the other, and takes either', async () => {
     mockReview(spellingDetail());
@@ -1728,17 +1729,16 @@ describe('a value proposed with its spelling corrected', () => {
       item.textContent?.includes('Îngrijitor hotel')
     )!;
     const [name, zone] = within(row).getAllByTestId('review-spelling');
-    expect((name as HTMLDetailsElement).open).toBe(false);
-    expect(within(name!).getByTestId('review-spelling-preview').textContent).toBe('Denumire');
-    await userEvent.click(within(name!).getByText('Compară'));
-    expect(checked(name!, /Scrierea corectată/)).toBe(true);
-    expect(markedWords(name!)).toEqual(['Îngrijitor', 'INGRIJITOR']);
-    await userEvent.click(within(zone!).getByText('Compară'));
-    expect(zone!.textContent).toContain('Scrierea corectată: majuscule');
+    expect(within(name!).getByText('Denumire')).toBeDefined();
+    expect(within(name!).queryByText('Compară')).toBeNull();
+    expect(picked(name!, 'corrected')).toBe(true);
+    expect(markedWords(name!)).toEqual(['INGRIJITOR', 'Îngrijitor']);
+    expect(zone!.textContent).toContain('Corectură AI: majuscule');
     expect(zone!.textContent).not.toContain('diacritice');
     expect(markedWords(zone!)).toEqual([]);
+    expect(saves).toBe(0);
 
-    await userEvent.click(within(name!).getByRole('radio', { name: /Ca în document/ }));
+    await userEvent.click(within(name!).getByRole('button', { name: 'Păstrează ca în document' }));
     await waitFor(() => expect(saves).toBe(1));
     expect(savedChanges(0).changes.items).toEqual({
       'position-1': { values: { name: 'INGRIJITOR HOTEL' } },
@@ -1747,7 +1747,7 @@ describe('a value proposed with its spelling corrected', () => {
       .getAllByTestId('review-item')
       .find((item) => item.textContent?.includes('INGRIJITOR HOTEL'))!;
     const [keptName] = within(kept).getAllByTestId('review-spelling');
-    expect(checked(keptName!, /Ca în document/)).toBe(true);
+    expect(picked(keptName!, 'written')).toBe(true);
     expect(within(kept).queryByTestId('edited-tag')).toBeNull();
 
     await userEvent.click(within(kept).getByTestId('review-edit'));
@@ -1759,7 +1759,9 @@ describe('a value proposed with its spelling corrected', () => {
       values: { name: 'INGRIJITOR HOTEL', activities: 'Frământare și coacere, curățenie' },
     });
 
-    await userEvent.click(within(keptName!).getByRole('radio', { name: /Scrierea corectată/ }));
+    await userEvent.click(
+      within(keptName!).getByRole('button', { name: 'Folosește scrierea corectată' })
+    );
     await waitFor(() => expect(saves).toBe(3));
     expect(savedChanges(2).changes.items['position-1']).toEqual({
       values: { activities: 'Frământare și coacere, curățenie' },
@@ -1773,25 +1775,26 @@ describe('a value proposed with its spelling corrected', () => {
     await screen.findByText('Locul pentru fumat');
     const row = document.getElementById('review-fireSafety-smokingPlace')!;
     const spelling = within(row).getByTestId('review-spelling');
-    expect((spelling as HTMLDetailsElement).open).toBe(false);
-    await userEvent.click(within(spelling).getByText('Compară'));
-    expect(spelling.textContent).toContain('Scrierea corectată: diacritice');
-    expect(markedWords(spelling)).toEqual(['În', 'In']);
+    expect(spelling.querySelector('details')).toBeNull();
+    expect(spelling.textContent).toContain('Corectură AI: diacritice');
+    expect(markedWords(spelling)).toEqual(['In', 'În']);
     expect(row.textContent?.match(/Locul pentru fumat/g)).toHaveLength(1);
 
-    await userEvent.click(within(row).getByRole('radio', { name: /Ca în document/ }));
+    await userEvent.click(within(row).getByRole('button', { name: 'Păstrează ca în document' }));
     await waitFor(() => expect(saves).toBe(1));
     expect(savedChanges(0).changes.fields).toEqual({
       'fireSafety.smokingPlace': { value: 'In curte' },
     });
-    await waitFor(() => expect(checked(row, /Ca în document/)).toBe(true));
+    await waitFor(() => expect(picked(spelling, 'written')).toBe(true));
     expect(within(row).queryByTestId('edited-tag')).toBeNull();
     expect(row.textContent).not.toContain('Din documente');
 
-    await userEvent.click(within(row).getByRole('radio', { name: /Scrierea corectată/ }));
+    await userEvent.click(
+      within(row).getByRole('button', { name: 'Folosește scrierea corectată' })
+    );
     await waitFor(() => expect(saves).toBe(2));
     expect(savedChanges(1).changes.fields).toEqual({});
-    await waitFor(() => expect(checked(row, /Scrierea corectată/)).toBe(true));
+    await waitFor(() => expect(picked(spelling, 'corrected')).toBe(true));
   });
 
   it('lists the corrections of the other sections at the end of the first', async () => {
