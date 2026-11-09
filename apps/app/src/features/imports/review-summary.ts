@@ -13,9 +13,7 @@ import type { ImportDetail } from '@/api/generated/api';
 
 import { filesLabel } from './import-format';
 import {
-  advisoryFlags,
   anafMismatch,
-  anafMismatchNote,
   anchorOf,
   appliesAt,
   type Blocker,
@@ -25,7 +23,6 @@ import {
   fieldSpelling,
   type FieldState,
   fieldState,
-  flagNote,
   formatFieldValue,
   type ItemList,
   itemName,
@@ -215,9 +212,7 @@ export type SectionReviewHint = { anchor: string; summary: string; text: string 
 export function sectionReviewHints(
   section: SectionId,
   proposal: Proposal,
-  changes: Changes,
-  states: Record<string, FieldState>,
-  registered: RegisteredCompany | null = null
+  changes: Changes
 ): SectionReviewHint[] {
   const lists = [
     'workplaces',
@@ -241,7 +236,7 @@ export function sectionReviewHints(
           return {
             anchor,
             summary: 'Reprezentant legal nepreluat automat',
-            text: `${name}: verifică dacă face parte din personalul firmei. Nu este preluat automat ca lucrător.`,
+            text: `${name}: nu este preluat automat ca lucrător. Verifică dacă face parte din personalul firmei.`,
           };
         case 'management_only':
           return {
@@ -263,38 +258,6 @@ export function sectionReviewHints(
           };
       }
     });
-  for (const state of Object.values(states).filter((state) => sectionOf(state.path) === section)) {
-    if (state.status === 'unticked')
-      hints.push({
-        anchor: anchorOf(state.path),
-        summary: 'Valoare lăsată deoparte',
-        text: `${state.label}: valoarea din documente nu este inclusă.`,
-      });
-    else if (state.comparison === 'kept')
-      hints.push({
-        anchor: anchorOf(state.path),
-        summary: 'Valoare păstrată din aplicație',
-        text: `${state.label}: documentele diferă, păstrăm valoarea din aplicație.`,
-      });
-  }
-  for (const flag of proposal.flags.filter(
-    (flag) => advisoryFlags.has(flag.code) && sectionOf(flag.path) === section
-  )) {
-    const [root, index] = flag.path.split('.');
-    const item = items.find((state) => state.list === root && state.index === Number(index));
-    hints.push({
-      anchor: item ? anchorOf(`${item.list}.${item.item.id}`) : anchorOf(flag.path),
-      summary: 'Date de verificat în documente',
-      text: flagNote(flag, proposal, changes),
-    });
-  }
-  if (section === 'identity' && registered && anafMismatch(proposal, changes, registered)) {
-    hints.push({
-      anchor: anchorOf('client.legalName'),
-      summary: 'Denumire diferită față de ANAF',
-      text: anafMismatchNote(registered),
-    });
-  }
   return hints.filter(
     (hint, index) => hints.findIndex((other) => other.anchor === hint.anchor) === index
   );

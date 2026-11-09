@@ -153,13 +153,7 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
             const Icon = sectionIcons[section];
             const hint =
               statuses[section].kind === 'check'
-                ? sectionReviewHints(
-                    section,
-                    proposal,
-                    review.changes,
-                    applying,
-                    detail.registeredCompany
-                  )[0]
+                ? sectionReviewHints(section, proposal, review.changes)[0]
                 : undefined;
             return (
               <li key={section}>

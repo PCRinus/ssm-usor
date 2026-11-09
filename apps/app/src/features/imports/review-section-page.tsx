@@ -86,9 +86,7 @@ export function ReviewSectionPage({
     (link) => link.section === section
   );
   const hints =
-    statuses[section].kind === 'check'
-      ? sectionReviewHints(section, proposal, review.changes, states, registered)
-      : [];
+    statuses[section].kind === 'check' ? sectionReviewHints(section, proposal, review.changes) : [];
   const position = sectionIds.indexOf(section);
   const previous = sectionIds[position - 1];
   const next = sectionIds[position + 1];
