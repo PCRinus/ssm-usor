@@ -182,7 +182,9 @@ function ReviewDatum({
         <Icon aria-hidden="true" className="size-4 shrink-0" />
         {label}
       </dt>
-      <dd className="min-w-0 pl-6 text-sm font-medium wrap-anywhere text-foreground">{children}</dd>
+      <dd className="flex min-h-8 min-w-0 items-center pl-6 text-sm font-medium wrap-anywhere text-foreground max-sm:min-h-11">
+        {children}
+      </dd>
     </div>
   );
 }

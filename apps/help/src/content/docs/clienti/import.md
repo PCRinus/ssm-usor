@@ -183,7 +183,7 @@ Punctele de lucru, posturile, persoanele cu atribuții, mijloacele de stingere, 
 
 La punctele de lucru, **Adresă** și **Încăperi** sunt afișate separat, pentru verificare. La responsabili vezi **Funcție**, **Responsabilități** și **Punct de lucru**. Când punctul de lucru este identificat în propunere, numele lui te duce la rândul său din import.
 
-Articolele de echipament sunt numerotate în ordinea afișării. La echipamentul de protecție, **Post** te duce la postul identificat în propunere. **Risc acoperit** este textul preluat din lista de dotare cu echipament, **Alocare** arată modul de acordare, iar **Cantitate** și **Durată** sunt afișate separat când sunt precizate. Riscul acoperit nu este o legătură automată la un factor din evaluarea riscurilor. Cu **Vezi în document** verifici rândul original din lista de echipament.
+Articolele de echipament sunt numerotate în ordinea afișării. Datele și variantele de scriere folosesc lățimea rândului. Pe un ecran îngust sau cu meniul lateral deschis, butoanele de verificare și modificare trec sub nume. La echipamentul de protecție, **Post** te duce la postul identificat în propunere. **Risc acoperit** este textul preluat din lista de dotare cu echipament, **Alocare** arată modul de acordare, iar **Cantitate** și **Durată** sunt afișate separat când sunt precizate. Riscul acoperit nu este o legătură automată la un factor din evaluarea riscurilor. Cu **Vezi în document** verifici rândul original din lista de echipament.
 
 La sfârșitul primei secțiuni, **Găsite în alte secțiuni** îți arată ce mai e de văzut în celelalte: corecturile de scriere, alegerile de făcut și datele lipsă, fiecare cu **Deschide secțiunea**.
 
