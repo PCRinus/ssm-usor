@@ -482,6 +482,34 @@ describe('the person page', () => {
     );
   });
 
+  it('collapses a verified hiring test switched off to one line, and opens it again', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const test = async () => screen.findByTestId('person-test');
+    expect((await test()).textContent).toContain('Testul la angajare: verificat pe fișă');
+
+    await user.click(
+      within(await test()).getByRole('switch', { name: /^Inclus: Testul la angajare / })
+    );
+    await waitFor(() =>
+      expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(1)
+    );
+    expect(saved(0).changes.rows.r1).toEqual({ test: false });
+    expect((await test()).textContent).toMatch(/^Testul la angajare .+Nu e inclus$/);
+    expect(within(await test()).queryAllByRole('button')).toHaveLength(0);
+    expect(within(await test()).queryAllByRole('textbox')).toHaveLength(0);
+    expect(document.activeElement).toBe(within(await test()).getByRole('switch'));
+
+    await user.click(
+      within(await test()).getByRole('switch', { name: /^Nu e inclus: Testul la angajare / })
+    );
+    expect((await test()).textContent).toContain('Testul la angajare: verificat pe fișă');
+    expect(document.activeElement).toBe(
+      within(await test()).getByRole('switch', { name: /^Inclus: Testul la angajare / })
+    );
+  });
+
   it('marks the names, job title and hire date a new employee needs, and the rest optional', async () => {
     mockEmployeeImport();
     const user = userEvent.setup();
