@@ -250,9 +250,9 @@ function ItemRow({
           ))}
           {itemSpellings(state, context.changes).map(({ field, value, written, keptWritten }) => (
             <div key={field} className="mt-1 grid gap-1">
+              <span className="text-[13px] font-medium">{itemSpellingLabel(field)}</span>
               <SpellingChoice
                 label={itemSpellingLabel(field)}
-                showLabel
                 corrected={value}
                 written={written}
                 keptWritten={keptWritten}

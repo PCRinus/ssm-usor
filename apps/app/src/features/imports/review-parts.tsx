@@ -425,66 +425,40 @@ export function SpellingChoice({
   written,
   keptWritten,
   onPick,
-  showLabel = false,
 }: {
   label: string;
   corrected: string;
   written: string;
   keptWritten: boolean;
   onPick: (keepWritten: boolean) => void;
-  showLabel?: boolean;
 }) {
+  const name = useId();
   const diff = spellingDiff(corrected, written);
   return (
-    <div
-      role="group"
-      aria-label={label}
-      className="grid min-w-0 gap-2 rounded-lg border bg-background/60 p-3"
-      data-testid="review-spelling"
-    >
-      <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
-        {showLabel && <span className="text-sm font-medium">{label}</span>}
-        <KindLine icon={<SpellCheck aria-hidden="true" />}>
-          Corectură AI: {spellingCorrection(corrected, written)}
-        </KindLine>
-      </div>
-      <dl className="grid gap-2 sm:grid-cols-2">
-        {[
-          { original: true, title: 'Ca în document', runs: diff.written, selected: keptWritten },
-          {
-            original: false,
-            title: 'Scrierea corectată',
-            runs: diff.value,
-            selected: !keptWritten,
-          },
-        ].map(({ original, title, runs, selected }) => (
-          <div
-            key={title}
-            className="grid min-w-0 gap-1"
-            data-testid={original ? 'review-spelling-written' : 'review-spelling-corrected'}
-            data-checked={selected}
-          >
-            <dt className="text-xs text-muted-foreground">{title}</dt>
-            <dd className="flex min-w-0 flex-wrap items-center gap-2">
-              <SpellingPill runs={runs} written={original} />
-              {selected && (
-                <Tag tone="info" icon={<Check aria-hidden="true" />}>
-                  Se preia
-                </Tag>
-              )}
-            </dd>
-          </div>
-        ))}
-      </dl>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="mt-1 w-fit max-w-full max-sm:h-11"
-        onClick={() => onPick(!keptWritten)}
-      >
-        {keptWritten ? 'Folosește scrierea corectată' : 'Păstrează ca în document'}
-      </Button>
+    <div className="grid gap-1.5" data-testid="review-spelling">
+      <KindLine icon={<SpellCheck aria-hidden="true" />}>
+        Scrierea corectată: {spellingCorrection(corrected, written)}
+      </KindLine>
+      <PickList label={label}>
+        <PickOption
+          name={name}
+          checked={!keptWritten}
+          onPick={() => onPick(false)}
+          heading="Scrierea corectată"
+          testId="review-spelling-corrected"
+        >
+          <SpellingPill runs={diff.value} written={false} />
+        </PickOption>
+        <PickOption
+          name={name}
+          checked={keptWritten}
+          onPick={() => onPick(true)}
+          heading="Ca în document"
+          testId="review-spelling-written"
+        >
+          <SpellingPill runs={diff.written} written />
+        </PickOption>
+      </PickList>
     </div>
   );
 }
