@@ -1376,6 +1376,46 @@ function secondPost(changes: unknown = null) {
 }
 
 describe('reviewing related import data', () => {
+  it('numbers the displayed equipment entries and keeps their numbers when one is left out', async () => {
+    mockReview(secondPost());
+    mount('/equipment');
+
+    const list = await screen.findByRole('list', { name: 'Articole de echipament' });
+    expect(list.tagName).toBe('OL');
+    expect(
+      within(list)
+        .getAllByTestId('equipment-item-number')
+        .map((item) => item.textContent)
+    ).toEqual(['1', '2']);
+    const first = within(list).getAllByTestId('review-item')[0]!;
+    await userEvent.click(within(first).getByRole('switch'));
+    await waitFor(() => expect(saves).toBe(1));
+
+    expect(
+      within(list)
+        .getAllByTestId('equipment-item-number')
+        .map((item) => item.textContent)
+    ).toEqual(['1', '2']);
+    expect(within(first).queryByTestId('review-edit')).toBeNull();
+    expect(within(first).getByText('Nu e inclus')).toBeDefined();
+  });
+
+  it('numbers visible equipment consecutively when an earlier source entry is set aside', async () => {
+    mockReview(secondPost({ fields: {}, items: { 'position-1': { included: false } } }));
+    mount('/equipment');
+
+    const list = await screen.findByRole('list', { name: 'Articole de echipament' });
+    expect(
+      within(list)
+        .getAllByTestId('equipment-item-number')
+        .map((item) => item.textContent)
+    ).toEqual(['1']);
+    expect(list.textContent).toContain('Halat de protecție');
+    expect(
+      screen.getByTestId('review-list-protectiveEquipment').querySelector('h2')?.textContent
+    ).toBe('Un articol');
+  });
+
   it('labels equipment details and opens the referenced proposal post without changing data', async () => {
     mockReview(secondPost());
     mount('/equipment');

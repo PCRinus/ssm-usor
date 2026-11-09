@@ -265,6 +265,7 @@ function ItemRow({
   onEdit,
   agreement,
   excludable = true,
+  ordinal,
 }: {
   state: ItemState;
   context: ItemsContext;
@@ -274,6 +275,7 @@ function ItemRow({
   onEdit?: () => void;
   agreement: Agreement;
   excludable?: boolean;
+  ordinal?: number;
 }) {
   const prefix = `${state.list}.${state.index}`;
   const blockers = context.blockers.filter(
@@ -287,11 +289,25 @@ function ItemRow({
       (field !== 'roles' || roles.includes(role ?? ''))
     );
   });
+  const numberedTitle = (
+    <span className="inline-flex min-w-0 items-start gap-2">
+      {ordinal !== undefined && (
+        <span
+          aria-hidden="true"
+          data-testid="equipment-item-number"
+          className="grid size-5 shrink-0 place-items-center rounded-md bg-secondary text-xs font-semibold tabular-nums"
+        >
+          {ordinal}
+        </span>
+      )}
+      <span className="min-w-0 text-sm font-medium wrap-anywhere">{title}</span>
+    </span>
+  );
   const row = (toggle?: ReactNode) => (
     <SwitchRow
       title={
         <>
-          <span className="text-sm font-medium wrap-anywhere">{title}</span>
+          {numberedTitle}
           {state.edited && <EditedTag />}
         </>
       }
@@ -369,7 +385,7 @@ function ItemRow({
       aria-label={title}
       data-testid="review-item"
       data-included={state.included}
-      className="scroll-mt-32 py-3"
+      className={ordinal === undefined ? 'scroll-mt-32 py-3' : 'scroll-mt-32 py-6 sm:py-8'}
     >
       {excludable ? (
         <Includable
@@ -380,6 +396,11 @@ function ItemRow({
           agreement={agreement}
           testId="review-include-item"
           onChange={(included) => setIncluded(context, state, included)}
+          collapsed={
+            ordinal === undefined
+              ? undefined
+              : (toggle) => <SwitchRow title={numberedTitle} toggle={toggle} />
+          }
         >
           {row}
         </Includable>
@@ -512,19 +533,22 @@ function ListCard({
   render,
   empty,
   untickedBox,
+  numbered = false,
 }: {
   title: (count: number) => string;
   list: ItemList;
   context: ItemsContext;
   agreement: Agreement;
-  render: (state: ItemState) => ReactNode;
+  render: (state: ItemState, ordinal: number) => ReactNode;
   empty: string;
   untickedBox?: (states: ItemState[]) => ReactNode;
+  numbered?: boolean;
 }) {
   const states = itemStates(context.proposal, context.changes, list);
   const rows = states.filter(listed);
   const aside = states.filter((state) => !listed(state));
   const kept = rows.filter((state) => state.included).length;
+  const List = numbered ? 'ol' : 'ul';
   return (
     <ReviewCard
       title={`${title(rows.length)}${kept < rows.length ? `, ${includedCount(kept, agreement)}` : ''}`}
@@ -533,7 +557,13 @@ function ListCard({
       {rows.length === 0 ? (
         <p className="py-2 text-sm text-muted-foreground">{empty}</p>
       ) : (
-        <ul className="divide-y">{rows.map(render)}</ul>
+        <List
+          className="divide-y"
+          role={numbered ? 'list' : undefined}
+          aria-label={numbered ? 'Articole de echipament' : undefined}
+        >
+          {rows.map((state, index) => render(state, index + 1))}
+        </List>
       )}
       {untickedBox?.(aside.filter((state) => state.untickedReason !== 'other_company'))}
       <OtherCompanyBox
@@ -1140,6 +1170,7 @@ export function EquipmentSection({ context }: { context: ItemsContext }) {
       <ListCard
         title={(count) => (count === 1 ? 'Un articol' : `${count} articole`)}
         list="protectiveEquipment"
+        numbered
         context={context}
         agreement="masculine"
         empty="Documentele nu numesc echipament de protecție."
@@ -1157,12 +1188,13 @@ export function EquipmentSection({ context }: { context: ItemsContext }) {
             }
           />
         )}
-        render={(state) => (
+        render={(state, ordinal) => (
           <ItemRow
             key={state.item.id}
             state={state}
             context={context}
             title={itemName('protectiveEquipment', state.values)}
+            ordinal={ordinal}
             details={[
               <dl className="my-2 grid gap-x-8 gap-y-3 sm:flex sm:flex-wrap sm:items-start">
                 <ReviewDatum icon={BriefcaseBusiness} label="Post">
