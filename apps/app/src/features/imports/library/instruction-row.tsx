@@ -160,7 +160,7 @@ export function InstructionRow({
               )}
               data-testid="library-instruction-title"
             >
-              {row.usesLibrary && instruction.match ? instruction.match.title : row.title}
+              {row.title}
             </h3>
             {open &&
               (similar ? <Tag tone="warning">Asemănătoare</Tag> : <Tag tone="info">Nouă</Tag>)}

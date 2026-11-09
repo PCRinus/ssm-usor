@@ -368,14 +368,16 @@ describe('the processing page', () => {
     await userEvent.click(await screen.findByTestId('import-read-set-aside'));
     const dialog = await screen.findByTestId('import-read-set-aside-dialog');
     expect(dialog.textContent).toContain('Ce ai schimbat în propunerea de acum se pierde.');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Citește din nou' }));
+    await userEvent.click(
+      within(dialog).getByRole('button', { name: 'Recitește datele clientului' })
+    );
 
     await waitFor(() =>
       expect(requestsTo(`/imports/${importId}/files/${setAside.id}/read`, 'POST')).toHaveLength(1)
     );
   });
 
-  it('says why own instructions are set aside, and when sending them back would be too much text', async () => {
+  it('keeps unclassified instructions eligible for client reading without implying they are processed for the library', async () => {
     const instructions = importFile({
       fileName: 'IPSSM brutarie 2023.docx',
       state: 'set_aside',
@@ -399,7 +401,11 @@ describe('the processing page', () => {
 
     const group = await screen.findByTestId('import-group-set-aside');
     expect(group.textContent).toContain(
-      'aplicația le alcătuiește din biblioteca ta de instrucțiuni proprii'
+      'Instrucțiuni proprii fără domeniu SSM sau SU identificat.'
+    );
+    expect(screen.queryByTestId('import-group-library')).toBeNull();
+    expect(within(group).getByTestId('import-read-set-aside').textContent).toBe(
+      'Include în citirea clientului'
     );
     await userEvent.click(within(group).getByTestId('import-read-set-aside'));
 
@@ -408,6 +414,56 @@ describe('the processing page', () => {
         'Cu acest fișier, documentele au prea mult text pentru un singur import.'
       )
     ).toBeDefined();
+  });
+
+  it('separates library instruction files and links each to its own domain without offering a client reread', async () => {
+    const ssm = importFile({
+      fileName: 'IPSSM.docx',
+      state: 'set_aside',
+      documentKind: 'own_instructions',
+      documentDomain: 'ssm',
+      reason: 'Instrucțiuni proprii: le citim pentru biblioteca ta de instrucțiuni proprii.',
+    });
+    const su = importFile({
+      fileName: 'IPSU.docx',
+      state: 'set_aside',
+      documentKind: 'own_instructions',
+      documentDomain: 'su',
+    });
+    const requested = importFile({
+      fileName: 'IPSSM cerut pentru date client.docx',
+      state: 'read',
+      documentKind: 'own_instructions',
+      documentDomain: 'ssm',
+    });
+    mockImport(
+      importDetail({
+        status: 'ready',
+        files: [ssm, su, requested, setAside],
+        libraryParts: [
+          { part: 'instructions_ssm', status: 'failed', expiresAt: null },
+          { part: 'instructions_su', status: 'to_review', expiresAt: null },
+        ],
+      })
+    );
+    mount();
+
+    const library = await screen.findByTestId('import-group-library');
+    expect(within(library).getByRole('heading').textContent).toContain(
+      'Instrucțiuni pentru bibliotecă'
+    );
+    expect(within(library).queryByTestId('import-read-set-aside')).toBeNull();
+    expect(within(library).getByRole('link', { name: 'Vezi IPSSM' }).getAttribute('href')).toBe(
+      `/clienti/import/${importId}/instructiuni/ssm`
+    );
+    expect(within(library).getByRole('link', { name: 'Vezi IPSU' }).getAttribute('href')).toBe(
+      `/clienti/import/${importId}/instructiuni/su`
+    );
+    const excluded = screen.getByTestId('import-group-set-aside');
+    expect(excluded.textContent).not.toContain('IPSSM.docx');
+    expect(excluded.textContent).not.toContain('IPSU.docx');
+    expect(within(excluded).getByTestId('import-read-set-aside')).toBeDefined();
+    expect(screen.getByTestId('import-group-documents').textContent).toContain(requested.fileName);
   });
 
   it('says when sending a scan back would pass the scanned pages of one import', async () => {

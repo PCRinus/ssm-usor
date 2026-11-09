@@ -730,10 +730,10 @@ describe('the risk evaluations task on the hub', () => {
 
   it('asks to confirm sheets the library already has, since confirming writes them on the client', () => {
     expect(risksPartDescription(part(), true)).toBe(
-      'Le ai deja în bibliotecă; confirmă ca să le scriem pe fișele clientului.'
+      'Deja în bibliotecă. Confirmarea le scrie pe fișele clientului.'
     );
     expect(risksPartDescription(part(), false)).toBe(
-      'Le ai deja în bibliotecă; după client, confirmă-le ca să le scriem pe fișele lui.'
+      'Deja în bibliotecă. Confirmarea le scrie pe fișele clientului.'
     );
   });
 
@@ -746,9 +746,7 @@ describe('the risk evaluations task on the hub', () => {
   it('counts the new and similar sheets beside those already in the library', () => {
     expect(
       risksPartDescription(part({ counts: { identical: 1, similar: 1, new: 1, unread: 0 } }), false)
-    ).toBe(
-      'De verificat: 3 evaluări, una nouă, una asemănătoare și 1 deja în bibliotecă. Le confirmi după client.'
-    );
+    ).toBe('3 evaluări, una nouă, una asemănătoare și 1 deja în bibliotecă.');
   });
 });
 

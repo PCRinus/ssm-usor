@@ -145,6 +145,33 @@ describe('InstructionRow', () => {
     expect(screen.getByTestId('library-instruction-rename')).toBeTruthy();
   });
 
+  it('names a similar pack instruction by its own title while keeping the library match separate', () => {
+    render(
+      <Harness
+        instruction={proposed({
+          status: 'similar',
+          choice: 'use_existing',
+          match: {
+            moduleId: 'm-1',
+            title: 'Utilizarea autovehiculelor',
+            similarity: 0.75,
+            decidedBy: 'overlap',
+            differences: [],
+          },
+        })}
+      />
+    );
+    expect(screen.getByTestId('library-instruction-title').textContent).toBe(
+      'Utilizarea autoturismelor în interes de serviciu'
+    );
+    expect(screen.getByTestId('library-instruction-similar').textContent).toContain(
+      'Utilizarea autovehiculelor din biblioteca ta'
+    );
+    expect((screen.getByTestId('library-choice-use_existing') as HTMLInputElement).checked).toBe(
+      true
+    );
+  });
+
   it('folds a left-out instruction to its title and switch', async () => {
     const user = userEvent.setup();
     render(<Harness instruction={proposed()} />);

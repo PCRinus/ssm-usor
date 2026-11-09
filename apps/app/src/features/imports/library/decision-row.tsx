@@ -5,11 +5,12 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { Check, Pencil, SpellCheck, TriangleAlert } from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
 
-export type Tone = 'done' | 'todo' | 'info' | 'warning' | 'spelling' | 'editing';
+export type Tone = 'done' | 'todo' | 'optional' | 'info' | 'warning' | 'spelling' | 'editing';
 
 const toneLabels: Record<Tone, string> = {
   done: 'Gata',
   todo: 'De ales',
+  optional: 'Opțional',
   info: 'De știut',
   warning: 'Atenționare',
   spelling: 'Scriere corectată',
@@ -24,6 +25,7 @@ export function StatusDot({ tone }: { tone: Tone }) {
         tone === 'done' && 'border border-success-border bg-success text-success-foreground',
         tone === 'todo' && 'border border-warning-border bg-warning',
         tone === 'info' && 'border border-info-border bg-info',
+        tone === 'optional' && 'border border-border bg-secondary text-muted-foreground',
         tone === 'warning' && 'text-warning-foreground',
         tone === 'spelling' && 'border border-info-border bg-info text-info-foreground',
         tone === 'editing' && 'bg-primary text-primary-foreground'
@@ -33,6 +35,9 @@ export function StatusDot({ tone }: { tone: Tone }) {
       {tone === 'done' && <Check className="size-3" strokeWidth={3} aria-hidden="true" />}
       {tone === 'todo' && <span className="size-2 rounded-full bg-chart-3" aria-hidden="true" />}
       {tone === 'info' && <span className="h-0.5 w-2 rounded-full bg-ring" aria-hidden="true" />}
+      {tone === 'optional' && (
+        <span className="h-0.5 w-2 rounded-full bg-muted-foreground" aria-hidden="true" />
+      )}
       {tone === 'warning' && <TriangleAlert className="size-4" aria-hidden="true" />}
       {tone === 'spelling' && (
         <SpellCheck className="size-3" strokeWidth={2.4} aria-hidden="true" />
@@ -46,7 +51,7 @@ export function RowActions({ className, children }: { className?: string; childr
   return (
     <div
       className={cn(
-        'flex flex-wrap gap-2 max-sm:[&>*]:flex-auto max-sm:[&>[data-slot=button]]:h-11',
+        'flex min-w-0 flex-wrap gap-2 max-sm:[&>*]:min-w-0 max-sm:[&>*]:flex-auto max-sm:[&>[data-slot=button]]:px-2 max-sm:[&>[data-slot=button]]:h-11',
         className
       )}
     >

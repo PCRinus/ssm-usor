@@ -153,6 +153,7 @@ export function RiskSheetCard({
     : state.factors.filter((factor) => listed.has(factor.factor.key));
   const folded = !showAll && shown.length < state.factors.length;
   const sheetSource: LabelledSource = { file: sheet.file, quote: sheet.heading };
+  const title = state.libraryName.trim() || sheet.name?.trim() || kindLabels[sheet.kind];
 
   const pickLibrary = (choice: LibraryChoice) =>
     onSheet((current) =>
@@ -184,7 +185,7 @@ export function RiskSheetCard({
               className="text-base leading-snug font-semibold wrap-anywhere"
               data-testid="risk-import-sheet-heading"
             >
-              {sheet.heading}
+              {title}
             </h3>
             {statusTag(state)}
           </div>
@@ -192,6 +193,17 @@ export function RiskSheetCard({
             <span data-testid="risk-import-sheet-kind">{kindLabels[sheet.kind]}</span>
             {!unread && <span>{factorsLabel(sheet.factors.length)}</span>}
           </p>
+          {sheet.heading !== title && (
+            <details
+              className="mt-1 text-[13px] text-muted-foreground"
+              data-testid="risk-import-source-heading"
+            >
+              <summary className="w-fit cursor-pointer rounded-sm underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring">
+                Titlul din document
+              </summary>
+              <p className="mt-1 wrap-anywhere">{sheet.heading}</p>
+            </details>
+          )}
         </div>
         {!readOnly && !unread && (
           <div className="flex w-full items-center gap-4 sm:w-auto sm:shrink-0">

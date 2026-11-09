@@ -222,36 +222,6 @@ function ItemRow({
       toggle={toggle}
       details={
         <>
-          {state.item.otherCompanyName && (
-            <Tag tone="info" className="w-fit">
-              De la {state.item.otherCompanyName}
-            </Tag>
-          )}
-          {details.filter(Boolean).map((detail, index) => (
-            <span key={index} className="text-[13px] text-muted-foreground wrap-anywhere">
-              {detail}
-            </span>
-          ))}
-          {itemSpellings(state, context.changes).map(({ field, value, written, keptWritten }) => (
-            <div key={field} className="mt-1 grid gap-1">
-              <span className="text-[13px] font-medium">{itemSpellingLabel(field)}</span>
-              <SpellingChoice
-                label={itemSpellingLabel(field)}
-                corrected={value}
-                written={written}
-                keptWritten={keptWritten}
-                onPick={(keep) =>
-                  context.review.setItem(state.item.id, (current) => {
-                    const values = Object.fromEntries(
-                      Object.entries(current.values ?? {}).filter(([key]) => key !== field)
-                    );
-                    if (keep) values[field] = written;
-                    return { ...current, values };
-                  })
-                }
-              />
-            </div>
-          ))}
           {blockers.map((blocker) => {
             const field = blocker.path.split('.')[2];
             return (
@@ -268,6 +238,36 @@ function ItemRow({
               </RowNote>
             );
           })}
+          {state.item.otherCompanyName && (
+            <Tag tone="info" className="w-fit">
+              De la {state.item.otherCompanyName}
+            </Tag>
+          )}
+          {details.filter(Boolean).map((detail, index) => (
+            <span key={index} className="text-[13px] text-muted-foreground wrap-anywhere">
+              {detail}
+            </span>
+          ))}
+          {itemSpellings(state, context.changes).map(({ field, value, written, keptWritten }) => (
+            <div key={field} className="mt-1 grid gap-1">
+              <SpellingChoice
+                label={itemSpellingLabel(field)}
+                showValue={false}
+                corrected={value}
+                written={written}
+                keptWritten={keptWritten}
+                onPick={(keep) =>
+                  context.review.setItem(state.item.id, (current) => {
+                    const values = Object.fromEntries(
+                      Object.entries(current.values ?? {}).filter(([key]) => key !== field)
+                    );
+                    if (keep) values[field] = written;
+                    return { ...current, values };
+                  })
+                }
+              />
+            </div>
+          ))}
           <NameChoice state={state} context={context} />
           {flags.map((flag) => (
             <RowNote key={`${flag.path}-${flag.code}`}>

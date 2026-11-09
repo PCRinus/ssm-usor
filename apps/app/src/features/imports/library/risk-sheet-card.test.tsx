@@ -314,6 +314,22 @@ describe('a sheet card with the confirm bar', () => {
     expect(summary()).toContain('adăugăm „Sediu” în bibliotecă');
   });
 
+  it('leads with the current concise name and keeps the complete source heading in a read-only disclosure', async () => {
+    const heading =
+      'SUBCAPITOLUL V. EVALUAREA RISCURILOR PENTRU POSTUL DE LUCRU ANALIST PROGRAMATOR';
+    render(
+      <Harness sheet={{ ...analyst, heading }} initialChange={{ libraryName: 'Birou tehnic' }} />
+    );
+    expect(screen.getByTestId('risk-import-sheet-heading').textContent).toBe('Birou tehnic');
+    const disclosure = screen.getByTestId('risk-import-source-heading') as HTMLDetailsElement;
+    expect(disclosure.open).toBe(false);
+    expect(disclosure.textContent).toContain(heading);
+    expect(within(disclosure).queryByRole('textbox')).toBeNull();
+    await userEvent.click(within(disclosure).getByText('Titlul din document'));
+    expect(disclosure.open).toBe(true);
+    expect(disclosure.textContent).toContain(heading);
+  });
+
   it('says a name is the workplace in the sheet’s heading', () => {
     render(
       <Harness

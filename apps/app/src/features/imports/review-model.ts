@@ -908,7 +908,7 @@ export type SectionStatus =
   | { kind: 'done' };
 
 // `legal_name_differs` is left to `anafMismatch`, which follows the name the member settles on.
-const advisoryFlags = new Set([
+export const advisoryFlags = new Set([
   'quote_not_found',
   'file_not_found',
   'cui_not_registered',

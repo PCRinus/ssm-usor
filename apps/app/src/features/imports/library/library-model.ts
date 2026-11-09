@@ -199,7 +199,9 @@ export function partDescription(part: LibraryPart, clientConfirmed: boolean, now
   }
   switch (part.status) {
     case 'reading':
-      return 'Le citim din pachet. Nu te țin pe loc: verifici clientul între timp.';
+      return clientConfirmed
+        ? 'Citirea instrucțiunilor este în lucru.'
+        : 'Le citim din pachet. Verifici clientul între timp.';
     case 'failed':
       return part.failureReason ?? 'Citirea instrucțiunilor proprii s-a oprit.';
     case 'confirmed':
@@ -213,12 +215,12 @@ export function partDescription(part: LibraryPart, clientConfirmed: boolean, now
       ];
       const found =
         asked.length > 0
-          ? `De verificat: ${asked.join(' și ')}.`
+          ? `${asked.join(' și ')}.`
           : 'Nimic nou: toate sunt deja în biblioteca ta.';
       const identical =
         asked.length > 0 && counts.identical > 0 ? ` ${counts.identical} deja în bibliotecă.` : '';
-      const after = clientConfirmed ? '' : ' Le confirmi după client.';
-      return `${found}${identical}${after}`;
+      const description = `${found}${identical}`;
+      return description.charAt(0).toUpperCase() + description.slice(1);
     }
   }
 }

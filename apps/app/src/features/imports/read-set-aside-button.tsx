@@ -66,12 +66,12 @@ export function ReadSetAsideButton({
         disabled={sending}
         onClick={() => (hasChanges(detail) ? setConfirming(true) : void read())}
       >
-        Citește-l totuși
+        Include în citirea clientului
       </Button>
       <Dialog open={confirming} onOpenChange={(open) => !open && !sending && setConfirming(false)}>
         <DialogContent className="sm:max-w-md" data-testid="import-read-set-aside-dialog">
           <DialogHeader>
-            <DialogTitle>Citim din nou documentația?</DialogTitle>
+            <DialogTitle>Includem fișierul în citirea clientului?</DialogTitle>
             <DialogDescription>
               Citim „{file.fileName}” împreună cu celelalte documente și facem o propunere nouă. Ce
               ai schimbat în propunerea de acum se pierde.
@@ -82,7 +82,7 @@ export function ReadSetAsideButton({
               Înapoi
             </Button>
             <Button disabled={sending} onClick={() => void read()}>
-              Citește din nou
+              Recitește datele clientului
             </Button>
           </DialogFooter>
         </DialogContent>

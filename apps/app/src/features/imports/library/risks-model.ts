@@ -890,7 +890,9 @@ export function risksPartDescription(part: RisksPart, clientConfirmed: boolean, 
   }
   switch (part.status) {
     case 'reading':
-      return 'Le citim din pachet. Nu te țin pe loc: verifici clientul între timp.';
+      return clientConfirmed
+        ? 'Citirea evaluărilor este în lucru.'
+        : 'Le citim din pachet. Verifici clientul între timp.';
     case 'failed':
       return part.failureReason ?? 'Citirea evaluărilor de risc s-a oprit.';
     case 'confirmed':
@@ -900,9 +902,7 @@ export function risksPartDescription(part: RisksPart, clientConfirmed: boolean, 
     case 'to_review': {
       const counts = part.counts ?? { identical: 0, similar: 0, new: 0, unread: 0 };
       if (counts.new === 0 && counts.similar === 0 && counts.identical > 0) {
-        return clientConfirmed
-          ? 'Le ai deja în bibliotecă; confirmă ca să le scriem pe fișele clientului.'
-          : 'Le ai deja în bibliotecă; după client, confirmă-le ca să le scriem pe fișele lui.';
+        return 'Deja în bibliotecă. Confirmarea le scrie pe fișele clientului.';
       }
       const total = part.proposal?.sheets.length ?? counts.identical + counts.similar + counts.new;
       const kinds = [
@@ -910,8 +910,7 @@ export function risksPartDescription(part: RisksPart, clientConfirmed: boolean, 
         ...(counts.similar > 0 ? [similarLabel(counts.similar)] : []),
         ...(counts.identical > 0 ? [`${counts.identical} deja în bibliotecă`] : []),
       ];
-      const found = `De verificat: ${total === 1 ? 'o evaluare' : evaluationsLabel(total)}${kinds.length > 0 ? `, ${joinNames(kinds)}` : ''}.`;
-      return clientConfirmed ? found : `${found} Le confirmi după client.`;
+      return `${total === 1 ? 'O evaluare' : evaluationsLabel(total)}${kinds.length > 0 ? `, ${joinNames(kinds)}` : ''}.`;
     }
   }
 }

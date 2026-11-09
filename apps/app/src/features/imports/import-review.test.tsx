@@ -1728,11 +1728,12 @@ describe('a value proposed with its spelling corrected', () => {
       item.textContent?.includes('Îngrijitor hotel')
     )!;
     const [name, zone] = within(row).getAllByTestId('review-spelling');
-    expect(name!.textContent).toBe(
-      'Scrierea corectată: majuscule și diacriticeScrierea corectatăIntră în documenteÎngrijitor hotelCa în documentINGRIJITOR HOTEL'
-    );
+    expect((name as HTMLDetailsElement).open).toBe(false);
+    expect(within(name!).getByTestId('review-spelling-preview').textContent).toBe('Denumire');
+    await userEvent.click(within(name!).getByText('Compară'));
     expect(checked(name!, /Scrierea corectată/)).toBe(true);
     expect(markedWords(name!)).toEqual(['Îngrijitor', 'INGRIJITOR']);
+    await userEvent.click(within(zone!).getByText('Compară'));
     expect(zone!.textContent).toContain('Scrierea corectată: majuscule');
     expect(zone!.textContent).not.toContain('diacritice');
     expect(markedWords(zone!)).toEqual([]);
@@ -1772,6 +1773,8 @@ describe('a value proposed with its spelling corrected', () => {
     await screen.findByText('Locul pentru fumat');
     const row = document.getElementById('review-fireSafety-smokingPlace')!;
     const spelling = within(row).getByTestId('review-spelling');
+    expect((spelling as HTMLDetailsElement).open).toBe(false);
+    await userEvent.click(within(spelling).getByText('Compară'));
     expect(spelling.textContent).toContain('Scrierea corectată: diacritice');
     expect(markedWords(spelling)).toEqual(['În', 'In']);
     expect(row.textContent?.match(/Locul pentru fumat/g)).toHaveLength(1);
@@ -2358,6 +2361,68 @@ describe('two phone numbers the documents give', () => {
 });
 
 describe('the persistent import review bar', () => {
+  it('explains a non-blocking review status and points to the default-excluded person without including them', async () => {
+    const proposal = proposalFixture();
+    mockReview(
+      readyDetail({
+        proposal: {
+          ...proposal,
+          employees: [
+            {
+              ...proposal.employees[0]!,
+              id: 'employee-legal',
+              role: 'legal_representative',
+              lastName: 'Popescu',
+              firstName: 'Ioana',
+              hiredAt: null,
+            },
+          ],
+        },
+        blockers: [],
+      })
+    );
+    mount();
+    const hub = await screen.findByTestId('import-review-hub');
+    const link = within(hub)
+      .getAllByTestId('import-section-link')
+      .find((entry) => entry.dataset.section === 'responsible')!;
+    expect(link.textContent).toContain('Reprezentant legal nepreluat automat');
+    expect(link.textContent).toContain('De verificat');
+    expect(screen.getByTestId('import-confirm').getAttribute('aria-disabled')).toBeNull();
+    await userEvent.click(link);
+    const note = await screen.findByTestId('import-section-advisories');
+    expect(note.textContent).toContain('nu împiedică confirmarea');
+    await userEvent.click(within(note).getByRole('button', { name: /Popescu Ioana/ }));
+    const item = document.getElementById('review-employees-employee-legal')!;
+    await waitFor(() => expect(document.activeElement).toBe(item));
+    expect(within(item).getByRole('switch').getAttribute('aria-checked')).toBe('false');
+    expect(saves).toBe(0);
+  });
+
+  it('distinguishes optional empty fields from required missing data', async () => {
+    const proposal = proposalFixture();
+    proposal.client.contactEmail.options = [];
+    proposal.client.cui.options = [];
+    mockReview(
+      readyDetail({
+        proposal,
+        registeredCompany: null,
+        blockers: [{ path: 'client.cui', code: 'missing' }],
+      })
+    );
+    mount('/identity');
+    await screen.findByTestId('import-review-section');
+    const optional = document.getElementById('review-client-contactEmail')!;
+    const required = document.getElementById('review-client-cui')!;
+    expect(optional.dataset.tone).toBe('optional');
+    expect(optional.textContent).toContain('Opțional.');
+    expect(optional.textContent).not.toContain('De ales');
+    expect(required.dataset.tone).toBe('todo');
+    expect(required.textContent).toContain('obligatoriu');
+    const bar = screen.getByRole('region', { name: 'Navigarea prin propunere' });
+    expect(within(bar).getByRole('button', { name: '1 dată lipsă' })).toBeTruthy();
+  });
+
   it('shows the section readiness independently of a save still in progress', async () => {
     let release = () => {};
     const held = new Promise<void>((resolve) => {

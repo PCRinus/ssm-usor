@@ -625,7 +625,7 @@ function MissingRow({
   const required = requiredPaths.has(state.path);
   return (
     <DecisionRow
-      tone="todo"
+      tone={required ? 'todo' : 'optional'}
       wide
       id={anchorOf(state.path)}
       testId="review-row"
@@ -650,7 +650,12 @@ function MissingRow({
               sources={state.sources}
               onOpen={() => context.openSource(state.label, state.sources)}
             />
-            <Button type="button" data-testid="review-complete" onClick={onEdit}>
+            <Button
+              type="button"
+              variant={required ? 'default' : 'outline'}
+              data-testid="review-complete"
+              onClick={onEdit}
+            >
               <Plus aria-hidden="true" />
               Completează
             </Button>
@@ -658,12 +663,12 @@ function MissingRow({
         )
       }
     >
-      <span className={required ? 'font-medium text-destructive' : 'text-warning-foreground'}>
+      <span className={required ? 'font-medium text-destructive' : 'text-muted-foreground'}>
         {required
           ? 'Lipsește din documente. E obligatoriu pentru crearea clientului.'
           : yesNo
-            ? 'Lipsește din documente. Alege, dacă știi; altfel rămâne necompletat.'
-            : 'Lipsește din documente. Dacă îl știi, scrie-l; altfel rămâne necompletat.'}
+            ? 'Opțional. Alege doar dacă ai această informație.'
+            : 'Opțional. Completează doar dacă ai această informație.'}
       </span>
     </DecisionRow>
   );

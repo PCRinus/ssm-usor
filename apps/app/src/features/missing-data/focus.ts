@@ -146,27 +146,28 @@ function point(element: HTMLElement) {
   setTimeout(() => element.removeAttribute('data-pointed'), pointedFor);
 }
 
-function offCentre(element: HTMLElement) {
+function scrollDistance(element: HTMLElement, block: 'center' | 'start') {
   const bounds = element.getBoundingClientRect();
-  return (bounds.top + bounds.bottom) / 2 - window.innerHeight / 2;
+  return block === 'start'
+    ? bounds.top - (Number.parseFloat(getComputedStyle(element).scrollMarginTop) || coveredTop)
+    : (bounds.top + bounds.bottom) / 2 - window.innerHeight / 2;
 }
 
-function canMoveTo(element: HTMLElement) {
+function canMoveTo(element: HTMLElement, block: 'center' | 'start') {
   const page = document.scrollingElement;
-  const by = offCentre(element);
+  const by = scrollDistance(element, block);
   if (!page || Math.abs(by) <= centred) return false;
   return by > 0 ? page.scrollTop < page.scrollHeight - page.clientHeight - 1 : page.scrollTop > 0;
 }
 
-// Brings the element as near the middle of the window as the page allows, points at it, and
+// Brings the element into view, points at it, and
 // calls `then` a beat later. It watches where the element is rather than the scroll events:
 // Safari has no `scrollend`, and the router's own scroll to the top, or a card that loads
 // above, can undo a scroll that started too early, which is why it tries again. An element
 // without a box, as in a test without layout, has nowhere to move and nobody to watch it.
-function scrollThen(element: HTMLElement, then: () => void) {
+function scrollThen(element: HTMLElement, then: () => void, block: 'center' | 'start' = 'center') {
   const still = stillMotion();
-  const scroll = () =>
-    element.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
+  const scroll = () => element.scrollIntoView({ block, behavior: still ? 'auto' : 'smooth' });
   if (element.getClientRects().length === 0) {
     scroll();
     then();
@@ -180,7 +181,7 @@ function scrollThen(element: HTMLElement, then: () => void) {
     pause = setTimeout(then, beat);
   };
   const move = () => {
-    if (tried >= tries || !canMoveTo(element)) {
+    if (tried >= tries || !canMoveTo(element, block)) {
       arrive();
       return;
     }
@@ -221,9 +222,17 @@ export const scrollAndPoint = (element: HTMLElement) => scrollThen(element, () =
 
 export function scrollAndFocus(element: HTMLElement) {
   if (!element.hasAttribute('tabindex')) element.tabIndex = -1;
-  return scrollThen(element, () => {
-    if (element.isConnected) element.focus({ preventScroll: true });
-  });
+  const bottom =
+    Number.parseFloat(getComputedStyle(document.documentElement).scrollPaddingBottom) || 0;
+  const available = window.innerHeight - coveredTop - bottom;
+  const block = element.getBoundingClientRect().height > available ? 'start' : 'center';
+  return scrollThen(
+    element,
+    () => {
+      if (element.isConnected) element.focus({ preventScroll: true });
+    },
+    block
+  );
 }
 
 function focusField(element: HTMLElement) {

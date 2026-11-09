@@ -114,7 +114,7 @@ describe('a confirmed client import with parts still open', () => {
     expect(sheets!.getAttribute('href')).toBe(`/clienti/import/${importId}/evaluari-de-risc`);
     expect(sheets!.getAttribute('data-variant')).toBe('outline');
     expect(within(panel).getAllByTestId('import-next-step-description')[0]!.textContent).toBe(
-      'De verificat: 3 noi și una asemănătoare. 5 deja în bibliotecă.'
+      '3 noi și una asemănătoare. 5 deja în bibliotecă.'
     );
     expect(panel.querySelector('[data-help-topic="import.instructiuni-proprii"]')).not.toBeNull();
     expect(panel.querySelector('[data-help-topic="import.evaluari-de-risc"]')).not.toBeNull();
@@ -153,10 +153,7 @@ describe('a confirmed client import with parts still open', () => {
       within(panel)
         .getAllByTestId('import-next-step-description')
         .map((line) => line.textContent)
-    ).toEqual([
-      'Le citim din pachet. Nu te țin pe loc: verifici clientul între timp.',
-      'Citirea s-a oprit înainte de final.',
-    ]);
+    ).toEqual(['Citirea instrucțiunilor este în lucru.', 'Citirea s-a oprit înainte de final.']);
     expect(
       within(panel)
         .getAllByTestId('import-next-step-open')
