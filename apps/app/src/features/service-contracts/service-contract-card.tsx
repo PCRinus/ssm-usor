@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useFileLink } from '@ssm-usor/api-http/file-link';
 import { unfilledMark } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
@@ -55,6 +56,8 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { DatePicker } from '@/components/date-picker';
+import { FileLinkButton } from '@/components/file-link-button';
+import { FileMenuItem } from '@/components/file-menu-item';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { EditAction, Fact, FactList, FormActions, SectionCard } from '@/components/section-card';
@@ -72,7 +75,6 @@ import {
 } from '@/features/missing-data/missing-rows';
 import { startWayBack } from '@/features/missing-data/way-back';
 import { formatRoDate } from '@/lib/dates';
-import { openDownload } from '@/lib/save-file';
 
 import { SendContractDialog } from './send-contract-dialog';
 import {
@@ -385,6 +387,17 @@ function ServiceContractBody({
   const { readiness } = saved;
   // The types allow a contract with neither revision, and one took the whole page down.
   const document = saved.document?.draft || saved.document?.issued ? saved.document : null;
+  const fileOf = (revisionId: string, format: 'docx' | 'pdf' | 'signed') => ({
+    queryKey: ['document-file', document?.id, revisionId, format],
+    load: (signal: AbortSignal) =>
+      getDocumentDownload(document!.id, revisionId, { format }, { ...apiRequest, signal }),
+  });
+  const signedCopy = useFileLink({
+    ...fileOf(document?.issued?.id ?? '', 'signed'),
+    enabled: Boolean(document?.issued?.hasSignedCopy || document?.issued?.receivedCopy),
+    apiRequest,
+    disposition: 'inline',
+  });
   const missing = contractMissingGroups(readiness.missing, client);
   const here =
     client.stage === 'lead' ? '/clienti-potentiali/$leadId' : '/clienti/$clientId/contract';
@@ -529,16 +542,6 @@ function ServiceContractBody({
     } catch {
       setError('Nu am putut confirma exemplarul semnat. Verifică conexiunea și încearcă din nou.');
       await refresh();
-    }
-  }
-
-  async function download(revisionId: string, format: 'docx' | 'pdf' | 'signed') {
-    setError(null);
-    try {
-      const link = await getDocumentDownload(document!.id, revisionId, { format }, apiRequest);
-      openDownload(apiRequest.baseUrl, link);
-    } catch {
-      setError('Nu am putut descărca fișierul. Verifică conexiunea și încearcă din nou.');
     }
   }
 
@@ -839,21 +842,25 @@ function ServiceContractBody({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {document.issued.hasPdf && (
-                  <DropdownMenuItem
-                    data-testid="contract-download-pdf"
-                    onSelect={() => void download(document.issued!.id, 'pdf')}
+                  <FileMenuItem
+                    testId="contract-open-pdf"
+                    apiRequest={apiRequest}
+                    disposition="inline"
+                    {...fileOf(document.issued.id, 'pdf')}
                   >
-                    <Download aria-hidden="true" />
-                    Descarcă PDF
-                  </DropdownMenuItem>
+                    <FileText aria-hidden="true" />
+                    Deschide PDF
+                  </FileMenuItem>
                 )}
-                <DropdownMenuItem
-                  data-testid="contract-download-issued"
-                  onSelect={() => void download(document.issued!.id, 'docx')}
+                <FileMenuItem
+                  testId="contract-download-issued"
+                  apiRequest={apiRequest}
+                  disposition="attachment"
+                  {...fileOf(document.issued.id, 'docx')}
                 >
                   <Download aria-hidden="true" />
                   Descarcă Word
-                </DropdownMenuItem>
+                </FileMenuItem>
                 <DropdownMenuItem
                   data-testid="contract-print-issued"
                   disabled={printing}
@@ -935,13 +942,15 @@ function ServiceContractBody({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  data-testid="contract-download"
-                  onSelect={() => void download(document.draft!.id, 'docx')}
+                <FileMenuItem
+                  testId="contract-download"
+                  apiRequest={apiRequest}
+                  disposition="attachment"
+                  {...fileOf(document.draft.id, 'docx')}
                 >
                   <Download aria-hidden="true" />
                   Descarcă Word
-                </DropdownMenuItem>
+                </FileMenuItem>
                 <DropdownMenuItem
                   data-testid="contract-print-draft"
                   disabled={printing}
@@ -1003,15 +1012,15 @@ function ServiceContractBody({
           >
             {document.issued.hasSignedCopy || document.issued.receivedCopy ? (
               <>
-                <Button
+                <FileLinkButton
                   variant="outline"
                   size="sm"
-                  data-testid="contract-signed-download"
-                  onClick={() => void download(document.issued!.id, 'signed')}
+                  data-testid="contract-signed-open"
+                  link={signedCopy}
                 >
-                  <Download aria-hidden="true" />
-                  Descarcă
-                </Button>
+                  <FileText aria-hidden="true" />
+                  Deschide
+                </FileLinkButton>
                 {!readOnly && document.issued.receivedCopy && (
                   <Button
                     size="sm"

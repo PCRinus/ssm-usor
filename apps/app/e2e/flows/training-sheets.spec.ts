@@ -77,8 +77,8 @@ test('an employee with a route and a recorded training gets a training sheet as 
   const readiness = await call(`/employees/${employee.id}/training-sheets`);
   expect(readiness.status).toBe(200);
   expect(await readiness.json()).toEqual({
-    ssm: { ready: true, missing: [], stored: false, sequences: [] },
-    su: { ready: true, missing: [], stored: false, sequences: [] },
+    ssm: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
+    su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
   });
 
   const sheet = await call(`/employees/${employee.id}/training-sheet?domain=ssm`);

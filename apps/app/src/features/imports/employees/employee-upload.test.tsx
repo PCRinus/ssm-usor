@@ -168,6 +168,38 @@ describe('photographs over the caps until they are shrunk', () => {
 });
 
 describe('how much fits in one import', () => {
+  it('previews found photographs from the client file list links', async () => {
+    mockUpload({
+      found: () => {
+        const found = foundOf([1, 2]);
+        for (const sheet of found.items[0]!.sheets) sheet.mimeType = 'image/jpeg';
+        return found;
+      },
+    });
+    const fallback = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (input, init) =>
+      new URL(String(input)).pathname === `/clients/${clientId}/files`
+        ? Response.json({
+            items: [1, 2].map((index) => ({
+              id: sheet(index).clientFileId,
+              link: { url: `https://files.example.test/photo-${index}` },
+            })),
+          })
+        : fallback(input, init)
+    );
+
+    await openDialog('employees-start-found');
+
+    await waitFor(() => {
+      for (const index of [1, 2]) {
+        expect(
+          document.querySelector(`img[src="https://files.example.test/photo-${index}"]`)
+        ).toBeTruthy();
+      }
+    });
+    expect(requestsTo(`/clients/${clientId}/files`, 'GET')).toHaveLength(1);
+  });
+
   it('leaves the caps out while the selection is far below them', async () => {
     mockUpload();
     const dialog = await openDialog('employees-start-found');

@@ -57,7 +57,11 @@ export function AgreementSection({ participation }: { participation: Participati
               </Link>
             </Button>
           )}
-          <AgreementPdfButton participation={participation} employeeId={employeeId} />
+          <AgreementPdfButton
+            participation={participation}
+            employeeId={employeeId}
+            signedAt={agreement?.employerSignedAt ?? agreement?.employeeSignedAt}
+          />
         </div>
       )}
     </section>

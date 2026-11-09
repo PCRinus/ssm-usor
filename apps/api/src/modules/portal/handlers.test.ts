@@ -658,8 +658,8 @@ describe('the sheets', () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
-      ssm: { ready: true, missing: [], stored: false, sequences: [] },
-      su: { ready: true, missing: [], stored: false, sequences: [] },
+      ssm: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
+      su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
     });
   });
 
@@ -671,8 +671,14 @@ describe('the sheets', () => {
 
     const readiness = await request(own('/sheets'));
     expect(await readiness.json()).toEqual({
-      ssm: { ready: true, missing: [], stored: true, sequences: [1] },
-      su: { ready: true, missing: [], stored: false, sequences: [] },
+      ssm: {
+        ready: true,
+        missing: [],
+        stored: true,
+        sequences: [1],
+        versions: { 1: `${storedSheetRow.id}:${storedSheetRow.version}` },
+      },
+      su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
     });
 
     const response = await request(own('/sheets/ssm'));
@@ -683,6 +689,40 @@ describe('the sheets', () => {
     const [sheets] = calls('/rest/v1/signed_sheets');
     expect(sheets?.headers.get('Authorization')).toBe(`Bearer ${env.SUPABASE_SECRET_KEY}`);
     expect(sheets?.url.searchParams.get('client_id')).toBe(`eq.${clientId}`);
+    expect(convertDocx).not.toHaveBeenCalled();
+  });
+
+  it('signs a ten-minute link to their stored sheet with the secret key, for a real anchor', async () => {
+    mockUpstream({
+      employees: () => Response.json([{ ...employeeRow, commute_route: null }]),
+      signedSheets: withStoredSheet,
+    });
+
+    const response = await request(own('/sheets/ssm/link'));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      url: expect.stringContaining(
+        `/storage/v1/object/sign/documents/${storedSheetRow.storage_path}`
+      ),
+      fileName: 'Fisa-SSM-Popescu-Ion.pdf',
+      expiresInSeconds: 600,
+    });
+    const [signed] = calls(`/storage/v1/object/sign/documents/${storedSheetRow.storage_path}`);
+    expect(signed?.headers.get('Authorization')).toBe(`Bearer ${env.SUPABASE_SECRET_KEY}`);
+    expect(signed?.body).toEqual({ expiresIn: 600 });
+    expect(calls('/rest/v1/signed_sheets')[0]?.headers.get('Authorization')).toBe(
+      `Bearer ${env.SUPABASE_SECRET_KEY}`
+    );
+    expect(convertDocx).not.toHaveBeenCalled();
+  });
+
+  it('has no link for a sheet drawn up on the spot', async () => {
+    mockUpstream();
+
+    const response = await request(own('/sheets/su/link'));
+
+    expect(response.status).toBe(404);
     expect(convertDocx).not.toHaveBeenCalled();
   });
 
@@ -751,11 +791,24 @@ describe("the client administrator's places", () => {
     expect(query.get('archived_at')).toBe('is.null');
   });
 
+  it("signs a link to an employee's stored sheet under the administered client", async () => {
+    mockUpstream({ signedSheets: withStoredSheet });
+
+    const response = await request(administered(`/employees/${colleagueId}/sheets/ssm/link`));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ expiresInSeconds: 600 });
+    const sheets = calls('/rest/v1/signed_sheets')[0]!.url.searchParams;
+    expect(sheets.get('employee_id')).toBe(`eq.${colleagueId}`);
+    expect(sheets.get('client_id')).toBe(`eq.${otherClientId}`);
+  });
+
   it.each([
     '/employees',
     `/employees/${colleagueId}/training-records`,
     `/employees/${colleagueId}/sheets`,
     `/employees/${colleagueId}/sheets/su`,
+    `/employees/${colleagueId}/sheets/su/link`,
   ])('answers 403 to an employee for %s', async (path) => {
     mockUpstream();
 

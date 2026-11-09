@@ -41,32 +41,3 @@ export async function openPreview(load: () => Promise<Blob>, title: string) {
     throw cause;
   }
 }
-
-// For a file in Storage: the API passes it through under its real name, which Storage's own
-// header loses. A download needs a full browser: the in-app browser Gmail opens on Android (a
-// Firefox custom tab) cannot download at all, so the public contract page shows its PDF
-// `inline` instead.
-export function openDownload(
-  apiBaseUrl: string | undefined,
-  link: { url: string; fileName: string }
-) {
-  const anchor = document.createElement('a');
-  anchor.href = fileAddress(apiBaseUrl, link, 'attachment');
-  anchor.hidden = true;
-  document.body.append(anchor);
-  anchor.click();
-  anchor.remove();
-}
-
-export function fileAddress(
-  apiBaseUrl: string | undefined,
-  link: { url: string; fileName: string },
-  disposition: 'attachment' | 'inline'
-) {
-  if (!apiBaseUrl) throw new Error('The API URL is not configured.');
-  const address = new URL('files/download', `${apiBaseUrl.replace(/\/$/, '')}/`);
-  address.searchParams.set('source', link.url);
-  address.searchParams.set('name', link.fileName);
-  address.searchParams.set('disposition', disposition);
-  return address.href;
-}

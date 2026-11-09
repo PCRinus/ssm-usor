@@ -10,10 +10,17 @@ import {
 } from '@ssm-usor/ui/components/dropdown-menu';
 import { TableCell, TableRow } from '@ssm-usor/ui/components/table';
 import { Download, Lock, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import type { MouseEvent } from 'react';
 
 import { rowClickProps } from '@/components/data-table/row-click';
 
 import { type ClientFile, fileKind, formatFileSize, formatUploadDate } from './client-file-format';
+
+type FileAnchor = {
+  href: string;
+  target: string | undefined;
+  onClick: (event: MouseEvent<HTMLAnchorElement>) => void;
+};
 
 const unreadReason = (reason: string) =>
   reason.charAt(0).toLowerCase() + reason.slice(1).replace(/\.$/, '');
@@ -24,8 +31,9 @@ export function FileRow({
   showOwnersOnly,
   canSwitch,
   switching,
-  onOpen,
-  onDownload,
+  open,
+  download,
+  onActivate,
   onRename,
   onDelete,
   onOwnersOnly,
@@ -37,8 +45,9 @@ export function FileRow({
   showOwnersOnly: boolean;
   canSwitch: boolean;
   switching: boolean;
-  onOpen: () => void;
-  onDownload: () => void;
+  open: FileAnchor;
+  download: FileAnchor;
+  onActivate: (event: MouseEvent<HTMLElement>) => void;
   onRename: () => void;
   onDelete: () => void;
   onOwnersOnly: (ownersOnly: boolean) => void;
@@ -49,7 +58,11 @@ export function FileRow({
   const date = formatUploadDate(file.createdAt);
   const uploader = file.uploadedBy ? (file.uploadedBy.fullName ?? 'Fără nume') : null;
   return (
-    <TableRow data-testid="client-file-row" {...rowClickProps(onOpen)} className="cursor-pointer">
+    <TableRow
+      data-testid="client-file-row"
+      {...rowClickProps(onActivate)}
+      className="cursor-pointer"
+    >
       <TableCell className="min-w-56 whitespace-normal">
         <div
           className="flex min-w-0 items-start gap-3"
@@ -57,14 +70,13 @@ export function FileRow({
         >
           <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           <div className="grid min-w-0 gap-1">
-            <button
-              type="button"
+            <a
               data-testid="client-file-open"
               className="w-fit rounded-sm text-left font-medium wrap-anywhere underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              onClick={onOpen}
+              {...open}
             >
               {file.name}
-            </button>
+            </a>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
               <span data-testid="client-file-kind">{kind.label}</span>
               {file.importRead === false && (
@@ -104,15 +116,15 @@ export function FileRow({
       </TableCell>
       <TableCell className="align-top">
         <div className="flex gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            data-testid="client-file-download"
-            aria-label={`Descarcă ${file.name}`}
-            title="Descarcă"
-            onClick={onDownload}
-          >
-            <Download aria-hidden="true" />
+          <Button asChild variant="ghost" size="icon">
+            <a
+              data-testid="client-file-download"
+              aria-label={`Descarcă ${file.name}`}
+              title="Descarcă"
+              {...download}
+            >
+              <Download aria-hidden="true" />
+            </a>
           </Button>
           {changeable && (
             <DropdownMenu>

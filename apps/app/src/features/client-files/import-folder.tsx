@@ -5,7 +5,7 @@ import { useRouteContext } from '@tanstack/react-router';
 import { ChevronDown, ChevronRight, Download, FileArchive, Folder } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
-import { getClientFileDownload } from '@/api/generated/api';
+import { listClientFiles } from '@/api/generated/api';
 import { filesLabel } from '@/features/imports/import-format';
 import { saveFile } from '@/lib/save-file';
 
@@ -92,11 +92,18 @@ export function ImportFolderRows({
     setFailed(false);
     setZipping({ done: 0, total: files.length });
     try {
+      const fresh = await listClientFiles(
+        clientId,
+        first.employee ? { employeeId: first.employee.id } : undefined,
+        apiRequest
+      );
+      const links = new Map(fresh.items.map((file) => [file.id, file.link]));
       const blob = await zipFiles(
         files.map((file) => ({
           path: [file.importPath, file.originalFileName].filter(Boolean).join('/'),
           load: async () => {
-            const link = await getClientFileDownload(clientId, file.id, apiRequest);
+            const link = links.get(file.id);
+            if (!link) throw new Error('The file is no longer available.');
             const response = await fetch(link.url);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             return new Uint8Array(await response.arrayBuffer());

@@ -5,6 +5,7 @@ import {
   getEmployeeTests,
   getTestBank,
   getTestSheet,
+  getTestSheetLink,
   hideTestQuestion,
   markTestSheetPaperSignature,
   recordPaperTestResult,
@@ -17,6 +18,7 @@ import {
   deleteTestQuestionRoute,
   getEmployeeTestsRoute,
   getTestBankRoute,
+  getTestSheetLinkRoute,
   getTestSheetRoute,
   hideTestQuestionRoute,
   markTestSheetPaperSignatureRoute,
@@ -37,4 +39,5 @@ export const testsRouter = createRouter()
   .openapi(recordPaperTestResultRoute, recordPaperTestResult)
   .openapi(updateTestResultRoute, updateTestResult)
   .openapi(getTestSheetRoute, getTestSheet)
+  .openapi(getTestSheetLinkRoute, getTestSheetLink)
   .openapi(markTestSheetPaperSignatureRoute, markTestSheetPaperSignature);

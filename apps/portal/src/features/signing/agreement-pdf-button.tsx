@@ -1,12 +1,19 @@
 import type { MessageDescriptor } from '@lingui/core';
 import { msg } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
+import { useFileLink } from '@ssm-usor/api-http/file-link';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { FileText, LoaderCircle } from 'lucide-react';
 import { useState } from 'react';
 
-import { getPortalEmployeeSigningAgreement, getPortalSigningAgreement } from '@/api/generated/api';
+import {
+  getPortalEmployeeSigningAgreement,
+  getPortalEmployeeSigningAgreementLink,
+  getPortalSigningAgreement,
+  getPortalSigningAgreementLink,
+} from '@/api/generated/api';
+import { FileLinkButton } from '@/components/file-link-button';
 import { Notice } from '@/components/notice';
 import {
   isAdministrator,
@@ -15,23 +22,41 @@ import {
 import { useApiRequest } from '@/lib/request';
 import { openPreview, PreviewBlockedError } from '@/lib/save-file';
 
+// Unsigned agreements are drawn up on demand, so only signed agreements have a stored link.
 export function AgreementPdfButton({
   participation,
   employeeId,
+  signedAt,
   className,
 }: {
   participation: Participation;
   employeeId: string;
+  signedAt?: string | null;
   className?: string;
 }) {
   const { t, i18n } = useLingui();
   const apiRequest = useApiRequest();
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<MessageDescriptor | null>(null);
+  const stored = Boolean(signedAt);
+  const administrator = isAdministrator(participation);
   const load = () =>
-    isAdministrator(participation)
+    administrator
       ? getPortalEmployeeSigningAgreement(participation.participantId, employeeId, apiRequest)
       : getPortalSigningAgreement(participation.participantId, apiRequest);
+  const link = useFileLink({
+    queryKey: ['signing-agreement-link', participation.participantId, employeeId, signedAt],
+    load: (signal) =>
+      administrator
+        ? getPortalEmployeeSigningAgreementLink(participation.participantId, employeeId, {
+            ...apiRequest,
+            signal,
+          })
+        : getPortalSigningAgreementLink(participation.participantId, { ...apiRequest, signal }),
+    enabled: stored,
+    apiRequest,
+    disposition: 'inline',
+  });
 
   async function open() {
     setBusy(true);
@@ -52,6 +77,19 @@ export function AgreementPdfButton({
     }
   }
 
+  if (stored) {
+    return (
+      <FileLinkButton
+        variant="outline"
+        data-testid="agreement-pdf"
+        className={cn('h-10 w-fit', className)}
+        link={link}
+      >
+        <FileText aria-hidden="true" />
+        <Trans>Deschide PDF</Trans>
+      </FileLinkButton>
+    );
+  }
   return (
     <div className={cn('grid gap-1.5', className)}>
       <Button

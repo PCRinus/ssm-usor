@@ -1,5 +1,6 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
+  fileLinkResponseSchema,
   missingSheetDataResponseSchema,
   trainingSheetQuerySchema,
   trainingSheetsResponseSchema,
@@ -80,5 +81,38 @@ export const getTrainingSheetRoute = createRoute({
         'Supabase is unavailable, the template is not registered (reason `template_missing`), there is no converter or it failed (reason `pdf_unavailable`), or the signer that stamps a merged copy did (reason `signer_unavailable`)',
       content: errorContent,
     },
+  },
+});
+
+export const getTrainingSheetLinkRoute = createRoute({
+  method: 'get',
+  path: '/clients/{clientId}/employees/{employeeId}/training-sheet/link',
+  operationId: 'getTrainingSheetLink',
+  summary: "A short-lived link to an employee's stored signed sheet",
+  description:
+    "For a real link on the page, which the browser opens through `GET /files/download`: shown `inline`, the PDF opens in the browser's viewer, which the in-app browser of a mail client can do where it cannot download. Only a stored sheet (ADR 023) has a file to link to; a sheet drawn up on the spot and the merged reading copy come from the PDF route. `sequence` names one of several stored sheets and may be left out when there is one. The link is valid for ten minutes.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: employeeParams, query: trainingSheetQuerySchema },
+  responses: {
+    200: {
+      description: 'The link',
+      content: {
+        'application/json': { schema: fileLinkResponseSchema.meta({ id: 'FileLinkResponse' }) },
+      },
+    },
+    400: { description: 'Invalid path, domain or sequence', content: errorContent },
+    404: {
+      description:
+        'The employee does not exist under this client in the organization, has no stored sheet of the domain, or none of that `sequence`',
+      content: errorContent,
+    },
+    409: {
+      description:
+        'Several sheets are stored and `sequence` names none of them (reason `several_sheets`)',
+      content: errorContent,
+    },
+    ...membershipErrors,
+    503: { description: 'Storage is unavailable', content: errorContent },
   },
 });

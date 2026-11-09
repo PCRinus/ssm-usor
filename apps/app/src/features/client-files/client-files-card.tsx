@@ -1,14 +1,20 @@
+import {
+  type Disposition,
+  fileAddress,
+  linkTarget,
+  openAddress,
+  renewalMs,
+} from '@ssm-usor/api-http/file-link';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { FileUp, Upload } from 'lucide-react';
-import { useState } from 'react';
+import { type MouseEvent, useState } from 'react';
 
 import {
   type ClientFileListResponse,
-  getClientFileDownload,
   getListClientFilesQueryKey,
   setClientFileOwnersOnly,
   useListClientFiles,
@@ -18,10 +24,9 @@ import { SectionCard } from '@/components/section-card';
 import { useMe } from '@/features/account/use-me';
 import type { Client } from '@/features/clients/client-form-schema';
 import { isEmptyOrLoading } from '@/lib/list-state';
-import { fileAddress, openDownload } from '@/lib/save-file';
 
 import { DeleteClientFileDialog, RenameClientFileDialog } from './client-file-dialogs';
-import { type ClientFile, type ClientFileEmployee, opensInTab } from './client-file-format';
+import { type ClientFile, type ClientFileEmployee } from './client-file-format';
 import { FileRow } from './client-file-row';
 import { UploadClientFilesDialog } from './client-file-upload-dialog';
 import { ImportFolderRows } from './import-folder';
@@ -52,9 +57,14 @@ export function ClientFilesCard({
   const lead = client.stage === 'lead';
   const params = employee ? { employeeId: employee.id } : undefined;
   const queryKey = [...getListClientFilesQueryKey(client.id, params), userId];
+  // Every file comes with a signed link, so the list fetches itself again before they expire.
   const files = useListClientFiles(client.id, params, {
     request: apiRequest,
-    query: { queryKey },
+    query: {
+      queryKey,
+      staleTime: (current) => renewalMs(current.state.data?.items[0]?.link.expiresInSeconds),
+      refetchInterval: (current) => renewalMs(current.state.data?.items[0]?.link.expiresInSeconds),
+    },
   });
   const [uploading, setUploading] = useState<File[] | null>(null);
   const [renaming, setRenaming] = useState<ClientFile | null>(null);
@@ -67,25 +77,49 @@ export function ClientFilesCard({
 
   useRefuseStrayDrops();
 
-  // A tab opened after the link arrives would be taken for a popup and blocked, so it opens
-  // on the click and is pointed at the file once the link is there.
+  const addressOf = (file: ClientFile, how: 'open' | 'download') => {
+    const disposition: Disposition =
+      how === 'open' && file.link.disposition === 'inline' ? 'inline' : 'attachment';
+    return { href: fileAddress(apiRequest.baseUrl, file.link, disposition), disposition };
+  };
+
+  // A phone that slept may keep a link past its expiry before the list fetches itself again, so
+  // a tap past that point asks for the list first.
+  const linksStaleAt =
+    files.dataUpdatedAt + ((files.data?.items[0]?.link.expiresInSeconds ?? 0) - 30) * 1_000;
+
   async function openFile(file: ClientFile, how: 'open' | 'download') {
     setError(null);
-    const tab = how === 'open' && opensInTab(file.mimeType) ? window.open('', '_blank') : null;
-    if (tab) tab.opener = null;
-    try {
-      const link = await getClientFileDownload(client.id, file.id, apiRequest);
-      if (tab && link.disposition === 'inline') {
-        tab.location.href = fileAddress(apiRequest.baseUrl, link, 'inline');
-      } else {
-        tab?.close();
-        openDownload(apiRequest.baseUrl, link);
-      }
-    } catch {
-      tab?.close();
+    const refreshed = await files.refetch();
+    const fresh = refreshed.isSuccess
+      ? refreshed.data.items.find((item) => item.id === file.id)
+      : undefined;
+    if (!fresh) {
       setError(`Nu am putut deschide „${file.name}”. Verifică conexiunea și încearcă din nou.`);
-      await queryClient.invalidateQueries({ queryKey: getListClientFilesQueryKey(client.id) });
+      return;
     }
+    const { href, disposition } = addressOf(fresh, how);
+    openAddress(href, disposition);
+  }
+
+  const linkProps = (file: ClientFile, how: 'open' | 'download') => {
+    const { href, disposition } = addressOf(file, how);
+    return {
+      href,
+      target: linkTarget(disposition),
+      onClick: (event: MouseEvent<HTMLAnchorElement>) => {
+        if (event.timeStamp + performance.timeOrigin < linksStaleAt) return;
+        event.preventDefault();
+        void openFile(file, how);
+      },
+    };
+  };
+
+  function openRow(file: ClientFile, event: MouseEvent<HTMLElement>) {
+    if (event.timeStamp + performance.timeOrigin >= linksStaleAt)
+      return void openFile(file, 'open');
+    const { href, disposition } = addressOf(file, 'open');
+    openAddress(href, disposition);
   }
 
   async function setOwnersOnly(file: ClientFile, ownersOnly: boolean) {
@@ -126,8 +160,9 @@ export function ClientFilesCard({
       showOwnersOnly={!lead}
       canSwitch={isOwner && !lead && !readOnly}
       switching={switching.includes(file.id)}
-      onOpen={() => void openFile(file, 'open')}
-      onDownload={() => void openFile(file, 'download')}
+      open={linkProps(file, 'open')}
+      download={linkProps(file, 'download')}
+      onActivate={(event) => openRow(file, event)}
       onRename={() => setRenaming(file)}
       onDelete={() => setDeleting(file)}
       onOwnersOnly={(ownersOnly) => void setOwnersOnly(file, ownersOnly)}

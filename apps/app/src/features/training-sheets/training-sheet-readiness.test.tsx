@@ -29,7 +29,12 @@ const employeePage = `/clienti/${clientId}/angajati/${employeeId}`;
 type Readiness = { ready: boolean; missing: string[]; stored?: boolean; sequences?: number[] };
 const ready: Readiness = { ready: true, missing: [] };
 
-const sheetStatus = (readiness: Readiness) => ({ stored: false, sequences: [], ...readiness });
+const sheetStatus = (readiness: Readiness) => ({
+  stored: false,
+  sequences: [],
+  versions: {},
+  ...readiness,
+});
 
 const fetchMock = vi.fn<typeof fetch>();
 

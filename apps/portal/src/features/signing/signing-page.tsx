@@ -449,7 +449,11 @@ function ChooseRow({
           </>
         )}
         {item.kind === 'agreement' && (
-          <AgreementPdfButton participation={participation} employeeId={item.employeeId} />
+          <AgreementPdfButton
+            participation={participation}
+            employeeId={item.employeeId}
+            signedAt={item.party === 'employer' ? item.employeeSignedAt : null}
+          />
         )}
       </div>
     </li>
