@@ -4,7 +4,7 @@ import { toast } from '@ssm-usor/ui/lib/toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
 import { ArrowLeft, ListX, LoaderCircle, RotateCcw } from 'lucide-react';
-import { type ReactNode, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   type ApiErrorResponse,
@@ -17,15 +17,17 @@ import {
 import { ApiHttpError } from '@/api/http';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
+import { scrollAndFocus } from '@/features/missing-data/focus';
 import type { FactorStore } from '@/features/risk-evaluations/factor-store';
 import type { EditableFactor } from '@/features/risk-evaluations/risk-evaluation-schema';
 import { RiskFactorDialog } from '@/features/risk-evaluations/risk-factor-dialog';
 
 import { creditsLabel } from '../import-credits';
 import { importErrorMessage } from '../import-format';
+import { ImportIssueBadge } from '../import-review-issues';
 import { ReportImportButton } from '../report-import-button';
 import type { LabelledSource } from '../review-model';
-import { SavingNote, SourceButton, Tag } from '../review-parts';
+import { SourceButton, Tag } from '../review-parts';
 import { SourceDialog, type SourceRequest } from '../source-dialog';
 import { SourcePrefetchContext, useSourcePrefetch } from '../source-query';
 import { PartStatusTag } from './library-group';
@@ -37,13 +39,12 @@ import {
   pickablePosts,
   postsByReference,
 } from './library-model';
-import { ReviewNotices } from './library-task-page';
+import { ClientPrerequisiteNote, ReviewNotices } from './library-task-page';
 import { PostsPickerDialog, type PostsRequest } from './posts-picker-dialog';
 import { RiskConfirmBar } from './risk-confirm-bar';
 import { PlanRowText } from './risk-plan-rows';
 import { RiskSheetCard } from './risk-sheet-card';
 import {
-  confirmSentence,
   defaultSheetPosts,
   evaluationsLabel,
   existingByReference,
@@ -59,7 +60,6 @@ import {
   placedPlanRows,
   planFieldsLine,
   type RisksPart,
-  riskSummary,
   rowQuote,
   sheetsLabel,
   sheetState,
@@ -83,10 +83,14 @@ export function RisksTaskPage({ detail }: { detail: ImportDetail }) {
   }
   const part = query.data?.parts.find(isRisksLibraryPart);
   const back = (
-    <Button asChild variant="outline" className="w-fit">
-      <Link to="/clienti/import/$importId" params={{ importId: detail.id }}>
+    <Button asChild variant="outline">
+      <Link
+        to="/clienti/import/$importId"
+        params={{ importId: detail.id }}
+        data-testid="library-back-to-import"
+      >
         <ArrowLeft aria-hidden="true" />
-        Înapoi la import
+        Înapoi la propunere
       </Link>
     </Button>
   );
@@ -121,9 +125,6 @@ export function RisksTaskPage({ detail }: { detail: ImportDetail }) {
     </div>
   );
 }
-
-const conflictText =
-  'Altcineva a modificat evaluările de risc între timp, așa că schimbarea ta nu a fost salvată. Reîncarcă pagina și fă-o din nou.';
 
 const confirmReasons: Record<string, string> = {
   [importErrorReasons.clientUnconfirmed]:
@@ -180,6 +181,9 @@ function TaskContent({
   const navigate = useNavigate();
   const review = useRiskReview(detail.id, part);
   const prefetchSource = useSourcePrefetch(detail.id);
+  const root = useRef<HTMLDivElement>(null);
+  const stopAttention = useRef<() => void>(() => {});
+  useEffect(() => () => stopAttention.current(), []);
   const [source, setSource] = useState<SourceRequest | null>(null);
   const [postsRequest, setPostsRequest] = useState<PostsRequest | null>(null);
   const [editing, setEditing] = useState<Editing>(null);
@@ -193,7 +197,7 @@ function TaskContent({
   const expired = isExpired(part);
   const proposal = part.proposal;
   const reviewable = isReviewable(part.status) && proposal !== null && !expired;
-  const readOnly = !reviewable;
+  const readOnly = !reviewable || Boolean(review.closed);
   const name = detail.client?.legalName ?? detail.companyName ?? 'clientul importat';
   const sheets = useMemo(() => proposal?.sheets ?? [], [proposal]);
   const pickable = pickablePosts(posts, clientConfirmed);
@@ -216,7 +220,25 @@ function TaskContent({
   const open = readOnly
     ? 0
     : states.filter((state) => pendingOf(state, takenNames.has(state.sheet.key)).length > 0).length;
-  const summary = riskSummary(states);
+  const decisions = states.map((state) => ({
+    state,
+    pending: pendingOf(state, takenNames.has(state.sheet.key)),
+  }));
+  const choices = decisions.filter(({ pending }) => pending.some((value) => value !== 'name'));
+  const names = decisions.filter(({ pending }) => pending.includes('name'));
+  const choicesCount = decisions.reduce(
+    (count, { pending }) => count + pending.filter((value) => value !== 'name').length,
+    0
+  );
+
+  function pointToSheet(key: string) {
+    const element = [
+      ...(root.current?.querySelectorAll<HTMLElement>('[data-testid="risk-import-sheet"]') ?? []),
+    ].find((each) => each.dataset.key === key);
+    if (!element) return;
+    stopAttention.current();
+    stopAttention.current = scrollAndFocus(element);
+  }
   const sheetByKey = new Map(sheets.map((sheet) => [sheet.key, sheet]));
   const loose = {
     plan: unplacedPlanRows(planRows, sheets),
@@ -347,7 +369,7 @@ function TaskContent({
 
   return (
     <SourcePrefetchContext value={prefetchSource}>
-      <div className="grid gap-6" data-testid="library-task" data-part={part.part}>
+      <div ref={root} className="grid gap-6" data-testid="library-task" data-part={part.part}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="grid max-w-3xl gap-1">
             <span className="text-sm text-muted-foreground">Din import</span>
@@ -357,13 +379,11 @@ function TaskContent({
               <HelpLink topic="import.evaluari-de-risc" label="Ajutor: evaluările din import" />
             </div>
             <p className="text-sm text-muted-foreground">
-              Evaluările de risc din documentația lui {name}, pentru biblioteca ta și pentru
-              posturile clientului. Clasele sunt cele din document; noi doar îți arătăm unde nu se
-              potrivesc cu metoda.
+              Evaluările de risc pentru {name}. Clasele rămân cele din document; diferențele față de
+              metodă sunt marcate la factori.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {reviewable && <SavingNote saving={review.saving} />}
             <ReportImportButton importId={detail.id} part={part.part} />
           </div>
         </div>
@@ -374,7 +394,7 @@ function TaskContent({
           retrying={retrying}
           onRetry={() => void retry()}
         />
-        {reviewable && <ReviewNotices review={review} conflictText={conflictText} />}
+        {reviewable && <ReviewNotices review={review} />}
 
         {proposal && part.status !== 'failed' && part.status !== 'reading' && (
           <>
@@ -464,32 +484,57 @@ function TaskContent({
           </>
         )}
 
-        {back}
-
-        {reviewable && (
-          <RiskConfirmBar
-            summary={confirmSentence(summary)}
-            note={
-              clientConfirmed && part.expiresAt
-                ? `Poți confirma până pe ${libraryDay(part.expiresAt)}.`
-                : `Le poți verifica de acum, iar ce schimbi se păstrează. Le confirmi după ce ${detail.intoExistingClient ? 'completezi' : 'creezi'} clientul, pentru că se aplică la posturile lui.`
-            }
-            error={confirmError}
-          >
+        <RiskConfirmBar
+          summary={
+            <div className="flex flex-wrap items-center gap-x-3">
+              <PartStatusTag part={part} />
+              {reviewable && names.length > 0 && (
+                <ImportIssueBadge
+                  tone="destructive"
+                  onClick={() => pointToSheet(names[0]!.state.sheet.key)}
+                >
+                  {names.length === 1 ? 'Un nume de schimbat' : `${names.length} nume de schimbat`}
+                </ImportIssueBadge>
+              )}
+              {reviewable && choicesCount > 0 && (
+                <ImportIssueBadge
+                  tone="warning"
+                  onClick={() => pointToSheet(choices[0]!.state.sheet.key)}
+                >
+                  {choicesCount === 1
+                    ? 'O alegere de verificat'
+                    : `${choicesCount} alegeri de verificat`}
+                </ImportIssueBadge>
+              )}
+            </div>
+          }
+          save={
+            reviewable && !review.closed
+              ? { ...review, reload: () => window.location.reload() }
+              : undefined
+          }
+          note={
+            review.closed ? (
+              'Reîncarcă pagina pentru starea actuală.'
+            ) : !reviewable ? undefined : !clientConfirmed ? (
+              <ClientPrerequisiteNote intoExistingClient={detail.intoExistingClient} />
+            ) : part.expiresAt ? (
+              `Poți confirma până pe ${libraryDay(part.expiresAt)}.`
+            ) : undefined
+          }
+          error={confirmError}
+        >
+          {back}
+          {reviewable && clientConfirmed && (
             <Button
-              className="h-11 w-full sm:h-10 sm:w-auto sm:shrink-0"
               data-testid="library-confirm"
-              disabled={!clientConfirmed || confirming}
+              disabled={confirming || review.conflict || Boolean(review.error || review.closed)}
               onClick={() => void confirm()}
             >
-              {!clientConfirmed
-                ? 'Confirmă întâi clientul'
-                : confirming
-                  ? 'Se confirmă…'
-                  : 'Confirmă evaluările'}
+              {confirming ? 'Se confirmă…' : 'Confirmă evaluările'}
             </Button>
-          </RiskConfirmBar>
-        )}
+          )}
+        </RiskConfirmBar>
 
         <SourceDialog importId={detail.id} request={source} onClose={() => setSource(null)} />
         <PostsPickerDialog

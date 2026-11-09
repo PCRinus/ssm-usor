@@ -49,8 +49,9 @@ test("a pack's own instructions are reviewed before the client is created, confi
     'O instrucțiune din pachet este deja în biblioteca ta'
   );
   await expect(page.getByTestId('library-undecided')).toContainText('Vânzător');
-  await expect(page.getByTestId('library-confirm')).toHaveText('Confirmă întâi clientul');
-  await expect(page.getByTestId('library-confirm')).toBeDisabled();
+  await expect(page.getByTestId('library-confirm')).toHaveCount(0);
+  await expect(page.getByTestId('library-confirm-bar')).toContainText('Creează întâi clientul.');
+  await expect(page.getByTestId('library-back-to-import')).toHaveText('Înapoi la propunere');
 
   const rows = page.getByTestId('library-instruction');
   await expect(rows).toHaveCount(2);
@@ -91,9 +92,9 @@ test("a pack's own instructions are reviewed before the client is created, confi
     `Scări metalice (${bakery.name})`
   );
   await expect(similar.getByTestId('library-instruction-pending')).toHaveText('Gata de confirmat');
-  await expect(page.getByTestId('library-confirm-summary')).toContainText(
-    'Când confirmi, adăugăm 2 instrucțiuni în bibliotecă, folosim una pe care o ai deja și le aplicăm la 3 posturi.'
-  );
+  await expect(
+    page.getByTestId('library-confirm-bar').getByTestId('library-part-status')
+  ).toHaveText('De verificat');
   // A reload while the last choice is still saving cancels it.
   await expect(page.getByRole('status').filter({ hasText: 'Se salvează…' })).toHaveCount(0);
 

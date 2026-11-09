@@ -79,9 +79,12 @@ export function DecisionRow({
   top?: boolean;
   children: ReactNode;
 }) {
+  const labelId = useId();
   return (
     <div
       id={id}
+      role="group"
+      aria-labelledby={labelId}
       data-testid={testId}
       data-tone={tone}
       className={cn(
@@ -95,7 +98,9 @@ export function DecisionRow({
       )}
     >
       <StatusDot tone={tone} />
-      <span className="text-sm font-medium">{label}</span>
+      <span id={labelId} className="text-sm font-medium">
+        {label}
+      </span>
       {toggle && (
         <div className="col-start-3 row-start-1 flex min-h-5 items-center justify-end sm:col-start-5 sm:min-h-9">
           {toggle}

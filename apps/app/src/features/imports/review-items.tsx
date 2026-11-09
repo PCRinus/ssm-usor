@@ -290,6 +290,7 @@ function ItemRow({
   return (
     <li
       id={anchorOf(`${state.list}.${state.item.id}`)}
+      aria-label={title}
       data-testid="review-item"
       data-included={state.included}
       className="scroll-mt-32 py-3"

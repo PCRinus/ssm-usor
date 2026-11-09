@@ -156,6 +156,19 @@ export function rowState(
   };
 }
 
+export function instructionPending(
+  row: RowState,
+  postsById: ReadonlyMap<string, LibraryPost>,
+  titleTaken: boolean
+) {
+  if (!row.included) return [];
+  return [
+    ...(titleTaken && !row.usesLibrary ? ['title'] : []),
+    ...(row.instruction.status === 'similar' && !row.choicePicked ? ['ce primesc posturile'] : []),
+    ...(row.posts.some((post) => postsById.has(post)) ? [] : ['posturile']),
+  ];
+}
+
 export const reviewedInstructions = (instructions: readonly ProposedInstruction[]) =>
   instructions.filter((instruction) => instruction.status !== 'identical');
 

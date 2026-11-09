@@ -3,8 +3,8 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
-import { ArrowLeft, LoaderCircle, RotateCcw } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowLeft, LoaderCircle, LockKeyhole, RotateCcw } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
   type ApiErrorResponse,
@@ -17,22 +17,23 @@ import {
 import { ApiHttpError } from '@/api/http';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
-import { roCount } from '@/features/employees/employee-format';
 import { invalidateLibrary } from '@/features/instructions/instruction-schema';
+import { scrollAndFocus } from '@/features/missing-data/focus';
 
+import { ImportActionBar } from '../import-action-bar';
 import { creditsLabel } from '../import-credits';
 import { importErrorMessage } from '../import-format';
+import { ImportIssueBadge } from '../import-review-issues';
 import { ReportImportButton } from '../report-import-button';
-import { SavingNote } from '../review-parts';
 import { SourceDialog, type SourceRequest } from '../source-dialog';
 import { SourcePrefetchContext, useSourcePrefetch } from '../source-query';
 import { BodyEditDialog, type BodyRequest } from './body-edit-dialog';
 import { InstructionRow } from './instruction-row';
 import { PartStatusTag } from './library-group';
 import {
-  confirmSummary,
   identicalInstructions,
   identicalSentence,
+  instructionPending,
   instructionsLabel,
   isExpired,
   isInstructionsLibraryPart,
@@ -102,12 +103,14 @@ export function LibraryTaskPage({
           posts={query.data?.posts ?? []}
         />
       )}
-      <Button asChild variant="outline" className="w-fit">
-        <Link to="/clienti/import/$importId" params={{ importId: detail.id }}>
-          <ArrowLeft aria-hidden="true" />
-          Înapoi la import
-        </Link>
-      </Button>
+      {(query.isError || !part) && (
+        <Button asChild variant="outline" className="w-fit">
+          <Link to="/clienti/import/$importId" params={{ importId: detail.id }}>
+            <ArrowLeft aria-hidden="true" />
+            Înapoi la propunere
+          </Link>
+        </Button>
+      )}
     </div>
   );
 }
@@ -143,6 +146,9 @@ function TaskContent({
   const navigate = useNavigate();
   const review = useLibraryReview(detail.id, part);
   const prefetchSource = useSourcePrefetch(detail.id);
+  const root = useRef<HTMLDivElement>(null);
+  const stopAttention = useRef<() => void>(() => {});
+  useEffect(() => () => stopAttention.current(), []);
   const [source, setSource] = useState<SourceRequest | null>(null);
   const [postsRequest, setPostsRequest] = useState<PostsRequest | null>(null);
   const [bodyRequest, setBodyRequest] = useState<BodyRequest | null>(null);
@@ -157,7 +163,7 @@ function TaskContent({
   const expired = isExpired(part);
   const proposal = part.proposal;
   const reviewable = isReviewable(part.status) && proposal !== null && !expired;
-  const readOnly = !reviewable;
+  const readOnly = !reviewable || Boolean(review.closed);
   const name = detail.client?.legalName ?? detail.companyName ?? 'clientul importat';
   const instructions = proposal?.instructions ?? [];
   const rows = reviewedInstructions(instructions).map((instruction) =>
@@ -180,7 +186,25 @@ function TaskContent({
     });
     undecidedByPost.set(post, notes);
   }
-  const summary = confirmSummary(instructions, review.changes, part.positionPosts, postsById);
+  const decisions = rows.map((row) => ({
+    row,
+    pending: instructionPending(row, postsById, takenTitles.has(row.instruction.key)),
+  }));
+  const choices = decisions.filter(({ pending }) => pending.some((value) => value !== 'title'));
+  const titles = decisions.filter(({ pending }) => pending.includes('title'));
+  const choicesCount = decisions.reduce(
+    (count, { pending }) => count + pending.filter((value) => value !== 'title').length,
+    0
+  );
+
+  function pointToInstruction(key: string) {
+    const element = [
+      ...(root.current?.querySelectorAll<HTMLElement>('[data-testid="library-instruction"]') ?? []),
+    ].find((each) => each.dataset.key === key);
+    if (!element) return;
+    stopAttention.current();
+    stopAttention.current = scrollAndFocus(element);
+  }
 
   async function refresh() {
     await queryClient.invalidateQueries({
@@ -265,7 +289,7 @@ function TaskContent({
 
   return (
     <SourcePrefetchContext value={prefetchSource}>
-      <div className="grid gap-6" data-testid="library-task" data-part={part.part}>
+      <div ref={root} className="grid gap-6" data-testid="library-task" data-part={part.part}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="grid max-w-3xl gap-1">
             <span className="text-sm text-muted-foreground">Instrucțiuni proprii din import</span>
@@ -277,12 +301,9 @@ function TaskContent({
                 label="Ajutor: instrucțiunile din import"
               />
             </div>
-            <p className="text-sm text-muted-foreground">
-              {intro} {splitSentence(identical.length, rows.length)}
-            </p>
+            <p className="text-sm text-muted-foreground">{intro}</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {reviewable && <SavingNote saving={review.saving} />}
             <ReportImportButton importId={detail.id} part={part.part} />
           </div>
         </div>
@@ -470,40 +491,77 @@ function TaskContent({
           </>
         )}
 
-        {reviewable && (
-          <section
-            aria-label={`Confirmarea ${label}`}
-            className="grid gap-3 rounded-xl border bg-card px-5 py-4 shadow-xs"
-            data-testid="library-confirm-bar"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <p className="max-w-2xl text-sm" data-testid="library-confirm-summary">
-                <span className="font-medium">{confirmSentence(summary)}</span>{' '}
-                <span className="text-muted-foreground">
-                  {clientConfirmed && part.expiresAt
-                    ? `Poți confirma până pe ${libraryDay(part.expiresAt)}.`
-                    : `Le poți verifica de acum, iar ce schimbi se păstrează. Le confirmi după ce ${detail.intoExistingClient ? 'completezi' : 'creezi'} clientul, pentru că se aplică la posturile lui.`}
-                </span>
-              </p>
-              <Button
-                data-testid="library-confirm"
-                disabled={!clientConfirmed || confirming}
-                onClick={() => void confirm()}
-              >
-                {!clientConfirmed
-                  ? 'Confirmă întâi clientul'
-                  : confirming
-                    ? 'Se confirmă…'
-                    : 'Confirmă instrucțiunile'}
-              </Button>
+        <ImportActionBar
+          label={`Confirmarea ${label}`}
+          testId="library-confirm-bar"
+          save={
+            reviewable && !review.closed
+              ? { ...review, reload: () => window.location.reload() }
+              : undefined
+          }
+          summary={
+            <div
+              className="flex flex-wrap items-center gap-x-3"
+              data-testid="library-confirm-summary"
+            >
+              <PartStatusTag part={part} />
+              {reviewable && (
+                <>
+                  {titles.length > 0 && (
+                    <ImportIssueBadge
+                      tone="destructive"
+                      onClick={() => pointToInstruction(titles[0]!.row.instruction.key)}
+                    >
+                      {titles.length === 1
+                        ? 'Un titlu de schimbat'
+                        : `${titles.length} titluri de schimbat`}
+                    </ImportIssueBadge>
+                  )}
+                  {choicesCount > 0 && (
+                    <ImportIssueBadge
+                      tone="warning"
+                      onClick={() => pointToInstruction(choices[0]!.row.instruction.key)}
+                    >
+                      {choicesCount === 1
+                        ? 'O alegere de verificat'
+                        : `${choicesCount} alegeri de verificat`}
+                    </ImportIssueBadge>
+                  )}
+                </>
+              )}
             </div>
-            {confirmError && (
-              <Notice variant="destructive" data-testid="library-confirm-error">
-                {confirmError}
-              </Notice>
-            )}
-          </section>
-        )}
+          }
+          note={
+            review.closed ? (
+              'Reîncarcă pagina pentru starea actuală.'
+            ) : !reviewable ? undefined : !clientConfirmed ? (
+              <ClientPrerequisiteNote intoExistingClient={detail.intoExistingClient} />
+            ) : part.expiresAt ? (
+              `Poți confirma până pe ${libraryDay(part.expiresAt)}.`
+            ) : undefined
+          }
+          error={confirmError}
+        >
+          <Button asChild variant="outline">
+            <Link
+              to="/clienti/import/$importId"
+              params={{ importId: detail.id }}
+              data-testid="library-back-to-import"
+            >
+              <ArrowLeft aria-hidden="true" />
+              Înapoi la propunere
+            </Link>
+          </Button>
+          {reviewable && clientConfirmed && (
+            <Button
+              data-testid="library-confirm"
+              disabled={confirming || review.conflict || Boolean(review.error || review.closed)}
+              onClick={() => void confirm()}
+            >
+              {confirming ? 'Se confirmă…' : 'Confirmă instrucțiunile'}
+            </Button>
+          )}
+        </ImportActionBar>
 
         <SourceDialog importId={detail.id} request={source} onClose={() => setSource(null)} />
         <PostsPickerDialog
@@ -529,46 +587,13 @@ function TaskContent({
   );
 }
 
-function confirmSentence(summary: { created: number; used: number; posts: number }) {
-  const parts = [
-    ...(summary.created > 0
-      ? [
-          `adăugăm ${summary.created === 1 ? 'o instrucțiune' : instructionsLabel(summary.created)} în bibliotecă`,
-        ]
-      : []),
-    ...(summary.used > 0
-      ? [
-          summary.used === 1
-            ? 'folosim una pe care o ai deja'
-            : `folosim ${instructionsLabel(summary.used)} pe care le ai deja`,
-        ]
-      : []),
-  ];
-  if (parts.length === 0) return 'Nu adăugăm și nu aplicăm nicio instrucțiune.';
-  const them = summary.created + summary.used === 1 ? 'o' : 'le';
-  const posts =
-    summary.posts === 0
-      ? `, fără să ${them} aplicăm la vreun post`
-      : ` și ${them} aplicăm la ${summary.posts === 1 ? 'un post' : roCount(summary.posts, 'post', 'posturi')}`;
-  return `Când confirmi, ${parts.join(', ')}${posts}.`;
-}
-
-function splitSentence(identical: number, reviewed: number) {
-  if (reviewed === 0) return '';
-  const rest =
-    identical === 0
-      ? reviewed === 1
-        ? 'O verifici mai jos.'
-        : 'Le verifici mai jos.'
-      : reviewed === 1
-        ? 'pe cealaltă o verifici mai jos.'
-        : `pe celelalte ${reviewed} le verifici mai jos.`;
-  if (identical === 0) return rest;
-  const kept =
-    identical === 1
-      ? 'Pe cea pe care o ai deja o aplicăm noi'
-      : `Pe cele ${identical} pe care le ai deja le aplicăm noi`;
-  return `${kept}; ${rest}`;
+export function ClientPrerequisiteNote({ intoExistingClient }: { intoExistingClient: boolean }) {
+  return (
+    <strong className="inline-flex items-start gap-1.5 font-medium text-foreground">
+      <LockKeyhole aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+      {intoExistingClient ? 'Confirmă întâi completarea clientului.' : 'Creează întâi clientul.'}
+    </strong>
+  );
 }
 
 function StateNotices({
@@ -659,57 +684,19 @@ function StateNotices({
   }
 }
 
-export function ReviewNotices({
-  review,
-  conflictText = 'Altcineva a modificat instrucțiunile între timp, așa că schimbarea ta nu a fost salvată. Reîncarcă pagina și fă-o din nou.',
-}: {
-  review: Pick<LibraryReview, 'conflict' | 'closed' | 'error' | 'retry'>;
-  conflictText?: string;
-}) {
-  if (review.conflict) {
-    return (
-      <Notice
-        variant="destructive"
-        data-testid="library-review-conflict"
-        action={
-          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-            Reîncarcă pagina
-          </Button>
-        }
-      >
-        {conflictText}
-      </Notice>
-    );
-  }
-  if (review.closed) {
-    return (
-      <Notice
-        variant="destructive"
-        data-testid="library-review-closed"
-        action={
-          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-            Reîncarcă pagina
-          </Button>
-        }
-      >
-        {review.closed}
-      </Notice>
-    );
-  }
-  if (review.error) {
-    return (
-      <Notice
-        variant="destructive"
-        data-testid="library-review-error"
-        action={
-          <Button variant="outline" size="sm" onClick={review.retry}>
-            Salvează din nou
-          </Button>
-        }
-      >
-        {review.error}
-      </Notice>
-    );
-  }
-  return null;
+export function ReviewNotices({ review }: { review: Pick<LibraryReview, 'closed'> }) {
+  if (!review.closed) return null;
+  return (
+    <Notice
+      variant="destructive"
+      data-testid="library-review-closed"
+      action={
+        <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+          Reîncarcă pagina
+        </Button>
+      }
+    >
+      {review.closed}
+    </Notice>
+  );
 }
