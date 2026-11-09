@@ -421,7 +421,7 @@ function TaskContent({
             ) : (
               <section aria-labelledby="library-rows-heading" className="grid gap-3">
                 <h2 id="library-rows-heading" className="text-lg font-semibold">
-                  Ce verifici înainte să confirmi{' '}
+                  {readOnly ? 'Instrucțiunile din import' : 'Ce verifici înainte să confirmi'}{' '}
                   <span className="ml-2 text-sm font-normal text-muted-foreground tabular-nums">
                     {instructionsLabel(rows.length)}
                   </span>

@@ -152,7 +152,7 @@ describe('the processing page', () => {
     const steps = screen.getAllByTestId('import-step');
     expect(steps.map((step) => step.dataset.state)).toEqual(['done', 'done', 'current', 'next']);
     expect(steps[1]!.textContent).toContain(
-      '4 de citit, 2 fișe de lucrători, 1 deoparte, 2 ale altei firme'
+      '4 de citit, 2 fișe de lucrători, 1 neinclus, 2 ale altei firme'
     );
     expect(steps[3]!.textContent).toContain('CUI, CNP, ANAF și sursele');
     const now = screen.getByTestId('import-now');

@@ -119,7 +119,7 @@ export function ReviewSectionPage({
             <ul className="grid gap-1">
               {hints.map((hint, index) => (
                 <li key={`${hint.anchor}-${index}`}>
-                  <LinkButton className="text-left" onClick={() => reveal([hint.anchor])}>
+                  <LinkButton className="text-left underline" onClick={() => reveal([hint.anchor])}>
                     {hint.text}
                   </LinkButton>
                 </li>

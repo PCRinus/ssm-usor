@@ -176,7 +176,14 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
                       {sectionDescription(section, detail, proposal, review.changes, applying)}
                     </span>
                     {hint && (
-                      <span className="text-[13px] text-info-foreground">{hint.summary}</span>
+                      <span
+                        className={cn(
+                          'text-[13px] text-info-foreground',
+                          section === 'job-positions' && 'sm:hidden'
+                        )}
+                      >
+                        {hint.summary}
+                      </span>
                     )}
                   </span>
                   <span className="justify-self-end">

@@ -380,6 +380,7 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
             return (
               <FileRow
                 file={file}
+                action={canOpen}
                 status={
                   canOpen ? (
                     <Button asChild variant="outline" size="xs">
@@ -409,6 +410,7 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
           render={(file) => (
             <FileRow
               file={file}
+              action={detail.status === 'ready'}
               detail={
                 file.documentKind === 'own_instructions'
                   ? 'Instrucțiuni proprii fără domeniu SSM sau SU identificat.'
@@ -537,7 +539,7 @@ function countsAfterSorting(files: ImportFile[]) {
   if (employees > 0)
     parts.push(employees === 1 ? 'o fișă de lucrător' : `${employees} fișe de lucrători`);
   if (library > 0) parts.push(`${library} pentru bibliotecă`);
-  if (aside > 0) parts.push(`${aside} deoparte`);
+  if (aside > 0) parts.push(`${aside} ${aside === 1 ? 'neinclus' : 'neincluse'}`);
   if (other > 0) parts.push(`${other} ale altei firme`);
   return parts.join(', ');
 }
@@ -766,15 +768,22 @@ function FileRow({
   icon,
   detail,
   status,
+  action = false,
 }: {
   file: ImportFile;
   icon?: ReactNode;
   detail?: string;
   status?: ReactNode;
+  action?: boolean;
 }) {
   const shownDetail = detail ?? fileDetail(file);
   return (
-    <div className="grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 py-2.5">
+    <div
+      className={cn(
+        'grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 py-2.5',
+        action && 'max-sm:grid-cols-[2rem_minmax(0,1fr)]'
+      )}
+    >
       {icon ?? (
         <span className="grid size-8 place-items-center rounded-md bg-secondary" aria-hidden="true">
           {file.mimeType.startsWith('image/') ? (
@@ -790,7 +799,11 @@ function FileRow({
         </span>
         {shownDetail && <span className="block text-xs text-muted-foreground">{shownDetail}</span>}
       </span>
-      {status ?? <span />}
+      {status && (
+        <div className={cn('min-w-0', action && 'max-sm:col-start-2 max-sm:justify-self-start')}>
+          {status}
+        </div>
+      )}
     </div>
   );
 }
