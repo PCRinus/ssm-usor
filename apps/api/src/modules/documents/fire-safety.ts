@@ -467,6 +467,21 @@ const withActivity = <Workplace extends { officeHasActivity: boolean }>(
   workplaces: readonly Workplace[]
 ) => workplaces.filter((workplace) => workplace.officeHasActivity);
 
+// A person tied to an office with no activity heads no listed workplace, so the set names them
+// for every workplace rather than for an address it leaves out (ADR 041).
+function listedFacts(facts: FireSafetySetFacts): FireSafetySetFacts {
+  const workplaces = withActivity(facts.workplaces);
+  const listedIds = new Set(workplaces.map((workplace) => workplace.id));
+  const responsiblePersons = facts.responsiblePersons.map((person) =>
+    person.workplaceId !== null &&
+    !listedIds.has(person.workplaceId) &&
+    facts.workplaces.some((workplace) => workplace.id === person.workplaceId)
+      ? { ...person, workplaceId: null }
+      : person
+  );
+  return { ...facts, workplaces, responsiblePersons };
+}
+
 /** With a type, what generating that one document again also needs. */
 export function missingFireSafetyData(
   facts: Omit<FireSafetySetFacts, 'issueDate' | 'period' | 'firstDecisionNumber' | 'branding'>,
@@ -589,7 +604,7 @@ const alarmKinds = new Set<FireInstallationKind>(['detection_alarm', 'gas_detect
 // A part is only called when no gap leaves it out, which is what makes its `!` safe.
 function fireSafetyContextParts(facts: FireSafetySetFacts): ContextParts<FireSafetyContext> {
   const { organization, client } = facts;
-  const listed = { ...facts, workplaces: withActivity(facts.workplaces) };
+  const listed = listedFacts(facts);
   const registeredOffice = facts.workplaces.find((workplace) => workplace.registeredOffice);
   const inSet = (typeKey: FireSafetyTypeKeyFromTenEmployees) =>
     documentApplies(facts, typeKey) || facts.fireSafety.generatedFromTenEmployees.includes(typeKey);
@@ -611,7 +626,7 @@ function fireSafetyContextParts(facts: FireSafetySetFacts): ContextParts<FireSaf
       certificate: organization.fireSafetyTechnicianCertificate!.trim(),
       authorization: organization.fireSafetyAuthorization?.trim() || null,
     }),
-    fire: () => fireContext(listed, firePeople(facts), inSet, registeredOffice),
+    fire: () => fireContext(listed, firePeople(listed), inSet, registeredOffice),
     seasonsDecision: () => inSet('fire_decision_seasons'),
     controlDecision: () => inSet('fire_decision_control'),
     installationRegister: () => inSet('fire_installation_register'),

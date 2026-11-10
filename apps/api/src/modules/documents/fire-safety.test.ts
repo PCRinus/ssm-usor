@@ -1618,6 +1618,61 @@ describe('a registered office with no activity (ADR 041)', () => {
     ).toEqual({ address: 'Timișoara, județul Timiș, Str. Gheorghe Lazăr 24' });
   });
 
+  describe('a person tied to the office', () => {
+    const [florin, ioana] = facts.responsiblePersons as [
+      DocumentFacts['responsiblePersons'][number],
+      DocumentFacts['responsiblePersons'][number],
+    ];
+    const ioanaAtOffice = { ...ioana, workplaceId: officeId };
+
+    it('heads every listed workplace when no other manager does', () => {
+      const { fire } = buildFireSafetyContext(
+        withoutActivity(
+          {},
+          {
+            responsiblePersons: [
+              { ...florin, roles: florin.roles.filter((role) => role !== 'workplace_manager') },
+              ioanaAtOffice,
+            ],
+          }
+        )
+      );
+      expect(
+        fire.workplaceManagers.map(({ name, workplaceName }) => ({ name, workplaceName }))
+      ).toEqual([{ name: 'Ioana PETRE', workplaceName: null }]);
+      const [workshop] = fire.workplaces;
+      expect(workshop!.manager?.name).toBe('Ioana PETRE');
+      expect(workshop!.interventionLeaderName).toBe('Ioana PETRE');
+      expect(workshop!.firstIntervention.map((person) => person.name)).toEqual([
+        'Ioana PETRE',
+        'Florin Cristian TALOȘ',
+      ]);
+    });
+
+    it('heads every listed workplace beside a manager tied to one', () => {
+      const { fire } = buildFireSafetyContext(
+        withoutActivity(
+          {},
+          { responsiblePersons: [{ ...florin, workplaceId: workshopId }, ioanaAtOffice] }
+        )
+      );
+      expect(
+        fire.workplaceManagers.map(({ name, workplaceName }) => ({ name, workplaceName }))
+      ).toEqual([
+        { name: 'Florin Cristian TALOȘ', workplaceName: 'Atelier Ghiroda' },
+        { name: 'Ioana PETRE', workplaceName: null },
+      ]);
+      expect(fire.workplaces[0]!.manager?.name).toBe('Florin Cristian TALOȘ');
+    });
+
+    it('is named for the office while activity takes place there', () => {
+      const { fire } = buildFireSafetyContext(
+        officeAs({}, { responsiblePersons: [florin, ioanaAtOffice] })
+      );
+      expect(fire.workplaceManagers[1]!.workplaceName).toBe('Sediul social');
+    });
+  });
+
   it("keeps the office's address as the operator's on the site sheet", () => {
     const { identity } = buildFireSafetyContext(
       withoutActivity(
