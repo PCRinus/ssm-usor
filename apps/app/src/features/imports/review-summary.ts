@@ -26,6 +26,7 @@ import {
   fieldState,
   fireEquipmentCountsOf,
   formatFieldValue,
+  inactiveOffices,
   type ItemList,
   itemName,
   itemStates,
@@ -41,6 +42,10 @@ import {
   smokingPlacePath,
   substancesAdded,
   substancesStatePath,
+  suggestedFields,
+  suggestedValue,
+  suggestionsConfirmed,
+  suggestionStates,
   type UntickedReason,
   valueInForce,
 } from './review-model';
@@ -366,6 +371,28 @@ export function confirmLines(
         rooms > 0
           ? `Cu ${rooms === 1 ? 'o încăpere' : `${rooms} încăperi`}, locurile mijloacelor de apărare împotriva incendiilor`
           : 'Cu adresele din documente',
+    });
+  }
+  if (inactiveOffices(proposal, changes).size > 0) {
+    lines.push({
+      icon: 'pin',
+      label: 'Fără activitate la sediul social',
+      detail: 'Sediul rămâne adresa firmei și nu apare în documentele SU',
+    });
+  }
+  const suggested = suggestionStates(proposal, changes, [], false)
+    .filter((state) => suggestionsConfirmed(state.item, changes))
+    .flatMap((state) =>
+      suggestedFields(state, changes).filter(
+        (field) => suggestedValue(state.item, changes, field).kind !== 'empty'
+      )
+    ).length;
+  if (suggested > 0) {
+    lines.push({
+      icon: 'sparkles',
+      count: suggested,
+      label: suggested === 1 ? 'valoare sugerată din activitate' : 'valori sugerate din activitate',
+      detail: 'Pe fișa SU a punctelor de lucru, așa cum le-ai confirmat',
     });
   }
   if (positions.length > 0) {

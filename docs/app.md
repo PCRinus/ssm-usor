@@ -1053,7 +1053,19 @@ their tab bars read.
   "Vezi în document", "Altă valoare" or "Lasă necompletat", the spelling pair under a value kept;
   until one is picked the hub names no place and blocks confirming (ADR 041). Into an existing
   client a workplace's point is asked only where the API blocks on it or the member decided,
-  since only the API knows the client's own point. After the installations, the card "Substanțe
+  since only the API knows the client's own point. After it, the card "Sugestii din activitate"
+  (`review-suggestions.tsx`, ADR 041) holds the registered office the import suggests has no
+  activity, a decision row with the suggestion (marked "Sugestie din activitate", "Vezi în
+  document" on the passages naming the points of work) or "Cu activitate", and one decision row
+  per kept workplace with suggested values: each value in a small box with its mark, its files,
+  "Vezi în document" stepping through every passage it was drawn from, "Schimbă" (a text box, a
+  list for the norm) and "Lasă necompletat" or "Revino la sugestie", a value changed or emptied
+  showing "Modificat de tine" over the suggestion; then "Păstrează valorile de mai sus" or "Lasă
+  necompletat", which empties them all. Until the row is decided the hub links to it and
+  confirming waits; the workplace's own row leaves those values to the card, and an office kept
+  with no activity says so there and is asked nothing else. Into an existing client a row is
+  shown only where the API blocks on it or the member decided. The confirm dialog adds "Fără
+  activitate la sediul social" and the count of suggested values kept. After the installations, the card "Substanțe
   periculoase" asks "Utilizează substanțe periculoase?" with three answers, the two the client's
   card offers, each with the files that give it and "Vezi în document", and "Nedecis", which
   blocks nothing; the answer the documents give is picked, two that disagree wait for the

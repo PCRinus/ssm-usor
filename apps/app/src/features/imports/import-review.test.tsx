@@ -3352,3 +3352,257 @@ describe('the dangerous substances', () => {
     expect(within(group).queryAllByTestId('review-item')).toEqual([]);
   });
 });
+
+describe('suggested values', () => {
+  const cardPath = 'suggestedValues.workplace-2';
+  const officePath = 'officeActivity.workplace-1';
+  const evaluation = 'dosar-ssm.zip/Evaluare riscuri.docx';
+  const waste = 'dosar-psi.zip/Decizie deseuri.docx';
+  const suggestedDetail = ({
+    fields = {},
+    items = {},
+    blockers,
+    intoExistingClient = false,
+  }: {
+    fields?: Record<string, unknown>;
+    items?: Record<string, unknown>;
+    blockers?: { path: string; code: string }[];
+    intoExistingClient?: boolean;
+  } = {}) => {
+    const proposal = proposalFixture();
+    Object.assign(proposal.workplaces[0]!, {
+      activity: null,
+      rooms: [],
+      officeHasActivity: false,
+      suggested: {
+        officeHasActivity: [
+          { file: 'dosar-ssm.zip/Decizie 1.docx', quote: 'Atelier: Str. Gării 3' },
+        ],
+      },
+    });
+    proposal.workplaces.push({
+      ...proposal.workplaces[0]!,
+      id: 'workplace-2',
+      name: 'Atelier',
+      isRegisteredOffice: false,
+      addressLine: 'Str. Gării nr. 3',
+      activity: 'Brutărie',
+      officeHasActivity: true,
+      combustibleMaterials: 'făină, ambalaje din hârtie și carton, lăzi din lemn',
+      ignitionSources: 'cuptorul electric, instalația electrică',
+      extinguisherNorm: 'commercial_200',
+      suggested: {
+        combustibleMaterials: [
+          { file: evaluation, quote: 'Materii prime: făină, drojdie' },
+          { file: waste, quote: 'deșeuri de hârtie și carton' },
+        ],
+        ignitionSources: [{ file: evaluation, quote: 'cuptor electric cu vatră' }],
+        extinguisherNorm: [{ file: evaluation, quote: 'Cod CAEN 1071' }],
+      },
+    } as never);
+    return readyDetail({
+      proposal,
+      changes: { fields, items },
+      blockers: blockers ?? [
+        { path: officePath, code: 'choice' },
+        { path: cardPath, code: 'choice' },
+      ],
+      ...(intoExistingClient
+        ? { intoExistingClient, client: { id: clientId, legalName: 'Brutăria Spicul Auriu SRL' } }
+        : {}),
+    });
+  };
+  const radio = (row: HTMLElement, testId: string) =>
+    within(within(row).getByTestId(testId)).getByRole('radio');
+  const value = (row: HTMLElement, label: string) =>
+    within(row)
+      .getAllByTestId('review-suggested-value')
+      .find((each) => each.textContent?.includes(label))!;
+
+  it('lists the office and each workplace among what blocks confirming', async () => {
+    mockReview(suggestedDetail());
+    mount();
+
+    const links = await screen.findAllByTestId('import-blocker-link');
+    expect(links.map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
+      [
+        'Confirmă activitatea la sediul social',
+        `/clienti/import/${importId}/workplaces#review-officeActivity-workplace-1`,
+      ],
+      [
+        'Confirmă sugestiile din activitate: Atelier',
+        `/clienti/import/${importId}/workplaces#review-suggestedValues-workplace-2`,
+      ],
+    ]);
+  });
+
+  it('shows each suggested value with its mark and its passages, undecided', async () => {
+    const detail = suggestedDetail();
+    (detail.proposal as unknown as { flags: unknown[] }).flags = [
+      { path: 'workplaces.1.suggested.combustibleMaterials.sources.1', code: 'quote_not_found' },
+    ] as never;
+    mockReview(detail);
+    mount('/workplaces');
+
+    const card = await screen.findByTestId('review-suggestions-card');
+    expect(within(card).getByTestId('review-group-pending').textContent).toBe(
+      'Mai ai 2 lucruri de făcut'
+    );
+    const row = within(card).getByTestId('review-suggestions');
+    expect(row.dataset.tone).toBe('todo');
+    const materials = value(row, 'Materiale combustibile');
+    expect(materials.textContent).toContain('Sugestie din activitate');
+    expect(materials.textContent).toContain('făină, ambalaje din hârtie și carton, lăzi din lemn');
+    expect(materials.textContent).toContain('Evaluare riscuri.docx și încă un fișier');
+    expect(materials.textContent).toContain(
+      'Pasajul citat pentru materialele combustibile nu a fost găsit în fișier.'
+    );
+    expect(value(row, 'Norma de dotare').textContent).toContain('Clădiri comerciale');
+    expect(radio(row, 'review-suggestions-keep').matches(':checked')).toBe(false);
+    const list = screen.getByTestId('review-list-workplaces').textContent;
+    expect(list).not.toContain('lăzi din lemn');
+    expect(list).not.toContain('Pasajul citat');
+  });
+
+  it('steps through the passages a value was drawn from', async () => {
+    mockReview(suggestedDetail());
+    mount('/workplaces');
+
+    const row = await screen.findByTestId('review-suggestions');
+    await userEvent.click(
+      within(value(row, 'Materiale combustibile')).getByRole('button', {
+        name: 'Vezi în document',
+      })
+    );
+    const dialog = await screen.findByTestId('import-source-dialog');
+    expect(within(dialog).getByTestId('source-position').textContent).toBe('1 din 2, în 2 fișiere');
+    await userEvent.click(within(dialog).getByTestId('source-next'));
+    await waitFor(() =>
+      expect(within(dialog).getByTestId('source-position').textContent).toMatch(/^2 din 2/)
+    );
+  });
+
+  it('keeps the values, changes one and leaves one empty, all under one decision', async () => {
+    mockReview(suggestedDetail());
+    mount('/workplaces');
+
+    const row = await screen.findByTestId('review-suggestions');
+    await userEvent.click(radio(row, 'review-suggestions-keep'));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({ [cardPath]: { option: 0 } });
+
+    await userEvent.click(
+      within(value(row, 'Materiale combustibile')).getByTestId('review-suggested-change')
+    );
+    const input = within(value(row, 'Materiale combustibile')).getByTestId(
+      'review-suggested-input'
+    );
+    await userEvent.clear(input);
+    await userEvent.type(input, 'x');
+    await userEvent.click(within(row).getByRole('button', { name: 'Folosește' }));
+    expect(within(row).getByText('Scrie cel puțin 2 caractere.')).toBeTruthy();
+    await userEvent.type(input, 'ăină, cutii de carton');
+    await userEvent.click(within(row).getByRole('button', { name: 'Folosește' }));
+    await waitFor(() => expect(saves).toBe(2));
+    expect(savedChanges(1).changes.items).toEqual({
+      'workplace-2': { values: { combustibleMaterials: 'xăină, cutii de carton' } },
+    });
+    const changed = value(row, 'Materiale combustibile');
+    expect(changed.dataset.state).toBe('other');
+    expect(changed.textContent).toContain('Modificat de tine');
+    expect(changed.textContent).toContain(
+      'Sugestia: făină, ambalaje din hârtie și carton, lăzi din lemn'
+    );
+
+    await userEvent.click(
+      within(value(row, 'Surse de aprindere')).getByTestId('review-suggested-empty')
+    );
+    await waitFor(() => expect(saves).toBe(3));
+    expect(savedChanges(2).changes.items).toEqual({
+      'workplace-2': {
+        values: { combustibleMaterials: 'xăină, cutii de carton', ignitionSources: null },
+      },
+    });
+    expect(value(row, 'Surse de aprindere').textContent).toContain('Necompletat');
+    expect(radio(row, 'review-suggestions-keep').matches(':checked')).toBe(true);
+
+    await userEvent.click(
+      within(value(row, 'Surse de aprindere')).getByTestId('review-suggested-restore')
+    );
+    await waitFor(() => expect(saves).toBe(4));
+    expect(savedChanges(3).changes.items).toEqual({
+      'workplace-2': { values: { combustibleMaterials: 'xăină, cutii de carton' } },
+    });
+  });
+
+  it('leaves every value empty at once', async () => {
+    mockReview(suggestedDetail());
+    mount('/workplaces');
+
+    const row = await screen.findByTestId('review-suggestions');
+    await userEvent.click(radio(row, 'review-suggestions-empty'));
+    await waitFor(() => expect(saves).toBeGreaterThan(0));
+    await waitFor(() =>
+      expect(savedChanges(saves - 1).changes).toEqual({
+        fields: { [cardPath]: { option: 0 } },
+        items: {
+          'workplace-2': {
+            values: { combustibleMaterials: null, ignitionSources: null, extinguisherNorm: null },
+          },
+        },
+      })
+    );
+    expect(radio(row, 'review-suggestions-empty').matches(':checked')).toBe(true);
+  });
+
+  it('keeps or rejects the office with no activity, which then asks nothing of its card', async () => {
+    mockReview(suggestedDetail());
+    mount('/workplaces');
+
+    const row = await screen.findByTestId('review-office-activity');
+    expect(row.textContent).toContain('Sediu · sediu social');
+    expect(row.textContent).toContain('Documentele numesc punctul de lucru «Atelier»');
+    await userEvent.click(radio(row, 'review-office-activity-none'));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({ [officePath]: { option: 0 } });
+    expect(screen.getByTestId('review-list-workplaces').textContent).toContain(
+      'Fără activitate la sediul social'
+    );
+
+    await userEvent.click(radio(row, 'review-office-activity-some'));
+    await waitFor(() => expect(saves).toBe(2));
+    expect(savedChanges(1).changes.fields).toEqual({ [officePath]: { option: 1 } });
+  });
+
+  it('asks nothing of a workplace left out, nor of the office without a point of work', async () => {
+    mockReview(suggestedDetail({ items: { 'workplace-2': { included: false } }, blockers: [] }));
+    mount('/workplaces');
+
+    await screen.findByTestId('review-list-workplaces');
+    expect(screen.queryByTestId('review-suggestions-card')).toBeNull();
+  });
+
+  it('into an existing client, asks only where the import writes a suggested value', async () => {
+    mockReview(suggestedDetail({ intoExistingClient: true, blockers: [] }));
+    mount('/workplaces');
+
+    await screen.findByTestId('review-list-workplaces');
+    expect(screen.queryByTestId('review-suggestions-card')).toBeNull();
+  });
+
+  it('lists the suggested values kept and the office with no activity among what confirming adds', async () => {
+    mockReview(
+      suggestedDetail({
+        fields: { [officePath]: { option: 0 }, [cardPath]: { option: 0 } },
+        items: { 'workplace-2': { values: { ignitionSources: null } } },
+        blockers: [],
+      })
+    );
+    mount();
+
+    await userEvent.click(await screen.findByTestId('import-confirm'));
+    const dialog = await screen.findByTestId('import-confirm-dialog');
+    await waitFor(() => expect(dialog.textContent).toContain('Fără activitate la sediul social'));
+    expect(dialog.textContent).toContain('2valori sugerate din activitate');
+  });
+});

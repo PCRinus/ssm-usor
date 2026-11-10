@@ -97,6 +97,8 @@ const sectionOfRoot: Record<string, SectionId> = {
   substances: 'fire-safety',
   workplaces: 'workplaces',
   assemblyPoints: 'workplaces',
+  suggestedValues: 'workplaces',
+  officeActivity: 'workplaces',
   jobPositions: 'job-positions',
   responsiblePersons: 'responsible',
   employees: 'responsible',
@@ -699,6 +701,129 @@ export function assemblyPointDecision(
     : null;
 }
 
+// The fields drafted from the client's activity, as the API's payload asks them (ADR 041).
+export const suggestedFieldNames = [
+  'combustibleMaterials',
+  'ignitionSources',
+  'fireRiskEquipment',
+  'specificMeasures',
+  'extinguisherNorm',
+] as const;
+
+export type SuggestedFieldName = (typeof suggestedFieldNames)[number];
+
+export const suggestedValuesPath = (workplaceId: string) => `suggestedValues.${workplaceId}`;
+
+export const officeActivityPath = (workplaceId: string) => `officeActivity.${workplaceId}`;
+
+const suggestedOf = (item: object) =>
+  ((item as { suggested?: unknown }).suggested ?? {}) as Record<string, Source[]>;
+
+export const suggestionSources = (item: object, field: string): Source[] =>
+  suggestedOf(item)[field] ?? [];
+
+// A mobile site has no norm, so one suggested before the member changed the kind goes.
+export function suggestedFields(state: Pick<ItemState, 'item' | 'values'>, changes: Changes) {
+  const written = changes.items[state.item.id]?.values ?? {};
+  return suggestedFieldNames.filter(
+    (field) =>
+      suggestedOf(state.item)[field] !== undefined &&
+      !(field === 'extinguisherNorm' && state.values.kind === 'mobile_site' && !(field in written))
+  );
+}
+
+export type SuggestedValue =
+  { kind: 'keep' } | { kind: 'other'; value: string } | { kind: 'empty' };
+
+export function suggestedValue(
+  item: { id: string },
+  changes: Changes,
+  field: SuggestedFieldName
+): SuggestedValue {
+  const written = changes.items[item.id]?.values ?? {};
+  if (!(field in written)) return { kind: 'keep' };
+  const value = written[field];
+  return isEmpty(value) ? { kind: 'empty' } : { kind: 'other', value: String(value) };
+}
+
+export const suggestionsConfirmed = (item: { id: string }, changes: Changes) =>
+  changes.fields[suggestedValuesPath(item.id)]?.option === 0;
+
+// 0 keeps the suggestion that no activity takes place at the registered office, 1 says some does.
+export function officeActivityChoice(item: { id: string }, changes: Changes): 0 | 1 | null {
+  const option = changes.fields[officeActivityPath(item.id)]?.option;
+  return option === 0 || option === 1 ? option : null;
+}
+
+const suggestsNoActivity = (state: ItemState) =>
+  state.included &&
+  state.values.isRegisteredOffice === true &&
+  suggestedOf(state.item).officeHasActivity !== undefined &&
+  state.item.officeHasActivity === false;
+
+// Into an existing client only the API knows its workplaces, so the review asks there where the
+// API blocks or the member already decided.
+const askedHere = (path: string, decided: boolean, blockers: Blocker[], existingClient: boolean) =>
+  !existingClient || decided || blockers.some((blocker) => blocker.path === path);
+
+export function officeActivityStates(
+  proposal: Proposal,
+  changes: Changes,
+  blockers: Blocker[],
+  existingClient: boolean
+) {
+  const states = itemStates(proposal, changes, 'workplaces');
+  const pointsBeside = states.some(
+    (state) => state.included && state.values.isRegisteredOffice !== true
+  );
+  return states.filter(
+    (state) =>
+      suggestsNoActivity(state) &&
+      (pointsBeside || existingClient) &&
+      askedHere(
+        officeActivityPath(state.item.id),
+        officeActivityChoice(state.item, changes) !== null,
+        blockers,
+        existingClient
+      )
+  );
+}
+
+/** The registered offices the member agreed are only an address, which carry no SU data. */
+export function inactiveOffices(
+  proposal: Proposal,
+  changes: Changes,
+  blockers: Blocker[] = [],
+  existingClient = false
+) {
+  return new Set(
+    officeActivityStates(proposal, changes, blockers, existingClient)
+      .filter((state) => officeActivityChoice(state.item, changes) === 0)
+      .map((state) => state.item.id)
+  );
+}
+
+export function suggestionStates(
+  proposal: Proposal,
+  changes: Changes,
+  blockers: Blocker[],
+  existingClient: boolean
+) {
+  const inactive = inactiveOffices(proposal, changes, blockers, existingClient);
+  return itemStates(proposal, changes, 'workplaces').filter(
+    (state) =>
+      state.included &&
+      !inactive.has(state.item.id) &&
+      suggestedFields(state, changes).length > 0 &&
+      askedHere(
+        suggestedValuesPath(state.item.id),
+        suggestionsConfirmed(state.item, changes),
+        blockers,
+        existingClient
+      )
+  );
+}
+
 // Into an existing client only the API knows a workplace's own point, which is kept, so the
 // review asks there where the API blocks or the member already decided.
 export function assemblyPointStates(
@@ -707,8 +832,10 @@ export function assemblyPointStates(
   blockers: Blocker[],
   existingClient: boolean
 ) {
+  const inactive = inactiveOffices(proposal, changes, blockers, existingClient);
   return itemStates(proposal, changes, 'workplaces').filter((state) => {
     if (!state.included || isEmpty(state.item.assemblyPoint)) return false;
+    if (inactive.has(state.item.id)) return false;
     if (!existingClient) return true;
     const path = assemblyPointPath(state.item.id);
     return (
@@ -1016,6 +1143,23 @@ export function blockerLink(proposal: Proposal, changes: Changes, blocker: Block
         : 'Confirmă punctul de adunare',
     };
   }
+  if (root === 'suggestedValues' || root === 'officeActivity') {
+    const workplace = itemsOf(proposal, 'workplaces').find((item) => item.id === second);
+    const values = workplace
+      ? { ...workplace, ...(changes.items[workplace.id]?.values ?? {}) }
+      : null;
+    const what =
+      root === 'suggestedValues'
+        ? 'Confirmă sugestiile din activitate'
+        : 'Confirmă activitatea la sediul social';
+    return {
+      section,
+      anchor: anchorOf(blocker.path),
+      code: blocker.code,
+      text:
+        values && root === 'suggestedValues' ? `${what}: ${itemName('workplaces', values)}` : what,
+    };
+  }
   if (blocker.path === substancesStatePath && blocker.code === 'invalid') {
     return {
       section,
@@ -1250,7 +1394,7 @@ export function flagNote(flag: Flag, proposal: Proposal, changes: Changes): stri
   const parts = flag.path.split('.');
   const root = parts[0]!;
   const single = root === 'client' || root === 'trainingSchedule' || root === 'fireSafety';
-  const field = single ? parts[1] : parts[2];
+  const field = single ? parts[1] : parts[2] === 'suggested' ? parts[3] : parts[2];
   const cited =
     single || !field || field === 'sources'
       ? ''

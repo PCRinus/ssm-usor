@@ -21,6 +21,7 @@ import {
   IdCard,
   MapPin,
   RefreshCw,
+  Sparkles,
   UserRound,
   UsersRound,
 } from 'lucide-react';
@@ -58,6 +59,7 @@ const icons: Record<string, ReactNode> = {
   users: <UsersRound className="size-4" />,
   flame: <Flame className="size-4" />,
   flask: <FlaskConical className="size-4" />,
+  sparkles: <Sparkles className="size-4" />,
 };
 
 function Line({

@@ -97,6 +97,8 @@ Nu poți debifa căsuța când:
 - clientul nu are alt punct de lucru activ. Vezi „Clientul nu are alt punct de lucru activ. Adaugă întâi punctul de lucru în care se desfășoară activitatea.” Din același motiv nu poți arhiva ultimul punct de lucru cât timp la sediu nu se desfășoară activitate;
 - la sediu lucrează angajați actuali. Mesajul spune câți; mută-i întâi, din fișa fiecăruia, la punctul de lucru unde lucrează.
 
+Când imporți clientul din documente, importul îți poate propune că la sediul social nu se desfășoară activitate, dacă documentele numesc un punct de lucru separat și nu pun nimic la sediu; răspunsul e tot al tău (vezi [Importul unui client din documente](/clienti/import/#importul-unui-client-din-documente)).
+
 Un punct de lucru în care nu se mai lucrează nu are această căsuță: îl arhivezi (vezi [Arhivarea unui punct de lucru](#arhivarea-unui-punct-de-lucru)).
 
 Nicio prevedere nu leagă un stingător sau o fișă afișată de adresa sediului. Normele generale de apărare împotriva incendiilor stabilesc stingătoarele pe construcție, după riscul de incendiu și materialele din spațiu, iar la clădirile de locuit numărul din anexă e doar o recomandare (OMAI 163/2007, art. 131 și anexa 6). Legea 307/2006 dă obligațiile administratorului „în unitatea sa” (art. 19), iar celui care folosește un spațiu îi cere să respecte măsurile stabilite de proprietar sau de administrator (art. 21). La registrul comerțului, declarația privind activitatea se dă pentru sediul social și pentru fiecare sediu secundar (Legea 265/2022, art. 121 și 122), așa că o firmă poate avea un sediu la care nu desfășoară activitate. Căsuța debifată rămâne răspunsul clientului, iar documentele SU arată de ce sediul lipsește din liste.

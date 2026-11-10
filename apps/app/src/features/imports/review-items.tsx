@@ -93,12 +93,16 @@ import {
   itemStates,
   type LabelledSource,
   nameSpellings,
+  officeActivityChoice,
+  officeActivityStates,
   roleLabel,
   sameValue,
   secondRegisteredOfficeNote,
   type Source,
   substancesStateLabels,
   substancesStatePath,
+  suggestedFields,
+  suggestionStates,
   unprovenRoles,
   valueInForce,
 } from './review-model';
@@ -116,6 +120,7 @@ import {
   SpellingChoice,
   Tag,
 } from './review-parts';
+import { Suggestions } from './review-suggestions';
 
 type ItemsContext = FieldContext & { blockers: Blocker[] };
 
@@ -316,7 +321,9 @@ function ItemRow({
   const roles = (state.values.roles as string[] | undefined) ?? [];
   const flags = flagsAt(context.proposal, prefix).filter((flag) => {
     const [, , field, role] = flag.path.split('.');
+    // A suggested value's passages are flagged on its own row, in the suggestions card.
     return (
+      field !== 'suggested' &&
       !['missing', 'unknown_reference', 'name_spelled_differently'].includes(flag.code) &&
       (field !== 'roles' || roles.includes(role ?? ''))
     );
@@ -654,7 +661,9 @@ function fireSheetDetails(values: Record<string, unknown>, spelled: Set<string>)
   const space = [
     values.kind ? (workplaceKindLabels[values.kind as WorkplaceKind] ?? String(values.kind)) : null,
     values.floorAreaM2 != null ? `Suprafața utilă ${String(values.floorAreaM2)} m²` : null,
-    norm ? `Norma de dotare: ${fireExtinguisherNormLabels[norm]?.label ?? String(norm)}` : null,
+    norm && !spelled.has('extinguisherNorm')
+      ? `Norma de dotare: ${fireExtinguisherNormLabels[norm]?.label ?? String(norm)}`
+      : null,
   ].filter(Boolean);
   return [
     space.join(' · '),
@@ -771,13 +780,23 @@ function AssemblyPoints({ context }: { context: ItemsContext }) {
 
 export function WorkplacesSection({ context }: { context: ItemsContext }) {
   const [editing, setEditing] = useState<ItemState | null>(null);
-  const asked = new Set(
-    assemblyPointStates(
-      context.proposal,
-      context.changes,
-      context.blockers,
-      context.existingClient
-    ).map((state) => state.item.id)
+  const args = [
+    context.proposal,
+    context.changes,
+    context.blockers,
+    context.existingClient,
+  ] as const;
+  const asked = new Set(assemblyPointStates(...args).map((state) => state.item.id));
+  const suggestedHere = new Map(
+    suggestionStates(...args).map((state) => [
+      state.item.id,
+      suggestedFields(state, context.changes),
+    ])
+  );
+  const inactive = new Set(
+    officeActivityStates(...args)
+      .filter((state) => officeActivityChoice(state.item, context.changes) === 0)
+      .map((state) => state.item.id)
   );
   const draft: WorkplaceDraft | null = editing
     ? {
@@ -839,7 +858,10 @@ export function WorkplacesSection({ context }: { context: ItemsContext }) {
             .filter(Boolean)
             .join(', ');
           const rooms = (state.values.rooms as string[] | undefined) ?? [];
-          const decidedElsewhere = asked.has(state.item.id) ? ['assemblyPoint'] : [];
+          const decidedElsewhere = [
+            ...(asked.has(state.item.id) ? ['assemblyPoint'] : []),
+            ...(suggestedHere.get(state.item.id) ?? []),
+          ];
           return (
             <ItemRow
               key={state.item.id}
@@ -866,13 +888,17 @@ export function WorkplacesSection({ context }: { context: ItemsContext }) {
                     </ReviewDatum>
                   )}
                 </dl>,
-                ...fireSheetDetails(
-                  state.values,
-                  new Set([
-                    ...itemSpellings(state, context.changes).map(({ field }) => field),
-                    ...decidedElsewhere,
-                  ])
-                ),
+                ...(inactive.has(state.item.id)
+                  ? [
+                      'Fără activitate la sediul social: nu primește fișă SU și mijloace de stingere.',
+                    ]
+                  : fireSheetDetails(
+                      state.values,
+                      new Set([
+                        ...itemSpellings(state, context.changes).map(({ field }) => field),
+                        ...decidedElsewhere,
+                      ])
+                    )),
               ]}
               sources={workplaceSources(state.item)}
               agreement="masculine"
@@ -883,6 +909,7 @@ export function WorkplacesSection({ context }: { context: ItemsContext }) {
         }}
       />
       <AssemblyPoints context={context} />
+      <Suggestions context={context} />
       <WorkplaceDialog clientId="" editing={null} draft={draft} onClose={() => setEditing(null)} />
     </>
   );
