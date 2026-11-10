@@ -243,6 +243,7 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheets', () =>
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
     const workplaces = new URL(String(calls('/rest/v1/client_workplaces')[0]![0])).searchParams;
     expect(workplaces.get('archived_at')).toBe('is.null');
+    expect(workplaces.get('office_has_activity')).toBe('eq.true');
   });
 
   it('names the route on the occupational safety sheet, and the workplace on both at a client with several', async () => {
