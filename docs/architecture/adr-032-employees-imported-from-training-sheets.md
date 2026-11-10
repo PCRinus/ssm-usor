@@ -4,6 +4,7 @@
 - Date: 2026-10-31
 - Amended 2026-10-31: credits decided in ADR 030 (#640); SMS invitations and sign-in codes are not counted against the SMS allowance (ADR 029).
 - Amended by [ADR 037](adr-037-import-quality-and-alerts.md) (accepted 2026-11-04): an employee import, abandoned and failed ones included, leaves an improvement copy of its photographs, page images, readings and the member's changes, kept apart for 12 months; it stores its reading version and flags, and its review gains a report entry.
+- Amended 2026-11-11: a masculine and feminine given name and a different birth date keep two people apart, and pages with no identifier are placed after the others, by the post they write first; see the amendment below.
 
 ## Context
 
@@ -173,3 +174,14 @@ Each step is a pull request in one stack, on this ADR, in the order below. As fi
 ## Open
 
 1. **HG 1425/2006 for exactly 250 workers**: art. 18 covers 50 to 249 and art. 19 more than 250, so 250 falls under neither by the letter. It changes nothing to build.
+
+## Amendment (2026-11-11): two people with one surname
+
+On 2026-11-10 a husband's and a wife's sheets, imported together, came out as one person with two given names and two birth dates, beside a second, almost empty person. Her medical sheet, with her valid CNP, came early in the upload, after his cover, which had no CNP and no birth date. The near-name rule above took his given name and hers, one the masculine and the other the feminine form, for one misread letter and the surname, his and the first part of her double one, for shared, so her page joined him; his own medical sheet, with his CNP, could then no longer join the person holding hers and started someone new; every later page with her name joined the merged person, and some of her unnamed periodic pages, uploaded right after his, went to him by order. Their pages gave two different birth years, which were read and never used to keep anyone apart.
+
+Grouping pages into people changes in four ways. CNP first and the employee number stay as they were.
+
+- **A masculine and a feminine given name are two people.** Two words of the same length that differ only in their last letter, one of them ending in _a_, Alexandru and Alexandra, Liviu and Livia, are not a misread, as Daniel and Daniela already were not. The rule reads every word of the name, since the sheets write the surname first or last, so a surname misread only in its last letter, to or from an _a_, on pages without a CNP or a birth date in common now starts a second person: the lesser error beside one person holding two people's sheets.
+- **A different birth date keeps two people apart.** A page's birth date, written on it or encoded in a valid CNP, which counts the same, that disagrees with every birth date a person's pages already give closes that person to the page by name and by near name; a CNP the person already holds still joins it. Two dates disagree only when they differ in more than one character, so a single misread digit does not split a person.
+- **The same birth date confirms a looser name.** When a page and a person give the same birth date, by the same measure, the page joins on names that share about two thirds of their parts, without the surname having to be within one edit, and with a last letter read as an _a_ taken for a misread: the birth date vouches for the person. A surname misread in two letters on one page no longer starts a third person, and Popa and Popu with one birth date are one person. The placement is a near name.
+- **Pages with a name, a CNP or an employee number are grouped first**, in the upload's order, whatever unnamed pages sit between them: the upload's order is not the order the photographs were taken in. The people are numbered by their first such page, as before. Pages with no identifier come after. Such a page goes to the one person whose posts, the job titles their grouped pages write, best match the post it writes in its _Specialitatea_ or _Ocupația_ column, words compared folded to plain letters and a word cut short matching the start of a longer one, "res." for "resurse"; it is flagged _O pagină pusă după funcție_, as a page placed by order is flagged, for the member to check. When the page writes no post, or no single person matches it best, it goes after the page before it in the upload, as before, now including a page placed by its post; a page with nothing about anyone stays unplaced.
