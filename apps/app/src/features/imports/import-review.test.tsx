@@ -540,7 +540,9 @@ describe('a section of the review', () => {
       .find((row) => row.textContent?.includes('Brutar'))!;
     await userEvent.click(within(brutar).getByTestId('review-edit'));
     const dialog = await screen.findByTestId('job-position-dialog');
-    expect(within(dialog).getByRole('heading').textContent).toBe('Modifică postul de lucru');
+    expect(within(dialog).getByRole('heading', { level: 2 }).textContent).toBe(
+      'Modifică postul de lucru'
+    );
     const activities = within(dialog).getByTestId('job-position-activities');
     await userEvent.clear(activities);
     await userEvent.type(activities, 'Coacere');
@@ -1376,6 +1378,46 @@ function secondPost(changes: unknown = null) {
 }
 
 describe('reviewing related import data', () => {
+  it('separates the source heading and filename and preserves the original excerpt verbatim', async () => {
+    const proposal = proposalFixture();
+    const quote = 'LOC DE MUNCĂ: LABORATOR\n| Brutar | Frământare și coacere |';
+    proposal.jobPositions[0]!.sources = [{ file: 'dosar-ssm.zip/Fisa_post_Brutar.doc', quote }];
+    mockReview(readyDetail({ proposal }));
+    mount('/job-positions');
+
+    const row = (await screen.findAllByTestId('review-item'))[0]!;
+    await userEvent.click(within(row).getByTestId('review-edit'));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('heading', { name: 'Din document', level: 3 })).toBeTruthy();
+    expect(within(dialog).getByText('Fisa_post_Brutar.doc')).toBeTruthy();
+    expect(dialog.querySelector('blockquote')?.textContent).toBe(quote);
+    expect(saves).toBe(0);
+  });
+
+  it.each([
+    ['/workplaces', 'Sursa: Sediu'],
+    ['/job-positions', 'Sursa: Brutar'],
+    ['/responsible', 'Sursa: Radu Lazăr'],
+    ['/fire-safety', 'Sursa: Stingător, Pulbere'],
+    ['/equipment', 'Sursa: Mănuși termorezistente'],
+  ])(
+    'opens the original document from the %s edit dialog without saving the draft',
+    async (section, sourceTitle) => {
+      mockReview(secondPost());
+      mount(section);
+
+      const row = (await screen.findAllByTestId('review-item'))[0]!;
+      await userEvent.click(within(row).getByTestId('review-edit'));
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).queryByText('Vezi contextul')).toBeNull();
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Vezi în document' }));
+
+      const source = await screen.findByTestId('import-source-dialog');
+      expect(within(source).getByRole('heading', { name: sourceTitle })).toBeTruthy();
+      expect(saves).toBe(0);
+    }
+  );
+
   it('labels the post category, work zone, training override and activities without changing them', async () => {
     const proposal = proposalFixture();
     Object.assign(proposal.jobPositions[0]!, {
@@ -1949,24 +1991,18 @@ describe('a value proposed with its spelling corrected', () => {
     await waitFor(() => expect(checked(row, /Scrierea corectată/)).toBe(true));
   });
 
-  it('lists the corrections of the other sections at the end of the first', async () => {
+  it('keeps corrections in their own sections instead of repeating them on identity', async () => {
     mockReview({ ...spellingDetail(), blockers: [] });
     mount('/identity');
 
-    const others = await screen.findByTestId('review-other-sections');
-    const rows = within(others).getAllByTestId('review-other-section');
-    expect(rows.map((row) => row.textContent)).toEqual([
-      expect.stringContaining('Posturi de lucru'),
-      expect.stringContaining('Apărarea împotriva incendiilor'),
-    ]);
-    expect(rows[0]!.textContent).toContain('2 corecturi de scriere');
-    expect(rows[1]!.textContent).toContain(
-      'Reguli de apărare împotriva incendiilor · locul pentru fumat'
-    );
-    expect(markedWords(rows[1]!)).toEqual(['În', 'In']);
-    expect(
-      within(rows[1]!).getByTestId('review-other-section-open').getAttribute('href')
-    ).toContain('/fire-safety#review-fireSafety-smokingPlace');
+    await screen.findByTestId('import-review-section');
+    expect(screen.queryByTestId('review-other-sections')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Găsite în alte secțiuni' })).toBeNull();
+    await userEvent.click(screen.getByRole('link', { name: /^3\. Posturi de lucru/ }));
+    await screen.findByRole('heading', { level: 1, name: 'Posturi de lucru' });
+    const row = (await screen.findAllByTestId('review-item'))[0]!;
+    expect(within(row).getAllByTestId('review-spelling')).toHaveLength(2);
+    expect(saves).toBe(0);
   });
 
   it('sums up the hub with the corrected value', async () => {

@@ -10,7 +10,6 @@ import { Notice } from '@/components/notice';
 import { ImportActionBar } from './import-action-bar';
 import { endSentence } from './import-format';
 import { ImportReviewIssues } from './import-review-issues';
-import { OtherSections } from './other-sections';
 import { type FieldContext, FieldsSection } from './review-fields';
 import {
   EquipmentSection,
@@ -151,15 +150,6 @@ export function ReviewSectionPage({
           (section === 'identity' || section === 'training') && (
             <FieldsSection section={section} context={context} />
           )
-        )}
-        {section === 'identity' && (
-          <OtherSections
-            importId={detail.id}
-            proposal={proposal}
-            changes={review.changes}
-            states={states}
-            statuses={statuses}
-          />
         )}
         {section === 'fire-safety' && (
           <>

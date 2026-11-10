@@ -37,9 +37,67 @@ function ReviewBar({ save }: { save: ImportSaveState }) {
   );
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 describe('the import action bar', () => {
+  it('stays above the footer at the content boundary, including after content resizes', () => {
+    vi.stubGlobal('innerHeight', 800);
+    let bottom = 1200;
+    let resize = () => {};
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: () => void) {
+          resize = callback;
+        }
+        observe = vi.fn();
+        disconnect = vi.fn();
+      }
+    );
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement
+    ) {
+      if (this.tagName === 'MAIN') return new DOMRect(200, bottom - 1200, 600, 1200);
+      return new DOMRect(200, 0, 600, this.hasAttribute('data-import-action-bar') ? 80 : 0);
+    });
+    const previousPadding = document.documentElement.style.scrollPaddingBottom;
+    const { unmount } = render(
+      <>
+        <main>
+          <ReviewBar save={saved()} />
+        </main>
+        <footer>© SSM Ușor</footer>
+      </>
+    );
+    const bar = screen.getByRole('region', { name: 'Verificarea importului' });
+    expect(bar.style.bottom).toBe('0px');
+
+    act(() => {
+      bottom = 750;
+      window.dispatchEvent(new Event('scroll'));
+    });
+    expect(bar.style.bottom).toBe('50px');
+    expect(document.documentElement.style.scrollPaddingBottom).toBe('146px');
+
+    act(() => {
+      bottom = 720;
+      resize();
+    });
+    expect(bar.style.bottom).toBe('80px');
+
+    act(() => {
+      bottom = 1000;
+      window.dispatchEvent(new Event('scroll'));
+    });
+    expect(bar.style.bottom).toBe('0px');
+
+    unmount();
+    expect(document.documentElement.style.scrollPaddingBottom).toBe(previousPadding);
+  });
+
   it('keeps unresolved choices and missing data visible while saving completes', () => {
     const state = saved();
     const { rerender } = render(<ReviewBar save={{ ...state, saving: true }} />);
@@ -93,6 +151,13 @@ describe('the import action bar', () => {
   );
 
   it('keeps save recovery and review counts above the phone keyboard while navigation is collapsed', async () => {
+    vi.stubGlobal('innerHeight', 844);
+    const rectangle = HTMLElement.prototype.getBoundingClientRect;
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement
+    ) {
+      return this.tagName === 'MAIN' ? new DOMRect(0, 0, 390, 780) : rectangle.call(this);
+    });
     const viewport = Object.assign(new EventTarget(), { height: 844, width: 390, offsetTop: 0 });
     vi.stubGlobal('visualViewport', viewport);
     const media = window.matchMedia('(pointer: coarse)');
@@ -101,7 +166,11 @@ describe('the import action bar', () => {
       vi.fn((query: string) => ({ ...media, media: query, matches: query === '(pointer: coarse)' }))
     );
     const state = saved();
-    const { rerender } = render(<ReviewBar save={{ ...state, saving: true }} />);
+    const { rerender } = render(
+      <main>
+        <ReviewBar save={{ ...state, saving: true }} />
+      </main>
+    );
 
     act(() => screen.getByRole('textbox', { name: 'Durata de utilizare' }).focus());
     act(() => {
@@ -111,6 +180,7 @@ describe('the import action bar', () => {
 
     const bar = screen.getByRole('region', { name: 'Verificarea importului' });
     expect(bar.dataset.keyboardOpen).toBe('true');
+    expect(bar.style.bottom).toBe('344px');
     expect(within(bar).getByRole('button', { name: '2 date lipsă' })).toBeTruthy();
     expect(within(bar).getByRole('button', { name: '1 alegere' })).toBeTruthy();
     expect(within(bar).getByRole('status').textContent).toBe('Se salvează…');
@@ -123,7 +193,11 @@ describe('the import action bar', () => {
     expect(bar.dataset.keyboardOpen).toBe('true');
     expect(within(bar).queryByRole('button', { name: 'Continuă' })).toBeNull();
 
-    rerender(<ReviewBar save={{ ...state, error: 'Nu am putut salva.' }} />);
+    rerender(
+      <main>
+        <ReviewBar save={{ ...state, error: 'Nu am putut salva.' }} />
+      </main>
+    );
     await userEvent.click(within(bar).getByRole('button', { name: 'Salvează din nou' }));
 
     expect(state.retry).toHaveBeenCalledOnce();
@@ -135,5 +209,6 @@ describe('the import action bar', () => {
     });
 
     expect(within(bar).getByRole('button', { name: 'Continuă' })).toBeTruthy();
+    expect(bar.style.bottom).toBe('64px');
   });
 });

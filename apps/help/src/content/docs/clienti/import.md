@@ -78,6 +78,7 @@ sources:
   - apps/app/src/features/imports/review-fields.tsx
   - apps/app/src/features/imports/review-parts.tsx
   - apps/app/src/features/imports/review-items.tsx
+  - apps/app/src/features/job-positions/job-position-dialog.tsx
   - apps/app/src/features/imports/review-summary.ts
   - apps/app/src/features/imports/import-upload-dialog.tsx
   - apps/app/src/features/imports/import-processing-page.tsx
@@ -159,7 +160,7 @@ Pornești din **Clienți**, cu **Importă din documente**, pentru un client nou,
 
 Aplicația pune deoparte ce nu poartă date despre client (coperți, formulare goale, texte de lege), citește restul și îți propune datele firmei, punctele de lucru, posturile, persoanele cu atribuții, programul de instruire, datele SU și echipamentul de protecție. Le verifici pe secțiuni, apoi confirmi. Cu **Vezi în document**, lângă fiecare valoare, deschizi locul din document de unde a fost luată. La un client existent, o valoare pe care o ai deja în aplicație nu se schimbă decât dacă alegi tu valoarea din documente.
 
-În cele șapte secțiuni ale propunerii, bara de jos rămâne la vedere cât timp verifici. **Înapoi** și **Continuă** te duc între secțiuni, iar **Înapoi la propunere** te întoarce la lista lor. Din ultima secțiune, **Revizuiește importul** te duce înapoi la import, unde creezi sau completezi clientul după ce rezolvi alegerile și datele obligatorii. Bara rămâne la vedere și aici, precum și la IPSSM, IPSU și evaluările de risc.
+În cele șapte secțiuni ale propunerii, bara de jos rămâne la vedere cât timp verifici. **Înapoi** și **Continuă** te duc între secțiuni, iar **Înapoi la propunere** te întoarce la lista lor. Din ultima secțiune, **Revizuiește importul** te duce înapoi la import, unde creezi sau completezi clientul după ce rezolvi alegerile și datele obligatorii. Bara rămâne la vedere și aici, precum și la IPSSM, IPSU și evaluările de risc. La capătul paginii, se oprește deasupra subsolului, ca să poți vedea și informațiile de acolo.
 
 Bara arată **Se salvează…** cât timp păstrăm o schimbare și **Salvat în propunere** când e păstrată. Aceasta nu înseamnă că datele au fost aplicate la client. Datele lipsă și valorile de corectat au etichetă roșie, iar alegerile au etichetă galbenă, ca în lista secțiunilor. Numerele rămân afișate separat, inclusiv cât timp se salvează altă schimbare. O secțiune gata are aceeași etichetă verde **Gata** ca în listă; aceasta arată starea secțiunii, separat de starea salvării. Dacă salvarea nu reușește, folosește **Salvează din nou**; dacă altcineva a schimbat propunerea, **Reîncarcă propunerea** aduce versiunea nouă, iar schimbarea nesalvată trebuie refăcută.
 
@@ -179,13 +180,13 @@ Pe fiecare card, coloana **Ce intră în documente** arată valoarea care se scr
 
 **Schimbă** deschide doar câmpul de pe rândul lui, încadrat și marcat cu „Schimbi acum”; ce salvezi intră în documente în locul valorii din import. La un client nou, lângă CUI apare și **Plătitor de TVA**, ca la un client adăugat de mână. Căsuța e bifată când ANAF arată firma înregistrată în scopuri de TVA, iar un CUI scris cu prefixul RO o bifează la salvare. Pe card, CUI-ul unei firme plătitoare de TVA apare cu prefixul RO. Un câmp care lipsește din documente îl completezi cu **Completează**, iar o întrebare cu da sau nu o lămurești direct din rând.
 
+În ferestrele de modificare ale acestor date, panoul **Din document** arată numele fișierului și pasajul original sub câmpuri. Butonul **Vezi în document** îl deschide în fișierul-sursă, fără să salveze ce ai modificat în formular. La un post de lucru, caseta **Activități desfășurate** folosește toată lățimea ferestrei.
+
 Punctele de lucru, posturile, persoanele cu atribuții, mijloacele de stingere, instalațiile și articolele de echipament au fiecare un comutator în dreapta primului rând. Pornit, se preia. Oprit, nu se creează la client: un rând propus de import se strânge pe loc la nume și „Nu e inclus” (sau „Nu e inclusă”), fără detalii și fără butoane, iar unul pe care l-ai pornit dintr-o casetă se întoarce în caseta lui. Îl pornești din nou oricând. Unele sunt propuse oprite, într-o casetă sub listă care spune de ce: un post doar de conducere a firmei, reprezentantul legal ca lucrător, ce apare doar în pasaje copiate de la altă firmă și echipamentul unui post pe care nu îl preiei. Când pornești unul, intră în listă. O valoare a firmei care pare copiată de la altă firmă are și ea comutatorul pe rândul ei, oprit din start.
 
 La punctele de lucru, **Adresă** și **Încăperi** sunt afișate separat, pentru verificare. La posturile de lucru vezi separat **Categorie de personal**, **Zona de lucru**, **Activități** și, când postul are un interval propriu, **Interval de instruire**. La responsabili vezi **Funcție**, **Responsabilități** și **Punct de lucru**. Când punctul de lucru este identificat în propunere, numele lui te duce la rândul său din import.
 
 Articolele de echipament sunt numerotate în ordinea afișării. Datele și variantele de scriere folosesc lățimea rândului. Pe un ecran îngust sau cu meniul lateral deschis, butoanele de verificare și modificare trec sub nume. La echipamentul de protecție, **Post** te duce la postul identificat în propunere. **Risc acoperit** este textul preluat din lista de dotare cu echipament, **Alocare** arată modul de acordare, iar **Cantitate** și **Durată** sunt afișate separat când sunt precizate. Riscul acoperit nu este o legătură automată la un factor din evaluarea riscurilor. Cu **Vezi în document** verifici rândul original din lista de echipament.
-
-La sfârșitul primei secțiuni, **Găsite în alte secțiuni** îți arată ce mai e de văzut în celelalte: corecturile de scriere, alegerile de făcut și datele lipsă, fiecare cu **Deschide secțiunea**.
 
 În **Fișierele importului**, instrucțiunile cu tip cunoscut sunt grupate sub **Instrucțiuni pentru bibliotecă**. Când sarcina este disponibilă, **Vezi IPSSM** sau **Vezi IPSU** o deschide. Celelalte fișiere lăsate deoparte pot fi adăugate cu **Include în citirea clientului**, dacă e cazul.
 

@@ -108,4 +108,15 @@ test('smoking choices remain readable and selectable at 320px with a long source
   await expect(
     page.getByTestId('review-choice').getByRole('radio', { name: /Fumatul este interzis/ })
   ).toBeChecked();
+
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  const footer = page.locator('main + footer');
+  await expect(footer).toBeInViewport();
+  await expect
+    .poll(async () => {
+      const barBounds = await page.getByTestId('import-action-bar').boundingBox();
+      const footerBounds = await footer.boundingBox();
+      return barBounds!.y + barBounds!.height - footerBounds!.y;
+    })
+    .toBeLessThanOrEqual(1);
 });

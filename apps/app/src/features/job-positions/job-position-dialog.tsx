@@ -12,6 +12,7 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
 import type { ChangeEvent, ReactNode } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
@@ -199,7 +200,7 @@ function JobPositionForm({
             {position || draft ? ', chiar dacă redenumești postul.' : '.'}
           </DialogDescription>
         </DialogHeader>
-        <div className="mt-5 grid gap-5">
+        <div className={cn('mt-5 grid gap-5', draft?.aside && 'sm:grid-cols-2')}>
           <Field id="job-position-name" label="Denumire" mark="required" error={errors.name}>
             <Input
               id="job-position-name"
@@ -301,6 +302,7 @@ function JobPositionForm({
           <Field
             id="job-position-activities"
             label="Activități desfășurate"
+            className="col-span-full"
             mark="optional"
             error={errors.activities}
             hint="Ce face efectiv omul de pe acest post. Deosebește două posturi cu nume apropiate."
