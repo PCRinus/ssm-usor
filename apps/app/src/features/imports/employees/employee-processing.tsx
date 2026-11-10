@@ -266,7 +266,6 @@ export function EmployeeProcessing({
               return (
                 <li
                   key={file.id}
-                  title={file.fileName}
                   className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1"
                   data-testid="employee-processing-photo"
                 >
@@ -282,7 +281,7 @@ export function EmployeeProcessing({
                       className="aspect-[3/4] h-auto w-full"
                     />
                   </button>
-                  <span className="truncate text-xs font-medium tabular-nums">
+                  <span title={file.fileName} className="truncate text-xs font-medium tabular-nums">
                     {photos ? 'Fotografia' : 'Fișierul'} {position + 1}
                   </span>
                   <span

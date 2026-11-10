@@ -144,7 +144,9 @@ describe('the page of an employee import that is not ready', () => {
       'Fotografia 4Citită',
       'Fotografia 5Citită',
     ]);
-    expect(tiles[1]!.title).toBe('WhatsApp Image 2026-11-07 at 14.05.45 (3).jpeg');
+    expect(within(tiles[1]!).getByText('Fotografia 2').title).toBe(
+      'WhatsApp Image 2026-11-07 at 14.05.45 (3).jpeg'
+    );
   });
 
   it('says the credits were given back after a failure on our side', async () => {
