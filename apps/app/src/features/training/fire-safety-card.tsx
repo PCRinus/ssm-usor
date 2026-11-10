@@ -32,6 +32,7 @@ import { Notice } from '@/components/notice';
 import { EditAction, Fact, FactList, SectionCard } from '@/components/section-card';
 import { useInPlaceEdit } from '@/components/use-in-place-edit';
 import { useRevealErrors } from '@/components/use-reveal-errors';
+import { appliesAt } from '@/features/documents/document-labels';
 import type { JobPosition } from '@/features/job-positions/job-position-schema';
 import { useJobPositionOptions } from '@/features/job-positions/use-job-position-options';
 import { type FireTrainingFocus, useFocusRequest } from '@/features/missing-data/focus';
@@ -81,12 +82,14 @@ function useFireSafety(clientId: string, userId: string) {
   });
 }
 
+type FireRulesClient = ClientSummary & { currentEmployeeCount: number };
+
 export function FireSafetySection({
   client,
   userId,
   focus,
 }: {
-  client: ClientSummary;
+  client: FireRulesClient;
   userId: string;
   focus?: FireTrainingFocus;
 }) {
@@ -452,12 +455,14 @@ function FireRulesCard({
 }: {
   saved: FireSafety;
   exists: boolean;
-  client: ClientSummary;
+  client: FireRulesClient;
   userId: string;
   focus?: 'fire-smoking' | 'fire-waste';
 }) {
   const readOnly = client.archivedAt !== null;
   const { editing, editRef, open, close } = useInPlaceEdit();
+  const asksThirdParties =
+    appliesAt('fire_decision_control', client.currentEmployeeCount) || saved.hasThirdParties;
   const empty =
     !exists ||
     (saved.smokingPolicy === null &&
@@ -483,7 +488,13 @@ function FireRulesCard({
       }
     >
       {editing ? (
-        <FireRulesForm saved={saved} clientId={client.id} userId={userId} onDone={close} />
+        <FireRulesForm
+          saved={saved}
+          clientId={client.id}
+          userId={userId}
+          asksThirdParties={asksThirdParties}
+          onDone={close}
+        />
       ) : (
         <FactList>
           <Fact label="Fumatul" testId="fire-smoking">
@@ -500,9 +511,11 @@ function FireRulesCard({
           <Fact label="Cine colectează deșeurile" testId="fire-waste-collectors">
             {saved.wasteCollectors ?? unset('Lucrătorii aflați la program')}
           </Fact>
-          <Fact label="Alte firme în spațiile clientului" testId="fire-third-parties">
-            {saved.hasThirdParties ? 'Da' : 'Nu'}
-          </Fact>
+          {asksThirdParties && (
+            <Fact label="Alte firme în spațiile clientului" testId="fire-third-parties">
+              {saved.hasThirdParties ? 'Da' : 'Nu'}
+            </Fact>
+          )}
           <Fact label="Deșeuri colectate" wide testId="fire-waste-kinds">
             {saved.wasteKinds.length === 0 ? unset() : <WasteChips kinds={saved.wasteKinds} />}
           </Fact>
@@ -552,11 +565,13 @@ function FireRulesForm({
   saved,
   clientId,
   userId,
+  asksThirdParties,
   onDone,
 }: {
   saved: FireSafety;
   clientId: string;
   userId: string;
+  asksThirdParties: boolean;
   onDone: () => void;
 }) {
   const form = useForm<FireRulesFormValues>({
@@ -730,31 +745,33 @@ function FireRulesForm({
           </Button>
         </div>
       </Field>
-      <div className="grid gap-1">
-        <div className="flex items-center gap-3">
-          <Controller
-            control={form.control}
-            name="hasThirdParties"
-            render={({ field }) => (
-              <Checkbox
-                id="fire-third-parties-input"
-                data-testid="fire-third-parties-input"
-                checked={field.value}
-                disabled={busy}
-                aria-describedby="fire-third-parties-hint"
-                onCheckedChange={(checked) => field.onChange(checked === true)}
-                onBlur={field.onBlur}
-              />
-            )}
-          />
-          <Label htmlFor="fire-third-parties-input">
-            În spațiile clientului lucrează și alte firme (chiriași, prestatori)
-          </Label>
+      {asksThirdParties && (
+        <div className="grid gap-1">
+          <div className="flex items-center gap-3">
+            <Controller
+              control={form.control}
+              name="hasThirdParties"
+              render={({ field }) => (
+                <Checkbox
+                  id="fire-third-parties-input"
+                  data-testid="fire-third-parties-input"
+                  checked={field.value}
+                  disabled={busy}
+                  aria-describedby="fire-third-parties-hint"
+                  onCheckedChange={(checked) => field.onChange(checked === true)}
+                  onBlur={field.onBlur}
+                />
+              )}
+            />
+            <Label htmlFor="fire-third-parties-input">
+              În spațiile clientului lucrează și alte firme (chiriași, prestatori)
+            </Label>
+          </div>
+          <p id="fire-third-parties-hint" className="pl-7 text-xs text-muted-foreground">
+            Decizia privind controlul propriu adaugă controlul trimestrial al acestor firme.
+          </p>
         </div>
-        <p id="fire-third-parties-hint" className="pl-7 text-xs text-muted-foreground">
-          Decizia privind controlul propriu adaugă controlul trimestrial al acestor firme.
-        </p>
-      </div>
+      )}
 
       {errors.root?.server && (
         <Notice variant="destructive" data-testid="fire-rules-error">

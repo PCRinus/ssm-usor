@@ -760,7 +760,8 @@ their tab bars read.
   the field is added on save), the firm that collects them and the optional "Cine colectează
   deșeurile", empty for the workers on duty, which decision 7 then names, and the checkbox "În
   spațiile clientului lucrează și alte firme (chiriași, prestatori)", which adds their quarterly
-  control to decision 9. While the API says no row
+  control to decision 9. The checkbox and its row are shown from ten current employees, the
+  headcount from which decision 9 exists (ADR 020), or once it is ticked. While the API says no row
   exists the card reads "Necompletat", and its form opens on two hours, three months for both
   categories and the occupational safety schedule's first month and days, with the note
   "Valori de pornire; salvează pentru a le păstra.". Nothing links the two schedules after
