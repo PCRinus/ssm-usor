@@ -10,6 +10,9 @@ sources:
   - apps/app/src/features/updates/use-update-dialog-open.ts
   - apps/app/src/features/updates/update-dialog.tsx
   - apps/app/src/features/updates/updates-page.tsx
+  - apps/app/src/features/reload-prompts/reload-dialog.tsx
+  - apps/app/src/features/reload-prompts/new-version-toast.ts
+  - apps/app/src/features/reload-prompts/kept-text.ts
 ---
 
 Aplicația primește versiuni noi des, de obicei de câteva ori pe săptămână. Pentru fiecare versiune care schimbă ceva din ce vezi sau din ce poți face, scriem ce e nou, ce merge mai bine și ce nu mai greșește. Le găsești în **Actualizări**, în partea de jos a meniului. Numărul de lângă **Actualizări** arată câte versiuni n-ai citit încă.
@@ -46,6 +49,6 @@ Cel mai bine e să reîncarci când îl vezi. Așa nu ajungi la fereastra de mai
 
 Uneori o versiune nouă schimbă felul în care fila vorbește cu serverul, iar o filă rămasă pe versiunea veche nu mai poate continua. Se întâmplă și când deschizi o secțiune pe care fila n-o încărcase încă. Atunci apare o fereastră: „Aplicația a fost actualizată. Reîncarcă pagina pentru a continua.”, cu butonul **Reîncarcă**. Fereastra nu se poate închide, dar nici nu reîncarcă pagina singură: tu alegi momentul.
 
-Ultima modificare, cea care a deschis fereastra, nu a fost salvată. Ce ai scris în câmpurile de text ale paginii rămâne completat după reîncărcare, iar un mesaj îți confirmă „Am păstrat ce ai scris înainte de reîncărcare.” Verifică-l și salvează din nou. Alegerile din liste și ce era scris într-o fereastră deschisă peste pagină nu se păstrează: le refaci.
+Dacă fereastra a apărut chiar când salvai, fereastra îți spune că ultima modificare nu a fost salvată. Ce ai scris în câmpurile de text ale paginii rămâne completat după reîncărcare, iar un mesaj îți confirmă „Am păstrat ce ai scris înainte de reîncărcare.” Verifică-l și salvează din nou. Alegerile din liste și ce era scris într-o fereastră deschisă peste pagină nu se păstrează: le refaci.
 
 Dacă fereastra apare din nou la mai puțin de un minut după ce ai reîncărcat, aplicația e chiar în curs de actualizare, ceea ce durează de obicei un minut sau două. Butonul **Reîncarcă** numără invers până la sfârșitul minutului, apoi îl poți apăsa.
