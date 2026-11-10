@@ -34,6 +34,7 @@ const office = {
   clientId,
   name: 'Sediu social',
   isRegisteredOffice: true,
+  officeHasActivity: true,
   countyCode: 'B',
   locality: 'București',
   addressLine: 'Calea Victoriei 122A',
@@ -53,6 +54,7 @@ const shop = {
   id: '9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d',
   name: 'Gelaterie Timișoara',
   isRegisteredOffice: false,
+  officeHasActivity: true,
   countyCode: 'TM',
   locality: 'Timișoara',
   addressLine: 'Str. Goethe 2',
@@ -815,6 +817,31 @@ describe('client fire-safety means', () => {
       shop.id
     );
     await waitFor(() => expect(document.activeElement?.id).toBe('fire-equipment-agent'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+  });
+
+  it('gives a registered office where no activity takes place no card, and says why', async () => {
+    mockApi({
+      workplaces: [{ ...office, officeHasActivity: false }, shop],
+      equipment: [shopSand],
+      installations: [],
+      maintenanceItems: [],
+      buildings: [],
+    });
+    const runtime = mount('?focus=fire-equipment');
+
+    const notice = await screen.findByTestId('fire-means-office-without-activity');
+    expect(notice.textContent).toContain(
+      'La sediul social (Sediu social) nu se desfășoară activitate'
+    );
+    expect(notice.querySelector('a')?.textContent).toBe('Deschide Detalii');
+    expect(notice.querySelector('a')?.getAttribute('href')).toBe(`/clienti/${clientId}/detalii`);
+    const cards = screen.getAllByTestId('fire-means-card');
+    expect(cards).toHaveLength(1);
+    expect(cards[0]!.textContent).toContain('Gelaterie Timișoara');
+
+    const dialog = await screen.findByTestId('fire-equipment-dialog');
+    expect(within(dialog).queryByTestId('fire-equipment-workplace')).toBeNull();
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
   });
 

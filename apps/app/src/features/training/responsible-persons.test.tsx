@@ -81,6 +81,7 @@ const shop = {
   clientId,
   name: 'Gelaterie Timișoara',
   isRegisteredOffice: false,
+  officeHasActivity: true,
 };
 
 const listPath = `/clients/${clientId}/responsible-persons`;

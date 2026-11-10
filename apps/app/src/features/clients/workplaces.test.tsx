@@ -52,6 +52,7 @@ const office = {
   clientId,
   name: 'Sediu social',
   isRegisteredOffice: true,
+  officeHasActivity: true,
   countyCode: 'B',
   locality: 'București',
   addressLine: 'Calea Victoriei 122A',
@@ -64,6 +65,7 @@ const shop = {
   id: '9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d',
   name: 'Magazin Timișoara',
   isRegisteredOffice: false,
+  officeHasActivity: true,
   countyCode: 'TM',
   locality: 'Timișoara',
   addressLine: 'Str. Goethe 2',
@@ -112,7 +114,7 @@ function mockApi({
       return Response.json({ documentDetails: emptyDetails });
     }
     if (pathname === listPath) return method === 'POST' ? create(init) : Response.json({ items });
-    if (pathname === `${listPath}/${shop.id}`) {
+    if (pathname === `${listPath}/${shop.id}` || pathname === `${listPath}/${office.id}`) {
       return method === 'DELETE' ? archive(init) : update(init);
     }
     throw new Error(`Unexpected request: ${method} ${pathname}`);
@@ -163,6 +165,7 @@ describe('client workplaces', () => {
         {
           name: 'Sediu social',
           isRegisteredOffice: true,
+          officeHasActivity: true,
           countyCode: 'CJ',
           locality: 'Cluj-Napoca',
           addressLine: 'Calea Victoriei 122A',
@@ -220,6 +223,7 @@ describe('client workplaces', () => {
         {
           name: 'Sediu social',
           isRegisteredOffice: true,
+          officeHasActivity: true,
           countyCode: 'B',
           locality: 'Sectorul 3',
           addressLine: null,
@@ -310,6 +314,7 @@ describe('client workplaces', () => {
         {
           name: 'Gelaterie Timișoara',
           isRegisteredOffice: false,
+          officeHasActivity: true,
           countyCode: 'TM',
           locality: 'Timișoara',
           addressLine: 'Str. Goethe 2',
@@ -484,6 +489,7 @@ describe('client workplaces', () => {
         {
           name: 'Magazin Timișoara',
           isRegisteredOffice: false,
+          officeHasActivity: true,
           countyCode: 'TM',
           locality: 'Timișoara',
           addressLine: 'Str. Goethe 2',
@@ -544,5 +550,136 @@ describe('client workplaces', () => {
     expect(await screen.findAllByTestId('workplace-row')).toHaveLength(2);
     expect(screen.queryByTestId('workplace-add')).toBeNull();
     expect(screen.queryByTestId('workplace-actions')).toBeNull();
+  });
+
+  describe('a registered office with no activity (ADR 041)', () => {
+    const conflict = (reason: string, extra: Record<string, unknown> = {}) =>
+      Response.json({ error: 'conflict', message: 'x', reason, ...extra }, { status: 409 });
+
+    async function openOffice(user: ReturnType<typeof userEvent.setup>) {
+      await openRowMenu(user, 'Sediu social');
+      await user.click(await screen.findByTestId('workplace-edit'));
+      return screen.findByTestId<HTMLButtonElement>('workplace-office-activity');
+    }
+
+    it('asks only the registered office, yes by default, and hides its SU data with "no"', async () => {
+      mockApi({
+        items: [{ ...office, ...fireData }, shop],
+        update: (init) =>
+          Response.json({ workplace: { ...office, ...JSON.parse(String(init?.body)) } }),
+      });
+      mount();
+      const user = userEvent.setup();
+
+      const answer = await openOffice(user);
+      expect(answer.getAttribute('aria-checked')).toBe('true');
+      expect(screen.getByTestId('workplace-activity')).toBeTruthy();
+      await user.click(answer);
+      expect(screen.queryByTestId('workplace-activity')).toBeNull();
+      expect(screen.queryByTestId('workplace-assembly-point')).toBeNull();
+      await user.click(screen.getByTestId('workplace-save'));
+
+      await waitFor(() =>
+        expect(requests(`${listPath}/${office.id}`, 'PUT')).toEqual([
+          {
+            name: 'Sediu social',
+            isRegisteredOffice: true,
+            officeHasActivity: false,
+            countyCode: 'B',
+            locality: 'București',
+            addressLine: 'Calea Victoriei 122A',
+            ...fireData,
+          },
+        ])
+      );
+      await user.keyboard('{Escape}');
+
+      await openRowMenu(user, 'Magazin Timișoara');
+      await user.click(await screen.findByTestId('workplace-edit'));
+      await screen.findByTestId('workplace-name');
+      expect(screen.queryByTestId('workplace-office-activity')).toBeNull();
+    });
+
+    it('says "yes" for any workplace that stops being the registered office', async () => {
+      mockApi({
+        items: [{ ...office, officeHasActivity: false }, shop],
+        update: (init) =>
+          Response.json({ workplace: { ...office, ...JSON.parse(String(init?.body)) } }),
+      });
+      mount();
+      const user = userEvent.setup();
+
+      expect((await openOffice(user)).getAttribute('aria-checked')).toBe('false');
+      await user.click(screen.getByTestId('workplace-registered-office'));
+      expect(screen.queryByTestId('workplace-office-activity')).toBeNull();
+      expect(screen.getByTestId('workplace-activity')).toBeTruthy();
+      await user.click(screen.getByTestId('workplace-save'));
+      await waitFor(() =>
+        expect(requests(`${listPath}/${office.id}`, 'PUT')).toMatchObject([
+          { isRegisteredOffice: false, officeHasActivity: true },
+        ])
+      );
+    });
+
+    it('marks the office in the list, which asks it for no SU data', async () => {
+      mockApi({
+        items: [
+          { ...office, officeHasActivity: false },
+          { ...shop, ...fireData },
+        ],
+      });
+      mount();
+
+      const rows = await screen.findAllByTestId('workplace-row');
+      expect(within(rows[0]!).getByTestId('workplace-no-activity').textContent).toBe(
+        'Fără activitate la sediu'
+      );
+      expect(within(rows[0]!).queryByTestId('workplace-fire-incomplete')).toBeNull();
+      expect(within(rows[1]!).queryByTestId('workplace-no-activity')).toBeNull();
+    });
+
+    it('says why "no" is refused while the office is the only workplace', async () => {
+      mockApi({ update: () => conflict('office_needs_workplace') });
+      mount();
+      const user = userEvent.setup();
+
+      await user.click(await openOffice(user));
+      await user.click(screen.getByTestId('workplace-save'));
+
+      expect((await screen.findByTestId('workplace-office-activity-error')).textContent).toBe(
+        'Clientul nu are alt punct de lucru activ. Adaugă întâi punctul de lucru în care se desfășoară activitatea.'
+      );
+      expect(screen.getByTestId('workplace-dialog')).toBeTruthy();
+    });
+
+    it('says how many employees work at the office when "no" is refused for them', async () => {
+      mockApi({ update: () => conflict('office_has_employees', { employeeCount: 3 }) });
+      mount();
+      const user = userEvent.setup();
+
+      await user.click(await openOffice(user));
+      await user.click(screen.getByTestId('workplace-save'));
+
+      expect((await screen.findByTestId('workplace-office-activity-error')).textContent).toBe(
+        'La sediul social lucrează 3 angajați actuali. Mută-i întâi, din fișa angajatului, la punctul de lucru unde lucrează.'
+      );
+    });
+
+    it('says why the last point of work beside it is not archived', async () => {
+      mockApi({
+        items: [{ ...office, officeHasActivity: false }, shop],
+        archive: () => conflict('office_needs_workplace'),
+      });
+      mount();
+      const user = userEvent.setup();
+
+      await openRowMenu(user, 'Magazin Timișoara');
+      await user.click(await screen.findByTestId('workplace-archive'));
+      await user.click(await screen.findByTestId('workplace-archive-confirm'));
+
+      expect((await screen.findByTestId('workplaces-error')).textContent).toContain(
+        'Magazin Timișoara este singurul punct de lucru activ, iar la sediul social nu se desfășoară activitate.'
+      );
+    });
   });
 });

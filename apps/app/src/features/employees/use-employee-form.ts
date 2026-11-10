@@ -71,9 +71,10 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
     query: { queryKey: [...getListWorkplacesQueryKey(clientId), session?.user.id] },
   });
 
-  // A new employee of a client with one active workplace works there (ADR 021); the person can
-  // still clear it, and a later refetch does not put it back.
-  const onlyWorkplace = workplaces.data?.items.length === 1 ? workplaces.data.items[0]!.id : null;
+  // A new employee of a client with one active workplace where activity takes place works there
+  // (ADR 021, ADR 041); the person can still clear it, and a later refetch does not put it back.
+  const working = workplaces.data?.items.filter((workplace) => workplace.officeHasActivity);
+  const onlyWorkplace = working?.length === 1 ? working[0]!.id : null;
   useEffect(() => {
     if (employee || !onlyWorkplace) return;
     if (form.getValues('workplaceId') || form.getFieldState('workplaceId').isDirty) return;

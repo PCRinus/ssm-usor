@@ -771,7 +771,15 @@ their tab bars read.
   with annex 1's examples as placeholders. All are optional to save; a row missing any of the
   seven that generating asks for reads "Date PSI incomplete". `?focus=workplace-fire-data`
   opens the first such workplace at its first empty field, `?focus=add-workplace` the new
-  workplace dialog.
+  workplace dialog. Under "Este sediul social", the registered office alone is asked "La sediul
+  social se desfășoară activitate" (ADR 041), ticked by default; unticked, the dialog hides the
+  fire-safety group and saves what it held unchanged, the row reads "Fără activitate la sediu"
+  in place of "Date PSI incomplete", and unticking "Este sediul social" sends the answer back as
+  yes. The API's `409` with `office_needs_workplace` or `office_has_employees` is worded under
+  the checkbox, the second with the number of employees, and `office_needs_workplace` on
+  archiving the last point of work above the list. The import's review, which opens the same
+  dialog on a proposed workplace, does not ask it. The employee form's workplace picker leaves
+  such an office out, and preselects a new employee's workplace when one other is left.
 - `/clienti/:clientId/mijloace-de-aparare`: "Mijloace PSI", between "Posturi de lucru" and
   "Instruire și responsabili", in `src/features/fire-safety-means/`. One card per active
   workplace, with its activity and address, holds a table of its equipment (the extinguisher's
@@ -791,7 +799,10 @@ their tab bars read.
   saying they are optional and printed in the site sheet 7.1, required from ten employees; its
   dialog groups the facts under "Construcția", "Utilități", "Apa pentru stingere" and
   "Observații", every field optional, the area and the water reserve with the decimal comma, and
-  saving every field empty clears the building. A mobile site's card has no such section. Below the workplaces, also for a client without one, the card "Substanțe
+  saving every field empty clears the building. A mobile site's card has no such section. A
+  registered office where no activity takes place (ADR 041) has no card, and a notice above the
+  cards says so and links to "Detalii"; the API's lists leave out what it keeps, and
+  `?focus=fire-equipment` skips it. Below the workplaces, also for a client without one, the card "Substanțe
   periculoase" (ADR 018, amended 2026-10-11) asks whether the client uses dangerous substances,
   "Nu se utilizează substanțe periculoase" or "Se utilizează, lista de mai jos", saved on choice;
   with the second, a table of the substances, each added, edited and deleted through a dialog

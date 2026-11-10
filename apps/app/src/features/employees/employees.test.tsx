@@ -71,6 +71,7 @@ const workplace = (id: string, name: string, isRegisteredOffice = false) => ({
   clientId,
   name,
   isRegisteredOffice,
+  officeHasActivity: true,
   countyCode: 'CJ',
   locality: 'Cluj-Napoca',
   addressLine: null,
@@ -795,6 +796,28 @@ describe('training sheet fields on employees (ADR 021)', () => {
     expect(JSON.parse(String(requests(employeesPath, 'POST')[0]![1]?.body))).toMatchObject({
       workplaceId: workshop.id,
     });
+  });
+
+  it('offers no registered office where no activity takes place, and preselects the one workplace left', async () => {
+    mockApi({
+      workplaces: () =>
+        Response.json({ items: [{ ...registeredOffice, officeHasActivity: false }, workshop] }),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
+    const user = userEvent.setup();
+    await screen.findByTestId('new-employee-page');
+    await waitFor(() =>
+      expect(screen.getByTestId('employee-workplace').textContent).toContain(
+        'Atelier Str. Fabricii 3'
+      )
+    );
+    await user.click(screen.getByTestId('employee-workplace'));
+    const options = within(await screen.findByRole('listbox')).getAllByRole('option');
+    expect(options.map((option) => option.textContent)).toEqual([
+      'Renunță la punctul de lucru ales',
+      expect.stringContaining('Atelier Str. Fabricii 3'),
+      'Adaugă un punct de lucru nou…',
+    ]);
   });
 
   it('adds a workplace the client lacks from the picker and keeps what was typed in the form', async () => {
