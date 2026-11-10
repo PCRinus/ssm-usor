@@ -92,6 +92,11 @@ function OpenReloadDialog({ state }: { state: ReloadDialogState }) {
         data-phase={waiting ? 'waiting' : 'ready'}
         showCloseButton={false}
         overlayClassName="bg-[rgb(15_36_31/0.34)]"
+        // The only button would otherwise take focus and show its ring before anyone pressed a key.
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          (event.currentTarget as HTMLElement).focus();
+        }}
         onEscapeKeyDown={(event) => event.preventDefault()}
         onPointerDownOutside={(event) => event.preventDefault()}
         onInteractOutside={(event) => event.preventDefault()}
