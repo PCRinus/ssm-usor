@@ -6,7 +6,7 @@ import posthogRollupPlugin from '@posthog/rollup-plugin';
 import tailwindcss from '@tailwindcss/vite';
 import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 
 function commitSha() {
   const configuredSha = process.env.GIT_COMMIT_SHA?.trim();
@@ -19,6 +19,23 @@ function commitSha() {
   }
 }
 
+const commit = commitSha();
+
+// Open tabs fetch this to learn that a newer build is deployed (ADR 040).
+function versionFile(): Plugin {
+  return {
+    name: 'portal-version-file',
+    apply: 'build',
+    generateBundle() {
+      this.emitFile({
+        type: 'asset',
+        fileName: 'version.json',
+        source: `${JSON.stringify({ commit })}\n`,
+      });
+    },
+  };
+}
+
 const posthogApiKey = process.env.POSTHOG_SOURCEMAPS_UPLOAD_KEY;
 const posthogProjectId = process.env.POSTHOG_PROJECT_ID;
 
@@ -27,7 +44,7 @@ export default defineConfig({
     sourcemap: posthogApiKey && posthogProjectId ? 'hidden' : false,
   },
   define: {
-    'import.meta.env.VITE_COMMIT_SHA': JSON.stringify(commitSha()),
+    'import.meta.env.VITE_COMMIT_SHA': JSON.stringify(commit),
     'import.meta.env.VITE_RELEASE_TAG': JSON.stringify(process.env.RELEASE_TAG?.trim() ?? ''),
   },
   plugins: [
@@ -37,6 +54,7 @@ export default defineConfig({
     lingui({ macroTransform: true }),
     tailwindcss(),
     react({ compiler: true }),
+    versionFile(),
     ...(posthogApiKey && posthogProjectId
       ? [
           posthogRollupPlugin({

@@ -6,6 +6,7 @@ import { RouterProvider } from '@tanstack/react-router';
 import { useSyncExternalStore } from 'react';
 
 import { AuthContext } from '@/features/auth/auth-context';
+import { ReloadPrompts } from '@/features/reload/reload-prompts';
 
 import { i18n } from './i18n';
 import type { PortalRuntime } from './portal-runtime';
@@ -15,6 +16,7 @@ export default function App({ runtime }: { runtime: PortalRuntime }) {
   return (
     <I18nProvider i18n={i18n}>
       <Portal runtime={runtime} />
+      <ReloadPrompts />
     </I18nProvider>
   );
 }

@@ -117,6 +117,10 @@ msgstr "<0>{clientName}</0> este angajatorul tău."
 msgid "<0>{position}</0>, marca {employeeNumber}"
 msgstr "<0>{position}</0>, marca {employeeNumber}"
 
+#: src/features/reload/new-version-toast.tsx
+msgid "A apărut o versiune nouă a portalului."
+msgstr "A apărut o versiune nouă a portalului."
+
 #: src/lib/labels.ts
 msgid "Absență de peste 30 de zile lucrătoare"
 msgstr "Absență de peste 30 de zile lucrătoare"
@@ -144,6 +148,10 @@ msgstr "Acte adiționale de semnat și instruiri nesemnate"
 #: src/features/signing/client-signatures-page.tsx
 msgid "Actele adiționale care așteaptă semnătura angajatorului și instruirile pe care lucrătorii nu le-au semnat încă."
 msgstr "Actele adiționale care așteaptă semnătura angajatorului și instruirile pe care lucrătorii nu le-au semnat încă."
+
+#: src/features/reload/reload-dialog.tsx
+msgid "Actualizarea nu s-a încheiat încă"
+msgstr "Actualizarea nu s-a încheiat încă"
 
 #: src/features/signing/agreement-section.tsx
 msgid "Actul adițional la contractul de muncă prin care accepți să semnezi fișele de instruire în portal."
@@ -260,6 +268,18 @@ msgstr "Alege clientul"
 #: src/features/signing/signing-page.tsx
 msgid "Alegi"
 msgstr "Alegi"
+
+#: src/features/reload/reload-dialog.tsx
+msgid "Am actualizat portalul între timp. Reîncarcă pagina ca să continui testul."
+msgstr "Am actualizat portalul între timp. Reîncarcă pagina ca să continui testul."
+
+#: src/features/reload/reload-dialog.tsx
+msgid "Am actualizat portalul între timp. Reîncarcă pagina ca să continui."
+msgstr "Am actualizat portalul între timp. Reîncarcă pagina ca să continui."
+
+#: src/features/reload/reload-dialog.tsx
+msgid "Am actualizat portalul între timp. Reîncarcă pagina ca să semnezi."
+msgstr "Am actualizat portalul între timp. Reîncarcă pagina ca să semnezi."
 
 #: src/features/auth/sign-in-page.tsx
 msgid "Am cerut un cod nou. Folosește-l pe cel mai recent."
@@ -1002,6 +1022,10 @@ msgstr "Niciun lucrător înregistrat încă."
 msgid "Nimic de semnat deocamdată. Când o instruire va avea nevoie de semnătura ta, apare aici."
 msgstr "Nimic de semnat deocamdată. Când o instruire va avea nevoie de semnătura ta, apare aici."
 
+#: src/features/reload/reload-dialog.tsx
+msgid "Nimic din ce ai trimis deja nu se pierde."
+msgstr "Nimic din ce ai trimis deja nu se pierde."
+
 #: src/features/signing/signing-page.tsx
 msgid "Nimic nu mai așteaptă semnătura ta."
 msgstr "Nimic nu mai așteaptă semnătura ta."
@@ -1098,6 +1122,10 @@ msgstr "Nu mai așteaptă semnătura ta: a fost semnat, anulat sau modificat în
 msgid "Nu mai poți semna pentru această firmă. Spune-i specialistului."
 msgstr "Nu mai poți semna pentru această firmă. Spune-i specialistului."
 
+#: src/features/reload/reload-dialog.tsx
+msgid "Nu s-a semnat încă nimic. După reîncărcare poți semna."
+msgstr "Nu s-a semnat încă nimic. După reîncărcare poți semna."
+
 #: src/features/signing/signing-page.tsx
 msgid "Nu s-a semnat nimic. Vezi mai jos de ce."
 msgstr "Nu s-a semnat nimic. Vezi mai jos de ce."
@@ -1121,6 +1149,10 @@ msgstr "Pagina nu a fost găsită"
 #: src/routes/__root.tsx
 msgid "Pagina nu a putut fi încărcată"
 msgstr "Pagina nu a putut fi încărcată"
+
+#: src/features/reload/reload-dialog.tsx
+msgid "Pagina trebuie reîncărcată"
+msgstr "Pagina trebuie reîncărcată"
 
 #: src/features/employees/employee-training-states.tsx
 msgid "până la {due}"
@@ -1161,6 +1193,10 @@ msgstr "Portalul nu este disponibil"
 #: src/features/participation/participant-gate.tsx
 msgid "Portalul nu s-a putut încărca"
 msgstr "Portalul nu s-a putut încărca"
+
+#: src/features/reload/reload-dialog.tsx
+msgid "Portalul se actualizează chiar acum și durează de obicei un minut sau două. Poți reîncărca peste un minut."
+msgstr "Portalul se actualizează chiar acum și durează de obicei un minut sau două. Poți reîncărca peste un minut."
 
 #: src/features/participation/participant-gate.tsx
 msgid "Portalul se deschide cu adresa de email sau numărul de telefon la care ai primit invitația. Dacă nu ai primit una, cere-i specialistului în securitate și sănătate în muncă al angajatorului tău să te invite."
@@ -1223,6 +1259,14 @@ msgstr "Punct de lucru"
 msgid "punctul de lucru"
 msgstr "punctul de lucru"
 
+#: src/features/reload/reload-dialog.tsx
+msgid "Răspunsul la întrebarea 1 este salvat. După reîncărcare vei bifa din nou răspunsul la întrebarea {current}."
+msgstr "Răspunsul la întrebarea 1 este salvat. După reîncărcare vei bifa din nou răspunsul la întrebarea {current}."
+
+#: src/features/reload/reload-dialog.tsx
+msgid "Răspunsurile la întrebările 1–{previous} sunt salvate. După reîncărcare vei bifa din nou răspunsul la întrebarea {current}."
+msgstr "Răspunsurile la întrebările 1–{previous} sunt salvate. După reîncărcare vei bifa din nou răspunsul la întrebarea {current}."
+
 #: src/features/tests/test-result.tsx
 msgid "Recitește ce trebuie să știi"
 msgstr "Recitește ce trebuie să știi"
@@ -1234,6 +1278,19 @@ msgstr "Recitește întrebările de mai jos și reia testul. Întrebările și o
 #: src/features/tests/test-result.tsx
 msgid "Reia testul"
 msgstr "Reia testul"
+
+#: src/features/reload/new-version-toast.tsx
+#: src/features/reload/reload-dialog.tsx
+msgid "Reîncarcă"
+msgstr "Reîncarcă"
+
+#: src/features/reload/reload-dialog.tsx
+msgid "Reîncarcă în {countdown}"
+msgstr "Reîncarcă în {countdown}"
+
+#: src/features/reload/new-version-toast.tsx
+msgid "Reîncarcă pagina pentru a o folosi."
+msgstr "Reîncarcă pagina pentru a o folosi."
 
 #: src/routes/__root.tsx
 msgid "Reîncarcă pagina și încearcă din nou."
@@ -1578,6 +1635,10 @@ msgstr "Testul nu te așteaptă acum. Când va fi de susținut, apare pe Acasă.
 #: src/features/tests/test-page.tsx
 msgid "Testul nu te mai așteaptă."
 msgstr "Testul nu te mai așteaptă."
+
+#: src/features/reload/reload-dialog.tsx
+msgid "Testul rămâne deschis. După reîncărcare vei bifa din nou răspunsul la întrebarea {current}."
+msgstr "Testul rămâne deschis. După reîncărcare vei bifa din nou răspunsul la întrebarea {current}."
 
 #: src/features/signing/client-signatures-page.tsx
 msgid "Tot ce a fost trimis spre semnare este semnat."

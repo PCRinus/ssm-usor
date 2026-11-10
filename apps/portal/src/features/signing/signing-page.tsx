@@ -25,6 +25,7 @@ import {
   type Participation,
   useParticipation,
 } from '@/features/participation/participation-context';
+import { useReloadContext } from '@/features/reload/reload-store';
 import { TrainingMaterial } from '@/features/training/training-material';
 import { useFormatDuration } from '@/lib/format';
 import { useApiRequest } from '@/lib/request';
@@ -143,6 +144,7 @@ export function SigningPage({
 }) {
   const participation = useParticipation();
   const [step, setStep] = useState<Step>({ kind: 'choose', choice: null });
+  useReloadContext(step.kind === 'result' ? { kind: 'other' } : { kind: 'signing' });
 
   return (
     <Page testId="signing-page" className="max-w-[44rem]">

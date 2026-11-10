@@ -12,7 +12,9 @@ import {
   finishPortalTestAttempt,
   type TestAttemptOutcome,
 } from '@/api/generated/api';
+import { isClientOutdatedError } from '@/api/http';
 import { Notice } from '@/components/notice';
+import { useReloadContext } from '@/features/reload/reload-store';
 import { useApiRequest } from '@/lib/request';
 
 import type { Attempt } from './attempt';
@@ -66,6 +68,7 @@ export function TestSitting({
   const chosen = answers[index] ?? [];
   const last = index === total - 1;
   const position = index + 1;
+  useReloadContext({ kind: 'test', question: position });
 
   const toggle = (option: number) => {
     if (busy) return;
@@ -99,7 +102,7 @@ export function TestSitting({
         setIndex(index + 1);
       }
     } catch (cause) {
-      setFailure(failureOf(cause, finishing));
+      if (!isClientOutdatedError(cause)) setFailure(failureOf(cause, finishing));
     } finally {
       setBusy(false);
     }

@@ -6,11 +6,13 @@ import {
 import { clientContract } from '@ssm-usor/contracts';
 
 import { captureEvent } from '@/app/observability/posthog';
+import { openOutdatedDialog } from '@/features/reload/reload-store';
 
 export { ApiHttpError, type ApiRequestOptions, isClientOutdatedError } from '@ssm-usor/api-http';
 
 const http = createApiHttp({
   clientContract: clientContract('portal'),
+  onClientOutdated: () => openOutdatedDialog('426'),
   onFailure: (failure) => captureEvent('api_request_failed', failure),
 });
 
