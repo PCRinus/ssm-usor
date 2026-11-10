@@ -213,6 +213,7 @@ describe('the site sheet', () => {
         },
       },
       workplaces: facts.workplaces,
+      registeredOffice: facts.workplaces.find((workplace) => workplace.registeredOffice),
       decisionNumbers: fire.decisionNumbers,
       people: {
         coordinator: fire.coordinator,
