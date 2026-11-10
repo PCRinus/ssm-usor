@@ -213,6 +213,15 @@ function tracedValues(proposal: Proposal): Traced[] {
           : undefined,
     }))
   );
+  // A suggested value is drafted, so no quote holds it; each passage must still be the file's.
+  const suggestedValues = proposal.workplaces.flatMap((workplace, index) =>
+    Object.entries(workplace.suggested)
+      .filter(([field]) => field !== 'officeHasActivity')
+      .map(([field, sources]): Traced => ({
+        path: `workplaces.${index}.suggested.${field}`,
+        sources,
+      }))
+  );
   const positionValues = proposal.jobPositions.flatMap((position, index) =>
     Object.entries(position.fieldSources).map(([field, sources]): Traced => ({
       path: `jobPositions.${index}.${field}`,
@@ -225,7 +234,14 @@ function tracedValues(proposal: Proposal): Traced[] {
       sources,
     }))
   );
-  return [...options, ...items, ...workplaceValues, ...positionValues, ...roles];
+  return [
+    ...options,
+    ...items,
+    ...workplaceValues,
+    ...suggestedValues,
+    ...positionValues,
+    ...roles,
+  ];
 }
 
 export function checkQuotes(proposal: Proposal, files: CheckInput['files']): Flag[] {

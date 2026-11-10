@@ -29,6 +29,7 @@ const reading = (
   facts: [],
   workplaces,
   workplaceFacts: [],
+  workplaceSuggestions: [],
   jobPositions: [],
   jobPositionFacts: [],
   responsiblePersons: [],

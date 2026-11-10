@@ -69,6 +69,7 @@ function reading(overrides: Partial<Reading> = {}): Reading {
       },
     ],
     workplaceFacts: [],
+    workplaceSuggestions: [],
     jobPositions: [
       {
         name: 'Brutar',

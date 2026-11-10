@@ -1,7 +1,7 @@
 import { offeredTrainingInterval } from '@ssm-usor/contracts';
 
 import { foldText } from './match';
-import { type Field, type Option, type Proposal } from './proposal';
+import { type Field, type Option, type Proposal, type Source } from './proposal';
 
 const ownOptions = <T>(field: Field<T>) =>
   field.options.filter((option) => option.otherCompanyName === null);
@@ -104,8 +104,40 @@ export function inferOfficePosts(proposal: Proposal) {
   }
 }
 
+// A registered office where the documents place nothing, beside a point of work they name, is
+// likely an address where nobody works (ADR 041): suggested, never stated, so the member decides.
+// The documents tie no post to a workplace, so the office's own activity and a person heading it
+// stand for one.
+export function suggestOfficeWithoutActivity(proposal: Proposal) {
+  const own = proposal.workplaces.filter((workplace) => workplace.otherCompanyName === null);
+  const office = own.find((workplace) => workplace.isRegisteredOffice);
+  const points = own.filter((workplace) => !workplace.isRegisteredOffice);
+  if (!office || points.length === 0) return;
+  const at = (reference: { id: string | null }) => reference.id === office.id;
+  const placed =
+    office.rooms.length > 0 ||
+    office.activity !== null ||
+    Object.keys(office.fieldSources).length > 0 ||
+    proposal.fireEquipment.some((equipment) => at(equipment.workplace)) ||
+    proposal.fireInstallations.some((installation) => at(installation.workplace)) ||
+    proposal.responsiblePersons.some((person) => at(person.workplace));
+  if (placed) return;
+  const sources: Source[] = [];
+  for (const point of points) {
+    for (const source of point.sources) {
+      if (!sources.some((known) => known.file === source.file && known.quote === source.quote)) {
+        sources.push(source);
+      }
+    }
+  }
+  if (sources.length === 0) return;
+  office.officeHasActivity = false;
+  office.suggested.officeHasActivity = sources;
+}
+
 export function inferValues(proposal: Proposal): Proposal {
   inferFireTrainingFromSsm(proposal);
   inferOfficePosts(proposal);
+  suggestOfficeWithoutActivity(proposal);
   return proposal;
 }

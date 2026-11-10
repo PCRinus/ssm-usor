@@ -15,6 +15,7 @@ const reading = (substances: Named[], facts: Fact[] = []): Reading => ({
   facts,
   workplaces: [],
   workplaceFacts: [],
+  workplaceSuggestions: [],
   jobPositions: [],
   jobPositionFacts: [],
   responsiblePersons: [],

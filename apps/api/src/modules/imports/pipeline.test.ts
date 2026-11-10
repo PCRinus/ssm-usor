@@ -444,6 +444,7 @@ const emptyReading = {
   facts: [],
   workplaces: [],
   workplaceFacts: [],
+  workplaceSuggestions: [],
   jobPositionFacts: [],
   jobPositions: [],
   responsiblePersons: [],

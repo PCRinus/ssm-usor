@@ -21,6 +21,7 @@ test('smoking choices remain readable and selectable at 320px with a long source
     ],
     workplaces: [],
     workplaceFacts: [],
+    workplaceSuggestions: [],
     jobPositionFacts: [],
     jobPositions: [],
     responsiblePersons: [],

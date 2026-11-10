@@ -204,6 +204,22 @@ export const workplaceFireFieldNames = [
 
 export type WorkplaceFireFieldName = (typeof workplaceFireFieldNames)[number];
 
+// What the reading may draft from the client's activity where no document states it (ADR 041),
+// and nothing else: never an area, a count, a date, a name, an address or a place.
+export const suggestedWorkplaceFieldNames = [
+  'combustibleMaterials',
+  'ignitionSources',
+  'fireRiskEquipment',
+  'specificMeasures',
+  'extinguisherNorm',
+] as const;
+
+export type SuggestedWorkplaceFieldName = (typeof suggestedWorkplaceFieldNames)[number];
+
+export const suggestedValuesPath = (workplaceId: string) => `suggestedValues.${workplaceId}`;
+
+export const officeActivityPath = (workplaceId: string) => `officeActivity.${workplaceId}`;
+
 // Defaulted for a proposal stored before they were read.
 const laterValue = <T extends z.ZodType>(value: T) => value.nullable().default(null);
 
@@ -230,6 +246,11 @@ export const proposedWorkplaceSchema = z.object({
   // The sources of the fire-safety values by their field, apart from the workplace's own.
   fieldSources: z.record(z.string(), z.array(sourceSchema)).default({}),
   spelling: spellings,
+  // False only for a registered office the import suggests is an address where nothing is done.
+  officeHasActivity: z.boolean().default(true),
+  // By field, the passages a suggested value was drawn from: a suggested value's field is here,
+  // a read one's is not. `officeHasActivity` cites the passages naming the points of work.
+  suggested: z.record(z.string(), z.array(sourceSchema).min(1)).default({}),
 });
 
 export type ProposedWorkplace = z.infer<typeof proposedWorkplaceSchema>;

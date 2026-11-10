@@ -30,6 +30,8 @@ import {
   type ProposedJobPosition,
   type ProposedResponsiblePerson,
   type Source,
+  type SuggestedWorkplaceFieldName,
+  suggestedWorkplaceFieldNames,
   trainingScheduleFieldNames,
   trainingScheduleYesNoFieldNames,
   type WorkplaceFireFieldName,
@@ -89,6 +91,16 @@ export const readingSchema = z.object({
       field: z.enum(workplaceFireFieldNames),
       value: z.string(),
       ...quoted,
+    })
+  ),
+  // Drafted from the client's activity where no document states the value (ADR 041): each cites
+  // the passages it was drawn from, so a draft has no single quote holding it.
+  workplaceSuggestions: z.array(
+    z.object({
+      workplace: z.string(),
+      field: z.enum(suggestedWorkplaceFieldNames),
+      value: z.string(),
+      sources: z.array(z.object({ file: z.string(), quote: z.string() })),
     })
   ),
   jobPositions: z.array(
@@ -466,6 +478,8 @@ const readWorkplace = (workplace: Reading['workplaces'][number]) => ({
   rooms: workplace.rooms,
   ...noFireValues(),
   spelling: {} as Record<string, string>,
+  officeHasActivity: true,
+  suggested: {} as Record<string, Source[]>,
 });
 
 type ReadWorkplace = ReturnType<typeof readWorkplace>;
@@ -556,6 +570,35 @@ function addRoles(into: Roles, from: Roles) {
   }
 }
 
+interface Suggestion {
+  workplaceId: string;
+  field: SuggestedWorkplaceFieldName;
+  value: string | number;
+  sources: Source[];
+}
+
+// After the spelling is corrected: a draft is the model's own wording, with no document's
+// spelling to keep beside it.
+function applySuggestions(proposal: Proposal, suggestions: Suggestion[]) {
+  for (const suggestion of suggestions) {
+    const workplace = proposal.workplaces.find((each) => each.id === suggestion.workplaceId);
+    if (!workplace || workplace.otherCompanyName !== null) continue;
+    if (suggestion.field === 'extinguisherNorm' && workplace.kind === 'mobile_site') continue;
+    const values = workplace as unknown as Record<string, string | number | null>;
+    const known = workplace.suggested[suggestion.field];
+    if (known) {
+      if (sameValue(values[suggestion.field]!, suggestion.value)) {
+        mergeSources(known, suggestion.sources);
+      }
+      continue;
+    }
+    if (values[suggestion.field] !== null) continue;
+    values[suggestion.field] = suggestion.value;
+    workplace.suggested[suggestion.field] = [...suggestion.sources];
+  }
+  return proposal;
+}
+
 export function toProposal(...readings: Reading[]): Proposal {
   const facts = readings.flatMap((reading) => reading.facts);
   const groups = {
@@ -630,6 +673,17 @@ export function toProposal(...readings: Reading[]): Proposal {
       value: workplaceFactValue(fact.field, fact.value),
     })),
     (name) => (named(name) ? (resolve(name, workplaceNames, true) ?? onlyWorkplace) : onlyWorkplace)
+  );
+  const suggestions = list((reading) => reading.workplaceSuggestions ?? []).flatMap(
+    (suggestion): Suggestion[] => {
+      const workplaceId = named(suggestion.workplace)
+        ? resolve(suggestion.workplace, workplaceNames, true)
+        : onlyWorkplace;
+      const value = workplaceFactValue(suggestion.field, suggestion.value);
+      const sources = suggestion.sources.map(sourceOf);
+      if (workplaceId === null || value === null || sources.length === 0) return [];
+      return [{ workplaceId, field: suggestion.field, value, sources }];
+    }
   );
   const workplaceReference = (name: string | null, defaultToOnly: boolean) => ({
     name,
@@ -827,5 +881,7 @@ export function toProposal(...readings: Reading[]): Proposal {
     ],
     flags: [],
   };
-  return proposalSchema.parse(correctProposalSpelling(inferValues(proposal)));
+  return proposalSchema.parse(
+    applySuggestions(correctProposalSpelling(inferValues(proposal)), suggestions)
+  );
 }
