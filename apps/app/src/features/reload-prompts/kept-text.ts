@@ -7,15 +7,9 @@ const restoreWindow = 10_000;
 const guardAfterRestore = 3_000;
 const pollInterval = 150;
 
-const textTypes = new Set(['text', 'search', 'email', 'tel', 'url', 'number']);
-
-type TextField = HTMLInputElement | HTMLTextAreaElement;
-
 const keptFieldSchema = z.object({
   by: z.enum(['name', 'id']),
   key: z.string(),
-  tag: z.enum(['input', 'textarea']),
-  type: z.string(),
   // What the field held before the person typed: text goes back only into a field that holds
   // it again, so a field that now shows something else is left alone.
   before: z.string(),
@@ -31,17 +25,17 @@ const snapshotSchema = z.object({
 type KeptField = z.infer<typeof keptFieldSchema>;
 type Snapshot = z.infer<typeof snapshotSchema>;
 
-const typed = new WeakMap<TextField, string>();
-const focusValues = new WeakMap<TextField, string>();
+const typed = new WeakMap<HTMLTextAreaElement, string>();
+const focusValues = new WeakMap<HTMLTextAreaElement, string>();
 let filling = false;
 
-function asTextField(target: EventTarget | null): TextField | null {
-  if (target instanceof HTMLTextAreaElement) return target;
-  if (target instanceof HTMLInputElement && textTypes.has(target.type)) return target;
-  return null;
+// Only long text is kept: it is what hurts to retype, and a short field may hold a CNP, a
+// phone number or an email address that has no business in the browser's storage.
+function asTextField(target: EventTarget | null): HTMLTextAreaElement | null {
+  return target instanceof HTMLTextAreaElement ? target : null;
 }
 
-function rememberBefore(field: TextField, before: string) {
+function rememberBefore(field: HTMLTextAreaElement, before: string) {
   if (!typed.has(field)) typed.set(field, before);
 }
 
@@ -71,29 +65,26 @@ export function trackTypedText(root: Document = document) {
 // React's useId ids change with the order components mount, so they name no field for long.
 const generatedId = /[«»:]|^_r_/u;
 
-function identify(field: TextField): Pick<KeptField, 'by' | 'key'> | null {
+function identify(field: HTMLTextAreaElement): Pick<KeptField, 'by' | 'key'> | null {
   if (field.name) return { by: 'name', key: field.name };
   if (field.id && !generatedId.test(field.id)) return { by: 'id', key: field.id };
   return null;
 }
 
-function eligible(field: TextField) {
+function eligible(field: HTMLTextAreaElement) {
   if (!field.isConnected || field.disabled || field.readOnly) return false;
-  if (field instanceof HTMLInputElement && !textTypes.has(field.type)) return false;
   // A dialog that is open now is closed after the reload, so its fields have nowhere to go.
   return !field.closest('[data-no-keep], [hidden], [inert], [role="dialog"], [role="alertdialog"]');
 }
 
-function lookUp({ by, key, tag, type }: KeptField): TextField | null {
+function lookUp({ by, key }: KeptField): HTMLTextAreaElement | null {
   const found =
     by === 'name'
       ? [...document.querySelectorAll(`[name="${CSS.escape(key)}"]`)]
       : [document.getElementById(key)].filter((element) => element !== null);
   if (found.length !== 1) return null;
   const field = asTextField(found[0]!);
-  if (!field || field.tagName.toLowerCase() !== tag || !eligible(field)) return null;
-  if (field instanceof HTMLInputElement && field.type !== type) return null;
-  return field;
+  return field && eligible(field) ? field : null;
 }
 
 function readSnapshot(now = Date.now()): Snapshot | null {
@@ -123,10 +114,11 @@ export function keptFieldNames(page: string): ReadonlySet<string> {
   return new Set(snapshot.fields.filter(({ by }) => by === 'name').map(({ key }) => key));
 }
 
-export function snapshotTypedText(page: string, now = Date.now()) {
+// Answers whether any text is kept, so the dialog promises only what it keeps.
+export function snapshotTypedText(page: string, now = Date.now()): boolean {
   const fields: KeptField[] = [];
   const seen = new Set<string>();
-  for (const element of document.querySelectorAll('input, textarea')) {
+  for (const element of document.querySelectorAll('textarea')) {
     const field = asTextField(element);
     if (!field || !eligible(field)) continue;
     const before = typed.get(field);
@@ -134,13 +126,7 @@ export function snapshotTypedText(page: string, now = Date.now()) {
     const id = identify(field);
     if (!id || seen.has(`${id.by}:${id.key}`)) continue;
     seen.add(`${id.by}:${id.key}`);
-    const kept: KeptField = {
-      ...id,
-      tag: field instanceof HTMLTextAreaElement ? 'textarea' : 'input',
-      type: field instanceof HTMLInputElement ? field.type : 'textarea',
-      before,
-      value: field.value,
-    };
+    const kept: KeptField = { ...id, before, value: field.value };
     if (lookUp(kept) === field) fields.push(kept);
   }
   // A dialog that opens again before the last text came back keeps that text too.
@@ -149,25 +135,23 @@ export function snapshotTypedText(page: string, now = Date.now()) {
     earlier?.page === page
       ? [...earlier.fields.filter((old) => !seen.has(`${old.by}:${old.key}`)), ...fields]
       : fields;
-  if (merged.length === 0) return;
+  if (merged.length === 0) return false;
   try {
     sessionStorage.setItem(
       storageKey,
       JSON.stringify({ page, savedAt: now, fields: merged } satisfies Snapshot)
     );
+    return true;
   } catch {
     // Full or blocked storage: the text is not kept, the dialog still opens.
+    return false;
   }
 }
 
 // React tracks a controlled field's value through the element's own setter, so a value set
 // with a plain assignment never reaches onChange.
-function fill(field: TextField, value: string) {
-  const prototype =
-    field instanceof HTMLTextAreaElement
-      ? HTMLTextAreaElement.prototype
-      : HTMLInputElement.prototype;
-  const setter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
+function fill(field: HTMLTextAreaElement, value: string) {
+  const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set;
   filling = true;
   try {
     setter?.call(field, value);
@@ -193,11 +177,17 @@ export function restoreTypedText({
   now = Date.now,
 }: RestoreOptions) {
   const snapshot = readSnapshot(now());
-  if (!snapshot || snapshot.page !== page()) return () => {};
+  if (!snapshot) return () => {};
+  // The first page shown after the reload is the only chance: text left for a page the person
+  // was sent away from must not fill that form on a later visit.
+  if (snapshot.page !== page()) {
+    dropSnapshot(snapshot.savedAt);
+    return () => {};
+  }
 
   const started = now();
-  const restored = new Map<KeptField, TextField>();
-  const userOwned = new WeakSet<TextField>();
+  const restored = new Map<KeptField, HTMLTextAreaElement>();
+  const userOwned = new WeakSet<HTMLTextAreaElement>();
   let lastRestore = 0;
   let announced = false;
   let finished = false;

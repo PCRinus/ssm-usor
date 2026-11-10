@@ -12,6 +12,7 @@ export interface ReloadDialogState {
   cause: ReloadCause;
   // A change the person asked to save was refused, so it is not saved.
   unsavedChange: boolean;
+  keptText: boolean;
   // When the dialog opened within a minute of its own reload, the end of that minute.
   lockedUntil: number | null;
 }
@@ -52,12 +53,12 @@ export function openReloadDialog(
     return;
   }
   // Before the dialog opens: it hides the rest of the page from the fields' lookup.
-  snapshotTypedText(currentPage());
+  const keptText = snapshotTypedText(currentPage());
   const now = Date.now();
   const reloadedAt = readReloadedAt();
   const lockedUntil =
     reloadedAt !== null && now - reloadedAt < deployWindow ? reloadedAt + deployWindow : null;
-  state = { cause, unsavedChange, lockedUntil };
+  state = { cause, unsavedChange, keptText, lockedUntil };
   captureEvent('client_outdated_shown', { client: 'app', cause });
   emit();
 }

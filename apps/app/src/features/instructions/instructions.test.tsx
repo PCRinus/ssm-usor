@@ -1467,6 +1467,7 @@ describe('the module form across a reload', () => {
     await user.click(screen.getByTestId('editor-save'));
     expect(await screen.findByTestId('reload-dialog')).toBeTruthy();
     expect(screen.getByTestId('reload-dialog-unsaved')).toBeTruthy();
+    expect(screen.getByTestId('reload-dialog-kept')).toBeTruthy();
 
     disposeRuntimes();
     cleanup();

@@ -1541,7 +1541,7 @@ describe('employee editing', () => {
     expect(requests(employeesPath, 'POST')).toHaveLength(0);
   });
 
-  it('keeps the typed correction across the reload a refused save asks for, and sends it', async () => {
+  it('keeps none of the typed personal data across the reload a refused save asks for', async () => {
     mockApi({
       detail: () => Response.json({ employee: stored }),
       update: () =>
@@ -1554,6 +1554,8 @@ describe('employee editing', () => {
     await user.type(screen.getByTestId('employee-job-title'), ' de nivel 2');
     await user.click(screen.getByTestId('employee-submit'));
     expect(await screen.findByTestId('reload-dialog-unsaved')).toBeTruthy();
+    expect(screen.queryByTestId('reload-dialog-kept')).toBeNull();
+    expect(sessionStorage.getItem('ssm-usor.kept-text')).toBeNull();
 
     disposeRuntimes();
     cleanup();
@@ -1562,22 +1564,10 @@ describe('employee editing', () => {
     mountApp(authFixture(makeSession()).client, editPage);
     await screen.findByTestId('edit-employee-page');
     await waitFor(() =>
-      expect(screen.getByTestId<HTMLInputElement>('employee-last-name').value).toBe(
-        `${stored.lastName}-Ionescu`
-      )
+      expect(screen.getByTestId<HTMLInputElement>('employee-last-name').value).toBe(stored.lastName)
     );
-    expect(screen.getByTestId<HTMLInputElement>('employee-job-title').value).toBe(
-      'Muncitor calificat de nivel 2'
-    );
-    expect(screen.getByTestId<HTMLInputElement>('employee-cnp').value).toBe('1900101400127');
-    expect(await screen.findByText('Am păstrat ce ai scris înainte de reîncărcare.')).toBeTruthy();
-    await user.click(screen.getByTestId('employee-submit'));
-    await screen.findByTestId('employee-page');
-    const [, init] = requests(`${employeesPath}/${sampleEmployee.id}`, 'PUT')[0]!;
-    expect(JSON.parse(String(init?.body))).toMatchObject({
-      lastName: `${stored.lastName}-Ionescu`,
-      jobTitle: 'Muncitor calificat de nivel 2',
-    });
+    expect(screen.getByTestId<HTMLInputElement>('employee-job-title').value).toBe(stored.jobTitle);
+    expect(screen.queryByText('Am păstrat ce ai scris înainte de reîncărcare.')).toBeNull();
   });
 
   it('puts a CNP another employee has on the field, and an API issue where it belongs', async () => {

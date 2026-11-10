@@ -547,8 +547,6 @@ export function InstructionBlocks({
               >
                 <Input
                   id={fieldId(heading.id)}
-                  name={keepNames?.get(heading.id)}
-                  data-no-keep={keepNames?.has(heading.id) ? undefined : ''}
                   aria-label="Titlul secțiunii"
                   data-testid="instruction-heading-text"
                   className="-ml-2.5 h-10 flex-1 basis-40 border-transparent bg-transparent px-2.5 text-lg font-semibold tracking-tight shadow-none hover:border-input focus-visible:bg-background md:text-lg dark:bg-transparent"
