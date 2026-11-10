@@ -1,5 +1,5 @@
 import { Button } from '@ssm-usor/ui/components/button';
-import { Maximize, Minus, Plus } from 'lucide-react';
+import { Expand, Maximize, Minus, Plus } from 'lucide-react';
 
 const zoomSteps = [0.25, 0.5, 0.75, 1, 1.5, 2, 3];
 
@@ -7,10 +7,12 @@ export function ZoomBar({
   zoom,
   onZoom,
   fit,
+  onEnlarge,
 }: {
   zoom: number | 'fit';
   onZoom: (zoom: number | 'fit') => void;
   fit: boolean;
+  onEnlarge?: () => void;
 }) {
   const current = zoom === 'fit' ? 1 : zoom;
   const lower = [...zoomSteps].reverse().find((each) => each < current) ?? zoomSteps[0]!;
@@ -39,6 +41,21 @@ export function ZoomBar({
         >
           <Maximize aria-hidden="true" />
         </Button>
+      )}
+      {onEnlarge && (
+        <>
+          <span aria-hidden="true" className="mx-1 h-4 w-px bg-border" />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-full"
+            data-testid="photo-enlarge"
+            onClick={onEnlarge}
+          >
+            <Expand aria-hidden="true" />
+            Deschide mare
+          </Button>
+        </>
       )}
     </div>
   );

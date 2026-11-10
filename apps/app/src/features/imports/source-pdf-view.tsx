@@ -37,12 +37,14 @@ export default function PdfSourceView({
   onNotFound,
   onShown,
   onProgress,
+  onEnlarge,
 }: {
   source: ImportSourceResponse;
   quote: string | null;
   onNotFound: () => void;
   onShown: () => void;
   onProgress?: (loaded: number, total: number) => void;
+  onEnlarge?: () => void;
 }) {
   const url = source.original.url;
   const { fileId } = source;
@@ -215,7 +217,7 @@ export default function PdfSourceView({
           </Button>
         </div>
       )}
-      <ZoomBar zoom={zoom} onZoom={setZoom} fit />
+      <ZoomBar zoom={zoom} onZoom={setZoom} fit onEnlarge={onEnlarge} />
     </>
   );
 }

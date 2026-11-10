@@ -9,8 +9,8 @@ import { Notice } from '@/components/notice';
 import { roCount } from '@/features/employees/employee-format';
 
 import { Includable } from '../include-switch';
+import { PhotoPreviewDialog } from '../photo-preview-dialog';
 import { Tag } from '../review-parts';
-import { SourceDialog, type SourceRequest } from '../source-dialog';
 import {
   decisionsOf,
   formerLeftOn,
@@ -41,8 +41,9 @@ import {
 import { ExistingComparison, FieldsCard } from './person-fields';
 import { PersonTrainings } from './person-trainings';
 import { PhotoColumn, PhotoThumbs } from './photo-column';
-import { dateLabel, pageFileName, pagesPhotosLabel } from './review-format';
+import { dateLabel, pageFileName, pageKindLabel, pagesPhotosLabel } from './review-format';
 import { SaveStatus } from './save-status';
+import { SheetPageView } from './sheet-page-view';
 import { ShowPageContext } from './show-page';
 import { positionName, useReviewContext } from './use-review-context';
 
@@ -72,7 +73,7 @@ export function EmployeePersonPage({
   const pages = person ? pagesOf(context, person.id) : [];
   const [current, setCurrent] = useState<string | null>(pages[0]?.id ?? null);
   const [railOpen, setRailOpen] = useState(true);
-  const [fullScreen, setFullScreen] = useState<SourceRequest | null>(null);
+  const [enlarged, setEnlarged] = useState<string | null>(null);
 
   if (!person) {
     return (
@@ -104,19 +105,7 @@ export function EmployeePersonPage({
   const showPage = (pageId: string) => {
     setCurrent(pageId);
     setRailOpen(true);
-    if (!wideScreen()) {
-      const page = pages.find((each) => each.id === pageId);
-      if (page) {
-        setFullScreen({
-          title: name,
-          sources: [page, ...pages.filter((each) => each !== page)].map((each) => ({
-            file: each.label,
-            quote: '',
-            label: pageFileName(each),
-          })),
-        });
-      }
-    }
+    if (!wideScreen()) setEnlarged(pageId);
   };
 
   const go = (to: Person | undefined) => {
@@ -201,6 +190,7 @@ export function EmployeePersonPage({
             name={name}
             onCurrent={setCurrent}
             onOpen={setRailOpen}
+            onEnlarge={setEnlarged}
           />
           <div className="grid min-w-0 gap-4">
             <PhotoThumbs detail={detail} pages={pages} name={name} onShow={showPage} />
@@ -382,10 +372,21 @@ export function EmployeePersonPage({
             {next ? `Următoarea: ${personName(context, next)}` : 'Înapoi la listă'}
           </Button>
         </nav>
-        <SourceDialog
-          importId={detail.id}
-          request={fullScreen}
-          onClose={() => setFullScreen(null)}
+        <PhotoPreviewDialog
+          photos={pages.map((page, position) => ({
+            key: page.id,
+            name,
+            detail: `Fotografia ${position + 1} din ${pages.length} · ${pageKindLabel(page)} · ${pageFileName(page)}`,
+            view: (
+              <SheetPageView importId={detail.id} page={page} className="h-full rounded-none" />
+            ),
+          }))}
+          current={enlarged}
+          onCurrent={(pageId) => {
+            setEnlarged(pageId);
+            setCurrent(pageId);
+          }}
+          onClose={() => setEnlarged(null)}
         />
       </div>
     </ShowPageContext>
