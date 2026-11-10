@@ -2,7 +2,9 @@ import {
   type FireSubstanceDetail,
   fireSubstanceDetailLabels,
   fireSubstanceDetails,
+  type FireSubstanceEssential,
   type FireSubstancesState,
+  missingSubstanceEssentials,
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
@@ -63,12 +65,15 @@ const requiredText = (min: number, max: number, empty: string, what: string) =>
     .max(max, `${what} are cel mult ${max} de caractere.`)
     .refine((value) => value.length >= min, `${what} are cel puțin ${min} caractere.`);
 
-const optionalText = (max: number, what: string) =>
+const optionalText = (max: number, what: string, min = 2) =>
   z
     .string()
     .trim()
     .max(max, `${what} are cel mult ${max} de caractere.`)
-    .refine((value) => value.length !== 1, `${what} are cel puțin 2 caractere.`);
+    .refine(
+      (value) => value.length === 0 || value.length >= min,
+      `${what} are cel puțin ${min} caractere.`
+    );
 
 const detailFields = Object.fromEntries(
   fireSubstanceDetails.map((detail) => [
@@ -80,8 +85,8 @@ const detailFields = Object.fromEntries(
 // Form values are strings so inputs stay controlled; the API request is derived on submit.
 export const substanceFormSchema = z.object({
   name: requiredText(2, 160, 'Scrie denumirea substanței.', 'Denumirea'),
-  classification: requiredText(2, 600, 'Scrie clasificarea substanței.', 'Clasificarea'),
-  quantity: requiredText(1, 160, 'Scrie cantitatea deținută.', 'Cantitatea'),
+  classification: optionalText(600, 'Clasificarea'),
+  quantity: optionalText(160, 'Cantitatea', 1),
   ...detailFields,
 });
 
@@ -102,8 +107,8 @@ export function newSubstanceForm(): SubstanceFormValues {
 export function toSubstanceForm(substance: FireSubstance): SubstanceFormValues {
   return {
     name: substance.name,
-    classification: substance.classification,
-    quantity: substance.quantity,
+    classification: substance.classification ?? '',
+    quantity: substance.quantity ?? '',
     ...(Object.fromEntries(
       fireSubstanceDetails.map((detail) => [detail, substance[detail] ?? ''])
     ) as Record<FireSubstanceDetail, string>),
@@ -113,8 +118,8 @@ export function toSubstanceForm(substance: FireSubstance): SubstanceFormValues {
 export function toSubstanceRequest(values: SubstanceFormValues): FireSubstanceRequest {
   return {
     name: values.name,
-    classification: values.classification,
-    quantity: values.quantity,
+    classification: values.classification || null,
+    quantity: values.quantity || null,
     ...(Object.fromEntries(
       fireSubstanceDetails.map((detail) => [detail, values[detail] || null])
     ) as Record<FireSubstanceDetail, string | null>),
@@ -123,3 +128,15 @@ export function toSubstanceRequest(values: SubstanceFormValues): FireSubstanceRe
 
 export const unfilledDetailCount = (substance: FireSubstance) =>
   fireSubstanceDetails.filter((detail) => !substance[detail]).length;
+
+const essentialLabels: Record<FireSubstanceEssential, string> = {
+  classification: 'clasificarea',
+  quantity: 'cantitatea',
+};
+
+/** "Lipsește cantitatea", "Lipsesc clasificarea și cantitatea"; null for a complete entry. */
+export function missingEssentialsLabel(substance: FireSubstance) {
+  const missing = missingSubstanceEssentials(substance).map((field) => essentialLabels[field]);
+  if (missing.length === 0) return null;
+  return missing.length === 1 ? `Lipsește ${missing[0]}` : `Lipsesc ${missing.join(' și ')}`;
+}

@@ -155,8 +155,8 @@ const propane = {
   id: '4a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d',
   clientId,
   name: 'Propan',
-  classification: 'Flam. Gas 1, H220',
-  quantity: '2 butelii de 11 kg',
+  classification: 'Flam. Gas 1, H220' as string | null,
+  quantity: '2 butelii de 11 kg' as string | null,
   physicalChemicalProperties: null as string | null,
   identificationCodes: 'CAS 74-98-6' as string | null,
   healthEnvironmentRisks: null as string | null,
@@ -922,7 +922,7 @@ describe('client dangerous substances', () => {
     ).toBe(true);
   });
 
-  it('adds a substance with its three required fields and the data sheet texts typed', async () => {
+  it('adds a substance with its fields and the data sheet texts typed', async () => {
     mockApi({ substancesState: 'listed', substances: [] });
     mount();
     const user = userEvent.setup();
@@ -937,8 +937,8 @@ describe('client dangerous substances', () => {
     expect((await within(dialog).findByTestId('fire-substance-name-error')).textContent).toBe(
       'Scrie denumirea substanței.'
     );
-    expect(within(dialog).getByTestId('fire-substance-classification-error')).toBeTruthy();
-    expect(within(dialog).getByTestId('fire-substance-quantity-error')).toBeTruthy();
+    expect(within(dialog).queryByTestId('fire-substance-classification-error')).toBeNull();
+    expect(within(dialog).queryByTestId('fire-substance-quantity-error')).toBeNull();
 
     await user.type(within(dialog).getByTestId('fire-substance-name'), 'Diluant');
     await user.type(
@@ -967,6 +967,85 @@ describe('client dangerous substances', () => {
       ])
     );
     expect(await screen.findByText('Substanța a fost adăugată.')).toBeTruthy();
+  });
+
+  it('saves a substance by its name alone, its classification and quantity marked as what the documents need', async () => {
+    mockApi({ substancesState: 'listed', substances: [] });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(within(await card()).getByTestId('fire-substance-add'));
+    const dialog = await screen.findByTestId('fire-substance-dialog');
+    expect(dialog.textContent).toContain(
+      'Documentele SU cer câmpurile fără „opțional”. Poți salva și fără ele.'
+    );
+    const labelOf = (id: string) => dialog.querySelector(`label[for="${id}"]`)!.textContent;
+    expect(labelOf('fire-substance-name')).toContain('(obligatoriu)');
+    for (const id of ['fire-substance-classification', 'fire-substance-quantity']) {
+      expect(labelOf(id)).not.toMatch(/obligatoriu|opțional/);
+    }
+    expect(labelOf('fire-substance-storage')).toContain('opțional');
+
+    await user.type(within(dialog).getByTestId('fire-substance-name'), 'Diluant');
+    await user.click(within(dialog).getByTestId('fire-substance-save'));
+    await waitFor(() =>
+      expect(requests(substancesPath, 'POST')).toEqual([
+        expect.objectContaining({ name: 'Diluant', classification: null, quantity: null }),
+      ])
+    );
+  });
+
+  it('marks an entry incomplete while its classification or quantity is missing', async () => {
+    mockApi({
+      substancesState: 'listed',
+      substances: [
+        propane,
+        {
+          ...propane,
+          id: '5b2c3d4e-0000-4a6b-8c7d-9e0f1a2b3c4d',
+          name: 'Diluant',
+          classification: null,
+          quantity: null,
+        },
+        {
+          ...propane,
+          id: '6c3d4e5f-0000-4a6b-8c7d-9e0f1a2b3c4d',
+          name: 'Motorină',
+          quantity: null,
+        },
+      ],
+    });
+    mount();
+
+    const substances = await card();
+    const [complete, unread, uncounted] = within(substances).getAllByTestId('fire-substance-row');
+    expect(within(complete!).queryByTestId('fire-substance-incomplete')).toBeNull();
+    expect(within(unread!).getByTestId('fire-substance-incomplete').textContent).toBe('Incompletă');
+    expect(within(unread!).getByTestId('fire-substance-missing').textContent).toBe(
+      'Lipsesc clasificarea și cantitatea'
+    );
+    expect(unread!.textContent).toContain('—');
+    expect(within(uncounted!).getByTestId('fire-substance-missing').textContent).toBe(
+      'Lipsește cantitatea'
+    );
+    expect(within(substances).getByTestId('fire-substances-incomplete').textContent).toContain(
+      'Documentele SU nu se pot genera'
+    );
+  });
+
+  it('opens the first incomplete entry at its first missing field for ?focus=fire-substances', async () => {
+    mockApi({
+      substancesState: 'listed',
+      substances: [propane, { ...propane, name: 'Diluant', quantity: null }],
+    });
+    const runtime = mount('?focus=fire-substances');
+
+    const dialog = await screen.findByTestId('fire-substance-dialog');
+    expect(within(dialog).getByTestId<HTMLInputElement>('fire-substance-name').value).toBe(
+      'Diluant'
+    );
+    await waitFor(() => expect(document.activeElement?.id).toBe('fire-substance-quantity'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
   });
 
   it('edits a substance from its row, clearing a text', async () => {

@@ -114,6 +114,34 @@ describe('the rows of the generation form', () => {
     ]);
   });
 
+  it('name the listed substances that lack a classification or a quantity', () => {
+    const rowWith = (incompleteFireSubstances: { id: string; name: string }[]) =>
+      documentMissingGroups({
+        missing: ['fire.substances'],
+        clientId,
+        clash: null,
+        undecidedJobPositions: [],
+        incompleteFireSubstances,
+        canEditOrganization: true,
+        set: 'fire_safety',
+      })[0]!.rows[0]!;
+    expect(rowWith([]).detail).toMatch(/^Dacă clientul utilizează substanțe periculoase/);
+    expect(rowWith([{ id: 's1', name: 'Diluant' }]).detail).toBe(
+      'Clasificarea și cantitatea substanței „Diluant”.'
+    );
+    const many = rowWith([
+      { id: 's1', name: 'Diluant' },
+      { id: 's2', name: 'Propan' },
+      { id: 's3', name: 'Motorină' },
+    ]);
+    expect(many.detail).toBe(
+      'Clasificarea și cantitatea substanțelor „Diluant”, „Propan” și „Motorină”.'
+    );
+    expect(hrefs([{ place: '', heading: '', rows: [many] }])).toEqual([
+      documentTargets['fire.substances'],
+    ]);
+  });
+
   it('are one per position and per section still undecided, each to that section', () => {
     const groups = documentMissingGroups({
       missing: ['positions.equipment', 'positions.instructions'],

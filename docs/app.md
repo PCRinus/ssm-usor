@@ -795,9 +795,15 @@ their tab bars read.
   periculoase" (ADR 018, amended 2026-10-11) asks whether the client uses dangerous substances,
   "Nu se utilizează substanțe periculoase" or "Se utilizează, lista de mai jos", saved on choice;
   with the second, a table of the substances, each added, edited and deleted through a dialog
-  whose eight optional texts name the section of the safety data sheet they come from. The
+  whose eight optional texts name the section of the safety data sheet they come from. Only the
+  name is required to save: the classification and the quantity carry no mark, as fields the SU
+  documents need, which the dialog's description says (ADR 041). An entry without either is
+  marked "Incompletă" with what it lacks ("Lipsește cantitatea"), its missing quantity shown as a
+  dash, and a line under the table says the SU documents wait for them. The
   first choice is disabled while the list has entries. `?focus=fire-substances` points at the
-  choice while undecided, and opens the add dialog when the list is chosen but empty.
+  choice while undecided, opens the add dialog when the list is chosen but empty, and opens the
+  first incomplete entry at its first missing field. The missing-data row of `fire.substances`
+  names the incomplete substances from the readiness's `incompleteFireSubstances`.
 - `/clienti/:clientId/documente-ssm`: the "Documente SSM" section of a client (ADR 005), in
   `src/features/documents/`. The card is the whole pack (`buildPack` in `pack-status.ts`): every
   document of the set once, in the binder's sections (`documentSections`), under its most

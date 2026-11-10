@@ -137,6 +137,7 @@ function GenerateDocumentsForm({
         clash: readiness.data.workersRepresentativeClash,
         undecidedJobPositions: readiness.data.undecidedJobPositions,
         incompleteRiskEvaluations: readiness.data.incompleteRiskEvaluations,
+        incompleteFireSubstances: readiness.data.incompleteFireSubstances,
         canEditOrganization: isOwner,
         set,
       })

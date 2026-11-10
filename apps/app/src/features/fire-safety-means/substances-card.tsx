@@ -1,4 +1,5 @@
-import type { FireSubstancesState } from '@ssm-usor/contracts';
+import { type FireSubstancesState, missingSubstanceEssentials } from '@ssm-usor/contracts';
+import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -41,6 +42,7 @@ import { ApiHttpError } from '@/api/http';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
+import { warningBadge } from '@/features/documents/pack-styles';
 import { DecisionBadge } from '@/features/job-positions/decision-badge';
 import { useFocusRequest } from '@/features/missing-data/focus';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
@@ -48,6 +50,7 @@ import { useSavedToast } from '@/features/missing-data/saved-toast';
 import { SubstanceDialog, type SubstanceEditing } from './substance-dialog';
 import {
   type FireSubstance,
+  missingEssentialsLabel,
   substanceAddId,
   substanceCountLabel,
   substancesCardId,
@@ -70,6 +73,8 @@ const failureMessage = (cause: unknown, fallback: string) => {
   if (status === 404) return 'Substanța nu mai există la acest client; lista a fost reîncărcată.';
   return fallback;
 };
+
+const isIncomplete = (substance: FireSubstance) => missingSubstanceEssentials(substance).length > 0;
 
 const stateBadge = (state: FireSubstancesState, count: number) =>
   state === 'undecided'
@@ -108,18 +113,28 @@ export function SubstancesCard({
   const state = substances.data?.state;
   const items = substances.data?.items ?? [];
   const listedEmpty = state === 'listed' && items.length === 0;
+  const incomplete = state === 'listed' ? items.filter(isIncomplete) : [];
+  const firstIncomplete = incomplete[0];
   useFocusRequest(focus, {
     ready: substances.isSuccess,
     anchor: () =>
       document.getElementById(listedEmpty && !readOnly ? substanceAddId : substancesCardId),
-    open: readOnly || !listedEmpty ? undefined : () => setEditing('new'),
+    open: readOnly
+      ? undefined
+      : listedEmpty
+        ? () => setEditing('new')
+        : firstIncomplete
+          ? () => setEditing(firstIncomplete)
+          : undefined,
     field: readOnly
       ? undefined
       : listedEmpty
         ? 'fire-substance-name'
-        : state === 'undecided'
-          ? `${substancesChoiceId}-none`
-          : undefined,
+        : firstIncomplete
+          ? `fire-substance-${missingSubstanceEssentials(firstIncomplete)[0]!}`
+          : state === 'undecided'
+            ? `${substancesChoiceId}-none`
+            : undefined,
   });
 
   const refresh = () =>
@@ -307,6 +322,7 @@ export function SubstancesCard({
                   <TableBody>
                     {items.map((substance) => {
                       const missing = unfilledDetailCount(substance);
+                      const missingEssentials = missingEssentialsLabel(substance);
                       return (
                         <TableRow
                           key={substance.id}
@@ -316,13 +332,36 @@ export function SubstancesCard({
                         >
                           <TableCell className="min-w-40 whitespace-normal">
                             <span className="grid gap-0.5">
-                              <span className="font-medium">{substance.name}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {substance.classification}
+                              <span className="flex flex-wrap items-center gap-2">
+                                <span className="font-medium">{substance.name}</span>
+                                {missingEssentials && (
+                                  <Badge
+                                    variant="outline"
+                                    className={warningBadge}
+                                    data-testid="fire-substance-incomplete"
+                                  >
+                                    Incompletă
+                                  </Badge>
+                                )}
                               </span>
+                              {substance.classification && (
+                                <span className="text-xs text-muted-foreground">
+                                  {substance.classification}
+                                </span>
+                              )}
+                              {missingEssentials && (
+                                <span
+                                  data-testid="fire-substance-missing"
+                                  className="text-xs text-muted-foreground"
+                                >
+                                  {missingEssentials}
+                                </span>
+                              )}
                             </span>
                           </TableCell>
-                          <TableCell className="whitespace-normal">{substance.quantity}</TableCell>
+                          <TableCell className="whitespace-normal">
+                            {substance.quantity ?? '—'}
+                          </TableCell>
                           <TableCell
                             data-testid="fire-substance-details"
                             className={cn(
@@ -373,6 +412,16 @@ export function SubstancesCard({
                     })}
                   </TableBody>
                 </Table>
+              )}
+              {incomplete.length > 0 && (
+                <p
+                  data-testid="fire-substances-incomplete"
+                  className="text-sm text-muted-foreground"
+                >
+                  {readOnly
+                    ? 'Clasificarea sau cantitatea unor substanțe nu este încă cunoscută.'
+                    : 'Documentele SU nu se pot genera până nu completezi clasificarea și cantitatea substanțelor marcate „Incompletă”.'}
+                </p>
               )}
             </section>
           )}
