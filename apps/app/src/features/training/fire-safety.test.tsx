@@ -18,6 +18,7 @@ const sampleClient = {
   addressLine: null,
   legalRepresentativeName: 'Maria Popescu',
   declaredEmployeeCount: 6,
+  currentEmployeeCount: 6,
   createdAt: '2026-09-17T10:00:00+00:00',
   updatedAt: '2026-09-17T10:00:00+00:00',
   archivedAt: null as string | null,
@@ -472,8 +473,12 @@ describe('the fire-safety training card', () => {
     );
   });
 
-  it('says whether other firms work on the premises', async () => {
-    mockApi({ fireSafety: savedFireSafety, exists: true });
+  it('says whether other firms work on the premises, from ten employees', async () => {
+    mockApi({
+      fireSafety: savedFireSafety,
+      exists: true,
+      client: { ...sampleClient, currentEmployeeCount: 10 },
+    });
     mount();
     const user = userEvent.setup();
 
@@ -488,6 +493,27 @@ describe('the fire-safety training card', () => {
       expect(requests(firePath, 'PUT')).toEqual([{ ...savedFireSafety, hasThirdParties: true }])
     );
     expect((await screen.findByTestId('fire-third-parties')).textContent).toBe('Da');
+  });
+
+  it('leaves the other firms out under ten employees, where no document prints them', async () => {
+    mockApi({ fireSafety: savedFireSafety, exists: true });
+    mount();
+    const user = userEvent.setup();
+
+    await screen.findByTestId('fire-waste-collectors');
+    expect(screen.queryByTestId('fire-third-parties')).toBeNull();
+    await user.click(screen.getByTestId('fire-rules-edit'));
+    expect(screen.queryByTestId('fire-third-parties-input')).toBeNull();
+  });
+
+  it('keeps the other firms in view under ten employees once they are recorded', async () => {
+    mockApi({ fireSafety: { ...savedFireSafety, hasThirdParties: true }, exists: true });
+    mount();
+    const user = userEvent.setup();
+
+    expect((await screen.findByTestId('fire-third-parties')).textContent).toBe('Da');
+    await user.click(screen.getByTestId('fire-rules-edit'));
+    expect(screen.getByTestId('fire-third-parties-input')).toBeTruthy();
   });
 
   it('takes a waste kind off the list and clears the rest of the card on save', async () => {
