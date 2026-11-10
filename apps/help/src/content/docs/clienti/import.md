@@ -321,7 +321,7 @@ O pagină pe care aplicația nu o poate lega de nicio persoană apare sub listă
 
 Pe pagina unei persoane vezi, alături, fotografiile fișelor ei; un clic pe una o mărește. Comutatorul de lângă nume spune dacă persoana intră în import: oprit, o lasă deoparte; pornit din nou, o ia înapoi la verificat. La confirmare se creează doar persoanele incluse și verificate; cele încă de verificat rămân în afara importului. Sus sunt lucrurile de hotărât, apoi datele citite, pe grupuri, și instruirile, pe domenii. O valoare citită greșit o corectezi cu **Schimbă**. Cu butoanele de jos treci la persoana anterioară sau la următoarea.
 
-Ca să fie creat, un lucrător are nevoie de nume, prenume, funcția din contract, data angajării și un post. Emailul și telefonul nu sunt obligatorii: când lipsesc, vezi „Fără email sau telefon. Îl adaugi când îl inviți în portal.” Când fișele aceleiași persoane scriu valori diferite, de exemplu două date ale angajării, alegi una.
+Ca să fie creat, un lucrător are nevoie de nume, prenume, funcția din contract, data angajării și un post. Emailul și telefonul nu sunt obligatorii: când lipsesc, vezi „Fără email sau telefon. Îl adaugi când îl inviți în portal.” Când fișele aceleiași persoane scriu valori diferite, de exemplu două date ale angajării, alegi una. Data angajării se ia de pe fișa SSM sau din declarația privind traseul. Fișa SU scrie de obicei admiterea la lucru cu o zi sau două mai târziu, după instruirea ei la locul de muncă, așa că data ei se folosește pentru angajare doar când celelalte pagini nu scriu niciuna; ea rămâne oricum la instruirea SU la locul de muncă, ca „Admis la lucru”.
 
 ### Postul de lucru
 
@@ -385,7 +385,7 @@ O durată scrisă în ore, de exemplu „8 ore” sau „1h30”, e citită în 
 
 Se preiau așa dacă nu le schimbi. O instruire cu data în viitor sau fără o valoare obligatorie trebuie corectată.
 
-Testul anual SU consemnat în tabelul instruirilor periodice devine un rezultat de test, nu o instruire. Dacă nu i s-a citit ziua sau examinatorul, îl ai de completat: alege **Schimbă** pe rândul testului.
+Testul anual SU consemnat în tabelul instruirilor periodice devine un rezultat de test. OMAI 712/2005 cere atât instruirea periodică (art. 21), cât și, anual, o verificare pe bază de teste, consemnată în fișa individuală (art. 30). Un rând care consemnează doar testul devine numai rezultatul testului. Un rând în care testul e scris împreună cu instruirea periodică din aceeași zi, de exemplu cu materialul predat urmat de „Testare”, devine amândouă: instruirea periodică, printre celelalte rânduri, și testul anual, sub ele, fiecare cu comutatorul lui. Dacă aplicația are deja instruirea din acea zi, rândul ei nu mai apare, dar testul scris pe el ți se propune în continuare. Ziua rândului e și a testului, așa că o corectezi o singură dată. Dacă testului nu i s-a citit ziua sau examinatorul, îl ai de completat: alege **Schimbă** pe testul anual.
 
 **După import** îți arată cum va arăta instruirea lucrătorului în aplicație cu alegerile de acum: starea, ultima instruire periodică și testul la angajare. Rândurile mai multor persoane cu același domeniu, același fel, aceeași zi, același instructor, aceeași durată și același material devin o singură instruire în **Instruiri ținute**, cu toți participanții ei. Altfel devin instruiri separate în aceeași zi.
 
