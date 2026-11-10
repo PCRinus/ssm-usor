@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { DocumentFacts } from './context';
 import { facts, officeId, workshopId } from './context.fixture';
 import { buildFireSafetyContext } from './fire-safety';
-import type { SiteSheetRow } from './site-sheet';
+import { buildSiteSheet, type SiteSheetRow } from './site-sheet';
 
 const sheetOf = (variant: Partial<DocumentFacts> = {}) =>
   buildFireSafetyContext({ ...facts, currentEmployeeCount: 12, ...variant }).fire.siteSheet;
@@ -196,6 +196,36 @@ describe('the site sheet', () => {
     ]);
     const none = sheetOf(withFire({ substances: { state: 'none', entries: [] } })).substances;
     expect(none).toEqual({ none: true, listed: false, entries: [] });
+  });
+
+  it('prints the mark to fill in beside the name, and a gap for the quantity, of a substance not counted yet', () => {
+    const fire = buildFireSafetyContext({ ...facts, currentEmployeeCount: 12 }).fire;
+    const [propane] = facts.fireSafety.substances.entries;
+    const { substances } = buildSiteSheet({
+      facts: {
+        ...facts,
+        fireSafety: {
+          ...facts.fireSafety,
+          substances: {
+            state: 'listed',
+            entries: [{ ...propane!, classification: null, quantity: ' ' }],
+          },
+        },
+      },
+      workplaces: facts.workplaces,
+      registeredOffice: facts.workplaces.find((workplace) => workplace.registeredOffice),
+      decisionNumbers: fire.decisionNumbers,
+      people: {
+        coordinator: fire.coordinator,
+        interventionLeader: fire.interventionLeader,
+        managerNames: [],
+      },
+      inSet: () => true,
+    });
+    expect(substances.entries[0]!.rows.slice(0, 2)).toEqual([
+      expect.objectContaining({ value: 'Propan – DE COMPLETAT' }),
+      expect.objectContaining({ value: null, hint: 'pentru fiecare substanță' }),
+    ]);
   });
 
   it("states the organization from the decisions, and the control decision's intervals from ten employees", () => {

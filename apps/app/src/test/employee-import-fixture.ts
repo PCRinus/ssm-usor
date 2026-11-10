@@ -269,6 +269,7 @@ export const workplaces = [
   ...workplace,
   clientId,
   isRegisteredOffice: false,
+  officeHasActivity: true,
   countyCode: 'SB',
   locality: 'Sibiu',
   addressLine: null,

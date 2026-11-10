@@ -19,6 +19,7 @@ import { StatusTag } from './review-parts';
 import {
   blockerHeading,
   blockerLinks,
+  type ExistingScope,
   fieldStates,
   keptPaths,
   reviewName,
@@ -64,6 +65,12 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
   const intoExisting = detail.intoExistingClient;
   const blocked = blockers.length > 0;
   const { heading } = blockerHeading(blockers);
+  const scope: ExistingScope = {
+    blockers,
+    existingClient: intoExisting,
+    existingWorkplaces: existing.workplaces,
+    existingSubstances: intoExisting ? existing.substanceNames : null,
+  };
 
   return (
     <div data-testid="import-review-hub" className="grid gap-6">
@@ -173,7 +180,14 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
                   <span className="grid min-w-0 gap-0.5">
                     <span className="font-semibold">{sectionLabels[section]}</span>
                     <span className="text-sm text-muted-foreground max-sm:hidden">
-                      {sectionDescription(section, detail, proposal, review.changes, applying)}
+                      {sectionDescription(
+                        section,
+                        detail,
+                        proposal,
+                        review.changes,
+                        applying,
+                        scope
+                      )}
                     </span>
                     {hint && (
                       <span
@@ -248,6 +262,7 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
         proposal={proposal}
         review={review}
         states={applying}
+        scope={scope}
         name={name}
         onClose={() => setConfirming(false)}
       />

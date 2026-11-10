@@ -129,10 +129,18 @@ export const fireSafetyTextFieldNames = [
 
 export const fireSafetyYesNoFieldNames = ['hasThirdParties'] as const;
 
+// The client's answer on dangerous substances (ADR 041): "none" from a statement that it uses
+// none, "listed" from the substances the documents name. Documents that say nothing propose no
+// answer, since "none" is a declaration the representative signs (ADR 018).
+export const fireSafetySubstancesFieldNames = ['substancesState'] as const;
+
+export const proposedSubstancesStates = ['none', 'listed'] as const;
+
 export type FireSafetyFieldName =
   | (typeof fireSafetyIntegerFieldNames)[number]
   | (typeof fireSafetyTextFieldNames)[number]
-  | (typeof fireSafetyYesNoFieldNames)[number];
+  | (typeof fireSafetyYesNoFieldNames)[number]
+  | (typeof fireSafetySubstancesFieldNames)[number];
 
 function fields<const K extends string, T extends z.ZodType>(names: readonly K[], field: T) {
   return z.object(Object.fromEntries(names.map((name) => [name, field])) as Record<K, T>);
@@ -147,6 +155,7 @@ const readSinceFields = new Set<string>([
   'wasteKinds',
   'wasteCollectors',
   ...fireSafetyYesNoFieldNames,
+  ...fireSafetySubstancesFieldNames,
 ]);
 
 function laterFields<const K extends string, T extends z.ZodType>(names: readonly K[], field: T) {
@@ -169,7 +178,10 @@ export const proposedTrainingScheduleSchema = fields(
 
 export const proposedFireSafetySchema = laterFields(fireSafetyIntegerFieldNames, integerField)
   .extend(laterFields(fireSafetyTextFieldNames, textField).shape)
-  .extend(laterFields(fireSafetyYesNoFieldNames, yesNoField).shape);
+  .extend(laterFields(fireSafetyYesNoFieldNames, yesNoField).shape)
+  .extend(
+    laterFields(fireSafetySubstancesFieldNames, fieldSchema(z.enum(proposedSubstancesStates))).shape
+  );
 
 const item = { id: z.string().min(1), ...traced };
 
@@ -191,6 +203,22 @@ export const workplaceFireFieldNames = [
 ] as const;
 
 export type WorkplaceFireFieldName = (typeof workplaceFireFieldNames)[number];
+
+// What the reading may draft from the client's activity where no document states it (ADR 041),
+// and nothing else: never an area, a count, a date, a name, an address or a place.
+export const suggestedWorkplaceFieldNames = [
+  'combustibleMaterials',
+  'ignitionSources',
+  'fireRiskEquipment',
+  'specificMeasures',
+  'extinguisherNorm',
+] as const;
+
+export type SuggestedWorkplaceFieldName = (typeof suggestedWorkplaceFieldNames)[number];
+
+export const suggestedValuesPath = (workplaceId: string) => `suggestedValues.${workplaceId}`;
+
+export const officeActivityPath = (workplaceId: string) => `officeActivity.${workplaceId}`;
 
 // Defaulted for a proposal stored before they were read.
 const laterValue = <T extends z.ZodType>(value: T) => value.nullable().default(null);
@@ -218,6 +246,11 @@ export const proposedWorkplaceSchema = z.object({
   // The sources of the fire-safety values by their field, apart from the workplace's own.
   fieldSources: z.record(z.string(), z.array(sourceSchema)).default({}),
   spelling: spellings,
+  // False only for a registered office the import suggests is an address where nothing is done.
+  officeHasActivity: z.boolean().default(true),
+  // By field, the passages a suggested value was drawn from: a suggested value's field is here,
+  // a read one's is not. `officeHasActivity` cites the passages naming the points of work.
+  suggested: z.record(z.string(), z.array(sourceSchema).min(1)).default({}),
 });
 
 export type ProposedWorkplace = z.infer<typeof proposedWorkplaceSchema>;
@@ -275,12 +308,38 @@ export const proposedFireEquipmentSchema = z.object({
   // Kilograms or litres, as `fire_equipment.capacity`.
   capacity: z.int().nullable(),
   wheeled: z.boolean(),
-  // Units alike; confirming writes one `fire_equipment` row for each.
+  // Units alike; confirming writes one `fire_equipment` row for each. Null when the document
+  // names the means without a number, which is one unit.
   count: z.int().nullable(),
   spelling: spellings,
 });
 
 export type ProposedFireEquipment = z.infer<typeof proposedFireEquipmentSchema>;
+
+// A kind of means at a workplace that files count differently (ADR 041). Each option is one
+// total with every passage that gives it, and the entries of `fireEquipment` it writes: those of
+// one file, the one that names rooms. The entries of the options not chosen are not written.
+export const proposedFireEquipmentCountSchema = z.object({
+  id: z.string().min(1),
+  workplace: z.object(reference(z.string().nullable())),
+  kind: z.enum(fireEquipmentKinds),
+  agent: z.enum(fireExtinguishingAgents).nullable(),
+  capacity: z.int().nullable(),
+  wheeled: z.boolean(),
+  options: z
+    .array(
+      z.object({
+        total: z.int().min(1),
+        sources: z.array(sourceSchema).min(1),
+        equipmentIds: z.array(z.string().min(1)).min(1),
+      })
+    )
+    .min(2),
+});
+
+export type ProposedFireEquipmentCount = z.infer<typeof proposedFireEquipmentCountSchema>;
+
+export const fireEquipmentCountPath = (id: string) => `fireEquipmentCounts.${id}`;
 
 export const proposedFireInstallationSchema = z.object({
   ...item,
@@ -304,6 +363,16 @@ export const proposedProtectiveEquipmentSchema = z.object({
 });
 
 export type ProposedProtectiveEquipment = z.infer<typeof proposedProtectiveEquipmentSchema>;
+
+// A dangerous substance a document names at the client, by its name only: the classification and
+// the quantity are read off the product and counted on site, and no pack holds them (ADR 041).
+export const proposedSubstanceSchema = z.object({
+  ...item,
+  name: z.string().min(1),
+  spelling: spellings,
+});
+
+export type ProposedSubstance = z.infer<typeof proposedSubstanceSchema>;
 
 // The client import creates an employee only for a role that needs one (ADR 030); everyone
 // else comes from the employee import.
@@ -377,10 +446,18 @@ export const proposalSchema = z.object({
   jobPositions: z.array(proposedJobPositionSchema),
   responsiblePersons: z.array(proposedResponsiblePersonSchema),
   fireEquipment: z.array(proposedFireEquipmentSchema),
+  // Defaulted for a proposal stored before the means were counted once per workplace, whose
+  // entries are all written.
+  fireEquipmentCounts: z.array(proposedFireEquipmentCountSchema).default([]),
   fireInstallations: z.array(proposedFireInstallationSchema),
   protectiveEquipment: z.array(proposedProtectiveEquipmentSchema),
   employees: z.array(proposedEmployeeSchema),
+  // Defaulted for a proposal stored before the substances were read.
+  substances: z.array(proposedSubstanceSchema).default([]),
   notes: z.array(z.string()),
+  // The suggested values the reading drafted and did not propose (ADR 041): no passage behind
+  // them, or a value no workplace can take. Kept as a count for the quality record only.
+  withdrawnSuggestions: z.int().min(0).optional(),
   // Empty until the checks ran, as well as when they found nothing.
   flags: z.array(flagSchema),
 });

@@ -99,6 +99,12 @@ export function FireSafetyMeansPage({
   const [deleting, setDeleting] = useState<Deleting>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // A registered office where no activity takes place carries no means (ADR 041); what it keeps
+  // stays out of sight, as the API's lists leave it out.
+  const meansWorkplaces = workplaces.data?.items.filter((workplace) => workplace.officeHasActivity);
+  const officeWithoutActivity = workplaces.data?.items.find(
+    (workplace) => !workplace.officeHasActivity
+  );
   const loaded =
     workplaces.data &&
     equipment.data &&
@@ -106,7 +112,7 @@ export function FireSafetyMeansPage({
     maintenanceItems.data &&
     buildings.data;
   const withoutExtinguisher = loaded
-    ? workplaces.data.items.find(
+    ? meansWorkplaces!.find(
         (workplace) =>
           !equipment.data.items.some(
             (unit) => unit.workplaceId === workplace.id && unit.kind === 'extinguisher'
@@ -222,7 +228,26 @@ export function FireSafetyMeansPage({
     />
   );
 
-  const activeWorkplaces = workplaces.data.items;
+  const activeWorkplaces = meansWorkplaces!;
+  const officeNotice = officeWithoutActivity && (
+    <Notice
+      variant="info"
+      data-testid="fire-means-office-without-activity"
+      action={
+        !readOnly && (
+          <Button asChild variant="outline">
+            <Link to="/clienti/$clientId/detalii" params={{ clientId }}>
+              Deschide Detalii
+            </Link>
+          </Button>
+        )
+      }
+    >
+      La sediul social ({officeWithoutActivity.name}) nu se desfășoară activitate, așa că nu are
+      mijloace de apărare. Documentele SU îl lasă deoparte. Răspunsul se schimbă în Detalii, la
+      Sediu și puncte de lucru.
+    </Notice>
+  );
   if (activeWorkplaces.length === 0) {
     return (
       <div data-testid="fire-means-page" className="grid gap-6">
@@ -293,6 +318,7 @@ export function FireSafetyMeansPage({
           {error}
         </Notice>
       )}
+      {officeNotice}
       {activeWorkplaces.map((workplace) => (
         <WorkplaceMeansCard
           key={workplace.id}

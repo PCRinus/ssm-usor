@@ -49,12 +49,17 @@ export function EmployeeWorkplaceCombobox({
 }) {
   // `null` is closed; a string is what the new workplace's name starts as.
   const [adding, setAdding] = useState<string | null>(null);
-  const items: ComboboxItem[] = (workplaces ?? []).map((workplace) => ({
-    value: workplace.id,
-    label: workplace.name,
-    description: workplace.isRegisteredOffice ? 'Sediu social' : (workplace.locality ?? undefined),
-    search: `${workplace.name}|${workplace.locality ?? ''}|${workplace.id}`,
-  }));
+  // Nobody works at a registered office where no activity takes place (ADR 041).
+  const items: ComboboxItem[] = (workplaces ?? [])
+    .filter((workplace) => workplace.officeHasActivity || workplace.id === current?.id)
+    .map((workplace) => ({
+      value: workplace.id,
+      label: workplace.name,
+      description: workplace.isRegisteredOffice
+        ? 'Sediu social'
+        : (workplace.locality ?? undefined),
+      search: `${workplace.name}|${workplace.locality ?? ''}|${workplace.id}`,
+    }));
   if (current && !items.some((item) => item.value === current.id)) {
     items.push({
       value: current.id,

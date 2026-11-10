@@ -16,23 +16,41 @@ import {
   anafMismatch,
   anchorOf,
   appliesAt,
+  askedCounts,
   type Blocker,
   blockerLink,
   type Changes,
+  chosenCountOption,
+  countName,
   fieldGroups,
   type FieldState,
   fieldState,
   formatFieldValue,
+  inactiveOffices,
   type ItemList,
   itemName,
   itemStates,
+  meansTaken,
+  officeActivityChoice,
+  officeActivityStates,
   type Proposal,
   type RegisteredCompany,
+  type ReviewScope,
   roleLabel,
   type SectionId,
   sectionIds,
   sectionOf,
   sectionStatus,
+  smokingPlaceAsked,
+  smokingPlaceDecision,
+  smokingPlacePath,
+  substancesAdded,
+  substancesAnswer,
+  substancesStatePath,
+  suggestedFields,
+  suggestedValue,
+  suggestionsConfirmed,
+  suggestionStates,
   type UntickedReason,
   valueInForce,
 } from './review-model';
@@ -47,9 +65,10 @@ export function fieldStates(
   registered: RegisteredCompany | null = null
 ): Record<string, FieldState> {
   const states = Object.fromEntries(
-    fieldGroups
-      .flatMap((group) => group.paths)
-      .map((path) => [path, fieldState(proposal, changes, path, valueAt(path), registered)])
+    [...fieldGroups.flatMap((group) => group.paths), substancesStatePath].map((path) => [
+      path,
+      fieldState(proposal, changes, path, valueAt(path), registered),
+    ])
   );
   return states;
 }
@@ -62,11 +81,15 @@ export const keptPaths = (states: Record<string, FieldState>) =>
 const included = (proposal: Proposal, changes: Changes, list: ItemList) =>
   itemStates(proposal, changes, list).filter((state) => state.included);
 
-export function smokingRule(states: Record<string, FieldState>) {
+export function smokingRule(states: Record<string, FieldState>, changes: Changes) {
   const policy = valueInForce(states['fireSafety.smokingPolicy']);
   if (policy === 'forbidden_everywhere') return 'Fumatul interzis peste tot';
   if (policy !== 'designated_places') return null;
-  const place = String(valueInForce(states['fireSafety.smokingPlace']) ?? '')
+  const waits =
+    smokingPlaceAsked(states) &&
+    smokingPlaceDecision(states[smokingPlacePath]!, changes.fields[smokingPlacePath]) === null;
+  if (waits) return 'Fumat doar în locurile amenajate';
+  const place = String(valueInForce(states[smokingPlacePath]) ?? '')
     .trim()
     .replace(/^[ÎI]n\s+/u, 'în ');
   return place ? `Fumat doar în locurile amenajate: ${place}` : 'Fumat doar în locurile amenajate';
@@ -75,12 +98,40 @@ export function smokingRule(states: Record<string, FieldState>) {
 const count = (value: number, one: string, many: string) =>
   value === 1 ? `un ${one}` : `${value} ${many}`;
 
+const substancesCount = (value: number) =>
+  value === 1 ? 'o substanță periculoasă' : `${value} substanțe periculoase`;
+
+// `existingSubstances` are the names an existing client lists already, null for a new client.
+export type ExistingScope = ReviewScope & { existingSubstances: string[] | null };
+
+export const newClientScope: ExistingScope = {
+  blockers: [],
+  existingClient: false,
+  existingWorkplaces: [],
+  existingSubstances: null,
+};
+
+const meansCount = (proposal: Proposal, changes: Changes, scope: ReviewScope) => {
+  const inactive = inactiveOffices(proposal, changes, scope);
+  const taken = (list: 'fireEquipment' | 'fireInstallations') =>
+    meansTaken(proposal, changes, list, inactive).filter((state) => state.included);
+  return {
+    equipment: taken('fireEquipment').reduce(
+      (total, state) => total + Math.max(1, Number(state.values.count ?? 1)),
+      0
+    ),
+    installations: taken('fireInstallations').length,
+    inactive,
+  };
+};
+
 export function sectionDescription(
   section: SectionId,
   detail: ImportDetail,
   proposal: Proposal,
   changes: Changes,
-  states: Record<string, FieldState>
+  states: Record<string, FieldState>,
+  scope: ExistingScope = newClientScope
 ): string {
   const leftOut = (list: ItemList, reason: UntickedReason) =>
     itemStates(proposal, changes, list).filter(
@@ -172,12 +223,20 @@ export function sectionDescription(
         : `Programul instruirii periodice.${choiceText}`;
     }
     case 'fire-safety': {
-      const equipment = included(proposal, changes, 'fireEquipment').reduce(
-        (total, state) => total + Math.max(1, Number(state.values.count ?? 1)),
-        0
-      );
-      const smoking = smokingRule(states);
-      return `${smoking ? `${smoking}, ` : ''}${equipment === 1 ? 'un mijloc de stingere' : `${equipment} mijloace de stingere`}.${choiceText}${others(['fireEquipment', 'fireInstallations'], 'mijloace')}`;
+      const { equipment, inactive } = meansCount(proposal, changes, scope);
+      const smoking = smokingRule(states, changes);
+      const countsText = askedCounts(proposal, changes, inactive)
+        .filter((each) => chosenCountOption(each, changes) === null)
+        .map((each) => ` ${countName(each)}: ${each.options.length} numere în documente.`)
+        .join('');
+      const answer = substancesAnswer(states[substancesStatePath]);
+      const substances =
+        answer === 'listed'
+          ? `, ${substancesCount(substancesAdded(proposal, changes, states, scope.existingSubstances ?? []).length)}`
+          : answer === 'none'
+            ? ', fără substanțe periculoase'
+            : '';
+      return `${smoking ? `${smoking}, ` : ''}${equipment === 1 ? 'un mijloc de stingere' : `${equipment} mijloace de stingere`}${substances}.${choiceText}${countsText}${others(['fireEquipment', 'fireInstallations', 'substances'], 'mijloace')}`;
     }
     case 'equipment': {
       const items = included(proposal, changes, 'protectiveEquipment');
@@ -219,6 +278,7 @@ export function sectionReviewHints(
     'fireInstallations',
     'protectiveEquipment',
     'employees',
+    'substances',
   ] as const;
   const items = lists
     .filter((list) => sectionOf(list) === section)
@@ -303,7 +363,13 @@ export function blockerLinks(proposal: Proposal, changes: Changes, blockers: Blo
 
 export type ConfirmLine = { label: string; count?: number; detail: string; icon: string };
 
-export function confirmLines(proposal: Proposal, changes: Changes) {
+export function confirmLines(
+  proposal: Proposal,
+  changes: Changes,
+  states: Record<string, FieldState> = {},
+  scope: ExistingScope = newClientScope
+) {
+  const { existingSubstances } = scope;
   const workplaces = included(proposal, changes, 'workplaces');
   const rooms = workplaces.reduce(
     (total, state) => total + ((state.values.rooms as string[] | undefined)?.length ?? 0),
@@ -317,11 +383,7 @@ export function confirmLines(proposal: Proposal, changes: Changes) {
     0
   );
   const employees = included(proposal, changes, 'employees');
-  const fireMeans = included(proposal, changes, 'fireEquipment').reduce(
-    (total, state) => total + Math.max(1, Number(state.values.count ?? 1)),
-    0
-  );
-  const installations = included(proposal, changes, 'fireInstallations').length;
+  const { equipment: fireMeans, installations } = meansCount(proposal, changes, scope);
   const lines: ConfirmLine[] = [];
   if (workplaces.length > 0) {
     lines.push({
@@ -332,6 +394,31 @@ export function confirmLines(proposal: Proposal, changes: Changes) {
         rooms > 0
           ? `Cu ${rooms === 1 ? 'o încăpere' : `${rooms} încăperi`}, locurile mijloacelor de apărare împotriva incendiilor`
           : 'Cu adresele din documente',
+    });
+  }
+  const officeWritten = officeActivityStates(proposal, changes, scope).some(
+    (state) => officeActivityChoice(state.item, changes) === 0
+  );
+  if (officeWritten) {
+    lines.push({
+      icon: 'pin',
+      label: 'Fără activitate la sediul social',
+      detail: 'Sediul rămâne adresa firmei și nu apare în documentele SU',
+    });
+  }
+  const suggested = suggestionStates(proposal, changes, scope)
+    .filter((state) => suggestionsConfirmed(state.item, changes))
+    .flatMap((state) =>
+      suggestedFields(state, changes).filter(
+        (field) => suggestedValue(state.item, changes, field).kind !== 'empty'
+      )
+    ).length;
+  if (suggested > 0) {
+    lines.push({
+      icon: 'sparkles',
+      count: suggested,
+      label: suggested === 1 ? 'valoare sugerată din activitate' : 'valori sugerate din activitate',
+      detail: 'Pe fișa SU a punctelor de lucru, așa cum le-ai confirmat',
     });
   }
   if (positions.length > 0) {
@@ -372,6 +459,24 @@ export function confirmLines(proposal: Proposal, changes: Changes) {
       detail: 'Stingătoarele, instalațiile și regulile de fumat și de salubritate',
     });
   }
+  const substances = substancesAdded(proposal, changes, states, existingSubstances ?? []);
+  if (substances.length > 0) {
+    lines.push({
+      icon: 'flask',
+      count: substances.length,
+      label: substances.length === 1 ? 'substanță periculoasă' : 'substanțe periculoase',
+      detail: 'Doar cu denumirea. Clasificarea și cantitatea le completezi pe pagina clientului.',
+    });
+  } else if (
+    existingSubstances === null &&
+    substancesAnswer(states[substancesStatePath]) === 'none'
+  ) {
+    lines.push({
+      icon: 'flask',
+      label: 'Nu se utilizează substanțe periculoase',
+      detail: 'Declarația din documente, pe care o semnează reprezentantul legal',
+    });
+  }
   const left = (
     [
       'workplaces',
@@ -380,6 +485,7 @@ export function confirmLines(proposal: Proposal, changes: Changes) {
       'fireEquipment',
       'fireInstallations',
       'protectiveEquipment',
+      'substances',
     ] as ItemList[]
   ).flatMap((list) =>
     itemStates(proposal, changes, list).filter(

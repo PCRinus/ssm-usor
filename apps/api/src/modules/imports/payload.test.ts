@@ -1,5 +1,11 @@
 import type { ImportChanges } from '@ssm-usor/contracts';
-import { type Proposal, type Reading, toProposal, withChecks } from '@ssm-usor/import';
+import {
+  type Proposal,
+  proposalSchema,
+  type Reading,
+  toProposal,
+  withChecks,
+} from '@ssm-usor/import';
 import { describe, expect, it } from 'vitest';
 
 import { type ExistingRecords, noExistingRecords, resolveField, toClientPayload } from './payload';
@@ -63,6 +69,7 @@ function reading(overrides: Partial<Reading> = {}): Reading {
       },
     ],
     workplaceFacts: [],
+    workplaceSuggestions: [],
     jobPositions: [
       {
         name: 'Brutar',
@@ -143,6 +150,7 @@ function reading(overrides: Partial<Reading> = {}): Reading {
         ...quoted(),
       },
     ],
+    substances: [],
     notes: [],
     ...overrides,
   };
@@ -684,7 +692,7 @@ describe('toClientPayload', () => {
     const payloadWith = (items: Record<string, object>) =>
       toClientPayload({
         proposal,
-        changes: { fields: {}, items },
+        changes: { fields: { 'assemblyPoints.workplace-1': { option: 0 } }, items },
         intoExistingClient: false,
         existing: noExistingRecords,
       });
@@ -758,6 +766,7 @@ describe('toClientPayload', () => {
                     option: policies.indexOf(policy),
                     ...(replace ? { replace } : {}),
                   },
+                  'fireSafety.smokingPlace': { option: 0 },
                 },
           items: {},
         },
@@ -767,6 +776,7 @@ describe('toClientPayload', () => {
 
     expect(payloadWith(null).blockers).toEqual([
       { path: 'fireSafety.smokingPolicy', code: 'choice' },
+      { path: 'fireSafety.smokingPlace', code: 'choice' },
     ]);
 
     const forbidden = payloadWith('forbidden_everywhere');
@@ -1405,6 +1415,7 @@ describe('toClientPayload', () => {
         },
       ],
       responsiblePersons: [{ full_name: 'Ionescu Maria' }],
+      substances: [],
     };
     const { payload, blockers } = toClientPayload({
       proposal: proposalOf(reading()),
@@ -1500,5 +1511,870 @@ describe('toClientPayload', () => {
       path: 'protectiveEquipment.0.jobPosition',
       code: 'unknown_reference',
     });
+  });
+});
+
+describe('one count of the means per workplace', () => {
+  const list = 'Dosar/PSI/Lista mijloacelor.docx';
+  const evaluation = 'Dosar/PSI/Evaluarea riscului.docx';
+  const powder = (file: string, count: number | null, room: string | null = null) => ({
+    workplace: 'Sediu',
+    room,
+    kind: 'extinguisher' as const,
+    agent: 'powder' as const,
+    capacity: 6,
+    wheeled: false,
+    count,
+    ...quoted(file),
+  });
+  const proposal = proposalOf(
+    reading({
+      fireEquipment: [
+        powder(fire, 4, 'laborator'),
+        powder(fire, 1, 'magazie'),
+        powder(list, 3),
+        powder(evaluation, 5),
+      ],
+    })
+  );
+  const mapped = (fields: ImportChanges['fields'] = {}, items: ImportChanges['items'] = {}) =>
+    toClientPayload({
+      proposal,
+      changes: { fields, items },
+      intoExistingClient: false,
+      existing: noExistingRecords,
+    });
+  const locations = (rows: Record<string, unknown>[]) => rows.map((row) => row.location ?? null);
+
+  it('blocks confirming and writes none of the means while the count waits for its choice', () => {
+    const { payload, blockers } = mapped();
+
+    expect(blockers).toEqual([{ path: 'fireEquipmentCounts.count-1', code: 'choice' }]);
+    expect(payload.fire_equipment).toEqual([]);
+    expect(payload.quality.fireEquipment).toEqual({ changed: 0, unticked: 0, kept: 0 });
+  });
+
+  it('writes the chosen file’s entries, rooms included, once', () => {
+    const rooms = mapped({ 'fireEquipmentCounts.count-1': { option: 0 } });
+    const listed = mapped({ 'fireEquipmentCounts.count-1': { option: 1 } });
+
+    expect(rooms.blockers).toEqual([]);
+    expect(locations(rooms.payload.fire_equipment)).toEqual([
+      'laborator',
+      'laborator',
+      'laborator',
+      'laborator',
+      'magazie',
+    ]);
+    expect(listed.blockers).toEqual([]);
+    expect(locations(listed.payload.fire_equipment)).toEqual([null, null, null]);
+  });
+
+  it('counts in the quality only what the member did to the chosen entries', () => {
+    const [laboratory, , listed] = proposal.fireEquipment;
+    const { payload } = mapped(
+      { 'fireEquipmentCounts.count-1': { option: 0 } },
+      { [laboratory!.id]: { included: false }, [listed!.id]: { values: { count: 4 } } }
+    );
+
+    expect(locations(payload.fire_equipment)).toEqual(['magazie']);
+    expect(payload.quality.fireEquipment).toEqual({ changed: 0, unticked: 1, kept: 0 });
+  });
+
+  it('does not write an entry of the other file the member ticked before choosing', () => {
+    const [, , listed] = proposal.fireEquipment;
+    const { payload } = mapped(
+      { 'fireEquipmentCounts.count-1': { option: 0 } },
+      { [listed!.id]: { included: true } }
+    );
+
+    expect(payload.fire_equipment).toHaveLength(5);
+  });
+
+  it('counts no change for an entry of the other file the member ticked before choosing', () => {
+    const [, , listed] = proposal.fireEquipment;
+    const { payload } = mapped(
+      { 'fireEquipmentCounts.count-1': { option: 0 } },
+      { [listed!.id]: { included: true, values: { count: 4 } } }
+    );
+
+    expect(payload.quality.fireEquipment).toEqual({ changed: 0, unticked: 0, kept: 0 });
+  });
+
+  it('asks no count of a workplace left out, and writes none of its means', () => {
+    const { payload, blockers } = mapped({}, { 'workplace-1': { included: false } });
+
+    expect(blockers.filter((blocker) => blocker.path.startsWith('fireEquipment'))).toEqual([]);
+    expect(payload.fire_equipment).toEqual([]);
+  });
+
+  it('writes one unit for a row the document gives without a number', () => {
+    const { payload, blockers } = toClientPayload({
+      proposal: proposalOf(reading({ fireEquipment: [powder(list, null, 'birou')] })),
+      changes: null,
+      intoExistingClient: false,
+      existing: noExistingRecords,
+    });
+
+    expect(blockers).toEqual([]);
+    expect(locations(payload.fire_equipment)).toEqual(['birou']);
+  });
+
+  it('writes every entry of a proposal stored before the means were counted once', () => {
+    const { payload, blockers } = toClientPayload({
+      proposal: { ...proposal, fireEquipmentCounts: [] },
+      changes: null,
+      intoExistingClient: false,
+      existing: noExistingRecords,
+    });
+
+    expect(blockers).toEqual([]);
+    expect(payload.fire_equipment).toHaveLength(8);
+  });
+});
+
+describe('the assembly point and the smoking place', () => {
+  const sheet = (workplace: string, value: string) =>
+    ({
+      workplace,
+      field: 'assemblyPoint',
+      value,
+      ...quoted(fire),
+    }) as Reading['workplaceFacts'][number];
+  const base = reading();
+  const proposal = proposalOf(
+    reading({
+      facts: [
+        ...base.facts.filter((each) => each.field !== 'fireSafety.smokingPolicy'),
+        fact('fireSafety.smokingPolicy', 'designated_places', fire),
+        fact('fireSafety.smokingPlace', 'La poarta unității', fire),
+      ],
+      workplaceFacts: [
+        sheet('Sediu', 'Parcarea din fața clădirii'),
+        sheet('Magazin', 'Trotuarul din fața magazinului'),
+      ],
+    })
+  );
+  proposal.fireSafety.smokingPlace.options[0]!.spelling = 'LA POARTA UNITATII';
+  proposal.workplaces[0]!.spelling = { assemblyPoint: 'PARCAREA DIN FATA CLADIRII' };
+  const keptBoth = {
+    'fireSafety.smokingPlace': { option: 0 },
+    'assemblyPoints.workplace-1': { option: 0 },
+    'assemblyPoints.workplace-2': { option: 0 },
+  };
+  const mapped = (
+    fields: ImportChanges['fields'] = {},
+    items: ImportChanges['items'] = {},
+    existing: ExistingRecords | null = null
+  ) =>
+    toClientPayload({
+      proposal,
+      changes: { fields, items },
+      intoExistingClient: existing !== null,
+      existing: existing ?? noExistingRecords,
+    });
+  const points = (rows: Record<string, unknown>[]) => rows.map((row) => row.assembly_point ?? null);
+
+  it('blocks confirming until each is decided, and writes neither while it waits', () => {
+    const { payload, blockers } = mapped();
+
+    expect(blockers).toEqual([
+      { path: 'fireSafety.smokingPlace', code: 'choice' },
+      { path: 'assemblyPoints.workplace-1', code: 'choice' },
+      { path: 'assemblyPoints.workplace-2', code: 'choice' },
+    ]);
+    expect(payload.fire_safety).not.toHaveProperty('smoking_place');
+    expect(points(payload.workplaces)).toEqual([null, null]);
+  });
+
+  it('writes the value as read once kept, and counts no change', () => {
+    const { payload, blockers } = mapped(keptBoth);
+
+    expect(blockers).toEqual([]);
+    expect(payload.fire_safety).toMatchObject({ smoking_place: 'La poarta unității' });
+    expect(points(payload.workplaces)).toEqual([
+      'Parcarea din fața clădirii',
+      'Trotuarul din fața magazinului',
+    ]);
+    expect(payload.quality.fireSafety.changed).toBe(0);
+    expect(payload.quality.workplaces.changed).toBe(0);
+  });
+
+  it('keeps the spelling selected, the corrected one or the document’s', () => {
+    const { payload, blockers } = mapped(
+      { ...keptBoth, 'fireSafety.smokingPlace': { option: 0, value: 'LA POARTA UNITATII' } },
+      { 'workplace-1': { values: { assemblyPoint: 'PARCAREA DIN FATA CLADIRII' } } }
+    );
+
+    expect(blockers).toEqual([]);
+    expect(payload.fire_safety).toMatchObject({ smoking_place: 'LA POARTA UNITATII' });
+    expect(points(payload.workplaces)[0]).toBe('PARCAREA DIN FATA CLADIRII');
+  });
+
+  it('writes the member’s value, or nothing when they leave it empty, and counts each as a change', () => {
+    const changed = mapped(
+      { 'fireSafety.smokingPlace': { value: 'În curtea din spate' } },
+      {
+        'workplace-1': { values: { assemblyPoint: 'Curtea interioară' } },
+        'workplace-2': { values: { assemblyPoint: null } },
+      }
+    );
+    expect(changed.blockers).toEqual([]);
+    expect(changed.payload.fire_safety).toMatchObject({ smoking_place: 'În curtea din spate' });
+    expect(points(changed.payload.workplaces)).toEqual(['Curtea interioară', null]);
+    expect(changed.payload.quality.fireSafety.changed).toBe(1);
+    expect(changed.payload.quality.workplaces.changed).toBe(2);
+
+    const emptied = mapped({ ...keptBoth, 'fireSafety.smokingPlace': { value: null } });
+    expect(emptied.blockers).toEqual([]);
+    expect(emptied.payload.fire_safety).not.toHaveProperty('smoking_place');
+    expect(emptied.payload.quality.fireSafety.changed).toBe(1);
+  });
+
+  it('asks nothing of a place another smoking rule drops, nor of a workplace left out', () => {
+    const pointsKept = {
+      'assemblyPoints.workplace-1': { option: 0 },
+      'assemblyPoints.workplace-2': { option: 0 },
+    };
+    const forbidden = mapped(
+      { ...pointsKept, 'fireSafety.smokingPolicy': { value: 'forbidden_everywhere' } },
+      { 'workplace-2': { included: false } }
+    );
+
+    const choices = (blockers: { code: string }[]) =>
+      blockers.filter((blocker) => blocker.code === 'choice');
+    expect(choices(forbidden.blockers)).toEqual([]);
+    expect(forbidden.payload.fire_safety).not.toHaveProperty('smoking_place');
+    expect(forbidden.payload.workplaces).toHaveLength(1);
+    expect(
+      choices(
+        mapped(
+          { 'assemblyPoints.workplace-1': { option: 0 } },
+          { 'workplace-2': { included: false } }
+        ).blockers
+      )
+    ).toEqual([{ path: 'fireSafety.smokingPlace', code: 'choice' }]);
+  });
+
+  it('asks into an existing client only for a value the import writes', () => {
+    const existing: ExistingRecords = {
+      ...noExistingRecords,
+      client: {},
+      fireSafety: { smoking_policy: 'designated_places', smoking_place: 'Lângă depozit' },
+      workplaces: [
+        {
+          id: '00000000-0000-4000-8000-000000000001',
+          name: 'Sediu',
+          address_line: null,
+          assembly_point: 'Curtea din spate',
+        },
+        {
+          id: '00000000-0000-4000-8000-000000000002',
+          name: 'Magazin',
+          address_line: null,
+          assembly_point: null,
+        },
+      ],
+    };
+
+    const kept = mapped({}, {}, existing);
+    expect(kept.blockers).toEqual([{ path: 'assemblyPoints.workplace-2', code: 'choice' }]);
+    expect(kept.payload.quality.fireSafety.kept).toBe(1);
+
+    const taken = mapped(
+      {
+        'fireSafety.smokingPlace': { replace: true },
+        'assemblyPoints.workplace-2': { option: 0 },
+      },
+      { 'workplace-1': { replace: ['assemblyPoint'] } },
+      existing
+    );
+    expect(taken.blockers).toEqual([{ path: 'assemblyPoints.workplace-1', code: 'choice' }]);
+    expect(taken.payload.fire_safety).toMatchObject({
+      smoking_place: 'La poarta unității',
+      replace: ['smoking_place'],
+    });
+
+    const noPlace = { ...existing, fireSafety: { smoking_policy: 'designated_places' } };
+    expect(mapped({}, {}, noPlace).blockers).toContainEqual({
+      path: 'fireSafety.smokingPlace',
+      code: 'choice',
+    });
+  });
+
+  it('asks again on an import saved before, where the document’s spelling alone was selected', () => {
+    const { payload, blockers } = mapped(
+      { 'fireSafety.smokingPlace': { value: 'LA POARTA UNITATII' } },
+      {
+        'workplace-1': { values: { assemblyPoint: 'PARCAREA DIN FATA CLADIRII' } },
+        'workplace-2': { values: { assemblyPoint: 'Curtea interioară' } },
+      }
+    );
+
+    expect(blockers).toEqual([
+      { path: 'fireSafety.smokingPlace', code: 'choice' },
+      { path: 'assemblyPoints.workplace-1', code: 'choice' },
+    ]);
+    expect(payload.workplaces[1]).toMatchObject({ assembly_point: 'Curtea interioară' });
+  });
+});
+
+describe('the dangerous substances', () => {
+  const named = (name: string) => ({ name, ...quoted(fire) });
+  const noneUsed = fact('fireSafety.substancesState', 'none', fire);
+  const proposalWith = (substances: Reading['substances'], facts: Reading['facts'] = []) =>
+    proposalOf(reading({ facts: [...reading().facts, ...facts], substances }));
+  const twoNamed = proposalWith([named('Detergenți'), named('Ulei uzat')]);
+  const mapped = (
+    proposal: Proposal,
+    fields: ImportChanges['fields'] = {},
+    items: ImportChanges['items'] = {},
+    existing: ExistingRecords | null = null
+  ) =>
+    toClientPayload({
+      proposal,
+      changes: { fields, items },
+      intoExistingClient: existing !== null,
+      existing: existing ?? noExistingRecords,
+    });
+  const existingClient = (state: string, substances: string[] = []): ExistingRecords => ({
+    ...noExistingRecords,
+    client: { legal_name: 'BRUTĂRIA FICTIVĂ S.R.L.', cui: '12345674' },
+    fireSafety: { substances_state: state },
+    substances: substances.map((name) => ({ name })),
+  });
+  const substanceBlockers = (blockers: { path: string }[]) =>
+    blockers.filter((blocker) => /^(fireSafety\.substancesState|substances\.)/.test(blocker.path));
+
+  it('writes "listed" and each substance named, by name only', () => {
+    const { payload, blockers } = mapped(twoNamed);
+
+    expect(substanceBlockers(blockers)).toEqual([]);
+    expect(payload.fire_safety).toMatchObject({ substances_state: 'listed' });
+    expect(payload.fire_substances).toEqual([{ name: 'Detergenți' }, { name: 'Ulei uzat' }]);
+  });
+
+  it('writes a declared "none" with no substance', () => {
+    const { payload } = mapped(proposalWith([], [noneUsed]));
+
+    expect(payload.fire_safety).toMatchObject({ substances_state: 'none' });
+    expect(payload.fire_substances).toEqual([]);
+  });
+
+  it('writes no answer where the documents say nothing, and does not wait for one', () => {
+    const { payload, blockers } = mapped(proposalWith([]));
+
+    expect(payload.fire_safety).not.toHaveProperty('substances_state');
+    expect(payload.fire_substances).toEqual([]);
+    expect(substanceBlockers(blockers)).toEqual([]);
+  });
+
+  it('waits for the member where documents name substances and say none are used', () => {
+    const proposal = proposalWith([named('Dezinfectant')], [noneUsed]);
+    const waiting = mapped(proposal);
+    expect(substanceBlockers(waiting.blockers)).toEqual([
+      { path: 'fireSafety.substancesState', code: 'choice' },
+    ]);
+    expect(waiting.payload.fire_substances).toEqual([]);
+
+    const chosen = mapped(proposal, { 'fireSafety.substancesState': { option: 1 } });
+    expect(substanceBlockers(chosen.blockers)).toEqual([]);
+    expect(chosen.payload.fire_safety).toMatchObject({ substances_state: 'listed' });
+    expect(chosen.payload.fire_substances).toEqual([{ name: 'Dezinfectant' }]);
+  });
+
+  it('leaves out a substance the member left out, and counts it', () => {
+    const { payload } = mapped(twoNamed, {}, { 'substance-1': { included: false } });
+
+    expect(payload.fire_substances).toEqual([{ name: 'Ulei uzat' }]);
+    expect(payload.quality.substances).toEqual({ changed: 0, unticked: 1, kept: 0 });
+  });
+
+  it('writes no substance under another answer the member gave, and counts the change', () => {
+    const undecided = mapped(twoNamed, { 'fireSafety.substancesState': { value: null } });
+    expect(undecided.payload.fire_safety).not.toHaveProperty('substances_state');
+    expect(undecided.payload.fire_substances).toEqual([]);
+    expect(undecided.payload.quality.fireSafety.changed).toBe(1);
+
+    const none = mapped(twoNamed, { 'fireSafety.substancesState': { value: 'none' } });
+    expect(none.payload.fire_safety).toMatchObject({ substances_state: 'none' });
+    expect(none.payload.fire_substances).toEqual([]);
+    expect(none.payload.quality.fireSafety.changed).toBe(1);
+  });
+
+  it('waits for a name the list cannot take, only where the substances are written', () => {
+    const short = mapped(twoNamed, {}, { 'substance-2': { values: { name: ' x ' } } });
+    expect(substanceBlockers(short.blockers)).toEqual([
+      { path: 'substances.1.name', code: 'invalid' },
+    ]);
+
+    const long = mapped(twoNamed, {}, { 'substance-2': { values: { name: 'u'.repeat(161) } } });
+    expect(substanceBlockers(long.blockers)).toEqual([
+      { path: 'substances.1.name', code: 'invalid' },
+    ]);
+
+    const flagged: Proposal = {
+      ...twoNamed,
+      flags: [{ path: 'substances.0.name', code: 'value_not_allowed' }],
+    };
+    const none = mapped(flagged, { 'fireSafety.substancesState': { value: 'none' } });
+    expect(substanceBlockers(none.blockers)).toEqual([]);
+  });
+
+  it('writes the name the member gave a substance', () => {
+    const { payload } = mapped(
+      twoNamed,
+      {},
+      { 'substance-2': { values: { name: 'Ulei de motor' } } }
+    );
+
+    expect(payload.fire_substances).toEqual([{ name: 'Detergenți' }, { name: 'Ulei de motor' }]);
+    expect(payload.quality.substances.changed).toBe(1);
+  });
+
+  it('gives an existing client whose answer is undecided the documents’ answer and substances', () => {
+    const { payload, blockers } = mapped(twoNamed, {}, {}, existingClient('undecided'));
+
+    expect(substanceBlockers(blockers)).toEqual([]);
+    expect(payload.fire_safety).toMatchObject({ substances_state: 'listed' });
+    expect(payload.fire_substances).toHaveLength(2);
+  });
+
+  it('keeps an existing client’s decided answer, and adds no substance under "none"', () => {
+    const { payload, blockers } = mapped(twoNamed, {}, {}, existingClient('none'));
+
+    expect(substanceBlockers(blockers)).toEqual([]);
+    expect(payload.fire_safety).not.toHaveProperty('replace');
+    expect(payload.fire_substances).toEqual([]);
+    expect(payload.quality.fireSafety.kept).toBe(1);
+  });
+
+  it('keeps an existing client’s decided answer where the documents disagree, without waiting', () => {
+    const { blockers } = mapped(
+      proposalWith([named('Dezinfectant')], [noneUsed]),
+      {},
+      {},
+      existingClient('none')
+    );
+
+    expect(substanceBlockers(blockers)).toEqual([]);
+  });
+
+  it('takes the documents’ answer over an existing client’s when the member does', () => {
+    const { payload } = mapped(
+      twoNamed,
+      { 'fireSafety.substancesState': { replace: true } },
+      {},
+      existingClient('none')
+    );
+
+    expect(payload.fire_safety).toMatchObject({
+      substances_state: 'listed',
+      replace: ['substances_state'],
+    });
+    expect(payload.fire_substances).toHaveLength(2);
+  });
+
+  it('adds to an existing list only a substance it does not name already', () => {
+    const { payload } = mapped(twoNamed, {}, {}, existingClient('listed', ['DETERGENTI']));
+
+    expect(payload.fire_substances).toEqual([{ name: 'Ulei uzat' }]);
+    expect(payload.quality.substances.kept).toBe(1);
+  });
+
+  it('waits on a declared "none" taken over a list the client keeps, which the database refuses', () => {
+    const { blockers } = mapped(
+      proposalWith([], [noneUsed]),
+      { 'fireSafety.substancesState': { replace: true } },
+      {},
+      existingClient('listed', ['Propan'])
+    );
+
+    expect(substanceBlockers(blockers)).toEqual([
+      { path: 'fireSafety.substancesState', code: 'invalid' },
+    ]);
+  });
+
+  it('waits on a name the checks flagged, read before such names were dropped, until the member writes another', () => {
+    const long: Proposal = {
+      ...proposalWith([named('Vopsele')]),
+      flags: [{ path: 'substances.0.name', code: 'value_not_allowed' }],
+    };
+
+    expect(substanceBlockers(mapped(long).blockers)).toEqual([
+      { path: 'substances.0.name', code: 'invalid' },
+    ]);
+    expect(
+      substanceBlockers(
+        mapped(long, {}, { 'substance-1': { values: { name: 'Vopsea' } } }).blockers
+      )
+    ).toEqual([]);
+  });
+
+  it('confirms a proposal stored before the substances were read as before', () => {
+    const stored = structuredClone(proposalOf(reading())) as unknown as Record<string, unknown>;
+    delete stored.substances;
+    delete (stored.fireSafety as Record<string, unknown>).substancesState;
+    const { payload, blockers } = mapped(proposalSchema.parse(stored));
+
+    expect(substanceBlockers(blockers)).toEqual([]);
+    expect(payload.fire_substances).toEqual([]);
+  });
+});
+
+describe('suggested values', () => {
+  const evaluation = 'Dosar/SSM/Evaluarea riscurilor.docx';
+  const drafted = (
+    workplace: string,
+    field: Reading['workplaceSuggestions'][number]['field'],
+    value: string
+  ) => ({ workplace, field, value, sources: [{ file: evaluation, quote: 'cuptor electric' }] });
+  const proposal = proposalOf(
+    reading({
+      workplaceSuggestions: [
+        drafted('Magazin', 'combustibleMaterials', 'ambalaje din carton, hârtie'),
+        drafted('Magazin', 'ignitionSources', 'instalația electrică, aparate de cafea'),
+        drafted('Magazin', 'extinguisherNorm', 'commercial_200'),
+      ],
+    })
+  );
+  const confirmed = { 'suggestedValues.workplace-2': { option: 0 } };
+  const mapped = (
+    fields: ImportChanges['fields'] = {},
+    items: ImportChanges['items'] = {},
+    existing: ExistingRecords | null = null,
+    from: Proposal = proposal
+  ) =>
+    toClientPayload({
+      proposal: from,
+      changes: { fields, items },
+      intoExistingClient: existing !== null,
+      existing: existing ?? noExistingRecords,
+    });
+  const shop = (payload: { workplaces: Record<string, unknown>[] }) =>
+    payload.workplaces.find((row) => row.key === 'workplace-2')!;
+
+  it('blocks confirming until the workplace’s suggestions are decided, and writes none meanwhile', () => {
+    const { payload, blockers } = mapped();
+
+    expect(blockers).toEqual([{ path: 'suggestedValues.workplace-2', code: 'choice' }]);
+    expect(shop(payload)).not.toHaveProperty('combustible_materials');
+    expect(shop(payload)).not.toHaveProperty('ignition_sources');
+    expect(shop(payload)).not.toHaveProperty('extinguisher_norm');
+  });
+
+  it('writes the suggestions kept, and counts each as kept unchanged', () => {
+    const { payload, blockers } = mapped(confirmed);
+
+    expect(blockers).toEqual([]);
+    expect(shop(payload)).toMatchObject({
+      combustible_materials: 'ambalaje din carton, hârtie',
+      ignition_sources: 'instalația electrică, aparate de cafea',
+      extinguisher_norm: 'commercial_200',
+    });
+    expect(payload.quality.suggestedValues).toEqual({ kept: 3, changed: 0, unticked: 0 });
+    expect(payload.quality.workplaces.changed).toBe(0);
+  });
+
+  it('writes a value the member changed and leaves out one they emptied, counting each', () => {
+    const { payload, blockers } = mapped(confirmed, {
+      'workplace-2': {
+        values: {
+          combustibleMaterials: 'cutii de carton, rafturi din lemn',
+          ignitionSources: null,
+        },
+      },
+    });
+
+    expect(blockers).toEqual([]);
+    expect(shop(payload)).toMatchObject({
+      combustible_materials: 'cutii de carton, rafturi din lemn',
+      extinguisher_norm: 'commercial_200',
+    });
+    expect(shop(payload)).not.toHaveProperty('ignition_sources');
+    expect(payload.quality.suggestedValues).toEqual({ kept: 1, changed: 1, unticked: 1 });
+    expect(payload.quality.workplaces.changed).toBe(0);
+  });
+
+  it('still waits for the decision when only a value was changed', () => {
+    const { blockers } = mapped(
+      {},
+      { 'workplace-2': { values: { combustibleMaterials: 'cutii de carton' } } }
+    );
+    expect(blockers).toEqual([{ path: 'suggestedValues.workplace-2', code: 'choice' }]);
+  });
+
+  it('asks nothing of a workplace left out, and drops the norm of a site the member made mobile', () => {
+    expect(mapped({}, { 'workplace-2': { included: false } }).blockers).not.toContainEqual({
+      path: 'suggestedValues.workplace-2',
+      code: 'choice',
+    });
+
+    const mobile = mapped(confirmed, { 'workplace-2': { values: { kind: 'mobile_site' } } });
+    expect(shop(mobile.payload)).not.toHaveProperty('extinguisher_norm');
+    expect(mobile.payload.quality.suggestedValues).toEqual({ kept: 2, changed: 0, unticked: 0 });
+  });
+
+  it('into an existing client asks only for a value the workplace does not have', () => {
+    const existing: ExistingRecords = {
+      ...noExistingRecords,
+      client: {},
+      workplaces: [
+        {
+          id: '00000000-0000-4000-8000-000000000002',
+          name: 'Magazin',
+          address_line: 'str. Piața Mică nr. 2',
+          is_registered_office: false,
+          office_has_activity: true,
+          combustible_materials: 'hârtie, textile',
+          ignition_sources: 'prize',
+          extinguisher_norm: 'commercial_200',
+        },
+      ],
+    };
+
+    const kept = mapped({}, {}, existing);
+    expect(kept.blockers).toEqual([]);
+    expect(shop(kept.payload)).toMatchObject({ id: '00000000-0000-4000-8000-000000000002' });
+    expect(kept.payload.quality.suggestedValues).toEqual({ kept: 0, changed: 0, unticked: 0 });
+
+    const partly = { ...existing.workplaces[0]!, ignition_sources: null };
+    const asked = mapped({}, {}, { ...existing, workplaces: [partly] });
+    expect(asked.blockers).toEqual([{ path: 'suggestedValues.workplace-2', code: 'choice' }]);
+    const decided = mapped(confirmed, {}, { ...existing, workplaces: [partly] });
+    expect(decided.blockers).toEqual([]);
+    expect(decided.payload.quality.suggestedValues).toEqual({ kept: 1, changed: 0, unticked: 0 });
+  });
+
+  describe('the registered office with no activity', () => {
+    const bare = reading();
+    const officeProposal = proposalOf(
+      reading({
+        workplaces: bare.workplaces.map((workplace) => ({ ...workplace, rooms: [] })),
+        fireEquipment: [{ ...bare.fireEquipment[0]!, workplace: 'Magazin', room: null }],
+        workplaceFacts: [
+          {
+            workplace: 'Sediu',
+            field: 'assemblyPoint',
+            value: 'Trotuarul din fața blocului',
+            ...quoted(fire),
+          },
+        ],
+      })
+    );
+    officeProposal.workplaces[0] = {
+      ...officeProposal.workplaces[0]!,
+      officeHasActivity: false,
+      suggested: { officeHasActivity: [{ file: decision, quote: 'Magazin' }] },
+    };
+    officeProposal.fireInstallations[0]!.workplace = { name: 'Sediu', id: 'workplace-1' };
+    const office = (payload: { workplaces: Record<string, unknown>[] }) =>
+      payload.workplaces.find((row) => row.key === 'workplace-1')!;
+
+    it('blocks confirming until the suggestion is kept or rejected', () => {
+      const { payload, blockers } = mapped({}, {}, null, officeProposal);
+
+      expect(blockers).toContainEqual({ path: 'officeActivity.workplace-1', code: 'choice' });
+      expect(office(payload)).not.toHaveProperty('office_has_activity');
+    });
+
+    it('kept, writes no activity and none of the office’s SU values or means', () => {
+      const { payload, blockers } = mapped(
+        { 'officeActivity.workplace-1': { option: 0 } },
+        {},
+        null,
+        officeProposal
+      );
+
+      expect(blockers).toEqual([]);
+      expect(office(payload)).toMatchObject({
+        office_has_activity: false,
+        is_registered_office: true,
+      });
+      expect(office(payload)).not.toHaveProperty('assembly_point');
+      expect(payload.fire_installations).toEqual([]);
+      expect(payload.fire_equipment).toHaveLength(2);
+      expect(payload.quality.suggestedValues).toEqual({ kept: 1, changed: 0, unticked: 0 });
+    });
+
+    it('rejected, writes the office as a workplace with activity, which asks its assembly point', () => {
+      const { payload, blockers } = mapped(
+        { 'officeActivity.workplace-1': { option: 1 } },
+        {},
+        null,
+        officeProposal
+      );
+
+      expect(blockers).toEqual([{ path: 'assemblyPoints.workplace-1', code: 'choice' }]);
+      expect(office(payload)).not.toHaveProperty('office_has_activity');
+      expect(payload.fire_installations).toHaveLength(1);
+      expect(payload.quality.suggestedValues).toEqual({ kept: 0, changed: 1, unticked: 0 });
+    });
+
+    it('is not asked without another workplace, nor of an office the client already has', () => {
+      const alone = mapped({}, { 'workplace-2': { included: false } }, null, officeProposal);
+      expect(alone.blockers).not.toContainEqual({
+        path: 'officeActivity.workplace-1',
+        code: 'choice',
+      });
+      expect(office(alone.payload)).not.toHaveProperty('office_has_activity');
+
+      const existing: ExistingRecords = {
+        ...noExistingRecords,
+        client: {},
+        workplaces: [
+          {
+            id: '00000000-0000-4000-8000-000000000001',
+            name: 'Sediu',
+            address_line: 'str. Exemplului nr. 5',
+            is_registered_office: true,
+            office_has_activity: true,
+            assembly_point: 'Curtea din spate',
+          },
+        ],
+      };
+      const known = mapped({}, {}, existing, officeProposal);
+      expect(known.blockers).not.toContainEqual({
+        path: 'officeActivity.workplace-1',
+        code: 'choice',
+      });
+      expect(office(known.payload)).not.toHaveProperty('office_has_activity');
+    });
+
+    it('honours a choice made before the member linked the office to the client’s own', () => {
+      const existing: ExistingRecords = {
+        ...noExistingRecords,
+        client: {},
+        workplaces: [
+          {
+            id: '00000000-0000-4000-8000-000000000001',
+            name: 'Sediul social',
+            address_line: 'bd. Revoluției nr. 1',
+            is_registered_office: true,
+            office_has_activity: true,
+          },
+        ],
+      };
+      const { payload, blockers } = mapped(
+        { 'officeActivity.workplace-1': { option: 0 } },
+        { 'workplace-1': { existingId: '00000000-0000-4000-8000-000000000001' } },
+        existing,
+        officeProposal
+      );
+
+      expect(office(payload)).toMatchObject({ id: '00000000-0000-4000-8000-000000000001' });
+      expect(office(payload)).not.toHaveProperty('office_has_activity');
+      expect(blockers).toContainEqual({ path: 'assemblyPoints.workplace-1', code: 'choice' });
+      expect(payload.fire_installations).toEqual([
+        expect.objectContaining({ workplace_key: 'workplace-1' }),
+      ]);
+      expect(payload.quality.suggestedValues).toEqual({ kept: 0, changed: 0, unticked: 0 });
+    });
+
+    it('does not wait on a value of the office’s card it never writes', () => {
+      const flagged: Proposal = {
+        ...officeProposal,
+        workplaces: [
+          {
+            ...officeProposal.workplaces[0]!,
+            floorAreaM2: 0,
+            fieldSources: { floorAreaM2: [{ file: fire, quote: 'suprafața 0 mp' }] },
+          },
+          officeProposal.workplaces[1]!,
+        ],
+        flags: [{ path: 'workplaces.0.floorAreaM2', code: 'value_not_allowed' }],
+      };
+
+      const kept = mapped({ 'officeActivity.workplace-1': { option: 0 } }, {}, null, flagged);
+      expect(kept.blockers).toEqual([]);
+      expect(office(kept.payload)).not.toHaveProperty('floor_area_m2');
+
+      const rejected = mapped({ 'officeActivity.workplace-1': { option: 1 } }, {}, null, flagged);
+      expect(rejected.blockers).toContainEqual({
+        path: 'workplaces.0.floorAreaM2',
+        code: 'invalid',
+      });
+    });
+
+    it('takes nothing for an office the client already has with no activity, and asks nothing of it', () => {
+      const officeId = '00000000-0000-4000-8000-000000000001';
+      const atOffice = proposalOf(
+        reading({
+          workplaceFacts: [
+            {
+              workplace: 'Sediu',
+              field: 'assemblyPoint',
+              value: 'Trotuarul din fața blocului',
+              ...quoted(fire),
+            },
+          ],
+          workplaceSuggestions: [drafted('Sediu', 'combustibleMaterials', 'hârtie, mobilier')],
+        })
+      );
+      const existing: ExistingRecords = {
+        ...noExistingRecords,
+        client: {},
+        workplaces: [
+          {
+            id: officeId,
+            name: 'Sediu',
+            address_line: 'str. Exemplului nr. 5',
+            is_registered_office: true,
+            office_has_activity: false,
+          },
+        ],
+      };
+      const { payload, blockers } = mapped(
+        {},
+        { 'installation-1': { values: { workplace: officeId } } },
+        existing,
+        atOffice
+      );
+
+      expect(blockers).not.toContainEqual({ path: 'assemblyPoints.workplace-1', code: 'choice' });
+      expect(blockers).not.toContainEqual({ path: 'suggestedValues.workplace-1', code: 'choice' });
+      expect(office(payload)).toMatchObject({ id: officeId });
+      expect(office(payload)).not.toHaveProperty('assembly_point');
+      expect(office(payload)).not.toHaveProperty('combustible_materials');
+      expect(office(payload)).not.toHaveProperty('office_has_activity');
+      expect(payload.fire_equipment).toEqual([]);
+      expect(payload.fire_installations).toEqual([]);
+    });
+
+    it('counts on an existing client’s point of work when the import brings none', () => {
+      const existing: ExistingRecords = {
+        ...noExistingRecords,
+        client: {},
+        workplaces: [
+          {
+            id: '00000000-0000-4000-8000-000000000003',
+            name: 'Depozit',
+            address_line: 'str. Gării nr. 9',
+            is_registered_office: false,
+            office_has_activity: true,
+          },
+        ],
+      };
+      const { payload } = mapped(
+        { 'officeActivity.workplace-1': { option: 0 } },
+        { 'workplace-2': { included: false } },
+        existing,
+        officeProposal
+      );
+      expect(office(payload)).toMatchObject({ office_has_activity: false });
+    });
+  });
+
+  it('opens a proposal stored before the suggestions and confirms it as before', () => {
+    const stored = JSON.parse(JSON.stringify(proposalOf(reading()))) as {
+      workplaces: Record<string, unknown>[];
+    };
+    for (const workplace of stored.workplaces) {
+      delete workplace.suggested;
+      delete workplace.officeHasActivity;
+    }
+    const { payload, blockers } = mapped({}, {}, null, proposalSchema.parse(stored));
+    expect(blockers).toEqual([]);
+    expect(payload.workplaces).toHaveLength(2);
   });
 });

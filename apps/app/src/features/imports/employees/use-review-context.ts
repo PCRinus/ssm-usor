@@ -36,7 +36,10 @@ export function useReviewContext(detail: ImportDetail, clientId: string) {
   });
   const proposal = detail.employees!.proposal as Proposal;
   const positions = useMemo(() => positionsQuery.data?.items ?? [], [positionsQuery.data]);
-  const workplaces = useMemo(() => workplacesQuery.data?.items ?? [], [workplacesQuery.data]);
+  const workplaces = useMemo(
+    () => workplacesQuery.data?.items.filter((workplace) => workplace.officeHasActivity) ?? [],
+    [workplacesQuery.data]
+  );
   const context: ReviewContext = useMemo(
     () => ({
       proposal,

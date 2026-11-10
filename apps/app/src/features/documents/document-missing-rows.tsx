@@ -49,6 +49,7 @@ export function DocumentMissingRows({
     clash: readiness.data?.workersRepresentativeClash ?? null,
     undecidedJobPositions: readiness.data?.undecidedJobPositions ?? [],
     incompleteRiskEvaluations: readiness.data?.incompleteRiskEvaluations ?? [],
+    incompleteFireSubstances: readiness.data?.incompleteFireSubstances ?? [],
     currentEmployeeCount: readiness.data?.currentEmployeeCount,
     canEditOrganization: isOwner,
     set,

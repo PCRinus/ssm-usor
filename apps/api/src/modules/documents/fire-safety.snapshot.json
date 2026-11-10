@@ -1697,6 +1697,7 @@
     }
   },
   "noAnnexes": false,
+  "officeWithoutActivity": null,
   "provider": {
     "legalName": "S.C. SERVICIU EXTERN DEMO S.R.L.",
     "representativeName": "Ana IONESCU",

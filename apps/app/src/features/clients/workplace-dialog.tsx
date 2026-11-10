@@ -3,6 +3,7 @@ import {
   type FireExtinguisherNorm,
   fireExtinguisherNormLabels,
   fireExtinguisherNorms,
+  workplaceConflictReasons,
   workplaceHasAreaAndNorm,
   workplaceKindLabels,
   workplaceKinds,
@@ -27,6 +28,7 @@ import type { ReactNode } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import {
+  type ApiErrorResponse,
   getListWorkplacesQueryKey,
   useCreateWorkplace,
   useUpdateWorkplace,
@@ -36,6 +38,7 @@ import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
+import { countOf } from '@/features/legislation/legislation-labels';
 import { LocalityCombobox } from '@/lib/localities/locality-combobox';
 
 import { CountyCombobox } from './county-combobox';
@@ -87,6 +90,14 @@ const sheetTexts = [
 
 // `null` is closed, 'new' adds a workplace, and a workplace edits it.
 export type WorkplaceEditing = Workplace | 'new' | null;
+
+const officeNeedsWorkplaceMessage =
+  'Clientul nu are alt punct de lucru activ. Adaugă întâi punctul de lucru în care se desfășoară activitatea.';
+
+const officeHasEmployeesMessage = (count: number) =>
+  `La sediul social lucrează ${countOf(count, 'angajat actual', 'angajați actuali')}. ${
+    count === 1 ? 'Mută-l' : 'Mută-i'
+  } întâi, din fișa angajatului, la punctul de lucru unde lucrează.`;
 
 export type WorkplaceDraft = {
   values: WorkplaceFormValues;
@@ -171,11 +182,14 @@ function WorkplaceForm({
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
-  const [countyCode, kind, norm] = useWatch({
+  const [countyCode, kind, norm, isRegisteredOffice, officeHasActivity] = useWatch({
     control: form.control,
-    name: ['countyCode', 'kind', 'extinguisherNorm'],
+    name: ['countyCode', 'kind', 'extinguisherNorm', 'isRegisteredOffice', 'officeHasActivity'],
   });
   const hasAreaAndNorm = workplaceHasAreaAndNorm(kind);
+  // The import's review asks the office's activity as a decision of its own.
+  const asksActivity = !draft && isRegisteredOffice;
+  const carriesFireSafety = !asksActivity || officeHasActivity;
 
   const onSubmit = form.handleSubmit(async (values) => {
     if (draft) {
@@ -195,6 +209,20 @@ function WorkplaceForm({
       onSaved?.(saved.workplace);
       onClose();
     } catch (cause) {
+      const body =
+        cause instanceof ApiHttpError
+          ? (cause.body as Partial<ApiErrorResponse> | undefined)
+          : undefined;
+      if (body?.reason === workplaceConflictReasons.officeNeedsWorkplace) {
+        form.setError('officeHasActivity', { message: officeNeedsWorkplaceMessage });
+        return;
+      }
+      if (body?.reason === workplaceConflictReasons.officeHasEmployees) {
+        form.setError('officeHasActivity', {
+          message: officeHasEmployeesMessage(body.employeeCount ?? 1),
+        });
+        return;
+      }
       if (cause instanceof ApiHttpError && cause.status === 409) {
         // The API answers 409 for an archived client too, which this page shows read-only.
         form.setError('isRegisteredOffice', {
@@ -289,6 +317,51 @@ function WorkplaceForm({
               </p>
             )}
           </div>
+          {asksActivity && (
+            <div className="grid gap-1 sm:col-span-2">
+              <div className="flex items-center gap-2">
+                <Controller
+                  control={form.control}
+                  name="officeHasActivity"
+                  render={({ field }) => (
+                    <Checkbox
+                      id="workplace-office-activity"
+                      data-testid="workplace-office-activity"
+                      checked={field.value}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                      disabled={busy}
+                      aria-describedby={
+                        errors.officeHasActivity
+                          ? 'workplace-office-activity-error'
+                          : 'workplace-office-activity-hint'
+                      }
+                    />
+                  )}
+                />
+                <Label htmlFor="workplace-office-activity">
+                  La sediul social se desfășoară activitate
+                </Label>
+                <HelpLink
+                  topic="detalii.sediu-fara-activitate"
+                  label="Ajutor: La sediul social se desfășoară activitate"
+                />
+              </div>
+              <p id="workplace-office-activity-hint" className="pl-6 text-xs text-muted-foreground">
+                Debifează când sediul e doar o adresă, de exemplu un domiciliu sau un sediu găzduit.
+                Documentele SU îl lasă atunci deoparte și nu cer pentru el date SU sau stingătoare.
+              </p>
+              {errors.officeHasActivity && (
+                <p
+                  id="workplace-office-activity-error"
+                  data-testid="workplace-office-activity-error"
+                  role="alert"
+                  className="pl-6 text-sm text-destructive"
+                >
+                  {errors.officeHasActivity.message}
+                </p>
+              )}
+            </div>
+          )}
           <Field
             id="workplace-county"
             label="Județ"
@@ -361,156 +434,160 @@ function WorkplaceForm({
               {...form.register('addressLine')}
             />
           </Field>
-          <section
-            aria-labelledby="workplace-fire-title"
-            className="mt-2 grid gap-5 border-t pt-6 sm:col-span-2 sm:grid-cols-2"
-          >
-            <div className="grid gap-1 sm:col-span-2">
-              <div className="flex items-center gap-1">
-                <h3 id="workplace-fire-title" className="font-semibold">
-                  Apărare împotriva incendiilor
-                </h3>
-                <HelpLink topic="detalii.date-su" label="Ajutor: Apărare împotriva incendiilor" />
+          {carriesFireSafety && (
+            <section
+              aria-labelledby="workplace-fire-title"
+              className="mt-2 grid gap-5 border-t pt-6 sm:col-span-2 sm:grid-cols-2"
+            >
+              <div className="grid gap-1 sm:col-span-2">
+                <div className="flex items-center gap-1">
+                  <h3 id="workplace-fire-title" className="font-semibold">
+                    Apărare împotriva incendiilor
+                  </h3>
+                  <HelpLink topic="detalii.date-su" label="Ajutor: Apărare împotriva incendiilor" />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Documentele SU cer câmpurile fără „opțional”. Poți salva și fără ele.
+                </p>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Documentele SU cer câmpurile fără „opțional”. Poți salva și fără ele.
-              </p>
-            </div>
-            <Field
-              id="workplace-activity"
-              label="Activitatea"
-              help="detalii.activitate"
-              error={errors.activity}
-              className="sm:col-span-2"
-            >
-              <Input
-                id="workplace-activity"
-                data-testid="workplace-activity"
-                autoComplete="off"
-                placeholder="Gelaterie, Birouri…"
-                disabled={busy}
-                aria-invalid={Boolean(errors.activity)}
-                aria-describedby={errors.activity ? 'workplace-activity-error' : undefined}
-                {...form.register('activity')}
-              />
-            </Field>
-            <Field
-              id="workplace-kind"
-              label="Felul locului de muncă"
-              help="detalii.fel-loc-de-munca"
-              className="sm:col-span-2"
-            >
-              <NativeSelect
-                id="workplace-kind"
-                data-testid="workplace-kind"
-                disabled={busy}
-                {...form.register('kind')}
-              >
-                {workplaceKinds.map((value) => (
-                  <NativeSelectOption key={value} value={value}>
-                    {workplaceKindLabels[value]}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-            </Field>
-            {hasAreaAndNorm && (
-              <>
-                <Field
-                  id="workplace-floor-area"
-                  label="Suprafața utilă (m²)"
-                  help="detalii.suprafata-utila"
-                  error={errors.floorAreaM2}
-                >
-                  <Input
-                    id="workplace-floor-area"
-                    data-testid="workplace-floor-area"
-                    inputMode="numeric"
-                    autoComplete="off"
-                    disabled={busy}
-                    aria-invalid={Boolean(errors.floorAreaM2)}
-                    aria-describedby={errors.floorAreaM2 ? 'workplace-floor-area-error' : undefined}
-                    {...form.register('floorAreaM2')}
-                  />
-                </Field>
-                <Field
-                  id="workplace-norm"
-                  label="Norma de dotare cu stingătoare"
-                  hint={
-                    norm && fireExtinguisherNormLabels[norm as FireExtinguisherNorm].description
-                  }
-                  help="detalii.norma-stingatoare"
-                  error={errors.extinguisherNorm}
-                >
-                  <NativeSelect
-                    id="workplace-norm"
-                    data-testid="workplace-norm"
-                    disabled={busy}
-                    aria-invalid={Boolean(errors.extinguisherNorm)}
-                    aria-describedby={
-                      errors.extinguisherNorm
-                        ? 'workplace-norm-error'
-                        : norm
-                          ? 'workplace-norm-hint'
-                          : undefined
-                    }
-                    {...form.register('extinguisherNorm')}
-                  >
-                    <NativeSelectOption value="">Alege norma</NativeSelectOption>
-                    {fireExtinguisherNorms.map((value) => {
-                      const { label, rate } = fireExtinguisherNormLabels[value];
-                      return (
-                        <NativeSelectOption key={value} value={value}>
-                          {rate ? `${label} (${rate})` : label}
-                        </NativeSelectOption>
-                      );
-                    })}
-                  </NativeSelect>
-                </Field>
-              </>
-            )}
-            <Field
-              id="workplace-assembly-point"
-              label="Punctul de adunare"
-              help="detalii.punct-de-adunare"
-              error={errors.assemblyPoint}
-              className="sm:col-span-2"
-            >
-              <Input
-                id="workplace-assembly-point"
-                data-testid="workplace-assembly-point"
-                autoComplete="off"
-                placeholder="de exemplu, parcarea din fața clădirii"
-                disabled={busy}
-                aria-invalid={Boolean(errors.assemblyPoint)}
-                aria-describedby={
-                  errors.assemblyPoint ? 'workplace-assembly-point-error' : undefined
-                }
-                {...form.register('assemblyPoint')}
-              />
-            </Field>
-            {sheetTexts.map(({ name, id, label, placeholder, optional, help }) => (
               <Field
-                key={name}
-                id={id}
-                label={label}
-                mark={optional ? 'optional' : undefined}
-                help={help}
-                error={errors[name]}
+                id="workplace-activity"
+                label="Activitatea"
+                help="detalii.activitate"
+                error={errors.activity}
                 className="sm:col-span-2"
               >
-                <Textarea
-                  id={id}
-                  data-testid={id}
-                  rows={2}
-                  placeholder={placeholder}
+                <Input
+                  id="workplace-activity"
+                  data-testid="workplace-activity"
+                  autoComplete="off"
+                  placeholder="Gelaterie, Birouri…"
                   disabled={busy}
-                  aria-invalid={Boolean(errors[name])}
-                  aria-describedby={errors[name] ? `${id}-error` : undefined}
-                  {...form.register(name)}
+                  aria-invalid={Boolean(errors.activity)}
+                  aria-describedby={errors.activity ? 'workplace-activity-error' : undefined}
+                  {...form.register('activity')}
                 />
               </Field>
-            ))}
-          </section>
+              <Field
+                id="workplace-kind"
+                label="Felul locului de muncă"
+                help="detalii.fel-loc-de-munca"
+                className="sm:col-span-2"
+              >
+                <NativeSelect
+                  id="workplace-kind"
+                  data-testid="workplace-kind"
+                  disabled={busy}
+                  {...form.register('kind')}
+                >
+                  {workplaceKinds.map((value) => (
+                    <NativeSelectOption key={value} value={value}>
+                      {workplaceKindLabels[value]}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </Field>
+              {hasAreaAndNorm && (
+                <>
+                  <Field
+                    id="workplace-floor-area"
+                    label="Suprafața utilă (m²)"
+                    help="detalii.suprafata-utila"
+                    error={errors.floorAreaM2}
+                  >
+                    <Input
+                      id="workplace-floor-area"
+                      data-testid="workplace-floor-area"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      disabled={busy}
+                      aria-invalid={Boolean(errors.floorAreaM2)}
+                      aria-describedby={
+                        errors.floorAreaM2 ? 'workplace-floor-area-error' : undefined
+                      }
+                      {...form.register('floorAreaM2')}
+                    />
+                  </Field>
+                  <Field
+                    id="workplace-norm"
+                    label="Norma de dotare cu stingătoare"
+                    hint={
+                      norm && fireExtinguisherNormLabels[norm as FireExtinguisherNorm].description
+                    }
+                    help="detalii.norma-stingatoare"
+                    error={errors.extinguisherNorm}
+                  >
+                    <NativeSelect
+                      id="workplace-norm"
+                      data-testid="workplace-norm"
+                      disabled={busy}
+                      aria-invalid={Boolean(errors.extinguisherNorm)}
+                      aria-describedby={
+                        errors.extinguisherNorm
+                          ? 'workplace-norm-error'
+                          : norm
+                            ? 'workplace-norm-hint'
+                            : undefined
+                      }
+                      {...form.register('extinguisherNorm')}
+                    >
+                      <NativeSelectOption value="">Alege norma</NativeSelectOption>
+                      {fireExtinguisherNorms.map((value) => {
+                        const { label, rate } = fireExtinguisherNormLabels[value];
+                        return (
+                          <NativeSelectOption key={value} value={value}>
+                            {rate ? `${label} (${rate})` : label}
+                          </NativeSelectOption>
+                        );
+                      })}
+                    </NativeSelect>
+                  </Field>
+                </>
+              )}
+              <Field
+                id="workplace-assembly-point"
+                label="Punctul de adunare"
+                help="detalii.punct-de-adunare"
+                error={errors.assemblyPoint}
+                className="sm:col-span-2"
+              >
+                <Input
+                  id="workplace-assembly-point"
+                  data-testid="workplace-assembly-point"
+                  autoComplete="off"
+                  placeholder="de exemplu, parcarea din fața clădirii"
+                  disabled={busy}
+                  aria-invalid={Boolean(errors.assemblyPoint)}
+                  aria-describedby={
+                    errors.assemblyPoint ? 'workplace-assembly-point-error' : undefined
+                  }
+                  {...form.register('assemblyPoint')}
+                />
+              </Field>
+              {sheetTexts.map(({ name, id, label, placeholder, optional, help }) => (
+                <Field
+                  key={name}
+                  id={id}
+                  label={label}
+                  mark={optional ? 'optional' : undefined}
+                  help={help}
+                  error={errors[name]}
+                  className="sm:col-span-2"
+                >
+                  <Textarea
+                    id={id}
+                    data-testid={id}
+                    rows={2}
+                    placeholder={placeholder}
+                    disabled={busy}
+                    aria-invalid={Boolean(errors[name])}
+                    aria-describedby={errors[name] ? `${id}-error` : undefined}
+                    {...form.register(name)}
+                  />
+                </Field>
+              ))}
+            </section>
+          )}
           {draft?.aside && <div className="sm:col-span-2">{draft.aside}</div>}
         </DialogBody>
         {errors.root?.server && (

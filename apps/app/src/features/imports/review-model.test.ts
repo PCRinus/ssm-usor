@@ -3,7 +3,17 @@ import { describe, expect, it } from 'vitest';
 
 import { proposalFixture } from '@/test/import-fixture';
 
-import { type Changes, fieldState, itemStates, type Proposal } from './review-model';
+import {
+  type Changes,
+  type ExistingWorkplace,
+  fieldState,
+  inactiveOffices,
+  itemStates,
+  noChanges,
+  officeActivityStates,
+  type Proposal,
+  type ReviewScope,
+} from './review-model';
 
 const fixture = () => {
   const proposal = proposalFixture();
@@ -100,5 +110,62 @@ describe('the switches and what confirming writes', () => {
     );
     expect(on.status).toBe('value');
     expect(on.value).toBe('office@lactate.ro');
+  });
+});
+
+describe('a registered office with no activity', () => {
+  const office = () => {
+    const proposal = proposalFixture();
+    Object.assign(proposal.workplaces[0]!, {
+      officeHasActivity: false,
+      suggested: { officeHasActivity: [{ file: 'Decizie 1.docx', quote: 'Atelier' }] },
+    });
+    proposal.workplaces.push({
+      ...proposal.workplaces[0]!,
+      id: 'workplace-2',
+      name: 'Atelier',
+      addressLine: 'Str. Gării nr. 3',
+      isRegisteredOffice: false,
+    });
+    return proposal as unknown as Proposal;
+  };
+  const kept: Changes = { fields: { 'officeActivity.workplace-1': { option: 0 } }, items: {} };
+  const own = (officeHasActivity: boolean): ExistingWorkplace => ({
+    id: 'existing-office',
+    name: 'SEDIU',
+    addressLine: null,
+    isRegisteredOffice: true,
+    officeHasActivity,
+  });
+  const into = (existingWorkplaces: ExistingWorkplace[]): ReviewScope => ({
+    blockers: [],
+    existingClient: true,
+    existingWorkplaces,
+  });
+
+  it('is the office the import creates and the member kept as such', () => {
+    const scope: ReviewScope = { blockers: [], existingClient: false, existingWorkplaces: [] };
+    expect([...inactiveOffices(office(), kept, scope)]).toEqual(['workplace-1']);
+    expect(inactiveOffices(office(), noChanges, scope).size).toBe(0);
+  });
+
+  it('ignores the decision once the office is the client’s own, whose answer decides', () => {
+    expect(inactiveOffices(office(), kept, into([own(true)])).size).toBe(0);
+    expect(officeActivityStates(office(), kept, into([own(true)]))).toEqual([]);
+    expect([...inactiveOffices(office(), noChanges, into([own(false)]))]).toEqual(['workplace-1']);
+  });
+
+  it('follows the client’s office the member picked, and none when they picked a new one', () => {
+    const picked = (existingId: string | null): Changes => ({
+      ...kept,
+      items: { 'workplace-1': { existingId } },
+    });
+    const other = { ...own(false), id: 'other-office', name: 'Punct central' };
+    expect([...inactiveOffices(office(), picked('other-office'), into([other]))]).toEqual([
+      'workplace-1',
+    ]);
+    expect([...inactiveOffices(office(), picked(null), into([own(true)]))]).toEqual([
+      'workplace-1',
+    ]);
   });
 });

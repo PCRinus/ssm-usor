@@ -89,6 +89,7 @@ type Options = {
   invitees?: unknown[];
   confirmed?: unknown[];
   employees?: unknown[];
+  clientWorkplaces?: unknown[];
 };
 
 function mockEmployeeImport({
@@ -99,6 +100,7 @@ function mockEmployeeImport({
   invitees = [],
   confirmed,
   employees = [],
+  clientWorkplaces = workplaces,
 }: Options = {}) {
   let version = detail.version;
   let confirmedHere: unknown[] = [];
@@ -146,7 +148,7 @@ function mockEmployeeImport({
       return Response.json({ items: positions });
     }
     if (url.pathname === `/clients/${clientId}/workplaces`) {
-      return Response.json({ items: workplaces });
+      return Response.json({ items: clientWorkplaces });
     }
     if (url.pathname === `/clients/${clientId}/found-sheets`) return Response.json(found);
     if (/^\/clients\/[^/]+\/imports\/[^/]+\/portal-invitees$/.test(url.pathname)) {
@@ -353,6 +355,30 @@ describe('the people hub', () => {
       version: 4,
       changes: { jobTitles: { 'title-helper': { jobPositionId: bakerId } } },
     });
+  });
+
+  it('never offers an office where no activity takes place as a workplace', async () => {
+    const [shop] = workplaces as [(typeof workplaces)[number]];
+    mockEmployeeImport({
+      clientWorkplaces: [
+        ...workplaces,
+        {
+          ...shop,
+          id: '6f1c2d3e-4b5a-4c6d-8e7f-9a0b1c2d3e4f',
+          name: 'Sediu social',
+          isRegisteredOffice: true,
+          officeHasActivity: false,
+        },
+      ],
+    });
+    mount(importPath);
+    const row = await screen.findByTestId('employee-hub-workplace');
+    const picker = within(row).getByRole('combobox');
+    expect(
+      within(picker)
+        .getAllByRole('option')
+        .map((option) => option.textContent)
+    ).toEqual(['Magazin Str. Lungă 5', 'Laborator producție']);
   });
 
   it('shows the cost of reading the photographs when the API serves it', async () => {

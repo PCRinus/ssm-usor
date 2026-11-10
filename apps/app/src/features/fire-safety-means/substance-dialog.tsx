@@ -139,7 +139,7 @@ function SubstanceForm({
     <Field
       id={id}
       label={label}
-      mark="required"
+      mark={name === 'name' ? 'required' : undefined}
       hint={hint}
       error={errors[name]}
       className={name === 'quantity' ? undefined : 'sm:col-span-2'}
@@ -163,7 +163,8 @@ function SubstanceForm({
           <DialogTitle>{substance ? 'Modifică substanța' : 'Adaugă o substanță'}</DialogTitle>
           <DialogDescription>
             Denumirea, clasificarea și cantitatea se văd pe produs. Restul se copiază din fișa cu
-            date de securitate a produsului, de la secțiunea arătată sub fiecare câmp.
+            date de securitate a produsului, de la secțiunea arătată sub fiecare câmp. Documentele
+            SU cer câmpurile fără „opțional”. Poți salva și fără ele.
           </DialogDescription>
         </DialogHeader>
         <DialogBody className="mt-5 grid gap-5 sm:grid-cols-2">

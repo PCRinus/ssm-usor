@@ -368,7 +368,9 @@ calendar will read the same columns:
 
 **Workplaces.** `client_workplaces` holds the registered office and the points of work: a
 name, `is_registered_office` (one per client, by a partial unique index), and an address.
-Documents belong to the client, not to a workplace; they list the workplaces.
+Documents belong to the client, not to a workplace; they list the workplaces. A registered
+office may be only an address, with no activity (`office_has_activity`, under the fire-safety
+data below).
 
 **Responsible persons.** `client_responsible_persons` holds the people the employer
 designates by decision, with `roles` as an array of `workplace_manager` (gives the workplace
@@ -476,6 +478,21 @@ same at every workplace, and is not stored. A unique index on `(id, client_id)` 
 tables below, and a responsible person, point at a workplace of the same client.
 The fire risk level is not stored: no document prints it.
 
+**A registered office with no activity.** `office_has_activity` (ADR 041, migration
+`20261111120000_registered_office_activity`), true by default, is the answer to "La sediul
+social se desfășoară activitate": false for a registered office that is only an address, a
+home or a hosted one. A check (`client_workplaces_activity_only_at_office`) keeps it true on a
+point of work, which is archived instead. A client whose only active workplace is its registered
+office cannot answer "no": a constraint trigger, deferred to the commit so that a transaction
+writing several workplaces is judged on what it leaves, refuses an office answered "no" with no
+other active workplace beside it, whichever write left it so (the answer, or archiving the last
+point of work), with the code `WPL01`. The fire-safety set leaves such an office out wherever it
+lists workplaces and readiness asks it for nothing; what it stores (the seven columns above, its
+units, installations, free rows and building) is kept, neither listed by the API nor printed,
+as a mobile site keeps an area, so answering "yes" again restores it. That no current employee
+is assigned to it, and that no unit is added to it, is the API's to refuse; the database does
+not.
+
 From the area and the norm the app shows the orientative minimum of extinguishers,
 `ceil(floor_area_m2 / divisor)` with 300, 200, 300 or 150 as the divisor and at least one; a
 `residential_level` workplace has no divisor and the hint reads "cel puțin unul pe nivel". A
@@ -537,8 +554,8 @@ workplace. Rows are deleted, not archived.
 | Column                         | Notes                                                                                     |
 | ------------------------------ | ----------------------------------------------------------------------------------------- |
 | `name`                         | Required, 2 to 160 characters.                                                            |
-| `classification`               | Required, 2 to 600: the CLP hazard classes and H statements, "Flam. Gas 1, H220".         |
-| `quantity`                     | Required, 1 to 160, free text: "2 butelii de 11 kg".                                      |
+| `classification`               | 2 to 600: the CLP hazard classes and H statements, "Flam. Gas 1, H220". Null until known. |
+| `quantity`                     | 1 to 160, free text: "2 butelii de 11 kg". Null until counted.                            |
 | `physical_chemical_properties` | Optional, 2 to 1000; from section 9 of the safety data sheet.                             |
 | `identification_codes`         | Optional, 2 to 600; sections 1 and 3.                                                     |
 | `health_environment_risks`     | Optional, 2 to 1000; sections 2, 11 and 12.                                               |
@@ -548,6 +565,10 @@ workplace. Rows are deleted, not archived.
 | `storage_place`                | Optional, 2 to 600; section 7.                                                            |
 | `handling`                     | Optional, 2 to 1000; section 7.                                                           |
 | `sort_order`                   | The order of the list; the API appends a new entry after the last.                        |
+
+An entry without its classification or its quantity is **incomplete** (ADR 041): an import
+writes a substance by the name a document gives, and both are read off the product and counted
+on site. `20261111100000_fire_substances_incomplete` made the two columns nullable.
 
 The client's `client_fire_safety.substances_state` says whether it uses any: `undecided` until a
 member says, `none`, a declaration that it uses none, or `listed`. Two triggers keep the two in
@@ -603,13 +624,13 @@ asks for any of it: an empty building is a sheet with more gaps.
 **Readiness.** The fire-safety set adds these codes to `missingDocumentData` and
 `fireSafetyMissingDocumentData`: `fire.trainingSchedule` (the hours, both intervals, the first
 month and both days set), `fire.waste` (at least one kind), `fire.workplaces` (the seven
-columns above other than `specific_measures` set on every active workplace), `fire.equipment`
-(an extinguisher in every active workplace), `responsible.fire_safety_coordinator` and
+columns above other than `specific_measures` set on every active workplace but a registered
+office with no activity), `fire.equipment` (an extinguisher in each of them), `responsible.fire_safety_coordinator` and
 `responsible.fire_intervention_leader` (an active person in each role). It also asks the existing `responsible.workplace_manager` and
 `positions.any`. Any of them refuses the whole set's generation. ADR 019 adds `fire.smokingPolicy` (a policy
 chosen) and `provider.fireSafetyTechnicianCertificate`; neither the smoking place nor the
 authorization is ever asked for. The amendment of 2026-10-11 adds `fire.substances`: the
-substances state `none`, or `listed` with at least one substance.
+substances state `none`, or `listed` with at least one substance and none incomplete (ADR 041).
 
 **What the templates read.** Fire-safety templates read these facts from one merge object,
 `fire`, and nothing else about the client beyond `client`, `provider`, `fireSafetyTechnician`,
@@ -1403,7 +1424,8 @@ the reading version, the reading flags, the report and the improvement copies by
 `20261104200000_import_copies`, and the copies' completion and `expensive_alerted_at` by
 `20261104210000_import_copies_completed` ([ADR 037](architecture/adr-037-import-quality-and-alerts.md));
 the admin area's list of them, `admin_list_imports`, by `20261105100000_admin_imports`, and its
-copies' completion by `20261105140000_admin_list_imports_copy_completed` ([Audit log](#audit-log)).
+copies' completion by `20261105140000_admin_list_imports_copy_completed` ([Audit log](#audit-log));
+the substances `apply_client_import` writes by `20261111140000_import_substances`.
 
 `imports` has one row per import, with `organization_id`:
 
@@ -1508,8 +1530,11 @@ transaction and returns `{"client_id", "files": [{"client_file_id", "source_path
 version (`IMP02`), an existing client that is archived (`CLA01`) or whose CUI is not the
 documents' `company_cui` or the payload's `cui` (`IMP03`), and a new client whose CUI the
 organization already has (`IMP04`). Every row passes its constraints and triggers, so an
-employee without a position gets the one named like their job title, and a position's equipment
-decision follows its entries.
+employee without a position gets the one named like their job title, a position's equipment
+decision follows its entries, a substance under any state but `listed` is refused (`SUB02`) and
+`none` while the client lists substances (`SUB01`), and a registered office with no activity is
+refused without another active workplace (`WPL01`, judged once the workplaces are written rather
+than at the commit) or while a current employee is assigned to it (`WPL02`).
 
 The payload is shaped like the tables, not like the proposal; the API maps one onto the other.
 Each object refuses a field it does not name (`22023`), and a column field takes the column's
@@ -1527,7 +1552,7 @@ values, JSON null or absent leaving the default:
   "workplaces": [{ "key", "id", "replace", "name", "is_registered_office", "kind",
     "county_code", "locality", "address_line", "activity", "floor_area_m2",
     "extinguisher_norm", "assembly_point", "combustible_materials", "ignition_sources",
-    "fire_risk_equipment", "specific_measures" }],
+    "fire_risk_equipment", "specific_measures", "office_has_activity" }],
   "job_positions": [{ "key", "id", "replace", "name", "staff_category", "work_zone",
     "activities", "training_interval_months", "needs_protective_equipment" }],
   "equipment": [{ "job_position_key | job_position_id", "risk", "item", "quantity",
@@ -1540,12 +1565,13 @@ values, JSON null or absent leaving the default:
   "fire_safety": { "periodic_training_hours", "administrative_training_interval_months",
     "worker_training_interval_months", "training_first_month", "training_day_from",
     "training_day_to", "smoking_policy", "smoking_place", "waste_kinds", "waste_contractor",
-    "waste_collectors", "has_third_parties", "replace" },
+    "waste_collectors", "has_third_parties", "substances_state", "replace" },
   "fire_equipment": [{ "workplace_key | workplace_id", "kind", "agent", "capacity", "wheeled",
     "label", "location", "manufactured_year", "last_service_on", "next_service_on",
     "maintainer" }],
   "fire_installations": [{ "workplace_key | workplace_id", "kind", "description",
     "maintainer", "last_check_on", "next_check_on" }],
+  "fire_substances": [{ "name" }],
   "quality": { "<section>": { "changed": 0, "unticked": 0, "kept": 0 } }
 }
 ```
@@ -1573,9 +1599,18 @@ values, JSON null or absent leaving the default:
   `employees` item, with the hire date the member gave, and a `responsible_persons` item naming
   it. The API's rule that gives a new employee the client's only workplace does not run here;
   the payload names the workplace.
-- A room, where fire-safety means stand, is a unit's `location`. Buildings, maintenance rows and
-  substances are not imported.
-- `quality` is stored on the import as given.
+- A room, where fire-safety means stand, is a unit's `location`. Buildings and maintenance rows
+  are not imported.
+- An existing client's `substances_state` of `undecided` counts as empty, so the documents' answer
+  fills it ([ADR 041](architecture/adr-041-su-import-questions-and-suggestions.md)). A
+  `fire_substances` item is a substance by its name only, its classification and quantity left
+  for a member; it is added after `fire_safety`, at the end of the client's order, unless the
+  client has one of that name, compared trimmed and in lower case.
+- A workplace's `office_has_activity` false is taken only by the registered office (the table's
+  check); an existing workplace keeps its own answer unless `replace` names it (migration
+  `20261111160000_import_office_activity`, [ADR 041](architecture/adr-041-su-import-questions-and-suggestions.md)).
+- `quality` is stored on the import as given. Its `suggestedValues` section counts the suggested
+  values (ADR 041): kept unchanged as `kept`, `changed`, and left empty as `unticked`.
 
 Then the import folder: a client file for every file of the import except those still
 `uploading` and another company's, named after the file without its extension, in the folders
@@ -1622,7 +1657,9 @@ refusing a field it does not name (`22023`):
   without a position is refused (`22023`), so `default_employee_job_position` never makes a
   position from a job title. One with `id` is an active employee of the client (`22023`
   otherwise), filled as an existing client is: empty columns filled, those in `replace` taken.
-  A workplace is an active one of the client (`22023`).
+  A workplace is an active one of the client, and never a registered office where no activity
+  takes place unless the employee already works there (ADR 041; `22023`, migration
+  `20261111180000`).
 - The other lists name an employee by the `key` of one of `employees` (`22023` otherwise).
 - A training is held from paper (`source` `paper`), with one record per attendee, at most one
   each (`22023`), carrying the name of the attendee's position as the occupation, as the app's

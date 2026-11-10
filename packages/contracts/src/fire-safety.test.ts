@@ -13,6 +13,7 @@ import {
   fireSubstanceDetails,
   fireSubstanceRequestSchema,
   minimumExtinguishers,
+  missingSubstanceEssentials,
   updateClientFireSafetyRequestSchema,
   updateFireSubstancesStateRequestSchema,
 } from './fire-safety';
@@ -225,13 +226,28 @@ describe('a dangerous substance', () => {
     quantity: '2 butelii de 11 kg',
   };
 
-  it('needs its name, classification and quantity, and nothing of its data sheet', () => {
+  it('needs its name only, and refuses a blank classification or quantity', () => {
     expect(fireSubstanceRequestSchema.parse(propane)).toEqual(propane);
+    expect(fireSubstanceRequestSchema.parse({ name: 'Diluant' })).toEqual({ name: 'Diluant' });
+    expect(
+      fireSubstanceRequestSchema.parse({ name: 'Diluant', classification: null, quantity: null })
+    ).toEqual({ name: 'Diluant', classification: null, quantity: null });
     for (const field of ['name', 'classification', 'quantity'] as const) {
       expect(fireSubstanceRequestSchema.safeParse({ ...propane, [field]: ' ' }).success).toBe(
         false
       );
     }
+  });
+
+  it('is incomplete while its classification or its quantity is missing', () => {
+    expect(missingSubstanceEssentials(propane)).toEqual([]);
+    expect(missingSubstanceEssentials({ classification: null, quantity: '5 l' })).toEqual([
+      'classification',
+    ]);
+    expect(missingSubstanceEssentials({ classification: null, quantity: ' ' })).toEqual([
+      'classification',
+      'quantity',
+    ]);
   });
 
   it('trims a text of the data sheet, refuses a single character and takes null for none', () => {

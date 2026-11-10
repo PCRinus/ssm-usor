@@ -65,6 +65,7 @@ export function clientReading(overrides: Partial<Reading> = {}): Reading {
       },
     ],
     workplaceFacts: [],
+    workplaceSuggestions: [],
     jobPositions: ['Brutar', 'Vânzător'].map((name) => ({
       name,
       trainingIntervalMonths: null,
@@ -77,6 +78,7 @@ export function clientReading(overrides: Partial<Reading> = {}): Reading {
     responsiblePersons: [],
     fireEquipment: [],
     fireInstallations: [],
+    substances: [],
     protectiveEquipment: [],
     employees: [],
     notes: [],

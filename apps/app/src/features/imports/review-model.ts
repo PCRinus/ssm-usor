@@ -3,6 +3,7 @@ import {
   type CountyCode,
   countyNames,
   type EquipmentAllocation,
+  extinguisherCode,
   type FireEquipmentKind,
   fireEquipmentKindLabels,
   type FireExtinguishingAgent,
@@ -83,15 +84,21 @@ export type ItemList =
   | 'fireEquipment'
   | 'fireInstallations'
   | 'protectiveEquipment'
-  | 'employees';
+  | 'employees'
+  | 'substances';
 
 const sectionOfRoot: Record<string, SectionId> = {
   client: 'identity',
   trainingSchedule: 'training',
   fireSafety: 'fire-safety',
   fireEquipment: 'fire-safety',
+  fireEquipmentCounts: 'fire-safety',
   fireInstallations: 'fire-safety',
+  substances: 'fire-safety',
   workplaces: 'workplaces',
+  assemblyPoints: 'workplaces',
+  suggestedValues: 'workplaces',
+  officeActivity: 'workplaces',
   jobPositions: 'job-positions',
   responsiblePersons: 'responsible',
   employees: 'responsible',
@@ -252,6 +259,18 @@ export const fieldInfo: Record<string, FieldInfo> = {
     choose: 'Alege dacă alte firme lucrează în spațiile clientului',
     write: 'Alege dacă alte firme lucrează în spațiile clientului',
   },
+  'fireSafety.substancesState': {
+    label: 'Substanțe periculoase',
+    choose: 'Alege dacă clientul utilizează substanțe periculoase',
+    write: 'Alege dacă clientul utilizează substanțe periculoase',
+  },
+};
+
+export const substancesStatePath = 'fireSafety.substancesState';
+
+export const substancesStateLabels: Record<'listed' | 'none', string> = {
+  listed: 'Se utilizează substanțe periculoase',
+  none: 'Nu se utilizează substanțe periculoase',
 };
 
 // The proposal's yes or no, which the app's own forms word for each field.
@@ -390,6 +409,8 @@ export function formatFieldValue(
       return months[Number(text) - 1] ?? text;
     case 'fireSafety.smokingPolicy':
       return fireSmokingPolicyLabels[text as FireSmokingPolicy] ?? text;
+    case substancesStatePath:
+      return substancesStateLabels[text as 'listed' | 'none'] ?? text;
     default:
       return text;
   }
@@ -620,6 +641,12 @@ export function valueInForce(state: FieldState | undefined) {
   return state.value === null || state.comparison === 'kept' ? state.existing : state.value;
 }
 
+// An existing client's answer stands while the documents disagree, as the API keeps it.
+export function substancesAnswer(state: FieldState | undefined) {
+  if (state?.status === 'choice' && !isEmpty(state.existing)) return state.existing;
+  return valueInForce(state);
+}
+
 // The fire-safety card keeps a smoking place only beside designated places, and the payload
 // drops it under any other policy (ADR 019).
 export function smokingPlaceApplies(states: Record<string, FieldState>) {
@@ -630,14 +657,300 @@ export function smokingPlaceApplies(states: Record<string, FieldState>) {
 export const appliesAt = (states: Record<string, FieldState>, path: string) =>
   path !== 'fireSafety.smokingPlace' || smokingPlaceApplies(states);
 
+export const smokingPlacePath = 'fireSafety.smokingPlace';
+
+export const assemblyPointPath = (workplaceId: string) => `assemblyPoints.${workplaceId}`;
+
+// A value read that is never taken unchanged (ADR 041); null while it waits.
+export type FactDecision =
+  { kind: 'keep'; option: number } | { kind: 'other'; value: string } | { kind: 'empty' } | null;
+
+const writtenDecision = (value: unknown): FactDecision =>
+  value === null || value === undefined || (typeof value === 'string' && value.trim() === '')
+    ? { kind: 'empty' }
+    : { kind: 'other', value: String(value) };
+
+// As the API's payload reads it: the document's spelling selected before deciding is stored as the
+// member's value, and still waits.
+export function smokingPlaceDecision(state: FieldState, change: FieldChange | undefined) {
+  const option =
+    change?.option !== undefined && state.options[change.option] ? change.option : null;
+  const kept: FactDecision =
+    option !== null
+      ? { kind: 'keep', option }
+      : change?.replace || change?.included === true
+        ? { kind: 'keep', option: state.own[0] ?? 0 }
+        : null;
+  if (change?.value === undefined) return kept;
+  const spelled = state.options[option ?? (state.own.length === 1 ? state.own[0]! : -1)];
+  if (spelled?.spelling !== undefined && change.value === spelled.spelling) return kept;
+  return writtenDecision(change.value);
+}
+
+export function smokingPlaceAsked(states: Record<string, FieldState>) {
+  const state = states[smokingPlacePath];
+  if (!state || !appliesAt(states, smokingPlacePath) || state.own.length === 0) return false;
+  // An unticking stored before the place was asked is honoured: the API writes no place for it.
+  if (state.status === 'unticked') return false;
+  return state.own.length > 1 || state.comparison === 'none' || state.comparison === 'added';
+}
+
+export function assemblyPointDecision(
+  item: { id: string; spelling?: unknown },
+  changes: Changes
+): FactDecision {
+  const written = changes.items[item.id]?.values ?? {};
+  const spelling = (item.spelling as Record<string, string> | undefined)?.assemblyPoint;
+  if ('assemblyPoint' in written && written.assemblyPoint !== spelling) {
+    return writtenDecision(written.assemblyPoint);
+  }
+  return changes.fields[assemblyPointPath(item.id)]?.option === 0
+    ? { kind: 'keep', option: 0 }
+    : null;
+}
+
+// The fields drafted from the client's activity, as the API's payload asks them (ADR 041).
+export const suggestedFieldNames = [
+  'combustibleMaterials',
+  'ignitionSources',
+  'fireRiskEquipment',
+  'specificMeasures',
+  'extinguisherNorm',
+] as const;
+
+export type SuggestedFieldName = (typeof suggestedFieldNames)[number];
+
+export const suggestedValuesPath = (workplaceId: string) => `suggestedValues.${workplaceId}`;
+
+export const officeActivityPath = (workplaceId: string) => `officeActivity.${workplaceId}`;
+
+const suggestedOf = (item: object) =>
+  ((item as { suggested?: unknown }).suggested ?? {}) as Record<string, Source[]>;
+
+export const suggestionSources = (item: object, field: string): Source[] =>
+  suggestedOf(item)[field] ?? [];
+
+// A mobile site has no norm, so one suggested before the member changed the kind goes.
+export function suggestedFields(state: Pick<ItemState, 'item' | 'values'>, changes: Changes) {
+  const written = changes.items[state.item.id]?.values ?? {};
+  return suggestedFieldNames.filter(
+    (field) =>
+      suggestedOf(state.item)[field] !== undefined &&
+      !(field === 'extinguisherNorm' && state.values.kind === 'mobile_site' && !(field in written))
+  );
+}
+
+export type SuggestedValue =
+  { kind: 'keep' } | { kind: 'other'; value: string } | { kind: 'empty' };
+
+export function suggestedValue(
+  item: { id: string },
+  changes: Changes,
+  field: SuggestedFieldName
+): SuggestedValue {
+  const written = changes.items[item.id]?.values ?? {};
+  if (!(field in written)) return { kind: 'keep' };
+  const value = written[field];
+  return isEmpty(value) ? { kind: 'empty' } : { kind: 'other', value: String(value) };
+}
+
+export const suggestionsConfirmed = (item: { id: string }, changes: Changes) =>
+  changes.fields[suggestedValuesPath(item.id)]?.option === 0;
+
+// 0 keeps the suggestion that no activity takes place at the registered office, 1 says some does.
+export function officeActivityChoice(item: { id: string }, changes: Changes): 0 | 1 | null {
+  const option = changes.fields[officeActivityPath(item.id)]?.option;
+  return option === 0 || option === 1 ? option : null;
+}
+
+const suggestsNoActivity = (state: ItemState) =>
+  state.included &&
+  state.values.isRegisteredOffice === true &&
+  suggestedOf(state.item).officeHasActivity !== undefined &&
+  state.item.officeHasActivity === false;
+
+export type ExistingWorkplace = {
+  id: string;
+  name: string;
+  addressLine: string | null;
+  isRegisteredOffice: boolean;
+  officeHasActivity: boolean;
+};
+
+// `existingWorkplaces` is empty for a new client.
+export type ReviewScope = {
+  blockers: Blocker[];
+  existingClient: boolean;
+  existingWorkplaces: ExistingWorkplace[];
+};
+
+const legalFormWords =
+  /\b(s\.?\s?c\.?|s\.?\s?r\.?\s?l\.?|s\.?a\.?|p\.?\s?f\.?\s?a\.?|i\.\s?i\.?|i\.\s?f\.?|d-na|dl\.?|d-l)(?=\s|$|[^\p{L}])/gu;
+
+const workplaceNameTokens = (name: string) =>
+  foldText(withoutMarks(name).toLowerCase().replace(legalFormWords, ' '))
+    .split(' ')
+    .filter(Boolean);
+
+// As the API's import matches a proposed workplace to one the client has, by name.
+function sameWorkplaceName(a: string, b: string) {
+  const x = workplaceNameTokens(a);
+  const y = workplaceNameTokens(b);
+  if (x.join(' ') === y.join(' ')) return true;
+  const xs = new Set(x);
+  const ys = new Set(y);
+  if (xs.size === 0 || ys.size === 0) return false;
+  const shared = [...xs].filter((token) => ys.has(token)).length;
+  return shared / Math.max(xs.size, ys.size) >= 0.8;
+}
+
+/** The client's own workplace confirming writes a proposed one into, as the API's payload picks it. */
+export function linkedWorkplace(
+  state: Pick<ItemState, 'item' | 'values'>,
+  changes: Changes,
+  scope: ReviewScope
+): ExistingWorkplace | null {
+  if (!scope.existingClient) return null;
+  const chosen = changes.items[state.item.id]?.existingId;
+  if (chosen !== undefined) {
+    return scope.existingWorkplaces.find((workplace) => workplace.id === chosen) ?? null;
+  }
+  const address = isEmpty(state.values.addressLine)
+    ? null
+    : foldText(String(state.values.addressLine));
+  return (
+    scope.existingWorkplaces.find(
+      (workplace) =>
+        sameWorkplaceName(workplace.name, String(state.values.name ?? '')) ||
+        (address !== null &&
+          workplace.addressLine !== null &&
+          foldText(workplace.addressLine) === address)
+    ) ?? null
+  );
+}
+
+// Into an existing client the review does not hold every value of its workplaces, so it asks
+// there where the API blocks or the member already decided.
+const askedHere = (path: string, decided: boolean, scope: ReviewScope) =>
+  !scope.existingClient || decided || scope.blockers.some((blocker) => blocker.path === path);
+
+// Only an office the import creates takes the decision; one linked to the client's own office
+// keeps that office's answer (ADR 041).
+export function officeActivityStates(proposal: Proposal, changes: Changes, scope: ReviewScope) {
+  const states = itemStates(proposal, changes, 'workplaces');
+  const pointsBeside =
+    states.some((state) => state.included && state.values.isRegisteredOffice !== true) ||
+    (scope.existingClient &&
+      scope.existingWorkplaces.some((workplace) => !workplace.isRegisteredOffice));
+  return states.filter(
+    (state) =>
+      suggestsNoActivity(state) &&
+      pointsBeside &&
+      linkedWorkplace(state, changes, scope) === null &&
+      askedHere(
+        officeActivityPath(state.item.id),
+        officeActivityChoice(state.item, changes) !== null,
+        scope
+      )
+  );
+}
+
+/**
+ * The registered offices where no activity takes place, which take nothing from the import: one
+ * the member agreed is only an address, and the client's own office already answered so.
+ */
+export function inactiveOffices(proposal: Proposal, changes: Changes, scope: ReviewScope) {
+  const kept = officeActivityStates(proposal, changes, scope)
+    .filter((state) => officeActivityChoice(state.item, changes) === 0)
+    .map((state) => state.item.id);
+  const answered = itemStates(proposal, changes, 'workplaces')
+    .filter(
+      (state) =>
+        state.included && linkedWorkplace(state, changes, scope)?.officeHasActivity === false
+    )
+    .map((state) => state.item.id);
+  return new Set([...kept, ...answered]);
+}
+
+export const workplaceIdOf = (value: unknown) =>
+  value && typeof value === 'object'
+    ? ((value as { id: string | null }).id ?? '')
+    : typeof value === 'string'
+      ? value
+      : '';
+
+export function meansTaken(
+  proposal: Proposal,
+  changes: Changes,
+  list: 'fireEquipment' | 'fireInstallations',
+  inactive: Set<string>
+) {
+  const ofInactiveCounts = new Set(
+    fireEquipmentCountsOf(proposal)
+      .filter((count) => count.workplace.id !== null && inactive.has(count.workplace.id))
+      .flatMap((count) => count.options.flatMap((option) => option.equipmentIds))
+  );
+  return itemStates(proposal, changes, list).filter(
+    (state) =>
+      !inactive.has(workplaceIdOf(state.values.workplace)) && !ofInactiveCounts.has(state.item.id)
+  );
+}
+
+const leftOutWorkplaces = (proposal: Proposal, changes: Changes) =>
+  new Set(
+    itemStates(proposal, changes, 'workplaces')
+      .filter((state) => !state.included)
+      .map((state) => state.item.id)
+  );
+
+export function askedCounts(proposal: Proposal, changes: Changes, inactive: Set<string>) {
+  const leftOut = leftOutWorkplaces(proposal, changes);
+  return fireEquipmentCountsOf(proposal).filter(
+    (count) =>
+      count.workplace.id === null ||
+      (!leftOut.has(count.workplace.id) && !inactive.has(count.workplace.id))
+  );
+}
+
+export function suggestionStates(proposal: Proposal, changes: Changes, scope: ReviewScope) {
+  const inactive = inactiveOffices(proposal, changes, scope);
+  return itemStates(proposal, changes, 'workplaces').filter(
+    (state) =>
+      state.included &&
+      !inactive.has(state.item.id) &&
+      suggestedFields(state, changes).length > 0 &&
+      askedHere(
+        suggestedValuesPath(state.item.id),
+        suggestionsConfirmed(state.item, changes),
+        scope
+      )
+  );
+}
+
+export function assemblyPointStates(proposal: Proposal, changes: Changes, scope: ReviewScope) {
+  const inactive = inactiveOffices(proposal, changes, scope);
+  return itemStates(proposal, changes, 'workplaces').filter(
+    (state) =>
+      state.included &&
+      !isEmpty(state.item.assemblyPoint) &&
+      !inactive.has(state.item.id) &&
+      askedHere(
+        assemblyPointPath(state.item.id),
+        assemblyPointDecision(state.item, changes) !== null,
+        scope
+      )
+  );
+}
+
 type AnyItem = {
   id: string;
   sources: Source[];
   otherCompanyName: string | null;
 } & Record<string, unknown>;
 
+// A proposal stored before the substances were read has none.
 export const itemsOf = (proposal: Proposal, list: ItemList) =>
-  proposal[list] as unknown as AnyItem[];
+  (proposal[list] ?? []) as unknown as AnyItem[];
 
 export type UntickedReason =
   'other_company' | 'legal_representative' | 'management_only' | 'position_left_out';
@@ -696,6 +1009,35 @@ export function nameSpellings(proposal: Proposal, state: ItemState): NameSpellin
   return spellings.some((spelling) => spelling.value === state.values.fullName) ? spellings : [];
 }
 
+export type FireEquipmentCount = NonNullable<Proposal['fireEquipmentCounts']>[number];
+
+export const fireEquipmentCountsOf = (proposal: Proposal): FireEquipmentCount[] =>
+  proposal.fireEquipmentCounts ?? [];
+
+export const fireEquipmentCountPath = (id: string) => `fireEquipmentCounts.${id}`;
+
+/** The option the member chose, as the API's payload reads it; null while the choice waits. */
+export function chosenCountOption(count: FireEquipmentCount, changes: Changes): number | null {
+  const option = changes.fields[fireEquipmentCountPath(count.id)]?.option;
+  return option !== undefined && count.options[option] ? option : null;
+}
+
+// The entries of the options not chosen, and of every option while the count waits, are never
+// written, so the review leaves them out of the list and of what confirming creates. A workplace
+// left out takes none of them, whatever was chosen before.
+function notCountedEquipment(proposal: Proposal, changes: Changes) {
+  const ids = new Set<string>();
+  const leftOut = leftOutWorkplaces(proposal, changes);
+  for (const count of fireEquipmentCountsOf(proposal)) {
+    const asked = count.workplace.id === null || !leftOut.has(count.workplace.id);
+    const chosen = asked ? chosenCountOption(count, changes) : null;
+    count.options.forEach((option, index) => {
+      if (index !== chosen) for (const id of option.equipmentIds) ids.add(id);
+    });
+  }
+  return ids;
+}
+
 export function itemStates(proposal: Proposal, changes: Changes, list: ItemList): ItemState[] {
   const leftOutPositions = new Set(
     list === 'protectiveEquipment'
@@ -704,7 +1046,10 @@ export function itemStates(proposal: Proposal, changes: Changes, list: ItemList)
           .map((state) => state.item.id)
       : []
   );
-  return itemsOf(proposal, list).map((item, index) => {
+  const notCounted =
+    list === 'fireEquipment' ? notCountedEquipment(proposal, changes) : new Set<string>();
+  return itemsOf(proposal, list).flatMap((item, index): ItemState | ItemState[] => {
+    if (notCounted.has(item.id)) return [];
     const change = changes.items[item.id];
     const written = change?.values ?? {};
     const reason = untickedReason(item, written, leftOutPositions);
@@ -751,7 +1096,35 @@ export function itemName(list: ItemList, values: Record<string, unknown>): strin
       return fireInstallationKindLabels[values.kind as FireInstallationKind] ?? String(values.kind);
     case 'protectiveEquipment':
       return String(values.item ?? '');
+    case 'substances':
+      return String(values.name ?? '');
   }
+}
+
+export function countName(count: FireEquipmentCount) {
+  const kind = fireEquipmentKindLabels[count.kind as FireEquipmentKind] ?? String(count.kind);
+  const agent = count.agent as FireExtinguishingAgent | null;
+  const type =
+    agent && count.capacity !== null
+      ? extinguisherCode(agent, count.capacity)
+      : agent
+        ? fireExtinguishingAgentLabels[agent]
+        : null;
+  return [[kind, type].filter(Boolean).join(' '), count.wheeled ? 'carosabil' : null]
+    .filter(Boolean)
+    .join(', ');
+}
+
+export function countWorkplaceName(
+  proposal: Proposal,
+  changes: Changes,
+  count: FireEquipmentCount
+) {
+  const workplace = itemsOf(proposal, 'workplaces').find((item) => item.id === count.workplace.id);
+  const values = workplace
+    ? { ...workplace, ...(changes.items[workplace.id]?.values ?? {}) }
+    : null;
+  return values ? itemName('workplaces', values) : (count.workplace.name ?? '');
 }
 
 export const roleLabel = (role: string) =>
@@ -856,6 +1229,65 @@ export function blockerLink(proposal: Proposal, changes: Changes, blocker: Block
   const section = sectionOf(blocker.path);
   const parts = blocker.path.split('.');
   const [root, second, field] = parts as [string, string | undefined, string | undefined];
+  if (root === 'assemblyPoints') {
+    const workplace = itemsOf(proposal, 'workplaces').find((item) => item.id === second);
+    const values = workplace
+      ? { ...workplace, ...(changes.items[workplace.id]?.values ?? {}) }
+      : null;
+    return {
+      section,
+      anchor: anchorOf(blocker.path),
+      code: blocker.code,
+      text: values
+        ? `Confirmă punctul de adunare: ${itemName('workplaces', values)}`
+        : 'Confirmă punctul de adunare',
+    };
+  }
+  if (root === 'suggestedValues' || root === 'officeActivity') {
+    const workplace = itemsOf(proposal, 'workplaces').find((item) => item.id === second);
+    const values = workplace
+      ? { ...workplace, ...(changes.items[workplace.id]?.values ?? {}) }
+      : null;
+    const what =
+      root === 'suggestedValues'
+        ? 'Confirmă sugestiile din activitate'
+        : 'Alege dacă la sediul social se desfășoară activitate';
+    return {
+      section,
+      anchor: anchorOf(blocker.path),
+      code: blocker.code,
+      text:
+        values && root === 'suggestedValues' ? `${what}: ${itemName('workplaces', values)}` : what,
+    };
+  }
+  if (blocker.path === substancesStatePath && blocker.code === 'invalid') {
+    return {
+      section,
+      anchor: anchorOf(blocker.path),
+      code: blocker.code,
+      text: 'Păstrează substanțele periculoase din aplicație',
+    };
+  }
+  if (blocker.path === smokingPlacePath && blocker.code === 'choice') {
+    return {
+      section,
+      anchor: anchorOf(blocker.path),
+      code: blocker.code,
+      text: 'Confirmă locul pentru fumat',
+    };
+  }
+  if (root === 'fireEquipmentCounts') {
+    const count = fireEquipmentCountsOf(proposal).find((each) => each.id === second);
+    const where = count ? countWorkplaceName(proposal, changes, count) : '';
+    return {
+      section,
+      anchor: anchorOf(blocker.path),
+      code: blocker.code,
+      text: count
+        ? `Alege numărul de bucăți: ${countName(count)}${where ? `, ${where}` : ''}`
+        : 'Alege numărul de bucăți',
+    };
+  }
   const info = fieldInfo[`${root}.${second}`];
   if (info) {
     const picked = fireTrainingPaths.has(`${root}.${second}`) || root === 'trainingSchedule';
@@ -878,8 +1310,7 @@ export function blockerLink(proposal: Proposal, changes: Changes, blocker: Block
   }
   const list = root as ItemList;
   const index = Number(second);
-  const items = (proposal[list] as unknown as AnyItem[] | undefined) ?? [];
-  const item = items[index];
+  const item = itemsOf(proposal, list)[index];
   const values: Record<string, unknown> = item
     ? { ...item, ...(changes.items[item.id]?.values ?? {}) }
     : {};
@@ -999,6 +1430,7 @@ export function sectionStatus(
       'fireInstallations',
       'protectiveEquipment',
       'employees',
+      'substances',
     ] as const
   ).filter((list) => sectionOf(list) === section);
   const otherCompanyItems = lists.some((list) =>
@@ -1047,6 +1479,7 @@ const notAllowed: Record<string, string> = {
   specificMeasures: 'Textul are între 2 și 600 de caractere.',
   wasteKinds: 'Cel mult 12 tipuri de deșeuri, fiecare între 2 și 240 de caractere.',
   wasteCollectors: 'Textul are între 2 și 160 de caractere.',
+  name: 'Denumirea are între 2 și 160 de caractere.',
 };
 
 const referenceNouns: Record<string, string> = {
@@ -1061,7 +1494,7 @@ export function flagNote(flag: Flag, proposal: Proposal, changes: Changes): stri
   const parts = flag.path.split('.');
   const root = parts[0]!;
   const single = root === 'client' || root === 'trainingSchedule' || root === 'fireSafety';
-  const field = single ? parts[1] : parts[2];
+  const field = single ? parts[1] : parts[2] === 'suggested' ? parts[3] : parts[2];
   const cited =
     single || !field || field === 'sources'
       ? ''
@@ -1134,6 +1567,7 @@ const refusedRules: Record<string, string> = {
   job_position_equipment_duration_range: `durata de utilizare e ${durationRange}`,
   job_position_equipment_quantity_range: 'cantitatea e între 1 și 999',
   client_workplaces_registered_office_key: 'un client are un singur sediu social',
+  fire_substances_name_length: 'denumirea unei substanțe are între 2 și 160 de caractere',
 };
 
 export function refusedValueMessage(issue: { path: string; message: string } | undefined) {
@@ -1226,6 +1660,26 @@ export function unprovenRoles(proposal: Proposal, state: Pick<ItemState, 'index'
       })
       .map(([role]) => role)
   );
+}
+
+/**
+ * The substances confirming adds: none unless the client lists its substances after confirming,
+ * and none the client lists already by that name.
+ */
+export function substancesAdded(
+  proposal: Proposal,
+  changes: Changes,
+  states: Record<string, FieldState>,
+  existingNames: string[] = []
+): ItemState[] {
+  if (substancesAnswer(states[substancesStatePath]) !== 'listed') return [];
+  const listed = new Set(existingNames.map(foldText));
+  return itemStates(proposal, changes, 'substances').filter((state) => {
+    const name = foldText(String(state.values.name ?? ''));
+    if (!state.included || listed.has(name)) return false;
+    listed.add(name);
+    return true;
+  });
 }
 
 export const changesOf = (changes: ImportDetail['changes']): Changes => ({

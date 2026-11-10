@@ -10,6 +10,8 @@ topics:
     heading: Denumirea
   - id: detalii.sediu-social
     heading: Este sediul social
+  - id: detalii.sediu-fara-activitate
+    heading: La sediul social se desfășoară activitate
   - id: detalii.adresa-punct
     heading: Adresa
   - id: detalii.adresa-diferita
@@ -38,6 +40,7 @@ sources:
   - docs/architecture/adr-018-fire-safety-means.md
   - docs/architecture/adr-020-fire-safety-from-ten-employees.md
   - docs/architecture/adr-021-training-records-and-individual-sheets.md
+  - docs/architecture/adr-041-su-import-questions-and-suggestions.md
   - packages/contracts/src/fire-safety.ts
   - packages/contracts/src/documents.ts
   - apps/api/src/modules/documents/fire-safety.ts
@@ -46,14 +49,15 @@ sources:
   - apps/app/src/features/clients/workplace-dialog.tsx
   - apps/app/src/features/clients/workplace-schema.ts
   - apps/app/src/features/fire-safety-means/fire-means-schema.ts
+  - apps/app/src/features/fire-safety-means/fire-safety-means-page.tsx
   - apps/app/src/features/missing-data/missing-rows.ts
 ---
 
-Un punct de lucru e un loc în care lucrează lucrătorii clientului: sediul, un magazin, un birou, un atelier, un șantier. Fiecare lucrător are punctul lui de lucru (vezi [Punctul de lucru](/clienti/angajati/adaugare-si-editare/#punctul-de-lucru)), iar documentele SU tipăresc fiecare punct de lucru activ, cu activitatea, adresa și mijloacele lui de apărare împotriva incendiilor.
+Un punct de lucru e un loc în care lucrează lucrătorii clientului: sediul, un magazin, un birou, un atelier, un șantier. Fiecare lucrător are punctul lui de lucru (vezi [Punctul de lucru](/clienti/angajati/adaugare-si-editare/#punctul-de-lucru)), iar documentele SU tipăresc fiecare punct de lucru activ, cu activitatea, adresa și mijloacele lui de apărare împotriva incendiilor. Singura excepție e sediul social care e doar o adresă (vezi [La sediul social se desfășoară activitate](#la-sediul-social-se-desfășoară-activitate)).
 
 ## Lista punctelor de lucru
 
-Punctele de lucru sunt pe tabul **Detalii**, în cardul **Sediu și puncte de lucru**. Fiecare rând arată denumirea și adresa. Sediul social are eticheta **Sediu social**, iar un punct de lucru căruia îi lipsesc date cerute de documentele SU are dedesubt **Date SU incomplete**.
+Punctele de lucru sunt pe tabul **Detalii**, în cardul **Sediu și puncte de lucru**. Fiecare rând arată denumirea și adresa. Sediul social are eticheta **Sediu social**, iar un punct de lucru căruia îi lipsesc date cerute de documentele SU are dedesubt **Date SU incomplete**. Sub sediul social la care nu se desfășoară activitate vezi **Fără activitate la sediu**.
 
 Un clic pe rând deschide punctul de lucru ca să-l modifici. Din meniul de la capătul rândului ajungi la **Modifică** și **Arhivează**.
 
@@ -74,6 +78,33 @@ Cum îi spuneți locului, de exemplu „Sediu social” sau „Magazin Timișoar
 Bifează căsuța pentru punctul de lucru care e sediul social al firmei. Un client are un singur sediu social. Dacă bifezi căsuța la al doilea punct de lucru, vezi „Clientul are deja un sediu social. Modifică-l pe acela sau debifează opțiunea.”
 
 Fișa obiectivului din setul SU tipărește celelalte puncte de lucru ca puncte de lucru ale firmei. Când adresa sediului lipsește din datele firmei, fișa folosește adresa acestui punct de lucru.
+
+### La sediul social se desfășoară activitate
+
+Căsuța apare doar la sediul social și e bifată de la început. Debifeaz-o când sediul e doar o adresă, la care clientul nu lucrează: un domiciliu sau un sediu găzduit de altă firmă.
+
+Când e debifată:
+
+- dialogul nu mai arată secțiunea **Apărare împotriva incendiilor**, iar documentele SU nu cer pentru sediu nici date SU, nici stingător;
+- documentele SU lasă sediul deoparte peste tot unde enumeră locurile de muncă: lista mijloacelor de apărare, fișa și instrucțiunile afișate la locul de muncă, decizia pentru perioadele caniculare și sezonul rece, graficele de verificare, registrele, raportul anual și tematica;
+- lista mijloacelor de apărare împotriva incendiilor spune într-un rând că la sediul social nu se desfășoară activitate, cu adresa sediului, ca să se vadă de ce acolo nu e niciun stingător;
+- adresa sediului rămâne adresa firmei unde documentele o tipăresc ca atare, de exemplu pe fișa obiectivului;
+- pe tabul **Mijloace de apărare** sediul nu mai are card. Ce ai completat înainte pentru el (datele SU, stingătoarele, instalațiile, verificările, clădirea) rămâne păstrat, dar nu se mai vede și nu se tipărește; revine dacă bifezi din nou căsuța;
+- sediul nu mai poate fi ales ca punct de lucru al unui angajat, nici la importul angajaților din fișe;
+- sediul nu mai poate fi ales ca loc de muncă al unei persoane responsabile. O persoană legată de sediu dinainte rămâne așa, iar documentele SU o trec ca pe una legată de toate locurile de muncă.
+
+Nu poți debifa căsuța când:
+
+- clientul nu are alt punct de lucru activ. Vezi „Clientul nu are alt punct de lucru activ. Adaugă întâi punctul de lucru în care se desfășoară activitatea.” Din același motiv nu poți arhiva ultimul punct de lucru cât timp la sediu nu se desfășoară activitate;
+- la sediu lucrează angajați actuali. Mesajul spune câți; mută-i întâi, din fișa fiecăruia, la punctul de lucru unde lucrează.
+
+Când imporți clientul din documente, importul îți poate propune că la sediul social nu se desfășoară activitate, dacă documentele numesc un punct de lucru separat și nu pun nimic la sediu; răspunsul e tot al tău (vezi [Importul unui client din documente](/clienti/import/#importul-unui-client-din-documente)).
+
+Un punct de lucru în care nu se mai lucrează nu are această căsuță: îl arhivezi (vezi [Arhivarea unui punct de lucru](#arhivarea-unui-punct-de-lucru)).
+
+Niciunul dintre actele următoare nu leagă un stingător sau o fișă afișată de adresa sediului social. Normele generale de apărare împotriva incendiilor stabilesc tipul și numărul stingătoarelor pe construcție, după reglementările tehnice sau normele specifice (OMAI 163/2007, art. 131). Pentru construcțiile fără astfel de prevederi, anexa 6 dă un număr orientativ, iar nota ei lasă alegerea proiectantului sau, la o construcție existentă, scenariului de incendiu ori persoanei cu atribuții, după riscul de incendiu și materialele din spațiu; la clădirile de locuit numărul e doar o recomandare. Legea 307/2006 dă obligațiile administratorului „în unitatea sa” (art. 19), iar celui care folosește un spațiu îi cere să respecte măsurile stabilite de proprietar sau de administrator (art. 21). Legea 265/2022 cere declarația privind activitatea pentru sediul social și pentru fiecare sediu secundar (art. 121 și 122), iar îndrumările Oficiului Național al Registrului Comerțului privesc și firma care nu desfășoară la sediul social activitatea declarată.
+
+Nici Inspectoratul General pentru Situații de Urgență, nici vreun inspectorat județean nu a publicat o poziție despre un sediu social la care nu se desfășoară activitate. De aceea căsuța debifată rămâne răspunsul clientului, iar documentele SU arată de ce sediul lipsește din liste.
 
 ### Adresa
 
@@ -100,7 +131,7 @@ Secțiunea **Apărare împotriva incendiilor** din dialog ține ce cer documente
 - punctul de adunare;
 - materialele combustibile, sursele de aprindere și echipamentele și mijloacele de lucru.
 
-Setul SU se generează întreg, așa că un singur punct de lucru activ cu date lipsă oprește tot setul. În lista datelor lipsă apare „Datele SU ale locurilor de muncă”; linkul deschide primul punct de lucru incomplet, la primul câmp lipsă.
+Setul SU se generează întreg, așa că un singur punct de lucru activ cu date lipsă oprește tot setul. Sediul social la care nu se desfășoară activitate nu e cerut. În lista datelor lipsă apare „Datele SU ale locurilor de muncă”; linkul deschide primul punct de lucru incomplet, la primul câmp lipsă.
 
 ### Activitatea
 
@@ -131,7 +162,7 @@ Sub listă vezi ce cuprinde categoria aleasă. Pentru un spațiu care nu se înc
 
 Pe tabul **Mijloace de apărare**, lângă numărul de stingătoare al punctului de lucru, vezi minimul orientativ: suprafața împărțită la suprafața din normă, rotunjită în sus, cel puțin un stingător. La clădirile de locuit vezi „cel puțin unul pe nivel”, iar fără normă nu vezi niciun minim. Anexa socotește numărul după suprafața desfășurată; aplicația îl socotește din suprafața pe care o scrii aici.
 
-Minimul e doar o indicație: nu se tipărește și nu oprește generarea. Anexa îl numește orientativ și spune că tipul și numărul de stingătoare le stabilește proiectantul sau, la construcțiile existente, scenariile de incendiu ori persoana cu atribuții, după riscul de incendiu și materialele din spațiu. Ce cere aplicația la generare e cel puțin un stingător la fiecare punct de lucru activ.
+Minimul e doar o indicație: nu se tipărește și nu oprește generarea. Anexa îl numește orientativ și spune că tipul și numărul de stingătoare le stabilește proiectantul sau, la construcțiile existente, scenariile de incendiu ori persoana cu atribuții, după riscul de incendiu și materialele din spațiu. Ce cere aplicația la generare e cel puțin un stingător la fiecare punct de lucru activ, în afară de sediul social la care nu se desfășoară activitate.
 
 ### Punctul de adunare
 

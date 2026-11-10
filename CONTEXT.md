@@ -62,7 +62,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Work zone** (_zona de lucru_): the kind of place a job position works in, as free text: "Birou", "Atelier, teren". Not an address. Avoid: workplace.
 
-**Workplace** (_punct de lucru_): an address where a client operates, the registered office included. Its kind is a **fixed space** (_spațiu fix_) or a **temporary or mobile site** (_șantier temporar sau mobil_), which has no floor area and no row in annex 6 of OMAI 163/2007. An employee works at one, by default the only active one a client has. ADR 018, ADR 021. Avoid: location, site on its own, and "loc de muncă".
+**Workplace** (_punct de lucru_): an address where a client operates, the registered office included. A registered office answered as having **no activity** (_la sediul social nu se desfășoară activitate_) stays the client's address and carries no fire-safety data (ADR 041). Its kind is a **fixed space** (_spațiu fix_) or a **temporary or mobile site** (_șantier temporar sau mobil_), which has no floor area and no row in annex 6 of OMAI 163/2007. An employee works at one, by default the only active one a client has. ADR 018, ADR 021. Avoid: location, site on its own, and "loc de muncă".
 
 **Fire-safety means** (_mijloace de apărare împotriva incendiilor_): the equipment and installations a workplace has against fire, recorded one unit per row: each extinguisher, sand box, fire post or fire blanket, and each installation, such as the alarm system or the interior hydrants. They have a tab of their own, _Mijloace de apărare_ (ADR 035). ADR 018. Avoid: inventory, _dotări_ as a word users see, _Mijloace PSI_ and _Mijloace SU_, and PSI equipment, which collides with protective equipment.
 
@@ -250,7 +250,9 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Import** (_import din documente_): a client's files read by a model into a proposal that a member reviews and confirms. A **client import** reads a documentation pack and creates a client or completes an existing one; an **employee import** (_import din fișe_) reads photographs of individual training sheets into employees and their training records, transcribed from the paper sheet, which stays the original. One client per import. ADR 030, ADR 032. Avoid: migration, upload (which is one step of it), AI import, scan.
 
-**Proposal** (_propunere_): what an import's reading returns: every value with the file and the quote it came from, the choices where documents disagree, and what is missing. Nothing of it is written until the member confirms. ADR 030. Avoid: draft (which is a document's revision), suggestion, extraction.
+**Proposal** (_propunere_): what an import's reading returns: every value with the file and the quote it came from, the choices where documents disagree, and what is missing. Nothing of it is written until the member confirms. ADR 030. Avoid: draft (which is a document's revision), extraction, and suggestion for the whole of it.
+
+**Suggested value** (_sugestie_): a value of a proposal that the model drafts from passages about the client's activity where no document states it, such as what can burn at a workplace, drawn from the risk evaluation's equipment and the waste kinds. Marked as such, shown with the passages it was drawn from, and confirmed by the member one workplace at a time; never a count, a date, a name or a place. ADR 041. Avoid: inferred value, which code derives by a fixed rule, and AI data.
 
 **Source** (_sursa_): the file and the passage a proposed value came from, shown in the file itself. ADR 030. Avoid: evidence, citation (which is a template quoting a legal act).
 

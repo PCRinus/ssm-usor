@@ -69,6 +69,8 @@ export function ReviewSectionPage({
     registered,
     existingClient: detail.intoExistingClient,
     existingPositions: existing.positions,
+    existingSubstances: existing.substanceNames,
+    existingWorkplaces: existing.workplaces,
     importId: detail.id,
     openSource: (title, sources, otherCompanyName) =>
       setSource({ title, sources, otherCompanyName }),

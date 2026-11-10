@@ -234,6 +234,7 @@ const workplaceRow = {
   id: 'c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f',
   name: 'Sediul social',
   is_registered_office: true,
+  office_has_activity: true,
   county_code: 'TM',
   locality: 'Timișoara',
   address_line: 'Str. Lungă 5',
@@ -263,6 +264,7 @@ const fireSafetyRow = {
   substances_state: 'none',
 };
 const fireSubstanceRow = {
+  id: '6c4e2a10-0000-4000-8000-000000000001',
   name: 'Propan',
   classification: 'Flam. Gas 1, H220',
   quantity: '2 butelii de 11 kg',
@@ -603,6 +605,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
       workersRepresentativeClash: null,
       undecidedJobPositions: [],
       incompleteRiskEvaluations: [],
+      incompleteFireSubstances: [],
     });
     const positions = fetchMock.mock.calls
       .map(([input]) => new URL(String(input)))
@@ -678,6 +681,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
       workersRepresentativeClash: null,
       undecidedJobPositions: [],
       incompleteRiskEvaluations: [],
+      incompleteFireSubstances: [],
     });
   });
 
@@ -826,6 +830,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
       workersRepresentativeClash: null,
       undecidedJobPositions: [],
       incompleteRiskEvaluations: [],
+      incompleteFireSubstances: [],
     });
   });
 
@@ -3059,6 +3064,7 @@ describe('the fire-safety set', () => {
       workersRepresentativeClash: null,
       undecidedJobPositions: [],
       incompleteRiskEvaluations: [],
+      incompleteFireSubstances: [],
     });
   });
 
@@ -3220,6 +3226,7 @@ describe('the fire-safety set', () => {
       'installationSheets',
       'issueDate',
       'noAnnexes',
+      'officeWithoutActivity',
       'provider',
       'seasonsDecision',
     ]);
@@ -3421,6 +3428,39 @@ describe('the fire-safety set', () => {
     expect(searchParam('/rest/v1/fire_equipment', 'client_id')).toBe(`eq.${clientId}`);
   });
 
+  it('asks nothing of a registered office where no activity takes place (ADR 041)', async () => {
+    const pointOfWork = {
+      ...workplaceRow,
+      id: 'd4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f7a',
+      name: 'Gelaterie Iosefin',
+      is_registered_office: false,
+    };
+    const fireEquipment = () =>
+      Response.json([{ ...fireEquipmentRow, workplace_id: pointOfWork.id }]);
+    const missing = async (office: Record<string, unknown>) => {
+      mockUpstream({
+        workplaces: () =>
+          Response.json([{ ...workplaceRow, office_has_activity: false, ...office }, pointOfWork]),
+        fireEquipment,
+      });
+      const response = await request(`/clients/${clientId}/documents/readiness?set=fire_safety`);
+      return documentReadinessResponseSchema.parse(await response.json()).missing;
+    };
+    expect(await missing({})).toEqual([]);
+    expect(
+      await missing({
+        activity: null,
+        floor_area_m2: null,
+        extinguisher_norm: null,
+        assembly_point: null,
+        combustible_materials: null,
+        ignition_sources: null,
+        fire_risk_equipment: null,
+      })
+    ).toEqual([]);
+    expect(await missing({ office_has_activity: true })).toEqual(['fire.equipment']);
+  });
+
   it('compares a fire-safety decision with what it printed under its own number', async () => {
     const decision = {
       ...fireDocumentRow,
@@ -3529,8 +3569,43 @@ describe('the fire-safety set', () => {
       fireSubstances: () => Response.json([fireSubstanceRow]),
     });
     const listed = await request(`/clients/${clientId}/documents/readiness?set=fire_safety`);
-    expect(documentReadinessResponseSchema.parse(await listed.json()).ready).toBe(true);
+    expect(documentReadinessResponseSchema.parse(await listed.json())).toMatchObject({
+      ready: true,
+      incompleteFireSubstances: [],
+    });
     expect(searchParam('/rest/v1/fire_substances', 'client_id')).toBe(`eq.${clientId}`);
+  });
+
+  it('names the listed substances that still lack a classification or a quantity', async () => {
+    const thinner = {
+      ...fireSubstanceRow,
+      id: '6c4e2a10-0000-4000-8000-000000000002',
+      name: 'Diluant',
+      classification: null,
+      quantity: null,
+    };
+    mockUpstream({
+      fireSafety: () => Response.json({ ...fireSafetyRow, substances_state: 'listed' }),
+      fireSubstances: () =>
+        Response.json([
+          fireSubstanceRow,
+          thinner,
+          { ...fireSubstanceRow, id: thinner.id.replace(/2$/, '3'), quantity: null },
+        ]),
+    });
+    const fire = await request(`/clients/${clientId}/documents/readiness?set=fire_safety`);
+    expect(documentReadinessResponseSchema.parse(await fire.json())).toMatchObject({
+      ready: false,
+      missing: ['fire.substances'],
+      incompleteFireSubstances: [
+        { id: thinner.id, name: 'Diluant', missing: ['classification', 'quantity'] },
+        { id: '6c4e2a10-0000-4000-8000-000000000003', name: 'Propan', missing: ['quantity'] },
+      ],
+    });
+    const occupational = await request(`/clients/${clientId}/documents/readiness`);
+    expect(
+      documentReadinessResponseSchema.parse(await occupational.json()).incompleteFireSubstances
+    ).toEqual([]);
   });
 
   it('says so when none of its templates is registered', async () => {
@@ -3655,6 +3730,22 @@ describe('the fire-safety set', () => {
       missing: stageTwoCodes,
     });
     expect(calls('/rest/v1/document_generations', 'POST')).toHaveLength(0);
+    expect(calls('/rest/v1/document_revisions', 'PATCH')).toHaveLength(0);
+  });
+
+  it('refuses a document that prints the fire object while a listed substance is incomplete', async () => {
+    mockUpstream({
+      fireSafety: () => Response.json({ ...fireSafetyRow, substances_state: 'listed' }),
+      fireSubstances: () => Response.json([{ ...fireSubstanceRow, classification: null }]),
+      templates: () => Response.json([wasteTemplateRow]),
+      documents: () => Response.json(wasteDecisionRow),
+    });
+    const response = await request(`/documents/${wasteDecisionRow.id}/regenerate`, 'POST', {});
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json())).toMatchObject({
+      reason: 'missing_document_data',
+      missing: ['fire.substances'],
+    });
     expect(calls('/rest/v1/document_revisions', 'PATCH')).toHaveLength(0);
   });
 

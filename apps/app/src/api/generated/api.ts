@@ -121,6 +121,8 @@ export interface ApiErrorResponse {
   retryAfterSeconds?: number;
   credits?: ApiErrorResponseCredits;
   resumesAt?: string;
+  /** @minimum 1 */
+  employeeCount?: number;
 }
 
 export type MeResponseUser = {
@@ -5724,6 +5726,7 @@ export type WorkplaceListResponseItemsItem = {
   clientId: string;
   name: string;
   isRegisteredOffice: boolean;
+  officeHasActivity: boolean;
   /** @nullable */
   countyCode: WorkplaceListResponseItemsItemCountyCode;
   /** @nullable */
@@ -5836,6 +5839,7 @@ export type WorkplaceResponseWorkplace = {
   clientId: string;
   name: string;
   isRegisteredOffice: boolean;
+  officeHasActivity: boolean;
   /** @nullable */
   countyCode: WorkplaceResponseWorkplaceCountyCode;
   /** @nullable */
@@ -5947,6 +5951,7 @@ export interface WorkplaceRequest {
    */
   name: string;
   isRegisteredOffice?: boolean;
+  officeHasActivity?: boolean;
   /** @nullable */
   countyCode?: WorkplaceRequestCountyCode;
   /**
@@ -6787,8 +6792,10 @@ export type FireSubstancesResponseItemsItem = {
   id: string;
   clientId: string;
   name: string;
-  classification: string;
-  quantity: string;
+  /** @nullable */
+  classification: string | null;
+  /** @nullable */
+  quantity: string | null;
   /** @nullable */
   physicalChemicalProperties: string | null;
   /** @nullable */
@@ -6844,8 +6851,10 @@ export type FireSubstanceResponseSubstance = {
   id: string;
   clientId: string;
   name: string;
-  classification: string;
-  quantity: string;
+  /** @nullable */
+  classification: string | null;
+  /** @nullable */
+  quantity: string | null;
   /** @nullable */
   physicalChemicalProperties: string | null;
   /** @nullable */
@@ -6879,13 +6888,15 @@ export interface FireSubstanceRequest {
   /**
    * @minLength 2
    * @maxLength 600
+   * @nullable
    */
-  classification: string;
+  classification?: string | null;
   /**
    * @minLength 1
    * @maxLength 160
+   * @nullable
    */
-  quantity: string;
+  quantity?: string | null;
   /**
    * @minLength 2
    * @maxLength 1000
@@ -7239,6 +7250,21 @@ export type DocumentReadinessResponseIncompleteRiskEvaluationsItem = {
   missing: DocumentReadinessResponseIncompleteRiskEvaluationsItemMissingItem[];
 };
 
+export type DocumentReadinessResponseIncompleteFireSubstancesItemMissingItem =
+  (typeof DocumentReadinessResponseIncompleteFireSubstancesItemMissingItem)[keyof typeof DocumentReadinessResponseIncompleteFireSubstancesItemMissingItem];
+
+export const DocumentReadinessResponseIncompleteFireSubstancesItemMissingItem = {
+  classification: 'classification',
+  quantity: 'quantity',
+} as const;
+
+export type DocumentReadinessResponseIncompleteFireSubstancesItem = {
+  id: string;
+  name: string;
+  /** @minItems 1 */
+  missing: DocumentReadinessResponseIncompleteFireSubstancesItemMissingItem[];
+};
+
 export interface DocumentReadinessResponse {
   ready: boolean;
   missing: DocumentReadinessResponseMissingItem[];
@@ -7249,6 +7275,7 @@ export interface DocumentReadinessResponse {
   workersRepresentativeClash: DocumentReadinessResponseWorkersRepresentativeClash;
   undecidedJobPositions: DocumentReadinessResponseUndecidedJobPositionsItem[];
   incompleteRiskEvaluations: DocumentReadinessResponseIncompleteRiskEvaluationsItem[];
+  incompleteFireSubstances: DocumentReadinessResponseIncompleteFireSubstancesItem[];
 }
 
 export type ClientDocumentListResponseItemsItemDraftStatus =
@@ -9461,6 +9488,14 @@ export const ImportDetailProposalFireSafetyHasThirdPartiesOptionsItemValue = {
   false: 'false',
 } as const;
 
+export type ImportDetailProposalFireSafetySubstancesStateOptionsItemValue =
+  (typeof ImportDetailProposalFireSafetySubstancesStateOptionsItemValue)[keyof typeof ImportDetailProposalFireSafetySubstancesStateOptionsItemValue];
+
+export const ImportDetailProposalFireSafetySubstancesStateOptionsItemValue = {
+  none: 'none',
+  listed: 'listed',
+} as const;
+
 /**
  * @nullable
  */
@@ -9505,6 +9540,32 @@ export type ImportDetailProposalFireEquipmentItemAgent =
   | null;
 
 export const ImportDetailProposalFireEquipmentItemAgent = {
+  powder: 'powder',
+  co2: 'co2',
+  foam: 'foam',
+  water: 'water',
+  clean_agent: 'clean_agent',
+} as const;
+
+export type ImportDetailProposalFireEquipmentCountsItemKind =
+  (typeof ImportDetailProposalFireEquipmentCountsItemKind)[keyof typeof ImportDetailProposalFireEquipmentCountsItemKind];
+
+export const ImportDetailProposalFireEquipmentCountsItemKind = {
+  extinguisher: 'extinguisher',
+  sand_box: 'sand_box',
+  fire_post: 'fire_post',
+  fire_blanket: 'fire_blanket',
+  other: 'other',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ImportDetailProposalFireEquipmentCountsItemAgent =
+  | (typeof ImportDetailProposalFireEquipmentCountsItemAgent)[keyof typeof ImportDetailProposalFireEquipmentCountsItemAgent]
+  | null;
+
+export const ImportDetailProposalFireEquipmentCountsItemAgent = {
   powder: 'powder',
   co2: 'co2',
   foam: 'foam',
@@ -10448,6 +10509,28 @@ export type ImportDetailProposalFireSafetyHasThirdParties = {
   options: ImportDetailProposalFireSafetyHasThirdPartiesOptionsItem[];
 };
 
+export type ImportDetailProposalFireSafetySubstancesStateOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalFireSafetySubstancesStateOptionsItem = {
+  value: ImportDetailProposalFireSafetySubstancesStateOptionsItemValue;
+  sources: ImportDetailProposalFireSafetySubstancesStateOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
+  inferred?: ImportInference;
+};
+
+export type ImportDetailProposalFireSafetySubstancesState = {
+  options: ImportDetailProposalFireSafetySubstancesStateOptionsItem[];
+};
+
 export type ImportDetailProposalFireSafety = {
   periodicTrainingHours: ImportDetailProposalFireSafetyPeriodicTrainingHours;
   administrativeTrainingIntervalMonths: ImportDetailProposalFireSafetyAdministrativeTrainingIntervalMonths;
@@ -10461,6 +10544,7 @@ export type ImportDetailProposalFireSafety = {
   wasteKinds?: ImportDetailProposalFireSafetyWasteKinds;
   wasteCollectors?: ImportDetailProposalFireSafetyWasteCollectors;
   hasThirdParties?: ImportDetailProposalFireSafetyHasThirdParties;
+  substancesState?: ImportDetailProposalFireSafetySubstancesState;
 };
 
 export type ImportDetailProposalWorkplacesItemSourcesItem = {
@@ -10478,6 +10562,15 @@ export type ImportDetailProposalWorkplacesItemFieldSources = {
 };
 
 export type ImportDetailProposalWorkplacesItemSpelling = { [key: string]: string };
+
+export type ImportDetailProposalWorkplacesItemSuggestedItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalWorkplacesItemSuggested = {
+  [key: string]: ImportDetailProposalWorkplacesItemSuggestedItem[];
+};
 
 export type ImportDetailProposalWorkplacesItem = {
   /** @minLength 1 */
@@ -10541,6 +10634,8 @@ export type ImportDetailProposalWorkplacesItem = {
   specificMeasures?: string | null;
   fieldSources?: ImportDetailProposalWorkplacesItemFieldSources;
   spelling?: ImportDetailProposalWorkplacesItemSpelling;
+  officeHasActivity?: boolean;
+  suggested?: ImportDetailProposalWorkplacesItemSuggested;
 };
 
 export type ImportDetailProposalJobPositionsItemSourcesItem = {
@@ -10668,6 +10763,44 @@ export type ImportDetailProposalFireEquipmentItem = {
   spelling?: ImportDetailProposalFireEquipmentItemSpelling;
 };
 
+export type ImportDetailProposalFireEquipmentCountsItemWorkplace = {
+  /** @nullable */
+  name: string | null;
+  /** @nullable */
+  id: string | null;
+};
+
+export type ImportDetailProposalFireEquipmentCountsItemOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalFireEquipmentCountsItemOptionsItem = {
+  /** @minimum 1 */
+  total: number;
+  /** @minItems 1 */
+  sources: ImportDetailProposalFireEquipmentCountsItemOptionsItemSourcesItem[];
+  /**
+   * @minItems 1
+   * @items.minLength 1
+   */
+  equipmentIds: string[];
+};
+
+export type ImportDetailProposalFireEquipmentCountsItem = {
+  /** @minLength 1 */
+  id: string;
+  workplace: ImportDetailProposalFireEquipmentCountsItemWorkplace;
+  kind: ImportDetailProposalFireEquipmentCountsItemKind;
+  /** @nullable */
+  agent: ImportDetailProposalFireEquipmentCountsItemAgent;
+  /** @nullable */
+  capacity: number | null;
+  wheeled: boolean;
+  /** @minItems 2 */
+  options: ImportDetailProposalFireEquipmentCountsItemOptionsItem[];
+};
+
 export type ImportDetailProposalFireInstallationsItemSourcesItem = {
   file: string;
   quote: string;
@@ -10767,6 +10900,28 @@ export type ImportDetailProposalEmployeesItem = {
   hiredAt: string | null;
 };
 
+export type ImportDetailProposalSubstancesItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalSubstancesItemSpelling = { [key: string]: string };
+
+export type ImportDetailProposalSubstancesItem = {
+  /** @minLength 1 */
+  id: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalSubstancesItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+  /** @minLength 1 */
+  name: string;
+  spelling?: ImportDetailProposalSubstancesItemSpelling;
+};
+
 export type ImportDetailProposalFlagsItemSource = {
   file: string;
   quote: string;
@@ -10790,10 +10945,14 @@ export type ImportDetailProposal = {
   jobPositions: ImportDetailProposalJobPositionsItem[];
   responsiblePersons: ImportDetailProposalResponsiblePersonsItem[];
   fireEquipment: ImportDetailProposalFireEquipmentItem[];
+  fireEquipmentCounts?: ImportDetailProposalFireEquipmentCountsItem[];
   fireInstallations: ImportDetailProposalFireInstallationsItem[];
   protectiveEquipment: ImportDetailProposalProtectiveEquipmentItem[];
   employees: ImportDetailProposalEmployeesItem[];
+  substances?: ImportDetailProposalSubstancesItem[];
   notes: string[];
+  /** @minimum 0 */
+  withdrawnSuggestions?: number;
   flags: ImportDetailProposalFlagsItem[];
 } | null;
 

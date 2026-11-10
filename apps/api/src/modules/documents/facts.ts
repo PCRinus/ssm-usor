@@ -132,7 +132,7 @@ export async function loadDocumentFacts(
     db
       .from('client_workplaces')
       .select(
-        'id, name, is_registered_office, county_code, locality, address_line, activity, kind, floor_area_m2, extinguisher_norm, assembly_point, combustible_materials, ignition_sources, fire_risk_equipment, specific_measures'
+        'id, name, is_registered_office, office_has_activity, county_code, locality, address_line, activity, kind, floor_area_m2, extinguisher_norm, assembly_point, combustible_materials, ignition_sources, fire_risk_equipment, specific_measures'
       )
       .eq('client_id', clientId)
       .is('archived_at', null)
@@ -163,7 +163,7 @@ export async function loadDocumentFacts(
     db
       .from('fire_substances')
       .select(
-        'name, classification, quantity, physical_chemical_properties, identification_codes, health_environment_risks, protection_means, intervention_measures, extinguishing_agents, storage_place, handling'
+        'id, name, classification, quantity, physical_chemical_properties, identification_codes, health_environment_risks, protection_means, intervention_measures, extinguishing_agents, storage_place, handling'
       )
       .eq('client_id', clientId)
       .order('sort_order')
@@ -282,6 +282,7 @@ export async function loadDocumentFacts(
       id: workplace.id,
       name: workplace.name,
       registeredOffice: workplace.is_registered_office,
+      officeHasActivity: workplace.office_has_activity,
       countyCode: workplace.county_code,
       locality: workplace.locality,
       addressLine: workplace.address_line,
@@ -379,6 +380,7 @@ export async function loadDocumentFacts(
       substances: {
         state: fireSafety.data?.substances_state ?? 'undecided',
         entries: fireSubstances.data.map((substance) => ({
+          id: substance.id,
           name: substance.name,
           classification: substance.classification,
           quantity: substance.quantity,

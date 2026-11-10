@@ -917,7 +917,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
     };
     mockUpstream({
       employees: () => Response.json(row, { status: 201 }),
-      workplaces: () => Response.json({ id: workplaceId }),
+      workplaces: () => Response.json({ id: workplaceId, office_has_activity: true }),
     });
     const response = await postEmployee(sheetBody);
     expect(response.status).toBe(201);
@@ -972,11 +972,25 @@ describe('training sheet fields on employees (ADR 021)', () => {
     expect((await postEmployee(body)).status).toBe(201);
     expect(sent('POST').workplace_id).toBe(workplaceId);
     const lookup = new URL(String(calls('/rest/v1/client_workplaces')[0]![0])).searchParams;
-    expect([lookup.get('client_id'), lookup.get('archived_at'), lookup.get('limit')]).toEqual([
-      `eq.${clientId}`,
-      'is.null',
-      '2',
-    ]);
+    expect([
+      lookup.get('client_id'),
+      lookup.get('office_has_activity'),
+      lookup.get('archived_at'),
+      lookup.get('limit'),
+    ]).toEqual([`eq.${clientId}`, 'eq.true', 'is.null', '2']);
+  });
+
+  it('refuses a registered office where no activity takes place (ADR 041)', async () => {
+    mockUpstream({
+      workplaces: () => Response.json({ id: workplaceId, office_has_activity: false }),
+    });
+    for (const response of [await postEmployee(sheetBody), await put(sheetBody)]) {
+      expect(response.status).toBe(400);
+      expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe(
+        'workplaceId'
+      );
+    }
+    expect(calls('/rest/v1/employees').some(([, init]) => init?.method !== 'GET')).toBe(false);
   });
 
   it('leaves a new employee without a workplace when the body clears it, even at a client with one', async () => {
@@ -1014,7 +1028,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
 
     mockUpstream({
       employees: () => Response.json(employeeRow),
-      workplaces: () => Response.json({ id: workplaceId }),
+      workplaces: () => Response.json({ id: workplaceId, office_has_activity: true }),
     });
     expect((await put(sheetBody)).status).toBe(200);
     expect(sent('PATCH')).toMatchObject({ workplace_id: workplaceId, commute_minutes: 35 });

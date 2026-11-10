@@ -12,8 +12,10 @@ import {
 } from '@ssm-usor/contracts';
 import {
   type Field,
+  fireEquipmentCountPath,
   type Flag,
   foldText,
+  officeActivityPath,
   type Proposal,
   proposedEmployeeSchema,
   proposedFireEquipmentSchema,
@@ -22,8 +24,12 @@ import {
   proposedJobPositionSchema,
   proposedProtectiveEquipmentSchema,
   proposedResponsiblePersonSchema,
+  proposedSubstanceSchema,
   proposedWorkplaceSchema,
   sameName,
+  substanceNameAllowed,
+  suggestedValuesPath,
+  suggestedWorkplaceFieldNames,
 } from '@ssm-usor/import';
 import type { z } from 'zod';
 
@@ -36,10 +42,17 @@ type ItemChange = ImportChanges['items'][string];
 export interface ExistingRecords {
   client: Row | null;
   fireSafety: Row | null;
-  workplaces: { id: string; name: string; address_line: string | null }[];
+  workplaces: ({
+    id: string;
+    name: string;
+    address_line: string | null;
+    is_registered_office?: boolean;
+    office_has_activity?: boolean;
+  } & Partial<Record<string, unknown>>)[];
   jobPositions: { id: string; name: string; staff_category?: string }[];
   employees: { id: string; last_name: string; first_name: string; cnp: string | null }[];
   responsiblePersons: { full_name: string }[];
+  substances: { name: string }[];
 }
 
 export const noExistingRecords: ExistingRecords = {
@@ -49,6 +62,7 @@ export const noExistingRecords: ExistingRecords = {
   jobPositions: [],
   employees: [],
   responsiblePersons: [],
+  substances: [],
 };
 
 export interface RegisteredCompany {
@@ -95,6 +109,7 @@ const fireSafetyColumns: Record<string, string> = {
   'fireSafety.wasteKinds': 'waste_kinds',
   'fireSafety.wasteCollectors': 'waste_collectors',
   'fireSafety.hasThirdParties': 'has_third_parties',
+  'fireSafety.substancesState': 'substances_state',
 };
 
 const integerColumns = new Set([
@@ -180,6 +195,18 @@ const workplaceColumns: Record<string, string> = {
   specificMeasures: 'specific_measures',
 };
 
+// What an office where no activity takes place does not carry (ADR 041).
+const officeSuColumns = [
+  'kind',
+  'floor_area_m2',
+  'extinguisher_norm',
+  'assembly_point',
+  'combustible_materials',
+  'ignition_sources',
+  'fire_risk_equipment',
+  'specific_measures',
+];
+
 const jobPositionColumns: Record<string, string> = {
   name: 'name',
   staffCategory: 'staff_category',
@@ -199,6 +226,9 @@ const sections = [
   'fireInstallations',
   'protectiveEquipment',
   'employees',
+  'substances',
+  // Per suggested value (ADR 041): kept unchanged, changed, or left empty as `unticked`.
+  'suggestedValues',
 ] as const;
 
 type Section = (typeof sections)[number];
@@ -324,6 +354,41 @@ function smokingPlaceDropped(
   return (written ? value : current) !== 'designated_places';
 }
 
+const smokingPlacePath = 'fireSafety.smokingPlace';
+
+const assemblyPointPath = (workplaceId: string) => `assemblyPoints.${workplaceId}`;
+
+// Both print on what is posted at the workplace and packs copy both from one client to the next,
+// so neither is taken until the member keeps, changes or empties it (ADR 041).
+type SiteFact = 'undecided' | 'kept' | 'changed';
+
+function smokingPlaceFact(field: Field<Value>, change: FieldChange | undefined): SiteFact {
+  const option = change?.option === undefined ? undefined : field.options[change.option];
+  const kept = Boolean(option) || Boolean(change?.replace) || change?.included === true;
+  if (change?.value === undefined) return kept ? 'kept' : 'undecided';
+  const own = field.options.filter((each) => each.otherCompanyName === null);
+  const spelled = option ?? (own.length === 1 ? own[0] : undefined);
+  // The document's spelling selected before deciding is stored as the member's value too.
+  if (spelled?.spelling !== undefined && change.value === spelled.spelling) {
+    return kept ? 'kept' : 'undecided';
+  }
+  return 'changed';
+}
+
+function assemblyPointFact(item: Proposal['workplaces'][number], changes: ImportChanges): SiteFact {
+  const written = changes.items[item.id]?.values ?? {};
+  if ('assemblyPoint' in written && written.assemblyPoint !== item.spelling.assemblyPoint) {
+    return 'changed';
+  }
+  return changes.fields[assemblyPointPath(item.id)]?.option === 0 ? 'kept' : 'undecided';
+}
+
+const substancesStatePath = 'fireSafety.substancesState';
+
+// An undecided answer is no answer, which the documents' fills as they fill an empty column.
+const decidedFireSafety = (row: Row | null): Row | null =>
+  row?.substances_state === 'undecided' ? { ...row, substances_state: null } : row;
+
 function fieldsOf(proposal: Proposal) {
   return Object.entries({
     client: proposal.client,
@@ -345,7 +410,8 @@ type ItemList =
   | 'fireEquipment'
   | 'fireInstallations'
   | 'protectiveEquipment'
-  | 'employees';
+  | 'employees'
+  | 'substances';
 
 const itemSchemas = {
   workplaces: proposedWorkplaceSchema,
@@ -355,6 +421,7 @@ const itemSchemas = {
   fireInstallations: proposedFireInstallationSchema,
   protectiveEquipment: proposedProtectiveEquipmentSchema,
   employees: proposedEmployeeSchema,
+  substances: proposedSubstanceSchema,
 } satisfies Record<ItemList, z.ZodType>;
 
 const referenceFields = new Set(['workplace', 'jobPosition', 'employee']);
@@ -376,6 +443,7 @@ export interface ClientImportPayload {
   fire_safety?: Row;
   fire_equipment: Row[];
   fire_installations: Row[];
+  fire_substances: Row[];
   quality: Quality;
 }
 
@@ -396,6 +464,7 @@ export function toClientPayload(input: {
   registeredCompany?: RegisteredCompany | null;
 }): Mapping {
   const { proposal, existing, intoExistingClient } = input;
+  const existingFire = decidedFireSafety(existing.fireSafety);
   const changes: ImportChanges = input.changes ?? { fields: {}, items: {} };
   const blockers: ImportBlocker[] = [];
   const block = (path: string, code: ImportBlocker['code']) => {
@@ -428,13 +497,19 @@ export function toClientPayload(input: {
       path === 'client.legalName' && anafName !== null
         ? { value: anafName, option: null, choice: false, changed: false, unticked: false }
         : resolveField(field, change);
-    if (resolved.changed) quality[section].changed++;
+    const fact = path === smokingPlacePath ? smokingPlaceFact(field, change) : null;
+    const keptAsRead = fact === 'kept' && change?.value === undefined;
+    if (resolved.changed && !keptAsRead) quality[section].changed++;
     if (resolved.unticked) quality[section].unticked++;
     const inFireSafety = path in fireSafetyColumns;
     const column = inFireSafety ? fireSafetyColumns[path] : clientColumns[path];
-    const current = column && (inFireSafety ? existing.fireSafety : existing.client)?.[column];
-    // An existing client's schedule keeps its own value unless the member takes the documents'.
-    const keepsOwn = intoExistingClient && schedulePaths.has(path) && !empty(current);
+    const current = column && (inFireSafety ? existingFire : existing.client)?.[column];
+    // An existing client's schedule and substances answer keep their own value unless the member
+    // takes the documents'.
+    const keepsOwn =
+      intoExistingClient &&
+      (schedulePaths.has(path) || path === substancesStatePath) &&
+      !empty(current);
     if (resolved.choice && !keepsOwn) block(path, 'choice');
     if (!column) return;
     const value = columnValue(column, resolved.value);
@@ -442,6 +517,10 @@ export function toClientPayload(input: {
     const written = !intoExistingClient || empty(current) || replace;
     if (value === null) return;
     if (column === 'cui' && intoExistingClient) return;
+    if (fact === 'undecided' && written) {
+      block(path, 'choice');
+      return;
+    }
     if (intoExistingClient && !empty(current) && !replace && differs(current, value)) {
       quality[section].kept++;
     }
@@ -492,14 +571,19 @@ export function toClientPayload(input: {
   type Included<T> = { item: T; index: number; values: Record<string, unknown> };
   const included = <L extends ItemList>(
     list: L,
-    proposedOf: (item: Proposal[L][number]) => boolean = proposedIncluded
+    proposedOf: (item: Proposal[L][number]) => boolean = proposedIncluded,
+    options: { leftOut?: (item: Proposal[L][number]) => boolean; blocks?: boolean } = {}
   ): Included<Proposal[L][number]>[] => {
     const items = proposal[list] as Proposal[L][number][];
+    const { leftOut = () => false, blocks = true } = options;
     return items.flatMap((item, index) => {
+      if (leftOut(item)) return [];
       const change: ItemChange | undefined = changes.items[item.id];
       const proposed = proposedOf(item);
       const take = change?.included ?? proposed;
-      const edited = Object.keys(change?.values ?? {}).length > 0;
+      // A suggested value is counted on its own, as kept, changed or left empty.
+      const suggested = (item as { suggested?: Record<string, unknown> }).suggested ?? {};
+      const edited = Object.keys(change?.values ?? {}).some((key) => !(key in suggested));
       if (proposed && change?.included === false) quality[list].unticked++;
       if (!take) return [];
       if (edited || (!proposed && change?.included === true)) quality[list].changed++;
@@ -517,6 +601,7 @@ export function toClientPayload(input: {
         ...(item as unknown as Record<string, unknown>),
         ...Object.fromEntries(Object.entries(written).filter(([key]) => !referenceFields.has(key))),
       });
+      if (!blocks) return [{ item, index, values }];
       if (!parsed.success) block(`${list}.${index}`, 'invalid');
       for (const flag of flagged(`${list}.${index}`)) {
         const field = flag.path.split('.')[2];
@@ -544,7 +629,17 @@ export function toClientPayload(input: {
   };
 
   const workplaceKeys = new Set<string>();
+  // By the proposal's workplace id, and by the client's own id for an existing office.
+  const inactiveOffices = new Set<string>();
+  for (const workplace of existing.workplaces) {
+    if (workplace.office_has_activity === false) inactiveOffices.add(workplace.id);
+  }
   const includedWorkplaces = included('workplaces');
+  // An office with no activity needs another workplace of the client where activity takes place.
+  const pointsBeside =
+    includedWorkplaces.some(({ values }) => values.isRegisteredOffice !== true) ||
+    (intoExistingClient &&
+      existing.workplaces.some((workplace) => workplace.is_registered_office === false));
   // `client_workplaces` takes one registered office per client.
   for (const { index } of includedWorkplaces
     .filter(({ values }) => values.isRegisteredOffice === true)
@@ -578,8 +673,83 @@ export function toClientPayload(input: {
         if (replace.length) row.replace = replace;
       }
     }
+    const own = row.id ? existing.workplaces.find((workplace) => workplace.id === row.id) : null;
+    // A value the client already has is kept, so only one the import writes waits for a decision.
+    const writes = (column: string) =>
+      empty(own?.[column]) || ((row.replace as string[] | undefined) ?? []).includes(column);
+    if (own?.office_has_activity === false) {
+      inactiveOffices.add(item.id);
+      for (const column of officeSuColumns) delete row[column];
+      const replace = ((row.replace as string[] | undefined) ?? []).filter(
+        (column) => !officeSuColumns.includes(column)
+      );
+      if (replace.length) row.replace = replace;
+      else delete row.replace;
+      return row;
+    }
+    // An existing workplace keeps its own answer, which is never empty.
+    if (
+      item.suggested.officeHasActivity &&
+      !item.officeHasActivity &&
+      values.isRegisteredOffice === true &&
+      !row.id &&
+      pointsBeside
+    ) {
+      const option = changes.fields[officeActivityPath(item.id)]?.option;
+      if (option === 0) {
+        quality.suggestedValues.kept++;
+        inactiveOffices.add(item.id);
+        row.office_has_activity = false;
+        for (const column of officeSuColumns) delete row[column];
+        return row;
+      }
+      if (option === 1) quality.suggestedValues.changed++;
+      else block(officeActivityPath(item.id), 'choice');
+    }
+    if (
+      !empty(item.assemblyPoint) &&
+      writes('assembly_point') &&
+      assemblyPointFact(item, changes) === 'undecided'
+    ) {
+      block(assemblyPointPath(item.id), 'choice');
+      delete row.assembly_point;
+    }
+    const written = change?.values ?? {};
+    const asked = suggestedWorkplaceFieldNames.filter((field) => {
+      if (!item.suggested[field]) return false;
+      // A mobile site has no norm; one suggested before the member changed the kind is dropped.
+      if (field === 'extinguisherNorm' && values.kind === 'mobile_site' && !(field in written)) {
+        delete row.extinguisher_norm;
+        return false;
+      }
+      return writes(workplaceColumns[field]!);
+    });
+    if (asked.length > 0) {
+      if (changes.fields[suggestedValuesPath(item.id)]?.option !== 0) {
+        block(suggestedValuesPath(item.id), 'choice');
+        for (const field of asked) delete row[workplaceColumns[field]!];
+      } else {
+        for (const field of asked) {
+          if (!(field in written)) quality.suggestedValues.kept++;
+          else if (empty(written[field])) quality.suggestedValues.unticked++;
+          else if (differs(item[field], written[field])) quality.suggestedValues.changed++;
+          else quality.suggestedValues.kept++;
+        }
+      }
+    }
     return row;
   });
+  // What an office with no activity never carries is not waited for either (ADR 041).
+  for (const { item, index } of includedWorkplaces) {
+    if (!inactiveOffices.has(item.id)) continue;
+    for (const [field, column] of Object.entries(workplaceColumns)) {
+      if (!officeSuColumns.includes(column)) continue;
+      const at = blockers.findIndex(
+        (blocker) => blocker.path === `workplaces.${index}.${field}` && blocker.code === 'invalid'
+      );
+      if (at !== -1) blockers.splice(at, 1);
+    }
+  }
   const workplaceReference = (
     value: string | null,
     path: string,
@@ -599,6 +769,8 @@ export function toClientPayload(input: {
     block(path, 'unknown_reference');
     return null;
   };
+  const atInactiveOffice = (reference: Row) =>
+    inactiveOffices.has(String(reference.workplace_key ?? reference.workplace_id));
 
   const positionKeys = new Set<string>();
   const positionValues = included('jobPositions');
@@ -773,13 +945,35 @@ export function toClientPayload(input: {
     ];
   });
 
-  const fireEquipment = included('fireEquipment').flatMap(({ item, index, values }) => {
+  const notCounted = new Set<string>();
+  for (const count of proposal.fireEquipmentCounts) {
+    // A workplace left out, or an office with no activity, takes none of these means, so which
+    // file counts them right is not asked.
+    if (
+      count.workplace.id !== null &&
+      (inactiveOffices.has(count.workplace.id) || !workplaceKeys.has(count.workplace.id))
+    ) {
+      for (const each of count.options) for (const id of each.equipmentIds) notCounted.add(id);
+      continue;
+    }
+    const path = fireEquipmentCountPath(count.id);
+    const option = changes.fields[path]?.option;
+    const chosen = option === undefined ? undefined : count.options[option];
+    if (!chosen) block(path, 'choice');
+    for (const each of count.options) {
+      if (each !== chosen) for (const id of each.equipmentIds) notCounted.add(id);
+    }
+  }
+  // A tick kept from before the member chose another file's count would add its units again.
+  const fireEquipment = included('fireEquipment', proposedIncluded, {
+    leftOut: (item) => notCounted.has(item.id),
+  }).flatMap(({ item, index, values }) => {
     const workplace = workplaceReference(
       reference(values.workplace, item.workplace.id),
       `fireEquipment.${index}.workplace`,
       true
     );
-    if (!workplace) return [];
+    if (!workplace || atInactiveOffice(workplace)) return [];
     const count = typeof values.count === 'number' && values.count >= 1 ? values.count : 1;
     const unit = dropEmpty({
       ...workplace,
@@ -814,7 +1008,7 @@ export function toClientPayload(input: {
       `fireInstallations.${index}.workplace`,
       true
     );
-    if (!workplace) return [];
+    if (!workplace || atInactiveOffice(workplace)) return [];
     return [dropEmpty({ ...workplace, kind: values.kind, description: values.description })];
   });
 
@@ -879,6 +1073,29 @@ export function toClientPayload(input: {
       block(`${group}.trainingDayTo`, 'invalid');
     }
   }
+  // `fire_substances` takes a row only under "listed", and `client_fire_safety` refuses "none"
+  // while rows exist; a name the client lists already is not listed twice (ADR 041).
+  const substancesState = inForce(fireSafety, existingFire, fireReplace, 'substances_state');
+  if (intoExistingClient && substancesState === 'none' && existing.substances.length > 0) {
+    block(substancesStatePath, 'invalid');
+  }
+  const listedNames = new Set(existing.substances.map((substance) => foldText(substance.name)));
+  // A name waits for a fix only where it is written.
+  const listed = substancesState === 'listed';
+  const fireSubstances = included('substances', proposedIncluded, { blocks: listed }).flatMap(
+    ({ index, values }) => {
+      if (!listed) return [];
+      const name = String(values.name ?? '').trim();
+      if (!substanceNameAllowed(name)) block(`substances.${index}.name`, 'invalid');
+      if (listedNames.has(foldText(name))) {
+        if (intoExistingClient) quality.substances.kept++;
+        return [];
+      }
+      listedNames.add(foldText(name));
+      return [{ name }];
+    }
+  );
+
   const fireScheduleStarts = !(
     intoExistingClient && scheduleColumns.some((column) => !empty(existing.fireSafety?.[column]))
   );
@@ -946,6 +1163,7 @@ export function toClientPayload(input: {
     responsible_persons: responsiblePersons,
     fire_equipment: fireEquipment,
     fire_installations: fireInstallations,
+    fire_substances: fireSubstances,
     quality,
   };
   if (Object.keys(fireSafety).length > 0) payload.fire_safety = fireSafety;

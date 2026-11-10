@@ -69,11 +69,13 @@ const reading = {
   ],
   workplaces: [],
   workplaceFacts: [],
+  workplaceSuggestions: [],
   jobPositionFacts: [],
   jobPositions: [position('Brutar'), position('Șofer')],
   responsiblePersons: [],
   fireEquipment: [],
   fireInstallations: [],
+  substances: [],
   protectiveEquipment: [],
   employees: [],
   notes: [],
@@ -270,6 +272,7 @@ function mockUpstream(handler: Handler = () => undefined) {
       case '/rest/v1/client_workplaces':
       case '/rest/v1/employees':
       case '/rest/v1/client_responsible_persons':
+      case '/rest/v1/fire_substances':
         return Response.json([]);
     }
     const credits = creditsUpstream(call);

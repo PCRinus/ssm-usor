@@ -35,6 +35,7 @@ export const workplaceFormSchema = z
       .min(2, 'Introdu denumirea (cel puțin 2 caractere).')
       .max(160, 'Denumirea are cel mult 160 de caractere.'),
     isRegisteredOffice: z.boolean(),
+    officeHasActivity: z.boolean(),
     countyCode: z
       .string()
       .refine(
@@ -75,6 +76,7 @@ export type WorkplaceFormValues = z.infer<typeof workplaceFormSchema>;
 export const emptyWorkplaceForm: WorkplaceFormValues = {
   name: '',
   isRegisteredOffice: false,
+  officeHasActivity: true,
   countyCode: '',
   locality: '',
   addressLine: '',
@@ -93,6 +95,7 @@ export function toWorkplaceForm(workplace: Workplace): WorkplaceFormValues {
   return {
     name: workplace.name,
     isRegisteredOffice: workplace.isRegisteredOffice,
+    officeHasActivity: workplace.officeHasActivity,
     countyCode: workplace.countyCode ?? '',
     locality: workplace.locality ?? '',
     addressLine: workplace.addressLine ?? '',
@@ -112,6 +115,7 @@ export function toWorkplaceRequest(values: WorkplaceFormValues): WorkplaceReques
   return {
     name: values.name,
     isRegisteredOffice: values.isRegisteredOffice,
+    officeHasActivity: values.officeHasActivity || !values.isRegisteredOffice,
     countyCode: values.countyCode ? (values.countyCode as CountyCode) : null,
     locality: values.locality || null,
     addressLine: values.addressLine || null,
@@ -132,7 +136,8 @@ export const workplaceRequestOf = (workplace: Workplace) =>
   toWorkplaceRequest(toWorkplaceForm(workplace));
 
 // What generating the fire-safety set asks of every workplace (ADR 018), in the dialog's order;
-// the specific measures are optional, and a mobile site has no area and no norm.
+// the specific measures are optional, a mobile site has no area and no norm, and a registered
+// office where no activity takes place is asked nothing (ADR 041).
 const requiredFireFields = [
   ['activity', 'workplace-activity'],
   ['floorAreaM2', 'workplace-floor-area'],
@@ -146,6 +151,7 @@ const requiredFireFields = [
 const areaAndNorm = new Set<keyof Workplace>(['floorAreaM2', 'extinguisherNorm']);
 
 export function firstMissingFireField(workplace: Workplace) {
+  if (!workplace.officeHasActivity) return null;
   const asked = workplaceHasAreaAndNorm(workplace.kind)
     ? requiredFireFields
     : requiredFireFields.filter(([field]) => !areaAndNorm.has(field));

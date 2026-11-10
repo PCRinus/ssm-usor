@@ -32,6 +32,7 @@ import {
   useGetClientDocumentDetails,
   useListWorkplaces,
   useUpdateResponsiblePerson,
+  type WorkplaceListResponse,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { Field, FieldMessage } from '@/components/form-field';
@@ -212,10 +213,16 @@ function ResponsiblePersonForm({
         return;
       }
       if (status === 400 && body?.issues?.some((issue) => issue.path === 'workplaceId')) {
-        form.setError('workplaceId', {
-          message: 'Locul de muncă a fost arhivat. Alege altul sau toate locurile de muncă.',
-        });
         await queryClient.invalidateQueries({ queryKey: getListWorkplacesQueryKey(clientId) });
+        const chosen = queryClient
+          .getQueryData<WorkplaceListResponse>([...getListWorkplacesQueryKey(clientId), userId])
+          ?.items.find((workplace) => workplace.id === values.workplaceId);
+        form.setError('workplaceId', {
+          message:
+            chosen && !chosen.officeHasActivity
+              ? 'La sediul social nu se desfășoară activitate. Alege alt loc de muncă sau toate locurile de muncă.'
+              : 'Locul de muncă a fost arhivat. Alege altul sau toate locurile de muncă.',
+        });
         return;
       }
       form.setError('root.server', {
@@ -373,11 +380,16 @@ function ResponsiblePersonForm({
                 {...form.register('workplaceId')}
               >
                 <NativeSelectOption value="">Toate locurile de muncă</NativeSelectOption>
-                {workplaces.data?.items.map((workplace) => (
-                  <NativeSelectOption key={workplace.id} value={workplace.id}>
-                    {workplace.name}
-                  </NativeSelectOption>
-                ))}
+                {workplaces.data?.items
+                  .filter(
+                    (workplace) =>
+                      workplace.officeHasActivity || workplace.id === person?.workplaceId
+                  )
+                  .map((workplace) => (
+                    <NativeSelectOption key={workplace.id} value={workplace.id}>
+                      {workplace.name}
+                    </NativeSelectOption>
+                  ))}
                 {person?.workplaceId &&
                   workplaces.data &&
                   !workplaces.data.items.some(

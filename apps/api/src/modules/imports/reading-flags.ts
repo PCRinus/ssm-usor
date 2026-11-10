@@ -85,6 +85,7 @@ const clientLists = [
   'fireInstallations',
   'protectiveEquipment',
   'employees',
+  'substances',
 ] as const;
 
 const required = ['client.legalName', 'client.cui', 'jobPositions'] as const;
@@ -94,6 +95,13 @@ function proposedFields(proposal: Proposal) {
     Object.values(group as Record<string, { options: unknown[] }>)
   );
 }
+
+// The options of a count state the same units, and only one file's entries are ever written.
+const otherFilesEntries = (proposal: Proposal) =>
+  proposal.fireEquipmentCounts.reduce((sum, count) => {
+    const sizes = count.options.map((option) => option.equipmentIds.length);
+    return sum + sizes.reduce((total, size) => total + size, 0) - Math.max(...sizes);
+  }, 0);
 
 export function clientReadingFlags(
   files: readonly FileForFlags[],
@@ -111,11 +119,18 @@ export function clientReadingFlags(
     found: {
       clientFields: fields.length,
       ...Object.fromEntries(clientLists.map((list) => [list, proposal[list].length])),
+      suggestedValues: proposal.workplaces.reduce(
+        (sum, workplace) => sum + Object.keys(workplace.suggested).length,
+        0
+      ),
+      withdrawnSuggestions: proposal.withdrawnSuggestions ?? 0,
     },
     emptyRequired: required.filter((path) => empty[path]),
     checks: tally(proposal.flags.map((flag) => flag.code)),
     proposedValues:
-      fields.length + clientLists.reduce((sum, list) => sum + proposal[list].length, 0),
+      fields.length +
+      clientLists.reduce((sum, list) => sum + proposal[list].length, 0) -
+      otherFilesEntries(proposal),
   };
 }
 

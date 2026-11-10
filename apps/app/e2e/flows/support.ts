@@ -597,6 +597,7 @@ export async function createLibraryImport(input: {
       ],
       workplaces: [],
       workplaceFacts: [],
+      workplaceSuggestions: [],
       jobPositionFacts: [],
       jobPositions: input.posts.map((name) => ({
         name,
@@ -611,6 +612,7 @@ export async function createLibraryImport(input: {
       responsiblePersons: [],
       fireEquipment: [],
       fireInstallations: [],
+      substances: [],
       protectiveEquipment: [],
       employees: [],
       notes: [],

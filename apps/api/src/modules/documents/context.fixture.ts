@@ -72,6 +72,7 @@ export const facts: DocumentFacts = {
       id: workshopId,
       name: 'Atelier Ghiroda',
       registeredOffice: false,
+      officeHasActivity: true,
       countyCode: 'TM',
       locality: 'Ghiroda',
       addressLine: 'Str. Industriilor 4',
@@ -89,6 +90,7 @@ export const facts: DocumentFacts = {
       id: officeId,
       name: 'Sediul social',
       registeredOffice: true,
+      officeHasActivity: true,
       countyCode: 'B',
       locality: 'Sector 1',
       addressLine: 'Calea Victoriei 122A',
@@ -492,6 +494,7 @@ export const facts: DocumentFacts = {
       state: 'listed',
       entries: [
         {
+          id: '5b1d7c42-0000-4000-8000-000000000001',
           name: ' Propan ',
           classification: 'Flam. Gas 1, H220; Press. Gas, H280',
           quantity: '2 butelii de 11 kg',
@@ -505,6 +508,7 @@ export const facts: DocumentFacts = {
           handling: '   ',
         },
         {
+          id: '5b1d7c42-0000-4000-8000-000000000002',
           name: 'Diluant pentru vopsele',
           classification: 'Flam. Liq. 2, H225; STOT SE 3, H336',
           quantity: '10 l',

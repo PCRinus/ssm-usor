@@ -6,6 +6,8 @@ import {
   buildFireSafetyContext,
   buildPartialFireSafetyContext,
   fireSafetyGapConcerns,
+  fireSubstances,
+  incompleteFireSubstances,
   missingFireSafetyData,
 } from './fire-safety';
 import { setOfGroup, setRules } from './sets';
@@ -21,6 +23,11 @@ const withSubstances = (
     substances: { ...facts.fireSafety.substances, ...substances },
   },
 });
+const [propane, thinner] = facts.fireSafety.substances.entries as [
+  DocumentFacts['fireSafety']['substances']['entries'][number],
+  DocumentFacts['fireSafety']['substances']['entries'][number],
+];
+const unread = { ...thinner, classification: null, quantity: '  ' };
 const withCard = (changes: Partial<typeof card> | null): DocumentFacts => ({
   ...facts,
   fireSafety: { ...facts.fireSafety, card: changes && { ...card, ...changes } },
@@ -195,6 +202,23 @@ describe('what the fire-safety set is missing', () => {
       'fire.substances',
     ]);
     expect(missingFireSafetyData(withSubstances({ state: 'none', entries: [] }))).toEqual([]);
+  });
+
+  it('asks for the classification and the quantity of a listed substance, by its name', () => {
+    const incomplete = withSubstances({
+      entries: [propane, { ...unread, name: ' Diluant ' }, { ...propane, id: 'x', quantity: null }],
+    });
+    expect(missingFireSafetyData(incomplete)).toEqual(['fire.substances']);
+    expect(incompleteFireSubstances(incomplete.fireSafety.substances)).toEqual([
+      { id: unread.id, name: 'Diluant', missing: ['classification', 'quantity'] },
+      { id: 'x', name: 'Propan', missing: ['quantity'] },
+    ]);
+    expect(missingFireSafetyData(facts)).toEqual([]);
+    expect(incompleteFireSubstances(facts.fireSafety.substances)).toEqual([]);
+  });
+
+  it('forgets the entries of a client that no longer lists them', () => {
+    expect(incompleteFireSubstances({ state: 'undecided', entries: [{ ...unread }] })).toEqual([]);
   });
 
   it('never holds back the occupational safety set, nor is held back by it', () => {
@@ -741,6 +765,15 @@ describe('the fire-safety context', () => {
     expect(substances.entries[1]!.name).toBe('Diluant pentru vopsele');
   });
 
+  it('prints the mark to fill in, never an empty cell, for a classification or a quantity not known yet', () => {
+    const { entries } = fireSubstances({ state: 'listed', entries: [unread] });
+    expect(entries[0]).toMatchObject({
+      name: 'Diluant pentru vopsele',
+      classification: 'DE COMPLETAT',
+      quantity: 'DE COMPLETAT',
+    });
+  });
+
   it('prints the declaration alone for a client that uses no dangerous substances', () => {
     expect(buildFireSafetyContext(withSubstances({ state: 'none' })).fire.substances).toEqual({
       state: 'none',
@@ -1280,6 +1313,7 @@ describe('a fire-safety document generated again', () => {
       'issueDate',
       'knowledgeTests',
       'noAnnexes',
+      'officeWithoutActivity',
       'provider',
       'seasonsDecision',
     ]);
@@ -1315,6 +1349,7 @@ describe('a fire-safety document generated again', () => {
       'issueDate',
       'knowledgeTests',
       'noAnnexes',
+      'officeWithoutActivity',
       'provider',
       'seasonsDecision',
     ]);
@@ -1338,6 +1373,7 @@ describe('a fire-safety document generated again', () => {
       'issueDate',
       'knowledgeTests',
       'noAnnexes',
+      'officeWithoutActivity',
       'seasonsDecision',
     ]);
   });
@@ -1360,6 +1396,17 @@ describe('a fire-safety document generated again', () => {
     expect(context).toHaveProperty('fire');
     expect(fireSafetyGapConcerns('fire.instructions', ['annexes'])).toBe(true);
     expect(fireSafetyGapConcerns('fire.instructions', ['fire', 'client'])).toBe(false);
+  });
+
+  it('is built without the fire object while a listed substance is incomplete, so 5.3 and 7.1 wait for it', () => {
+    const incomplete = withSubstances({ entries: [propane, unread] });
+    expect(missingFireSafetyData(incomplete, 'fire_substances_list')).toEqual(['fire.substances']);
+    for (const typeKey of ['fire_substances_list', 'fire_site_sheet']) {
+      const context = buildPartialFireSafetyContext(incomplete, typeKey);
+      expect(context).not.toHaveProperty('fire');
+      expect(context).toHaveProperty('client');
+    }
+    expect(fireSafetyGapConcerns('fire.substances', ['fire'])).toBe(true);
   });
 
   it('is equal to the whole context when nothing is missing', () => {
@@ -1474,5 +1521,169 @@ describe('the annexes of the fire-safety own instructions', () => {
     });
     expect(context.annexes).toEqual([]);
     expect(context.noAnnexes).toBe(true);
+  });
+});
+
+describe('a registered office with no activity (ADR 041)', () => {
+  const officeAs = (
+    office: Partial<DocumentFacts['workplaces'][number]>,
+    variant: Partial<DocumentFacts> = {}
+  ): DocumentFacts => ({
+    ...facts,
+    currentEmployeeCount: 12,
+    ...variant,
+    workplaces: facts.workplaces.map((workplace) =>
+      workplace.id === officeId ? { ...workplace, ...office } : workplace
+    ),
+  });
+  const withoutActivity = (
+    office: Partial<DocumentFacts['workplaces'][number]> = {},
+    variant: Partial<DocumentFacts> = {}
+  ) => officeAs({ officeHasActivity: false, ...office }, variant);
+  const noSuData = {
+    activity: null,
+    floorAreaM2: null,
+    extinguisherNorm: null,
+    assemblyPoint: null,
+    combustibleMaterials: null,
+    ignitionSources: null,
+    fireRiskEquipment: null,
+  };
+  const withoutOfficeMeans = (base: DocumentFacts): DocumentFacts => ({
+    ...base,
+    fireSafety: {
+      ...base.fireSafety,
+      equipment: base.fireSafety.equipment.filter((unit) => unit.workplaceId !== officeId),
+      installations: base.fireSafety.installations.filter(
+        (installation) => installation.workplaceId !== officeId
+      ),
+      maintenanceItems: [],
+    },
+  });
+
+  it('asks nothing of the office, whether or not it keeps SU data', () => {
+    expect(missingFireSafetyData(withoutActivity())).toEqual([]);
+    expect(missingFireSafetyData(withoutOfficeMeans(withoutActivity(noSuData)))).toEqual([]);
+    expect(missingFireSafetyData(withoutOfficeMeans(officeAs(noSuData)))).toEqual([
+      'fire.workplaces',
+      'fire.equipment',
+    ]);
+  });
+
+  it('still asks every workplace where activity takes place', () => {
+    const base = withoutActivity();
+    expect(
+      missingFireSafetyData({
+        ...base,
+        workplaces: base.workplaces.map((workplace) =>
+          workplace.id === workshopId ? { ...workplace, assemblyPoint: null } : workplace
+        ),
+        fireSafety: {
+          ...base.fireSafety,
+          equipment: base.fireSafety.equipment.filter((unit) => unit.workplaceId !== workshopId),
+        },
+      })
+    ).toEqual(['fire.workplaces', 'fire.equipment']);
+  });
+
+  it('leaves the office out of every list of workplaces, with what it keeps', () => {
+    const context = buildFireSafetyContext(withoutActivity({}, { period: 2026 }));
+    const { fire } = context;
+    expect(fire.workplaces.map((workplace) => workplace.name)).toEqual(['Atelier Ghiroda']);
+    expect(fire.workplaces[0]!.first).toBe(true);
+    expect(fire.schedules.map((schedule) => schedule.name)).toEqual(['Atelier Ghiroda']);
+    expect(fire.annualReport!.workplaces.map((workplace) => workplace.name)).toEqual([
+      'Atelier Ghiroda',
+    ]);
+    expect(fire.siteSheet.buildings.map((building) => building.name)).toEqual(['Atelier Ghiroda']);
+    expect(context.fireThemes!.workplaceNames).toBe('Atelier Ghiroda');
+    expect(context.installationSheets.map((sheet) => sheet.place)).toEqual(['Atelier Ghiroda']);
+    expect(context.extinguisherRegister.rows.map((row) => row.place)).toEqual([
+      'Hala de producție',
+      'Hala de producție',
+      'Magazie',
+      '',
+    ]);
+  });
+
+  it('names the office and its address in one line of the list of means', () => {
+    expect(buildFireSafetyContext(facts).officeWithoutActivity).toBeNull();
+    expect(buildFireSafetyContext(withoutActivity()).officeWithoutActivity).toEqual({
+      address: 'București, Sector 1, Calea Victoriei 122A',
+    });
+    expect(
+      buildFireSafetyContext(
+        withoutActivity({ countyCode: null, locality: null, addressLine: null })
+      ).officeWithoutActivity
+    ).toEqual({ address: 'Timișoara, județul Timiș, Str. Gheorghe Lazăr 24' });
+  });
+
+  describe('a person tied to the office', () => {
+    const [florin, ioana] = facts.responsiblePersons as [
+      DocumentFacts['responsiblePersons'][number],
+      DocumentFacts['responsiblePersons'][number],
+    ];
+    const ioanaAtOffice = { ...ioana, workplaceId: officeId };
+
+    it('heads every listed workplace when no other manager does', () => {
+      const { fire } = buildFireSafetyContext(
+        withoutActivity(
+          {},
+          {
+            responsiblePersons: [
+              { ...florin, roles: florin.roles.filter((role) => role !== 'workplace_manager') },
+              ioanaAtOffice,
+            ],
+          }
+        )
+      );
+      expect(
+        fire.workplaceManagers.map(({ name, workplaceName }) => ({ name, workplaceName }))
+      ).toEqual([{ name: 'Ioana PETRE', workplaceName: null }]);
+      const [workshop] = fire.workplaces;
+      expect(workshop!.manager?.name).toBe('Ioana PETRE');
+      expect(workshop!.interventionLeaderName).toBe('Ioana PETRE');
+      expect(workshop!.firstIntervention.map((person) => person.name)).toEqual([
+        'Ioana PETRE',
+        'Florin Cristian TALOȘ',
+      ]);
+    });
+
+    it('heads every listed workplace beside a manager tied to one', () => {
+      const { fire } = buildFireSafetyContext(
+        withoutActivity(
+          {},
+          { responsiblePersons: [{ ...florin, workplaceId: workshopId }, ioanaAtOffice] }
+        )
+      );
+      expect(
+        fire.workplaceManagers.map(({ name, workplaceName }) => ({ name, workplaceName }))
+      ).toEqual([
+        { name: 'Florin Cristian TALOȘ', workplaceName: 'Atelier Ghiroda' },
+        { name: 'Ioana PETRE', workplaceName: null },
+      ]);
+      expect(fire.workplaces[0]!.manager?.name).toBe('Florin Cristian TALOȘ');
+    });
+
+    it('is named for the office while activity takes place there', () => {
+      const { fire } = buildFireSafetyContext(
+        officeAs({}, { responsiblePersons: [florin, ioanaAtOffice] })
+      );
+      expect(fire.workplaceManagers[1]!.workplaceName).toBe('Sediul social');
+    });
+  });
+
+  it("keeps the office's address as the operator's on the site sheet", () => {
+    const { identity } = buildFireSafetyContext(
+      withoutActivity(
+        {},
+        { client: { ...facts.client, countyCode: null, locality: null, addressLine: null } }
+      )
+    ).fire.siteSheet;
+    expect(
+      identity.find(
+        (row) => row.title === 'Coordonatele operatorului economic/instituției – adresa'
+      )?.value
+    ).toBe('București, Sector 1, Calea Victoriei 122A');
   });
 });

@@ -54,11 +54,13 @@ const reading = {
   ],
   workplaces: [],
   workplaceFacts: [],
+  workplaceSuggestions: [],
   jobPositionFacts: [],
   jobPositions: [position('Brutar'), position('Șofer')],
   responsiblePersons: [],
   fireEquipment: [],
   fireInstallations: [],
+  substances: [],
   protectiveEquipment: [],
   employees: [],
   notes: [],
@@ -105,10 +107,13 @@ describe('clientReadingFlags', () => {
         workplaces: 0,
         jobPositions: 2,
         responsiblePersons: 0,
+        substances: 0,
         fireEquipment: 0,
         fireInstallations: 0,
         protectiveEquipment: 0,
         employees: 0,
+        suggestedValues: 0,
+        withdrawnSuggestions: 0,
       },
       emptyRequired: ['client.cui'],
       checks: { quote_not_found: 2, missing: 1 },
@@ -130,6 +135,85 @@ describe('clientReadingFlags', () => {
       clientReadingFlags(files, toProposal({ ...reading, facts: [], jobPositions: [] }))
         .emptyRequired
     ).toEqual(['client.legalName', 'client.cui', 'jobPositions']);
+  });
+
+  it('counts the means files count differently once, as one file’s entries', () => {
+    const office = {
+      name: 'Sediu',
+      county: null,
+      locality: 'Cluj-Napoca',
+      addressLine: 'Str. Florilor nr. 3',
+      isRegisteredOffice: true,
+      activity: null,
+      rooms: [],
+      file: 'Dosar/Decizia 1.docx',
+      quote: 'Sediu',
+      otherCompany: null,
+    };
+    const powder = (file: string, count: number, room: string | null) => ({
+      workplace: 'Sediu',
+      room,
+      kind: 'extinguisher' as const,
+      agent: 'powder' as const,
+      capacity: 6,
+      wheeled: false,
+      count,
+      file,
+      quote: 'P6',
+      otherCompany: null,
+    });
+    const proposal = toProposal({
+      ...reading,
+      workplaces: [office],
+      fireEquipment: [
+        powder('Dosar/Decizia 7.docx', 4, 'bucătărie'),
+        powder('Dosar/Decizia 7.docx', 1, 'bar'),
+        powder('Dosar/Lista mijloacelor.docx', 3, null),
+      ],
+    });
+
+    expect(clientReadingFlags(files, proposal)).toMatchObject({
+      found: { fireEquipment: 3 },
+      proposedValues: 6,
+    });
+  });
+
+  it('counts the suggested values, the office with no activity among them, and those withdrawn', () => {
+    const workplace = (name: string, addressLine: string) => ({
+      name,
+      county: null,
+      locality: 'Cluj-Napoca',
+      addressLine,
+      isRegisteredOffice: name === 'Sediu',
+      activity: null,
+      rooms: [],
+      file: 'Dosar/Decizia 1.docx',
+      quote: name,
+      otherCompany: null,
+    });
+    const proposal = toProposal({
+      ...reading,
+      workplaces: [workplace('Sediu', 'Str. Florilor nr. 3'), workplace('Atelier', 'Str. Morii 1')],
+      workplaceSuggestions: [
+        {
+          workplace: 'Atelier',
+          field: 'ignitionSources' as const,
+          value: 'scule electrice, scântei de la polizor',
+          sources: [{ file: 'Dosar/Evaluare.docx', quote: 'polizor unghiular' }],
+        },
+        {
+          workplace: 'Atelier',
+          field: 'specificMeasures' as const,
+          value: 'curățarea zilnică a rumegușului',
+          sources: [{ file: '', quote: '' }],
+        },
+      ],
+    });
+
+    expect(clientReadingFlags(files, proposal).found).toMatchObject({
+      suggestedValues: 2,
+      withdrawnSuggestions: 1,
+    });
   });
 });
 

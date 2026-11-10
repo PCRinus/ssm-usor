@@ -432,9 +432,10 @@ The facts the individual training sheets print
 ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)) ride on the same
 bodies, all optional: `workplaceId`, `qualification` and `education` (up to 160 characters),
 `authorizations` (up to 500), `commuteRoute` (up to 1000) and `commuteMinutes` (an integer from 1
-to 600). A `workplaceId` that is archived or belongs to another client answers `400` with an issue
-on `workplaceId`, as for a job position. `POST` without one gives the employee the client's only
-active workplace when it has exactly one, and none otherwise; `PUT` without the key keeps the
+to 600). A `workplaceId` that is archived, belongs to another client or is a registered office
+where no activity takes place (ADR 041) answers `400` with an issue on `workplaceId`, as for a
+job position. `POST` without one gives the employee the client's only active workplace where
+activity takes place when it has exactly one, and none otherwise; `PUT` without the key keeps the
 stored workplace, and `workplaceId: null` clears it. The detail returns the five facts and both
 the list and the detail carry `workplace: { id, name } | null`, the name read even once the
 workplace is archived.
@@ -1818,7 +1819,9 @@ more of `workplace_manager`, `first_aid`, `risk_evaluation_team`, `imminent_dang
 optionally an `employeeId`: an employee of another client is `400` with the issue on
 `employeeId`, and an employee who already is a responsible person of the client is `409`. Its
 optional `workplaceId` ties it to one workplace, and null means every workplace; anything but
-an active workplace of the client is `400` with the issue on `workplaceId`. A workplace also
+an active workplace of the client is `400` with the issue on `workplaceId`, and so is a
+registered office where no activity takes place (ADR 041), unless the person was tied to it
+before: that tie is kept, and the fire-safety set reads it as a tie to every workplace. A workplace also
 carries the fire-safety facts of [ADR 018](architecture/adr-018-fire-safety-means.md), all
 optional: `activity`, `floorAreaM2`, `extinguisherNorm`, `assemblyPoint`,
 `combustibleMaterials`, `ignitionSources`, `fireRiskEquipment` and `specificMeasures`; the
@@ -1826,6 +1829,14 @@ optional: `activity`, `floorAreaM2`, `extinguisherNorm`, `assemblyPoint`,
 when left out, or `mobile_site`, and `extinguisherNorm` may be `none` beside the five rows of
 annex 6. A mobile site keeps an area and a norm it is sent, which the fire-safety set neither
 asks for nor prints.
+`officeHasActivity` (ADR 041), true when left out, says whether any activity takes place at a
+registered office: false on any other workplace is `400` with the issue on `officeHasActivity`.
+False is `409` with the reason `office_needs_workplace` while the client has no other active
+workplace, and on a `PUT` `409` with `office_has_employees` while current employees are assigned
+to the office, with their number in `employeeCount`; archiving the last point of work beside such
+an office is `409` with `office_needs_workplace` too. The fire-safety facts it is sent are kept,
+as a mobile site keeps an area; the fire-safety set neither asks for nor prints them, and the
+fire-safety lists leave out what is stored on it.
 
 The `fire-safety` module holds the rest of the fire-safety set's client data (ADR 018).
 `GET …/fire-safety` answers with every field null, `wasteKinds` empty and `exists` false until
@@ -1839,13 +1850,15 @@ in order, at most twelve distinct kinds of waste of up to 240 characters each, a
 only when `smokingPolicy` is `designated_places`; with the other policy or none the `PUT` stores
 it as null rather than refusing it, so a switch to `forbidden_everywhere` saves the card in one
 request and clears the place (ADR 019). Equipment and installations are one row per
-unit, each on a workplace in `workplaceId`, which must be an active workplace of the client
-(`400` with the issue on `workplaceId`); `PUT` may move one to another. An extinguisher needs
+unit, each on a workplace in `workplaceId`, which must be an active workplace of the client and
+not a registered office where no activity takes place (`400` with the issue on `workplaceId`);
+`PUT` may move one to another. The lists leave out what such an office keeps. An extinguisher needs
 `agent` and `capacity` and is the only kind that may be `wheeled`, and an installation of the
 kind `other` needs a `description`, all `400` before the database is asked. `DELETE` removes the
-row. The dangerous substances (ADR 018, amended 2026-10-11) belong to no workplace: a name, a
-CLP classification and a quantity, required, and eight optional texts copied from the safety data
-sheet, which a `PUT` clears when left out. `GET …/fire-substances` answers `state` `undecided`
+row. The dangerous substances (ADR 018, amended 2026-10-11) belong to no workplace: a name,
+required, a CLP classification and a quantity, which the set needs but an entry may wait for
+(ADR 041: `null`, and a blank one is `400`), and eight optional texts copied from the safety data
+sheet; a `PUT` clears whatever it leaves out. `GET …/fire-substances` answers `state` `undecided`
 while the client has not said, or has no fire-safety row. `PUT …/fire-substances/state` saves it,
 creating the row when there is none without counting as the card's first save; `none` while the
 client has entries is `409` with the reason `substances_listed`, and a new entry under any state
@@ -1856,8 +1869,8 @@ required texts: `subject` (2 to 160), `intervalLabel` (2 to 60, printed as typed
 (2 to 160). They are optional: no readiness code asks for them.
 The building of a fixed-space workplace (`fire-buildings`, ADR 020) is keyed by the workplace in
 the path: `PUT` replaces every fact, a fact left out or null is cleared, and creates the row the
-first time; a workplace that is not an active one of the client is `404`, a mobile site `409`
-with no reason. Every fact is optional (`yearBuilt` 1800 to the current year, `builtAreaM2` above
+first time; a workplace that is not an active one of the client is `404`, a mobile site or a
+registered office with no activity `409` with no reason. Every fact is optional (`yearBuilt` 1800 to the current year, `builtAreaM2` above
 0, `levels`, `classification` of `civil`, `production`, `storage`, `mixed`, `structure`,
 `heatingFuel`, `gasUse`, `electricalMaintainer`, `electricalLastCheckOn`, `waterReserveM3` 0 or
 more, `notes`), and no readiness code asks for any. The list leaves out a building kept from
@@ -1927,11 +1940,15 @@ instruction modules, ADR 012's amendment of 2026-10-11; the occupational safety 
 `fire.workplaces` (an active workplace at least, each with its activity,
 assembly point and the three texts of the posted sheet, and a fixed space with its area and
 its norm, which may be `none`), `fire.equipment` (an
-extinguisher in every active workplace) and `fire.substances` (the substances state `none`, or
-`listed` with an entry; ADR 018, amended). Any of them refuses the whole set. Its readiness lists
-nothing else; its `undecidedJobPositions` names the positions behind `fire.instructions`, each
-with `undecided: ['fire_instructions']`, and its `incompleteRiskEvaluations` and
-`workersRepresentativeClash` are empty. Generating the fire-safety themes 3.1 again also needs
+extinguisher in every active workplace), neither of them asking anything of a registered office
+where no activity takes place (ADR 041), and `fire.substances` (the substances state `none`, or
+`listed` with an entry and none without its classification or quantity; ADR 018, amended, and
+ADR 041). Any of them refuses the whole set. Its readiness lists nothing else; its
+`undecidedJobPositions` names the positions behind `fire.instructions`, each with
+`undecided: ['fire_instructions']`, its `incompleteFireSubstances` the listed substances behind
+`fire.substances`, each `{ id, name, missing }` with `classification`, `quantity` or both, and
+its `incompleteRiskEvaluations` and `workersRepresentativeClash` are empty; the occupational
+safety set's `incompleteFireSubstances` is empty. Generating the fire-safety themes 3.1 again also needs
 an IPSU revision whose annexes they cite, `documents.fire_own_instructions`, which readiness
 never lists, as generating the set makes the IPSU before the themes (ADR 012, amendment of
 2026-10-11). Its generation requires `firstDecisionNumber`, at most
@@ -2297,7 +2314,12 @@ token whose `aal` is `aal2`, as `is_platform_admin()` asks (`adminToolsAllowed`,
 `client.<name>`, `trainingSchedule.<name>` or `fireSafety.<name>`: `option` picks one of the
 documents' values, `value` writes another (null leaves the field empty), `included` takes or
 leaves a value only another company's passages give, and `replace`, into an existing client,
-takes the documents' value over the app's. `items` is keyed by a list item's id (`workplace-2`):
+takes the documents' value over the app's. `fields` also takes `fireEquipmentCounts.<id>`, whose
+`option` picks one of a count's options, `assemblyPoints.<workplace id>`, whose `option` 0
+keeps a workplace's `assemblyPoint` as read, `suggestedValues.<workplace id>`, whose `option` 0
+confirms the workplace's suggested values as they then stand, and `officeActivity.<workplace id>`,
+whose `option` 0 keeps the suggestion that no activity takes place at the registered office and
+`option` 1 says that some does. `items` is keyed by a list item's id (`workplace-2`):
 `included`, `values` by the item's own field names, with `workplace`, `jobPosition` and
 `employee` naming an item of the proposal or an existing row of the client, `existingId` for the
 row a workplace or a position completes, and `replace`. `PUT /imports/{importId}/changes` saves
@@ -2316,8 +2338,8 @@ code, the person's `sources` giving the name; a role whose quote is not found is
 A text value is proposed with its spelling corrected: sentence case for one written in capitals
 (by code) and Romanian diacritics (by the reading model), for a workplace's `name`, `activity` and
 fire-safety texts and its `rooms`, a post's `name`, `workZone` and `activities`, an equipment
-entry's `item` and `risk`, a unit's `room`, `fireSafety.smokingPlace`, `wasteKinds` (a kind at a
-time) and `wasteCollectors`, and `client.legalRepresentativeRole` (sentence case only); names of
+entry's `item` and `risk`, a unit's `room`, a substance's `name`, `fireSafety.smokingPlace`,
+`wasteKinds` (a kind at a time) and `wasteCollectors`, and `client.legalRepresentativeRole` (sentence case only); names of
 people and companies, identifiers and addresses stay as written. Where the document writes the
 value otherwise only in its capitals or diacritics, the document's spelling is kept beside it: in
 the item's `spelling`, by field (`{ "name": "INGRIJITOR HOTEL" }`; never for a room of the
@@ -2329,6 +2351,43 @@ on an item and without it on an option.
 `waste_kinds`; the yes-or-no fields `fireSafety.hasThirdParties` and
 `trainingSchedule.administrativeTrainingNotApplicable` / `workerTrainingNotApplicable` are
 `"true"` or `"false"`. A proposal stored before they were read reads them empty.
+The means are counted once per workplace ([ADR 041](architecture/adr-041-su-import-questions-and-suggestions.md)):
+the reading totals the `fireEquipment` entries of each workplace and kind (for an extinguisher,
+its agent, capacity and wheels) by file, a page of a scan counting with its document and an
+entry without a count as one unit (its `count` stays null). An extinguisher without an agent or a
+capacity counts with the extinguishers of its workplace when they are all of one type its known
+parts match, and on its own otherwise. Files whose totals agree keep the entries of the one that
+names the most distinct rooms (the first on a tie), the others' are left out. Files that disagree are a
+`fireEquipmentCounts` item: its workplace reference and kind, and `options`, each a `total`, the
+`sources` of every file that gives it and the `equipmentIds` of the one file's entries confirming
+writes. A room only some options of a count name is not added to the workplace's `rooms`. An
+entry with no workplace among several, or only another company's, is not counted. A
+proposal stored before reads `fireEquipmentCounts` as `[]`, and all its entries are written.
+The dangerous substances ([ADR 041](architecture/adr-041-su-import-questions-and-suggestions.md))
+are `substances`, one item per name the documents give as used, stored or collected at the client
+(`substance-1`: its `name`, `sources` and `spelling`), a name of fewer than 2 or more than 160
+characters left out before the answer is derived, names that differ only in capitals or
+diacritics joined with every passage, and the answer `fireSafety.substancesState`: an option
+`listed` whose sources are the substances' when any is named, an option `none` from a statement
+that the client uses none, both a choice, and no option where the documents say nothing. A proposal
+stored before reads `substances` as `[]` and the answer empty.
+A workplace's **suggested values** ([ADR 041](architecture/adr-041-su-import-questions-and-suggestions.md))
+sit in its own fields like the values read, and its `suggested` names them, by field, with every
+passage each was drawn from: `combustibleMaterials`, `ignitionSources`, `fireRiskEquipment`,
+`specificMeasures` and `extinguisherNorm`, which the reading model drafts from the client's
+activity (its answer's `workplaceSuggestions`) only where no document states the value, never a
+norm for a mobile site nor any value of a workplace only another company gives; and
+`officeHasActivity`, false on the registered office, which code suggests where the documents name
+a point of work of the client and give the office no room, activity, fire-safety sheet value,
+means, installation or person heading it, citing the passages that name the points of work. A
+draft naming a workplace the reading does not know goes to the only workplace when there is one,
+and the first draft of a field wins. A draft with no passage (an empty file or quote is none),
+whose every passage is not in its file, or whose value its column refuses (a norm outside the
+list, a text outside 2 to 600 characters) is not proposed; the proposal's
+`withdrawnSuggestions` counts them, and `reading_flags.found.withdrawnSuggestions` keeps the
+count. A suggested value keeps no `spelling`, and its passages are checked like any other
+(`workplaces.<i>.suggested.<field>.sources.<n>`). A proposal stored
+before reads `suggested` as `{}` and `officeHasActivity` as true.
 
 Without a change a value is the proposal's: a field with one value of the client's own documents
 takes it, two or more of them are a **choice** that blocks, and a value only another company
@@ -2337,13 +2396,46 @@ client, a workplace is matched to one of the client's by its name or its street,
 its name, an employee by the CNP or the name (and then not created again), and a responsible
 person the client has already is left as it is; the client's filled values are kept unless
 replaced. A responsible person is linked to the employee of the same name, the workers'
-representative must be. The `blockers` are a choice not made, the new client's name or CUI
+representative must be. Only the chosen option's entries of a count are written, none while it
+waits. The substances answer is written like any single value, `value` null leaving the client
+undecided; into an existing client an `undecided` one counts as empty and a decided one is kept
+unless replaced, also where the documents disagree. The included substances are written, by name
+only, when the answer in force after confirming is `listed`, each but those the client lists
+already by that name (counted as `kept`); only then does a name block, flagged or written by the
+member outside 2 to 160 characters (`invalid` on `substances.<i>.name`). A workplace's suggested values the import would write
+wait together until `suggestedValues.<workplace id>` confirms them; until then none is written.
+Each is then written as suggested, as the member changed it in the workplace's `values`, or not
+at all when they emptied it (null), which readiness asks for later. A value an existing workplace
+has is kept and not asked, and a workplace left out asks nothing, a count of its means included,
+whose entries are not written; a suggested norm is dropped
+when the member makes the workplace a mobile site. The registered office's suggested
+`officeHasActivity` false is asked only for an office the import creates (one linked to the
+client's own workplace, by `existingId` or by the match, ignores a stored answer), beside another
+workplace it takes or a point of work the client has: kept, the office is written with
+`office_has_activity` false; said to have activity, the office is written
+as any workplace and its other decisions are asked. An office kept so, and a workplace linked to
+the client's own office that already has `office_has_activity` false, take nothing of the SU: no
+kind, area, norm, assembly point or texts, and the units, installations and counts placed there
+(or on that office's id) are left out, nothing of them asked and no flagged value of them
+blocking. A workplace's `assemblyPoint` and `fireSafety.smokingPlace` are never taken unchanged
+([ADR 041](architecture/adr-041-su-import-questions-and-suggestions.md)): a value read, which the
+import would write, waits until the member keeps it (`assemblyPoints.<workplace id>` with
+`option` 0; `option` on the smoking place, or `replace` or `included`), writes another or leaves
+it empty (the workplace's `values.assemblyPoint`; `value` on the smoking place, null for empty).
+The document's spelling selected without either keeps it waiting, and is what keeping writes. A
+point an existing workplace has, or a place the client keeps, is not asked; nor is a place the
+smoking rule drops, or the point of a workplace left out. The `blockers` are a choice not made
+(`fireEquipmentCounts.<id>` for a count, `assemblyPoints.<workplace id>` and
+`fireSafety.smokingPlace` for those two, `suggestedValues.<workplace id>` and
+`officeActivity.<workplace id>` for the suggestions), the new client's name or CUI
 missing, a value the checks flagged that would be written unchanged (`invalid`), a staff
 category given both an interval and "not applicable" (`invalid` on the latter), an employee
 without a name, job title or hire date, equipment without a risk, inventory without a duration
 (`missing` on `durationMonths`) or a consumable with one (`invalid` on it), as
 `job_position_equipment` refuses, a second workplace taken as the registered office (`invalid`
-on its `isRegisteredOffice`), as `client_workplaces` takes one per client, a person without a
+on its `isRegisteredOffice`), as `client_workplaces` takes one per client, `none` taken over an
+existing client's list of substances (`invalid` on `fireSafety.substancesState`), as
+`client_fire_safety` refuses it while entries exist, a person without a
 job title, and a fire-safety unit, an installation or equipment whose workplace or position is unknown
 (`unknown_reference`).
 
@@ -2351,7 +2443,9 @@ job title, and a fire-safety unit, an installation or equipment whose workplace 
 the payload, answers `422` with `import_incomplete` and the blockers as `issues` while any is
 left, then calls `apply_client_import` as the member: `409` with `import_changed`,
 `import_not_ready`, `import_other_company`, `import_client_exists` or `import_outdated` (a
-workplace or position the review named is no longer the client's), and `422` with
+workplace or position the review named is no longer the client's, or its substances, or the
+workplaces and employees an office with no activity depends on, changed since),
+and `422` with
 `import_refused` when a table still refuses a value (a check or not-null violation the blockers
 missed, or a registered office beside the one an existing client has): one issue whose `path` is the proposal's list or group for that table (or the table)
 and whose `message` is the constraint's name, never the refused values. A new client's VAT
@@ -2359,7 +2453,11 @@ registration is ANAF's. A post's decision that it needs no protective equipment 
 payload only while none of its entries is written, and a smoking place only beside designated
 places, the policy the member chose or the client keeps, since `client_fire_safety` refuses a
 place under another policy or none; a place left out never blocks. The payload's `quality` counts per section, without values, how many
-values the member changed, unticked or kept. The answer is `{ clientId, fileCount }`, and a `copy`
+values the member changed, unticked or kept; keeping the assembly point or the smoking place as
+proposed is not a change, while keeping the document's spelling counts as one, as for any value.
+`quality.suggestedValues` counts each suggested value confirmed, the office's answer included:
+`kept` unchanged, `changed`, or left empty as `unticked`; a suggested value the member changes
+or empties is not also counted on its workplace. The answer is `{ clientId, fileCount }`, and a `copy`
 message copies the folder afterwards. `GET /imports/{importId}/source?file=&quote=&near=` resolves
 a source's `file`, an upload path or `<upload path> (pagina N)`, and answers five-minute links to
 the original and the converted file, a Word file's text, a PDF's pages, and where the quote is

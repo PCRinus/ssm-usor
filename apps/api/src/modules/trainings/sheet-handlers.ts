@@ -87,6 +87,7 @@ export async function loadSheetFacts(
       .select('id, name')
       .eq('client_id', clientId)
       .is('archived_at', null)
+      .eq('office_has_activity', true)
       .order('created_at')
       .order('id')
       .limit(2),

@@ -771,7 +771,15 @@ their tab bars read.
   with annex 1's examples as placeholders. All are optional to save; a row missing any of the
   seven that generating asks for reads "Date PSI incomplete". `?focus=workplace-fire-data`
   opens the first such workplace at its first empty field, `?focus=add-workplace` the new
-  workplace dialog.
+  workplace dialog. Under "Este sediul social", the registered office alone is asked "La sediul
+  social se desfășoară activitate" (ADR 041), ticked by default; unticked, the dialog hides the
+  fire-safety group and saves what it held unchanged, the row reads "Fără activitate la sediu"
+  in place of "Date PSI incomplete", and unticking "Este sediul social" sends the answer back as
+  yes. The API's `409` with `office_needs_workplace` or `office_has_employees` is worded under
+  the checkbox, the second with the number of employees, and `office_needs_workplace` on
+  archiving the last point of work above the list. The import's review, which opens the same
+  dialog on a proposed workplace, does not ask it. The employee form's workplace picker leaves
+  such an office out, and preselects a new employee's workplace when one other is left.
 - `/clienti/:clientId/mijloace-de-aparare`: "Mijloace PSI", between "Posturi de lucru" and
   "Instruire și responsabili", in `src/features/fire-safety-means/`. One card per active
   workplace, with its activity and address, holds a table of its equipment (the extinguisher's
@@ -791,13 +799,22 @@ their tab bars read.
   saying they are optional and printed in the site sheet 7.1, required from ten employees; its
   dialog groups the facts under "Construcția", "Utilități", "Apa pentru stingere" and
   "Observații", every field optional, the area and the water reserve with the decimal comma, and
-  saving every field empty clears the building. A mobile site's card has no such section. Below the workplaces, also for a client without one, the card "Substanțe
+  saving every field empty clears the building. A mobile site's card has no such section. A
+  registered office where no activity takes place (ADR 041) has no card, and a notice above the
+  cards says so and links to "Detalii"; the API's lists leave out what it keeps, and
+  `?focus=fire-equipment` skips it. Below the workplaces, also for a client without one, the card "Substanțe
   periculoase" (ADR 018, amended 2026-10-11) asks whether the client uses dangerous substances,
   "Nu se utilizează substanțe periculoase" or "Se utilizează, lista de mai jos", saved on choice;
   with the second, a table of the substances, each added, edited and deleted through a dialog
-  whose eight optional texts name the section of the safety data sheet they come from. The
+  whose eight optional texts name the section of the safety data sheet they come from. Only the
+  name is required to save: the classification and the quantity carry no mark, as fields the SU
+  documents need, which the dialog's description says (ADR 041). An entry without either is
+  marked "Incompletă" with what it lacks ("Lipsește cantitatea"), its missing quantity shown as a
+  dash, and a line under the table says the SU documents wait for them. The
   first choice is disabled while the list has entries. `?focus=fire-substances` points at the
-  choice while undecided, and opens the add dialog when the list is chosen but empty.
+  choice while undecided, opens the add dialog when the list is chosen but empty, and opens the
+  first incomplete entry at its first missing field. The missing-data row of `fire.substances`
+  names the incomplete substances from the readiness's `incompleteFireSubstances`.
 - `/clienti/:clientId/documente-ssm`: the "Documente SSM" section of a client (ADR 005), in
   `src/features/documents/`. The card is the whole pack (`buildPack` in `pack-status.ts`): every
   document of the set once, in the binder's sections (`documentSections`), under its most
@@ -1026,7 +1043,46 @@ their tab bars read.
   document details and its fire-safety data. A workplace or a position opens the app's own dialog
   in its draft mode (`draft` on `WorkplaceDialog` and `JobPositionDialog`, which hands the
   values back instead of saving a row); the other items open `ItemEditDialog`. Items and values
-  only another company's passages give are listed unticked. Every decision goes to `PUT
+  only another company's passages give are listed unticked. On "Apărarea împotriva incendiilor",
+  the means files count differently ("Câte mijloace de stingere sunt") come first, one row per
+  kind and workplace with each file's total, rooms and "Vezi în document"; until one is picked
+  their entries stay out of the list and of what confirming creates, then only the chosen
+  file's are listed. An entry the document gives without a number says it is taken as one. The
+  smoking place, where it applies, and each kept workplace's assembly point (a card "Punctul de
+  adunare" after the workplaces) are decision rows (`FactRow`): the value read with its files and
+  "Vezi în document", "Altă valoare" or "Lasă necompletat", the spelling pair under a value kept;
+  until one is picked the hub names no place and blocks confirming (ADR 041). Into an existing
+  client a workplace's point is asked only where the API blocks on it or the member decided,
+  since only the API knows the client's own point. After it, the card "Sugestii din activitate"
+  (`review-suggestions.tsx`, ADR 041) holds the registered office the import suggests has no
+  activity, a decision row with the suggestion (marked "Sugestie din activitate", "Vezi în
+  document" on the passages naming the points of work) or "Cu activitate", and one decision row
+  per kept workplace with suggested values: each value in a small box with its mark, its files,
+  "Vezi în document" stepping through every passage it was drawn from, "Schimbă" (a text box, a
+  list for the norm) and "Lasă necompletat" or "Revino la sugestie", a value changed or emptied
+  showing "Modificat de tine" over the suggestion; then "Păstrează valorile de mai sus" (which
+  brings the suggestions back when all were emptied) or "Lasă-le necompletate", which empties
+  them all. Until the row is decided the hub links to it and confirming waits; the workplace's
+  own row leaves those values to the card. An office with no activity (`inactiveOffices`, the
+  payload's rule: one the import creates and the member kept so, or the client's own office,
+  matched by `existingId`, name or address against `GET /clients/{id}/workplaces`, that already
+  has none) says so on its row, is asked nothing else, and its means, installations and counts
+  are left out of the list, the hub, the section summary and the confirm dialog, with one line
+  on its row when some were placed there; a count at a workplace left out is not asked either.
+  Into an existing client a row is shown only where the API blocks on it or the member decided,
+  and the office's decision is dropped once the office is the client's own. The confirm dialog
+  adds "Fără activitate la sediul social" and the count of suggested values kept. On a phone the
+  decision cards keep their own description. After the installations, the card "Substanțe
+  periculoase" asks "Utilizează substanțe periculoase?" with three answers, the two the client's
+  card offers, each with the files that give it and "Vezi în document", and "Nedecis", which
+  blocks nothing; the answer the documents give is picked, two that disagree wait for the
+  member, and silence leaves "Nedecis" with a line saying so. Under "listed" or while it waits,
+  the substances follow as rows with the include switch, "Schimbă" for the name and the
+  card's "Incompletă" with "Lipsesc clasificarea și cantitatea"; under another answer, one line
+  says how many the documents name. Into an existing client whose answer is decided, the row
+  offers "În aplicație" and "În documente" instead, also while the documents disagree, which then
+  waits for nothing, and a substance the client lists already by
+  that name says it is not added again (`GET …/fire-substances`). Every decision goes to `PUT
 /imports/{id}/changes` at once, one save after another on the version the previous answered;
   each answer's blockers replace the import's before it is read again, so a note the save settles
   goes at once. A `409` `import_changed` stops saving and offers to reload. The values a member wrote carry

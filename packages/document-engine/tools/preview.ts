@@ -1489,6 +1489,8 @@ function sample(
       installationRegister: true,
       extinguisherRegister: inventoryRegisterSample(people.length > 1).extinguisherRegister,
       installationSheets: inventoryRegisterSample(people.length > 1).installationSheets,
+      officeWithoutActivity:
+        people.length > 1 ? { address: 'Timișoara, județul Timiș, Str. Gheorghe Lazăr 24' } : null,
       workplaceManagers: people,
       workplaceManagersText: described(people),
       workplaceManagersList: people.map(({ name, jobTitle }) => `${name}, ${jobTitle}`).join('; '),

@@ -233,6 +233,9 @@ export const workplaceSchema = z.object({
   clientId: z.uuid(),
   name: z.string(),
   isRegisteredOffice: z.boolean(),
+  // False for a registered office that is only an address: the fire-safety set leaves it out
+  // and keeps its SU data unprinted (ADR 041). Always true on a point of work.
+  officeHasActivity: z.boolean(),
   countyCode: countyCodeSchema.nullable(),
   locality: z.string().nullable(),
   addressLine: z.string().nullable(),
@@ -261,22 +264,28 @@ export const workplaceListResponseSchema = z.object({ items: z.array(workplaceSc
 
 export type WorkplaceListResponse = z.infer<typeof workplaceListResponseSchema>;
 
-export const workplaceRequestSchema = z.object({
-  name: z.string().trim().min(2).max(160),
-  isRegisteredOffice: z.boolean().default(false),
-  countyCode: countyCodeSchema.nullish(),
-  locality: optionalText(1, 120),
-  addressLine: optionalText(1, 240),
-  activity: optionalText(2, 160),
-  kind: workplaceKindSchema.default('fixed_space'),
-  floorAreaM2: z.int().min(1).max(1_000_000).nullish(),
-  extinguisherNorm: fireExtinguisherNormSchema.nullish(),
-  assemblyPoint: optionalText(2, 240),
-  combustibleMaterials: optionalText(2, 600),
-  ignitionSources: optionalText(2, 600),
-  fireRiskEquipment: optionalText(2, 600),
-  specificMeasures: optionalText(2, 600),
-});
+export const workplaceRequestSchema = z
+  .object({
+    name: z.string().trim().min(2).max(160),
+    isRegisteredOffice: z.boolean().default(false),
+    officeHasActivity: z.boolean().default(true),
+    countyCode: countyCodeSchema.nullish(),
+    locality: optionalText(1, 120),
+    addressLine: optionalText(1, 240),
+    activity: optionalText(2, 160),
+    kind: workplaceKindSchema.default('fixed_space'),
+    floorAreaM2: z.int().min(1).max(1_000_000).nullish(),
+    extinguisherNorm: fireExtinguisherNormSchema.nullish(),
+    assemblyPoint: optionalText(2, 240),
+    combustibleMaterials: optionalText(2, 600),
+    ignitionSources: optionalText(2, 600),
+    fireRiskEquipment: optionalText(2, 600),
+    specificMeasures: optionalText(2, 600),
+  })
+  .refine((workplace) => workplace.officeHasActivity || workplace.isRegisteredOffice, {
+    message: 'Only the registered office can have no activity.',
+    path: ['officeHasActivity'],
+  });
 
 export type WorkplaceRequest = z.infer<typeof workplaceRequestSchema>;
 
@@ -359,6 +368,13 @@ export const responsiblePersonRequestSchema = z
   });
 
 export type ResponsiblePersonRequest = z.infer<typeof responsiblePersonRequestSchema>;
+
+// Reasons of a 409 that the app words itself (ADR 041). With `officeHasEmployees` the
+// response carries `employeeCount`.
+export const workplaceConflictReasons = {
+  officeNeedsWorkplace: 'office_needs_workplace',
+  officeHasEmployees: 'office_has_employees',
+} as const;
 
 // Reasons of a 409 that the app words itself.
 export const responsiblePersonConflictReasons = {

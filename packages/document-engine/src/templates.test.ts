@@ -638,6 +638,7 @@ describe('fire-safety set', () => {
     annexes: fireAnnexes,
     noAnnexes: false,
     fireThemes,
+    officeWithoutActivity: null,
   };
 
   it('are the files of their manifest, named after their numbers and their types', () => {
@@ -975,6 +976,24 @@ describe('fire-safety set', () => {
     );
     expect(sparseText).not.toContain('LOC PENTRU FUMAT');
     expect(sparseText).not.toContain('Măsuri specifice locului de muncă');
+  });
+
+  it('says in one line that no activity takes place at the registered office, with its address', () => {
+    const list = read('fire/5.1_fire_means_list.docx');
+    const line =
+      'La sediul social, Cluj-Napoca, județul Cluj, Str. Florilor 3, nu se desfășoară activitate.';
+    const text = documentText(
+      renderDocument(list, {
+        ...stageTwoData,
+        officeWithoutActivity: { address: 'Cluj-Napoca, județul Cluj, Str. Florilor 3' },
+      })
+    );
+    expect(text).toMatch(new RegExp(`^${line}$`, 'm'));
+    expect(text.indexOf(line)).toBeLessThan(text.indexOf('NUMĂR ORIENTATIV DE STINGĂTOARE'));
+    expect(text.indexOf(line)).toBeGreaterThan(text.lastIndexOf('Total stingătoare'));
+    const without = documentText(renderDocument(list, stageTwoData));
+    expect(without).not.toContain('nu se desfășoară activitate');
+    expect(without).not.toMatch(/\n\n\n/);
   });
 
   it('shows where the means of a workplace stand only where some unit says it', () => {

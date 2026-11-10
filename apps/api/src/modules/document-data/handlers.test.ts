@@ -72,6 +72,7 @@ const workplaceRow = {
   client_id: clientId,
   name: 'Sediu social',
   is_registered_office: true,
+  office_has_activity: true,
   county_code: 'B',
   locality: 'București',
   address_line: 'Calea Victoriei 122A',
@@ -531,6 +532,7 @@ describe('/clients/{clientId}/workplaces', () => {
         clientId,
         name: 'Sediu social',
         isRegisteredOffice: true,
+        officeHasActivity: true,
         countyCode: 'B',
         locality: 'București',
         addressLine: 'Calea Victoriei 122A',
@@ -569,6 +571,7 @@ describe('/clients/{clientId}/workplaces', () => {
       client_id: clientId,
       name: 'Sediu social',
       is_registered_office: true,
+      office_has_activity: true,
       county_code: null,
       locality: null,
       address_line: null,
@@ -650,21 +653,136 @@ describe('/clients/{clientId}/workplaces', () => {
   });
 
   it('replaces and archives a workplace, scoped to the client', async () => {
-    mockUpstream({ workplaces: () => Response.json(workplaceRow) });
+    mockUpstream({
+      workplaces: (init) =>
+        init?.method === 'PATCH' ? Response.json(workplaceRow) : Response.json([workplaceRow]),
+    });
     const item = `${path}/${workplaceRow.id}`;
     expect((await request(item, 'PUT', { name: 'Sediu' })).status).toBe(200);
     expect((await request(item, 'DELETE')).status).toBe(204);
-    for (const [url] of calls('/rest/v1/client_workplaces')) {
+    const writes = calls('/rest/v1/client_workplaces').filter(
+      ([, init]) => init?.method === 'PATCH'
+    );
+    expect(writes).toHaveLength(2);
+    for (const [url] of writes) {
       const query = new URL(String(url)).searchParams;
       expect(query.get('id')).toBe(`eq.${workplaceRow.id}`);
       expect(query.get('client_id')).toBe(`eq.${clientId}`);
       expect(query.get('archived_at')).toBe('is.null');
     }
-    expect(sentBody('/rest/v1/client_workplaces', 1)).toHaveProperty('archived_at');
+    expect(JSON.parse(String(writes[1]![1]?.body))).toHaveProperty('archived_at');
+  });
+
+  describe('a registered office with no activity (ADR 041)', () => {
+    const item = `${path}/${workplaceRow.id}`;
+    const pointOfWork = { id: '9b2c4f1e-7a3d-4c5b-8e6f-0a1b2c3d4e5f' };
+    const noActivity = { name: 'Sediu social', isRegisteredOffice: true, officeHasActivity: false };
+    const reasonOf = async (response: Response) =>
+      apiErrorResponseSchema.parse(await response.json());
+
+    it('is stored beside another active workplace that nobody is assigned away from', async () => {
+      mockUpstream({
+        workplaces: (init) =>
+          init?.method === 'PATCH'
+            ? Response.json({ ...workplaceRow, office_has_activity: false })
+            : Response.json([pointOfWork]),
+        employees: () => new Response(null, { headers: { 'Content-Range': '*/0' } }),
+      });
+      const response = await request(item, 'PUT', noActivity);
+      expect(response.status).toBe(200);
+      expect(workplaceResponseSchema.parse(await response.json()).workplace.officeHasActivity).toBe(
+        false
+      );
+      const [others] = calls('/rest/v1/client_workplaces');
+      const query = new URL(String(others![0])).searchParams;
+      expect(query.get('is_registered_office')).toBe('eq.false');
+      expect(query.get('id')).toBe(`neq.${workplaceRow.id}`);
+      const [employees] = calls('/rest/v1/employees');
+      const counted = new URL(String(employees![0])).searchParams;
+      expect(counted.get('workplace_id')).toBe(`eq.${workplaceRow.id}`);
+      expect(counted.get('status')).toBe('eq.active');
+      const writes = calls('/rest/v1/client_workplaces').filter(
+        ([, init]) => init?.method === 'PATCH'
+      );
+      expect(JSON.parse(String(writes[0]![1]?.body))).toMatchObject({
+        is_registered_office: true,
+        office_has_activity: false,
+      });
+    });
+
+    it('is refused on a point of work, which is archived instead', async () => {
+      mockUpstream({});
+      const response = await request(item, 'PUT', {
+        name: 'Atelier',
+        isRegisteredOffice: false,
+        officeHasActivity: false,
+      });
+      expect(response.status).toBe(400);
+      expect(calls('/rest/v1/client_workplaces')).toHaveLength(0);
+    });
+
+    it('is refused while the office is the only active workplace', async () => {
+      mockUpstream({ workplaces: () => Response.json([]) });
+      for (const response of [
+        await request(item, 'PUT', noActivity),
+        await request(path, 'POST', noActivity),
+      ]) {
+        expect(response.status).toBe(409);
+        expect((await reasonOf(response)).reason).toBe('office_needs_workplace');
+      }
+      expect(
+        calls('/rest/v1/client_workplaces').filter(([, init]) => init?.method !== 'GET')
+      ).toEqual([]);
+    });
+
+    it('is refused while current employees work at the office, saying how many', async () => {
+      mockUpstream({
+        workplaces: () => Response.json([pointOfWork]),
+        employees: () => new Response(null, { headers: { 'Content-Range': '*/2' } }),
+      });
+      const response = await request(item, 'PUT', noActivity);
+      expect(response.status).toBe(409);
+      expect(await reasonOf(response)).toMatchObject({
+        reason: 'office_has_employees',
+        employeeCount: 2,
+      });
+    });
+
+    it('answers with the reason when the database refuses it at the commit', async () => {
+      mockUpstream({
+        workplaces: (init) =>
+          init?.method === 'PATCH' ? databaseError('WPL01', 400) : Response.json([pointOfWork]),
+        employees: () => new Response(null, { headers: { 'Content-Range': '*/0' } }),
+      });
+      const response = await request(item, 'PUT', noActivity);
+      expect(response.status).toBe(409);
+      expect((await reasonOf(response)).reason).toBe('office_needs_workplace');
+    });
+
+    it('keeps the last point of work from being archived', async () => {
+      mockUpstream({
+        workplaces: (init) =>
+          init?.method === 'PATCH'
+            ? Response.json({ id: pointOfWork.id })
+            : Response.json([
+                { id: workplaceRow.id, is_registered_office: true, office_has_activity: false },
+                { id: pointOfWork.id, is_registered_office: false, office_has_activity: true },
+              ]),
+      });
+      const response = await request(`${path}/${pointOfWork.id}`, 'DELETE');
+      expect(response.status).toBe(409);
+      expect((await reasonOf(response)).reason).toBe('office_needs_workplace');
+      expect(
+        calls('/rest/v1/client_workplaces').filter(([, init]) => init?.method === 'PATCH')
+      ).toEqual([]);
+      expect((await request(item, 'DELETE')).status).toBe(204);
+    });
   });
 
   it('answers 404 for a workplace that is not there', async () => {
-    mockUpstream({ workplaces: () => Response.json(null) });
+    mockUpstream({
+      workplaces: (init) => (init?.method === 'PATCH' ? Response.json(null) : Response.json([])),
+    });
     const item = `${path}/${workplaceRow.id}`;
     expect((await request(item, 'PUT', { name: 'Sediu' })).status).toBe(404);
     expect((await request(item, 'DELETE')).status).toBe(404);
@@ -719,7 +837,7 @@ describe('/clients/{clientId}/responsible-persons', () => {
 
   it('ties a fire-safety role to one active workplace of the client', async () => {
     mockUpstream({
-      workplaces: () => Response.json({ id: workplaceRow.id }),
+      workplaces: () => Response.json({ id: workplaceRow.id, office_has_activity: true }),
       responsiblePersons: () => Response.json(responsiblePersonRow, { status: 201 }),
     });
     const response = await request(path, 'POST', {
@@ -753,6 +871,49 @@ describe('/clients/{clientId}/responsible-persons', () => {
       );
     }
     expect(calls('/rest/v1/client_responsible_persons')).toHaveLength(0);
+  });
+
+  describe('tied to a registered office with no activity (ADR 041)', () => {
+    const office = { id: workplaceRow.id, office_has_activity: false };
+    const item = `${path}/${responsiblePersonRow.id}`;
+    const tied = { ...body, workplaceId: workplaceRow.id };
+    const writes = () =>
+      calls('/rest/v1/client_responsible_persons').filter(([, init]) => init?.method !== 'GET');
+
+    it('is refused on a new person and on a new tie, naming the workplace field', async () => {
+      mockUpstream({
+        workplaces: () => Response.json(office),
+        responsiblePersons: (init) =>
+          init?.method === 'PATCH'
+            ? Response.json(responsiblePersonRow)
+            : Response.json({ workplace_id: null }),
+      });
+      for (const [method, url] of [
+        ['POST', path],
+        ['PUT', item],
+      ] as const) {
+        const response = await request(url, method, tied);
+        expect(response.status).toBe(400);
+        expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe(
+          'workplaceId'
+        );
+      }
+      expect(writes()).toEqual([]);
+    });
+
+    it('keeps a tie made before the office was answered "no"', async () => {
+      mockUpstream({
+        workplaces: () => Response.json(office),
+        responsiblePersons: (init) =>
+          init?.method === 'PATCH'
+            ? Response.json({ ...responsiblePersonRow, workplace_id: workplaceRow.id })
+            : Response.json({ workplace_id: workplaceRow.id }),
+      });
+      expect((await request(item, 'PUT', tied)).status).toBe(200);
+      expect(JSON.parse(String(writes()[0]![1]?.body))).toMatchObject({
+        workplace_id: workplaceRow.id,
+      });
+    });
   });
 
   it('refuses no role, an unknown role, and a role given twice', async () => {

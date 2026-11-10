@@ -160,6 +160,7 @@ export function wireAnswer() {
         'Materiale combustibile: făină, ambalaje din carton'
       ),
     ],
+    workplaceSuggestions: [],
     jobPositions: [
       {
         name: 'Brutar',
@@ -234,6 +235,7 @@ export function wireAnswer() {
       },
     ],
     fireInstallations: [],
+    substances: [],
     protectiveEquipment: [
       {
         jobPositions: ['Brutar', 'Vânzător', 'brutar'],

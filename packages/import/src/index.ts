@@ -12,6 +12,7 @@ export {
   lookUpRegistrations,
   type RegisteredCompany,
   type Registrations,
+  substanceNameAllowed,
   withChecks,
 } from './checks';
 export { DocxReadError, docxToText } from './docx';

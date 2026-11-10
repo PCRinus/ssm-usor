@@ -15,6 +15,7 @@ import type {
   DocumentSectionId,
   FireSafetyDocumentSectionId,
 } from '@/features/documents/document-sections';
+import { joinNames } from '@/features/imports/library/library-model';
 import { type PositionSection, positionSections } from '@/features/job-positions/position-sections';
 import {
   clientEvaluationsSection,
@@ -167,11 +168,40 @@ type DocumentPlace = keyof typeof documentPlaces;
 
 type Clash = { representativeName: string; legalRepresentativeName: string } | null;
 
+type IncompleteFireSubstance = {
+  id: string;
+  name: string;
+  missing: readonly ('classification' | 'quantity')[];
+};
+
+const substanceGaps = [
+  { label: 'clasificarea și cantitatea', lacks: ['classification', 'quantity'] },
+  { label: 'clasificarea', lacks: ['classification'] },
+  { label: 'cantitatea', lacks: ['quantity'] },
+] as const;
+
+function incompleteSubstancesDetail(substances: readonly IncompleteFireSubstance[]) {
+  const phrases = substanceGaps.flatMap(({ label, lacks }) => {
+    const names = substances
+      .filter(
+        (substance) =>
+          substance.missing.length === lacks.length &&
+          lacks.every((field) => substance.missing.includes(field))
+      )
+      .map((substance) => `„${substance.name}”`);
+    if (names.length === 0) return [];
+    return [`${label} ${names.length === 1 ? 'substanței' : 'substanțelor'} ${joinNames(names)}`];
+  });
+  const text = phrases.join('; ');
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}.`;
+}
+
 type DocumentContext = {
   clientId: string;
   clash: Clash;
   currentEmployeeCount?: number;
   set: DocumentSet;
+  incompleteFireSubstances: readonly IncompleteFireSubstance[];
 };
 
 const responsible = (role: ResponsiblePersonRole, focus: TrainingFocus) => ({
@@ -363,7 +393,8 @@ export const documentMissingData: Record<
   'fire.equipment': {
     place: 'fireSafetyMeans',
     label: 'Stingătoarele locurilor de muncă',
-    detail: 'Fiecare loc de muncă activ are nevoie de cel puțin un stingător.',
+    detail:
+      'Fiecare loc de muncă activ are nevoie de cel puțin un stingător, în afară de sediul social la care nu se desfășoară activitate.',
     target: ({ clientId }) => to.fireSafetyMeans(clientId, 'fire-equipment'),
   },
   'fire.instructions': {
@@ -382,8 +413,12 @@ export const documentMissingData: Record<
   'fire.substances': {
     place: 'fireSafetyMeans',
     label: 'Substanțele periculoase',
-    detail:
-      'Dacă clientul utilizează substanțe periculoase, cu cel puțin una în listă, sau că nu utilizează niciuna.',
+    detail: ({ incompleteFireSubstances }) => {
+      if (incompleteFireSubstances.length === 0) {
+        return 'Dacă clientul utilizează substanțe periculoase, cu cel puțin una în listă, sau că nu utilizează niciuna.';
+      }
+      return incompleteSubstancesDetail(incompleteFireSubstances);
+    },
     target: ({ clientId }) => to.fireSafetyMeans(clientId, 'fire-substances'),
   },
 };
@@ -452,6 +487,7 @@ export function documentMissingGroups({
   clash,
   undecidedJobPositions,
   incompleteRiskEvaluations = [],
+  incompleteFireSubstances = [],
   currentEmployeeCount,
   canEditOrganization,
   set = 'occupational_safety',
@@ -462,10 +498,11 @@ export function documentMissingGroups({
   currentEmployeeCount?: number;
   undecidedJobPositions: readonly UndecidedJobPosition[];
   incompleteRiskEvaluations?: readonly IncompleteRiskEvaluation[];
+  incompleteFireSubstances?: readonly IncompleteFireSubstance[];
   canEditOrganization: boolean;
   set?: DocumentSet;
 }): MissingGroup[] {
-  const context = { clientId, clash, currentEmployeeCount, set };
+  const context = { clientId, clash, currentEmployeeCount, set, incompleteFireSubstances };
   const rowOf = (code: MissingDocumentData): MissingRow => {
     const entry = documentMissingData[code];
     return {

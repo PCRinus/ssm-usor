@@ -147,6 +147,8 @@ export const apiErrorResponseSchema = z.object({
   // With `sms_allowance_reached` or `sms_cap_reached`: when the month's signing codes by SMS
   // start again.
   resumesAt: z.iso.datetime({ offset: true }).optional(),
+  // With `office_has_employees`: how many current employees work at the registered office.
+  employeeCount: z.int().min(1).optional(),
 });
 
 export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;

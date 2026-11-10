@@ -1,3 +1,4 @@
+import { workplaceConflictReasons } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
@@ -31,6 +32,7 @@ import { MoreHorizontal, Plus } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import {
+  type ApiErrorResponse,
   type ClientResponse,
   getListWorkplacesQueryKey,
   useArchiveWorkplace,
@@ -123,10 +125,16 @@ export function WorkplacesCard({
       await archive.mutateAsync({ clientId, workplaceId: workplace.id });
       toast.success(`${workplace.name} a fost arhivat.`);
     } catch (cause) {
+      const reason =
+        cause instanceof ApiHttpError
+          ? (cause.body as Partial<ApiErrorResponse> | undefined)?.reason
+          : undefined;
       setError(
-        cause instanceof ApiHttpError && cause.status === 404
-          ? `${workplace.name} nu mai există la acest client.`
-          : 'Nu am putut arhiva punctul de lucru. Verifică conexiunea și încearcă din nou.'
+        reason === workplaceConflictReasons.officeNeedsWorkplace
+          ? `${workplace.name} este singurul punct de lucru activ, iar la sediul social nu se desfășoară activitate. Bifează activitatea la sediu sau adaugă punctul de lucru care îi ia locul, apoi arhivează-l.`
+          : cause instanceof ApiHttpError && cause.status === 404
+            ? `${workplace.name} nu mai există la acest client.`
+            : 'Nu am putut arhiva punctul de lucru. Verifică conexiunea și încearcă din nou.'
       );
     }
     setArchiving(null);
@@ -213,6 +221,14 @@ export function WorkplacesCard({
                         <Badge variant="secondary">Sediu social</Badge>
                       )}
                     </span>
+                    {!workplace.officeHasActivity && (
+                      <span
+                        data-testid="workplace-no-activity"
+                        className="mt-0.5 block text-xs font-normal text-muted-foreground"
+                      >
+                        Fără activitate la sediu
+                      </span>
+                    )}
                     {firstMissingFireField(workplace) !== null && (
                       <span
                         data-testid="workplace-fire-incomplete"

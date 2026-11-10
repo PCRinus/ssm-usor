@@ -1,6 +1,8 @@
 import type { BillingCreditsUsage } from '@ssm-usor/contracts';
 import { vi } from 'vitest';
 
+import type { Proposal } from '@/features/imports/review-model';
+
 import { activeSubscription, summaryOf as subscriptionSummaryOf } from './billing-fixture';
 
 export const importId = '6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f';
@@ -142,12 +144,12 @@ export const bodyOf = (pathname: string, method: string, index = 0) =>
   JSON.parse(String(requestsTo(pathname, method)[index]?.[1]?.body)) as unknown;
 
 const src = (file: string, quote: string) => [{ file, quote }];
-const one = (value: string | number, file = 'dosar-ssm.zip/Decizie 1.docx') => ({
+const one = <T extends string | number>(value: T, file = 'dosar-ssm.zip/Decizie 1.docx') => ({
   options: [{ value, sources: src(file, String(value)), otherCompanyName: null }],
 });
 const none = { options: [] };
 
-export function proposalFixture() {
+export function proposalFixture(): Proposal {
   return {
     client: {
       legalName: one('Brutăria Spicul Auriu SRL'),

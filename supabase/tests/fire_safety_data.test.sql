@@ -1,5 +1,5 @@
 begin;
-select plan(70);
+select plan(72);
 
 -- Fixtures: organization A with an owner, B with a specialist. A has an active client with two
 -- workplaces, a second client with one workplace, a client archived below after its rows are
@@ -180,10 +180,20 @@ select lives_ok(
   'and lists one with its classification and quantity'
 );
 
+select lives_ok(
+  $$ insert into public.fire_substances (id, organization_id, client_id, name)
+     values ('a1a1a1a1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Diluant') $$,
+  'a substance is listed by its name before its classification and quantity are known'
+);
+
 select throws_ok(
-  $$ insert into public.fire_substances (organization_id, client_id, name, quantity)
-     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Diluant', '5 l') $$,
-  '23502', null, 'a substance has a classification'
+  $$ update public.fire_substances set classification = ' ' where id = 'a1a1a1a1-0000-4000-8000-000000000002' $$,
+  '23514', null, 'a classification, once given, has two characters at least'
+);
+
+select throws_ok(
+  $$ update public.fire_substances set quantity = '  ' where id = 'a1a1a1a1-0000-4000-8000-000000000002' $$,
+  '23514', null, 'a quantity, once given, is not blank'
 );
 
 select throws_ok(
@@ -202,8 +212,9 @@ select throws_ok(
 );
 
 select lives_ok(
-  $$ delete from public.fire_substances where id = 'a1a1a1a1-0000-4000-8000-000000000001' $$,
-  'a member deletes a substance the client no longer uses'
+  $$ delete from public.fire_substances
+     where id in ('a1a1a1a1-0000-4000-8000-000000000001', 'a1a1a1a1-0000-4000-8000-000000000002') $$,
+  'a member deletes the substances the client no longer uses'
 );
 
 select lives_ok(

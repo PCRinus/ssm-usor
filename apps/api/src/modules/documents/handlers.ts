@@ -28,6 +28,7 @@ import {
   uploadDocumentFile as upload,
 } from './documents';
 import { loadDocumentFacts } from './facts';
+import { incompleteFireSubstances } from './fire-safety';
 import {
   listDocumentsBehind as listBehind,
   readRegenerationJob,
@@ -102,6 +103,9 @@ export const getDocumentReadiness: RouteHandler<typeof getDocumentReadinessRoute
             facts.client.sensitiveGroupsState
           )
         : [],
+      incompleteFireSubstances: occupational
+        ? []
+        : incompleteFireSubstances(facts.fireSafety.substances),
     },
     200
   );

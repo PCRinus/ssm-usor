@@ -13,6 +13,7 @@ import {
   type StaffCategory,
   type UpdateClientDocumentDetailsRequest,
   type Workplace,
+  workplaceConflictReasons,
   type WorkplaceRequest,
 } from '@ssm-usor/contracts';
 
@@ -365,7 +366,7 @@ async function refuseEmployeeOfAnotherClient(
 }
 
 const workplaceColumns =
-  'id, client_id, name, is_registered_office, county_code, locality, address_line, activity, kind, floor_area_m2, extinguisher_norm, assembly_point, combustible_materials, ignition_sources, fire_risk_equipment, specific_measures, created_at, updated_at';
+  'id, client_id, name, is_registered_office, office_has_activity, county_code, locality, address_line, activity, kind, floor_area_m2, extinguisher_norm, assembly_point, combustible_materials, ignition_sources, fire_risk_equipment, specific_measures, created_at, updated_at';
 
 type WorkplaceRow = Pick<
   Tables['client_workplaces']['Row'],
@@ -373,6 +374,7 @@ type WorkplaceRow = Pick<
   | 'client_id'
   | 'name'
   | 'is_registered_office'
+  | 'office_has_activity'
   | 'county_code'
   | 'locality'
   | 'address_line'
@@ -395,6 +397,7 @@ function toWorkplace(row: WorkplaceRow): Workplace {
     clientId: row.client_id,
     name: row.name,
     isRegisteredOffice: row.is_registered_office,
+    officeHasActivity: row.office_has_activity,
     countyCode: row.county_code as Workplace['countyCode'],
     locality: row.locality,
     addressLine: row.address_line,
@@ -415,6 +418,7 @@ function toWorkplace(row: WorkplaceRow): Workplace {
 const workplaceFields = (body: WorkplaceRequest) => ({
   name: body.name,
   is_registered_office: body.isRegisteredOffice,
+  office_has_activity: body.officeHasActivity,
   county_code: body.countyCode ?? null,
   locality: body.locality ?? null,
   address_line: body.addressLine ?? null,
@@ -434,6 +438,62 @@ const noSuchWorkplace = () =>
 
 const secondRegisteredOffice = () =>
   new ApiError('conflict', 'This client already has a registered office.');
+
+const officeNeedsWorkplace = () =>
+  new ApiError(
+    'conflict',
+    'A registered office with no activity needs another active workplace of the client.',
+    undefined,
+    workplaceConflictReasons.officeNeedsWorkplace
+  );
+
+function workplaceError(error: { code: string }, context: string) {
+  if (error.code === '23505') return secondRegisteredOffice();
+  if (error.code === 'WPL01') return officeNeedsWorkplace();
+  return fromDatabaseError(error as Parameters<typeof fromDatabaseError>[0], context);
+}
+
+// The database refuses an office with no activity and no other workplace too, but only at the
+// commit; asking first answers with the reason, and counts the employees it has no rule for.
+async function refuseOfficeWithoutActivity(
+  db: DataClient,
+  clientId: string,
+  body: WorkplaceRequest,
+  workplaceId?: string
+) {
+  if (body.officeHasActivity) return;
+  let others = db
+    .from('client_workplaces')
+    .select('id')
+    .eq('client_id', clientId)
+    .eq('is_registered_office', false)
+    .is('archived_at', null)
+    .limit(1);
+  if (workplaceId) others = others.neq('id', workplaceId);
+  const { data, error } = await others;
+  if (error) throw fromDatabaseError(error, 'find workplaces');
+  if (data.length === 0) throw officeNeedsWorkplace();
+  if (!workplaceId) return;
+  const employees = await db
+    .from('employees')
+    .select('id', { count: 'exact', head: true })
+    .eq('client_id', clientId)
+    .eq('workplace_id', workplaceId)
+    .eq('status', 'active')
+    .is('archived_at', null);
+  if (employees.error) throw fromDatabaseError(employees.error, 'count employees');
+  const employeeCount = employees.count ?? 0;
+  if (employeeCount > 0) {
+    throw new ApiError(
+      'conflict',
+      `Current employees work at this registered office: ${employeeCount}.`,
+      undefined,
+      workplaceConflictReasons.officeHasEmployees,
+      undefined,
+      { employeeCount }
+    );
+  }
+}
 
 export const listWorkplaces: RouteHandler<typeof listWorkplacesRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
@@ -456,6 +516,7 @@ export const createWorkplace: RouteHandler<typeof createWorkplaceRoute, ApiEnv> 
   const body = c.req.valid('json');
   const db = createDataClient(c);
   await findActiveClient(db, clientId, 'This client is archived; workplaces cannot be added.');
+  await refuseOfficeWithoutActivity(db, clientId, body);
   const { data, error } = await db
     .from('client_workplaces')
     .insert({
@@ -466,18 +527,16 @@ export const createWorkplace: RouteHandler<typeof createWorkplaceRoute, ApiEnv> 
     })
     .select(workplaceColumns)
     .single();
-  if (error) {
-    throw error.code === '23505'
-      ? secondRegisteredOffice()
-      : fromDatabaseError(error, 'create workplace');
-  }
+  if (error) throw workplaceError(error, 'create workplace');
   return c.json({ workplace: toWorkplace(data) }, 201);
 };
 
 export const updateWorkplace: RouteHandler<typeof updateWorkplaceRoute, ApiEnv> = async (c) => {
   const { clientId, workplaceId } = c.req.valid('param');
   const body = c.req.valid('json');
-  const { data, error } = await createDataClient(c)
+  const db = createDataClient(c);
+  await refuseOfficeWithoutActivity(db, clientId, body, workplaceId);
+  const { data, error } = await db
     .from('client_workplaces')
     .update(workplaceFields(body))
     .eq('id', workplaceId)
@@ -485,18 +544,34 @@ export const updateWorkplace: RouteHandler<typeof updateWorkplaceRoute, ApiEnv> 
     .is('archived_at', null)
     .select(workplaceColumns)
     .maybeSingle();
-  if (error) {
-    throw error.code === '23505'
-      ? secondRegisteredOffice()
-      : fromDatabaseError(error, 'update workplace');
-  }
+  if (error) throw workplaceError(error, 'update workplace');
   if (!data) throw noSuchWorkplace();
   return c.json({ workplace: toWorkplace(data) }, 200);
 };
 
 export const archiveWorkplace: RouteHandler<typeof archiveWorkplaceRoute, ApiEnv> = async (c) => {
   const { clientId, workplaceId } = c.req.valid('param');
-  const { data, error } = await createDataClient(c)
+  const db = createDataClient(c);
+  const active = await db
+    .from('client_workplaces')
+    .select('id, is_registered_office, office_has_activity')
+    .eq('client_id', clientId)
+    .is('archived_at', null);
+  if (active.error) throw fromDatabaseError(active.error, 'list workplaces');
+  const officeWithoutActivity = active.data.some(
+    (workplace) => workplace.is_registered_office && !workplace.office_has_activity
+  );
+  const pointsLeft = active.data.filter(
+    (workplace) => !workplace.is_registered_office && workplace.id !== workplaceId
+  );
+  if (
+    officeWithoutActivity &&
+    pointsLeft.length === 0 &&
+    active.data.some((workplace) => workplace.id === workplaceId && !workplace.is_registered_office)
+  ) {
+    throw officeNeedsWorkplace();
+  }
+  const { data, error } = await db
     .from('client_workplaces')
     .update({ archived_at: new Date().toISOString() })
     .eq('id', workplaceId)
@@ -504,7 +579,7 @@ export const archiveWorkplace: RouteHandler<typeof archiveWorkplaceRoute, ApiEnv
     .is('archived_at', null)
     .select('id')
     .maybeSingle();
-  if (error) throw fromDatabaseError(error, 'archive workplace');
+  if (error) throw workplaceError(error, 'archive workplace');
   if (!data) throw noSuchWorkplace();
   return c.body(null, 204);
 };
@@ -581,22 +656,34 @@ export const workplaceNotOfClient = () => {
   return new ApiError('validation_error', message, [{ path: 'workplaceId', message }]);
 };
 
-// The foreign key alone would take an archived workplace, which no document lists.
+export const officeWithoutActivity = () => {
+  const message = 'No activity takes place at this registered office.';
+  return new ApiError('validation_error', message, [{ path: 'workplaceId', message }]);
+};
+
+/**
+ * The foreign key alone would take an archived workplace, which no document lists. With
+ * `withActivity`, also a registered office where no activity takes place (ADR 041), which
+ * nobody works at and which carries no SU data.
+ */
 export async function refuseWorkplaceOfAnotherClient(
   db: DataClient,
   clientId: string,
-  workplaceId: string | null | undefined
+  workplaceId: string | null | undefined,
+  { withActivity = false }: { withActivity?: boolean } = {}
 ) {
   if (!workplaceId) return;
   const { data, error } = await db
     .from('client_workplaces')
-    .select('id')
+    .select('id, office_has_activity')
     .eq('id', workplaceId)
     .eq('client_id', clientId)
     .is('archived_at', null)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'find workplace');
   if (!data) throw workplaceNotOfClient();
+  if (withActivity && !data.office_has_activity) throw officeWithoutActivity();
+  return data;
 }
 
 function responsiblePersonError(error: { code: string; message?: string }, context: string) {
@@ -644,7 +731,7 @@ export const createResponsiblePerson: RouteHandler<
     'This client is archived; responsible persons cannot be added.'
   );
   await refuseLegalRepresentative(db, clientId, body);
-  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
+  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const { data, error } = await db
     .from('client_responsible_persons')
     .insert({
@@ -671,7 +758,21 @@ export const updateResponsiblePerson: RouteHandler<
   const body = c.req.valid('json');
   const db = createDataClient(c);
   await refuseLegalRepresentative(db, clientId, body);
-  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
+  const workplace = await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
+  if (workplace && !workplace.office_has_activity) {
+    // A tie made before the office was answered "no" is kept, so editing the person's other
+    // fields is not refused; the SU set reads it as a tie to no workplace (ADR 041).
+    const current = await db
+      .from('client_responsible_persons')
+      .select('workplace_id')
+      .eq('id', responsiblePersonId)
+      .eq('client_id', clientId)
+      .is('archived_at', null)
+      .maybeSingle();
+    if (current.error) throw fromDatabaseError(current.error, 'find responsible person');
+    if (!current.data) throw noSuchResponsiblePerson();
+    if (current.data.workplace_id !== workplace.id) throw officeWithoutActivity();
+  }
   const { data, error } = await db
     .from('client_responsible_persons')
     .update({

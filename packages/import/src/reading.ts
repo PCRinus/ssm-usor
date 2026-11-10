@@ -11,12 +11,15 @@ import {
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
+import { substanceNameAllowed, workplaceValueAllowed } from './checks';
 import { inferValues } from './inference';
 import { contained, cuiDigits, foldName, foldText, sameAddress, similar, streetKey } from './match';
+import { countedOnce } from './means-count';
 import {
   clientFieldNames,
   type Field,
   fireSafetyIntegerFieldNames,
+  fireSafetySubstancesFieldNames,
   fireSafetyTextFieldNames,
   fireSafetyYesNoFieldNames,
   importedEmployeeRoles,
@@ -28,6 +31,8 @@ import {
   type ProposedJobPosition,
   type ProposedResponsiblePerson,
   type Source,
+  type SuggestedWorkplaceFieldName,
+  suggestedWorkplaceFieldNames,
   trainingScheduleFieldNames,
   trainingScheduleYesNoFieldNames,
   type WorkplaceFireFieldName,
@@ -44,6 +49,7 @@ export const factFields = [
   ...fireSafetyIntegerFieldNames.map((name) => `fireSafety.${name}`),
   ...fireSafetyTextFieldNames.map((name) => `fireSafety.${name}`),
   ...fireSafetyYesNoFieldNames.map((name) => `fireSafety.${name}`),
+  ...fireSafetySubstancesFieldNames.map((name) => `fireSafety.${name}`),
 ] as [string, ...string[]];
 
 const integerFacts = new Set([
@@ -86,6 +92,16 @@ export const readingSchema = z.object({
       field: z.enum(workplaceFireFieldNames),
       value: z.string(),
       ...quoted,
+    })
+  ),
+  // Drafted from the client's activity where no document states the value (ADR 041): each cites
+  // the passages it was drawn from, so a draft has no single quote holding it.
+  workplaceSuggestions: z.array(
+    z.object({
+      workplace: z.string(),
+      field: z.enum(suggestedWorkplaceFieldNames),
+      value: z.string(),
+      sources: z.array(z.object({ file: z.string(), quote: z.string() })),
     })
   ),
   jobPositions: z.array(
@@ -142,6 +158,7 @@ export const readingSchema = z.object({
       ...quoted,
     })
   ),
+  substances: z.array(z.object({ name: z.string(), ...quoted })),
   protectiveEquipment: z.array(
     z.object({
       jobPositions: z.array(z.string()),
@@ -273,6 +290,8 @@ function factValue(field: string, value: string): string | number | null {
   if (field === 'client.cui') return cuiDigits(trimmed) ?? trimmed;
   if (field === 'client.countyCode') return countyCode(trimmed);
   if (field === 'fireSafety.wasteKinds') return wasteKinds(trimmed);
+  // "listed" stands on the substances named, never on a sentence that some are used.
+  if (field === 'fireSafety.substancesState') return foldText(trimmed) === 'none' ? 'none' : null;
   return trimmed;
 }
 
@@ -460,6 +479,8 @@ const readWorkplace = (workplace: Reading['workplaces'][number]) => ({
   rooms: workplace.rooms,
   ...noFireValues(),
   spelling: {} as Record<string, string>,
+  officeHasActivity: true,
+  suggested: {} as Record<string, Source[]>,
 });
 
 type ReadWorkplace = ReturnType<typeof readWorkplace>;
@@ -550,6 +571,35 @@ function addRoles(into: Roles, from: Roles) {
   }
 }
 
+interface Suggestion {
+  workplaceId: string;
+  field: SuggestedWorkplaceFieldName;
+  value: string | number;
+  sources: Source[];
+}
+
+// After the spelling is corrected: a draft is the model's own wording, with no document's
+// spelling to keep beside it.
+function applySuggestions(proposal: Proposal, suggestions: Suggestion[]) {
+  for (const suggestion of suggestions) {
+    const workplace = proposal.workplaces.find((each) => each.id === suggestion.workplaceId);
+    if (!workplace || workplace.otherCompanyName !== null) continue;
+    if (suggestion.field === 'extinguisherNorm' && workplace.kind === 'mobile_site') continue;
+    const values = workplace as unknown as Record<string, string | number | null>;
+    const known = workplace.suggested[suggestion.field];
+    if (known) {
+      if (sameValue(values[suggestion.field]!, suggestion.value)) {
+        mergeSources(known, suggestion.sources);
+      }
+      continue;
+    }
+    if (values[suggestion.field] !== null) continue;
+    values[suggestion.field] = suggestion.value;
+    workplace.suggested[suggestion.field] = [...suggestion.sources];
+  }
+  return proposal;
+}
+
 export function toProposal(...readings: Reading[]): Proposal {
   const facts = readings.flatMap((reading) => reading.facts);
   const groups = {
@@ -562,6 +612,7 @@ export function toProposal(...readings: Reading[]): Proposal {
       ...fireSafetyIntegerFieldNames,
       ...fireSafetyTextFieldNames,
       ...fireSafetyYesNoFieldNames,
+      ...fireSafetySubstancesFieldNames,
     ]),
   } as Record<string, Record<string, Field<string | number>>>;
   for (const fact of facts) {
@@ -624,6 +675,24 @@ export function toProposal(...readings: Reading[]): Proposal {
     })),
     (name) => (named(name) ? (resolve(name, workplaceNames, true) ?? onlyWorkplace) : onlyWorkplace)
   );
+  let withdrawnSuggestions = 0;
+  const suggestions = list((reading) => reading.workplaceSuggestions ?? []).flatMap(
+    (suggestion): Suggestion[] => {
+      const workplaceId = named(suggestion.workplace)
+        ? (resolve(suggestion.workplace, workplaceNames, true) ?? onlyWorkplace)
+        : onlyWorkplace;
+      const value = workplaceFactValue(suggestion.field, suggestion.value);
+      if (workplaceId === null || value === null) return [];
+      const sources = suggestion.sources
+        .filter((source) => source.file.trim() !== '' && source.quote.trim() !== '')
+        .map(sourceOf);
+      if (sources.length === 0 || !workplaceValueAllowed(suggestion.field, value)) {
+        withdrawnSuggestions++;
+        return [];
+      }
+      return [{ workplaceId, field: suggestion.field, value, sources }];
+    }
+  );
   const workplaceReference = (name: string | null, defaultToOnly: boolean) => ({
     name,
     id:
@@ -670,22 +739,44 @@ export function toProposal(...readings: Reading[]): Proposal {
     (name) => resolve(name, jobPositions)
   );
 
-  const fireEquipment = list((reading) => reading.fireEquipment).map((equipment, index) => ({
-    id: `equipment-${index + 1}`,
-    ...traced(equipment),
-    workplace: workplaceReference(equipment.workplace, true),
-    room: equipment.room,
-    kind: equipment.kind,
-    agent: equipment.agent,
-    capacity: equipment.capacity,
-    wheeled: equipment.wheeled,
-    count: equipment.count,
-    spelling: {},
-  }));
-  for (const workplace of workplaces) {
-    const rooms = fireEquipment
-      .filter((equipment) => equipment.workplace.id === workplace.id && equipment.room !== null)
+  const { fireEquipment, fireEquipmentCounts } = countedOnce(
+    list((reading) => reading.fireEquipment).map((equipment) => ({
+      ...traced(equipment),
+      workplace: workplaceReference(equipment.workplace, true),
+      room: equipment.room,
+      kind: equipment.kind,
+      agent: equipment.agent,
+      capacity: equipment.capacity,
+      wheeled: equipment.wheeled,
+      count: equipment.count,
+      spelling: {},
+    }))
+  );
+  const roomsOf = (ids: string[]) =>
+    fireEquipment
+      .filter((equipment) => ids.includes(equipment.id) && equipment.room !== null)
       .map((equipment) => equipment.room!);
+  const counted = new Set(
+    fireEquipmentCounts.flatMap((count) => count.options.flatMap((option) => option.equipmentIds))
+  );
+  for (const workplace of workplaces) {
+    const rooms = roomsOf(
+      fireEquipment
+        .filter(
+          (equipment) => equipment.workplace.id === workplace.id && !counted.has(equipment.id)
+        )
+        .map((equipment) => equipment.id)
+    );
+    // Only one option of a count is written, so a room only some options name may not exist.
+    for (const count of fireEquipmentCounts) {
+      if (count.workplace.id !== workplace.id) continue;
+      const [first, ...others] = count.options.map((option) => roomsOf(option.equipmentIds));
+      rooms.push(
+        ...first!.filter((room) =>
+          others.every((other) => other.some((each) => foldText(each) === foldText(room)))
+        )
+      );
+    }
     workplace.rooms = uniqueFolded([...workplace.rooms, ...rooms]);
   }
 
@@ -712,6 +803,32 @@ export function toProposal(...readings: Reading[]): Proposal {
     if (protectiveEquipment.some((entry) => entry.jobPosition.id === position.id)) {
       position.needsProtectiveEquipment = true;
     }
+  }
+
+  const substances = joined(
+    // A scan's page read before the field existed has none.
+    list((reading) => reading.substances ?? [])
+      .filter((substance) => substanceNameAllowed(substance.name))
+      .map((substance) => ({
+        ...traced(substance),
+        name: substance.name.trim(),
+        spelling: {} as Record<string, string>,
+      })),
+    (a, b) => foldText(a.name) === foldText(b.name),
+    (into, from) => {
+      if (nonAsciiCount(from.name) > nonAsciiCount(into.name)) into.name = from.name;
+    }
+  ).map((substance, index) => ({ id: `substance-${index + 1}`, ...substance }));
+  if (substances.length > 0) {
+    const own = substances.filter((substance) => substance.otherCompanyName === null);
+    const giving = own.length > 0 ? own : substances;
+    const sources: Source[] = [];
+    for (const substance of giving) mergeSources(sources, substance.sources);
+    addOption(groups.fireSafety!.substancesState!.options, {
+      value: 'listed',
+      sources,
+      otherCompanyName: own.length > 0 ? null : substances[0]!.otherCompanyName,
+    });
   }
 
   const proposal: Proposal = {
@@ -748,6 +865,7 @@ export function toProposal(...readings: Reading[]): Proposal {
       workplace: workplaceReference(person.workplace, false),
     })),
     fireEquipment,
+    fireEquipmentCounts,
     fireInstallations: list((reading) => reading.fireInstallations).map((installation, index) => ({
       id: `installation-${index + 1}`,
       ...traced(installation),
@@ -774,6 +892,7 @@ export function toProposal(...readings: Reading[]): Proposal {
           : a.cnp === b.cnp),
       fillGaps
     ).map((employee, index) => ({ id: `employee-${index + 1}`, ...employee })),
+    substances,
     notes: [
       ...list((reading) => reading.notes).filter((note) => note.trim() !== ''),
       ...otherOfficeAddresses.map(
@@ -789,7 +908,10 @@ export function toProposal(...readings: Reading[]): Proposal {
           `Categoria și activitățile postului «${name}» nu se potrivesc cu niciun post și nu au fost preluate.`
       ),
     ],
+    ...(withdrawnSuggestions > 0 ? { withdrawnSuggestions } : {}),
     flags: [],
   };
-  return proposalSchema.parse(correctProposalSpelling(inferValues(proposal)));
+  return proposalSchema.parse(
+    applySuggestions(correctProposalSpelling(inferValues(proposal)), suggestions)
+  );
 }

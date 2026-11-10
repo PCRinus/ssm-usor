@@ -45,7 +45,7 @@ export class ApiError extends Error {
     readonly missing?: MissingDocumentData[],
     readonly extra?: Pick<
       ApiErrorResponse,
-      'attemptsLeft' | 'retryAfterSeconds' | 'credits' | 'resumesAt'
+      'attemptsLeft' | 'retryAfterSeconds' | 'credits' | 'resumesAt' | 'employeeCount'
     >
   ) {
     super(message);

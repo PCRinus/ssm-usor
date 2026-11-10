@@ -313,6 +313,10 @@ export const helpTopics = {
     anchor: 'administratorul-este-și-lucrător-al-firmei',
   },
   'detalii.reprezentant-legal': { path: '/clienti/detalii/', anchor: 'reprezentantul-legal' },
+  'detalii.sediu-fara-activitate': {
+    path: '/clienti/detalii/puncte-de-lucru/',
+    anchor: 'la-sediul-social-se-desfășoară-activitate',
+  },
   'detalii.sediu-social': {
     path: '/clienti/detalii/puncte-de-lucru/',
     anchor: 'este-sediul-social',

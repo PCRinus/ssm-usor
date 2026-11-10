@@ -81,6 +81,7 @@ const shop = {
   clientId,
   name: 'Gelaterie Timișoara',
   isRegisteredOffice: false,
+  officeHasActivity: true,
 };
 
 const listPath = `/clients/${clientId}/responsible-persons`;
@@ -488,6 +489,78 @@ describe('client responsible persons', () => {
         expect.objectContaining({ workplaceId: shop.id, roles: ['workplace_manager'] }),
       ])
     );
+  });
+
+  describe('beside a registered office where no activity takes place', () => {
+    const office = {
+      ...shop,
+      id: '8a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5f',
+      name: 'Sediu social',
+      isRegisteredOffice: true,
+      officeHasActivity: false,
+    };
+    const options = async () =>
+      Array.from(
+        (await screen.findByTestId<HTMLSelectElement>('responsible-workplace')).options
+      ).map((option) => option.textContent);
+
+    it('offers the office to nobody new', async () => {
+      mockApi({ items: [], workplaces: [office, shop] });
+      mount();
+      await userEvent.setup().click(await screen.findByTestId('responsible-add'));
+      expect(await options()).toEqual(['Toate locurile de muncă', 'Gelaterie Timișoara']);
+    });
+
+    it('keeps it for a person tied to it before', async () => {
+      mockApi({ items: [{ ...manager, workplaceId: office.id }], workplaces: [office, shop] });
+      mount();
+      const user = userEvent.setup();
+      await user.click(
+        within(await screen.findByTestId('responsible-row')).getByTestId('responsible-actions')
+      );
+      await user.click(await screen.findByTestId('responsible-edit'));
+      expect(await options()).toEqual([
+        'Toate locurile de muncă',
+        'Sediu social',
+        'Gelaterie Timișoara',
+      ]);
+    });
+
+    it('says why the API refused it when the office was answered while the dialog was open', async () => {
+      const answeredLater = { ...office, officeHasActivity: true };
+      mockApi({
+        items: [manager],
+        workplaces: [answeredLater, shop],
+        update: () =>
+          Response.json(
+            {
+              error: 'validation_error',
+              message: 'No activity takes place at this registered office.',
+              issues: [
+                {
+                  path: 'workplaceId',
+                  message: 'No activity takes place at this registered office.',
+                },
+              ],
+            },
+            { status: 400 }
+          ),
+      });
+      mount();
+      const user = userEvent.setup();
+      await user.click(
+        within(await screen.findByTestId('responsible-row')).getByTestId('responsible-actions')
+      );
+      await user.click(await screen.findByTestId('responsible-edit'));
+      await user.selectOptions(await screen.findByTestId('responsible-workplace'), office.id);
+      answeredLater.officeHasActivity = false;
+      await user.click(screen.getByTestId('responsible-save'));
+      expect(
+        await screen.findByText(
+          'La sediul social nu se desfășoară activitate. Alege alt loc de muncă sau toate locurile de muncă.'
+        )
+      ).toBeTruthy();
+    });
   });
 
   it.each([
