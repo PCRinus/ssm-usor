@@ -15,6 +15,16 @@ export class ApiHttpError<T = unknown> extends Error {
 
 export type ErrorType<T> = ApiHttpError<T> | Error;
 
+export function isClientOutdatedError(
+  error: unknown
+): error is ApiHttpError<{ error: 'client_outdated' }> {
+  return (
+    error instanceof ApiHttpError &&
+    error.status === 426 &&
+    (error.body as { error?: unknown } | undefined)?.error === 'client_outdated'
+  );
+}
+
 // A request that never reaches the API leaves no trace there, so the browser reports it.
 // The route has its ids replaced so failures group, and no query string: the public
 // contract link carries its token in one.
@@ -28,6 +38,9 @@ type FailureDetails =
   { kind: 'network'; error: string } | { kind: 'status'; status: number; cf_ray: string | null };
 
 export interface ApiHttpOptions {
+  // `<client>:<fingerprint>`, sent as X-Client-Contract (ADR 040).
+  clientContract?: string;
+  onClientOutdated?: () => void;
   onFailure?: (failure: ApiRequestFailure) => void;
   // An API on the page's own origin behind Cloudflare Access needs the Access cookie; without it
   // the edge answers with a redirect to its sign-in page.
@@ -65,9 +78,21 @@ function fileNameOf(disposition: string | null) {
 // that mean the service or the session failed.
 const reportedStatus = (status: number) => status >= 500 || status === 401 || status === 429;
 
+const clientContractHeader = 'X-Client-Contract';
+
 const uuid = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 
-export function createApiHttp({ onFailure, credentials = 'omit' }: ApiHttpOptions = {}) {
+export function createApiHttp({
+  clientContract,
+  onClientOutdated,
+  onFailure,
+  credentials = 'omit',
+}: ApiHttpOptions = {}) {
+  function rejected(error: ApiHttpError) {
+    if (isClientOutdatedError(error)) onClientOutdated?.();
+    return error;
+  }
+
   function reportFailure(
     method: string | undefined,
     url: URL,
@@ -92,6 +117,7 @@ export function createApiHttp({ onFailure, credentials = 'omit' }: ApiHttpOption
     headers.set('Accept', 'application/json');
     if (token) headers.set('Authorization', `Bearer ${token}`);
     else headers.delete('Authorization');
+    if (clientContract) headers.set(clientContractHeader, clientContract);
 
     const started = performance.now();
     let response: Response;
@@ -128,7 +154,7 @@ export function createApiHttp({ onFailure, credentials = 'omit' }: ApiHttpOption
     } catch {
       if (response.ok) throw new Error('The API returned invalid JSON.');
     }
-    if (!response.ok) throw new ApiHttpError(response.status, body);
+    if (!response.ok) throw rejected(new ApiHttpError(response.status, body));
     // Generated types describe the OpenAPI contract; they are not runtime validators.
     return body as T;
   }
@@ -152,6 +178,7 @@ export function createApiHttp({ onFailure, credentials = 'omit' }: ApiHttpOption
       request.setRequestHeader('Accept', 'application/json');
       request.setRequestHeader('Content-Type', 'application/octet-stream');
       if (token) request.setRequestHeader('Authorization', `Bearer ${token}`);
+      if (clientContract) request.setRequestHeader(clientContractHeader, clientContract);
       request.upload.onprogress = (event) => {
         if (event.lengthComputable) onProgress?.(event.loaded, event.total);
       };
@@ -183,7 +210,7 @@ export function createApiHttp({ onFailure, credentials = 'omit' }: ApiHttpOption
           }
         }
         if (request.status < 200 || request.status >= 300) {
-          reject(new ApiHttpError(request.status, answer));
+          reject(rejected(new ApiHttpError(request.status, answer)));
           return;
         }
         resolve(answer as T);

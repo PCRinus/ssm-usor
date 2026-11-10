@@ -3,12 +3,14 @@ import {
   createApiHttp,
   type ErrorType as ApiErrorType,
 } from '@ssm-usor/api-http';
+import { clientContract } from '@ssm-usor/contracts';
 
 import { captureEvent } from '@/app/observability/posthog';
 
-export { ApiHttpError, type ApiRequestOptions } from '@ssm-usor/api-http';
+export { ApiHttpError, type ApiRequestOptions, isClientOutdatedError } from '@ssm-usor/api-http';
 
 const http = createApiHttp({
+  clientContract: clientContract('app'),
   onFailure: (failure) => captureEvent('api_request_failed', failure),
 });
 

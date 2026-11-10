@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ApiHttpError, createApiHttp } from './http';
+import { ApiHttpError, createApiHttp, isClientOutdatedError } from './http';
 
 const onFailure = vi.fn();
 const { apiFetch, apiUpload } = createApiHttp({ onFailure });
@@ -190,6 +190,47 @@ describe('reporting failed requests', () => {
   });
 });
 
+describe('the client contract', () => {
+  const contract = 'app:0123456789abcdef';
+  const outdated = { error: 'client_outdated', message: 'Reload the page.' };
+  const onClientOutdated = vi.fn();
+  const http = createApiHttp({ clientContract: contract, onClientOutdated, onFailure });
+
+  beforeEach(() => onClientOutdated.mockReset());
+
+  it('sends the contract on every request', async () => {
+    fetchMock.mockResolvedValue(Response.json({}));
+    await http.apiFetch('/me', { baseUrl });
+    expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get('X-Client-Contract')).toBe(
+      contract
+    );
+  });
+
+  it('sends none when it has no contract', async () => {
+    fetchMock.mockResolvedValue(Response.json({}));
+    await apiFetch('/me', { baseUrl });
+    expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).has('X-Client-Contract')).toBe(false);
+  });
+
+  it('signals an outdated client instead of reporting a failure', async () => {
+    fetchMock.mockResolvedValue(Response.json(outdated, { status: 426 }));
+    const error = await http.apiFetch('/me', { baseUrl }).catch((thrown: unknown) => thrown);
+    expect(isClientOutdatedError(error)).toBe(true);
+    expect(onClientOutdated).toHaveBeenCalledOnce();
+    expect(onFailure).not.toHaveBeenCalled();
+  });
+
+  it('leaves other refusals alone', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json({ error: 'conflict', message: 'x' }, { status: 409 })
+    );
+    const error = await http.apiFetch('/me', { baseUrl }).catch((thrown: unknown) => thrown);
+    expect(isClientOutdatedError(error)).toBe(false);
+    expect(isClientOutdatedError(new Error('x'))).toBe(false);
+    expect(onClientOutdated).not.toHaveBeenCalled();
+  });
+});
+
 describe('uploading a file', () => {
   type Answer = { status: number; body: string; responseURL?: string };
   const sent: { url: string; headers: Record<string, string>; body: unknown }[] = [];
@@ -256,6 +297,23 @@ describe('uploading a file', () => {
       },
     ]);
     expect(progress).toEqual([0.5]);
+  });
+
+  it('sends the client contract and signals an outdated client', async () => {
+    const onClientOutdated = vi.fn();
+    const http = createApiHttp({
+      clientContract: 'portal:fedcba9876543210',
+      onClientOutdated,
+      onFailure,
+    });
+    answer = { status: 426, body: '{"error":"client_outdated","message":"Reload the page."}' };
+    const error = await http
+      .apiUpload('/clients/c/files', new Blob(['x']), { baseUrl })
+      .catch((thrown: unknown) => thrown);
+    expect(sent[0]?.headers['X-Client-Contract']).toBe('portal:fedcba9876543210');
+    expect(isClientOutdatedError(error)).toBe(true);
+    expect(onClientOutdated).toHaveBeenCalledOnce();
+    expect(onFailure).not.toHaveBeenCalled();
   });
 
   it('throws a typed error with the reason the API gave, and reports a server failure', async () => {
