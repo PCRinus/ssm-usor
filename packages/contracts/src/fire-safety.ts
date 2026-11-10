@@ -465,9 +465,10 @@ export const fireSubstanceDetailLabels: Record<
 
 export const fireSubstanceRequestSchema = z.object({
   name: z.string().trim().min(2).max(160),
-  // Under the CLP regulation: the hazard classes and categories with their H statements.
-  classification: z.string().trim().min(2).max(600),
-  quantity: z.string().trim().min(1).max(160),
+  // Under the CLP regulation: the hazard classes and categories with their H statements. Either
+  // left out makes the entry incomplete, which the set waits for (ADR 041).
+  classification: optionalText(2, 600),
+  quantity: optionalText(1, 160),
   physicalChemicalProperties: optionalText(2, 1000),
   identificationCodes: optionalText(2, 600),
   healthEnvironmentRisks: optionalText(2, 1000),
@@ -484,8 +485,8 @@ export const fireSubstanceSchema = z.object({
   id: z.uuid(),
   clientId: z.uuid(),
   name: z.string(),
-  classification: z.string(),
-  quantity: z.string(),
+  classification: z.string().nullable(),
+  quantity: z.string().nullable(),
   physicalChemicalProperties: z.string().nullable(),
   identificationCodes: z.string().nullable(),
   healthEnvironmentRisks: z.string().nullable(),
@@ -499,6 +500,15 @@ export const fireSubstanceSchema = z.object({
 });
 
 export type FireSubstance = z.infer<typeof fireSubstanceSchema>;
+
+/** What the list 5.3 cannot print without: an entry missing either is incomplete (ADR 041). */
+export const fireSubstanceEssentials = ['classification', 'quantity'] as const;
+
+export type FireSubstanceEssential = (typeof fireSubstanceEssentials)[number];
+
+export const missingSubstanceEssentials = (
+  substance: Record<FireSubstanceEssential, string | null>
+): FireSubstanceEssential[] => fireSubstanceEssentials.filter((field) => !substance[field]?.trim());
 
 export const fireSubstanceResponseSchema = z.object({ substance: fireSubstanceSchema });
 

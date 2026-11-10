@@ -537,8 +537,8 @@ workplace. Rows are deleted, not archived.
 | Column                         | Notes                                                                                     |
 | ------------------------------ | ----------------------------------------------------------------------------------------- |
 | `name`                         | Required, 2 to 160 characters.                                                            |
-| `classification`               | Required, 2 to 600: the CLP hazard classes and H statements, "Flam. Gas 1, H220".         |
-| `quantity`                     | Required, 1 to 160, free text: "2 butelii de 11 kg".                                      |
+| `classification`               | 2 to 600: the CLP hazard classes and H statements, "Flam. Gas 1, H220". Null until known. |
+| `quantity`                     | 1 to 160, free text: "2 butelii de 11 kg". Null until counted.                            |
 | `physical_chemical_properties` | Optional, 2 to 1000; from section 9 of the safety data sheet.                             |
 | `identification_codes`         | Optional, 2 to 600; sections 1 and 3.                                                     |
 | `health_environment_risks`     | Optional, 2 to 1000; sections 2, 11 and 12.                                               |
@@ -548,6 +548,10 @@ workplace. Rows are deleted, not archived.
 | `storage_place`                | Optional, 2 to 600; section 7.                                                            |
 | `handling`                     | Optional, 2 to 1000; section 7.                                                           |
 | `sort_order`                   | The order of the list; the API appends a new entry after the last.                        |
+
+An entry without its classification or its quantity is **incomplete** (ADR 041): an import
+writes a substance by the name a document gives, and both are read off the product and counted
+on site. `20261111100000_fire_substances_incomplete` made the two columns nullable.
 
 The client's `client_fire_safety.substances_state` says whether it uses any: `undecided` until a
 member says, `none`, a declaration that it uses none, or `listed`. Two triggers keep the two in
@@ -609,7 +613,7 @@ columns above other than `specific_measures` set on every active workplace), `fi
 `positions.any`. Any of them refuses the whole set's generation. ADR 019 adds `fire.smokingPolicy` (a policy
 chosen) and `provider.fireSafetyTechnicianCertificate`; neither the smoking place nor the
 authorization is ever asked for. The amendment of 2026-10-11 adds `fire.substances`: the
-substances state `none`, or `listed` with at least one substance.
+substances state `none`, or `listed` with at least one substance and none incomplete (ADR 041).
 
 **What the templates read.** Fire-safety templates read these facts from one merge object,
 `fire`, and nothing else about the client beyond `client`, `provider`, `fireSafetyTechnician`,

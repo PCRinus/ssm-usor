@@ -893,11 +893,48 @@ describe('/clients/{clientId}/fire-substances', () => {
     expect(sent('fire_substances', 'POST')).toMatchObject({ sort_order: 0 });
   });
 
-  it('refuses an entry without its classification', async () => {
+  it('refuses a blank classification', async () => {
     mockUpstream();
     const response = await request(path, 'POST', { ...body, classification: ' ' });
     expect(response.status).toBe(400);
     expect(calls('fire_substances', 'POST')).toHaveLength(0);
+  });
+
+  it('adds an entry by its name alone, its classification and quantity null until known', async () => {
+    const unread = substance(propane.id, { name: 'Diluant', classification: null, quantity: null });
+    mockUpstream({
+      substances: (init) =>
+        init?.method === 'POST' ? Response.json(unread, { status: 201 }) : Response.json(null),
+    });
+    const response = await request(path, 'POST', { name: 'Diluant' });
+    expect(response.status).toBe(201);
+    expect(fireSubstanceResponseSchema.parse(await response.json()).substance).toMatchObject({
+      name: 'Diluant',
+      classification: null,
+      quantity: null,
+    });
+    expect(sent('fire_substances', 'POST')).toMatchObject({
+      name: 'Diluant',
+      classification: null,
+      quantity: null,
+    });
+  });
+
+  it('clears the classification and the quantity an update leaves out', async () => {
+    mockUpstream({
+      substances: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json({ ...propane, classification: null, quantity: null })
+          : undefined,
+    });
+    const response = await request(entryPath, 'PUT', { name: 'Propan' });
+    expect(response.status).toBe(200);
+    expect(sent('fire_substances', 'PATCH')).toMatchObject({
+      name: 'Propan',
+      classification: null,
+      quantity: null,
+    });
+    expect(fireSubstanceResponseSchema.parse(await response.json()).substance.quantity).toBeNull();
   });
 
   it('replaces an entry, clearing the texts left out', async () => {

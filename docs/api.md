@@ -1843,9 +1843,10 @@ unit, each on a workplace in `workplaceId`, which must be an active workplace of
 (`400` with the issue on `workplaceId`); `PUT` may move one to another. An extinguisher needs
 `agent` and `capacity` and is the only kind that may be `wheeled`, and an installation of the
 kind `other` needs a `description`, all `400` before the database is asked. `DELETE` removes the
-row. The dangerous substances (ADR 018, amended 2026-10-11) belong to no workplace: a name, a
-CLP classification and a quantity, required, and eight optional texts copied from the safety data
-sheet, which a `PUT` clears when left out. `GET …/fire-substances` answers `state` `undecided`
+row. The dangerous substances (ADR 018, amended 2026-10-11) belong to no workplace: a name,
+required, a CLP classification and a quantity, which the set needs but an entry may wait for
+(ADR 041: `null`, and a blank one is `400`), and eight optional texts copied from the safety data
+sheet; a `PUT` clears whatever it leaves out. `GET …/fire-substances` answers `state` `undecided`
 while the client has not said, or has no fire-safety row. `PUT …/fire-substances/state` saves it,
 creating the row when there is none without counting as the card's first save; `none` while the
 client has entries is `409` with the reason `substances_listed`, and a new entry under any state
@@ -1928,10 +1929,13 @@ instruction modules, ADR 012's amendment of 2026-10-11; the occupational safety 
 assembly point and the three texts of the posted sheet, and a fixed space with its area and
 its norm, which may be `none`), `fire.equipment` (an
 extinguisher in every active workplace) and `fire.substances` (the substances state `none`, or
-`listed` with an entry; ADR 018, amended). Any of them refuses the whole set. Its readiness lists
-nothing else; its `undecidedJobPositions` names the positions behind `fire.instructions`, each
-with `undecided: ['fire_instructions']`, and its `incompleteRiskEvaluations` and
-`workersRepresentativeClash` are empty. Generating the fire-safety themes 3.1 again also needs
+`listed` with an entry and none without its classification or quantity; ADR 018, amended, and
+ADR 041). Any of them refuses the whole set. Its readiness lists nothing else; its
+`undecidedJobPositions` names the positions behind `fire.instructions`, each with
+`undecided: ['fire_instructions']`, its `incompleteFireSubstances` the listed substances behind
+`fire.substances`, each `{ id, name, missing }` with `classification`, `quantity` or both, and
+its `incompleteRiskEvaluations` and `workersRepresentativeClash` are empty; the occupational
+safety set's `incompleteFireSubstances` is empty. Generating the fire-safety themes 3.1 again also needs
 an IPSU revision whose annexes they cite, `documents.fire_own_instructions`, which readiness
 never lists, as generating the set makes the IPSU before the themes (ADR 012, amendment of
 2026-10-11). Its generation requires `firstDecisionNumber`, at most

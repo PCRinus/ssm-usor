@@ -811,8 +811,8 @@ const toSubstance = (row: SubstanceRow): FireSubstance => ({
 
 const substanceFields = (body: FireSubstanceRequest) => ({
   name: body.name,
-  classification: body.classification,
-  quantity: body.quantity,
+  classification: body.classification ?? null,
+  quantity: body.quantity ?? null,
   physical_chemical_properties: body.physicalChemicalProperties ?? null,
   identification_codes: body.identificationCodes ?? null,
   health_environment_risks: body.healthEnvironmentRisks ?? null,

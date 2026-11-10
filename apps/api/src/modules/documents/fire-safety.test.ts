@@ -6,6 +6,8 @@ import {
   buildFireSafetyContext,
   buildPartialFireSafetyContext,
   fireSafetyGapConcerns,
+  fireSubstances,
+  incompleteFireSubstances,
   missingFireSafetyData,
 } from './fire-safety';
 import { setOfGroup, setRules } from './sets';
@@ -21,6 +23,11 @@ const withSubstances = (
     substances: { ...facts.fireSafety.substances, ...substances },
   },
 });
+const [propane, thinner] = facts.fireSafety.substances.entries as [
+  DocumentFacts['fireSafety']['substances']['entries'][number],
+  DocumentFacts['fireSafety']['substances']['entries'][number],
+];
+const unread = { ...thinner, classification: null, quantity: '  ' };
 const withCard = (changes: Partial<typeof card> | null): DocumentFacts => ({
   ...facts,
   fireSafety: { ...facts.fireSafety, card: changes && { ...card, ...changes } },
@@ -195,6 +202,23 @@ describe('what the fire-safety set is missing', () => {
       'fire.substances',
     ]);
     expect(missingFireSafetyData(withSubstances({ state: 'none', entries: [] }))).toEqual([]);
+  });
+
+  it('asks for the classification and the quantity of a listed substance, by its name', () => {
+    const incomplete = withSubstances({
+      entries: [propane, { ...unread, name: ' Diluant ' }, { ...propane, id: 'x', quantity: null }],
+    });
+    expect(missingFireSafetyData(incomplete)).toEqual(['fire.substances']);
+    expect(incompleteFireSubstances(incomplete.fireSafety.substances)).toEqual([
+      { id: unread.id, name: 'Diluant', missing: ['classification', 'quantity'] },
+      { id: 'x', name: 'Propan', missing: ['quantity'] },
+    ]);
+    expect(missingFireSafetyData(facts)).toEqual([]);
+    expect(incompleteFireSubstances(facts.fireSafety.substances)).toEqual([]);
+  });
+
+  it('forgets the entries of a client that no longer lists them', () => {
+    expect(incompleteFireSubstances({ state: 'undecided', entries: [{ ...unread }] })).toEqual([]);
   });
 
   it('never holds back the occupational safety set, nor is held back by it', () => {
@@ -739,6 +763,15 @@ describe('the fire-safety context', () => {
       handling: 'DE COMPLETAT',
     });
     expect(substances.entries[1]!.name).toBe('Diluant pentru vopsele');
+  });
+
+  it('prints the mark to fill in, never an empty cell, for a classification or a quantity not known yet', () => {
+    const { entries } = fireSubstances({ state: 'listed', entries: [unread] });
+    expect(entries[0]).toMatchObject({
+      name: 'Diluant pentru vopsele',
+      classification: 'DE COMPLETAT',
+      quantity: 'DE COMPLETAT',
+    });
   });
 
   it('prints the declaration alone for a client that uses no dangerous substances', () => {
@@ -1360,6 +1393,17 @@ describe('a fire-safety document generated again', () => {
     expect(context).toHaveProperty('fire');
     expect(fireSafetyGapConcerns('fire.instructions', ['annexes'])).toBe(true);
     expect(fireSafetyGapConcerns('fire.instructions', ['fire', 'client'])).toBe(false);
+  });
+
+  it('is built without the fire object while a listed substance is incomplete, so 5.3 and 7.1 wait for it', () => {
+    const incomplete = withSubstances({ entries: [propane, unread] });
+    expect(missingFireSafetyData(incomplete, 'fire_substances_list')).toEqual(['fire.substances']);
+    for (const typeKey of ['fire_substances_list', 'fire_site_sheet']) {
+      const context = buildPartialFireSafetyContext(incomplete, typeKey);
+      expect(context).not.toHaveProperty('fire');
+      expect(context).toHaveProperty('client');
+    }
+    expect(fireSafetyGapConcerns('fire.substances', ['fire'])).toBe(true);
   });
 
   it('is equal to the whole context when nothing is missing', () => {

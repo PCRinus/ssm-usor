@@ -501,12 +501,12 @@ export function buildSiteSheet({
           rows: [
             row(
               'Denumirea substanțelor periculoase folosite, clasificare',
-              `${entry.name.trim()} – ${entry.classification.trim()}`,
+              `${entry.name.trim()} – ${trimmed(entry.classification) ?? unfilledMark}`,
               'în conformitate cu sistemul internațional de clasificare a substanțelor periculoase, frazele de risc asociate'
             ),
             row(
               'Cantitatea existentă în unitate',
-              entry.quantity.trim(),
+              trimmed(entry.quantity),
               'pentru fiecare substanță'
             ),
             row(

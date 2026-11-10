@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { fireSubstanceEssentials } from './fire-safety';
 import { riskEvaluationKindSchema } from './risk-evaluations';
 
 /**
@@ -405,6 +406,15 @@ export const documentReadinessResponseSchema = z.object({
       jobPositionId: z.uuid().nullable(),
       name: z.string(),
       missing: z.array(riskEvaluationGapSchema).min(1),
+    })
+  ),
+  // The listed substances behind `fire.substances`, each with what the list 5.3 still needs;
+  // empty for the occupational safety set.
+  incompleteFireSubstances: z.array(
+    z.object({
+      id: z.uuid(),
+      name: z.string(),
+      missing: z.array(z.enum(fireSubstanceEssentials)).min(1),
     })
   ),
 });

@@ -14,6 +14,7 @@ import {
   type FireSubstanceDetail,
   fireSubstanceDetails,
   type FireSubstancesState,
+  missingSubstanceEssentials,
   type ResponsiblePersonRole,
   staffCategoriesWithPosts,
   type StaffCategory,
@@ -83,9 +84,10 @@ export type FireWorkplaceFacts = {
 };
 
 type FireSubstanceFacts = {
+  id: string;
   name: string;
-  classification: string;
-  quantity: string;
+  classification: string | null;
+  quantity: string | null;
 } & Record<FireSubstanceDetail, string | null>;
 
 export type FireSafetyClientFacts = {
@@ -501,12 +503,25 @@ export function missingFireSafetyData(
     'fire.substances':
       facts.fireSafety.substances.state === 'none' ||
       (facts.fireSafety.substances.state === 'listed' &&
-        facts.fireSafety.substances.entries.length > 0),
+        facts.fireSafety.substances.entries.length > 0 &&
+        incompleteFireSubstances(facts.fireSafety.substances).length === 0),
     'documents.fire_own_instructions':
       typeKey !== 'fire_training_themes' || facts.fireOwnInstructions !== null,
   };
   return fireSafetyMissingDocumentData.filter((code) => !present[code]);
 }
+
+/** The listed entries the list 5.3 cannot print yet, each with what it lacks (ADR 041). */
+export const incompleteFireSubstances = ({
+  state,
+  entries,
+}: FireSafetyClientFacts['substances']) =>
+  state === 'listed'
+    ? entries.flatMap((entry) => {
+        const missing = missingSubstanceEssentials(entry);
+        return missing.length > 0 ? [{ id: entry.id, name: entry.name.trim(), missing }] : [];
+      })
+    : [];
 
 const printedAs: Record<FireSafetyMissingData, readonly (keyof FireSafetyContext)[]> = {
   'provider.legalName': ['provider'],
@@ -978,7 +993,8 @@ function installationSheets({
 
 const printedOrGap = (text: string | null) => text?.trim() || unfilledMark;
 
-function fireSubstances({
+/** Never reached with an incomplete entry, which `fire.substances` leaves the whole `fire` out for. */
+export function fireSubstances({
   state,
   entries,
 }: FireSafetyClientFacts['substances']): FireContext['substances'] {
@@ -990,8 +1006,8 @@ function fireSubstances({
     entries: listed
       ? entries.map((entry) => ({
           name: entry.name.trim(),
-          classification: entry.classification.trim(),
-          quantity: entry.quantity.trim(),
+          classification: printedOrGap(entry.classification),
+          quantity: printedOrGap(entry.quantity),
           ...(Object.fromEntries(
             fireSubstanceDetails.map((detail) => [detail, printedOrGap(entry[detail])])
           ) as Record<FireSubstanceDetail, string>),

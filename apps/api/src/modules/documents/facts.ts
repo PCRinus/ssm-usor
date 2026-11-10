@@ -163,7 +163,7 @@ export async function loadDocumentFacts(
     db
       .from('fire_substances')
       .select(
-        'name, classification, quantity, physical_chemical_properties, identification_codes, health_environment_risks, protection_means, intervention_measures, extinguishing_agents, storage_place, handling'
+        'id, name, classification, quantity, physical_chemical_properties, identification_codes, health_environment_risks, protection_means, intervention_measures, extinguishing_agents, storage_place, handling'
       )
       .eq('client_id', clientId)
       .order('sort_order')
@@ -379,6 +379,7 @@ export async function loadDocumentFacts(
       substances: {
         state: fireSafety.data?.substances_state ?? 'undecided',
         entries: fireSubstances.data.map((substance) => ({
+          id: substance.id,
           name: substance.name,
           classification: substance.classification,
           quantity: substance.quantity,

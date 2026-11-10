@@ -9444,10 +9444,12 @@
                   "type": "string"
                 },
                 "classification": {
-                  "type": "string"
+                  "type": "string",
+                  "nullable": true
                 },
                 "quantity": {
-                  "type": "string"
+                  "type": "string",
+                  "nullable": true
                 },
                 "physicalChemicalProperties": {
                   "type": "string",
@@ -9550,10 +9552,12 @@
                 "type": "string"
               },
               "classification": {
-                "type": "string"
+                "type": "string",
+                "nullable": true
               },
               "quantity": {
-                "type": "string"
+                "type": "string",
+                "nullable": true
               },
               "physicalChemicalProperties": {
                 "type": "string",
@@ -9627,11 +9631,13 @@
           },
           "classification": {
             "type": "string",
+            "nullable": true,
             "minLength": 2,
             "maxLength": 600
           },
           "quantity": {
             "type": "string",
+            "nullable": true,
             "minLength": 1,
             "maxLength": 160
           },
@@ -9684,7 +9690,7 @@
             "maxLength": 1000
           }
         },
-        "required": ["name", "classification", "quantity"]
+        "required": ["name"]
       },
       "DocumentsBehindResponse": {
         "type": "object",
@@ -10103,6 +10109,30 @@
               },
               "required": ["evaluationId", "kind", "jobPositionId", "name", "missing"]
             }
+          },
+          "incompleteFireSubstances": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "missing": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": ["classification", "quantity"]
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": ["id", "name", "missing"]
+            }
           }
         },
         "required": [
@@ -10112,7 +10142,8 @@
           "currentEmployeeCount",
           "workersRepresentativeClash",
           "undecidedJobPositions",
-          "incompleteRiskEvaluations"
+          "incompleteRiskEvaluations",
+          "incompleteFireSubstances"
         ]
       },
       "ClientDocumentListResponse": {

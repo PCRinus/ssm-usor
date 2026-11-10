@@ -6787,8 +6787,10 @@ export type FireSubstancesResponseItemsItem = {
   id: string;
   clientId: string;
   name: string;
-  classification: string;
-  quantity: string;
+  /** @nullable */
+  classification: string | null;
+  /** @nullable */
+  quantity: string | null;
   /** @nullable */
   physicalChemicalProperties: string | null;
   /** @nullable */
@@ -6844,8 +6846,10 @@ export type FireSubstanceResponseSubstance = {
   id: string;
   clientId: string;
   name: string;
-  classification: string;
-  quantity: string;
+  /** @nullable */
+  classification: string | null;
+  /** @nullable */
+  quantity: string | null;
   /** @nullable */
   physicalChemicalProperties: string | null;
   /** @nullable */
@@ -6879,13 +6883,15 @@ export interface FireSubstanceRequest {
   /**
    * @minLength 2
    * @maxLength 600
+   * @nullable
    */
-  classification: string;
+  classification?: string | null;
   /**
    * @minLength 1
    * @maxLength 160
+   * @nullable
    */
-  quantity: string;
+  quantity?: string | null;
   /**
    * @minLength 2
    * @maxLength 1000
@@ -7239,6 +7245,21 @@ export type DocumentReadinessResponseIncompleteRiskEvaluationsItem = {
   missing: DocumentReadinessResponseIncompleteRiskEvaluationsItemMissingItem[];
 };
 
+export type DocumentReadinessResponseIncompleteFireSubstancesItemMissingItem =
+  (typeof DocumentReadinessResponseIncompleteFireSubstancesItemMissingItem)[keyof typeof DocumentReadinessResponseIncompleteFireSubstancesItemMissingItem];
+
+export const DocumentReadinessResponseIncompleteFireSubstancesItemMissingItem = {
+  classification: 'classification',
+  quantity: 'quantity',
+} as const;
+
+export type DocumentReadinessResponseIncompleteFireSubstancesItem = {
+  id: string;
+  name: string;
+  /** @minItems 1 */
+  missing: DocumentReadinessResponseIncompleteFireSubstancesItemMissingItem[];
+};
+
 export interface DocumentReadinessResponse {
   ready: boolean;
   missing: DocumentReadinessResponseMissingItem[];
@@ -7249,6 +7270,7 @@ export interface DocumentReadinessResponse {
   workersRepresentativeClash: DocumentReadinessResponseWorkersRepresentativeClash;
   undecidedJobPositions: DocumentReadinessResponseUndecidedJobPositionsItem[];
   incompleteRiskEvaluations: DocumentReadinessResponseIncompleteRiskEvaluationsItem[];
+  incompleteFireSubstances: DocumentReadinessResponseIncompleteFireSubstancesItem[];
 }
 
 export type ClientDocumentListResponseItemsItemDraftStatus =
