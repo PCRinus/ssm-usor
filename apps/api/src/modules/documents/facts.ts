@@ -132,7 +132,7 @@ export async function loadDocumentFacts(
     db
       .from('client_workplaces')
       .select(
-        'id, name, is_registered_office, county_code, locality, address_line, activity, kind, floor_area_m2, extinguisher_norm, assembly_point, combustible_materials, ignition_sources, fire_risk_equipment, specific_measures'
+        'id, name, is_registered_office, office_has_activity, county_code, locality, address_line, activity, kind, floor_area_m2, extinguisher_norm, assembly_point, combustible_materials, ignition_sources, fire_risk_equipment, specific_measures'
       )
       .eq('client_id', clientId)
       .is('archived_at', null)
@@ -282,6 +282,7 @@ export async function loadDocumentFacts(
       id: workplace.id,
       name: workplace.name,
       registeredOffice: workplace.is_registered_office,
+      officeHasActivity: workplace.office_has_activity,
       countyCode: workplace.county_code,
       locality: workplace.locality,
       addressLine: workplace.address_line,

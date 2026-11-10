@@ -234,6 +234,7 @@ const workplaceRow = {
   id: 'c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f',
   name: 'Sediul social',
   is_registered_office: true,
+  office_has_activity: true,
   county_code: 'TM',
   locality: 'Timișoara',
   address_line: 'Str. Lungă 5',
@@ -3225,6 +3226,7 @@ describe('the fire-safety set', () => {
       'installationSheets',
       'issueDate',
       'noAnnexes',
+      'officeWithoutActivity',
       'provider',
       'seasonsDecision',
     ]);
@@ -3424,6 +3426,39 @@ describe('the fire-safety set', () => {
       'fire.substances',
     ]);
     expect(searchParam('/rest/v1/fire_equipment', 'client_id')).toBe(`eq.${clientId}`);
+  });
+
+  it('asks nothing of a registered office where no activity takes place (ADR 041)', async () => {
+    const pointOfWork = {
+      ...workplaceRow,
+      id: 'd4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f7a',
+      name: 'Gelaterie Iosefin',
+      is_registered_office: false,
+    };
+    const fireEquipment = () =>
+      Response.json([{ ...fireEquipmentRow, workplace_id: pointOfWork.id }]);
+    const missing = async (office: Record<string, unknown>) => {
+      mockUpstream({
+        workplaces: () =>
+          Response.json([{ ...workplaceRow, office_has_activity: false, ...office }, pointOfWork]),
+        fireEquipment,
+      });
+      const response = await request(`/clients/${clientId}/documents/readiness?set=fire_safety`);
+      return documentReadinessResponseSchema.parse(await response.json()).missing;
+    };
+    expect(await missing({})).toEqual([]);
+    expect(
+      await missing({
+        activity: null,
+        floor_area_m2: null,
+        extinguisher_norm: null,
+        assembly_point: null,
+        combustible_materials: null,
+        ignition_sources: null,
+        fire_risk_equipment: null,
+      })
+    ).toEqual([]);
+    expect(await missing({ office_has_activity: true })).toEqual(['fire.equipment']);
   });
 
   it('compares a fire-safety decision with what it printed under its own number', async () => {

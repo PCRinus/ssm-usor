@@ -72,6 +72,8 @@ type FireSafetyMissingData = (typeof fireSafetyMissingDocumentData)[number];
 
 export type FireWorkplaceFacts = {
   id: string;
+  /** False for a registered office that is only an address, which the set leaves out (ADR 041). */
+  officeHasActivity: boolean;
   activity: string | null;
   kind: WorkplaceKind;
   floorAreaM2: number | null;
@@ -409,6 +411,12 @@ export type FireSafetyContext = {
   extinguisherRegister: ExtinguisherRegisterContext;
   installationSheets: InstallationSheetContext[];
   /**
+   * The registered office where no activity takes place (ADR 041), which the list of means names
+   * in one line to show why its address has no means; null otherwise. Top level, not in `fire`,
+   * so that only the list holds it in its snapshot.
+   */
+  officeWithoutActivity: { address: string } | null;
+  /**
    * The fire-safety modules the positions apply, each once, in group and title order: what the
    * own instructions 2.1 annex (ADR 012, amendment of 2026-10-11). Top level, as in the other
    * set, so only the document that prints them holds them in its snapshot.
@@ -455,12 +463,18 @@ const workplaceComplete = (workplace: FireWorkplaceFacts) =>
   (!workplaceHasAreaAndNorm(workplace.kind) ||
     (workplace.floorAreaM2 !== null && workplace.extinguisherNorm !== null));
 
+/** The workplaces the set lists: every active one but a registered office with no activity. */
+const withActivity = <Workplace extends { officeHasActivity: boolean }>(
+  workplaces: readonly Workplace[]
+) => workplaces.filter((workplace) => workplace.officeHasActivity);
+
 /** With a type, what generating that one document again also needs. */
 export function missingFireSafetyData(
   facts: Omit<FireSafetySetFacts, 'issueDate' | 'period' | 'firstDecisionNumber' | 'branding'>,
   typeKey?: string
 ): FireSafetyMissingData[] {
   const { card } = facts.fireSafety;
+  const workplaces = withActivity(facts.workplaces);
   const held = new Set(facts.responsiblePersons.flatMap((person) => person.roles));
   const present: Record<FireSafetyMissingData, boolean> = {
     'provider.legalName': filled(facts.organization.legalName),
@@ -494,8 +508,8 @@ export function missingFireSafetyData(
       (position) => position.needsFireInstructions !== null
     ),
     // The means list and the posted sheet print one block per workplace: none prints nothing.
-    'fire.workplaces': facts.workplaces.length > 0 && facts.workplaces.every(workplaceComplete),
-    'fire.equipment': facts.workplaces.every((workplace) =>
+    'fire.workplaces': workplaces.length > 0 && workplaces.every(workplaceComplete),
+    'fire.equipment': workplaces.every((workplace) =>
       facts.fireSafety.equipment.some(
         (unit) => unit.workplaceId === workplace.id && unit.kind === 'extinguisher'
       )
@@ -576,6 +590,8 @@ const alarmKinds = new Set<FireInstallationKind>(['detection_alarm', 'gas_detect
 // A part is only called when no gap leaves it out, which is what makes its `!` safe.
 function fireSafetyContextParts(facts: FireSafetySetFacts): ContextParts<FireSafetyContext> {
   const { organization, client } = facts;
+  const listed = { ...facts, workplaces: withActivity(facts.workplaces) };
+  const registeredOffice = facts.workplaces.find((workplace) => workplace.registeredOffice);
   const inSet = (typeKey: FireSafetyTypeKeyFromTenEmployees) =>
     documentApplies(facts, typeKey) || facts.fireSafety.generatedFromTenEmployees.includes(typeKey);
   return {
@@ -596,15 +612,19 @@ function fireSafetyContextParts(facts: FireSafetySetFacts): ContextParts<FireSaf
       certificate: organization.fireSafetyTechnicianCertificate!.trim(),
       authorization: organization.fireSafetyAuthorization?.trim() || null,
     }),
-    fire: () => fireContext(facts, firePeople(facts), inSet),
+    fire: () => fireContext(listed, firePeople(facts), inSet, registeredOffice),
     seasonsDecision: () => inSet('fire_decision_seasons'),
     controlDecision: () => inSet('fire_decision_control'),
     installationRegister: () => inSet('fire_installation_register'),
-    extinguisherRegister: () => extinguisherRegister(facts),
-    installationSheets: () => installationSheets(facts),
+    extinguisherRegister: () => extinguisherRegister(listed),
+    installationSheets: () => installationSheets(listed),
+    officeWithoutActivity: () =>
+      registeredOffice && !registeredOffice.officeHasActivity
+        ? { address: printedAddress(registeredOffice) || printedAddress(client) || '—' }
+        : null,
     annexes: () => annexedModules(facts, 'su'),
     noAnnexes: () => annexedModules(facts, 'su').length === 0,
-    fireThemes: () => fireThemes(facts),
+    fireThemes: () => fireThemes(listed),
     knowledgeTests: () =>
       printedTests(facts.testQuestions, ['fire_test_hiring', 'fire_test_annual']),
   };
@@ -707,10 +727,12 @@ function fireStaffCategories({
 
 export type FireStaffCategory = ReturnType<typeof fireStaffCategories>[number];
 
+/** `facts` holds the workplaces the set lists; `registeredOffice` is the client's, listed or not. */
 function fireContext(
   facts: FireSafetySetFacts,
   people: FirePeople,
-  inSet: (typeKey: FireSafetyTypeKeyFromTenEmployees) => boolean
+  inSet: (typeKey: FireSafetyTypeKeyFromTenEmployees) => boolean,
+  registeredOffice: FireSafetySetFacts['workplaces'][number] | undefined
 ): FireContext {
   const card = facts.fireSafety.card!;
   const holding = (role: ResponsiblePersonRole) => withRole(facts.responsiblePersons, role);
@@ -918,6 +940,7 @@ function fireContext(
     siteSheet: buildSiteSheet({
       facts,
       workplaces: registeredOfficeFirst(facts.workplaces),
+      registeredOffice,
       decisionNumbers,
       people: namedPeople,
       inSet,

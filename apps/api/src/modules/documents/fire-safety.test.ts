@@ -1313,6 +1313,7 @@ describe('a fire-safety document generated again', () => {
       'issueDate',
       'knowledgeTests',
       'noAnnexes',
+      'officeWithoutActivity',
       'provider',
       'seasonsDecision',
     ]);
@@ -1348,6 +1349,7 @@ describe('a fire-safety document generated again', () => {
       'issueDate',
       'knowledgeTests',
       'noAnnexes',
+      'officeWithoutActivity',
       'provider',
       'seasonsDecision',
     ]);
@@ -1371,6 +1373,7 @@ describe('a fire-safety document generated again', () => {
       'issueDate',
       'knowledgeTests',
       'noAnnexes',
+      'officeWithoutActivity',
       'seasonsDecision',
     ]);
   });
@@ -1518,5 +1521,114 @@ describe('the annexes of the fire-safety own instructions', () => {
     });
     expect(context.annexes).toEqual([]);
     expect(context.noAnnexes).toBe(true);
+  });
+});
+
+describe('a registered office with no activity (ADR 041)', () => {
+  const officeAs = (
+    office: Partial<DocumentFacts['workplaces'][number]>,
+    variant: Partial<DocumentFacts> = {}
+  ): DocumentFacts => ({
+    ...facts,
+    currentEmployeeCount: 12,
+    ...variant,
+    workplaces: facts.workplaces.map((workplace) =>
+      workplace.id === officeId ? { ...workplace, ...office } : workplace
+    ),
+  });
+  const withoutActivity = (
+    office: Partial<DocumentFacts['workplaces'][number]> = {},
+    variant: Partial<DocumentFacts> = {}
+  ) => officeAs({ officeHasActivity: false, ...office }, variant);
+  const noSuData = {
+    activity: null,
+    floorAreaM2: null,
+    extinguisherNorm: null,
+    assemblyPoint: null,
+    combustibleMaterials: null,
+    ignitionSources: null,
+    fireRiskEquipment: null,
+  };
+  const withoutOfficeMeans = (base: DocumentFacts): DocumentFacts => ({
+    ...base,
+    fireSafety: {
+      ...base.fireSafety,
+      equipment: base.fireSafety.equipment.filter((unit) => unit.workplaceId !== officeId),
+      installations: base.fireSafety.installations.filter(
+        (installation) => installation.workplaceId !== officeId
+      ),
+      maintenanceItems: [],
+    },
+  });
+
+  it('asks nothing of the office, whether or not it keeps SU data', () => {
+    expect(missingFireSafetyData(withoutActivity())).toEqual([]);
+    expect(missingFireSafetyData(withoutOfficeMeans(withoutActivity(noSuData)))).toEqual([]);
+    expect(missingFireSafetyData(withoutOfficeMeans(officeAs(noSuData)))).toEqual([
+      'fire.workplaces',
+      'fire.equipment',
+    ]);
+  });
+
+  it('still asks every workplace where activity takes place', () => {
+    const base = withoutActivity();
+    expect(
+      missingFireSafetyData({
+        ...base,
+        workplaces: base.workplaces.map((workplace) =>
+          workplace.id === workshopId ? { ...workplace, assemblyPoint: null } : workplace
+        ),
+        fireSafety: {
+          ...base.fireSafety,
+          equipment: base.fireSafety.equipment.filter((unit) => unit.workplaceId !== workshopId),
+        },
+      })
+    ).toEqual(['fire.workplaces', 'fire.equipment']);
+  });
+
+  it('leaves the office out of every list of workplaces, with what it keeps', () => {
+    const context = buildFireSafetyContext(withoutActivity({}, { period: 2026 }));
+    const { fire } = context;
+    expect(fire.workplaces.map((workplace) => workplace.name)).toEqual(['Atelier Ghiroda']);
+    expect(fire.workplaces[0]!.first).toBe(true);
+    expect(fire.schedules.map((schedule) => schedule.name)).toEqual(['Atelier Ghiroda']);
+    expect(fire.annualReport!.workplaces.map((workplace) => workplace.name)).toEqual([
+      'Atelier Ghiroda',
+    ]);
+    expect(fire.siteSheet.buildings.map((building) => building.name)).toEqual(['Atelier Ghiroda']);
+    expect(context.fireThemes!.workplaceNames).toBe('Atelier Ghiroda');
+    expect(context.installationSheets.map((sheet) => sheet.place)).toEqual(['Atelier Ghiroda']);
+    expect(context.extinguisherRegister.rows.map((row) => row.place)).toEqual([
+      'Hala de producție',
+      'Hala de producție',
+      'Magazie',
+      '',
+    ]);
+  });
+
+  it('names the office and its address in one line of the list of means', () => {
+    expect(buildFireSafetyContext(facts).officeWithoutActivity).toBeNull();
+    expect(buildFireSafetyContext(withoutActivity()).officeWithoutActivity).toEqual({
+      address: 'București, Sector 1, Calea Victoriei 122A',
+    });
+    expect(
+      buildFireSafetyContext(
+        withoutActivity({ countyCode: null, locality: null, addressLine: null })
+      ).officeWithoutActivity
+    ).toEqual({ address: 'Timișoara, județul Timiș, Str. Gheorghe Lazăr 24' });
+  });
+
+  it("keeps the office's address as the operator's on the site sheet", () => {
+    const { identity } = buildFireSafetyContext(
+      withoutActivity(
+        {},
+        { client: { ...facts.client, countyCode: null, locality: null, addressLine: null } }
+      )
+    ).fire.siteSheet;
+    expect(
+      identity.find(
+        (row) => row.title === 'Coordonatele operatorului economic/instituției – adresa'
+      )?.value
+    ).toBe('București, Sector 1, Calea Victoriei 122A');
   });
 });

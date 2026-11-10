@@ -45,8 +45,10 @@ export type SiteSheetContext = {
 
 export type SiteSheetInput = {
   facts: FireSafetySetFacts;
-  /** The active workplaces, the registered office first, then by name. */
+  /** The workplaces the set lists, the registered office first, then by name. */
   workplaces: FireSafetySetFacts['workplaces'];
+  /** The operator's address where the client has none, even where no activity takes place. */
+  registeredOffice: FireSafetySetFacts['workplaces'][number] | undefined;
   decisionNumbers: Record<FireDecision, string>;
   people: FireNamedPeople;
   inSet: (typeKey: FireSafetyTypeKeyFromTenEmployees) => boolean;
@@ -132,6 +134,7 @@ function both(
 export function buildSiteSheet({
   facts,
   workplaces,
+  registeredOffice,
   decisionNumbers,
   people,
   inSet,
@@ -153,7 +156,6 @@ export function buildSiteSheet({
     representativeName !== null &&
     trimmed(client.contactName) !== null &&
     samePersonName(client.contactName!.trim(), representativeName);
-  const registeredOffice = workplaces.find((workplace) => workplace.registeredOffice);
   const operatorAddress =
     printedAddress(client) || (registeredOffice && printedAddress(registeredOffice)) || null;
   const contacts = [
