@@ -189,6 +189,56 @@ describe('placePages', () => {
     expect(placed.groups).toEqual([['page-1', 'page-2']]);
   });
 
+  it('keeps one person whose birth date is read with the day and month swapped', () => {
+    const ana = { lastName: 'Pop', firstName: 'Ana' };
+    const placed = placePages(
+      pagesOf(
+        page({ pageKind: 'ssm_sheet_front', person: ana, fields: { birthDate: '1980-03-05' } }),
+        page({ pageKind: 'su_sheet_front', person: ana, fields: { birthDate: '03.05.1980' } })
+      ),
+      today
+    );
+
+    expect(placed.groups).toEqual([['page-1', 'page-2']]);
+  });
+
+  it('takes the birth date of a valid CNP over a misread one written beside it', () => {
+    const ana = { lastName: 'Pop', firstName: 'Ana' };
+    const placed = placePages(
+      pagesOf(
+        page({
+          pageKind: 'other',
+          person: { ...ana, cnp: withControlDigit('290050540789') },
+          fields: { birthDate: '1961-11-11' },
+        }),
+        page({ pageKind: 'ssm_sheet_front', person: ana, fields: { birthDate: '05.05.1990' } })
+      ),
+      today
+    );
+
+    expect(placed.groups).toEqual([['page-1', 'page-2']]);
+  });
+
+  it('places a nameless page after the page before it when two people write its post', () => {
+    const front = (lastName: string) =>
+      page({
+        pageKind: 'ssm_sheet_front',
+        person: { lastName, firstName: 'Ana' },
+        fields: { jobTitle: 'Vânzător' },
+      });
+    const placed = placePages(
+      pagesOf(
+        front('Pop'),
+        front('Toma'),
+        page({ pageKind: 'ssm_periodic', fields: { jobTitle: 'Vânzător' }, trainings: [row({})] })
+      ),
+      today
+    );
+
+    expect(placed.groups).toEqual([['page-1'], ['page-2', 'page-3']]);
+    expect(placed.placements.get('page-3')!.placement).toBe('placed_by_order');
+  });
+
   it('places a nameless page by the post it writes, else after the page before it', () => {
     const periodic = (jobTitle: string | null) =>
       page({ pageKind: 'ssm_periodic', fields: { jobTitle }, trainings: [row({})] });

@@ -42,7 +42,7 @@ const pageEmployeeNumber = (page: SheetPage) => (page.person.employeeNumber ?? '
 const letterAdded = (a: string, b: string) =>
   a.length !== b.length && (a.startsWith(b) || b.startsWith(a));
 
-// Liviu and Livia, a man's name and a woman's: a last letter turned to an a.
+// Liviu and Livia: a man's and a woman's form of one name are one edit apart, never a misread.
 const lastTurnedToA = (a: string, b: string) =>
   a.length === b.length &&
   a.slice(0, -1) === b.slice(0, -1) &&
@@ -86,8 +86,8 @@ export function nearName(a: string, b: string) {
   return sharedWords(x, y) / Math.min(x.length, y.length) >= 0.66;
 }
 
-// For pages that give the same birth date, which vouches for the person: a surname misread in
-// more than one letter, or in a last letter read as an a, still leaves the other parts shared.
+// A shared birth date vouches for the person, so a surname misread in more than one letter, or
+// in its last letter, must not split them.
 export function nearNameBornSame(a: string, b: string) {
   const x = words(a);
   const y = words(b);
@@ -102,18 +102,20 @@ const identifies = (page: SheetPage) =>
   pageName(page) !== '' || pageCnp(page) !== null || pageEmployeeNumber(page) !== null;
 
 function pageBirthDates(page: SheetPage, today: string) {
-  const dates: string[] = [];
-  const written = sheetDate(page.fields.birthDate, today);
-  if (written !== null && !written.monthOnly) dates.push(written.date);
   const cnp = pageCnp(page);
   const encoded = cnp === null ? null : decodeCnp(cnp).birthDate;
-  if (encoded !== null && !dates.includes(encoded)) dates.push(encoded);
-  return dates;
+  // A CNP whose control digit holds is read right; a handwritten date beside it may not be.
+  if (encoded !== null) return [encoded];
+  const written = sheetDate(page.fields.birthDate, today);
+  return written !== null && !written.monthOnly ? [written.date] : [];
 }
 
-// One misread digit must not split a person.
+const dayAndMonthSwapped = (date: string) =>
+  `${date.slice(0, 4)}-${date.slice(8)}-${date.slice(5, 7)}`;
+
+// One misread digit, or a day and month read in each other's place, must not split a person.
 const sameBirth = (a: string, b: string) =>
-  [...a].filter((digit, index) => digit !== b[index]).length <= 1;
+  [...a].filter((digit, index) => digit !== b[index]).length <= 1 || dayAndMonthSwapped(a) === b;
 
 const postWords = (title: string | null) =>
   foldText(title ?? '')
