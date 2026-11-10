@@ -327,6 +327,25 @@ describe('what a person still needs', () => {
     ]);
     expect(tags(contextOf(), 'pop')).toEqual([]);
   });
+
+  it('signals a page put by the post it writes and one put after the page before it', () => {
+    const placed = {
+      ...proposal,
+      pages: proposal.pages.map((page) =>
+        page.id === 'p1'
+          ? { ...page, placement: 'placed_by_order' }
+          : page.id === 'p2'
+            ? { ...page, placement: 'placed_by_job_title' }
+            : page
+      ),
+    } as unknown as Proposal;
+    const context = { ...contextOf(), proposal: placed };
+
+    expect(notesOf(context, person('toma')).map((note) => note.tag)).toEqual(
+      expect.arrayContaining(['O pagină pusă după funcție', 'O pagină pusă după ordine'])
+    );
+    expect(tags(context, 'toma')).toEqual(tags(contextOf(), 'toma'));
+  });
 });
 
 describe('rows and tests', () => {
@@ -832,6 +851,61 @@ describe('the switches and what confirming writes', () => {
       expect(payload.test_results.filter((result) => result.employee_key === id)).toHaveLength(
         tests.filter(({ row: each }) => testIncluded(context.changes, each, matched)).length
       );
+    }
+  });
+
+  it('shows a periodic row that records the annual test with the training and the test apart', () => {
+    const both = {
+      testOnly: false,
+      phase: 'periodic',
+      heldOn: '2025-06-10',
+      durationMinutes: 120,
+      material: 'IPSU art. 97–187; prezentarea riscurilor; Testare',
+    };
+    const context = withRows('p3', [annualTest(both)]);
+    const su = () => trainingsByDomain(context(), 'pop').find((each) => each.domain === 'su')!;
+    expect(su().periodic.map(({ row: each }) => each.id)).toEqual(['annual']);
+    expect(su().annualTests.map(({ row: each }) => each.id)).toEqual(['annual']);
+    expect(su().hiring.test).toBeNull();
+
+    const inApp = withRows('p4', [annualTest({ ...both, flags: ['in_app'] })]);
+    const hidden = trainingsByDomain(inApp(), 'lazar').find((each) => each.domain === 'su')!;
+    expect(hidden.periodic).toEqual([]);
+    expect(hidden.annualTests.map(({ row: each }) => each.id)).toEqual(['annual']);
+  });
+
+  it('writes the training and the annual test of one row by their own switches', () => {
+    let base = withTitle(emptyChanges(), 'title-helper', bakerId);
+    base = withWorkplace(base, 'place-none', null);
+    base = checked(base, 'pop');
+    const context = withRows('p3', [
+      annualTest({
+        testOnly: false,
+        phase: 'periodic',
+        heldOn: '2025-06-10',
+        durationMinutes: 120,
+        material: 'IPSU art. 97–187; prezentarea riscurilor; Testare',
+      }),
+    ]);
+    for (const [change, training, test] of [
+      [{}, true, true],
+      [{ test: false }, true, false],
+      [{ included: false }, false, true],
+    ] as const) {
+      const changes = withRow(base, 'annual', () => change);
+      const { payload } = toEmployeePayload({
+        proposal: context(changes).proposal as never,
+        changes: changes as never,
+        records: { jobPositions: [{ id: bakerId }, { id: sellerId }], workplaces, employees: [] },
+        today: '2026-10-31',
+      });
+      const row = context(changes)
+        .proposal.pages.flatMap((page) => page.rows)
+        .find((each) => each.id === 'annual')!;
+      expect(rowIncluded(changes, row, false)).toBe(training);
+      expect(testIncluded(changes, row, false)).toBe(test);
+      expect(payload.trainings.some((each) => each.domain === 'su')).toBe(training);
+      expect(payload.test_results.some((each) => each.test === 'annual')).toBe(test);
     }
   });
 });

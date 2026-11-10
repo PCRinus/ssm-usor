@@ -12,13 +12,14 @@ import { z } from 'zod';
 import { sheetPageKinds, signatureStates, verifierSignatureStates } from './sheet-page';
 
 // How a page came to its person (ADR 032): by the CNP, the folded name, a near name, as the first
-// page of someone new, after the page before it in the upload, or not at all.
+// page of someone new, by the post it writes, after the page before it in the upload, or not at all.
 export const pagePlacements = [
   'cnp',
   'name',
   'near_name',
   'employee_number',
   'new_person',
+  'placed_by_job_title',
   'placed_by_order',
   'unplaced',
 ] as const;
@@ -159,8 +160,9 @@ export const proposedSheetRowSchema = z.object({
   fromThemes: z.array(z.enum(themeFillableFields)),
   // A row that records a test and no training: the fire-safety annual test.
   testOnly: z.boolean(),
-  // The paper test the row records: the annual one, or the hiring test on every row of a phase
-  // the test closes, of which `hiringTestRowIds` picks the one written.
+  // The paper test the row records: the annual one, alone or with that day's periodic training,
+  // or the hiring test on every row of a phase the test closes, of which `hiringTestRowIds` picks
+  // the one written.
   test: paperTestSchema.nullable(),
   flags: z.array(z.enum(rowFlagCodes)),
   proposedIncluded: z.boolean(),

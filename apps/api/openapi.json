@@ -15521,6 +15521,7 @@
                         "near_name",
                         "employee_number",
                         "new_person",
+                        "placed_by_job_title",
                         "placed_by_order",
                         "unplaced"
                       ]

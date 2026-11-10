@@ -547,7 +547,8 @@ export function toEmployeePayload(input: {
     const proposedIncluded =
       !sheetRow.flags.includes('unsigned') && !sheetRow.flags.includes('repeated') && !inApp;
 
-    const test = sheetRow.testOnly || hiringTests.has(sheetRow.id) ? sheetRow.test : null;
+    const test =
+      sheetRow.test?.test === 'annual' || hiringTests.has(sheetRow.id) ? sheetRow.test : null;
     if (test) {
       const testInApp = existing?.testResults.some(
         (result) =>
@@ -555,7 +556,13 @@ export function toEmployeePayload(input: {
           result.test === test.test &&
           (test.test === 'hiring' || result.takenOn === heldOn)
       );
-      const proposedTest = test.verified && !testInApp && (!sheetRow.testOnly || proposedIncluded);
+      // Not the row's own proposal: a training the app already has still leaves the annual test
+      // written on its row to take.
+      const proposedTest =
+        test.verified &&
+        !testInApp &&
+        (test.test === 'hiring' ||
+          (!sheetRow.flags.includes('unsigned') && !sheetRow.flags.includes('repeated')));
       const included =
         change?.test ?? (sheetRow.testOnly ? (change?.included ?? proposedTest) : proposedTest);
       if (!included) {
@@ -572,7 +579,10 @@ export function toEmployeePayload(input: {
         else if (!pastDay) block(`${path}.test.takenOn`, 'invalid');
         if (!filled(examinerName)) block(`${path}.test.examinerName`, 'missing');
         if (!filled(examinerJobTitle)) block(`${path}.test.examinerJobTitle`, 'missing');
-        if (pastDay && filled(examinerName) && filled(examinerJobTitle)) {
+        const testKey = `test|${sheetRow.domain}|${test.test}|${takenOn}`;
+        const written = seen.has(testKey);
+        if (pastDay && filled(examinerName) && filled(examinerJobTitle) && !written) {
+          seen.add(testKey);
           testResults.push({
             employee_key: person.id,
             domain: sheetRow.domain,
@@ -583,8 +593,10 @@ export function toEmployeePayload(input: {
             examiner_job_title: String(examinerJobTitle).trim(),
           });
         }
-        if (change?.test !== undefined && change.test !== proposedTest) quality.tests.changed++;
-        else quality.tests.kept++;
+        if (!written) {
+          if (change?.test !== undefined && change.test !== proposedTest) quality.tests.changed++;
+          else quality.tests.kept++;
+        }
       }
     }
     if (sheetRow.testOnly) return;

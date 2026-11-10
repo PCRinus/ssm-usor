@@ -7,6 +7,7 @@ import type { EmployeeImportProposal } from './employee-proposal';
 import {
   cnps,
   comanFire,
+  comanFirePeriodic,
   comanFront,
   comanPeriodic,
   existingPop,
@@ -20,6 +21,7 @@ import {
   today,
   tomaFront,
   tomaPeriodic,
+  trainedAndTested,
   workplaces,
 } from './test/sheets';
 
@@ -149,6 +151,136 @@ describe('toEmployeePayload', () => {
       },
       expect.objectContaining({ domain: 'su', test: 'hiring', taken_on: '2021-01-19' }),
       expect.objectContaining({ domain: 'su', test: 'annual', taken_on: '2026-03-12' }),
+    ]);
+  });
+
+  it('writes a periodic row that also records the annual test as a training and a result', () => {
+    const { proposal, check, map } = setUp(comanFront, comanFirePeriodic);
+    const coman = idOf(proposal, 'Coman');
+    check(coman);
+
+    const { payload, blockers } = map();
+
+    expect(blockers).toEqual([]);
+    expect(payload.trainings.filter((training) => training.domain === 'su')).toEqual([
+      expect.objectContaining({
+        phase: 'periodic',
+        held_on: '2025-06-10',
+        duration_minutes: 120,
+        material:
+          'IPSU art. 97–187; IPSU cap. XXIX–XXXII; anexa 1; prezentarea riscurilor; Testare',
+        records: [{ employee_key: coman }],
+      }),
+    ]);
+    expect(payload.test_results.filter((result) => result.test === 'annual')).toEqual([
+      {
+        employee_key: coman,
+        domain: 'su',
+        test: 'annual',
+        taken_on: '2025-06-10',
+        material: expect.any(String),
+        examiner_name: 'Barbu Ionuț',
+        examiner_job_title: 'Cadru tehnic PSI',
+      },
+    ]);
+  });
+
+  it('writes a row of the annual test alone as the result only', () => {
+    const { proposal, check, map } = setUp(comanFront, comanFire);
+    check(idOf(proposal, 'Coman'));
+
+    const { payload } = map();
+
+    expect(
+      payload.trainings.some(
+        (training) => training.phase === 'periodic' && training.domain === 'su'
+      )
+    ).toBe(false);
+    expect(payload.test_results.filter((result) => result.test === 'annual')).toHaveLength(1);
+  });
+
+  it('unticks the training and the annual test of one row apart', () => {
+    const { proposal, changes, check, map } = setUp(comanFront, comanFirePeriodic);
+    check(idOf(proposal, 'Coman'));
+    const both = proposal.pages[1]!.rows[0]!;
+    const suPeriodic = () =>
+      map().payload.trainings.filter((training) => training.domain === 'su').length;
+    const annual = () =>
+      map().payload.test_results.filter((result) => result.test === 'annual').length;
+
+    changes.rows[both.id] = { test: false };
+    expect([suPeriodic(), annual()]).toEqual([1, 0]);
+    expect(map().payload.quality.tests).toMatchObject({ unticked: 1 });
+
+    changes.rows[both.id] = { included: false };
+    expect([suPeriodic(), annual()]).toEqual([0, 1]);
+    expect(map().payload.quality.rows).toMatchObject({ unticked: 1 });
+  });
+
+  it('confirms a stored proposal whose row of training and test was read as the test alone', () => {
+    const { proposal, check, map } = setUp(comanFront, comanFirePeriodic);
+    check(idOf(proposal, 'Coman'));
+    proposal.pages[1]!.rows[0]!.testOnly = true;
+
+    const { payload, blockers } = map();
+
+    expect(blockers).toEqual([]);
+    expect(payload.trainings.some((training) => training.domain === 'su')).toBe(false);
+    expect(payload.test_results.filter((result) => result.test === 'annual')).toEqual([
+      expect.objectContaining({ taken_on: '2025-06-10' }),
+    ]);
+  });
+
+  it('writes one annual result for a day two rows record it', () => {
+    const { proposal, changes, check, map } = setUp(
+      comanFront,
+      page({
+        pageKind: 'su_periodic',
+        person: { lastName: 'Coman', firstName: 'Daniela' },
+        trainings: [trainedAndTested(), trainedAndTested({ material: 'Testare anuală' })],
+      })
+    );
+    check(idOf(proposal, 'Coman'));
+    changes.rows[proposal.pages[1]!.rows[1]!.id] = { test: true };
+
+    expect(map().payload.test_results.filter((result) => result.test === 'annual')).toHaveLength(1);
+  });
+
+  it('takes the annual test of a row whose training the employee already has', () => {
+    const employee = {
+      ...existingPop,
+      trainings: [
+        ...existingPop.trainings,
+        { domain: 'su' as const, phase: 'periodic' as const, heldOn: '2025-06-10' },
+      ],
+    };
+    const proposal = toEmployeeProposal({
+      pages: pagesOf(
+        popFront,
+        page({
+          pageKind: 'su_periodic',
+          person: { lastName: 'Pop', firstName: 'Elena', cnp: cnps.pop },
+          trainings: [trainedAndTested()],
+        })
+      ),
+      client: { ...client, employees: [employee] },
+      themes,
+      today,
+    });
+    const changes = noChanges();
+    changes.people[proposal.people[0]!.id] = { state: 'checked' };
+
+    const { payload } = toEmployeePayload({
+      proposal,
+      changes,
+      records: { ...records, employees: [employee] },
+      today,
+    });
+
+    expect(proposal.pages[1]!.rows[0]!.flags).toEqual(['in_app']);
+    expect(payload.trainings.some((training) => training.domain === 'su')).toBe(false);
+    expect(payload.test_results).toEqual([
+      expect.objectContaining({ domain: 'su', test: 'annual', taken_on: '2025-06-10' }),
     ]);
   });
 

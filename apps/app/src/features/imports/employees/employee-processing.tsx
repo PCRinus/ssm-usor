@@ -258,25 +258,36 @@ export function EmployeeProcessing({
             )}
           </div>
           <ul
-            className="grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-3"
+            className="grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] items-start gap-3"
             aria-label="Fotografiile fișelor, în ordinea încărcării"
           >
-            {shown.map((file) => {
+            {shown.map((file, position) => {
               const state = fileState(file);
               return (
-                <li key={file.id} className="grid gap-1" data-testid="employee-processing-photo">
+                <li
+                  key={file.id}
+                  className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1"
+                  data-testid="employee-processing-photo"
+                >
                   <button
                     type="button"
                     aria-label={`Deschide ${file.fileName}`}
                     onClick={() => setPreviewing(file.id)}
                     className="flex w-full rounded-md outline-none hover:opacity-90 focus-visible:ring-[3px] focus-visible:ring-ring/50"
                   >
-                    <ImportThumbnail importId={detail.id} file={file} className="h-28 w-full" />
+                    <ImportThumbnail
+                      importId={detail.id}
+                      file={file}
+                      className="aspect-[3/4] h-auto w-full"
+                    />
                   </button>
-                  <span className="truncate text-xs font-medium">{file.fileName}</span>
+                  <span title={file.fileName} className="truncate text-xs font-medium tabular-nums">
+                    {photos ? 'Fotografia' : 'Fișierul'} {position + 1}
+                  </span>
                   <span
+                    title={stateLabel(file)}
                     className={cn(
-                      'text-xs',
+                      'line-clamp-2 min-h-8 text-xs',
                       state === 'read' && 'text-foreground',
                       state === 'failed' && 'text-destructive',
                       state === 'waiting' && 'text-muted-foreground'

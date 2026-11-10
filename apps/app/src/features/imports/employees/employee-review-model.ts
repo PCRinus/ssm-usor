@@ -321,10 +321,13 @@ export const rowIncluded = (changes: Changes, row: SheetRow, matched: boolean) =
 
 export const testInApp = (row: SheetRow, matched: boolean) => matched && row.test?.inApp === true;
 
+// An annual test follows its row's signature, not its training: one the app already has still
+// leaves the test written on its row to take.
 export const proposedTestIncluded = (row: SheetRow, matched: boolean) =>
   row.test?.verified === true &&
   !testInApp(row, matched) &&
-  (!row.testOnly || proposedRowIncluded(row, matched));
+  (row.test.test === 'hiring' ||
+    (!row.flags.includes('unsigned') && !row.flags.includes('repeated')));
 
 /** Whether the test a row carries is ticked; it is written only on a row of `testedRows`. */
 export function testIncluded(changes: Changes, row: SheetRow, matched: boolean) {
@@ -372,7 +375,7 @@ export function testedRows(context: Pick<ReviewContext, 'proposal' | 'changes'>,
   const ids = hiringTestRowIds(
     rows.map((row) => ({ ...row, heldOn: rowValues(context.changes, row).heldOn }))
   );
-  for (const row of rows) if (row.testOnly && row.test) ids.add(row.id);
+  for (const row of rows) if (row.test?.test === 'annual') ids.add(row.id);
   return ids;
 }
 
@@ -919,8 +922,9 @@ export function notesOf(context: ReviewContext, person: Person): Note[] {
     if (tested.has(row.id) && row.test && !row.test.verified && !testInApp(row, matched))
       add('verifier', 'Semnătura de verificare nu se vede');
   }
-  if (pagesOf(context, person.id).some((page) => page.placement === 'placed_by_order'))
-    add('order', 'O pagină pusă după ordine');
+  const placements = new Set(pagesOf(context, person.id).map((page) => page.placement));
+  if (placements.has('placed_by_job_title')) add('job_title', 'O pagină pusă după funcție');
+  if (placements.has('placed_by_order')) add('order', 'O pagină pusă după ordine');
   const former = matched ? formerLeftOn(person) : null;
   if (former !== null) add('leaver', `A plecat din firmă la ${formatRoDate(former)}`);
   else if (resolveField(context, person, 'leftOn').value !== null)
@@ -1130,10 +1134,11 @@ export function trainingsByDomain(
       hiring: {
         domain,
         rows: hiring,
-        test: own.find(({ row }) => !row.testOnly && tested.has(row.id)) ?? null,
+        test: own.find(({ row }) => row.test?.test === 'hiring' && tested.has(row.id)) ?? null,
       },
       periodic: shown.filter(({ row }) => !hiringPhases.has(row.phase) && !row.testOnly),
-      annualTests: shown.filter(({ row }) => row.testOnly),
+      // From every row, since a training the app already has hides its row but not its test.
+      annualTests: own.filter(({ row }) => row.test?.test === 'annual'),
       inApp: own.filter(({ row }) => inApp(row)),
     };
   });

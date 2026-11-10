@@ -3,7 +3,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
-import { type ReactNode, useState } from 'react';
+import { type FormEvent, type ReactNode, useState } from 'react';
 
 import { roCount } from '@/features/employees/employee-format';
 import { JobPositionDialog } from '@/features/job-positions/job-position-dialog';
@@ -16,9 +16,11 @@ import {
   type Decision,
   fieldLabels,
   type FieldName,
+  fieldTitles,
   formerLeftOn,
   isRehire,
   matchedName,
+  pagesOf,
   type Person,
   personName,
   positionOf,
@@ -33,8 +35,10 @@ import {
   workplaceOf,
   workplaceStatus,
 } from './employee-review-model';
+import { FieldInput } from './person-fields';
+import { dateFields, fieldProblem, typedValue } from './person-values';
 import { PageButton } from './photo-column';
-import { orderedByClosest, withTitle, withWorkplace } from './review-changes';
+import { orderedByClosest, withFields, withTitle, withWorkplace } from './review-changes';
 import { dateLabel } from './review-format';
 import type { Position, Workplace } from './use-review-context';
 
@@ -436,24 +440,43 @@ export function FieldChoice({
   onChange: Update;
 }) {
   const field = resolveField(context, person, name);
-  const pages = context.proposal.pages.filter((page) =>
-    field.options.some((option) => option.pageIds.includes(page.id))
-  );
-  const chosen = context.changes.people[person.id]?.fields?.[name]?.option;
+  const pages = pagesOf(context, person.id);
+  const change = context.changes.people[person.id]?.fields?.[name];
+  const typed = change?.value;
+  const [other, setOther] = useState(typed === undefined || typed === null ? '' : String(typed));
+  const [otherOpen, setOtherOpen] = useState(typed !== undefined);
+  const [otherError, setOtherError] = useState<string | null>(null);
+  const id = `choice-${name}`;
+  const inputId = `${id}-other`;
   const show = (value: string | number) =>
     name === 'birthDate' || name === 'hiredAt' || name === 'leftOn'
       ? dateLabel(String(value))
       : String(value);
+
+  function submitOther(event: FormEvent) {
+    event.preventDefault();
+    const problem =
+      other.trim() === ''
+        ? dateFields.has(name)
+          ? 'Scrie data, de exemplu 01.03.2024.'
+          : 'Scrie valoarea.'
+        : fieldProblem(name, other);
+    setOtherError(problem);
+    if (problem) return;
+    onChange((current) => withFields(current, person.id, { [name]: typedValue(name, other) }));
+  }
+
   return (
-    <DecideCard id={`choice-${name}`} title={`${fieldLabels[name]}: fișele scriu valori diferite`}>
-      <div role="group" aria-labelledby={`choice-${name}-title`} className="grid gap-2">
+    <DecideCard id={id} title={`${fieldLabels[name]}: fișele scriu valori diferite`}>
+      <div role="group" aria-labelledby={`${id}-title`} className="grid gap-2">
         {field.options.map((option) => (
           <Option
             key={option.index}
-            checked={chosen === option.index}
-            onSelect={() =>
-              onChange((current) => withField(current, person.id, name, { option: option.index }))
-            }
+            checked={!otherOpen && change?.option === option.index}
+            onSelect={() => {
+              setOtherOpen(false);
+              onChange((current) => withField(current, person.id, name, { option: option.index }));
+            }}
             label={show(option.value)}
             tag={
               <span className="flex gap-1">
@@ -464,6 +487,47 @@ export function FieldChoice({
             }
           />
         ))}
+        <Option
+          checked={otherOpen}
+          onSelect={() => setOtherOpen(true)}
+          label="Altă valoare"
+          testId="person-choice-other"
+          detail={
+            otherOpen ? (
+              <form
+                className="relative grid gap-1.5 text-foreground"
+                noValidate
+                onSubmit={submitOther}
+              >
+                <span className="flex flex-wrap items-center gap-2">
+                  <label htmlFor={inputId} className="sr-only">
+                    {fieldTitles[name]}
+                  </label>
+                  <FieldInput
+                    id={inputId}
+                    name={name}
+                    value={other}
+                    autoFocus={typed === undefined}
+                    invalid={Boolean(otherError)}
+                    describedBy={otherError ? `${inputId}-error` : undefined}
+                    className="max-w-xs"
+                    onChange={setOther}
+                  />
+                  <Button type="submit" variant="outline" data-testid="person-choice-other-use">
+                    Folosește
+                  </Button>
+                </span>
+                {otherError && (
+                  <span id={`${inputId}-error`} className="text-[13px] text-destructive">
+                    {otherError}
+                  </span>
+                )}
+              </form>
+            ) : (
+              'O scrii tu, dacă niciuna nu e cea corectă.'
+            )
+          }
+        />
       </div>
     </DecideCard>
   );

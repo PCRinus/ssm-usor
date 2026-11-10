@@ -466,6 +466,15 @@ function DomainSection({
                     <span className="font-medium">Testul anual {label}</span>, la{' '}
                     {dateLabel(heldOn) ?? 'o dată necitită'}: promovat pe fișă
                   </span>
+                  {!row.testOnly && (
+                    <span
+                      className="col-span-2 text-muted-foreground sm:col-span-4"
+                      data-testid="person-annual-test-with-training"
+                    >
+                      Scris pe fișă în rândul instruirii periodice din aceeași zi. Instruirea și
+                      testul se preiau fiecare cu comutatorul lor.
+                    </span>
+                  )}
                   <span className="col-start-2 row-start-1 flex h-6 items-center sm:col-start-4">
                     {toggle}
                   </span>
@@ -636,6 +645,7 @@ function TestDialog({
             <DialogTitle>Testul anual {trainingDomainLabels[row.domain]}</DialogTitle>
             <DialogDescription>
               Corectează ce s-a citit greșit. Se preia așa cum lași aici.
+              {!row.testOnly && ' Data e și a instruirii periodice din același rând.'}
             </DialogDescription>
           </DialogHeader>
           <DialogBody className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -821,6 +831,7 @@ function RowDialog({
             </DialogTitle>
             <DialogDescription>
               Corectează ce s-a citit greșit. Se preia așa cum lași aici.
+              {row.test?.test === 'annual' && ' Data e și a testului anual din același rând.'}
             </DialogDescription>
           </DialogHeader>
           <DialogBody className="mt-4 grid gap-4 sm:grid-cols-2">

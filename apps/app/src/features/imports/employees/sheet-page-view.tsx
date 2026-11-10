@@ -19,10 +19,12 @@ export function SheetPageView({
   importId,
   page,
   className,
+  onEnlarge,
 }: {
   importId: string;
   page: SheetPage;
   className?: string;
+  onEnlarge?: () => void;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const queryClient = useQueryClient();
@@ -50,16 +52,25 @@ export function SheetPageView({
             quote={null}
             onShown={() => undefined}
             onNotFound={() => undefined}
+            onEnlarge={onEnlarge}
           />
         </Suspense>
       ) : (
-        <PhotoView source={query.data} name={pageFileName(page)} />
+        <PhotoView source={query.data} name={pageFileName(page)} onEnlarge={onEnlarge} />
       )}
     </div>
   );
 }
 
-function PhotoView({ source, name }: { source: ImportSourceResponse; name: string }) {
+function PhotoView({
+  source,
+  name,
+  onEnlarge,
+}: {
+  source: ImportSourceResponse;
+  name: string;
+  onEnlarge?: () => void;
+}) {
   const [zoom, setZoom] = useState<number | 'fit'>('fit');
   const url = source.derived?.url ?? source.original.url;
   return (
@@ -68,14 +79,17 @@ function PhotoView({ source, name }: { source: ImportSourceResponse; name: strin
         <img
           src={url}
           alt={`Fotografia ${name}`}
+          data-testid="sheet-page-image"
+          onClick={onEnlarge}
           className={cn(
             'mx-auto block bg-card shadow-sm',
-            zoom === 'fit' && 'max-h-full max-w-full object-contain'
+            zoom === 'fit' && 'max-h-full max-w-full object-contain',
+            onEnlarge && 'cursor-zoom-in'
           )}
           style={zoom === 'fit' ? undefined : { width: `${zoom * 100}%`, maxWidth: 'none' }}
         />
       </div>
-      <ZoomBar zoom={zoom} onZoom={setZoom} fit />
+      <ZoomBar zoom={zoom} onZoom={setZoom} fit onEnlarge={onEnlarge} />
     </>
   );
 }

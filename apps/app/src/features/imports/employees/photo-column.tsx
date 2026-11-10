@@ -36,6 +36,7 @@ export function PhotoColumn({
   name,
   onCurrent,
   onOpen,
+  onEnlarge,
 }: {
   detail: ImportDetail;
   pages: SheetPage[];
@@ -44,6 +45,7 @@ export function PhotoColumn({
   name: string;
   onCurrent: (pageId: string) => void;
   onOpen: (open: boolean) => void;
+  onEnlarge: (pageId: string) => void;
 }) {
   const index = Math.max(
     0,
@@ -121,6 +123,7 @@ export function PhotoColumn({
           importId={detail.id}
           page={page}
           className="h-[min(62svh,34rem)]"
+          onEnlarge={() => onEnlarge(page.id)}
         />
       ) : (
         <div className="grid h-48 place-items-center rounded-lg bg-muted/60">
