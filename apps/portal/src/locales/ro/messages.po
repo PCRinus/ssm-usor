@@ -610,6 +610,10 @@ msgstr "Deschide PDF"
 msgid "din {due}"
 msgstr "din {due}"
 
+#: src/features/reload/reload-dialog.tsx
+msgid "Documentele semnate rămân semnate. După reîncărcare le poți semna pe celelalte."
+msgstr "Documentele semnate rămân semnate. După reîncărcare le poți semna pe celelalte."
+
 #: src/features/signing/signing-messages.ts
 msgid "Documentul nu a putut fi pregătit. Încearcă din nou peste câteva minute."
 msgstr "Documentul nu a putut fi pregătit. Încearcă din nou peste câteva minute."
@@ -1639,6 +1643,10 @@ msgstr "Testul nu te mai așteaptă."
 #: src/features/reload/reload-dialog.tsx
 msgid "Testul rămâne deschis. După reîncărcare vei bifa din nou răspunsul la întrebarea {current}."
 msgstr "Testul rămâne deschis. După reîncărcare vei bifa din nou răspunsul la întrebarea {current}."
+
+#: src/features/reload/reload-dialog.tsx
+msgid "Toate răspunsurile sunt salvate. După reîncărcare trimite testul din nou."
+msgstr "Toate răspunsurile sunt salvate. După reîncărcare trimite testul din nou."
 
 #: src/features/signing/client-signatures-page.tsx
 msgid "Tot ce a fost trimis spre semnare este semnat."

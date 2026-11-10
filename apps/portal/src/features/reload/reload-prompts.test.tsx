@@ -195,7 +195,7 @@ describe('the reload dialog', () => {
   });
 
   it('while signing, says nothing is signed yet', async () => {
-    mountPrompts({ kind: 'signing' });
+    mountPrompts({ kind: 'signing', signedBefore: false });
     act(() => openOutdatedDialog('426'));
 
     expect((await screen.findByTestId('reload-dialog-safe')).textContent).toBe(

@@ -132,9 +132,22 @@ function ReloadReason({ context }: { context: ReloadContext }) {
 
 function Reassurance({ context }: { context: ReloadContext }) {
   if (context.kind === 'signing') {
-    return (
+    return context.signedBefore ? (
+      <SafeLine tone="success">
+        <Trans>
+          Documentele semnate rămân semnate. După reîncărcare le poți semna pe celelalte.
+        </Trans>
+      </SafeLine>
+    ) : (
       <SafeLine tone="muted">
         <Trans>Nu s-a semnat încă nimic. După reîncărcare poți semna.</Trans>
+      </SafeLine>
+    );
+  }
+  if (context.kind === 'test' && context.sending) {
+    return (
+      <SafeLine tone="success">
+        <Trans>Toate răspunsurile sunt salvate. După reîncărcare trimite testul din nou.</Trans>
       </SafeLine>
     );
   }

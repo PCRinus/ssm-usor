@@ -610,6 +610,10 @@ msgstr "Open PDF"
 msgid "din {due}"
 msgstr "since {due}"
 
+#: src/features/reload/reload-dialog.tsx
+msgid "Documentele semnate rămân semnate. După reîncărcare le poți semna pe celelalte."
+msgstr "The documents you signed stay signed. After reloading, you can sign the others."
+
 #: src/features/signing/signing-messages.ts
 msgid "Documentul nu a putut fi pregătit. Încearcă din nou peste câteva minute."
 msgstr "The document could not be prepared. Try again in a few minutes."
@@ -1639,6 +1643,10 @@ msgstr "This test is no longer waiting for you."
 #: src/features/reload/reload-dialog.tsx
 msgid "Testul rămâne deschis. După reîncărcare vei bifa din nou răspunsul la întrebarea {current}."
 msgstr "The test stays open. After reloading, tick your answer to question {current} again."
+
+#: src/features/reload/reload-dialog.tsx
+msgid "Toate răspunsurile sunt salvate. După reîncărcare trimite testul din nou."
+msgstr "All your answers are saved. After reloading, send the test again."
 
 #: src/features/signing/client-signatures-page.tsx
 msgid "Tot ce a fost trimis spre semnare este semnat."

@@ -1,10 +1,13 @@
-import { useEffect, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 
 import { captureEvent } from '@/app/observability/posthog';
 
-// `question` counts from 1: the question on screen, whose tick is not saved yet.
+// `question` counts from 1: the question on screen, whose tick is not saved yet, unless `sending`:
+// then every answer is saved and only the sending of the test is left.
 export type ReloadContext =
-  { kind: 'test'; question: number } | { kind: 'signing' } | { kind: 'other' };
+  | { kind: 'test'; question: number; sending?: boolean }
+  | { kind: 'signing'; signedBefore: boolean }
+  | { kind: 'other' };
 
 export type OutdatedCause = '426' | 'code_file';
 
@@ -24,6 +27,7 @@ const reloadStampKey = 'ssm-usor:portal-reload-at';
 const otherContext: ReloadContext = { kind: 'other' };
 
 let context: ReloadContext = otherContext;
+let owner: symbol | null = null;
 let outdated: OutdatedState | null = null;
 const listeners = new Set<() => void>();
 
@@ -79,21 +83,38 @@ export function useOutdatedState() {
   );
 }
 
+/** Returns a setter for a request the page is about to make, which the next render would come too late for. */
 export function useReloadContext(next: ReloadContext) {
+  const [token] = useState(() => Symbol('reload-context'));
   const { kind } = next;
   const question = next.kind === 'test' ? next.question : 0;
+  const sending = next.kind === 'test' && next.sending === true;
+  const signedBefore = next.kind === 'signing' && next.signedBefore;
   useEffect(() => {
-    const own: ReloadContext =
-      kind === 'test' ? { kind, question } : kind === 'signing' ? { kind } : otherContext;
-    context = own;
+    owner = token;
+    context =
+      kind === 'test'
+        ? { kind, question, sending }
+        : kind === 'signing'
+          ? { kind, signedBefore }
+          : otherContext;
     return () => {
-      if (context === own) context = otherContext;
+      if (owner !== token) return;
+      owner = null;
+      context = otherContext;
     };
-  }, [kind, question]);
+  }, [token, kind, question, sending, signedBefore]);
+  return useCallback(
+    (now: ReloadContext) => {
+      if (owner === token) context = now;
+    },
+    [token]
+  );
 }
 
 export function resetReloadStore() {
   context = otherContext;
+  owner = null;
   outdated = null;
   emit();
 }

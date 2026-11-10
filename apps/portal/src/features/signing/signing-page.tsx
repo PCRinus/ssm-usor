@@ -17,7 +17,7 @@ import {
   signPortalSigningSession,
   type SignSessionResponse,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { ApiHttpError, isClientOutdatedError } from '@/api/http';
 import { CodeInput } from '@/components/code-input';
 import { Notice } from '@/components/notice';
 import { cardClass, Page, PageFailed, PageHeader, PageLoading } from '@/components/page';
@@ -135,6 +135,9 @@ function sessionBody(items: SigningItem[]) {
 
 const keysOf = (items: SigningItem[]) => new Set(items.map((item) => item.key));
 
+const signedAnything = (result: SignSessionResponse) =>
+  result.signed.length > 0 || result.agreements.some((agreement) => agreement.signed);
+
 export function SigningPage({
   agreementOnly,
   agreementsOnly,
@@ -144,7 +147,8 @@ export function SigningPage({
 }) {
   const participation = useParticipation();
   const [step, setStep] = useState<Step>({ kind: 'choose', choice: null });
-  useReloadContext(step.kind === 'result' ? { kind: 'other' } : { kind: 'signing' });
+  const [signedBefore, setSignedBefore] = useState(false);
+  useReloadContext(step.kind === 'result' ? { kind: 'other' } : { kind: 'signing', signedBefore });
 
   return (
     <Page testId="signing-page" className="max-w-[44rem]">
@@ -170,7 +174,10 @@ export function SigningPage({
           resent={step.resent}
           onResent={(session) => setStep({ ...step, session, sentAt: Date.now(), resent: true })}
           onBack={() => setStep({ kind: 'choose', choice: keysOf(step.items) })}
-          onSigned={(result) => setStep({ kind: 'result', items: step.items, result })}
+          onSigned={(result) => {
+            if (signedAnything(result)) setSignedBefore(true);
+            setStep({ kind: 'result', items: step.items, result });
+          }}
         />
       )}
       {step.kind === 'result' && (
@@ -318,6 +325,7 @@ function ChooseStep({
       );
       onSent(session, selected);
     } catch (cause) {
+      if (isClientOutdatedError(cause)) return;
       const next = sessionFailureOf(cause);
       setFailure(next);
       if (next.retryAfterSeconds > 0) restart(next.retryAfterSeconds);
@@ -550,6 +558,7 @@ function CodeStep({
       );
     } catch (cause) {
       setSigning(false);
+      if (isClientOutdatedError(cause)) return;
       setError(codeErrorOf(cause));
       wantsFocus.current = true;
     }
@@ -566,6 +575,10 @@ function CodeStep({
         )
       );
     } catch (cause) {
+      if (isClientOutdatedError(cause)) {
+        setResend({ busy: false, failure: null });
+        return;
+      }
       const failure = sessionFailureOf(cause);
       setResend({ busy: false, failure });
       if (failure.retryAfterSeconds > 0) restart(failure.retryAfterSeconds);
