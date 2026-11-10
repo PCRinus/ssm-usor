@@ -70,7 +70,7 @@ Importing the documents of stage 3 now, as written, with wording fixes only, was
 
 The three registers are one document, as the four accident registers of the first set are. The sample's permit register copies the columns of the exercise record, down to "Cine a organizat lucrarea (exercițiul)"; ours identifies a permit by its number, its issuer and who did the work. The extinguisher register is the one document of the stage the provider did not hand over: its layout is the norm's, it is as blank as the others, and no employer with an extinguisher is exempt from it.
 
-All five print the client and the provider at most. None prints a date that matters or a fact that changes, so they are generated once and reissued only when a template changes.
+All five print the client and the provider at most. None prints a date that matters or a fact that changes, so they are generated once and reissued only when a template changes. (Amended 2026-11-10 by [ADR 018](adr-018-fire-safety-means.md#amendment-2026-11-10-the-documents-print-the-inventory): the extinguisher register lists the client's extinguishers and the installation register has a sheet per installation, so both change with the inventory.)
 
 ### What is left out
 

@@ -456,6 +456,102 @@ describe('the fire-safety context', () => {
     expect(office!.otherEquipment).toEqual([{ kindLabel: 'Pătură antifoc', count: 1 }]);
   });
 
+  it('counts the means of a workplace per location and type once some unit has a location', () => {
+    const [workshop, office] = buildFireSafetyContext(facts).fire.workplaces;
+    expect(workshop!.meansByPlace).toEqual([
+      { place: 'Curte', means: 'Ladă cu nisip', count: 1 },
+      { place: 'Hala de producție', means: 'Stingător P6 – Pulbere, 6 kg', count: 2 },
+      { place: 'Magazie', means: 'Stingător G5 – Dioxid de carbon (CO₂), 5 kg', count: 1 },
+      { place: '—', means: 'Stingător P50 – Pulbere, 50 kg, carosabil', count: 1 },
+    ]);
+    expect(workshop!.hasPlaces).toBe(true);
+    expect(office).toMatchObject({ meansByPlace: [], hasPlaces: false });
+  });
+
+  it('lists every extinguisher in the register by workplace and location, with blank rows after them', () => {
+    const { extinguisherRegister } = buildFireSafetyContext(facts);
+    expect(extinguisherRegister.rows).toEqual([
+      {
+        type: 'P6 – Pulbere, 6 kg, nr. inventar 0012',
+        place: 'Atelier Ghiroda – Hala de producție',
+      },
+      {
+        type: 'P6 – Pulbere, 6 kg, nr. inventar 0013',
+        place: 'Atelier Ghiroda – Hala de producție',
+      },
+      { type: 'G5 – Dioxid de carbon (CO₂), 5 kg', place: 'Atelier Ghiroda – Magazie' },
+      { type: 'P50 – Pulbere, 50 kg, carosabil', place: 'Atelier Ghiroda' },
+      { type: 'SM9 – Spumă mecanică, 9 l', place: 'Sediul social' },
+    ]);
+    expect(extinguisherRegister.blankRows).toHaveLength(4);
+
+    const [workshop] = facts.workplaces;
+    const unit = facts.fireSafety.equipment[0]!;
+    const alone = buildFireSafetyContext({
+      ...facts,
+      workplaces: [workshop!],
+      fireSafety: {
+        ...facts.fireSafety,
+        equipment: [
+          ...Array.from({ length: 10 }, (_, index) => ({ ...unit, label: String(10 - index) })),
+          { ...unit, label: null, location: null },
+        ],
+      },
+    }).extinguisherRegister;
+    expect(alone.rows.slice(0, 2)).toEqual([
+      { type: 'P6 – Pulbere, 6 kg, nr. inventar 1', place: 'Hala de producție' },
+      { type: 'P6 – Pulbere, 6 kg, nr. inventar 2', place: 'Hala de producție' },
+    ]);
+    expect(alone.rows.at(-1)).toEqual({ type: 'P6 – Pulbere, 6 kg', place: '' });
+    expect(alone.blankRows).toHaveLength(3);
+  });
+
+  it('keeps a place written in two cases together in the register, as the list of means counts it', () => {
+    const [workshop] = facts.workplaces;
+    const unit = { ...facts.fireSafety.equipment[0]!, label: null };
+    const { rows } = buildFireSafetyContext({
+      ...facts,
+      workplaces: [workshop!],
+      fireSafety: {
+        ...facts.fireSafety,
+        equipment: [
+          { ...unit, location: 'hala', agent: 'co2', capacity: 5 },
+          { ...unit, location: 'Hala', agent: 'powder', capacity: 6 },
+          { ...unit, location: 'Birou', agent: 'powder', capacity: 6 },
+          { ...unit, location: 'hala', agent: 'powder', capacity: 6 },
+        ],
+      },
+    }).extinguisherRegister;
+    expect(rows.map((row) => row.place)).toEqual(['Birou', 'Hala', 'hala', 'hala']);
+    expect(rows.map((row) => row.type.slice(0, 2))).toEqual(['P6', 'P6', 'P6', 'G5']);
+  });
+
+  it('gives each installation a numbered sheet of the register, its workplace and its maintainer', () => {
+    expect(buildFireSafetyContext(facts).installationSheets).toEqual([
+      {
+        first: true,
+        number: '1',
+        name: 'Hidranți exteriori – Doi hidranți în curte',
+        place: 'Atelier Ghiroda',
+        maintainer: '',
+      },
+      {
+        first: false,
+        number: '2',
+        name: 'Instalație de detectare, semnalizare și avertizare la incendiu',
+        place: 'Sediul social',
+        maintainer: 'S.C. ALARM SERVICE S.R.L.',
+      },
+      {
+        first: false,
+        number: '3',
+        name: 'Hidranți interiori – Câte unul pe nivel',
+        place: 'Sediul social',
+        maintainer: '',
+      },
+    ]);
+  });
+
   it('prints each workplace with its facts, its installations and its people', () => {
     const fire = buildFireSafetyContext(facts).fire;
     const [workshop, office] = fire.workplaces;
@@ -698,6 +794,10 @@ describe('the fire-safety context', () => {
       workplaceId: officeId,
       capacity: 6,
       wheeled: false,
+      label: null,
+      location: null,
+      manufacturedYear: null,
+      lastServiceOn: null,
       nextServiceOn: null,
       maintainer: null,
     };
@@ -751,7 +851,8 @@ describe('the fire-safety context', () => {
           what: 'Verificarea stingătoarelor de către o firmă atestată (P6 – 2\u00a0buc.)',
           interval: 'anual',
           who: 'S.C. FOC STOP S.R.L.',
-          basis: 'OMAI 135/2023 – art. 9; următorul service: 15.01.2027 și 12.03.2027',
+          basis:
+            'OMAI 135/2023 – art. 9; ultimul service: 15.01.2026 și 12.03.2026; următorul service: 15.01.2027 și 12.03.2027',
         },
         {
           what: 'Verificarea stingătoarelor de către o firmă atestată (P50 carosabil – 1\u00a0buc.)',
@@ -1172,8 +1273,10 @@ describe('a fire-safety document generated again', () => {
       'branding',
       'client',
       'controlDecision',
+      'extinguisherRegister',
       'fireSafetyTechnician',
       'installationRegister',
+      'installationSheets',
       'issueDate',
       'knowledgeTests',
       'noAnnexes',
@@ -1181,10 +1284,16 @@ describe('a fire-safety document generated again', () => {
       'seasonsDecision',
     ]);
     expect(context).toMatchObject({ annexes: [], noAnnexes: true });
+    expect(context.extinguisherRegister).toEqual({ rows: [], blankRows: Array(9).fill({}) });
+    expect(context.installationSheets).toEqual([
+      { first: true, number: '', name: '', place: '', maintainer: '' },
+    ]);
     expect(buildFireSafetyContext(facts)).toMatchObject({
       ...context,
       annexes: expect.any(Array),
       noAnnexes: false,
+      extinguisherRegister: expect.any(Object),
+      installationSheets: expect.any(Array),
     });
   });
 
@@ -1198,9 +1307,11 @@ describe('a fire-safety document generated again', () => {
       'annexes',
       'branding',
       'controlDecision',
+      'extinguisherRegister',
       'fire',
       'fireThemes',
       'installationRegister',
+      'installationSheets',
       'issueDate',
       'knowledgeTests',
       'noAnnexes',
@@ -1219,9 +1330,11 @@ describe('a fire-safety document generated again', () => {
       'branding',
       'client',
       'controlDecision',
+      'extinguisherRegister',
       'fire',
       'fireThemes',
       'installationRegister',
+      'installationSheets',
       'issueDate',
       'knowledgeTests',
       'noAnnexes',

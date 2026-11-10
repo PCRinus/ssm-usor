@@ -170,3 +170,16 @@ The **schedules** (_graficele de întreținere și verificare_, art. 18 lit. q))
 1. The kind and the `none` norm on the workplace, in the migration, the contracts, the API, the dialog, the hint, the readiness and the three templates that print a workplace's area and norm.
 2. The substances table and state, their API and dialog, the readiness code, the template 5.3 in both states.
 3. The free rows, the schedules' merge data and the template 5.4, in ADR 020's second step.
+
+## Amendment 2026-11-10: the documents print the inventory
+
+The units' inventory number, location and last service were recorded for the registers and printed nowhere. From now on:
+
+- The extinguisher register 6.4 has a row per extinguisher of the active workplaces, by workplace, then by location and type: its type as the list of means names it, with the inventory number where there is one, and its location, preceded by the workplace's name where the client has more than one active workplace, or the workplace's name alone without a location. The producer, the checks a) to h) and the date of the remedy stay blank: the sheet is printed again for each monthly control and filled in by hand. Blank rows follow the units, at least three and never fewer than the nine rows the blank form had. The columns and the legend are annex 2 of OMAI 135/2023 and do not change.
+- The installation register 6.3 has a numbered sheet per installation, each with its own table of events: the installation's name, its workplace under the main characteristics and its maintainer under who checks, maintains and repairs it. The other rows stay blank. A client without installations keeps one blank sheet.
+- The list of means 5.1 and section VI of the posted instructions in decision 6 add, under the counts by type, a table of where the means stand (location, means, count) for a workplace where some unit has a location; the units without one are counted under "—". A workplace where no unit has a location prints as before. Decision 9, the schedules, the site sheet and the annual report keep their counts by type.
+- The schedules 5.4 print the last service of an extinguisher group beside its next one, where it is stored.
+
+The year of manufacture stays unprinted: no column of these forms asks for it, and "Tipul și modelul" is not the place for it.
+
+The two registers print the inventory from merge names of their own, `extinguisherRegister` and `installationSheets`, outside `fire`. Since they used to print the client alone, their drafts were never marked "Date modificate"; from their next generation an edit of the units or the installations marks them, and nothing else does. They need none of the facts `fire` waits for, so they still generate for a client whose stage-two data is incomplete. The new keys under `fire.workplaces` and the last service in `fire.schedules` change `fire` once for every client, so every fire-safety draft that prints `fire` reads "Date modificate" once after this change.

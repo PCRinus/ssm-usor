@@ -148,7 +148,9 @@ export async function loadDocumentFacts(
       .maybeSingle(),
     db
       .from('fire_equipment')
-      .select('workplace_id, kind, agent, capacity, wheeled, next_service_on, maintainer')
+      .select(
+        'workplace_id, kind, agent, capacity, wheeled, label, location, manufactured_year, last_service_on, next_service_on, maintainer'
+      )
       .eq('client_id', clientId)
       .order('created_at')
       .order('id'),
@@ -315,6 +317,10 @@ export async function loadDocumentFacts(
         agent: unit.agent,
         capacity: unit.capacity,
         wheeled: unit.wheeled,
+        label: unit.label,
+        location: unit.location,
+        manufacturedYear: unit.manufactured_year,
+        lastServiceOn: unit.last_service_on,
         nextServiceOn: unit.next_service_on,
         maintainer: unit.maintainer,
       })),

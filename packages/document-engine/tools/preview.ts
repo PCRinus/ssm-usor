@@ -160,6 +160,8 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
     ],
     extinguisherCount: 3,
     otherEquipment: [],
+    meansByPlace: [],
+    hasPlaces: false,
     installations: [],
     hasInstallations: false,
     hasExteriorHydrants: false,
@@ -207,6 +209,19 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
             { kindLabel: 'Ladă cu nisip', count: 1 },
             { kindLabel: 'Pichet de incendiu', count: 1 },
           ],
+          meansByPlace: [
+            { place: 'Hala de depozitare', means: 'Stingător P6 – Pulbere, 6\u00a0kg', count: 4 },
+            { place: 'Hala de depozitare', means: 'Pichet de incendiu', count: 1 },
+            {
+              place: 'Rampa de descărcare',
+              means: 'Stingător P50 – Pulbere, 50\u00a0kg, carosabil',
+              count: 1,
+            },
+            { place: 'Rampa de descărcare', means: 'Ladă cu nisip', count: 1 },
+            { place: 'Birou', means: 'Stingător P6 – Pulbere, 6\u00a0kg', count: 2 },
+            { place: '—', means: 'Stingător SM9 – Spumă mecanică, 9\u00a0l', count: 2 },
+          ],
+          hasPlaces: true,
           installations: [
             { kindLabel: 'Hidranți interiori', description: 'Câte doi pe fiecare nivel' },
             { kindLabel: 'Hidranți exteriori', description: '' },
@@ -981,6 +996,60 @@ function siteSheetSample({
 // The annual report 7.2 (ADR 020) for 2026, built as the API builds it from the samples' set: the
 // long one with its three workplaces and decision 9, the short one under ten employees, whose
 // set holds no decision 9 and no site sheet.
+// The registers 6.4 and 6.3: two bare units and no installation for the short sample; for the
+// long one, units in named spaces of two workplaces and three installations.
+function inventoryRegisterSample(long: boolean) {
+  const blank = (count: number) => Array.from({ length: count }, () => ({}));
+  if (!long) {
+    return {
+      extinguisherRegister: {
+        rows: [
+          { type: 'P6 – Pulbere, 6\u00a0kg', place: '' },
+          { type: 'G5 – Dioxid de carbon (CO₂), 5\u00a0kg', place: '' },
+        ],
+        blankRows: blank(7),
+      },
+      installationSheets: [{ first: true, number: '', name: '', place: '', maintainer: '' }],
+    };
+  }
+  const depot = 'Depozit central';
+  const rows = [
+    ...['0101', '0102', '0103', '0104'].map((label) => ({
+      type: `P6 – Pulbere, 6\u00a0kg, nr. inventar ${label}`,
+      place: `${depot} – Hala de depozitare`,
+    })),
+    {
+      type: 'P50 – Pulbere, 50\u00a0kg, carosabil, nr. inventar 0105',
+      place: `${depot} – Rampa de descărcare`,
+    },
+    ...['0106', '0107'].map((label) => ({
+      type: `P6 – Pulbere, 6\u00a0kg, nr. inventar ${label}`,
+      place: `${depot} – Birou`,
+    })),
+    { type: 'SM9 – Spumă mecanică, 9\u00a0l', place: depot },
+    { type: 'SM9 – Spumă mecanică, 9\u00a0l', place: depot },
+    { type: 'P6 – Pulbere, 6\u00a0kg', place: 'Șantier Dumbrăvița' },
+    { type: 'P6 – Pulbere, 6\u00a0kg', place: 'Șantier Dumbrăvița' },
+  ];
+  return {
+    extinguisherRegister: { rows, blankRows: blank(3) },
+    installationSheets: [
+      [
+        'Hidranți interiori – Câte doi pe fiecare nivel',
+        'S.C. HIDRANȚI ȘI INSTALAȚII DE STINGERE DEMO S.R.L.',
+      ],
+      ['Hidranți exteriori', ''],
+      ['Instalație de detectare, semnalizare și avertizare la incendiu', 'S.C. ALARME DEMO S.R.L.'],
+    ].map(([name, maintainer], index) => ({
+      first: index === 0,
+      number: String(index + 1),
+      name: name!,
+      place: depot,
+      maintainer: maintainer!,
+    })),
+  };
+}
+
 function annualReportSample(people: ReturnType<typeof person>[], long: boolean) {
   const [first] = people;
   const decision = (number: number, subject: string) => ({
@@ -1418,6 +1487,8 @@ function sample(
       seasonsDecision: true,
       controlDecision: true,
       installationRegister: true,
+      extinguisherRegister: inventoryRegisterSample(people.length > 1).extinguisherRegister,
+      installationSheets: inventoryRegisterSample(people.length > 1).installationSheets,
       workplaceManagers: people,
       workplaceManagersText: described(people),
       workplaceManagersList: people.map(({ name, jobTitle }) => `${name}, ${jobTitle}`).join('; '),

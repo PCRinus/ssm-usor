@@ -83,7 +83,7 @@
       "file": "1.6_fire_decision_instructions.docx",
       "change": {
         "kind": "correction",
-        "note": "Corecturi de limbă și de consecvență: instrucțiunile se elaborează de „conducătorii locurilor de muncă”, articolul final cere verificarea oricărei modificări în locul unui termen de 30 de zile, anexa poartă „ANEXA / la Decizia nr. …”, interdicția focului deschis exceptează lucrările cu permis, „echipa de primă intervenție”, „hârtia uzată”, fișa individuală de instructaj, evacuarea fără repetiție și fără fraza despre copii, iar ultimul element al fiecărei enumerări se încheie cu punct."
+        "note": "Capitolul VI al instrucțiunilor afișate arată, sub tabelul stingătoarelor, unde sunt amplasate mijloacele de primă intervenție, atunci când amplasamentul lor este completat."
       }
     },
     {
@@ -215,7 +215,7 @@
       "file": "5.1_fire_means_list.docx",
       "change": {
         "kind": "correction",
-        "note": "Antetul poartă același nume ca titlul: „Lista cu situația mijloacelor de apărare împotriva incendiilor”."
+        "note": "Sub tabelul fiecărui loc de muncă, lista arată și unde sunt amplasate mijloacele de primă intervenție, atunci când amplasamentul lor este completat."
       }
     },
     {
@@ -303,7 +303,7 @@
       "file": "6.3_fire_installation_register.docx",
       "change": {
         "kind": "correction",
-        "note": "Instalațiile sunt numite peste tot „de detectare, semnalizare, alarmare, alertare, limitare și stingere a incendiilor”, ordinea din OMAI 163/2007."
+        "note": "Registrul are câte o fișă numerotată pentru fiecare instalație, cu denumirea instalației, locul de muncă și firma care o verifică, fiecare cu tabelul ei de evenimente; fără instalații rămâne o fișă necompletată."
       }
     },
     {
@@ -314,8 +314,8 @@
       "title": "Registru de evidență a controlului stingătoarelor de incendiu",
       "file": "6.4_fire_extinguisher_register.docx",
       "change": {
-        "kind": "layout",
-        "note": "Legenda a)–h) are mai mult spațiu față de tabel."
+        "kind": "correction",
+        "note": "Registrul are câte un rând pentru fiecare stingător, cu tipul, numărul de inventar și locul de amplasare, urmat de rânduri libere."
       }
     },
     {
