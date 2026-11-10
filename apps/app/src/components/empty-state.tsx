@@ -5,15 +5,21 @@ import type { ComponentProps, ReactNode } from 'react';
 export function EmptyState({
   icon: Icon,
   title,
+  titleAs: Title = 'h3',
   actions,
   className,
   children,
   ...props
-}: ComponentProps<'div'> & { icon: LucideIcon; title?: ReactNode; actions?: ReactNode }) {
+}: ComponentProps<'div'> & {
+  icon: LucideIcon;
+  title?: ReactNode;
+  titleAs?: 'h1' | 'h2' | 'h3';
+  actions?: ReactNode;
+}) {
   return (
     <div className={cn('grid justify-items-center py-2 text-center', className)} {...props}>
       <Icon className="mb-4 size-8 text-muted-foreground" aria-hidden="true" />
-      {title && <h3 className="text-base font-medium">{title}</h3>}
+      {title && <Title className="text-base font-medium">{title}</Title>}
       <p className={cn('max-w-md text-sm leading-relaxed text-muted-foreground', title && 'mt-2')}>
         {children}
       </p>

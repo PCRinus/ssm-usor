@@ -117,6 +117,10 @@ msgstr "<0>{clientName}</0> is your employer."
 msgid "<0>{position}</0>, marca {employeeNumber}"
 msgstr "<0>{position}</0>, employee no. {employeeNumber}"
 
+#: src/features/reload/new-version-toast.tsx
+msgid "A apărut o versiune nouă a portalului."
+msgstr "A new version of the portal is available."
+
 #: src/lib/labels.ts
 msgid "Absență de peste 30 de zile lucrătoare"
 msgstr "Absence of more than 30 working days"
@@ -144,6 +148,10 @@ msgstr "Addenda to sign and unsigned trainings"
 #: src/features/signing/client-signatures-page.tsx
 msgid "Actele adiționale care așteaptă semnătura angajatorului și instruirile pe care lucrătorii nu le-au semnat încă."
 msgstr "The addenda waiting for the employer's signature and the trainings employees have not signed yet."
+
+#: src/features/reload/reload-dialog.tsx
+msgid "Actualizarea nu s-a încheiat încă"
+msgstr "The update is not finished yet"
 
 #: src/features/signing/agreement-section.tsx
 msgid "Actul adițional la contractul de muncă prin care accepți să semnezi fișele de instruire în portal."
@@ -260,6 +268,18 @@ msgstr "Choose the client"
 #: src/features/signing/signing-page.tsx
 msgid "Alegi"
 msgstr "Choose"
+
+#: src/features/reload/reload-dialog.tsx
+msgid "Am actualizat portalul între timp. Reîncarcă pagina ca să continui testul."
+msgstr "We have updated the portal in the meantime. Reload the page to continue the test."
+
+#: src/features/reload/reload-dialog.tsx
+msgid "Am actualizat portalul între timp. Reîncarcă pagina ca să continui."
+msgstr "We have updated the portal in the meantime. Reload the page to continue."
+
+#: src/features/reload/reload-dialog.tsx
+msgid "Am actualizat portalul între timp. Reîncarcă pagina ca să semnezi."
+msgstr "We have updated the portal in the meantime. Reload the page to sign."
 
 #: src/features/auth/sign-in-page.tsx
 msgid "Am cerut un cod nou. Folosește-l pe cel mai recent."
@@ -589,6 +609,10 @@ msgstr "Open PDF"
 #: src/features/employees/employee-training-states.tsx
 msgid "din {due}"
 msgstr "since {due}"
+
+#: src/features/reload/reload-dialog.tsx
+msgid "Documentele semnate rămân semnate. După reîncărcare le poți semna pe celelalte."
+msgstr "The documents you signed stay signed. After reloading, you can sign the others."
 
 #: src/features/signing/signing-messages.ts
 msgid "Documentul nu a putut fi pregătit. Încearcă din nou peste câteva minute."
@@ -1002,6 +1026,10 @@ msgstr "No employees recorded yet."
 msgid "Nimic de semnat deocamdată. Când o instruire va avea nevoie de semnătura ta, apare aici."
 msgstr "Nothing to sign for now. When a training needs your signature, it shows up here."
 
+#: src/features/reload/reload-dialog.tsx
+msgid "Nimic din ce ai trimis deja nu se pierde."
+msgstr "Nothing you have already sent is lost."
+
 #: src/features/signing/signing-page.tsx
 msgid "Nimic nu mai așteaptă semnătura ta."
 msgstr "Nothing waits for your signature any more."
@@ -1098,6 +1126,10 @@ msgstr "It no longer waits for your signature: it was signed, cancelled or chang
 msgid "Nu mai poți semna pentru această firmă. Spune-i specialistului."
 msgstr "You can no longer sign for this company. Tell the specialist."
 
+#: src/features/reload/reload-dialog.tsx
+msgid "Nu s-a semnat încă nimic. După reîncărcare poți semna."
+msgstr "Nothing has been signed yet. After reloading you can sign."
+
 #: src/features/signing/signing-page.tsx
 msgid "Nu s-a semnat nimic. Vezi mai jos de ce."
 msgstr "Nothing was signed. See why below."
@@ -1121,6 +1153,10 @@ msgstr "Page not found"
 #: src/routes/__root.tsx
 msgid "Pagina nu a putut fi încărcată"
 msgstr "The page could not be loaded"
+
+#: src/features/reload/reload-dialog.tsx
+msgid "Pagina trebuie reîncărcată"
+msgstr "This page needs to be reloaded"
 
 #: src/features/employees/employee-training-states.tsx
 msgid "până la {due}"
@@ -1161,6 +1197,10 @@ msgstr "The portal is not available"
 #: src/features/participation/participant-gate.tsx
 msgid "Portalul nu s-a putut încărca"
 msgstr "The portal could not load"
+
+#: src/features/reload/reload-dialog.tsx
+msgid "Portalul se actualizează chiar acum și durează de obicei un minut sau două. Poți reîncărca peste un minut."
+msgstr "The portal is being updated right now, which usually takes a minute or two. You can reload in a minute."
 
 #: src/features/participation/participant-gate.tsx
 msgid "Portalul se deschide cu adresa de email sau numărul de telefon la care ai primit invitația. Dacă nu ai primit una, cere-i specialistului în securitate și sănătate în muncă al angajatorului tău să te invite."
@@ -1223,6 +1263,14 @@ msgstr "Workplace"
 msgid "punctul de lucru"
 msgstr "workplace"
 
+#: src/features/reload/reload-dialog.tsx
+msgid "Răspunsul la întrebarea 1 este salvat. După reîncărcare vei bifa din nou răspunsul la întrebarea {current}."
+msgstr "Your answer to question 1 is saved. After reloading, tick your answer to question {current} again."
+
+#: src/features/reload/reload-dialog.tsx
+msgid "Răspunsurile la întrebările 1–{previous} sunt salvate. După reîncărcare vei bifa din nou răspunsul la întrebarea {current}."
+msgstr "Your answers to questions 1–{previous} are saved. After reloading, tick your answer to question {current} again."
+
 #: src/features/tests/test-result.tsx
 msgid "Recitește ce trebuie să știi"
 msgstr "Reread what you need to know"
@@ -1234,6 +1282,19 @@ msgstr "Read the questions below again and retake the test. The questions and th
 #: src/features/tests/test-result.tsx
 msgid "Reia testul"
 msgstr "Retake the test"
+
+#: src/features/reload/new-version-toast.tsx
+#: src/features/reload/reload-dialog.tsx
+msgid "Reîncarcă"
+msgstr "Reload"
+
+#: src/features/reload/reload-dialog.tsx
+msgid "Reîncarcă în {countdown}"
+msgstr "Reload in {countdown}"
+
+#: src/features/reload/new-version-toast.tsx
+msgid "Reîncarcă pagina pentru a o folosi."
+msgstr "Reload the page to use it."
 
 #: src/routes/__root.tsx
 msgid "Reîncarcă pagina și încearcă din nou."
@@ -1578,6 +1639,14 @@ msgstr "This test is not waiting for you now. When it is due, it appears on Home
 #: src/features/tests/test-page.tsx
 msgid "Testul nu te mai așteaptă."
 msgstr "This test is no longer waiting for you."
+
+#: src/features/reload/reload-dialog.tsx
+msgid "Testul rămâne deschis. După reîncărcare vei bifa din nou răspunsul la întrebarea {current}."
+msgstr "The test stays open. After reloading, tick your answer to question {current} again."
+
+#: src/features/reload/reload-dialog.tsx
+msgid "Toate răspunsurile sunt salvate. După reîncărcare trimite testul din nou."
+msgstr "All your answers are saved. After reloading, send the test again."
 
 #: src/features/signing/client-signatures-page.tsx
 msgid "Tot ce a fost trimis spre semnare este semnat."

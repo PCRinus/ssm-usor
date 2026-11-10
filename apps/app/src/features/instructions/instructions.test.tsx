@@ -1,9 +1,10 @@
 import type { QueryClient } from '@tanstack/react-query';
-import { act, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getGetInstructionModuleQueryKey } from '@/api/generated/api';
+import { resetReloadDialog } from '@/features/reload-prompts/reload-dialog-store';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
@@ -1441,5 +1442,85 @@ describe('labels', () => {
     expect(instructionStateLabel({ needsInstructions: true, instructionCount: 20 })).toBe(
       '20 de instrucțiuni'
     );
+  });
+});
+
+describe('the module form across a reload', () => {
+  afterEach(() => act(() => resetReloadDialog()));
+
+  it('keeps the typed articles when a save is refused for an outdated build, but not an added one', async () => {
+    mockApi({
+      moduleBody: ladderBody,
+      saveBody: () =>
+        Response.json({ error: 'client_outdated', message: 'Reload.' }, { status: 426 }),
+    });
+    mount(`/instructiuni/${ladders.id}`);
+    const user = userEvent.setup();
+    await screen.findByTestId('instruction-form');
+    await user.type(articleBoxes()[1]!, ' Nici cu unelte în mână.');
+    await choose(
+      user,
+      screen.getByRole('button', { name: 'Acțiuni pentru Art. 2' }),
+      'instruction-article-add'
+    );
+    await user.keyboard('Articol nou, încă nesalvat.');
+    await user.click(screen.getByTestId('editor-save'));
+    expect(await screen.findByTestId('reload-dialog')).toBeTruthy();
+    expect(screen.getByTestId('reload-dialog-unsaved')).toBeTruthy();
+    expect(screen.getByTestId('reload-dialog-kept')).toBeTruthy();
+
+    disposeRuntimes();
+    cleanup();
+    act(() => resetReloadDialog());
+    mount(`/instructiuni/${ladders.id}`);
+    await screen.findByTestId('instruction-form');
+    await waitFor(() =>
+      expect(articleBoxes()[1]!.value).toBe(
+        'Este interzisă urcarea cu sarcini grele. Nici cu unelte în mână.'
+      )
+    );
+    expect(articleBoxes()[0]!.value).toBe('Lucrătorul verifică scara:\na) tălpile;\nb) treptele.');
+    expect(articleBoxes()).toHaveLength(2);
+    expect(await screen.findByText('Am păstrat ce ai scris înainte de reîncărcare.')).toBeTruthy();
+    expect(screen.getByTestId('instruction-save-state').textContent).toBe('Modificări nesalvate.');
+  });
+
+  it('opens the empty section of a new instruction again to put its kept text back', async () => {
+    mockApi({
+      create: () =>
+        Response.json({ error: 'client_outdated', message: 'Reload.' }, { status: 426 }),
+    });
+    const runtime = mount('/instructiuni/ssm');
+    const user = userEvent.setup();
+    await screen.findAllByTestId('instruction-row');
+    await user.click(screen.getByTestId('instruction-write'));
+    const dialog = await screen.findByTestId('instruction-start-dialog');
+    await user.type(within(dialog).getByTestId('instruction-start-title'), 'Activități de birou 2');
+    await user.selectOptions(
+      within(dialog).getByTestId('instruction-start-group'),
+      'work_activity'
+    );
+    await user.click(within(dialog).getByTestId('instruction-start-submit'));
+    await screen.findByTestId('instruction-form');
+    await user.click(
+      within(sectionCard('Domeniul de aplicare')).getByTestId('instruction-section-write-first')
+    );
+    await user.keyboard('Instrucțiunea se aplică lucrului la birou.');
+    await user.click(screen.getByTestId('editor-save'));
+    expect(await screen.findByTestId('reload-dialog-unsaved')).toBeTruthy();
+
+    const address = runtime.router.state.location.href;
+    disposeRuntimes();
+    cleanup();
+    act(() => resetReloadDialog());
+    mount(address);
+    await screen.findByTestId('instruction-form');
+    const scope = sectionCard('Domeniul de aplicare');
+    await waitFor(() =>
+      expect(within(scope).getByTestId<HTMLTextAreaElement>('instruction-article-text').value).toBe(
+        'Instrucțiunea se aplică lucrului la birou.'
+      )
+    );
+    expect(sectionCard('Calificarea necesară').dataset.empty).toBe('true');
   });
 });

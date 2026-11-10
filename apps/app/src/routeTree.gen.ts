@@ -20,6 +20,7 @@ import { Route as InvitatieRouteImport } from './routes/invitatie';
 import { Route as ParolaUitataRouteImport } from './routes/parola-uitata';
 import { Route as ResetareParolaRouteImport } from './routes/resetare-parola';
 import { Route as VerificareCodRouteImport } from './routes/verificare-cod';
+import { Route as AuthenticatedSplatRouteImport } from './routes/_authenticated/$';
 import { Route as AuthenticatedActualizariRouteImport } from './routes/_authenticated/actualizari';
 import { Route as AuthenticatedClientiRouteImport } from './routes/_authenticated/clienti';
 import { Route as AuthenticatedClientiPotentialiRouteImport } from './routes/_authenticated/clienti-potentiali';
@@ -166,6 +167,11 @@ const VerificareCodRoute = VerificareCodRouteImport.update({
   id: '/verificare-cod',
   path: '/verificare-cod',
   getParentRoute: () => rootRouteImport,
+} as any);
+const AuthenticatedSplatRoute = AuthenticatedSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => AuthenticatedRoute,
 } as any);
 const AuthenticatedActualizariRoute =
   AuthenticatedActualizariRouteImport.update({
@@ -724,6 +730,7 @@ export interface FileRoutesByFullPath {
   '/parola-uitata': typeof ParolaUitataRoute;
   '/resetare-parola': typeof ResetareParolaRoute;
   '/verificare-cod': typeof VerificareCodRoute;
+  '/$': typeof AuthenticatedSplatRoute;
   '/actualizari': typeof AuthenticatedActualizariRouteWithChildren;
   '/clienti': typeof AuthenticatedClientiRouteWithChildren;
   '/clienti-potentiali': typeof AuthenticatedClientiPotentialiRouteWithChildren;
@@ -825,6 +832,7 @@ export interface FileRoutesByTo {
   '/parola-uitata': typeof ParolaUitataRoute;
   '/resetare-parola': typeof ResetareParolaRoute;
   '/verificare-cod': typeof VerificareCodRoute;
+  '/$': typeof AuthenticatedSplatRoute;
   '/dashboard': typeof AuthenticatedDashboardRoute;
   '/profil': typeof AuthenticatedProfilRoute;
   '/semnaturi': typeof AuthenticatedSemnaturiRoute;
@@ -908,6 +916,7 @@ export interface FileRoutesById {
   '/parola-uitata': typeof ParolaUitataRoute;
   '/resetare-parola': typeof ResetareParolaRoute;
   '/verificare-cod': typeof VerificareCodRoute;
+  '/_authenticated/$': typeof AuthenticatedSplatRoute;
   '/_authenticated/actualizari': typeof AuthenticatedActualizariRouteWithChildren;
   '/_authenticated/clienti': typeof AuthenticatedClientiRouteWithChildren;
   '/_authenticated/clienti-potentiali': typeof AuthenticatedClientiPotentialiRouteWithChildren;
@@ -1014,6 +1023,7 @@ export interface FileRouteTypes {
     | '/parola-uitata'
     | '/resetare-parola'
     | '/verificare-cod'
+    | '/$'
     | '/actualizari'
     | '/clienti'
     | '/clienti-potentiali'
@@ -1115,6 +1125,7 @@ export interface FileRouteTypes {
     | '/parola-uitata'
     | '/resetare-parola'
     | '/verificare-cod'
+    | '/$'
     | '/dashboard'
     | '/profil'
     | '/semnaturi'
@@ -1197,6 +1208,7 @@ export interface FileRouteTypes {
     | '/parola-uitata'
     | '/resetare-parola'
     | '/verificare-cod'
+    | '/_authenticated/$'
     | '/_authenticated/actualizari'
     | '/_authenticated/clienti'
     | '/_authenticated/clienti-potentiali'
@@ -1384,6 +1396,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/verificare-cod';
       preLoaderRoute: typeof VerificareCodRouteImport;
       parentRoute: typeof rootRouteImport;
+    };
+    '/_authenticated/$': {
+      id: '/_authenticated/$';
+      path: '/$';
+      fullPath: '/$';
+      preLoaderRoute: typeof AuthenticatedSplatRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
     };
     '/_authenticated/actualizari': {
       id: '/_authenticated/actualizari';
@@ -2514,6 +2533,7 @@ const AuthenticatedTesteRouteWithChildren =
   AuthenticatedTesteRoute._addFileChildren(AuthenticatedTesteRouteChildren);
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedSplatRoute: typeof AuthenticatedSplatRoute;
   AuthenticatedActualizariRoute: typeof AuthenticatedActualizariRouteWithChildren;
   AuthenticatedClientiRoute: typeof AuthenticatedClientiRouteWithChildren;
   AuthenticatedClientiPotentialiRoute: typeof AuthenticatedClientiPotentialiRouteWithChildren;
@@ -2530,6 +2550,7 @@ interface AuthenticatedRouteChildren {
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedSplatRoute: AuthenticatedSplatRoute,
   AuthenticatedActualizariRoute: AuthenticatedActualizariRouteWithChildren,
   AuthenticatedClientiRoute: AuthenticatedClientiRouteWithChildren,
   AuthenticatedClientiPotentialiRoute:

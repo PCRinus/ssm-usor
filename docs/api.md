@@ -2727,6 +2727,22 @@ with an optional `reason` where one status covers cases the client words differe
 | `422`  | `unprocessable`       | A well-formed request the data refuses, such as a signer who cannot sign the slot.                                                                         |
 | `503`  | `service_unavailable` | Missing/invalid Supabase configuration, timeout, rate limit, or authentication service failure.                                                            |
 | `500`  | `internal_error`      | Unexpected API failure.                                                                                                                                    |
+| `426`  | `client_outdated`     | The `X-Client-Contract` header names another fingerprint than this build's for that client, or an unknown client.                                          |
+
+### The client contract
+
+The app and the portal send `X-Client-Contract: app:<fingerprint>` or `portal:<fingerprint>` on
+every request ([ADR 040](architecture/adr-040-client-contract-and-reload-prompts.md)). A
+middleware in `app.ts`, after CORS and before authentication and every handler, compares it with
+`clientContractFingerprints` of `@ssm-usor/contracts`, which `pnpm generate:api` writes from
+the generated clients, and answers `426` `client_outdated` when it differs or names another
+client, so a refused write changed nothing. For now a request without the header passes; the
+release after refuses it (`missingContractPasses` in `src/lib/client-contract.ts`). An OPTIONS
+preflight is never checked, nor the routes no client of ours calls, listed in
+`contractExemptPaths` beside the check: `/health`, `/billing/stripe-webhook`, the
+`/hooks/supabase/…` hooks, `/waitlist` and `/waitlist/confirm`, `/files/download` (opened by the
+browser as a link), `/openapi.json` and `/docs`. A new route is checked unless it is added there.
+The `Admin` entrypoint (ADR 038) is not checked.
 
 Upstream error details are not returned to callers; database failures are logged by context
 and code only, and a broken unique, foreign key, check or not-null constraint also by its name,
@@ -2744,7 +2760,7 @@ values under a request's timing.
 origins of both, ports 5173 and 5174, instead. `PORTAL_ORIGIN` is the portal's address that
 participant invitations link to, `https://portal.ssmusor.ro` in `wrangler.jsonc` and
 `http://localhost:5174` locally. OPTIONS preflight
-does not require authentication and allows GET, POST, PATCH, and DELETE requests with Authorization/Content-Type headers.
+does not require authentication and allows GET, POST, PATCH, and DELETE requests with Authorization, Content-Type and X-Client-Contract headers.
 Cookie credentials are not enabled. CORS controls browser access to responses; bearer
 authentication still applies independently, including to non-browser clients.
 

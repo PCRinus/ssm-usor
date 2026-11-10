@@ -3,12 +3,17 @@ import {
   createApiHttp,
   type ErrorType as ApiErrorType,
 } from '@ssm-usor/api-http';
+import { clientContract } from '@ssm-usor/contracts';
 
 import { captureEvent } from '@/app/observability/posthog';
+import { openReloadDialog } from '@/features/reload-prompts/reload-dialog-store';
 
-export { ApiHttpError, type ApiRequestOptions } from '@ssm-usor/api-http';
+export { ApiHttpError, type ApiRequestOptions, isClientOutdatedError } from '@ssm-usor/api-http';
 
 const http = createApiHttp({
+  clientContract: clientContract('app'),
+  onClientOutdated: ({ method }) =>
+    openReloadDialog('426', { unsavedChange: !['GET', 'HEAD'].includes(method.toUpperCase()) }),
   onFailure: (failure) => captureEvent('api_request_failed', failure),
 });
 

@@ -5,12 +5,25 @@
 @layer base {
   :root {
     --portal-bar-height: 4rem;
+    --portal-toast-bottom: calc(var(--portal-bar-height) + env(safe-area-inset-bottom) + 1rem);
     font-synthesis: none;
     text-rendering: optimizeLegibility;
+  }
+
+  @media (width >= 40rem) {
+    :root {
+      --portal-toast-bottom: 1.5rem;
+    }
   }
 
   body {
     min-width: 320px;
     min-height: 100svh;
   }
+}
+
+/* The shared dialog draws its scrim inside DialogContent with no way to restyle it, and the
+   reload dialog takes the lighter forest one. Unlayered, so it wins over that utility. */
+[data-slot='dialog-overlay']:has(+ [data-reload-dialog]) {
+  background-color: rgb(15 36 31 / 0.34);
 }

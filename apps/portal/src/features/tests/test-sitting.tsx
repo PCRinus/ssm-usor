@@ -12,7 +12,9 @@ import {
   finishPortalTestAttempt,
   type TestAttemptOutcome,
 } from '@/api/generated/api';
+import { isClientOutdatedError } from '@/api/http';
 import { Notice } from '@/components/notice';
+import { useReloadContext } from '@/features/reload/reload-store';
 import { useApiRequest } from '@/lib/request';
 
 import type { Attempt } from './attempt';
@@ -66,6 +68,7 @@ export function TestSitting({
   const chosen = answers[index] ?? [];
   const last = index === total - 1;
   const position = index + 1;
+  const setReloadContext = useReloadContext({ kind: 'test', question: position });
 
   const toggle = (option: number) => {
     if (busy) return;
@@ -80,6 +83,7 @@ export function TestSitting({
     if (busy || chosen.length === 0) return;
     setBusy(true);
     setFailure(null);
+    setReloadContext({ kind: 'test', question: position });
     let finishing = false;
     try {
       if (!sameChoice(chosen, question.chosen)) {
@@ -94,12 +98,13 @@ export function TestSitting({
       }
       if (last) {
         finishing = true;
+        setReloadContext({ kind: 'test', question: position, sending: true });
         onFinished(await finishPortalTestAttempt(participantId, saved.id, apiRequest));
       } else {
         setIndex(index + 1);
       }
     } catch (cause) {
-      setFailure(failureOf(cause, finishing));
+      if (!isClientOutdatedError(cause)) setFailure(failureOf(cause, finishing));
     } finally {
       setBusy(false);
     }

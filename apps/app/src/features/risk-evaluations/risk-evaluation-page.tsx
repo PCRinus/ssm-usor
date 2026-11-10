@@ -14,7 +14,6 @@ import {
   Link,
   useNavigate,
   useRouteContext,
-  useRouter,
 } from '@tanstack/react-router';
 import { Copy, LibraryBig, Trash2 } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
@@ -29,6 +28,7 @@ import {
   useRemoveRiskEvaluation,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { NotFound, RouteError } from '@/app/route-states';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
@@ -427,44 +427,28 @@ function RemoveEvaluationDialog({
 export function RiskEvaluationNotFound() {
   const { clientId } = clientRoute.useParams();
   return (
-    <div data-testid="risk-evaluation-not-found" className="mx-auto grid max-w-lg gap-5 py-14">
-      <h2 className="text-xl font-semibold tracking-tight">Fișa de evaluare nu a fost găsită</h2>
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        Nu există nicio fișă de evaluare cu acest identificator la acest client, sau a fost ștearsă.
-      </p>
-      <Button asChild className="w-fit">
-        <Link to="/clienti/$clientId/posturi" params={{ clientId }}>
-          Înapoi la posturi
-        </Link>
-      </Button>
-    </div>
+    <NotFound
+      testId="risk-evaluation-not-found"
+      title="Fișa de evaluare nu a fost găsită"
+      description="Nu există nicio fișă de evaluare cu acest identificator la acest client, sau a fost ștearsă."
+      action={
+        <Button size="lg" asChild>
+          <Link to="/clienti/$clientId/posturi" params={{ clientId }}>
+            Înapoi la posturi
+          </Link>
+        </Button>
+      }
+    />
   );
 }
 
 export function RiskEvaluationError({ error }: ErrorComponentProps) {
-  const router = useRouter();
-  const message =
-    error instanceof ApiHttpError && error.status === 401
-      ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-      : 'Nu am putut încărca fișa de evaluare. Încearcă din nou.';
   return (
-    <div
-      data-testid="risk-evaluation-error"
-      role="alert"
-      className="mx-auto grid max-w-lg gap-5 py-14"
-    >
-      <h2 className="text-xl font-semibold tracking-tight">
-        Fișa de evaluare nu a putut fi încărcată
-      </h2>
-      <p className="text-sm leading-relaxed text-muted-foreground">{message}</p>
-      <Button
-        data-testid="risk-evaluation-retry"
-        variant="outline"
-        className="w-fit"
-        onClick={() => void router.invalidate()}
-      >
-        Încearcă din nou
-      </Button>
-    </div>
+    <RouteError
+      error={error}
+      testId="risk-evaluation-error"
+      title="Fișa de evaluare nu a putut fi încărcată"
+      retryTestId="risk-evaluation-retry"
+    />
   );
 }

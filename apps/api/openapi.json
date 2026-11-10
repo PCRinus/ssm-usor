@@ -40,7 +40,8 @@
               "conflict",
               "unprocessable",
               "service_unavailable",
-              "internal_error"
+              "internal_error",
+              "client_outdated"
             ]
           },
           "message": {

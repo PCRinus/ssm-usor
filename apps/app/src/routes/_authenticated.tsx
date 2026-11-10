@@ -1,4 +1,4 @@
-import { createFileRoute, Navigate, redirect } from '@tanstack/react-router';
+import { createFileRoute, Navigate, notFound, redirect } from '@tanstack/react-router';
 
 import { AppShell } from '@/app/app-shell';
 import { useMe } from '@/features/account/use-me';
@@ -6,9 +6,13 @@ import { useAuth } from '@/features/auth/auth-context';
 import { requireSecondFactor } from '@/features/auth/second-factor';
 
 export const Route = createFileRoute('/_authenticated')({
-  beforeLoad: async ({ context: { auth }, location }) => {
+  beforeLoad: async ({ context: { auth }, location, matches }) => {
     await auth.ready;
-    if (!auth.getSnapshot().session) throw redirect({ to: '/autentificare', replace: true });
+    if (!auth.getSnapshot().session) {
+      // An unknown address is not found for everyone, not a sign-in prompt.
+      if (matches.at(-1)?.routeId === '/_authenticated/$') throw notFound();
+      throw redirect({ to: '/autentificare', replace: true });
+    }
     await requireSecondFactor(auth, location.href);
   },
   component: AuthenticatedLayout,

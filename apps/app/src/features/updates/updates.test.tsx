@@ -16,6 +16,7 @@ import {
   newCount,
   tagCalendar,
 } from './release-format';
+import { runsRelease } from './use-update-dialog-open';
 
 const feature = (title: string, icon: string | null = 'clipboard-check') => ({
   title,
@@ -335,6 +336,48 @@ describe('the update dialog', () => {
     );
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(screen.queryByTestId('nav-actualizari-badge')).toBeNull();
+  });
+});
+
+describe('the update dialog and the running build', () => {
+  it('orders tags by day, then by the same-day count as a number', () => {
+    expect(runsRelease('2026.11.06', '2026.11.06')).toBe(true);
+    expect(runsRelease('2026.11.06.2', '2026.11.06')).toBe(true);
+    expect(runsRelease('2026.11.06', '2026.11.06.2')).toBe(false);
+    expect(runsRelease('2026.11.06.10', '2026.11.06.2')).toBe(true);
+    expect(runsRelease('2026.11.06.2', '2026.11.06.10')).toBe(false);
+    expect(runsRelease('2026.10.30', '2026.11.06')).toBe(false);
+    expect(runsRelease('2027.01.02', '2026.12.31.3')).toBe(true);
+    expect(runsRelease(undefined, '2026.11.06')).toBe(true);
+  });
+
+  it('opens when the running build is the newest unread release', async () => {
+    vi.stubEnv('VITE_RELEASE_TAG', newest.tag);
+    mockApi([newest, reminders]);
+    mount();
+    expect(await screen.findByRole('dialog', { name: newest.headline })).toBeTruthy();
+  });
+
+  it('opens when the running build is newer than the newest unread release', async () => {
+    vi.stubEnv('VITE_RELEASE_TAG', '2026.11.06.2');
+    mockApi([newest, reminders]);
+    mount();
+    expect(await screen.findByRole('dialog', { name: newest.headline })).toBeTruthy();
+  });
+
+  it('stays shut in a tab on an older build, while the badge counts the release', async () => {
+    vi.stubEnv('VITE_RELEASE_TAG', reminders.tag);
+    mockApi([newest, reminders]);
+    mount();
+    expect((await screen.findByTestId('nav-actualizari-badge')).textContent).toBe('2 noi');
+    await expect(screen.findByRole('dialog')).rejects.toThrow();
+  });
+
+  it('opens as before on a build without a release tag', async () => {
+    vi.stubEnv('VITE_RELEASE_TAG', '');
+    mockApi([newest, reminders]);
+    mount();
+    expect(await screen.findByRole('dialog', { name: newest.headline })).toBeTruthy();
   });
 });
 

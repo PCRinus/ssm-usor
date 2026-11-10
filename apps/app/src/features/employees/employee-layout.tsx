@@ -1,17 +1,11 @@
 import { formatEmployeeName } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import {
-  type ErrorComponentProps,
-  getRouteApi,
-  Link,
-  Outlet,
-  useRouter,
-} from '@tanstack/react-router';
+import { type ErrorComponentProps, getRouteApi, Link, Outlet } from '@tanstack/react-router';
 import { Pencil, RotateCcw, UserRound, UserRoundMinus } from 'lucide-react';
 import { useState } from 'react';
 
-import { ApiHttpError } from '@/api/http';
+import { NotFound, RouteError } from '@/app/route-states';
 import { SectionNav, SectionNavLink } from '@/components/section-nav';
 import { HeaderFact, RecordHeader } from '@/features/clients/record-header';
 
@@ -112,40 +106,29 @@ export function EmployeeLayout() {
 export function EmployeeNotFound() {
   const { clientId } = employeeRoute.useParams();
   return (
-    <div data-testid="employee-not-found" className="mx-auto grid max-w-lg gap-5 py-14">
-      <h1 className="text-2xl font-semibold">Lucrătorul nu a fost găsit</h1>
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        Nu există niciun lucrător cu acest identificator la acest client.
-      </p>
-      <Button asChild className="w-fit">
-        <Link to="/clienti/$clientId/angajati" params={{ clientId }}>
-          Înapoi la lucrători
-        </Link>
-      </Button>
-    </div>
+    <NotFound
+      testId="employee-not-found"
+      title="Lucrătorul nu a fost găsit"
+      description="Nu există niciun lucrător cu acest identificator la acest client."
+      action={
+        <Button size="lg" asChild>
+          <Link to="/clienti/$clientId/angajati" params={{ clientId }}>
+            Înapoi la lucrători
+          </Link>
+        </Button>
+      }
+    />
   );
 }
 
 export function EmployeeError({ error }: ErrorComponentProps) {
-  const router = useRouter();
-  const message =
-    error instanceof ApiHttpError && error.status === 401
-      ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-      : error instanceof ApiHttpError && error.status === 403
-        ? 'Contul tău nu face parte dintr-o organizație. Contactează adminul.'
-        : 'Nu am putut încărca datele lucrătorului. Încearcă din nou.';
   return (
-    <div data-testid="employee-error" role="alert" className="mx-auto grid max-w-lg gap-5 py-14">
-      <h1 className="text-2xl font-semibold">Lucrătorul nu a putut fi încărcat</h1>
-      <p className="text-sm leading-relaxed text-muted-foreground">{message}</p>
-      <Button
-        data-testid="employee-retry"
-        variant="outline"
-        className="w-fit"
-        onClick={() => void router.invalidate()}
-      >
-        Încearcă din nou
-      </Button>
-    </div>
+    <RouteError
+      error={error}
+      testId="employee-error"
+      title="Lucrătorul nu a putut fi încărcat"
+      retryTestId="employee-retry"
+      explainForbidden
+    />
   );
 }

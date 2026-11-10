@@ -1,8 +1,9 @@
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { startWayBack } from '@/features/missing-data/way-back';
+import { resetReloadDialog } from '@/features/reload-prompts/reload-dialog-store';
 import { formatRoDate } from '@/lib/dates';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
@@ -1538,6 +1539,35 @@ describe('employee editing', () => {
     });
     expect(body).not.toHaveProperty('jobPositionId');
     expect(requests(employeesPath, 'POST')).toHaveLength(0);
+  });
+
+  it('keeps none of the typed personal data across the reload a refused save asks for', async () => {
+    mockApi({
+      detail: () => Response.json({ employee: stored }),
+      update: () =>
+        Response.json({ error: 'client_outdated', message: 'Reload.' }, { status: 426 }),
+    });
+    mountApp(authFixture(makeSession()).client, editPage);
+    const user = userEvent.setup();
+    await screen.findByTestId('edit-employee-page');
+    await user.type(screen.getByTestId('employee-last-name'), '-Ionescu');
+    await user.type(screen.getByTestId('employee-job-title'), ' de nivel 2');
+    await user.click(screen.getByTestId('employee-submit'));
+    expect(await screen.findByTestId('reload-dialog-unsaved')).toBeTruthy();
+    expect(screen.queryByTestId('reload-dialog-kept')).toBeNull();
+    expect(sessionStorage.getItem('ssm-usor.kept-text')).toBeNull();
+
+    disposeRuntimes();
+    cleanup();
+    act(() => resetReloadDialog());
+    mockApi({ detail: () => Response.json({ employee: stored }) });
+    mountApp(authFixture(makeSession()).client, editPage);
+    await screen.findByTestId('edit-employee-page');
+    await waitFor(() =>
+      expect(screen.getByTestId<HTMLInputElement>('employee-last-name').value).toBe(stored.lastName)
+    );
+    expect(screen.getByTestId<HTMLInputElement>('employee-job-title').value).toBe(stored.jobTitle);
+    expect(screen.queryByText('Am păstrat ce ai scris înainte de reîncărcare.')).toBeNull();
   });
 
   it('puts a CNP another employee has on the field, and an API issue where it belongs', async () => {

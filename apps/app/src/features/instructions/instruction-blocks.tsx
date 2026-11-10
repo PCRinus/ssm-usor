@@ -94,6 +94,7 @@ const fieldId = (id: string) => `instruction-block-${id}`;
 
 function ArticleText({
   id,
+  name,
   value,
   placeholder,
   marked,
@@ -102,6 +103,7 @@ function ArticleText({
   onPaste,
 }: {
   id: string;
+  name: string | undefined;
   value: string;
   placeholder: string;
   marked: boolean;
@@ -120,6 +122,8 @@ function ArticleText({
     <Textarea
       ref={ref}
       id={id}
+      name={name}
+      data-no-keep={name ? undefined : ''}
       data-testid="instruction-article-text"
       rows={2}
       className={cn(
@@ -211,11 +215,17 @@ export function InstructionBlocks({
   blocks,
   category,
   namedClients,
+  keepNames,
+  openedAtStart,
   onChange,
 }: {
   blocks: DraftBlock[];
   category: InstructionCategory;
   namedClients: Map<string, ClientName[]>;
+  // Block ids are counted per visit, so a reload gives a block another id. Only the blocks the
+  // form opened with have a name that leads to the same block after a reload (ADR 040).
+  keepNames?: ReadonlyMap<string, string>;
+  openedAtStart?: ReadonlySet<string>;
   onChange: (next: SetStateAction<DraftBlock[]>) => void;
 }) {
   const numbers = articleNumbers(blocks);
@@ -224,7 +234,7 @@ export function InstructionBlocks({
   const place = new Map(blocks.map((block, index) => [block.id, index]));
   const [offer, setOffer] = useState<PasteOffer | null>(null);
   // Headings whose sections show their boxes while still empty, once the member writes in them.
-  const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set());
+  const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set(openedAtStart));
   const [focusTarget, setFocusTarget] = useState<{ id: string } | null>(null);
   const [revealed, setRevealed] = useState<{ id: string } | null>(null);
   const [picking, setPicking] = useState(false);
@@ -404,6 +414,7 @@ export function InstructionBlocks({
         <div className="col-span-2 col-start-1 row-start-2 grid min-w-0 gap-1.5 sm:col-span-1 sm:col-start-2 sm:row-start-1">
           <ArticleText
             id={fieldId(article.id)}
+            name={keepNames?.get(article.id)}
             value={article.text}
             placeholder={hint}
             marked={named.length > 0}

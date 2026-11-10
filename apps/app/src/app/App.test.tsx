@@ -356,6 +356,33 @@ describe('dashboard authentication and routing', () => {
     mount(authFixture().client, '/missing-page');
     await screen.findByTestId('not-found-page');
     await waitFor(() => expect(document.title).toBe('Pagina nu a fost găsită — SSM Ușor'));
+    expect(screen.queryByTestId('nav-actualizari')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Înapoi la început' }).getAttribute('href')).toBe('/');
+  });
+
+  it('shows an unknown address inside the shell to a signed-in member', async () => {
+    mount(authFixture(makeSession()).client, '/missing-page');
+    const notFound = await screen.findByTestId('not-found-page');
+    expect(screen.getByTestId('nav-actualizari')).toBeTruthy();
+    expect(
+      within(notFound).getByRole('link', { name: 'Mergi la Dashboard' }).getAttribute('href')
+    ).toBe('/dashboard');
+  });
+
+  it('keeps the shell around a page whose data fails to load', async () => {
+    const moduleId = '7d1f3d3c-0f7b-4e8e-9d0b-2a3a4b5c6d7e';
+    fetchMock.mockImplementation(async (input) =>
+      String(input).includes(moduleId)
+        ? Response.json({ error: 'internal', message: 'boom' }, { status: 500 })
+        : Response.json({ user: { id: 'user-one', email: 'verified@example.test' } })
+    );
+    mount(authFixture(makeSession()).client, `/instructiuni/${moduleId}`);
+    const error = await screen.findByTestId('route-error-page');
+    expect(
+      within(error).getByRole('heading', { name: 'Pagina nu a putut fi încărcată' })
+    ).toBeTruthy();
+    expect(screen.getByTestId('nav-actualizari')).toBeTruthy();
+    expect(screen.getByTestId('sidebar-toggle')).toBeTruthy();
   });
 });
 

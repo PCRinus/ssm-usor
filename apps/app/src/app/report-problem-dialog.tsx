@@ -16,10 +16,12 @@ const mailto = `mailto:${supportEmail}?subject=${encodeURIComponent('Problemă S
 export function ReportProblemDialog({
   open,
   note,
+  chatTried = true,
   onClose,
 }: {
   open: boolean;
   note?: string;
+  chatTried?: boolean;
   onClose: () => void;
 }) {
   async function copyAddress() {
@@ -37,8 +39,9 @@ export function ReportProblemDialog({
         <DialogHeader>
           <DialogTitle>Raportează o problemă</DialogTitle>
           <DialogDescription>
-            {note && `${note} `}Chatul de suport nu s-a putut deschide în acest browser. Scrie-ne pe
-            e-mail și îți răspundem cât mai curând.
+            {note && `${note} `}
+            {chatTried && 'Chatul de suport nu s-a putut deschide în acest browser. '}
+            Scrie-ne pe e-mail și îți răspundem cât mai curând.
           </DialogDescription>
         </DialogHeader>
         <p

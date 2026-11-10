@@ -30,6 +30,19 @@ schema the remaining operations do not reach. So:
 Each output has its own mutator, `apps/app/src/api/http.ts` and `apps/portal/src/api/http.ts`,
 and both are covered by `check:generated`.
 
+## Contract fingerprints
+
+`generate:api` also writes `packages/contracts/src/client-contracts.gen.ts`: for each client, the
+first 16 hex characters of the SHA-256 of its generated, Prettier-formatted file with the comments
+taken out (`scripts/client-contract-fingerprint.mjs`), since the comments repeat the OpenAPI
+descriptions and a reworded description must not reload every open tab
+([ADR 040](architecture/adr-040-client-contract-and-reload-prompts.md)). `clientContract('app')`
+or `clientContract('portal')` from `@ssm-usor/contracts` gives the `<client>:<fingerprint>` value
+each mutator passes to `createApiHttp`, and the API compares it with its own build's
+([API](api.md#the-client-contract)). `check:generated` covers the module like the clients, so
+any change to a client's code changes its fingerprint without anyone bumping it. `generate:api`
+rebuilds `@ssm-usor/contracts` after writing the module, so its `dist` holds the new values.
+
 ## Generate and review changes
 
 From the repository root:
@@ -96,6 +109,9 @@ The request adapter:
 - Preserves network/cancellation errors. The app does not automatically retry 4xx responses.
 - `apiUpload` posts a file as the request body with `XMLHttpRequest`, which reports upload
   progress where `fetch` does not, under the same token, redirect and error rules.
+- Sends `X-Client-Contract` on every request, `apiUpload`'s included, when created with
+  `clientContract`. A `426` `client_outdated` calls `onClientOutdated` and is not passed to
+  `onFailure`; `isClientOutdatedError(error)` recognises the thrown `ApiHttpError`.
 
 A `401` shows a session error with manual retry and the existing sign-out action; the adapter
 does not silently refresh or loop on failed requests. The browser Supabase SDK handles normal

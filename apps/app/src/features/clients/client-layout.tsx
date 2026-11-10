@@ -7,7 +7,6 @@ import {
   Outlet,
   useMatches,
   useNavigate,
-  useRouter,
 } from '@tanstack/react-router';
 import {
   Archive,
@@ -29,7 +28,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
-import { ApiHttpError } from '@/api/http';
+import { NotFound, RouteError } from '@/app/route-states';
 import { Notice } from '@/components/notice';
 import { SectionNav, SectionNavLink } from '@/components/section-nav';
 import { useMe } from '@/features/account/use-me';
@@ -233,38 +232,27 @@ export function ClientLayout() {
 
 export function ClientNotFound() {
   return (
-    <div data-testid="client-not-found" className="mx-auto grid max-w-lg gap-5 py-14">
-      <h1 className="text-2xl font-semibold">Clientul nu a fost găsit</h1>
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        Nu există niciun client activ cu acest identificator în organizația ta.
-      </p>
-      <Button asChild className="w-fit">
-        <Link to="/clienti">Înapoi la clienți</Link>
-      </Button>
-    </div>
+    <NotFound
+      testId="client-not-found"
+      title="Clientul nu a fost găsit"
+      description="Nu există niciun client activ cu acest identificator în organizația ta."
+      action={
+        <Button size="lg" asChild>
+          <Link to="/clienti">Înapoi la clienți</Link>
+        </Button>
+      }
+    />
   );
 }
 
 export function ClientError({ error }: ErrorComponentProps) {
-  const router = useRouter();
-  const message =
-    error instanceof ApiHttpError && error.status === 401
-      ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-      : error instanceof ApiHttpError && error.status === 403
-        ? 'Contul tău nu face parte dintr-o organizație. Contactează adminul.'
-        : 'Nu am putut încărca datele clientului. Încearcă din nou.';
   return (
-    <div data-testid="client-error" role="alert" className="mx-auto grid max-w-lg gap-5 py-14">
-      <h1 className="text-2xl font-semibold">Clientul nu a putut fi încărcat</h1>
-      <p className="text-sm leading-relaxed text-muted-foreground">{message}</p>
-      <Button
-        data-testid="client-retry"
-        variant="outline"
-        className="w-fit"
-        onClick={() => void router.invalidate()}
-      >
-        Încearcă din nou
-      </Button>
-    </div>
+    <RouteError
+      error={error}
+      testId="client-error"
+      title="Clientul nu a putut fi încărcat"
+      retryTestId="client-retry"
+      explainForbidden
+    />
   );
 }
