@@ -69,6 +69,7 @@ async function activeWorkplaceOrder(db: DataClient, clientId: string) {
     .from('client_workplaces')
     .select('id')
     .eq('client_id', clientId)
+    .eq('office_has_activity', true)
     .is('archived_at', null)
     .order('is_registered_office', { ascending: false })
     .order('name')
@@ -309,7 +310,7 @@ export const createFireEquipment: RouteHandler<typeof createFireEquipmentRoute, 
   const body = c.req.valid('json');
   const db = createDataClient(c);
   await findClient(db, clientId);
-  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
+  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const { data, error } = await db
     .from('fire_equipment')
     .insert({
@@ -331,7 +332,7 @@ export const updateFireEquipment: RouteHandler<typeof updateFireEquipmentRoute, 
   const body = c.req.valid('json');
   const db = createDataClient(c);
   await findClient(db, clientId);
-  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
+  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const { data, error } = await db
     .from('fire_equipment')
     .update(equipmentFields(body))
@@ -435,7 +436,7 @@ export const createFireInstallation: RouteHandler<
   const body = c.req.valid('json');
   const db = createDataClient(c);
   await findClient(db, clientId);
-  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
+  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const { data, error } = await db
     .from('fire_installations')
     .insert({
@@ -458,7 +459,7 @@ export const updateFireInstallation: RouteHandler<
   const body = c.req.valid('json');
   const db = createDataClient(c);
   await findClient(db, clientId);
-  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
+  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const { data, error } = await db
     .from('fire_installations')
     .update(installationFields(body))
@@ -558,7 +559,7 @@ export const createFireMaintenanceItem: RouteHandler<
   const body = c.req.valid('json');
   const db = createDataClient(c);
   await findClient(db, clientId);
-  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
+  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const last = await db
     .from('fire_maintenance_items')
     .select('sort_order')
@@ -591,7 +592,7 @@ export const updateFireMaintenanceItem: RouteHandler<
   const body = c.req.valid('json');
   const db = createDataClient(c);
   await findClient(db, clientId);
-  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
+  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const { data, error } = await db
     .from('fire_maintenance_items')
     .update(maintenanceItemFields(body))
@@ -683,6 +684,7 @@ export const listFireBuildings: RouteHandler<typeof listFireBuildingsRoute, ApiE
     .select('id')
     .eq('client_id', clientId)
     .eq('kind', 'fixed_space')
+    .eq('office_has_activity', true)
     .is('archived_at', null)
     .order('is_registered_office', { ascending: false })
     .order('name')
@@ -710,7 +712,7 @@ export const updateFireBuilding: RouteHandler<typeof updateFireBuildingRoute, Ap
   await findClient(db, clientId);
   const workplace = await db
     .from('client_workplaces')
-    .select('kind')
+    .select('kind, office_has_activity')
     .eq('id', workplaceId)
     .eq('client_id', clientId)
     .is('archived_at', null)
@@ -721,6 +723,9 @@ export const updateFireBuilding: RouteHandler<typeof updateFireBuildingRoute, Ap
   }
   if (workplace.data.kind !== 'fixed_space') {
     throw new ApiError('conflict', 'A temporary or mobile site has no building.');
+  }
+  if (!workplace.data.office_has_activity) {
+    throw new ApiError('conflict', 'No activity takes place at this registered office.');
   }
   const update = () =>
     db

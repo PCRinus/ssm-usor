@@ -432,9 +432,10 @@ The facts the individual training sheets print
 ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)) ride on the same
 bodies, all optional: `workplaceId`, `qualification` and `education` (up to 160 characters),
 `authorizations` (up to 500), `commuteRoute` (up to 1000) and `commuteMinutes` (an integer from 1
-to 600). A `workplaceId` that is archived or belongs to another client answers `400` with an issue
-on `workplaceId`, as for a job position. `POST` without one gives the employee the client's only
-active workplace when it has exactly one, and none otherwise; `PUT` without the key keeps the
+to 600). A `workplaceId` that is archived, belongs to another client or is a registered office
+where no activity takes place (ADR 041) answers `400` with an issue on `workplaceId`, as for a
+job position. `POST` without one gives the employee the client's only active workplace where
+activity takes place when it has exactly one, and none otherwise; `PUT` without the key keeps the
 stored workplace, and `workplaceId: null` clears it. The detail returns the five facts and both
 the list and the detail carry `workplace: { id, name } | null`, the name read even once the
 workplace is archived.
@@ -1826,6 +1827,14 @@ optional: `activity`, `floorAreaM2`, `extinguisherNorm`, `assemblyPoint`,
 when left out, or `mobile_site`, and `extinguisherNorm` may be `none` beside the five rows of
 annex 6. A mobile site keeps an area and a norm it is sent, which the fire-safety set neither
 asks for nor prints.
+`officeHasActivity` (ADR 041), true when left out, says whether any activity takes place at a
+registered office: false on any other workplace is `400` with the issue on `officeHasActivity`.
+False is `409` with the reason `office_needs_workplace` while the client has no other active
+workplace, and on a `PUT` `409` with `office_has_employees` while current employees are assigned
+to the office, with their number in `employeeCount`; archiving the last point of work beside such
+an office is `409` with `office_needs_workplace` too. The fire-safety facts it is sent are kept,
+as a mobile site keeps an area; the fire-safety set neither asks for nor prints them, and the
+fire-safety lists leave out what is stored on it.
 
 The `fire-safety` module holds the rest of the fire-safety set's client data (ADR 018).
 `GET …/fire-safety` answers with every field null, `wasteKinds` empty and `exists` false until
@@ -1839,8 +1848,9 @@ in order, at most twelve distinct kinds of waste of up to 240 characters each, a
 only when `smokingPolicy` is `designated_places`; with the other policy or none the `PUT` stores
 it as null rather than refusing it, so a switch to `forbidden_everywhere` saves the card in one
 request and clears the place (ADR 019). Equipment and installations are one row per
-unit, each on a workplace in `workplaceId`, which must be an active workplace of the client
-(`400` with the issue on `workplaceId`); `PUT` may move one to another. An extinguisher needs
+unit, each on a workplace in `workplaceId`, which must be an active workplace of the client and
+not a registered office where no activity takes place (`400` with the issue on `workplaceId`);
+`PUT` may move one to another. The lists leave out what such an office keeps. An extinguisher needs
 `agent` and `capacity` and is the only kind that may be `wheeled`, and an installation of the
 kind `other` needs a `description`, all `400` before the database is asked. `DELETE` removes the
 row. The dangerous substances (ADR 018, amended 2026-10-11) belong to no workplace: a name,
@@ -1857,8 +1867,8 @@ required texts: `subject` (2 to 160), `intervalLabel` (2 to 60, printed as typed
 (2 to 160). They are optional: no readiness code asks for them.
 The building of a fixed-space workplace (`fire-buildings`, ADR 020) is keyed by the workplace in
 the path: `PUT` replaces every fact, a fact left out or null is cleared, and creates the row the
-first time; a workplace that is not an active one of the client is `404`, a mobile site `409`
-with no reason. Every fact is optional (`yearBuilt` 1800 to the current year, `builtAreaM2` above
+first time; a workplace that is not an active one of the client is `404`, a mobile site or a
+registered office with no activity `409` with no reason. Every fact is optional (`yearBuilt` 1800 to the current year, `builtAreaM2` above
 0, `levels`, `classification` of `civil`, `production`, `storage`, `mixed`, `structure`,
 `heatingFuel`, `gasUse`, `electricalMaintainer`, `electricalLastCheckOn`, `waterReserveM3` 0 or
 more, `notes`), and no readiness code asks for any. The list leaves out a building kept from
@@ -1928,7 +1938,8 @@ instruction modules, ADR 012's amendment of 2026-10-11; the occupational safety 
 `fire.workplaces` (an active workplace at least, each with its activity,
 assembly point and the three texts of the posted sheet, and a fixed space with its area and
 its norm, which may be `none`), `fire.equipment` (an
-extinguisher in every active workplace) and `fire.substances` (the substances state `none`, or
+extinguisher in every active workplace), neither of them asking anything of a registered office
+where no activity takes place (ADR 041), and `fire.substances` (the substances state `none`, or
 `listed` with an entry and none without its classification or quantity; ADR 018, amended, and
 ADR 041). Any of them refuses the whole set. Its readiness lists nothing else; its
 `undecidedJobPositions` names the positions behind `fire.instructions`, each with

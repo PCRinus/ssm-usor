@@ -214,7 +214,7 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
           custom('workplaces') ??
           (url.searchParams.has('order')
             ? Response.json([{ id: officeId }, { id: shopId }])
-            : Response.json([{ id: shopId }]))
+            : Response.json([{ id: shopId, office_has_activity: true }]))
         );
       case '/rest/v1/client_fire_safety':
         return custom('fireSafety') ?? Response.json([fireSafetyRow]);
@@ -555,6 +555,7 @@ describe('/clients/{clientId}/fire-equipment', () => {
     );
     expect(workplaces!.get('client_id')).toBe(`eq.${clientId}`);
     expect(workplaces!.get('archived_at')).toBe('is.null');
+    expect(workplaces!.get('office_has_activity')).toBe('eq.true');
     expect(workplaces!.get('order')).toBe('is_registered_office.desc,name.asc,id.asc');
   });
 
@@ -596,6 +597,25 @@ describe('/clients/{clientId}/fire-equipment', () => {
     expect(find!.get('id')).toBe(`eq.${shopId}`);
     expect(find!.get('client_id')).toBe(`eq.${clientId}`);
     expect(find!.get('archived_at')).toBe('is.null');
+  });
+
+  it('refuses a registered office where no activity takes place (ADR 041)', async () => {
+    mockUpstream({
+      workplaces: () => Response.json([{ id: officeId, office_has_activity: false }]),
+    });
+    for (const [method, url] of [
+      ['POST', path],
+      ['PUT', `${path}/${shopPowder.id}`],
+    ] as const) {
+      const response = await request(url, method, { ...extinguisher, workplaceId: officeId });
+      expect(response.status).toBe(400);
+      expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]).toEqual({
+        path: 'workplaceId',
+        message: 'No activity takes place at this registered office.',
+      });
+    }
+    expect(calls('fire_equipment', 'POST')).toHaveLength(0);
+    expect(calls('fire_equipment', 'PATCH')).toHaveLength(0);
   });
 
   it('refuses a workplace that is not an active one of this client', async () => {
@@ -1118,7 +1138,8 @@ describe('/clients/{clientId}/fire-buildings', () => {
     electricalLastCheckOn: '2026-03-12',
     waterReserveM3: 0,
   };
-  const fixedSpace: Handler = () => Response.json([{ kind: 'fixed_space' }]);
+  const fixedSpace: Handler = () =>
+    Response.json([{ kind: 'fixed_space', office_has_activity: true }]);
 
   it('lists the buildings of the active fixed spaces in the order of the workplaces', async () => {
     const office = building(officeId, { classification: 'mixed' });
@@ -1133,6 +1154,7 @@ describe('/clients/{clientId}/fire-buildings', () => {
       ([input]) => new URL(String(input)).searchParams
     );
     expect(workplaces!.get('kind')).toBe('eq.fixed_space');
+    expect(workplaces!.get('office_has_activity')).toBe('eq.true');
     expect(workplaces!.get('archived_at')).toBe('is.null');
   });
 
@@ -1187,13 +1209,19 @@ describe('/clients/{clientId}/fire-buildings', () => {
     });
   });
 
-  it('refuses a year to come, a workplace that is not an active one of this client, and a mobile site', async () => {
+  it('refuses a year to come, a workplace that is not an active one of this client, a mobile site and an office with no activity', async () => {
     mockUpstream({ workplaces: fixedSpace });
     const next = new Date().getFullYear() + 1;
     expect((await request(shopPath, 'PUT', { yearBuilt: next })).status).toBe(400);
     mockUpstream({ workplaces: () => Response.json([]) });
     expect((await request(shopPath, 'PUT', body)).status).toBe(404);
-    mockUpstream({ workplaces: () => Response.json([{ kind: 'mobile_site' }]) });
+    mockUpstream({
+      workplaces: () => Response.json([{ kind: 'mobile_site', office_has_activity: true }]),
+    });
+    expect((await request(shopPath, 'PUT', body)).status).toBe(409);
+    mockUpstream({
+      workplaces: () => Response.json([{ kind: 'fixed_space', office_has_activity: false }]),
+    });
     expect((await request(shopPath, 'PUT', body)).status).toBe(409);
     expect(calls('fire_buildings', 'PATCH')).toHaveLength(0);
     expect(calls('fire_buildings', 'POST')).toHaveLength(0);

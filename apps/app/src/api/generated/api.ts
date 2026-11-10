@@ -121,6 +121,8 @@ export interface ApiErrorResponse {
   retryAfterSeconds?: number;
   credits?: ApiErrorResponseCredits;
   resumesAt?: string;
+  /** @minimum 1 */
+  employeeCount?: number;
 }
 
 export type MeResponseUser = {
@@ -5724,6 +5726,7 @@ export type WorkplaceListResponseItemsItem = {
   clientId: string;
   name: string;
   isRegisteredOffice: boolean;
+  officeHasActivity: boolean;
   /** @nullable */
   countyCode: WorkplaceListResponseItemsItemCountyCode;
   /** @nullable */
@@ -5836,6 +5839,7 @@ export type WorkplaceResponseWorkplace = {
   clientId: string;
   name: string;
   isRegisteredOffice: boolean;
+  officeHasActivity: boolean;
   /** @nullable */
   countyCode: WorkplaceResponseWorkplaceCountyCode;
   /** @nullable */
@@ -5947,6 +5951,7 @@ export interface WorkplaceRequest {
    */
   name: string;
   isRegisteredOffice?: boolean;
+  officeHasActivity?: boolean;
   /** @nullable */
   countyCode?: WorkplaceRequestCountyCode;
   /**

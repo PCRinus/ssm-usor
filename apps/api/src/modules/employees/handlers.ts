@@ -204,6 +204,7 @@ async function onlyActiveWorkplace(db: DataClient, clientId: string) {
     .from('client_workplaces')
     .select('id')
     .eq('client_id', clientId)
+    .eq('office_has_activity', true)
     .is('archived_at', null)
     .limit(2);
   if (error) throw fromDatabaseError(error, 'find workplaces');
@@ -319,7 +320,7 @@ export const createEmployee: RouteHandler<typeof createEmployeeRoute, ApiEnv> = 
     throw new ApiError('conflict', 'This client is archived; employees cannot be added.');
   }
   if (body.jobPositionId) await requireJobPosition(db, clientId, body.jobPositionId);
-  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
+  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const workplaceId =
     body.workplaceId === undefined ? await onlyActiveWorkplace(db, clientId) : body.workplaceId;
   const { data, error } = await db
@@ -460,7 +461,7 @@ export const updateEmployee: RouteHandler<typeof updateEmployeeRoute, ApiEnv> = 
     ]);
   }
   if (body.jobPositionId) await requireJobPosition(db, clientId, body.jobPositionId);
-  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
+  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const { data, error } = await db
     .from('employees')
     .update({
