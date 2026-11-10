@@ -1,5 +1,6 @@
 import { createRouter, type RouterHistory } from '@tanstack/react-router';
 
+import { PageNotFound, RouteError } from '@/app/route-states';
 import type { VerifyResult } from '@/features/auth/auth-store';
 import type { RouterContext } from '@/routes/__root';
 import { routeTree } from '@/routeTree.gen';
@@ -13,6 +14,10 @@ export function createAppRouter(context: RouterContext, history?: RouterHistory)
     // Query owns data freshness, including generated Orval query options in loaders.
     defaultPreloadStaleTime: 0,
     scrollRestoration: true,
+    // Each route catches its own failure inside its parent's outlet, so a failing page keeps
+    // the shell around it (ADR 040).
+    defaultErrorComponent: RouteError,
+    defaultNotFoundComponent: PageNotFound,
   });
 }
 

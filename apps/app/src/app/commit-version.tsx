@@ -1,7 +1,7 @@
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 
-import { commitSha, releaseTag } from './build-version';
+import { appVersion, commitSha, releaseTag } from './build-version';
 
 export function CommitVersion({
   className,
@@ -11,7 +11,7 @@ export function CommitVersion({
   linked?: boolean;
 }) {
   const tag = releaseTag();
-  const version = tag ?? commitSha.slice(0, 7);
+  const version = appVersion();
   const props = {
     'data-testid': 'commit-version',
     className: cn('text-xs text-muted-foreground', className),
