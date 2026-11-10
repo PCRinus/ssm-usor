@@ -34,7 +34,6 @@ const byType = (a: Extinguisher, b: Extinguisher) =>
   Number(a.wheeled) - Number(b.wheeled) ||
   a.capacity - b.capacity;
 
-/** "P6 – Pulbere, 6 kg, carosabil", as the list of means names a type. */
 export function extinguisherText(unit: Pick<Extinguisher, 'agent' | 'capacity' | 'wheeled'>) {
   return `${extinguisherCode(unit.agent, unit.capacity)} – ${fireExtinguishingAgentLabels[unit.agent]}, ${unit.capacity}\u00a0${capacityUnits[unit.agent]}${unit.wheeled ? ', carosabil' : ''}`;
 }
@@ -43,8 +42,10 @@ const inventoryOrder = new Intl.Collator('ro', { numeric: true });
 
 const placeOf = (unit: Unit) => unit.location?.trim() || null;
 
+const placeKey = (place: string | null) => place?.toLocaleLowerCase('ro') ?? '';
+
 const byPlace = (a: string | null, b: string | null) =>
-  Number(a === null) - Number(b === null) || collator.compare(a ?? '', b ?? '');
+  Number(a === null) - Number(b === null) || collator.compare(placeKey(a), placeKey(b));
 
 /** A workplace's extinguishers in the order a control walks them: by location, then by type. */
 export function extinguishersByPlace(units: readonly Unit[]) {
@@ -67,7 +68,7 @@ export function meansByPlace(units: readonly Unit[]) {
   const places = new Map<string, { place: string | null; units: Unit[] }>();
   for (const unit of units) {
     const place = placeOf(unit);
-    const key = place?.toLocaleLowerCase('ro') ?? '';
+    const key = placeKey(place);
     const entry = places.get(key) ?? { place, units: [] };
     entry.units.push(unit);
     places.set(key, entry);

@@ -655,7 +655,6 @@ describe('fire-safety set', () => {
     );
   });
 
-  // The names of a row of the extinguisher register and of a sheet of the installation register.
   const inventoryItemNames = ['type', 'place', 'first', 'number', 'name', 'maintainer'];
 
   it.each(stageOne)(

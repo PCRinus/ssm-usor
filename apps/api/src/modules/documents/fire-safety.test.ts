@@ -506,6 +506,26 @@ describe('the fire-safety context', () => {
     expect(alone.blankRows).toHaveLength(3);
   });
 
+  it('keeps a place written in two cases together in the register, as the list of means counts it', () => {
+    const [workshop] = facts.workplaces;
+    const unit = { ...facts.fireSafety.equipment[0]!, label: null };
+    const { rows } = buildFireSafetyContext({
+      ...facts,
+      workplaces: [workshop!],
+      fireSafety: {
+        ...facts.fireSafety,
+        equipment: [
+          { ...unit, location: 'hala', agent: 'co2', capacity: 5 },
+          { ...unit, location: 'Hala', agent: 'powder', capacity: 6 },
+          { ...unit, location: 'Birou', agent: 'powder', capacity: 6 },
+          { ...unit, location: 'hala', agent: 'powder', capacity: 6 },
+        ],
+      },
+    }).extinguisherRegister;
+    expect(rows.map((row) => row.place)).toEqual(['Birou', 'Hala', 'hala', 'hala']);
+    expect(rows.map((row) => row.type.slice(0, 2))).toEqual(['P6', 'P6', 'P6', 'G5']);
+  });
+
   it('gives each installation a numbered sheet of the register, its workplace and its maintainer', () => {
     expect(buildFireSafetyContext(facts).installationSheets).toEqual([
       {
