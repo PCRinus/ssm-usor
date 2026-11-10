@@ -114,8 +114,15 @@ describe('the rows of the generation form', () => {
     ]);
   });
 
-  it('name the listed substances that lack a classification or a quantity', () => {
-    const rowWith = (incompleteFireSubstances: { id: string; name: string }[]) =>
+  it('name the listed substances and what each lacks', () => {
+    const both = ['classification', 'quantity'] as const;
+    const rowWith = (
+      incompleteFireSubstances: {
+        id: string;
+        name: string;
+        missing: readonly ('classification' | 'quantity')[];
+      }[]
+    ) =>
       documentMissingGroups({
         missing: ['fire.substances'],
         clientId,
@@ -126,16 +133,20 @@ describe('the rows of the generation form', () => {
         set: 'fire_safety',
       })[0]!.rows[0]!;
     expect(rowWith([]).detail).toMatch(/^Dacă clientul utilizează substanțe periculoase/);
-    expect(rowWith([{ id: 's1', name: 'Diluant' }]).detail).toBe(
+    expect(rowWith([{ id: 's1', name: 'Diluant', missing: both }]).detail).toBe(
       'Clasificarea și cantitatea substanței „Diluant”.'
     );
+    expect(rowWith([{ id: 's1', name: 'Diluant', missing: ['quantity'] }]).detail).toBe(
+      'Cantitatea substanței „Diluant”.'
+    );
     const many = rowWith([
-      { id: 's1', name: 'Diluant' },
-      { id: 's2', name: 'Propan' },
-      { id: 's3', name: 'Motorină' },
+      { id: 's1', name: 'Diluant', missing: both },
+      { id: 's2', name: 'Propan', missing: ['quantity'] },
+      { id: 's3', name: 'Motorină', missing: ['quantity'] },
+      { id: 's4', name: 'Vopsea', missing: ['classification'] },
     ]);
     expect(many.detail).toBe(
-      'Clasificarea și cantitatea substanțelor „Diluant”, „Propan” și „Motorină”.'
+      'Clasificarea și cantitatea substanței „Diluant”; clasificarea substanței „Vopsea”; cantitatea substanțelor „Propan” și „Motorină”.'
     );
     expect(hrefs([{ place: '', heading: '', rows: [many] }])).toEqual([
       documentTargets['fire.substances'],

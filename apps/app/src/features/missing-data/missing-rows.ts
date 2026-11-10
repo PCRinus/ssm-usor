@@ -168,7 +168,33 @@ type DocumentPlace = keyof typeof documentPlaces;
 
 type Clash = { representativeName: string; legalRepresentativeName: string } | null;
 
-type IncompleteFireSubstance = { id: string; name: string };
+type IncompleteFireSubstance = {
+  id: string;
+  name: string;
+  missing: readonly ('classification' | 'quantity')[];
+};
+
+const substanceGaps = [
+  { label: 'clasificarea și cantitatea', lacks: ['classification', 'quantity'] },
+  { label: 'clasificarea', lacks: ['classification'] },
+  { label: 'cantitatea', lacks: ['quantity'] },
+] as const;
+
+function incompleteSubstancesDetail(substances: readonly IncompleteFireSubstance[]) {
+  const phrases = substanceGaps.flatMap(({ label, lacks }) => {
+    const names = substances
+      .filter(
+        (substance) =>
+          substance.missing.length === lacks.length &&
+          lacks.every((field) => substance.missing.includes(field))
+      )
+      .map((substance) => `„${substance.name}”`);
+    if (names.length === 0) return [];
+    return [`${label} ${names.length === 1 ? 'substanței' : 'substanțelor'} ${joinNames(names)}`];
+  });
+  const text = phrases.join('; ');
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}.`;
+}
 
 type DocumentContext = {
   clientId: string;
@@ -391,10 +417,7 @@ export const documentMissingData: Record<
       if (incompleteFireSubstances.length === 0) {
         return 'Dacă clientul utilizează substanțe periculoase, cu cel puțin una în listă, sau că nu utilizează niciuna.';
       }
-      const names = joinNames(incompleteFireSubstances.map((substance) => `„${substance.name}”`));
-      return incompleteFireSubstances.length === 1
-        ? `Clasificarea și cantitatea substanței ${names}.`
-        : `Clasificarea și cantitatea substanțelor ${names}.`;
+      return incompleteSubstancesDetail(incompleteFireSubstances);
     },
     target: ({ clientId }) => to.fireSafetyMeans(clientId, 'fire-substances'),
   },
