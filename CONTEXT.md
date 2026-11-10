@@ -244,7 +244,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Contract fingerprint**: the hash of a client's generated API client (the app's or the portal's), written by `generate:api`. A request carrying another fingerprint than the API's for that client is **outdated** (`client_outdated`, 426). ADR 040. Avoid: API version, client version.
 
-**Reload prompt**: what tells an open tab to load the page again. The **new-version banner** (_versiune nouă_) appears when a newer build is deployed and can be postponed; the **reload dialog** appears when the client is outdated or a code file of its build is gone, and cannot be dismissed. Neither reloads by itself. ADR 040. Avoid: force update, update dialog (which is ADR 026's account of a release).
+**Reload prompt**: what tells an open tab to load the page again. The **new-version toast** (_versiune nouă_) appears when a newer build is deployed and can be closed until the next one; the **reload dialog** appears when the client is outdated or a code file of its build is gone, and cannot be dismissed. Neither reloads by itself. ADR 040. Avoid: banner, force update, update dialog (which is ADR 026's account of a release).
 
 ## Imports
 
