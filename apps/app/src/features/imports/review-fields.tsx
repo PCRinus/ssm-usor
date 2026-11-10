@@ -213,7 +213,7 @@ function pendingLine(states: FieldState[], context: FieldContext) {
     : `Mai ai ${pending.length} lucruri de făcut`;
 }
 
-function FieldCard({
+export function FieldCard({
   title,
   icon: Icon,
   description,

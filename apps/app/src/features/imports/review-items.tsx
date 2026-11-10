@@ -41,6 +41,7 @@ import { type ReactNode, useId, useState } from 'react';
 
 import { WorkplaceDialog, type WorkplaceDraft } from '@/features/clients/workplace-dialog';
 import { emptyWorkplaceForm, type WorkplaceFormValues } from '@/features/clients/workplace-schema';
+import { roCount } from '@/features/employees/employee-format';
 import {
   JobPositionDialog,
   type JobPositionDraft,
@@ -54,19 +55,27 @@ import { allocationLabels } from '@/features/protective-equipment/equipment-sche
 
 import { type Agreement, Includable, SwitchRow } from './include-switch';
 import { type ItemDialogField, ItemEditDialog } from './item-edit-dialog';
-import type { FieldContext } from './review-fields';
+import { DecisionRow } from './library/decision-row';
+import { FieldCard, type FieldContext } from './review-fields';
 import {
   allocationLabel,
   anchorOf,
   type Blocker,
+  chosenCountOption,
+  countName,
+  countWorkplaceName,
   durationBlockerNote,
   employeeRoleLabel,
+  type FireEquipmentCount,
+  fireEquipmentCountPath,
+  fireEquipmentCountsOf,
   flagNote,
   flagsAt,
   itemFieldLabel,
   itemInferenceNote,
   type ItemList,
   itemName,
+  itemsOf,
   itemSources,
   itemSpellingLabel,
   itemSpellings,
@@ -1071,6 +1080,97 @@ export function ResponsibleSection({ context }: { context: ItemsContext }) {
   );
 }
 
+const piecesLabel = (count: number) => (count === 1 ? 'o bucată' : roCount(count, '', 'bucăți'));
+
+function countRooms(context: ItemsContext, equipmentIds: string[]) {
+  return equipmentIds
+    .flatMap((id) => {
+      const item = itemsOf(context.proposal, 'fireEquipment').find((each) => each.id === id);
+      const room = text(item?.room);
+      return item && room ? [`${room} ${Number(item.count ?? 1)}`] : [];
+    })
+    .join(', ');
+}
+
+function FireEquipmentCountRow({
+  count,
+  context,
+}: {
+  count: FireEquipmentCount;
+  context: ItemsContext;
+}) {
+  const name = useId();
+  const path = fireEquipmentCountPath(count.id);
+  const chosen = chosenCountOption(count, context.changes);
+  const label = countName(count);
+  const where = countWorkplaceName(context.proposal, context.changes, count);
+  return (
+    <DecisionRow
+      tone={chosen === null ? 'todo' : 'done'}
+      top
+      wide
+      id={anchorOf(path)}
+      testId="review-count-choice"
+      label={<span id={`${name}-label`}>{label}</span>}
+    >
+      <KindLine icon={<Split aria-hidden="true" />} tone={chosen === null ? 'warning' : undefined}>
+        {where ? `La ${where}, documentele` : 'Documentele'} dau {count.options.length} numere
+        diferite. Alege-l pe cel de acum.
+      </KindLine>
+      <PickList labelledBy={`${name}-label`}>
+        {count.options.map((option, index) => {
+          const pieces = piecesLabel(option.total);
+          const rooms = countRooms(context, option.equipmentIds);
+          return (
+            <PickOption
+              key={index}
+              name={name}
+              checked={chosen === index}
+              onPick={() => context.review.setField(path, { option: index })}
+              heading={<SourceFileNames sources={option.sources} />}
+              testId="review-count-option"
+              action={
+                <SourceButton
+                  sources={option.sources}
+                  onOpen={() => context.openSource(`${label}: ${pieces}`, option.sources)}
+                />
+              }
+            >
+              {pieces}
+              {rooms && <span className="text-muted-foreground"> · {rooms}</span>}
+            </PickOption>
+          );
+        })}
+      </PickList>
+    </DecisionRow>
+  );
+}
+
+function FireEquipmentCounts({ context }: { context: ItemsContext }) {
+  const counts = fireEquipmentCountsOf(context.proposal);
+  if (counts.length === 0) return null;
+  const open = counts.filter((count) => chosenCountOption(count, context.changes) === null);
+  return (
+    <FieldCard
+      title="Câte mijloace de stingere sunt"
+      icon={Split}
+      description="Documentele numără altfel aceleași mijloace. Se preiau doar cele din documentul ales."
+      pending={
+        open.length === 0
+          ? null
+          : open.length === 1
+            ? 'Mai ai de ales numărul de bucăți'
+            : `Mai ai ${open.length} lucruri de făcut`
+      }
+      testId="review-counts"
+    >
+      {counts.map((count) => (
+        <FireEquipmentCountRow key={count.id} count={count} context={context} />
+      ))}
+    </FieldCard>
+  );
+}
+
 export function FireMeansSection({ context }: { context: ItemsContext }) {
   const { open, dialog } = useItemDialog(context);
   const workplaces = referenceOptions(context, 'workplaces');
@@ -1131,6 +1231,7 @@ export function FireMeansSection({ context }: { context: ItemsContext }) {
   ];
   return (
     <>
+      <FireEquipmentCounts context={context} />
       <ListCard
         title={(count) => (count === 1 ? 'Un mijloc de stingere' : `${count} mijloace de stingere`)}
         list="fireEquipment"
@@ -1150,6 +1251,11 @@ export function FireMeansSection({ context }: { context: ItemsContext }) {
               ]
                 .filter(Boolean)
                 .join(' · '),
+              state.values.count == null && (
+                <span data-testid="review-count-not-given">
+                  Documentul nu dă numărul, așa că preluăm o bucată. Schimbă-l dacă sunt mai multe.
+                </span>
+              ),
             ]}
             agreement="masculine"
             onEdit={() => open(state, equipmentFields)}

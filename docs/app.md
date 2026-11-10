@@ -1026,7 +1026,11 @@ their tab bars read.
   document details and its fire-safety data. A workplace or a position opens the app's own dialog
   in its draft mode (`draft` on `WorkplaceDialog` and `JobPositionDialog`, which hands the
   values back instead of saving a row); the other items open `ItemEditDialog`. Items and values
-  only another company's passages give are listed unticked. Every decision goes to `PUT
+  only another company's passages give are listed unticked. On "Apărarea împotriva incendiilor",
+  the means files count differently ("Câte mijloace de stingere sunt") come first, one row per
+  kind and workplace with each file's total, rooms and "Vezi în document"; until one is picked
+  their entries stay out of the list and of what confirming creates, then only the chosen
+  file's are listed. An entry the document gives without a number says it is taken as one. Every decision goes to `PUT
 /imports/{id}/changes` at once, one save after another on the version the previous answered;
   each answer's blockers replace the import's before it is read again, so a note the save settles
   goes at once. A `409` `import_changed` stops saving and offers to reload. The values a member wrote carry

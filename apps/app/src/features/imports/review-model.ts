@@ -3,6 +3,7 @@ import {
   type CountyCode,
   countyNames,
   type EquipmentAllocation,
+  extinguisherCode,
   type FireEquipmentKind,
   fireEquipmentKindLabels,
   type FireExtinguishingAgent,
@@ -90,6 +91,7 @@ const sectionOfRoot: Record<string, SectionId> = {
   trainingSchedule: 'training',
   fireSafety: 'fire-safety',
   fireEquipment: 'fire-safety',
+  fireEquipmentCounts: 'fire-safety',
   fireInstallations: 'fire-safety',
   workplaces: 'workplaces',
   jobPositions: 'job-positions',
@@ -696,6 +698,32 @@ export function nameSpellings(proposal: Proposal, state: ItemState): NameSpellin
   return spellings.some((spelling) => spelling.value === state.values.fullName) ? spellings : [];
 }
 
+export type FireEquipmentCount = NonNullable<Proposal['fireEquipmentCounts']>[number];
+
+export const fireEquipmentCountsOf = (proposal: Proposal): FireEquipmentCount[] =>
+  proposal.fireEquipmentCounts ?? [];
+
+export const fireEquipmentCountPath = (id: string) => `fireEquipmentCounts.${id}`;
+
+/** The option the member chose, as the API's payload reads it; null while the choice waits. */
+export function chosenCountOption(count: FireEquipmentCount, changes: Changes): number | null {
+  const option = changes.fields[fireEquipmentCountPath(count.id)]?.option;
+  return option !== undefined && count.options[option] ? option : null;
+}
+
+// The entries of the options not chosen, and of every option while the count waits, are never
+// written, so the review leaves them out of the list and of what confirming creates.
+function notCountedEquipment(proposal: Proposal, changes: Changes) {
+  const ids = new Set<string>();
+  for (const count of fireEquipmentCountsOf(proposal)) {
+    const chosen = chosenCountOption(count, changes);
+    count.options.forEach((option, index) => {
+      if (index !== chosen) for (const id of option.equipmentIds) ids.add(id);
+    });
+  }
+  return ids;
+}
+
 export function itemStates(proposal: Proposal, changes: Changes, list: ItemList): ItemState[] {
   const leftOutPositions = new Set(
     list === 'protectiveEquipment'
@@ -704,7 +732,10 @@ export function itemStates(proposal: Proposal, changes: Changes, list: ItemList)
           .map((state) => state.item.id)
       : []
   );
-  return itemsOf(proposal, list).map((item, index) => {
+  const notCounted =
+    list === 'fireEquipment' ? notCountedEquipment(proposal, changes) : new Set<string>();
+  return itemsOf(proposal, list).flatMap((item, index): ItemState | ItemState[] => {
+    if (notCounted.has(item.id)) return [];
     const change = changes.items[item.id];
     const written = change?.values ?? {};
     const reason = untickedReason(item, written, leftOutPositions);
@@ -752,6 +783,32 @@ export function itemName(list: ItemList, values: Record<string, unknown>): strin
     case 'protectiveEquipment':
       return String(values.item ?? '');
   }
+}
+
+export function countName(count: FireEquipmentCount) {
+  const kind = fireEquipmentKindLabels[count.kind as FireEquipmentKind] ?? String(count.kind);
+  const agent = count.agent as FireExtinguishingAgent | null;
+  const type =
+    agent && count.capacity !== null
+      ? extinguisherCode(agent, count.capacity)
+      : agent
+        ? fireExtinguishingAgentLabels[agent]
+        : null;
+  return [[kind, type].filter(Boolean).join(' '), count.wheeled ? 'carosabil' : null]
+    .filter(Boolean)
+    .join(', ');
+}
+
+export function countWorkplaceName(
+  proposal: Proposal,
+  changes: Changes,
+  count: FireEquipmentCount
+) {
+  const workplace = itemsOf(proposal, 'workplaces').find((item) => item.id === count.workplace.id);
+  const values = workplace
+    ? { ...workplace, ...(changes.items[workplace.id]?.values ?? {}) }
+    : null;
+  return values ? itemName('workplaces', values) : (count.workplace.name ?? '');
 }
 
 export const roleLabel = (role: string) =>
@@ -856,6 +913,18 @@ export function blockerLink(proposal: Proposal, changes: Changes, blocker: Block
   const section = sectionOf(blocker.path);
   const parts = blocker.path.split('.');
   const [root, second, field] = parts as [string, string | undefined, string | undefined];
+  if (root === 'fireEquipmentCounts') {
+    const count = fireEquipmentCountsOf(proposal).find((each) => each.id === second);
+    const where = count ? countWorkplaceName(proposal, changes, count) : '';
+    return {
+      section,
+      anchor: anchorOf(blocker.path),
+      code: blocker.code,
+      text: count
+        ? `Alege numărul de bucăți: ${countName(count)}${where ? `, ${where}` : ''}`
+        : 'Alege numărul de bucăți',
+    };
+  }
   const info = fieldInfo[`${root}.${second}`];
   if (info) {
     const picked = fireTrainingPaths.has(`${root}.${second}`) || root === 'trainingSchedule';

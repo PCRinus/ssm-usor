@@ -2749,3 +2749,144 @@ describe('the persistent import review bar', () => {
     expect(requestsTo(`/imports/${importId}/confirm`, 'POST')).toHaveLength(0);
   });
 });
+
+describe('means the files count differently', () => {
+  const countPath = 'fireEquipmentCounts.count-1';
+  const countDetail = (option?: number) => {
+    const proposal = proposalFixture();
+    const [laboratory] = proposal.fireEquipment;
+    proposal.fireEquipment.push(
+      {
+        ...laboratory!,
+        id: 'extinguisher-2',
+        sources: [{ file: 'Lista mijloacelor.docx', quote: 'stingătoare P6 – 4 buc.' }],
+        room: null,
+        count: 4,
+      },
+      {
+        ...laboratory!,
+        id: 'blanket-1',
+        sources: [{ file: 'Lista mijloacelor.docx', quote: 'Bucătărie – pătură antifoc' }],
+        room: 'Bucătărie',
+        kind: 'fire_blanket',
+        agent: null,
+        capacity: null,
+        count: null,
+      }
+    );
+    Object.assign(proposal, {
+      fireEquipmentCounts: [
+        {
+          id: 'count-1',
+          workplace: { name: 'Sediu', id: 'workplace-1' },
+          kind: 'extinguisher',
+          agent: 'powder',
+          capacity: 6,
+          wheeled: false,
+          options: [
+            {
+              total: 6,
+              sources: [
+                ...laboratory!.sources,
+                { file: 'Evaluarea riscului.docx', quote: '6 stingătoare P6' },
+              ],
+              equipmentIds: ['extinguisher-1'],
+            },
+            {
+              total: 4,
+              sources: [{ file: 'Lista mijloacelor.docx', quote: 'stingătoare P6 – 4 buc.' }],
+              equipmentIds: ['extinguisher-2'],
+            },
+          ],
+        },
+      ],
+    });
+    return readyDetail({
+      proposal,
+      changes: { fields: option === undefined ? {} : { [countPath]: { option } }, items: {} },
+      blockers: option === undefined ? [{ path: countPath, code: 'choice' }] : [],
+    });
+  };
+
+  it('lists the choice among what blocks confirming and sums up the section by it', async () => {
+    mockReview(countDetail());
+    mount();
+
+    const link = await screen.findByTestId('import-blocker-link');
+    expect(link.textContent).toBe('Alege numărul de bucăți: Stingător P6, Sediu');
+    expect(link.getAttribute('href')).toBe(
+      `/clienti/import/${importId}/fire-safety#review-fireEquipmentCounts-count-1`
+    );
+    const section = screen
+      .getAllByTestId('import-section-link')
+      .find((each) => each.dataset.section === 'fire-safety')!;
+    expect(within(section).getByTestId('section-status').textContent).toBe('Alegere necesară');
+    expect(section.textContent).toContain('un mijloc de stingere.');
+    expect(section.textContent).toContain('Stingător P6: 2 numere în documente.');
+  });
+
+  it('offers each file’s total and writes only the chosen file’s entries', async () => {
+    mockReview(countDetail());
+    mount('/fire-safety');
+
+    const row = await screen.findByTestId('review-count-choice');
+    expect(row.textContent).toContain('La Sediu, documentele dau 2 numere diferite.');
+    const options = within(row).getAllByTestId('review-count-option');
+    expect(options.map((option) => option.textContent)).toEqual([
+      expect.stringContaining('6 bucăți · Laborator 6'),
+      expect.stringContaining('4 bucăți'),
+    ]);
+    expect(options[0]!.textContent).toContain('b.pdf și încă un fișier');
+    expect(
+      screen.getAllByTestId('review-item').map((item) => item.getAttribute('aria-label'))
+    ).toEqual(['Pătură antifoc']);
+    expect(screen.getByTestId('review-counts').textContent).toContain(
+      'Mai ai de ales numărul de bucăți'
+    );
+
+    await userEvent.click(within(options[1]!).getByRole('radio'));
+
+    await waitFor(() =>
+      expect(savedChanges(0).changes.fields).toEqual({ [countPath]: { option: 1 } })
+    );
+    expect(
+      screen.getAllByTestId('review-item').map((item) => item.getAttribute('aria-label'))
+    ).toEqual(['Stingător, Pulbere · 4 bucăți', 'Pătură antifoc']);
+  });
+
+  it('opens the passages of one option', async () => {
+    mockReview(countDetail());
+    mount('/fire-safety');
+
+    const [first] = await screen.findAllByTestId('review-count-option');
+    await userEvent.click(within(first!).getByRole('button', { name: 'Vezi în document' }));
+
+    const source = await screen.findByTestId('import-source-dialog');
+    expect(
+      within(source).getByRole('heading', { name: 'Sursa: Stingător P6: 6 bucăți' })
+    ).toBeTruthy();
+  });
+
+  it('says a row without a number is taken as one unit', async () => {
+    mockReview(countDetail(0));
+    mount('/fire-safety');
+
+    const blanket = await screen.findByRole('listitem', { name: 'Pătură antifoc' });
+    expect(within(blanket).getByTestId('review-count-not-given').textContent).toBe(
+      'Documentul nu dă numărul, așa că preluăm o bucată. Schimbă-l dacă sunt mai multe.'
+    );
+  });
+
+  it('counts only the chosen file’s units in what confirming creates', async () => {
+    mockReview(countDetail(1));
+    mount();
+
+    await userEvent.click(await screen.findByTestId('import-confirm'));
+    const dialog = await screen.findByTestId('import-confirm-dialog');
+    expect(
+      within(dialog)
+        .getAllByTestId('confirm-line')
+        .map((line) => line.textContent)
+    ).toContainEqual(expect.stringContaining('5mijloace de apărare'));
+  });
+});

@@ -19,9 +19,12 @@ import {
   type Blocker,
   blockerLink,
   type Changes,
+  chosenCountOption,
+  countName,
   fieldGroups,
   type FieldState,
   fieldState,
+  fireEquipmentCountsOf,
   formatFieldValue,
   type ItemList,
   itemName,
@@ -177,7 +180,11 @@ export function sectionDescription(
         0
       );
       const smoking = smokingRule(states);
-      return `${smoking ? `${smoking}, ` : ''}${equipment === 1 ? 'un mijloc de stingere' : `${equipment} mijloace de stingere`}.${choiceText}${others(['fireEquipment', 'fireInstallations'], 'mijloace')}`;
+      const countsText = fireEquipmentCountsOf(proposal)
+        .filter((each) => chosenCountOption(each, changes) === null)
+        .map((each) => ` ${countName(each)}: ${each.options.length} numere în documente.`)
+        .join('');
+      return `${smoking ? `${smoking}, ` : ''}${equipment === 1 ? 'un mijloc de stingere' : `${equipment} mijloace de stingere`}.${choiceText}${countsText}${others(['fireEquipment', 'fireInstallations'], 'mijloace')}`;
     }
     case 'equipment': {
       const items = included(proposal, changes, 'protectiveEquipment');
