@@ -22,7 +22,7 @@ Three more effects of the stale tab:
 
 ### A contract fingerprint per client, generated with the client
 
-`pnpm generate:api` already writes the app's and the portal's clients from the API's OpenAPI document. It also writes their **contract fingerprints**: the SHA-256 of each generated client file, shortened, in one generated module that the API, the app and the portal import. `check:generated` covers it like the clients, so a fingerprint can never disagree with the client it describes, and nobody sets or bumps anything by hand.
+`pnpm generate:api` already writes the app's and the portal's clients from the API's OpenAPI document. It also writes their **contract fingerprints**: the SHA-256 of each generated client file without its comments (which repeat the OpenAPI descriptions), shortened, in one generated module that the API, the app and the portal import. `check:generated` covers it like the clients, so a fingerprint can never disagree with the client it describes, and nobody sets or bumps anything by hand.
 
 The fingerprint is per client because the clients cover different parts of the API: an API change that only the app uses must not stop a participant in the portal.
 

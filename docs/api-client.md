@@ -33,12 +33,15 @@ and both are covered by `check:generated`.
 ## Contract fingerprints
 
 `generate:api` also writes `packages/contracts/src/client-contracts.gen.ts`: for each client, the
-first 16 hex characters of the SHA-256 of its generated, Prettier-formatted file
+first 16 hex characters of the SHA-256 of its generated, Prettier-formatted file with the comments
+taken out (`scripts/client-contract-fingerprint.mjs`), since the comments repeat the OpenAPI
+descriptions and a reworded description must not reload every open tab
 ([ADR 040](architecture/adr-040-client-contract-and-reload-prompts.md)). `clientContract('app')`
 or `clientContract('portal')` from `@ssm-usor/contracts` gives the `<client>:<fingerprint>` value
 each mutator passes to `createApiHttp`, and the API compares it with its own build's
 ([API](api.md#the-client-contract)). `check:generated` covers the module like the clients, so
-any change to a client's file changes its fingerprint without anyone bumping it.
+any change to a client's code changes its fingerprint without anyone bumping it. `generate:api`
+rebuilds `@ssm-usor/contracts` after writing the module, so its `dist` holds the new values.
 
 ## Generate and review changes
 

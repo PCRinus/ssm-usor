@@ -242,7 +242,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Unread** (_necitită_): a release published after the member's account was created and after the release they last **acknowledged** (_am înțeles_, _marcată ca citită_). Acknowledging covers everything published so far. ADR 026. Avoid: new (which is a section), seen, dismissed (closing the dialog dismisses it for the session and acknowledges nothing).
 
-**Contract fingerprint**: the hash of a client's generated API client (the app's or the portal's), written by `generate:api`. A request carrying another fingerprint than the API's for that client is **outdated** (`client_outdated`, 426). ADR 040. Avoid: API version, client version.
+**Contract fingerprint**: the hash of a client's generated API client (the app's or the portal's), comments left out, written by `generate:api`. A request carrying another fingerprint than the API's for that client is **outdated** (`client_outdated`, 426). ADR 040. Avoid: API version, client version.
 
 **Reload prompt**: what tells an open tab to load the page again. The **new-version toast** (_versiune nouă_) appears when a newer build is deployed and can be closed until the next one; the **reload dialog** appears when the client is outdated or a code file of its build is gone, and cannot be dismissed. Neither reloads by itself. ADR 040. Avoid: banner, force update, update dialog (which is ADR 026's account of a release).
 
