@@ -1675,22 +1675,30 @@ the full-page states.
   `vite:preloadError` event, cancelled so Vite does not rethrow and TanStack Router does not
   reload by itself, calls it with `'code_file'`. A route error component can call
   `isCodeFileError(error)` and then `openReloadDialog('code_file')`; a second call while the
-  dialog is open only adds the unsaved-change line. It has no close button, ignores Escape and
-  outside clicks, and on a phone is a bottom sheet without a handle that cannot be swiped away.
+  dialog is open only adds the unsaved-change line. It has no close button and ignores Escape and
+  outside clicks. It is the Radix dialog at every width, styled as a bottom sheet on a phone: a
+  `426` mostly answers a save from inside another Radix dialog, whose focus trap and inert page
+  would leave a dialog from another library (the base-ui drawer) unreachable. Its line saying
+  the typed text stays shows only when the snapshot kept at least one field.
   **Reîncarcă** stamps the time in `sessionStorage`; a dialog that opens within 60 seconds of
   that stamp shows the amber state and counts the button down to the end of that minute.
-- **Kept text** (`kept-text.ts`). Text fields and text areas the person typed into are written
-  to `sessionStorage` under the page's path and search when the dialog opens: by `name`, else
-  by an `id` that React did not generate, with the value they held before the typing. Password,
-  hidden, file and read-only fields, fields in an open dialog and anything under `data-no-keep`
-  are left out. After the reload, on the same page, each field gets its text back once it
+- **Kept text** (`kept-text.ts`). Only text areas the person typed into are written to
+  `sessionStorage` under the page's path and search when the dialog opens: by `name`, else by
+  an `id` that React did not generate, with the value they held before the typing. Long text is
+  what hurts to retype; a short field is quick to fill again and may hold a CNP, a phone number
+  or an email address, so no input is kept. Read-only and disabled text areas, those in an open
+  dialog and anything under `data-no-keep` are left out. The first page shown after the reload
+  is the only one that can take the text back: on any other page the snapshot is dropped at
+  once, so a later visit within the fifteen minutes gets nothing. On the same page each text
+  area gets its text back once it
   exists and holds that earlier value again, through the element's own value setter and an
   `input` event so React Hook Form and controlled fields take it; for ten seconds (and three
   after the last fill) a reset that puts the earlier value back is undone, until the person
   types in the field. The snapshot is dropped then, or after fifteen minutes. A success toast
-  says so when at least one field came back. The own-instruction form names only the blocks it
-  opened with (`instruction-block-<n>`), since its block ids are counted per visit; blocks added
-  since are not kept.
+  says so when at least one field came back. The own-instruction form names only the article
+  boxes it opened with (`instruction-block-<n>`), since its block ids are counted per visit;
+  articles added since are not kept, and a section that was empty opens again to take its
+  kept text back.
 - **Events.** `update_toast_shown`, `client_outdated_shown` (`client`, `cause`: `426` or
   `code_file`), `reload_clicked` (`prompt`: `toast` or `dialog`) and `typed_text_restored`
   (`count`).
