@@ -140,6 +140,9 @@ describe('fire-safety set', () => {
     'fireSafetyTechnician.name',
     'provider.legalName',
     'installationRegister',
+    'installationSheets',
+    'extinguisherRegister.rows',
+    'extinguisherRegister.blankRows',
   ];
   const data = {
     branding: true,
@@ -153,6 +156,29 @@ describe('fire-safety set', () => {
     seasonsDecision: true,
     controlDecision: true,
     installationRegister: true,
+    extinguisherRegister: {
+      rows: [
+        { type: 'P6 – Pulbere, 6\u00a0kg, nr. inventar 0012', place: 'Magazin – Laborator' },
+        { type: 'G5 – Dioxid de carbon (CO₂), 5\u00a0kg', place: 'Depozit' },
+      ],
+      blankRows: [{}, {}, {}, {}, {}, {}, {}],
+    },
+    installationSheets: [
+      {
+        first: true,
+        number: '1',
+        name: 'Hidranți interiori – Unul pe nivel',
+        place: 'Magazin',
+        maintainer: 'S.C. HIDRANȚI DEMO S.R.L.',
+      },
+      {
+        first: false,
+        number: '2',
+        name: 'Instalație de detectare, semnalizare și avertizare la incendiu',
+        place: 'Depozit',
+        maintainer: '',
+      },
+    ],
   };
   const technician = {
     name: 'Dan MARIN',
@@ -180,6 +206,12 @@ describe('fire-safety set', () => {
     ],
     extinguisherCount: 3,
     otherEquipment: [{ kindLabel: 'Ladă cu nisip', count: 1 }],
+    meansByPlace: [
+      { place: 'Laborator', means: 'Stingător P6 – Pulbere, 6\u00a0kg', count: 2 },
+      { place: 'Curte', means: 'Ladă cu nisip', count: 1 },
+      { place: '—', means: 'Stingător P50 – Pulbere, 50\u00a0kg, carosabil', count: 1 },
+    ],
+    hasPlaces: true,
     installations: [{ kindLabel: 'Hidranți interiori', description: 'Unul pe nivel' }],
     alarmInstallations: [],
     extinguishingInstallations: [{ kindLabel: 'Hidranți interiori', description: 'Unul pe nivel' }],
@@ -487,6 +519,8 @@ describe('fire-safety set', () => {
         specificMeasures: '',
         specificMeasuresRunOn: '',
         otherEquipment: [],
+        meansByPlace: [],
+        hasPlaces: false,
         installations: [],
         alarmInstallations: [],
         extinguishingInstallations: [],
@@ -621,11 +655,17 @@ describe('fire-safety set', () => {
     );
   });
 
+  // The names of a row of the extinguisher register and of a sheet of the installation register.
+  const inventoryItemNames = ['type', 'place', 'first', 'number', 'name', 'maintainer'];
+
   it.each(stageOne)(
-    '%s asks only for the shared facts, the technician and whether the set holds the installation register',
+    '%s asks only for the shared facts, the technician, the inventory and whether the set holds the installation register',
     (name) => {
       expect(
-        templatePlaceholders(read(name)).filter((placeholder) => !allowed.includes(placeholder))
+        templatePlaceholders(read(name)).filter(
+          (placeholder) =>
+            !allowed.includes(placeholder) && !inventoryItemNames.includes(placeholder)
+        )
       ).toEqual([]);
       expect(documentText(renderDocument(read(name), data))).not.toContain('{{');
     }
@@ -936,6 +976,60 @@ describe('fire-safety set', () => {
     );
     expect(sparseText).not.toContain('LOC PENTRU FUMAT');
     expect(sparseText).not.toContain('Măsuri specifice locului de muncă');
+  });
+
+  it('shows where the means of a workplace stand only where some unit says it', () => {
+    for (const [file, lead, row] of [
+      [
+        'fire/5.1_fire_means_list.docx',
+        'Amplasarea mijloacelor de primă intervenție:',
+        /^Laborator\nStingător P6 – Pulbere, 6\u00a0kg\nbuc\.\n2$/m,
+      ],
+      [
+        'fire/1.6_fire_decision_instructions.docx',
+        'Mijloacele de primă intervenție sunt amplasate astfel:',
+        /^1\.\nLaborator\nStingător P6 – Pulbere, 6\u00a0kg\n2$/m,
+      ],
+    ] as const) {
+      const text = documentText(renderDocument(read(file), stageTwoData));
+      expect(text.split(lead)).toHaveLength(3);
+      expect(text).toMatch(row);
+      expect(text).toMatch(/^—\nStingător P50 – Pulbere, 50\u00a0kg, carosabil\n(buc\.\n)?1$/m);
+      const without = documentText(renderDocument(read(file), { ...stageTwoData, fire: sparse }));
+      expect(without).not.toContain(lead);
+    }
+  });
+
+  it('lists every extinguisher in its register, then the blank rows', () => {
+    const register = renderDocument(read('fire/6.4_fire_extinguisher_register.docx'), data);
+    const text = documentText(register);
+    expect(text).toMatch(/^P6 – Pulbere, 6\u00a0kg, nr\. inventar 0012\nMagazin – Laborator$/m);
+    expect(text).toMatch(/^G5 – Dioxid de carbon \(CO₂\), 5\u00a0kg\nDepozit$/m);
+    const grid = new PizZip(register)
+      .file('word/document.xml')!
+      .asText()
+      .match(/<w:tbl>[\s\S]*?<\/w:tbl>/g)!
+      .at(-1)!;
+    expect(grid.match(/<w:tr[ >]/g)).toHaveLength(2 + 2 + 7);
+    expect(grid.match(/<w:tblHeader w:val="true"\/>/g)).toHaveLength(2);
+  });
+
+  it('gives every installation a sheet and a table of events of its own, the note once', () => {
+    const register = renderDocument(read('fire/6.3_fire_installation_register.docx'), data);
+    const text = documentText(register);
+    expect(text.match(/^REGISTRU DE CONTROL$/gm)).toHaveLength(2);
+    expect(text.match(/^Date evenimente$/gm)).toHaveLength(2);
+    expect(text.match(/^Notă$/gm)).toHaveLength(1);
+    expect(text).toMatch(/^Nr\. crt\. \(fișă\)\n2$/m);
+    expect(text).toMatch(/^Denumirea instalației\nHidranți interiori – Unul pe nivel$/m);
+    expect(text).toMatch(
+      /^Caracteristici principale \(loc amplasare, zone protejate, componente etc\.\)\nMagazin$/m
+    );
+    expect(text).toMatch(
+      /^Persoana fizică\/juridică ce execută verificarea, întreținerea, repararea\nS\.C\. HIDRANȚI DEMO S\.R\.L\.$/m
+    );
+    const xml = new PizZip(register).file('word/document.xml')!.asText();
+    expect(xml.match(/<w:br w:type="page"\/>/g)).toHaveLength(3);
   });
 
   it('cites decision 9 for the internal controls only while the set holds it', () => {
