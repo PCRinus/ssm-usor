@@ -1,6 +1,8 @@
 // Invented training sheets and the answers a model would give for their pages; no name or code
 // here is real. The CNPs are made valid with the contracts' control digit.
 
+import { cnpControlDigit } from '@ssm-usor/contracts';
+
 import type { SheetPageInput, TrainingThemes } from '../employee-import';
 import type { ExistingEmployee } from '../employee-match';
 import type { SheetPage, SheetRow } from '../sheet-page';
@@ -274,6 +276,83 @@ export const themes: TrainingThemes = ({ domain, phase }) =>
         durationMinutes: 120,
       }
     : null;
+
+export const withControlDigit = (body: string) => `${body}${cnpControlDigit(body)}`;
+
+// The Morarus, a husband and wife whose sheets went up together: his name and hers one letter
+// apart, her surname his and another, and the upload not in the order the sheets were taken.
+const husband = { lastName: 'Moraru', firstName: 'Alexandru-Ionuț' };
+const wife = { lastName: 'Moraru-Pîrvu', firstName: 'Alexandra-Ioana' };
+const husbandCnp = withControlDigit('158041240123');
+const wifeCnp = withControlDigit('283092340456');
+
+export const moraru = {
+  husbandCnp,
+  wifeCnp,
+  husbandCover: page({
+    pageKind: 'ssm_sheet_front',
+    person: husband,
+    fields: { jobTitle: 'Șef depozit', hiredAt: '2019-03-04' },
+    trainings: [row({ phase: 'introductory_general', heldOn: '2019-03-04', durationMinutes: 480 })],
+  }),
+  wifeMedical: page({
+    pageKind: 'other',
+    person: { ...wife, cnp: wifeCnp },
+    fields: { jobTitle: 'Inspector personal' },
+  }),
+  husbandMedical: page({
+    pageKind: 'other',
+    person: { ...husband, cnp: husbandCnp },
+    fields: { jobTitle: 'Gestionar depozit' },
+  }),
+  wifeFront: page({
+    pageKind: 'ssm_sheet_front',
+    person: { lastName: 'Moraru', firstName: 'Alexandra' },
+    fields: {
+      birthDate: '23.09.1983',
+      jobTitle: 'Inspector resurse umane',
+      hiredAt: '2020-06-01',
+    },
+    trainings: [row({ phase: 'introductory_general', heldOn: '2020-06-01', durationMinutes: 480 })],
+  }),
+  husbandFront: page({
+    pageKind: 'su_sheet_front',
+    person: husband,
+    fields: { birthDate: '12.04.1958', jobTitle: 'Șef depozit' },
+    trainings: [row({ domain: 'su', phase: 'introductory_general', heldOn: '2019-03-04' })],
+  }),
+  husbandPeriodic: page({
+    pageKind: 'ssm_periodic',
+    fields: { jobTitle: 'Șef depozit' },
+    trainings: [row({ heldOn: '2024-03-04' })],
+  }),
+  husbandUntitled: page({ pageKind: 'ssm_periodic', trainings: [row({ heldOn: '2025-03-04' })] }),
+  wifePeriodic: page({
+    pageKind: 'ssm_periodic',
+    fields: { jobTitle: 'Inspector res. umane' },
+    trainings: [row({ heldOn: '2024-06-03' })],
+  }),
+  wifeFirePeriodic: page({
+    pageKind: 'su_periodic',
+    fields: { jobTitle: 'Inspector RU' },
+    trainings: [row({ domain: 'su', heldOn: '2024-06-03', durationMinutes: 120 })],
+  }),
+  wifeUntitled: page({ pageKind: 'ssm_periodic', trainings: [row({ heldOn: '2025-06-02' })] }),
+};
+
+export const moraruUpload = () =>
+  pagesOf(
+    moraru.husbandCover,
+    moraru.wifeMedical,
+    moraru.husbandMedical,
+    moraru.wifeFront,
+    moraru.husbandFront,
+    moraru.husbandPeriodic,
+    moraru.husbandUntitled,
+    moraru.wifePeriodic,
+    moraru.wifeFirePeriodic,
+    moraru.wifeUntitled
+  );
 
 export function pagesOf(...readings: (SheetPage | null)[]): SheetPageInput[] {
   return readings.map((reading, index) => ({

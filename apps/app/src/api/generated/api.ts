@@ -8611,6 +8611,7 @@ export const EmployeeImportReviewProposalPagesItemPlacement = {
   near_name: 'near_name',
   employee_number: 'employee_number',
   new_person: 'new_person',
+  placed_by_job_title: 'placed_by_job_title',
   placed_by_order: 'placed_by_order',
   unplaced: 'unplaced',
 } as const;

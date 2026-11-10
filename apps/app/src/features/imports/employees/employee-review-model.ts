@@ -919,8 +919,9 @@ export function notesOf(context: ReviewContext, person: Person): Note[] {
     if (tested.has(row.id) && row.test && !row.test.verified && !testInApp(row, matched))
       add('verifier', 'Semnătura de verificare nu se vede');
   }
-  if (pagesOf(context, person.id).some((page) => page.placement === 'placed_by_order'))
-    add('order', 'O pagină pusă după ordine');
+  const placements = new Set(pagesOf(context, person.id).map((page) => page.placement));
+  if (placements.has('placed_by_job_title')) add('job_title', 'O pagină pusă după funcție');
+  if (placements.has('placed_by_order')) add('order', 'O pagină pusă după ordine');
   const former = matched ? formerLeftOn(person) : null;
   if (former !== null) add('leaver', `A plecat din firmă la ${formatRoDate(former)}`);
   else if (resolveField(context, person, 'leftOn').value !== null)

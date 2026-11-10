@@ -492,7 +492,7 @@ function referenceGroups<G extends { id: string; personIds: string[] }>(
 
 export function toEmployeeProposal(input: EmployeeImportInput): EmployeeImportProposal {
   const { client, today } = input;
-  const placed = placePages(input.pages);
+  const placed = placePages(input.pages, today);
   const byId = new Map(input.pages.map((page) => [page.id, page]));
   const personIdOf = (group: number) => `person-${group + 1}`;
 

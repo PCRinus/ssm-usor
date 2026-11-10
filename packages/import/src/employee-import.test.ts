@@ -7,6 +7,8 @@ import {
   comanFront,
   comanPeriodic,
   existingPop,
+  moraru,
+  moraruUpload,
   otherPhoto,
   page,
   pagesOf,
@@ -71,6 +73,21 @@ describe('toEmployeeProposal', () => {
       'unplaced',
     ]);
     expect(proposal.pages[7]).toMatchObject({ personId: null, kind: 'other', rows: [] });
+  });
+
+  it('proposes a husband and wife as two people, each with one birth date and one CNP', () => {
+    const proposal = toEmployeeProposal({ pages: moraruUpload(), client, themes, today });
+
+    expect(proposal.people).toHaveLength(2);
+    const [husband, wife] = proposal.people;
+    expect(husband!.fields.birthDate.options.map((option) => option.value)).toEqual(['1958-04-12']);
+    expect(husband!.fields.cnp.options.map((option) => option.value)).toEqual([moraru.husbandCnp]);
+    expect(wife!.fields.birthDate.options.map((option) => option.value)).toEqual(['1983-09-23']);
+    expect(wife!.fields.cnp.options.map((option) => option.value)).toEqual([moraru.wifeCnp]);
+    expect(proposal.pages[7]).toMatchObject({
+      personId: wife!.id,
+      placement: 'placed_by_job_title',
+    });
   });
 
   it('reads the personal fields with the page each comes from', () => {

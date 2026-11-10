@@ -327,6 +327,25 @@ describe('what a person still needs', () => {
     ]);
     expect(tags(contextOf(), 'pop')).toEqual([]);
   });
+
+  it('signals a page put by the post it writes and one put after the page before it', () => {
+    const placed = {
+      ...proposal,
+      pages: proposal.pages.map((page) =>
+        page.id === 'p1'
+          ? { ...page, placement: 'placed_by_order' }
+          : page.id === 'p2'
+            ? { ...page, placement: 'placed_by_job_title' }
+            : page
+      ),
+    } as unknown as Proposal;
+    const context = { ...contextOf(), proposal: placed };
+
+    expect(notesOf(context, person('toma')).map((note) => note.tag)).toEqual(
+      expect.arrayContaining(['O pagină pusă după funcție', 'O pagină pusă după ordine'])
+    );
+    expect(tags(context, 'toma')).toEqual(tags(contextOf(), 'toma'));
+  });
 });
 
 describe('rows and tests', () => {
