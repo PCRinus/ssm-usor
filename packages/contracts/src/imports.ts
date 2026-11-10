@@ -419,14 +419,18 @@ const changedValue = z.union([z.string(), z.number(), z.boolean(), z.null(), z.a
 export const importChangesSchema = z.object({
   // A single value by `client.<name>`, `trainingSchedule.<name>` or `fireSafety.<name>`, the
   // count of a kind of means at a workplace by `fireEquipmentCounts.<id>`, which takes only an
-  // option, and a workplace's assembly point kept as read by `assemblyPoints.<workplace id>`
-  // with option 0; the member's other value or none is the workplace's own `assemblyPoint`.
+  // option, a workplace's assembly point kept as read by `assemblyPoints.<workplace id>`
+  // with option 0, the member's other value or none being the workplace's own `assemblyPoint`,
+  // a workplace's suggested values confirmed by `suggestedValues.<workplace id>` with option 0,
+  // each value changed or emptied in the workplace's own values, and a registered office
+  // suggested to have no activity by `officeActivity.<workplace id>`, option 0 keeping the
+  // suggestion and option 1 saying activity takes place there.
   fields: z
     .record(
       z
         .string()
         .regex(
-          /^((client|trainingSchedule|fireSafety)\.[A-Za-z]+|(fireEquipmentCounts|assemblyPoints)\.[a-z0-9-]+)$/
+          /^((client|trainingSchedule|fireSafety)\.[A-Za-z]+|(fireEquipmentCounts|assemblyPoints|suggestedValues|officeActivity)\.[a-z0-9-]+)$/
         ),
       z
         .object({

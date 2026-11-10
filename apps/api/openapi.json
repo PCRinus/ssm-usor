@@ -14228,6 +14228,30 @@
                         "minLength": 1
                       },
                       "default": {}
+                    },
+                    "officeHasActivity": {
+                      "type": "boolean",
+                      "default": true
+                    },
+                    "suggested": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "file": {
+                              "type": "string"
+                            },
+                            "quote": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["file", "quote"]
+                        },
+                        "minItems": 1
+                      },
+                      "default": {}
                     }
                   },
                   "required": [

@@ -119,6 +119,10 @@ export function clientReadingFlags(
     found: {
       clientFields: fields.length,
       ...Object.fromEntries(clientLists.map((list) => [list, proposal[list].length])),
+      suggestedValues: proposal.workplaces.reduce(
+        (sum, workplace) => sum + Object.keys(workplace.suggested).length,
+        0
+      ),
     },
     emptyRequired: required.filter((path) => empty[path]),
     checks: tally(proposal.flags.map((flag) => flag.code)),

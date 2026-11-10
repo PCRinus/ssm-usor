@@ -1532,7 +1532,9 @@ documents' `company_cui` or the payload's `cui` (`IMP03`), and a new client whos
 organization already has (`IMP04`). Every row passes its constraints and triggers, so an
 employee without a position gets the one named like their job title, a position's equipment
 decision follows its entries, a substance under any state but `listed` is refused (`SUB02`) and
-`none` while the client lists substances (`SUB01`).
+`none` while the client lists substances (`SUB01`), and a registered office with no activity is
+refused without another active workplace (`WPL01`, judged once the workplaces are written rather
+than at the commit) or while a current employee is assigned to it (`WPL02`).
 
 The payload is shaped like the tables, not like the proposal; the API maps one onto the other.
 Each object refuses a field it does not name (`22023`), and a column field takes the column's
@@ -1550,7 +1552,7 @@ values, JSON null or absent leaving the default:
   "workplaces": [{ "key", "id", "replace", "name", "is_registered_office", "kind",
     "county_code", "locality", "address_line", "activity", "floor_area_m2",
     "extinguisher_norm", "assembly_point", "combustible_materials", "ignition_sources",
-    "fire_risk_equipment", "specific_measures" }],
+    "fire_risk_equipment", "specific_measures", "office_has_activity" }],
   "job_positions": [{ "key", "id", "replace", "name", "staff_category", "work_zone",
     "activities", "training_interval_months", "needs_protective_equipment" }],
   "equipment": [{ "job_position_key | job_position_id", "risk", "item", "quantity",
@@ -1604,7 +1606,11 @@ values, JSON null or absent leaving the default:
   `fire_substances` item is a substance by its name only, its classification and quantity left
   for a member; it is added after `fire_safety`, at the end of the client's order, unless the
   client has one of that name, compared trimmed and in lower case.
-- `quality` is stored on the import as given.
+- A workplace's `office_has_activity` false is taken only by the registered office (the table's
+  check); an existing workplace keeps its own answer unless `replace` names it (migration
+  `20261111160000_import_office_activity`, [ADR 041](architecture/adr-041-su-import-questions-and-suggestions.md)).
+- `quality` is stored on the import as given. Its `suggestedValues` section counts the suggested
+  values (ADR 041): kept unchanged as `kept`, `changed`, and left empty as `unticked`.
 
 Then the import folder: a client file for every file of the import except those still
 `uploading` and another company's, named after the file without its extension, in the folders

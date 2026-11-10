@@ -15,6 +15,7 @@ import {
   fireEquipmentCountPath,
   type Flag,
   foldText,
+  officeActivityPath,
   type Proposal,
   proposedEmployeeSchema,
   proposedFireEquipmentSchema,
@@ -26,6 +27,8 @@ import {
   proposedSubstanceSchema,
   proposedWorkplaceSchema,
   sameName,
+  suggestedValuesPath,
+  suggestedWorkplaceFieldNames,
 } from '@ssm-usor/import';
 import type { z } from 'zod';
 
@@ -38,12 +41,13 @@ type ItemChange = ImportChanges['items'][string];
 export interface ExistingRecords {
   client: Row | null;
   fireSafety: Row | null;
-  workplaces: {
+  workplaces: ({
     id: string;
     name: string;
     address_line: string | null;
-    assembly_point?: string | null;
-  }[];
+    is_registered_office?: boolean;
+    office_has_activity?: boolean;
+  } & Partial<Record<string, unknown>>)[];
   jobPositions: { id: string; name: string; staff_category?: string }[];
   employees: { id: string; last_name: string; first_name: string; cnp: string | null }[];
   responsiblePersons: { full_name: string }[];
@@ -190,6 +194,18 @@ const workplaceColumns: Record<string, string> = {
   specificMeasures: 'specific_measures',
 };
 
+// What an office where no activity takes place does not carry (ADR 041).
+const officeSuColumns = [
+  'kind',
+  'floor_area_m2',
+  'extinguisher_norm',
+  'assembly_point',
+  'combustible_materials',
+  'ignition_sources',
+  'fire_risk_equipment',
+  'specific_measures',
+];
+
 const jobPositionColumns: Record<string, string> = {
   name: 'name',
   staffCategory: 'staff_category',
@@ -210,6 +226,8 @@ const sections = [
   'protectiveEquipment',
   'employees',
   'substances',
+  // Per suggested value (ADR 041): kept unchanged, changed, or left empty as `unticked`.
+  'suggestedValues',
 ] as const;
 
 type Section = (typeof sections)[number];
@@ -559,7 +577,9 @@ export function toClientPayload(input: {
       const change: ItemChange | undefined = changes.items[item.id];
       const proposed = proposedOf(item);
       const take = change?.included ?? proposed;
-      const edited = Object.keys(change?.values ?? {}).length > 0;
+      // A suggested value is counted on its own, as kept, changed or left empty.
+      const suggested = (item as { suggested?: Record<string, unknown> }).suggested ?? {};
+      const edited = Object.keys(change?.values ?? {}).some((key) => !(key in suggested));
       if (proposed && change?.included === false) quality[list].unticked++;
       if (!take) return [];
       if (edited || (!proposed && change?.included === true)) quality[list].changed++;
@@ -604,7 +624,13 @@ export function toClientPayload(input: {
   };
 
   const workplaceKeys = new Set<string>();
+  const inactiveOffices = new Set<string>();
   const includedWorkplaces = included('workplaces');
+  // An office with no activity needs another workplace of the client where activity takes place.
+  const pointsBeside =
+    includedWorkplaces.some(({ values }) => values.isRegisteredOffice !== true) ||
+    (intoExistingClient &&
+      existing.workplaces.some((workplace) => workplace.is_registered_office === false));
   // `client_workplaces` takes one registered office per client.
   for (const { index } of includedWorkplaces
     .filter(({ values }) => values.isRegisteredOffice === true)
@@ -638,19 +664,59 @@ export function toClientPayload(input: {
         if (replace.length) row.replace = replace;
       }
     }
-    // A point the client already has is kept, so only one the import writes waits for a decision.
-    const current = row.id
-      ? existing.workplaces.find((workplace) => workplace.id === row.id)?.assembly_point
-      : null;
-    const writesPoint =
-      empty(current) || ((row.replace as string[] | undefined) ?? []).includes('assembly_point');
+    const own = row.id ? existing.workplaces.find((workplace) => workplace.id === row.id) : null;
+    // A value the client already has is kept, so only one the import writes waits for a decision.
+    const writes = (column: string) =>
+      empty(own?.[column]) || ((row.replace as string[] | undefined) ?? []).includes(column);
+    // An existing workplace keeps its own answer, which is never empty.
+    if (
+      item.suggested.officeHasActivity &&
+      !item.officeHasActivity &&
+      values.isRegisteredOffice === true &&
+      !row.id &&
+      pointsBeside
+    ) {
+      const option = changes.fields[officeActivityPath(item.id)]?.option;
+      if (option === 0) {
+        quality.suggestedValues.kept++;
+        inactiveOffices.add(item.id);
+        row.office_has_activity = false;
+        for (const column of officeSuColumns) delete row[column];
+        return row;
+      }
+      if (option === 1) quality.suggestedValues.changed++;
+      else block(officeActivityPath(item.id), 'choice');
+    }
     if (
       !empty(item.assemblyPoint) &&
-      writesPoint &&
+      writes('assembly_point') &&
       assemblyPointFact(item, changes) === 'undecided'
     ) {
       block(assemblyPointPath(item.id), 'choice');
       delete row.assembly_point;
+    }
+    const written = change?.values ?? {};
+    const asked = suggestedWorkplaceFieldNames.filter((field) => {
+      if (!item.suggested[field]) return false;
+      // A mobile site has no norm; one suggested before the member changed the kind is dropped.
+      if (field === 'extinguisherNorm' && values.kind === 'mobile_site' && !(field in written)) {
+        delete row.extinguisher_norm;
+        return false;
+      }
+      return writes(workplaceColumns[field]!);
+    });
+    if (asked.length > 0) {
+      if (changes.fields[suggestedValuesPath(item.id)]?.option !== 0) {
+        block(suggestedValuesPath(item.id), 'choice');
+        for (const field of asked) delete row[workplaceColumns[field]!];
+      } else {
+        for (const field of asked) {
+          if (!(field in written)) quality.suggestedValues.kept++;
+          else if (empty(written[field])) quality.suggestedValues.unticked++;
+          else if (differs(item[field], written[field])) quality.suggestedValues.changed++;
+          else quality.suggestedValues.kept++;
+        }
+      }
     }
     return row;
   });
@@ -849,6 +915,7 @@ export function toClientPayload(input: {
 
   const notCounted = new Set<string>();
   for (const count of proposal.fireEquipmentCounts) {
+    if (count.workplace.id !== null && inactiveOffices.has(count.workplace.id)) continue;
     const path = fireEquipmentCountPath(count.id);
     const option = changes.fields[path]?.option;
     const chosen = option === undefined ? undefined : count.options[option];
@@ -867,7 +934,7 @@ export function toClientPayload(input: {
       `fireEquipment.${index}.workplace`,
       true
     );
-    if (!workplace) return [];
+    if (!workplace || inactiveOffices.has(String(workplace.workplace_key))) return [];
     const count = typeof values.count === 'number' && values.count >= 1 ? values.count : 1;
     const unit = dropEmpty({
       ...workplace,
@@ -902,7 +969,7 @@ export function toClientPayload(input: {
       `fireInstallations.${index}.workplace`,
       true
     );
-    if (!workplace) return [];
+    if (!workplace || inactiveOffices.has(String(workplace.workplace_key))) return [];
     return [dropEmpty({ ...workplace, kind: values.kind, description: values.description })];
   });
 

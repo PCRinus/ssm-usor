@@ -291,7 +291,9 @@ export async function existingRecords(db: DataClient, clientId: string): Promise
       db.from('client_fire_safety').select('*').eq('client_id', clientId).maybeSingle(),
       db
         .from('client_workplaces')
-        .select('id, name, address_line, assembly_point')
+        .select(
+          'id, name, address_line, is_registered_office, office_has_activity, assembly_point, extinguisher_norm, combustible_materials, ignition_sources, fire_risk_equipment, specific_measures'
+        )
         .eq('client_id', clientId)
         .is('archived_at', null),
       db
@@ -985,9 +987,12 @@ function decisionError(
         'The organization already has a client with this CUI.',
         importErrorReasons.clientExists
       );
-    // Another member listed or removed the client's substances since the review was read.
+    // Another member listed or removed the client's substances, or changed its workplaces or
+    // employees, since the review was read.
     case 'SUB01':
     case 'SUB02':
+    case 'WPL01':
+    case 'WPL02':
     case '22023':
       // A row the review named went since, or was never the client's; the payload's checks
       // catch both, so this is a race with another member, or a payload bug the log shows.

@@ -2313,8 +2313,11 @@ token whose `aal` is `aal2`, as `is_platform_admin()` asks (`adminToolsAllowed`,
 documents' values, `value` writes another (null leaves the field empty), `included` takes or
 leaves a value only another company's passages give, and `replace`, into an existing client,
 takes the documents' value over the app's. `fields` also takes `fireEquipmentCounts.<id>`, whose
-`option` picks one of a count's options, and `assemblyPoints.<workplace id>`, whose `option` 0
-keeps a workplace's `assemblyPoint` as read. `items` is keyed by a list item's id (`workplace-2`):
+`option` picks one of a count's options, `assemblyPoints.<workplace id>`, whose `option` 0
+keeps a workplace's `assemblyPoint` as read, `suggestedValues.<workplace id>`, whose `option` 0
+confirms the workplace's suggested values as they then stand, and `officeActivity.<workplace id>`,
+whose `option` 0 keeps the suggestion that no activity takes place at the registered office and
+`option` 1 says that some does. `items` is keyed by a list item's id (`workplace-2`):
 `included`, `values` by the item's own field names, with `workplace`, `jobPosition` and
 `employee` naming an item of the proposal or an existing row of the client, `existingId` for the
 row a workplace or a position completes, and `replace`. `PUT /imports/{importId}/changes` saves
@@ -2362,6 +2365,18 @@ diacritics joined with every passage, and the answer `fireSafety.substancesState
 `listed` whose sources are the substances' when any is named, an option `none` from a statement
 that the client uses none, both a choice, and no option where the documents say nothing. A proposal
 stored before reads `substances` as `[]` and the answer empty.
+A workplace's **suggested values** ([ADR 041](architecture/adr-041-su-import-questions-and-suggestions.md))
+sit in its own fields like the values read, and its `suggested` names them, by field, with every
+passage each was drawn from: `combustibleMaterials`, `ignitionSources`, `fireRiskEquipment`,
+`specificMeasures` and `extinguisherNorm`, which the reading model drafts from the client's
+activity (its answer's `workplaceSuggestions`) only where no document states the value, never a
+norm for a mobile site nor any value of a workplace only another company gives; and
+`officeHasActivity`, false on the registered office, which code suggests where the documents name
+a point of work of the client and give the office no room, activity, fire-safety sheet value,
+means, installation or person heading it, citing the passages that name the points of work. A
+suggested value keeps no `spelling`, and its passages are checked like any other
+(`workplaces.<i>.suggested.<field>.sources.<n>`), its value against its column. A proposal stored
+before reads `suggested` as `{}` and `officeHasActivity` as true.
 
 Without a change a value is the proposal's: a field with one value of the client's own documents
 takes it, two or more of them are a **choice** that blocks, and a value only another company
@@ -2375,7 +2390,17 @@ waits. The substances answer is written like any single value, `value` null leav
 undecided; into an existing client an `undecided` one counts as empty and a decided one is kept
 unless replaced, also where the documents disagree. The included substances are written, by name
 only, when the answer in force after confirming is `listed`, each but those the client lists
-already by that name (counted as `kept`). A workplace's `assemblyPoint` and `fireSafety.smokingPlace` are never taken unchanged
+already by that name (counted as `kept`). A workplace's suggested values the import would write
+wait together until `suggestedValues.<workplace id>` confirms them; until then none is written.
+Each is then written as suggested, as the member changed it in the workplace's `values`, or not
+at all when they emptied it (null), which readiness asks for later. A value an existing workplace
+has is kept and not asked, and a workplace left out asks nothing; a suggested norm is dropped
+when the member makes the workplace a mobile site. The registered office's suggested
+`officeHasActivity` false is asked only for an office the import creates, beside another
+workplace it takes or a point of work the client has: kept, the office is written with
+`office_has_activity` false and without its kind, area, norm, assembly point and texts, and the
+units and installations placed there are left out; said to have activity, the office is written
+as any workplace and its other decisions are asked. A workplace's `assemblyPoint` and `fireSafety.smokingPlace` are never taken unchanged
 ([ADR 041](architecture/adr-041-su-import-questions-and-suggestions.md)): a value read, which the
 import would write, waits until the member keeps it (`assemblyPoints.<workplace id>` with
 `option` 0; `option` on the smoking place, or `replace` or `included`), writes another or leaves
@@ -2384,7 +2409,8 @@ The document's spelling selected without either keeps it waiting, and is what ke
 point an existing workplace has, or a place the client keeps, is not asked; nor is a place the
 smoking rule drops, or the point of a workplace left out. The `blockers` are a choice not made
 (`fireEquipmentCounts.<id>` for a count, `assemblyPoints.<workplace id>` and
-`fireSafety.smokingPlace` for those two), the new client's name or CUI
+`fireSafety.smokingPlace` for those two, `suggestedValues.<workplace id>` and
+`officeActivity.<workplace id>` for the suggestions), the new client's name or CUI
 missing, a value the checks flagged that would be written unchanged (`invalid`), a staff
 category given both an interval and "not applicable" (`invalid` on the latter), an employee
 without a name, job title or hire date, equipment without a risk, inventory without a duration
@@ -2400,7 +2426,8 @@ job title, and a fire-safety unit, an installation or equipment whose workplace 
 the payload, answers `422` with `import_incomplete` and the blockers as `issues` while any is
 left, then calls `apply_client_import` as the member: `409` with `import_changed`,
 `import_not_ready`, `import_other_company`, `import_client_exists` or `import_outdated` (a
-workplace or position the review named is no longer the client's, or its substances changed since),
+workplace or position the review named is no longer the client's, or its substances, or the
+workplaces and employees an office with no activity depends on, changed since),
 and `422` with
 `import_refused` when a table still refuses a value (a check or not-null violation the blockers
 missed, or a registered office beside the one an existing client has): one issue whose `path` is the proposal's list or group for that table (or the table)
@@ -2410,7 +2437,10 @@ payload only while none of its entries is written, and a smoking place only besi
 places, the policy the member chose or the client keeps, since `client_fire_safety` refuses a
 place under another policy or none; a place left out never blocks. The payload's `quality` counts per section, without values, how many
 values the member changed, unticked or kept; keeping the assembly point or the smoking place as
-proposed is not a change, while keeping the document's spelling counts as one, as for any value. The answer is `{ clientId, fileCount }`, and a `copy`
+proposed is not a change, while keeping the document's spelling counts as one, as for any value.
+`quality.suggestedValues` counts each suggested value confirmed, the office's answer included:
+`kept` unchanged, `changed`, or left empty as `unticked`; a suggested value the member changes
+or empties is not also counted on its workplace. The answer is `{ clientId, fileCount }`, and a `copy`
 message copies the folder afterwards. `GET /imports/{importId}/source?file=&quote=&near=` resolves
 a source's `file`, an upload path or `<upload path> (pagina N)`, and answers five-minute links to
 the original and the converted file, a Word file's text, a PDF's pages, and where the quote is

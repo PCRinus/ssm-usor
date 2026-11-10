@@ -10563,6 +10563,15 @@ export type ImportDetailProposalWorkplacesItemFieldSources = {
 
 export type ImportDetailProposalWorkplacesItemSpelling = { [key: string]: string };
 
+export type ImportDetailProposalWorkplacesItemSuggestedItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalWorkplacesItemSuggested = {
+  [key: string]: ImportDetailProposalWorkplacesItemSuggestedItem[];
+};
+
 export type ImportDetailProposalWorkplacesItem = {
   /** @minLength 1 */
   id: string;
@@ -10625,6 +10634,8 @@ export type ImportDetailProposalWorkplacesItem = {
   specificMeasures?: string | null;
   fieldSources?: ImportDetailProposalWorkplacesItemFieldSources;
   spelling?: ImportDetailProposalWorkplacesItemSpelling;
+  officeHasActivity?: boolean;
+  suggested?: ImportDetailProposalWorkplacesItemSuggested;
 };
 
 export type ImportDetailProposalJobPositionsItemSourcesItem = {

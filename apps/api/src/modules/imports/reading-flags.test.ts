@@ -112,6 +112,7 @@ describe('clientReadingFlags', () => {
         fireInstallations: 0,
         protectiveEquipment: 0,
         employees: 0,
+        suggestedValues: 0,
       },
       emptyRequired: ['client.cui'],
       checks: { quote_not_found: 2, missing: 1 },
@@ -174,6 +175,35 @@ describe('clientReadingFlags', () => {
       found: { fireEquipment: 3 },
       proposedValues: 6,
     });
+  });
+
+  it('counts the suggested values, the office with no activity among them', () => {
+    const workplace = (name: string, addressLine: string) => ({
+      name,
+      county: null,
+      locality: 'Cluj-Napoca',
+      addressLine,
+      isRegisteredOffice: name === 'Sediu',
+      activity: null,
+      rooms: [],
+      file: 'Dosar/Decizia 1.docx',
+      quote: name,
+      otherCompany: null,
+    });
+    const proposal = toProposal({
+      ...reading,
+      workplaces: [workplace('Sediu', 'Str. Florilor nr. 3'), workplace('Atelier', 'Str. Morii 1')],
+      workplaceSuggestions: [
+        {
+          workplace: 'Atelier',
+          field: 'ignitionSources' as const,
+          value: 'scule electrice, scântei de la polizor',
+          sources: [{ file: 'Dosar/Evaluare.docx', quote: 'polizor unghiular' }],
+        },
+      ],
+    });
+
+    expect(clientReadingFlags(files, proposal).found).toMatchObject({ suggestedValues: 2 });
   });
 });
 
