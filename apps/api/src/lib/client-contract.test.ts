@@ -42,10 +42,17 @@ const fingerprintOf = (source: string) => {
   return clientContractFingerprint(path);
 };
 
+// Parsing a generated client of some 20,000 lines takes several seconds on a CI runner.
+const parseTimeout = 30_000;
+
 describe('the contract fingerprints', () => {
-  it.each(['app', 'portal'] as const)('are the hash of the generated %s client', (client) => {
-    expect(clientContractFingerprints[client]).toBe(hashOf(client));
-  });
+  it.each(['app', 'portal'] as const)(
+    'are the hash of the generated %s client',
+    (client) => {
+      expect(clientContractFingerprints[client]).toBe(hashOf(client));
+    },
+    parseTimeout
+  );
 
   it('ignore comments', () => {
     const source = `/** Lists the clients. */\nexport const url = '/clients'; // the list\n`;
