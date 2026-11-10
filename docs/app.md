@@ -1653,3 +1653,44 @@ release dated the next day: unread means published after the profile was created
 release is unread for that account alone, and the test removes it afterwards. The test checks
 that the dialog closes for the session while the badge stays, that **Marchează toate ca citite**
 clears the marks and the badge, and that the card opens the release page.
+
+## Reload prompts
+
+An open tab keeps running the build it loaded, so the app tells it when that build is stale
+([ADR 040](architecture/adr-040-client-contract-and-reload-prompts.md)). Everything lives in
+`src/features/reload-prompts/`, mounted once by `App.tsx` beside the toaster, so it also covers
+the full-page states.
+
+- **`/version.json`.** The Vite build writes it with the build's commit
+  (`{"commit":"<sha>"}`), the same value as `VITE_COMMIT_SHA`. The Worker serves it as a static
+  asset, and the tab fetches it with `cache: 'no-store'`.
+- **The toast** (`new-version-toast.ts`). A production build fetches `/version.json` when the
+  tab becomes visible and every ten minutes while it stays visible; never in `pnpm dev` or when
+  the running commit is `local`. A different commit shows a sonner info toast that does not time
+  out, with **Reîncarcă**. Closing it stores the announced commit in `localStorage`, so only a
+  newer build brings it back. A failed fetch says nothing.
+- **The dialog** (`reload-dialog.tsx`, `reload-dialog-store.ts`). `openReloadDialog(cause)`
+  opens it: the shared HTTP client calls it on a `426 client_outdated` (with
+  `unsavedChange` when the refused request was not a GET), and the window's
+  `vite:preloadError` event, cancelled so Vite does not rethrow and TanStack Router does not
+  reload by itself, calls it with `'code_file'`. A route error component can call
+  `isCodeFileError(error)` and then `openReloadDialog('code_file')`; a second call while the
+  dialog is open only adds the unsaved-change line. It has no close button, ignores Escape and
+  outside clicks, and on a phone is a bottom sheet without a handle that cannot be swiped away.
+  **Reîncarcă** stamps the time in `sessionStorage`; a dialog that opens within 60 seconds of
+  that stamp shows the amber state and counts the button down to the end of that minute.
+- **Kept text** (`kept-text.ts`). Text fields and text areas the person typed into are written
+  to `sessionStorage` under the page's path and search when the dialog opens: by `name`, else
+  by an `id` that React did not generate, with the value they held before the typing. Password,
+  hidden, file and read-only fields, fields in an open dialog and anything under `data-no-keep`
+  are left out. After the reload, on the same page, each field gets its text back once it
+  exists and holds that earlier value again, through the element's own value setter and an
+  `input` event so React Hook Form and controlled fields take it; for ten seconds (and three
+  after the last fill) a reset that puts the earlier value back is undone, until the person
+  types in the field. The snapshot is dropped then, or after fifteen minutes. A success toast
+  says so when at least one field came back. The own-instruction form names only the blocks it
+  opened with (`instruction-block-<n>`), since its block ids are counted per visit; blocks added
+  since are not kept.
+- **Events.** `update_toast_shown`, `client_outdated_shown` (`client`, `cause`: `426` or
+  `code_file`), `reload_clicked` (`prompt`: `toast` or `dialog`) and `typed_text_restored`
+  (`count`).
