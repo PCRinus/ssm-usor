@@ -173,6 +173,26 @@ export const comanFire = page({
   ],
 });
 
+// The SU periodic table as it is often filled: the annual test written in the row of that day's
+// periodic training.
+export const trainedAndTested = (parts: Partial<SheetRow> = {}) =>
+  row({
+    domain: 'su',
+    heldOn: '2025-06-10',
+    durationMinutes: 120,
+    annualTest: true,
+    trainerJobTitle: 'Cadru tehnic PSI',
+    material: 'IPSU art. 97–187; IPSU cap. XXIX–XXXII; anexa 1; prezentarea riscurilor; Testare',
+    verifierSignature: 'no_box',
+    ...parts,
+  });
+
+export const comanFirePeriodic = page({
+  pageKind: 'su_periodic',
+  person: { lastName: 'Coman', firstName: 'Daniela' },
+  trainings: [trainedAndTested()],
+});
+
 // Toma Andrei: his name misread on the second page, and a verifier's box left empty.
 export const tomaFront = page({
   pageKind: 'ssm_sheet_front',

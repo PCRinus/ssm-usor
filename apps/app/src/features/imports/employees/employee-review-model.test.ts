@@ -853,4 +853,59 @@ describe('the switches and what confirming writes', () => {
       );
     }
   });
+
+  it('shows a periodic row that records the annual test with the training and the test apart', () => {
+    const both = {
+      testOnly: false,
+      phase: 'periodic',
+      heldOn: '2025-06-10',
+      durationMinutes: 120,
+      material: 'IPSU art. 97–187; prezentarea riscurilor; Testare',
+    };
+    const context = withRows('p3', [annualTest(both)]);
+    const su = () => trainingsByDomain(context(), 'pop').find((each) => each.domain === 'su')!;
+    expect(su().periodic.map(({ row: each }) => each.id)).toEqual(['annual']);
+    expect(su().annualTests.map(({ row: each }) => each.id)).toEqual(['annual']);
+    expect(su().hiring.test).toBeNull();
+
+    const inApp = withRows('p4', [annualTest({ ...both, flags: ['in_app'] })]);
+    const hidden = trainingsByDomain(inApp(), 'lazar').find((each) => each.domain === 'su')!;
+    expect(hidden.periodic).toEqual([]);
+    expect(hidden.annualTests.map(({ row: each }) => each.id)).toEqual(['annual']);
+  });
+
+  it('writes the training and the annual test of one row by their own switches', () => {
+    let base = withTitle(emptyChanges(), 'title-helper', bakerId);
+    base = withWorkplace(base, 'place-none', null);
+    base = checked(base, 'pop');
+    const context = withRows('p3', [
+      annualTest({
+        testOnly: false,
+        phase: 'periodic',
+        heldOn: '2025-06-10',
+        durationMinutes: 120,
+        material: 'IPSU art. 97–187; prezentarea riscurilor; Testare',
+      }),
+    ]);
+    for (const [change, training, test] of [
+      [{}, true, true],
+      [{ test: false }, true, false],
+      [{ included: false }, false, true],
+    ] as const) {
+      const changes = withRow(base, 'annual', () => change);
+      const { payload } = toEmployeePayload({
+        proposal: context(changes).proposal as never,
+        changes: changes as never,
+        records: { jobPositions: [{ id: bakerId }, { id: sellerId }], workplaces, employees: [] },
+        today: '2026-10-31',
+      });
+      const row = context(changes)
+        .proposal.pages.flatMap((page) => page.rows)
+        .find((each) => each.id === 'annual')!;
+      expect(rowIncluded(changes, row, false)).toBe(training);
+      expect(testIncluded(changes, row, false)).toBe(test);
+      expect(payload.trainings.some((each) => each.domain === 'su')).toBe(training);
+      expect(payload.test_results.some((each) => each.test === 'annual')).toBe(test);
+    }
+  });
 });

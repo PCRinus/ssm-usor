@@ -4,6 +4,7 @@ import { type EmployeeImportClient, hiringTestRowIds, toEmployeeProposal } from 
 import {
   cnps,
   comanFire,
+  comanFirePeriodic,
   comanFront,
   comanPeriodic,
   existingPop,
@@ -20,6 +21,7 @@ import {
   today,
   tomaFront,
   tomaPeriodic,
+  trainedAndTested,
   workplaces,
 } from './test/sheets';
 
@@ -197,6 +199,155 @@ describe('toEmployeeProposal', () => {
       verified: true,
       inApp: false,
     });
+  });
+
+  it('reads a periodic row that also records the annual test as the training and its test', () => {
+    const proposal = toEmployeeProposal({
+      pages: pagesOf(comanFront, comanFirePeriodic),
+      client,
+      themes,
+      today,
+    });
+    const [periodic] = proposal.pages[1]!.rows;
+
+    expect(periodic).toMatchObject({
+      domain: 'su',
+      phase: 'periodic',
+      heldOn: '2025-06-10',
+      durationMinutes: 120,
+      testOnly: false,
+      flags: [],
+      proposedIncluded: true,
+    });
+    expect(periodic!.test).toEqual({
+      test: 'annual',
+      takenOn: '2025-06-10',
+      examinerName: 'Barbu Ionuț',
+      examinerJobTitle: 'Cadru tehnic PSI',
+      verified: true,
+      inApp: false,
+    });
+  });
+
+  it('tells a row of the test alone from one that also records a training', () => {
+    const rows = toEmployeeProposal({
+      pages: pagesOf(
+        page({
+          pageKind: 'su_periodic',
+          person: { lastName: 'Coman', firstName: 'Daniela' },
+          trainings: [
+            trainedAndTested({
+              heldOn: '2024-06-10',
+              material: 'Verificarea anuală a cunoștințelor PSI – admis',
+            }),
+            trainedAndTested({ heldOn: '2025-06-10', material: null, durationMinutes: null }),
+            trainedAndTested({ heldOn: '2026-06-10', material: null }),
+            trainedAndTested({ heldOn: '2026-07-10', durationMinutes: null }),
+          ],
+        })
+      ),
+      client,
+      themes,
+      today,
+    }).pages[0]!.rows;
+
+    expect(rows.map((each) => [each.testOnly, each.test?.test])).toEqual([
+      [true, 'annual'],
+      [true, 'annual'],
+      [false, 'annual'],
+      [false, 'annual'],
+    ]);
+  });
+
+  it('takes no annual test from a hiring row whose material says it was tested', () => {
+    const [workplace] = toEmployeeProposal({
+      pages: pagesOf(
+        page({
+          pageKind: 'su_sheet_front',
+          person: { lastName: 'Coman', firstName: 'Daniela' },
+          trainings: [
+            trainedAndTested({
+              phase: 'workplace',
+              material: 'Instruire la locul de muncă, testare',
+            }),
+          ],
+        })
+      ),
+      client,
+      themes,
+      today,
+    }).pages[0]!.rows;
+
+    expect(workplace).toMatchObject({ phase: 'workplace', testOnly: false });
+    expect(workplace!.test?.test).toBe('hiring');
+  });
+
+  it('marks a later row of the test alone on a day whose training row records it as repeated', () => {
+    const rows = toEmployeeProposal({
+      pages: pagesOf(
+        page({
+          pageKind: 'su_periodic',
+          person: { lastName: 'Coman', firstName: 'Daniela' },
+          trainings: [trainedAndTested(), trainedAndTested({ material: 'Testare anuală' })],
+        })
+      ),
+      client,
+      themes,
+      today,
+    }).pages[0]!.rows;
+
+    expect(rows.map((each) => [each.testOnly, each.flags])).toEqual([
+      [false, []],
+      [true, ['repeated']],
+    ]);
+  });
+
+  it('takes the hire date from the SSM sheet, never asking it again for the SU sheet’s', () => {
+    const proposal = toEmployeeProposal({
+      pages: pagesOf(
+        page({
+          pageKind: 'su_sheet_front',
+          person: { lastName: 'Coman', firstName: 'Daniela', cnp: cnps.coman },
+          fields: { hiredAt: '17.03.2022' },
+        }),
+        page({
+          pageKind: 'ssm_sheet_front',
+          person: { lastName: 'Coman', firstName: 'Daniela', cnp: cnps.coman },
+          fields: { hiredAt: '15.03.2022' },
+        })
+      ),
+      client,
+      themes,
+      today,
+    });
+
+    expect(proposal.people[0]!.fields.hiredAt.options).toEqual([
+      { value: '2022-03-15', pageIds: ['page-2'] },
+    ]);
+  });
+
+  it('takes the hire date from the SU sheet when no other page gives one', () => {
+    const proposal = toEmployeeProposal({
+      pages: pagesOf(
+        page({
+          pageKind: 'ssm_sheet_front',
+          person: { lastName: 'Coman', firstName: 'Daniela', cnp: cnps.coman },
+        }),
+        page({
+          pageKind: 'su_sheet_front',
+          person: { lastName: 'Coman', firstName: 'Daniela', cnp: cnps.coman },
+          fields: { hiredAt: '2022-03' },
+        })
+      ),
+      client,
+      themes,
+      today,
+    });
+
+    expect(proposal.people[0]!.fields.hiredAt.options).toEqual([
+      { value: '2022-03-01', pageIds: ['page-2'] },
+    ]);
+    expect(proposal.people[0]!.flags).toContainEqual({ code: 'month_only', field: 'hiredAt' });
   });
 
   it('proposes an unverified hiring test unticked', () => {

@@ -101,6 +101,12 @@ const commutePriority: SheetPageKind[] = [
   ...priority.slice(3),
 ];
 
+// The SU sheet's "admis la lucru" follows its own workplace training, often a day or two after
+// the SSM one, so it is the hire date only where no other page gives one (ADR 032).
+const fallbackKinds: Partial<Record<EmployeeImportFieldName, SheetPageKind[]>> = {
+  hiredAt: ['su_sheet_front', 'su_periodic'],
+};
+
 type FieldValue = string | number;
 
 const nonAscii = (value: FieldValue) =>
@@ -184,38 +190,47 @@ function personFields(pages: readonly ReadPage[], today: string) {
     if (name in page.person) return page.person[name as keyof SheetPage['person']];
     return page.fields[name as keyof SheetPage['fields']] ?? null;
   };
+  const read = (name: EmployeeImportFieldName, { input, reading }: ReadPage) => {
+    const value = written(reading, name);
+    if (value === null) return;
+    if (typeof value === 'number') {
+      if (name === 'commuteMinutes' && Number.isInteger(value) && value >= 1 && value <= 600) {
+        addOption(name, fields[name], value, input.id);
+      }
+      return;
+    }
+    if (dateFields.has(name)) {
+      const date = sheetDate(value, today);
+      if (!date) return;
+      if (
+        date.monthOnly &&
+        !flags.some((flag) => flag.code === 'month_only' && flag.field === name)
+      ) {
+        flags.push({ code: 'month_only', field: name });
+      }
+      addOption(name, fields[name], date.date, input.id);
+      return;
+    }
+    const cleaned = titledFields.has(name) ? titled(value) : text(value);
+    if (cleaned === null) return;
+    addOption(
+      name,
+      fields[name],
+      name === 'cnp' ? (compactCnp(cleaned) ?? cleaned) : cleaned,
+      input.id
+    );
+  };
   for (const name of employeeImportFieldNames) {
     if (name === 'bloodGroup' || name === 'rhFactor') continue;
     const order = name.startsWith('commute') ? commutePriority : priority;
-    for (const { input, reading } of ordered(order)) {
-      const value = written(reading, name);
-      if (value === null) continue;
-      if (typeof value === 'number') {
-        if (name === 'commuteMinutes' && Number.isInteger(value) && value >= 1 && value <= 600) {
-          addOption(name, fields[name], value, input.id);
-        }
-        continue;
-      }
-      if (dateFields.has(name)) {
-        const date = sheetDate(value, today);
-        if (!date) continue;
-        if (
-          date.monthOnly &&
-          !flags.some((flag) => flag.code === 'month_only' && flag.field === name)
-        ) {
-          flags.push({ code: 'month_only', field: name });
-        }
-        addOption(name, fields[name], date.date, input.id);
-        continue;
-      }
-      const cleaned = titledFields.has(name) ? titled(value) : text(value);
-      if (cleaned === null) continue;
-      addOption(
-        name,
-        fields[name],
-        name === 'cnp' ? (compactCnp(cleaned) ?? cleaned) : cleaned,
-        input.id
-      );
+    const fallback = fallbackKinds[name] ?? [];
+    const pagesInOrder = ordered(order);
+    for (const page of pagesInOrder) {
+      if (!fallback.includes(page.reading.pageKind)) read(name, page);
+    }
+    if (fields[name].options.length > 0) continue;
+    for (const page of pagesInOrder) {
+      if (fallback.includes(page.reading.pageKind)) read(name, page);
     }
   }
   for (const { input, reading } of ordered(priority)) {
@@ -281,6 +296,27 @@ function examinerOf(row: ProposedSheetRow) {
   return { examinerName: row.trainerName, examinerJobTitle: row.trainerJobTitle };
 }
 
+// The words a row recording only the yearly test writes in its material ("Testare anuală a
+// cunoștințelor PSI – admis"); anything else names a training held with it.
+const testWords =
+  /^(?:test\w*|verific\w*|evalu\w*|examin\w*|chestionar\w*|grila|scris|oral|anual\w*|cunostint\w*|nivel\w*|admis|promovat|calificativ\w*|nota|rezultat\w*|su|psi|ssm|situatii|urgenta|incendi\w*|de|a|al|ale|la|si|privind|pe|in|din|cu|pentru)$/;
+
+const materialWords = (material: string | null) =>
+  foldText(material ?? '')
+    .split(/[^a-z]+/)
+    .filter((word) => word !== '');
+
+/**
+ * Whether a row marked as the annual test also records that day's periodic training: its
+ * material names more than the test, or it gives a duration with no material saying it is the
+ * test alone.
+ */
+function recordsTraining(row: Pick<SheetRow, 'material' | 'durationMinutes'>) {
+  const words = materialWords(row.material);
+  if (words.some((word) => !testWords.test(word))) return true;
+  return words.length === 0 && row.durationMinutes !== null && row.durationMinutes > 0;
+}
+
 interface PersonContext {
   hiredAt: string | null;
   jobPositionId: string | null;
@@ -300,11 +336,16 @@ function readRow(
   builder: RowBuilder
 ): ProposedSheetRow {
   const date = sheetDate(row.heldOn, builder.today);
-  const testOnly = row.domain === 'su' && row.annualTest;
+  const training = recordsTraining(row);
+  // Art. 30 of OMAI 712/2005 records the yearly test in the periodic table; a hiring row that
+  // reads "testare" is closed by the hiring test instead.
+  const annualTest =
+    row.domain === 'su' && row.annualTest && (!training || row.phase === 'periodic');
+  const testOnly = annualTest && !training;
   const proposed: ProposedSheetRow = {
     id: builder.nextId(),
     domain: row.domain,
-    phase: testOnly ? 'periodic' : row.phase,
+    phase: annualTest ? 'periodic' : row.phase,
     heldOn: date?.date ?? null,
     durationMinutes:
       row.durationMinutes !== null && row.durationMinutes > 0 ? row.durationMinutes : null,
@@ -389,7 +430,7 @@ function readRow(
 
   // Every row of a phase the hiring test closes keeps what its verifier box shows, so the row
   // that carries the test can be chosen again once pages move between people.
-  if (!testOnly && testPhases[proposed.domain].includes(proposed.phase)) {
+  if (!annualTest && testPhases[proposed.domain].includes(proposed.phase)) {
     proposed.test = {
       test: 'hiring',
       takenOn: proposed.heldOn,
@@ -401,7 +442,7 @@ function readRow(
         ) ?? false,
     };
   }
-  if (testOnly) {
+  if (annualTest) {
     proposed.test = {
       test: 'annual',
       takenOn: proposed.heldOn,
@@ -440,6 +481,7 @@ function markRepeats(rows: ProposedSheetRow[], existing: ExistingEmployee | null
       row.proposedIncluded = false;
     }
     seen.add(key);
+    if (row.test?.test === 'annual') seen.add(`${row.domain}|test|${row.heldOn}`);
   }
   return inApp;
 }

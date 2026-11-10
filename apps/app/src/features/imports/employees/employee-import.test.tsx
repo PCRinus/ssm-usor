@@ -459,6 +459,35 @@ describe('the person page', () => {
     expect(test.textContent).toContain('promovat pe fișă');
   });
 
+  it('shows a periodic row that records the annual test as the training and its test', async () => {
+    const trainedAndTested = sheetRow('r9', {
+      domain: 'su',
+      heldOn: '2025-06-10',
+      material: 'IPSU art. 97–187; prezentarea riscurilor; Testare',
+      test: {
+        test: 'annual',
+        takenOn: '2025-06-10',
+        examinerName: 'Barbu Ionuț',
+        examinerJobTitle: 'Cadru tehnic PSI',
+        verified: true,
+        inApp: false,
+      },
+    });
+    mockEmployeeImport({ detail: popWith({}, [trainedAndTested]) });
+    mount(`${importPath}/pop`);
+    const su = await screen.findByTestId('person-trainings-su');
+    expect(
+      within(su).getByRole('switch', { name: /^Inclusă: Instruirea periodică din / })
+    ).toBeTruthy();
+    const test = within(su).getByTestId('person-annual-test');
+    expect(
+      within(test).getByRole('switch', { name: /^Inclus: Testul anual SU, la / })
+    ).toBeTruthy();
+    expect(within(test).getByTestId('person-annual-test-with-training').textContent).toContain(
+      'în rândul instruirii periodice din aceeași zi'
+    );
+  });
+
   it('collapses a training switched off to one line with no buttons, and opens it again', async () => {
     mockEmployeeImport();
     const user = userEvent.setup();

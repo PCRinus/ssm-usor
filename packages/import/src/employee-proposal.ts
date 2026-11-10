@@ -160,8 +160,9 @@ export const proposedSheetRowSchema = z.object({
   fromThemes: z.array(z.enum(themeFillableFields)),
   // A row that records a test and no training: the fire-safety annual test.
   testOnly: z.boolean(),
-  // The paper test the row records: the annual one, or the hiring test on every row of a phase
-  // the test closes, of which `hiringTestRowIds` picks the one written.
+  // The paper test the row records: the annual one, alone or with that day's periodic training,
+  // or the hiring test on every row of a phase the test closes, of which `hiringTestRowIds` picks
+  // the one written.
   test: paperTestSchema.nullable(),
   flags: z.array(z.enum(rowFlagCodes)),
   proposedIncluded: z.boolean(),
