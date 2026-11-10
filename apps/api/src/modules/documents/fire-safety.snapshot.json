@@ -14,6 +14,36 @@
     "representativeRole": "Administrator"
   },
   "controlDecision": false,
+  "extinguisherRegister": {
+    "blankRows": [
+      {},
+      {},
+      {},
+      {}
+    ],
+    "rows": [
+      {
+        "place": "Atelier Ghiroda – Hala de producție",
+        "type": "P6 – Pulbere, 6 kg, nr. inventar 0012"
+      },
+      {
+        "place": "Atelier Ghiroda – Hala de producție",
+        "type": "P6 – Pulbere, 6 kg, nr. inventar 0013"
+      },
+      {
+        "place": "Atelier Ghiroda – Magazie",
+        "type": "G5 – Dioxid de carbon (CO₂), 5 kg"
+      },
+      {
+        "place": "Atelier Ghiroda",
+        "type": "P50 – Pulbere, 50 kg, carosabil"
+      },
+      {
+        "place": "Sediul social",
+        "type": "SM9 – Spumă mecanică, 9 l"
+      }
+    ]
+  },
   "fire": {
     "annualReport": {
       "allGenerated": false,
@@ -266,7 +296,7 @@
             "who": "Florin Cristian TALOȘ, coordonatorul privind apărarea împotriva incendiilor, cu cadrul tehnic, după caz"
           },
           {
-            "basis": "OMAI 135/2023 – art. 9; următorul service: 15.01.2027 și 12.03.2027",
+            "basis": "OMAI 135/2023 – art. 9; ultimul service: 15.01.2026 și 12.03.2026; următorul service: 15.01.2027 și 12.03.2027",
             "interval": "anual",
             "what": "Verificarea stingătoarelor de către o firmă atestată (P6 – 2 buc.)",
             "who": "S.C. FOC STOP S.R.L."
@@ -997,6 +1027,7 @@
         "hasExteriorHydrants": true,
         "hasInstallations": true,
         "hasInteriorHydrants": false,
+        "hasPlaces": true,
         "ignitionSources": "Arcul electric, scântei de la polizare",
         "installations": [
           {
@@ -1010,6 +1041,28 @@
           "jobTitleRunOn": "administrator",
           "name": "Florin Cristian TALOȘ"
         },
+        "meansByPlace": [
+          {
+            "count": 1,
+            "means": "Ladă cu nisip",
+            "place": "Curte"
+          },
+          {
+            "count": 2,
+            "means": "Stingător P6 – Pulbere, 6 kg",
+            "place": "Hala de producție"
+          },
+          {
+            "count": 1,
+            "means": "Stingător G5 – Dioxid de carbon (CO₂), 5 kg",
+            "place": "Magazie"
+          },
+          {
+            "count": 1,
+            "means": "Stingător P50 – Pulbere, 50 kg, carosabil",
+            "place": "—"
+          }
+        ],
         "name": "Atelier Ghiroda",
         "normLabel": "Alte amenajări (1 buc./150 m²)",
         "otherEquipment": [
@@ -1065,6 +1118,7 @@
         "hasExteriorHydrants": false,
         "hasInstallations": true,
         "hasInteriorHydrants": true,
+        "hasPlaces": false,
         "ignitionSources": "Instalația electrică",
         "installations": [
           {
@@ -1082,6 +1136,7 @@
           "jobTitleRunOn": "administrator",
           "name": "Florin Cristian TALOȘ"
         },
+        "meansByPlace": [],
         "name": "Sediul social",
         "normLabel": "Clădiri administrative (1 buc./300 m²)",
         "otherEquipment": [
@@ -1181,6 +1236,29 @@
     "workplaceNames": "Sediul social, Atelier Ghiroda"
   },
   "installationRegister": false,
+  "installationSheets": [
+    {
+      "first": true,
+      "maintainer": "",
+      "name": "Hidranți exteriori – Doi hidranți în curte",
+      "number": "1",
+      "place": "Atelier Ghiroda"
+    },
+    {
+      "first": false,
+      "maintainer": "S.C. ALARM SERVICE S.R.L.",
+      "name": "Instalație de detectare, semnalizare și avertizare la incendiu",
+      "number": "2",
+      "place": "Sediul social"
+    },
+    {
+      "first": false,
+      "maintainer": "",
+      "name": "Hidranți interiori – Câte unul pe nivel",
+      "number": "3",
+      "place": "Sediul social"
+    }
+  ],
   "issueDate": "19.01.2026",
   "knowledgeTests": {
     "fire_test_annual": {

@@ -36,7 +36,15 @@ import {
   months,
   printedDate,
 } from './context';
-import { extinguisherGroups, firmsOf, isGasAgent, otherEquipmentGroups } from './equipment';
+import {
+  extinguisherGroups,
+  extinguishersByPlace,
+  extinguisherText,
+  firmsOf,
+  isGasAgent,
+  meansByPlace,
+  otherEquipmentGroups,
+} from './equipment';
 import { type ContextParts, gapRules } from './gaps';
 import { installationParts, installationText } from './installations';
 import { knowledgeTestData, type PrintedTest, printedTests } from './knowledge-tests';
@@ -105,6 +113,11 @@ export type FireSafetyClientFacts = {
     /** Kilograms or litres. */
     capacity: number | null;
     wheeled: boolean;
+    /** The inventory number. */
+    label: string | null;
+    location: string | null;
+    manufacturedYear: number | null;
+    lastServiceOn: string | null;
     nextServiceOn: string | null;
     maintainer: string | null;
   }[];
@@ -189,6 +202,9 @@ type FireWorkplaceContext = {
   }[];
   extinguisherCount: number;
   otherEquipment: { kindLabel: string; count: number }[];
+  /** Per location and type, only where some unit has one; the units without one under "—". */
+  meansByPlace: { place: string; means: string; count: number }[];
+  hasPlaces: boolean;
   installations: { kindLabel: string; description: string }[];
   /** Detection and gas detection, which the posted sheet lists with the means of alarm. */
   alarmInstallations: { kindLabel: string; description: string }[];
@@ -260,6 +276,25 @@ type FireScheduleContext = {
   rows: FireScheduleRow[];
   hasRows: boolean;
   empty: boolean;
+};
+
+/**
+ * A row per extinguisher, then blank rows: the sheet is printed again for every monthly control,
+ * and its producer, checks and remedies are written in by hand.
+ */
+type ExtinguisherRegisterContext = {
+  rows: { type: string; place: string }[];
+  blankRows: Record<string, never>[];
+};
+
+/** Empty texts on the one blank sheet a client without installations gets. */
+type InstallationSheetContext = {
+  /** Every sheet after the first opens a page. */
+  first: boolean;
+  number: string;
+  name: string;
+  place: string;
+  maintainer: string;
 };
 
 /** Every text of the data sheet as typed, or the mark the editor finds when it is empty. */
@@ -365,6 +400,12 @@ export type FireSafetyContext = {
   seasonsDecision: boolean;
   controlDecision: boolean;
   installationRegister: boolean;
+  /**
+   * The registers 6.4 and 6.3 print the inventory. Top level, not in `fire`, so that their drafts
+   * change with the units alone and generate without the facts `fire` waits for.
+   */
+  extinguisherRegister: ExtinguisherRegisterContext;
+  installationSheets: InstallationSheetContext[];
   /**
    * The fire-safety modules the positions apply, each once, in group and title order: what the
    * own instructions 2.1 annex (ADR 012, amendment of 2026-10-11). Top level, as in the other
@@ -544,6 +585,8 @@ function fireSafetyContextParts(facts: FireSafetySetFacts): ContextParts<FireSaf
     seasonsDecision: () => inSet('fire_decision_seasons'),
     controlDecision: () => inSet('fire_decision_control'),
     installationRegister: () => inSet('fire_installation_register'),
+    extinguisherRegister: () => extinguisherRegister(facts),
+    installationSheets: () => installationSheets(facts),
     annexes: () => annexedModules(facts, 'su'),
     noAnnexes: () => annexedModules(facts, 'su').length === 0,
     fireThemes: () => fireThemes(facts),
@@ -724,6 +767,7 @@ function fireContext(
       : (manager?.name ?? interventionLeader.name);
     const hasAreaAndNorm = workplaceHasAreaAndNorm(workplace.kind);
     const norm = hasAreaAndNorm ? fireExtinguisherNormLabels[workplace.extinguisherNorm!] : null;
+    const placed = meansByPlace(units);
     const extinguishers = extinguisherGroups(units).map((group) => ({
       code: group.code,
       agentLabel: fireExtinguishingAgentLabels[group.agent],
@@ -755,6 +799,8 @@ function fireContext(
         kindLabel: group.label,
         count: group.units.length,
       })),
+      meansByPlace: placed,
+      hasPlaces: placed.length > 0,
       installations: installations.map((installation) =>
         installationParts(installation.kind, installation.description)
       ),
@@ -875,6 +921,61 @@ function fireContext(
   };
 }
 
+// The nine rows of the form as it was drawn blank, and room for a few units more.
+const registerRows = 9;
+const spareRegisterRows = 3;
+
+function extinguisherRegister({
+  workplaces,
+  fireSafety,
+}: Pick<FireSafetySetFacts, 'workplaces' | 'fireSafety'>): ExtinguisherRegisterContext {
+  const named = workplaces.length > 1;
+  const rows = workplaces.flatMap((workplace) =>
+    extinguishersByPlace(
+      fireSafety.equipment.filter((unit) => unit.workplaceId === workplace.id)
+    ).map((unit) => {
+      const label = unit.label?.trim();
+      const location = unit.location?.trim();
+      return {
+        type: label ? `${extinguisherText(unit)}, nr. inventar ${label}` : extinguisherText(unit),
+        place: [named ? workplace.name.trim() : null, location || null]
+          .filter((part) => part !== null)
+          .join(' – '),
+      };
+    })
+  );
+  return {
+    rows,
+    blankRows: Array.from(
+      { length: Math.max(spareRegisterRows, registerRows - rows.length) },
+      () => ({})
+    ),
+  };
+}
+
+function installationSheets({
+  workplaces,
+  fireSafety,
+}: Pick<FireSafetySetFacts, 'workplaces' | 'fireSafety'>): InstallationSheetContext[] {
+  const sheets = workplaces.flatMap((workplace) =>
+    fireSafety.installations
+      .filter((installation) => installation.workplaceId === workplace.id)
+      .map((installation) => ({
+        name: installationText(installation.kind, installation.description),
+        place: workplace.name.trim(),
+        maintainer: installation.maintainer?.trim() ?? '',
+      }))
+  );
+  if (sheets.length === 0) {
+    return [{ first: true, number: '', name: '', place: '', maintainer: '' }];
+  }
+  return sheets.map((sheet, index) => ({
+    first: index === 0,
+    number: String(index + 1),
+    ...sheet,
+  }));
+}
+
 const printedOrGap = (text: string | null) => text?.trim() || unfilledMark;
 
 function fireSubstances({
@@ -962,18 +1063,19 @@ function fireSchedule({
               ]
             : []),
           ...groups.map((group) => {
-            const dates = [
-              ...new Set(
-                group.units.flatMap((unit) => (unit.nextServiceOn ? [unit.nextServiceOn] : []))
-              ),
-            ]
-              .sort()
-              .map(printedDate);
+            const datesOf = (date: (unit: (typeof group.units)[number]) => string | null) =>
+              [...new Set(group.units.flatMap((unit) => date(unit) ?? []))].sort().map(printedDate);
+            const last = datesOf((unit) => unit.lastServiceOn);
+            const next = datesOf((unit) => unit.nextServiceOn);
             return {
               what: `Verificarea stingătoarelor de către o firmă atestată (${counted([group])})`,
               interval: 'anual',
               who: maintainedBy(group.units.map((unit) => unit.maintainer)),
-              basis: `OMAI 135/2023 – art. 9; ${dates.length > 0 ? `următorul service: ${listed(dates)}` : producerTerms}`,
+              basis: [
+                'OMAI 135/2023 – art. 9',
+                ...(last.length > 0 ? [`ultimul service: ${listed(last)}`] : []),
+                next.length > 0 ? `următorul service: ${listed(next)}` : producerTerms,
+              ].join('; '),
             };
           }),
           {
