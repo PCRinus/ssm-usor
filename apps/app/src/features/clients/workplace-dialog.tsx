@@ -187,7 +187,7 @@ function WorkplaceForm({
     name: ['countyCode', 'kind', 'extinguisherNorm', 'isRegisteredOffice', 'officeHasActivity'],
   });
   const hasAreaAndNorm = workplaceHasAreaAndNorm(kind);
-  // The import's review is to propose the answer itself, in a later step of ADR 041.
+  // The import's review asks the office's activity as a decision of its own.
   const asksActivity = !draft && isRegisteredOffice;
   const carriesFireSafety = !asksActivity || officeHasActivity;
 
