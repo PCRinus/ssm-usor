@@ -119,7 +119,19 @@ function mockEmployeeImport({
       return response;
     }
     if (url.pathname === `/imports/${importId}/source`) {
-      return Response.json({}, { status: 404 });
+      const file = url.searchParams.get('file')!;
+      return Response.json({
+        fileId: file,
+        uploadPath: file,
+        fileName: file,
+        page: null,
+        original: { url: `https://storage.test/${file}` },
+        derived: { url: `https://storage.test/derived/${file}` },
+        text: null,
+        pages: null,
+        match: null,
+        expiresInSeconds: 300,
+      });
     }
     if (url.pathname === '/imports') {
       return Response.json({
@@ -590,6 +602,82 @@ describe('the person page', () => {
     await user.click(screen.getByTestId('person-next'));
     await waitFor(() => expect(screen.getByTestId('person-page').dataset.state).toBe('to_check'));
     expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(1);
+  });
+
+  it('opens the photograph beside the values large, on a click or with its button', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const photos = await screen.findByTestId('person-photos');
+    await user.click(await within(photos).findByTestId('sheet-page-image'));
+    let preview = await screen.findByTestId('photo-preview');
+    expect(within(preview).getByTestId('photo-preview-position').textContent).toBe('1 din 2');
+    expect((await within(preview).findByRole<HTMLImageElement>('img')).src).toBe(
+      'https://storage.test/derived/IMG_p1.jpg'
+    );
+    expect(within(preview).queryByTestId('photo-enlarge')).toBeNull();
+    await user.click(within(preview).getByTestId('photo-preview-next'));
+    expect(within(preview).getByTestId('photo-preview-position').textContent).toBe('2 din 2');
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('photo-preview')).toBeNull());
+
+    within(photos).getByTestId('photo-enlarge').focus();
+    await user.keyboard('{Enter}');
+    preview = await screen.findByTestId('photo-preview');
+    expect(within(preview).getByTestId('photo-preview-position').textContent).toBe('2 din 2');
+  });
+
+  it('takes a value of its own where the sheets disagree, and checks the person with it', async () => {
+    const base = employeeDetail();
+    const proposal = base.employees!.proposal;
+    mockEmployeeImport({
+      detail: employeeDetail({
+        employees: {
+          ...base.employees!,
+          proposal: {
+            ...proposal,
+            people: proposal.people.map((each) =>
+              each.id === 'pop'
+                ? {
+                    ...each,
+                    fields: {
+                      ...each.fields,
+                      hiredAt: {
+                        options: [
+                          { value: '2023-05-02', pageIds: ['p3'] },
+                          { value: '2023-02-05', pageIds: ['p3'] },
+                        ],
+                      },
+                    },
+                  }
+                : each
+            ),
+          },
+        },
+      }),
+    });
+    const user = userEvent.setup();
+    mount(`${importPath}/pop`);
+    const card = await screen.findByTestId('person-decide-choice-hiredAt');
+    expect(screen.getByTestId('person-decisions').textContent).toContain(
+      'Data angajării: fișele scriu valori diferite'
+    );
+    await user.click(within(card).getByTestId('person-choice-other'));
+    await user.type(within(card).getByLabelText('Data angajării'), '01.04.2023');
+    await user.click(within(card).getByTestId('person-choice-other-use'));
+    await waitFor(() => expect(screen.queryByTestId('person-decisions')).toBeNull());
+    expect(screen.getByTestId('person-fields-employment').textContent).toContain('01.04.2023');
+
+    await user.click(screen.getByTestId('person-next'));
+    await waitFor(() =>
+      expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT').length).toBeGreaterThan(0)
+    );
+    await waitFor(() =>
+      expect(
+        saved(requestsTo(`/imports/${importId}/employee-changes`, 'PUT').length - 1).changes.people
+          .pop
+      ).toEqual({ state: 'checked', fields: { hiredAt: { value: '2023-04-01' } } })
+    );
   });
 
   it('chooses a post on Enter, not on an arrow key moving through the options', async () => {

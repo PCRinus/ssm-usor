@@ -1,4 +1,4 @@
-import { bloodGroups, isValidCnp, rhFactors } from '@ssm-usor/contracts';
+import { bloodGroups, rhFactors } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card } from '@ssm-usor/ui/components/card';
 import {
@@ -32,10 +32,17 @@ import {
   resolveField,
   type ReviewContext,
   withField,
-  withPersonChange,
 } from './employee-review-model';
-import { compareWithApp, dateFields, rhLabels, showValue } from './person-values';
+import {
+  compareWithApp,
+  dateFields,
+  fieldProblem,
+  rhLabels,
+  showValue,
+  typedValue,
+} from './person-values';
 import { PageButton } from './photo-column';
+import { withFields } from './review-changes';
 
 type Update = (mutate: (current: Changes) => Changes) => void;
 
@@ -68,21 +75,6 @@ export type FieldGroup = keyof typeof groups;
 function shownField(context: ReviewContext, person: Person, name: FieldName): ResolvedField {
   const field = resolveField(context, person, name);
   return name === 'cnp' ? { ...field, value: effectiveCnp(context, person) } : field;
-}
-
-function withFields(
-  changes: Changes,
-  personId: string,
-  values: Partial<Record<FieldName, FieldValue | null>>
-) {
-  const written = Object.entries(values).reduce(
-    (current, [name, value]) => withField(current, personId, name as FieldName, { value }),
-    changes
-  );
-  // A CNP written over the offered correction is the one confirming takes.
-  return 'cnp' in values
-    ? withPersonChange(written, personId, (change) => ({ ...change, cnpCorrection: undefined }))
-    : written;
 }
 
 function FieldRow({
@@ -178,6 +170,73 @@ const lengthLimits: Partial<Record<FieldName, number>> = {
   commuteRoute: 1000,
 };
 
+export function FieldInput({
+  id,
+  name,
+  value,
+  onChange,
+  invalid,
+  describedBy,
+  autoFocus,
+  className,
+}: {
+  id: string;
+  name: FieldName;
+  value: string;
+  onChange: (value: string) => void;
+  invalid?: boolean;
+  describedBy?: string;
+  autoFocus?: boolean;
+  className?: string;
+}) {
+  if (dateFields.has(name)) {
+    return (
+      <DatePicker
+        id={id}
+        value={value}
+        invalid={invalid}
+        describedBy={describedBy}
+        className={className}
+        onChange={onChange}
+      />
+    );
+  }
+  if (name === 'bloodGroup' || name === 'rhFactor') {
+    const options = name === 'bloodGroup' ? bloodGroups : rhFactors;
+    return (
+      <NativeSelect
+        id={id}
+        value={value}
+        aria-invalid={invalid}
+        aria-describedby={describedBy}
+        autoFocus={autoFocus}
+        className={className}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        <NativeSelectOption value="">—</NativeSelectOption>
+        {options.map((option) => (
+          <NativeSelectOption key={option} value={option}>
+            {name === 'rhFactor' ? `Rh ${rhLabels[option]}` : option}
+          </NativeSelectOption>
+        ))}
+      </NativeSelect>
+    );
+  }
+  return (
+    <Input
+      id={id}
+      value={value}
+      inputMode={name === 'commuteMinutes' || name === 'cnp' ? 'numeric' : undefined}
+      maxLength={lengthLimits[name]}
+      aria-invalid={invalid}
+      aria-describedby={describedBy}
+      autoFocus={autoFocus}
+      className={className}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  );
+}
+
 function FieldsDialog({
   context,
   person,
@@ -200,25 +259,17 @@ function FieldsDialog({
     })
   ) as Record<FieldName, string>;
   const [values, setValues] = useState(initial);
-  const minutes = values.commuteMinutes;
-  const minutesInvalid =
-    names.includes('commuteMinutes') &&
-    minutes !== '' &&
-    !(/^\d+$/.test(minutes) && Number(minutes) >= 1 && Number(minutes) <= 600);
-  const cnpInvalid =
-    names.includes('cnp') &&
-    values.cnp !== initial.cnp &&
-    values.cnp.trim() !== '' &&
-    !isValidCnp(values.cnp.trim());
+  const problems = Object.fromEntries(
+    names.map((name) => [name, fieldProblem(name, values[name], initial[name])])
+  ) as Record<FieldName, string | null>;
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (minutesInvalid || cnpInvalid) return;
+    if (names.some((name) => problems[name])) return;
     const changed: Partial<Record<FieldName, FieldValue | null>> = {};
     for (const name of names) {
       if (values[name] === initial[name]) continue;
-      const text = values[name].trim();
-      changed[name] = text === '' ? null : name === 'commuteMinutes' ? Number(text) : text;
+      changed[name] = typedValue(name, values[name]);
     }
     onSave(changed);
     onClose();
@@ -242,56 +293,22 @@ function FieldsDialog({
           <DialogBody className="mt-4 grid gap-4 sm:grid-cols-2">
             {names.map((name) => {
               const id = `person-field-${name}`;
-              const label = fieldTitles[name];
-              if (dateFields.has(name)) {
-                return (
-                  <Field key={name} id={id} label={label} mark={mark(name)}>
-                    <DatePicker id={id} value={values[name]} onChange={(next) => set(name, next)} />
-                  </Field>
-                );
-              }
-              if (name === 'bloodGroup' || name === 'rhFactor') {
-                const options = name === 'bloodGroup' ? bloodGroups : rhFactors;
-                return (
-                  <Field key={name} id={id} label={label} mark={mark(name)}>
-                    <NativeSelect
-                      id={id}
-                      value={values[name]}
-                      onChange={(event) => set(name, event.target.value)}
-                    >
-                      <NativeSelectOption value="">—</NativeSelectOption>
-                      {options.map((option) => (
-                        <NativeSelectOption key={option} value={option}>
-                          {name === 'rhFactor' ? `Rh ${rhLabels[option]}` : option}
-                        </NativeSelectOption>
-                      ))}
-                    </NativeSelect>
-                  </Field>
-                );
-              }
+              const problem = problems[name];
               return (
                 <Field
                   key={name}
                   id={id}
-                  label={label}
+                  label={fieldTitles[name]}
                   mark={mark(name)}
-                  error={
-                    name === 'commuteMinutes' && minutesInvalid
-                      ? { type: 'range', message: 'Scrie un număr de minute între 1 și 600.' }
-                      : name === 'cnp' && cnpInvalid
-                        ? {
-                            type: 'validate',
-                            message: 'CNP-ul nu e valid. Verifică cele 13 cifre.',
-                          }
-                        : undefined
-                  }
+                  error={problem ? { type: 'validate', message: problem } : undefined}
                 >
-                  <Input
+                  <FieldInput
                     id={id}
+                    name={name}
                     value={values[name]}
-                    inputMode={name === 'commuteMinutes' || name === 'cnp' ? 'numeric' : undefined}
-                    maxLength={lengthLimits[name]}
-                    onChange={(event) => set(name, event.target.value)}
+                    invalid={Boolean(problem)}
+                    describedBy={problem ? `${id}-error` : undefined}
+                    onChange={(next) => set(name, next)}
                   />
                 </Field>
               );

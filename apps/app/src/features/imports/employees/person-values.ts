@@ -1,3 +1,5 @@
+import { isValidCnp } from '@ssm-usor/contracts';
+
 import {
   differs as differ,
   type FieldName,
@@ -46,3 +48,24 @@ export function compareWithApp(context: ReviewContext, person: Person) {
   }
   return { added, differs, same };
 }
+
+export function fieldProblem(name: FieldName, value: string, initial = '') {
+  const text = value.trim();
+  if (
+    name === 'commuteMinutes' &&
+    text !== '' &&
+    !(/^\d+$/.test(text) && Number(text) >= 1 && Number(text) <= 600)
+  ) {
+    return 'Scrie un număr de minute între 1 și 600.';
+  }
+  if (name === 'cnp' && value !== initial && text !== '' && !isValidCnp(text)) {
+    return 'CNP-ul nu e valid. Verifică cele 13 cifre.';
+  }
+  return null;
+}
+
+export const typedValue = (name: FieldName, value: string): FieldValue | null => {
+  const text = value.trim();
+  if (text === '') return null;
+  return name === 'commuteMinutes' ? Number(text) : text;
+};
