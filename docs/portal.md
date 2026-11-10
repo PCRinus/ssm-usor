@@ -217,6 +217,31 @@ because `/portal/me` does not send it. Page views, clicks, unhandled errors, fai
 (`api_request_failed`) and sessions are captured; replays mask all text, inputs and element
 attributes. There is no Support widget. Sign-out resets the identity and stops recording.
 
+## New builds and an outdated portal
+
+[ADR 040](architecture/adr-040-client-contract-and-reload-prompts.md) gives the portal the
+app's two prompts, worded for a participant (`src/features/reload`):
+
+- **A toast** when a newer build is deployed. The build writes `/version.json` with its commit
+  (`VITE_COMMIT_SHA`); an open tab fetches it without cache when it becomes visible and every
+  ten minutes while visible, never in a local or dev build. The toast does not time out, has
+  **Reîncarcă**, and once closed waits for a build newer than the one it announced. The
+  toaster sits above the phone's bottom bar (`--portal-toast-bottom` in `src/styles.css`).
+- **A dialog** when the API answers `426 client_outdated` (`onClientOutdated` in
+  `src/api/http.ts`) or a route's code file fails to load (`vite:preloadError`). It cannot be
+  closed, never reloads by itself, and on a phone sits at the bottom like a sheet. Its line of
+  reassurance follows the page, which sets it with `useReloadContext`: during a test, the
+  answers before the current question are saved (each is saved on **Continuă**); while signing,
+  nothing is signed yet; elsewhere, nothing already sent is lost. Opened within a minute of a
+  reload it started, it says the update is still running and counts **Reîncarcă** down to the
+  end of that minute.
+
+The portal does not keep typed text across the reload, as the app does: its only text fields
+are the sign-in address, the one-time codes, which expire, and the name filter of _Angajați_.
+
+PostHog receives `update_toast_shown`, `client_outdated_shown` (`client: 'portal'`, `cause`
+`426` or `code_file`) and `reload_clicked` (`prompt` `toast` or `dialog`).
+
 ## Browser flows
 
 ```bash
