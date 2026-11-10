@@ -231,8 +231,13 @@ app's two prompts, worded for a participant (`src/features/reload`):
   `src/api/http.ts`) or a route's code file fails to load (`vite:preloadError`). It cannot be
   closed, never reloads by itself, and on a phone sits at the bottom like a sheet. Its line of
   reassurance follows the page, which sets it with `useReloadContext`: during a test, the
-  answers before the current question are saved (each is saved on **Continuă**); while signing,
-  nothing is signed yet; elsewhere, nothing already sent is lost. Opened within a minute of a
+  answers before the current question are saved (each is saved on **Continuă**), or, when the
+  sending of the test is refused, all of them; while signing, nothing is signed yet, or, after a
+  partial signing on the same page, what is signed stays signed; elsewhere, nothing already sent
+  is lost. A request the page makes right after changing what is true (the sending after the
+  last answer is saved) sets the line through the setter `useReloadContext` returns, since the
+  next render would come too late. The pages show no error notice of their own for a `426`: the
+  dialog speaks. Opened within a minute of a
   reload it started, it says the update is still running and counts **Reîncarcă** down to the
   end of that minute.
 
