@@ -13,6 +13,7 @@ import { type ReactNode, useEffect, useState } from 'react';
 
 import { ApiHttpError } from '@/api/http';
 import { EmptyState } from '@/components/empty-state';
+import { isCodeFileError, openReloadDialog } from '@/features/reload-prompts/reload-dialog-store';
 
 import { appVersion } from './build-version';
 import { useShellReportProblem } from './report-problem-context';
@@ -101,6 +102,10 @@ export function RouteError({
   const version = appVersion();
   const time = timeFormat.format(failedAt);
   const note = `Menționează în mesaj pagina ${pathname}, versiunea ${version} și ora ${time}.`;
+
+  useEffect(() => {
+    if (isCodeFileError(error)) openReloadDialog('code_file');
+  }, [error]);
 
   const card = (
     <ProblemCard

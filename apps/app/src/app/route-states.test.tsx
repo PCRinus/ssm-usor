@@ -10,6 +10,10 @@ import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiHttpError } from '@/api/http';
+import {
+  resetReloadDialog,
+  useReloadDialogState,
+} from '@/features/reload-prompts/reload-dialog-store';
 
 import { appVersion } from './build-version';
 import { ReportProblemContext } from './report-problem-context';
@@ -22,6 +26,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 10, 10, 14, 32) });
 });
 afterEach(() => {
+  resetReloadDialog();
   vi.useRealTimers();
   vi.unstubAllGlobals();
 });
@@ -61,6 +66,24 @@ describe('route error', () => {
       `Menționează în mesaj pagina /clienti/abc, versiunea ${appVersion()} și ora 10 noiembrie 2026 la 14:32.`
     );
     expect(screen.queryByTestId('report-problem-dialog')).toBeNull();
+  });
+
+  it('asks for a reload when a code file of the build is gone', async () => {
+    let cause: string | undefined;
+    function DialogCause() {
+      cause = useReloadDialogState()?.cause;
+      return null;
+    }
+    renderAt('/clienti/abc', () => (
+      <>
+        <RouteError
+          error={new TypeError('Failed to fetch dynamically imported module: /assets/x.js')}
+        />
+        <DialogCause />
+      </>
+    ));
+    await screen.findByTestId('route-error-page');
+    expect(cause).toBe('code_file');
   });
 
   it('has a page of its own and reports by email outside the shell', async () => {
