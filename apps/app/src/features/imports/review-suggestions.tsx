@@ -7,7 +7,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { Sparkles } from 'lucide-react';
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import { DecisionRow } from './library/decision-row';
 import { FieldCard, type FieldContext } from './review-fields';
@@ -101,6 +101,16 @@ function SuggestedValueRow({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const [problem, setProblem] = useState<string | null>(null);
+  const changeButton = useRef<HTMLButtonElement>(null);
+  const toggleButton = useRef<HTMLButtonElement>(null);
+  // The form and the empty or restore link are replaced on use, which would leave focus nowhere.
+  const focusNext = useRef<'change' | 'toggle' | null>(null);
+  useEffect(() => {
+    const target = focusNext.current;
+    if (target === null) return;
+    focusNext.current = null;
+    (target === 'change' ? changeButton : toggleButton).current?.focus();
+  });
   const sources = suggestionSources(state.item, field);
   const flags = flagsAt(context.proposal, `workplaces.${state.index}.suggested.${field}`);
   const startEditing = () => {
@@ -108,13 +118,21 @@ function SuggestedValueRow({
     setProblem(null);
     setEditing(true);
   };
+  const stopEditing = () => {
+    focusNext.current = 'change';
+    setEditing(false);
+  };
   const save = () => {
     const value = draft.trim();
     const trouble = field === 'extinguisherNorm' ? null : textProblem(value);
     setProblem(trouble);
     if (trouble) return;
     setSuggested(context, state, field, value === suggestion ? undefined : value);
-    setEditing(false);
+    stopEditing();
+  };
+  const toggle = (value: null | undefined) => {
+    focusNext.current = 'toggle';
+    setSuggested(context, state, field, value);
   };
   return (
     <div
@@ -173,7 +191,7 @@ function SuggestedValueRow({
             <Button type="submit" variant="outline">
               Folosește
             </Button>
-            <Button type="button" variant="ghost" onClick={() => setEditing(false)}>
+            <Button type="button" variant="ghost" onClick={stopEditing}>
               Renunță
             </Button>
           </span>
@@ -182,7 +200,7 @@ function SuggestedValueRow({
         <span className="grid grid-cols-[minmax(0,1fr)] gap-1 text-sm wrap-anywhere">
           {current.kind === 'empty' ? (
             <span className="text-muted-foreground">
-              Necompletat. Îl completezi pe fișa clientului.
+              Necompletat. Se completează pe fișa punctului de lucru.
             </span>
           ) : (
             <span data-testid="review-suggested-text">
@@ -209,21 +227,31 @@ function SuggestedValueRow({
           <SourceButton
             outlined={false}
             sources={sources}
+            accessibleName={`Vezi în document: ${label}`}
             onOpen={() => context.openSource(`${label}: ${shown(field, suggestion)}`, sources)}
           />
-          <LinkButton onClick={startEditing} data-testid="review-suggested-change">
+          <LinkButton
+            ref={changeButton}
+            onClick={startEditing}
+            aria-label={`Schimbă: ${label}`}
+            data-testid="review-suggested-change"
+          >
             Schimbă
           </LinkButton>
           {current.kind === 'keep' ? (
             <LinkButton
-              onClick={() => setSuggested(context, state, field, null)}
+              ref={toggleButton}
+              onClick={() => toggle(null)}
+              aria-label={`Lasă necompletat: ${label}`}
               data-testid="review-suggested-empty"
             >
               Lasă necompletat
             </LinkButton>
           ) : (
             <LinkButton
-              onClick={() => setSuggested(context, state, field, undefined)}
+              ref={toggleButton}
+              onClick={() => toggle(undefined)}
+              aria-label={`Revino la sugestie: ${label}`}
               data-testid="review-suggested-restore"
             >
               Revino la sugestie
@@ -240,10 +268,24 @@ function SuggestionsRow({ state, context }: { state: ItemState; context: ItemsCo
   const path = suggestedValuesPath(state.item.id);
   const fields = suggestedFields(state, context.changes);
   const confirmed = suggestionsConfirmed(state.item, context.changes);
-  const allEmpty = fields.every(
+  const emptied = fields.filter(
     (field) => suggestedValue(state.item, context.changes, field).kind === 'empty'
   );
+  const allEmpty = emptied.length === fields.length;
   const confirm = () => context.review.setField(path, { option: 0 });
+  const keep = () => {
+    if (allEmpty) {
+      context.review.setItem(state.item.id, (current) => ({
+        ...current,
+        values: Object.fromEntries(
+          Object.entries(current.values ?? {}).filter(
+            ([key]) => !emptied.includes(key as SuggestedFieldName)
+          )
+        ),
+      }));
+    }
+    confirm();
+  };
   return (
     <DecisionRow
       tone={confirmed ? 'done' : 'todo'}
@@ -266,7 +308,7 @@ function SuggestionsRow({ state, context }: { state: ItemState; context: ItemsCo
         <PickOption
           name={name}
           checked={confirmed && !allEmpty}
-          onPick={confirm}
+          onPick={keep}
           heading="Păstrează valorile de mai sus"
           testId="review-suggestions-keep"
         >
@@ -288,11 +330,11 @@ function SuggestionsRow({ state, context }: { state: ItemState; context: ItemsCo
             }));
             confirm();
           }}
-          heading="Lasă necompletat"
+          heading="Lasă-le necompletate"
           testId="review-suggestions-empty"
         >
           <span className="text-muted-foreground">
-            Nu se preia nimic. Le completezi pe fișa clientului când le afli.
+            Nu se preia nimic. Le completezi pe fișa punctului de lucru când le afli.
           </span>
         </PickOption>
       </PickList>
@@ -323,9 +365,9 @@ function OfficeActivityRow({ state, context }: { state: ItemState; context: Item
         icon={<Sparkles aria-hidden="true" />}
         tone={choice === null ? 'warning' : undefined}
       >
-        Documentele numesc {points.length === 1 ? 'punctul' : 'punctele'} de lucru{' '}
-        {points.join(', ')} și nu pun la sediul social niciun post, mijloc de stingere sau încăpere.
-        Poate fi doar adresa firmei.
+        {points.length === 0
+          ? 'Clientul are și alte puncte de lucru, iar documentele nu pun la sediul social niciun post, mijloc de stingere sau încăpere. Poate fi doar adresa firmei.'
+          : `Documentele numesc ${points.length === 1 ? 'punctul' : 'punctele'} de lucru ${points.join(', ')} și nu pun la sediul social niciun post, mijloc de stingere sau încăpere. Poate fi doar adresa firmei.`}
       </KindLine>
       <PickList labelledBy={`${name}-label`}>
         <PickOption
@@ -343,7 +385,7 @@ function OfficeActivityRow({ state, context }: { state: ItemState; context: Item
         >
           La sediul social nu se desfășoară activitate
           <span className="block text-[13px] text-muted-foreground">
-            Sediul nu primește fișă SU, mijloace de stingere și nu apare în documentele SU.
+            Sediul nu primește fișă SU sau mijloace de stingere și nu apare în documentele SU.
           </span>
         </PickOption>
         <PickOption
@@ -361,14 +403,8 @@ function OfficeActivityRow({ state, context }: { state: ItemState; context: Item
 }
 
 export function Suggestions({ context }: { context: ItemsContext }) {
-  const args = [
-    context.proposal,
-    context.changes,
-    context.blockers,
-    context.existingClient,
-  ] as const;
-  const offices = officeActivityStates(...args);
-  const workplaces = suggestionStates(...args);
+  const offices = officeActivityStates(context.proposal, context.changes, context);
+  const workplaces = suggestionStates(context.proposal, context.changes, context);
   if (offices.length === 0 && workplaces.length === 0) return null;
   const open =
     offices.filter((state) => officeActivityChoice(state.item, context.changes) === null).length +
@@ -378,6 +414,7 @@ export function Suggestions({ context }: { context: ItemsContext }) {
       title="Sugestii din activitate"
       icon={Sparkles}
       description="Niciun document nu le scrie: le-am propus din echipamentele, deșeurile și activitatea pe care le numesc documentele. Nu se preiau până nu le confirmi."
+      decision
       pending={
         open === 0
           ? null

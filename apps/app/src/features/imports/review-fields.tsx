@@ -49,6 +49,7 @@ import {
   appliesAt,
   type Blocker,
   type Changes,
+  type ExistingWorkplace,
   type FactDecision,
   fieldGroups,
   fieldInfo,
@@ -104,6 +105,7 @@ export type FieldContext = {
   existingClient: boolean;
   existingPositions: { id: string; name: string; staffCategory: StaffCategory }[];
   existingSubstances: string[];
+  existingWorkplaces: ExistingWorkplace[];
   importId: string;
   openSource: OpenSource;
   blockers: Blocker[];
@@ -232,6 +234,7 @@ export function FieldCard({
   description,
   pending,
   testId = 'review-group',
+  decision = false,
   children,
 }: {
   title: string;
@@ -240,6 +243,8 @@ export function FieldCard({
   // Undefined where the card asks nothing of the member.
   pending?: string | null;
   testId?: string;
+  // A decision card's description says why it asks, which the phone keeps.
+  decision?: boolean;
   children: ReactNode;
 }) {
   const id = useId();
@@ -257,11 +262,17 @@ export function FieldCard({
           <h2 id={`${id}-title`} className="text-base leading-snug font-semibold">
             {title}
           </h2>
-          <p className="text-[13px] text-muted-foreground">
-            <span className="hidden sm:inline">{description}</span>
-            <span className="sm:hidden">
-              Textul din fiecare rând e cel care intră în documente.
-            </span>
+          <p className="text-[13px] text-muted-foreground" data-testid="review-group-description">
+            {decision ? (
+              description
+            ) : (
+              <>
+                <span className="hidden sm:inline">{description}</span>
+                <span className="sm:hidden">
+                  Textul din fiecare rând e cel care intră în documente.
+                </span>
+              </>
+            )}
           </p>
         </div>
         {pending !== undefined && (
@@ -584,19 +595,24 @@ export function FactRow({
   onKeep,
   onWrite,
   onEmpty,
+  onUndecide,
   openSource,
   below,
   note = 'Apare pe ce se afișează la locul de muncă, iar dosarele îl preiau des neschimbat de la alt client. Păstrează-l doar dacă e cel real.',
+  emptyNote,
 }: {
   id: string;
   label: string;
   noun: string;
   note?: string;
+  emptyNote: string;
   options: FactOption[];
   decision: FactDecision;
   onKeep: (option: number) => void;
   onWrite: (value: string) => void;
   onEmpty: () => void;
+  // Opening another value withdraws the decision taken, which would otherwise stand unseen.
+  onUndecide: () => void;
   openSource: OpenSource;
   below?: ReactNode;
 }) {
@@ -644,7 +660,10 @@ export function FactRow({
           name={name}
           checked={otherOpen}
           inDocuments={decision?.kind === 'other'}
-          onPick={() => setOtherOpen(true)}
+          onPick={() => {
+            setOtherOpen(true);
+            if (decision !== null && decision.kind !== 'other') onUndecide();
+          }}
           heading="Altă valoare"
           testId="review-fact-other"
           below={
@@ -700,9 +719,7 @@ export function FactRow({
           heading="Lasă necompletat"
           testId="review-fact-empty"
         >
-          <span className="text-muted-foreground">
-            Nu se preia. Îl completezi pe fișa clientului când îl afli.
-          </span>
+          <span className="text-muted-foreground">{emptyNote}</span>
         </PickOption>
       </PickList>
       {below}
@@ -736,6 +753,11 @@ function SmokingPlaceRow({ state, context }: { state: FieldState; context: Field
       }}
       onWrite={(value) => context.review.setField(state.path, { ...rest, value })}
       onEmpty={() => context.review.setField(state.path, { ...rest, value: null })}
+      onUndecide={() => {
+        const undecided = withoutKeys(change, 'option', 'value', 'included', 'replace');
+        context.review.setField(state.path, Object.keys(undecided).length ? undecided : null);
+      }}
+      emptyNote="Nu se preia. Îl completezi pe fișa clientului când îl afli."
       openSource={context.openSource}
       below={
         spelling && (

@@ -1060,12 +1060,19 @@ their tab bars read.
   per kept workplace with suggested values: each value in a small box with its mark, its files,
   "Vezi în document" stepping through every passage it was drawn from, "Schimbă" (a text box, a
   list for the norm) and "Lasă necompletat" or "Revino la sugestie", a value changed or emptied
-  showing "Modificat de tine" over the suggestion; then "Păstrează valorile de mai sus" or "Lasă
-  necompletat", which empties them all. Until the row is decided the hub links to it and
-  confirming waits; the workplace's own row leaves those values to the card, and an office kept
-  with no activity says so there and is asked nothing else. Into an existing client a row is
-  shown only where the API blocks on it or the member decided. The confirm dialog adds "Fără
-  activitate la sediul social" and the count of suggested values kept. After the installations, the card "Substanțe
+  showing "Modificat de tine" over the suggestion; then "Păstrează valorile de mai sus" (which
+  brings the suggestions back when all were emptied) or "Lasă-le necompletate", which empties
+  them all. Until the row is decided the hub links to it and confirming waits; the workplace's
+  own row leaves those values to the card. An office with no activity (`inactiveOffices`, the
+  payload's rule: one the import creates and the member kept so, or the client's own office,
+  matched by `existingId`, name or address against `GET /clients/{id}/workplaces`, that already
+  has none) says so on its row, is asked nothing else, and its means, installations and counts
+  are left out of the list, the hub, the section summary and the confirm dialog, with one line
+  on its row when some were placed there; a count at a workplace left out is not asked either.
+  Into an existing client a row is shown only where the API blocks on it or the member decided,
+  and the office's decision is dropped once the office is the client's own. The confirm dialog
+  adds "Fără activitate la sediul social" and the count of suggested values kept. On a phone the
+  decision cards keep their own description. After the installations, the card "Substanțe
   periculoase" asks "Utilizează substanțe periculoase?" with three answers, the two the client's
   card offers, each with the files that give it and "Vezi în document", and "Nedecis", which
   blocks nothing; the answer the documents give is picked, two that disagree wait for the
@@ -1073,7 +1080,8 @@ their tab bars read.
   the substances follow as rows with the include switch, "Schimbă" for the name and the
   card's "Incompletă" with "Lipsesc clasificarea și cantitatea"; under another answer, one line
   says how many the documents name. Into an existing client whose answer is decided, the row
-  offers "În aplicație" and "În documente" instead, and a substance the client lists already by
+  offers "În aplicație" and "În documente" instead, also while the documents disagree, which then
+  waits for nothing, and a substance the client lists already by
   that name says it is not added again (`GET …/fire-substances`). Every decision goes to `PUT
 /imports/{id}/changes` at once, one save after another on the version the previous answered;
   each answer's blockers replace the import's before it is read again, so a note the save settles

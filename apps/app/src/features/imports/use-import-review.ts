@@ -11,6 +11,7 @@ import {
   getGetImportQueryKey,
   getListFireSubstancesQueryKey,
   getListJobPositionsQueryKey,
+  getListWorkplacesQueryKey,
   type ImportDetail,
   type ImportDetailResponse,
   saveImportChanges,
@@ -19,6 +20,7 @@ import {
   useGetClientFireSafety,
   useListFireSubstances,
   useListJobPositions,
+  useListWorkplaces,
 } from '@/api/generated/api';
 import { ApiHttpError, type ApiRequestOptions } from '@/api/http';
 
@@ -26,6 +28,7 @@ import { importErrorMessage } from './import-format';
 import {
   type Changes,
   changesOf,
+  type ExistingWorkplace,
   type FieldChange,
   type ItemChange,
   substancesStatePath,
@@ -269,12 +272,17 @@ export function useExistingValues(detail: ImportDetail) {
     request: apiRequest,
     query: { queryKey: getListFireSubstancesQueryKey(clientId), enabled },
   });
+  const workplaces = useListWorkplaces(clientId, {
+    request: apiRequest,
+    query: { queryKey: getListWorkplacesQueryKey(clientId), enabled },
+  });
   if (!enabled) {
     return {
       ready: true,
       valueAt: () => undefined,
       positions: [],
       substanceNames: [],
+      workplaces: [] as ExistingWorkplace[],
       positionsFailed: false,
       positionsRetrying: false,
       retryPositions: () => undefined,
@@ -290,7 +298,8 @@ export function useExistingValues(detail: ImportDetail) {
       details.isSuccess &&
       !fireSafety.isPending &&
       positions.isSuccess &&
-      !substances.isPending,
+      !substances.isPending &&
+      !workplaces.isPending,
     positionsFailed: positions.isError,
     positionsRetrying: positions.isFetching,
     retryPositions: () => void positions.refetch(),
@@ -300,6 +309,13 @@ export function useExistingValues(detail: ImportDetail) {
       staffCategory: position.staffCategory,
     })),
     substanceNames: (substances.data?.items ?? []).map((substance) => substance.name),
+    workplaces: (workplaces.data?.items ?? []).map((workplace): ExistingWorkplace => ({
+      id: workplace.id,
+      name: workplace.name,
+      addressLine: workplace.addressLine,
+      isRegisteredOffice: workplace.isRegisteredOffice,
+      officeHasActivity: workplace.officeHasActivity,
+    })),
     valueAt: (path: string): string | number | null | undefined => {
       const [group, name] = path.split('.') as [string, string];
       if (group === 'client') {

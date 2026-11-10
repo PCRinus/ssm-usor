@@ -641,6 +641,12 @@ export function valueInForce(state: FieldState | undefined) {
   return state.value === null || state.comparison === 'kept' ? state.existing : state.value;
 }
 
+// An existing client's answer stands while the documents disagree, as the API keeps it.
+export function substancesAnswer(state: FieldState | undefined) {
+  if (state?.status === 'choice' && !isEmpty(state.existing)) return state.existing;
+  return valueInForce(state);
+}
+
 // The fire-safety card keeps a smoking place only beside designated places, and the payload
 // drops it under any other policy (ADR 019).
 export function smokingPlaceApplies(states: Record<string, FieldState>) {
@@ -684,6 +690,8 @@ export function smokingPlaceDecision(state: FieldState, change: FieldChange | un
 export function smokingPlaceAsked(states: Record<string, FieldState>) {
   const state = states[smokingPlacePath];
   if (!state || !appliesAt(states, smokingPlacePath) || state.own.length === 0) return false;
+  // An unticking stored before the place was asked is honoured: the API writes no place for it.
+  if (state.status === 'unticked') return false;
   return state.own.length > 1 || state.comparison === 'none' || state.comparison === 'added';
 }
 
@@ -761,55 +769,151 @@ const suggestsNoActivity = (state: ItemState) =>
   suggestedOf(state.item).officeHasActivity !== undefined &&
   state.item.officeHasActivity === false;
 
-// Into an existing client only the API knows its workplaces, so the review asks there where the
-// API blocks or the member already decided.
-const askedHere = (path: string, decided: boolean, blockers: Blocker[], existingClient: boolean) =>
-  !existingClient || decided || blockers.some((blocker) => blocker.path === path);
+export type ExistingWorkplace = {
+  id: string;
+  name: string;
+  addressLine: string | null;
+  isRegisteredOffice: boolean;
+  officeHasActivity: boolean;
+};
 
-export function officeActivityStates(
-  proposal: Proposal,
+// `existingWorkplaces` is empty for a new client.
+export type ReviewScope = {
+  blockers: Blocker[];
+  existingClient: boolean;
+  existingWorkplaces: ExistingWorkplace[];
+};
+
+const legalFormWords =
+  /\b(s\.?\s?c\.?|s\.?\s?r\.?\s?l\.?|s\.?a\.?|p\.?\s?f\.?\s?a\.?|i\.\s?i\.?|i\.\s?f\.?|d-na|dl\.?|d-l)(?=\s|$|[^\p{L}])/gu;
+
+const workplaceNameTokens = (name: string) =>
+  foldText(withoutMarks(name).toLowerCase().replace(legalFormWords, ' '))
+    .split(' ')
+    .filter(Boolean);
+
+// As the API's import matches a proposed workplace to one the client has, by name.
+function sameWorkplaceName(a: string, b: string) {
+  const x = workplaceNameTokens(a);
+  const y = workplaceNameTokens(b);
+  if (x.join(' ') === y.join(' ')) return true;
+  const xs = new Set(x);
+  const ys = new Set(y);
+  if (xs.size === 0 || ys.size === 0) return false;
+  const shared = [...xs].filter((token) => ys.has(token)).length;
+  return shared / Math.max(xs.size, ys.size) >= 0.8;
+}
+
+/** The client's own workplace confirming writes a proposed one into, as the API's payload picks it. */
+export function linkedWorkplace(
+  state: Pick<ItemState, 'item' | 'values'>,
   changes: Changes,
-  blockers: Blocker[],
-  existingClient: boolean
-) {
-  const states = itemStates(proposal, changes, 'workplaces');
-  const pointsBeside = states.some(
-    (state) => state.included && state.values.isRegisteredOffice !== true
+  scope: ReviewScope
+): ExistingWorkplace | null {
+  if (!scope.existingClient) return null;
+  const chosen = changes.items[state.item.id]?.existingId;
+  if (chosen !== undefined) {
+    return scope.existingWorkplaces.find((workplace) => workplace.id === chosen) ?? null;
+  }
+  const address = isEmpty(state.values.addressLine)
+    ? null
+    : foldText(String(state.values.addressLine));
+  return (
+    scope.existingWorkplaces.find(
+      (workplace) =>
+        sameWorkplaceName(workplace.name, String(state.values.name ?? '')) ||
+        (address !== null &&
+          workplace.addressLine !== null &&
+          foldText(workplace.addressLine) === address)
+    ) ?? null
   );
+}
+
+// Into an existing client the review does not hold every value of its workplaces, so it asks
+// there where the API blocks or the member already decided.
+const askedHere = (path: string, decided: boolean, scope: ReviewScope) =>
+  !scope.existingClient || decided || scope.blockers.some((blocker) => blocker.path === path);
+
+// Only an office the import creates takes the decision; one linked to the client's own office
+// keeps that office's answer (ADR 041).
+export function officeActivityStates(proposal: Proposal, changes: Changes, scope: ReviewScope) {
+  const states = itemStates(proposal, changes, 'workplaces');
+  const pointsBeside =
+    states.some((state) => state.included && state.values.isRegisteredOffice !== true) ||
+    (scope.existingClient &&
+      scope.existingWorkplaces.some((workplace) => !workplace.isRegisteredOffice));
   return states.filter(
     (state) =>
       suggestsNoActivity(state) &&
-      (pointsBeside || existingClient) &&
+      pointsBeside &&
+      linkedWorkplace(state, changes, scope) === null &&
       askedHere(
         officeActivityPath(state.item.id),
         officeActivityChoice(state.item, changes) !== null,
-        blockers,
-        existingClient
+        scope
       )
   );
 }
 
-/** The registered offices the member agreed are only an address, which carry no SU data. */
-export function inactiveOffices(
+/**
+ * The registered offices where no activity takes place, which take nothing from the import: one
+ * the member agreed is only an address, and the client's own office already answered so.
+ */
+export function inactiveOffices(proposal: Proposal, changes: Changes, scope: ReviewScope) {
+  const kept = officeActivityStates(proposal, changes, scope)
+    .filter((state) => officeActivityChoice(state.item, changes) === 0)
+    .map((state) => state.item.id);
+  const answered = itemStates(proposal, changes, 'workplaces')
+    .filter(
+      (state) =>
+        state.included && linkedWorkplace(state, changes, scope)?.officeHasActivity === false
+    )
+    .map((state) => state.item.id);
+  return new Set([...kept, ...answered]);
+}
+
+export const workplaceIdOf = (value: unknown) =>
+  value && typeof value === 'object'
+    ? ((value as { id: string | null }).id ?? '')
+    : typeof value === 'string'
+      ? value
+      : '';
+
+export function meansTaken(
   proposal: Proposal,
   changes: Changes,
-  blockers: Blocker[] = [],
-  existingClient = false
+  list: 'fireEquipment' | 'fireInstallations',
+  inactive: Set<string>
 ) {
-  return new Set(
-    officeActivityStates(proposal, changes, blockers, existingClient)
-      .filter((state) => officeActivityChoice(state.item, changes) === 0)
-      .map((state) => state.item.id)
+  const ofInactiveCounts = new Set(
+    fireEquipmentCountsOf(proposal)
+      .filter((count) => count.workplace.id !== null && inactive.has(count.workplace.id))
+      .flatMap((count) => count.options.flatMap((option) => option.equipmentIds))
+  );
+  return itemStates(proposal, changes, list).filter(
+    (state) =>
+      !inactive.has(workplaceIdOf(state.values.workplace)) && !ofInactiveCounts.has(state.item.id)
   );
 }
 
-export function suggestionStates(
-  proposal: Proposal,
-  changes: Changes,
-  blockers: Blocker[],
-  existingClient: boolean
-) {
-  const inactive = inactiveOffices(proposal, changes, blockers, existingClient);
+const leftOutWorkplaces = (proposal: Proposal, changes: Changes) =>
+  new Set(
+    itemStates(proposal, changes, 'workplaces')
+      .filter((state) => !state.included)
+      .map((state) => state.item.id)
+  );
+
+export function askedCounts(proposal: Proposal, changes: Changes, inactive: Set<string>) {
+  const leftOut = leftOutWorkplaces(proposal, changes);
+  return fireEquipmentCountsOf(proposal).filter(
+    (count) =>
+      count.workplace.id === null ||
+      (!leftOut.has(count.workplace.id) && !inactive.has(count.workplace.id))
+  );
+}
+
+export function suggestionStates(proposal: Proposal, changes: Changes, scope: ReviewScope) {
+  const inactive = inactiveOffices(proposal, changes, scope);
   return itemStates(proposal, changes, 'workplaces').filter(
     (state) =>
       state.included &&
@@ -818,31 +922,24 @@ export function suggestionStates(
       askedHere(
         suggestedValuesPath(state.item.id),
         suggestionsConfirmed(state.item, changes),
-        blockers,
-        existingClient
+        scope
       )
   );
 }
 
-// Into an existing client only the API knows a workplace's own point, which is kept, so the
-// review asks there where the API blocks or the member already decided.
-export function assemblyPointStates(
-  proposal: Proposal,
-  changes: Changes,
-  blockers: Blocker[],
-  existingClient: boolean
-) {
-  const inactive = inactiveOffices(proposal, changes, blockers, existingClient);
-  return itemStates(proposal, changes, 'workplaces').filter((state) => {
-    if (!state.included || isEmpty(state.item.assemblyPoint)) return false;
-    if (inactive.has(state.item.id)) return false;
-    if (!existingClient) return true;
-    const path = assemblyPointPath(state.item.id);
-    return (
-      blockers.some((blocker) => blocker.path === path) ||
-      assemblyPointDecision(state.item, changes) !== null
-    );
-  });
+export function assemblyPointStates(proposal: Proposal, changes: Changes, scope: ReviewScope) {
+  const inactive = inactiveOffices(proposal, changes, scope);
+  return itemStates(proposal, changes, 'workplaces').filter(
+    (state) =>
+      state.included &&
+      !isEmpty(state.item.assemblyPoint) &&
+      !inactive.has(state.item.id) &&
+      askedHere(
+        assemblyPointPath(state.item.id),
+        assemblyPointDecision(state.item, changes) !== null,
+        scope
+      )
+  );
 }
 
 type AnyItem = {
@@ -926,11 +1023,14 @@ export function chosenCountOption(count: FireEquipmentCount, changes: Changes): 
 }
 
 // The entries of the options not chosen, and of every option while the count waits, are never
-// written, so the review leaves them out of the list and of what confirming creates.
+// written, so the review leaves them out of the list and of what confirming creates. A workplace
+// left out takes none of them, whatever was chosen before.
 function notCountedEquipment(proposal: Proposal, changes: Changes) {
   const ids = new Set<string>();
+  const leftOut = leftOutWorkplaces(proposal, changes);
   for (const count of fireEquipmentCountsOf(proposal)) {
-    const chosen = chosenCountOption(count, changes);
+    const asked = count.workplace.id === null || !leftOut.has(count.workplace.id);
+    const chosen = asked ? chosenCountOption(count, changes) : null;
     count.options.forEach((option, index) => {
       if (index !== chosen) for (const id of option.equipmentIds) ids.add(id);
     });
@@ -1151,7 +1251,7 @@ export function blockerLink(proposal: Proposal, changes: Changes, blocker: Block
     const what =
       root === 'suggestedValues'
         ? 'Confirmă sugestiile din activitate'
-        : 'Confirmă activitatea la sediul social';
+        : 'Alege dacă la sediul social se desfășoară activitate';
     return {
       section,
       anchor: anchorOf(blocker.path),
@@ -1572,7 +1672,7 @@ export function substancesAdded(
   states: Record<string, FieldState>,
   existingNames: string[] = []
 ): ItemState[] {
-  if (valueInForce(states[substancesStatePath]) !== 'listed') return [];
+  if (substancesAnswer(states[substancesStatePath]) !== 'listed') return [];
   const listed = new Set(existingNames.map(foldText));
   return itemStates(proposal, changes, 'substances').filter((state) => {
     const name = foldText(String(state.values.name ?? ''));

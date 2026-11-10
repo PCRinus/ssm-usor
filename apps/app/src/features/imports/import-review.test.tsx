@@ -18,7 +18,11 @@ import {
 } from '@/test/import-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
+import type { Proposal } from './review-model';
+
 type Detail = ReturnType<typeof readyDetail>;
+
+const proposalOf = (detail: Detail) => detail.proposal as unknown as Proposal;
 
 const existingClient = {
   id: clientId,
@@ -55,6 +59,7 @@ function mockReview(
     documentDetails = {},
     positions = () => Response.json({ items: [] }),
     substances = { state: 'undecided', items: [] },
+    workplaces = [],
   }: {
     save?: (body: unknown) => Response | Promise<Response>;
     read?: (call: number) => Promise<void> | undefined;
@@ -63,6 +68,7 @@ function mockReview(
     documentDetails?: Record<string, unknown>;
     positions?: () => Response;
     substances?: { state: string; items: { name: string }[] };
+    workplaces?: Record<string, unknown>[];
   } = {}
 ) {
   saves = 0;
@@ -121,6 +127,9 @@ function mockReview(
     }
     if (url.pathname === `/clients/${clientId}/fire-substances`) {
       return Response.json(substances);
+    }
+    if (url.pathname === `/clients/${clientId}/workplaces`) {
+      return Response.json({ items: workplaces });
     }
     if (url.pathname.startsWith(`/clients/${clientId}/`)) return Response.json({}, { status: 404 });
     return undefined;
@@ -2890,6 +2899,32 @@ describe('means the files count differently', () => {
     );
   });
 
+  it('asks no count for a workplace left out', async () => {
+    const detail = Object.assign(countDetail(), {
+      changes: { fields: {}, items: { 'workplace-1': { included: false } } },
+      blockers: [],
+    });
+    mockReview(detail);
+    mount('/fire-safety');
+
+    await screen.findByTestId('review-list-fireEquipment');
+    expect(screen.queryByTestId('review-counts')).toBeNull();
+    expect(screen.queryByTestId('review-count-choice')).toBeNull();
+    expect(
+      screen.getAllByTestId('review-item').map((item) => item.getAttribute('aria-label'))
+    ).toEqual(['Pătură antifoc']);
+  });
+
+  it('keeps a decision card’s own description on a phone', async () => {
+    mockReview(countDetail());
+    mount('/fire-safety');
+
+    const card = await screen.findByTestId('review-counts');
+    expect(within(card).getByTestId('review-group-description').textContent).toBe(
+      'Documentele numără altfel aceleași mijloace. Se preiau doar cele din documentul ales.'
+    );
+  });
+
   it('counts only the chosen file’s units in what confirming creates', async () => {
     mockReview(countDetail(1));
     mount();
@@ -2993,19 +3028,46 @@ describe('the assembly point and the smoking place', () => {
     });
 
     await userEvent.click(radio(row, 'review-fact-other'));
+    await waitFor(() => expect(saves).toBe(3));
+    expect(savedChanges(2).changes.fields).toEqual({});
+    expect(row.dataset.tone).toBe('todo');
     const input = within(row).getByTestId('review-fact-value');
     await userEvent.type(input, 'x{Enter}');
     expect(within(row).getByText('Scrie cel puțin 2 caractere.')).toBeTruthy();
     await userEvent.type(input, ' În curtea din spate{Enter}');
-    await waitFor(() => expect(saves).toBe(3));
-    expect(savedChanges(2).changes.fields).toEqual({
+    await waitFor(() => expect(saves).toBe(4));
+    expect(savedChanges(3).changes.fields).toEqual({
       [placePath]: { value: 'x În curtea din spate' },
     });
 
     await userEvent.click(radio(row, 'review-fact-empty'));
-    await waitFor(() => expect(saves).toBe(4));
-    expect(savedChanges(3).changes.fields).toEqual({ [placePath]: { value: null } });
+    await waitFor(() => expect(saves).toBe(5));
+    expect(savedChanges(4).changes.fields).toEqual({ [placePath]: { value: null } });
     expect(within(row).queryByTestId('review-spelling')).toBeNull();
+  });
+
+  it('says the assembly point left empty is filled in on the workplace’s sheet', async () => {
+    mockReview(siteDetail());
+    mount('/workplaces');
+
+    const card = await screen.findByTestId('review-assembly-points');
+    expect(within(card).getByTestId('review-fact-empty').textContent).toContain(
+      'Nu se preia. Îl completezi pe fișa punctului de lucru când îl afli.'
+    );
+    expect(within(card).getByTestId('review-group-description').textContent).toBe(
+      'Apare pe ce se afișează la fiecare punct de lucru, iar dosarele îl preiau des neschimbat de la alt client. Nu se preia până nu alegi.'
+    );
+  });
+
+  it('asks nothing of a place unticked before it was asked', async () => {
+    mockReview(siteDetail({ fields: { [placePath]: { included: false } }, blockers: [] }));
+    mount('/fire-safety');
+
+    await screen.findByText('Locul pentru fumat');
+    expect(screen.queryByTestId('review-fact')).toBeNull();
+    expect(screen.getAllByTestId('review-group-pending').map((note) => note.textContent)).toContain(
+      'Mai ai de ales firma de salubritate'
+    );
   });
 
   it('keeps the document’s spelling selected before deciding', async () => {
@@ -3343,6 +3405,41 @@ describe('the dangerous substances', () => {
     expect(screen.getByTestId('review-substances').textContent).toContain('La fel în documente');
   });
 
+  it('keeps an existing client’s answer while the documents disagree, and offers theirs', async () => {
+    mockReview(substancesDetail({ intoExistingClient: true, answers: ['none', 'listed'] }), {
+      substances: { state: 'listed', items: [{ name: 'Clor' }] },
+    });
+    mount('/fire-safety');
+
+    const group = await screen.findByTestId('review-substances');
+    await waitFor(() =>
+      expect(within(group).getByTestId('review-keep-app').textContent).toContain(
+        'Se utilizează substanțe periculoase'
+      )
+    );
+    expect(radio(group, 'review-keep-app').matches(':checked')).toBe(true);
+    expect(
+      within(group)
+        .getAllByTestId('review-use-documents')
+        .map((option) => option.textContent)
+    ).toEqual([expect.stringContaining('Nu se utilizează substanțe periculoase')]);
+    expect(group.textContent).not.toContain('Doar în aplicație');
+    expect(within(group).getByTestId('review-group-pending').textContent).toBe('Gata de confirmat');
+    expect(within(group).getAllByTestId('review-item')).toHaveLength(2);
+  });
+
+  it('counts on the hub only the substances an existing client does not list', async () => {
+    mockReview(substancesDetail({ intoExistingClient: true }), {
+      substances: { state: 'listed', items: [{ name: 'DETERGENTI' }] },
+    });
+    mount();
+
+    const section = (await screen.findAllByTestId('import-section-link')).find(
+      (each) => each.dataset.section === 'fire-safety'
+    )!;
+    await waitFor(() => expect(section.textContent).toContain('o substanță periculoasă'));
+  });
+
   it('opens a proposal stored before the substances were read with no answer and no list', async () => {
     mockReview(readyDetail({ blockers: [] }));
     mount('/fire-safety');
@@ -3426,7 +3523,7 @@ describe('suggested values', () => {
     const links = await screen.findAllByTestId('import-blocker-link');
     expect(links.map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
       [
-        'Confirmă activitatea la sediul social',
+        'Alege dacă la sediul social se desfășoară activitate',
         `/clienti/import/${importId}/workplaces#review-officeActivity-workplace-1`,
       ],
       [
@@ -3470,9 +3567,7 @@ describe('suggested values', () => {
 
     const row = await screen.findByTestId('review-suggestions');
     await userEvent.click(
-      within(value(row, 'Materiale combustibile')).getByRole('button', {
-        name: 'Vezi în document',
-      })
+      within(row).getByRole('button', { name: 'Vezi în document: Materiale combustibile' })
     );
     const dialog = await screen.findByTestId('import-source-dialog');
     expect(within(dialog).getByTestId('source-position').textContent).toBe('1 din 2, în 2 fișiere');
@@ -3556,22 +3651,85 @@ describe('suggested values', () => {
   });
 
   it('keeps or rejects the office with no activity, which then asks nothing of its card', async () => {
-    mockReview(suggestedDetail());
+    const detail = suggestedDetail();
+    Object.assign(proposalOf(detail).workplaces[0]!, { assemblyPoint: 'Curtea interioară' });
+    mockReview(detail);
     mount('/workplaces');
 
     const row = await screen.findByTestId('review-office-activity');
     expect(row.textContent).toContain('Sediu · sediu social');
     expect(row.textContent).toContain('Documentele numesc punctul de lucru «Atelier»');
+    expect(row.textContent).toContain(
+      'Sediul nu primește fișă SU sau mijloace de stingere și nu apare în documentele SU.'
+    );
+    expect(within(screen.getByTestId('review-assembly-points')).getByText('Sediu')).toBeTruthy();
     await userEvent.click(radio(row, 'review-office-activity-none'));
     await waitFor(() => expect(saves).toBe(1));
     expect(savedChanges(0).changes.fields).toEqual({ [officePath]: { option: 0 } });
-    expect(screen.getByTestId('review-list-workplaces').textContent).toContain(
-      'Fără activitate la sediul social'
+    const office = screen.getByRole('listitem', { name: 'Sediu · sediu social' });
+    expect(office.textContent).toContain(
+      'Fără activitate la sediul social: nu primește nici fișă SU, nici mijloace de stingere.'
     );
+    expect(within(office).getByTestId('review-office-means-left-out').textContent).toBe(
+      'Mijloacele de apărare trecute la sediu nu se preiau: acolo nu se desfășoară activitate.'
+    );
+    expect(screen.queryByTestId('review-assembly-points')).toBeNull();
+    expect(
+      within(screen.getByTestId('review-suggestions-card')).getAllByTestId('review-suggestions')
+    ).toHaveLength(1);
 
     await userEvent.click(radio(row, 'review-office-activity-some'));
     await waitFor(() => expect(saves).toBe(2));
     expect(savedChanges(1).changes.fields).toEqual({ [officePath]: { option: 1 } });
+    expect(screen.getByTestId('review-assembly-points')).toBeTruthy();
+  });
+
+  it('leaves the means at an office with no activity out of the list, the summary and confirming', async () => {
+    const detail = suggestedDetail({
+      fields: { [officePath]: { option: 0 }, [cardPath]: { option: 0 } },
+      blockers: [],
+    });
+    proposalOf(detail).fireEquipment.push({
+      ...proposalOf(detail).fireEquipment[0]!,
+      id: 'extinguisher-2',
+      workplace: { name: 'Atelier', id: 'workplace-2' },
+      room: 'Atelier',
+      count: 2,
+    });
+    mockReview(detail);
+    mount();
+
+    const section = (await screen.findAllByTestId('import-section-link')).find(
+      (each) => each.dataset.section === 'fire-safety'
+    )!;
+    expect(section.textContent).toContain('2 mijloace de stingere.');
+    await userEvent.click(screen.getByTestId('import-confirm'));
+    const dialog = await screen.findByTestId('import-confirm-dialog');
+    expect(
+      within(dialog)
+        .getAllByTestId('confirm-line')
+        .map((line) => line.textContent)
+    ).toContainEqual(expect.stringContaining('2mijloace de apărare'));
+  });
+
+  it('shows on the fire-safety page only the means at a workplace with activity', async () => {
+    const detail = suggestedDetail({ fields: { [officePath]: { option: 0 } }, blockers: [] });
+    proposalOf(detail).fireEquipment.push({
+      ...proposalOf(detail).fireEquipment[0]!,
+      id: 'extinguisher-2',
+      workplace: { name: 'Atelier', id: 'workplace-2' },
+      room: 'Atelier',
+      count: 2,
+    });
+    mockReview(detail);
+    mount('/fire-safety');
+
+    const list = await screen.findByTestId('review-list-fireEquipment');
+    expect(
+      within(list)
+        .getAllByTestId('review-item')
+        .map((item) => item.getAttribute('aria-label'))
+    ).toEqual(['Stingător, Pulbere · 2 bucăți']);
   });
 
   it('asks nothing of a workplace left out, nor of the office without a point of work', async () => {
@@ -3604,5 +3762,149 @@ describe('suggested values', () => {
     const dialog = await screen.findByTestId('import-confirm-dialog');
     await waitFor(() => expect(dialog.textContent).toContain('Fără activitate la sediul social'));
     expect(dialog.textContent).toContain('2valori sugerate din activitate');
+    expect(dialog.textContent).not.toContain('mijloace de apărare');
+    expect(dialog.textContent).not.toContain('mijloc de apărare');
+  });
+
+  it('restores the suggestions when the member keeps them after leaving them all empty', async () => {
+    mockReview(suggestedDetail());
+    mount('/workplaces');
+
+    const row = await screen.findByTestId('review-suggestions');
+    expect(within(row).getByTestId('review-suggestions-empty').textContent).toContain(
+      'Lasă-le necompletate'
+    );
+    await userEvent.click(radio(row, 'review-suggestions-empty'));
+    await waitFor(() =>
+      expect(radio(row, 'review-suggestions-empty').matches(':checked')).toBe(true)
+    );
+    expect(value(row, 'Surse de aprindere').textContent).toContain(
+      'Necompletat. Se completează pe fișa punctului de lucru.'
+    );
+
+    await userEvent.click(radio(row, 'review-suggestions-keep'));
+    await waitFor(() =>
+      expect(savedChanges(saves - 1).changes).toEqual({
+        fields: { [cardPath]: { option: 0 } },
+        items: {},
+      })
+    );
+    expect(radio(row, 'review-suggestions-keep').matches(':checked')).toBe(true);
+    expect(value(row, 'Surse de aprindere').dataset.state).toBe('keep');
+  });
+
+  it('names the value on each of its buttons and keeps the focus on the value', async () => {
+    mockReview(suggestedDetail());
+    mount('/workplaces');
+
+    const row = await screen.findByTestId('review-suggestions');
+    expect(within(row).getByRole('button', { name: 'Schimbă: Surse de aprindere' })).toBeTruthy();
+    await userEvent.click(
+      within(row).getByRole('button', { name: 'Lasă necompletat: Surse de aprindere' })
+    );
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        within(row).getByRole('button', { name: 'Revino la sugestie: Surse de aprindere' })
+      )
+    );
+
+    await userEvent.click(within(row).getByRole('button', { name: 'Schimbă: Surse de aprindere' }));
+    await userEvent.click(within(row).getByRole('button', { name: 'Renunță' }));
+    expect(document.activeElement).toBe(
+      within(row).getByRole('button', { name: 'Schimbă: Surse de aprindere' })
+    );
+  });
+
+  it('keeps a decision card’s own description on a phone', async () => {
+    mockReview(suggestedDetail());
+    mount('/workplaces');
+
+    const card = await screen.findByTestId('review-suggestions-card');
+    expect(within(card).getByTestId('review-group-description').textContent).toBe(
+      'Niciun document nu le scrie: le-am propus din echipamentele, deșeurile și activitatea pe care le numesc documentele. Nu se preiau până nu le confirmi.'
+    );
+  });
+
+  describe('into an existing client', () => {
+    const existingOffice = (officeHasActivity: boolean) => ({
+      id: '7c2e1d4a-5b6f-4a8e-9c0d-1e2f3a4b5c6d',
+      name: 'Sediu',
+      addressLine: 'Str. Morilor nr. 14',
+      isRegisteredOffice: true,
+      officeHasActivity,
+    });
+    const depot = {
+      id: '8d3f2e5b-6c7a-4b9f-8d1e-2f3a4b5c6d7e',
+      name: 'Depozit',
+      addressLine: 'Str. Fabricii nr. 2',
+      isRegisteredOffice: false,
+      officeHasActivity: true,
+    };
+
+    it('takes nothing for the client’s own office that already has no activity', async () => {
+      const detail = suggestedDetail({ intoExistingClient: true, blockers: [] });
+      Object.assign(proposalOf(detail).workplaces[0]!, { assemblyPoint: 'Curtea interioară' });
+      mockReview(detail, { workplaces: [existingOffice(false), depot] });
+      mount('/workplaces');
+
+      const office = await screen.findByRole('listitem', { name: 'Sediu · sediu social' });
+      await waitFor(() =>
+        expect(within(office).getByTestId('review-office-means-left-out')).toBeTruthy()
+      );
+      expect(screen.queryByTestId('review-office-activity')).toBeNull();
+      expect(screen.queryByTestId('review-assembly-points')).toBeNull();
+    });
+
+    it('ignores the office decision once the office is the client’s own, which has activity', async () => {
+      mockReview(
+        suggestedDetail({
+          intoExistingClient: true,
+          fields: { [officePath]: { option: 0 } },
+          blockers: [],
+        }),
+        { workplaces: [existingOffice(true), depot] }
+      );
+      mount('/workplaces');
+
+      await screen.findByTestId('review-list-workplaces');
+      await waitFor(() => expect(screen.queryByTestId('review-office-activity')).toBeNull());
+      expect(screen.getByTestId('review-list-workplaces').textContent).not.toContain(
+        'Fără activitate'
+      );
+    });
+
+    it('says the office has no activity in what confirming adds, beside the client’s own points', async () => {
+      mockReview(
+        suggestedDetail({
+          intoExistingClient: true,
+          fields: { [officePath]: { option: 0 } },
+          items: { 'workplace-2': { included: false } },
+          blockers: [],
+        }),
+        { workplaces: [depot] }
+      );
+      mount();
+
+      await userEvent.click(await screen.findByTestId('import-confirm'));
+      const dialog = await screen.findByTestId('import-confirm-dialog');
+      await waitFor(() => expect(dialog.textContent).toContain('Fără activitate la sediul social'));
+    });
+
+    it('words the office row without naming points the documents do not give', async () => {
+      mockReview(
+        suggestedDetail({
+          intoExistingClient: true,
+          items: { 'workplace-2': { included: false } },
+          blockers: [{ path: officePath, code: 'choice' }],
+        }),
+        { workplaces: [depot] }
+      );
+      mount('/workplaces');
+
+      const row = await screen.findByTestId('review-office-activity');
+      expect(row.textContent).toContain(
+        'Clientul are și alte puncte de lucru, iar documentele nu pun la sediul social niciun post'
+      );
+    });
   });
 });

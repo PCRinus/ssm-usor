@@ -49,7 +49,12 @@ import {
   type Proposal,
   refusedValueMessage,
 } from './review-model';
-import { confirmLines, folderSentence, importFolderCount } from './review-summary';
+import {
+  confirmLines,
+  type ExistingScope,
+  folderSentence,
+  importFolderCount,
+} from './review-summary';
 import type { ImportReview } from './use-import-review';
 
 const icons: Record<string, ReactNode> = {
@@ -109,7 +114,7 @@ export function ConfirmImportDialog({
   proposal,
   review,
   states,
-  existingSubstances,
+  scope,
   name,
   onClose,
 }: {
@@ -118,7 +123,7 @@ export function ConfirmImportDialog({
   proposal: Proposal;
   review: ImportReview;
   states: Record<string, FieldState>;
-  existingSubstances: string[];
+  scope: ExistingScope;
   name: string;
   onClose: () => void;
 }) {
@@ -128,12 +133,7 @@ export function ConfirmImportDialog({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const existing = detail.intoExistingClient;
-  const { lines, left } = confirmLines(
-    proposal,
-    review.changes,
-    states,
-    existing ? existingSubstances : null
-  );
+  const { lines, left } = confirmLines(proposal, review.changes, states, scope);
   const fields = Object.values(states);
   const addedFields = fields.filter((state) => state.comparison === 'added');
   const replaced = fields.filter((state) => state.comparison === 'replaced');

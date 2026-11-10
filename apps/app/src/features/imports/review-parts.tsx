@@ -114,11 +114,13 @@ export function SourceButton({
   onOpen,
   label = 'Vezi în document',
   outlined = true,
+  accessibleName,
 }: {
   sources: LabelledSource[];
   onOpen: () => void;
   label?: string;
   outlined?: boolean;
+  accessibleName?: string;
 }) {
   const prefetch = use(SourcePrefetchContext);
   const intent = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -127,6 +129,7 @@ export function SourceButton({
   const warm = () => prefetch?.(sources[0]!);
   const handlers = {
     'data-testid': 'review-source',
+    'aria-label': accessibleName,
     onPointerEnter: () => {
       clearTimeout(intent.current);
       intent.current = setTimeout(warm, pointerIntentMs);

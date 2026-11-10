@@ -64,6 +64,7 @@ import { FactRow, FieldCard, type FieldContext } from './review-fields';
 import {
   allocationLabel,
   anchorOf,
+  askedCounts,
   assemblyPointDecision,
   assemblyPointPath,
   assemblyPointStates,
@@ -76,11 +77,11 @@ import {
   type FieldState,
   type FireEquipmentCount,
   fireEquipmentCountPath,
-  fireEquipmentCountsOf,
   flagNote,
   flagsAt,
   foldText,
   formatFieldValue,
+  inactiveOffices,
   itemFieldLabel,
   itemInferenceNote,
   type ItemList,
@@ -92,19 +93,19 @@ import {
   type ItemState,
   itemStates,
   type LabelledSource,
+  meansTaken,
   nameSpellings,
-  officeActivityChoice,
-  officeActivityStates,
   roleLabel,
   sameValue,
   secondRegisteredOfficeNote,
   type Source,
+  substancesAnswer,
   substancesStateLabels,
   substancesStatePath,
   suggestedFields,
   suggestionStates,
   unprovenRoles,
-  valueInForce,
+  workplaceIdOf,
 } from './review-model';
 import {
   EditButton,
@@ -151,12 +152,7 @@ function referenceName(
   return null;
 }
 
-const referenceId = (value: unknown) =>
-  value && typeof value === 'object'
-    ? ((value as { id: string | null }).id ?? '')
-    : typeof value === 'string'
-      ? value
-      : '';
+const referenceId = workplaceIdOf;
 
 function ReferenceValue({
   context,
@@ -575,6 +571,7 @@ function ListCard({
   empty,
   untickedBox,
   numbered = false,
+  states = itemStates(context.proposal, context.changes, list),
 }: {
   title: (count: number) => string;
   list: ItemList;
@@ -584,8 +581,8 @@ function ListCard({
   empty: string;
   untickedBox?: (states: ItemState[]) => ReactNode;
   numbered?: boolean;
+  states?: ItemState[];
 }) {
-  const states = itemStates(context.proposal, context.changes, list);
   const rows = states.filter(listed);
   const aside = states.filter((state) => !listed(state));
   const kept = rows.filter((state) => state.included).length;
@@ -729,6 +726,11 @@ function AssemblyPointRow({ state, context }: { state: ItemState; context: Items
       }}
       onWrite={writeInstead}
       onEmpty={() => writeInstead(null)}
+      onUndecide={() => {
+        if ('assemblyPoint' in current && !keptWritten) setAssemblyPoint(context, state, undefined);
+        if (marked) context.review.setField(path, null);
+      }}
+      emptyNote="Nu se preia. Îl completezi pe fișa punctului de lucru când îl afli."
       openSource={context.openSource}
       below={
         written !== undefined &&
@@ -747,12 +749,7 @@ function AssemblyPointRow({ state, context }: { state: ItemState; context: Items
 }
 
 function AssemblyPoints({ context }: { context: ItemsContext }) {
-  const states = assemblyPointStates(
-    context.proposal,
-    context.changes,
-    context.blockers,
-    context.existingClient
-  );
+  const states = assemblyPointStates(context.proposal, context.changes, context);
   if (states.length === 0) return null;
   const open = states.filter(
     (state) => assemblyPointDecision(state.item, context.changes) === null
@@ -762,6 +759,7 @@ function AssemblyPoints({ context }: { context: ItemsContext }) {
       title="Punctul de adunare"
       icon={MapPin}
       description="Apare pe ce se afișează la fiecare punct de lucru, iar dosarele îl preiau des neschimbat de la alt client. Nu se preia până nu alegi."
+      decision
       pending={
         open === 0
           ? null
@@ -780,23 +778,23 @@ function AssemblyPoints({ context }: { context: ItemsContext }) {
 
 export function WorkplacesSection({ context }: { context: ItemsContext }) {
   const [editing, setEditing] = useState<ItemState | null>(null);
-  const args = [
-    context.proposal,
-    context.changes,
-    context.blockers,
-    context.existingClient,
-  ] as const;
-  const asked = new Set(assemblyPointStates(...args).map((state) => state.item.id));
+  const { proposal, changes } = context;
+  const asked = new Set(
+    assemblyPointStates(proposal, changes, context).map((state) => state.item.id)
+  );
   const suggestedHere = new Map(
-    suggestionStates(...args).map((state) => [
+    suggestionStates(proposal, changes, context).map((state) => [
       state.item.id,
-      suggestedFields(state, context.changes),
+      suggestedFields(state, changes),
     ])
   );
-  const inactive = new Set(
-    officeActivityStates(...args)
-      .filter((state) => officeActivityChoice(state.item, context.changes) === 0)
-      .map((state) => state.item.id)
+  const inactive = inactiveOffices(proposal, changes, context);
+  const meansAt = new Set(
+    (['fireEquipment', 'fireInstallations'] as const).flatMap((list) =>
+      itemStates(proposal, changes, list)
+        .filter((state) => state.included)
+        .map((state) => workplaceIdOf(state.values.workplace))
+    )
   );
   const draft: WorkplaceDraft | null = editing
     ? {
@@ -890,7 +888,13 @@ export function WorkplacesSection({ context }: { context: ItemsContext }) {
                 </dl>,
                 ...(inactive.has(state.item.id)
                   ? [
-                      'Fără activitate la sediul social: nu primește fișă SU și mijloace de stingere.',
+                      'Fără activitate la sediul social: nu primește nici fișă SU, nici mijloace de stingere.',
+                      meansAt.has(state.item.id) && (
+                        <span data-testid="review-office-means-left-out">
+                          Mijloacele de apărare trecute la sediu nu se preiau: acolo nu se
+                          desfășoară activitate.
+                        </span>
+                      ),
                     ]
                   : fireSheetDetails(
                       state.values,
@@ -1301,8 +1305,14 @@ function FireEquipmentCountRow({
   );
 }
 
-function FireEquipmentCounts({ context }: { context: ItemsContext }) {
-  const counts = fireEquipmentCountsOf(context.proposal);
+function FireEquipmentCounts({
+  context,
+  inactive,
+}: {
+  context: ItemsContext;
+  inactive: Set<string>;
+}) {
+  const counts = askedCounts(context.proposal, context.changes, inactive);
   if (counts.length === 0) return null;
   const open = counts.filter((count) => chosenCountOption(count, context.changes) === null);
   return (
@@ -1310,6 +1320,7 @@ function FireEquipmentCounts({ context }: { context: ItemsContext }) {
       title="Câte mijloace de stingere sunt"
       icon={Split}
       description="Documentele numără altfel aceleași mijloace. Se preiau doar cele din documentul ales."
+      decision
       pending={
         open.length === 0
           ? null
@@ -1384,12 +1395,14 @@ export function FireMeansSection({ context }: { context: ItemsContext }) {
       options: workplaces,
     },
   ];
+  const inactive = inactiveOffices(context.proposal, context.changes, context);
   return (
     <>
-      <FireEquipmentCounts context={context} />
+      <FireEquipmentCounts context={context} inactive={inactive} />
       <ListCard
         title={(count) => (count === 1 ? 'Un mijloc de stingere' : `${count} mijloace de stingere`)}
         list="fireEquipment"
+        states={meansTaken(context.proposal, context.changes, 'fireEquipment', inactive)}
         context={context}
         agreement="masculine"
         empty="Documentele nu numesc mijloace de stingere."
@@ -1420,6 +1433,7 @@ export function FireMeansSection({ context }: { context: ItemsContext }) {
       <ListCard
         title={(count) => (count === 1 ? 'O instalație' : `${count} instalații`)}
         list="fireInstallations"
+        states={meansTaken(context.proposal, context.changes, 'fireInstallations', inactive)}
         context={context}
         agreement="feminine"
         empty="Documentele nu numesc instalații de apărare împotriva incendiilor."
@@ -1542,7 +1556,7 @@ function KeptSubstancesAnswerRow({ state, context }: { state: FieldState; contex
       testId="review-substances-answer"
       label={<span id={`${name}-label`}>Utilizează substanțe periculoase?</span>}
     >
-      {state.comparison === 'same' || state.own.length === 0 ? (
+      {(state.comparison === 'same' && state.status !== 'choice') || state.own.length === 0 ? (
         <>
           <span className="font-medium">
             {formatFieldValue(substancesStatePath, state.existing)}
@@ -1609,7 +1623,7 @@ function SubstancesGroup({ context }: { context: ItemsContext }) {
   const states = itemStates(context.proposal, context.changes, 'substances');
   if (!state) return null;
   const kept = context.existingClient && state.existing !== null;
-  const answer = valueInForce(state);
+  const answer = substancesAnswer(state);
   const shown = answer === 'listed' || answer === undefined;
   const listed = new Set(context.existingSubstances.map(foldText));
   const fields: ItemDialogField[] = [
@@ -1620,7 +1634,8 @@ function SubstancesGroup({ context }: { context: ItemsContext }) {
       title="Substanțe periculoase"
       icon={FlaskConical}
       description="Lista lor se cere fiecărui client. Se preiau doar cu denumirea; clasificarea și cantitatea le completezi pe pagina clientului."
-      pending={state.status === 'choice' ? 'Mai ai de ales răspunsul' : null}
+      decision
+      pending={state.status === 'choice' && !kept ? 'Mai ai de ales răspunsul' : null}
       testId="review-substances"
     >
       {kept ? (
