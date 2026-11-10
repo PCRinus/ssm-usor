@@ -94,6 +94,7 @@ const sectionOfRoot: Record<string, SectionId> = {
   fireEquipmentCounts: 'fire-safety',
   fireInstallations: 'fire-safety',
   workplaces: 'workplaces',
+  assemblyPoints: 'workplaces',
   jobPositions: 'job-positions',
   responsiblePersons: 'responsible',
   employees: 'responsible',
@@ -632,6 +633,75 @@ export function smokingPlaceApplies(states: Record<string, FieldState>) {
 export const appliesAt = (states: Record<string, FieldState>, path: string) =>
   path !== 'fireSafety.smokingPlace' || smokingPlaceApplies(states);
 
+export const smokingPlacePath = 'fireSafety.smokingPlace';
+
+export const assemblyPointPath = (workplaceId: string) => `assemblyPoints.${workplaceId}`;
+
+// A value read that is never taken unchanged (ADR 041); null while it waits.
+export type FactDecision =
+  { kind: 'keep'; option: number } | { kind: 'other'; value: string } | { kind: 'empty' } | null;
+
+const writtenDecision = (value: unknown): FactDecision =>
+  value === null || value === undefined || (typeof value === 'string' && value.trim() === '')
+    ? { kind: 'empty' }
+    : { kind: 'other', value: String(value) };
+
+// As the API's payload reads it: the document's spelling selected before deciding is stored as the
+// member's value, and still waits.
+export function smokingPlaceDecision(state: FieldState, change: FieldChange | undefined) {
+  const option =
+    change?.option !== undefined && state.options[change.option] ? change.option : null;
+  const kept: FactDecision =
+    option !== null
+      ? { kind: 'keep', option }
+      : change?.replace || change?.included === true
+        ? { kind: 'keep', option: state.own[0] ?? 0 }
+        : null;
+  if (change?.value === undefined) return kept;
+  const spelled = state.options[option ?? (state.own.length === 1 ? state.own[0]! : -1)];
+  if (spelled?.spelling !== undefined && change.value === spelled.spelling) return kept;
+  return writtenDecision(change.value);
+}
+
+export function smokingPlaceAsked(states: Record<string, FieldState>) {
+  const state = states[smokingPlacePath];
+  if (!state || !appliesAt(states, smokingPlacePath) || state.own.length === 0) return false;
+  return state.own.length > 1 || state.comparison === 'none' || state.comparison === 'added';
+}
+
+export function assemblyPointDecision(
+  item: { id: string; spelling?: unknown },
+  changes: Changes
+): FactDecision {
+  const written = changes.items[item.id]?.values ?? {};
+  const spelling = (item.spelling as Record<string, string> | undefined)?.assemblyPoint;
+  if ('assemblyPoint' in written && written.assemblyPoint !== spelling) {
+    return writtenDecision(written.assemblyPoint);
+  }
+  return changes.fields[assemblyPointPath(item.id)]?.option === 0
+    ? { kind: 'keep', option: 0 }
+    : null;
+}
+
+// Into an existing client only the API knows a workplace's own point, which is kept, so the
+// review asks there where the API blocks or the member already decided.
+export function assemblyPointStates(
+  proposal: Proposal,
+  changes: Changes,
+  blockers: Blocker[],
+  existingClient: boolean
+) {
+  return itemStates(proposal, changes, 'workplaces').filter((state) => {
+    if (!state.included || isEmpty(state.item.assemblyPoint)) return false;
+    if (!existingClient) return true;
+    const path = assemblyPointPath(state.item.id);
+    return (
+      blockers.some((blocker) => blocker.path === path) ||
+      assemblyPointDecision(state.item, changes) !== null
+    );
+  });
+}
+
 type AnyItem = {
   id: string;
   sources: Source[];
@@ -913,6 +983,28 @@ export function blockerLink(proposal: Proposal, changes: Changes, blocker: Block
   const section = sectionOf(blocker.path);
   const parts = blocker.path.split('.');
   const [root, second, field] = parts as [string, string | undefined, string | undefined];
+  if (root === 'assemblyPoints') {
+    const workplace = itemsOf(proposal, 'workplaces').find((item) => item.id === second);
+    const values = workplace
+      ? { ...workplace, ...(changes.items[workplace.id]?.values ?? {}) }
+      : null;
+    return {
+      section,
+      anchor: anchorOf(blocker.path),
+      code: blocker.code,
+      text: values
+        ? `Confirmă punctul de adunare: ${itemName('workplaces', values)}`
+        : 'Confirmă punctul de adunare',
+    };
+  }
+  if (blocker.path === smokingPlacePath && blocker.code === 'choice') {
+    return {
+      section,
+      anchor: anchorOf(blocker.path),
+      code: blocker.code,
+      text: 'Confirmă locul pentru fumat',
+    };
+  }
   if (root === 'fireEquipmentCounts') {
     const count = fireEquipmentCountsOf(proposal).find((each) => each.id === second);
     const where = count ? countWorkplaceName(proposal, changes, count) : '';

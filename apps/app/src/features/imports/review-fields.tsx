@@ -16,6 +16,7 @@ import {
   Flame,
   GitCompare,
   type LucideIcon,
+  MapPin,
   Phone,
   Plus,
   Split,
@@ -48,6 +49,7 @@ import {
   appliesAt,
   type Blocker,
   type Changes,
+  type FactDecision,
   fieldGroups,
   fieldInfo,
   fieldSpelling,
@@ -62,6 +64,9 @@ import {
   sameCompanyName,
   sameValue,
   type SectionId,
+  smokingPlaceAsked,
+  smokingPlaceDecision,
+  smokingPlacePath,
   valueInForce,
   vatPayerPath,
   yesNoLabels,
@@ -192,6 +197,13 @@ const nounOf = (path: string, kind: 'choose' | 'write') =>
 
 function pendingOf(state: FieldState, context: FieldContext): string | null {
   if (!appliesAt(context.states, state.path)) return null;
+  if (
+    state.path === smokingPlacePath &&
+    smokingPlaceAsked(context.states) &&
+    smokingPlaceDecision(state, context.changes.fields[state.path]) === null
+  ) {
+    return 'de confirmat locul pentru fumat';
+  }
   if (state.status === 'choice') return `de ales ${nounOf(state.path, 'choose')}`;
   if (state.anaf?.picked === null) return `de văzut ${nounOf(state.path, 'choose')}`;
   if (state.value === null && requiredPaths.has(state.path) && !context.existingClient) {
@@ -552,6 +564,203 @@ function ChoiceRow({ state, context }: { state: FieldState; context: FieldContex
   );
 }
 
+function factProblem(noun: string, raw: string) {
+  const text = raw.trim();
+  if (text === '') return `Scrie ${noun}.`;
+  if (text.length < 2) return 'Scrie cel puțin 2 caractere.';
+  if (text.length > 240) return 'Cel mult 240 de caractere.';
+  return null;
+}
+
+export type FactOption = { option: number; value: string; sources: LabelledSource[] };
+
+export function FactRow({
+  id,
+  label,
+  noun,
+  options,
+  decision,
+  onKeep,
+  onWrite,
+  onEmpty,
+  openSource,
+  below,
+  note = 'Apare pe ce se afișează la locul de muncă, iar dosarele îl preiau des neschimbat de la alt client. Păstrează-l doar dacă e cel real.',
+}: {
+  id: string;
+  label: string;
+  noun: string;
+  note?: string;
+  options: FactOption[];
+  decision: FactDecision;
+  onKeep: (option: number) => void;
+  onWrite: (value: string) => void;
+  onEmpty: () => void;
+  openSource: OpenSource;
+  below?: ReactNode;
+}) {
+  const name = useId();
+  const written = decision?.kind === 'other' ? decision.value : '';
+  const [other, setOther] = useState(written);
+  const [otherOpen, setOtherOpen] = useState(decision?.kind === 'other');
+  const [otherError, setOtherError] = useState<string | null>(null);
+  const done = decision !== null;
+  return (
+    <DecisionRow
+      tone={done ? 'done' : 'todo'}
+      top
+      wide
+      id={id}
+      testId="review-fact"
+      label={<span id={`${name}-label`}>{label}</span>}
+    >
+      <KindLine icon={<MapPin aria-hidden="true" />} tone={done ? undefined : 'warning'}>
+        {note}
+      </KindLine>
+      <PickList labelledBy={`${name}-label`}>
+        {options.map((option) => (
+          <PickOption
+            key={option.option}
+            name={name}
+            checked={!otherOpen && decision?.kind === 'keep' && decision.option === option.option}
+            onPick={() => {
+              setOtherOpen(false);
+              onKeep(option.option);
+            }}
+            heading={<SourceFileNames sources={option.sources} />}
+            testId="review-fact-keep"
+            action={
+              <SourceButton
+                sources={option.sources}
+                onOpen={() => openSource(`${label}: ${option.value}`, option.sources)}
+              />
+            }
+          >
+            {option.value}
+          </PickOption>
+        ))}
+        <PickOption
+          name={name}
+          checked={otherOpen}
+          inDocuments={decision?.kind === 'other'}
+          onPick={() => setOtherOpen(true)}
+          heading="Altă valoare"
+          testId="review-fact-other"
+          below={
+            otherOpen && (
+              <form
+                className="grid gap-1.5"
+                noValidate
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const problem = factProblem(noun, other);
+                  setOtherError(problem);
+                  if (!problem) onWrite(other.trim());
+                }}
+              >
+                <span className="flex flex-wrap gap-2">
+                  <Input
+                    aria-label={label}
+                    data-testid="review-fact-value"
+                    className="max-w-sm"
+                    autoFocus={decision?.kind !== 'other'}
+                    aria-invalid={Boolean(otherError)}
+                    aria-describedby={otherError ? `${name}-other-error` : undefined}
+                    value={other}
+                    onChange={(event) => setOther(event.target.value)}
+                  />
+                  <Button type="submit" variant="outline">
+                    Folosește
+                  </Button>
+                </span>
+                {otherError && (
+                  <span id={`${name}-other-error`} className="text-[13px] text-destructive">
+                    {otherError}
+                  </span>
+                )}
+              </form>
+            )
+          }
+        >
+          {!otherOpen && (
+            <span className="text-muted-foreground">
+              O scrii tu, dacă documentele nu o dau pe cea reală.
+            </span>
+          )}
+        </PickOption>
+        <PickOption
+          name={name}
+          checked={!otherOpen && decision?.kind === 'empty'}
+          inDocuments={false}
+          onPick={() => {
+            setOtherOpen(false);
+            onEmpty();
+          }}
+          heading="Lasă necompletat"
+          testId="review-fact-empty"
+        >
+          <span className="text-muted-foreground">
+            Nu se preia. Îl completezi pe fișa clientului când îl afli.
+          </span>
+        </PickOption>
+      </PickList>
+      {below}
+    </DecisionRow>
+  );
+}
+
+function SmokingPlaceRow({ state, context }: { state: FieldState; context: FieldContext }) {
+  const change = context.changes.fields[state.path];
+  const rest = withoutKeys(change, 'option', 'value', 'included');
+  const spelling = fieldSpelling(state, change);
+  return (
+    <FactRow
+      id={anchorOf(state.path)}
+      label={state.label}
+      noun="locul pentru fumat"
+      options={state.own.map((index) => ({
+        option: index,
+        value: formatFieldValue(state.path, state.options[index]!.value),
+        sources: state.options[index]!.sources,
+      }))}
+      decision={smokingPlaceDecision(state, change)}
+      onKeep={(option) => {
+        const written = state.options[option]?.spelling;
+        const keepsWritten = written !== undefined && change?.value === written;
+        context.review.setField(state.path, {
+          ...rest,
+          option,
+          ...(keepsWritten ? { value: written } : {}),
+        });
+      }}
+      onWrite={(value) => context.review.setField(state.path, { ...rest, value })}
+      onEmpty={() => context.review.setField(state.path, { ...rest, value: null })}
+      openSource={context.openSource}
+      below={
+        spelling && (
+          <SpellingChoice
+            label={state.label}
+            corrected={spelling.corrected}
+            written={spelling.written}
+            keptWritten={spelling.keptWritten}
+            onPick={(keep) => {
+              const others = withoutKeys(change, 'value');
+              context.review.setField(
+                state.path,
+                keep
+                  ? { ...others, value: spelling.written }
+                  : Object.keys(others).length
+                    ? others
+                    : null
+              );
+            }}
+          />
+        )
+      }
+    />
+  );
+}
+
 function AnafRow({
   state,
   context,
@@ -689,6 +898,9 @@ function FieldRow({
 }) {
   if (!appliesAt(context.states, state.path)) {
     return <NotApplicableRow state={state} context={context} />;
+  }
+  if (state.path === smokingPlacePath && smokingPlaceAsked(context.states)) {
+    return <SmokingPlaceRow state={state} context={context} />;
   }
   if (editing) return <FieldEditor state={state} context={context} onDone={onDone} />;
   if (state.own.length > 1) return <ChoiceRow state={state} context={context} />;
@@ -949,9 +1161,13 @@ export function ExistingFieldGroups({
           pending={pendingLine(choices, context)}
           testId="review-choices"
         >
-          {choices.map((state) => (
-            <ChoiceRow key={state.path} state={state} context={context} />
-          ))}
+          {choices.map((state) =>
+            state.path === smokingPlacePath ? (
+              <SmokingPlaceRow key={state.path} state={state} context={context} />
+            ) : (
+              <ChoiceRow key={state.path} state={state} context={context} />
+            )
+          )}
         </FieldCard>
       )}
       {added.length > 0 && (

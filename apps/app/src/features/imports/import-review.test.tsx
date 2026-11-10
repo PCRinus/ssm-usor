@@ -1730,7 +1730,10 @@ describe('what the import now fills for the fire-safety and safety sets', () => 
     const [row] = await screen.findAllByTestId('review-item');
     expect(row!.textContent).toContain('Suprafața utilă 180 m²');
     expect(row!.textContent).toContain('Norma de dotare: Clădiri comerciale');
-    expect(row!.textContent).toContain('Punctul de adunare: Parcarea din spatele clădirii');
+    expect(row!.textContent).not.toContain('Punctul de adunare');
+    expect(screen.getByTestId('review-assembly-points').textContent).toContain(
+      'Parcarea din spatele clădirii'
+    );
     expect(row!.textContent).toContain('Materiale combustibile: Făină, ambalaje din carton');
 
     await userEvent.click(within(row!).getByTestId('review-edit'));
@@ -1848,6 +1851,7 @@ describe('a smoking rule the decisions disagree on', () => {
               'fireSafety.smokingPolicy': {
                 option: policy === 'forbidden_everywhere' ? 0 : 1,
               },
+              'fireSafety.smokingPlace': { option: 0 },
             }
           : {},
         items: {},
@@ -2005,8 +2009,12 @@ describe('a value proposed with its spelling corrected', () => {
     expect(saves).toBe(0);
   });
 
-  it('sums up the hub with the corrected value', async () => {
-    mockReview(spellingDetail());
+  it('sums up the hub with the corrected value once kept', async () => {
+    mockReview(
+      Object.assign(spellingDetail(), {
+        changes: { fields: { 'fireSafety.smokingPlace': { option: 0 } }, items: {} },
+      })
+    );
     mount();
 
     const fireSafety = (await screen.findAllByTestId('import-section-link')).find(
@@ -2888,5 +2896,229 @@ describe('means the files count differently', () => {
         .getAllByTestId('confirm-line')
         .map((line) => line.textContent)
     ).toContainEqual(expect.stringContaining('5mijloace de apărare'));
+  });
+});
+
+describe('the assembly point and the smoking place', () => {
+  const placePath = 'fireSafety.smokingPlace';
+  const pointPath = 'assemblyPoints.workplace-1';
+  const siteDetail = ({
+    fields = {},
+    items = {},
+    blockers,
+    intoExistingClient = false,
+  }: {
+    fields?: Record<string, unknown>;
+    items?: Record<string, unknown>;
+    blockers?: { path: string; code: string }[];
+    intoExistingClient?: boolean;
+  } = {}) => {
+    const proposal = proposalFixture();
+    Object.assign(proposal.workplaces[0]!, {
+      assemblyPoint: 'Parcarea din fața clădirii',
+      fieldSources: {
+        assemblyPoint: [{ file: 'Instructiuni PSI.docx', quote: 'Punct de adunare: parcarea' }],
+      },
+      spelling: { assemblyPoint: 'PARCAREA DIN FATA CLADIRII' },
+    });
+    Object.assign(proposal.fireSafety.smokingPlace.options[0]!, {
+      value: 'La poarta unității',
+      spelling: 'LA POARTA UNITATII',
+    });
+    return readyDetail({
+      proposal,
+      changes: { fields, items },
+      blockers: blockers ?? [
+        { path: placePath, code: 'choice' },
+        { path: pointPath, code: 'choice' },
+      ],
+      ...(intoExistingClient
+        ? { intoExistingClient, client: { id: clientId, legalName: 'Brutăria Spicul Auriu SRL' } }
+        : {}),
+    });
+  };
+  const radio = (row: HTMLElement, testId: string) =>
+    within(within(row).getByTestId(testId)).getByRole('radio');
+
+  it('lists both among what blocks confirming, and names no place until it is kept', async () => {
+    mockReview(siteDetail());
+    mount();
+
+    const links = await screen.findAllByTestId('import-blocker-link');
+    expect(links.map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
+      [
+        'Confirmă locul pentru fumat',
+        `/clienti/import/${importId}/fire-safety#review-fireSafety-smokingPlace`,
+      ],
+      [
+        'Confirmă punctul de adunare: Sediu',
+        `/clienti/import/${importId}/workplaces#review-assemblyPoints-workplace-1`,
+      ],
+    ]);
+    const section = (id: string) =>
+      screen.getAllByTestId('import-section-link').find((each) => each.dataset.section === id)!;
+    expect(within(section('workplaces')).getByTestId('section-status').textContent).toBe(
+      'Alegere necesară'
+    );
+    expect(section('fire-safety').textContent).toContain(
+      'Fumat doar în locurile amenajate, 6 mijloace de stingere.'
+    );
+  });
+
+  it('keeps the smoking place, writes another, or leaves it empty', async () => {
+    mockReview(siteDetail());
+    mount('/fire-safety');
+
+    await screen.findByText('Locul pentru fumat');
+    const row = document.getElementById('review-fireSafety-smokingPlace')!;
+    expect(within(row).getByTestId('review-fact-keep').textContent).toContain('La poarta unității');
+    expect(radio(row, 'review-fact-keep').matches(':checked')).toBe(false);
+    expect(screen.getAllByTestId('review-group-pending').map((note) => note.textContent)).toContain(
+      'Mai ai 2 lucruri de făcut'
+    );
+
+    await userEvent.click(radio(row, 'review-fact-keep'));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({ [placePath]: { option: 0 } });
+
+    await userEvent.click(within(row).getByRole('radio', { name: /Ca în document/ }));
+    await waitFor(() => expect(saves).toBe(2));
+    expect(savedChanges(1).changes.fields).toEqual({
+      [placePath]: { option: 0, value: 'LA POARTA UNITATII' },
+    });
+
+    await userEvent.click(radio(row, 'review-fact-other'));
+    const input = within(row).getByTestId('review-fact-value');
+    await userEvent.type(input, 'x{Enter}');
+    expect(within(row).getByText('Scrie cel puțin 2 caractere.')).toBeTruthy();
+    await userEvent.type(input, ' În curtea din spate{Enter}');
+    await waitFor(() => expect(saves).toBe(3));
+    expect(savedChanges(2).changes.fields).toEqual({
+      [placePath]: { value: 'x În curtea din spate' },
+    });
+
+    await userEvent.click(radio(row, 'review-fact-empty'));
+    await waitFor(() => expect(saves).toBe(4));
+    expect(savedChanges(3).changes.fields).toEqual({ [placePath]: { value: null } });
+    expect(within(row).queryByTestId('review-spelling')).toBeNull();
+  });
+
+  it('keeps the document’s spelling selected before deciding', async () => {
+    mockReview(siteDetail({ fields: { [placePath]: { value: 'LA POARTA UNITATII' } } }));
+    mount('/fire-safety');
+
+    await screen.findByText('Locul pentru fumat');
+    const row = document.getElementById('review-fireSafety-smokingPlace')!;
+    expect(radio(row, 'review-fact-keep').matches(':checked')).toBe(false);
+    await userEvent.click(radio(row, 'review-fact-keep'));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({
+      [placePath]: { option: 0, value: 'LA POARTA UNITATII' },
+    });
+  });
+
+  it('asks nothing of the place while smoking is forbidden everywhere', async () => {
+    mockReview(
+      siteDetail({
+        fields: { 'fireSafety.smokingPolicy': { value: 'forbidden_everywhere' } },
+        blockers: [],
+      })
+    );
+    mount('/fire-safety');
+
+    await screen.findByText('Locul pentru fumat');
+    expect(screen.queryByTestId('review-fact')).toBeNull();
+    expect(screen.getByTestId('review-not-applicable')).toBeTruthy();
+  });
+
+  it('keeps a workplace’s assembly point, writes another, or leaves it empty', async () => {
+    mockReview(siteDetail());
+    mount('/workplaces');
+
+    const card = await screen.findByTestId('review-assembly-points');
+    expect(within(card).getByTestId('review-group-pending').textContent).toBe(
+      'Mai ai de confirmat punctul de adunare'
+    );
+    const row = within(card).getByTestId('review-fact');
+    expect(row.textContent).toContain('Sediu');
+    expect(within(row).getByTestId('review-fact-keep').textContent).toContain(
+      'Parcarea din fața clădirii'
+    );
+    expect(within(row).getByTestId('review-fact-keep').textContent).toContain(
+      'Instructiuni PSI.docx'
+    );
+    expect(screen.getByTestId('review-list-workplaces').textContent).not.toContain(
+      'PARCAREA DIN FATA CLADIRII'
+    );
+
+    await userEvent.click(radio(row, 'review-fact-keep'));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes).toMatchObject({ fields: { [pointPath]: { option: 0 } } });
+
+    await userEvent.click(within(row).getByRole('radio', { name: /Ca în document/ }));
+    await waitFor(() => expect(saves).toBe(2));
+    expect(savedChanges(1).changes.items).toEqual({
+      'workplace-1': { values: { assemblyPoint: 'PARCAREA DIN FATA CLADIRII' } },
+    });
+    expect(savedChanges(1).changes.fields).toEqual({ [pointPath]: { option: 0 } });
+
+    await userEvent.click(radio(row, 'review-fact-empty'));
+    await waitFor(() => expect(saves).toBe(4));
+    expect(savedChanges(3).changes.items).toEqual({
+      'workplace-1': { values: { assemblyPoint: null } },
+    });
+    expect(savedChanges(3).changes.fields).toEqual({});
+
+    await userEvent.click(radio(row, 'review-fact-keep'));
+    await waitFor(() => expect(saves).toBe(6));
+    expect(savedChanges(5).changes.items).toEqual({});
+    expect(savedChanges(5).changes.fields).toEqual({ [pointPath]: { option: 0 } });
+  });
+
+  it('asks nothing of a workplace left out', async () => {
+    mockReview(siteDetail({ items: { 'workplace-1': { included: false } }, blockers: [] }));
+    mount('/workplaces');
+
+    await screen.findByTestId('review-list-workplaces');
+    expect(screen.queryByTestId('review-assembly-points')).toBeNull();
+  });
+
+  it('into an existing client, asks for a workplace’s point only where the import writes it', async () => {
+    mockReview(siteDetail({ intoExistingClient: true, blockers: [] }));
+    mount('/workplaces');
+
+    await screen.findByTestId('review-list-workplaces');
+    expect(screen.queryByTestId('review-assembly-points')).toBeNull();
+  });
+
+  it('leaves out of what confirming adds a place left empty', async () => {
+    const decided = (place: unknown) =>
+      siteDetail({
+        intoExistingClient: true,
+        fields: { [placePath]: place, [pointPath]: { option: 0 } },
+        blockers: [],
+      });
+    mockReview(decided({ value: null }));
+    mount();
+
+    await userEvent.click(await screen.findByTestId('import-confirm'));
+    const dialog = await screen.findByTestId('import-confirm-dialog');
+    await waitFor(() => expect(dialog.textContent).toContain('Se adaugă'));
+    expect(dialog.textContent).not.toContain('Locul pentru fumat');
+  });
+
+  it('lists a place kept among what confirming adds to an existing client', async () => {
+    mockReview(
+      siteDetail({
+        intoExistingClient: true,
+        fields: { [placePath]: { option: 0 }, [pointPath]: { option: 0 } },
+        blockers: [],
+      })
+    );
+    mount();
+
+    await userEvent.click(await screen.findByTestId('import-confirm'));
+    const dialog = await screen.findByTestId('import-confirm-dialog');
+    await waitFor(() => expect(dialog.textContent).toContain('Locul pentru fumat'));
   });
 });

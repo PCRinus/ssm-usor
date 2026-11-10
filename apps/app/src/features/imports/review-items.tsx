@@ -56,10 +56,13 @@ import { allocationLabels } from '@/features/protective-equipment/equipment-sche
 import { type Agreement, Includable, SwitchRow } from './include-switch';
 import { type ItemDialogField, ItemEditDialog } from './item-edit-dialog';
 import { DecisionRow } from './library/decision-row';
-import { FieldCard, type FieldContext } from './review-fields';
+import { FactRow, FieldCard, type FieldContext } from './review-fields';
 import {
   allocationLabel,
   anchorOf,
+  assemblyPointDecision,
+  assemblyPointPath,
+  assemblyPointStates,
   type Blocker,
   chosenCountOption,
   countName,
@@ -282,6 +285,7 @@ function ItemRow({
   agreement,
   excludable = true,
   ordinal,
+  decidedElsewhere = [],
 }: {
   state: ItemState;
   context: ItemsContext;
@@ -292,6 +296,8 @@ function ItemRow({
   agreement: Agreement;
   excludable?: boolean;
   ordinal?: number;
+  // Fields with a decision row of their own, whose spelling pair goes with it.
+  decidedElsewhere?: string[];
 }) {
   const prefix = `${state.list}.${state.index}`;
   const blockers = context.blockers.filter(
@@ -356,26 +362,28 @@ function ItemRow({
               {detail}
             </div>
           ))}
-          {itemSpellings(state, context.changes).map(({ field, value, written, keptWritten }) => (
-            <div key={field} className="mt-1 grid gap-1">
-              <span className="text-[13px] font-medium">{itemSpellingLabel(field)}</span>
-              <SpellingChoice
-                label={itemSpellingLabel(field)}
-                corrected={value}
-                written={written}
-                keptWritten={keptWritten}
-                onPick={(keep) =>
-                  context.review.setItem(state.item.id, (current) => {
-                    const values = Object.fromEntries(
-                      Object.entries(current.values ?? {}).filter(([key]) => key !== field)
-                    );
-                    if (keep) values[field] = written;
-                    return { ...current, values };
-                  })
-                }
-              />
-            </div>
-          ))}
+          {itemSpellings(state, context.changes)
+            .filter(({ field }) => !decidedElsewhere.includes(field))
+            .map(({ field, value, written, keptWritten }) => (
+              <div key={field} className="mt-1 grid gap-1">
+                <span className="text-[13px] font-medium">{itemSpellingLabel(field)}</span>
+                <SpellingChoice
+                  label={itemSpellingLabel(field)}
+                  corrected={value}
+                  written={written}
+                  keptWritten={keptWritten}
+                  onPick={(keep) =>
+                    context.review.setItem(state.item.id, (current) => {
+                      const values = Object.fromEntries(
+                        Object.entries(current.values ?? {}).filter(([key]) => key !== field)
+                      );
+                      if (keep) values[field] = written;
+                      return { ...current, values };
+                    })
+                  }
+                />
+              </div>
+            ))}
           <NameChoice state={state} context={context} />
           {flags.map((flag) => (
             <RowNote key={`${flag.path}-${flag.code}`}>
@@ -655,8 +663,112 @@ function workplaceSources(item: ItemState['item']): Source[] {
   return [...bySource.values()];
 }
 
+function setAssemblyPoint(
+  context: ItemsContext,
+  state: ItemState,
+  value: string | null | undefined
+) {
+  context.review.setItem(state.item.id, (current) => {
+    const values = Object.fromEntries(
+      Object.entries(current.values ?? {}).filter(([key]) => key !== 'assemblyPoint')
+    );
+    if (value !== undefined) values.assemblyPoint = value;
+    return { ...current, values };
+  });
+}
+
+function AssemblyPointRow({ state, context }: { state: ItemState; context: ItemsContext }) {
+  const path = assemblyPointPath(state.item.id);
+  const read = String(state.item.assemblyPoint);
+  const fieldSources = (state.item.fieldSources ?? {}) as Record<string, Source[]>;
+  const written = (state.item.spelling as Record<string, string> | undefined)?.assemblyPoint;
+  const current = context.changes.items[state.item.id]?.values ?? {};
+  const keptWritten = written !== undefined && current.assemblyPoint === written;
+  const decision = assemblyPointDecision(state.item, context.changes);
+  const marked = context.changes.fields[path] !== undefined;
+  const writeInstead = (value: string | null) => {
+    setAssemblyPoint(context, state, value);
+    if (marked) context.review.setField(path, null);
+  };
+  return (
+    <FactRow
+      id={anchorOf(path)}
+      label={itemName('workplaces', state.values)}
+      noun="punctul de adunare"
+      note="Păstrează-l doar dacă e cel real."
+      options={[
+        {
+          option: 0,
+          value: read,
+          sources: fieldSources.assemblyPoint ?? state.item.sources,
+        },
+      ]}
+      decision={decision}
+      onKeep={() => {
+        if ('assemblyPoint' in current && !keptWritten) setAssemblyPoint(context, state, undefined);
+        context.review.setField(path, { option: 0 });
+      }}
+      onWrite={writeInstead}
+      onEmpty={() => writeInstead(null)}
+      openSource={context.openSource}
+      below={
+        written !== undefined &&
+        (decision === null || decision.kind === 'keep') && (
+          <SpellingChoice
+            label="Punctul de adunare"
+            corrected={read}
+            written={written}
+            keptWritten={keptWritten}
+            onPick={(keep) => setAssemblyPoint(context, state, keep ? written : undefined)}
+          />
+        )
+      }
+    />
+  );
+}
+
+function AssemblyPoints({ context }: { context: ItemsContext }) {
+  const states = assemblyPointStates(
+    context.proposal,
+    context.changes,
+    context.blockers,
+    context.existingClient
+  );
+  if (states.length === 0) return null;
+  const open = states.filter(
+    (state) => assemblyPointDecision(state.item, context.changes) === null
+  ).length;
+  return (
+    <FieldCard
+      title="Punctul de adunare"
+      icon={MapPin}
+      description="Apare pe ce se afișează la fiecare punct de lucru, iar dosarele îl preiau des neschimbat de la alt client. Nu se preia până nu alegi."
+      pending={
+        open === 0
+          ? null
+          : open === 1
+            ? 'Mai ai de confirmat punctul de adunare'
+            : `Mai ai ${open} lucruri de făcut`
+      }
+      testId="review-assembly-points"
+    >
+      {states.map((state) => (
+        <AssemblyPointRow key={state.item.id} state={state} context={context} />
+      ))}
+    </FieldCard>
+  );
+}
+
 export function WorkplacesSection({ context }: { context: ItemsContext }) {
   const [editing, setEditing] = useState<ItemState | null>(null);
+  const asked = new Set(
+    assemblyPointStates(
+      context.proposal,
+      context.changes,
+      context.blockers,
+      context.existingClient
+    ).map((state) => state.item.id)
+  );
   const draft: WorkplaceDraft | null = editing
     ? {
         values: {
@@ -717,6 +829,7 @@ export function WorkplacesSection({ context }: { context: ItemsContext }) {
             .filter(Boolean)
             .join(', ');
           const rooms = (state.values.rooms as string[] | undefined) ?? [];
+          const decidedElsewhere = asked.has(state.item.id) ? ['assemblyPoint'] : [];
           return (
             <ItemRow
               key={state.item.id}
@@ -745,16 +858,21 @@ export function WorkplacesSection({ context }: { context: ItemsContext }) {
                 </dl>,
                 ...fireSheetDetails(
                   state.values,
-                  new Set(itemSpellings(state, context.changes).map(({ field }) => field))
+                  new Set([
+                    ...itemSpellings(state, context.changes).map(({ field }) => field),
+                    ...decidedElsewhere,
+                  ])
                 ),
               ]}
               sources={workplaceSources(state.item)}
               agreement="masculine"
               onEdit={() => setEditing(state)}
+              decidedElsewhere={decidedElsewhere}
             />
           );
         }}
       />
+      <AssemblyPoints context={context} />
       <WorkplaceDialog clientId="" editing={null} draft={draft} onClose={() => setEditing(null)} />
     </>
   );

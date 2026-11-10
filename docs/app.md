@@ -1030,7 +1030,13 @@ their tab bars read.
   the means files count differently ("Câte mijloace de stingere sunt") come first, one row per
   kind and workplace with each file's total, rooms and "Vezi în document"; until one is picked
   their entries stay out of the list and of what confirming creates, then only the chosen
-  file's are listed. An entry the document gives without a number says it is taken as one. Every decision goes to `PUT
+  file's are listed. An entry the document gives without a number says it is taken as one. The
+  smoking place, where it applies, and each kept workplace's assembly point (a card "Punctul de
+  adunare" after the workplaces) are decision rows (`FactRow`): the value read with its files and
+  "Vezi în document", "Altă valoare" or "Lasă necompletat", the spelling pair under a value kept;
+  until one is picked the hub names no place and blocks confirming (ADR 041). Into an existing
+  client a workplace's point is asked only where the API blocks on it or the member decided,
+  since only the API knows the client's own point. Every decision goes to `PUT
 /imports/{id}/changes` at once, one save after another on the version the previous answered;
   each answer's blockers replace the import's before it is read again, so a note the save settles
   goes at once. A `409` `import_changed` stops saving and offers to reload. The values a member wrote carry

@@ -36,6 +36,9 @@ import {
   sectionIds,
   sectionOf,
   sectionStatus,
+  smokingPlaceAsked,
+  smokingPlaceDecision,
+  smokingPlacePath,
   type UntickedReason,
   valueInForce,
 } from './review-model';
@@ -65,11 +68,15 @@ export const keptPaths = (states: Record<string, FieldState>) =>
 const included = (proposal: Proposal, changes: Changes, list: ItemList) =>
   itemStates(proposal, changes, list).filter((state) => state.included);
 
-export function smokingRule(states: Record<string, FieldState>) {
+export function smokingRule(states: Record<string, FieldState>, changes: Changes) {
   const policy = valueInForce(states['fireSafety.smokingPolicy']);
   if (policy === 'forbidden_everywhere') return 'Fumatul interzis peste tot';
   if (policy !== 'designated_places') return null;
-  const place = String(valueInForce(states['fireSafety.smokingPlace']) ?? '')
+  const waits =
+    smokingPlaceAsked(states) &&
+    smokingPlaceDecision(states[smokingPlacePath]!, changes.fields[smokingPlacePath]) === null;
+  if (waits) return 'Fumat doar în locurile amenajate';
+  const place = String(valueInForce(states[smokingPlacePath]) ?? '')
     .trim()
     .replace(/^[ÎI]n\s+/u, 'în ');
   return place ? `Fumat doar în locurile amenajate: ${place}` : 'Fumat doar în locurile amenajate';
@@ -179,7 +186,7 @@ export function sectionDescription(
         (total, state) => total + Math.max(1, Number(state.values.count ?? 1)),
         0
       );
-      const smoking = smokingRule(states);
+      const smoking = smokingRule(states, changes);
       const countsText = fireEquipmentCountsOf(proposal)
         .filter((each) => chosenCountOption(each, changes) === null)
         .map((each) => ` ${countName(each)}: ${each.options.length} numere în documente.`)
