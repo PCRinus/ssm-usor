@@ -417,10 +417,16 @@ const changedValue = z.union([z.string(), z.number(), z.boolean(), z.null(), z.a
  * unless the member changed it.
  */
 export const importChangesSchema = z.object({
-  // A single value by `client.<name>`, `trainingSchedule.<name>` or `fireSafety.<name>`.
+  // A single value by `client.<name>`, `trainingSchedule.<name>` or `fireSafety.<name>`, and the
+  // count of a kind of means at a workplace by `fireEquipmentCounts.<id>`, which takes only an
+  // option.
   fields: z
     .record(
-      z.string().regex(/^(client|trainingSchedule|fireSafety)\.[A-Za-z]+$/),
+      z
+        .string()
+        .regex(
+          /^((client|trainingSchedule|fireSafety)\.[A-Za-z]+|fireEquipmentCounts\.[a-z0-9-]+)$/
+        ),
       z
         .object({
           // The option chosen among those the documents gave.

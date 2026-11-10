@@ -95,6 +95,13 @@ function proposedFields(proposal: Proposal) {
   );
 }
 
+// The options of a count state the same units, and only one file's entries are ever written.
+const otherFilesEntries = (proposal: Proposal) =>
+  proposal.fireEquipmentCounts.reduce((sum, count) => {
+    const sizes = count.options.map((option) => option.equipmentIds.length);
+    return sum + sizes.reduce((total, size) => total + size, 0) - Math.max(...sizes);
+  }, 0);
+
 export function clientReadingFlags(
   files: readonly FileForFlags[],
   proposal: Proposal | null
@@ -115,7 +122,9 @@ export function clientReadingFlags(
     emptyRequired: required.filter((path) => empty[path]),
     checks: tally(proposal.flags.map((flag) => flag.code)),
     proposedValues:
-      fields.length + clientLists.reduce((sum, list) => sum + proposal[list].length, 0),
+      fields.length +
+      clientLists.reduce((sum, list) => sum + proposal[list].length, 0) -
+      otherFilesEntries(proposal),
   };
 }
 

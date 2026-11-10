@@ -9512,6 +9512,32 @@ export const ImportDetailProposalFireEquipmentItemAgent = {
   clean_agent: 'clean_agent',
 } as const;
 
+export type ImportDetailProposalFireEquipmentCountsItemKind =
+  (typeof ImportDetailProposalFireEquipmentCountsItemKind)[keyof typeof ImportDetailProposalFireEquipmentCountsItemKind];
+
+export const ImportDetailProposalFireEquipmentCountsItemKind = {
+  extinguisher: 'extinguisher',
+  sand_box: 'sand_box',
+  fire_post: 'fire_post',
+  fire_blanket: 'fire_blanket',
+  other: 'other',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ImportDetailProposalFireEquipmentCountsItemAgent =
+  | (typeof ImportDetailProposalFireEquipmentCountsItemAgent)[keyof typeof ImportDetailProposalFireEquipmentCountsItemAgent]
+  | null;
+
+export const ImportDetailProposalFireEquipmentCountsItemAgent = {
+  powder: 'powder',
+  co2: 'co2',
+  foam: 'foam',
+  water: 'water',
+  clean_agent: 'clean_agent',
+} as const;
+
 export type ImportDetailProposalFireInstallationsItemKind =
   (typeof ImportDetailProposalFireInstallationsItemKind)[keyof typeof ImportDetailProposalFireInstallationsItemKind];
 
@@ -10668,6 +10694,44 @@ export type ImportDetailProposalFireEquipmentItem = {
   spelling?: ImportDetailProposalFireEquipmentItemSpelling;
 };
 
+export type ImportDetailProposalFireEquipmentCountsItemWorkplace = {
+  /** @nullable */
+  name: string | null;
+  /** @nullable */
+  id: string | null;
+};
+
+export type ImportDetailProposalFireEquipmentCountsItemOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalFireEquipmentCountsItemOptionsItem = {
+  /** @minimum 1 */
+  total: number;
+  /** @minItems 1 */
+  sources: ImportDetailProposalFireEquipmentCountsItemOptionsItemSourcesItem[];
+  /**
+   * @minItems 1
+   * @items.minLength 1
+   */
+  equipmentIds: string[];
+};
+
+export type ImportDetailProposalFireEquipmentCountsItem = {
+  /** @minLength 1 */
+  id: string;
+  workplace: ImportDetailProposalFireEquipmentCountsItemWorkplace;
+  kind: ImportDetailProposalFireEquipmentCountsItemKind;
+  /** @nullable */
+  agent: ImportDetailProposalFireEquipmentCountsItemAgent;
+  /** @nullable */
+  capacity: number | null;
+  wheeled: boolean;
+  /** @minItems 2 */
+  options: ImportDetailProposalFireEquipmentCountsItemOptionsItem[];
+};
+
 export type ImportDetailProposalFireInstallationsItemSourcesItem = {
   file: string;
   quote: string;
@@ -10790,6 +10854,7 @@ export type ImportDetailProposal = {
   jobPositions: ImportDetailProposalJobPositionsItem[];
   responsiblePersons: ImportDetailProposalResponsiblePersonsItem[];
   fireEquipment: ImportDetailProposalFireEquipmentItem[];
+  fireEquipmentCounts?: ImportDetailProposalFireEquipmentCountsItem[];
   fireInstallations: ImportDetailProposalFireInstallationsItem[];
   protectiveEquipment: ImportDetailProposalProtectiveEquipmentItem[];
   employees: ImportDetailProposalEmployeesItem[];

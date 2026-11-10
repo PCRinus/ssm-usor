@@ -131,6 +131,47 @@ describe('clientReadingFlags', () => {
         .emptyRequired
     ).toEqual(['client.legalName', 'client.cui', 'jobPositions']);
   });
+
+  it('counts the means files count differently once, as one file’s entries', () => {
+    const office = {
+      name: 'Sediu',
+      county: null,
+      locality: 'Cluj-Napoca',
+      addressLine: 'Str. Florilor nr. 3',
+      isRegisteredOffice: true,
+      activity: null,
+      rooms: [],
+      file: 'Dosar/Decizia 1.docx',
+      quote: 'Sediu',
+      otherCompany: null,
+    };
+    const powder = (file: string, count: number, room: string | null) => ({
+      workplace: 'Sediu',
+      room,
+      kind: 'extinguisher' as const,
+      agent: 'powder' as const,
+      capacity: 6,
+      wheeled: false,
+      count,
+      file,
+      quote: 'P6',
+      otherCompany: null,
+    });
+    const proposal = toProposal({
+      ...reading,
+      workplaces: [office],
+      fireEquipment: [
+        powder('Dosar/Decizia 7.docx', 4, 'bucătărie'),
+        powder('Dosar/Decizia 7.docx', 1, 'bar'),
+        powder('Dosar/Lista mijloacelor.docx', 3, null),
+      ],
+    });
+
+    expect(clientReadingFlags(files, proposal)).toMatchObject({
+      found: { fireEquipment: 3 },
+      proposedValues: 6,
+    });
+  });
 });
 
 describe('employeeReadingFlags', () => {

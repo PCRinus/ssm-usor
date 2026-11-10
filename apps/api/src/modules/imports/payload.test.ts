@@ -1502,3 +1502,105 @@ describe('toClientPayload', () => {
     });
   });
 });
+
+describe('one count of the means per workplace', () => {
+  const list = 'Dosar/PSI/Lista mijloacelor.docx';
+  const evaluation = 'Dosar/PSI/Evaluarea riscului.docx';
+  const powder = (file: string, count: number | null, room: string | null = null) => ({
+    workplace: 'Sediu',
+    room,
+    kind: 'extinguisher' as const,
+    agent: 'powder' as const,
+    capacity: 6,
+    wheeled: false,
+    count,
+    ...quoted(file),
+  });
+  const proposal = proposalOf(
+    reading({
+      fireEquipment: [
+        powder(fire, 4, 'laborator'),
+        powder(fire, 1, 'magazie'),
+        powder(list, 3),
+        powder(evaluation, 5),
+      ],
+    })
+  );
+  const mapped = (fields: ImportChanges['fields'] = {}, items: ImportChanges['items'] = {}) =>
+    toClientPayload({
+      proposal,
+      changes: { fields, items },
+      intoExistingClient: false,
+      existing: noExistingRecords,
+    });
+  const locations = (rows: Record<string, unknown>[]) => rows.map((row) => row.location ?? null);
+
+  it('blocks confirming and writes none of the means while the count waits for its choice', () => {
+    const { payload, blockers } = mapped();
+
+    expect(blockers).toEqual([{ path: 'fireEquipmentCounts.count-1', code: 'choice' }]);
+    expect(payload.fire_equipment).toEqual([]);
+    expect(payload.quality.fireEquipment).toEqual({ changed: 0, unticked: 0, kept: 0 });
+  });
+
+  it('writes the chosen file’s entries, rooms included, once', () => {
+    const rooms = mapped({ 'fireEquipmentCounts.count-1': { option: 0 } });
+    const listed = mapped({ 'fireEquipmentCounts.count-1': { option: 1 } });
+
+    expect(rooms.blockers).toEqual([]);
+    expect(locations(rooms.payload.fire_equipment)).toEqual([
+      'laborator',
+      'laborator',
+      'laborator',
+      'laborator',
+      'magazie',
+    ]);
+    expect(listed.blockers).toEqual([]);
+    expect(locations(listed.payload.fire_equipment)).toEqual([null, null, null]);
+  });
+
+  it('counts in the quality only what the member did to the chosen entries', () => {
+    const [laboratory, , listed] = proposal.fireEquipment;
+    const { payload } = mapped(
+      { 'fireEquipmentCounts.count-1': { option: 0 } },
+      { [laboratory!.id]: { included: false }, [listed!.id]: { values: { count: 4 } } }
+    );
+
+    expect(locations(payload.fire_equipment)).toEqual(['magazie']);
+    expect(payload.quality.fireEquipment).toEqual({ changed: 0, unticked: 1, kept: 0 });
+  });
+
+  it('does not write an entry of the other file the member ticked before choosing', () => {
+    const [, , listed] = proposal.fireEquipment;
+    const { payload } = mapped(
+      { 'fireEquipmentCounts.count-1': { option: 0 } },
+      { [listed!.id]: { included: true } }
+    );
+
+    expect(payload.fire_equipment).toHaveLength(5);
+  });
+
+  it('writes one unit for a row the document gives without a number', () => {
+    const { payload, blockers } = toClientPayload({
+      proposal: proposalOf(reading({ fireEquipment: [powder(list, null, 'birou')] })),
+      changes: null,
+      intoExistingClient: false,
+      existing: noExistingRecords,
+    });
+
+    expect(blockers).toEqual([]);
+    expect(locations(payload.fire_equipment)).toEqual(['birou']);
+  });
+
+  it('writes every entry of a proposal stored before the means were counted once', () => {
+    const { payload, blockers } = toClientPayload({
+      proposal: { ...proposal, fireEquipmentCounts: [] },
+      changes: null,
+      intoExistingClient: false,
+      existing: noExistingRecords,
+    });
+
+    expect(blockers).toEqual([]);
+    expect(payload.fire_equipment).toHaveLength(8);
+  });
+});

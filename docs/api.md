@@ -2297,7 +2297,8 @@ token whose `aal` is `aal2`, as `is_platform_admin()` asks (`adminToolsAllowed`,
 `client.<name>`, `trainingSchedule.<name>` or `fireSafety.<name>`: `option` picks one of the
 documents' values, `value` writes another (null leaves the field empty), `included` takes or
 leaves a value only another company's passages give, and `replace`, into an existing client,
-takes the documents' value over the app's. `items` is keyed by a list item's id (`workplace-2`):
+takes the documents' value over the app's. `fields` also takes `fireEquipmentCounts.<id>`, whose
+`option` picks one of a count's options. `items` is keyed by a list item's id (`workplace-2`):
 `included`, `values` by the item's own field names, with `workplace`, `jobPosition` and
 `employee` naming an item of the proposal or an existing row of the client, `existingId` for the
 row a workplace or a position completes, and `replace`. `PUT /imports/{importId}/changes` saves
@@ -2329,6 +2330,15 @@ on an item and without it on an option.
 `waste_kinds`; the yes-or-no fields `fireSafety.hasThirdParties` and
 `trainingSchedule.administrativeTrainingNotApplicable` / `workerTrainingNotApplicable` are
 `"true"` or `"false"`. A proposal stored before they were read reads them empty.
+The means are counted once per workplace ([ADR 041](architecture/adr-041-su-import-questions-and-suggestions.md)):
+the reading totals the `fireEquipment` entries of each workplace and kind (for an extinguisher,
+its agent, capacity and wheels) by file, a page of a scan counting with its document and an
+entry without a count as one unit (its `count` stays null). Files whose totals agree keep the
+entries of the first one that names rooms, the others' are left out. Files that disagree are a
+`fireEquipmentCounts` item: its workplace reference and kind, and `options`, each a `total`, the
+`sources` of every file that gives it and the `equipmentIds` of the one file's entries confirming
+writes. An entry with no workplace among several, or only another company's, is not counted. A
+proposal stored before reads `fireEquipmentCounts` as `[]`, and all its entries are written.
 
 Without a change a value is the proposal's: a field with one value of the client's own documents
 takes it, two or more of them are a **choice** that blocks, and a value only another company
@@ -2337,7 +2347,8 @@ client, a workplace is matched to one of the client's by its name or its street,
 its name, an employee by the CNP or the name (and then not created again), and a responsible
 person the client has already is left as it is; the client's filled values are kept unless
 replaced. A responsible person is linked to the employee of the same name, the workers'
-representative must be. The `blockers` are a choice not made, the new client's name or CUI
+representative must be. Only the chosen option's entries of a count are written, none while it
+waits. The `blockers` are a choice not made (`fireEquipmentCounts.<id>` for a count), the new client's name or CUI
 missing, a value the checks flagged that would be written unchanged (`invalid`), a staff
 category given both an interval and "not applicable" (`invalid` on the latter), an employee
 without a name, job title or hire date, equipment without a risk, inventory without a duration

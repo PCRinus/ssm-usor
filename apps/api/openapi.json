@@ -14445,6 +14445,88 @@
                   ]
                 }
               },
+              "fireEquipmentCounts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "workplace": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "id": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": ["name", "id"]
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": ["extinguisher", "sand_box", "fire_post", "fire_blanket", "other"]
+                    },
+                    "agent": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": ["powder", "co2", "foam", "water", "clean_agent", null]
+                    },
+                    "capacity": {
+                      "type": "integer",
+                      "nullable": true
+                    },
+                    "wheeled": {
+                      "type": "boolean"
+                    },
+                    "options": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "total": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "sources": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "file": {
+                                  "type": "string"
+                                },
+                                "quote": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["file", "quote"]
+                            },
+                            "minItems": 1
+                          },
+                          "equipmentIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "minItems": 1
+                          }
+                        },
+                        "required": ["total", "sources", "equipmentIds"]
+                      },
+                      "minItems": 2
+                    }
+                  },
+                  "required": ["id", "workplace", "kind", "agent", "capacity", "wheeled", "options"]
+                },
+                "default": []
+              },
               "fireInstallations": {
                 "type": "array",
                 "items": {

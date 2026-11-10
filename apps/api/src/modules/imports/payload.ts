@@ -12,6 +12,7 @@ import {
 } from '@ssm-usor/contracts';
 import {
   type Field,
+  fireEquipmentCountPath,
   type Flag,
   foldText,
   type Proposal,
@@ -773,7 +774,21 @@ export function toClientPayload(input: {
     ];
   });
 
-  const fireEquipment = included('fireEquipment').flatMap(({ item, index, values }) => {
+  const notCounted = new Set<string>();
+  for (const count of proposal.fireEquipmentCounts) {
+    const path = fireEquipmentCountPath(count.id);
+    const option = changes.fields[path]?.option;
+    const chosen = option === undefined ? undefined : count.options[option];
+    if (!chosen) block(path, 'choice');
+    for (const each of count.options) {
+      if (each !== chosen) for (const id of each.equipmentIds) notCounted.add(id);
+    }
+  }
+  const counted = (item: Proposal['fireEquipment'][number]) =>
+    proposedIncluded(item) && !notCounted.has(item.id);
+  const fireEquipment = included('fireEquipment', counted).flatMap(({ item, index, values }) => {
+    // A tick kept from before the member chose another file's count would add its units again.
+    if (notCounted.has(item.id)) return [];
     const workplace = workplaceReference(
       reference(values.workplace, item.workplace.id),
       `fireEquipment.${index}.workplace`,
