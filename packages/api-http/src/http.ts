@@ -40,7 +40,8 @@ type FailureDetails =
 export interface ApiHttpOptions {
   // `<client>:<fingerprint>`, sent as X-Client-Contract (ADR 040).
   clientContract?: string;
-  onClientOutdated?: () => void;
+  // `method` tells a refused read from a refused write, whose change was not saved.
+  onClientOutdated?: (request: { method: string }) => void;
   onFailure?: (failure: ApiRequestFailure) => void;
   // An API on the page's own origin behind Cloudflare Access needs the Access cookie; without it
   // the edge answers with a redirect to its sign-in page.
@@ -88,8 +89,8 @@ export function createApiHttp({
   onFailure,
   credentials = 'omit',
 }: ApiHttpOptions = {}) {
-  function rejected(error: ApiHttpError) {
-    if (isClientOutdatedError(error)) onClientOutdated?.();
+  function rejected(error: ApiHttpError, method: string | undefined) {
+    if (isClientOutdatedError(error)) onClientOutdated?.({ method: method ?? 'GET' });
     return error;
   }
 
@@ -154,7 +155,7 @@ export function createApiHttp({
     } catch {
       if (response.ok) throw new Error('The API returned invalid JSON.');
     }
-    if (!response.ok) throw rejected(new ApiHttpError(response.status, body));
+    if (!response.ok) throw rejected(new ApiHttpError(response.status, body), request.method);
     // Generated types describe the OpenAPI contract; they are not runtime validators.
     return body as T;
   }
@@ -210,7 +211,7 @@ export function createApiHttp({
           }
         }
         if (request.status < 200 || request.status >= 300) {
-          reject(rejected(new ApiHttpError(request.status, answer)));
+          reject(rejected(new ApiHttpError(request.status, answer), 'POST'));
           return;
         }
         resolve(answer as T);

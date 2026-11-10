@@ -216,8 +216,14 @@ describe('the client contract', () => {
     fetchMock.mockResolvedValue(Response.json(outdated, { status: 426 }));
     const error = await http.apiFetch('/me', { baseUrl }).catch((thrown: unknown) => thrown);
     expect(isClientOutdatedError(error)).toBe(true);
-    expect(onClientOutdated).toHaveBeenCalledOnce();
+    expect(onClientOutdated).toHaveBeenCalledExactlyOnceWith({ method: 'GET' });
     expect(onFailure).not.toHaveBeenCalled();
+  });
+
+  it('says which method was refused, so a refused write can say it did not save', async () => {
+    fetchMock.mockResolvedValue(Response.json(outdated, { status: 426 }));
+    await http.apiFetch('/me', { baseUrl, method: 'PUT' }).catch(() => {});
+    expect(onClientOutdated).toHaveBeenCalledExactlyOnceWith({ method: 'PUT' });
   });
 
   it('leaves other refusals alone', async () => {
