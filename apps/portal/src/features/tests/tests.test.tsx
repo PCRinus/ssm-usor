@@ -1,5 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -25,6 +25,7 @@ import {
   useListPortalTrainingRecords,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { openOutdatedDialog, resetReloadStore } from '@/features/reload/reload-store';
 import {
   disposeRuntimes,
   employeeData,
@@ -148,6 +149,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  act(() => resetReloadStore());
   disposeRuntimes();
   vi.mocked(startPortalTestAttempt).mockReset();
   vi.mocked(answerPortalTestAttempt).mockReset();
@@ -685,6 +687,50 @@ describe('the sitting', () => {
     expect(
       within(screen.getByTestId('test-result-sheet')).getByRole('link').getAttribute('href')
     ).toBe('/semneaza');
+  });
+});
+
+describe('an outdated portal during the sitting', () => {
+  // The mocked API skips the HTTP layer, which opens the dialog before it rejects.
+  const outdated = () => {
+    act(() => openOutdatedDialog('426'));
+    return new ApiHttpError(426, { error: 'client_outdated', message: 'Reload the page.' });
+  };
+
+  const safeLine = async () => (await screen.findByTestId('reload-dialog-safe')).textContent;
+
+  it('says which answers are saved and which to tick again when a middle answer is refused', async () => {
+    vi.mocked(startPortalTestAttempt).mockResolvedValue({ attempt: attempt(firstAttempt.id, 3) });
+    vi.mocked(answerPortalTestAttempt).mockImplementationOnce(async () => {
+      throw outdated();
+    });
+    const user = await openSitting();
+    expect(screen.getByTestId('test-counter').textContent).toBe('4 din 10');
+
+    await user.click(option('Varianta B'));
+    await user.click(screen.getByTestId('test-next'));
+
+    expect(await safeLine()).toBe(
+      'Răspunsurile la întrebările 1–3 sunt salvate. După reîncărcare vei bifa din nou răspunsul la întrebarea 4.'
+    );
+    expect(screen.queryByTestId('test-sitting-error')).toBeNull();
+  });
+
+  it('says every answer is saved when the last one was and the sending is refused', async () => {
+    vi.mocked(startPortalTestAttempt).mockResolvedValue({ attempt: attempt(firstAttempt.id, 9) });
+    vi.mocked(finishPortalTestAttempt).mockImplementationOnce(async () => {
+      throw outdated();
+    });
+    const user = await openSitting();
+
+    await user.click(option('Varianta C'));
+    await user.click(screen.getByTestId('test-submit'));
+
+    expect(answerPortalTestAttempt).toHaveBeenCalledTimes(1);
+    expect(await safeLine()).toBe(
+      'Toate răspunsurile sunt salvate. După reîncărcare trimite testul din nou.'
+    );
+    expect(screen.queryByTestId('test-sitting-error')).toBeNull();
   });
 });
 

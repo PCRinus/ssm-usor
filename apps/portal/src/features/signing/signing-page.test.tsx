@@ -21,6 +21,7 @@ import {
   useListPortalTrainingRecords,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { openOutdatedDialog, resetReloadStore } from '@/features/reload/reload-store';
 import {
   disposeRuntimes,
   employeeData,
@@ -182,6 +183,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  act(() => resetReloadStore());
   disposeRuntimes();
   vi.mocked(createPortalSigningSession).mockReset();
   vi.mocked(signPortalSigningSession).mockReset();
@@ -695,6 +697,75 @@ describe('the signing screen', () => {
     );
     mountPortal(signedIn(), '/semneaza');
     expect(await screen.findByTestId('signing-nothing')).toBeTruthy();
+  });
+});
+
+describe('an outdated portal while signing', () => {
+  // The mocked API skips the HTTP layer, which opens the dialog before it rejects.
+  const outdated = () => {
+    act(() => openOutdatedDialog('426'));
+    return new ApiHttpError(426, { error: 'client_outdated', message: 'Reload the page.' });
+  };
+
+  const safeLine = async () => (await screen.findByTestId('reload-dialog-safe')).textContent;
+
+  it('says nothing is signed yet, with no notice of an unreachable server under the dialog', async () => {
+    vi.mocked(signPortalSigningSession).mockImplementationOnce(async () => {
+      throw outdated();
+    });
+    const user = await askForCode();
+
+    await user.type(screen.getByTestId('signing-code'), '123456');
+    await user.click(screen.getByTestId('signing-sign'));
+
+    expect(await safeLine()).toBe('Nu s-a semnat încă nimic. După reîncărcare poți semna.');
+    expect(screen.queryByTestId('signing-code-error')).toBeNull();
+  });
+
+  it('keeps the notice away when the code cannot be sent', async () => {
+    vi.mocked(createPortalSigningSession).mockImplementationOnce(async () => {
+      throw outdated();
+    });
+    const user = userEvent.setup();
+    mountPortal(signedIn(), '/semneaza');
+    await screen.findByTestId('signing-items');
+
+    await user.click(screen.getByTestId('signing-send'));
+
+    expect(await safeLine()).toBe('Nu s-a semnat încă nimic. După reîncărcare poți semna.');
+    expect(screen.queryByTestId('signing-send-error')).toBeNull();
+  });
+
+  it('says what is signed stays signed when the retry after a partial signing is refused', async () => {
+    vi.mocked(signPortalSigningSession)
+      .mockResolvedValueOnce({
+        signed: [{ requestId: requestA.id, agreementState: 'generated' }],
+        failed: [{ requestId: requestB.id, reason: 'sheet_busy' }],
+        agreements: [
+          {
+            employeeId,
+            party: 'employee',
+            signed: true,
+            reason: null,
+            agreementState: 'generated',
+          },
+        ],
+      })
+      .mockImplementationOnce(async () => {
+        throw outdated();
+      });
+    const user = await askForCode();
+    await user.type(screen.getByTestId('signing-code'), '123456');
+    await user.click(screen.getByTestId('signing-sign'));
+    await user.click(await screen.findByTestId('signing-again'));
+    await user.click(await screen.findByTestId('signing-send'));
+    await user.type(await screen.findByTestId('signing-code'), '654321');
+    await user.click(screen.getByTestId('signing-sign'));
+
+    expect(await safeLine()).toBe(
+      'Documentele semnate rămân semnate. După reîncărcare le poți semna pe celelalte.'
+    );
+    expect(screen.queryByTestId('signing-code-error')).toBeNull();
   });
 });
 
