@@ -275,12 +275,38 @@ export const proposedFireEquipmentSchema = z.object({
   // Kilograms or litres, as `fire_equipment.capacity`.
   capacity: z.int().nullable(),
   wheeled: z.boolean(),
-  // Units alike; confirming writes one `fire_equipment` row for each.
+  // Units alike; confirming writes one `fire_equipment` row for each. Null when the document
+  // names the means without a number, which is one unit.
   count: z.int().nullable(),
   spelling: spellings,
 });
 
 export type ProposedFireEquipment = z.infer<typeof proposedFireEquipmentSchema>;
+
+// A kind of means at a workplace that files count differently (ADR 041). Each option is one
+// total with every passage that gives it, and the entries of `fireEquipment` it writes: those of
+// one file, the one that names rooms. The entries of the options not chosen are not written.
+export const proposedFireEquipmentCountSchema = z.object({
+  id: z.string().min(1),
+  workplace: z.object(reference(z.string().nullable())),
+  kind: z.enum(fireEquipmentKinds),
+  agent: z.enum(fireExtinguishingAgents).nullable(),
+  capacity: z.int().nullable(),
+  wheeled: z.boolean(),
+  options: z
+    .array(
+      z.object({
+        total: z.int().min(1),
+        sources: z.array(sourceSchema).min(1),
+        equipmentIds: z.array(z.string().min(1)).min(1),
+      })
+    )
+    .min(2),
+});
+
+export type ProposedFireEquipmentCount = z.infer<typeof proposedFireEquipmentCountSchema>;
+
+export const fireEquipmentCountPath = (id: string) => `fireEquipmentCounts.${id}`;
 
 export const proposedFireInstallationSchema = z.object({
   ...item,
@@ -377,6 +403,9 @@ export const proposalSchema = z.object({
   jobPositions: z.array(proposedJobPositionSchema),
   responsiblePersons: z.array(proposedResponsiblePersonSchema),
   fireEquipment: z.array(proposedFireEquipmentSchema),
+  // Defaulted for a proposal stored before the means were counted once per workplace, whose
+  // entries are all written.
+  fireEquipmentCounts: z.array(proposedFireEquipmentCountSchema).default([]),
   fireInstallations: z.array(proposedFireInstallationSchema),
   protectiveEquipment: z.array(proposedProtectiveEquipmentSchema),
   employees: z.array(proposedEmployeeSchema),

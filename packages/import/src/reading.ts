@@ -13,6 +13,7 @@ import { z } from 'zod';
 
 import { inferValues } from './inference';
 import { contained, cuiDigits, foldName, foldText, sameAddress, similar, streetKey } from './match';
+import { countedOnce } from './means-count';
 import {
   clientFieldNames,
   type Field,
@@ -670,18 +671,19 @@ export function toProposal(...readings: Reading[]): Proposal {
     (name) => resolve(name, jobPositions)
   );
 
-  const fireEquipment = list((reading) => reading.fireEquipment).map((equipment, index) => ({
-    id: `equipment-${index + 1}`,
-    ...traced(equipment),
-    workplace: workplaceReference(equipment.workplace, true),
-    room: equipment.room,
-    kind: equipment.kind,
-    agent: equipment.agent,
-    capacity: equipment.capacity,
-    wheeled: equipment.wheeled,
-    count: equipment.count,
-    spelling: {},
-  }));
+  const { fireEquipment, fireEquipmentCounts } = countedOnce(
+    list((reading) => reading.fireEquipment).map((equipment) => ({
+      ...traced(equipment),
+      workplace: workplaceReference(equipment.workplace, true),
+      room: equipment.room,
+      kind: equipment.kind,
+      agent: equipment.agent,
+      capacity: equipment.capacity,
+      wheeled: equipment.wheeled,
+      count: equipment.count,
+      spelling: {},
+    }))
+  );
   for (const workplace of workplaces) {
     const rooms = fireEquipment
       .filter((equipment) => equipment.workplace.id === workplace.id && equipment.room !== null)
@@ -748,6 +750,7 @@ export function toProposal(...readings: Reading[]): Proposal {
       workplace: workplaceReference(person.workplace, false),
     })),
     fireEquipment,
+    fireEquipmentCounts,
     fireInstallations: list((reading) => reading.fireInstallations).map((installation, index) => ({
       id: `installation-${index + 1}`,
       ...traced(installation),
