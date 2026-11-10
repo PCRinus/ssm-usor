@@ -2554,7 +2554,7 @@ export type Database = {
       };
       fire_substances: {
         Row: {
-          classification: string;
+          classification: string | null;
           client_id: string;
           created_at: string;
           created_by: string | null;
@@ -2568,13 +2568,13 @@ export type Database = {
           organization_id: string;
           physical_chemical_properties: string | null;
           protection_means: string | null;
-          quantity: string;
+          quantity: string | null;
           sort_order: number;
           storage_place: string | null;
           updated_at: string;
         };
         Insert: {
-          classification: string;
+          classification?: string | null;
           client_id: string;
           created_at?: string;
           created_by?: string | null;
@@ -2588,13 +2588,13 @@ export type Database = {
           organization_id: string;
           physical_chemical_properties?: string | null;
           protection_means?: string | null;
-          quantity: string;
+          quantity?: string | null;
           sort_order?: number;
           storage_place?: string | null;
           updated_at?: string;
         };
         Update: {
-          classification?: string;
+          classification?: string | null;
           client_id?: string;
           created_at?: string;
           created_by?: string | null;
@@ -2608,7 +2608,7 @@ export type Database = {
           organization_id?: string;
           physical_chemical_properties?: string | null;
           protection_means?: string | null;
-          quantity?: string;
+          quantity?: string | null;
           sort_order?: number;
           storage_place?: string | null;
           updated_at?: string;
