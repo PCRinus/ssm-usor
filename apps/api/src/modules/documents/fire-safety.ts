@@ -463,7 +463,6 @@ const workplaceComplete = (workplace: FireWorkplaceFacts) =>
   (!workplaceHasAreaAndNorm(workplace.kind) ||
     (workplace.floorAreaM2 !== null && workplace.extinguisherNorm !== null));
 
-/** The workplaces the set lists: every active one but a registered office with no activity. */
 const withActivity = <Workplace extends { officeHasActivity: boolean }>(
   workplaces: readonly Workplace[]
 ) => workplaces.filter((workplace) => workplace.officeHasActivity);
