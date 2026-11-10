@@ -9,7 +9,7 @@ import {
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useBlocker, useNavigate, useRouteContext } from '@tanstack/react-router';
+import { useBlocker, useLocation, useNavigate, useRouteContext } from '@tanstack/react-router';
 import { ClipboardPaste, Download, Eye, Pencil } from 'lucide-react';
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 
@@ -26,6 +26,7 @@ import {
 import { ApiHttpError } from '@/api/http';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
+import { keptFieldNames } from '@/features/reload-prompts/kept-text';
 import { saveFile } from '@/lib/save-file';
 
 import { InstructionBlocks } from './instruction-blocks';
@@ -113,6 +114,21 @@ export function InstructionForm({
   const [blocks, setBlocks] = useState<DraftBlock[]>(() =>
     initialBlocks.length > 0 ? initialBlocks : [articleBlock()]
   );
+  const [keepNames] = useState<ReadonlyMap<string, string>>(
+    () => new Map(blocks.map((block, index) => [block.id, `instruction-block-${index}`]))
+  );
+  const page = useLocation({ select: (location) => `${location.pathname}${location.searchStr}` });
+  // An empty section hides its boxes, so one that holds kept text opens for it to come back.
+  const [openedWithKeptText] = useState<ReadonlySet<string>>(() => {
+    const kept = keptFieldNames(page);
+    const opened = new Set<string>();
+    let heading: string | null = null;
+    for (const block of blocks) {
+      if (block.kind === 'heading') heading = block.id;
+      else if (heading && kept.has(keepNames.get(block.id) ?? '')) opened.add(heading);
+    }
+    return opened;
+  });
   const [baseline, setBaseline] = useState<DraftBody>(() =>
     module ? draftBody(initialBlocks) : { blocks: [] }
   );
@@ -348,6 +364,8 @@ export function InstructionForm({
           blocks={blocks}
           category={group}
           namedClients={namedClients}
+          keepNames={keepNames}
+          openedAtStart={openedWithKeptText}
           onChange={(next) => {
             setBlocks(next);
             setError(null);
