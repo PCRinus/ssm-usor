@@ -25,7 +25,7 @@ Când a apărut o versiune pe care n-ai citit-o, aplicația îți arată o dată
 - **Vezi detaliile** deschide pagina versiunii, care o marchează și ea ca citită.
 - Crucea închide fereastra doar pentru sesiunea aceasta. Versiunea rămâne necitită, iar numărul din meniu rămâne.
 
-Fereastra apare numai când aplicația din fila ta rulează deja versiunea pe care o anunță, sau una mai nouă. O filă deschisă de ieri lucrează încă pe versiunea de ieri: în ea nu găsești noutățile de azi, așa că nu ți le anunță. Fila îți arată întâi mesajul despre versiunea nouă, descris mai jos, iar fereastra cu noutățile apare după ce reîncarci pagina. Pagina **Actualizări** o poți citi oricând, din orice filă.
+Fereastra apare numai când aplicația din fila ta rulează deja versiunea pe care o anunță, sau una mai nouă. O filă deschisă de ieri lucrează încă pe versiunea de ieri: în ea nu găsești noutățile de azi, așa că nu ți le anunță. De obicei fila îți arată întâi mesajul despre versiunea nouă, descris mai jos, iar fereastra cu noutățile apare după ce reîncarci pagina. Pagina **Actualizări** o poți citi oricând, din orice filă.
 
 Un cont nou nu vede ferestre despre versiunile apărute înainte să fie creat.
 
@@ -49,6 +49,6 @@ Cel mai bine e să reîncarci când îl vezi. Așa nu ajungi la fereastra de mai
 
 Uneori o versiune nouă schimbă felul în care fila vorbește cu serverul, iar o filă rămasă pe versiunea veche nu mai poate continua. Se întâmplă și când deschizi o secțiune pe care fila n-o încărcase încă. Atunci apare o fereastră: „Aplicația a fost actualizată. Reîncarcă pagina pentru a continua.”, cu butonul **Reîncarcă**. Fereastra nu se poate închide, dar nici nu reîncarcă pagina singură: tu alegi momentul.
 
-Dacă fereastra a apărut chiar când salvai, fereastra îți spune că ultima modificare nu a fost salvată. Ce ai scris în câmpurile de text ale paginii rămâne completat după reîncărcare, iar un mesaj îți confirmă „Am păstrat ce ai scris înainte de reîncărcare.” Verifică-l și salvează din nou. Alegerile din liste și ce era scris într-o fereastră deschisă peste pagină nu se păstrează: le refaci.
+Dacă fereastra a apărut chiar când trimiteai o modificare, de exemplu când salvai sau ștergeai ceva, îți spune că ultima modificare nu a fost salvată. Textele lungi scrise în pagină, cum sunt articolele unei instrucțiuni, rămân completate după reîncărcare, iar un mesaj îți confirmă „Am păstrat ce ai scris înainte de reîncărcare.” Fereastra îți spune când a păstrat ceva. Verifică textul și salvează din nou. Câmpurile scurte, cum sunt numele sau CNP-ul, alegerile din liste și ce era scris într-o fereastră deschisă peste pagină nu se păstrează: le completezi din nou. Textul păstrat se pune înapoi doar dacă reîncărcarea te aduce pe aceeași pagină, în cel mult un sfert de oră.
 
 Dacă fereastra apare din nou la mai puțin de un minut după ce ai reîncărcat, aplicația e chiar în curs de actualizare, ceea ce durează de obicei un minut sau două. Butonul **Reîncarcă** numără invers până la sfârșitul minutului, apoi îl poți apăsa.
