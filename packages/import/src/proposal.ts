@@ -455,6 +455,9 @@ export const proposalSchema = z.object({
   // Defaulted for a proposal stored before the substances were read.
   substances: z.array(proposedSubstanceSchema).default([]),
   notes: z.array(z.string()),
+  // The suggested values the reading drafted and did not propose (ADR 041): no passage behind
+  // them, or a value no workplace can take. Kept as a count for the quality record only.
+  withdrawnSuggestions: z.int().min(0).optional(),
   // Empty until the checks ran, as well as when they found nothing.
   flags: z.array(flagSchema),
 });

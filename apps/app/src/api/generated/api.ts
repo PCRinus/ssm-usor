@@ -10951,6 +10951,8 @@ export type ImportDetailProposal = {
   employees: ImportDetailProposalEmployeesItem[];
   substances?: ImportDetailProposalSubstancesItem[];
   notes: string[];
+  /** @minimum 0 */
+  withdrawnSuggestions?: number;
   flags: ImportDetailProposalFlagsItem[];
 } | null;
 

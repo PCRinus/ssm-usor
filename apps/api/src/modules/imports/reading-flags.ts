@@ -123,6 +123,7 @@ export function clientReadingFlags(
         (sum, workplace) => sum + Object.keys(workplace.suggested).length,
         0
       ),
+      withdrawnSuggestions: proposal.withdrawnSuggestions ?? 0,
     },
     emptyRequired: required.filter((path) => empty[path]),
     checks: tally(proposal.flags.map((flag) => flag.code)),

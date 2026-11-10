@@ -194,13 +194,17 @@ describe('the substances a client import proposes', () => {
     );
   });
 
-  it('flags a name longer than the list takes', () => {
-    const proposal = toProposal(reading([named('x'.repeat(161), meansList, 'x'.repeat(161))]));
+  it('drops a name shorter or longer than the list takes, and lists nothing on it', () => {
+    const proposal = toProposal(
+      reading([
+        named('x'.repeat(161), meansList, 'x'.repeat(161)),
+        named(' - ', meansList, 'Substanțe: -'),
+      ])
+    );
 
-    expect(checkAllowedValues(proposal)).toContainEqual({
-      path: 'substances.0.name',
-      code: 'value_not_allowed',
-    });
+    expect(proposal.substances).toEqual([]);
+    expect(proposal.fireSafety.substancesState.options).toEqual([]);
+    expect(checkAllowedValues(proposal)).toEqual([]);
   });
 
   it('reads a page read before substances were asked, and opens a proposal stored before', () => {

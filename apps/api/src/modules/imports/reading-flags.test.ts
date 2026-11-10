@@ -113,6 +113,7 @@ describe('clientReadingFlags', () => {
         protectiveEquipment: 0,
         employees: 0,
         suggestedValues: 0,
+        withdrawnSuggestions: 0,
       },
       emptyRequired: ['client.cui'],
       checks: { quote_not_found: 2, missing: 1 },
@@ -177,7 +178,7 @@ describe('clientReadingFlags', () => {
     });
   });
 
-  it('counts the suggested values, the office with no activity among them', () => {
+  it('counts the suggested values, the office with no activity among them, and those withdrawn', () => {
     const workplace = (name: string, addressLine: string) => ({
       name,
       county: null,
@@ -200,10 +201,19 @@ describe('clientReadingFlags', () => {
           value: 'scule electrice, scântei de la polizor',
           sources: [{ file: 'Dosar/Evaluare.docx', quote: 'polizor unghiular' }],
         },
+        {
+          workplace: 'Atelier',
+          field: 'specificMeasures' as const,
+          value: 'curățarea zilnică a rumegușului',
+          sources: [{ file: '', quote: '' }],
+        },
       ],
     });
 
-    expect(clientReadingFlags(files, proposal).found).toMatchObject({ suggestedValues: 2 });
+    expect(clientReadingFlags(files, proposal).found).toMatchObject({
+      suggestedValues: 2,
+      withdrawnSuggestions: 1,
+    });
   });
 });
 

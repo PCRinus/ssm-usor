@@ -244,22 +244,60 @@ function tracedValues(proposal: Proposal): Traced[] {
   ];
 }
 
+function sourceFlag(source: Source, path: string, files: CheckInput['files']): Flag | null {
+  if (!Object.hasOwn(files, source.file)) {
+    return { path, code: 'file_not_found', detail: source.file };
+  }
+  const text = files[source.file];
+  if (text !== null && text !== undefined && findQuote(text, source.quote) === null) {
+    return { path, code: 'quote_not_found' };
+  }
+  return null;
+}
+
 export function checkQuotes(proposal: Proposal, files: CheckInput['files']): Flag[] {
   return tracedValues(proposal).flatMap(({ path, sources, holds }) =>
     sources.flatMap((source, index): Flag[] => {
       const sourcePath = `${path}.sources.${index}`;
-      if (!Object.hasOwn(files, source.file)) {
-        return [{ path: sourcePath, code: 'file_not_found', detail: source.file }];
-      }
-      const text = files[source.file];
-      if (text !== null && text !== undefined && findQuote(text, source.quote) === null) {
-        return [{ path: sourcePath, code: 'quote_not_found' }];
-      }
+      const flag = sourceFlag(source, sourcePath, files);
+      if (flag) return [flag];
       return holds && !holds(source.quote)
         ? [{ path: sourcePath, code: 'value_not_in_quote' }]
         : [];
     })
   );
+}
+
+// A draft stands only on its passages, so one whose every passage is not in the files has
+// nothing behind it and is not proposed (ADR 041).
+export function withdrawUnfoundSuggestions(
+  proposal: Proposal,
+  files: CheckInput['files']
+): Proposal {
+  let withdrawn = 0;
+  const workplaces = proposal.workplaces.map((workplace) => {
+    const unfound = Object.entries(workplace.suggested).filter(
+      ([field, sources]) =>
+        field !== 'officeHasActivity' &&
+        sources.every((source) => sourceFlag(source, '', files) !== null)
+    );
+    if (unfound.length === 0) return workplace;
+    withdrawn += unfound.length;
+    const fields = unfound.map(([field]) => field);
+    return {
+      ...workplace,
+      ...Object.fromEntries(fields.map((field) => [field, null])),
+      suggested: Object.fromEntries(
+        Object.entries(workplace.suggested).filter(([field]) => !fields.includes(field))
+      ),
+    };
+  });
+  if (withdrawn === 0) return proposal;
+  return {
+    ...proposal,
+    workplaces,
+    withdrawnSuggestions: (proposal.withdrawnSuggestions ?? 0) + withdrawn,
+  };
 }
 
 export function checkIdentifiers(proposal: Proposal): Flag[] {
@@ -350,6 +388,12 @@ const allowedFacts: Record<string, Record<string, Allowed>> = {
   },
 };
 
+export const workplaceValueAllowed = (field: string, value: string | number) =>
+  workplaceAllowed[field]?.(value) ?? true;
+
+// As `fire_substances.name` takes it.
+export const substanceNameAllowed = (name: string) => textOf(2, 160)(name);
+
 export function checkAllowedValues(proposal: Proposal): Flag[] {
   const flags: Flag[] = [];
   const flag = (path: string, allowed: boolean) => {
@@ -389,9 +433,8 @@ export function checkAllowedValues(proposal: Proposal): Flag[] {
     if (!extinguisher) flag(`${path}.wheeled`, !equipment.wheeled);
     if (equipment.count !== null) flag(`${path}.count`, between(1, 999)(equipment.count));
   });
-  // As `fire_substances.name` takes it.
   proposal.substances.forEach((substance, index) =>
-    flag(`substances.${index}.name`, textOf(2, 160)(substance.name))
+    flag(`substances.${index}.name`, substanceNameAllowed(substance.name))
   );
   proposal.protectiveEquipment.forEach((entry, index) => {
     const path = `protectiveEquipment.${index}`;
@@ -582,9 +625,10 @@ export function withChecks(
   });
   // An option the spellings add may cite a set-aside file, which is the import's all the same.
   const files = { ...input.files, ...input.setAsideFiles };
-  const flags = [...checkProposal(spelled.proposal, { ...input, files }), ...spelled.flags];
+  const proposed = withdrawUnfoundSuggestions(spelled.proposal, files);
+  const flags = [...checkProposal(proposed, { ...input, files }), ...spelled.flags];
   if (input.registrations) {
-    flags.push(...checkRegistrations(spelled.proposal, input.registrations));
+    flags.push(...checkRegistrations(proposed, input.registrations));
   }
-  return { ...spelled.proposal, flags };
+  return { ...proposed, flags };
 }

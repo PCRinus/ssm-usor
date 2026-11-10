@@ -116,6 +116,76 @@ describe('one count of the means per workplace', () => {
     ]);
   });
 
+  it('keeps the entries of the agreeing file that names the most rooms', () => {
+    const proposal = toProposal(
+      reading([
+        powder(decision, 2, 'Birou'),
+        powder(meansList, 1, 'Birou'),
+        powder(meansList, 1, 'Hol'),
+      ])
+    );
+
+    expect(proposal.fireEquipmentCounts).toEqual([]);
+    expect(proposal.fireEquipment.map((entry) => [entry.room, entry.sources[0]!.file])).toEqual([
+      ['Birou', meansList],
+      ['Hol', meansList],
+    ]);
+    expect(proposal.workplaces[0]!.rooms).toEqual(['Birou', 'Hol']);
+  });
+
+  it('keeps the first file’s entries where agreeing files name as many rooms', () => {
+    const proposal = toProposal(
+      reading([powder(decision, 2, 'Birou'), powder(meansList, 2, 'Hol')])
+    );
+
+    expect(proposal.fireEquipment.map((entry) => entry.room)).toEqual(['Birou']);
+  });
+
+  it('counts an extinguisher with no capacity as the one type the workplace has', () => {
+    const untyped = (file: string, count: number): Entry => ({
+      ...powder(file, count),
+      capacity: null,
+      quote: `${count} stingătoare cu pulbere`,
+    });
+    const agreeing = toProposal(reading([powder(decision, 3), untyped(meansList, 3)]));
+    expect(agreeing.fireEquipmentCounts).toEqual([]);
+    expect(agreeing.fireEquipment.map((entry) => [entry.capacity, entry.count])).toEqual([[6, 3]]);
+
+    const differing = toProposal(
+      reading([powder(decision, 3), { ...untyped(meansList, 4), agent: null }])
+    );
+    expect(differing.fireEquipmentCounts).toEqual([
+      expect.objectContaining({
+        agent: 'powder',
+        capacity: 6,
+        options: [expect.objectContaining({ total: 3 }), expect.objectContaining({ total: 4 })],
+      }),
+    ]);
+  });
+
+  it('leaves an extinguisher with no capacity apart where the workplace has several types', () => {
+    const co2 = { ...powder(decision, 1), agent: 'co2' as const, capacity: 2 };
+    const untyped = { ...powder(meansList, 4), agent: null, capacity: null };
+    const proposal = toProposal(reading([powder(decision, 3), co2, untyped]));
+
+    expect(proposal.fireEquipmentCounts).toEqual([]);
+    expect(proposal.fireEquipment).toHaveLength(3);
+  });
+
+  it('adds to the workplace only the rooms every option of a count names', () => {
+    const proposal = toProposal(
+      reading([
+        powder(decision, 2, 'Bucătărie'),
+        powder(decision, 1, 'Bar'),
+        powder(meansList, 2, 'Bucătărie'),
+        { ...powder(meansList, 1, 'Depozit'), kind: 'fire_blanket', agent: null, capacity: null },
+      ])
+    );
+
+    expect(proposal.fireEquipmentCounts).toHaveLength(1);
+    expect(proposal.workplaces[0]!.rooms).toEqual(['Depozit', 'Bucătărie']);
+  });
+
   it('keeps the first file’s entries where agreeing files name no rooms', () => {
     const proposal = toProposal(reading([powder(decision, 2), powder(riskEvaluation, 2)]));
 

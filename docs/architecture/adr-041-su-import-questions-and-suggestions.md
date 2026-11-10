@@ -34,7 +34,7 @@ The decisions come from Mircea in conversation on 2026-11-10.
 
 ### One count of the means per workplace
 
-The entries of a kind of means that several files give for one workplace are one statement per file, not units to add. Per workplace and kind (for an extinguisher, per agent, capacity and wheeled), the reading's entries are totalled by file. Where the files' totals agree, the entries of the file that names rooms are kept. Where they differ, the proposal holds a choice between the files, each with its total and its source, and the chosen file's entries, rooms included, are what confirm writes. It blocks confirming like any choice.
+The entries of a kind of means that several files give for one workplace are one statement per file, not units to add. Per workplace and kind (for an extinguisher, per agent, capacity and wheeled), the reading's entries are totalled by file. An extinguisher a file gives without its agent or capacity is the same means as the workplace's extinguishers when they are all of one type (amended 2026-11-11). Where the files' totals agree, the entries of the file that names the most rooms are kept, the first on a tie (amended 2026-11-11). Where they differ, the proposal holds a choice between the files, each with its total and its source, and the chosen file's entries, rooms included, are what confirm writes. It blocks confirming like any choice.
 
 A row that names a space and a type with no count is proposed as one unit, with a note that the document gives no number.
 

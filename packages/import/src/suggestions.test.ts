@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { checkAllowedValues, checkQuotes } from './checks';
+import { checkAllowedValues, checkQuotes, withChecks } from './checks';
 import { proposalSchema } from './proposal';
 import { fromWire, type Reading, readingAnswer, toProposal } from './reading';
 
@@ -107,7 +107,7 @@ describe('suggested values', () => {
     });
   });
 
-  it('joins a suggestion given twice, and drops one with no passage or no workplace', () => {
+  it('joins a suggestion given twice, and drops one with no passage', () => {
     const proposal = toProposal(
       reading({
         workplaceSuggestions: [
@@ -118,7 +118,15 @@ describe('suggested values', () => {
             sources: [{ file: sheet, quote: 'atelier de tâmplărie' }],
           },
           { ...materials, field: 'ignitionSources', value: 'scântei', sources: [] },
-          { ...materials, workplace: 'Depozit Sud', field: 'specificMeasures' },
+          {
+            ...materials,
+            field: 'specificMeasures',
+            value: 'aspirarea zilnică a rumegușului',
+            sources: [
+              { file: '', quote: '' },
+              { file: riskEvaluation, quote: '  ' },
+            ],
+          },
         ],
       })
     );
@@ -128,6 +136,77 @@ describe('suggested values', () => {
     });
     expect(proposal.workplaces[0]!.ignitionSources).toBeNull();
     expect(proposal.workplaces[0]!.specificMeasures).toBeNull();
+    expect(proposal.withdrawnSuggestions).toBe(2);
+  });
+
+  it('keeps the first of two drafts of one field', () => {
+    const proposal = toProposal(
+      reading({
+        workplaceSuggestions: [
+          materials,
+          { ...materials, value: 'hârtie, carton', sources: [{ file: sheet, quote: 'birou' }] },
+        ],
+      })
+    );
+
+    expect(proposal.workplaces[0]).toMatchObject({
+      combustibleMaterials: materials.value,
+      suggested: { combustibleMaterials: materials.sources },
+    });
+  });
+
+  it('places a draft at the only workplace whatever name it gives, and drops it among several', () => {
+    const elsewhere = { ...materials, workplace: 'Depozit Sud' };
+    const one = toProposal(reading({ workplaceSuggestions: [elsewhere] }));
+    expect(one.workplaces[0]).toMatchObject({
+      combustibleMaterials: materials.value,
+      suggested: { combustibleMaterials: materials.sources },
+    });
+
+    const two = toProposal(
+      reading({
+        workplaces: [
+          workplace('Atelier'),
+          workplace('Magazin', { addressLine: 'Str. Lunii nr. 8' }),
+        ],
+        workplaceSuggestions: [elsewhere],
+      })
+    );
+    expect(two.workplaces.map((each) => each.suggested)).toEqual([{}, {}]);
+  });
+
+  it('does not propose a draft whose every passage is not in the files', () => {
+    const files = {
+      [decision]: 'Atelier: Str. Morii nr. 12',
+      [riskEvaluation]: 'Activitate: fabricarea mobilei (CAEN 3109)',
+      [wasteDecision]: 'Se colectează deșeuri de lemn.',
+    };
+    const proposal = withChecks(
+      toProposal(
+        reading({
+          workplaceSuggestions: [
+            materials,
+            {
+              ...materials,
+              field: 'ignitionSources',
+              value: 'scule electrice',
+              sources: [{ file: 'Dosar/Altul.docx', quote: 'scule electrice' }],
+            },
+            norm,
+          ],
+        })
+      ),
+      { files }
+    );
+
+    expect(proposal.workplaces[0]).toMatchObject({
+      combustibleMaterials: null,
+      ignitionSources: null,
+      extinguisherNorm: 'other_150',
+      suggested: { extinguisherNorm: norm.sources },
+    });
+    expect(proposal.withdrawnSuggestions).toBe(2);
+    expect(proposal.flags.filter((flag) => flag.path.includes('suggested'))).toEqual([]);
   });
 
   it('suggests no norm for a mobile site, and nothing for a workplace only another company gives', () => {
@@ -160,7 +239,7 @@ describe('suggested values', () => {
     expect(proposal.workplaces[1]!.suggested).toEqual({});
   });
 
-  it('flags a passage not found in its file, and a value outside its column or its norms', () => {
+  it('flags a passage not found in its file, and drops a value outside its column or its norms', () => {
     const proposal = toProposal(
       reading({
         workplaceSuggestions: [
@@ -179,12 +258,14 @@ describe('suggested values', () => {
 
     expect(checkQuotes(proposal, files)).toEqual([
       { path: 'workplaces.0.suggested.combustibleMaterials.sources.1', code: 'quote_not_found' },
-      { path: 'workplaces.0.suggested.specificMeasures.sources.1', code: 'quote_not_found' },
     ]);
-    expect(checkAllowedValues(proposal)).toEqual([
-      { path: 'workplaces.0.extinguisherNorm', code: 'value_not_allowed' },
-      { path: 'workplaces.0.specificMeasures', code: 'value_not_allowed' },
-    ]);
+    expect(checkAllowedValues(proposal)).toEqual([]);
+    expect(proposal.workplaces[0]).toMatchObject({
+      extinguisherNorm: null,
+      specificMeasures: null,
+    });
+    expect(Object.keys(proposal.workplaces[0]!.suggested)).toEqual(['combustibleMaterials']);
+    expect(proposal.withdrawnSuggestions).toBe(2);
   });
 
   it('reads the suggestions from the wire form', () => {

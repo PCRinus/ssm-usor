@@ -14936,6 +14936,10 @@
                   "type": "string"
                 }
               },
+              "withdrawnSuggestions": {
+                "type": "integer",
+                "minimum": 0
+              },
               "flags": {
                 "type": "array",
                 "items": {

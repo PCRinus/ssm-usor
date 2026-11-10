@@ -11,6 +11,7 @@ import {
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
+import { substanceNameAllowed, workplaceValueAllowed } from './checks';
 import { inferValues } from './inference';
 import { contained, cuiDigits, foldName, foldText, sameAddress, similar, streetKey } from './match';
 import { countedOnce } from './means-count';
@@ -674,14 +675,21 @@ export function toProposal(...readings: Reading[]): Proposal {
     })),
     (name) => (named(name) ? (resolve(name, workplaceNames, true) ?? onlyWorkplace) : onlyWorkplace)
   );
+  let withdrawnSuggestions = 0;
   const suggestions = list((reading) => reading.workplaceSuggestions ?? []).flatMap(
     (suggestion): Suggestion[] => {
       const workplaceId = named(suggestion.workplace)
-        ? resolve(suggestion.workplace, workplaceNames, true)
+        ? (resolve(suggestion.workplace, workplaceNames, true) ?? onlyWorkplace)
         : onlyWorkplace;
       const value = workplaceFactValue(suggestion.field, suggestion.value);
-      const sources = suggestion.sources.map(sourceOf);
-      if (workplaceId === null || value === null || sources.length === 0) return [];
+      if (workplaceId === null || value === null) return [];
+      const sources = suggestion.sources
+        .filter((source) => source.file.trim() !== '' && source.quote.trim() !== '')
+        .map(sourceOf);
+      if (sources.length === 0 || !workplaceValueAllowed(suggestion.field, value)) {
+        withdrawnSuggestions++;
+        return [];
+      }
       return [{ workplaceId, field: suggestion.field, value, sources }];
     }
   );
@@ -744,10 +752,31 @@ export function toProposal(...readings: Reading[]): Proposal {
       spelling: {},
     }))
   );
-  for (const workplace of workplaces) {
-    const rooms = fireEquipment
-      .filter((equipment) => equipment.workplace.id === workplace.id && equipment.room !== null)
+  const roomsOf = (ids: string[]) =>
+    fireEquipment
+      .filter((equipment) => ids.includes(equipment.id) && equipment.room !== null)
       .map((equipment) => equipment.room!);
+  const counted = new Set(
+    fireEquipmentCounts.flatMap((count) => count.options.flatMap((option) => option.equipmentIds))
+  );
+  for (const workplace of workplaces) {
+    const rooms = roomsOf(
+      fireEquipment
+        .filter(
+          (equipment) => equipment.workplace.id === workplace.id && !counted.has(equipment.id)
+        )
+        .map((equipment) => equipment.id)
+    );
+    // Only one option of a count is written, so a room only some options name may not exist.
+    for (const count of fireEquipmentCounts) {
+      if (count.workplace.id !== workplace.id) continue;
+      const [first, ...others] = count.options.map((option) => roomsOf(option.equipmentIds));
+      rooms.push(
+        ...first!.filter((room) =>
+          others.every((other) => other.some((each) => foldText(each) === foldText(room)))
+        )
+      );
+    }
     workplace.rooms = uniqueFolded([...workplace.rooms, ...rooms]);
   }
 
@@ -779,7 +808,7 @@ export function toProposal(...readings: Reading[]): Proposal {
   const substances = joined(
     // A scan's page read before the field existed has none.
     list((reading) => reading.substances ?? [])
-      .filter((substance) => named(substance.name))
+      .filter((substance) => substanceNameAllowed(substance.name))
       .map((substance) => ({
         ...traced(substance),
         name: substance.name.trim(),
@@ -879,6 +908,7 @@ export function toProposal(...readings: Reading[]): Proposal {
           `Categoria și activitățile postului «${name}» nu se potrivesc cu niciun post și nu au fost preluate.`
       ),
     ],
+    ...(withdrawnSuggestions > 0 ? { withdrawnSuggestions } : {}),
     flags: [],
   };
   return proposalSchema.parse(
