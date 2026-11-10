@@ -34,6 +34,7 @@ const reading = (
   responsiblePersons: [],
   fireEquipment,
   fireInstallations: [],
+  substances: [],
   protectiveEquipment: [],
   employees: [],
   notes: [],

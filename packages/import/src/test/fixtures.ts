@@ -234,6 +234,7 @@ export function wireAnswer() {
       },
     ],
     fireInstallations: [],
+    substances: [],
     protectiveEquipment: [
       {
         jobPositions: ['Brutar', 'Vânzător', 'brutar'],

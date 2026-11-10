@@ -53,6 +53,7 @@ const listNames = [
   'fireInstallations',
   'protectiveEquipment',
   'employees',
+  'substances',
 ] as const;
 
 type Holds = (quote: string) => boolean;
@@ -172,6 +173,10 @@ function itemHolds(
   if (list === 'responsiblePersons') return holdsName(proposal.responsiblePersons[index]!.fullName);
   if (list === 'employees') return employeeHolds(proposal.employees[index]!);
   if (list === 'protectiveEquipment') return equipmentHolds(proposal.protectiveEquipment[index]!);
+  if (list === 'substances') {
+    const { name, spelling } = proposal.substances[index]!;
+    return holdsWords(name, ...(spelling.name ? [spelling.name] : []));
+  }
   return undefined;
 }
 
@@ -368,6 +373,10 @@ export function checkAllowedValues(proposal: Proposal): Flag[] {
     if (!extinguisher) flag(`${path}.wheeled`, !equipment.wheeled);
     if (equipment.count !== null) flag(`${path}.count`, between(1, 999)(equipment.count));
   });
+  // As `fire_substances.name` takes it.
+  proposal.substances.forEach((substance, index) =>
+    flag(`substances.${index}.name`, textOf(2, 160)(substance.name))
+  );
   proposal.protectiveEquipment.forEach((entry, index) => {
     const path = `protectiveEquipment.${index}`;
     if (entry.quantity !== null) flag(`${path}.quantity`, between(1, 999)(entry.quantity));

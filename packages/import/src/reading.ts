@@ -18,6 +18,7 @@ import {
   clientFieldNames,
   type Field,
   fireSafetyIntegerFieldNames,
+  fireSafetySubstancesFieldNames,
   fireSafetyTextFieldNames,
   fireSafetyYesNoFieldNames,
   importedEmployeeRoles,
@@ -45,6 +46,7 @@ export const factFields = [
   ...fireSafetyIntegerFieldNames.map((name) => `fireSafety.${name}`),
   ...fireSafetyTextFieldNames.map((name) => `fireSafety.${name}`),
   ...fireSafetyYesNoFieldNames.map((name) => `fireSafety.${name}`),
+  ...fireSafetySubstancesFieldNames.map((name) => `fireSafety.${name}`),
 ] as [string, ...string[]];
 
 const integerFacts = new Set([
@@ -143,6 +145,7 @@ export const readingSchema = z.object({
       ...quoted,
     })
   ),
+  substances: z.array(z.object({ name: z.string(), ...quoted })),
   protectiveEquipment: z.array(
     z.object({
       jobPositions: z.array(z.string()),
@@ -274,6 +277,8 @@ function factValue(field: string, value: string): string | number | null {
   if (field === 'client.cui') return cuiDigits(trimmed) ?? trimmed;
   if (field === 'client.countyCode') return countyCode(trimmed);
   if (field === 'fireSafety.wasteKinds') return wasteKinds(trimmed);
+  // "listed" stands on the substances named, never on a sentence that some are used.
+  if (field === 'fireSafety.substancesState') return foldText(trimmed) === 'none' ? 'none' : null;
   return trimmed;
 }
 
@@ -563,6 +568,7 @@ export function toProposal(...readings: Reading[]): Proposal {
       ...fireSafetyIntegerFieldNames,
       ...fireSafetyTextFieldNames,
       ...fireSafetyYesNoFieldNames,
+      ...fireSafetySubstancesFieldNames,
     ]),
   } as Record<string, Record<string, Field<string | number>>>;
   for (const fact of facts) {
@@ -716,6 +722,32 @@ export function toProposal(...readings: Reading[]): Proposal {
     }
   }
 
+  const substances = joined(
+    // A scan's page read before the field existed has none.
+    list((reading) => reading.substances ?? [])
+      .filter((substance) => named(substance.name))
+      .map((substance) => ({
+        ...traced(substance),
+        name: substance.name.trim(),
+        spelling: {} as Record<string, string>,
+      })),
+    (a, b) => foldText(a.name) === foldText(b.name),
+    (into, from) => {
+      if (nonAsciiCount(from.name) > nonAsciiCount(into.name)) into.name = from.name;
+    }
+  ).map((substance, index) => ({ id: `substance-${index + 1}`, ...substance }));
+  if (substances.length > 0) {
+    const own = substances.filter((substance) => substance.otherCompanyName === null);
+    const giving = own.length > 0 ? own : substances;
+    const sources: Source[] = [];
+    for (const substance of giving) mergeSources(sources, substance.sources);
+    addOption(groups.fireSafety!.substancesState!.options, {
+      value: 'listed',
+      sources,
+      otherCompanyName: own.length > 0 ? null : substances[0]!.otherCompanyName,
+    });
+  }
+
   const proposal: Proposal = {
     client: groups.client as Proposal['client'],
     trainingSchedule: groups.trainingSchedule as Proposal['trainingSchedule'],
@@ -777,6 +809,7 @@ export function toProposal(...readings: Reading[]): Proposal {
           : a.cnp === b.cnp),
       fillGaps
     ).map((employee, index) => ({ id: `employee-${index + 1}`, ...employee })),
+    substances,
     notes: [
       ...list((reading) => reading.notes).filter((note) => note.trim() !== ''),
       ...otherOfficeAddresses.map(

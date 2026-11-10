@@ -129,10 +129,18 @@ export const fireSafetyTextFieldNames = [
 
 export const fireSafetyYesNoFieldNames = ['hasThirdParties'] as const;
 
+// The client's answer on dangerous substances (ADR 041): "none" from a statement that it uses
+// none, "listed" from the substances the documents name. Documents that say nothing propose no
+// answer, since "none" is a declaration the representative signs (ADR 018).
+export const fireSafetySubstancesFieldNames = ['substancesState'] as const;
+
+export const proposedSubstancesStates = ['none', 'listed'] as const;
+
 export type FireSafetyFieldName =
   | (typeof fireSafetyIntegerFieldNames)[number]
   | (typeof fireSafetyTextFieldNames)[number]
-  | (typeof fireSafetyYesNoFieldNames)[number];
+  | (typeof fireSafetyYesNoFieldNames)[number]
+  | (typeof fireSafetySubstancesFieldNames)[number];
 
 function fields<const K extends string, T extends z.ZodType>(names: readonly K[], field: T) {
   return z.object(Object.fromEntries(names.map((name) => [name, field])) as Record<K, T>);
@@ -147,6 +155,7 @@ const readSinceFields = new Set<string>([
   'wasteKinds',
   'wasteCollectors',
   ...fireSafetyYesNoFieldNames,
+  ...fireSafetySubstancesFieldNames,
 ]);
 
 function laterFields<const K extends string, T extends z.ZodType>(names: readonly K[], field: T) {
@@ -169,7 +178,10 @@ export const proposedTrainingScheduleSchema = fields(
 
 export const proposedFireSafetySchema = laterFields(fireSafetyIntegerFieldNames, integerField)
   .extend(laterFields(fireSafetyTextFieldNames, textField).shape)
-  .extend(laterFields(fireSafetyYesNoFieldNames, yesNoField).shape);
+  .extend(laterFields(fireSafetyYesNoFieldNames, yesNoField).shape)
+  .extend(
+    laterFields(fireSafetySubstancesFieldNames, fieldSchema(z.enum(proposedSubstancesStates))).shape
+  );
 
 const item = { id: z.string().min(1), ...traced };
 
@@ -331,6 +343,16 @@ export const proposedProtectiveEquipmentSchema = z.object({
 
 export type ProposedProtectiveEquipment = z.infer<typeof proposedProtectiveEquipmentSchema>;
 
+// A dangerous substance a document names at the client, by its name only: the classification and
+// the quantity are read off the product and counted on site, and no pack holds them (ADR 041).
+export const proposedSubstanceSchema = z.object({
+  ...item,
+  name: z.string().min(1),
+  spelling: spellings,
+});
+
+export type ProposedSubstance = z.infer<typeof proposedSubstanceSchema>;
+
 // The client import creates an employee only for a role that needs one (ADR 030); everyone
 // else comes from the employee import.
 export const importedEmployeeRoles = ['workers_representative', 'legal_representative'] as const;
@@ -409,6 +431,8 @@ export const proposalSchema = z.object({
   fireInstallations: z.array(proposedFireInstallationSchema),
   protectiveEquipment: z.array(proposedProtectiveEquipmentSchema),
   employees: z.array(proposedEmployeeSchema),
+  // Defaulted for a proposal stored before the substances were read.
+  substances: z.array(proposedSubstanceSchema).default([]),
   notes: z.array(z.string()),
   // Empty until the checks ran, as well as when they found nothing.
   flags: z.array(flagSchema),

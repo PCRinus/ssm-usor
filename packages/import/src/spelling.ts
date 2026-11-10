@@ -171,5 +171,6 @@ export function correctProposalSpelling(proposal: Proposal) {
     correctValue(entry, 'risk');
   }
   for (const equipment of proposal.fireEquipment) correctValue(equipment, 'room');
+  for (const substance of proposal.substances) correctValue(substance, 'name');
   return proposal;
 }
