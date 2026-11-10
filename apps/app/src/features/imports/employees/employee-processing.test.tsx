@@ -120,6 +120,33 @@ describe('the page of an employee import that is not ready', () => {
     expect(preview.textContent).toContain('Citită');
   });
 
+  it('numbers the photographs in their upload order, with each file name on hover', async () => {
+    const detail = employeeDetail({ status: 'reading', employees: null, people: null });
+    mount({
+      ...detail,
+      files: detail.files.map((file, index) =>
+        index === 1
+          ? {
+              ...file,
+              fileName: 'WhatsApp Image 2026-11-07 at 14.05.45 (3).jpeg',
+              state: 'failed',
+              reason: 'Fotografia e prea neclară ca să citim rândurile.',
+            }
+          : file
+      ),
+    });
+    await heading();
+    const tiles = screen.getAllByTestId('employee-processing-photo');
+    expect(tiles.map((tile) => tile.textContent)).toEqual([
+      'Fotografia 1Citită',
+      'Fotografia 2Fotografia e prea neclară ca să citim rândurile.',
+      'Fotografia 3Citită',
+      'Fotografia 4Citită',
+      'Fotografia 5Citită',
+    ]);
+    expect(tiles[1]!.title).toBe('WhatsApp Image 2026-11-07 at 14.05.45 (3).jpeg');
+  });
+
   it('says the credits were given back after a failure on our side', async () => {
     mount(
       employeeDetail({
