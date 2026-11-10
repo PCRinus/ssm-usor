@@ -837,7 +837,7 @@ describe('/clients/{clientId}/responsible-persons', () => {
 
   it('ties a fire-safety role to one active workplace of the client', async () => {
     mockUpstream({
-      workplaces: () => Response.json({ id: workplaceRow.id }),
+      workplaces: () => Response.json({ id: workplaceRow.id, office_has_activity: true }),
       responsiblePersons: () => Response.json(responsiblePersonRow, { status: 201 }),
     });
     const response = await request(path, 'POST', {
@@ -871,6 +871,49 @@ describe('/clients/{clientId}/responsible-persons', () => {
       );
     }
     expect(calls('/rest/v1/client_responsible_persons')).toHaveLength(0);
+  });
+
+  describe('tied to a registered office with no activity (ADR 041)', () => {
+    const office = { id: workplaceRow.id, office_has_activity: false };
+    const item = `${path}/${responsiblePersonRow.id}`;
+    const tied = { ...body, workplaceId: workplaceRow.id };
+    const writes = () =>
+      calls('/rest/v1/client_responsible_persons').filter(([, init]) => init?.method !== 'GET');
+
+    it('is refused on a new person and on a new tie, naming the workplace field', async () => {
+      mockUpstream({
+        workplaces: () => Response.json(office),
+        responsiblePersons: (init) =>
+          init?.method === 'PATCH'
+            ? Response.json(responsiblePersonRow)
+            : Response.json({ workplace_id: null }),
+      });
+      for (const [method, url] of [
+        ['POST', path],
+        ['PUT', item],
+      ] as const) {
+        const response = await request(url, method, tied);
+        expect(response.status).toBe(400);
+        expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe(
+          'workplaceId'
+        );
+      }
+      expect(writes()).toEqual([]);
+    });
+
+    it('keeps a tie made before the office was answered "no"', async () => {
+      mockUpstream({
+        workplaces: () => Response.json(office),
+        responsiblePersons: (init) =>
+          init?.method === 'PATCH'
+            ? Response.json({ ...responsiblePersonRow, workplace_id: workplaceRow.id })
+            : Response.json({ workplace_id: workplaceRow.id }),
+      });
+      expect((await request(item, 'PUT', tied)).status).toBe(200);
+      expect(JSON.parse(String(writes()[0]![1]?.body))).toMatchObject({
+        workplace_id: workplaceRow.id,
+      });
+    });
   });
 
   it('refuses no role, an unknown role, and a role given twice', async () => {

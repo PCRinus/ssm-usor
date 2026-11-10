@@ -683,6 +683,7 @@ export async function refuseWorkplaceOfAnotherClient(
   if (error) throw fromDatabaseError(error, 'find workplace');
   if (!data) throw workplaceNotOfClient();
   if (withActivity && !data.office_has_activity) throw officeWithoutActivity();
+  return data;
 }
 
 function responsiblePersonError(error: { code: string; message?: string }, context: string) {
@@ -730,7 +731,7 @@ export const createResponsiblePerson: RouteHandler<
     'This client is archived; responsible persons cannot be added.'
   );
   await refuseLegalRepresentative(db, clientId, body);
-  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
+  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const { data, error } = await db
     .from('client_responsible_persons')
     .insert({
@@ -757,7 +758,21 @@ export const updateResponsiblePerson: RouteHandler<
   const body = c.req.valid('json');
   const db = createDataClient(c);
   await refuseLegalRepresentative(db, clientId, body);
-  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
+  const workplace = await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
+  if (workplace && !workplace.office_has_activity) {
+    // A tie made before the office was answered "no" is kept, so editing the person's other
+    // fields is not refused; the SU set reads it as a tie to no workplace (ADR 041).
+    const current = await db
+      .from('client_responsible_persons')
+      .select('workplace_id')
+      .eq('id', responsiblePersonId)
+      .eq('client_id', clientId)
+      .is('archived_at', null)
+      .maybeSingle();
+    if (current.error) throw fromDatabaseError(current.error, 'find responsible person');
+    if (!current.data) throw noSuchResponsiblePerson();
+    if (current.data.workplace_id !== workplace.id) throw officeWithoutActivity();
+  }
   const { data, error } = await db
     .from('client_responsible_persons')
     .update({

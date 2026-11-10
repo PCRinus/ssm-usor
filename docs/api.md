@@ -1819,7 +1819,9 @@ more of `workplace_manager`, `first_aid`, `risk_evaluation_team`, `imminent_dang
 optionally an `employeeId`: an employee of another client is `400` with the issue on
 `employeeId`, and an employee who already is a responsible person of the client is `409`. Its
 optional `workplaceId` ties it to one workplace, and null means every workplace; anything but
-an active workplace of the client is `400` with the issue on `workplaceId`. A workplace also
+an active workplace of the client is `400` with the issue on `workplaceId`, and so is a
+registered office where no activity takes place (ADR 041), unless the person was tied to it
+before: that tie is kept, and the fire-safety set reads it as a tie to every workplace. A workplace also
 carries the fire-safety facts of [ADR 018](architecture/adr-018-fire-safety-means.md), all
 optional: `activity`, `floorAreaM2`, `extinguisherNorm`, `assemblyPoint`,
 `combustibleMaterials`, `ignitionSources`, `fireRiskEquipment` and `specificMeasures`; the
