@@ -1657,7 +1657,9 @@ refusing a field it does not name (`22023`):
   without a position is refused (`22023`), so `default_employee_job_position` never makes a
   position from a job title. One with `id` is an active employee of the client (`22023`
   otherwise), filled as an existing client is: empty columns filled, those in `replace` taken.
-  A workplace is an active one of the client (`22023`).
+  A workplace is an active one of the client, and never a registered office where no activity
+  takes place unless the employee already works there (ADR 041; `22023`, migration
+  `20261111180000`).
 - The other lists name an employee by the `key` of one of `employees` (`22023` otherwise).
 - A training is held from paper (`source` `paper`), with one record per attendee, at most one
   each (`22023`), carrying the name of the attendee's position as the occupation, as the app's

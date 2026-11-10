@@ -1112,6 +1112,31 @@ describe('POST /imports/{importId}/confirm for an employee import', () => {
     files: [{ client_file_id: 'x', source_path: 'a', target_path: 'b' }],
   };
 
+  it('places an employee at the one workplace where activity takes place, never at an office with none', async () => {
+    const pointOfWork = '90000000-0000-4000-8000-000000000002';
+    mockUpstream(({ url }) => {
+      if (url.pathname === '/rest/v1/imports') return Response.json(importRow());
+      if (url.pathname === '/rest/v1/client_workplaces') {
+        const office = {
+          id: '90000000-0000-4000-8000-000000000001',
+          name: 'Sediu',
+          address_line: null,
+        };
+        const point = { id: pointOfWork, name: 'Magazin', address_line: null };
+        return Response.json(
+          url.searchParams.get('office_has_activity') === 'eq.true' ? [point] : [office, point]
+        );
+      }
+      if (url.pathname === '/rest/v1/rpc/apply_employee_import') return Response.json(applied);
+    });
+    const response = await request(`/imports/${importId}/confirm`, 'POST', { version: 4 });
+
+    expect(response.status).toBe(200);
+    expect(callsTo('/rest/v1/rpc/apply_employee_import')[0]!.body).toMatchObject({
+      p_payload: { employees: [{ key: 'person-1', workplace_id: pointOfWork }] },
+    });
+  });
+
   it('writes the checked people, syncs their signed sheets, and queues their files', async () => {
     mockUpstream(({ url }) => {
       if (url.pathname === '/rest/v1/imports') return Response.json(importRow());

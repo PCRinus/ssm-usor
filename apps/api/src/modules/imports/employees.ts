@@ -64,6 +64,7 @@ export async function employeeImportClient(
           .select('id, name, address_line')
           .eq('client_id', clientId)
           .is('archived_at', null)
+          .eq('office_has_activity', true)
           .order('id')
           .range(from, to),
       'employee import: workplaces'
