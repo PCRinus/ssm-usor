@@ -1,16 +1,14 @@
-import { createHash } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
+
+import { clientContractFingerprint } from './client-contract-fingerprint.mjs';
 
 const clients = {
   app: 'apps/app/src/api/generated/api.ts',
   portal: 'apps/portal/src/api/generated/api.ts',
 };
 
-const fingerprint = (path) =>
-  createHash('sha256').update(readFileSync(path)).digest('hex').slice(0, 16);
-
 const entries = Object.entries(clients)
-  .map(([client, path]) => `  ${client}: '${fingerprint(path)}',`)
+  .map(([client, path]) => `  ${client}: '${clientContractFingerprint(path)}',`)
   .join('\n');
 
 writeFileSync(

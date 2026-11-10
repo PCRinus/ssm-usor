@@ -1,5 +1,6 @@
-import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import {
   apiErrorResponseSchema,
@@ -8,6 +9,7 @@ import {
 } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { clientContractFingerprint } from '../../../../scripts/client-contract-fingerprint.mjs';
 import { createApp } from '../app';
 import type { ApiEnv } from './env';
 
@@ -30,14 +32,34 @@ const request = (path: string, headers: Record<string, string> = {}, init: Reque
   createApp().request(path, { ...init, headers }, env);
 
 const hashOf = (client: string) =>
-  createHash('sha256')
-    .update(readFileSync(new URL(`../../../${client}/src/api/generated/api.ts`, import.meta.url)))
-    .digest('hex')
-    .slice(0, 16);
+  clientContractFingerprint(
+    new URL(`../../../${client}/src/api/generated/api.ts`, import.meta.url)
+  );
+
+const fingerprintOf = (source: string) => {
+  const path = join(mkdtempSync(join(tmpdir(), 'client-contract-')), 'api.ts');
+  writeFileSync(path, source);
+  return clientContractFingerprint(path);
+};
 
 describe('the contract fingerprints', () => {
   it.each(['app', 'portal'] as const)('are the hash of the generated %s client', (client) => {
     expect(clientContractFingerprints[client]).toBe(hashOf(client));
+  });
+
+  it('ignore comments', () => {
+    const source = `/** Lists the clients. */\nexport const url = '/clients'; // the list\n`;
+    expect(fingerprintOf(source.replace('Lists the clients.', 'Lists every client.'))).toBe(
+      fingerprintOf(source)
+    );
+    expect(fingerprintOf(source.replace('// the list', '/* the list */'))).toBe(
+      fingerprintOf(source)
+    );
+  });
+
+  it('follow the code, including a comment marker inside a string', () => {
+    const source = `export const url = 'https://example.com/a';\n`;
+    expect(fingerprintOf(source.replace('/a', '/b'))).not.toBe(fingerprintOf(source));
   });
 });
 
@@ -81,6 +103,7 @@ describe('the client contract check', () => {
     ['GET', '/waitlist/confirm'],
     ['GET', '/files/download'],
     ['GET', '/openapi.json'],
+    ['GET', '/docs'],
   ])('does not check %s %s', async (method, path) => {
     const response = await request(
       path,
