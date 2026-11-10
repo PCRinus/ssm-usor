@@ -1,9 +1,9 @@
 import { Button } from '@ssm-usor/ui/components/button';
-import { type ErrorComponentProps, Link, useLocation, useRouter } from '@tanstack/react-router';
+import { type ErrorComponentProps, Link, useLocation } from '@tanstack/react-router';
 import { useEffect, useRef } from 'react';
 
 import type { Release } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { NotFound, RouteError } from '@/app/route-states';
 import { useScrollToHash } from '@/app/use-scroll-to-hash';
 
 import { InlineMarkdown } from './inline-markdown';
@@ -281,31 +281,21 @@ export function ReleasePage({ tag }: { tag: string }) {
 
 export function ReleaseNotFound() {
   return (
-    <div data-testid="release-not-found" className="mx-auto grid max-w-lg gap-5 py-14">
-      <h1 className="text-2xl font-semibold">Versiunea nu a fost găsită</h1>
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        Nu există nicio actualizare pentru această versiune.
-      </p>
-      <Button asChild className="w-fit">
-        <Link to="/actualizari">Toate actualizările</Link>
-      </Button>
-    </div>
+    <NotFound
+      testId="release-not-found"
+      title="Versiunea nu a fost găsită"
+      description="Nu există nicio actualizare pentru această versiune."
+      action={
+        <Button size="lg" asChild>
+          <Link to="/actualizari">Toate actualizările</Link>
+        </Button>
+      }
+    />
   );
 }
 
 export function ReleaseError({ error }: ErrorComponentProps) {
-  const router = useRouter();
-  const message =
-    error instanceof ApiHttpError && error.status === 401
-      ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-      : 'Nu am putut încărca actualizarea. Încearcă din nou.';
   return (
-    <div data-testid="release-error" role="alert" className="mx-auto grid max-w-lg gap-5 py-14">
-      <h1 className="text-2xl font-semibold">Actualizarea nu a putut fi încărcată</h1>
-      <p className="text-sm leading-relaxed text-muted-foreground">{message}</p>
-      <Button variant="outline" className="w-fit" onClick={() => void router.invalidate()}>
-        Încearcă din nou
-      </Button>
-    </div>
+    <RouteError error={error} testId="release-error" title="Actualizarea nu a putut fi încărcată" />
   );
 }

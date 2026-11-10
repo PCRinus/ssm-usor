@@ -7,12 +7,12 @@ import {
   notFound,
   Outlet,
   redirect,
-  useRouter,
 } from '@tanstack/react-router';
 import { z } from 'zod';
 
 import { getGetClientQueryKey, getGetClientQueryOptions } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { NotFound, RouteError } from '@/app/route-states';
 
 // A lead is a client in an earlier stage (ADR 007), read through the same route. The
 // policies hide it from anyone who is not an owner, for whom the API answers 404.
@@ -63,32 +63,25 @@ function LeadPending() {
 
 function LeadNotFound() {
   return (
-    <div data-testid="lead-not-found" className="mx-auto grid max-w-lg gap-5 py-14">
-      <h1 className="text-2xl font-semibold">Clientul potențial nu a fost găsit</h1>
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        Nu există niciun client potențial cu acest identificator în organizația ta, sau contul tău
-        nu este de admin.
-      </p>
-      <Button asChild className="w-fit">
-        <Link to="/clienti">Înapoi la clienți</Link>
-      </Button>
-    </div>
+    <NotFound
+      testId="lead-not-found"
+      title="Clientul potențial nu a fost găsit"
+      description="Nu există niciun client potențial cu acest identificator în organizația ta, sau contul tău nu este de admin."
+      action={
+        <Button size="lg" asChild>
+          <Link to="/clienti">Înapoi la clienți</Link>
+        </Button>
+      }
+    />
   );
 }
 
 function LeadError({ error }: ErrorComponentProps) {
-  const router = useRouter();
   return (
-    <div data-testid="lead-error" role="alert" className="mx-auto grid max-w-lg gap-5 py-14">
-      <h1 className="text-2xl font-semibold">Clientul potențial nu a putut fi încărcat</h1>
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        {error instanceof ApiHttpError && error.status === 401
-          ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-          : 'Nu am putut încărca datele. Încearcă din nou.'}
-      </p>
-      <Button variant="outline" className="w-fit" onClick={() => void router.invalidate()}>
-        Încearcă din nou
-      </Button>
-    </div>
+    <RouteError
+      error={error}
+      testId="lead-error"
+      title="Clientul potențial nu a putut fi încărcat"
+    />
   );
 }

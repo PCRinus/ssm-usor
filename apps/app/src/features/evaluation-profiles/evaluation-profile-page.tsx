@@ -4,13 +4,12 @@ import {
   Link,
   useNavigate,
   useRouteContext,
-  useRouter,
 } from '@tanstack/react-router';
 import { Archive, ArchiveRestore, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { getGetEvaluationProfileQueryKey, useGetEvaluationProfile } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { NotFound, RouteError } from '@/app/route-states';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { RiskEvaluationPending } from '@/features/risk-evaluations/risk-evaluation-pending';
@@ -152,35 +151,25 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
 
 export function EvaluationProfileNotFound() {
   return (
-    <div data-testid="risk-profile-not-found" className="mx-auto grid max-w-lg gap-5 py-14">
-      <h1 className="text-2xl font-semibold">Evaluarea nu a fost găsită</h1>
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        Nu există nicio evaluare cu acest identificator în bibliotecă, sau a fost ștearsă.
-      </p>
-      <Button asChild className="w-fit">
-        <Link to="/evaluari-de-risc">Înapoi la bibliotecă</Link>
-      </Button>
-    </div>
+    <NotFound
+      testId="risk-profile-not-found"
+      title="Evaluarea nu a fost găsită"
+      description="Nu există nicio evaluare cu acest identificator în bibliotecă, sau a fost ștearsă."
+      action={
+        <Button size="lg" asChild>
+          <Link to="/evaluari-de-risc">Înapoi la bibliotecă</Link>
+        </Button>
+      }
+    />
   );
 }
 
 export function EvaluationProfileError({ error }: ErrorComponentProps) {
-  const router = useRouter();
-  const message =
-    error instanceof ApiHttpError && error.status === 401
-      ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-      : 'Nu am putut încărca evaluarea. Încearcă din nou.';
   return (
-    <div
-      data-testid="risk-profile-error"
-      role="alert"
-      className="mx-auto grid max-w-lg gap-5 py-14"
-    >
-      <h1 className="text-2xl font-semibold">Evaluarea nu a putut fi încărcată</h1>
-      <p className="text-sm leading-relaxed text-muted-foreground">{message}</p>
-      <Button variant="outline" className="w-fit" onClick={() => void router.invalidate()}>
-        Încearcă din nou
-      </Button>
-    </div>
+    <RouteError
+      error={error}
+      testId="risk-profile-error"
+      title="Evaluarea nu a putut fi încărcată"
+    />
   );
 }
