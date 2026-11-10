@@ -248,6 +248,7 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
         proposal={proposal}
         review={review}
         states={applying}
+        existingSubstances={existing.substanceNames}
         name={name}
         onClose={() => setConfirming(false)}
       />

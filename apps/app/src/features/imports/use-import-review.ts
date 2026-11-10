@@ -9,6 +9,7 @@ import {
   getGetClientFireSafetyQueryKey,
   getGetClientQueryKey,
   getGetImportQueryKey,
+  getListFireSubstancesQueryKey,
   getListJobPositionsQueryKey,
   type ImportDetail,
   type ImportDetailResponse,
@@ -16,12 +17,19 @@ import {
   useGetClient,
   useGetClientDocumentDetails,
   useGetClientFireSafety,
+  useListFireSubstances,
   useListJobPositions,
 } from '@/api/generated/api';
 import { ApiHttpError, type ApiRequestOptions } from '@/api/http';
 
 import { importErrorMessage } from './import-format';
-import { type Changes, changesOf, type FieldChange, type ItemChange } from './review-model';
+import {
+  type Changes,
+  changesOf,
+  type FieldChange,
+  type ItemChange,
+  substancesStatePath,
+} from './review-model';
 
 function withoutEmpty(changes: Changes): Changes {
   const fields = Object.fromEntries(
@@ -257,11 +265,16 @@ export function useExistingValues(detail: ImportDetail) {
     request: apiRequest,
     query: { queryKey: getListJobPositionsQueryKey(clientId), enabled },
   });
+  const substances = useListFireSubstances(clientId, {
+    request: apiRequest,
+    query: { queryKey: getListFireSubstancesQueryKey(clientId), enabled },
+  });
   if (!enabled) {
     return {
       ready: true,
       valueAt: () => undefined,
       positions: [],
+      substanceNames: [],
       positionsFailed: false,
       positionsRetrying: false,
       retryPositions: () => undefined,
@@ -272,7 +285,12 @@ export function useExistingValues(detail: ImportDetail) {
   const detailsRow = record(details.data?.documentDetails);
   const fireRow = record(fireSafety.data?.fireSafety);
   return {
-    ready: client.isSuccess && details.isSuccess && !fireSafety.isPending && positions.isSuccess,
+    ready:
+      client.isSuccess &&
+      details.isSuccess &&
+      !fireSafety.isPending &&
+      positions.isSuccess &&
+      !substances.isPending,
     positionsFailed: positions.isError,
     positionsRetrying: positions.isFetching,
     retryPositions: () => void positions.refetch(),
@@ -281,6 +299,7 @@ export function useExistingValues(detail: ImportDetail) {
       name: position.name,
       staffCategory: position.staffCategory,
     })),
+    substanceNames: (substances.data?.items ?? []).map((substance) => substance.name),
     valueAt: (path: string): string | number | null | undefined => {
       const [group, name] = path.split('.') as [string, string];
       if (group === 'client') {
@@ -289,6 +308,11 @@ export function useExistingValues(detail: ImportDetail) {
           : (clientRow[name] ?? null);
       }
       if (group === 'trainingSchedule') return detailsRow[name] ?? null;
+      // Undecided is no answer yet, which the import fills like an empty value.
+      if (path === substancesStatePath) {
+        const state = substances.data?.state;
+        return state === 'none' || state === 'listed' ? state : null;
+      }
       if (group === 'fireSafety') {
         const value = fireRow[name] as unknown;
         // The card's defaults stand in for a row the client does not have yet.

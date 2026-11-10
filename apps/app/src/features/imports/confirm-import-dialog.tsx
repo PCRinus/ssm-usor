@@ -16,6 +16,7 @@ import {
   BriefcaseBusiness,
   Equal,
   Flame,
+  FlaskConical,
   FolderOpen,
   IdCard,
   MapPin,
@@ -56,6 +57,7 @@ const icons: Record<string, ReactNode> = {
   person: <UserRound className="size-4" />,
   users: <UsersRound className="size-4" />,
   flame: <Flame className="size-4" />,
+  flask: <FlaskConical className="size-4" />,
 };
 
 function Line({
@@ -105,6 +107,7 @@ export function ConfirmImportDialog({
   proposal,
   review,
   states,
+  existingSubstances,
   name,
   onClose,
 }: {
@@ -113,6 +116,7 @@ export function ConfirmImportDialog({
   proposal: Proposal;
   review: ImportReview;
   states: Record<string, FieldState>;
+  existingSubstances: string[];
   name: string;
   onClose: () => void;
 }) {
@@ -122,7 +126,12 @@ export function ConfirmImportDialog({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const existing = detail.intoExistingClient;
-  const { lines, left } = confirmLines(proposal, review.changes);
+  const { lines, left } = confirmLines(
+    proposal,
+    review.changes,
+    states,
+    existing ? existingSubstances : null
+  );
   const fields = Object.values(states);
   const addedFields = fields.filter((state) => state.comparison === 'added');
   const replaced = fields.filter((state) => state.comparison === 'replaced');

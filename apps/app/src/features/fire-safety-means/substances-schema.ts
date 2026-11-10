@@ -135,7 +135,7 @@ const essentialLabels: Record<FireSubstanceEssential, string> = {
 };
 
 /** "Lipsește cantitatea", "Lipsesc clasificarea și cantitatea"; null for a complete entry. */
-export function missingEssentialsLabel(substance: FireSubstance) {
+export function missingEssentialsLabel(substance: Record<FireSubstanceEssential, string | null>) {
   const missing = missingSubstanceEssentials(substance).map((field) => essentialLabels[field]);
   if (missing.length === 0) return null;
   return missing.length === 1 ? `Lipsește ${missing[0]}` : `Lipsesc ${missing.join(' și ')}`;

@@ -39,6 +39,8 @@ import {
   smokingPlaceAsked,
   smokingPlaceDecision,
   smokingPlacePath,
+  substancesAdded,
+  substancesStatePath,
   type UntickedReason,
   valueInForce,
 } from './review-model';
@@ -53,9 +55,10 @@ export function fieldStates(
   registered: RegisteredCompany | null = null
 ): Record<string, FieldState> {
   const states = Object.fromEntries(
-    fieldGroups
-      .flatMap((group) => group.paths)
-      .map((path) => [path, fieldState(proposal, changes, path, valueAt(path), registered)])
+    [...fieldGroups.flatMap((group) => group.paths), substancesStatePath].map((path) => [
+      path,
+      fieldState(proposal, changes, path, valueAt(path), registered),
+    ])
   );
   return states;
 }
@@ -84,6 +87,9 @@ export function smokingRule(states: Record<string, FieldState>, changes: Changes
 
 const count = (value: number, one: string, many: string) =>
   value === 1 ? `un ${one}` : `${value} ${many}`;
+
+const substancesCount = (value: number) =>
+  value === 1 ? 'o substanță periculoasă' : `${value} substanțe periculoase`;
 
 export function sectionDescription(
   section: SectionId,
@@ -191,7 +197,14 @@ export function sectionDescription(
         .filter((each) => chosenCountOption(each, changes) === null)
         .map((each) => ` ${countName(each)}: ${each.options.length} numere în documente.`)
         .join('');
-      return `${smoking ? `${smoking}, ` : ''}${equipment === 1 ? 'un mijloc de stingere' : `${equipment} mijloace de stingere`}.${choiceText}${countsText}${others(['fireEquipment', 'fireInstallations'], 'mijloace')}`;
+      const answer = valueInForce(states[substancesStatePath]);
+      const substances =
+        answer === 'listed'
+          ? `, ${substancesCount(substancesAdded(proposal, changes, states).length)}`
+          : answer === 'none'
+            ? ', fără substanțe periculoase'
+            : '';
+      return `${smoking ? `${smoking}, ` : ''}${equipment === 1 ? 'un mijloc de stingere' : `${equipment} mijloace de stingere`}${substances}.${choiceText}${countsText}${others(['fireEquipment', 'fireInstallations', 'substances'], 'mijloace')}`;
     }
     case 'equipment': {
       const items = included(proposal, changes, 'protectiveEquipment');
@@ -233,6 +246,7 @@ export function sectionReviewHints(
     'fireInstallations',
     'protectiveEquipment',
     'employees',
+    'substances',
   ] as const;
   const items = lists
     .filter((list) => sectionOf(list) === section)
@@ -317,7 +331,13 @@ export function blockerLinks(proposal: Proposal, changes: Changes, blockers: Blo
 
 export type ConfirmLine = { label: string; count?: number; detail: string; icon: string };
 
-export function confirmLines(proposal: Proposal, changes: Changes) {
+// `existingSubstances` are the names an existing client lists already, null for a new client.
+export function confirmLines(
+  proposal: Proposal,
+  changes: Changes,
+  states: Record<string, FieldState> = {},
+  existingSubstances: string[] | null = null
+) {
   const workplaces = included(proposal, changes, 'workplaces');
   const rooms = workplaces.reduce(
     (total, state) => total + ((state.values.rooms as string[] | undefined)?.length ?? 0),
@@ -386,6 +406,21 @@ export function confirmLines(proposal: Proposal, changes: Changes) {
       detail: 'Stingătoarele, instalațiile și regulile de fumat și de salubritate',
     });
   }
+  const substances = substancesAdded(proposal, changes, states, existingSubstances ?? []);
+  if (substances.length > 0) {
+    lines.push({
+      icon: 'flask',
+      count: substances.length,
+      label: substances.length === 1 ? 'substanță periculoasă' : 'substanțe periculoase',
+      detail: 'Doar cu denumirea. Clasificarea și cantitatea le completezi pe pagina clientului.',
+    });
+  } else if (existingSubstances === null && valueInForce(states[substancesStatePath]) === 'none') {
+    lines.push({
+      icon: 'flask',
+      label: 'Nu se utilizează substanțe periculoase',
+      detail: 'Declarația din documente, pe care o semnează reprezentantul legal',
+    });
+  }
   const left = (
     [
       'workplaces',
@@ -394,6 +429,7 @@ export function confirmLines(proposal: Proposal, changes: Changes) {
       'fireEquipment',
       'fireInstallations',
       'protectiveEquipment',
+      'substances',
     ] as ItemList[]
   ).flatMap((list) =>
     itemStates(proposal, changes, list).filter(

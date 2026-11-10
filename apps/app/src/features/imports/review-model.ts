@@ -84,7 +84,8 @@ export type ItemList =
   | 'fireEquipment'
   | 'fireInstallations'
   | 'protectiveEquipment'
-  | 'employees';
+  | 'employees'
+  | 'substances';
 
 const sectionOfRoot: Record<string, SectionId> = {
   client: 'identity',
@@ -93,6 +94,7 @@ const sectionOfRoot: Record<string, SectionId> = {
   fireEquipment: 'fire-safety',
   fireEquipmentCounts: 'fire-safety',
   fireInstallations: 'fire-safety',
+  substances: 'fire-safety',
   workplaces: 'workplaces',
   assemblyPoints: 'workplaces',
   jobPositions: 'job-positions',
@@ -255,6 +257,18 @@ export const fieldInfo: Record<string, FieldInfo> = {
     choose: 'Alege dacă alte firme lucrează în spațiile clientului',
     write: 'Alege dacă alte firme lucrează în spațiile clientului',
   },
+  'fireSafety.substancesState': {
+    label: 'Substanțe periculoase',
+    choose: 'Alege dacă clientul utilizează substanțe periculoase',
+    write: 'Alege dacă clientul utilizează substanțe periculoase',
+  },
+};
+
+export const substancesStatePath = 'fireSafety.substancesState';
+
+export const substancesStateLabels: Record<'listed' | 'none', string> = {
+  listed: 'Se utilizează substanțe periculoase',
+  none: 'Nu se utilizează substanțe periculoase',
 };
 
 // The proposal's yes or no, which the app's own forms word for each field.
@@ -393,6 +407,8 @@ export function formatFieldValue(
       return months[Number(text) - 1] ?? text;
     case 'fireSafety.smokingPolicy':
       return fireSmokingPolicyLabels[text as FireSmokingPolicy] ?? text;
+    case substancesStatePath:
+      return substancesStateLabels[text as 'listed' | 'none'] ?? text;
     default:
       return text;
   }
@@ -708,8 +724,9 @@ type AnyItem = {
   otherCompanyName: string | null;
 } & Record<string, unknown>;
 
+// A proposal stored before the substances were read has none.
 export const itemsOf = (proposal: Proposal, list: ItemList) =>
-  proposal[list] as unknown as AnyItem[];
+  (proposal[list] ?? []) as unknown as AnyItem[];
 
 export type UntickedReason =
   'other_company' | 'legal_representative' | 'management_only' | 'position_left_out';
@@ -852,6 +869,8 @@ export function itemName(list: ItemList, values: Record<string, unknown>): strin
       return fireInstallationKindLabels[values.kind as FireInstallationKind] ?? String(values.kind);
     case 'protectiveEquipment':
       return String(values.item ?? '');
+    case 'substances':
+      return String(values.name ?? '');
   }
 }
 
@@ -997,6 +1016,14 @@ export function blockerLink(proposal: Proposal, changes: Changes, blocker: Block
         : 'Confirmă punctul de adunare',
     };
   }
+  if (blocker.path === substancesStatePath && blocker.code === 'invalid') {
+    return {
+      section,
+      anchor: anchorOf(blocker.path),
+      code: blocker.code,
+      text: 'Păstrează substanțele periculoase din aplicație',
+    };
+  }
   if (blocker.path === smokingPlacePath && blocker.code === 'choice') {
     return {
       section,
@@ -1039,8 +1066,7 @@ export function blockerLink(proposal: Proposal, changes: Changes, blocker: Block
   }
   const list = root as ItemList;
   const index = Number(second);
-  const items = (proposal[list] as unknown as AnyItem[] | undefined) ?? [];
-  const item = items[index];
+  const item = itemsOf(proposal, list)[index];
   const values: Record<string, unknown> = item
     ? { ...item, ...(changes.items[item.id]?.values ?? {}) }
     : {};
@@ -1160,6 +1186,7 @@ export function sectionStatus(
       'fireInstallations',
       'protectiveEquipment',
       'employees',
+      'substances',
     ] as const
   ).filter((list) => sectionOf(list) === section);
   const otherCompanyItems = lists.some((list) =>
@@ -1208,6 +1235,7 @@ const notAllowed: Record<string, string> = {
   specificMeasures: 'Textul are între 2 și 600 de caractere.',
   wasteKinds: 'Cel mult 12 tipuri de deșeuri, fiecare între 2 și 240 de caractere.',
   wasteCollectors: 'Textul are între 2 și 160 de caractere.',
+  name: 'Denumirea are între 2 și 160 de caractere.',
 };
 
 const referenceNouns: Record<string, string> = {
@@ -1295,6 +1323,7 @@ const refusedRules: Record<string, string> = {
   job_position_equipment_duration_range: `durata de utilizare e ${durationRange}`,
   job_position_equipment_quantity_range: 'cantitatea e între 1 și 999',
   client_workplaces_registered_office_key: 'un client are un singur sediu social',
+  fire_substances_name_length: 'denumirea unei substanțe are între 2 și 160 de caractere',
 };
 
 export function refusedValueMessage(issue: { path: string; message: string } | undefined) {
@@ -1387,6 +1416,26 @@ export function unprovenRoles(proposal: Proposal, state: Pick<ItemState, 'index'
       })
       .map(([role]) => role)
   );
+}
+
+/**
+ * The substances confirming adds: none unless the client lists its substances after confirming,
+ * and none the client lists already by that name.
+ */
+export function substancesAdded(
+  proposal: Proposal,
+  changes: Changes,
+  states: Record<string, FieldState>,
+  existingNames: string[] = []
+): ItemState[] {
+  if (valueInForce(states[substancesStatePath]) !== 'listed') return [];
+  const listed = new Set(existingNames.map(foldText));
+  return itemStates(proposal, changes, 'substances').filter((state) => {
+    const name = foldText(String(state.values.name ?? ''));
+    if (!state.included || listed.has(name)) return false;
+    listed.add(name);
+    return true;
+  });
 }
 
 export const changesOf = (changes: ImportDetail['changes']): Changes => ({

@@ -16,6 +16,7 @@ import {
   workplaceKindLabels,
   workplaceKinds,
 } from '@ssm-usor/contracts';
+import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
@@ -26,6 +27,7 @@ import {
   Clock,
   Copy,
   DoorOpen,
+  FlaskConical,
   HardHat,
   Hash,
   ListChecks,
@@ -41,7 +43,9 @@ import { type ReactNode, useId, useState } from 'react';
 
 import { WorkplaceDialog, type WorkplaceDraft } from '@/features/clients/workplace-dialog';
 import { emptyWorkplaceForm, type WorkplaceFormValues } from '@/features/clients/workplace-schema';
+import { warningBadge } from '@/features/documents/pack-styles';
 import { roCount } from '@/features/employees/employee-format';
+import { missingEssentialsLabel } from '@/features/fire-safety-means/substances-schema';
 import {
   JobPositionDialog,
   type JobPositionDraft,
@@ -69,11 +73,14 @@ import {
   countWorkplaceName,
   durationBlockerNote,
   employeeRoleLabel,
+  type FieldState,
   type FireEquipmentCount,
   fireEquipmentCountPath,
   fireEquipmentCountsOf,
   flagNote,
   flagsAt,
+  foldText,
+  formatFieldValue,
   itemFieldLabel,
   itemInferenceNote,
   type ItemList,
@@ -90,7 +97,10 @@ import {
   sameValue,
   secondRegisteredOfficeNote,
   type Source,
+  substancesStateLabels,
+  substancesStatePath,
   unprovenRoles,
+  valueInForce,
 } from './review-model';
 import {
   EditButton,
@@ -1401,8 +1411,247 @@ export function FireMeansSection({ context }: { context: ItemsContext }) {
           />
         )}
       />
+      <SubstancesGroup context={context} />
       {dialog}
     </>
+  );
+}
+
+const substanceAnswers = ['listed', 'none'] as const;
+
+function pickAnswer(context: ItemsContext, state: FieldState, answer: string | null) {
+  const path = substancesStatePath;
+  const index = answer === null ? -1 : state.options.findIndex((each) => each.value === answer);
+  const proposed = state.own.length === 1 ? state.options[state.own[0]!]!.value : null;
+  if (answer === proposed && answer !== null) context.review.setField(path, null);
+  else if (index >= 0) context.review.setField(path, { option: index });
+  else if (answer === null && state.options.length === 0) context.review.setField(path, null);
+  else context.review.setField(path, { value: answer });
+}
+
+function SubstancesAnswerRow({ state, context }: { state: FieldState; context: ItemsContext }) {
+  const name = useId();
+  const choosing = state.status === 'choice';
+  const picked = choosing ? undefined : state.value;
+  const unanswered = state.options.length === 0;
+  return (
+    <DecisionRow
+      tone={choosing ? 'todo' : 'done'}
+      top
+      wide
+      id={anchorOf(substancesStatePath)}
+      testId="review-substances-answer"
+      label={<span id={`${name}-label`}>Utilizează substanțe periculoase?</span>}
+    >
+      {choosing && (
+        <KindLine icon={<Split aria-hidden="true" />} tone="warning">
+          Documentele numesc substanțe, dar spun și că nu se utilizează. Alege ce e valabil acum.
+        </KindLine>
+      )}
+      <PickList labelledBy={`${name}-label`}>
+        {substanceAnswers.map((answer) => {
+          const option = state.options.find((each) => each.value === answer);
+          return (
+            <PickOption
+              key={answer}
+              name={name}
+              checked={picked === answer}
+              onPick={() => pickAnswer(context, state, answer)}
+              heading={
+                option ? <SourceFileNames sources={option.sources} /> : 'Nu apare în documente'
+              }
+              testId={`review-substances-${answer}`}
+              action={
+                option && (
+                  <SourceButton
+                    sources={option.sources}
+                    onOpen={() => context.openSource(substancesStateLabels[answer], option.sources)}
+                  />
+                )
+              }
+            >
+              {substancesStateLabels[answer]}
+              {option?.otherCompanyName && (
+                <span className="text-muted-foreground"> · De la {option.otherCompanyName}</span>
+              )}
+            </PickOption>
+          );
+        })}
+        <PickOption
+          name={name}
+          checked={!choosing && picked === null}
+          inDocuments={false}
+          onPick={() => pickAnswer(context, state, null)}
+          heading="Nedecis"
+          testId="review-substances-undecided"
+        >
+          <span className="text-muted-foreground">
+            Răspunzi pe pagina clientului. Până atunci documentele SU nu se pot genera.
+          </span>
+        </PickOption>
+      </PickList>
+      {unanswered && (
+        <RowNote testId="review-substances-silent">
+          Documentele nu spun dacă clientul utilizează substanțe periculoase, așa că nu am propus un
+          răspuns.
+        </RowNote>
+      )}
+    </DecisionRow>
+  );
+}
+
+function KeptSubstancesAnswerRow({ state, context }: { state: FieldState; context: ItemsContext }) {
+  const name = useId();
+  const change = context.changes.fields[substancesStatePath];
+  const replaced = state.comparison === 'replaced';
+  const keep = () => context.review.setField(substancesStatePath, null);
+  const listed = context.existingSubstances.length > 0;
+  return (
+    <DecisionRow
+      tone="done"
+      top
+      wide
+      id={anchorOf(substancesStatePath)}
+      testId="review-substances-answer"
+      label={<span id={`${name}-label`}>Utilizează substanțe periculoase?</span>}
+    >
+      {state.comparison === 'same' || state.own.length === 0 ? (
+        <>
+          <span className="font-medium">
+            {formatFieldValue(substancesStatePath, state.existing)}
+          </span>
+          <RowNote>{state.value === null ? 'Doar în aplicație' : 'La fel în documente'}</RowNote>
+        </>
+      ) : (
+        <PickList labelledBy={`${name}-label`}>
+          <PickOption
+            name={name}
+            checked={!replaced}
+            onPick={keep}
+            heading="În aplicație"
+            testId="review-keep-app"
+          >
+            {formatFieldValue(substancesStatePath, state.existing)}
+          </PickOption>
+          {state.own.map((index) => {
+            const option = state.options[index]!;
+            if (sameValue(option.value, state.existing)) return null;
+            return (
+              <PickOption
+                key={index}
+                name={name}
+                checked={replaced && change?.option === index}
+                onPick={() =>
+                  context.review.setField(substancesStatePath, { option: index, replace: true })
+                }
+                heading="În documente"
+                testId="review-use-documents"
+                action={
+                  <SourceButton
+                    sources={option.sources}
+                    onOpen={() =>
+                      context.openSource(
+                        formatFieldValue(substancesStatePath, option.value),
+                        option.sources
+                      )
+                    }
+                  />
+                }
+              >
+                {formatFieldValue(substancesStatePath, option.value)}
+              </PickOption>
+            );
+          })}
+        </PickList>
+      )}
+      {replaced && state.value === 'none' && listed && (
+        <RowNote tone="danger">
+          Clientul are substanțe în listă. Ca să declari că nu se utilizează, șterge-le întâi de pe
+          pagina clientului.
+        </RowNote>
+      )}
+    </DecisionRow>
+  );
+}
+
+const incompleteLabel = missingEssentialsLabel({ classification: null, quantity: null });
+
+function SubstancesGroup({ context }: { context: ItemsContext }) {
+  const { open, dialog } = useItemDialog(context);
+  const state = context.states[substancesStatePath];
+  const states = itemStates(context.proposal, context.changes, 'substances');
+  if (!state) return null;
+  const kept = context.existingClient && state.existing !== null;
+  const answer = valueInForce(state);
+  const shown = answer === 'listed' || answer === undefined;
+  const listed = new Set(context.existingSubstances.map(foldText));
+  const fields: ItemDialogField[] = [
+    { name: 'name', label: 'Denumirea', kind: 'text', required: true },
+  ];
+  return (
+    <FieldCard
+      title="Substanțe periculoase"
+      icon={FlaskConical}
+      description="Lista lor se cere fiecărui client. Se preiau doar cu denumirea; clasificarea și cantitatea le completezi pe pagina clientului."
+      pending={state.status === 'choice' ? 'Mai ai de ales răspunsul' : null}
+      testId="review-substances"
+    >
+      {kept ? (
+        <KeptSubstancesAnswerRow state={state} context={context} />
+      ) : (
+        <SubstancesAnswerRow state={state} context={context} />
+      )}
+      {states.length > 0 &&
+        (shown ? (
+          <ul
+            className="divide-y border-t border-border/70 px-4 sm:px-5"
+            aria-label="Substanțele numite în documente"
+            data-testid="review-list-substances"
+          >
+            {states.map((item) => {
+              const known = listed.has(foldText(String(item.values.name ?? '')));
+              return (
+                <ItemRow
+                  key={item.item.id}
+                  state={item}
+                  context={context}
+                  title={itemName('substances', item.values)}
+                  agreement="feminine"
+                  details={[
+                    known ? (
+                      <span data-testid="review-substance-known">
+                        Clientul o are deja în listă, așa că nu se adaugă din nou.
+                      </span>
+                    ) : (
+                      <span className="flex flex-wrap items-center gap-2">
+                        <Badge
+                          variant="outline"
+                          className={warningBadge}
+                          data-testid="review-substance-incomplete"
+                        >
+                          Incompletă
+                        </Badge>
+                        {incompleteLabel}
+                      </span>
+                    ),
+                  ]}
+                  onEdit={() => open(item, fields)}
+                />
+              );
+            })}
+          </ul>
+        ) : (
+          <p
+            className="border-t border-border/70 px-4 py-3 text-[13px] text-muted-foreground sm:px-5"
+            data-testid="review-substances-not-taken"
+          >
+            {states.length === 1
+              ? 'Documentele numesc o substanță. Se preia doar dacă alegi că se utilizează.'
+              : `Documentele numesc ${states.length} substanțe. Se preiau doar dacă alegi că se utilizează.`}
+          </p>
+        ))}
+      {dialog}
+    </FieldCard>
   );
 }
 

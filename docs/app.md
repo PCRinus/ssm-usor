@@ -1042,7 +1042,16 @@ their tab bars read.
   "Vezi în document", "Altă valoare" or "Lasă necompletat", the spelling pair under a value kept;
   until one is picked the hub names no place and blocks confirming (ADR 041). Into an existing
   client a workplace's point is asked only where the API blocks on it or the member decided,
-  since only the API knows the client's own point. Every decision goes to `PUT
+  since only the API knows the client's own point. After the installations, the card "Substanțe
+  periculoase" asks "Utilizează substanțe periculoase?" with three answers, the two the client's
+  card offers, each with the files that give it and "Vezi în document", and "Nedecis", which
+  blocks nothing; the answer the documents give is picked, two that disagree wait for the
+  member, and silence leaves "Nedecis" with a line saying so. Under "listed" or while it waits,
+  the substances follow as rows with the include switch, "Schimbă" for the name and the
+  card's "Incompletă" with "Lipsesc clasificarea și cantitatea"; under another answer, one line
+  says how many the documents name. Into an existing client whose answer is decided, the row
+  offers "În aplicație" and "În documente" instead, and a substance the client lists already by
+  that name says it is not added again (`GET …/fire-substances`). Every decision goes to `PUT
 /imports/{id}/changes` at once, one save after another on the version the previous answered;
   each answer's blockers replace the import's before it is read again, so a note the save settles
   goes at once. A `409` `import_changed` stops saving and offers to reload. The values a member wrote carry

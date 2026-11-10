@@ -103,6 +103,7 @@ export type FieldContext = {
   registered: (RegisteredCompany & { vatPayer: boolean }) | null;
   existingClient: boolean;
   existingPositions: { id: string; name: string; staffCategory: StaffCategory }[];
+  existingSubstances: string[];
   importId: string;
   openSource: OpenSource;
   blockers: Blocker[];

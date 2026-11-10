@@ -26,6 +26,7 @@ test('smoking choices remain readable and selectable at 320px with a long source
     responsiblePersons: [],
     fireEquipment: [],
     fireInstallations: [],
+    substances: [],
     protectiveEquipment: [],
     employees: [],
     notes: [],

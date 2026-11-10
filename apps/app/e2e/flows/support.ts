@@ -611,6 +611,7 @@ export async function createLibraryImport(input: {
       responsiblePersons: [],
       fireEquipment: [],
       fireInstallations: [],
+      substances: [],
       protectiveEquipment: [],
       employees: [],
       notes: [],

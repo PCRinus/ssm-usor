@@ -54,6 +54,7 @@ function mockReview(
     me,
     documentDetails = {},
     positions = () => Response.json({ items: [] }),
+    substances = { state: 'undecided', items: [] },
   }: {
     save?: (body: unknown) => Response | Promise<Response>;
     read?: (call: number) => Promise<void> | undefined;
@@ -61,6 +62,7 @@ function mockReview(
     me?: unknown;
     documentDetails?: Record<string, unknown>;
     positions?: () => Response;
+    substances?: { state: string; items: { name: string }[] };
   } = {}
 ) {
   saves = 0;
@@ -116,6 +118,9 @@ function mockReview(
     if (url.pathname === `/clients/${clientId}/job-positions`) return positions();
     if (url.pathname === `/clients/${clientId}/fire-safety`) {
       return Response.json({ fireSafety: null });
+    }
+    if (url.pathname === `/clients/${clientId}/fire-substances`) {
+      return Response.json(substances);
     }
     if (url.pathname.startsWith(`/clients/${clientId}/`)) return Response.json({}, { status: 404 });
     return undefined;
@@ -3120,5 +3125,230 @@ describe('the assembly point and the smoking place', () => {
     await userEvent.click(await screen.findByTestId('import-confirm'));
     const dialog = await screen.findByTestId('import-confirm-dialog');
     await waitFor(() => expect(dialog.textContent).toContain('Locul pentru fumat'));
+  });
+});
+
+describe('the dangerous substances', () => {
+  const statePath = 'fireSafety.substancesState';
+  const decision = 'Decizia 9 deseuri.docx';
+  const named = (id: string, name: string, quote: string) => ({
+    id,
+    name,
+    sources: [{ file: decision, quote }],
+    otherCompanyName: null,
+    spelling: {},
+  });
+  const substancesDetail = ({
+    answers = ['listed'],
+    fields = {},
+    items = {},
+    blockers = [],
+    intoExistingClient = false,
+  }: {
+    answers?: string[];
+    fields?: Record<string, unknown>;
+    items?: Record<string, unknown>;
+    blockers?: { path: string; code: string }[];
+    intoExistingClient?: boolean;
+  } = {}) => {
+    const proposal = proposalFixture();
+    const substances = answers.includes('listed')
+      ? [
+          named('substance-1', 'Detergenți', 'ambalaje de la detergenți'),
+          named('substance-2', 'Ulei uzat', 'uleiul uzat de la friteuză'),
+        ]
+      : [];
+    Object.assign(proposal, { substances });
+    Object.assign(proposal.fireSafety, {
+      wasteContractor: { options: [] },
+      substancesState: {
+        options: answers.map((value) => ({
+          value,
+          sources:
+            value === 'listed'
+              ? substances.flatMap((substance) => substance.sources)
+              : [
+                  {
+                    file: 'Lista mijloacelor.docx',
+                    quote: 'Nu se utilizează substanțe periculoase',
+                  },
+                ],
+          otherCompanyName: null,
+        })),
+      },
+    });
+    return readyDetail({
+      proposal,
+      changes: { fields, items },
+      blockers,
+      ...(intoExistingClient
+        ? { intoExistingClient, client: { id: clientId, legalName: 'Brutăria Spicul Auriu SRL' } }
+        : {}),
+    });
+  };
+  const radio = (scope: HTMLElement, testId: string) =>
+    within(within(scope).getByTestId(testId)).getByRole('radio');
+
+  it('proposes "listed" with each substance named, its passage and what is still to fill in', async () => {
+    mockReview(substancesDetail());
+    mount('/fire-safety');
+
+    const group = await screen.findByTestId('review-substances');
+    expect(within(group).getByRole('heading', { name: 'Substanțe periculoase' })).toBeTruthy();
+    expect(radio(group, 'review-substances-listed').matches(':checked')).toBe(true);
+    expect(within(group).getByTestId('review-substances-listed').textContent).toContain(decision);
+    const entries = within(group).getAllByTestId('review-item');
+    expect(entries.map((entry) => entry.getAttribute('aria-label'))).toEqual([
+      'Detergenți',
+      'Ulei uzat',
+    ]);
+    expect(within(entries[0]!).getByTestId('review-substance-incomplete').textContent).toBe(
+      'Incompletă'
+    );
+    expect(entries[0]!.textContent).toContain('Lipsesc clasificarea și cantitatea');
+
+    await userEvent.click(within(entries[1]!).getByRole('button', { name: 'Vezi în document' }));
+    const source = await screen.findByTestId('import-source-dialog');
+    expect(within(source).getByRole('heading', { name: 'Sursa: Ulei uzat' })).toBeTruthy();
+  });
+
+  it('leaves out a substance with its switch', async () => {
+    mockReview(substancesDetail());
+    mount('/fire-safety');
+
+    const entry = await screen.findByRole('listitem', { name: 'Ulei uzat' });
+    await userEvent.click(within(entry).getByTestId('review-include-item'));
+
+    await waitFor(() =>
+      expect(savedChanges(0).changes.items).toEqual({ 'substance-2': { included: false } })
+    );
+  });
+
+  it('proposes no answer where the documents say nothing, and nothing waits for one', async () => {
+    mockReview(substancesDetail({ answers: [] }));
+    mount('/fire-safety');
+
+    const group = await screen.findByTestId('review-substances');
+    expect(radio(group, 'review-substances-undecided').matches(':checked')).toBe(true);
+    expect(within(group).getByTestId('review-substances-silent')).toBeTruthy();
+    expect(within(group).getByTestId('review-group-pending').textContent).toBe('Gata de confirmat');
+    expect(within(group).queryAllByTestId('review-item')).toEqual([]);
+
+    await userEvent.click(radio(group, 'review-substances-none'));
+    await waitFor(() =>
+      expect(savedChanges(0).changes.fields).toEqual({ [statePath]: { value: 'none' } })
+    );
+  });
+
+  it('asks the member to settle documents that name substances and say none are used', async () => {
+    mockReview(
+      substancesDetail({
+        answers: ['none', 'listed'],
+        blockers: [{ path: statePath, code: 'choice' }],
+      })
+    );
+    mount();
+
+    const link = await screen.findByTestId('import-blocker-link');
+    expect(link.textContent).toBe('Alege dacă clientul utilizează substanțe periculoase');
+    expect(link.getAttribute('href')).toBe(
+      `/clienti/import/${importId}/fire-safety#review-fireSafety-substancesState`
+    );
+  });
+
+  it('takes the documents’ option the member picks in a disagreement', async () => {
+    mockReview(
+      substancesDetail({
+        answers: ['none', 'listed'],
+        blockers: [{ path: statePath, code: 'choice' }],
+      })
+    );
+    mount('/fire-safety');
+
+    const group = await screen.findByTestId('review-substances');
+    expect(group.textContent).toContain(
+      'Documentele numesc substanțe, dar spun și că nu se utilizează'
+    );
+    expect(within(group).getByTestId('review-group-pending').textContent).toBe(
+      'Mai ai de ales răspunsul'
+    );
+    await userEvent.click(radio(group, 'review-substances-listed'));
+    await waitFor(() =>
+      expect(savedChanges(0).changes.fields).toEqual({ [statePath]: { option: 1 } })
+    );
+  });
+
+  it('leaves the client undecided when the member says so, and takes none of the substances', async () => {
+    mockReview(substancesDetail({ fields: { [statePath]: { value: null } } }));
+    mount('/fire-safety');
+
+    const group = await screen.findByTestId('review-substances');
+    expect(radio(group, 'review-substances-undecided').matches(':checked')).toBe(true);
+    expect(within(group).queryAllByTestId('review-item')).toEqual([]);
+    expect(within(group).getByTestId('review-substances-not-taken').textContent).toBe(
+      'Documentele numesc 2 substanțe. Se preiau doar dacă alegi că se utilizează.'
+    );
+
+    await userEvent.click(radio(group, 'review-substances-listed'));
+    await waitFor(() => expect(savedChanges(0).changes.fields).toEqual({}));
+  });
+
+  it('counts the substances among what confirming creates', async () => {
+    mockReview(substancesDetail({ items: { 'substance-1': { included: false } } }));
+    mount();
+
+    await userEvent.click(await screen.findByTestId('import-confirm'));
+    const dialog = await screen.findByTestId('import-confirm-dialog');
+    expect(
+      within(dialog)
+        .getAllByTestId('confirm-line')
+        .map((line) => line.textContent)
+    ).toContainEqual(expect.stringContaining('1substanță periculoasă'));
+  });
+
+  it('keeps an existing client’s answer, offers the documents’, and adds no name it lists', async () => {
+    mockReview(substancesDetail({ intoExistingClient: true }), {
+      substances: { state: 'none', items: [] },
+    });
+    mount('/fire-safety');
+
+    const group = await screen.findByTestId('review-substances');
+    await waitFor(() =>
+      expect(within(group).getByTestId('review-keep-app').textContent).toContain(
+        'Nu se utilizează substanțe periculoase'
+      )
+    );
+    expect(radio(group, 'review-keep-app').matches(':checked')).toBe(true);
+    expect(within(group).getByTestId('review-use-documents').textContent).toContain(
+      'Se utilizează substanțe periculoase'
+    );
+    expect(within(group).queryAllByTestId('review-item')).toEqual([]);
+
+    await userEvent.click(radio(group, 'review-use-documents'));
+    await waitFor(() =>
+      expect(savedChanges(0).changes.fields).toEqual({
+        [statePath]: { option: 0, replace: true },
+      })
+    );
+  });
+
+  it('marks a substance an existing client lists already', async () => {
+    mockReview(substancesDetail({ intoExistingClient: true }), {
+      substances: { state: 'listed', items: [{ name: 'DETERGENTI' }] },
+    });
+    mount('/fire-safety');
+
+    const entry = await screen.findByRole('listitem', { name: 'Detergenți' });
+    await waitFor(() => expect(within(entry).getByTestId('review-substance-known')).toBeTruthy());
+    expect(screen.getByTestId('review-substances').textContent).toContain('La fel în documente');
+  });
+
+  it('opens a proposal stored before the substances were read with no answer and no list', async () => {
+    mockReview(readyDetail({ blockers: [] }));
+    mount('/fire-safety');
+
+    const group = await screen.findByTestId('review-substances');
+    expect(radio(group, 'review-substances-undecided').matches(':checked')).toBe(true);
+    expect(within(group).queryAllByTestId('review-item')).toEqual([]);
   });
 });
