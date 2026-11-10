@@ -2352,15 +2352,19 @@ on an item and without it on an option.
 The means are counted once per workplace ([ADR 041](architecture/adr-041-su-import-questions-and-suggestions.md)):
 the reading totals the `fireEquipment` entries of each workplace and kind (for an extinguisher,
 its agent, capacity and wheels) by file, a page of a scan counting with its document and an
-entry without a count as one unit (its `count` stays null). Files whose totals agree keep the
-entries of the first one that names rooms, the others' are left out. Files that disagree are a
+entry without a count as one unit (its `count` stays null). An extinguisher without an agent or a
+capacity counts with the extinguishers of its workplace when they are all of one type its known
+parts match, and on its own otherwise. Files whose totals agree keep the entries of the one that
+names the most distinct rooms (the first on a tie), the others' are left out. Files that disagree are a
 `fireEquipmentCounts` item: its workplace reference and kind, and `options`, each a `total`, the
 `sources` of every file that gives it and the `equipmentIds` of the one file's entries confirming
-writes. An entry with no workplace among several, or only another company's, is not counted. A
+writes. A room only some options of a count name is not added to the workplace's `rooms`. An
+entry with no workplace among several, or only another company's, is not counted. A
 proposal stored before reads `fireEquipmentCounts` as `[]`, and all its entries are written.
 The dangerous substances ([ADR 041](architecture/adr-041-su-import-questions-and-suggestions.md))
 are `substances`, one item per name the documents give as used, stored or collected at the client
-(`substance-1`: its `name`, `sources` and `spelling`), names that differ only in capitals or
+(`substance-1`: its `name`, `sources` and `spelling`), a name of fewer than 2 or more than 160
+characters left out before the answer is derived, names that differ only in capitals or
 diacritics joined with every passage, and the answer `fireSafety.substancesState`: an option
 `listed` whose sources are the substances' when any is named, an option `none` from a statement
 that the client uses none, both a choice, and no option where the documents say nothing. A proposal
@@ -2374,8 +2378,13 @@ norm for a mobile site nor any value of a workplace only another company gives; 
 `officeHasActivity`, false on the registered office, which code suggests where the documents name
 a point of work of the client and give the office no room, activity, fire-safety sheet value,
 means, installation or person heading it, citing the passages that name the points of work. A
-suggested value keeps no `spelling`, and its passages are checked like any other
-(`workplaces.<i>.suggested.<field>.sources.<n>`), its value against its column. A proposal stored
+draft naming a workplace the reading does not know goes to the only workplace when there is one,
+and the first draft of a field wins. A draft with no passage (an empty file or quote is none),
+whose every passage is not in its file, or whose value its column refuses (a norm outside the
+list, a text outside 2 to 600 characters) is not proposed; the proposal's
+`withdrawnSuggestions` counts them, and `reading_flags.found.withdrawnSuggestions` keeps the
+count. A suggested value keeps no `spelling`, and its passages are checked like any other
+(`workplaces.<i>.suggested.<field>.sources.<n>`). A proposal stored
 before reads `suggested` as `{}` and `officeHasActivity` as true.
 
 Without a change a value is the proposal's: a field with one value of the client's own documents
@@ -2390,17 +2399,23 @@ waits. The substances answer is written like any single value, `value` null leav
 undecided; into an existing client an `undecided` one counts as empty and a decided one is kept
 unless replaced, also where the documents disagree. The included substances are written, by name
 only, when the answer in force after confirming is `listed`, each but those the client lists
-already by that name (counted as `kept`). A workplace's suggested values the import would write
+already by that name (counted as `kept`); only then does a name block, flagged or written by the
+member outside 2 to 160 characters (`invalid` on `substances.<i>.name`). A workplace's suggested values the import would write
 wait together until `suggestedValues.<workplace id>` confirms them; until then none is written.
 Each is then written as suggested, as the member changed it in the workplace's `values`, or not
 at all when they emptied it (null), which readiness asks for later. A value an existing workplace
-has is kept and not asked, and a workplace left out asks nothing; a suggested norm is dropped
+has is kept and not asked, and a workplace left out asks nothing, a count of its means included,
+whose entries are not written; a suggested norm is dropped
 when the member makes the workplace a mobile site. The registered office's suggested
-`officeHasActivity` false is asked only for an office the import creates, beside another
+`officeHasActivity` false is asked only for an office the import creates (one linked to the
+client's own workplace, by `existingId` or by the match, ignores a stored answer), beside another
 workplace it takes or a point of work the client has: kept, the office is written with
-`office_has_activity` false and without its kind, area, norm, assembly point and texts, and the
-units and installations placed there are left out; said to have activity, the office is written
-as any workplace and its other decisions are asked. A workplace's `assemblyPoint` and `fireSafety.smokingPlace` are never taken unchanged
+`office_has_activity` false; said to have activity, the office is written
+as any workplace and its other decisions are asked. An office kept so, and a workplace linked to
+the client's own office that already has `office_has_activity` false, take nothing of the SU: no
+kind, area, norm, assembly point or texts, and the units, installations and counts placed there
+(or on that office's id) are left out, nothing of them asked and no flagged value of them
+blocking. A workplace's `assemblyPoint` and `fireSafety.smokingPlace` are never taken unchanged
 ([ADR 041](architecture/adr-041-su-import-questions-and-suggestions.md)): a value read, which the
 import would write, waits until the member keeps it (`assemblyPoints.<workplace id>` with
 `option` 0; `option` on the smoking place, or `replace` or `included`), writes another or leaves

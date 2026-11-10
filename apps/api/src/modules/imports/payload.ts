@@ -27,6 +27,7 @@ import {
   proposedSubstanceSchema,
   proposedWorkplaceSchema,
   sameName,
+  substanceNameAllowed,
   suggestedValuesPath,
   suggestedWorkplaceFieldNames,
 } from '@ssm-usor/import';
@@ -570,10 +571,13 @@ export function toClientPayload(input: {
   type Included<T> = { item: T; index: number; values: Record<string, unknown> };
   const included = <L extends ItemList>(
     list: L,
-    proposedOf: (item: Proposal[L][number]) => boolean = proposedIncluded
+    proposedOf: (item: Proposal[L][number]) => boolean = proposedIncluded,
+    options: { leftOut?: (item: Proposal[L][number]) => boolean; blocks?: boolean } = {}
   ): Included<Proposal[L][number]>[] => {
     const items = proposal[list] as Proposal[L][number][];
+    const { leftOut = () => false, blocks = true } = options;
     return items.flatMap((item, index) => {
+      if (leftOut(item)) return [];
       const change: ItemChange | undefined = changes.items[item.id];
       const proposed = proposedOf(item);
       const take = change?.included ?? proposed;
@@ -597,6 +601,7 @@ export function toClientPayload(input: {
         ...(item as unknown as Record<string, unknown>),
         ...Object.fromEntries(Object.entries(written).filter(([key]) => !referenceFields.has(key))),
       });
+      if (!blocks) return [{ item, index, values }];
       if (!parsed.success) block(`${list}.${index}`, 'invalid');
       for (const flag of flagged(`${list}.${index}`)) {
         const field = flag.path.split('.')[2];
@@ -624,7 +629,11 @@ export function toClientPayload(input: {
   };
 
   const workplaceKeys = new Set<string>();
+  // By the proposal's workplace id, and by the client's own id for an existing office.
   const inactiveOffices = new Set<string>();
+  for (const workplace of existing.workplaces) {
+    if (workplace.office_has_activity === false) inactiveOffices.add(workplace.id);
+  }
   const includedWorkplaces = included('workplaces');
   // An office with no activity needs another workplace of the client where activity takes place.
   const pointsBeside =
@@ -668,6 +677,16 @@ export function toClientPayload(input: {
     // A value the client already has is kept, so only one the import writes waits for a decision.
     const writes = (column: string) =>
       empty(own?.[column]) || ((row.replace as string[] | undefined) ?? []).includes(column);
+    if (own?.office_has_activity === false) {
+      inactiveOffices.add(item.id);
+      for (const column of officeSuColumns) delete row[column];
+      const replace = ((row.replace as string[] | undefined) ?? []).filter(
+        (column) => !officeSuColumns.includes(column)
+      );
+      if (replace.length) row.replace = replace;
+      else delete row.replace;
+      return row;
+    }
     // An existing workplace keeps its own answer, which is never empty.
     if (
       item.suggested.officeHasActivity &&
@@ -720,6 +739,17 @@ export function toClientPayload(input: {
     }
     return row;
   });
+  // What an office with no activity never carries is not waited for either (ADR 041).
+  for (const { item, index } of includedWorkplaces) {
+    if (!inactiveOffices.has(item.id)) continue;
+    for (const [field, column] of Object.entries(workplaceColumns)) {
+      if (!officeSuColumns.includes(column)) continue;
+      const at = blockers.findIndex(
+        (blocker) => blocker.path === `workplaces.${index}.${field}` && blocker.code === 'invalid'
+      );
+      if (at !== -1) blockers.splice(at, 1);
+    }
+  }
   const workplaceReference = (
     value: string | null,
     path: string,
@@ -739,6 +769,8 @@ export function toClientPayload(input: {
     block(path, 'unknown_reference');
     return null;
   };
+  const atInactiveOffice = (reference: Row) =>
+    inactiveOffices.has(String(reference.workplace_key ?? reference.workplace_id));
 
   const positionKeys = new Set<string>();
   const positionValues = included('jobPositions');
@@ -915,7 +947,15 @@ export function toClientPayload(input: {
 
   const notCounted = new Set<string>();
   for (const count of proposal.fireEquipmentCounts) {
-    if (count.workplace.id !== null && inactiveOffices.has(count.workplace.id)) continue;
+    // A workplace left out, or an office with no activity, takes none of these means, so which
+    // file counts them right is not asked.
+    if (
+      count.workplace.id !== null &&
+      (inactiveOffices.has(count.workplace.id) || !workplaceKeys.has(count.workplace.id))
+    ) {
+      for (const each of count.options) for (const id of each.equipmentIds) notCounted.add(id);
+      continue;
+    }
     const path = fireEquipmentCountPath(count.id);
     const option = changes.fields[path]?.option;
     const chosen = option === undefined ? undefined : count.options[option];
@@ -924,17 +964,16 @@ export function toClientPayload(input: {
       if (each !== chosen) for (const id of each.equipmentIds) notCounted.add(id);
     }
   }
-  const counted = (item: Proposal['fireEquipment'][number]) =>
-    proposedIncluded(item) && !notCounted.has(item.id);
-  const fireEquipment = included('fireEquipment', counted).flatMap(({ item, index, values }) => {
-    // A tick kept from before the member chose another file's count would add its units again.
-    if (notCounted.has(item.id)) return [];
+  // A tick kept from before the member chose another file's count would add its units again.
+  const fireEquipment = included('fireEquipment', proposedIncluded, {
+    leftOut: (item) => notCounted.has(item.id),
+  }).flatMap(({ item, index, values }) => {
     const workplace = workplaceReference(
       reference(values.workplace, item.workplace.id),
       `fireEquipment.${index}.workplace`,
       true
     );
-    if (!workplace || inactiveOffices.has(String(workplace.workplace_key))) return [];
+    if (!workplace || atInactiveOffice(workplace)) return [];
     const count = typeof values.count === 'number' && values.count >= 1 ? values.count : 1;
     const unit = dropEmpty({
       ...workplace,
@@ -969,7 +1008,7 @@ export function toClientPayload(input: {
       `fireInstallations.${index}.workplace`,
       true
     );
-    if (!workplace || inactiveOffices.has(String(workplace.workplace_key))) return [];
+    if (!workplace || atInactiveOffice(workplace)) return [];
     return [dropEmpty({ ...workplace, kind: values.kind, description: values.description })];
   });
 
@@ -1041,16 +1080,21 @@ export function toClientPayload(input: {
     block(substancesStatePath, 'invalid');
   }
   const listedNames = new Set(existing.substances.map((substance) => foldText(substance.name)));
-  const fireSubstances = included('substances').flatMap(({ values }) => {
-    if (substancesState !== 'listed') return [];
-    const name = String(values.name ?? '').trim();
-    if (listedNames.has(foldText(name))) {
-      if (intoExistingClient) quality.substances.kept++;
-      return [];
+  // A name waits for a fix only where it is written.
+  const listed = substancesState === 'listed';
+  const fireSubstances = included('substances', proposedIncluded, { blocks: listed }).flatMap(
+    ({ index, values }) => {
+      if (!listed) return [];
+      const name = String(values.name ?? '').trim();
+      if (!substanceNameAllowed(name)) block(`substances.${index}.name`, 'invalid');
+      if (listedNames.has(foldText(name))) {
+        if (intoExistingClient) quality.substances.kept++;
+        return [];
+      }
+      listedNames.add(foldText(name));
+      return [{ name }];
     }
-    listedNames.add(foldText(name));
-    return [{ name }];
-  });
+  );
 
   const fireScheduleStarts = !(
     intoExistingClient && scheduleColumns.some((column) => !empty(existing.fireSafety?.[column]))
