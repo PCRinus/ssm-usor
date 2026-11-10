@@ -11,6 +11,7 @@ export * from './admin-imports';
 export * from './banks';
 export * from './billing';
 export * from './caen';
+export * from './client-contract';
 export * from './client-files';
 export * from './clients';
 export * from './cnp';
@@ -123,6 +124,7 @@ export const apiErrorCodeSchema = z.enum([
   'unprocessable',
   'service_unavailable',
   'internal_error',
+  'client_outdated',
 ]);
 
 export type ApiErrorCode = z.infer<typeof apiErrorCodeSchema>;

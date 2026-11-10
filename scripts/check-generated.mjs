@@ -9,6 +9,7 @@ const paths = [
   'apps/api/openapi.json',
   'apps/app/src/api/generated',
   'apps/portal/src/api/generated',
+  'packages/contracts/src/client-contracts.gen.ts',
   'apps/app/src/routeTree.gen.ts',
   'apps/portal/src/routeTree.gen.ts',
   'apps/admin/src/routeTree.gen.ts',

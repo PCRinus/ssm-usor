@@ -10,6 +10,7 @@ export const errorStatus = {
   unprocessable: 422,
   service_unavailable: 503,
   internal_error: 500,
+  client_outdated: 426,
 } as const satisfies Record<ApiErrorCode, number>;
 
 export const defaultMessages = {
@@ -21,6 +22,7 @@ export const defaultMessages = {
   unprocessable: 'The request is well formed but cannot be carried out.',
   service_unavailable: 'The service is temporarily unavailable.',
   internal_error: 'An unexpected error occurred.',
+  client_outdated: 'This client was built for an older API. Reload the page.',
 } as const satisfies Record<ApiErrorCode, string>;
 
 export interface BrokenConstraint {

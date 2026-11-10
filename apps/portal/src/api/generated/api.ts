@@ -74,6 +74,7 @@ export const ApiErrorResponseError = {
   unprocessable: 'unprocessable',
   service_unavailable: 'service_unavailable',
   internal_error: 'internal_error',
+  client_outdated: 'client_outdated',
 } as const;
 
 export type ApiErrorResponseIssuesItem = {
