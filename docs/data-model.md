@@ -368,7 +368,9 @@ calendar will read the same columns:
 
 **Workplaces.** `client_workplaces` holds the registered office and the points of work: a
 name, `is_registered_office` (one per client, by a partial unique index), and an address.
-Documents belong to the client, not to a workplace; they list the workplaces.
+Documents belong to the client, not to a workplace; they list the workplaces. A registered
+office may be only an address, with no activity (`office_has_activity`, under the fire-safety
+data below).
 
 **Responsible persons.** `client_responsible_persons` holds the people the employer
 designates by decision, with `roles` as an array of `workplace_manager` (gives the workplace
@@ -475,6 +477,21 @@ its point I.5, printed empty when null. Point I.4, the general measures, is temp
 same at every workplace, and is not stored. A unique index on `(id, client_id)` lets the
 tables below, and a responsible person, point at a workplace of the same client.
 The fire risk level is not stored: no document prints it.
+
+**A registered office with no activity.** `office_has_activity` (ADR 041, migration
+`20261111120000_registered_office_activity`), true by default, is the answer to "La sediul
+social se desfășoară activitate": false for a registered office that is only an address, a
+home or a hosted one. A check (`client_workplaces_activity_only_at_office`) keeps it true on a
+point of work, which is archived instead. A client whose only active workplace is its registered
+office cannot answer "no": a constraint trigger, deferred to the commit so that a transaction
+writing several workplaces is judged on what it leaves, refuses an office answered "no" with no
+other active workplace beside it, whichever write left it so (the answer, or archiving the last
+point of work), with the code `WPL01`. The fire-safety set leaves such an office out wherever it
+lists workplaces and readiness asks it for nothing; what it stores (the seven columns above, its
+units, installations, free rows and building) is kept, neither listed by the API nor printed,
+as a mobile site keeps an area, so answering "yes" again restores it. That no current employee
+is assigned to it, and that no unit is added to it, is the API's to refuse; the database does
+not.
 
 From the area and the norm the app shows the orientative minimum of extinguishers,
 `ceil(floor_area_m2 / divisor)` with 300, 200, 300 or 150 as the divisor and at least one; a
@@ -607,8 +624,8 @@ asks for any of it: an empty building is a sheet with more gaps.
 **Readiness.** The fire-safety set adds these codes to `missingDocumentData` and
 `fireSafetyMissingDocumentData`: `fire.trainingSchedule` (the hours, both intervals, the first
 month and both days set), `fire.waste` (at least one kind), `fire.workplaces` (the seven
-columns above other than `specific_measures` set on every active workplace), `fire.equipment`
-(an extinguisher in every active workplace), `responsible.fire_safety_coordinator` and
+columns above other than `specific_measures` set on every active workplace but a registered
+office with no activity), `fire.equipment` (an extinguisher in each of them), `responsible.fire_safety_coordinator` and
 `responsible.fire_intervention_leader` (an active person in each role). It also asks the existing `responsible.workplace_manager` and
 `positions.any`. Any of them refuses the whole set's generation. ADR 019 adds `fire.smokingPolicy` (a policy
 chosen) and `provider.fireSafetyTechnicianCertificate`; neither the smoking place nor the

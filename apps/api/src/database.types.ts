@@ -862,6 +862,7 @@ export type Database = {
           kind: Database['public']['Enums']['workplace_kind'];
           locality: string | null;
           name: string;
+          office_has_activity: boolean;
           organization_id: string;
           specific_measures: string | null;
           updated_at: string;
@@ -885,6 +886,7 @@ export type Database = {
           kind?: Database['public']['Enums']['workplace_kind'];
           locality?: string | null;
           name: string;
+          office_has_activity?: boolean;
           organization_id: string;
           specific_measures?: string | null;
           updated_at?: string;
@@ -908,6 +910,7 @@ export type Database = {
           kind?: Database['public']['Enums']['workplace_kind'];
           locality?: string | null;
           name?: string;
+          office_has_activity?: boolean;
           organization_id?: string;
           specific_measures?: string | null;
           updated_at?: string;
