@@ -77,6 +77,7 @@ export function clientReading(overrides: Partial<Reading> = {}): Reading {
     responsiblePersons: [],
     fireEquipment: [],
     fireInstallations: [],
+    substances: [],
     protectiveEquipment: [],
     employees: [],
     notes: [],

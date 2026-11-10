@@ -14019,6 +14019,55 @@
                       "options": []
                     },
                     "required": ["options"]
+                  },
+                  "substancesState": {
+                    "type": "object",
+                    "properties": {
+                      "options": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "string",
+                              "enum": ["none", "listed"]
+                            },
+                            "sources": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "file": {
+                                    "type": "string"
+                                  },
+                                  "quote": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["file", "quote"]
+                              }
+                            },
+                            "otherCompanyName": {
+                              "type": "string",
+                              "nullable": true,
+                              "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
+                            }
+                          },
+                          "required": ["value", "sources", "otherCompanyName"]
+                        }
+                      }
+                    },
+                    "default": {
+                      "options": []
+                    },
+                    "required": ["options"]
                   }
                 },
                 "required": [
@@ -14793,6 +14842,53 @@
                     "hiredAt"
                   ]
                 }
+              },
+              "substances": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "sources": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "file": {
+                            "type": "string"
+                          },
+                          "quote": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["file", "quote"]
+                      },
+                      "minItems": 1
+                    },
+                    "otherCompanyName": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "spelling": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "default": {}
+                    }
+                  },
+                  "required": ["id", "sources", "otherCompanyName", "name"]
+                },
+                "default": []
               },
               "notes": {
                 "type": "array",

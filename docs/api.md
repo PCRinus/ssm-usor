@@ -2322,8 +2322,8 @@ code, the person's `sources` giving the name; a role whose quote is not found is
 A text value is proposed with its spelling corrected: sentence case for one written in capitals
 (by code) and Romanian diacritics (by the reading model), for a workplace's `name`, `activity` and
 fire-safety texts and its `rooms`, a post's `name`, `workZone` and `activities`, an equipment
-entry's `item` and `risk`, a unit's `room`, `fireSafety.smokingPlace`, `wasteKinds` (a kind at a
-time) and `wasteCollectors`, and `client.legalRepresentativeRole` (sentence case only); names of
+entry's `item` and `risk`, a unit's `room`, a substance's `name`, `fireSafety.smokingPlace`,
+`wasteKinds` (a kind at a time) and `wasteCollectors`, and `client.legalRepresentativeRole` (sentence case only); names of
 people and companies, identifiers and addresses stay as written. Where the document writes the
 value otherwise only in its capitals or diacritics, the document's spelling is kept beside it: in
 the item's `spelling`, by field (`{ "name": "INGRIJITOR HOTEL" }`; never for a room of the
@@ -2344,6 +2344,13 @@ entries of the first one that names rooms, the others' are left out. Files that 
 `sources` of every file that gives it and the `equipmentIds` of the one file's entries confirming
 writes. An entry with no workplace among several, or only another company's, is not counted. A
 proposal stored before reads `fireEquipmentCounts` as `[]`, and all its entries are written.
+The dangerous substances ([ADR 041](architecture/adr-041-su-import-questions-and-suggestions.md))
+are `substances`, one item per name the documents give as used, stored or collected at the client
+(`substance-1`: its `name`, `sources` and `spelling`), names that differ only in capitals or
+diacritics joined with every passage, and the answer `fireSafety.substancesState`: an option
+`listed` whose sources are the substances' when any is named, an option `none` from a statement
+that the client uses none, both a choice, and no option where the documents say nothing. A proposal
+stored before reads `substances` as `[]` and the answer empty.
 
 Without a change a value is the proposal's: a field with one value of the client's own documents
 takes it, two or more of them are a **choice** that blocks, and a value only another company
@@ -2353,7 +2360,11 @@ its name, an employee by the CNP or the name (and then not created again), and a
 person the client has already is left as it is; the client's filled values are kept unless
 replaced. A responsible person is linked to the employee of the same name, the workers'
 representative must be. Only the chosen option's entries of a count are written, none while it
-waits. A workplace's `assemblyPoint` and `fireSafety.smokingPlace` are never taken unchanged
+waits. The substances answer is written like any single value, `value` null leaving the client
+undecided; into an existing client an `undecided` one counts as empty and a decided one is kept
+unless replaced, also where the documents disagree. The included substances are written, by name
+only, when the answer in force after confirming is `listed`, each but those the client lists
+already by that name (counted as `kept`). A workplace's `assemblyPoint` and `fireSafety.smokingPlace` are never taken unchanged
 ([ADR 041](architecture/adr-041-su-import-questions-and-suggestions.md)): a value read, which the
 import would write, waits until the member keeps it (`assemblyPoints.<workplace id>` with
 `option` 0; `option` on the smoking place, or `replace` or `included`), writes another or leaves
@@ -2368,7 +2379,9 @@ category given both an interval and "not applicable" (`invalid` on the latter), 
 without a name, job title or hire date, equipment without a risk, inventory without a duration
 (`missing` on `durationMonths`) or a consumable with one (`invalid` on it), as
 `job_position_equipment` refuses, a second workplace taken as the registered office (`invalid`
-on its `isRegisteredOffice`), as `client_workplaces` takes one per client, a person without a
+on its `isRegisteredOffice`), as `client_workplaces` takes one per client, `none` taken over an
+existing client's list of substances (`invalid` on `fireSafety.substancesState`), as
+`client_fire_safety` refuses it while entries exist, a person without a
 job title, and a fire-safety unit, an installation or equipment whose workplace or position is unknown
 (`unknown_reference`).
 
@@ -2376,7 +2389,8 @@ job title, and a fire-safety unit, an installation or equipment whose workplace 
 the payload, answers `422` with `import_incomplete` and the blockers as `issues` while any is
 left, then calls `apply_client_import` as the member: `409` with `import_changed`,
 `import_not_ready`, `import_other_company`, `import_client_exists` or `import_outdated` (a
-workplace or position the review named is no longer the client's), and `422` with
+workplace or position the review named is no longer the client's, or its substances changed since),
+and `422` with
 `import_refused` when a table still refuses a value (a check or not-null violation the blockers
 missed, or a registered office beside the one an existing client has): one issue whose `path` is the proposal's list or group for that table (or the table)
 and whose `message` is the constraint's name, never the refused values. A new client's VAT

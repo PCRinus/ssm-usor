@@ -285,31 +285,41 @@ async function listFilesOf(db: DataClient | AdminClient, importId: string) {
 }
 
 export async function existingRecords(db: DataClient, clientId: string): Promise<ExistingRecords> {
-  const [client, fireSafety, workplaces, positions, employees, persons] = await Promise.all([
-    db.from('clients').select('*').eq('id', clientId).maybeSingle(),
-    db.from('client_fire_safety').select('*').eq('client_id', clientId).maybeSingle(),
-    db
-      .from('client_workplaces')
-      .select('id, name, address_line, assembly_point')
-      .eq('client_id', clientId)
-      .is('archived_at', null),
-    db
-      .from('job_positions')
-      .select('id, name, staff_category')
-      .eq('client_id', clientId)
-      .is('archived_at', null),
-    db
-      .from('employees')
-      .select('id, last_name, first_name, cnp')
-      .eq('client_id', clientId)
-      .is('archived_at', null),
-    db
-      .from('client_responsible_persons')
-      .select('full_name')
-      .eq('client_id', clientId)
-      .is('archived_at', null),
-  ]);
-  for (const answer of [client, fireSafety, workplaces, positions, employees, persons]) {
+  const [client, fireSafety, workplaces, positions, employees, persons, substances] =
+    await Promise.all([
+      db.from('clients').select('*').eq('id', clientId).maybeSingle(),
+      db.from('client_fire_safety').select('*').eq('client_id', clientId).maybeSingle(),
+      db
+        .from('client_workplaces')
+        .select('id, name, address_line, assembly_point')
+        .eq('client_id', clientId)
+        .is('archived_at', null),
+      db
+        .from('job_positions')
+        .select('id, name, staff_category')
+        .eq('client_id', clientId)
+        .is('archived_at', null),
+      db
+        .from('employees')
+        .select('id, last_name, first_name, cnp')
+        .eq('client_id', clientId)
+        .is('archived_at', null),
+      db
+        .from('client_responsible_persons')
+        .select('full_name')
+        .eq('client_id', clientId)
+        .is('archived_at', null),
+      db.from('fire_substances').select('name').eq('client_id', clientId),
+    ]);
+  for (const answer of [
+    client,
+    fireSafety,
+    workplaces,
+    positions,
+    employees,
+    persons,
+    substances,
+  ]) {
     if (answer.error) throw fromDatabaseError(answer.error, 'read the client of an import');
   }
   return {
@@ -319,6 +329,7 @@ export async function existingRecords(db: DataClient, clientId: string): Promise
     jobPositions: positions.data ?? [],
     employees: employees.data ?? [],
     responsiblePersons: persons.data ?? [],
+    substances: substances.data ?? [],
   };
 }
 
@@ -914,6 +925,7 @@ const proposalListOfTable: Record<ImportKind, Record<string, string>> = {
     employees: 'employees',
     fire_equipment: 'fireEquipment',
     fire_installations: 'fireInstallations',
+    fire_substances: 'substances',
   },
   employees: {
     employees: 'people',
@@ -973,6 +985,9 @@ function decisionError(
         'The organization already has a client with this CUI.',
         importErrorReasons.clientExists
       );
+    // Another member listed or removed the client's substances since the review was read.
+    case 'SUB01':
+    case 'SUB02':
     case '22023':
       // A row the review named went since, or was never the client's; the payload's checks
       // catch both, so this is a race with another member, or a payload bug the log shows.

@@ -449,6 +449,7 @@ const emptyReading = {
   responsiblePersons: [],
   fireEquipment: [],
   fireInstallations: [],
+  substances: [],
   protectiveEquipment: [],
   employees: [],
   notes: [],

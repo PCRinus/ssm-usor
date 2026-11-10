@@ -94,6 +94,7 @@ const reading = {
   responsiblePersons: [],
   fireEquipment: [],
   fireInstallations: [],
+  substances: [],
   protectiveEquipment: [],
   employees: [],
   notes: [],
@@ -1083,6 +1084,91 @@ describe('POST /imports/{importId}/confirm', () => {
     const response = await request(`/imports/${importId}/confirm`, 'POST', { version: 4 });
     expect(response.status).toBe(409);
     expect(await response.json()).toMatchObject({ reason: 'import_outdated' });
+  });
+
+  describe('the dangerous substances', () => {
+    const named = (name: string) => ({
+      name,
+      file: 'Dosar/Fisier 1.docx',
+      quote: name,
+      otherCompany: null,
+    });
+    const withSubstances = (row: Record<string, unknown>) => ({
+      ...row,
+      proposal: {
+        ...toProposal({ ...reading, substances: [named('Detergenți'), named('Ulei uzat')] }),
+        registeredCompany: null,
+      },
+    });
+    const confirmed = async (row: Record<string, unknown>, existing: Record<string, unknown>) => {
+      mockUpstream(({ url }) => {
+        if (url.pathname === '/rest/v1/imports') return Response.json(row);
+        if (url.pathname === '/rest/v1/rpc/apply_client_import') {
+          return Response.json({ client_id: clientId, files: [] });
+        }
+        if (url.pathname in existing) return Response.json(existing[url.pathname]);
+      });
+      const response = await request(`/imports/${importId}/confirm`, 'POST', { version: 4 });
+      expect(response.status).toBe(200);
+      return callsTo('/rest/v1/rpc/apply_client_import')[0]!.body as {
+        p_payload: Record<string, unknown>;
+      };
+    };
+
+    it('writes the answer and the substances the member kept, counting the one left out', async () => {
+      const { p_payload } = await confirmed(
+        withSubstances(ready({ fields: {}, items: { 'substance-2': { included: false } } })),
+        {}
+      );
+
+      expect(p_payload).toMatchObject({
+        fire_safety: { substances_state: 'listed' },
+        fire_substances: [{ name: 'Detergenți' }],
+        quality: { substances: { changed: 0, unticked: 1, kept: 0 } },
+      });
+    });
+
+    it('keeps an existing client’s answer, and adds only a substance it does not list', async () => {
+      const { p_payload } = await confirmed(
+        withSubstances({
+          ...ready({ fields: {}, items: {} }),
+          into_existing_client: true,
+          client_id: clientId,
+        }),
+        {
+          '/rest/v1/clients': { id: clientId, legal_name: 'BRUTĂRIA FICTIVĂ S.R.L.' },
+          '/rest/v1/client_fire_safety': { client_id: clientId, substances_state: 'listed' },
+          '/rest/v1/client_workplaces': [],
+          '/rest/v1/job_positions': [],
+          '/rest/v1/employees': [],
+          '/rest/v1/client_responsible_persons': [],
+          '/rest/v1/fire_substances': [{ name: 'detergenti' }],
+        }
+      );
+
+      expect(p_payload).toMatchObject({
+        fire_safety: { substances_state: 'listed' },
+        fire_substances: [{ name: 'Ulei uzat' }],
+        quality: { substances: { changed: 0, unticked: 0, kept: 1 } },
+      });
+      expect(callsTo('/rest/v1/fire_substances')[0]!.url.searchParams.get('client_id')).toBe(
+        `eq.${clientId}`
+      );
+    });
+
+    it('answers a list another member changed since the review as outdated', async () => {
+      mockUpstream(({ url }) => {
+        if (url.pathname === '/rest/v1/imports') {
+          return Response.json(withSubstances(ready({ fields: {}, items: {} })));
+        }
+        if (url.pathname === '/rest/v1/rpc/apply_client_import') {
+          return Response.json({ code: 'SUB02', message: 'not listed' }, { status: 400 });
+        }
+      });
+      const response = await request(`/imports/${importId}/confirm`, 'POST', { version: 4 });
+      expect(response.status).toBe(409);
+      expect(await response.json()).toMatchObject({ reason: 'import_outdated' });
+    });
   });
 
   it('answers a value a table refuses with its section and rule, and logs no value', async () => {

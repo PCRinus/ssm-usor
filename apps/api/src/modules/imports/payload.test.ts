@@ -1,5 +1,11 @@
 import type { ImportChanges } from '@ssm-usor/contracts';
-import { type Proposal, type Reading, toProposal, withChecks } from '@ssm-usor/import';
+import {
+  type Proposal,
+  proposalSchema,
+  type Reading,
+  toProposal,
+  withChecks,
+} from '@ssm-usor/import';
 import { describe, expect, it } from 'vitest';
 
 import { type ExistingRecords, noExistingRecords, resolveField, toClientPayload } from './payload';
@@ -143,6 +149,7 @@ function reading(overrides: Partial<Reading> = {}): Reading {
         ...quoted(),
       },
     ],
+    substances: [],
     notes: [],
     ...overrides,
   };
@@ -1407,6 +1414,7 @@ describe('toClientPayload', () => {
         },
       ],
       responsiblePersons: [{ full_name: 'Ionescu Maria' }],
+      substances: [],
     };
     const { payload, blockers } = toClientPayload({
       proposal: proposalOf(reading()),
@@ -1790,5 +1798,186 @@ describe('the assembly point and the smoking place', () => {
       { path: 'assemblyPoints.workplace-1', code: 'choice' },
     ]);
     expect(payload.workplaces[1]).toMatchObject({ assembly_point: 'Curtea interioară' });
+  });
+});
+
+describe('the dangerous substances', () => {
+  const named = (name: string) => ({ name, ...quoted(fire) });
+  const noneUsed = fact('fireSafety.substancesState', 'none', fire);
+  const proposalWith = (substances: Reading['substances'], facts: Reading['facts'] = []) =>
+    proposalOf(reading({ facts: [...reading().facts, ...facts], substances }));
+  const twoNamed = proposalWith([named('Detergenți'), named('Ulei uzat')]);
+  const mapped = (
+    proposal: Proposal,
+    fields: ImportChanges['fields'] = {},
+    items: ImportChanges['items'] = {},
+    existing: ExistingRecords | null = null
+  ) =>
+    toClientPayload({
+      proposal,
+      changes: { fields, items },
+      intoExistingClient: existing !== null,
+      existing: existing ?? noExistingRecords,
+    });
+  const existingClient = (state: string, substances: string[] = []): ExistingRecords => ({
+    ...noExistingRecords,
+    client: { legal_name: 'BRUTĂRIA FICTIVĂ S.R.L.', cui: '12345674' },
+    fireSafety: { substances_state: state },
+    substances: substances.map((name) => ({ name })),
+  });
+  const substanceBlockers = (blockers: { path: string }[]) =>
+    blockers.filter((blocker) => /^(fireSafety\.substancesState|substances\.)/.test(blocker.path));
+
+  it('writes "listed" and each substance named, by name only', () => {
+    const { payload, blockers } = mapped(twoNamed);
+
+    expect(substanceBlockers(blockers)).toEqual([]);
+    expect(payload.fire_safety).toMatchObject({ substances_state: 'listed' });
+    expect(payload.fire_substances).toEqual([{ name: 'Detergenți' }, { name: 'Ulei uzat' }]);
+  });
+
+  it('writes a declared "none" with no substance', () => {
+    const { payload } = mapped(proposalWith([], [noneUsed]));
+
+    expect(payload.fire_safety).toMatchObject({ substances_state: 'none' });
+    expect(payload.fire_substances).toEqual([]);
+  });
+
+  it('writes no answer where the documents say nothing, and does not wait for one', () => {
+    const { payload, blockers } = mapped(proposalWith([]));
+
+    expect(payload.fire_safety).not.toHaveProperty('substances_state');
+    expect(payload.fire_substances).toEqual([]);
+    expect(substanceBlockers(blockers)).toEqual([]);
+  });
+
+  it('waits for the member where documents name substances and say none are used', () => {
+    const proposal = proposalWith([named('Dezinfectant')], [noneUsed]);
+    const waiting = mapped(proposal);
+    expect(substanceBlockers(waiting.blockers)).toEqual([
+      { path: 'fireSafety.substancesState', code: 'choice' },
+    ]);
+    expect(waiting.payload.fire_substances).toEqual([]);
+
+    const chosen = mapped(proposal, { 'fireSafety.substancesState': { option: 1 } });
+    expect(substanceBlockers(chosen.blockers)).toEqual([]);
+    expect(chosen.payload.fire_safety).toMatchObject({ substances_state: 'listed' });
+    expect(chosen.payload.fire_substances).toEqual([{ name: 'Dezinfectant' }]);
+  });
+
+  it('leaves out a substance the member left out, and counts it', () => {
+    const { payload } = mapped(twoNamed, {}, { 'substance-1': { included: false } });
+
+    expect(payload.fire_substances).toEqual([{ name: 'Ulei uzat' }]);
+    expect(payload.quality.substances).toEqual({ changed: 0, unticked: 1, kept: 0 });
+  });
+
+  it('writes no substance under another answer the member gave, and counts the change', () => {
+    const undecided = mapped(twoNamed, { 'fireSafety.substancesState': { value: null } });
+    expect(undecided.payload.fire_safety).not.toHaveProperty('substances_state');
+    expect(undecided.payload.fire_substances).toEqual([]);
+    expect(undecided.payload.quality.fireSafety.changed).toBe(1);
+
+    const none = mapped(twoNamed, { 'fireSafety.substancesState': { value: 'none' } });
+    expect(none.payload.fire_safety).toMatchObject({ substances_state: 'none' });
+    expect(none.payload.fire_substances).toEqual([]);
+    expect(none.payload.quality.fireSafety.changed).toBe(1);
+  });
+
+  it('writes the name the member gave a substance', () => {
+    const { payload } = mapped(
+      twoNamed,
+      {},
+      { 'substance-2': { values: { name: 'Ulei de motor' } } }
+    );
+
+    expect(payload.fire_substances).toEqual([{ name: 'Detergenți' }, { name: 'Ulei de motor' }]);
+    expect(payload.quality.substances.changed).toBe(1);
+  });
+
+  it('gives an existing client whose answer is undecided the documents’ answer and substances', () => {
+    const { payload, blockers } = mapped(twoNamed, {}, {}, existingClient('undecided'));
+
+    expect(substanceBlockers(blockers)).toEqual([]);
+    expect(payload.fire_safety).toMatchObject({ substances_state: 'listed' });
+    expect(payload.fire_substances).toHaveLength(2);
+  });
+
+  it('keeps an existing client’s decided answer, and adds no substance under "none"', () => {
+    const { payload, blockers } = mapped(twoNamed, {}, {}, existingClient('none'));
+
+    expect(substanceBlockers(blockers)).toEqual([]);
+    expect(payload.fire_safety).not.toHaveProperty('replace');
+    expect(payload.fire_substances).toEqual([]);
+    expect(payload.quality.fireSafety.kept).toBe(1);
+  });
+
+  it('keeps an existing client’s decided answer where the documents disagree, without waiting', () => {
+    const { blockers } = mapped(
+      proposalWith([named('Dezinfectant')], [noneUsed]),
+      {},
+      {},
+      existingClient('none')
+    );
+
+    expect(substanceBlockers(blockers)).toEqual([]);
+  });
+
+  it('takes the documents’ answer over an existing client’s when the member does', () => {
+    const { payload } = mapped(
+      twoNamed,
+      { 'fireSafety.substancesState': { replace: true } },
+      {},
+      existingClient('none')
+    );
+
+    expect(payload.fire_safety).toMatchObject({
+      substances_state: 'listed',
+      replace: ['substances_state'],
+    });
+    expect(payload.fire_substances).toHaveLength(2);
+  });
+
+  it('adds to an existing list only a substance it does not name already', () => {
+    const { payload } = mapped(twoNamed, {}, {}, existingClient('listed', ['DETERGENTI']));
+
+    expect(payload.fire_substances).toEqual([{ name: 'Ulei uzat' }]);
+    expect(payload.quality.substances.kept).toBe(1);
+  });
+
+  it('waits on a declared "none" taken over a list the client keeps, which the database refuses', () => {
+    const { blockers } = mapped(
+      proposalWith([], [noneUsed]),
+      { 'fireSafety.substancesState': { replace: true } },
+      {},
+      existingClient('listed', ['Propan'])
+    );
+
+    expect(substanceBlockers(blockers)).toEqual([
+      { path: 'fireSafety.substancesState', code: 'invalid' },
+    ]);
+  });
+
+  it('waits on a name the checks found too long until the member writes another', () => {
+    const long = withChecks(proposalWith([named('x'.repeat(161))]), { files: {} });
+
+    expect(substanceBlockers(mapped(long).blockers)).toEqual([
+      { path: 'substances.0.name', code: 'invalid' },
+    ]);
+    expect(
+      substanceBlockers(
+        mapped(long, {}, { 'substance-1': { values: { name: 'Vopsea' } } }).blockers
+      )
+    ).toEqual([]);
+  });
+
+  it('confirms a proposal stored before the substances were read as before', () => {
+    const stored = structuredClone(proposalOf(reading())) as unknown as Record<string, unknown>;
+    delete stored.substances;
+    delete (stored.fireSafety as Record<string, unknown>).substancesState;
+    const { payload, blockers } = mapped(proposalSchema.parse(stored));
+
+    expect(substanceBlockers(blockers)).toEqual([]);
+    expect(payload.fire_substances).toEqual([]);
   });
 });

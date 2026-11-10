@@ -9483,6 +9483,14 @@ export const ImportDetailProposalFireSafetyHasThirdPartiesOptionsItemValue = {
   false: 'false',
 } as const;
 
+export type ImportDetailProposalFireSafetySubstancesStateOptionsItemValue =
+  (typeof ImportDetailProposalFireSafetySubstancesStateOptionsItemValue)[keyof typeof ImportDetailProposalFireSafetySubstancesStateOptionsItemValue];
+
+export const ImportDetailProposalFireSafetySubstancesStateOptionsItemValue = {
+  none: 'none',
+  listed: 'listed',
+} as const;
+
 /**
  * @nullable
  */
@@ -10496,6 +10504,28 @@ export type ImportDetailProposalFireSafetyHasThirdParties = {
   options: ImportDetailProposalFireSafetyHasThirdPartiesOptionsItem[];
 };
 
+export type ImportDetailProposalFireSafetySubstancesStateOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalFireSafetySubstancesStateOptionsItem = {
+  value: ImportDetailProposalFireSafetySubstancesStateOptionsItemValue;
+  sources: ImportDetailProposalFireSafetySubstancesStateOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
+  inferred?: ImportInference;
+};
+
+export type ImportDetailProposalFireSafetySubstancesState = {
+  options: ImportDetailProposalFireSafetySubstancesStateOptionsItem[];
+};
+
 export type ImportDetailProposalFireSafety = {
   periodicTrainingHours: ImportDetailProposalFireSafetyPeriodicTrainingHours;
   administrativeTrainingIntervalMonths: ImportDetailProposalFireSafetyAdministrativeTrainingIntervalMonths;
@@ -10509,6 +10539,7 @@ export type ImportDetailProposalFireSafety = {
   wasteKinds?: ImportDetailProposalFireSafetyWasteKinds;
   wasteCollectors?: ImportDetailProposalFireSafetyWasteCollectors;
   hasThirdParties?: ImportDetailProposalFireSafetyHasThirdParties;
+  substancesState?: ImportDetailProposalFireSafetySubstancesState;
 };
 
 export type ImportDetailProposalWorkplacesItemSourcesItem = {
@@ -10853,6 +10884,28 @@ export type ImportDetailProposalEmployeesItem = {
   hiredAt: string | null;
 };
 
+export type ImportDetailProposalSubstancesItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalSubstancesItemSpelling = { [key: string]: string };
+
+export type ImportDetailProposalSubstancesItem = {
+  /** @minLength 1 */
+  id: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalSubstancesItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+  /** @minLength 1 */
+  name: string;
+  spelling?: ImportDetailProposalSubstancesItemSpelling;
+};
+
 export type ImportDetailProposalFlagsItemSource = {
   file: string;
   quote: string;
@@ -10880,6 +10933,7 @@ export type ImportDetailProposal = {
   fireInstallations: ImportDetailProposalFireInstallationsItem[];
   protectiveEquipment: ImportDetailProposalProtectiveEquipmentItem[];
   employees: ImportDetailProposalEmployeesItem[];
+  substances?: ImportDetailProposalSubstancesItem[];
   notes: string[];
   flags: ImportDetailProposalFlagsItem[];
 } | null;

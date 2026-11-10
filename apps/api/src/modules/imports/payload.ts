@@ -23,6 +23,7 @@ import {
   proposedJobPositionSchema,
   proposedProtectiveEquipmentSchema,
   proposedResponsiblePersonSchema,
+  proposedSubstanceSchema,
   proposedWorkplaceSchema,
   sameName,
 } from '@ssm-usor/import';
@@ -46,6 +47,7 @@ export interface ExistingRecords {
   jobPositions: { id: string; name: string; staff_category?: string }[];
   employees: { id: string; last_name: string; first_name: string; cnp: string | null }[];
   responsiblePersons: { full_name: string }[];
+  substances: { name: string }[];
 }
 
 export const noExistingRecords: ExistingRecords = {
@@ -55,6 +57,7 @@ export const noExistingRecords: ExistingRecords = {
   jobPositions: [],
   employees: [],
   responsiblePersons: [],
+  substances: [],
 };
 
 export interface RegisteredCompany {
@@ -101,6 +104,7 @@ const fireSafetyColumns: Record<string, string> = {
   'fireSafety.wasteKinds': 'waste_kinds',
   'fireSafety.wasteCollectors': 'waste_collectors',
   'fireSafety.hasThirdParties': 'has_third_parties',
+  'fireSafety.substancesState': 'substances_state',
 };
 
 const integerColumns = new Set([
@@ -205,6 +209,7 @@ const sections = [
   'fireInstallations',
   'protectiveEquipment',
   'employees',
+  'substances',
 ] as const;
 
 type Section = (typeof sections)[number];
@@ -359,6 +364,12 @@ function assemblyPointFact(item: Proposal['workplaces'][number], changes: Import
   return changes.fields[assemblyPointPath(item.id)]?.option === 0 ? 'kept' : 'undecided';
 }
 
+const substancesStatePath = 'fireSafety.substancesState';
+
+// An undecided answer is no answer, which the documents' fills as they fill an empty column.
+const decidedFireSafety = (row: Row | null): Row | null =>
+  row?.substances_state === 'undecided' ? { ...row, substances_state: null } : row;
+
 function fieldsOf(proposal: Proposal) {
   return Object.entries({
     client: proposal.client,
@@ -380,7 +391,8 @@ type ItemList =
   | 'fireEquipment'
   | 'fireInstallations'
   | 'protectiveEquipment'
-  | 'employees';
+  | 'employees'
+  | 'substances';
 
 const itemSchemas = {
   workplaces: proposedWorkplaceSchema,
@@ -390,6 +402,7 @@ const itemSchemas = {
   fireInstallations: proposedFireInstallationSchema,
   protectiveEquipment: proposedProtectiveEquipmentSchema,
   employees: proposedEmployeeSchema,
+  substances: proposedSubstanceSchema,
 } satisfies Record<ItemList, z.ZodType>;
 
 const referenceFields = new Set(['workplace', 'jobPosition', 'employee']);
@@ -411,6 +424,7 @@ export interface ClientImportPayload {
   fire_safety?: Row;
   fire_equipment: Row[];
   fire_installations: Row[];
+  fire_substances: Row[];
   quality: Quality;
 }
 
@@ -431,6 +445,7 @@ export function toClientPayload(input: {
   registeredCompany?: RegisteredCompany | null;
 }): Mapping {
   const { proposal, existing, intoExistingClient } = input;
+  const existingFire = decidedFireSafety(existing.fireSafety);
   const changes: ImportChanges = input.changes ?? { fields: {}, items: {} };
   const blockers: ImportBlocker[] = [];
   const block = (path: string, code: ImportBlocker['code']) => {
@@ -469,9 +484,13 @@ export function toClientPayload(input: {
     if (resolved.unticked) quality[section].unticked++;
     const inFireSafety = path in fireSafetyColumns;
     const column = inFireSafety ? fireSafetyColumns[path] : clientColumns[path];
-    const current = column && (inFireSafety ? existing.fireSafety : existing.client)?.[column];
-    // An existing client's schedule keeps its own value unless the member takes the documents'.
-    const keepsOwn = intoExistingClient && schedulePaths.has(path) && !empty(current);
+    const current = column && (inFireSafety ? existingFire : existing.client)?.[column];
+    // An existing client's schedule and substances answer keep their own value unless the member
+    // takes the documents'.
+    const keepsOwn =
+      intoExistingClient &&
+      (schedulePaths.has(path) || path === substancesStatePath) &&
+      !empty(current);
     if (resolved.choice && !keepsOwn) block(path, 'choice');
     if (!column) return;
     const value = columnValue(column, resolved.value);
@@ -948,6 +967,24 @@ export function toClientPayload(input: {
       block(`${group}.trainingDayTo`, 'invalid');
     }
   }
+  // `fire_substances` takes a row only under "listed", and `client_fire_safety` refuses "none"
+  // while rows exist; a name the client lists already is not listed twice (ADR 041).
+  const substancesState = inForce(fireSafety, existingFire, fireReplace, 'substances_state');
+  if (intoExistingClient && substancesState === 'none' && existing.substances.length > 0) {
+    block(substancesStatePath, 'invalid');
+  }
+  const listedNames = new Set(existing.substances.map((substance) => foldText(substance.name)));
+  const fireSubstances = included('substances').flatMap(({ values }) => {
+    if (substancesState !== 'listed') return [];
+    const name = String(values.name ?? '').trim();
+    if (listedNames.has(foldText(name))) {
+      if (intoExistingClient) quality.substances.kept++;
+      return [];
+    }
+    listedNames.add(foldText(name));
+    return [{ name }];
+  });
+
   const fireScheduleStarts = !(
     intoExistingClient && scheduleColumns.some((column) => !empty(existing.fireSafety?.[column]))
   );
@@ -1015,6 +1052,7 @@ export function toClientPayload(input: {
     responsible_persons: responsiblePersons,
     fire_equipment: fireEquipment,
     fire_installations: fireInstallations,
+    fire_substances: fireSubstances,
     quality,
   };
   if (Object.keys(fireSafety).length > 0) payload.fire_safety = fireSafety;

@@ -1407,7 +1407,8 @@ the reading version, the reading flags, the report and the improvement copies by
 `20261104200000_import_copies`, and the copies' completion and `expensive_alerted_at` by
 `20261104210000_import_copies_completed` ([ADR 037](architecture/adr-037-import-quality-and-alerts.md));
 the admin area's list of them, `admin_list_imports`, by `20261105100000_admin_imports`, and its
-copies' completion by `20261105140000_admin_list_imports_copy_completed` ([Audit log](#audit-log)).
+copies' completion by `20261105140000_admin_list_imports_copy_completed` ([Audit log](#audit-log));
+the substances `apply_client_import` writes by `20261111140000_import_substances`.
 
 `imports` has one row per import, with `organization_id`:
 
@@ -1512,8 +1513,9 @@ transaction and returns `{"client_id", "files": [{"client_file_id", "source_path
 version (`IMP02`), an existing client that is archived (`CLA01`) or whose CUI is not the
 documents' `company_cui` or the payload's `cui` (`IMP03`), and a new client whose CUI the
 organization already has (`IMP04`). Every row passes its constraints and triggers, so an
-employee without a position gets the one named like their job title, and a position's equipment
-decision follows its entries.
+employee without a position gets the one named like their job title, a position's equipment
+decision follows its entries, a substance under any state but `listed` is refused (`SUB02`) and
+`none` while the client lists substances (`SUB01`).
 
 The payload is shaped like the tables, not like the proposal; the API maps one onto the other.
 Each object refuses a field it does not name (`22023`), and a column field takes the column's
@@ -1544,12 +1546,13 @@ values, JSON null or absent leaving the default:
   "fire_safety": { "periodic_training_hours", "administrative_training_interval_months",
     "worker_training_interval_months", "training_first_month", "training_day_from",
     "training_day_to", "smoking_policy", "smoking_place", "waste_kinds", "waste_contractor",
-    "waste_collectors", "has_third_parties", "replace" },
+    "waste_collectors", "has_third_parties", "substances_state", "replace" },
   "fire_equipment": [{ "workplace_key | workplace_id", "kind", "agent", "capacity", "wheeled",
     "label", "location", "manufactured_year", "last_service_on", "next_service_on",
     "maintainer" }],
   "fire_installations": [{ "workplace_key | workplace_id", "kind", "description",
     "maintainer", "last_check_on", "next_check_on" }],
+  "fire_substances": [{ "name" }],
   "quality": { "<section>": { "changed": 0, "unticked": 0, "kept": 0 } }
 }
 ```
@@ -1577,8 +1580,13 @@ values, JSON null or absent leaving the default:
   `employees` item, with the hire date the member gave, and a `responsible_persons` item naming
   it. The API's rule that gives a new employee the client's only workplace does not run here;
   the payload names the workplace.
-- A room, where fire-safety means stand, is a unit's `location`. Buildings, maintenance rows and
-  substances are not imported.
+- A room, where fire-safety means stand, is a unit's `location`. Buildings and maintenance rows
+  are not imported.
+- An existing client's `substances_state` of `undecided` counts as empty, so the documents' answer
+  fills it ([ADR 041](architecture/adr-041-su-import-questions-and-suggestions.md)). A
+  `fire_substances` item is a substance by its name only, its classification and quantity left
+  for a member; it is added after `fire_safety`, at the end of the client's order, unless the
+  client has one of that name, compared trimmed and in lower case.
 - `quality` is stored on the import as given.
 
 Then the import folder: a client file for every file of the import except those still

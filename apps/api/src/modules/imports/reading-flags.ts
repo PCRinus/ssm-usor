@@ -85,6 +85,7 @@ const clientLists = [
   'fireInstallations',
   'protectiveEquipment',
   'employees',
+  'substances',
 ] as const;
 
 const required = ['client.legalName', 'client.cui', 'jobPositions'] as const;
