@@ -1,6 +1,6 @@
 # ADR 041: What the client import adds to the SU record: one count of the means, facts to confirm, the substances, an office with no activity, and suggested values
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-10
 - Amends [ADR 030](adr-030-import-from-documents.md) (what the reading proposes and how the review treats it) and [ADR 018](adr-018-fire-safety-means.md) (the substances list, and which workplaces carry SU data).
 
@@ -123,4 +123,4 @@ Each step is a pull request in one stack, on this ADR. A step that changes what 
 
 - **Where the line about the registered office prints.** In the list of means only. The site sheet names the address in its identity rows already.
 - **One decision per workplace** for its suggested values, not one per field, so a client with three workplaces confirms three cards.
-- **The review's screens** reuse the parts it has: the choice for the means, the decision row for the facts to confirm, the include switch for a substance, the stacked pair of the spelling correction for a suggested value. The suggested card is drawn on the design canvas before step 6.
+- **The review's screens** reuse the parts it has: the choice for the means, the decision row for the facts to confirm, the include switch for a substance, the stacked pair of the spelling correction for a suggested value. The suggested card is judged on step 6's screenshots: Mircea asked on 2026-11-10 for the whole stack to be built before he looks at it.
