@@ -290,7 +290,7 @@ export async function existingRecords(db: DataClient, clientId: string): Promise
     db.from('client_fire_safety').select('*').eq('client_id', clientId).maybeSingle(),
     db
       .from('client_workplaces')
-      .select('id, name, address_line')
+      .select('id, name, address_line, assembly_point')
       .eq('client_id', clientId)
       .is('archived_at', null),
     db

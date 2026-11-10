@@ -2298,7 +2298,8 @@ token whose `aal` is `aal2`, as `is_platform_admin()` asks (`adminToolsAllowed`,
 documents' values, `value` writes another (null leaves the field empty), `included` takes or
 leaves a value only another company's passages give, and `replace`, into an existing client,
 takes the documents' value over the app's. `fields` also takes `fireEquipmentCounts.<id>`, whose
-`option` picks one of a count's options. `items` is keyed by a list item's id (`workplace-2`):
+`option` picks one of a count's options, and `assemblyPoints.<workplace id>`, whose `option` 0
+keeps a workplace's `assemblyPoint` as read. `items` is keyed by a list item's id (`workplace-2`):
 `included`, `values` by the item's own field names, with `workplace`, `jobPosition` and
 `employee` naming an item of the proposal or an existing row of the client, `existingId` for the
 row a workplace or a position completes, and `replace`. `PUT /imports/{importId}/changes` saves
@@ -2348,7 +2349,16 @@ its name, an employee by the CNP or the name (and then not created again), and a
 person the client has already is left as it is; the client's filled values are kept unless
 replaced. A responsible person is linked to the employee of the same name, the workers'
 representative must be. Only the chosen option's entries of a count are written, none while it
-waits. The `blockers` are a choice not made (`fireEquipmentCounts.<id>` for a count), the new client's name or CUI
+waits. A workplace's `assemblyPoint` and `fireSafety.smokingPlace` are never taken unchanged
+([ADR 041](architecture/adr-041-su-import-questions-and-suggestions.md)): a value read, which the
+import would write, waits until the member keeps it (`assemblyPoints.<workplace id>` with
+`option` 0; `option` on the smoking place, or `replace` or `included`), writes another or leaves
+it empty (the workplace's `values.assemblyPoint`; `value` on the smoking place, null for empty).
+The document's spelling selected without either keeps it waiting, and is what keeping writes. A
+point an existing workplace has, or a place the client keeps, is not asked; nor is a place the
+smoking rule drops, or the point of a workplace left out. The `blockers` are a choice not made
+(`fireEquipmentCounts.<id>` for a count, `assemblyPoints.<workplace id>` and
+`fireSafety.smokingPlace` for those two), the new client's name or CUI
 missing, a value the checks flagged that would be written unchanged (`invalid`), a staff
 category given both an interval and "not applicable" (`invalid` on the latter), an employee
 without a name, job title or hire date, equipment without a risk, inventory without a duration
@@ -2370,7 +2380,8 @@ registration is ANAF's. A post's decision that it needs no protective equipment 
 payload only while none of its entries is written, and a smoking place only beside designated
 places, the policy the member chose or the client keeps, since `client_fire_safety` refuses a
 place under another policy or none; a place left out never blocks. The payload's `quality` counts per section, without values, how many
-values the member changed, unticked or kept. The answer is `{ clientId, fileCount }`, and a `copy`
+values the member changed, unticked or kept; keeping the assembly point or the smoking place as
+proposed is not a change, while keeping the document's spelling counts as one, as for any value. The answer is `{ clientId, fileCount }`, and a `copy`
 message copies the folder afterwards. `GET /imports/{importId}/source?file=&quote=&near=` resolves
 a source's `file`, an upload path or `<upload path> (pagina N)`, and answers five-minute links to
 the original and the converted file, a Word file's text, a PDF's pages, and where the quote is

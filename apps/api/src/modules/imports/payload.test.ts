@@ -684,7 +684,7 @@ describe('toClientPayload', () => {
     const payloadWith = (items: Record<string, object>) =>
       toClientPayload({
         proposal,
-        changes: { fields: {}, items },
+        changes: { fields: { 'assemblyPoints.workplace-1': { option: 0 } }, items },
         intoExistingClient: false,
         existing: noExistingRecords,
       });
@@ -758,6 +758,7 @@ describe('toClientPayload', () => {
                     option: policies.indexOf(policy),
                     ...(replace ? { replace } : {}),
                   },
+                  'fireSafety.smokingPlace': { option: 0 },
                 },
           items: {},
         },
@@ -767,6 +768,7 @@ describe('toClientPayload', () => {
 
     expect(payloadWith(null).blockers).toEqual([
       { path: 'fireSafety.smokingPolicy', code: 'choice' },
+      { path: 'fireSafety.smokingPlace', code: 'choice' },
     ]);
 
     const forbidden = payloadWith('forbidden_everywhere');
@@ -1602,5 +1604,191 @@ describe('one count of the means per workplace', () => {
 
     expect(blockers).toEqual([]);
     expect(payload.fire_equipment).toHaveLength(8);
+  });
+});
+
+describe('the assembly point and the smoking place', () => {
+  const sheet = (workplace: string, value: string) =>
+    ({
+      workplace,
+      field: 'assemblyPoint',
+      value,
+      ...quoted(fire),
+    }) as Reading['workplaceFacts'][number];
+  const base = reading();
+  const proposal = proposalOf(
+    reading({
+      facts: [
+        ...base.facts.filter((each) => each.field !== 'fireSafety.smokingPolicy'),
+        fact('fireSafety.smokingPolicy', 'designated_places', fire),
+        fact('fireSafety.smokingPlace', 'La poarta unității', fire),
+      ],
+      workplaceFacts: [
+        sheet('Sediu', 'Parcarea din fața clădirii'),
+        sheet('Magazin', 'Trotuarul din fața magazinului'),
+      ],
+    })
+  );
+  proposal.fireSafety.smokingPlace.options[0]!.spelling = 'LA POARTA UNITATII';
+  proposal.workplaces[0]!.spelling = { assemblyPoint: 'PARCAREA DIN FATA CLADIRII' };
+  const keptBoth = {
+    'fireSafety.smokingPlace': { option: 0 },
+    'assemblyPoints.workplace-1': { option: 0 },
+    'assemblyPoints.workplace-2': { option: 0 },
+  };
+  const mapped = (
+    fields: ImportChanges['fields'] = {},
+    items: ImportChanges['items'] = {},
+    existing: ExistingRecords | null = null
+  ) =>
+    toClientPayload({
+      proposal,
+      changes: { fields, items },
+      intoExistingClient: existing !== null,
+      existing: existing ?? noExistingRecords,
+    });
+  const points = (rows: Record<string, unknown>[]) => rows.map((row) => row.assembly_point ?? null);
+
+  it('blocks confirming until each is decided, and writes neither while it waits', () => {
+    const { payload, blockers } = mapped();
+
+    expect(blockers).toEqual([
+      { path: 'fireSafety.smokingPlace', code: 'choice' },
+      { path: 'assemblyPoints.workplace-1', code: 'choice' },
+      { path: 'assemblyPoints.workplace-2', code: 'choice' },
+    ]);
+    expect(payload.fire_safety).not.toHaveProperty('smoking_place');
+    expect(points(payload.workplaces)).toEqual([null, null]);
+  });
+
+  it('writes the value as read once kept, and counts no change', () => {
+    const { payload, blockers } = mapped(keptBoth);
+
+    expect(blockers).toEqual([]);
+    expect(payload.fire_safety).toMatchObject({ smoking_place: 'La poarta unității' });
+    expect(points(payload.workplaces)).toEqual([
+      'Parcarea din fața clădirii',
+      'Trotuarul din fața magazinului',
+    ]);
+    expect(payload.quality.fireSafety.changed).toBe(0);
+    expect(payload.quality.workplaces.changed).toBe(0);
+  });
+
+  it('keeps the spelling selected, the corrected one or the document’s', () => {
+    const { payload, blockers } = mapped(
+      { ...keptBoth, 'fireSafety.smokingPlace': { option: 0, value: 'LA POARTA UNITATII' } },
+      { 'workplace-1': { values: { assemblyPoint: 'PARCAREA DIN FATA CLADIRII' } } }
+    );
+
+    expect(blockers).toEqual([]);
+    expect(payload.fire_safety).toMatchObject({ smoking_place: 'LA POARTA UNITATII' });
+    expect(points(payload.workplaces)[0]).toBe('PARCAREA DIN FATA CLADIRII');
+  });
+
+  it('writes the member’s value, or nothing when they leave it empty, and counts each as a change', () => {
+    const changed = mapped(
+      { 'fireSafety.smokingPlace': { value: 'În curtea din spate' } },
+      {
+        'workplace-1': { values: { assemblyPoint: 'Curtea interioară' } },
+        'workplace-2': { values: { assemblyPoint: null } },
+      }
+    );
+    expect(changed.blockers).toEqual([]);
+    expect(changed.payload.fire_safety).toMatchObject({ smoking_place: 'În curtea din spate' });
+    expect(points(changed.payload.workplaces)).toEqual(['Curtea interioară', null]);
+    expect(changed.payload.quality.fireSafety.changed).toBe(1);
+    expect(changed.payload.quality.workplaces.changed).toBe(2);
+
+    const emptied = mapped({ ...keptBoth, 'fireSafety.smokingPlace': { value: null } });
+    expect(emptied.blockers).toEqual([]);
+    expect(emptied.payload.fire_safety).not.toHaveProperty('smoking_place');
+    expect(emptied.payload.quality.fireSafety.changed).toBe(1);
+  });
+
+  it('asks nothing of a place another smoking rule drops, nor of a workplace left out', () => {
+    const pointsKept = {
+      'assemblyPoints.workplace-1': { option: 0 },
+      'assemblyPoints.workplace-2': { option: 0 },
+    };
+    const forbidden = mapped(
+      { ...pointsKept, 'fireSafety.smokingPolicy': { value: 'forbidden_everywhere' } },
+      { 'workplace-2': { included: false } }
+    );
+
+    const choices = (blockers: { code: string }[]) =>
+      blockers.filter((blocker) => blocker.code === 'choice');
+    expect(choices(forbidden.blockers)).toEqual([]);
+    expect(forbidden.payload.fire_safety).not.toHaveProperty('smoking_place');
+    expect(forbidden.payload.workplaces).toHaveLength(1);
+    expect(
+      choices(
+        mapped(
+          { 'assemblyPoints.workplace-1': { option: 0 } },
+          { 'workplace-2': { included: false } }
+        ).blockers
+      )
+    ).toEqual([{ path: 'fireSafety.smokingPlace', code: 'choice' }]);
+  });
+
+  it('asks into an existing client only for a value the import writes', () => {
+    const existing: ExistingRecords = {
+      ...noExistingRecords,
+      client: {},
+      fireSafety: { smoking_policy: 'designated_places', smoking_place: 'Lângă depozit' },
+      workplaces: [
+        {
+          id: '00000000-0000-4000-8000-000000000001',
+          name: 'Sediu',
+          address_line: null,
+          assembly_point: 'Curtea din spate',
+        },
+        {
+          id: '00000000-0000-4000-8000-000000000002',
+          name: 'Magazin',
+          address_line: null,
+          assembly_point: null,
+        },
+      ],
+    };
+
+    const kept = mapped({}, {}, existing);
+    expect(kept.blockers).toEqual([{ path: 'assemblyPoints.workplace-2', code: 'choice' }]);
+    expect(kept.payload.quality.fireSafety.kept).toBe(1);
+
+    const taken = mapped(
+      {
+        'fireSafety.smokingPlace': { replace: true },
+        'assemblyPoints.workplace-2': { option: 0 },
+      },
+      { 'workplace-1': { replace: ['assemblyPoint'] } },
+      existing
+    );
+    expect(taken.blockers).toEqual([{ path: 'assemblyPoints.workplace-1', code: 'choice' }]);
+    expect(taken.payload.fire_safety).toMatchObject({
+      smoking_place: 'La poarta unității',
+      replace: ['smoking_place'],
+    });
+
+    const noPlace = { ...existing, fireSafety: { smoking_policy: 'designated_places' } };
+    expect(mapped({}, {}, noPlace).blockers).toContainEqual({
+      path: 'fireSafety.smokingPlace',
+      code: 'choice',
+    });
+  });
+
+  it('asks again on an import saved before, where the document’s spelling alone was selected', () => {
+    const { payload, blockers } = mapped(
+      { 'fireSafety.smokingPlace': { value: 'LA POARTA UNITATII' } },
+      {
+        'workplace-1': { values: { assemblyPoint: 'PARCAREA DIN FATA CLADIRII' } },
+        'workplace-2': { values: { assemblyPoint: 'Curtea interioară' } },
+      }
+    );
+
+    expect(blockers).toEqual([
+      { path: 'fireSafety.smokingPlace', code: 'choice' },
+      { path: 'assemblyPoints.workplace-1', code: 'choice' },
+    ]);
+    expect(payload.workplaces[1]).toMatchObject({ assembly_point: 'Curtea interioară' });
   });
 });

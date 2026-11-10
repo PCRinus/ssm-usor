@@ -37,7 +37,12 @@ type ItemChange = ImportChanges['items'][string];
 export interface ExistingRecords {
   client: Row | null;
   fireSafety: Row | null;
-  workplaces: { id: string; name: string; address_line: string | null }[];
+  workplaces: {
+    id: string;
+    name: string;
+    address_line: string | null;
+    assembly_point?: string | null;
+  }[];
   jobPositions: { id: string; name: string; staff_category?: string }[];
   employees: { id: string; last_name: string; first_name: string; cnp: string | null }[];
   responsiblePersons: { full_name: string }[];
@@ -325,6 +330,35 @@ function smokingPlaceDropped(
   return (written ? value : current) !== 'designated_places';
 }
 
+const smokingPlacePath = 'fireSafety.smokingPlace';
+
+const assemblyPointPath = (workplaceId: string) => `assemblyPoints.${workplaceId}`;
+
+// Both print on what is posted at the workplace and packs copy both from one client to the next,
+// so neither is taken until the member keeps, changes or empties it (ADR 041).
+type SiteFact = 'undecided' | 'kept' | 'changed';
+
+function smokingPlaceFact(field: Field<Value>, change: FieldChange | undefined): SiteFact {
+  const option = change?.option === undefined ? undefined : field.options[change.option];
+  const kept = Boolean(option) || Boolean(change?.replace) || change?.included === true;
+  if (change?.value === undefined) return kept ? 'kept' : 'undecided';
+  const own = field.options.filter((each) => each.otherCompanyName === null);
+  const spelled = option ?? (own.length === 1 ? own[0] : undefined);
+  // The document's spelling selected before deciding is stored as the member's value too.
+  if (spelled?.spelling !== undefined && change.value === spelled.spelling) {
+    return kept ? 'kept' : 'undecided';
+  }
+  return 'changed';
+}
+
+function assemblyPointFact(item: Proposal['workplaces'][number], changes: ImportChanges): SiteFact {
+  const written = changes.items[item.id]?.values ?? {};
+  if ('assemblyPoint' in written && written.assemblyPoint !== item.spelling.assemblyPoint) {
+    return 'changed';
+  }
+  return changes.fields[assemblyPointPath(item.id)]?.option === 0 ? 'kept' : 'undecided';
+}
+
 function fieldsOf(proposal: Proposal) {
   return Object.entries({
     client: proposal.client,
@@ -429,7 +463,9 @@ export function toClientPayload(input: {
       path === 'client.legalName' && anafName !== null
         ? { value: anafName, option: null, choice: false, changed: false, unticked: false }
         : resolveField(field, change);
-    if (resolved.changed) quality[section].changed++;
+    const fact = path === smokingPlacePath ? smokingPlaceFact(field, change) : null;
+    const keptAsRead = fact === 'kept' && change?.value === undefined;
+    if (resolved.changed && !keptAsRead) quality[section].changed++;
     if (resolved.unticked) quality[section].unticked++;
     const inFireSafety = path in fireSafetyColumns;
     const column = inFireSafety ? fireSafetyColumns[path] : clientColumns[path];
@@ -443,6 +479,10 @@ export function toClientPayload(input: {
     const written = !intoExistingClient || empty(current) || replace;
     if (value === null) return;
     if (column === 'cui' && intoExistingClient) return;
+    if (fact === 'undecided' && written) {
+      block(path, 'choice');
+      return;
+    }
     if (intoExistingClient && !empty(current) && !replace && differs(current, value)) {
       quality[section].kept++;
     }
@@ -578,6 +618,20 @@ export function toClientPayload(input: {
         );
         if (replace.length) row.replace = replace;
       }
+    }
+    // A point the client already has is kept, so only one the import writes waits for a decision.
+    const current = row.id
+      ? existing.workplaces.find((workplace) => workplace.id === row.id)?.assembly_point
+      : null;
+    const writesPoint =
+      empty(current) || ((row.replace as string[] | undefined) ?? []).includes('assembly_point');
+    if (
+      !empty(item.assemblyPoint) &&
+      writesPoint &&
+      assemblyPointFact(item, changes) === 'undecided'
+    ) {
+      block(assemblyPointPath(item.id), 'choice');
+      delete row.assembly_point;
     }
     return row;
   });
