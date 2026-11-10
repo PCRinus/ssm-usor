@@ -137,6 +137,14 @@ describe('readingMessages', () => {
     expect(system!.content).not.toContain('do not translate or normalise names');
   });
 
+  it('tells the model a suggested draft quotes what it was drawn from, not the draft', () => {
+    const [system] = readingMessages({ provider, files: [] });
+
+    expect(system!.content).toContain(
+      'A draft is the one exception to a quote containing the value: its quotes are the passages it was drawn from, not the draft itself.'
+    );
+  });
+
   it('leaves the existing client out of a new client’s import', () => {
     const [system] = readingMessages({ provider, files: [] });
 
