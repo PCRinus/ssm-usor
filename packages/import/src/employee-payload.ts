@@ -580,7 +580,8 @@ export function toEmployeePayload(input: {
         if (!filled(examinerName)) block(`${path}.test.examinerName`, 'missing');
         if (!filled(examinerJobTitle)) block(`${path}.test.examinerJobTitle`, 'missing');
         const testKey = `test|${sheetRow.domain}|${test.test}|${takenOn}`;
-        if (pastDay && filled(examinerName) && filled(examinerJobTitle) && !seen.has(testKey)) {
+        const written = seen.has(testKey);
+        if (pastDay && filled(examinerName) && filled(examinerJobTitle) && !written) {
           seen.add(testKey);
           testResults.push({
             employee_key: person.id,
@@ -592,8 +593,10 @@ export function toEmployeePayload(input: {
             examiner_job_title: String(examinerJobTitle).trim(),
           });
         }
-        if (change?.test !== undefined && change.test !== proposedTest) quality.tests.changed++;
-        else quality.tests.kept++;
+        if (!written) {
+          if (change?.test !== undefined && change.test !== proposedTest) quality.tests.changed++;
+          else quality.tests.kept++;
+        }
       }
     }
     if (sheetRow.testOnly) return;

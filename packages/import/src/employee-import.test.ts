@@ -254,7 +254,7 @@ describe('toEmployeeProposal', () => {
     expect(rows.map((each) => [each.testOnly, each.test?.test])).toEqual([
       [true, 'annual'],
       [true, 'annual'],
-      [false, 'annual'],
+      [true, 'annual'],
       [false, 'annual'],
     ]);
   });
@@ -280,6 +280,37 @@ describe('toEmployeeProposal', () => {
 
     expect(workplace).toMatchObject({ phase: 'workplace', testOnly: false });
     expect(workplace!.test?.test).toBe('hiring');
+  });
+
+  it('keeps a test worded any way as the test alone, and a material that cites what was taught as a training', () => {
+    const testAlone = [
+      'Testare scrisă',
+      'Test final',
+      'Verificare lucrători',
+      'Testare cunoștințe în domeniul PSI',
+      'Testare periodică',
+      null,
+    ];
+    const taught = ['Prezentarea planului de evacuare; testare', 'L 307/2006; Testare'];
+    const rows = toEmployeeProposal({
+      pages: pagesOf(
+        page({
+          pageKind: 'su_periodic',
+          person: { lastName: 'Coman', firstName: 'Daniela' },
+          trainings: [...testAlone, ...taught].map((material, index) =>
+            trainedAndTested({ material, heldOn: `2025-0${index + 1}-10` })
+          ),
+        })
+      ),
+      client,
+      themes,
+      today,
+    }).pages[0]!.rows;
+
+    expect(rows.map((each) => each.testOnly)).toEqual([
+      ...testAlone.map(() => true),
+      ...taught.map(() => false),
+    ]);
   });
 
   it('marks a later row of the test alone on a day whose training row records it as repeated', () => {

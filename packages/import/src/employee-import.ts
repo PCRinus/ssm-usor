@@ -296,25 +296,21 @@ function examinerOf(row: ProposedSheetRow) {
   return { examinerName: row.trainerName, examinerJobTitle: row.trainerJobTitle };
 }
 
-// The words a row recording only the yearly test writes in its material ("Testare anuală a
-// cunoștințelor PSI – admis"); anything else names a training held with it.
-const testWords =
-  /^(?:test\w*|verific\w*|evalu\w*|examin\w*|chestionar\w*|grila|scris|oral|anual\w*|cunostint\w*|nivel\w*|admis|promovat|calificativ\w*|nota|rezultat\w*|su|psi|ssm|situatii|urgenta|incendi\w*|de|a|al|ale|la|si|privind|pe|in|din|cu|pentru)$/;
+// A test-only row is worded every way ("Testare scrisă", "Test final", "Verificare lucrători"), so
+// the training is recognised by what a taught material cites instead: articles, chapters, annexes,
+// acts and the subjects of the training themes. Anything else stays the test alone, rather than a
+// two-hour training that never took place.
+const taughtWords =
+  /^(?:art|articol\w*|cap|capitol\w*|anex\w*|ipsu|ipssm|ipsi|instruc\w*|instrui\w*|tematic\w*|prezent\w*|plan\w*|evacu\w*|sting\w*|utiliz\w*|decizi\w*|risc\w*|norm\w*|leg\w*|hg|omai|ordin\w*|masur\w*|regul\w*|dispozit\w*|mijloac\w*|actiun\w*|alarm\w*|interventi\w*|prim\w*|ajutor)$/;
 
-const materialWords = (material: string | null) =>
-  foldText(material ?? '')
-    .split(/[^a-z]+/)
-    .filter((word) => word !== '');
-
-/**
- * Whether a row marked as the annual test also records that day's periodic training: its
- * material names more than the test, or it gives a duration with no material saying it is the
- * test alone.
- */
-function recordsTraining(row: Pick<SheetRow, 'material' | 'durationMinutes'>) {
-  const words = materialWords(row.material);
-  if (words.some((word) => !testWords.test(word))) return true;
-  return words.length === 0 && row.durationMinutes !== null && row.durationMinutes > 0;
+function recordsTraining(row: Pick<SheetRow, 'material'>) {
+  const material = row.material ?? '';
+  return (
+    /\d/.test(material) ||
+    foldText(material)
+      .split(/[^a-z]+/)
+      .some((word) => taughtWords.test(word))
+  );
 }
 
 interface PersonContext {
