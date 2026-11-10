@@ -90,7 +90,8 @@ Când e debifată:
 - lista mijloacelor de apărare împotriva incendiilor spune într-un rând că la sediul social nu se desfășoară activitate, cu adresa sediului, ca să se vadă de ce acolo nu e niciun stingător;
 - adresa sediului rămâne adresa firmei unde documentele o tipăresc ca atare, de exemplu pe fișa obiectivului;
 - pe tabul **Mijloace de apărare** sediul nu mai are card. Ce ai completat înainte pentru el (datele SU, stingătoarele, instalațiile, verificările, clădirea) rămâne păstrat, dar nu se mai vede și nu se tipărește; revine dacă bifezi din nou căsuța;
-- sediul nu mai poate fi ales ca punct de lucru al unui angajat.
+- sediul nu mai poate fi ales ca punct de lucru al unui angajat, nici la importul angajaților din fișe;
+- sediul nu mai poate fi ales ca loc de muncă al unei persoane responsabile. O persoană legată de sediu dinainte rămâne așa, iar documentele SU o trec ca pe una legată de toate locurile de muncă.
 
 Nu poți debifa căsuța când:
 
@@ -101,7 +102,9 @@ Când imporți clientul din documente, importul îți poate propune că la sediu
 
 Un punct de lucru în care nu se mai lucrează nu are această căsuță: îl arhivezi (vezi [Arhivarea unui punct de lucru](#arhivarea-unui-punct-de-lucru)).
 
-Nicio prevedere nu leagă un stingător sau o fișă afișată de adresa sediului. Normele generale de apărare împotriva incendiilor stabilesc stingătoarele pe construcție, după riscul de incendiu și materialele din spațiu, iar la clădirile de locuit numărul din anexă e doar o recomandare (OMAI 163/2007, art. 131 și anexa 6). Legea 307/2006 dă obligațiile administratorului „în unitatea sa” (art. 19), iar celui care folosește un spațiu îi cere să respecte măsurile stabilite de proprietar sau de administrator (art. 21). La registrul comerțului, declarația privind activitatea se dă pentru sediul social și pentru fiecare sediu secundar (Legea 265/2022, art. 121 și 122), așa că o firmă poate avea un sediu la care nu desfășoară activitate. Căsuța debifată rămâne răspunsul clientului, iar documentele SU arată de ce sediul lipsește din liste.
+Niciunul dintre actele următoare nu leagă un stingător sau o fișă afișată de adresa sediului social. Normele generale de apărare împotriva incendiilor stabilesc tipul și numărul stingătoarelor pe construcție, după reglementările tehnice sau normele specifice (OMAI 163/2007, art. 131). Pentru construcțiile fără astfel de prevederi, anexa 6 dă un număr orientativ, iar nota ei lasă alegerea proiectantului sau, la o construcție existentă, scenariului de incendiu ori persoanei cu atribuții, după riscul de incendiu și materialele din spațiu; la clădirile de locuit numărul e doar o recomandare. Legea 307/2006 dă obligațiile administratorului „în unitatea sa” (art. 19), iar celui care folosește un spațiu îi cere să respecte măsurile stabilite de proprietar sau de administrator (art. 21). Legea 265/2022 cere declarația privind activitatea pentru sediul social și pentru fiecare sediu secundar (art. 121 și 122), iar îndrumările Oficiului Național al Registrului Comerțului privesc și firma care nu desfășoară la sediul social activitatea declarată.
+
+Nici Inspectoratul General pentru Situații de Urgență, nici vreun inspectorat județean nu a publicat o poziție despre un sediu social la care nu se desfășoară activitate. De aceea căsuța debifată rămâne răspunsul clientului, iar documentele SU arată de ce sediul lipsește din liste.
 
 ### Adresa
 
