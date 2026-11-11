@@ -11,7 +11,7 @@ import {
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import { substanceNameAllowed, workplaceValueAllowed } from './checks';
+import { substanceNameAllowed, substanceParts, workplaceValueAllowed } from './checks';
 import { inferValues, officeWithoutActivity } from './inference';
 import { contained, cuiDigits, foldName, foldText, sameAddress, similar, streetKey } from './match';
 import { countedOnce } from './means-count';
@@ -250,6 +250,38 @@ function joined<T extends Traced>(
     merge(known, item);
   }
   return kept;
+}
+
+// Joining widens a name, which can then hold an entry kept apart before, so it runs until
+// nothing joins.
+function joinedSubstances<T extends Traced & { name: string }>(items: T[]) {
+  const within = (a: Set<string>, b: Set<string>) =>
+    a.size > 0 && [...a].every((part) => b.has(part));
+  let kept = items;
+  for (;;) {
+    const next = joined(
+      kept,
+      (a, b) => {
+        if (foldText(a.name) === foldText(b.name)) return true;
+        const [partsA, partsB] = [substanceParts(a.name), substanceParts(b.name)];
+        return within(partsA, partsB) || within(partsB, partsA);
+      },
+      (into, from) => {
+        const [intoParts, fromParts] = [
+          substanceParts(into.name).size,
+          substanceParts(from.name).size,
+        ];
+        if (
+          fromParts > intoParts ||
+          (fromParts === intoParts && nonAsciiCount(from.name) > nonAsciiCount(into.name))
+        ) {
+          into.name = from.name;
+        }
+      }
+    );
+    if (next.length === kept.length) return next;
+    kept = next;
+  }
 }
 
 const employeeName = (employee: { lastName: string | null; firstName: string | null }) =>
@@ -846,7 +878,7 @@ export function toProposal(...readings: Reading[]): Proposal {
     }
   }
 
-  const substances = joined(
+  const substances = joinedSubstances(
     // A scan's page read before the field existed has none.
     list((reading) => reading.substances ?? [])
       .filter((substance) => substanceNameAllowed(substance.name))
@@ -854,11 +886,7 @@ export function toProposal(...readings: Reading[]): Proposal {
         ...traced(substance),
         name: substance.name.trim(),
         spelling: {} as Record<string, string>,
-      })),
-    (a, b) => foldText(a.name) === foldText(b.name),
-    (into, from) => {
-      if (nonAsciiCount(from.name) > nonAsciiCount(into.name)) into.name = from.name;
-    }
+      }))
   ).map((substance, index) => ({ id: `substance-${index + 1}`, ...substance }));
   if (substances.length > 0) {
     const own = substances.filter((substance) => substance.otherCompanyName === null);

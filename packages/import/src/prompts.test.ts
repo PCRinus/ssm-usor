@@ -145,6 +145,33 @@ describe('readingMessages', () => {
     );
   });
 
+  it('takes a substance only from what the client uses or keeps, once per row and per substance', () => {
+    const [system] = readingMessages({ provider, files: [] });
+
+    for (const rule of [
+      'each dangerous substance a document names among what the client uses, keeps or stores',
+      "a row of the risk assessment's tables of materials, substances or equipment",
+      'One row or list item is one entry, named as it names it ("Detergenți și soluții de curățare" is one entry, never two)',
+      'give each of its entries the same name, its fullest wording',
+      "a kind of waste in the waste decision's list",
+      'what only leaks, spills, is cleaned off or results from the work',
+      'the fuel or supply of an installation named in passing',
+      'a product named in a hygiene or protective measure or in the risk of going without one',
+      "Never give one the client's activity only suggests.",
+    ]) {
+      expect(system!.content).toContain(rule);
+    }
+    expect(system!.content).not.toContain('used, stored or collected');
+  });
+
+  it('asks for the assembly point as the place, without the sentence that introduces it', () => {
+    const [system] = readingMessages({ provider, files: [] });
+
+    expect(system!.content).toContain(
+      '("Locul de adunare este parcarea din fața clădirii" gives "parcarea din fața clădirii")'
+    );
+  });
+
   it('leaves the existing client out of a new client’s import', () => {
     const [system] = readingMessages({ provider, files: [] });
 

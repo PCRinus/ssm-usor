@@ -2371,10 +2371,12 @@ each entry of the chosen option still waits for the member's workplace (`unknown
 Only another company's entries are not counted. A proposal stored before reads
 `fireEquipmentCounts` as `[]`, and all its entries are written.
 The dangerous substances ([ADR 041](architecture/adr-041-su-import-questions-and-suggestions.md))
-are `substances`, one item per name the documents give as used, stored or collected at the client
-(`substance-1`: its `name`, `sources` and `spelling`), a name of fewer than 2 or more than 160
-characters left out before the answer is derived, names that differ only in capitals or
-diacritics joined with every passage, and the answer `fireSafety.substancesState`: an option
+are `substances`, one item per name the documents give among what the client uses, keeps or
+stores (`substance-1`: its `name`, `sources` and `spelling`), a name of fewer than 2 or more than
+160 characters left out before the answer is derived, names that differ only in capitals or
+diacritics joined with every passage, a name joined to a fuller one whose items, split at "și"
+and commas, include all of its own (the fuller name kept, and a passage naming one item holds
+it), and the answer `fireSafety.substancesState`: an option
 `listed` whose sources are the substances' when any is named, an option `none` from a statement
 that the client uses none, both a choice, and no option where the documents say nothing. A proposal
 stored before reads `substances` as `[]` and the answer empty.

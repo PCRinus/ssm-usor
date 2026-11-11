@@ -175,7 +175,13 @@ function itemHolds(
   if (list === 'protectiveEquipment') return equipmentHolds(proposal.protectiveEquipment[index]!);
   if (list === 'substances') {
     const { name, spelling } = proposal.substances[index]!;
-    return holdsWords(name, ...(spelling.name ? [spelling.name] : []));
+    // A name joined from several passages is held by a quote naming one of its items.
+    return holdsWords(
+      ...[name, ...(spelling.name ? [spelling.name] : [])].flatMap((written) => [
+        written,
+        ...substanceParts(written),
+      ])
+    );
   }
   return undefined;
 }
@@ -393,6 +399,15 @@ export const workplaceValueAllowed = (field: string, value: string | number) =>
 
 // As `fire_substances.name` takes it.
 export const substanceNameAllowed = (name: string) => textOf(2, 160)(name);
+
+// Split by the joining words only, never by word: "ulei" must not meet "ulei uzat".
+export const substanceParts = (name: string) =>
+  new Set(
+    name
+      .split(/\s*,\s*|\s+(?:și|şi|si)\s+/iu)
+      .map((part) => foldText(part))
+      .filter(Boolean)
+  );
 
 export function checkAllowedValues(proposal: Proposal): Flag[] {
   const flags: Flag[] = [];
