@@ -14,6 +14,8 @@ export const impersonationsKey = ['admin', 'impersonations'] as const;
 
 export const impersonationsPageSize = 10;
 
+const expiredRecheck = 15_000;
+
 export function useActiveImpersonation() {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   return useQuery({
@@ -22,6 +24,11 @@ export function useActiveImpersonation() {
       apiFetch<AdminActiveImpersonation>('/api/impersonation', { ...apiRequest, signal }),
     select: (data) => data.impersonation,
     refetchOnWindowFocus: 'always',
+    // Past its end by this browser's clock, it is over only once the API says so.
+    refetchInterval: (query) => {
+      const active = query.state.data?.impersonation;
+      return active && Date.parse(active.expiresAt) <= Date.now() ? expiredRecheck : false;
+    },
   });
 }
 

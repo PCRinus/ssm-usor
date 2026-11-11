@@ -23,12 +23,14 @@ import { fetchImpersonations, impersonationsKey, targetName } from './api';
 const columns = ['Member', 'Organization', 'Reason', 'Started', 'State'] as const;
 
 function State({ impersonation, readAt }: { impersonation: AdminImpersonation; readAt: number }) {
-  if (impersonation.endedAt) {
+  const expiresAt = Date.parse(impersonation.expiresAt);
+  // The API closes one that ran out at its expiry, whenever it finds it; until then the row is
+  // still open, and only its time tells it has expired.
+  const ended = impersonation.endedAt && Date.parse(impersonation.endedAt) < expiresAt;
+  if (ended) {
     return <span>Ended {formatDateTime(impersonation.endedAt)}</span>;
   }
-  // The list holds the rows as stored: an impersonation nobody ended is still open there after
-  // its two hours, and only its time tells it has expired.
-  if (Date.parse(impersonation.expiresAt) <= readAt) {
+  if (impersonation.endedAt || expiresAt <= readAt) {
     return (
       <span className="text-muted-foreground">
         Expired {formatDateTime(impersonation.expiresAt)}

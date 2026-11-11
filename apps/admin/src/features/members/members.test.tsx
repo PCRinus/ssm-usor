@@ -4,11 +4,11 @@ import type {
   AdminMemberList,
   ApiErrorResponse,
 } from '@ssm-usor/contracts';
-import { act, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { disposeAdmins, mountAdmin } from '@/test/admin-app';
+import { authClient, disposeAdmins, mountAdmin } from '@/test/admin-app';
 
 const adminId = '0a1b2c3d-0000-4000-8000-000000000001';
 const ionId = '0a1b2c3d-0000-4000-8000-000000000002';
@@ -80,8 +80,10 @@ const ana = members.items[2]!;
 
 let active: AdminImpersonation | null;
 let history: AdminImpersonationList;
-let startAnswer: (() => Response) | null;
+let startAnswer: (() => Response | Promise<Response>) | null;
 let membersAnswer: (() => Response) | null;
+let activeAnswer: (() => Response) | null;
+let endAnswer: (() => Response) | null;
 
 const fetchMock = vi.fn<typeof fetch>();
 const open = vi.fn();
@@ -100,6 +102,8 @@ beforeEach(() => {
   history = { items: [], page: 1, pageSize: 10, total: 0 };
   startAnswer = null;
   membersAnswer = null;
+  activeAnswer = null;
+  endAnswer = null;
   vi.stubEnv('VITE_APP_URL', 'http://localhost:5199');
   vi.stubGlobal('fetch', fetchMock);
   vi.stubGlobal('open', open);
@@ -113,7 +117,7 @@ beforeEach(() => {
     if (url.pathname === '/api/members') return membersAnswer?.() ?? Response.json(members);
     if (url.pathname === '/api/impersonations') return Response.json(history);
     if (url.pathname === '/api/impersonation' && method === 'GET') {
-      return Response.json({ impersonation: active });
+      return activeAnswer?.() ?? Response.json({ impersonation: active });
     }
     if (url.pathname === '/api/impersonation' && method === 'POST') {
       if (startAnswer) return startAnswer();
@@ -124,6 +128,7 @@ beforeEach(() => {
       return Response.json(active, { status: 201 });
     }
     if (url.pathname === '/api/impersonation' && method === 'DELETE') {
+      if (endAnswer) return endAnswer();
       active = null;
       return new Response(null, { status: 204 });
     }
@@ -306,13 +311,18 @@ describe('starting an impersonation', () => {
   });
 
   it.each([
-    ['target_not_member', 'no longer belongs to an organization'],
-    ['target_is_self', 'This is your own account'],
-  ])('words a refusal for %s', async (reason, words) => {
+    ['target_not_member', 422, 'no longer belongs to an organization'],
+    ['target_is_self', 422, 'This is your own account'],
+    [
+      'impersonation_start_in_progress',
+      409,
+      'A start is already in progress. Wait a moment and try again.',
+    ],
+  ])('words a refusal for %s', async (reason, status, words) => {
     startAnswer = () =>
       Response.json(
-        { error: 'unprocessable', message: 'Refused.', reason } satisfies ApiErrorResponse,
-        { status: 422 }
+        { error: status === 409 ? 'conflict' : 'unprocessable', message: 'Refused.', reason },
+        { status }
       );
     mountAdmin('/members');
     const { user, dialog } = await openDialogFor('Ion Popescu');
@@ -325,6 +335,95 @@ describe('starting an impersonation', () => {
     expect(screen.getByTestId('start-impersonation')).toBeTruthy();
     expect(open).not.toHaveBeenCalled();
   });
+});
+
+describe('the start dialog', () => {
+  async function typeReason(user: ReturnType<typeof userEvent.setup>, dialog: HTMLElement) {
+    await user.type(within(dialog).getByTestId('impersonation-reason'), 'Why');
+  }
+
+  it('cannot be closed while it starts, so the member app never opens late', async () => {
+    let answer!: (response: Response) => void;
+    startAnswer = () =>
+      new Promise((resolve) => {
+        answer = resolve;
+      });
+    mountAdmin('/members');
+    const { user, dialog } = await openDialogFor('Ion Popescu');
+    await typeReason(user, dialog);
+    await user.click(within(dialog).getByTestId('start-impersonation-submit'));
+    await within(dialog).findByText('Starting…');
+
+    await user.keyboard('{Escape}');
+    await user.click(within(dialog).getByRole('button', { name: 'Close' }));
+    expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveProperty('disabled', true);
+    expect(screen.getByTestId('start-impersonation')).toBeTruthy();
+
+    answer(Response.json(impersonationOf(ion, 'Why'), { status: 201 }));
+    await waitFor(() => expect(screen.queryByTestId('start-impersonation')).toBeNull());
+    expect(open).toHaveBeenCalledOnce();
+  });
+
+  it('clears the missing reason as soon as one is given', async () => {
+    mountAdmin('/members');
+    const { user, dialog } = await openDialogFor('Ion Popescu');
+    const field = within(dialog).getByTestId('impersonation-reason');
+
+    await user.click(within(dialog).getByTestId('start-impersonation-submit'));
+    expect(within(dialog).getByTestId('impersonation-reason-error')).toBeTruthy();
+    expect(field.getAttribute('aria-invalid')).toBe('true');
+
+    await user.type(field, 'W');
+    expect(within(dialog).queryByTestId('impersonation-reason-error')).toBeNull();
+    expect(field.getAttribute('aria-invalid')).toBeNull();
+  });
+
+  it('counts the characters near the limit and says when it is reached', async () => {
+    mountAdmin('/members');
+    const { user, dialog } = await openDialogFor('Ion Popescu');
+    const field = within(dialog).getByTestId('impersonation-reason') as HTMLTextAreaElement;
+
+    await user.click(field);
+    await user.paste('a'.repeat(399));
+    expect(within(dialog).queryByTestId('impersonation-reason-count')).toBeNull();
+
+    await user.type(field, 'b');
+    const count = within(dialog).getByTestId('impersonation-reason-count');
+    expect(count.textContent).toBe('400 of 500 characters');
+    expect(field.getAttribute('aria-describedby')).toBe('impersonation-reason-count');
+
+    await user.paste('c'.repeat(150));
+    expect(field.value).toHaveLength(500);
+    expect(within(dialog).getByTestId('impersonation-reason-count').textContent).toBe(
+      '500 of 500 characters: the limit is reached, and nothing more is taken.'
+    );
+  });
+
+  it.each(['Escape', 'Cancel', 'a start'])(
+    'gives focus back to the Act as button it came from after %s',
+    async (way) => {
+      mountAdmin('/members');
+      const row = (await screen.findAllByTestId('member-row')).find((each) =>
+        each.textContent?.includes('Ion Popescu')
+      )!;
+      const button = await within(row).findByTestId('act-as');
+      // As in Safari, a click that does not focus the button.
+      fireEvent.click(button);
+      const dialog = await screen.findByTestId('start-impersonation');
+      const user = userEvent.setup();
+
+      if (way === 'Escape') await user.keyboard('{Escape}');
+      if (way === 'Cancel')
+        await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+      if (way === 'a start') {
+        await typeReason(user, dialog);
+        await user.click(within(dialog).getByTestId('start-impersonation-submit'));
+      }
+
+      await waitFor(() => expect(screen.queryByTestId('start-impersonation')).toBeNull());
+      await waitFor(() => expect(document.activeElement).toBe(button));
+    }
+  );
 });
 
 describe('the active impersonation strip', () => {
@@ -360,7 +459,7 @@ describe('the active impersonation strip', () => {
     );
   });
 
-  it('goes by itself when the impersonation expires', async () => {
+  it('stays at its end, with End, until the API says it is over', async () => {
     vi.useFakeTimers({ now: new Date('2026-11-11T10:00:00Z'), shouldAdvanceTime: true });
     active = impersonationOf(ion, 'Checking the documents tab', {
       startedAt: '2026-11-11T08:05:00Z',
@@ -368,16 +467,111 @@ describe('the active impersonation strip', () => {
     });
     mountAdmin('/members');
     await screen.findByTestId('impersonation-strip');
-    const before = requestsTo('/api/impersonation').length;
 
     act(() => vi.advanceTimersByTime(4 * minute));
     expect(screen.getByTestId('impersonation-summary').textContent).toContain('(1 min left)');
 
+    const before = requestsTo('/api/impersonation').length;
     act(() => vi.advanceTimersByTime(minute));
-
-    expect(screen.queryByTestId('impersonation-strip')).toBeNull();
     await waitFor(() => expect(requestsTo('/api/impersonation').length).toBeGreaterThan(before));
-    expect(screen.queryByTestId('impersonation-strip')).toBeNull();
+    const strip = screen.getByTestId('impersonation-strip');
+    expect(within(strip).getByTestId('impersonation-summary').textContent).toBe(
+      'Acting as Ion Popescu · Protecția Muncii SRL · ends now'
+    );
+    expect(within(strip).getByTestId('impersonation-end')).toBeTruthy();
+
+    const asked = requestsTo('/api/impersonation').length;
+    await act(() => vi.advanceTimersByTimeAsync(15_000));
+    await waitFor(() => expect(requestsTo('/api/impersonation').length).toBeGreaterThan(asked));
+    expect(screen.getByTestId('impersonation-strip')).toBeTruthy();
+
+    active = null;
+    await act(() => vi.advanceTimersByTimeAsync(15_000));
+    await waitFor(() => expect(screen.queryByTestId('impersonation-strip')).toBeNull());
+  });
+
+  it('says when it could not check, rather than look like none', async () => {
+    activeAnswer = () =>
+      Response.json({ error: 'internal_error', message: 'Down.' }, { status: 503 });
+    mountAdmin('/members');
+
+    const unknown = await screen.findByTestId('impersonation-unknown', {}, { timeout: 10_000 });
+    expect(unknown.textContent).toContain('Could not check whether you are acting as a member.');
+
+    activeAnswer = null;
+    active = impersonationOf(ion, 'Checking the documents tab');
+    await userEvent.setup().click(within(unknown).getByTestId('impersonation-retry'));
+    expect(await screen.findByTestId('impersonation-strip')).toBeTruthy();
+    expect(screen.queryByTestId('impersonation-unknown')).toBeNull();
+  }, 15_000);
+
+  it('hands focus to the page heading once ended', async () => {
+    active = impersonationOf(ion, 'Checking the documents tab');
+    mountAdmin('/members');
+    const strip = await screen.findByTestId('impersonation-strip');
+
+    await userEvent.setup().click(within(strip).getByTestId('impersonation-end'));
+
+    await waitFor(() => expect(screen.queryByTestId('impersonation-strip')).toBeNull());
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'Members' }));
+  });
+
+  it('marks the member being acted as in the list', async () => {
+    active = impersonationOf(ion, 'Checking the documents tab');
+    mountAdmin('/members');
+    const rows = await screen.findAllByTestId('member-row');
+
+    await waitFor(() =>
+      expect(within(rows[1]!).getByTestId('member-acting').textContent).toBe('Acting')
+    );
+    expect(within(rows[0]!).queryByTestId('member-acting')).toBeNull();
+    expect(within(rows[2]!).queryByTestId('member-acting')).toBeNull();
+  });
+});
+
+describe('signing out', () => {
+  const signOut = vi.mocked(authClient.signOut);
+
+  beforeEach(() => signOut.mockClear());
+
+  it('ends an active impersonation first', async () => {
+    active = impersonationOf(ion, 'Checking the documents tab');
+    mountAdmin('/members');
+    await screen.findByTestId('impersonation-strip');
+
+    await userEvent.setup().click(screen.getByTestId('sign-out'));
+
+    await waitFor(() => expect(signOut).toHaveBeenCalledOnce());
+    const ended = fetchMock.mock.calls.findIndex(
+      ([input, init]) =>
+        new URL(String(input)).pathname === '/api/impersonation' && init?.method === 'DELETE'
+    );
+    expect(ended).toBeGreaterThanOrEqual(0);
+    expect(fetchMock.mock.invocationCallOrder[ended]).toBeLessThan(
+      signOut.mock.invocationCallOrder[0]!
+    );
+  });
+
+  it('signs out even when ending fails', async () => {
+    active = impersonationOf(ion, 'Checking the documents tab');
+    endAnswer = () => Response.json({ error: 'internal_error', message: 'Down.' }, { status: 500 });
+    mountAdmin('/members');
+    await screen.findByTestId('impersonation-strip');
+
+    await userEvent.setup().click(screen.getByTestId('sign-out'));
+
+    await waitFor(() => expect(signOut).toHaveBeenCalledOnce());
+  });
+
+  it('ends nothing when none is active', async () => {
+    mountAdmin('/members');
+    await screen.findAllByTestId('member-row');
+    await waitFor(() => expect(requestsTo('/api/impersonation')).toHaveLength(1));
+
+    await userEvent.setup().click(screen.getByTestId('sign-out'));
+
+    await waitFor(() => expect(signOut).toHaveBeenCalledOnce());
+    expect(requestsTo('/api/impersonation', 'DELETE')).toHaveLength(0);
   });
 });
 
@@ -396,6 +590,11 @@ describe('recent impersonations', () => {
           'Import review',
           { startedAt: '2026-11-09T08:00:00Z', expiresAt: '2026-11-09T10:00:00Z' }
         ),
+        impersonationOf(ana, 'Closed by the API at its end', {
+          startedAt: '2026-11-08T08:00:00Z',
+          expiresAt: '2026-11-08T10:00:00Z',
+          endedAt: '2026-11-08T10:00:00Z',
+        }),
       ],
       page: 1,
       pageSize: 10,
@@ -405,13 +604,15 @@ describe('recent impersonations', () => {
     mountAdmin('/members');
 
     const rows = await screen.findAllByTestId('impersonation-row');
-    expect(rows).toHaveLength(3);
+    expect(rows).toHaveLength(4);
     expect(within(rows[0]!).getByText('Active')).toBeTruthy();
     expect(rows[0]!.textContent).toContain('Checking the documents tab');
     expect(rows[1]!.textContent).toContain('ana@example.ro');
     expect(rows[1]!.textContent).toContain('Ended 10 Nov 2026, 10:30');
     expect(rows[2]!.textContent).toContain('Expired 9 Nov 2026, 12:00');
     expect(rows[2]!.textContent).toContain('No longer a member');
+    expect(rows[3]!.textContent).toContain('Expired 8 Nov 2026, 12:00');
+    expect(rows[3]!.textContent).not.toContain('Ended');
     expect(screen.getByTestId('impersonations-pager-summary').textContent).toBe(
       '1–10 of 12 impersonations'
     );
