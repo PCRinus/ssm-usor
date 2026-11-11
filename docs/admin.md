@@ -71,8 +71,8 @@ Where the admin starts an impersonation: acting as a member in the member app, w
 sign-in, for at most two hours ([API](api.md#impersonation)).
 
 **The list** (`/members`) shows every organization's members, 25 to a page: name, email,
-organization, role, plan and its status (or none), and the last sign-in. A member of two
-organizations has a row for each. The search box matches the email, the name or the
+organization, role, plan and its status (or none), and the last sign-in. The member being acted
+as carries an **Acting** badge beside the name. The search box matches the email, the name or the
 organization, ignoring case and diacritics; it waits for typing to pause, then puts the search
 in the address with the page (`?search=popescu&page=2`). Every row but the admin's own has
 **Act as**.
@@ -80,24 +80,38 @@ in the address with the page (`?search=popescu&page=2`). Every row but the admin
 **Act as** opens a dialog with the member's name, email, organization and role, a required
 reason (at most 500 characters), and the notes that the impersonation ends by itself after two
 hours, that starting and ending it are recorded in the audit log, and, when one is active, whose
-impersonation it replaces. Starting one ends the active one in the same request. A refusal is
-shown in the dialog: the reason's error under the field, an account that belongs to no
-organization or the admin's own in plain words. Once started, the dialog closes and the member
-app opens in a new tab. A browser may block that tab (Safari often does, since it opens after
+impersonation it replaces. From 400 characters on, a counter under the field counts them, and at
+500 it says that the limit is reached and nothing more is taken. A missing reason is said under
+the field and clears as soon as one is typed. Starting one ends the active one in the same
+request. While it starts, Cancel, Escape and the close button do nothing, so the member app
+never opens after the dialog seems closed. A refusal is shown in the dialog: the reason's error
+under the field, an account that belongs to no organization or the admin's own in plain words,
+and a start already under way (`409`, `reason: 'impersonation_start_in_progress'`, in
+`src/features/impersonation/reasons.ts`) as one to wait for. Once started, the dialog closes and
+the member app opens in a new tab. However the dialog closes, focus goes back to the **Act as**
+button it was opened from. A browser may block that tab (Safari often does, since it opens after
 the request); the strip's link is there for that.
 
 **Recent impersonations**, under the list, are the admin's own, newest first, 10 to a page: the
 member, the organization (or "No longer a member"), the reason, when it started, and whether it
-ended, expired or is active. The API stamps one closed after its expiry, such as by the next start,
-as ended at its expiry ([API](api.md#impersonation)).
+ended, expired or is active. It expired when it ran past its end with nobody ending it, whether
+the row is still open or the API closed it at its expiry, such as at the next start (`endedAt`
+equal to `expiresAt`, [API](api.md#impersonation)); it ended only when it was ended before then.
 
 ## The active impersonation strip
 
 While an impersonation is active, every signed-in page shows a strip under the top bar:
 "Acting as {name, else email} · {organization} · ends {time} ({minutes} min left)", a link
-**Open the member app**, and **End**, which ends it and reads it again. The strip goes by itself
-at the impersonation's end, without a request, and the app reads the active impersonation again
-then and whenever the window regains focus, so one ended from the member app's banner goes too.
+**Open the member app**, and **End**, which ends it, reads it again and moves focus to the page's
+main heading. At the impersonation's end by the browser's clock the strip says "ends now" and
+keeps **End**, and the app reads the active impersonation again then and every 15 seconds after
+it until the API says none is active; it reads it again whenever the window regains focus too,
+so one ended from the member app's banner goes. When the read fails and nothing was read before,
+a warning takes the strip's place, "Could not check whether you are acting as a member.", with
+**Try again**, so an active impersonation never looks like none.
+
+**Sign out** ends an active impersonation first, waiting at most three seconds and signing out
+whether or not that worked.
 
 The member app's address follows the admin app's own: `admin.ssmusor.ro` opens
 `https://app.ssmusor.ro` and `admin.non-prod.ssmusor.ro` opens `https://app.non-prod.ssmusor.ro`.

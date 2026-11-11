@@ -397,28 +397,49 @@ app as himself; `GET /me` then answers with the member's `membership` and an `im
 
 - **The banner** (`impersonation-banner.tsx`) heads the shell's content column on every page,
   editor pages included, above the subscription bar: "Acționezi ca {member} · {organization}
-  până la {HH:mm} (încă {n} min)", that signing and sending are off, and **Încheie**, which calls
-  `DELETE /me/impersonation`. It cannot be closed. It sits below the header, not above it: the
-  sticky header, the sidebar and the section tabs are placed by the header's fixed height.
-- **A change of identity reloads the page.** The query cache is keyed by the signed-in user, who
-  stays the admin, so `watchEffectiveIdentity` (`identity.ts`, started by `createAppRuntime`)
-  watches every `/me` answer and, when the member he acts as changes, to another one, from none
-  or to none, replaces the page with `/`: nothing of the previous member can show. **Încheie**
-  does the same on success. At `expiresAt` the banner asks for `/me` again, and every 15 seconds
-  after it while the API still reports the impersonation. For a platform admin `/me` refetches
-  whenever the tab regains focus, so a start, a switch or an end in the admin app's tab is
-  found on coming back.
+  până la {HH:mm} (încă {n} min)", the time in Bucharest, that signing and sending are off, and
+  **Încheie**, which calls `DELETE /me/impersonation`. It cannot be closed. It sits below the
+  header, not above it: the sticky header, the sidebar and the section tabs are placed by the
+  header's fixed height. Since it scrolls away, the header holds a marker as well, in the same
+  warning colours: the banner's icon with the member's name beside it from `sm` up, the icon
+  alone on a phone, and the whole sentence with the end time as its accessible name.
+- **The page keeps the identity it was built for.** The query cache is keyed by the signed-in
+  user, who stays the admin while the member he acts as changes, so `createPageIdentity`
+  (`identity.ts`, started by `createAppRuntime`) remembers from the page's first `/me` whom it
+  was built for: the member's id, or `self`. That identity never changes for the page load. Every
+  request but `GET /me` carries it as `X-Acting-As` (`apiFetch` and `apiUpload` in
+  `src/api/http.ts`), and the API refuses one from a page built for another identity with `409`
+  and `reason: 'identity_changed'` before it reads or writes anything. The header's name and the
+  reason are in `acting-as.ts`.
+- **A change of identity reloads the page.** Every `/me` answer is compared with the page's
+  first one; when they differ (another member, a member from none, or none from a member), and
+  on any `identity_changed` refusal, after reading `/me` again, the app first replaces everything
+  with a blocking "Se reîncarcă…" page with a button to reload, then replaces the page with `/`.
+  A page with unsaved changes asks before it unloads; whoever stays is left with the blocking
+  page, and the next `/me` that still differs leaves again. **Încheie** does the same on success.
+  At `expiresAt` the banner asks for `/me` again, and every 15 seconds after it while the API
+  still reports the impersonation. For a platform admin `/me` is read again whenever the window
+  gains focus, the tab turns visible or the page comes back from the back-forward cache, so a
+  start, a switch or an end in the admin app, even in a window beside this one, is found at once.
+  Other members keep the usual refresh.
 - **A platform admin without an organization** of his own is never sent to `/configurare`: the
-  shell shows him a page with a link to the admin area and sign-out, titled that acting as a
-  member ended when the reload followed an end or an expiry (a `sessionStorage` mark), else that
-  he acts as no member. `/me` does not say who is an admin; the session's
+  shell shows him a page with a link to the admin area and sign-out. Its title says acting as a
+  member ended when the reload followed an end or an expiry, else that he acts as no member; the
+  mark behind it is read from `sessionStorage` once, when the page starts, and removed, so it
+  never reaches a later visit. When `/me` reports an impersonation with no membership (the member
+  left their organization meanwhile) the page shows the banner with **Încheie** and says that the
+  member no longer belongs to an organization. `/me` does not say who is an admin; the session's
   `app_metadata.role === 'admin'` does, and decides only what he sees. The admin area's address
   replaces the host's leading `app.` with `admin.`; elsewhere it is `VITE_ADMIN_URL`, by
   default `http://localhost:5176`.
+- **Signing out** while acting as a member ends the impersonation first, without waiting more
+  than three seconds and without failing the sign-out when it cannot.
 - **Refusals.** The API refuses signing as the member and anything that sends email or SMS to
   other people with `403` and `reason: 'impersonation_refused'`. `apiFetch` and `apiUpload`
-  (`src/api/http.ts`) show one error toast for it, whatever page sent the request; the page's
-  own failure message shows as well.
+  show one error toast for it, whatever page sent the request. The pages that send what is
+  refused (inviting a colleague and resending, inviting to the portal and resending, sending the
+  service contract, asking for a signing code and signing) say the same sentence where the
+  action was instead, and pass `refusalShownByPage` so that the toast stays away.
 
 ## Verification
 
