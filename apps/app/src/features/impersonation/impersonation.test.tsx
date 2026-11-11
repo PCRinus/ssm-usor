@@ -5,11 +5,13 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { MeResponse } from '@/api/generated/api';
+import { apiFetch } from '@/api/http';
 import { authFixture, makeSession, withFactor } from '@/test/auth-fixture';
 import { quietSummary } from '@/test/dashboard-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
 import { identityPage } from './identity';
+import { impersonationRefusedMessage } from './refusal';
 
 const memberOrganization = { id: '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d', name: 'Protect Consult' };
 const ownOrganization = { id: '9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d', name: 'SSM Ușor Demo' };
@@ -266,5 +268,28 @@ describe('an admin without an organization of his own', () => {
 
     await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/configurare'));
     expect(screen.queryByTestId('admin-without-organization')).toBeNull();
+  });
+});
+
+describe('a request refused while acting as a member', () => {
+  it('says why in one message, whichever page sent it', async () => {
+    me = actingAs(ana);
+    mountApp(authFixture(adminSession(), 'aal2').client);
+    await screen.findByTestId('impersonation-banner');
+    const answer = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (input, init) =>
+      init?.method === 'POST'
+        ? Response.json(
+            { error: 'forbidden', message: 'Forbidden.', reason: 'impersonation_refused' },
+            { status: 403 }
+          )
+        : answer(input, init)
+    );
+    const request = { baseUrl: 'http://localhost:8787', method: 'POST' };
+
+    await expect(apiFetch('/invitations', request)).rejects.toMatchObject({ status: 403 });
+    await expect(apiFetch('/signing-codes', request)).rejects.toMatchObject({ status: 403 });
+
+    await waitFor(() => expect(screen.getAllByText(impersonationRefusedMessage)).toHaveLength(1));
   });
 });
