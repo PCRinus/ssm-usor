@@ -1620,6 +1620,66 @@ describe('one count of the means per workplace', () => {
     expect(locations(payload.fire_equipment)).toEqual(['birou']);
   });
 
+  describe('of means with no workplace', () => {
+    const unplaced = proposalOf(
+      reading({
+        fireEquipment: [
+          { ...powder(fire, 1, 'magazie'), workplace: null },
+          { ...powder(list, 3), workplace: null },
+          { ...powder(evaluation, 5), workplace: null },
+        ],
+      })
+    );
+    const unplacedMapped = (
+      fields: ImportChanges['fields'] = {},
+      items: ImportChanges['items'] = {}
+    ) =>
+      toClientPayload({
+        proposal: unplaced,
+        changes: { fields, items },
+        intoExistingClient: false,
+        existing: noExistingRecords,
+      });
+
+    it('asks the count once, and nothing of the entries while it waits', () => {
+      const { payload, blockers } = unplacedMapped();
+
+      expect(unplaced.fireEquipmentCounts).toEqual([
+        expect.objectContaining({ workplace: { name: null, id: null } }),
+      ]);
+      expect(blockers).toEqual([{ path: 'fireEquipmentCounts.count-1', code: 'choice' }]);
+      expect(payload.fire_equipment).toEqual([]);
+    });
+
+    it('asks a workplace for each entry of the chosen file', () => {
+      const { blockers } = unplacedMapped({ 'fireEquipmentCounts.count-1': { option: 1 } });
+
+      expect(blockers).toEqual([{ path: 'fireEquipment.1.workplace', code: 'unknown_reference' }]);
+    });
+
+    it('writes the chosen file’s entries at the workplace the member gave them', () => {
+      const listed = unplaced.fireEquipment[1]!;
+      const { payload, blockers } = unplacedMapped(
+        { 'fireEquipmentCounts.count-1': { option: 1 } },
+        { [listed.id]: { values: { workplace: 'workplace-2' } } }
+      );
+
+      expect(blockers).toEqual([]);
+      expect(payload.fire_equipment).toEqual(
+        Array.from({ length: 3 }, () => expect.objectContaining({ workplace_key: 'workplace-2' }))
+      );
+    });
+
+    it('still asks the count with every workplace left out', () => {
+      const { blockers } = unplacedMapped(
+        {},
+        { 'workplace-1': { included: false }, 'workplace-2': { included: false } }
+      );
+
+      expect(blockers).toContainEqual({ path: 'fireEquipmentCounts.count-1', code: 'choice' });
+    });
+  });
+
   it('writes every entry of a proposal stored before the means were counted once', () => {
     const { payload, blockers } = toClientPayload({
       proposal: { ...proposal, fireEquipmentCounts: [] },
