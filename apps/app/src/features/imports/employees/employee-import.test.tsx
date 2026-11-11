@@ -630,6 +630,15 @@ describe('the person page', () => {
     expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(1);
   });
 
+  it('names each photograph under the sheet by its place and kind, in full on hover', async () => {
+    mockEmployeeImport();
+    mount(`${importPath}/toma`);
+    const strip = within(await screen.findByTestId('person-photos')).getByRole('group');
+    const tiles = within(strip).getAllByRole('button');
+    expect(tiles.map((tile) => tile.textContent)).toEqual(['1. SSM, față', '2. SSM, periodice']);
+    expect(within(tiles[1]!).getByText('2. SSM, periodice').title).toBe('2. SSM, periodice');
+  });
+
   it('opens the photograph beside the values large, on a click or with its button', async () => {
     mockEmployeeImport();
     const user = userEvent.setup();

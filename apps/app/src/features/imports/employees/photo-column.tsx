@@ -28,6 +28,17 @@ export function PageButton({ pages, pageId }: { pages: SheetPage[]; pageId: stri
   );
 }
 
+const thumbGrid = 'grid grid-cols-[repeat(auto-fill,minmax(5rem,1fr))] gap-2';
+
+function ThumbCaption({ page, position }: { page: SheetPage; position: number }) {
+  const caption = `${position + 1}. ${pageKindLabel(page).replace(/^Fișa /, '')}`;
+  return (
+    <span title={caption} className="line-clamp-2 min-h-8 w-full text-center leading-4">
+      {caption}
+    </span>
+  );
+}
+
 export function PhotoColumn({
   detail,
   pages,
@@ -132,11 +143,7 @@ export function PhotoColumn({
       )}
       {pages.length > 0 && (
         <div className="grid gap-2">
-          <div
-            className="flex flex-wrap gap-2"
-            role="group"
-            aria-label={`Fotografiile lui ${name}`}
-          >
+          <div className={thumbGrid} role="group" aria-label={`Fotografiile lui ${name}`}>
             {pages.map((each, position) => (
               <button
                 key={each.id}
@@ -144,12 +151,12 @@ export function PhotoColumn({
                 aria-pressed={each.id === page?.id}
                 onClick={() => onCurrent(each.id)}
                 className={cn(
-                  'grid justify-items-center gap-1 rounded-md p-1 text-[11.5px]',
+                  'grid min-w-0 content-start justify-items-center gap-1 rounded-md p-1 text-[11.5px]',
                   each.id === page?.id ? 'bg-secondary font-medium' : 'text-muted-foreground'
                 )}
               >
                 <PageThumb detail={detail} page={each} className="h-14 w-11" />
-                {position + 1}. {pageKindLabel(each).replace(/^Fișa /, '')}
+                <ThumbCaption page={each} position={position} />
               </button>
             ))}
           </div>
@@ -181,17 +188,17 @@ export function PhotoThumbs({
       <h2 id="person-thumbs" className="font-semibold">
         Fotografiile fișei
       </h2>
-      <div className="flex flex-wrap gap-2" role="group" aria-label={`Fotografiile lui ${name}`}>
+      <div className={thumbGrid} role="group" aria-label={`Fotografiile lui ${name}`}>
         {pages.map((page, position) => (
           <button
             key={page.id}
             type="button"
             aria-label={`Deschide fotografia ${position + 1}, ${pageKindLabel(page).toLowerCase()}`}
             onClick={() => onShow(page.id)}
-            className="grid justify-items-center gap-1 text-[11.5px] text-muted-foreground"
+            className="grid min-w-0 content-start justify-items-center gap-1 text-[11.5px] text-muted-foreground"
           >
             <PageThumb detail={detail} page={page} className="h-16 w-12" />
-            {position + 1}. {pageKindLabel(page).replace(/^Fișa /, '')}
+            <ThumbCaption page={page} position={position} />
           </button>
         ))}
       </div>
