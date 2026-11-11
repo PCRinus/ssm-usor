@@ -34,8 +34,10 @@ export type ImportRow = Pick<
   | 'proposal'
   | 'files_copied_at'
   | 'created_by'
-  | 'created_at'
->;
+> & {
+  // Null for a test run's copy of an import, which keeps no creation time.
+  created_at: string | null;
+};
 
 export type ImportFileRow = Pick<
   Tables['import_files']['Row'],
