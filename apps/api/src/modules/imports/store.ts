@@ -13,7 +13,7 @@ import type { AdminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
 import { creditsStore } from '../credits/store';
 import { importCharges } from '../credits/usage';
-import { clientTrainingThemes, employeeImportClient } from './employees';
+import { clientTrainingThemes, employeeImportClient, importSpecialist } from './employees';
 import { type ClientSheets, clientSheetsOf, type RiskLibrary, riskLibraryOf } from './risk-sheets';
 
 type Tables = Database['public']['Tables'];
@@ -34,6 +34,7 @@ export type ImportRow = Pick<
   | 'proposal'
   | 'files_copied_at'
   | 'created_by'
+  | 'created_at'
 >;
 
 export type ImportFileRow = Pick<
@@ -71,7 +72,7 @@ export type ImportStep = 'sorting' | 'reading' | 'scanning';
 export type ImportFileUpdate = Tables['import_files']['Update'];
 
 const importColumns =
-  'id, organization_id, kind, client_id, into_existing_client, status, company_name, company_cui, proposal, files_copied_at, created_by';
+  'id, organization_id, kind, client_id, into_existing_client, status, company_name, company_cui, proposal, files_copied_at, created_by, created_at';
 
 export const importFileColumns =
   'id, import_id, upload_path, original_file_name, mime_type, size_bytes, sha256, storage_path, state, document_kind, reason, company_name, company_cui, page_count, is_scan, text_path, derived_path, declared_pages, document_domain';
@@ -357,11 +358,11 @@ export function importStore(admin: AdminClient): ImportStore {
 
     employeeImportClient: (clientId) => employeeImportClient(admin, clientId),
 
-    trainingThemes: (row, today) =>
+    trainingThemes: async (row, today) =>
       clientTrainingThemes(admin, {
         clientId: row.client_id!,
         organizationId: row.organization_id,
-        createdBy: row.created_by,
+        specialistUserId: await importSpecialist(admin, row),
         today,
       }),
 

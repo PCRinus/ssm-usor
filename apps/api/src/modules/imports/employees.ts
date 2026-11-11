@@ -13,7 +13,7 @@ import {
 } from '@ssm-usor/import';
 
 import type { AdminClient } from '../../lib/admin-db';
-import { type DataClient, everyRow } from '../../lib/db';
+import { type DataClient, everyRow, fromDatabaseError } from '../../lib/db';
 import { romanianDay } from '../documents/context';
 import {
   type ClientTrainingFacts,
@@ -133,14 +133,40 @@ export async function employeeImportClient(
   };
 }
 
+// An import an admin started while impersonating a member proposes that member as the trainer,
+// as the member's own import would, while `created_by` keeps the admin (ADR 038).
+export async function importSpecialist(
+  admin: AdminClient,
+  row: { created_by: string | null; created_at: string }
+) {
+  if (!row.created_by) return null;
+  const at = new Date(row.created_at).toISOString();
+  const { data, error } = await admin
+    .from('impersonations')
+    .select('target_user_id')
+    .eq('admin_user_id', row.created_by)
+    .lte('started_at', at)
+    .gt('expires_at', at)
+    .or(`ended_at.is.null,ended_at.gt.${at}`)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'impersonation of an import');
+  return data?.target_user_id ?? row.created_by;
+}
+
 export async function clientTrainingThemes(
   db: Db,
-  input: { clientId: string; organizationId: string; createdBy: string | null; today: string }
+  input: {
+    clientId: string;
+    organizationId: string;
+    specialistUserId: string | null;
+    today: string;
+  }
 ): Promise<TrainingThemes> {
   const facts = await clientTrainingFacts(db, {
     clientId: input.clientId,
     organizationId: input.organizationId,
-    specialistUserId: input.createdBy,
+    specialistUserId: input.specialistUserId,
   });
   return themesFromFacts(facts, input.today);
 }
