@@ -8121,6 +8121,7 @@ export type Database = {
         };
         Returns: number;
       };
+      refund_safety_sheet_credits: { Args: { p_key: string }; Returns: number };
       refuse_archived_client: {
         Args: { p_client_id: string };
         Returns: undefined;
@@ -8544,7 +8545,9 @@ export type Database = {
         | 'grant'
         | 'gift'
         | 'library_part'
-        | 'library_part_refund';
+        | 'library_part_refund'
+        | 'safety_sheet'
+        | 'safety_sheet_refund';
       document_group: 'documentation_set' | 'other' | 'fire_safety_set';
       document_revision_status: 'draft' | 'issued' | 'superseded';
       employee_status: 'active' | 'terminated';
@@ -8770,6 +8773,8 @@ export const Constants = {
         'gift',
         'library_part',
         'library_part_refund',
+        'safety_sheet',
+        'safety_sheet_refund',
       ],
       document_group: ['documentation_set', 'other', 'fire_safety_set'],
       document_revision_status: ['draft', 'issued', 'superseded'],
