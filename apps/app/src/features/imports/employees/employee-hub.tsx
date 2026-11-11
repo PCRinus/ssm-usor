@@ -14,7 +14,7 @@ import { ImportIssueBadge } from '../import-review-issues';
 import { ReportImportButton } from '../report-import-button';
 import { Fact, Facts, StatusTag } from '../review-parts';
 import { EmployeeConfirmDialog } from './employee-confirm-dialog';
-import { hubCounts, nextToCheck, peopleViews } from './employee-review-model';
+import { firstToCheck, hubCounts, peopleViews } from './employee-review-model';
 import { PeopleList, peopleSectionId } from './people-list';
 import { sheetFilesLabel } from './review-format';
 import { postsSectionId, TitleGroups, WorkplaceGroups, workplacesSectionId } from './review-groups';
@@ -40,8 +40,7 @@ export function EmployeeHub({
   const [confirming, setConfirming] = useState(false);
   const views = useMemo(() => peopleViews(context), [context]);
   const counts = hubCounts(context, views);
-  const next = nextToCheck(context);
-  const nextView = next && views.find((view) => view.person.id === next.id);
+  const nextView = firstToCheck(views);
   const fileIds = new Set(context.proposal.pages.map((page) => page.fileId));
   const files = detail.files.filter((file) => fileIds.has(file.id));
 
@@ -135,7 +134,7 @@ export function EmployeeHub({
                   tone={issue.tone}
                   onClick={() => reveal(issue.section)}
                 >
-                  {issue.count} <span className="max-sm:hidden">{issue.rest}</span>
+                  {issue.count} <span className="max-sm:sr-only">{issue.rest}</span>
                 </ImportIssueBadge>
               ))}
             </div>
@@ -159,13 +158,12 @@ export function EmployeeHub({
         <Button
           variant={nextView ? 'outline' : 'default'}
           data-testid="employee-hub-confirm"
-          aria-label="Creează lucrătorii…"
           className={cn(nextView && 'max-sm:flex-none!')}
           disabled={counts.people.checked === 0 || review.conflict}
           onClick={() => setConfirming(true)}
         >
           <span>
-            Creează<span className="max-sm:hidden"> lucrătorii</span>…
+            Creează<span className="max-sm:sr-only"> lucrătorii</span>…
           </span>
         </Button>
         {nextView && (

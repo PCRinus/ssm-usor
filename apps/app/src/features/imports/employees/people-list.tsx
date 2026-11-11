@@ -19,7 +19,6 @@ import {
   ownRows,
   pagesOf,
   peopleGroups,
-  personIncluded,
   type PersonView,
   positionOf,
   proposedPersonIncluded,
@@ -137,7 +136,7 @@ function PersonRow({
       <Includable
         id={`include-hub-${person.id}`}
         name={view.name}
-        included={personIncluded(context, person)}
+        included={view.included}
         proposed={proposedPersonIncluded(context, person)}
         testId="employee-hub-include"
         collapsedClassName="px-4 py-3 sm:pr-5 sm:pl-[4.75rem]"
@@ -183,7 +182,7 @@ function PersonRow({
                 className="grid min-w-0 gap-1 text-sm"
                 data-testid="employee-hub-person-summary"
               >
-                {summary.count > 0 ? (
+                {!view.included ? null : summary.count > 0 ? (
                   <span className="flex min-w-0 flex-wrap items-start gap-x-2 gap-y-1 md:flex-nowrap">
                     <Tag tone="destructive" className="mt-px tabular-nums">
                       {summary.count} de hotărât

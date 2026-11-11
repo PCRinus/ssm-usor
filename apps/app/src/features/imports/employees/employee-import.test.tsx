@@ -91,6 +91,7 @@ type Options = {
   employees?: unknown[];
   clientWorkplaces?: unknown[];
   clientPositions?: unknown[];
+  saveChanges?: () => Response;
 };
 
 function mockEmployeeImport({
@@ -103,6 +104,7 @@ function mockEmployeeImport({
   employees = [],
   clientWorkplaces = workplaces,
   clientPositions = positions,
+  saveChanges,
 }: Options = {}) {
   let version = detail.version;
   let confirmedHere: unknown[] = [];
@@ -112,6 +114,8 @@ function mockEmployeeImport({
       return Response.json({ import: { ...detail, version } });
     }
     if (url.pathname === `/imports/${importId}/employee-changes`) {
+      const refused = saveChanges?.();
+      if (refused) return refused;
       version += 1;
       return Response.json({ version });
     }
@@ -414,6 +418,47 @@ describe('the people hub', () => {
       screen.getByRole('heading', { level: 2, name: 'Fotografii neatribuite' })
     );
   });
+
+  it('asks for the workplace once in its own section, which the bar leads to', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(importPath);
+    const section = await screen.findByTestId('employee-hub-workplaces');
+    expect(within(section).getAllByTestId('section-status')[0]!.textContent).toBe('1 de hotărât');
+    expect(within(section).getByTestId('employee-hub-workplace').textContent).toContain(
+      'Toma Andrei'
+    );
+    await user.click(
+      within(screen.getByTestId('employee-hub-bar')).getByRole('button', {
+        name: '1 loc de muncă de ales',
+      })
+    );
+    expect(document.activeElement).toBe(
+      screen.getByRole('heading', { level: 2, name: 'Locuri de muncă' })
+    );
+  });
+
+  it('keeps the workers from being created while a change of the review is refused', async () => {
+    const base = employeeDetail();
+    mockEmployeeImport({
+      detail: employeeDetail({
+        employees: { ...base.employees!, changes: { people: { pop: { state: 'checked' } } } },
+      }),
+      saveChanges: () =>
+        Response.json(
+          { error: 'conflict', message: 'changed', reason: 'import_changed' },
+          { status: 409 }
+        ),
+    });
+    const user = userEvent.setup();
+    mount(importPath);
+    const create = await screen.findByRole('button', { name: /^Creează\s?lucrătorii\s?…$/ });
+    expect(create).toHaveProperty('disabled', false);
+    await user.click(screen.getByRole('switch', { name: 'Inclus: Toma Andrei' }));
+    await screen.findByTestId('import-review-conflict');
+    expect(create).toHaveProperty('disabled', true);
+  });
+
   it('never offers an office where no activity takes place as a workplace', async () => {
     const [shop] = workplaces as [(typeof workplaces)[number]];
     mockEmployeeImport({
@@ -467,16 +512,60 @@ describe('the people hub', () => {
     expect(within(groups[1]!).getByRole('heading').textContent).toBe('Încă nedeschise 2');
     const toma = within(groups[0]!).getByTestId('employee-hub-person');
     expect(within(toma).getByTestId('employee-hub-person-link').textContent).toBe('Toma Andrei');
-    expect(within(toma).getByTestId('employee-hub-person-summary').textContent).toBe(
-      '2 de hotărâtCNP cu o cifră necitită · Lipsește cine a instruit la o instruire'
-    );
-    expect(toma.textContent).toContain('Postul: Ajutor brutar');
-    expect(toma.textContent).toContain('Angajat: din 12.08.2024');
+    const summary = within(toma).getByTestId('employee-hub-person-summary');
+    expect(within(summary).getByText('2 de hotărât')).toBeTruthy();
+    expect(summary.textContent).toContain('CNP cu o cifră necitită');
+    expect(within(toma).getByTitle('Postul').textContent).toContain('Ajutor brutar');
     expect(toma.textContent).not.toContain('Post de hotărât');
     const pop = within(groups[1]!).getAllByTestId('employee-hub-person')[0]!;
-    expect(within(pop).getByTestId('employee-hub-person-summary').textContent).toBe(
-      'Nimic de hotărât pe fișeDurată neobișnuită la o instruire'
+    expect(pop.textContent).toContain('Nimic de hotărât pe fișe');
+    expect(pop.textContent).toContain('Durată neobișnuită la o instruire');
+  });
+
+  it('keeps apart those who wait only on the post and workplace decided above', async () => {
+    const base = employeeDetail();
+    mockEmployeeImport({
+      detail: employeeDetail({
+        employees: {
+          ...base.employees!,
+          changes: {
+            people: { toma: { cnpCorrection: true } },
+            rows: { r5: { values: { trainerName: 'Barbu Ionuț' } } },
+          },
+        },
+      }),
+    });
+    mount(importPath);
+    await screen.findByTestId('employee-hub');
+    await waitFor(() =>
+      expect(
+        within(screen.getAllByTestId('employee-hub-group')[0]!).getByRole('heading').textContent
+      ).toBe('Așteaptă doar postul sau locul de muncă 1')
     );
+    const [waiting] = screen.getAllByTestId('employee-hub-group');
+    const toma = within(waiting!).getByTestId('employee-hub-person');
+    expect(toma.textContent).toContain('Nimic de hotărât pe fișe');
+    expect(within(toma).queryByText(/de hotărât$/)).toBeNull();
+    expect(
+      within(screen.getByTestId('employee-hub-bar')).queryByRole('button', {
+        name: /persoan/,
+      })
+    ).toBeNull();
+  });
+
+  it('counts a leaver not taken as set aside, not as someone to check', async () => {
+    mockEmployeeImport({ detail: popWith({ leftOn: '2026-09-30' }) });
+    mount(importPath);
+    await screen.findByTestId('employee-hub');
+    const aside = screen.getAllByTestId('employee-hub-group').at(-1)!;
+    expect(within(aside).getByRole('heading').textContent).toBe('Lăsați deoparte 1');
+    expect(within(aside).getByRole('switch', { name: 'Nu e inclus: Pop Elena' })).toBeTruthy();
+    expect(within(aside).getByTestId('employee-hub-person-summary').textContent).toContain(
+      'A plecat din firmă'
+    );
+    const people = screen.getByRole('region', { name: 'Persoane' });
+    expect(within(people).getAllByTestId('section-status')[0]!.textContent).toBe('2 de verificat');
+    expect(screen.getByTestId('employee-hub-bar').textContent).toContain('0 din 2 verificate');
   });
 
   it('sets a person aside from the list with the switch the person page uses, and takes them back', async () => {
