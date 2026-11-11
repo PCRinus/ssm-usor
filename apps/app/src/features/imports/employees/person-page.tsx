@@ -156,6 +156,7 @@ export function EmployeePersonPage({
   const [highlight, setHighlight] = useState<Highlight | null>(null);
   const [typing, setTyping] = useState(false);
   const focusAfterViewer = useRef<string | null>(null);
+  const lastChoice = useRef<FieldName | null>(null);
   const [opened, setOpened] = useState<{ section: string; photo: string } | null>(null);
   const opener = useRef<HTMLElement | null>(null);
   const lastJump = useRef<string | null>(null);
@@ -242,6 +243,7 @@ export function EmployeePersonPage({
     (opened?.section === section ? opened.photo : null) ?? sectionPhotos[0] ?? pages[0]?.id ?? null;
 
   const showPhoto = (pageId: string) => {
+    if (viewer?.mode.kind === 'photo') setHighlight(null);
     setViewer((current) => (current ? { ...current, photo: pageId } : current));
     setOpened({ section, photo: pageId });
   };
@@ -283,13 +285,16 @@ export function EmployeePersonPage({
     const options = resolveField(context, person, field).options;
     const change = context.changes.people[person.id]?.fields?.[field];
     const chosen = options.find((option) => option.index === change?.option);
+    const cited = options.flatMap((option) => option.pageIds);
     const photo =
-      orderedPhotos(pages, chosen?.pageIds ?? options.flatMap((option) => option.pageIds))[0] ??
+      (viewer && cited.includes(viewer.photo) ? viewer.photo : null) ??
+      orderedPhotos(pages, chosen?.pageIds ?? cited)[0] ??
       viewer?.photo;
     if (photo) showPage(photo, field);
   };
 
   const closeViewer = () => {
+    lastChoice.current = viewer?.mode.kind === 'choice' ? viewer.mode.field : null;
     setViewer(null);
     setHighlight(null);
     setTyping(false);
@@ -298,13 +303,14 @@ export function EmployeePersonPage({
   const giveFocusBack = (event: Event) => {
     const after = focusAfterViewer.current;
     focusAfterViewer.current = null;
+    const choice = lastChoice.current;
+    lastChoice.current = null;
     const target =
       (after ? document.getElementById(after) : null) ??
-      (opener.current?.isConnected
-        ? opener.current
-        : document.querySelector<HTMLElement>(
-            '[data-testid="person-strip"] [aria-current="true"]'
-          ));
+      (opener.current?.isConnected ? opener.current : null) ??
+      (choice ? document.getElementById(`choice-${choice}`) : null) ??
+      document.querySelector<HTMLElement>('[data-testid="person-decisions"] [role="group"]') ??
+      document.querySelector<HTMLElement>('[data-testid="person-strip"] [aria-current="true"]');
     opener.current = null;
     if (!target) return;
     event.preventDefault();
@@ -712,6 +718,7 @@ export function EmployeePersonPage({
                   onTyping={setTyping}
                   onGo={openChoiceInViewer}
                   onClose={closeViewer}
+                  save={review}
                   onChange={review.update}
                 />
               ) : (
@@ -723,8 +730,8 @@ export function EmployeePersonPage({
                   page={page}
                   onHighlight={setHighlight}
                   onOpenChoice={openChoiceInViewer}
-                  onOpenRow={(rowId) => {
-                    focusAfterViewer.current = `row-${rowId}`;
+                  onOpenRow={(target) => {
+                    focusAfterViewer.current = target;
                     closeViewer();
                   }}
                 />

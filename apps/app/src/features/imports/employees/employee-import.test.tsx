@@ -1,4 +1,4 @@
-import { cleanup, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -1340,6 +1340,217 @@ describe('the large photo beside a choice', () => {
     await user.click(rows.find((item) => item.textContent!.startsWith('Instruire SSM, '))!);
     await waitFor(() => expect(screen.queryByTestId('photo-preview')).toBeNull());
     await waitFor(() => expect(document.activeElement?.id).toBe('row-r2'));
+  });
+});
+
+function tomaWithManyRows() {
+  const detail = tomaWithChoices();
+  const proposal = detail.employees!.proposal;
+  return employeeDetail({
+    employees: {
+      ...detail.employees!,
+      proposal: {
+        ...proposal,
+        pages: proposal.pages.map((page) =>
+          page.id === 'p2'
+            ? {
+                ...page,
+                rows: [
+                  ...page.rows,
+                  sheetRow('r7', { heldOn: '2023-03-01' }),
+                  sheetRow('r8', { heldOn: '2023-09-01' }),
+                  sheetRow('r9', { heldOn: '2024-03-01' }),
+                ],
+              }
+            : page
+        ),
+      },
+    },
+  });
+}
+
+describe('the large photo beside a choice, when saving and with the keyboard', () => {
+  const openHomeAddress = async (user: ReturnType<typeof userEvent.setup>) => {
+    const row = await screen.findByTestId('person-decide-choice-homeAddress');
+    await user.click(within(row).getAllByTestId('person-page-button')[0]!);
+    return screen.findByTestId('viewer-choice');
+  };
+
+  it('announces the value picked and the count left, and moves the focus to the next choice', async () => {
+    mockEmployeeImport({ detail: tomaWithChoices() });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const choice = await openHomeAddress(user);
+    const status = within(choice).getByTestId('viewer-choice-status');
+    expect(status.getAttribute('role')).toBe('status');
+    expect(status.textContent).toBe('');
+    await user.click(within(choice).getByRole('radio', { name: 'Str. Fabricii nr. 21, Sibiu' }));
+    await waitFor(() => expect(status.textContent).toMatch(/^Aleasă\. \d+ de hotărât\.$/));
+    await user.click(within(choice).getByTestId('viewer-choice-next'));
+    expect(document.activeElement).toBe(
+      within(choice).getByRole('heading', { name: 'Data angajării' })
+    );
+  });
+
+  it('shows a refused save beside the choice, without Aleasă, and saves it again', async () => {
+    let refuse = true;
+    mockEmployeeImport({
+      detail: tomaWithChoices(),
+      saveChanges: () =>
+        refuse ? Response.json({ error: 'internal', message: 'down' }, { status: 500 }) : undefined,
+    });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const choice = await openHomeAddress(user);
+    await user.click(within(choice).getByRole('radio', { name: 'Str. Fabricii nr. 21, Sibiu' }));
+    const error = await within(choice).findByTestId('viewer-choice-save-error');
+    expect(error.getAttribute('role')).toBe('alert');
+    expect(error.textContent).toContain('Ultima schimbare nu s-a salvat.');
+    expect(within(choice).queryByTestId('viewer-choice-picked')).toBeNull();
+    refuse = false;
+    await user.click(within(error).getByRole('button', { name: 'Salvează din nou' }));
+    await within(choice).findByTestId('viewer-choice-picked');
+    expect(within(choice).queryByTestId('viewer-choice-save-error')).toBeNull();
+  });
+
+  it('stops the choices when the proposal changed meanwhile, and offers to reload it', async () => {
+    mockEmployeeImport({
+      detail: tomaWithChoices(),
+      saveChanges: () =>
+        Response.json(
+          { error: 'conflict', message: 'changed', reason: 'import_changed' },
+          { status: 409 }
+        ),
+    });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const choice = await openHomeAddress(user);
+    await user.click(within(choice).getByRole('radio', { name: 'Str. Fabricii nr. 21, Sibiu' }));
+    const error = await within(choice).findByTestId('viewer-choice-save-error');
+    expect(error.textContent).toContain('Propunerea s-a schimbat. Schimbarea ta nu s-a salvat.');
+    expect(within(error).getByRole('button', { name: 'Reîncarcă propunerea' })).toBeTruthy();
+    for (const radio of within(choice).getAllByRole<HTMLInputElement>('radio'))
+      expect(radio.disabled).toBe(true);
+  });
+
+  it('clears a value typed under Altă valoare when it is emptied before moving on', async () => {
+    mockEmployeeImport({ detail: tomaWithChoices() });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const lastFields = () =>
+      saved(requestsTo(`/imports/${importId}/employee-changes`, 'PUT').length - 1).changes.people
+        .toma?.fields;
+    let choice = await openHomeAddress(user);
+    await user.click(within(choice).getByTestId('person-choice-other'));
+    await user.type(
+      within(choice).getByLabelText('Domiciliul', { selector: 'input' }),
+      'Str. Viilor nr. 9, Sibiu'
+    );
+    await user.click(within(choice).getByTestId('viewer-choice-next'));
+    await waitFor(() =>
+      expect(lastFields()).toEqual({ homeAddress: { value: 'Str. Viilor nr. 9, Sibiu' } })
+    );
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('photo-preview')).toBeNull());
+
+    choice = await openHomeAddress(user);
+    await user.clear(within(choice).getByLabelText('Domiciliul', { selector: 'input' }));
+    await user.click(within(choice).getByTestId('viewer-choice-next'));
+    await waitFor(() => expect(lastFields()).toBeUndefined());
+    expect(within(choice).getByRole('heading', { level: 3 }).textContent).toBe('Data angajării');
+    expect(within(choice).getByTestId('viewer-choice-next').textContent).toBe(
+      'Mai departe: domiciliul'
+    );
+  });
+
+  it('lists only the training rows the page shows, each opening its row', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(`${importPath}/lazar`);
+    await user.click(
+      within(await screen.findByTestId('person-strip')).getByRole('button', {
+        name: /^Fotografia 1 din 1/,
+      })
+    );
+    const citations = await screen.findByTestId('viewer-citations');
+    const items = within(citations).getAllByTestId('viewer-citation');
+    expect(items.map((item) => item.textContent)).toEqual(['Instruire SSM, 11.08.2025']);
+    await user.click(items[0]!);
+    await waitFor(() => expect(document.activeElement?.id).toBe('row-r6'));
+  });
+
+  it('shows five things on a photo, then the rest on Încă', async () => {
+    mockEmployeeImport({ detail: tomaWithManyRows() });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    await user.click(
+      within(await screen.findByTestId('person-strip')).getByRole('button', {
+        name: /^Fotografia 2 din 2/,
+      })
+    );
+    const citations = await screen.findByTestId('viewer-citations');
+    expect(within(citations).getAllByTestId('viewer-citation')).toHaveLength(5);
+    const more = within(citations).getByTestId('viewer-citations-more');
+    expect(more.textContent).toBe('Încă 2: instruirile din 2023–2024');
+    await user.click(more);
+    expect(within(citations).getAllByTestId('viewer-citation')).toHaveLength(7);
+    expect(within(citations).queryByTestId('viewer-citations-more')).toBeNull();
+  });
+
+  it('underlines on the first tap and opens on the second, and opens at once from the keyboard', async () => {
+    mockEmployeeImport({ detail: tomaWithChoices() });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    await user.click(
+      within(await screen.findByTestId('person-strip')).getByRole('button', {
+        name: /^Fotografia 2 din 2/,
+      })
+    );
+    const preview = await screen.findByTestId('photo-preview');
+    const item = within(preview).getByRole('button', { name: 'Domiciliul' });
+    await user.pointer({ keys: '[TouchA]', target: item });
+    expect(item.dataset.selected).toBe('true');
+    expect(within(preview).getByTestId('viewer-underline-caption').textContent).toBe(
+      'Subliniate: fotografiile unde apare Domiciliul'
+    );
+    expect(within(preview).queryByTestId('viewer-choice')).toBeNull();
+    await user.pointer({ keys: '[TouchA]', target: item });
+    expect(within(preview).getByTestId('viewer-choice')).toBeTruthy();
+    expect(within(preview).getByTestId('photo-preview-position').textContent).toBe('2 din 2');
+
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('photo-preview')).toBeNull());
+    await user.click(
+      within(screen.getByTestId('person-strip')).getByRole('button', {
+        name: /^Fotografia 2 din 2/,
+      })
+    );
+    const again = await screen.findByTestId('photo-preview');
+    act(() => within(again).getByRole('button', { name: 'Data angajării' }).focus());
+    expect(within(again).getByTestId('viewer-underline-caption').textContent).toBe(
+      'Subliniate: fotografiile unde apare Data angajării'
+    );
+    await user.keyboard('{Enter}');
+    expect(within(again).getByRole('heading', { name: 'Data angajării' })).toBeTruthy();
+  });
+
+  it('clears the underline when the focus leaves a listed item or the photo changes', async () => {
+    mockEmployeeImport({ detail: tomaWithChoices() });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    await user.click(
+      within(await screen.findByTestId('person-strip')).getByRole('button', {
+        name: /^Fotografia 2 din 2/,
+      })
+    );
+    const preview = await screen.findByTestId('photo-preview');
+    act(() => within(preview).getByRole('button', { name: 'Domiciliul' }).focus());
+    expect(within(preview).getByTestId('viewer-underline-caption')).toBeTruthy();
+    act(() => within(preview).getByRole('button', { name: 'Închide' }).focus());
+    expect(within(preview).queryByTestId('viewer-underline-caption')).toBeNull();
+    act(() => within(preview).getByRole('button', { name: 'Domiciliul' }).focus());
+    await user.click(within(preview).getByTestId('photo-preview-previous'));
+    expect(within(preview).queryByTestId('viewer-underline-caption')).toBeNull();
   });
 });
 

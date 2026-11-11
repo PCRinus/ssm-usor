@@ -2,10 +2,11 @@ import { trainingDomainLabels } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { ArrowRight, Check, ChevronRight } from 'lucide-react';
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import { roCount } from '@/features/employees/employee-format';
 
+import type { ImportSaveState } from '../import-action-bar';
 import { StatusTag, Tag } from '../review-parts';
 import {
   type Decision,
@@ -14,7 +15,10 @@ import {
   type Person,
   resolveField,
   type ReviewContext,
+  rowValues,
   type SheetPage,
+  type SheetRow,
+  trainingsByDomain,
 } from './employee-review-model';
 import { ChoiceCards, type OtherCommit } from './person-decisions';
 import { nextChoice } from './person-sections';
@@ -49,6 +53,7 @@ export function ViewerChoice({
   onTyping,
   onGo,
   onClose,
+  save,
   onChange,
 }: {
   context: ReviewContext;
@@ -60,17 +65,30 @@ export function ViewerChoice({
   onTyping: (typing: boolean) => void;
   onGo: (field: FieldName) => void;
   onClose: () => void;
+  save: ImportSaveState;
   onChange: Update;
 }) {
   const headingId = useId();
+  const heading = useRef<HTMLHeadingElement>(null);
+  const moved = useRef(false);
   const commit = useRef<OtherCommit | null>(null);
   const change = context.changes.people[person.id]?.fields?.[field];
-  const picked = change?.option !== undefined || change?.value !== undefined;
+  const failed = save.conflict || Boolean(save.error);
+  const picked =
+    (change?.option !== undefined || change?.value !== undefined) && !save.saving && !failed;
   const count = resolveField(context, person, field).options.length;
   const next = nextChoice(decisions, queue, field);
+  const left = decisions.length > 0 ? `${decisions.length} de hotărât` : 'Gata';
+
+  useEffect(() => {
+    if (!moved.current) return;
+    moved.current = false;
+    heading.current?.focus();
+  }, [field]);
 
   function proceed() {
-    if ((commit.current?.() ?? 'empty') === 'invalid') return;
+    if (!save.conflict && (commit.current?.() ?? 'empty') === 'invalid') return;
+    moved.current = true;
     if (next) onGo(next);
     else onClose();
   }
@@ -82,6 +100,7 @@ export function ViewerChoice({
           <DecisionsLeft count={decisions.length} />
           {picked && (
             <span
+              aria-hidden="true"
               className="flex items-center gap-1.5 text-sm font-medium text-success-foreground"
               data-testid="viewer-choice-picked"
             >
@@ -90,8 +109,34 @@ export function ViewerChoice({
             </span>
           )}
         </div>
+        <p role="status" className="sr-only" data-testid="viewer-choice-status">
+          {picked ? `Aleasă. ${left}.` : ''}
+        </p>
+        {failed && (
+          <div
+            role="alert"
+            className="grid justify-items-start gap-2 rounded-lg border border-destructive-border bg-destructive-soft px-3 py-2.5 text-sm text-destructive-foreground"
+            data-testid="viewer-choice-save-error"
+          >
+            {save.conflict
+              ? 'Propunerea s-a schimbat. Schimbarea ta nu s-a salvat.'
+              : 'Ultima schimbare nu s-a salvat.'}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={save.conflict ? () => void save.reload() : save.retry}
+            >
+              {save.conflict ? 'Reîncarcă propunerea' : 'Salvează din nou'}
+            </Button>
+          </div>
+        )}
         <div className="grid gap-0.5">
-          <h3 id={headingId} className="text-[15px] font-semibold">
+          <h3
+            id={headingId}
+            ref={heading}
+            tabIndex={-1}
+            className="text-[15px] font-semibold outline-none"
+          >
             {fieldLabels[field]}
           </h3>
           <p className="text-[13px] text-muted-foreground">
@@ -105,6 +150,7 @@ export function ViewerChoice({
           name={field}
           labelledBy={headingId}
           stacked
+          disabled={save.conflict}
           commitRef={commit}
           onHighlight={(option) =>
             onHighlight(
@@ -146,7 +192,7 @@ type Citation = {
   label: string;
   photos: string[];
   heldOn: string | null;
-  open: { kind: 'choice'; field: FieldName } | { kind: 'row'; id: string };
+  open: { kind: 'choice'; field: FieldName } | { kind: 'row'; target: string };
 };
 
 function citations(
@@ -171,19 +217,34 @@ function citations(
         },
       ];
     });
-  const rows = page.rows
-    .filter((row) => !row.testOnly)
-    .map((row): Citation => {
-      const heldOn = context.changes.rows[row.id]?.values?.heldOn ?? row.heldOn;
-      const day = typeof heldOn === 'string' ? heldOn : null;
-      return {
+  const here = ({ page: own }: { page: SheetPage }) => own.id === page.id;
+  const rows = trainingsByDomain(context, person.id).flatMap((domain) => {
+    const domainLabel = trainingDomainLabels[domain.domain];
+    const day = (row: SheetRow) => rowValues(context.changes, row).heldOn;
+    const trainings = [...domain.hiring.rows, ...domain.periodic]
+      .filter(here)
+      .map(({ row }): Citation => ({
         key: `row-${row.id}`,
-        label: `Instruire ${trainingDomainLabels[row.domain]}, ${dateLabel(day) ?? 'Data nu se citește'}`,
+        label: `Instruire ${domainLabel}, ${dateLabel(day(row)) ?? 'Data nu se citește'}`,
         photos: [page.id],
-        heldOn: day,
-        open: { kind: 'row', id: row.id },
-      };
-    });
+        heldOn: day(row),
+        open: { kind: 'row', target: `row-${row.id}` },
+      }));
+    const tests = [
+      ...(domain.hiring.test && here(domain.hiring.test) ? [domain.hiring.test] : []),
+      ...domain.annualTests.filter(here),
+    ].map(({ row }): Citation => ({
+      key: `test-${row.id}`,
+      label:
+        row.test?.test === 'annual'
+          ? `Testul anual ${domainLabel}, ${dateLabel(day(row)) ?? 'Data nu se citește'}`
+          : `Testul la angajare ${domainLabel}`,
+      photos: [page.id],
+      heldOn: day(row),
+      open: { kind: 'row', target: `test-${row.id}` },
+    }));
+    return [...trainings, ...tests];
+  });
   return [...choices, ...rows];
 }
 
@@ -214,7 +275,7 @@ export function PhotoCitations({
   page: SheetPage;
   onHighlight: (highlight: Highlight | null) => void;
   onOpenChoice: (field: FieldName) => void;
-  onOpenRow: (rowId: string) => void;
+  onOpenRow: (target: string) => void;
 }) {
   const headingId = useId();
   const [expanded, setExpanded] = useState(false);
@@ -230,7 +291,7 @@ export function PhotoCitations({
         : null
     );
   const open = (item: Citation) =>
-    item.open.kind === 'choice' ? onOpenChoice(item.open.field) : onOpenRow(item.open.id);
+    item.open.kind === 'choice' ? onOpenChoice(item.open.field) : onOpenRow(item.open.target);
 
   return (
     <section
@@ -261,8 +322,10 @@ export function PhotoCitations({
                 }}
                 onPointerEnter={() => highlight(item)}
                 onFocus={() => highlight(item)}
-                onClick={() => {
-                  if (pointer.current === 'touch' && selected !== item.key) {
+                onBlur={() => highlight(null)}
+                onClick={(event) => {
+                  const tapped = event.detail !== 0 && pointer.current === 'touch';
+                  if (tapped && selected !== item.key) {
                     setSelected(item.key);
                     highlight(item);
                     return;

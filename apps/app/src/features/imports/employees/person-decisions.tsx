@@ -485,6 +485,7 @@ export function ChoiceCards({
   name,
   labelledBy,
   stacked = false,
+  disabled = false,
   commitRef,
   onHighlight,
   onTyping,
@@ -495,6 +496,7 @@ export function ChoiceCards({
   name: FieldName;
   labelledBy: string;
   stacked?: boolean;
+  disabled?: boolean;
   commitRef?: RefObject<OtherCommit | null>;
   onHighlight?: (option: { pageIds: string[]; value: string } | null) => void;
   onTyping?: (typing: boolean) => void;
@@ -531,7 +533,11 @@ export function ChoiceCards({
   }
 
   useImperativeHandle(commitRef, () => () => {
-    if (!otherOpen || other.trim() === '') return 'empty';
+    if (!otherOpen) return 'empty';
+    if (other.trim() === '') {
+      if (typed !== undefined) onChange((current) => withField(current, person.id, name, null));
+      return 'empty';
+    }
     if (typed !== undefined && String(typed) === other.trim()) return 'committed';
     return takeOther() ? 'committed' : 'invalid';
   });
@@ -564,6 +570,7 @@ export function ChoiceCards({
                 type="radio"
                 name={group}
                 checked={checked}
+                disabled={disabled}
                 onChange={() => {
                   setOtherOpen(false);
                   highlight(option);
@@ -596,6 +603,7 @@ export function ChoiceCards({
             type="radio"
             name={group}
             checked={otherOpen}
+            disabled={disabled}
             onChange={() => {
               setOtherOpen(true);
               highlight(undefined);
@@ -611,30 +619,34 @@ export function ChoiceCards({
             noValidate
             onSubmit={submitOther}
             onFocus={() => onTyping?.(true)}
-            onBlur={() => onTyping?.(false)}
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) onTyping?.(false);
+            }}
           >
-            <span className="flex flex-wrap items-center gap-2">
-              <label htmlFor={inputId} className="sr-only">
-                {fieldTitles[name]}
-              </label>
-              <FieldInput
-                id={inputId}
-                name={name}
-                value={other}
-                invalid={Boolean(otherError)}
-                describedBy={otherError ? `${inputId}-error` : undefined}
-                className="max-w-xs min-w-0 flex-1"
-                onChange={setOther}
-              />
-              <Button type="submit" variant="outline" data-testid="person-choice-other-use">
-                Folosește
-              </Button>
-            </span>
-            {otherError && (
-              <span id={`${inputId}-error`} className="text-[13px] text-destructive">
-                {otherError}
+            <fieldset disabled={disabled} className="contents">
+              <span className="flex flex-wrap items-center gap-2">
+                <label htmlFor={inputId} className="sr-only">
+                  {fieldTitles[name]}
+                </label>
+                <FieldInput
+                  id={inputId}
+                  name={name}
+                  value={other}
+                  invalid={Boolean(otherError)}
+                  describedBy={otherError ? `${inputId}-error` : undefined}
+                  className="max-w-xs min-w-0 flex-1"
+                  onChange={setOther}
+                />
+                <Button type="submit" variant="outline" data-testid="person-choice-other-use">
+                  Folosește
+                </Button>
               </span>
-            )}
+              {otherError && (
+                <span id={`${inputId}-error`} className="text-[13px] text-destructive">
+                  {otherError}
+                </span>
+              )}
+            </fieldset>
           </form>
         )}
       </div>
