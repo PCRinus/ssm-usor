@@ -10,11 +10,13 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { cn } from '@ssm-usor/ui/lib/utils';
+import { CalendarCheck, ChevronRight, FileText, Image as ImageIcon } from 'lucide-react';
 import { useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
 
-import { photosLabel } from '../import-format';
+import { PhotoPreviewDialog } from '../photo-preview-dialog';
+import { Fact, Facts, SectionHeader, StatusTag, Tag } from '../review-parts';
 import {
   type Changes,
   ownerOf,
@@ -23,7 +25,7 @@ import {
   type SheetPage,
   unplacedPages,
 } from './employee-review-model';
-import { PageThumb } from './page-thumb';
+import { EnlargeablePageThumb } from './page-thumb';
 import { withPage } from './review-changes';
 import { dateLabel, pageFileName, pageKindLabel, trainingsLabel } from './review-format';
 import { SheetPageView } from './sheet-page-view';
@@ -36,9 +38,11 @@ function readSummary(page: SheetPage) {
   const rows =
     page.rows.length === 0
       ? 'Niciun rând de instruire'
-      : `${trainingsLabel(page.rows.length)}${dated.length > 1 ? `, din ${dateLabel(dated[0]!)} până la ${dateLabel(dated.at(-1)!)}` : ''}`;
+      : `${trainingsLabel(page.rows.length)}${dated.length > 1 ? `, ${dateLabel(dated[0]!)} – ${dateLabel(dated.at(-1)!)}` : ''}`;
   return { rows, unreadable: page.unreadable };
 }
+
+export const unplacedSectionId = 'employee-hub-unplaced-heading';
 
 export function UnplacedPages({
   detail,
@@ -50,73 +54,148 @@ export function UnplacedPages({
   onChange: (mutate: (current: Changes) => Changes) => void;
 }) {
   const [open, setOpen] = useState<number | null>(null);
+  const [enlarged, setEnlarged] = useState<string | null>(null);
   const pages = unplacedPages(context.proposal);
   if (pages.length === 0) return null;
-  const waiting = pages.filter((page) => context.changes.pages[page.id] === undefined);
+  const toAssign = pages.filter((page) => context.changes.pages[page.id] === undefined).length;
   return (
-    <Card className="gap-0 overflow-hidden py-0" data-testid="employee-hub-unplaced">
-      <div className="grid gap-1 border-b px-5 py-4">
-        <h2 className="text-lg font-semibold">
-          {pages.length === 1
-            ? 'O fotografie neatribuită'
-            : `${photosLabel(pages.length)} neatribuite`}
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Nu le-am putut lega de nicio persoană. Dacă nu le atribui, le lăsăm deoparte.
-          {waiting.length < pages.length &&
-            ` Ai hotărât pentru ${pages.length - waiting.length} din ${pages.length}.`}
-        </p>
-      </div>
-      <ul className="divide-y">
-        {pages.map((page, index) => {
-          const owner = ownerOf(context, page);
-          const person = context.proposal.people.find((each) => each.id === owner);
-          const decided = context.changes.pages[page.id] !== undefined;
-          return (
-            <li
+    <section aria-labelledby={unplacedSectionId} className="scroll-mt-24">
+      <Card className="gap-0 overflow-hidden py-0" data-testid="employee-hub-unplaced">
+        <div className="border-b px-4 py-4 sm:px-5">
+          <SectionHeader
+            headingId={unplacedSectionId}
+            icon={ImageIcon}
+            title="Fotografii neatribuite"
+            description="Nu le-am putut lega de nicio persoană. Cele pe care nu le atribui rămân deoparte."
+            status={
+              toAssign > 0 ? (
+                <Tag tone="warning" testId="section-status">
+                  {toAssign} de atribuit
+                </Tag>
+              ) : (
+                <StatusTag status={{ kind: 'done' }} />
+              )
+            }
+          />
+        </div>
+        <ul className="divide-y">
+          {pages.map((page, index) => (
+            <UnplacedRow
               key={page.id}
-              className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2 px-5 py-3 sm:grid-cols-[2.5rem_minmax(0,1fr)_auto]"
-              data-testid="employee-hub-unplaced-page"
+              detail={detail}
+              context={context}
+              page={page}
+              onOpen={() => setOpen(index)}
+              onEnlarge={() => setEnlarged(page.id)}
+            />
+          ))}
+        </ul>
+        <UnplacedDialog
+          detail={detail}
+          context={context}
+          pages={pages}
+          index={open}
+          onIndex={setOpen}
+          onEnlarge={setEnlarged}
+          onSave={(pageId, personId) => onChange((current) => withPage(current, pageId, personId))}
+        />
+        <PhotoPreviewDialog
+          photos={pages.map((page, index) => ({
+            key: page.id,
+            name: pageFileName(page),
+            detail: `Fotografia neatribuită ${index + 1} din ${pages.length} · ${pageKindLabel(page)} · ${lowerFirst(readSummary(page).rows)}`,
+            view: (
+              <SheetPageView importId={detail.id} page={page} className="h-full rounded-none" />
+            ),
+          }))}
+          current={enlarged}
+          onCurrent={setEnlarged}
+          onClose={() => setEnlarged(null)}
+          actions={(pageId) => (
+            <Button
+              variant="outline"
+              data-testid="photo-preview-assign"
+              onClick={() => {
+                setEnlarged(null);
+                setOpen(pages.findIndex((page) => page.id === pageId));
+              }}
             >
-              <button
-                type="button"
-                aria-label={`Mărește ${pageFileName(page)}`}
-                onClick={() => setOpen(index)}
-              >
-                <PageThumb detail={detail} page={page} className="h-12 w-10" />
-              </button>
-              <span className="grid min-w-0">
-                <span className="truncate font-medium">{pageFileName(page)}</span>
-                <span className="text-[13px] text-muted-foreground">
-                  {pageKindLabel(page)}. {readSummary(page).rows}.
-                  {decided &&
-                    (person
-                      ? ` Atribuită lui ${personName(context, person)}.`
-                      : ' Lăsată deoparte.')}
-                </span>
-              </span>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="col-start-2 w-fit sm:col-start-auto"
-                onClick={() => setOpen(index)}
-              >
-                {decided ? 'Schimbă' : 'Atribuie…'}
-              </Button>
-            </li>
-          );
-        })}
-      </ul>
-      <UnplacedDialog
-        detail={detail}
-        context={context}
-        pages={pages}
-        index={open}
-        onIndex={setOpen}
-        onSave={(pageId, personId) => onChange((current) => withPage(current, pageId, personId))}
+              Atribuie…
+            </Button>
+          )}
+        />
+      </Card>
+    </section>
+  );
+}
+
+const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
+
+function UnplacedRow({
+  detail,
+  context,
+  page,
+  onOpen,
+  onEnlarge,
+}: {
+  detail: ImportDetail;
+  context: ReviewContext;
+  page: SheetPage;
+  onOpen: () => void;
+  onEnlarge: () => void;
+}) {
+  const owner = ownerOf(context, page);
+  const person = context.proposal.people.find((each) => each.id === owner);
+  const decided = context.changes.pages[page.id] !== undefined;
+  const name = pageFileName(page);
+  return (
+    <li
+      className="group/row relative grid grid-cols-[3.5rem_minmax(0,1fr)_1rem] items-center gap-x-4 gap-y-1 px-4 py-2.5 transition-colors hover:bg-muted/50 sm:grid-cols-[3.5rem_minmax(0,1fr)_auto_1rem] sm:px-5"
+      data-testid="employee-hub-unplaced-page"
+    >
+      <span className="relative z-10 row-span-3 row-start-1 sm:row-span-1">
+        <EnlargeablePageThumb
+          detail={detail}
+          page={page}
+          label={`Deschide mare ${name}`}
+          testId="employee-hub-unplaced-enlarge"
+          onEnlarge={onEnlarge}
+        />
+      </span>
+      <span className="grid min-w-0 gap-0.5 max-sm:contents">
+        <button
+          type="button"
+          aria-label={`Atribuie ${name}`}
+          title={name}
+          data-testid="employee-hub-unplaced-open"
+          onClick={onOpen}
+          className="min-w-0 cursor-pointer truncate max-sm:col-start-2 text-left text-[15px] font-semibold underline-offset-[3px] outline-none group-hover/row:underline after:absolute after:inset-0 after:content-[''] focus-visible:underline focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
+        >
+          {name}
+        </button>
+        <span className="min-w-0 max-sm:col-start-2">
+          <Facts>
+            <Fact icon={FileText}>{pageKindLabel(page)}</Fact>
+            <Fact icon={CalendarCheck} wrap>
+              {readSummary(page).rows}
+            </Fact>
+          </Facts>
+        </span>
+      </span>
+      <span className="col-start-2 justify-self-start sm:col-start-3 sm:row-start-1 sm:justify-self-end">
+        {!decided ? (
+          <Tag tone="warning">De atribuit</Tag>
+        ) : person ? (
+          <Tag tone="success">La {personName(context, person)}</Tag>
+        ) : (
+          <Tag tone="muted">Lăsată deoparte</Tag>
+        )}
+      </span>
+      <ChevronRight
+        className="col-start-3 row-span-3 row-start-1 size-4 text-muted-foreground sm:col-start-4 sm:row-span-1"
+        aria-hidden="true"
       />
-    </Card>
+    </li>
   );
 }
 
@@ -126,6 +205,7 @@ function UnplacedDialog({
   pages,
   index,
   onIndex,
+  onEnlarge,
   onSave,
 }: {
   detail: ImportDetail;
@@ -133,6 +213,7 @@ function UnplacedDialog({
   pages: SheetPage[];
   index: number | null;
   onIndex: (index: number | null) => void;
+  onEnlarge: (pageId: string) => void;
   onSave: (pageId: string, personId: string | null) => void;
 }) {
   return (
@@ -145,6 +226,7 @@ function UnplacedDialog({
           pages={pages}
           index={index}
           onIndex={onIndex}
+          onEnlarge={onEnlarge}
           onSave={onSave}
         />
       )}
@@ -158,6 +240,7 @@ function UnplacedContent({
   pages,
   index,
   onIndex,
+  onEnlarge,
   onSave,
 }: {
   detail: ImportDetail;
@@ -165,6 +248,7 @@ function UnplacedContent({
   pages: SheetPage[];
   index: number;
   onIndex: (index: number | null) => void;
+  onEnlarge: (pageId: string) => void;
   onSave: (pageId: string, personId: string | null) => void;
 }) {
   const page = pages[index]!;
@@ -191,7 +275,12 @@ function UnplacedContent({
         </DialogDescription>
       </DialogHeader>
       <div className="grid min-h-0 flex-1 gap-5 overflow-auto md:grid-cols-[minmax(0,1fr)_20rem]">
-        <SheetPageView importId={detail.id} page={page} className="h-[min(60svh,36rem)]" />
+        <SheetPageView
+          importId={detail.id}
+          page={page}
+          className="h-[min(60svh,36rem)]"
+          onEnlarge={() => onEnlarge(page.id)}
+        />
         <div className="grid content-start gap-5">
           <section className="grid gap-2">
             <h3 className="font-semibold">Ce am citit pe ea</h3>

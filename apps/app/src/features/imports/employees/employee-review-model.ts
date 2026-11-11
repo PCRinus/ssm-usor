@@ -429,6 +429,8 @@ export type Decision = {
   tag: string;
   // A near post or workplace to confirm, rather than a gap.
   tone: 'destructive' | 'warning';
+  // Answered once for everyone with the same text on their sheets, above the people list.
+  above?: 'post' | 'workplace';
 };
 
 export type Note = { key: string; tag: string };
@@ -701,6 +703,7 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
             : 'Alege postul',
         tag: 'Post de hotărât',
         tone: 'destructive',
+        above: 'post',
       });
     } else if (status === 'confirm') {
       decisions.push({
@@ -709,6 +712,7 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
         label: 'Confirmă postul propus',
         tag: 'Post de confirmat',
         tone: 'warning',
+        above: 'post',
       });
     }
   }
@@ -824,6 +828,7 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
       label: 'Alege locul de muncă',
       tag: 'Loc de muncă de ales',
       tone: 'warning',
+      above: 'workplace',
     });
   }
 
@@ -967,11 +972,110 @@ export function peopleCounts(context: Pick<ReviewContext, 'proposal' | 'states'>
   return counts;
 }
 
-export function toCheckGroups(views: PersonView[]) {
+const ownDecisions = (view: Pick<PersonView, 'decisions'>) =>
+  view.decisions.filter((decision) => !decision.above);
+
+const lowerFirst = (label: string) =>
+  /^\p{Lu}\p{Ll}/u.test(label) ? label[0]!.toLowerCase() + label.slice(1) : label;
+
+const joinAnd = (parts: string[]) =>
+  parts.length > 1 ? `${parts.slice(0, -1).join(', ')} și ${parts.at(-1)}` : (parts[0] ?? '');
+
+/** Leaves out what is decided above; the values that differ between sheets make one part. */
+export function decisionSummary(view: Pick<PersonView, 'decisions'>) {
+  const own = ownDecisions(view);
+  const differing = own
+    .filter((decision) => decision.key.startsWith('choice-'))
+    .map((decision, index) => {
+      const label = fieldLabels[decision.key.slice('choice-'.length) as FieldName];
+      return index === 0 ? label : lowerFirst(label);
+    });
+  const parts: string[] = [];
+  for (const decision of own) {
+    const part = decision.key.startsWith('choice-')
+      ? `${joinAnd(differing)} diferă între fișe`
+      : decision.tag;
+    if (!parts.includes(part)) parts.push(part);
+  }
+  return { count: own.length, text: parts.join(' · ') };
+}
+
+export type PeopleGroup = {
+  key: 'decide' | 'waiting' | 'unopened' | 'checked' | 'set_aside';
+  title: string;
+  views: PersonView[];
+};
+
+function waitingTitle(views: PersonView[]) {
+  const above = new Set(views.flatMap((view) => view.decisions.map((decision) => decision.above)));
+  if (!above.has('workplace')) return 'Așteaptă doar postul';
+  if (!above.has('post')) return 'Așteaptă doar locul de muncă';
+  return 'Așteaptă doar postul sau locul de muncă';
+}
+
+/** The people list in the order they are worked through; what is decided above is not counted. */
+export function peopleGroups(views: PersonView[]): PeopleGroup[] {
   const toCheck = views.filter((view) => view.state === 'to_check');
+  const waiting = toCheck.filter(
+    (view) => view.decisions.length > 0 && ownDecisions(view).length === 0
+  );
+  const groups: PeopleGroup[] = [
+    {
+      key: 'decide',
+      title: 'Cu ceva de hotărât',
+      views: toCheck.filter((view) => ownDecisions(view).length > 0),
+    },
+    { key: 'waiting', title: waitingTitle(waiting), views: waiting },
+    {
+      key: 'unopened',
+      title: 'Încă nedeschise',
+      views: toCheck.filter((view) => view.decisions.length === 0),
+    },
+    {
+      key: 'checked',
+      title: 'Verificați',
+      views: views.filter((view) => view.state === 'checked'),
+    },
+    {
+      key: 'set_aside',
+      title: 'Lăsați deoparte',
+      views: views.filter((view) => view.state === 'set_aside'),
+    },
+  ];
+  return groups.filter((group) => group.views.length > 0);
+}
+
+const openGroups = <Group extends JobTitleGroup | WorkplaceGroup>(
+  groups: Group[],
+  status: (group: Group) => GroupStatus
+) => {
+  const statuses = groups.map(status);
   return {
-    decide: toCheck.filter((view) => view.decisions.length > 0),
-    unopened: toCheck.filter((view) => view.decisions.length === 0),
+    decide: statuses.filter((each) => each === 'decide').length,
+    confirm: statuses.filter((each) => each === 'confirm').length,
+  };
+};
+
+export function hubCounts(context: ReviewContext, views: PersonView[]) {
+  const { proposal, changes } = context;
+  const unplaced = unplacedPages(proposal);
+  const people = peopleCounts(context);
+  return {
+    posts: openGroups(proposal.jobTitles, (group) => titleStatus(changes, group)),
+    workplaces:
+      context.workplaceCount > 1
+        ? openGroups(proposal.workplaces, (group) => workplaceStatus(changes, group))
+        : { decide: 0, confirm: 0 },
+    people: {
+      ...people,
+      deciding: views.filter((view) => view.state === 'to_check' && ownDecisions(view).length > 0)
+        .length,
+      included: people.total - people.setAside,
+    },
+    photos: {
+      total: unplaced.length,
+      toAssign: unplaced.filter((page) => changes.pages[page.id] === undefined).length,
+    },
   };
 }
 

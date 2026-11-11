@@ -90,6 +90,7 @@ type Options = {
   confirmed?: unknown[];
   employees?: unknown[];
   clientWorkplaces?: unknown[];
+  clientPositions?: unknown[];
 };
 
 function mockEmployeeImport({
@@ -101,6 +102,7 @@ function mockEmployeeImport({
   confirmed,
   employees = [],
   clientWorkplaces = workplaces,
+  clientPositions = positions,
 }: Options = {}) {
   let version = detail.version;
   let confirmedHere: unknown[] = [];
@@ -145,7 +147,7 @@ function mockEmployeeImport({
       return Response.json({ client: { ...client, currentEmployeeCount }, canDelete: false });
     }
     if (url.pathname === `/clients/${clientId}/job-positions`) {
-      return Response.json({ items: positions });
+      return Response.json({ items: clientPositions });
     }
     if (url.pathname === `/clients/${clientId}/workplaces`) {
       return Response.json({ items: clientWorkplaces });
@@ -341,10 +343,12 @@ describe('the people hub', () => {
     mockEmployeeImport();
     mount(importPath);
     await screen.findByTestId('employee-hub');
-    expect(screen.getByTestId('employee-hub-progress').textContent).toContain('0 din 3');
-    const title = screen.getByTestId('employee-hub-title');
+    const posts = screen.getByTestId('employee-hub-posts');
+    expect(within(posts).getAllByTestId('section-status')[0]!.textContent).toBe('1 de hotărât');
+    const title = within(posts).getByTestId('employee-hub-title');
     expect(title.textContent).toContain('Ajutor brutar');
-    expect(within(title).getByTestId('group-status').textContent).toBe('De hotărât');
+    expect(title.textContent).toContain('o persoană: Toma Andrei');
+    expect(within(title).queryByTestId('group-status')).toBeNull();
     expect(screen.getByTestId('employee-hub-titles-exact').textContent).toContain('Vânzător 1');
 
     await userEvent.setup().click(await within(title).findByTestId('group-use'));
@@ -355,8 +359,61 @@ describe('the people hub', () => {
       version: 4,
       changes: { jobTitles: { 'title-helper': { jobPositionId: bakerId } } },
     });
+    expect(within(title).getByTestId('group-status').textContent).toBe('Hotărât');
+    expect(within(posts).getAllByTestId('section-status')[0]!.textContent).toBe('Gata');
   });
 
+  it('says in the posts section when the client has no posts yet, and offers the one from the sheet', async () => {
+    const base = employeeDetail();
+    mockEmployeeImport({
+      clientPositions: [],
+      detail: employeeDetail({
+        employees: {
+          ...base.employees!,
+          proposal: { ...base.employees!.proposal, clientHasPositions: false },
+        },
+      }),
+    });
+    mount(importPath);
+    const posts = await screen.findByTestId('employee-hub-posts');
+    await waitFor(() =>
+      expect(posts.textContent).toContain(
+        'Clientul nu are încă posturi. Adaugă câte unul pentru fiecare funcție de pe fișe'
+      )
+    );
+    expect(within(posts).getByTestId('group-new-post').textContent).toBe('Adaugă postul');
+    expect(within(posts).queryByTestId('group-use')).toBeNull();
+  });
+
+  it('keeps what is left to decide in a bar that leads to each section', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(importPath);
+    const bar = await screen.findByTestId('employee-hub-bar');
+    await waitFor(() =>
+      expect(
+        within(bar)
+          .getAllByRole('button', { name: /de hotărât|de ales|de atribuit/ })
+          .map((badge) => badge.textContent)
+      ).toEqual([
+        '1 post de hotărât',
+        '1 loc de muncă de ales',
+        '1 persoană cu ceva de hotărât',
+        '1 fotografie de atribuit',
+      ])
+    );
+    expect(bar.textContent).toContain('0 din 3 verificate');
+    expect(bar.textContent).toContain('Se păstrează până pe 13 nov.');
+    expect(within(bar).getByTestId('employee-hub-confirm')).toHaveProperty('disabled', true);
+    expect(within(bar).getByTestId('employee-hub-continue').textContent).toBe(
+      'Continuă cu Toma Andrei'
+    );
+
+    await user.click(within(bar).getByRole('button', { name: '1 fotografie de atribuit' }));
+    expect(document.activeElement).toBe(
+      screen.getByRole('heading', { level: 2, name: 'Fotografii neatribuite' })
+    );
+  });
   it('never offers an office where no activity takes place as a workplace', async () => {
     const [shop] = workplaces as [(typeof workplaces)[number]];
     mockEmployeeImport({
@@ -401,17 +458,94 @@ describe('the people hub', () => {
     expect(screen.queryByTestId('import-usage')).toBeNull();
   });
 
-  it('lists those with something to decide before those not yet opened', async () => {
+  it('lists those with something to decide before those not yet opened, with one summary each', async () => {
     mockEmployeeImport();
     mount(importPath);
     await screen.findByTestId('employee-hub');
     const groups = screen.getAllByTestId('employee-hub-group');
     expect(within(groups[0]!).getByRole('heading').textContent).toBe('Cu ceva de hotărât 1');
-    expect(within(groups[0]!).getByText('Toma Andrei')).toBeTruthy();
     expect(within(groups[1]!).getByRole('heading').textContent).toBe('Încă nedeschise 2');
-    expect(screen.getByTestId('employee-hub-unplaced').textContent).toContain(
-      'O fotografie neatribuită'
+    const toma = within(groups[0]!).getByTestId('employee-hub-person');
+    expect(within(toma).getByTestId('employee-hub-person-link').textContent).toBe('Toma Andrei');
+    expect(within(toma).getByTestId('employee-hub-person-summary').textContent).toBe(
+      '2 de hotărâtCNP cu o cifră necitită · Lipsește cine a instruit la o instruire'
     );
+    expect(toma.textContent).toContain('Postul: Ajutor brutar');
+    expect(toma.textContent).toContain('Angajat: din 12.08.2024');
+    expect(toma.textContent).not.toContain('Post de hotărât');
+    const pop = within(groups[1]!).getAllByTestId('employee-hub-person')[0]!;
+    expect(within(pop).getByTestId('employee-hub-person-summary').textContent).toBe(
+      'Nimic de hotărât pe fișeDurată neobișnuită la o instruire'
+    );
+  });
+
+  it('sets a person aside from the list with the switch the person page uses, and takes them back', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(importPath);
+    await screen.findByTestId('employee-hub');
+    await user.click(screen.getByRole('switch', { name: 'Inclus: Pop Elena' }));
+    await waitFor(() =>
+      expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(1)
+    );
+    expect(saved(0).changes.people.pop).toEqual({ state: 'set_aside' });
+    const aside = screen.getAllByTestId('employee-hub-group').at(-1)!;
+    expect(within(aside).getByRole('heading').textContent).toBe('Lăsați deoparte 1');
+    expect(within(aside).getByTestId('left-out-row').textContent).toBe('Pop ElenaNu e inclus');
+    expect(within(screen.getByTestId('employee-hub-bar')).getByText(/verificate/).textContent).toBe(
+      '0 din 2 verificate'
+    );
+
+    await user.click(within(aside).getByRole('switch', { name: 'Nu e inclus: Pop Elena' }));
+    await waitFor(() =>
+      expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(2)
+    );
+    expect(saved(1).changes.people.pop?.state).toBeUndefined();
+    expect(document.activeElement).toBe(screen.getByRole('switch', { name: 'Inclus: Pop Elena' }));
+  });
+});
+
+describe('the photographs no one has', () => {
+  it('opens the assignment from anywhere on the row', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(importPath);
+    const section = await screen.findByTestId('employee-hub-unplaced');
+    expect(within(section).getByTestId('section-status').textContent).toBe('1 de atribuit');
+    const row = within(section).getByTestId('employee-hub-unplaced-page');
+    expect(row.textContent).toContain('Fișa SSM, periodice');
+    expect(row.textContent).toContain('De atribuit');
+    await user.click(within(row).getByRole('button', { name: 'Atribuie IMG_p5.jpg' }));
+    const dialog = await screen.findByTestId('employee-unplaced-dialog');
+    expect(within(dialog).getByRole('heading', { level: 2 }).textContent).toBe(
+      'A cui e fotografia IMG_p5.jpg?'
+    );
+    await user.selectOptions(within(dialog).getByRole('combobox'), 'Pop Elena');
+    await user.click(within(dialog).getByTestId('employee-unplaced-save'));
+    await waitFor(() =>
+      expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(1)
+    );
+    expect(row.textContent).toContain('La Pop Elena');
+    expect(within(section).getByTestId('section-status').textContent).toBe('Gata');
+  });
+
+  it('opens a photograph large from its thumbnail, and assigns it from there', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(importPath);
+    const row = await screen.findByTestId('employee-hub-unplaced-page');
+    await user.click(within(row).getByRole('button', { name: 'Deschide mare IMG_p5.jpg' }));
+    const preview = await screen.findByTestId('photo-preview');
+    expect(within(preview).getByRole('heading').textContent).toBe('IMG_p5.jpg');
+    expect(preview.textContent).toContain(
+      'Fotografia neatribuită 1 din 1 · Fișa SSM, periodice · niciun rând de instruire'
+    );
+    await user.click(within(preview).getByTestId('photo-preview-assign'));
+    await waitFor(() => expect(screen.queryByTestId('photo-preview')).toBeNull());
+    const dialog = await screen.findByTestId('employee-unplaced-dialog');
+
+    await user.click(await within(dialog).findByTestId('photo-enlarge'));
+    expect((await screen.findByTestId('photo-preview')).textContent).toContain('IMG_p5.jpg');
   });
 });
 

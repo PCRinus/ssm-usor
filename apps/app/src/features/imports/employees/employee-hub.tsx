@@ -1,23 +1,27 @@
 import { Button } from '@ssm-usor/ui/components/button';
-import { Card } from '@ssm-usor/ui/components/card';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { BriefcaseBusiness } from 'lucide-react';
+import { Clock, UserCheck } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
-import { Notice } from '@/components/notice';
+import { roCount } from '@/features/employees/employee-format';
 
 import { AbandonImportDialog } from '../abandon-import-dialog';
+import { ImportActionBar } from '../import-action-bar';
 import { usageLine } from '../import-format';
+import { ImportIssueBadge } from '../import-review-issues';
 import { ReportImportButton } from '../report-import-button';
+import { Fact, Facts, StatusTag } from '../review-parts';
 import { EmployeeConfirmDialog } from './employee-confirm-dialog';
-import { nextToCheck, peopleCounts, peopleViews } from './employee-review-model';
-import { PeopleList } from './people-list';
-import { peopleLabel, sheetFilesLabel } from './review-format';
-import { TitleGroups, WorkplaceGroups } from './review-groups';
-import { SaveStatus } from './save-status';
-import { UnplacedPages } from './unplaced-pages';
+import { hubCounts, nextToCheck, peopleViews } from './employee-review-model';
+import { PeopleList, peopleSectionId } from './people-list';
+import { sheetFilesLabel } from './review-format';
+import { postsSectionId, TitleGroups, WorkplaceGroups, workplacesSectionId } from './review-groups';
+import { UnplacedPages, unplacedSectionId } from './unplaced-pages';
 import { useReviewContext } from './use-review-context';
+
+type Issue = { section: string; tone: 'destructive' | 'warning'; count: string; rest: string };
 
 const dayMonth = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'short' });
 
@@ -35,97 +39,63 @@ export function EmployeeHub({
   const [abandoning, setAbandoning] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const views = useMemo(() => peopleViews(context), [context]);
-  const counts = peopleCounts(context);
+  const counts = hubCounts(context, views);
   const next = nextToCheck(context);
   const nextView = next && views.find((view) => view.person.id === next.id);
   const fileIds = new Set(context.proposal.pages.map((page) => page.fileId));
   const files = detail.files.filter((file) => fileIds.has(file.id));
 
+  const reveal = (headingId: string) => {
+    const heading = document.getElementById(headingId);
+    if (!heading) return;
+    const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? true;
+    (heading.closest('section') ?? heading).scrollIntoView({
+      block: 'start',
+      behavior: calm ? 'auto' : 'smooth',
+    });
+    heading.focus({ preventScroll: true });
+  };
+  const postsOpen = counts.posts.decide + counts.posts.confirm;
+  const workplacesOpen = counts.workplaces.decide + counts.workplaces.confirm;
+  const issues: Issue[] = [
+    postsOpen > 0 && {
+      section: postsSectionId,
+      tone: counts.posts.decide > 0 ? 'destructive' : 'warning',
+      count: roCount(postsOpen, 'post', 'posturi'),
+      rest: counts.posts.decide > 0 ? 'de hotărât' : 'de confirmat',
+    },
+    workplacesOpen > 0 && {
+      section: workplacesSectionId,
+      tone: counts.workplaces.decide > 0 ? 'destructive' : 'warning',
+      count: roCount(workplacesOpen, 'loc de muncă', 'locuri de muncă'),
+      rest: 'de ales',
+    },
+    counts.people.deciding > 0 && {
+      section: peopleSectionId,
+      tone: 'destructive',
+      count: roCount(counts.people.deciding, 'persoană', 'persoane'),
+      rest: 'cu ceva de hotărât',
+    },
+    counts.photos.toAssign > 0 && {
+      section: unplacedSectionId,
+      tone: 'warning',
+      count: roCount(counts.photos.toAssign, 'fotografie', 'fotografii'),
+      rest: 'de atribuit',
+    },
+  ].filter((issue): issue is Issue => issue !== false);
+  const [nextFirst, ...nextRest] = nextView?.name.split(' ') ?? [];
+
   return (
-    <div className="grid gap-6" data-testid="employee-hub">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="grid max-w-3xl gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Verifică lucrătorii propuși</h1>
-          <p className="text-sm text-muted-foreground">
-            Pentru {clientName}: {peopleLabel(counts.total)} din {sheetFilesLabel(files)}. Nu creăm
-            pe nimeni până nu confirmi, o singură dată, la final.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+    <div className="grid gap-5" data-testid="employee-hub">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <h1 className="text-2xl font-semibold tracking-tight">Verifică lucrătorii propuși</h1>
+        <div className="flex flex-wrap gap-1 max-sm:-ml-2.5">
           <Button variant="ghost" size="sm" onClick={() => setAbandoning(true)}>
             Renunță la import
           </Button>
           <ReportImportButton importId={detail.id} />
         </div>
       </div>
-      <SaveStatus review={review} />
-      <Card
-        className="grid gap-x-8 gap-y-4 px-5 py-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-center"
-        data-testid="employee-hub-progress"
-      >
-        <div className="grid gap-2">
-          <h2 className="flex items-baseline gap-2">
-            <span className="text-2xl font-semibold tabular-nums">
-              {counts.checked} din {counts.total}
-            </span>
-            <span className="text-muted-foreground">verificați</span>
-          </h2>
-          <div
-            className="flex h-2 overflow-hidden rounded-full bg-muted"
-            role="img"
-            aria-label={`${counts.checked} verificați, ${counts.toCheck} de verificat, ${counts.setAside} lăsați deoparte`}
-          >
-            <span
-              className="bg-primary"
-              style={{ width: `${(counts.checked / Math.max(1, counts.total)) * 100}%` }}
-            />
-            <span
-              className="bg-muted-foreground/40"
-              style={{ width: `${(counts.setAside / Math.max(1, counts.total)) * 100}%` }}
-            />
-          </div>
-          <p className="text-sm text-muted-foreground tabular-nums">
-            {counts.toCheck} de verificat · {counts.setAside}{' '}
-            {counts.setAside === 1 ? 'lăsat deoparte' : 'lăsați deoparte'}
-          </p>
-        </div>
-        <div className="grid gap-1 text-sm">
-          <p>
-            Ce verifici se salvează pe loc. Poți închide pagina și continua mai târziu, din fila
-            Lucrători a clientului.
-          </p>
-          {detail.expiresAt && (
-            <p className="text-muted-foreground">
-              Se păstrează până pe {dayMonth.format(new Date(detail.expiresAt))} dacă nu mai lucrezi
-              la el.
-            </p>
-          )}
-        </div>
-        {nextView ? (
-          <Button asChild data-testid="employee-hub-continue">
-            <Link
-              to="/clienti/$clientId/angajati/import/$importId/$personId"
-              params={{ clientId, importId: detail.id, personId: nextView.person.id }}
-            >
-              Continuă cu {nextView.name}
-            </Link>
-          </Button>
-        ) : (
-          <Button data-testid="employee-hub-continue" onClick={() => setConfirming(true)}>
-            Creează lucrătorii
-          </Button>
-        )}
-      </Card>
-      {!context.proposal.clientHasPositions && positions.length === 0 && (
-        <Notice
-          variant="warning"
-          icon={<BriefcaseBusiness aria-hidden="true" />}
-          title="Clientul nu are încă posturi de lucru"
-        >
-          Fiecare lucrător intră pe un post al clientului. Adaugă posturile de mai jos, câte unul
-          pentru fiecare post scris pe fișe; le completezi apoi pe pagina postului.
-        </Notice>
-      )}
       <TitleGroups
         context={context}
         positions={positions}
@@ -139,32 +109,78 @@ export function EmployeeHub({
         context={context}
         views={views}
         positions={positions}
+        photos={sheetFilesLabel(files)}
+        toCheck={counts.people.toCheck}
+        onChange={review.update}
       />
       <UnplacedPages detail={detail} context={context} onChange={review.update} />
-      <Card
-        className="flex flex-wrap items-center justify-between gap-4 px-5 py-4"
-        aria-label="Crearea lucrătorilor"
-      >
-        <p className="max-w-2xl text-sm">
-          Creezi lucrătorii o singură dată, când ai terminat.{' '}
-          <span className="text-muted-foreground">
-            Poți și înainte să-i verifici pe toți: cei neverificați rămân în afara acestui import.
-          </span>
-        </p>
-        <Button
-          variant={counts.toCheck === 0 ? 'default' : 'outline'}
-          data-testid="employee-hub-confirm"
-          disabled={counts.checked === 0}
-          onClick={() => setConfirming(true)}
-        >
-          Creează lucrătorii…
-        </Button>
-      </Card>
       {detail.usage && (
         <p className="text-xs text-muted-foreground tabular-nums" data-testid="import-usage">
           {usageLine(detail.usage)}
         </p>
       )}
+      <ImportActionBar
+        label="Crearea lucrătorilor"
+        save={review}
+        testId="employee-hub-bar"
+        summary={
+          issues.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="text-[13px] font-normal text-muted-foreground sm:hidden">
+                De hotărât:
+              </span>
+              {issues.map((issue) => (
+                <ImportIssueBadge
+                  key={issue.section}
+                  tone={issue.tone}
+                  onClick={() => reveal(issue.section)}
+                >
+                  {issue.count} <span className="max-sm:hidden">{issue.rest}</span>
+                </ImportIssueBadge>
+              ))}
+            </div>
+          ) : (
+            <StatusTag status={{ kind: 'done' }} />
+          )
+        }
+        note={
+          <Facts>
+            <Fact icon={UserCheck}>
+              {counts.people.checked} din {counts.people.included} verificate
+            </Fact>
+            {detail.expiresAt && (
+              <Fact icon={Clock}>
+                Se păstrează până pe {dayMonth.format(new Date(detail.expiresAt))}
+              </Fact>
+            )}
+          </Facts>
+        }
+      >
+        <Button
+          variant={nextView ? 'outline' : 'default'}
+          data-testid="employee-hub-confirm"
+          aria-label="Creează lucrătorii…"
+          className={cn(nextView && 'max-sm:flex-none!')}
+          disabled={counts.people.checked === 0 || review.conflict}
+          onClick={() => setConfirming(true)}
+        >
+          <span>
+            Creează<span className="max-sm:hidden"> lucrătorii</span>…
+          </span>
+        </Button>
+        {nextView && (
+          <Button asChild data-testid="employee-hub-continue">
+            <Link
+              to="/clienti/$clientId/angajati/import/$importId/$personId"
+              params={{ clientId, importId: detail.id, personId: nextView.person.id }}
+            >
+              <span className="truncate">
+                Continuă cu {nextFirst} <span className="max-sm:hidden">{nextRest.join(' ')}</span>
+              </span>
+            </Link>
+          </Button>
+        )}
+      </ImportActionBar>
       <EmployeeConfirmDialog
         open={confirming}
         detail={detail}
