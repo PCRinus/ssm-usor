@@ -23,6 +23,7 @@ import { ApiHttpError } from '@/api/http';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
+import { impersonationRefusal, wordingRefusalHere } from '@/features/impersonation/refusal';
 
 import { inviteFormSchema, type InviteFormValues } from './invite-schema';
 import { roleLabels } from './labels';
@@ -35,6 +36,8 @@ const emailReasons: Record<string, string> = {
 };
 
 function serverMessage(cause: unknown) {
+  const refused = impersonationRefusal(cause);
+  if (refused) return refused;
   if (cause instanceof ApiHttpError) {
     const body = cause.body as Partial<ApiErrorResponse> | undefined;
     if (body?.reason === 'too_many_open_invitations') {
@@ -62,7 +65,7 @@ export function InviteMemberDialog({ open, onClose }: { open: boolean; onClose: 
 
 function InviteForm({ onClose }: { onClose: () => void }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const create = useCreateInvitation({ request: apiRequest });
+  const create = useCreateInvitation({ request: wordingRefusalHere(apiRequest) });
   const form = useForm<InviteFormValues>({
     resolver: zodResolver(inviteFormSchema),
     defaultValues: { email: '', role: 'specialist' },

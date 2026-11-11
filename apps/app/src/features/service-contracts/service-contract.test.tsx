@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { impersonationRefusedMessage } from '@/features/impersonation/refusal';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
@@ -568,6 +569,26 @@ describe('sending the contract', () => {
       'nu a putut fi trimis acum'
     );
     expect(screen.getByTestId('send-contract-dialog')).toBeTruthy();
+  });
+
+  it('says once that it is not sent while acting as a member', async () => {
+    mockApi({
+      get: () => Response.json(state({ document: issued() })),
+      send: () =>
+        Response.json(
+          { error: 'forbidden', message: 'Forbidden.', reason: 'impersonation_refused' },
+          { status: 403 }
+        ),
+    });
+    mount();
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('contract-send'));
+    await user.type(screen.getByTestId('send-contract-to'), 'andrei@velocita.example');
+    await user.click(screen.getByTestId('send-contract-confirm'));
+    expect((await screen.findByTestId('send-contract-error')).textContent).toBe(
+      impersonationRefusedMessage
+    );
+    expect(screen.getAllByText(impersonationRefusedMessage)).toHaveLength(1);
   });
 
   it('is not offered for a draft, and says why for an issued contract without a PDF', async () => {

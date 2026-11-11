@@ -17,6 +17,7 @@ import {
 import type { SignSessionResponseFailedItemReason } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { formatDate, roCount } from '@/features/employees/employee-format';
+import { impersonationRefusal } from '@/features/impersonation/refusal';
 
 export const slotStateLabels: Record<SignatureSlotState, string> = {
   pending: 'De semnat',
@@ -148,6 +149,8 @@ export function signingMessage(
 }
 
 export function signingFailure(cause: unknown, fallback: string) {
+  const refused = impersonationRefusal(cause);
+  if (refused) return refused;
   if (cause instanceof ApiHttpError && cause.status === 401) {
     return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
   }

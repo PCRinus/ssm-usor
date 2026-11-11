@@ -24,6 +24,7 @@ import { ApiHttpError } from '@/api/http';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
+import { impersonationRefusal, wordingRefusalHere } from '@/features/impersonation/refusal';
 
 const schema = z.object({
   to: z
@@ -53,7 +54,7 @@ export function SendContractDialog({
   onSent: (response: ServiceContractResponse) => Promise<void>;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
-  const send = useSendServiceContract({ request: apiRequest });
+  const send = useSendServiceContract({ request: wordingRefusalHere(apiRequest) });
   const form = useForm<Values>({
     resolver: zodResolver(schema),
     values: { to: contactEmail ?? '', note: '' },
@@ -76,13 +77,14 @@ export function SendContractDialog({
       const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
       form.setError('root.server', {
         message:
-          body?.reason === 'contract_pdf_missing'
+          impersonationRefusal(cause) ??
+          (body?.reason === 'contract_pdf_missing'
             ? 'Contractul emis nu are PDF, așa că nu poate fi trimis de aici. Descarcă-l și trimite-l din emailul tău.'
             : body?.reason === 'contract_not_issued'
               ? 'Contractul nu mai este emis. Reîncarcă pagina.'
               : cause instanceof ApiHttpError && cause.status === 503
                 ? 'Emailul nu a putut fi trimis acum. Încearcă din nou peste câteva momente.'
-                : 'Nu am putut trimite contractul. Verifică conexiunea și încearcă din nou.',
+                : 'Nu am putut trimite contractul. Verifică conexiunea și încearcă din nou.'),
       });
     }
   });
