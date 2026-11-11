@@ -347,7 +347,7 @@ describe('fire-safety set', () => {
           text: 'Potrivit evidenței instruirilor, în anul 2026 s-a efectuat: 1 instructaj periodic, în luna februarie, la care au participat 2 angajați.',
         },
         {
-          text: 'În același an, testul anual a fost susținut de 2 angajați, care l-au promovat toți.',
+          text: 'În același an, potrivit rezultatelor consemnate, testul anual a fost promovat de 2 angajați.',
         },
       ],
       noTrainingRecords: false,
@@ -1244,7 +1244,7 @@ describe('fire-safety set', () => {
       'Modificări în organizare și implementarea noilor prevederi legale\nDeciziile emise în anul 2026:\n– Decizia privind organizarea apărării împotriva incendiilor, nr.\u00a04\u00a0SU din 19.01.2026;\n– Decizia privind instruirea în domeniul situațiilor de urgență, nr.\u00a05\u00a0SU din 02.06.2026, revizia 2.\nDE COMPLETAT(noile prevederi legale aplicate și stadiul îndeplinirii măsurilor stabilite la analiza anterioară)'
     );
     expect(text).toContain(
-      'Instruirile efectuate și rezultatele testării\nPotrivit evidenței instruirilor, în anul 2026 s-a efectuat: 1 instructaj periodic, în luna februarie, la care au participat 2 angajați.\nÎn același an, testul anual a fost susținut de 2 angajați, care l-au promovat toți.\n4. Controlul propriu'
+      'Instruirile efectuate și rezultatele testării\nPotrivit evidenței instruirilor, în anul 2026 s-a efectuat: 1 instructaj periodic, în luna februarie, la care au participat 2 angajați.\nÎn același an, potrivit rezultatelor consemnate, testul anual a fost promovat de 2 angajați.\n4. Controlul propriu'
     );
     expect(text.split('DE COMPLETAT')).toHaveLength(11);
 

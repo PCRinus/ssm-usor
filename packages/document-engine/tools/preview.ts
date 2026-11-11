@@ -1256,7 +1256,7 @@ function annualReportSample(people: ReturnType<typeof person>[], long: boolean) 
             text: 'Potrivit evidenței instruirilor, în anul 2026 s-au efectuat: 3 instructaje introductive generale, la care au participat 3 angajați; 3 instructaje specifice locului de muncă, la care au participat 3 angajați; 4 instructaje periodice, în lunile martie, iunie, septembrie și decembrie, la care au participat 11 angajați; 1 instructaj suplimentar, la care a participat 1 angajat.',
           },
           {
-            text: 'În același an, testul la angajare a fost susținut de 3 angajați, care l-au promovat toți, iar testul anual a fost susținut de 11 angajați, dintre care 10 l-au promovat.',
+            text: 'În același an, potrivit rezultatelor consemnate, testul la angajare a fost promovat de 3 angajați, iar testul anual de 10 angajați.',
           },
         ]
       : [],

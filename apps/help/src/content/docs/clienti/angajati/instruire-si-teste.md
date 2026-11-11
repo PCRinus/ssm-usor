@@ -109,7 +109,7 @@ Ziua instruirii nu poate fi în viitor: o instruire se înregistrează după ce 
 
 Instruirea la locul de muncă cuprinde și „admis la lucru”: ziua, numele și funcția celui care l-a admis pe lucrător la lucru. Pe fișă, blocul apare sub această instruire.
 
-Instruirile SU înregistrate trec și în raportul anual de evaluare din setul SU. Când clientul are cel puțin o instruire SU înregistrată în anul raportului, rândul „Instruirile efectuate și rezultatele testării” arată, pe fiecare tip de instruire, câte instruiri s-au ținut și câți lucrători au participat, cu lunile instruirilor periodice, apoi, pentru fiecare test SU dat în acel an, câți lucrători l-au dat și câți l-au promovat. Fără nicio instruire SU înregistrată în acel an, rândul rămâne de completat, ca să nu arate mai puțin decât s-a făcut pe hârtie. După ce înregistrezi instruiri, generează din nou raportul ca să le cuprindă.
+Instruirile SU înregistrate trec și în raportul anual de evaluare din setul SU. Când clientul are cel puțin o instruire SU înregistrată în anul raportului, rândul „Instruirile efectuate și rezultatele testării” arată, pe fiecare tip de instruire, câte instruiri s-au ținut și câți lucrători au participat, cu lunile instruirilor periodice, apoi, din rezultatele consemnate, câți lucrători au promovat fiecare test SU în acel an. Un test picat nu se consemnează, așa că raportul nu spune câți l-au dat. O instruire fără niciun participant nu se numără. Fără nicio instruire SU înregistrată în acel an, rândul rămâne de completat, ca să nu arate mai puțin decât s-a făcut pe hârtie. După ce înregistrezi instruiri, generează din nou raportul ca să le cuprindă.
 
 ### Instruirea periodică suplimentară
 
