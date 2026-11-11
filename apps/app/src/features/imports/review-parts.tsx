@@ -421,8 +421,6 @@ export function Facts({ children }: { children: ReactNode }) {
   );
 }
 
-// `label` names what the icon stands for, on hover and to a screen reader, where the text alone
-// does not say it.
 export function Fact({
   icon: Icon,
   label,
@@ -449,9 +447,7 @@ export function Fact({
 }
 
 type SectionHeaderPlace =
-  | { headingId: string; linked?: never }
-  // A row that opens the section's page: its title is no heading, and on a phone it keeps to it.
-  | { linked: true; headingId?: never };
+  { headingId: string; linked?: never } | { linked: true; headingId?: never };
 
 export function SectionHeader({
   icon: Icon,
