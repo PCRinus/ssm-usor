@@ -201,13 +201,14 @@ Fișa cu date de securitate o primește clientul de la furnizorul produsului. Re
 
 În fereastra unei substanțe, nouă sau deja în listă, inclusiv una preluată din import cu eticheta „Incompletă”, alegi **Alege fișa (PDF)** și PDF-ul fișei produsului. O fișă înseamnă o substanță. Citirea folosește 3 credite, iar fereastra îți arată, înainte să alegi fișierul, câte îți mai rămân. Dacă nu-ți ajung, butonul nu se poate apăsa.
 
-Citirea durează de obicei sub un minut. Între timp poți completa cantitatea și locul de depozitare. După citire:
+Citirea durează de obicei sub un minut. Între timp poți completa cantitatea și locul de depozitare, dar fereastra nu se poate închide până se termină citirea, ca să nu pierzi o citire plătită. După citire:
 
 - **Câmpurile goale** se completează din fișă și sunt marcate „Din fișă” până le modifici. Textele sunt în română, și când fișa e în altă limbă, și sunt scurtate la ce contează pentru apărarea împotriva incendiilor și pentru prima intervenție. O secțiune pe care fișa n-o completează lasă câmpul gol.
-- **Un câmp completat deja** rămâne cum l-ai scris. Dacă fișa spune altceva, vezi sub el „Păstrăm textul tău. În fișă: …”; cu **Folosește textul din fișă** îl iei pe cel din fișă.
+- **Un câmp completat deja** rămâne cum l-ai scris. Dacă fișa spune altceva, vezi sub el „Păstrăm textul tău. În fișă: …”; cu **Folosește textul din fișă** îl iei pe cel din fișă. Dacă modifici sau ștergi câmpul, textul din fișă de sub el dispare.
+- **O a doua fișă**, citită cu **Citește altă fișă**, completează la fel: câmpurile goale și cele încă marcate „Din fișă”. Un câmp completat doar de prima fișă își păstrează textul și marcajul.
 - **Cantitatea și locul de depozitare** nu se completează niciodată: sunt ale clientului, nu ale produsului.
 - **Nimic nu se salvează** până nu apeși **Salvează**. Fișierul nu se păstrează; dacă vrei să-l ai la client, îl încarci la **Alte documente**.
 
 Fiecare frază de pericol (H sau EUH), număr CAS, CE sau ONU trecut în ce am completat trebuie să apară în fișă. Unul pe care nu-l găsim în fișă îl lăsăm deoparte, iar fereastra îți spune câte am lăsat, ca să verifici în fișă clasificarea și codurile de identificare.
 
-Citim deocamdată doar fișe în PDF cu text, cum le trimit furnizorii, de cel mult 10 MB și 40 de pagini. O fișă scanată sau fotografiată, un fișier deteriorat sau protejat cu parolă și un document care nu e o fișă cu date de securitate, de exemplu o fișă tehnică sau o etichetă, nu se citesc, iar creditele îți sunt returnate. La fel când citirea nu reușește din motive care nu țin de fișier.
+Citim deocamdată doar fișe în PDF cu text, cum le trimit furnizorii, de cel mult 10 MB și 40 de pagini. O fișă scanată sau fotografiată, un fișier deteriorat sau protejat cu parolă și un document care nu e o fișă cu date de securitate, de exemplu o fișă tehnică sau o etichetă, nu se citesc, iar creditele îți sunt returnate. La fel când citirea nu reușește din motive care nu țin de fișier. Fereastra îți spune de fiecare dată dacă ți-au fost returnate creditele; un fișier refuzat înainte de citire, de exemplu unul care nu e PDF sau are peste 10 MB, nu folosește credite.
