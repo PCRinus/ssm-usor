@@ -131,11 +131,14 @@
       ],
       "documentsSummary": "Documente neîntocmite încă: 14.",
       "hasControls": false,
+      "hasYearDecisions": true,
       "headcount": "6 angajați",
       "interventionLeader": "Ioana PETRE, Șef de echipă",
       "missingCount": 14,
       "nextYear": 2027,
       "noControls": true,
+      "noTrainingRecords": true,
+      "noYearDecisions": false,
       "periodicLabel": "2 ore",
       "staff": [
         {
@@ -163,6 +166,7 @@
           "posts": "Sudor"
         }
       ],
+      "trainingRecords": [],
       "workplaceManagers": "Florin Cristian TALOȘ și Ioana PETRE",
       "workplaces": [
         {
@@ -223,7 +227,15 @@
           ]
         }
       ],
-      "year": 2026
+      "year": 2026,
+      "yearDecisions": [
+        {
+          "text": "Decizia privind organizarea apărării împotriva incendiilor, nr. 5 SU din 19.01.2026"
+        },
+        {
+          "text": "Decizia privind instruirea în domeniul situațiilor de urgență, nr. 6 SU din 19.01.2026"
+        }
+      ]
     },
     "coordinator": {
       "jobTitle": "Administrator",

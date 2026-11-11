@@ -158,6 +158,8 @@ export type DocumentFacts = {
     }[];
   }[];
   currentEmployeeCount: number;
+  /** One per current employee: the workplace they work at, null where none is set. */
+  currentEmployeeWorkplaceIds: (string | null)[];
   /** A participant not revoked, or an invitation still open: someone who signs in the portal. */
   hasParticipants: boolean;
   /** Whether decision 1.5 was generated for this client, whatever the headcount is now. */

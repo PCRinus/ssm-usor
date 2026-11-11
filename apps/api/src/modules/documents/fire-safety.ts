@@ -14,11 +14,13 @@ import {
   type FireSubstanceDetail,
   fireSubstanceDetails,
   type FireSubstancesState,
+  type KnowledgeTest,
   missingSubstanceEssentials,
   type ResponsiblePersonRole,
   staffCategoriesWithPosts,
   type StaffCategory,
   trainingMonths,
+  type TrainingPhase,
   unfilledMark,
   workplaceHasAreaAndNorm,
   type WorkplaceKind,
@@ -167,7 +169,15 @@ export type FireSafetyClientFacts = {
     /** `issueDate` null for an uploaded file. */
     draft: { revision: number; issueDate: string | null } | null;
     issued: { revision: number; issueDate: string | null } | null;
+    /** Every revision ever issued, superseded ones included; `issuedOn` the Romanian day of the issue. */
+    issuedRevisions: { revision: number; issueDate: string | null; issuedOn: string }[];
   }[];
+  trainings: { phase: TrainingPhase; heldOn: string; employeeIds: string[] }[];
+  /**
+   * The fire-safety tests taken: a finished portal attempt, passed or not, and a pass recorded
+   * from paper, where a failure is never recorded.
+   */
+  tests: { employeeId: string; test: KnowledgeTest; takenOn: string; passed: boolean }[];
   /** `undecided` too while the client has no fire-safety row. */
   substances: { state: FireSubstancesState; entries: FireSubstanceFacts[] };
 };
@@ -437,6 +447,7 @@ export type FireSafetySetFacts = Pick<
   | 'issueDate'
   | 'period'
   | 'currentEmployeeCount'
+  | 'currentEmployeeWorkplaceIds'
   | 'hasParticipants'
   | 'firstDecisionNumber'
   | 'branding'

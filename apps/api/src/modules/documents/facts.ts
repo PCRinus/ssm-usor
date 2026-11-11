@@ -7,7 +7,7 @@ import {
 
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import { ApiError } from '../../lib/errors';
-import type { DocumentFacts } from './context';
+import { type DocumentFacts, romanianDay } from './context';
 import { loadTestQuestions } from './knowledge-tests';
 import type { RiskEvaluationFacts } from './risk-assessment';
 import { snapshotAnnexes } from './snapshot';
@@ -58,6 +58,9 @@ export async function loadDocumentFacts(
     participants,
     openInvitations,
     testQuestions,
+    fireTrainings,
+    fireTestResults,
+    fireTestAttempts,
   ] = await Promise.all([
     db
       .from('clients')
@@ -96,7 +99,7 @@ export async function loadDocumentFacts(
       .order('id'),
     db
       .from('employees')
-      .select('id', { count: 'exact', head: true })
+      .select('workplace_id')
       .eq('client_id', clientId)
       .eq('status', 'active')
       .is('archived_at', null),
@@ -105,7 +108,7 @@ export async function loadDocumentFacts(
     db
       .from('client_documents')
       .select(
-        'type_key, title, decision_number, period, document_revisions!inner(revision, status, document_generations(issue_date))'
+        'type_key, title, decision_number, period, document_revisions!inner(revision, status, issued_at, document_generations(issue_date))'
       )
       .eq('client_id', clientId)
       .in('type_key', ['decision_workers_representative', ...fireSafetyDocumentTypeKeys]),
@@ -195,6 +198,22 @@ export async function loadDocumentFacts(
       .is('revoked_at', null)
       .gt('expires_at', new Date().toISOString()),
     loadTestQuestions(db, preparer.organizationId),
+    db
+      .from('trainings')
+      .select('phase, held_on, training_records(employee_id)')
+      .eq('client_id', clientId)
+      .eq('domain', 'su'),
+    db
+      .from('test_results')
+      .select('employee_id, test, taken_on')
+      .eq('client_id', clientId)
+      .eq('domain', 'su'),
+    db
+      .from('test_attempts')
+      .select('employee_id, test, finished_at, passed')
+      .eq('client_id', clientId)
+      .eq('domain', 'su')
+      .not('finished_at', 'is', null),
   ]);
   if (client.error) throw fromDatabaseError(client.error, 'document facts: client');
   if (!client.data) {
@@ -232,6 +251,14 @@ export async function loadDocumentFacts(
     throw fromDatabaseError(participants.error, 'document facts: participants');
   if (openInvitations.error) {
     throw fromDatabaseError(openInvitations.error, 'document facts: participant invitations');
+  }
+  if (fireTrainings.error)
+    throw fromDatabaseError(fireTrainings.error, 'document facts: trainings');
+  if (fireTestResults.error) {
+    throw fromDatabaseError(fireTestResults.error, 'document facts: test results');
+  }
+  if (fireTestAttempts.error) {
+    throw fromDatabaseError(fireTestAttempts.error, 'document facts: test attempts');
   }
 
   return {
@@ -375,8 +402,38 @@ export async function loadDocumentFacts(
             period: document.period,
             draft: current('draft'),
             issued: current('issued'),
+            issuedRevisions: document.document_revisions.flatMap((revision) =>
+              revision.status !== 'draft' && revision.issued_at !== null
+                ? [
+                    {
+                      revision: revision.revision,
+                      issueDate: revision.document_generations?.issue_date ?? null,
+                      issuedOn: romanianDay(revision.issued_at),
+                    },
+                  ]
+                : []
+            ),
           };
         }),
+      trainings: fireTrainings.data.map((training) => ({
+        phase: training.phase,
+        heldOn: training.held_on,
+        employeeIds: training.training_records.map((record) => record.employee_id),
+      })),
+      tests: [
+        ...fireTestAttempts.data.map((attempt) => ({
+          employeeId: attempt.employee_id,
+          test: attempt.test,
+          takenOn: romanianDay(attempt.finished_at!),
+          passed: attempt.passed === true,
+        })),
+        ...fireTestResults.data.map((result) => ({
+          employeeId: result.employee_id,
+          test: result.test,
+          takenOn: result.taken_on,
+          passed: true,
+        })),
+      ],
       substances: {
         state: fireSafety.data?.substances_state ?? 'undecided',
         entries: fireSubstances.data.map((substance) => ({
@@ -442,7 +499,8 @@ export async function loadDocumentFacts(
         allocation: entry.allocation as EquipmentAllocation,
       })),
     })),
-    currentEmployeeCount: headcount.count ?? 0,
+    currentEmployeeCount: headcount.data.length,
+    currentEmployeeWorkplaceIds: headcount.data.map((employee) => employee.workplace_id),
     hasParticipants: (participants.count ?? 0) + (openInvitations.count ?? 0) > 0,
     workersRepresentativeDecisionGenerated: generated.has('decision_workers_representative'),
     ownInstructions,

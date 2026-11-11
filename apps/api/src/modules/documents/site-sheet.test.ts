@@ -97,6 +97,58 @@ describe('the site sheet', () => {
     expect(valueOf(general, 'Utilizarea clădirii')).toBeNull();
   });
 
+  describe('counts the employees of each building', () => {
+    const headcountOf = (variant: Partial<DocumentFacts>) =>
+      valueOf(sheetOf(variant).general, 'Personal angajat');
+    const tied = (workshop: number, office: number) => ({
+      currentEmployeeCount: workshop + office,
+      currentEmployeeWorkplaceIds: [
+        ...Array<string>(workshop).fill(workshopId),
+        ...Array<string>(office).fill(officeId),
+      ],
+    });
+
+    it('when every employee works at one of them, in the order of the buildings', () => {
+      expect(headcountOf(tied(9, 4))).toBe(
+        '13 angajați în total; Clădirea 1 (Sediul social) – 4; Clădirea 2 (Atelier Ghiroda) – 9'
+      );
+      expect(headcountOf(tied(12, 0))).toBe(
+        '12 angajați în total; Clădirea 1 (Sediul social) – 0; Clădirea 2 (Atelier Ghiroda) – 12'
+      );
+    });
+
+    it('leaves the gap while an employee has no workplace', () => {
+      expect(
+        headcountOf({
+          currentEmployeeCount: 6,
+          currentEmployeeWorkplaceIds: facts.currentEmployeeWorkplaceIds,
+        })
+      ).toBe('6 angajați în total; numărul estimativ pe fiecare clădire: DE COMPLETAT');
+    });
+
+    it('leaves the gap while employees work on a mobile site, which is no building', () => {
+      const mobile = { ...facts.workplaces[0]!, kind: 'mobile_site' as const };
+      expect(headcountOf({ ...tied(9, 4), workplaces: [mobile, facts.workplaces[1]!] })).toBe(
+        '13 angajați în total; numărul estimativ pe fiecare clădire: DE COMPLETAT'
+      );
+    });
+
+    it('leaves the gap while employees are tied to a registered office where no activity takes place', () => {
+      const idleOffice = { ...facts.workplaces[1]!, officeHasActivity: false };
+      const sheet = sheetOf({ ...tied(9, 4), workplaces: [facts.workplaces[0]!, idleOffice] });
+      expect(sheet.buildings.map((building) => building.name)).toEqual(['Atelier Ghiroda']);
+      expect(valueOf(sheet.general, 'Personal angajat')).toBe(
+        '13 angajați în total; numărul estimativ pe fiecare clădire: DE COMPLETAT'
+      );
+      expect(
+        valueOf(
+          sheetOf({ ...tied(9, 0), workplaces: [facts.workplaces[0]!, idleOffice] }).general,
+          'Personal angajat'
+        )
+      ).toBe('9 angajați în total; Clădirea 1 (Atelier Ghiroda) – 9');
+    });
+  });
+
   it('prints one building plainly, and a gap where no building has the fact', () => {
     const { general } = sheetOf({ workplaces: [facts.workplaces[0]!] });
     expect(valueOf(general, 'Anul de construire (punere în funcțiune)')).toBe('1987');

@@ -372,6 +372,9 @@ const templateRows = [
 ];
 
 type Handler = (init?: RequestInit, url?: URL) => Response;
+
+const currentEmployees = (count: number) =>
+  Response.json(Array.from({ length: count }, () => ({ workplace_id: null })));
 type Upstream =
   | 'organizations'
   | 'clients'
@@ -455,10 +458,7 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
       case '/rest/v1/participant_invitations':
         return new Response(null, { headers: { 'content-range': '*/0' } });
       case '/rest/v1/employees':
-        return (
-          handlers.employees?.(init, url) ??
-          new Response(null, { headers: { 'content-range': '0-0/1' } })
-        );
+        return handlers.employees?.(init, url) ?? currentEmployees(1);
       case '/rest/v1/job_positions':
         return handlers.positions?.(init, url) ?? Response.json([positionRow]);
       case '/rest/v1/client_workplaces':
@@ -477,6 +477,10 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
         return handlers.fireMaintenanceItems?.() ?? Response.json([]);
       case '/rest/v1/fire_buildings':
         return handlers.fireBuildings?.() ?? Response.json([]);
+      case '/rest/v1/trainings':
+      case '/rest/v1/test_results':
+      case '/rest/v1/test_attempts':
+        return Response.json([]);
       case '/rest/v1/client_documents':
         if (method === 'GET' && isConditionalDocumentsRead(url)) {
           return handlers.conditionalDocuments?.() ?? Response.json([]);
@@ -796,7 +800,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
             employees: { status: 'active', archived_at: null },
           },
         ]),
-      employees: () => new Response(null, { headers: { 'content-range': '0-0/12' } }),
+      employees: () => currentEmployees(12),
     });
     const response = await request(`/clients/${clientId}/documents/readiness`);
     expect(documentReadinessResponseSchema.parse(await response.json())).toMatchObject({
@@ -819,7 +823,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
         }),
       positions: () =>
         Response.json([{ ...positionRow, staff_category: 'technical_administrative' }]),
-      employees: () => new Response(null, { headers: { 'content-range': '0-0/1' } }),
+      employees: () => currentEmployees(1),
     });
     const response = await request(`/clients/${clientId}/documents/readiness`);
     expect(documentReadinessResponseSchema.parse(await response.json())).toEqual({
@@ -1225,7 +1229,7 @@ describe('POST /clients/{clientId}/documents/generate', () => {
         }),
       positions: () =>
         Response.json([{ ...positionRow, staff_category: 'technical_administrative' }]),
-      employees: () => new Response(null, { headers: { 'content-range': '0-0/1' } }),
+      employees: () => currentEmployees(1),
       documents: (init) => {
         if (init?.method === 'POST') return Response.json({ id: documentId });
         listed += 1;
@@ -3119,7 +3123,7 @@ describe('the fire-safety set', () => {
           fireDocumentRow,
         ]),
       generations: () => Response.json({ issue_date: '2026-10-01', first_decision_number: null }),
-      employees: () => new Response(null, { headers: { 'content-range': '*/0' } }),
+      employees: () => currentEmployees(0),
     });
     const response = await request(`/clients/${clientId}/documents?set=fire_safety`);
     expect(response.status).toBe(200);
@@ -3341,7 +3345,7 @@ describe('the fire-safety set', () => {
         templates: () => Response.json([...fireTemplateRows, ...fromTenTemplates]),
         documents: (init) =>
           init?.method === 'POST' ? Response.json({ id: fireDocumentId }) : Response.json([]),
-        employees: () => new Response(null, { headers: { 'content-range': `0-0/${employees}` } }),
+        employees: () => currentEmployees(employees),
       });
       expect((await generate('fire_safety')).status).toBe(201);
       const documents = calls('/rest/v1/client_documents', 'POST').map((_, index) =>
@@ -3386,7 +3390,12 @@ describe('the fire-safety set', () => {
       documents: () => Response.json([fireDocumentRow, register]),
       conditionalDocuments: () =>
         Response.json([
-          { type_key: 'fire_installation_register', document_revisions: [{ id: 'r' }] },
+          {
+            type_key: 'fire_installation_register',
+            document_revisions: [
+              { revision: 1, status: 'draft', issued_at: null, document_generations: null },
+            ],
+          },
         ]),
     });
     const body = clientDocumentListResponseSchema.parse(
@@ -4078,7 +4087,7 @@ describe('the fire-safety set', () => {
       title: 'Raportul anual de evaluare a capacității de apărare împotriva incendiilor',
       period,
     });
-    const tenEmployees = () => new Response(null, { headers: { 'content-range': '0-0/10' } });
+    const tenEmployees = () => currentEmployees(10);
     const conditionalReads = () =>
       fetchMock.mock.calls.filter(([input]) => isConditionalDocumentsRead(new URL(String(input))));
     const createdDocuments = () =>

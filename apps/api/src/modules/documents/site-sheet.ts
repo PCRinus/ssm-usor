@@ -277,6 +277,23 @@ export function buildSiteSheet({
     facts.currentEmployeeCount === 0
       ? 'niciun angajat'
       : countOf(facts.currentEmployeeCount, 'angajat', 'angajați');
+  const headcounts = fixedSpaces.map(
+    (workplace) =>
+      facts.currentEmployeeWorkplaceIds.filter((workplaceId) => workplaceId === workplace.id).length
+  );
+  // Anyone without a workplace, on a mobile site or at an office the set leaves out (ADR 041)
+  // would make the buildings' counts fall short of the total, so the row stays a gap.
+  const perBuildingHeadcount =
+    fixedSpaces.length > 0 &&
+    facts.currentEmployeeCount > 0 &&
+    headcounts.reduce((total, count) => total + count, 0) === facts.currentEmployeeCount
+      ? fixedSpaces
+          .map(
+            (workplace, index) =>
+              `Clădirea ${index + 1} (${workplace.name.trim()}) – ${headcounts[index]}`
+          )
+          .join('; ')
+      : null;
 
   const general = [
     row(
@@ -319,7 +336,7 @@ export function buildSiteSheet({
     ),
     row(
       'Personal angajat',
-      `${employees} în total; numărul estimativ pe fiecare clădire: ${unfilledMark}`,
+      `${employees} în total; ${perBuildingHeadcount ?? `numărul estimativ pe fiecare clădire: ${unfilledMark}`}`,
       'număr estimativ, pentru fiecare clădire'
     ),
     row(

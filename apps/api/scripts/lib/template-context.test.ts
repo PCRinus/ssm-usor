@@ -924,6 +924,8 @@ describe('the fire-safety templates', () => {
       buildings: [],
       generatedFromTenEmployees: [],
       documents: [],
+      trainings: [],
+      tests: [],
       substances: { state: 'none', entries: [] },
     },
   };
@@ -1210,6 +1212,8 @@ describe('the fire-safety templates', () => {
           buildings: [],
           generatedFromTenEmployees: [],
           documents: [],
+          trainings: [],
+          tests: [],
           substances: { state: 'undecided', entries: [] },
         },
       },
