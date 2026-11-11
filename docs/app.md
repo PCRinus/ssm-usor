@@ -979,7 +979,7 @@ their tab bars read.
 - `/oferte`: "Oferte", an entry of the sidebar that only an owner gets. A lead is a
   client in an earlier stage (ADR 007), so the pages reuse the clients' parts over the same
   routes of the API: the list is `GET /clients?stage=lead` on the shared data table, with the
-  contact and the day it was added, "Activi" and "Arhivate" in the URL, and a row menu with
+  contact and the day it was added, "Active" and "Arhivate" in the URL, and a row menu with
   "Modifică", "Transformă în client…" and "Arhivează…". A specialist who types the address is
   told that leads are the owners'; for them `/oferte/:id` is the not-found screen, because the
   API answers `404`. `/oferte/nou` and `/oferte/:id/editare` are `ClientForm` with the lead's

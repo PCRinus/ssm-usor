@@ -25,7 +25,7 @@ const leadsRoute = getRouteApi('/_authenticated/oferte/');
 const defaultSort: DataTableSort & { sort: LeadSortKey } = { sort: 'legalName', order: 'asc' };
 
 const filters = [
-  { status: undefined, label: 'Activi', testId: 'leads-filter-active' },
+  { status: undefined, label: 'Active', testId: 'leads-filter-active' },
   { status: 'archived', label: 'Arhivate', testId: 'leads-filter-archived' },
 ] as const;
 
