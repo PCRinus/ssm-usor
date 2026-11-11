@@ -49,7 +49,7 @@ Every address of the app is Romanian, written without diacritics. The page files
 | `/accept-invitation`                                       | `/invitatie`                                                 |
 | `/onboarding`                                              | `/configurare`                                               |
 | `/dashboard`                                               | `/dashboard` (the label is the word)                         |
-| `/leads`, `/new`, `/$leadId/edit`                          | `/clienti-potentiali`, `/nou`, `/$leadId/editare`            |
+| `/leads`, `/new`, `/$leadId/edit`                          | `/oferte`, `/nou`, `/$leadId/editare`                        |
 | `/clients`, `/new`                                         | `/clienti`, `/nou`                                           |
 | `/clients/$clientId/details`                               | `/clienti/$clientId/detalii`                                 |
 | `…/contract/edit`                                          | `…/contract/editare`                                         |

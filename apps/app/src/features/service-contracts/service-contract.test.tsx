@@ -185,8 +185,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const mount = (path = `/clienti-potentiali/${leadId}`) =>
-  mountApp(authFixture(makeSession()).client, path);
+const mount = (path = `/oferte/${leadId}`) => mountApp(authFixture(makeSession()).client, path);
 
 describe('the service contract of a lead', () => {
   it('starts from the suggested number and asks for the details before anything else', async () => {
@@ -267,8 +266,8 @@ describe('the service contract of a lead', () => {
     ).toEqual([
       '/organizatie/date-firma?focus=bank-account',
       '/organizatie/abilitari?focus=certificate',
-      `/clienti-potentiali/${leadId}?focus=company-address`,
-      `/clienti-potentiali/${leadId}?focus=contract-representative-role`,
+      `/oferte/${leadId}?focus=company-address`,
+      `/oferte/${leadId}?focus=contract-representative-role`,
     ]);
     expect(screen.getByTestId('contract-generate')).toHaveProperty('disabled', true);
   });
@@ -350,7 +349,7 @@ describe('the service contract of a lead', () => {
     expect(await screen.findByText('Contractul a fost generat.')).toBeTruthy();
     expect((await screen.findByTestId('contract-draft')).textContent).toBe('Ciornă · rev. 1');
     expect(screen.getByTestId('contract-open').getAttribute('href')).toBe(
-      `/clienti-potentiali/${leadId}/contract`
+      `/oferte/${leadId}/contract`
     );
     await user.click(screen.getByTestId('contract-draft-actions'));
     expect((await screen.findByTestId('contract-generate')).textContent).toContain(

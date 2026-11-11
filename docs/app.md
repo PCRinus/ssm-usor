@@ -245,13 +245,13 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/clienti/$clientId/alte-documente.tsx`                          | `/clienti/:id/alte-documente`                          | Layout of "Alte documente" carrying the breadcrumb title.                                                                                                                                                  |
 | `routes/_authenticated/clienti/$clientId/alte-documente/index.tsx`                    | `/clienti/:id/alte-documente`                          | "Alte documente", the client's files (ADR 013): uploading, opening, downloading, renaming, deleting.                                                                                                       |
 | `routes/_authenticated/clienti/$clientId/portal.tsx`                                  | `/clienti/:id/portal`                                  | "Portal", the last tab (ADR 022, ADR 023): who of the client signs in to the portal, the administrator and the employees, and the signatures the portal is waiting for.                                    |
-| `routes/_authenticated/clienti-potentiali/$leadId/contract.tsx`                       | `/clienti-potentiali/:id/contract`                     | A lead's contract in the editor.                                                                                                                                                                           |
-| `routes/_authenticated/clienti-potentiali.tsx`                                        | pathless                                               | Leads section layout carrying the breadcrumb title.                                                                                                                                                        |
-| `routes/_authenticated/clienti-potentiali/index.tsx`                                  | `/clienti-potentiali`                                  | Owners' list of the organization's leads (ADR 007), active or archived.                                                                                                                                    |
-| `routes/_authenticated/clienti-potentiali/nou.tsx`                                    | `/clienti-potentiali/nou`                              | The client form, adding a lead.                                                                                                                                                                            |
-| `routes/_authenticated/clienti-potentiali/$leadId.tsx`                                | pathless                                               | Loads the lead through `GET /clients/{clientId}`; a promoted one redirects to its client page.                                                                                                             |
-| `routes/_authenticated/clienti-potentiali/$leadId/index.tsx`                          | `/clienti-potentiali/:id`                              | The lead: its company, contact, contract, files and the owners' notes, with "Modifică", archive and "Transformă în client" in the header.                                                                  |
-| `routes/_authenticated/clienti-potentiali/$leadId/editare.tsx`                        | `/clienti-potentiali/:id/editare`                      | The client form, filled from the lead.                                                                                                                                                                     |
+| `routes/_authenticated/oferte/$leadId/contract.tsx`                                   | `/oferte/:id/contract`                                 | A lead's contract in the editor.                                                                                                                                                                           |
+| `routes/_authenticated/oferte.tsx`                                                    | pathless                                               | Leads section layout carrying the breadcrumb title.                                                                                                                                                        |
+| `routes/_authenticated/oferte/index.tsx`                                              | `/oferte`                                              | Owners' list of the organization's leads (ADR 007), active or archived.                                                                                                                                    |
+| `routes/_authenticated/oferte/nou.tsx`                                                | `/oferte/nou`                                          | The client form, adding a lead.                                                                                                                                                                            |
+| `routes/_authenticated/oferte/$leadId.tsx`                                            | pathless                                               | Loads the lead through `GET /clients/{clientId}`; a promoted one redirects to its client page.                                                                                                             |
+| `routes/_authenticated/oferte/$leadId/index.tsx`                                      | `/oferte/:id`                                          | The lead: its company, contact, contract, files and the owners' notes, with "Modifică", archive and "Transformă în client" in the header.                                                                  |
+| `routes/_authenticated/oferte/$leadId/editare.tsx`                                    | `/oferte/:id/editare`                                  | The client form, filled from the lead.                                                                                                                                                                     |
 | `routes/__root.tsx`                                                                   | other paths                                            | Not-found screen with a link back to the start; route error screen.                                                                                                                                        |
 
 A route whose breadcrumb label depends on data (the client name) returns `crumb` from its
@@ -976,16 +976,16 @@ their tab bars read.
   the PSI templates are not available yet. The archive dialog counts the drafts of both sets;
   the clients list's "Documentație PSI" counts this set, apart from "Documentație SSM".
 
-- `/clienti-potentiali`: "Clienți potențiali", an entry of the sidebar that only an owner gets. A lead is a
+- `/oferte`: "Oferte", an entry of the sidebar that only an owner gets. A lead is a
   client in an earlier stage (ADR 007), so the pages reuse the clients' parts over the same
   routes of the API: the list is `GET /clients?stage=lead` on the shared data table, with the
-  contact and the day it was added, "Activi" and "Arhivați" in the URL, and a row menu with
+  contact and the day it was added, "Activi" and "Arhivate" in the URL, and a row menu with
   "Modifică", "Transformă în client…" and "Arhivează…". A specialist who types the address is
-  told that leads are the owners'; for them `/clienti-potentiali/:id` is the not-found screen, because the
-  API answers `404`. `/clienti-potentiali/nou` and `/clienti-potentiali/:id/editare` are `ClientForm` with the lead's
+  told that leads are the owners'; for them `/oferte/:id` is the not-found screen, because the
+  API answers `404`. `/oferte/nou` and `/oferte/:id/editare` are `ClientForm` with the lead's
   wording, the contact section right after the identification, and the lead's page as where
   they return. The contact section is also on the client form, last.
-- `/clienti-potentiali/:id`: the company's summary, the contact (`ContactCard`), and the owners' notes
+- `/oferte/:id`: the company's summary, the contact (`ContactCard`), and the owners' notes
   (`OwnerNotesCard`: a text area saved with `PUT …/owner-notes`, "Modificări nesalvate" until
   then, read-only for an archived company). "Arhivează…" opens the clients' archive dialog,
   which for a lead speaks of leads and does not look for draft documents. "Transformă în
@@ -993,7 +993,7 @@ their tab bars read.
   that the notes stay the owners', and that it cannot be undone; then `POST …/promote`, a
   toast, and the client's page. An archived lead shows a banner with "Reactivează…" and
   neither of the other two. The two addresses of one record lead to each other: the client
-  layout redirects a lead to `/clienti-potentiali/:id`, and the lead loader redirects a client to
+  layout redirects a lead to `/oferte/:id`, and the lead loader redirects a client to
   `/clienti/:id/detalii`, so a link kept from before the promotion still works.
 - The service contract (`src/features/service-contracts`): `ServiceContractCard` is on the lead's page
   and, for a client, in "Contract", a section only an owner gets (a specialist who types

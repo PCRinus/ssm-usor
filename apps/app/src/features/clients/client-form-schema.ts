@@ -14,7 +14,7 @@ export const clientMessages = {
   cuiTakenByArchived:
     'Un client arhivat are deja acest CUI. Îl găsești în lista „Arhivați”, de unde un admin îl poate reactiva.',
   cuiTakenByLead:
-    'Firma cu acest CUI este deja printre clienții potențiali ai organizației. Un admin o poate transforma în client.',
+    'Firma cu acest CUI este deja printre ofertele organizației. Un admin o poate transforma în client.',
 } as const;
 
 // The rule behind a message, when the message alone does not say why.

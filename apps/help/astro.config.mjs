@@ -68,7 +68,7 @@ const clientAreas = [
 
 const areas = [
   ['Primii pași', 'primii-pasi'],
-  ['Clienți potențiali și contracte', 'clienti-potentiali'],
+  ['Oferte și contracte', 'oferte'],
   ['Clienți', 'clienti'],
   ['Instrucțiuni proprii', 'instructiuni'],
   ['Evaluări de risc', 'evaluari-de-risc'],

@@ -6,12 +6,12 @@ import { useBackToList } from '@/app/use-back-to-list';
 import { useAuth } from '@/features/auth/auth-context';
 import { ServiceContractEditor } from '@/features/service-contracts/service-contract-editor';
 
-export const Route = createFileRoute('/_authenticated/clienti-potentiali/$leadId/contract')({
+export const Route = createFileRoute('/_authenticated/oferte/$leadId/contract')({
   staticData: { title: 'Contract', editorPage: true },
   component: LeadContractPage,
 });
 
-const leadRoute = getRouteApi('/_authenticated/clienti-potentiali/$leadId');
+const leadRoute = getRouteApi('/_authenticated/oferte/$leadId');
 
 function LeadContractPage() {
   const { lead } = leadRoute.useLoaderData();
@@ -27,7 +27,7 @@ function LeadContractPage() {
       back={
         <Button asChild variant="ghost" size="sm">
           <Link
-            to="/clienti-potentiali/$leadId"
+            to="/oferte/$leadId"
             params={{ leadId: lead.id }}
             data-testid="editor-back"
             onClick={backToList}

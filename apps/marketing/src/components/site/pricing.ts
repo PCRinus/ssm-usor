@@ -162,7 +162,7 @@ export const compare = {
     {
       title: 'Mărime',
       rows: [
-        { label: 'Clienți și clienți potențiali', cells: ['Oricâți', 'Oricâți', 'Oricâți'] },
+        { label: 'Clienți și oferte', cells: ['Oricâți', 'Oricâți', 'Oricâți'] },
         {
           label: 'Lucrători la clienții tăi',
           cells: ['Până la 250', 'Până la 1.500', 'După nevoie'],
@@ -243,7 +243,7 @@ export const pricingPage = {
   faq: [
     {
       q: 'Ce lucrători se numără?',
-      a: 'Numărăm lucrătorii activi ai tuturor clienților tăi activi. Foștii lucrători, clienții potențiali și clienții arhivați nu se numără.',
+      a: 'Numărăm lucrătorii activi ai tuturor clienților tăi activi. Foștii lucrători, ofertele și clienții arhivați nu se numără.',
     },
     {
       q: 'Ce se întâmplă dacă trec de limită?',

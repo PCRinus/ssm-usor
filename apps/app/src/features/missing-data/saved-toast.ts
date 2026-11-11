@@ -59,7 +59,7 @@ export function useSavedToast() {
     const back = () => {
       endWayBack();
       if (wayBack.to === 'lead-contract') {
-        void navigate({ to: '/clienti-potentiali/$leadId', params: { leadId: wayBack.clientId } });
+        void navigate({ to: '/oferte/$leadId', params: { leadId: wayBack.clientId } });
       } else if (wayBack.to === 'client-contract') {
         void navigate({
           to: '/clienti/$clientId/contract',

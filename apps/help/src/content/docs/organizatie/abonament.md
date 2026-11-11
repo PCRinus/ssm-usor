@@ -102,7 +102,7 @@ Aplicația nu te lasă să alegi mai puține pachete sau utilizatori decât ai a
 
 Se numără:
 
-- **lucrătorii la clienți**: lucrătorii actuali ai clienților activi. Foștii lucrători, clienții potențiali și clienții arhivați nu intră în număr. Liniile albe din bară arată unde se termină ce include planul și fiecare pachet;
+- **lucrătorii la clienți**: lucrătorii actuali ai clienților activi. Foștii lucrători, ofertele și clienții arhivați nu intră în număr. Liniile albe din bară arată unde se termină ce include planul și fiecare pachet;
 - **utilizatorii**: membrii organizației, cu tine cu tot;
 - **codurile de semnare prin SMS**: câte au plecat luna aceasta, față de cât include planul: 50 pe Start, 300 pe Profesional, de exemplu „252 din 300”. Luna e a abonamentului: începe în ziua în care se reînnoiește, de exemplu de pe 14.10 până pe 13.11, și pe un plan anual. Invitațiile în portal, codurile de conectare și anunțurile că sunt instruiri de semnat pleacă și ele prin SMS, dar nu se numără. În perioada de probă, fără un plan ales, rândul nu are bară: spune doar că totul pleacă pe email.
 

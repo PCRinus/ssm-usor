@@ -718,7 +718,7 @@ describe('participant failures', () => {
     expect(message('address_not_of_employee')).toContain('nu mai este cea din datele lucrătorului');
     expect(message('invalid_address')).toContain('nu poate primi o invitație');
     expect(message('client_archived')).toContain('arhivat');
-    expect(message('client_is_lead')).toContain('client potențial');
+    expect(message('client_is_lead')).toContain('ofertă');
     expect(message('sms_trial')).toBe(
       'În perioada de probă nu trimitem SMS. Trimite invitația pe email; SMS-urile pornesc când se alege un plan.'
     );

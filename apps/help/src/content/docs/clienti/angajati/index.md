@@ -107,7 +107,7 @@ Astfel, filtrul îți arată pe oricine are ceva de rezolvat, indiferent de dome
 
 ### Lucrătorii tuturor clienților
 
-**Lucrători** din meniul lateral strânge într-o singură listă lucrătorii tuturor clienților tăi activi, cu aceleași taburi și filtre. Are în plus coloana clientului și un filtru după client, iar căutarea găsește și după numele clientului. Clienții potențiali și clienții arhivați nu apar aici. Lucrătorii se adaugă tot din pagina fiecărui client.
+**Lucrători** din meniul lateral strânge într-o singură listă lucrătorii tuturor clienților tăi activi, cu aceleași taburi și filtre. Are în plus coloana clientului și un filtru după client, iar căutarea găsește și după numele clientului. Ofertele și clienții arhivați nu apar aici. Lucrătorii se adaugă tot din pagina fiecărui client.
 
 Când ajungi aici din **Dashboard**, de la cifrele unui domeniu, filtrul citește doar acel domeniu: „La zi” din rândul SSM înseamnă la zi în SSM, oricum ar fi în SU. Dacă alegi sau ștergi un filtru pe pagină, lista revine la ambele domenii.
 

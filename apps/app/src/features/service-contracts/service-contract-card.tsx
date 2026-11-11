@@ -399,8 +399,7 @@ function ServiceContractBody({
     disposition: 'inline',
   });
   const missing = contractMissingGroups(readiness.missing, client);
-  const here =
-    client.stage === 'lead' ? '/clienti-potentiali/$leadId' : '/clienti/$clientId/contract';
+  const here = client.stage === 'lead' ? '/oferte/$leadId' : '/clienti/$clientId/contract';
   const followMissing = (row: MissingRow) => {
     if (row.target && row.target.to !== here) {
       startWayBack({

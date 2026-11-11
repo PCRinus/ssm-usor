@@ -33,11 +33,11 @@ export interface ClientArchiveChange {
 }
 
 function serverMessage(cause: unknown, action: ClientArchiveChange['action'], lead: boolean) {
-  const noun = lead ? 'clientul potențial' : 'clientul';
+  const noun = lead ? 'oferta' : 'clientul';
   if (cause instanceof ApiHttpError) {
     if (cause.status === 404) {
       return lead
-        ? 'Clientul potențial nu mai există în organizația ta.'
+        ? 'Oferta nu mai există în organizația ta.'
         : 'Clientul nu mai există în organizația ta.';
     }
     if (cause.status === 403) {
@@ -129,18 +129,18 @@ export function ClientArchiveDialog({
             <DialogTitle>
               {change.action === 'archive'
                 ? lead
-                  ? 'Arhivezi clientul potențial?'
+                  ? 'Arhivezi oferta?'
                   : 'Arhivezi clientul?'
                 : lead
-                  ? 'Reactivezi clientul potențial?'
+                  ? 'Reactivezi oferta?'
                   : 'Reactivezi clientul?'}
             </DialogTitle>
             <DialogDescription>
               <span className="font-medium text-foreground">{change.client.legalName}</span>
               {lead
                 ? change.action === 'archive'
-                  ? ' iese din lista clienților potențiali activi. Datele, contactul și notițele lui rămân neschimbate în lista „Arhivați”, de unde poate fi reactivat.'
-                  : ' revine în lista clienților potențiali activi.'
+                  ? ' iese din lista ofertelor active. Datele, contactul și notițele ei rămân neschimbate în lista „Arhivate”, de unde poate fi reactivată.'
+                  : ' revine în lista ofertelor active.'
                 : change.action === 'archive'
                   ? ' iese din lista clienților activi. Lucrătorii, posturile și documentele lui rămân neschimbate și pot fi consultate din lista „Arhivați”, de unde clientul poate fi reactivat.'
                   : ' revine în lista clienților activi, cu lucrătorii, posturile și documentele lui.'}

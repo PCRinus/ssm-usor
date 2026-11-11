@@ -28,7 +28,7 @@ export const Route = createFileRoute('/_authenticated/clienti/$clientId')({
     // A lead has its own page and none of these sections (ADR 007). Only an owner gets one.
     if (client.stage === 'lead') {
       throw redirect({
-        to: '/clienti-potentiali/$leadId',
+        to: '/oferte/$leadId',
         params: { leadId: client.id },
         replace: true,
       });

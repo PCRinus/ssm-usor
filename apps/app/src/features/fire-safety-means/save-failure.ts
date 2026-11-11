@@ -18,7 +18,7 @@ export function saveFailure(
     return {
       message:
         body?.reason === 'client_is_lead'
-          ? 'Un client potențial nu are încă mijloace de apărare împotriva incendiilor.'
+          ? 'O ofertă nu are încă mijloace de apărare împotriva incendiilor.'
           : 'Clientul este arhivat; datele lui nu se mai schimbă.',
     };
   }
