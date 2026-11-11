@@ -35,12 +35,14 @@ export function PhotoPreviewDialog({
   onCurrent,
   onClose,
   onRemove,
+  actions,
 }: {
   photos: PreviewPhoto[];
   current: string | null;
   onCurrent: (key: string) => void;
   onClose: () => void;
   onRemove?: (key: string) => void;
+  actions?: (key: string) => ReactNode;
 }) {
   const index = photos.findIndex((photo) => photo.key === current);
   return (
@@ -52,6 +54,7 @@ export function PhotoPreviewDialog({
           onCurrent={onCurrent}
           onClose={onClose}
           onRemove={onRemove}
+          actions={actions}
         />
       )}
     </Dialog>
@@ -64,12 +67,14 @@ function PreviewContent({
   onCurrent,
   onClose,
   onRemove,
+  actions,
 }: {
   photos: PreviewPhoto[];
   index: number;
   onCurrent: (key: string) => void;
   onClose: () => void;
   onRemove?: (key: string) => void;
+  actions?: (key: string) => ReactNode;
 }) {
   const photo = photos[index]!;
   const step = (to: number) => {
@@ -155,6 +160,7 @@ function PreviewContent({
               Scoate fotografia
             </Button>
           )}
+          {actions?.(photo.key)}
           <Button onClick={onClose}>Închide</Button>
         </div>
       </div>
