@@ -88,7 +88,8 @@ the request); the strip's link is there for that.
 
 **Recent impersonations**, under the list, are the admin's own, newest first, 10 to a page: the
 member, the organization (or "No longer a member"), the reason, when it started, and whether it
-ended, expired or is active.
+ended, expired or is active. The API stamps one closed after its expiry, such as by the next start,
+as ended at its expiry ([API](api.md#impersonation)).
 
 ## The active impersonation strip
 

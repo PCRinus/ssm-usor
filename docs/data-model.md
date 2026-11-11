@@ -176,13 +176,16 @@ issuing documents, importing and archiving. A training he saves issues its signa
 as the member's save would, and tells no signer. A document generated during an impersonation is
 the member's: its specialist and preparer are the member's profile, and an import he started
 names the member as its trainer, found from the impersonation that was active when it was
-created; `created_by` and `issued_by` still record the admin. A signature request names only an
+created and only while the member belongs to the import's organization; `created_by` and
+`issued_by` still record the admin. A signature request names only an
 account of the organization or a participant of the client as signer, so never the admin in a
 member's organization, unless he is a member of it in his own right.
 
 Every impersonation has a reason, as the data processing agreement promises support access is
 logged with one: `impersonations_reason_given` refuses a null reason or one of whitespace only,
-for every writer (`20261112110000_impersonation_start`). Its target must be a member of an
+for every writer (`20261112120000_impersonation_end_and_reason`). It is not validated, so a row
+written before it stays, and Postgres checks it on every later update of a row, so the same
+migration first ends every open row without a reason, which could otherwise never be ended. Its target must be a member of an
 organization: `impersonations_target_is_member`, a trigger after the row is written, raises
 `IMS02` otherwise, so a portal participant without a membership is never impersonated, and a
 caller the policies already refuse learns nothing about who is a member.
@@ -191,8 +194,17 @@ caller the policies already refuse learns nothing about who is a member.
 a security invoker function, so it runs under his token's policies and ADR 033 names him, that
 ends his open impersonation (an expired one never ended included, since the partial unique
 index counts it) and inserts the new one in one transaction. A refused start leaves the open one
-as it was. Ending one alone is an update of `ended_at` on his active row; an expired row is left
-as it is, since it ended at its expiry.
+as it was. Ending one alone is an update of `ended_at` on his open row. The trigger stamps the
+end, `least(now(), expires_at)`: a row closed after its expiry, by a later start or an end, ended
+at its expiry, and the audit log records no `impersonation_ended` for it, since natural expiry
+writes no event ([ADR 033](architecture/adr-033-audit-log.md)); one ended before its expiry
+ends now and records the event. So `ended_at - started_at` never exceeds two hours.
+
+`current_impersonation()` returns the caller's impersonation in force now, by the database's
+clock, the one `effective_user_id()` acts on, or no row: a security invoker function, so the
+policies show only an admin's own rows past the second factor. The API reads it for `GET /me`,
+the admin app's active impersonation and the check that a page was built for whom the admin
+acts as.
 
 Two functions only the secret key may run read across organizations for the admin area:
 `admin_list_members(search, limit, offset)` lists every organization member with their email
