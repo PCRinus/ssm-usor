@@ -119,8 +119,8 @@ function LeadPage() {
             </Button>
           }
         >
-          Datele și notițele lui pot fi citite, dar nu modificate, și nu poate fi transformat în
-          client până nu este reactivat.
+          Datele și notițele ei pot fi citite, dar nu modificate, iar oferta nu poate fi
+          transformată în client până nu este reactivată.
         </Notice>
       )}
       <div className="grid gap-6">

@@ -96,7 +96,7 @@ Pe pagina unui client arhivat vezi „Client arhivat” și „Datele și docume
 
 Nimic din ce ține de client nu se mai schimbă până la reactivare: nu poți modifica datele lui, adăuga sau modifica lucrători, posturi și puncte de lucru, genera sau emite documente, înregistra instruiri ori trimite invitații în portal. Butoanele acestor acțiuni nu mai apar. Lucrătorii lui nu mai apar nici în lista **Lucrători** din meniul lateral.
 
-Dacă un coleg a arhivat clientul cât timp lucrai la el, la salvare vezi „Clientul este arhivat; datele ei nu mai pot fi modificate.”
+Dacă un coleg a arhivat clientul cât timp lucrai la el, la salvare vezi „Clientul este arhivat; datele lui nu mai pot fi modificate.”
 
 ## Reactivarea unui client
 

@@ -16,7 +16,7 @@ import {
 export const clientWording = {
   client: {
     added: (name: string) => `${name} a fost adăugat.`,
-    archived: 'Clientul este arhivat; datele ei nu mai pot fi modificate.',
+    archived: 'Clientul este arhivat; datele lui nu mai pot fi modificate.',
     gone: 'Clientul nu mai există în organizația ta.',
     forbidden: 'Contul tău nu face parte dintr-o organizație. Contactează adminul.',
     failed: 'Nu am putut salva clientul. Verifică conexiunea și încearcă din nou.',

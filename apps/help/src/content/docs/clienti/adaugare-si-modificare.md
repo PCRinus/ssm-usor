@@ -157,7 +157,7 @@ Documentele deja generate nu se schimbă când modifici datele clientului: fieca
 
 Când un câmp nu e bun, mesajul apare sub el și pagina te duce la primul câmp greșit. Celelalte mesaje apar sub formular:
 
-- „Clientul este arhivat; datele ei nu mai pot fi modificate.”: clientul a fost arhivat între timp;
+- „Clientul este arhivat; datele lui nu mai pot fi modificate.”: clientul a fost arhivat între timp;
 - „Clientul nu mai există în organizația ta.”: reîncarcă lista clienților;
 - „Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.”;
 - „Nu am putut salva clientul. Verifică conexiunea și încearcă din nou.”: salvarea nu a ajuns la aplicație. Ce ai scris rămâne în formular, așa că încearcă din nou.

@@ -155,7 +155,7 @@ export function LeadsPage() {
           empty={
             archived ? (
               <EmptyState icon={Archive} title="Nicio ofertă arhivată" data-testid="leads-empty">
-                Ofertele arhivate vor apărea aici. O poți reactiva oricând.
+                Ofertele arhivate vor apărea aici. Le poți reactiva oricând.
               </EmptyState>
             ) : (
               <EmptyState
