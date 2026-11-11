@@ -17,6 +17,7 @@ import {
   fireSubstanceResponseSchema,
   fireSubstancesResponseSchema,
   fireSubstancesStateResponseSchema,
+  readSafetySheetResponseSchema,
   updateClientFireSafetyRequestSchema,
   updateFireSubstancesStateRequestSchema,
 } from '@ssm-usor/contracts';
@@ -438,6 +439,48 @@ export const deleteFireSubstanceRoute = createRoute({
     404: noSuchSubstance,
     409: refusedClient,
     ...membershipErrors,
+  },
+});
+
+export const readSafetySheetRoute = createRoute({
+  method: 'post',
+  path: '/clients/{clientId}/fire-substances/read-safety-sheet',
+  operationId: 'readSafetySheet',
+  summary: "Read a product's safety data sheet into a draft substance",
+  description:
+    "Takes one PDF with a text layer as the body, at most 10 MiB and 40 pages: the safety data sheet of one product. A model reads it and the answer is a draft of the substance's fields; nothing is saved, and the file is not kept (ADR 042). The quantity and the storage place are never in the draft. Every H statement, CAS, EC and UN number the reading wrote that the file does not hold is left out, and `droppedCodes` counts them. A reading takes 3 credits, refused with `409` and `credits_insufficient` (and `credits`) when what is left does not cover it, and given back when the reading fails or the file is refused. Refused with `422`: `safety_sheet_not_pdf`, `safety_sheet_too_large`, `safety_sheet_too_many_pages`, `safety_sheet_scanned` for a PDF whose pages are mostly scans, `safety_sheet_unreadable` for a damaged or protected file, `safety_sheet_not_a_sheet` for a file that is not a safety data sheet. `503` with `safety_sheet_failed` when the reading fails, and `safety_sheet_unavailable` where the model gateway or the extractor is not configured.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: {
+    params: clientParams,
+    body: {
+      required: true,
+      content: {
+        'application/pdf': {
+          schema: z.string().openapi({ type: 'string', format: 'binary' }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'The draft',
+      content: {
+        'application/json': {
+          schema: readSafetySheetResponseSchema.meta({ id: 'ReadSafetySheetResponse' }),
+        },
+      },
+    },
+    400: { description: 'Invalid path', content: errorContent },
+    404: noSuchClient,
+    409: {
+      description:
+        'The client is archived (`client_archived`) or a lead (`client_is_lead`), or the credits left do not cover the reading (`credits_insufficient`)',
+      content: errorContent,
+    },
+    422: { description: 'The file is refused', content: errorContent },
+    ...membershipErrors,
+    503: { description: 'The reading failed or is not available', content: errorContent },
   },
 });
 

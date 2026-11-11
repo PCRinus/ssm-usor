@@ -186,6 +186,38 @@ export function importCharges(store: CreditsStore, now: () => Date = () => new D
 export type ImportCharges = ReturnType<typeof importCharges>;
 
 /**
+ * One reading of a safety data sheet, refused unless the balance covers it, and given back when
+ * it fails or the file is refused (ADR 042).
+ */
+export function safetySheetCharges(store: CreditsStore, now: () => Date = () => new Date()) {
+  return {
+    async charge(organizationId: string, key: string): Promise<StartCharge> {
+      const policy = creditPolicy(await store.subscription(organizationId), now());
+      const credits = importCredits.safetySheet;
+      const result = await store.charge({
+        organizationId,
+        policy,
+        kind: 'safety_sheet',
+        credits,
+        importId: null,
+        key,
+        require: true,
+      });
+      if (!result.refused) return { started: true };
+      return {
+        started: false,
+        short: {
+          needed: credits,
+          left: (result.balance ?? 0) + result.giftLeft,
+          renewsAt: renewsAt(policy),
+        },
+      };
+    },
+    refund: (key: string) => store.refundSafetySheet(key),
+  };
+}
+
+/**
  * Once the first payment went through, the gift is brought up to the plan's: all of it at the
  * first payment, the difference when Start moves up to Profesional (ADR 030). Before that a plan
  * chosen during the trial brings nothing, since cancelling before the first charge costs nothing.

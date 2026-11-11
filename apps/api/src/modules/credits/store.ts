@@ -75,10 +75,11 @@ export function creditsStore(db: AdminClient) {
       policy: CreditPolicy;
       kind: Extract<
         CreditEntryKind,
-        'import_start' | 'import_pages' | 'scanned_page' | 'library_part'
+        'import_start' | 'import_pages' | 'scanned_page' | 'library_part' | 'safety_sheet'
       >;
       credits: number;
-      importId: string;
+      // Null for a reading outside any import, a safety data sheet's (ADR 042).
+      importId: string | null;
       fileId?: string;
       page?: number;
       importPart?: Database['public']['Enums']['import_library_part'];
@@ -90,7 +91,7 @@ export function creditsStore(db: AdminClient) {
           p_organization_id: input.organizationId,
           p_kind: input.kind,
           p_credits: input.credits,
-          p_import_id: input.importId,
+          p_import_id: input.importId ?? none,
           p_import_file_id: input.fileId ?? none,
           p_page: input.page ?? none,
           p_key: input.key,
@@ -123,6 +124,10 @@ export function creditsStore(db: AdminClient) {
         p_key: key,
       });
       if (error) throw fromDatabaseError(error, 'give back credits');
+    },
+    async refundSafetySheet(key: string) {
+      const { error } = await db.rpc('refund_safety_sheet_credits', { p_key: key });
+      if (error) throw fromDatabaseError(error, 'refund safety sheet credits');
     },
     async grant(input: {
       organizationId: string;

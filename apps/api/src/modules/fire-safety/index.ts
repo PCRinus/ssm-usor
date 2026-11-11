@@ -39,6 +39,7 @@ import {
   listFireInstallationsRoute,
   listFireMaintenanceItemsRoute,
   listFireSubstancesRoute,
+  readSafetySheetRoute,
   updateClientFireSafetyRoute,
   updateFireBuildingRoute,
   updateFireEquipmentRoute,
@@ -47,6 +48,7 @@ import {
   updateFireSubstanceRoute,
   updateFireSubstancesStateRoute,
 } from './routes';
+import { readSafetySheet } from './safety-sheet';
 
 export const fireSafetyRouter = createRouter()
   .openapi(getClientFireSafetyRoute, getClientFireSafety)
@@ -69,5 +71,6 @@ export const fireSafetyRouter = createRouter()
   .openapi(listFireSubstancesRoute, listFireSubstances)
   .openapi(updateFireSubstancesStateRoute, updateFireSubstancesState)
   .openapi(createFireSubstanceRoute, createFireSubstance)
+  .openapi(readSafetySheetRoute, readSafetySheet)
   .openapi(updateFireSubstanceRoute, updateFireSubstance)
   .openapi(deleteFireSubstanceRoute, deleteFireSubstance);
