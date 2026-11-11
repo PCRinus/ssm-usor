@@ -324,7 +324,7 @@ O pagină ajunge la o persoană după CNP, dacă cifra lui de control se potrive
 - **Așteaptă doar postul**: nu au nimic de hotărât pe fișe, doar postul sau locul de muncă hotărât mai sus;
 - **Încă nedeschise**: nu au nimic de hotărât; devin verificate când treci de pe pagina lor la următoarea;
 - **Verificați**: o persoană cu ceva de hotărât devine verificată după ce ai hotărât. Redevine de verificat când o corectură, o pagină pe care i-o dai sau o alegere îi lasă din nou ceva de hotărât;
-- **Lăsați deoparte**: nu se creează. Aici ajunge și cine a plecat din firmă, dacă treci mai departe fără să-l preiei.
+- **Lăsați deoparte**: nu se creează și nu se numără printre cei de verificat. Aici e și cine a plecat din firmă, cât timp nu-l preiei cu comutatorul lui.
 
 Comutatorul din dreapta fiecărui rând e același cu cel de lângă numele persoanei, pe pagina ei: oprit, o lasă deoparte, iar rândul se strânge la nume, cu „Nu e inclus”; pornit din nou, o ia înapoi la verificat.
 
