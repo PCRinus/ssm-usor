@@ -178,6 +178,7 @@ export {
   noUsage,
   readingModel,
   risksModel,
+  safetySheetModel,
   similarityModel,
   sortingModel,
   type Usage,
@@ -212,6 +213,7 @@ export * from './risks-read';
 export * from './risks-request';
 export * from './risks-rows';
 export { risksProposalSchema } from './risks-schema';
+export * from './safety-sheet';
 export {
   type SheetDate,
   sheetDate,

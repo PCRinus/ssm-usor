@@ -384,6 +384,8 @@ export const importCredits = {
   // Reading a pack's risk evaluations, each time they are read: 15, not 10, because the dearest
   // reference reading cost $0.095, past the $0.08 that ADR 036 set for 10.
   riskEvaluations: 15,
+  // Reading one product's safety data sheet in the substance dialog, outside any import (ADR 042).
+  safetySheet: 3,
 } as const;
 
 /**
