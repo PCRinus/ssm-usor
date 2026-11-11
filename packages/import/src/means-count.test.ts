@@ -6,6 +6,8 @@ import { type Reading, toProposal } from './reading';
 
 type Entry = Reading['fireEquipment'][number];
 
+const at0 = (entry: Entry): Entry => ({ ...entry, workplace: null });
+
 const decision = 'Dosar/PSI/Decizia 7 dotare.docx';
 const meansList = 'Dosar/PSI/Lista mijloacelor de stingere.docx';
 const riskEvaluation = 'Dosar/PSI/Evaluarea riscului de incendiu.docx';
@@ -339,6 +341,83 @@ describe('one count of the means per workplace', () => {
         'fireEquipment.3.workplace',
       ]);
     });
+  });
+
+  describe('with no workplace among several', () => {
+    const two = [
+      workplace('Sediu', 'Str. Florilor nr. 3'),
+      workplace('Magazin', 'Str. Lunii nr. 8'),
+    ];
+    const at = (entry: Entry, name: string | null): Entry => ({ ...entry, workplace: name });
+
+    it('counts the entries naming one unknown workplace apart from those naming none', () => {
+      const proposal = toProposal(
+        reading(
+          [
+            at(powder(decision, 2), 'Hală Nord'),
+            at(powder(decision, 1), null),
+            at(powder(meansList, 3), 'hala nord'),
+            at(powder(meansList, 4), null),
+          ],
+          two
+        )
+      );
+
+      expect(
+        proposal.fireEquipmentCounts.map((count) => [
+          count.workplace,
+          count.options.map((option) => option.total),
+        ])
+      ).toEqual([
+        [{ name: 'Hală Nord', id: null }, [2, 3]],
+        [{ name: null, id: null }, [1, 4]],
+      ]);
+    });
+
+    it('counts the entries with a workplace and those without apart in one reading', () => {
+      const proposal = toProposal(
+        reading(
+          [
+            at(powder(decision, 2), 'Magazin'),
+            at(powder(decision, 1), null),
+            at(powder(meansList, 3), 'Magazin'),
+            at(powder(meansList, 1), null),
+          ],
+          two
+        )
+      );
+
+      expect(proposal.fireEquipmentCounts).toEqual([
+        expect.objectContaining({ workplace: { name: 'Magazin', id: 'workplace-2' } }),
+      ]);
+      expect(
+        proposal.fireEquipment.map((entry) => [entry.workplace.id, entry.sources[0]!.file])
+      ).toEqual([
+        ['workplace-2', decision],
+        [null, decision],
+        ['workplace-2', meansList],
+      ]);
+    });
+  });
+
+  it('places an entry with no workplace at the own point of work beside another company’s', () => {
+    const proposal = toProposal(
+      reading(
+        [at0(powder(decision, 2)), at0(powder(meansList, 3))],
+        [
+          workplace('Magazin', 'Str. Lunii nr. 8'),
+          { ...workplace('Depozit', 'Str. Gării nr. 1'), otherCompany: 'ALTA FIRMĂ S.R.L.' },
+        ]
+      )
+    );
+
+    expect(proposal.fireEquipment.map((entry) => entry.workplace)).toEqual([
+      { name: null, id: 'workplace-1' },
+      { name: null, id: 'workplace-1' },
+    ]);
+    expect(proposal.fireEquipmentCounts).toEqual([
+      expect.objectContaining({ workplace: { name: null, id: 'workplace-1' } }),
+    ]);
   });
 
   it('leaves out of the count what only another company’s passages give', () => {

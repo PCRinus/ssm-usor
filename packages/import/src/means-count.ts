@@ -14,7 +14,7 @@ const roomCount = (entries: ReadEquipment[]) =>
 
 const typed = (entry: ReadEquipment) => entry.agent !== null && entry.capacity !== null;
 
-// Entries with no workplace are one place among themselves, or one per name no workplace has.
+// A name no workplace matches may be a place of its own, so it is not joined to the unnamed.
 const placeOf = (entry: ReadEquipment) =>
   entry.workplace.id ?? `?${foldText(entry.workplace.name ?? '')}`;
 
