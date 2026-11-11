@@ -171,7 +171,8 @@ export type MeResponseMembership = {
  */
 export type MeResponseImpersonation = {
   targetMemberId: string;
-  targetOrganizationId: string;
+  /** @nullable */
+  targetOrganizationId: string | null;
   expiresAt: string;
   /** @nullable */
   targetName: string | null;

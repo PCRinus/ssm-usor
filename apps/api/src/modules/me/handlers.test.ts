@@ -58,8 +58,10 @@ function mockUpstream({
     if (url.pathname === '/auth/v1/user') {
       return Response.json({ ...user, is_anonymous: false, app_metadata: appMetadata });
     }
-    if (url.pathname === '/rest/v1/impersonations') {
-      if (init?.method === 'PATCH') return new Response(null, { status: 204 });
+    if (url.pathname === '/rest/v1/impersonations' && init?.method === 'PATCH') {
+      return new Response(null, { status: 204 });
+    }
+    if (url.pathname === '/rest/v1/rpc/current_impersonation') {
       return Response.json(impersonation);
     }
     if (url.pathname === '/rest/v1/rpc/organization_member_list') {
@@ -117,12 +119,19 @@ function mockUpstream({
   });
 }
 
-const request = (path: string, init: RequestInit = {}, bindings = env) =>
+const request = (path: string, init: RequestInit = {}, bindings = env, token = 'token') =>
   createApp().request(
     path,
-    { ...init, headers: { Authorization: 'Bearer token', 'Content-Type': 'application/json' } },
+    { ...init, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } },
     bindings
   );
+
+const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
+const adminToken = (aal: string) =>
+  `${encode({ alg: 'ES256', typ: 'JWT' })}.${encode({ sub: user.id, aal })}.c2ln`;
+const adminMetadata = { provider: 'email', role: 'admin' };
+const asAdmin = (path: string) => request(path, {}, env, adminToken('aal2'));
+const upstreamPaths = () => fetchMock.mock.calls.map(([input]) => new URL(String(input)).pathname);
 
 const profileWrites = () =>
   fetchMock.mock.calls
@@ -292,9 +301,13 @@ describe('GET /me', () => {
   });
 
   it('reports impersonation using the effective member while preserving the real caller', async () => {
-    mockUpstream({ memberUserId: targetMemberId, impersonation: activeImpersonation });
+    mockUpstream({
+      memberUserId: targetMemberId,
+      impersonation: activeImpersonation,
+      appMetadata: adminMetadata,
+    });
 
-    const response = await request('/me');
+    const response = await asAdmin('/me');
 
     expect(meResponseSchema.parse(await response.json())).toMatchObject({
       user,
@@ -306,11 +319,28 @@ describe('GET /me', () => {
         targetName: 'Ion Ionescu',
       },
     });
-    const read = fetchMock.mock.calls
-      .map(([input]) => new URL(String(input)))
-      .find((url) => url.pathname === '/rest/v1/impersonations')!;
-    expect(read.searchParams.get('admin_user_id')).toBe(`eq.${user.id}`);
-    expect(read.searchParams.get('ended_at')).toBe('is.null');
+    expect(upstreamPaths()).toContain('/rest/v1/rpc/current_impersonation');
+  });
+
+  it('reports the impersonation of a member who has left their organization, to end it', async () => {
+    mockUpstream({
+      member: false,
+      impersonation: activeImpersonation,
+      appMetadata: adminMetadata,
+    });
+
+    const response = await asAdmin('/me');
+
+    expect(meResponseSchema.parse(await response.json())).toMatchObject({
+      membership: null,
+      impersonation: {
+        targetMemberId,
+        targetOrganizationId: null,
+        expiresAt: '2026-11-11T11:00:00.123Z',
+        targetName: null,
+      },
+    });
+    expect(upstreamPaths()).not.toContain('/rest/v1/rpc/organization_member_list');
   });
 
   it('names the impersonated member by their email without a name, and by nothing when unread', async () => {
@@ -318,8 +348,9 @@ describe('GET /me', () => {
       memberUserId: targetMemberId,
       impersonation: activeImpersonation,
       impersonated: { full_name: null, email: 'ion@example.ro' },
+      appMetadata: adminMetadata,
     });
-    const byEmail = meResponseSchema.parse(await (await request('/me')).json());
+    const byEmail = meResponseSchema.parse(await (await asAdmin('/me')).json());
     expect(byEmail.impersonation?.targetName).toBe('ion@example.ro');
 
     vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -327,25 +358,32 @@ describe('GET /me', () => {
       memberUserId: targetMemberId,
       impersonation: activeImpersonation,
       impersonated: null,
+      appMetadata: adminMetadata,
     });
-    const response = await request('/me');
+    const response = await asAdmin('/me');
     expect(response.status).toBe(200);
     expect(meResponseSchema.parse(await response.json()).impersonation?.targetName).toBeNull();
   });
 
   it('reports no impersonation when it ended between the two reads', async () => {
-    mockUpstream({ memberUserId: targetMemberId, impersonation: null });
+    mockUpstream({ memberUserId: targetMemberId, impersonation: null, appMetadata: adminMetadata });
 
-    const response = await request('/me');
+    const response = await asAdmin('/me');
 
     expect(meResponseSchema.parse(await response.json()).impersonation).toBeNull();
+  });
+
+  it('reads no impersonation for someone who cannot have one', async () => {
+    mockUpstream({ impersonation: activeImpersonation });
+
+    const response = await request('/me', {}, env, adminToken('aal2'));
+
+    expect(meResponseSchema.parse(await response.json()).impersonation).toBeNull();
+    expect(upstreamPaths()).not.toContain('/rest/v1/rpc/current_impersonation');
   });
 });
 
 describe('DELETE /me/impersonation', () => {
-  const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
-  const adminToken = (aal: string) =>
-    `${encode({ alg: 'ES256', typ: 'JWT' })}.${encode({ sub: user.id, aal })}.c2ln`;
   const end = (token: string) =>
     createApp().request(
       '/me/impersonation',

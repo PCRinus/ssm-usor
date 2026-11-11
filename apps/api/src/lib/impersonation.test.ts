@@ -5,6 +5,7 @@ import { createApp } from '../app';
 import { accessTokenAt } from './access-token.fixture';
 import { requireAuth } from './auth';
 import type { ApiEnv } from './env';
+import { refuseDuringImpersonation } from './impersonation';
 import { requireMembership } from './membership';
 
 const admin = {
@@ -73,7 +74,7 @@ beforeEach(() => {
         },
       ]);
     }
-    if (url.pathname === '/rest/v1/impersonations') return Response.json(impersonation);
+    if (url.pathname === '/rest/v1/rpc/current_impersonation') return Response.json(impersonation);
     return Response.json(null);
   });
   vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -112,16 +113,12 @@ const post = (path: string, token = accessTokenAt('aal2', admin.id)) =>
   );
 
 describe('messages sent during an impersonation', () => {
-  it('refuses an email from a route without a membership, once the impersonation is read', async () => {
+  it('sends from a route without a membership, which acts as the signed-in admin himself', async () => {
     const response = await post('/unguarded/mail');
 
-    expect(response.status).toBe(403);
-    expect(await response.json()).toMatchObject({
-      error: 'forbidden',
-      reason: 'impersonation_refused',
-    });
-    expect(sendSignatureRequest).not.toHaveBeenCalled();
-    expect(upstreamPaths()).toContain('/rest/v1/impersonations');
+    expect(response.status).toBe(204);
+    expect(sendSignatureRequest).toHaveBeenCalledOnce();
+    expect(upstreamPaths()).not.toContain('/rest/v1/rpc/current_impersonation');
   });
 
   it('refuses an SMS from a route with a membership that is not the admin’s own', async () => {
@@ -130,7 +127,7 @@ describe('messages sent during an impersonation', () => {
     expect(response.status).toBe(403);
     expect(await response.json()).toMatchObject({ reason: 'impersonation_refused' });
     expect(sendSigningCode).not.toHaveBeenCalled();
-    expect(upstreamPaths()).not.toContain('/rest/v1/impersonations');
+    expect(upstreamPaths()).not.toContain('/rest/v1/rpc/current_impersonation');
   });
 
   it('sends for a platform admin who is not impersonating', async () => {
@@ -152,7 +149,7 @@ describe('messages sent during an impersonation', () => {
 
     expect((await post('/unguarded/mail', accessTokenAt(aal, admin.id))).status).toBe(204);
     expect(sendSignatureRequest).toHaveBeenCalledOnce();
-    expect(upstreamPaths()).not.toContain('/rest/v1/impersonations');
+    expect(upstreamPaths()).not.toContain('/rest/v1/rpc/current_impersonation');
   });
 });
 
@@ -191,6 +188,28 @@ describe('routes that sign or send in the member’s name', () => {
     expect(upstreamPaths()).toEqual(['/auth/v1/user', '/rest/v1/rpc/current_membership']);
   });
 
+  it('refuse an admin whose role was removed after his token was issued, whom the database still lets act as the member', async () => {
+    appMetadata = { provider: 'email' };
+
+    const guarded = await createApp().request(
+      '/organization/invitations',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessTokenAt('aal2', admin.id)}`,
+          'Content-Type': 'application/json',
+        },
+        body: '{}',
+      },
+      env
+    );
+    const unguarded = await post('/unguarded/sms');
+
+    expect(guarded.status).toBe(403);
+    expect(unguarded.status).toBe(403);
+    expect(sendSigningCode).not.toHaveBeenCalled();
+  });
+
   it.each(routes)('let POST %s through for the admin as himself', async (path) => {
     effectiveUserId = admin.id;
 
@@ -209,5 +228,117 @@ describe('routes that sign or send in the member’s name', () => {
 
     // Past the guard: the empty body is refused, or a resend finds no invitation.
     expect([400, 404]).toContain(response.status);
+  });
+});
+
+describe('a page built for someone other than whom the request acts as', () => {
+  const otherMemberId = '4f0c1e2d-3b4a-4c5d-8e6f-7a8b9c0d1e2f';
+
+  const list = (actingAs?: string, token = accessTokenAt('aal2', admin.id)) =>
+    createApp().request(
+      '/clients',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(actingAs === undefined ? {} : { 'X-Acting-As': actingAs }),
+        },
+      },
+      env
+    );
+
+  it.each([
+    ['another member than the one impersonated', otherMemberId, activeImpersonation],
+    ['a member, when none is impersonated any more', memberId, null],
+    ['the admin himself, while he impersonates a member', 'self', activeImpersonation],
+  ])('is refused when it names %s, before anything is read', async (_, actingAs, active) => {
+    impersonation = active;
+
+    const response = await list(actingAs);
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      error: 'conflict',
+      reason: 'identity_changed',
+    });
+    expect(upstreamPaths()).toEqual(['/auth/v1/user', '/rest/v1/rpc/current_impersonation']);
+  });
+
+  it.each([
+    ['the member impersonated', memberId, activeImpersonation, memberId],
+    ['the admin himself, impersonating nobody', 'self', null, admin.id],
+  ])('passes when it names %s', async (_, actingAs, active, effective) => {
+    impersonation = active;
+    effectiveUserId = effective;
+
+    const response = await list(actingAs);
+
+    expect(response.status).not.toBe(409);
+    expect(upstreamPaths().slice(0, 3)).toEqual([
+      '/auth/v1/user',
+      '/rest/v1/rpc/current_impersonation',
+      '/rest/v1/rpc/current_membership',
+    ]);
+  });
+
+  it('passes without the header, with no read of its own', async () => {
+    const response = await list();
+
+    expect(response.status).not.toBe(409);
+    expect(upstreamPaths()).not.toContain('/rest/v1/rpc/current_impersonation');
+  });
+
+  it.each(['self', memberId, 'anything'])(
+    'passes %s from someone who cannot impersonate, with no read of its own',
+    async (actingAs) => {
+      appMetadata = { provider: 'email' };
+      effectiveUserId = admin.id;
+
+      const response = await list(actingAs);
+
+      expect(response.status).not.toBe(409);
+      expect(upstreamPaths()).not.toContain('/rest/v1/rpc/current_impersonation');
+    }
+  );
+
+  it('reads the impersonation once a request, for the check and the refusal after it', async () => {
+    const app = createApp();
+    app.post('/unguarded/guarded', requireAuth, refuseDuringImpersonation, (c) =>
+      c.body(null, 204)
+    );
+
+    const response = await app.request(
+      '/unguarded/guarded',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessTokenAt('aal2', admin.id)}`,
+          'X-Acting-As': memberId,
+        },
+      },
+      env
+    );
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ reason: 'impersonation_refused' });
+    expect(
+      upstreamPaths().filter((path) => path === '/rest/v1/rpc/current_impersonation')
+    ).toHaveLength(1);
+  });
+
+  it('is allowed across origins by CORS', async () => {
+    const response = await createApp().request(
+      '/clients',
+      {
+        method: 'OPTIONS',
+        headers: {
+          Origin: 'https://app.example.ro',
+          'Access-Control-Request-Method': 'GET',
+          'Access-Control-Request-Headers': 'authorization,x-acting-as',
+        },
+      },
+      { ...env, CORS_ORIGINS: 'https://app.example.ro' }
+    );
+
+    expect(response.headers.get('Access-Control-Allow-Headers')).toMatch(/X-Acting-As/i);
   });
 });

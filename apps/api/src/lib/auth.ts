@@ -8,8 +8,9 @@ import { endTime, startTime } from 'hono/timing';
 import { requestFetch, supabaseConfig } from './db';
 import { type ApiEnv, isProduction } from './env';
 import { ApiError } from './errors';
+import { refuseChangedIdentity } from './impersonation';
 
-export const requireAuth = createMiddleware<ApiEnv>(async (c, next) => {
+async function authenticate(c: Context<ApiEnv>) {
   const authorization = c.req.header('Authorization');
   const token = authorization?.match(/^Bearer ([^\s]+)$/i)?.[1];
   if (!token) throw new ApiError('unauthorized');
@@ -54,21 +55,46 @@ export const requireAuth = createMiddleware<ApiEnv>(async (c, next) => {
   // it gives an admin's power only to a session that passed its second factor (ADR 038).
   const adminClaim = data.user.app_metadata?.role === 'admin';
   c.set('adminClaim', adminClaim);
-  c.set('platformAdmin', adminClaim && assuranceLevel(token) === 'aal2');
+  const claims = tokenClaims(token);
+  const platformAdmin = adminClaim && claims?.aal === 'aal2';
+  c.set('platformAdmin', platformAdmin);
+  // is_platform_admin() reads the token's claims, which outlive a role removed since it was
+  // issued, so either one may have an impersonation in force.
+  c.set('mayImpersonate', platformAdmin || isAdminToken(claims));
   c.set('accessToken', token);
+}
+
+// For the public app: the page the request comes from was built for whom it acts as (ADR 038).
+export const requireAuth = createMiddleware<ApiEnv>(async (c, next) => {
+  await authenticate(c);
+  await refuseChangedIdentity(c);
   await next();
 });
 
-// requireAuth verified the token, so its claims can be read without checking the signature again.
-function assuranceLevel(token: string): unknown {
+// No page of the admin app is built for a member.
+export const requireAuthForAdmin = createMiddleware<ApiEnv>(async (c, next) => {
+  await authenticate(c);
+  await next();
+});
+
+type TokenClaims = ReturnType<typeof decode>['payload'];
+
+// The token was verified with Supabase Auth, so its claims can be read without checking the
+// signature again.
+function tokenClaims(token: string): TokenClaims | undefined {
   try {
-    return decode(token).payload.aal;
+    return decode(token).payload;
   } catch {
     return undefined;
   }
 }
 
-// After requireAuth, on the Admin entrypoint (ADR 038).
+const isAdminToken = (claims: TokenClaims | undefined) => {
+  const appMetadata = claims?.app_metadata as { role?: unknown } | undefined;
+  return appMetadata?.role === 'admin' && claims?.aal === 'aal2';
+};
+
+// After requireAuthForAdmin, on the Admin entrypoint (ADR 038).
 export const requireAdmin = createMiddleware<ApiEnv>(async (c, next) => {
   if (!c.get('adminClaim')) throw new ApiError('forbidden', 'Admins only.');
   if (!c.get('platformAdmin')) {

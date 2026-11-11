@@ -105,6 +105,7 @@ let memberRows: unknown[] = [];
 let active: unknown = null;
 let history: unknown[] = [];
 let startError: { code: string; message: string } | null = null;
+let accountsFail = false;
 
 function mockUpstream() {
   fetchMock.mockImplementation(async (input, init) => {
@@ -129,6 +130,8 @@ function mockUpstream() {
       return Response.json(memberRows.slice(offset, offset + Number(body.p_limit)));
     }
     if (path === '/rest/v1/rpc/admin_accounts') {
+      if (accountsFail)
+        return Response.json({ code: '57014', message: 'timeout' }, { status: 500 });
       return Response.json(
         (body.p_user_ids as string[]).flatMap((id) => (accounts[id] ? [accounts[id]] : []))
       );
@@ -142,11 +145,11 @@ function mockUpstream() {
         reason: body.p_reason,
       });
     }
+    if (path === '/rest/v1/rpc/current_impersonation') return Response.json(active);
     if (path === '/rest/v1/impersonations' && method === 'PATCH') {
       return new Response(null, { status: 204 });
     }
     if (path === '/rest/v1/impersonations' && method === 'GET') {
-      if (url.searchParams.get('ended_at') === 'is.null') return Response.json(active);
       const from = Number(url.searchParams.get('offset') ?? 0);
       const limit = Number(url.searchParams.get('limit') ?? 1000);
       if (from >= history.length && from > 0) {
@@ -196,6 +199,7 @@ beforeEach(() => {
   active = null;
   history = [];
   startError = null;
+  accountsFail = false;
   mockUpstream();
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -297,10 +301,8 @@ describe('GET /admin/impersonation', () => {
       },
     });
     const [read, accountsRead] = restCalls();
-    expect(read).toMatchObject({ ownToken: true, method: 'GET' });
-    expect(read!.url.searchParams.get('admin_user_id')).toBe(`eq.${admin.id}`);
-    expect(read!.url.searchParams.get('ended_at')).toBe('is.null');
-    expect(read!.url.searchParams.get('expires_at')).toMatch(/^gt\./);
+    expect(read).toMatchObject({ ownToken: true });
+    expect(read!.url.pathname).toBe('/rest/v1/rpc/current_impersonation');
     expect(accountsRead).toMatchObject({ secret: true, body: { p_user_ids: [targetId] } });
   });
 
@@ -389,6 +391,14 @@ describe('POST /admin/impersonation', () => {
       403,
       undefined,
     ],
+    [
+      {
+        code: '23505',
+        message: 'duplicate key value violates unique constraint "impersonations_active_admin_key"',
+      },
+      409,
+      'impersonation_start_in_progress',
+    ],
   ])('words the database’s refusal %j', async (error, status, reason) => {
     startError = error;
 
@@ -396,6 +406,24 @@ describe('POST /admin/impersonation', () => {
 
     expect(response.status).toBe(status);
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(reason);
+  });
+});
+
+describe('POST /admin/impersonation after the start', () => {
+  it('answers the impersonation started, without its member, when they cannot be read', async () => {
+    accountsFail = true;
+
+    const response = await request('/admin/impersonation', {
+      method: 'POST',
+      body: JSON.stringify({ targetUserId: targetId, reason: 'Reproduce #77' }),
+    });
+
+    expect(response.status).toBe(201);
+    expect(adminImpersonationSchema.parse(await response.json())).toMatchObject({
+      id: impersonationId,
+      target: { userId: targetId, email: null, fullName: null, organization: null, role: null },
+    });
+    expect(console.error).toHaveBeenCalled();
   });
 });
 
@@ -409,7 +437,7 @@ describe('DELETE /admin/impersonation', () => {
     expect(update!.url.pathname).toBe('/rest/v1/impersonations');
     expect(update!.url.searchParams.get('admin_user_id')).toBe(`eq.${admin.id}`);
     expect(update!.url.searchParams.get('ended_at')).toBe('is.null');
-    expect(update!.url.searchParams.get('expires_at')).toMatch(/^gt\./);
+    expect(update!.url.searchParams.get('expires_at')).toBeNull();
     expect(Object.keys(update!.body as object)).toEqual(['ended_at']);
   });
 });
