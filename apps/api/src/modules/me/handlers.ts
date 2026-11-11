@@ -11,14 +11,16 @@ import type { Context } from 'hono';
 
 import type { Database } from '../../database.types';
 import { createAdminClient } from '../../lib/admin-db';
-import { createDataClient, fromDatabaseError } from '../../lib/db';
+import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { activeImpersonation, endActiveImpersonation } from '../../lib/impersonation';
 import { creditsStore } from '../credits/store';
 import { creditsUsageOf } from '../credits/usage';
 import { smsUsageStore } from '../sms-usage/store';
 import { smsUsageOf } from '../sms-usage/usage';
 import type {
+  endMyImpersonationRoute,
   listMyInvitationsRoute,
   meRoute,
   supportIdentityRoute,
@@ -90,6 +92,20 @@ async function usageOf(c: Context<ApiEnv>, organizationId: string) {
   }
 }
 
+// The name only labels the banner, so a failed read leaves it out instead of the app.
+async function impersonationOf(db: DataClient, adminId: string, targetId: string) {
+  const [row, member] = await Promise.all([
+    activeImpersonation(db, adminId),
+    db.rpc('organization_member_list').eq('user_id', targetId).maybeSingle(),
+  ]);
+  if (!row || row.target_user_id !== targetId) return null;
+  if (member.error) console.error(`Impersonated member for /me failed: ${member.error.code}`);
+  return {
+    expiresAt: new Date(row.expires_at).toISOString(),
+    targetName: member.data?.full_name?.trim() || member.data?.email || null,
+  };
+}
+
 export const getMe: RouteHandler<typeof meRoute, ApiEnv> = async (c) => {
   const user = c.get('user');
   const db = createDataClient(c);
@@ -104,19 +120,23 @@ export const getMe: RouteHandler<typeof meRoute, ApiEnv> = async (c) => {
   // By the membership's id, not whatever the policies show: a member who is also a participant
   // of another organization's client sees that organization too (ADR 022).
   const organizationId = membership.data[0]?.organization_id;
-  const [organization, subscription] = organizationId
-    ? await Promise.all([
-        db.from('organizations').select('id, name').eq('id', organizationId).maybeSingle(),
-        db
+  const targetId =
+    membership.data[0] && membership.data[0].user_id !== user.id
+      ? membership.data[0].user_id
+      : undefined;
+  const [organization, subscription, impersonation] = await Promise.all([
+    organizationId
+      ? db.from('organizations').select('id, name').eq('id', organizationId).maybeSingle()
+      : { data: null, error: null },
+    organizationId
+      ? db
           .from('subscriptions')
           .select('plan, status, trial_ends_at, access_until, stripe_subscription_id')
           .eq('organization_id', organizationId)
-          .maybeSingle(),
-      ])
-    : [
-        { data: null, error: null },
-        { data: null, error: null },
-      ];
+          .maybeSingle()
+      : { data: null, error: null },
+    targetId ? impersonationOf(db, user.id, targetId) : null,
+  ]);
   if (organization.error) throw fromDatabaseError(organization.error, 'me organization');
   if (subscription.error) throw fromDatabaseError(subscription.error, 'me subscription');
   const usage =
@@ -134,10 +154,11 @@ export const getMe: RouteHandler<typeof meRoute, ApiEnv> = async (c) => {
           ? { organization: { id: organization.data.id, name: organization.data.name }, role }
           : null,
       impersonation:
-        membership.data[0] && membership.data[0].user_id !== user.id
+        impersonation && membership.data[0]
           ? {
               targetMemberId: membership.data[0].user_id,
               targetOrganizationId: membership.data[0].organization_id,
+              ...impersonation,
             }
           : null,
       subscription:
@@ -148,6 +169,14 @@ export const getMe: RouteHandler<typeof meRoute, ApiEnv> = async (c) => {
     } satisfies MeResponse,
     200
   );
+};
+
+export const endMyImpersonation: RouteHandler<typeof endMyImpersonationRoute, ApiEnv> = async (
+  c
+) => {
+  if (!c.get('platformAdmin')) throw new ApiError('forbidden', 'Platform admins only.');
+  await endActiveImpersonation(createDataClient(c), c.get('user').id);
+  return c.body(null, 204);
 };
 
 export const getSupportIdentity: RouteHandler<typeof supportIdentityRoute, ApiEnv> = async (c) => {

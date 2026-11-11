@@ -224,9 +224,17 @@
               "targetOrganizationId": {
                 "type": "string",
                 "format": "uuid"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "targetName": {
+                "type": "string",
+                "nullable": true
               }
             },
-            "required": ["targetMemberId", "targetOrganizationId"]
+            "required": ["targetMemberId", "targetOrganizationId", "expiresAt", "targetName"]
           },
           "subscription": {
             "type": "object",
@@ -25634,6 +25642,63 @@
           },
           "401": {
             "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/impersonation": {
+      "delete": {
+        "operationId": "endMyImpersonation",
+        "summary": "End the platform admin's active impersonation",
+        "description": "For the banner of the member app, with the admin's own token past the second factor (ADR 038). Answers `204` when no impersonation is active too. An impersonation starts only in the admin app.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No impersonation is active any more"
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller is not a platform admin past the second factor",
             "content": {
               "application/json": {
                 "schema": {
