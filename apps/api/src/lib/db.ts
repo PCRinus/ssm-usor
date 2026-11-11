@@ -198,3 +198,19 @@ export function fromDatabaseError(error: PostgrestError, context: string): ApiEr
   console.error(`Database request failed (${context}): ${error.code}`);
   return new ApiError('internal_error');
 }
+
+const pageSize = 1000;
+
+// PostgREST answers at most a thousand rows a request (`max_rows`), and drops the rest silently.
+export async function everyRow<T>(
+  page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>,
+  context: string
+) {
+  const rows: T[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await page(from, from + pageSize - 1);
+    if (error) throw fromDatabaseError(error as PostgrestError, context);
+    rows.push(...(data ?? []));
+    if ((data ?? []).length < pageSize) return rows;
+  }
+}

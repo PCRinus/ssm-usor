@@ -13,7 +13,7 @@ import {
 } from '@ssm-usor/import';
 
 import type { AdminClient } from '../../lib/admin-db';
-import { type DataClient, fromDatabaseError } from '../../lib/db';
+import { type DataClient, everyRow } from '../../lib/db';
 import { romanianDay } from '../documents/context';
 import {
   type ClientTrainingFacts,
@@ -24,22 +24,6 @@ import {
 type Db = DataClient | AdminClient;
 
 export const romanianToday = (now = new Date()) => romanianDay(now.toISOString());
-
-const pageSize = 1000;
-
-// PostgREST answers at most a thousand rows a request, and a client's history is longer.
-async function everyRow<T>(
-  page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>,
-  context: string
-) {
-  const rows: T[] = [];
-  for (let from = 0; ; from += pageSize) {
-    const { data, error } = await page(from, from + pageSize - 1);
-    if (error) throw fromDatabaseError(error as { code?: string; message?: string }, context);
-    rows.push(...(data ?? []));
-    if ((data ?? []).length < pageSize) return rows;
-  }
-}
 
 export async function employeeImportClient(
   db: Db,

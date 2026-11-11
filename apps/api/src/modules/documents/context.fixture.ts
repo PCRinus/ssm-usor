@@ -238,6 +238,7 @@ export const facts: DocumentFacts = {
     },
   ],
   currentEmployeeCount: 6,
+  currentEmployeesByWorkplace: { [workshopId]: 4, [officeId]: 1 },
   hasParticipants: true,
   workersRepresentativeDecisionGenerated: false,
   ownInstructions: {
@@ -464,6 +465,7 @@ export const facts: DocumentFacts = {
         period: null,
         draft: null,
         issued: { revision: 1, issueDate: '2026-01-19' },
+        issuedRevisions: [{ revision: 1, issueDate: '2026-01-19', issuedOn: '2026-01-19' }],
       },
       {
         typeKey: 'fire_decision_training',
@@ -472,6 +474,7 @@ export const facts: DocumentFacts = {
         period: null,
         draft: { revision: 2, issueDate: '2026-06-02' },
         issued: { revision: 1, issueDate: '2026-01-19' },
+        issuedRevisions: [{ revision: 1, issueDate: '2026-01-19', issuedOn: '2026-01-20' }],
       },
       {
         typeKey: 'fire_means_list',
@@ -480,6 +483,7 @@ export const facts: DocumentFacts = {
         period: null,
         draft: { revision: 1, issueDate: null },
         issued: null,
+        issuedRevisions: [],
       },
       {
         typeKey: 'fire_annual_report',
@@ -488,8 +492,10 @@ export const facts: DocumentFacts = {
         period: 2025,
         draft: null,
         issued: { revision: 1, issueDate: '2025-12-15' },
+        issuedRevisions: [{ revision: 1, issueDate: '2025-12-15', issuedOn: '2025-12-15' }],
       },
     ],
+    yearRecords: { 2025: { trainings: [], passes: [] }, 2026: { trainings: [], passes: [] } },
     substances: {
       state: 'listed',
       entries: [

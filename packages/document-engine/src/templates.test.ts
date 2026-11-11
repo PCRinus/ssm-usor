@@ -332,6 +332,25 @@ describe('fire-safety set', () => {
           months: 'februarie, august',
         },
       ],
+      yearDecisions: [
+        {
+          text: 'Decizia privind organizarea apărării împotriva incendiilor, nr.\u00a04\u00a0SU din 19.01.2026',
+        },
+        {
+          text: 'Decizia privind instruirea în domeniul situațiilor de urgență, nr.\u00a05\u00a0SU din 02.06.2026, revizia 2',
+        },
+      ],
+      hasYearDecisions: true,
+      noYearDecisions: false,
+      trainingRecords: [
+        {
+          text: 'Potrivit evidenței instruirilor, în anul 2026 s-a efectuat: 1 instructaj periodic, în luna februarie, la care au participat 2 angajați.',
+        },
+        {
+          text: 'În același an, potrivit rezultatelor consemnate, testul anual a fost promovat de 2 angajați.',
+        },
+      ],
+      noTrainingRecords: false,
       controls: [
         {
           who: 'Șefii locurilor de muncă',
@@ -562,6 +581,11 @@ describe('fire-safety set', () => {
     annualReport: {
       ...fire.annualReport,
       decisions: [],
+      yearDecisions: [],
+      hasYearDecisions: false,
+      noYearDecisions: true,
+      trainingRecords: [],
+      noTrainingRecords: true,
       staff: [],
       training: [],
       controls: [],
@@ -1216,7 +1240,13 @@ describe('fire-safety set', () => {
     expect(text).toContain('Data: 19.01.2026');
     expect(text).toContain('Aprobat\nMaria POPESCU\nAdministrator al S.C. CLIENT DEMO S.R.L.');
     expect(text).not.toContain('Documentația nu cuprinde o decizie privind controlul propriu');
-    expect(text.split('DE COMPLETAT')).toHaveLength(12);
+    expect(text).toContain(
+      'Modificări în organizare și implementarea noilor prevederi legale\nDeciziile emise în anul 2026:\n– Decizia privind organizarea apărării împotriva incendiilor, nr.\u00a04\u00a0SU din 19.01.2026;\n– Decizia privind instruirea în domeniul situațiilor de urgență, nr.\u00a05\u00a0SU din 02.06.2026, revizia 2.\nDE COMPLETAT(noile prevederi legale aplicate și stadiul îndeplinirii măsurilor stabilite la analiza anterioară)'
+    );
+    expect(text).toContain(
+      'Instruirile efectuate și rezultatele testării\nPotrivit evidenței instruirilor, în anul 2026 s-a efectuat: 1 instructaj periodic, în luna februarie, la care au participat 2 angajați.\nÎn același an, potrivit rezultatelor consemnate, testul anual a fost promovat de 2 angajați.\n4. Controlul propriu'
+    );
+    expect(text.split('DE COMPLETAT')).toHaveLength(11);
 
     const sparseText = documentText(
       renderDocument(file, {
@@ -1228,6 +1258,14 @@ describe('fire-safety set', () => {
       'Documentația nu cuprinde o decizie privind controlul propriu; controlul se face de persoanele desemnate prin decizia privind organizarea apărării împotriva incendiilor.'
     );
     expect(sparseText).toContain('Toate documentele cerute operatorului sunt întocmite.');
+    expect(sparseText).toContain(
+      'Modificări în organizare și implementarea noilor prevederi legale\nDE COMPLETAT(deciziile emise sau modificate în cursul anului, noile prevederi legale aplicate și stadiul îndeplinirii măsurilor stabilite la analiza anterioară)'
+    );
+    expect(sparseText).toContain(
+      'Instruirile efectuate și rezultatele testării\nDE COMPLETAT(instructajele introductive generale, specifice locului de muncă și periodice efectuate, numărul participanților și rezultatele testării)'
+    );
+    expect(sparseText).not.toContain('Potrivit evidenței instruirilor');
+    expect(sparseText.split('DE COMPLETAT')).toHaveLength(12);
     expect(sparseText).not.toContain('Controalele planificate');
   });
 

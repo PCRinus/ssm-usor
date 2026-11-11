@@ -858,7 +858,9 @@ function siteSheetSample({
       ),
       row(
         'Personal angajat',
-        `${long ? '14 angajați' : '4 angajați'} în total, după lista clientului; numărul estimativ pe fiecare clădire: ${gap}`,
+        long
+          ? '14 angajați în total; Clădirea 1 (Punct de lucru Calea Aradului) – 3; Clădirea 2 (Depozit central) – 11'
+          : `4 angajați în total; numărul estimativ pe fiecare clădire: ${gap}`,
         'număr estimativ, pentru fiecare clădire'
       ),
       row(
@@ -931,7 +933,7 @@ function siteSheetSample({
       ),
       row(
         'Instruirea personalului',
-        `da, periodic, potrivit Deciziei nr.\u00a02 SU: personalul administrativ la 3 luni și personalul de execuție la ${long ? '1 lună' : '3 luni'}, câte 2 ore la fiecare instruire periodică; personalul administrativ este instruit de cadrul tehnic PSI, ${technician}, titular al certificatului seria A nr. 1234/2024; personalul de execuție, de șefii locurilor de muncă (${listed(people.map(({ name }) => name))}), cu cadrul tehnic, după caz`,
+        `da, periodic, potrivit Deciziei nr.\u00a02 SU: personalul administrativ la 3 luni și personalul de execuție la ${long ? '1 lună' : '3 luni'}, câte 2 ore la fiecare instructaj periodic; personalul administrativ este instruit de cadrul tehnic PSI, ${technician}, titular al certificatului seria A nr. 1234/2024; personalul de execuție, de șefii locurilor de muncă (${listed(people.map(({ name }) => name))}), cu cadrul tehnic, după caz`,
         'dacă se face periodic (periodicitatea pe categorii de personal), de către cine, dacă este persoană atestată'
       ),
       row(
@@ -1233,12 +1235,41 @@ function annualReportSample(people: ReturnType<typeof person>[], long: boolean) 
             months: 'februarie, mai, august, noiembrie',
           },
         ],
+    yearDecisions: long
+      ? [
+          {
+            text: 'Decizia privind organizarea apărării împotriva incendiilor, nr.\u00a01\u00a0SU din 19.01.2026',
+          },
+          {
+            text: 'Decizia privind instruirea în domeniul situațiilor de urgență, nr.\u00a02\u00a0SU din 19.01.2026',
+          },
+          {
+            text: 'Decizia privind instruirea în domeniul situațiilor de urgență, nr.\u00a02\u00a0SU din 02.06.2026, revizia 2',
+          },
+        ]
+      : [],
+    hasYearDecisions: long,
+    noYearDecisions: !long,
+    trainingRecords: long
+      ? [
+          {
+            text: 'Potrivit evidenței instruirilor, în anul 2026 s-au efectuat: 3 instructaje introductive generale, la care au participat 3 angajați; 3 instructaje specifice locului de muncă, la care au participat 3 angajați; 4 instructaje periodice, în lunile martie, iunie, septembrie și decembrie, la care au participat 11 angajați; 1 instructaj suplimentar, la care a participat 1 angajat.',
+          },
+          {
+            text: 'În același an, potrivit rezultatelor consemnate, testul la angajare a fost promovat de 3 angajați, iar testul anual de 10 angajați.',
+          },
+        ]
+      : [],
+    noTrainingRecords: !long,
     controls: long ? controls : [],
     hasControls: long,
     noControls: !long,
     documents,
     missingCount: long ? 1 : 0,
     allGenerated: !long,
+    documentsSummary: long
+      ? 'Documente neîntocmite încă: 1.'
+      : 'Documentele cerute operatorului sunt întocmite; starea fiecăruia este cea din tabel.',
   };
 }
 

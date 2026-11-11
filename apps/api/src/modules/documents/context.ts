@@ -158,6 +158,8 @@ export type DocumentFacts = {
     }[];
   }[];
   currentEmployeeCount: number;
+  /** The exact count of current employees at each fixed space the set lists, by workplace id. */
+  currentEmployeesByWorkplace: Record<string, number>;
   /** A participant not revoked, or an invitation still open: someone who signs in the portal. */
   hasParticipants: boolean;
   /** Whether decision 1.5 was generated for this client, whatever the headcount is now. */

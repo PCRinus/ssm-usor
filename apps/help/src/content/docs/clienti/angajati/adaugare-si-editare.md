@@ -65,6 +65,7 @@ sources:
   - packages/contracts/src/phone.ts
   - apps/api/src/modules/employees/handlers.ts
   - apps/api/src/modules/trainings/sheet.ts
+  - apps/api/src/modules/documents/site-sheet.ts
   - apps/app/src/features/employees/employee-form.tsx
   - apps/app/src/features/employees/employee-form-schema.ts
   - apps/app/src/features/employees/use-employee-form.ts
@@ -179,6 +180,8 @@ Câmpurile din această secțiune sunt opționale în formular și apar pe fișe
 Unde lucrează lucrătorul, dintre punctele de lucru ale clientului. Când adaugi un lucrător la un client cu un singur punct de lucru activ, acesta e ales automat; îl poți șterge dacă nu e cel bun.
 
 La un client cu mai multe puncte de lucru active, fișele cer punctul de lucru, pentru că „Locul de muncă” de pe fișă tipărește punctul de lucru împreună cu zona de lucru a postului, de exemplu „Str. Fabricii 3 – Atelier”.
+
+Fișa obiectivului din setul SU numără lucrătorii fiecărei clădiri, de exemplu „Clădirea 1 (Sediu) – 4; Clădirea 2 (Atelier) – 9”, când fiecare lucrător are ales un punct de lucru care e clădire. Dacă un lucrător nu are punct de lucru, lucrează pe un șantier sau la un sediu unde nu se desfășoară activitate, fișa tipărește doar numărul total și lasă numărul pe clădiri de completat.
 
 Dacă punctul de lucru lipsește, alege **Adaugă un punct de lucru nou…**: îl adaugi pe loc și formularul îl alege. Un punct de lucru arhivat rămâne la lucrătorii care îl aveau, marcat **Arhivat**, dar nu mai poate fi ales din nou. Dacă punctul ales a fost arhivat între timp, vezi sub câmp „Punctul de lucru ales nu mai este activ la acest client. Alege altul.”
 

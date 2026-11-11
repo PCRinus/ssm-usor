@@ -8,7 +8,12 @@ import {
   fireSafetyDocumentTypeKeys,
   type FireSafetyTypeKeyFromTenEmployees,
   isDatedDocumentType,
+  type KnowledgeTest,
+  knowledgeTestLabels,
+  knowledgeTestsByDomain,
   trainingMonths,
+  type TrainingPhase,
+  trainingPhases,
 } from '@ssm-usor/contracts';
 
 import { printedAddress } from '../../lib/address';
@@ -20,6 +25,7 @@ import type {
   FireSafetyClientFacts,
   FireSafetySetFacts,
   FireStaffCategory,
+  FireYearRecords,
 } from './fire-safety';
 import { descriptionNamesKind, installationText } from './installations';
 import { monthNames } from './themes';
@@ -36,6 +42,10 @@ export type AnnualReportContext = {
   nextYear: number;
   /** The decisions of the set, in the binder's order: "nr. 4 SU din 19.01.2026". */
   decisions: { title: string; reference: string }[];
+  /** Each revision of a decision issued in the year, in the binder's order. */
+  yearDecisions: { text: string }[];
+  hasYearDecisions: boolean;
+  noYearDecisions: boolean;
   /** "Ion VLAD, Șef magazin". */
   coordinator: string;
   interventionLeader: string;
@@ -50,6 +60,9 @@ export type AnnualReportContext = {
   /** "2 ore". */
   periodicLabel: string;
   training: { label: string; posts: string; interval: string; months: string }[];
+  /** Empty without a training held in the year. */
+  trainingRecords: { text: string }[];
+  noTrainingRecords: boolean;
   /** Decision 9's plan; empty while the set does not hold it. */
   controls: { who: string; interval: string; scope: string }[];
   hasControls: boolean;
@@ -142,6 +155,88 @@ const documentState = (document: StoredDocument | undefined) =>
 
 const decisionOrder = Object.entries(fireDecisionTypeKeys) as [FireDecision, string][];
 
+function yearDecisions(stored: ReadonlyMap<string, StoredDocument>, year: number) {
+  return decisionOrder.flatMap(([, typeKey]) => {
+    const document = stored.get(typeKey);
+    if (!document) return [];
+    return document.issuedRevisions
+      .filter((revision) => (revision.issueDate ?? revision.issuedOn).startsWith(`${year}-`))
+      .sort((a, b) => a.revision - b.revision)
+      .map((revision) => ({
+        text: [
+          document.title,
+          [
+            document.decisionNumber !== null && `nr.\u00a0${document.decisionNumber}\u00a0SU`,
+            revision.issueDate && `din ${printedDate(revision.issueDate)}`,
+          ]
+            .filter(Boolean)
+            .join(' '),
+          revision.revision > 1 && `revizia ${revision.revision}`,
+        ]
+          .filter(Boolean)
+          .join(', '),
+      }));
+  });
+}
+
+const phaseNouns: Record<TrainingPhase, readonly [one: string, many: string]> = {
+  introductory_general: ['instructaj introductiv general', 'instructaje introductive generale'],
+  workplace: ['instructaj specific locului de muncă', 'instructaje specifice locului de muncă'],
+  periodic: ['instructaj periodic', 'instructaje periodice'],
+  supplementary: ['instructaj suplimentar', 'instructaje suplimentare'],
+};
+
+const employeesCounted = (count: number) => countOf(count, 'angajat', 'angajați');
+
+// Empty without a training held in the year: a provider who keeps the trainings on paper must
+// not get a report that understates them, so the row stays a gap.
+function trainingRecords(records: FireYearRecords, year: number): { text: string }[] {
+  const held = records.trainings.filter((training) => training.employeeIds.length > 0);
+  if (held.length === 0) return [];
+
+  const phases = trainingPhases.flatMap((phase: TrainingPhase) => {
+    const ofPhase = held.filter((training) => training.phase === phase);
+    if (ofPhase.length === 0) return [];
+    const [one, many] = phaseNouns[phase];
+    const participants = new Set(ofPhase.flatMap((training) => training.employeeIds)).size;
+    const months = [...new Set(ofPhase.map((training) => Number(training.heldOn.slice(5, 7))))]
+      .sort((a, b) => a - b)
+      .map((month) => monthNames[month - 1]!);
+    return [
+      [
+        countOf(ofPhase.length, one, many),
+        phase === 'periodic' && `în ${months.length === 1 ? 'luna' : 'lunile'} ${listed(months)}`,
+        `la care ${participants === 1 ? 'a participat' : 'au participat'} ${employeesCounted(participants)}`,
+      ]
+        .filter(Boolean)
+        .join(', '),
+    ];
+  });
+  const done = held.length === 1 ? 's-a efectuat' : 's-au efectuat';
+  const trainingsText = `Potrivit evidenței instruirilor, în anul ${year} ${done}: ${phases.join('; ')}.`;
+
+  // Only the passes: a failed test is never recorded, so the takers are not a fact the records hold.
+  const passedBy = knowledgeTestsByDomain.su.flatMap((test: KnowledgeTest) => {
+    const passed = new Set(
+      records.passes.filter((pass) => pass.test === test).map((pass) => pass.employeeId)
+    ).size;
+    return passed > 0 ? [{ test, passed }] : [];
+  });
+  const testsText = passedBy
+    .map(({ test, passed }, index) =>
+      index === 0
+        ? `${runOn(knowledgeTestLabels[test])} a fost promovat de ${employeesCounted(passed)}`
+        : `${runOn(knowledgeTestLabels[test])} de ${employeesCounted(passed)}`
+    )
+    .join(', iar ');
+  return [
+    { text: trainingsText },
+    ...(passedBy.length > 0
+      ? [{ text: `În același an, potrivit rezultatelor consemnate, ${testsText}.` }]
+      : []),
+  ];
+}
+
 export function buildAnnualReport({
   facts,
   year,
@@ -177,6 +272,11 @@ export function buildAnnualReport({
       },
     ];
   });
+
+  const issuedInYear = yearDecisions(stored, year);
+  const yearRecords = facts.fireSafety.yearRecords[year];
+  if (!yearRecords) throw new Error(`The fire-safety records of ${year} were not loaded.`);
+  const records = trainingRecords(yearRecords, year);
 
   const workplaces = facts.workplaces.map((workplace) => {
     const units = facts.fireSafety.equipment.filter((unit) => unit.workplaceId === workplace.id);
@@ -274,6 +374,9 @@ export function buildAnnualReport({
     year,
     nextYear: year + 1,
     decisions,
+    yearDecisions: issuedInYear,
+    hasYearDecisions: issuedInYear.length > 0,
+    noYearDecisions: issuedInYear.length === 0,
     coordinator: `${people.coordinator.name}, ${people.coordinator.jobTitle}`,
     interventionLeader: `${people.interventionLeader.name}, ${people.interventionLeader.jobTitle}`,
     workplaceManagers: listed(people.managerNames),
@@ -297,6 +400,8 @@ export function buildAnnualReport({
         .map((month) => monthNames[month - 1]!)
         .join(', '),
     })),
+    trainingRecords: records,
+    noTrainingRecords: records.length === 0,
     controls,
     hasControls: controls.length > 0,
     noControls: controls.length === 0,

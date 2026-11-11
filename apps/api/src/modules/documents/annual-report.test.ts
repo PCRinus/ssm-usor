@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { DocumentFacts } from './context';
 import { facts } from './context.fixture';
-import { buildFireSafetyContext } from './fire-safety';
+import { buildFireSafetyContext, type FireYearRecords } from './fire-safety';
 
 const reportOf = (variant: Partial<DocumentFacts> = {}) =>
   buildFireSafetyContext({ ...facts, currentEmployeeCount: 12, period: 2026, ...variant }).fire
@@ -171,6 +171,7 @@ describe('the annual report', () => {
               period: null,
               draft,
               issued,
+              issuedRevisions: [],
             })),
         },
       });
@@ -183,6 +184,185 @@ describe('the annual report', () => {
       allGenerated: true,
       documentsSummary:
         'Documentele cerute operatorului sunt întocmite; starea fiecăruia este cea din tabel.',
+    });
+  });
+
+  describe('lists the decisions issued in its year', () => {
+    const decisionsOf = (variant: Partial<DocumentFacts> = {}, period = 2026) =>
+      reportOf({ period, ...variant });
+
+    it('each revision issued in the year, with its number and date, the revision after the first', () => {
+      const [organization, training] = facts.fireSafety.documents;
+      const report = decisionsOf({
+        fireSafety: {
+          ...facts.fireSafety,
+          documents: [
+            organization!,
+            {
+              ...training!,
+              issuedRevisions: [
+                { revision: 1, issueDate: '2025-12-20', issuedOn: '2025-12-20' },
+                { revision: 2, issueDate: '2026-06-02', issuedOn: '2026-06-03' },
+              ],
+            },
+          ],
+        },
+      });
+      expect(report.yearDecisions).toEqual([
+        {
+          text: 'Decizia privind organizarea apărării împotriva incendiilor, nr.\u00a05\u00a0SU din 19.01.2026',
+        },
+        {
+          text: 'Decizia privind instruirea în domeniul situațiilor de urgență, nr.\u00a06\u00a0SU din 02.06.2026, revizia 2',
+        },
+      ]);
+      expect(report).toMatchObject({ hasYearDecisions: true, noYearDecisions: false });
+    });
+
+    it('by the day an uploaded revision was issued, which prints no date', () => {
+      const [organization] = facts.fireSafety.documents;
+      const report = decisionsOf({
+        fireSafety: {
+          ...facts.fireSafety,
+          documents: [
+            {
+              ...organization!,
+              issuedRevisions: [{ revision: 3, issueDate: null, issuedOn: '2026-09-01' }],
+            },
+          ],
+        },
+      });
+      expect(report.yearDecisions).toEqual([
+        {
+          text: 'Decizia privind organizarea apărării împotriva incendiilor, nr.\u00a05\u00a0SU, revizia 3',
+        },
+      ]);
+    });
+
+    it('none for a year with no decision issued, nor for a document that is no decision', () => {
+      expect(
+        decisionsOf(
+          {
+            fireSafety: {
+              ...facts.fireSafety,
+              yearRecords: { 2027: { trainings: [], passes: [] } },
+            },
+          },
+          2027
+        )
+      ).toMatchObject({
+        yearDecisions: [],
+        hasYearDecisions: false,
+        noYearDecisions: true,
+      });
+      const listOnly = decisionsOf({
+        fireSafety: {
+          ...facts.fireSafety,
+          documents: facts.fireSafety.documents.map((document) =>
+            document.typeKey === 'fire_means_list'
+              ? {
+                  ...document,
+                  issuedRevisions: [
+                    { revision: 1, issueDate: '2026-03-01', issuedOn: '2026-03-01' },
+                  ],
+                }
+              : document
+          ),
+        },
+      });
+      expect(listOnly.yearDecisions.map((decision) => decision.text)).not.toContain(
+        expect.stringContaining('Lista mijloacelor')
+      );
+    });
+  });
+
+  describe('states the trainings held in its year from the training records', () => {
+    const [ana, bogdan, carmen, dan] = [1, 2, 3, 4].map(
+      (index) => `e1e1e1e1-0000-4000-8000-00000000010${index}`
+    ) as [string, string, string, string];
+    type Records = FireYearRecords;
+    type Training = Records['trainings'][number];
+    const withRecords = (records: Records): Partial<DocumentFacts> => ({
+      fireSafety: { ...facts.fireSafety, yearRecords: { 2026: records } },
+    });
+    const recordsOf = (trainings: Training[], passes: Records['passes'] = []) =>
+      reportOf(withRecords({ trainings, passes })).trainingRecords.map(
+        (paragraph) => paragraph.text
+      );
+    const held = (phase: Training['phase'], heldOn: string, employeeIds: string[]): Training => ({
+      phase,
+      heldOn,
+      employeeIds,
+    });
+
+    it('per phase held, with the trainings, the employees who attended and the months of the periodic ones', () => {
+      expect(
+        recordsOf([
+          held('introductory_general', '2026-02-02', [ana]),
+          held('introductory_general', '2026-07-01', [bogdan, carmen]),
+          held('workplace', '2026-02-02', [ana]),
+          held('periodic', '2026-03-10', [ana, bogdan, carmen, dan]),
+          held('periodic', '2026-09-15', [ana, bogdan, carmen]),
+          held('periodic', '2026-09-16', [dan]),
+          held('supplementary', '2026-10-05', [dan]),
+        ])
+      ).toEqual([
+        'Potrivit evidenței instruirilor, în anul 2026 s-au efectuat: 2 instructaje introductive generale, la care au participat 3 angajați; 1 instructaj specific locului de muncă, la care a participat 1 angajat; 3 instructaje periodice, în lunile martie și septembrie, la care au participat 4 angajați; 1 instructaj suplimentar, la care a participat 1 angajat.',
+      ]);
+    });
+
+    it('in the singular for one training, and only for the phases held', () => {
+      expect(recordsOf([held('periodic', '2026-03-10', [ana, bogdan])])).toEqual([
+        'Potrivit evidenței instruirilor, în anul 2026 s-a efectuat: 1 instructaj periodic, în luna martie, la care au participat 2 angajați.',
+      ]);
+    });
+
+    it('counts no training that nobody attended', () => {
+      expect(
+        recordsOf([held('periodic', '2026-03-10', [ana]), held('supplementary', '2026-04-01', [])])
+      ).toEqual([
+        'Potrivit evidenței instruirilor, în anul 2026 s-a efectuat: 1 instructaj periodic, în luna martie, la care a participat 1 angajat.',
+      ]);
+      expect(
+        reportOf(withRecords({ trainings: [held('periodic', '2026-03-10', [])], passes: [] }))
+      ).toMatchObject({ trainingRecords: [], noTrainingRecords: true });
+    });
+
+    it('then, from the results recorded, how many employees passed each test, never who sat it', () => {
+      const [, tests] = recordsOf(
+        [held('periodic', '2026-03-10', [ana, bogdan, carmen, dan])],
+        [
+          { employeeId: ana, test: 'hiring' },
+          { employeeId: ana, test: 'annual' },
+          { employeeId: ana, test: 'annual' },
+          { employeeId: bogdan, test: 'annual' },
+        ]
+      );
+      expect(tests).toBe(
+        'În același an, potrivit rezultatelor consemnate, testul la angajare a fost promovat de 1 angajat, iar testul anual de 2 angajați.'
+      );
+      const [, annualOnly] = recordsOf(
+        [held('periodic', '2026-03-10', [ana, bogdan])],
+        [{ employeeId: carmen, test: 'annual' }]
+      );
+      expect(annualOnly).toBe(
+        'În același an, potrivit rezultatelor consemnate, testul anual a fost promovat de 1 angajat.'
+      );
+    });
+
+    it('says nothing of the tests when none was passed in the year', () => {
+      expect(recordsOf([held('periodic', '2026-03-10', [ana])])).toHaveLength(1);
+    });
+
+    it('stays a gap when no training was recorded in the year, whatever the tests', () => {
+      const report = reportOf(
+        withRecords({ trainings: [], passes: [{ employeeId: ana, test: 'annual' }] })
+      );
+      expect(report).toMatchObject({ trainingRecords: [], noTrainingRecords: true });
+    });
+
+    it('refuses a year whose records were not loaded rather than print a gap', () => {
+      expect(() => reportOf({ period: 2024 })).toThrow('records of 2024 were not loaded');
     });
   });
 });
