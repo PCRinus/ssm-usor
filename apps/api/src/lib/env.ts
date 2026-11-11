@@ -131,6 +131,8 @@ export type ApiEnv = {
     platformAdmin: boolean;
     accessToken: string;
     membership: Membership;
+    // Unset until asked, on a route without a membership; see isImpersonating.
+    impersonating: boolean | undefined;
     participations: Participation[];
     readOnlyAllowed: boolean;
   };

@@ -8,6 +8,7 @@ import { timing } from 'hono/timing';
 import { checkClientContract } from './lib/client-contract';
 import { allowedOrigins, type ApiEnv, marketingOrigin } from './lib/env';
 import { ApiError, errorStatus, fromEngineError } from './lib/errors';
+import { guardMessagesDuringImpersonation } from './lib/impersonation';
 import { openApiConfig } from './lib/openapi';
 import { authHooksRouter } from './modules/auth-hooks';
 import { billingRouter } from './modules/billing';
@@ -112,6 +113,7 @@ export function createApp() {
     })
   );
   app.use('*', checkClientContract);
+  app.use('*', guardMessagesDuringImpersonation);
 
   app.route('/', healthRouter);
   app.route('/', meRouter);

@@ -18,8 +18,15 @@ import {
 } from '@ssm-usor/contracts';
 
 import { requireAuth } from '../../lib/auth';
+import { refuseDuringImpersonation } from '../../lib/impersonation';
 import { requireMembership } from '../../lib/membership';
-import { authErrors, bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
+import {
+  authErrors,
+  bearerSecurity,
+  errorContent,
+  inPersonMembershipErrors,
+  membershipErrors,
+} from '../../lib/openapi';
 import { requireParticipant } from '../../lib/participant';
 
 const clientParams = z.object({ clientId: z.uuid() });
@@ -470,7 +477,7 @@ export const createMySigningSessionRoute = createRoute({
   description:
     "The member's pending requests in the membership's organization, at most 30, to sign in one go with one code (ADR 023), sent to the account's email. A trainee's request is signed in the portal and is refused here, as is any agreement (reason `agreement_signed_in_portal`). The code is valid for ten minutes and three attempts.",
   security: bearerSecurity,
-  middleware: [requireAuth, requireMembership] as const,
+  middleware: [requireAuth, requireMembership, refuseDuringImpersonation] as const,
   request: { body: sessionBody },
   responses: {
     201: sessionCreated,
@@ -481,7 +488,7 @@ export const createMySigningSessionRoute = createRoute({
       description: 'An agreement was listed (reason `agreement_signed_in_portal`)',
       content: errorContent,
     },
-    ...membershipErrors,
+    ...inPersonMembershipErrors,
     503: sessionUnavailable,
   },
 });
@@ -494,14 +501,14 @@ export const signMySigningSessionRoute = createRoute({
   description:
     "Each request's record gets its row on the employee's signed sheet, the slot's signature (PAdES, with the signer's own certificate, naming the account), and the evidence row, which signs the request in the same write. One item failing does not stop the others.",
   security: bearerSecurity,
-  middleware: [requireAuth, requireMembership] as const,
+  middleware: [requireAuth, requireMembership, refuseDuringImpersonation] as const,
   request: { params: sessionParams, body: codeBody },
   responses: {
     200: signAnswered,
     400: { description: 'Invalid path or body, the code not six digits', content: errorContent },
     404: noSession,
     409: codeRefused,
-    ...membershipErrors,
+    ...inPersonMembershipErrors,
     503: signUnavailable,
   },
 });
