@@ -67,8 +67,7 @@ describe('what the fire-safety set is missing', () => {
         buildings: [],
         generatedFromTenEmployees: [],
         documents: [],
-        trainings: [],
-        tests: [],
+        yearRecords: {},
         substances: { state: 'undecided', entries: [] },
       },
     };
@@ -1285,8 +1284,7 @@ describe('a fire-safety document generated again', () => {
       buildings: [],
       generatedFromTenEmployees: [],
       documents: [],
-      trainings: [],
-      tests: [],
+      yearRecords: {},
       substances: { state: 'undecided', entries: [] },
     },
   };

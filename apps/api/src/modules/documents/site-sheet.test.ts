@@ -102,10 +102,7 @@ describe('the site sheet', () => {
       valueOf(sheetOf(variant).general, 'Personal angajat');
     const tied = (workshop: number, office: number) => ({
       currentEmployeeCount: workshop + office,
-      currentEmployeeWorkplaceIds: [
-        ...Array<string>(workshop).fill(workshopId),
-        ...Array<string>(office).fill(officeId),
-      ],
+      currentEmployeesByWorkplace: { [workshopId]: workshop, [officeId]: office },
     });
 
     it('when every employee works at one of them, in the order of the buildings', () => {
@@ -121,9 +118,21 @@ describe('the site sheet', () => {
       expect(
         headcountOf({
           currentEmployeeCount: 6,
-          currentEmployeeWorkplaceIds: facts.currentEmployeeWorkplaceIds,
+          currentEmployeesByWorkplace: facts.currentEmployeesByWorkplace,
         })
       ).toBe('6 angajați în total; numărul estimativ pe fiecare clădire: DE COMPLETAT');
+    });
+
+    it('from exact counts, past the thousand rows a request returns', () => {
+      expect(headcountOf(tied(1450, 50))).toBe(
+        '1500 de angajați în total; Clădirea 1 (Sediul social) – 50; Clădirea 2 (Atelier Ghiroda) – 1450'
+      );
+      expect(
+        headcountOf({
+          currentEmployeeCount: 1500,
+          currentEmployeesByWorkplace: { [workshopId]: 1000 },
+        })
+      ).toBe('1500 de angajați în total; numărul estimativ pe fiecare clădire: DE COMPLETAT');
     });
 
     it('leaves the gap while employees work on a mobile site, which is no building', () => {

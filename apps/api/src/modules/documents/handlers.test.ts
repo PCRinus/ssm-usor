@@ -373,8 +373,14 @@ const templateRows = [
 
 type Handler = (init?: RequestInit, url?: URL) => Response;
 
-const currentEmployees = (count: number) =>
-  Response.json(Array.from({ length: count }, () => ({ workplace_id: null })));
+// The current employees, counted as PostgREST counts them; by workplace when the request names one.
+const currentEmployees =
+  (total: number, byWorkplace: Record<string, number> = {}): Handler =>
+  (_init, url) => {
+    const workplaceId = url?.searchParams.get('workplace_id')?.replace(/^eq\./, '');
+    const count = workplaceId === undefined ? total : (byWorkplace[workplaceId] ?? 0);
+    return new Response(null, { headers: { 'content-range': `*/${count}` } });
+  };
 type Upstream =
   | 'organizations'
   | 'clients'
@@ -404,7 +410,9 @@ type Upstream =
   | 'fireMaintenanceItems'
   | 'fireBuildings'
   | 'participants'
-  | 'testQuestions';
+  | 'testQuestions'
+  | 'trainingRecords'
+  | 'testResults';
 
 const fetchMock = vi.fn<typeof fetch>();
 const confirmedCopy = {
@@ -458,7 +466,7 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
       case '/rest/v1/participant_invitations':
         return new Response(null, { headers: { 'content-range': '*/0' } });
       case '/rest/v1/employees':
-        return handlers.employees?.(init, url) ?? currentEmployees(1);
+        return handlers.employees?.(init, url) ?? currentEmployees(1)(init, url);
       case '/rest/v1/job_positions':
         return handlers.positions?.(init, url) ?? Response.json([positionRow]);
       case '/rest/v1/client_workplaces':
@@ -477,10 +485,10 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
         return handlers.fireMaintenanceItems?.() ?? Response.json([]);
       case '/rest/v1/fire_buildings':
         return handlers.fireBuildings?.() ?? Response.json([]);
-      case '/rest/v1/trainings':
+      case '/rest/v1/training_records':
+        return handlers.trainingRecords?.(init, url) ?? Response.json([]);
       case '/rest/v1/test_results':
-      case '/rest/v1/test_attempts':
-        return Response.json([]);
+        return handlers.testResults?.(init, url) ?? Response.json([]);
       case '/rest/v1/client_documents':
         if (method === 'GET' && isConditionalDocumentsRead(url)) {
           return handlers.conditionalDocuments?.() ?? Response.json([]);
@@ -800,7 +808,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
             employees: { status: 'active', archived_at: null },
           },
         ]),
-      employees: () => currentEmployees(12),
+      employees: currentEmployees(12),
     });
     const response = await request(`/clients/${clientId}/documents/readiness`);
     expect(documentReadinessResponseSchema.parse(await response.json())).toMatchObject({
@@ -813,6 +821,19 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
     });
   });
 
+  it('counts the current employees exactly, past the thousand rows a request returns, and per fixed space', async () => {
+    mockUpstream({ employees: currentEmployees(1500, { [workplaceRow.id]: 1500 }) });
+    const response = await request(`/clients/${clientId}/documents/readiness`);
+    expect(documentReadinessResponseSchema.parse(await response.json()).currentEmployeeCount).toBe(
+      1500
+    );
+    const counted = calls('/rest/v1/employees', 'HEAD').map(([input]) =>
+      new URL(String(input)).searchParams.get('workplace_id')
+    );
+    expect(counted).toEqual(expect.arrayContaining([null, `eq.${workplaceRow.id}`]));
+    expect(calls('/rest/v1/employees', 'GET')).toHaveLength(0);
+  });
+
   it('is ready when every post is in one category and the other has no interval', async () => {
     mockUpstream({
       clients: () =>
@@ -823,7 +844,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
         }),
       positions: () =>
         Response.json([{ ...positionRow, staff_category: 'technical_administrative' }]),
-      employees: () => currentEmployees(1),
+      employees: currentEmployees(1),
     });
     const response = await request(`/clients/${clientId}/documents/readiness`);
     expect(documentReadinessResponseSchema.parse(await response.json())).toEqual({
@@ -1229,7 +1250,7 @@ describe('POST /clients/{clientId}/documents/generate', () => {
         }),
       positions: () =>
         Response.json([{ ...positionRow, staff_category: 'technical_administrative' }]),
-      employees: () => currentEmployees(1),
+      employees: currentEmployees(1),
       documents: (init) => {
         if (init?.method === 'POST') return Response.json({ id: documentId });
         listed += 1;
@@ -3123,7 +3144,7 @@ describe('the fire-safety set', () => {
           fireDocumentRow,
         ]),
       generations: () => Response.json({ issue_date: '2026-10-01', first_decision_number: null }),
-      employees: () => currentEmployees(0),
+      employees: currentEmployees(0),
     });
     const response = await request(`/clients/${clientId}/documents?set=fire_safety`);
     expect(response.status).toBe(200);
@@ -3345,7 +3366,7 @@ describe('the fire-safety set', () => {
         templates: () => Response.json([...fireTemplateRows, ...fromTenTemplates]),
         documents: (init) =>
           init?.method === 'POST' ? Response.json({ id: fireDocumentId }) : Response.json([]),
-        employees: () => currentEmployees(employees),
+        employees: currentEmployees(employees),
       });
       expect((await generate('fire_safety')).status).toBe(201);
       const documents = calls('/rest/v1/client_documents', 'POST').map((_, index) =>
@@ -4087,7 +4108,7 @@ describe('the fire-safety set', () => {
       title: 'Raportul anual de evaluare a capacității de apărare împotriva incendiilor',
       period,
     });
-    const tenEmployees = () => currentEmployees(10);
+    const tenEmployees = currentEmployees(10);
     const conditionalReads = () =>
       fetchMock.mock.calls.filter(([input]) => isConditionalDocumentsRead(new URL(String(input))));
     const createdDocuments = () =>
@@ -4126,6 +4147,75 @@ describe('the fire-safety set', () => {
       expect(decision!.fire).not.toHaveProperty('annualReport');
       expect(report!.fire!.annualReport!.year).toBe(2025);
       expect(conditionalReads()).toHaveLength(2);
+    });
+
+    it("reads the SU trainings and tests of the report's year only, every page of them", async () => {
+      const training = crypto.randomUUID();
+      const record = (index: number) => ({
+        id: crypto.randomUUID(),
+        employee_id: `e0000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+        training_id: training,
+        trainings: { phase: 'periodic', held_on: '2025-03-10', domain: 'su' },
+      });
+      mockUpstream({
+        templates: () => Response.json(datedTemplates.slice(1)),
+        documents: (init) =>
+          init?.method === 'POST' ? Response.json({ id: fireDocumentId }) : Response.json([]),
+        employees: tenEmployees,
+        trainingRecords: (_init, url) =>
+          Response.json(
+            url!.searchParams.get('offset') === null || url!.searchParams.get('offset') === '0'
+              ? Array.from({ length: 1000 }, (_, index) => record(index))
+              : [record(1000)]
+          ),
+        testResults: () =>
+          Response.json([
+            { id: crypto.randomUUID(), employee_id: record(1).employee_id, test: 'annual' },
+          ]),
+      });
+      const response = await generate('fire_safety', {
+        issueDate: '2026-10-01',
+        firstDecisionNumber: 4,
+        period: 2025,
+      });
+      expect(response.status).toBe(201);
+      const [report] = calls('/rest/v1/document_revisions', 'POST').map(
+        (_, index) =>
+          sentBody('/rest/v1/document_revisions', index).data_snapshot as {
+            fire: { annualReport: { trainingRecords: { text: string }[] } };
+          }
+      );
+      expect(report!.fire.annualReport.trainingRecords.map((paragraph) => paragraph.text)).toEqual([
+        'Potrivit evidenței instruirilor, în anul 2025 s-a efectuat: 1 instructaj periodic, în luna martie, la care au participat 1001 angajați.',
+        'În același an, potrivit rezultatelor consemnate, testul anual a fost promovat de 1 angajat.',
+      ]);
+      const pages = calls('/rest/v1/training_records').map(
+        ([input]) => new URL(String(input)).searchParams
+      );
+      expect(pages).toHaveLength(2);
+      expect(pages[0]!.getAll('trainings.held_on')).toEqual(['gte.2025-01-01', 'lte.2025-12-31']);
+      expect(pages[0]!.get('trainings.domain')).toBe('eq.su');
+      const [results] = calls('/rest/v1/test_results').map(
+        ([input]) => new URL(String(input)).searchParams
+      );
+      expect(results!.getAll('taken_on')).toEqual(['gte.2025-01-01', 'lte.2025-12-31']);
+      expect(results!.get('domain')).toBe('eq.su');
+    });
+
+    it('reads no training and no test for the documents that are not dated', async () => {
+      mockUpstream({
+        templates: () => Response.json(datedTemplates.slice(0, 1)),
+        documents: (init) =>
+          init?.method === 'POST' ? Response.json({ id: fireDocumentId }) : Response.json([]),
+        employees: tenEmployees,
+      });
+      expect(
+        (await generate('fire_safety', { issueDate: '2026-10-01', firstDecisionNumber: 4 })).status
+      ).toBe(201);
+      await request(`/clients/${clientId}/documents?set=fire_safety`);
+      await request(`/clients/${clientId}/documents/readiness?set=fire_safety`);
+      expect(calls('/rest/v1/training_records')).toHaveLength(0);
+      expect(calls('/rest/v1/test_results')).toHaveLength(0);
     });
 
     it('takes the current year when none is asked', async () => {
@@ -4192,6 +4282,15 @@ describe('the fire-safety set', () => {
         ['fire_annual_report', 2026],
         ['fire_annual_report', 2025],
       ]);
+      const years = calls('/rest/v1/training_records').map(([input]) =>
+        new URL(String(input)).searchParams.getAll('trainings.held_on')
+      );
+      expect(years).toEqual(
+        expect.arrayContaining([
+          ['gte.2025-01-01', 'lte.2025-12-31'],
+          ['gte.2026-01-01', 'lte.2026-12-31'],
+        ])
+      );
     });
 
     it('names a download after the year, so the years do not share a file name', async () => {

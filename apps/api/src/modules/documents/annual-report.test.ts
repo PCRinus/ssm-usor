@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { DocumentFacts } from './context';
 import { facts } from './context.fixture';
-import { buildFireSafetyContext } from './fire-safety';
+import { buildFireSafetyContext, type FireYearRecords } from './fire-safety';
 
 const reportOf = (variant: Partial<DocumentFacts> = {}) =>
   buildFireSafetyContext({ ...facts, currentEmployeeCount: 12, period: 2026, ...variant }).fire
@@ -240,7 +240,17 @@ describe('the annual report', () => {
     });
 
     it('none for a year with no decision issued, nor for a document that is no decision', () => {
-      expect(decisionsOf({}, 2027)).toMatchObject({
+      expect(
+        decisionsOf(
+          {
+            fireSafety: {
+              ...facts.fireSafety,
+              yearRecords: { 2027: { trainings: [], passes: [] } },
+            },
+          },
+          2027
+        )
+      ).toMatchObject({
         yearDecisions: [],
         hasYearDecisions: false,
         noYearDecisions: true,
@@ -270,13 +280,15 @@ describe('the annual report', () => {
     const [ana, bogdan, carmen, dan] = [1, 2, 3, 4].map(
       (index) => `e1e1e1e1-0000-4000-8000-00000000010${index}`
     ) as [string, string, string, string];
-    type Training = DocumentFacts['fireSafety']['trainings'][number];
-    type Test = DocumentFacts['fireSafety']['tests'][number];
-    const recordsOf = (trainings: Training[], tests: Test[] = []) =>
-      reportOf(withRecords(trainings, tests)).trainingRecords.map((paragraph) => paragraph.text);
-    const withRecords = (trainings: Training[], tests: Test[]): Partial<DocumentFacts> => ({
-      fireSafety: { ...facts.fireSafety, trainings, tests },
+    type Records = FireYearRecords;
+    type Training = Records['trainings'][number];
+    const withRecords = (records: Records): Partial<DocumentFacts> => ({
+      fireSafety: { ...facts.fireSafety, yearRecords: { 2026: records } },
     });
+    const recordsOf = (trainings: Training[], passes: Records['passes'] = []) =>
+      reportOf(withRecords({ trainings, passes })).trainingRecords.map(
+        (paragraph) => paragraph.text
+      );
     const held = (phase: Training['phase'], heldOn: string, employeeIds: string[]): Training => ({
       phase,
       heldOn,
@@ -293,7 +305,6 @@ describe('the annual report', () => {
           held('periodic', '2026-09-15', [ana, bogdan, carmen]),
           held('periodic', '2026-09-16', [dan]),
           held('supplementary', '2026-10-05', [dan]),
-          held('periodic', '2025-12-10', [ana, bogdan]),
         ])
       ).toEqual([
         'Potrivit evidenței instruirilor, în anul 2026 s-au efectuat: 2 instructaje introductive generale, la care au participat 3 angajați; 1 instructaj specific locului de muncă, la care a participat 1 angajat; 3 instructaje periodice, în lunile martie și septembrie, la care au participat 4 angajați; 1 instructaj suplimentar, la care a participat 1 angajat.',
@@ -306,48 +317,52 @@ describe('the annual report', () => {
       ]);
     });
 
-    it('then the tests finished in the year: who took each one and who passed it', () => {
-      const test = (
-        employeeId: string,
-        kind: Test['test'],
-        takenOn: string,
-        passed: boolean
-      ): Test => ({ employeeId, test: kind, takenOn, passed });
+    it('counts no training that nobody attended', () => {
+      expect(
+        recordsOf([held('periodic', '2026-03-10', [ana]), held('supplementary', '2026-04-01', [])])
+      ).toEqual([
+        'Potrivit evidenței instruirilor, în anul 2026 s-a efectuat: 1 instructaj periodic, în luna martie, la care a participat 1 angajat.',
+      ]);
+      expect(
+        reportOf(withRecords({ trainings: [held('periodic', '2026-03-10', [])], passes: [] }))
+      ).toMatchObject({ trainingRecords: [], noTrainingRecords: true });
+    });
+
+    it('then, from the results recorded, how many employees passed each test, never who sat it', () => {
       const [, tests] = recordsOf(
         [held('periodic', '2026-03-10', [ana, bogdan, carmen, dan])],
         [
-          test(ana, 'hiring', '2026-02-02', true),
-          test(ana, 'annual', '2026-03-10', false),
-          test(ana, 'annual', '2026-03-11', true),
-          test(bogdan, 'annual', '2026-03-10', true),
-          test(carmen, 'annual', '2026-03-10', false),
-          test(dan, 'annual', '2025-11-20', true),
+          { employeeId: ana, test: 'hiring' },
+          { employeeId: ana, test: 'annual' },
+          { employeeId: ana, test: 'annual' },
+          { employeeId: bogdan, test: 'annual' },
         ]
       );
       expect(tests).toBe(
-        'În același an, testul la angajare a fost susținut de 1 angajat, care l-a promovat, iar testul anual a fost susținut de 3 angajați, dintre care 2 l-au promovat.'
+        'În același an, potrivit rezultatelor consemnate, testul la angajare a fost promovat de 1 angajat, iar testul anual de 2 angajați.'
       );
       const [, annualOnly] = recordsOf(
         [held('periodic', '2026-03-10', [ana, bogdan])],
-        [test(ana, 'annual', '2026-03-10', false), test(bogdan, 'annual', '2026-03-10', false)]
+        [{ employeeId: carmen, test: 'annual' }]
       );
       expect(annualOnly).toBe(
-        'În același an, testul anual a fost susținut de 2 angajați, dintre care niciunul nu l-a promovat.'
+        'În același an, potrivit rezultatelor consemnate, testul anual a fost promovat de 1 angajat.'
       );
     });
 
-    it('says nothing of the tests when none was taken in the year', () => {
+    it('says nothing of the tests when none was passed in the year', () => {
       expect(recordsOf([held('periodic', '2026-03-10', [ana])])).toHaveLength(1);
     });
 
     it('stays a gap when no training was recorded in the year, whatever the tests', () => {
       const report = reportOf(
-        withRecords(
-          [held('periodic', '2025-12-10', [ana])],
-          [{ employeeId: ana, test: 'annual', takenOn: '2026-01-10', passed: true }]
-        )
+        withRecords({ trainings: [], passes: [{ employeeId: ana, test: 'annual' }] })
       );
       expect(report).toMatchObject({ trainingRecords: [], noTrainingRecords: true });
+    });
+
+    it('refuses a year whose records were not loaded rather than print a gap', () => {
+      expect(() => reportOf({ period: 2024 })).toThrow('records of 2024 were not loaded');
     });
   });
 });

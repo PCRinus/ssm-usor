@@ -37,7 +37,12 @@ import {
   documentData,
   stableJson,
 } from './context';
-import { loadDocumentFacts, loadOwnInstructions, type StoredDocumentFacts } from './facts';
+import {
+  loadDocumentFacts,
+  loadFireYearRecords,
+  loadOwnInstructions,
+  type StoredDocumentFacts,
+} from './facts';
 import { buildFireSafetyContext, fireSafetyDocumentData } from './fire-safety';
 import { setOfGroup, setRules } from './sets';
 import { annexDomainOf, annexedVersionIds, snapshotAnnexes } from './snapshot';
@@ -258,13 +263,40 @@ function toDocument(
   };
 }
 
+// A dated document's draft is compared with the records of its own year, which only it reads.
+async function withYearRecords(
+  db: DataClient,
+  documents: DocumentRow[],
+  facts: StoredDocumentFacts
+): Promise<StoredDocumentFacts> {
+  const periods = documents.flatMap((document) =>
+    document.period !== null &&
+    isDatedDocumentType(document.type_key) &&
+    !(document.period in facts.fireSafety.yearRecords)
+      ? [document.period]
+      : []
+  );
+  if (periods.length === 0) return facts;
+  const loaded = await loadFireYearRecords(db, documents[0]!.client_id, periods);
+  return {
+    ...facts,
+    fireSafety: {
+      ...facts.fireSafety,
+      yearRecords: { ...facts.fireSafety.yearRecords, ...loaded },
+    },
+  };
+}
+
 async function presentDocuments(
   db: DataClient,
   documents: DocumentRow[],
   facts: StoredDocumentFacts | null
 ) {
-  const lookup = await annexLookup(db, documents);
-  return documents.map((document) => toDocument(document, facts, lookup));
+  const [lookup, complete] = await Promise.all([
+    annexLookup(db, documents),
+    facts && withYearRecords(db, documents, facts),
+  ]);
+  return documents.map((document) => toDocument(document, complete, lookup));
 }
 
 async function presentDocument(
@@ -560,7 +592,7 @@ export async function generateClientDocuments(
     }
     // A dated document reports on the set, so it is merged with what this run has just made.
     if (dated.length > 0) {
-      current = await loadDocumentFacts(db, clientId, actor);
+      current = await loadDocumentFacts(db, clientId, actor, [period]);
       createdIds.push(
         ...(await inBatches(
           dated,
@@ -841,7 +873,12 @@ export async function regenerateDocument(
     throw new ApiError('conflict', 'This document is generated from its own page.');
   }
   const rules = setRules[set];
-  const facts = await loadDocumentFacts(db, document.client_id, actor);
+  const facts = await loadDocumentFacts(
+    db,
+    document.client_id,
+    actor,
+    document.period === null ? [] : [document.period]
+  );
   if (facts.clientArchived) {
     throw new ApiError('conflict', 'Documents are only generated for an active client.');
   }

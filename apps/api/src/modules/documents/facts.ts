@@ -5,9 +5,10 @@ import {
   type ResponsiblePersonRole,
 } from '@ssm-usor/contracts';
 
-import { type DataClient, fromDatabaseError } from '../../lib/db';
+import { type DataClient, everyRow, fromDatabaseError } from '../../lib/db';
 import { ApiError } from '../../lib/errors';
 import { type DocumentFacts, romanianDay } from './context';
+import type { FireYearRecords } from './fire-safety';
 import { loadTestQuestions } from './knowledge-tests';
 import type { RiskEvaluationFacts } from './risk-assessment';
 import { snapshotAnnexes } from './snapshot';
@@ -31,10 +32,15 @@ const moduleVersionsPath =
  */
 export type Preparer = { userId: string; organizationId: string };
 
+/**
+ * `periods` are the years whose fire-safety records a dated document reads (ADR 020): its own
+ * year when one is generated or compared, none for every other document.
+ */
 export async function loadDocumentFacts(
   db: DataClient,
   clientId: string,
-  preparer: Preparer
+  preparer: Preparer,
+  periods: readonly number[] = []
 ): Promise<StoredDocumentFacts> {
   const [
     client,
@@ -58,9 +64,7 @@ export async function loadDocumentFacts(
     participants,
     openInvitations,
     testQuestions,
-    fireTrainings,
-    fireTestResults,
-    fireTestAttempts,
+    yearRecords,
   ] = await Promise.all([
     db
       .from('clients')
@@ -99,7 +103,7 @@ export async function loadDocumentFacts(
       .order('id'),
     db
       .from('employees')
-      .select('workplace_id')
+      .select('id', { count: 'exact', head: true })
       .eq('client_id', clientId)
       .eq('status', 'active')
       .is('archived_at', null),
@@ -198,22 +202,7 @@ export async function loadDocumentFacts(
       .is('revoked_at', null)
       .gt('expires_at', new Date().toISOString()),
     loadTestQuestions(db, preparer.organizationId),
-    db
-      .from('trainings')
-      .select('phase, held_on, training_records(employee_id)')
-      .eq('client_id', clientId)
-      .eq('domain', 'su'),
-    db
-      .from('test_results')
-      .select('employee_id, test, taken_on')
-      .eq('client_id', clientId)
-      .eq('domain', 'su'),
-    db
-      .from('test_attempts')
-      .select('employee_id, test, finished_at, passed')
-      .eq('client_id', clientId)
-      .eq('domain', 'su')
-      .not('finished_at', 'is', null),
+    loadFireYearRecords(db, clientId, periods),
   ]);
   if (client.error) throw fromDatabaseError(client.error, 'document facts: client');
   if (!client.data) {
@@ -252,14 +241,13 @@ export async function loadDocumentFacts(
   if (openInvitations.error) {
     throw fromDatabaseError(openInvitations.error, 'document facts: participant invitations');
   }
-  if (fireTrainings.error)
-    throw fromDatabaseError(fireTrainings.error, 'document facts: trainings');
-  if (fireTestResults.error) {
-    throw fromDatabaseError(fireTestResults.error, 'document facts: test results');
-  }
-  if (fireTestAttempts.error) {
-    throw fromDatabaseError(fireTestAttempts.error, 'document facts: test attempts');
-  }
+  const currentEmployeesByWorkplace = await countCurrentEmployeesByWorkplace(
+    db,
+    clientId,
+    workplaces.data.filter(
+      (workplace) => workplace.kind === 'fixed_space' && workplace.office_has_activity
+    )
+  );
 
   return {
     // Every plan carries the line for now; the switch arrives with billing (docs/document-branding.md).
@@ -415,25 +403,7 @@ export async function loadDocumentFacts(
             ),
           };
         }),
-      trainings: fireTrainings.data.map((training) => ({
-        phase: training.phase,
-        heldOn: training.held_on,
-        employeeIds: training.training_records.map((record) => record.employee_id),
-      })),
-      tests: [
-        ...fireTestAttempts.data.map((attempt) => ({
-          employeeId: attempt.employee_id,
-          test: attempt.test,
-          takenOn: romanianDay(attempt.finished_at!),
-          passed: attempt.passed === true,
-        })),
-        ...fireTestResults.data.map((result) => ({
-          employeeId: result.employee_id,
-          test: result.test,
-          takenOn: result.taken_on,
-          passed: true,
-        })),
-      ],
+      yearRecords,
       substances: {
         state: fireSafety.data?.substances_state ?? 'undecided',
         entries: fireSubstances.data.map((substance) => ({
@@ -499,8 +469,8 @@ export async function loadDocumentFacts(
         allocation: entry.allocation as EquipmentAllocation,
       })),
     })),
-    currentEmployeeCount: headcount.data.length,
-    currentEmployeeWorkplaceIds: headcount.data.map((employee) => employee.workplace_id),
+    currentEmployeeCount: headcount.count ?? 0,
+    currentEmployeesByWorkplace,
     hasParticipants: (participants.count ?? 0) + (openInvitations.count ?? 0) > 0,
     workersRepresentativeDecisionGenerated: generated.has('decision_workers_representative'),
     ownInstructions,
@@ -603,4 +573,86 @@ export async function loadOwnInstructions(
       ];
     }),
   };
+}
+
+async function countCurrentEmployeesByWorkplace(
+  db: DataClient,
+  clientId: string,
+  workplaces: readonly { id: string }[]
+) {
+  const counts = await Promise.all(
+    workplaces.map(async (workplace) => {
+      const { count, error } = await db
+        .from('employees')
+        .select('id', { count: 'exact', head: true })
+        .eq('client_id', clientId)
+        .eq('status', 'active')
+        .is('archived_at', null)
+        .eq('workplace_id', workplace.id);
+      if (error) throw fromDatabaseError(error, 'document facts: employees per workplace');
+      return [workplace.id, count ?? 0] as const;
+    })
+  );
+  return Object.fromEntries(counts);
+}
+
+/**
+ * The fire-safety trainings held and the tests passed in each year, every row of it. A
+ * training nobody attended has no record, so it is not among them.
+ */
+export async function loadFireYearRecords(
+  db: DataClient,
+  clientId: string,
+  periods: readonly number[]
+): Promise<Record<number, FireYearRecords>> {
+  const years = [...new Set(periods)];
+  const loaded = await Promise.all(
+    years.map(async (year) => {
+      const [first, last] = [`${year}-01-01`, `${year}-12-31`];
+      const [records, results] = await Promise.all([
+        everyRow(
+          (from, to) =>
+            db
+              .from('training_records')
+              .select('id, employee_id, training_id, trainings!inner(phase, held_on, domain)')
+              .eq('client_id', clientId)
+              .eq('trainings.domain', 'su')
+              .gte('trainings.held_on', first)
+              .lte('trainings.held_on', last)
+              .order('id')
+              .range(from, to),
+          'document facts: training records'
+        ),
+        everyRow(
+          (from, to) =>
+            db
+              .from('test_results')
+              .select('id, employee_id, test')
+              .eq('client_id', clientId)
+              .eq('domain', 'su')
+              .gte('taken_on', first)
+              .lte('taken_on', last)
+              .order('id')
+              .range(from, to),
+          'document facts: test results'
+        ),
+      ]);
+      const trainings = new Map<string, FireYearRecords['trainings'][number]>();
+      for (const record of records) {
+        const training = trainings.get(record.training_id) ?? {
+          phase: record.trainings.phase,
+          heldOn: record.trainings.held_on,
+          employeeIds: [],
+        };
+        training.employeeIds.push(record.employee_id);
+        trainings.set(record.training_id, training);
+      }
+      const forYear: FireYearRecords = {
+        trainings: [...trainings.values()],
+        passes: results.map((result) => ({ employeeId: result.employee_id, test: result.test })),
+      };
+      return [year, forYear] as const;
+    })
+  );
+  return Object.fromEntries(loaded);
 }

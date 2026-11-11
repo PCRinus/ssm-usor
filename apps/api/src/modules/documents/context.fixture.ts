@@ -238,7 +238,7 @@ export const facts: DocumentFacts = {
     },
   ],
   currentEmployeeCount: 6,
-  currentEmployeeWorkplaceIds: [workshopId, workshopId, workshopId, workshopId, officeId, null],
+  currentEmployeesByWorkplace: { [workshopId]: 4, [officeId]: 1 },
   hasParticipants: true,
   workersRepresentativeDecisionGenerated: false,
   ownInstructions: {
@@ -495,8 +495,7 @@ export const facts: DocumentFacts = {
         issuedRevisions: [{ revision: 1, issueDate: '2025-12-15', issuedOn: '2025-12-15' }],
       },
     ],
-    trainings: [],
-    tests: [],
+    yearRecords: { 2025: { trainings: [], passes: [] }, 2026: { trainings: [], passes: [] } },
     substances: {
       state: 'listed',
       entries: [

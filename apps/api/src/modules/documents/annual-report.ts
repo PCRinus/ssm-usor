@@ -25,6 +25,7 @@ import type {
   FireSafetyClientFacts,
   FireSafetySetFacts,
   FireStaffCategory,
+  FireYearRecords,
 } from './fire-safety';
 import { descriptionNamesKind, installationText } from './installations';
 import { monthNames } from './themes';
@@ -187,23 +188,10 @@ const phaseNouns: Record<TrainingPhase, readonly [one: string, many: string]> = 
 
 const employeesCounted = (count: number) => countOf(count, 'angajat', 'angajați');
 
-function passedPhrase(took: number, passed: number) {
-  if (took === 1) return passed === 1 ? 'care l-a promovat' : 'care nu l-a promovat';
-  if (passed === took) return 'care l-au promovat toți';
-  if (passed === 0) return 'dintre care niciunul nu l-a promovat';
-  if (passed === 1) return 'dintre care unul l-a promovat';
-  return `dintre care ${passed} l-au promovat`;
-}
-
 // Empty without a training held in the year: a provider who keeps the trainings on paper must
 // not get a report that understates them, so the row stays a gap.
-function trainingRecords(
-  trainings: FireSafetyClientFacts['trainings'],
-  tests: FireSafetyClientFacts['tests'],
-  year: number
-): { text: string }[] {
-  const inYear = (day: string) => day.startsWith(`${year}-`);
-  const held = trainings.filter((training) => inYear(training.heldOn));
+function trainingRecords(records: FireYearRecords, year: number): { text: string }[] {
+  const held = records.trainings.filter((training) => training.employeeIds.length > 0);
   if (held.length === 0) return [];
 
   const phases = trainingPhases.flatMap((phase: TrainingPhase) => {
@@ -227,20 +215,25 @@ function trainingRecords(
   const done = held.length === 1 ? 's-a efectuat' : 's-au efectuat';
   const trainingsText = `Potrivit evidenței instruirilor, în anul ${year} ${done}: ${phases.join('; ')}.`;
 
-  const taken = tests.filter((test) => inYear(test.takenOn));
-  const testParts = knowledgeTestsByDomain.su.flatMap((test: KnowledgeTest) => {
-    const ofTest = taken.filter((each) => each.test === test);
-    if (ofTest.length === 0) return [];
-    const took = new Set(ofTest.map((each) => each.employeeId)).size;
-    const passed = new Set(ofTest.filter((each) => each.passed).map((each) => each.employeeId))
-      .size;
-    return [
-      `${runOn(knowledgeTestLabels[test])} a fost susținut de ${employeesCounted(took)}, ${passedPhrase(took, passed)}`,
-    ];
+  // Only the passes: a failed test is never recorded, so the takers are not a fact the records hold.
+  const passedBy = knowledgeTestsByDomain.su.flatMap((test: KnowledgeTest) => {
+    const passed = new Set(
+      records.passes.filter((pass) => pass.test === test).map((pass) => pass.employeeId)
+    ).size;
+    return passed > 0 ? [{ test, passed }] : [];
   });
+  const testsText = passedBy
+    .map(({ test, passed }, index) =>
+      index === 0
+        ? `${runOn(knowledgeTestLabels[test])} a fost promovat de ${employeesCounted(passed)}`
+        : `${runOn(knowledgeTestLabels[test])} de ${employeesCounted(passed)}`
+    )
+    .join(', iar ');
   return [
     { text: trainingsText },
-    ...(testParts.length > 0 ? [{ text: `În același an, ${testParts.join(', iar ')}.` }] : []),
+    ...(passedBy.length > 0
+      ? [{ text: `În același an, potrivit rezultatelor consemnate, ${testsText}.` }]
+      : []),
   ];
 }
 
@@ -281,7 +274,9 @@ export function buildAnnualReport({
   });
 
   const issuedInYear = yearDecisions(stored, year);
-  const records = trainingRecords(facts.fireSafety.trainings, facts.fireSafety.tests, year);
+  const yearRecords = facts.fireSafety.yearRecords[year];
+  if (!yearRecords) throw new Error(`The fire-safety records of ${year} were not loaded.`);
+  const records = trainingRecords(yearRecords, year);
 
   const workplaces = facts.workplaces.map((workplace) => {
     const units = facts.fireSafety.equipment.filter((unit) => unit.workplaceId === workplace.id);

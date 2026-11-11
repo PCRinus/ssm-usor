@@ -94,6 +94,12 @@ type FireSubstanceFacts = {
   quantity: string | null;
 } & Record<FireSubstanceDetail, string | null>;
 
+/** A failed test is not recorded, so only the passes are: a test result is a pass. */
+export type FireYearRecords = {
+  trainings: { phase: TrainingPhase; heldOn: string; employeeIds: string[] }[];
+  passes: { employeeId: string; test: KnowledgeTest }[];
+};
+
 export type FireSafetyClientFacts = {
   /** Null while the client has no fire-safety row, which the card or the substances state creates. */
   card: {
@@ -172,12 +178,8 @@ export type FireSafetyClientFacts = {
     /** Every revision ever issued, superseded ones included; `issuedOn` the Romanian day of the issue. */
     issuedRevisions: { revision: number; issueDate: string | null; issuedOn: string }[];
   }[];
-  trainings: { phase: TrainingPhase; heldOn: string; employeeIds: string[] }[];
-  /**
-   * The fire-safety tests taken: a finished portal attempt, passed or not, and a pass recorded
-   * from paper, where a failure is never recorded.
-   */
-  tests: { employeeId: string; test: KnowledgeTest; takenOn: string; passed: boolean }[];
+  /** Only for the years the facts were loaded for: a dated document's period (ADR 020). */
+  yearRecords: Partial<Record<number, FireYearRecords>>;
   /** `undecided` too while the client has no fire-safety row. */
   substances: { state: FireSubstancesState; entries: FireSubstanceFacts[] };
 };
@@ -447,7 +449,7 @@ export type FireSafetySetFacts = Pick<
   | 'issueDate'
   | 'period'
   | 'currentEmployeeCount'
-  | 'currentEmployeeWorkplaceIds'
+  | 'currentEmployeesByWorkplace'
   | 'hasParticipants'
   | 'firstDecisionNumber'
   | 'branding'
