@@ -66,8 +66,6 @@ const contract: ServiceContract = {
   startDate: '2026-10-01',
   durationMonths: 24,
   renewsAutomatically: true,
-  coversOccupationalSafety: true,
-  coversFireSafety: false,
   endDate: '2028-09-30',
 };
 const merged = (overrides: Partial<ServiceContract> = {}, organization = facts.organization) =>
@@ -116,33 +114,21 @@ describe('the starter contract', () => {
     expect(text).toContain('Document generat cu SSM Ușor');
   });
 
-  const services = [
-    [true, false],
-    [false, true],
-    [true, true],
-  ] as const;
-  const combinations = services.flatMap(([occupational, fire]) =>
-    [true, false].flatMap((renews) =>
-      [true, false].flatMap((vatPayer) =>
-        [null, '0744 123 456'].flatMap((phone) =>
-          [null, '5630'].map((caen) => [occupational, fire, renews, vatPayer, phone, caen] as const)
-        )
+  const combinations = [true, false].flatMap((renews) =>
+    [true, false].flatMap((vatPayer) =>
+      [null, '0744 123 456'].flatMap((phone) =>
+        [null, '5630'].map((caen) => [renews, vatPayer, phone, caen] as const)
       )
     )
   );
 
   it.each(combinations)(
-    'renders with nothing missing: occupational %s, fire %s, renews %s, VAT payer %s, phone %s, CAEN %s',
-    (occupational, fire, renews, vatPayer, phone, caen) => {
+    'renders with nothing missing: renews %s, VAT payer %s, phone %s, CAEN %s',
+    (renews, vatPayer, phone, caen) => {
       const context = buildServiceContractContext({
         client: { ...facts.client, contact_phone: phone, caen_code: caen },
         organization: { ...facts.organization, vat_payer: vatPayer },
-        contract: {
-          ...contract,
-          coversOccupationalSafety: occupational,
-          coversFireSafety: fire,
-          renewsAutomatically: renews,
-        },
+        contract: { ...contract, renewsAutomatically: renews },
       });
       expect(documentText(renderTemplate(template, context).document)).not.toContain('{{');
     }
@@ -152,28 +138,13 @@ describe('the starter contract', () => {
     expect(merged().split(unfilledMark).length - 1).toBe(3);
   });
 
-  it('prints the fire-safety chapters only for a contract that covers fire safety', () => {
-    const without = merged();
-    expect(without).not.toContain('Legii 307/2006');
-    expect(without).not.toContain('Ion IONESCU');
-    expect(without).not.toContain(
-      'Obiectul contractului în domeniul apărării împotriva incendiilor'
-    );
-    const withIt = merged({ coversFireSafety: true });
-    expect(withIt).toContain('Legii 307/2006');
-    expect(withIt).toContain('de Ion IONESCU, certificat seria CT nr. 1234');
-    expect(withIt).toContain(
-      'În domeniul apărării împotriva incendiilor, beneficiarul asigură și:'
-    );
-  });
-
-  it('prints fire safety alone too', () => {
-    const text = merged({ coversOccupationalSafety: false, coversFireSafety: true });
-    expect(text).not.toContain('Certificatului de abilitare');
-    expect(text).not.toContain(
-      'Obiectul contractului în domeniul securității și sănătății în muncă'
-    );
+  it('prints both services, every time', () => {
+    const text = merged();
+    expect(text).toContain('Obiectul contractului în domeniul securității și sănătății în muncă');
+    expect(text).toContain('Obiectul contractului în domeniul apărării împotriva incendiilor');
     expect(text).toContain('Legii 307/2006');
+    expect(text).toContain('de Ion IONESCU, certificat seria CT nr. 1234');
+    expect(text).toContain('În domeniul apărării împotriva incendiilor, beneficiarul asigură și:');
   });
 
   it('says the right thing about VAT and about the renewal', () => {

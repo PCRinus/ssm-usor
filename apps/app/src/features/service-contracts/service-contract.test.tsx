@@ -35,8 +35,6 @@ const saved = {
   startDate: '2026-10-01',
   durationMonths: 12,
   renewsAutomatically: true,
-  coversOccupationalSafety: true,
-  coversFireSafety: false,
   endDate: '2027-09-30',
 };
 const revision = (overrides: Record<string, unknown> = {}) => ({
@@ -206,11 +204,9 @@ describe('the service contract of a lead', () => {
           startDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
           durationMonths: 24,
           renewsAutomatically: true,
-          coversOccupationalSafety: true,
-          coversFireSafety: true,
           clientRepresentativeName: 'Adnana POPA',
         });
-        return Response.json(state({ coversFireSafety: true }));
+        return Response.json(state());
       },
     });
     mount();
@@ -226,7 +222,6 @@ describe('the service contract of a lead', () => {
     const months = within(form).getByTestId('contract-durationMonths');
     await user.clear(months);
     await user.type(months, '24');
-    await user.click(within(form).getByTestId('contract-coversFireSafety'));
     await user.type(within(form).getByTestId('contract-clientRepresentativeName'), 'Adnana POPA');
     await user.click(within(form).getByTestId('contract-save'));
     expect(await screen.findByText('Detaliile contractului au fost salvate.')).toBeTruthy();

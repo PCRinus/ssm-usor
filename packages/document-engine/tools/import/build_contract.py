@@ -5,8 +5,8 @@
 The contract is not one of the provider's originals: it is written here, in our own words, in
 `contract.ro.json`, after the structure of a provider's contract, and typeset to the house
 style. Articles are numbered by a list, so that an article a provider deletes in the editor,
-or a chapter left out because fire safety is not sold, leaves no gap in the numbers. For the
-same reason chapters carry no number and no article refers to another by its number.
+or one left out by a condition, leaves no gap in the numbers. For the same reason chapters
+carry no number and no article refers to another by its number.
 """
 
 import json
@@ -108,15 +108,10 @@ def build(desktop, definition):
     write_paragraph(text, cursor, definition['number'], bold=True, adjust=CENTER, below=18)
 
     for chapter in definition['chapters']:
-        condition = chapter.get('condition')
-        if condition:
-            tag(text, cursor, condition)
         plain(text, cursor, chapter['heading'], bold=True, adjust=LEFT, above=12, below=6,
               keep=True)
         for item in chapter['articles']:
             article(text, cursor, item)
-        if condition:
-            tag(text, cursor, condition, closing=True)
 
     signatures = definition['signatures']
     plain(text, cursor, '', adjust=LEFT, above=12, below=0)

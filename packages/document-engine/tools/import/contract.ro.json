@@ -20,26 +20,21 @@
       "heading": "Temeiul legal",
       "articles": [
         {
-          "condition": "contract.coversOccupationalSafety",
           "lead": "Contractul se încheie în temeiul Legii 319/2006 – art. 8 alin. (4), privind recurgerea la servicii externe de prevenire și protecție, și al Normelor metodologice de aplicare a acesteia, aprobate prin H.G. 1425/2006."
         },
         {
-          "condition": "contract.coversOccupationalSafety",
           "lead": "Prestatorul este serviciu extern de prevenire și protecție în sensul Legii 319/2006 – art. 5 lit. p), și își desfășoară activitatea în baza Certificatului de abilitare nr. {{provider.authorization.number}} din {{provider.authorization.date}}, emis de {{provider.authorization.issuer}}, a cărui copie este anexată prezentului contract."
         },
         {
-          "condition": "contract.coversFireSafety",
           "lead": "În domeniul apărării împotriva incendiilor, contractul se încheie în temeiul Legii 307/2006 privind apărarea împotriva incendiilor, art. 12 alin. (3) și art. 27, al Normelor generale de apărare împotriva incendiilor, aprobate prin OMAI 163/2007 – art. 6 alin. (2), și al OMAI 106/2007 privind criteriile de stabilire a consiliilor locale și operatorilor economici care au obligația de a angaja cel puțin un cadru tehnic sau personal de specialitate cu atribuții în domeniul apărării împotriva incendiilor."
         },
         {
-          "condition": "contract.coversFireSafety",
           "lead": "Atribuțiile de cadru tehnic cu atribuții în domeniul apărării împotriva incendiilor sunt îndeplinite, din partea prestatorului, de {{provider.fireSafetyTechnician.name}}, certificat {{provider.fireSafetyTechnician.certificate}}, a cărui copie este anexată prezentului contract."
         }
       ]
     },
     {
       "heading": "Obiectul contractului în domeniul securității și sănătății în muncă",
-      "condition": "contract.coversOccupationalSafety",
       "articles": [
         {
           "lead": "Prestatorul desfășoară pentru beneficiar activitățile de prevenire și protecție prevăzute de H.G. 1425/2006 – art. 15 alin. (1), în limitele stabilite de prezentul contract."
@@ -75,7 +70,6 @@
     },
     {
       "heading": "Obiectul contractului în domeniul apărării împotriva incendiilor",
-      "condition": "contract.coversFireSafety",
       "articles": [
         {
           "lead": "Prestatorul îndeplinește pentru beneficiar atribuțiile pe linia apărării împotriva incendiilor, potrivit legislației în vigoare și specificului unității."
@@ -123,7 +117,6 @@
           ]
         },
         {
-          "condition": "contract.coversFireSafety",
           "lead": "În domeniul apărării împotriva incendiilor, beneficiarul asigură și:",
           "items": [
             "existența avizelor și a autorizațiilor de securitate la incendiu și a documentației tehnice specifice, acolo unde legea le cere;",

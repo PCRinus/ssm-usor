@@ -10,6 +10,7 @@ import {
   createLead,
   createOrganization,
   emailsTo,
+  nameFireSafetyTechnician,
   signIn,
   signOut,
 } from './support';
@@ -122,6 +123,7 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
   const organizationId = await createOrganization('Contract E2E', owner.id);
   await addSpecialist(organizationId, specialist.id);
   await completeProviderDetails(organizationId);
+  await nameFireSafetyTechnician(organizationId);
   const leadId = await createLead(organizationId, 'S.C. VIITOR CONTRACT E2E S.R.L.', '14399840');
   const contact = addressOf('contract-contact');
 
@@ -175,8 +177,7 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
     frame.getByText('S.C. VIITOR CONTRACT E2E S.R.L.').filter({ visible: true }).last()
   ).toBeVisible();
   await expect(frame.getByText('Art. 1.')).toBeVisible();
-  // Fire safety is not sold, so its chapters are not there.
-  await expect(frame.getByText('Legii 307/2006')).toHaveCount(0);
+  await expect(frame.getByText('Legii 307/2006').filter({ visible: true }).first()).toBeVisible();
 
   // The button selects the next mark, so what is typed takes its place.
   const unfilled = page.getByTestId('editor-unfilled');

@@ -470,16 +470,15 @@ responsibility.
 
 - **Articles are a list.** "Art. N." comes from a numbering style (`ListFormat`, because this
   version of the office reads `Prefix` and `Suffix` and drops them on export), so an article a
-  provider deletes in the editor, or a chapter left out by a condition, leaves no gap. A new
+  provider deletes in the editor, or one left out by a condition, leaves no gap. A new
   paragraph inherits the numbering of the one before it, so every paragraph that is not an
   article clears it. For the same reason chapters carry no number and no article refers to
   another by number. Lettered items are typed.
-- **Conditions.** `{{#contract.coversFireSafety}}` and its closing tag stand alone in their
-  paragraphs around the fire-safety chapters and articles, and
-  `{{#contract.coversOccupationalSafety}}` around the others, so a contract prints one
-  service, the other, or both. `provider.vatPayer` and `provider.notVatPayer`, and
-  `contract.renewsAutomatically` and `contract.endsWithoutRenewal`, choose between two
-  sentences. The template predates `{{^…}}`, so the context carries both sides.
+- **Conditions.** Every contract prints both services, occupational safety and fire safety,
+  with no condition around either (ADR 007, amendment of 2026-11-11). `provider.vatPayer` and
+  `provider.notVatPayer`, and `contract.renewsAutomatically` and
+  `contract.endsWithoutRenewal`, choose between two sentences, each tag alone in its
+  paragraph. The template predates `{{^…}}`, so the context carries both sides.
 - **Prices** are printed as `DE COMPLETAT`, the contracts' `unfilledMark`, which is what
   issuing already warns about. The app keeps no prices (ADR 007).
 - `{{#client.phone}}…{{/client.phone}}` and `{{#client.activity}}…` are inline conditions: the

@@ -20266,12 +20266,6 @@
               "renewsAutomatically": {
                 "type": "boolean"
               },
-              "coversOccupationalSafety": {
-                "type": "boolean"
-              },
-              "coversFireSafety": {
-                "type": "boolean"
-              },
               "endDate": {
                 "type": "string",
                 "format": "date"
@@ -20283,8 +20277,6 @@
               "startDate",
               "durationMonths",
               "renewsAutomatically",
-              "coversOccupationalSafety",
-              "coversFireSafety",
               "endDate"
             ]
           },
@@ -20722,14 +20714,6 @@
           "renewsAutomatically": {
             "type": "boolean",
             "default": true
-          },
-          "coversOccupationalSafety": {
-            "type": "boolean",
-            "default": true
-          },
-          "coversFireSafety": {
-            "type": "boolean",
-            "default": false
           },
           "clientRepresentativeName": {
             "type": "string",
@@ -45392,7 +45376,7 @@
       "put": {
         "operationId": "saveServiceContract",
         "summary": "Save the details of the service contract of a client or a lead",
-        "description": "Owners only. The number, the dates, the renewal and the services covered; prices are not kept, they are written in the file. `clientRepresentativeName` and `clientRepresentativeRole` are saved on the client, which a lead has no other form for; left out, they stay as they are. Nothing already generated changes: the file is the document.",
+        "description": "Owners only. The number, the dates and the renewal; the contract always covers both services. Prices are not kept, they are written in the file. `clientRepresentativeName` and `clientRepresentativeRole` are saved on the client, which a lead has no other form for; left out, they stay as they are. Nothing already generated changes: the file is the document.",
         "security": [
           {
             "bearerAuth": []

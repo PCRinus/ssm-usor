@@ -1000,8 +1000,8 @@ their tab bars read.
   the address is told what is there and whose it is, and nothing is asked of the API). It is
   two cards. "Detaliile contractului" keeps what the app reads about the contract: the number,
   which starts from the API's suggestion and says so, the two dates, the duration, the
-  renewal, the two services, and who signs for the client, which is saved on the client
-  because a lead has no other form for it. Once saved it shows as a summary with "Modifică",
+  renewal, and who signs for the client, which is saved on the client because a lead has no
+  other form for it. There is no choice of services: every contract covers both (ADR 007). Once saved it shows as a summary with "Modifică",
   so that the form does not stand between the owner and the contract on every visit.
   "Contractul" is the document: a sentence on where it stands, its badges, and its actions.
   Until it is issued, a notice says that prices are written by hand over `DE COMPLETAT` and

@@ -333,13 +333,14 @@ the name next; `sort=clientSince` by `clientSince`.
 
 The service contract of a client or a lead (ADR 007) is an owner's. `GET
 /clients/{clientId}/service-contract` returns what the app reads about it (`contract`: number,
-dates, duration, renewal, the services covered, and `endDate`, the last day of the first term;
+dates, duration, renewal, and `endDate`, the last day of the first term; every contract covers
+both services, so none is chosen;
 null until saved), `suggestedNumber` (the last number of this year plus one, 1 in a year
 without contracts, null when the organization has none at all and only the owner knows where
 its register stands), who signs for the client, `readiness` with what generating is waiting
 for (`missingServiceContractData`: the organization's company details and authorizations, the client's
-registration, address and representative, the contract's own details; the fire-safety
-technician only when fire safety is covered), and `document`, the contract as a document once
+registration, address and representative, the contract's own details, and the fire-safety
+technician, whom every contract names), and `document`, the contract as a document once
 it is generated. `PUT` saves the details, and the client's representative when sent, which a
 lead has no other form for; a number used twice in a year answers `409` with
 `contract_number_taken`. Prices are not kept: they are written in the file.
@@ -1962,7 +1963,7 @@ are empty.
 
 The fire-safety set asks only what its documents print: `provider.legalName`,
 `provider.fireSafetyTechnician` (the organization's fire-safety technician, by name, the same
-code a service contract covering fire safety uses), `provider.fireSafetyTechnicianCertificate`
+code the service contract uses), `provider.fireSafetyTechnicianCertificate`
 (the technician's certificate, which decision 5 prints; ADR 019), `client.representativeName`,
 `client.representativeRole`, and the client data of its second and third stages (ADR 018,
 ADR 019): `fire.trainingSchedule` (the duration, both intervals, the first month and both days

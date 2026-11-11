@@ -591,10 +591,7 @@ function ServiceContractBody({
       />
     </Field>
   );
-  const checkbox = (
-    name: 'renewsAutomatically' | 'coversOccupationalSafety' | 'coversFireSafety',
-    label: string
-  ) => (
+  const checkbox = (name: 'renewsAutomatically', label: string) => (
     <div className="flex items-center gap-3">
       <Controller
         control={form.control}
@@ -634,17 +631,9 @@ function ServiceContractBody({
         }
       >
         {summarized && saved.contract ? (
-          <FactList data-testid="contract-details-summary" className="lg:grid-cols-4">
+          <FactList data-testid="contract-details-summary">
             <Fact label="Număr și dată">
               Nr. {saved.contract.contractNumber} din {formatRoDate(saved.contract.contractDate)}
-            </Fact>
-            <Fact label="Servicii">
-              {[
-                saved.contract.coversOccupationalSafety && 'SSM',
-                saved.contract.coversFireSafety && 'SU',
-              ]
-                .filter(Boolean)
-                .join(' și ')}
             </Fact>
             <Fact label="Perioada" testId="contract-end">
               {formatRoDate(saved.contract.startDate)} – {formatRoDate(saved.contract.endDate)}
@@ -694,16 +683,6 @@ function ServiceContractBody({
             })}
             <div className="grid gap-3 sm:col-span-2">
               {checkbox('renewsAutomatically', 'Se prelungește automat, pe aceeași durată')}
-              {checkbox(
-                'coversOccupationalSafety',
-                'Cuprinde securitatea și sănătatea în muncă (SSM)'
-              )}
-              {checkbox('coversFireSafety', 'Cuprinde situațiile de urgență (SU)')}
-              {errors.coversOccupationalSafety && (
-                <p role="alert" className="text-sm text-destructive">
-                  {errors.coversOccupationalSafety.message}
-                </p>
-              )}
             </div>
             <div className="grid gap-1 border-t pt-5 sm:col-span-2">
               <h3 className="font-semibold">Cine semnează pentru client</h3>

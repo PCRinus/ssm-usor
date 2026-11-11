@@ -11,17 +11,11 @@ const clientColumns =
 const organizationColumns =
   'legal_name, cui, trade_register_number, county_code, locality, address_line, legal_representative_name, legal_representative_role, phone, iban, bank_name, authorization_certificate_number, authorization_certificate_date, authorization_certificate_issuer, vat_payer, fire_safety_technician_name, fire_safety_technician_certificate';
 const contractColumns =
-  'contract_number, contract_date, start_date, duration_months, renews_automatically, covers_occupational_safety, covers_fire_safety';
+  'contract_number, contract_date, start_date, duration_months, renews_automatically';
 
 type ContractRow = Pick<
   Tables['service_contracts']['Row'],
-  | 'contract_number'
-  | 'contract_date'
-  | 'start_date'
-  | 'duration_months'
-  | 'renews_automatically'
-  | 'covers_occupational_safety'
-  | 'covers_fire_safety'
+  'contract_number' | 'contract_date' | 'start_date' | 'duration_months' | 'renews_automatically'
 >;
 
 export interface ServiceContractFacts {
@@ -80,8 +74,6 @@ export function toServiceContract(row: ContractRow): ServiceContract {
     startDate: row.start_date,
     durationMonths: row.duration_months,
     renewsAutomatically: row.renews_automatically,
-    coversOccupationalSafety: row.covers_occupational_safety,
-    coversFireSafety: row.covers_fire_safety,
     endDate: endDateOf(row.start_date, row.duration_months),
   };
 }
@@ -142,11 +134,9 @@ export function missingServiceContractData({
     ],
     [
       'provider.fireSafetyTechnician',
-      !contract?.coversFireSafety ||
-        Boolean(
-          organization.fire_safety_technician_name &&
-          organization.fire_safety_technician_certificate
-        ),
+      Boolean(
+        organization.fire_safety_technician_name && organization.fire_safety_technician_certificate
+      ),
     ],
     ['client.tradeRegisterNumber', Boolean(client.trade_register_number)],
     ['client.address', hasAddress(client)],

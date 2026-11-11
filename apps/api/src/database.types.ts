@@ -4639,8 +4639,6 @@ export type Database = {
           client_id: string;
           contract_date: string;
           contract_number: number;
-          covers_fire_safety: boolean;
-          covers_occupational_safety: boolean;
           created_at: string;
           created_by: string | null;
           duration_months: number;
@@ -4655,8 +4653,6 @@ export type Database = {
           client_id: string;
           contract_date: string;
           contract_number: number;
-          covers_fire_safety?: boolean;
-          covers_occupational_safety?: boolean;
           created_at?: string;
           created_by?: string | null;
           duration_months: number;
@@ -4671,8 +4667,6 @@ export type Database = {
           client_id?: string;
           contract_date?: string;
           contract_number?: number;
-          covers_fire_safety?: boolean;
-          covers_occupational_safety?: boolean;
           created_at?: string;
           created_by?: string | null;
           duration_months?: number;

@@ -12839,8 +12839,6 @@ export type ServiceContractResponseContract = {
    */
   durationMonths: number;
   renewsAutomatically: boolean;
-  coversOccupationalSafety: boolean;
-  coversFireSafety: boolean;
   endDate: string;
 } | null;
 
@@ -13111,8 +13109,6 @@ export interface SaveServiceContractRequest {
    */
   durationMonths: number;
   renewsAutomatically?: boolean;
-  coversOccupationalSafety?: boolean;
-  coversFireSafety?: boolean;
   /**
    * @minLength 2
    * @maxLength 160
@@ -38180,7 +38176,7 @@ export const getSaveServiceContractUrl = (clientId: string) => {
 };
 
 /**
- * Owners only. The number, the dates, the renewal and the services covered; prices are not kept, they are written in the file. `clientRepresentativeName` and `clientRepresentativeRole` are saved on the client, which a lead has no other form for; left out, they stay as they are. Nothing already generated changes: the file is the document.
+ * Owners only. The number, the dates and the renewal; the contract always covers both services. Prices are not kept, they are written in the file. `clientRepresentativeName` and `clientRepresentativeRole` are saved on the client, which a lead has no other form for; left out, they stay as they are. Nothing already generated changes: the file is the document.
  * @summary Save the details of the service contract of a client or a lead
  */
 export const saveServiceContract = async (
