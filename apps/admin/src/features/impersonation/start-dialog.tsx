@@ -176,6 +176,7 @@ function StartForm({ member, onClose }: { member: AdminMemberListItem; onClose: 
             value={reason}
             maxLength={maxImpersonationReasonLength}
             rows={3}
+            className="max-h-40"
             required
             aria-invalid={reasonError ? true : undefined}
             aria-describedby={describedBy}
