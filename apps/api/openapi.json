@@ -223,6 +223,7 @@
               },
               "targetOrganizationId": {
                 "type": "string",
+                "nullable": true,
                 "format": "uuid"
               },
               "expiresAt": {
@@ -25469,6 +25470,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -25514,6 +25525,16 @@
           },
           "401": {
             "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -25596,6 +25617,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -25642,6 +25673,16 @@
           },
           "401": {
             "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -25707,6 +25748,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -25763,6 +25814,16 @@
           },
           "403": {
             "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -25854,7 +25915,7 @@
             }
           },
           "409": {
-            "description": "The account has no profile",
+            "description": "The account has no profile; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -25960,6 +26021,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -26055,6 +26126,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -26101,6 +26182,16 @@
           },
           "401": {
             "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -26194,7 +26285,7 @@
             }
           },
           "409": {
-            "description": "The account has no profile",
+            "description": "The account has no profile; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -26287,6 +26378,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -26343,6 +26444,16 @@
           },
           "403": {
             "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -26495,6 +26606,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -26578,7 +26699,7 @@
             }
           },
           "409": {
-            "description": "The CUI is taken: `cui_taken`, `cui_taken_by_archived`, or `cui_taken_by_lead`, which is also the answer when the holder is a lead the caller cannot see",
+            "description": "The CUI is taken: `cui_taken`, `cui_taken_by_archived`, or `cui_taken_by_lead`, which is also the answer when the holder is a lead the caller cannot see; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -26674,6 +26795,16 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -26786,7 +26917,7 @@
             }
           },
           "409": {
-            "description": "Another client has this CUI, or the client is archived",
+            "description": "Another client has this CUI, or the client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -26882,7 +27013,7 @@
             }
           },
           "409": {
-            "description": "The client is not archived",
+            "description": "The client is not archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -26986,6 +27117,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -27073,6 +27214,16 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -27177,7 +27328,7 @@
             }
           },
           "409": {
-            "description": "The lead is archived",
+            "description": "The lead is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -27273,6 +27424,16 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -27385,7 +27546,7 @@
             }
           },
           "409": {
-            "description": "The client is archived",
+            "description": "The client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -27482,6 +27643,16 @@
           },
           "404": {
             "description": "No company registered with this CUI",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -27662,6 +27833,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -27765,7 +27946,7 @@
             }
           },
           "409": {
-            "description": "The client is archived, or a current employee of the client has the CNP or number",
+            "description": "The client is archived, or a current employee of the client has the CNP or number; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -27869,6 +28050,16 @@
           },
           "404": {
             "description": "The employee does not exist under this client in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -27990,7 +28181,7 @@
             }
           },
           "409": {
-            "description": "Another current employee of the client has this CNP or number",
+            "description": "Another current employee of the client has this CNP or number; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -28114,7 +28305,7 @@
             }
           },
           "409": {
-            "description": "The client is archived, or a current employee of the client has the CNP or number of the one being reactivated",
+            "description": "The client is archived, or a current employee of the client has the CNP or number of the one being reactivated; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -28229,6 +28420,16 @@
           },
           "404": {
             "description": "The employee does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -28408,6 +28609,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -28521,6 +28732,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -28625,7 +28846,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -28784,6 +29005,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -28880,6 +29111,16 @@
           },
           "404": {
             "description": "The client, or the training under it, does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -29001,7 +29242,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`), a record of the training carries a live electronic signature, or is a record from paper printed on a certified sheet, and a fact it prints changed (`record_signed`), or an attendee left out has a signature or a row on a sheet (`record_has_signatures`). The requests and the sheet rows the save brings are best effort after it: a failure there is logged and the save answers 200",
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`), a record of the training carries a live electronic signature, or is a record from paper printed on a certified sheet, and a fact it prints changed (`record_signed`), or an attendee left out has a signature or a row on a sheet (`record_has_signatures`). The requests and the sheet rows the save brings are best effort after it: a failure there is logged and the save answers 200; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -29115,7 +29356,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`), or a record of the training has a signature, voided and paper ones included, or a row on a stored sheet (`record_has_signatures`)",
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`), or a record of the training has a signature, voided and paper ones included, or a row on a stored sheet (`record_has_signatures`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -29237,6 +29478,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -29333,6 +29584,16 @@
           },
           "404": {
             "description": "The employee does not exist under this client in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -29465,7 +29726,7 @@
             }
           },
           "409": {
-            "description": "Data the sheet needs is missing (reason `missing_sheet_data`, the codes under `missing`)",
+            "description": "Data the sheet needs is missing (reason `missing_sheet_data`, the codes under `missing`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -29597,7 +29858,7 @@
             }
           },
           "409": {
-            "description": "Several sheets are stored and `sequence` names none of them (reason `several_sheets`)",
+            "description": "Several sheets are stored and `sequence` names none of them (reason `several_sheets`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -29700,6 +29961,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -29783,7 +30054,7 @@
             }
           },
           "409": {
-            "description": "The question it replaces is not a built-in of the same test",
+            "description": "The question it replaces is not a built-in of the same test; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -29898,7 +30169,7 @@
             }
           },
           "409": {
-            "description": "The question is a built-in, or the one it replaces is not a built-in of the same test",
+            "description": "The question is a built-in, or the one it replaces is not a built-in of the same test; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -29994,7 +30265,7 @@
             }
           },
           "409": {
-            "description": "The test would keep fewer than ten active questions (reason `test_below_minimum`): add before hiding",
+            "description": "The test would keep fewer than ten active questions (reason `test_below_minimum`): add before hiding; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -30099,7 +30370,7 @@
             }
           },
           "409": {
-            "description": "The test would keep fewer than ten active questions (reason `test_below_minimum`): add before hiding",
+            "description": "The test would keep fewer than ten active questions (reason `test_below_minimum`): add before hiding; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -30193,6 +30464,16 @@
           },
           "404": {
             "description": "The question is neither a built-in nor one of the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -30297,6 +30578,16 @@
           },
           "404": {
             "description": "The employee does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -30420,7 +30711,7 @@
             }
           },
           "409": {
-            "description": "The test does not await the employee (reason `test_not_awaiting`), or the client is archived (reason `client_archived`)",
+            "description": "The test does not await the employee (reason `test_not_awaiting`), or the client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -30553,7 +30844,7 @@
             }
           },
           "409": {
-            "description": "A portal result changes only in its examiner (reason `result_from_attempt`); its examiner no longer changes once they signed the test sheet, electronically or on paper (reason `examiner_signed`); or the client is archived",
+            "description": "A portal result changes only in its examiner (reason `result_from_attempt`); its examiner no longer changes once they signed the test sheet, electronically or on paper (reason `examiner_signed`); or the client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -30676,6 +30967,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -30781,6 +31082,16 @@
           },
           "404": {
             "description": "The result does not exist for this employee, or it has no stored test sheet (reason `test_sheet_not_available`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -30913,7 +31224,7 @@
             }
           },
           "409": {
-            "description": "The slot is signed already (reason `slot_signed`), or the client is archived",
+            "description": "The slot is signed already (reason `slot_signed`), or the client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -31009,6 +31320,16 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -31120,7 +31441,7 @@
             }
           },
           "409": {
-            "description": "The client is archived, or already has a position of this name (reason `job_position_name_taken`)",
+            "description": "The client is archived, or already has a position of this name (reason `job_position_name_taken`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -31244,7 +31565,7 @@
             }
           },
           "409": {
-            "description": "The client already has a position of this name (reason `job_position_name_taken`)",
+            "description": "The client already has a position of this name (reason `job_position_name_taken`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -31349,7 +31670,7 @@
             }
           },
           "409": {
-            "description": "Current employees are in this position",
+            "description": "Current employees are in this position; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -31454,6 +31775,16 @@
           },
           "404": {
             "description": "The job position does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -31575,7 +31906,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`)",
+            "description": "The client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -31699,7 +32030,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`)",
+            "description": "The client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -31831,7 +32162,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`)",
+            "description": "The client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -31945,7 +32276,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`)",
+            "description": "The client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -32069,7 +32400,7 @@
             }
           },
           "409": {
-            "description": "The client is archived, or the position has entries (reason `equipment_entries_exist`)",
+            "description": "The client is archived, or the position has entries (reason `equipment_entries_exist`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -32165,6 +32496,16 @@
           },
           "403": {
             "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -32309,6 +32650,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -32392,7 +32743,7 @@
             }
           },
           "409": {
-            "description": "The title is taken",
+            "description": "The title is taken; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -32486,6 +32837,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -32563,6 +32924,16 @@
           },
           "403": {
             "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -32657,6 +33028,16 @@
           },
           "404": {
             "description": "The module does not exist in this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -32769,7 +33150,7 @@
             }
           },
           "409": {
-            "description": "The title is taken, or the module is applied and can be neither archived nor moved to the other domain",
+            "description": "The title is taken, or the module is applied and can be neither archived nor moved to the other domain; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -32884,7 +33265,7 @@
             }
           },
           "409": {
-            "description": "The module is archived",
+            "description": "The module is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -32997,6 +33378,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -33094,6 +33485,16 @@
           },
           "404": {
             "description": "No such module, or no such version of it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -33216,6 +33617,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -33329,7 +33740,7 @@
             }
           },
           "409": {
-            "description": "A module is archived, or the client is archived",
+            "description": "A module is archived, or the client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -33453,7 +33864,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`)",
+            "description": "The client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -33577,7 +33988,7 @@
             }
           },
           "409": {
-            "description": "Modules are applied, or the client is archived",
+            "description": "Modules are applied, or the client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -33673,6 +34084,16 @@
           },
           "404": {
             "description": "The client does not exist in this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -33785,7 +34206,7 @@
             }
           },
           "409": {
-            "description": "The client is archived or a lead, the position or the sensitive groups are evaluated already, or the name is taken",
+            "description": "The client is archived or a lead, the position or the sensitive groups are evaluated already, or the name is taken; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -33890,6 +34311,16 @@
           },
           "404": {
             "description": "The evaluation does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -34011,7 +34442,7 @@
             }
           },
           "409": {
-            "description": "The client is archived, or the name is taken (reason `risk_evaluation_name_taken`)",
+            "description": "The client is archived, or the name is taken (reason `risk_evaluation_name_taken`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -34115,7 +34546,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`)",
+            "description": "The client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -34239,7 +34670,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`)",
+            "description": "The client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -34363,7 +34794,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`)",
+            "description": "The client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -34496,7 +34927,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`)",
+            "description": "The client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -34617,7 +35048,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`)",
+            "description": "The client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -34741,7 +35172,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`)",
+            "description": "The client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -34854,6 +35285,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -34941,6 +35382,16 @@
           },
           "403": {
             "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -35055,7 +35506,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (`client_archived`) or its sensitive groups are evaluated (`sensitive_groups_evaluated`)",
+            "description": "The client is archived (`client_archived`) or its sensitive groups are evaluated (`sensitive_groups_evaluated`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -35191,6 +35642,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -35274,7 +35735,7 @@
             }
           },
           "409": {
-            "description": "The library has a profile of this name (reason `evaluation_profile_name_taken`)",
+            "description": "The library has a profile of this name (reason `evaluation_profile_name_taken`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -35339,6 +35800,16 @@
           },
           "403": {
             "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -35434,6 +35905,16 @@
           },
           "404": {
             "description": "The profile does not exist in this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -35546,7 +36027,7 @@
             }
           },
           "409": {
-            "description": "The library has a profile of this name (reason `evaluation_profile_name_taken`)",
+            "description": "The library has a profile of this name (reason `evaluation_profile_name_taken`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -35642,7 +36123,7 @@
             }
           },
           "409": {
-            "description": "Clients use the profile (reason `evaluation_profile_in_use`)",
+            "description": "Clients use the profile (reason `evaluation_profile_in_use`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -35738,6 +36219,16 @@
           },
           "404": {
             "description": "The profile does not exist in this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -35843,6 +36334,16 @@
           },
           "404": {
             "description": "The profile does not exist in this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -35965,6 +36466,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -36059,6 +36570,16 @@
           },
           "404": {
             "description": "The profile does not exist in this organization, or the factor on it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -36182,7 +36703,7 @@
             }
           },
           "409": {
-            "description": "The library has a profile of this name (reason `evaluation_profile_name_taken`)",
+            "description": "The library has a profile of this name (reason `evaluation_profile_name_taken`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -36306,7 +36827,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`), or the profile is (reason `evaluation_profile_archived`)",
+            "description": "The client is archived (reason `client_archived`), or the profile is (reason `evaluation_profile_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -36371,6 +36892,16 @@
           },
           "403": {
             "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -36461,6 +36992,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -36517,6 +37058,16 @@
           },
           "403": {
             "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -36599,6 +37150,16 @@
           },
           "403": {
             "description": "The account is not an owner of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -36693,6 +37254,16 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -36804,6 +37375,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -36891,6 +37472,16 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -37002,7 +37593,7 @@
             }
           },
           "409": {
-            "description": "The client is archived, or it already has a registered office",
+            "description": "The client is archived, or it already has a registered office; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -37125,7 +37716,7 @@
             }
           },
           "409": {
-            "description": "The client already has a registered office",
+            "description": "The client already has a registered office; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -37229,6 +37820,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -37316,6 +37917,16 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -37428,7 +38039,7 @@
             }
           },
           "409": {
-            "description": "The client is archived, the employee is already a responsible person, or a workers' representative is the client's legal representative",
+            "description": "The client is archived, the employee is already a responsible person, or a workers' representative is the client's legal representative; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -37551,7 +38162,7 @@
             }
           },
           "409": {
-            "description": "The employee is already a responsible person, or a workers' representative is the client's legal representative",
+            "description": "The employee is already a responsible person, or a workers' representative is the client's legal representative; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -37655,6 +38266,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -37742,6 +38363,16 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -37854,7 +38485,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -37950,6 +38581,16 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -38062,7 +38703,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -38186,7 +38827,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -38291,7 +38932,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -38387,6 +39028,16 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -38499,7 +39150,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -38623,7 +39274,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -38727,7 +39378,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -38823,6 +39474,16 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -38935,7 +39596,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -39059,7 +39720,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -39163,7 +39824,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -39259,6 +39920,16 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -39382,7 +40053,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`), or the workplace is a mobile site, which has no building",
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`), or the workplace is a mobile site, which has no building; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -39487,7 +40158,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -39583,6 +40254,16 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -39695,7 +40376,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (`client_archived`) or a lead (`client_is_lead`), or does not list its substances (`substances_not_listed`)",
+            "description": "The client is archived (`client_archived`) or a lead (`client_is_lead`), or does not list its substances (`substances_not_listed`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -39810,7 +40491,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (`client_archived`) or a lead (`client_is_lead`), or still has entries (`substances_listed`)",
+            "description": "The client is archived (`client_archived`) or a lead (`client_is_lead`), or still has entries (`substances_listed`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -39926,7 +40607,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (`client_archived`) or a lead (`client_is_lead`), or the credits left do not cover the reading (`credits_insufficient`)",
+            "description": "The client is archived (`client_archived`) or a lead (`client_is_lead`), or the credits left do not cover the reading (`credits_insufficient`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -40060,7 +40741,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -40165,7 +40846,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -40230,6 +40911,16 @@
           },
           "403": {
             "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -40323,7 +41014,7 @@
             }
           },
           "409": {
-            "description": "No client is behind, or a job of the same type is under way",
+            "description": "No client is behind, or a job of the same type is under way; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -40419,6 +41110,16 @@
           },
           "404": {
             "description": "The job does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -40532,6 +41233,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -40629,6 +41340,16 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -40753,7 +41474,7 @@
             }
           },
           "409": {
-            "description": "Data is missing, or the client is archived",
+            "description": "Data is missing, or the client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -40879,7 +41600,7 @@
             }
           },
           "409": {
-            "description": "No document has a file in this format",
+            "description": "No document has a file in this format; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -41002,6 +41723,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -41108,7 +41839,7 @@
             }
           },
           "409": {
-            "description": "An annexed version no longer exists",
+            "description": "An annexed version no longer exists; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -41232,7 +41963,7 @@
             }
           },
           "409": {
-            "description": "The annexed version no longer exists",
+            "description": "The annexed version no longer exists; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -41347,7 +42078,7 @@
             }
           },
           "409": {
-            "description": "Data is missing, the client is archived, or the type has no template",
+            "description": "Data is missing, the client is archived, or the type has no template; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -41462,7 +42193,7 @@
             }
           },
           "409": {
-            "description": "The document has no draft, or its file still has text to fill in",
+            "description": "The document has no draft, or its file still has text to fill in; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -41567,7 +42298,7 @@
             }
           },
           "409": {
-            "description": "The document already has a draft (`draft_exists`), has nothing issued, or its client is archived",
+            "description": "The document already has a draft (`draft_exists`), has nothing issued, or its client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -41662,7 +42393,7 @@
             }
           },
           "409": {
-            "description": "The document has no draft",
+            "description": "The document has no draft; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -41778,7 +42509,7 @@
             }
           },
           "409": {
-            "description": "The document has no draft",
+            "description": "The document has no draft; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -41894,6 +42625,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -42001,7 +42742,7 @@
             }
           },
           "409": {
-            "description": "Nothing is issued (`not_issued`), or the client is archived",
+            "description": "Nothing is issued (`not_issued`), or the client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -42096,7 +42837,7 @@
             }
           },
           "409": {
-            "description": "There is no signed copy, or the client is archived",
+            "description": "There is no signed copy, or the client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -42201,7 +42942,7 @@
             }
           },
           "409": {
-            "description": "There is no received copy (`no_received_copy`), or the client is archived",
+            "description": "There is no received copy (`no_received_copy`), or the client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -42387,7 +43128,7 @@
             }
           },
           "409": {
-            "description": "The client is archived, or the document has to be generated first",
+            "description": "The client is archived, or the document has to be generated first; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -42494,6 +43235,16 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -42655,7 +43406,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`)",
+            "description": "The client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -42779,7 +43530,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`)",
+            "description": "The client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -42884,7 +43635,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`)",
+            "description": "The client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -43008,7 +43759,7 @@
             }
           },
           "409": {
-            "description": "The client is archived, or is a lead whose files stay for owners only",
+            "description": "The client is archived, or is a lead whose files stay for owners only; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -43173,7 +43924,7 @@
             }
           },
           "409": {
-            "description": "The client is archived or a lead",
+            "description": "The client is archived or a lead; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -43299,6 +44050,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -43386,6 +44147,16 @@
           },
           "404": {
             "description": "The import does not exist in the organization, or the caller cannot see it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -43500,7 +44271,7 @@
             }
           },
           "409": {
-            "description": "Not uploading, or a path registered already",
+            "description": "Not uploading, or a path registered already; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -43615,7 +44386,7 @@
             }
           },
           "409": {
-            "description": "The import has started already, or the credits left do not cover it",
+            "description": "The import has started already, or the credits left do not cover it; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -43740,7 +44511,7 @@
             }
           },
           "409": {
-            "description": "Not ready, or saved since it was read",
+            "description": "Not ready, or saved since it was read; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -43872,6 +44643,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -43978,7 +44759,7 @@
             }
           },
           "409": {
-            "description": "Not ready, saved since, another company, or the client changed",
+            "description": "Not ready, saved since, another company, or the client changed; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -44086,7 +44867,7 @@
             }
           },
           "409": {
-            "description": "Already confirmed or abandoned",
+            "description": "Already confirmed or abandoned; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -44201,7 +44982,7 @@
             }
           },
           "409": {
-            "description": "Split already, the import is abandoned, or the credits left do not cover it",
+            "description": "Split already, the import is abandoned, or the credits left do not cover it; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -44325,7 +45106,7 @@
             }
           },
           "409": {
-            "description": "Not ready, or saved since",
+            "description": "Not ready, or saved since; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -44450,7 +45231,7 @@
             }
           },
           "409": {
-            "description": "Not ready, saved since it was read, or a client import",
+            "description": "Not ready, saved since it was read, or a client import; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -44536,6 +45317,16 @@
           },
           "403": {
             "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -44650,7 +45441,7 @@
             }
           },
           "409": {
-            "description": "Not uploading, or not an employee import",
+            "description": "Not uploading, or not an employee import; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -44756,6 +45547,16 @@
           },
           "404": {
             "description": "The import does not exist in the organization, or the caller cannot see it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -44879,7 +45680,7 @@
             }
           },
           "409": {
-            "description": "Not ready, expired, or saved since it was read",
+            "description": "Not ready, expired, or saved since it was read; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -45003,7 +45804,7 @@
             }
           },
           "409": {
-            "description": "The client is not confirmed, the part expired, is not ready or was saved since, a title is taken, or the client changed",
+            "description": "The client is not confirmed, the part expired, is not ready or was saved since, a title is taken, or the client changed; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -45127,7 +45928,7 @@
             }
           },
           "409": {
-            "description": "The part has not failed, or it expired",
+            "description": "The part has not failed, or it expired; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -45216,6 +46017,16 @@
           },
           "404": {
             "description": "The import does not exist in the organization, or the caller cannot see it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -45321,6 +46132,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -45408,6 +46229,16 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -45520,7 +46351,7 @@
             }
           },
           "409": {
-            "description": "Another contract of that year has the number (`contract_number_taken`), or the client is archived",
+            "description": "Another contract of that year has the number (`contract_number_taken`), or the client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -45625,7 +46456,7 @@
             }
           },
           "409": {
-            "description": "Something the contract prints is missing (`missing_contract_data`), no template is registered (`template_missing`), or the client is archived",
+            "description": "Something the contract prints is missing (`missing_contract_data`), no template is registered (`template_missing`), or the client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -45740,7 +46571,7 @@
             }
           },
           "409": {
-            "description": "Nothing is issued (`contract_not_issued`), the issued revision has no PDF (`contract_pdf_missing`), or the client is archived",
+            "description": "Nothing is issued (`contract_not_issued`), the issued revision has no PDF (`contract_pdf_missing`), or the client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -46061,7 +46892,7 @@
             }
           },
           "409": {
-            "description": "The account already belongs to an organization; see `reason`",
+            "description": "The account already belongs to an organization; see `reason`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -46126,6 +46957,16 @@
           },
           "403": {
             "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -46233,7 +47074,7 @@
             }
           },
           "409": {
-            "description": "The caller's own membership; see `reason`",
+            "description": "The caller's own membership; see `reason`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -46329,7 +47170,7 @@
             }
           },
           "409": {
-            "description": "The caller's own membership; see `reason`",
+            "description": "The caller's own membership; see `reason`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -46394,6 +47235,16 @@
           },
           "403": {
             "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -46487,7 +47338,7 @@
             }
           },
           "409": {
-            "description": "An Enterprise subscription; see `reason`",
+            "description": "An Enterprise subscription; see `reason`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -46581,7 +47432,7 @@
             }
           },
           "409": {
-            "description": "The choice does not fit the organization, or the subscription is not in a state for it; see `reason`",
+            "description": "The choice does not fit the organization, or the subscription is not in a state for it; see `reason`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -46673,7 +47524,7 @@
             }
           },
           "409": {
-            "description": "The choice does not fit the organization, or the subscription is not in a state for it; see `reason`",
+            "description": "The choice does not fit the organization, or the subscription is not in a state for it; see `reason`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -46760,7 +47611,7 @@
             }
           },
           "409": {
-            "description": "The choice does not fit the organization, or the subscription is not in a state for it; see `reason`",
+            "description": "The choice does not fit the organization, or the subscription is not in a state for it; see `reason`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -46826,7 +47677,7 @@
             }
           },
           "409": {
-            "description": "The choice does not fit the organization, or the subscription is not in a state for it; see `reason`",
+            "description": "The choice does not fit the organization, or the subscription is not in a state for it; see `reason`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -46900,7 +47751,7 @@
             }
           },
           "409": {
-            "description": "The choice does not fit the organization, or the subscription is not in a state for it; see `reason`",
+            "description": "The choice does not fit the organization, or the subscription is not in a state for it; see `reason`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -47003,7 +47854,7 @@
             }
           },
           "409": {
-            "description": "The choice does not fit the organization, or the subscription is not in a state for it; see `reason`",
+            "description": "The choice does not fit the organization, or the subscription is not in a state for it; see `reason`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -47097,7 +47948,7 @@
             }
           },
           "409": {
-            "description": "No plan is chosen (`no_subscription`) or the plan is Enterprise (`enterprise_plan`)",
+            "description": "No plan is chosen (`no_subscription`) or the plan is Enterprise (`enterprise_plan`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -47201,7 +48052,7 @@
             }
           },
           "409": {
-            "description": "The PDF is not stored yet; see `reason`",
+            "description": "The PDF is not stored yet; see `reason`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -47274,6 +48125,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -47330,6 +48191,16 @@
           },
           "403": {
             "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -47402,6 +48273,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -47458,6 +48339,16 @@
           },
           "403": {
             "description": "The account is not an owner of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -47549,7 +48440,7 @@
             }
           },
           "409": {
-            "description": "Already a member, too many open invitations, or an email was sent in the last 10 minutes; see `reason`",
+            "description": "Already a member, too many open invitations, or an email was sent in the last 10 minutes; see `reason`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -47654,7 +48545,7 @@
             }
           },
           "409": {
-            "description": "An email was sent in the last 10 minutes",
+            "description": "An email was sent in the last 10 minutes; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -47743,6 +48634,16 @@
           },
           "404": {
             "description": "No pending invitation with this id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -47994,7 +48895,7 @@
             }
           },
           "409": {
-            "description": "The invitation is not open, or the account already belongs to an organization; see `reason`",
+            "description": "The invitation is not open, or the account already belongs to an organization; see `reason`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -48099,6 +49000,16 @@
           },
           "404": {
             "description": "The employee does not exist under this client in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -48222,7 +49133,7 @@
             }
           },
           "409": {
-            "description": "The person or the address is a participant or invited already, the address is not the employee's, a message was sent in the last 10 minutes, the invitation is closed, or the client is archived or a lead; see `reason`",
+            "description": "The person or the address is a participant or invited already, the address is not the employee's, a message was sent in the last 10 minutes, the invitation is closed, or the client is archived or a lead; see `reason`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -48337,7 +49248,7 @@
             }
           },
           "409": {
-            "description": "The client is archived or a lead; see `reason`",
+            "description": "The client is archived or a lead; see `reason`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -48452,7 +49363,7 @@
             }
           },
           "409": {
-            "description": "The person or the address is a participant or invited already, the address is not the employee's, a message was sent in the last 10 minutes, the invitation is closed, or the client is archived or a lead; see `reason`",
+            "description": "The person or the address is a participant or invited already, the address is not the employee's, a message was sent in the last 10 minutes, the invitation is closed, or the client is archived or a lead; see `reason`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -48548,6 +49459,16 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -48660,6 +49581,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -48756,7 +49687,7 @@
             }
           },
           "409": {
-            "description": "The person or the address is a participant or invited already, the address is not the employee's, a message was sent in the last 10 minutes, the invitation is closed, or the client is archived or a lead; see `reason`",
+            "description": "The person or the address is a participant or invited already, the address is not the employee's, a message was sent in the last 10 minutes, the invitation is closed, or the client is archived or a lead; see `reason`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -48853,6 +49784,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -48941,6 +49882,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -48998,6 +49949,16 @@
           },
           "403": {
             "description": "The account is not a participant of any client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -49105,6 +50066,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -49196,6 +50167,16 @@
           },
           "404": {
             "description": "The participation is not the account's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -49300,6 +50281,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -49396,6 +50387,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -49484,6 +50485,16 @@
           },
           "404": {
             "description": "The participation is not the account's, or it is a client administrator's who is not an employee",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -49608,7 +50619,7 @@
             }
           },
           "409": {
-            "description": "Data the sheet needs is missing (reason `missing_sheet_data`, the codes under `missing`); the client's specialist fills it",
+            "description": "Data the sheet needs is missing (reason `missing_sheet_data`, the codes under `missing`); the client's specialist fills it; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -49732,7 +50743,7 @@
             }
           },
           "409": {
-            "description": "Several sheets are stored and `sequence` names none of them (reason `several_sheets`)",
+            "description": "Several sheets are stored and `sequence` names none of them (reason `several_sheets`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -49829,6 +50840,16 @@
           },
           "404": {
             "description": "The participation is not the account's, or the employee is not of its client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -49941,6 +50962,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -50037,6 +51068,16 @@
           },
           "404": {
             "description": "The participation is not the account's, or the employee is not of its client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -50170,7 +51211,7 @@
             }
           },
           "409": {
-            "description": "Data the sheet needs is missing (reason `missing_sheet_data`, the codes under `missing`); the client's specialist fills it",
+            "description": "Data the sheet needs is missing (reason `missing_sheet_data`, the codes under `missing`); the client's specialist fills it; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -50303,7 +51344,7 @@
             }
           },
           "409": {
-            "description": "Several sheets are stored and `sequence` names none of them (reason `several_sheets`)",
+            "description": "Several sheets are stored and `sequence` names none of them (reason `several_sheets`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -50408,6 +51449,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -50496,6 +51547,16 @@
           },
           "404": {
             "description": "The participation is not the account's, or it is a client administrator's who is not an employee",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -50610,6 +51671,16 @@
           },
           "404": {
             "description": "The participation is not the account's, or it is a client administrator's who is not an employee",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -50733,7 +51804,7 @@
             }
           },
           "409": {
-            "description": "The test does not await the employee (reason `test_not_awaiting`), the bank holds fewer than ten active questions (reason `test_below_minimum`), or the client is archived",
+            "description": "The test does not await the employee (reason `test_not_awaiting`), the bank holds fewer than ten active questions (reason `test_below_minimum`), or the client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -50867,7 +51938,7 @@
             }
           },
           "409": {
-            "description": "The attempt is finished (reason `attempt_finished`)",
+            "description": "The attempt is finished (reason `attempt_finished`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -50982,7 +52053,7 @@
             }
           },
           "409": {
-            "description": "The attempt is finished (reason `attempt_finished`)",
+            "description": "The attempt is finished (reason `attempt_finished`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -51097,6 +52168,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -51194,6 +52275,16 @@
           },
           "404": {
             "description": "The participation is not the account's, or the material is not issued (reason `material_not_issued`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -51308,6 +52399,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -51413,6 +52514,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -51500,6 +52611,16 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -51604,6 +52725,16 @@
           },
           "404": {
             "description": "The training record does not exist under this client in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -51727,7 +52858,7 @@
             }
           },
           "409": {
-            "description": "The slot is signed already (reason `slot_signed`), or the client is archived (reason `client_archived`)",
+            "description": "The slot is signed already (reason `slot_signed`), or the client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -51861,7 +52992,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`)",
+            "description": "The client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -51926,6 +53057,16 @@
           },
           "403": {
             "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -52031,6 +53172,16 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -52145,7 +53296,7 @@
             }
           },
           "409": {
-            "description": "The employee has neither an email nor a phone, so the agreement cannot say where the codes go (reason `employee_has_no_address`), or the client's legal representative's name or role is not filled in (reason `missing_document_data`, the codes under `missing`)",
+            "description": "The employee has neither an email nor a phone, so the agreement cannot say where the codes go (reason `employee_has_no_address`), or the client's legal representative's name or role is not filled in (reason `missing_document_data`, the codes under `missing`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -52258,6 +53409,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -52354,6 +53515,16 @@
           },
           "404": {
             "description": "The employee does not exist under this client in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -52475,7 +53646,7 @@
             }
           },
           "409": {
-            "description": "The agreement is signed electronically (reason `agreement_signed_electronically`), the file is not of the client, the client is archived (reason `client_archived`), or, for `generated`, the client's legal representative is not filled in (reason `missing_document_data`)",
+            "description": "The agreement is signed electronically (reason `agreement_signed_electronically`), the file is not of the client, the client is archived (reason `client_archived`), or, for `generated`, the client's legal representative is not filled in (reason `missing_document_data`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -52579,7 +53750,7 @@
             }
           },
           "409": {
-            "description": "A code was sent to the account in the last minute (reason `code_rate_limited`, with `retryAfterSeconds`), the account has no address for the code (reason `signer_has_no_address`), or an agreement's client has no legal representative filled in (reason `missing_document_data`). A code that would go by SMS and may not is refused and no session is kept: a trial (`sms_trial`), a number outside Romania (`sms_foreign_number`), the month's codes used up at a hard stop (`sms_allowance_reached`) or the safety cap reached (`sms_cap_reached`); the last two carry `resumesAt`, when the month's codes start again",
+            "description": "A code was sent to the account in the last minute (reason `code_rate_limited`, with `retryAfterSeconds`), the account has no address for the code (reason `signer_has_no_address`), or an agreement's client has no legal representative filled in (reason `missing_document_data`). A code that would go by SMS and may not is refused and no session is kept: a trial (`sms_trial`), a number outside Romania (`sms_foreign_number`), the month's codes used up at a hard stop (`sms_allowance_reached`) or the safety cap reached (`sms_cap_reached`); the last two carry `resumesAt`, when the month's codes start again; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -52704,7 +53875,7 @@
             }
           },
           "409": {
-            "description": "The code was refused and nothing was signed: `code_invalid` (with `attemptsLeft`), `code_attempts_exceeded`, `code_expired`, `code_already_used`",
+            "description": "The code was refused and nothing was signed: `code_invalid` (with `attemptsLeft`), `code_attempts_exceeded`, `code_expired`, `code_already_used`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -52809,6 +53980,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -52905,6 +54086,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -52993,6 +54184,16 @@
           },
           "404": {
             "description": "The participation is not the account's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -53108,7 +54309,7 @@
             }
           },
           "409": {
-            "description": "The employee has neither an email nor a phone, so the agreement cannot say where the codes go (reason `employee_has_no_address`), or the client's legal representative's name or role is not filled in (reason `missing_document_data`, the codes under `missing`)",
+            "description": "The employee has neither an email nor a phone, so the agreement cannot say where the codes go (reason `employee_has_no_address`), or the client's legal representative's name or role is not filled in (reason `missing_document_data`, the codes under `missing`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -53222,6 +54423,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -53320,7 +54531,7 @@
             }
           },
           "409": {
-            "description": "The employee has neither an email nor a phone, so the agreement cannot say where the codes go (reason `employee_has_no_address`), or the client's legal representative's name or role is not filled in (reason `missing_document_data`, the codes under `missing`)",
+            "description": "The employee has neither an email nor a phone, so the agreement cannot say where the codes go (reason `employee_has_no_address`), or the client's legal representative's name or role is not filled in (reason `missing_document_data`, the codes under `missing`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -53425,6 +54636,16 @@
               }
             }
           },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Unexpected API error",
             "content": {
@@ -53513,6 +54734,16 @@
           },
           "404": {
             "description": "The participation is not the account's, or it is a client administrator's who is not an employee",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -53628,7 +54859,7 @@
             }
           },
           "409": {
-            "description": "A code was sent to the account in the last minute (reason `code_rate_limited`, with `retryAfterSeconds`), the account has no address for the code (reason `signer_has_no_address`), or an agreement's client has no legal representative filled in (reason `missing_document_data`). A code that would go by SMS and may not is refused and no session is kept: a trial (`sms_trial`), a number outside Romania (`sms_foreign_number`), the month's codes used up at a hard stop (`sms_allowance_reached`) or the safety cap reached (`sms_cap_reached`); the last two carry `resumesAt`, when the month's codes start again",
+            "description": "A code was sent to the account in the last minute (reason `code_rate_limited`, with `retryAfterSeconds`), the account has no address for the code (reason `signer_has_no_address`), or an agreement's client has no legal representative filled in (reason `missing_document_data`). A code that would go by SMS and may not is refused and no session is kept: a trial (`sms_trial`), a number outside Romania (`sms_foreign_number`), the month's codes used up at a hard stop (`sms_allowance_reached`) or the safety cap reached (`sms_cap_reached`); the last two carry `resumesAt`, when the month's codes start again; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -53753,7 +54984,7 @@
             }
           },
           "409": {
-            "description": "The code was refused and nothing was signed: `code_invalid` (with `attemptsLeft`), `code_attempts_exceeded`, `code_expired`, `code_already_used`",
+            "description": "The code was refused and nothing was signed: `code_invalid` (with `attemptsLeft`), `code_attempts_exceeded`, `code_expired`, `code_already_used`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {

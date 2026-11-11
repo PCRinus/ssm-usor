@@ -1,50 +1,68 @@
-import { impersonationErrorReasons } from '@ssm-usor/contracts';
+import { actingAsHeader, actingAsSelf, impersonationErrorReasons } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 import { createMiddleware } from 'hono/factory';
 
 import { createDataClient, type DataClient, fromDatabaseError } from './db';
 import type { ApiEnv } from './env';
 import { ApiError } from './errors';
+import type { Membership } from './membership';
 
 export const impersonationColumns = 'id, target_user_id, reason, started_at, expires_at, ended_at';
 
-export async function activeImpersonation(db: DataClient, adminId: string) {
+// By the database's clock, by which effective_user_id() decides whom the next query acts as.
+export async function readCurrentImpersonation(db: DataClient) {
   const { data, error } = await db
-    .from('impersonations')
+    .rpc('current_impersonation')
     .select(impersonationColumns)
-    .eq('admin_user_id', adminId)
-    .is('ended_at', null)
-    .gt('expires_at', new Date().toISOString())
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'read active impersonation');
   return data;
 }
 
-// An expired one is left as it is: it ended at its expiry, and ending it now would record an end
-// that never happened.
+// The database stamps the end: an expired one ends at its expiry, and records no event.
 export async function endActiveImpersonation(db: DataClient, adminId: string) {
   const { error } = await db
     .from('impersonations')
     .update({ ended_at: new Date().toISOString() })
     .eq('admin_user_id', adminId)
-    .is('ended_at', null)
-    .gt('expires_at', new Date().toISOString());
+    .is('ended_at', null);
   if (error) throw fromDatabaseError(error, 'end impersonation');
 }
 
-export type ImpersonationRow = NonNullable<Awaited<ReturnType<typeof activeImpersonation>>>;
+export type ImpersonationRow = NonNullable<Awaited<ReturnType<typeof readCurrentImpersonation>>>;
 
-// Only a platform admin can have one active (effective_user_id()), so nobody else costs a read.
-export async function isImpersonating(c: Context<ApiEnv>) {
-  if (!c.get('platformAdmin')) return false;
-  const membership = c.get('membership') as ApiEnv['Variables']['membership'] | undefined;
-  if (membership) return membership.userId !== c.get('user').id;
-  let known = c.get('impersonating');
-  if (known === undefined) {
-    known = (await activeImpersonation(createDataClient(c), c.get('user').id)) !== null;
-    c.set('impersonating', known);
+export async function currentImpersonation(c: Context<ApiEnv>) {
+  if (!c.get('mayImpersonate')) return null;
+  let row = c.get('impersonation');
+  if (row === undefined) {
+    row = await readCurrentImpersonation(createDataClient(c));
+    c.set('impersonation', row);
   }
-  return known;
+  return row;
+}
+
+// The membership is what the database decided, even on a token whose admin role was removed
+// since it was issued.
+export async function isImpersonating(c: Context<ApiEnv>) {
+  const membership = c.get('membership') as Membership | undefined;
+  if (membership) return membership.userId !== c.get('user').id;
+  return (await currentImpersonation(c)) !== null;
+}
+
+// An impersonation applies to all of the admin's tabs and windows at once, so only the API can
+// tell that a page was built for someone else before the request reads or writes for them.
+export async function refuseChangedIdentity(c: Context<ApiEnv>) {
+  const pageBuiltFor = c.req.header(actingAsHeader);
+  if (pageBuiltFor === undefined || !c.get('mayImpersonate')) return;
+  const actsAs = (await currentImpersonation(c))?.target_user_id ?? actingAsSelf;
+  if (pageBuiltFor !== actsAs) {
+    throw new ApiError(
+      'conflict',
+      'The page was built for someone other than whom this account acts as now. Reload it.',
+      undefined,
+      impersonationErrorReasons.identityChanged
+    );
+  }
 }
 
 export const impersonationRefused = () =>
@@ -66,6 +84,13 @@ export const refuseDuringImpersonation = createMiddleware<ApiEnv>(async (c, next
   await next();
 });
 
+// Without a membership the request acts as the signed-in account, as the portal does, so only
+// a membership that is not the caller's own is refused.
+function refuseSendInMembersName(c: Context<ApiEnv>) {
+  const membership = c.get('membership') as Membership | undefined;
+  if (membership && membership.userId !== c.get('user').id) throw impersonationRefused();
+}
+
 function refusingDuringImpersonation<T extends object>(c: Context<ApiEnv>, service: T): T {
   return new Proxy(service, {
     get(target, property) {
@@ -74,7 +99,7 @@ function refusingDuringImpersonation<T extends object>(c: Context<ApiEnv>, servi
       if (typeof value !== 'function' || property === 'then') return value;
       // Reflect.apply, not value.apply: on an RPC stub `.apply` would name a remote method.
       return async (...args: unknown[]) => {
-        await refuseImpersonation(c);
+        refuseSendInMembersName(c);
         return Reflect.apply(value, target, args);
       };
     },

@@ -93,6 +93,8 @@ export const adminImpersonationErrorReasons = {
   targetNotMember: 'target_not_member',
   // 422: the admin chose his own account.
   targetIsSelf: 'target_is_self',
+  // 409: another start by the same admin, such as a double click, is being written.
+  startInProgress: 'impersonation_start_in_progress',
 } as const;
 
 export type AdminImpersonationErrorReason =
@@ -102,4 +104,13 @@ export type AdminImpersonationErrorReason =
 // name: sign, or send an email or SMS to another person (ADR 038). The member app words it.
 export const impersonationErrorReasons = {
   refused: 'impersonation_refused',
+  // 409: the page was built for someone other than whom the request acts as (`actingAsHeader`).
+  identityChanged: 'identity_changed',
 } as const;
+
+// Whom the member app's page was built for: the impersonated member's user id, or
+// `actingAsSelf`. An impersonation applies to all of the admin's sessions at once, so a page
+// built before he switched member is refused before it reads or writes (ADR 038).
+export const actingAsHeader = 'X-Acting-As';
+
+export const actingAsSelf = 'self';

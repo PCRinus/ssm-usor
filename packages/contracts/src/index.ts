@@ -99,7 +99,8 @@ export const meResponseSchema = z.object({
   impersonation: z
     .object({
       targetMemberId: z.uuid(),
-      targetOrganizationId: z.uuid(),
+      // Null once the member has left their organization.
+      targetOrganizationId: z.uuid().nullable(),
       expiresAt: z.iso.datetime({ offset: true }),
       // The member's name, else their email; null when neither can be read.
       targetName: z.string().nullable(),

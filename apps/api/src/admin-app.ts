@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import { timing } from 'hono/timing';
 
 import { errorResponse, logServerErrors, noStore } from './app';
-import { requireAdmin, requireAuth } from './lib/auth';
+import { requireAdmin, requireAuthForAdmin } from './lib/auth';
 import type { ApiEnv } from './lib/env';
 import {
   endImpersonation,
@@ -23,7 +23,7 @@ export function createAdminApp() {
   app.use('*', logServerErrors);
   app.use('*', timing());
   app.use('*', noStore);
-  app.use('*', requireAuth, requireAdmin);
+  app.use('*', requireAuthForAdmin, requireAdmin);
 
   app.get('/me', (c) => c.json(c.get('user') satisfies CurrentUser));
   app.get('/imports', listImports);

@@ -18,10 +18,10 @@ import { createDataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import {
-  activeImpersonation,
   endActiveImpersonation,
   impersonationColumns,
   type ImpersonationRow,
+  readCurrentImpersonation,
 } from '../../lib/impersonation';
 
 type Nullable<Row, Column extends keyof Row> = Omit<Row, Column> & {
@@ -122,15 +122,23 @@ async function withTargets(c: Context<ApiEnv>, rows: ImpersonationRow[]) {
 }
 
 export async function getActiveImpersonation(c: Context<ApiEnv>) {
-  const row = await activeImpersonation(createDataClient(c), c.get('user').id);
+  const row = await readCurrentImpersonation(createDataClient(c));
   const [impersonation] = row ? await withTargets(c, [row]) : [null];
   return c.json({ impersonation } satisfies AdminActiveImpersonation);
 }
 
 const constraintOf = (message: string | undefined) =>
-  /violates check constraint "([^"]+)"/.exec(message ?? '')?.[1];
+  /violates (?:check|unique) constraint "([^"]+)"/.exec(message ?? '')?.[1];
 
 function startRefusal(error: { code?: string | null; message?: string }) {
+  if (error.code === '23505' && constraintOf(error.message) === 'impersonations_active_admin_key') {
+    return new ApiError(
+      'conflict',
+      'Another impersonation is being started.',
+      undefined,
+      adminImpersonationErrorReasons.startInProgress
+    );
+  }
   if (error.code === 'IMS02' || error.code === '23503') {
     return new ApiError(
       'unprocessable',
@@ -182,8 +190,16 @@ export async function startImpersonation(c: Context<ApiEnv>) {
     p_reason: parsed.data.reason,
   });
   if (error) throw startRefusal(error);
-  const [impersonation] = await withTargets(c, [data]);
-  return c.json(impersonation!, 201);
+  // The impersonation is in force by now, so a failed read of whom it names must not answer
+  // that it failed.
+  const accounts = await accountsOf(c, [data.target_user_id]).catch((failure: unknown) => {
+    console.error(
+      'Impersonated account after a start failed:',
+      failure instanceof Error ? failure.message : failure
+    );
+    return new Map<string, AccountRow>();
+  });
+  return c.json(toImpersonation(data, accounts.get(data.target_user_id)), 201);
 }
 
 export async function endImpersonation(c: Context<ApiEnv>) {
