@@ -1987,9 +1987,10 @@ with no document of that year gets one, beside the documents of other years, and
 year is left alone and listed under `skipped`, like any document that exists. The other types
 ignore it. A dated document is merged after the rest of the run, from the facts read again,
 because it reports on the set: the annual report states every document of the set with its
-revisions. Its data is the set's context with `fire.annualReport` for its year; every other
-document's `fire` has no `annualReport`, so issuing a document marks only the report's draft as
-changed, not the whole set's. Generating a dated document again keeps its period. The list
+revisions, the decisions issued in its year, and the fire-safety trainings and tests recorded
+in it. Its data is the set's context with `fire.annualReport` for its year; every other
+document's `fire` has no `annualReport`, so issuing a document or recording a training marks
+only the report's draft as changed, not the whole set's. Generating a dated document again keeps its period. The list
 returns a dated type once per period, the newest first; the upload takes `?period=` to name
 the year's document, the newest when left out; a download's file name carries the year.
 

@@ -47,6 +47,7 @@ sources:
   - packages/contracts/src/tests.ts
   - packages/contracts/src/job-positions.ts
   - apps/api/src/modules/trainings/sheet.ts
+  - apps/api/src/modules/documents/annual-report.ts
   - apps/app/src/features/trainings/employee-training-tab.tsx
   - apps/app/src/features/trainings/training-format.ts
   - apps/portal/src/features/training/training-records-list.tsx
@@ -107,6 +108,8 @@ Intervalul vine din locuri diferite în cele două domenii:
 Ziua instruirii nu poate fi în viitor: o instruire se înregistrează după ce a avut loc. Fiecare instruire păstrează denumirea postului pe care îl avea lucrătorul în ziua ei, chiar dacă trece apoi pe alt post.
 
 Instruirea la locul de muncă cuprinde și „admis la lucru”: ziua, numele și funcția celui care l-a admis pe lucrător la lucru. Pe fișă, blocul apare sub această instruire.
+
+Instruirile SU înregistrate trec și în raportul anual de evaluare din setul SU. Când clientul are cel puțin o instruire SU înregistrată în anul raportului, rândul „Instruirile efectuate și rezultatele testării” arată, pe fiecare tip de instruire, câte instruiri s-au ținut și câți lucrători au participat, cu lunile instruirilor periodice, apoi, pentru fiecare test SU dat în acel an, câți lucrători l-au dat și câți l-au promovat. Fără nicio instruire SU înregistrată în acel an, rândul rămâne de completat, ca să nu arate mai puțin decât s-a făcut pe hârtie. După ce înregistrezi instruiri, generează din nou raportul ca să le cuprindă.
 
 ### Instruirea periodică suplimentară
 
