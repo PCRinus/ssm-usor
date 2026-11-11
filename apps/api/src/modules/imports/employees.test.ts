@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { adminClient } from '../../lib/admin-db';
 import type { ClientTrainingFacts } from '../trainings/client-facts';
 import { hiringPlans } from '../trainings/proposal';
-import { peopleCounts, personStates, themesFromFacts } from './employees';
+import { importSpecialist, peopleCounts, personStates, themesFromFacts } from './employees';
 
 const positionId = 'b0000000-0000-4000-8000-000000000001';
 
@@ -93,5 +94,48 @@ describe('personStates', () => {
       'person-3': 'set_aside',
     });
     expect(peopleCounts(states)).toEqual({ total: 3, toCheck: 1, checked: 1, setAside: 1 });
+  });
+});
+
+describe('importSpecialist', () => {
+  const adminId = '0f7c8d96-479c-47b3-b49e-01f4555a0221';
+  const memberId = '9ae7d65f-fac5-4b57-9d9b-3e502febfd31';
+  const createdAt = '2026-11-11T10:15:00.123456+00:00';
+  const admin = () =>
+    adminClient({
+      SUPABASE_URL: 'https://example.supabase.co',
+      SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
+      SUPABASE_SECRET_KEY: 'sb_secret_test_key_value',
+    });
+  const answer = (row: unknown) => {
+    const fetchMock = vi.fn<typeof fetch>(async () => Response.json(row));
+    vi.stubGlobal('fetch', fetchMock);
+    return fetchMock;
+  };
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('names the member an admin impersonated when he started the import', async () => {
+    const fetchMock = answer({ target_user_id: memberId });
+
+    expect(await importSpecialist(admin(), { created_by: adminId, created_at: createdAt })).toBe(
+      memberId
+    );
+    const search = new URL(String(fetchMock.mock.calls[0]![0])).searchParams;
+    expect(search.get('admin_user_id')).toBe(`eq.${adminId}`);
+    expect(search.get('started_at')).toBe('lte.2026-11-11T10:15:00.123Z');
+    expect(search.get('expires_at')).toBe('gt.2026-11-11T10:15:00.123Z');
+    expect(search.get('or')).toBe('(ended_at.is.null,ended_at.gt.2026-11-11T10:15:00.123Z)');
+  });
+
+  it('names whoever started it otherwise, and nobody for an import without its creator', async () => {
+    answer(null);
+
+    expect(await importSpecialist(admin(), { created_by: adminId, created_at: createdAt })).toBe(
+      adminId
+    );
+    expect(await importSpecialist(admin(), { created_by: null, created_at: createdAt })).toBeNull();
   });
 });

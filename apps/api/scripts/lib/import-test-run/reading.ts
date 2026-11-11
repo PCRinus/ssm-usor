@@ -357,6 +357,8 @@ export async function readAgain(input: ReadAgainInput): Promise<CaseReading> {
       proposal: testCase.type === 'import' ? null : importRecord.proposal,
       files_copied_at: null,
       created_by: testCase.record.context.createdBy,
+      // The record keeps no creation time, so the trainer is whoever started it, as of now.
+      created_at: new Date().toISOString(),
     },
     files,
     part:

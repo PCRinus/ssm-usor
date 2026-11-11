@@ -398,7 +398,7 @@ export const getTrainingProposal: RouteHandler<typeof getTrainingProposalRoute, 
       db
         .from('profiles')
         .select('full_name, professional_title')
-        .eq('user_id', c.get('user').id)
+        .eq('user_id', c.get('membership').userId)
         .maybeSingle(),
       db
         .from('organizations')

@@ -8,6 +8,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
+import { accessTokenAt } from '../../lib/access-token.fixture';
 import type { ApiEnv } from '../../lib/env';
 import { buildDocumentContext } from '../documents/context';
 import { facts } from '../documents/context.fixture';
@@ -746,6 +747,23 @@ describe('GET /clients/{clientId}/trainings/proposal', () => {
     });
     expect(calls('/rest/v1/document_revisions')).toHaveLength(0);
     expect(calls('/rest/v1/job_positions')).toHaveLength(0);
+  });
+
+  it('names the impersonated member as the specialist, not the platform admin', async () => {
+    const memberId = '9ae7d65f-fac5-4b57-9d9b-3e502febfd31';
+    mockUpstream({
+      auth: () => Response.json({ ...user, app_metadata: { provider: 'email', role: 'admin' } }),
+      membership: () => Response.json([{ ...membership, user_id: memberId }]),
+    });
+    const response = await request(
+      `${proposalPath}?domain=ssm&phase=periodic&heldOn=2026-10-01&jobPositionId=${positionId}`,
+      { headers: { Authorization: `Bearer ${accessTokenAt('aal2', user.id)}` } }
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      verifier: { name: 'Dan MARIN', jobTitle: 'Inspector SSM' },
+    });
+    expect(searchOf('/rest/v1/profiles').get('user_id')).toBe(`eq.${memberId}`);
   });
 
   it("falls back to the fire-safety schedule's duration without generated themes", async () => {
