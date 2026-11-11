@@ -108,6 +108,16 @@ mount it, so `api.ssmusor.ro/admin/me` answers `404`. Its routes:
 | `GET /admin/imports`            | A page of every organization's imports ([API](api.md#admin-routes))      |
 | `GET /admin/imports/{id}`       | One import with its parts and its improvement copy, recorded when opened |
 | `GET /admin/imports/{id}/files` | A 60-second link to one file of the copy, recorded                       |
+| `GET /admin/members`            | A page of every organization's members, to choose whom to impersonate    |
+| `GET /admin/impersonation`      | The admin's active impersonation, or null                                |
+| `POST /admin/impersonation`     | Starts one with a reason, ending the active one first                    |
+| `DELETE /admin/impersonation`   | Ends the active one                                                      |
+| `GET /admin/impersonations`     | A page of the admin's impersonations, newest first                       |
+
+Starting and ending an impersonation go with the admin's own token, so the database's policies
+and the audit log treat them as his acts; the member lists are read with the secret key
+([API](api.md#admin-routes)). The member app's banner ends one through the public API's
+`DELETE /me/impersonation`.
 
 ## Configuration and deployment
 

@@ -49,7 +49,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /waitlist/confirm`                                                | Public, by emailed token              | `303` to the marketing site's confirmed or invalid-link page                                                                                                                                       |
 | `POST /hooks/supabase/send-email`                                      | Supabase Auth, by signature           | `200 {}` after handing the recovery, signup, password-changed or sign-in code email to the mail Worker                                                                                             |
 | `POST /hooks/supabase/send-sms`                                        | Supabase Auth, by signature           | `200 {}` after handing the portal's sign-in code to the SMS Worker                                                                                                                                 |
-| `GET /me`                                                              | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership", "subscription", "smsThisMonth", "creditsThisMonth" }`; null when absent                                                                                        |
+| `GET /me`                                                              | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership", "impersonation", "subscription", "smsThisMonth", "creditsThisMonth" }`; null when absent                                                                       |
+| `DELETE /me/impersonation`                                             | Platform admin past the second factor | `204` after ending the caller's active impersonation, or when none is active                                                                                                                       |
 | `PATCH /me/profile`                                                    | Verified, non-anonymous Supabase user | The saved profile; creates it when the account has none                                                                                                                                            |
 | `GET /me/invitations`                                                  | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, open invitations sent to the caller's address; no id, no token                                                                                                               |
 | `GET /me/setup`                                                        | Verified user with a membership       | The caller's setup guide: the fifteen steps with their state, lock and missing fields, `next`, `clientId`, `ownerName`, `closed`, `finished`                                                       |
@@ -2722,9 +2723,10 @@ The `Admin` entrypoint serves `createAdminApp()` (`src/admin-app.ts`) under `/ad
 through the admin Worker's service binding ([admin app](admin.md)); the public `fetch` does not
 mount it. Every route passes `requireAuth` and `requireAdmin`: the admin claim and an `aal2` token,
 else `401` or `403`. They are plain Hono routes, outside the OpenAPI document, answering the shapes
-of `@ssm-usor/contracts`' `admin-imports.ts`. They read with the secret key
-(`createAdminClient`, which names the admin in `x-audit-actor`) across every organization; the
-module is `modules/admin-imports/`.
+of `@ssm-usor/contracts`' `admin-imports.ts` and `admin-impersonation.ts`. They read with the
+secret key (`createAdminClient`, which names the admin in `x-audit-actor`) across every
+organization, and start and end an impersonation with the admin's own token; the modules are
+`modules/admin-imports/` and `modules/admin-impersonation/`.
 
 | Route                                  | Answer                                                                                                                                                                                                     |
 | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -2767,6 +2769,43 @@ part's for a path under `parts/<part>/`, and must be kept; the file must be list
 today's reading and compares each with what the member confirmed, after an estimate and only with
 `--yes`. It reads production data, so only Mircea runs it, from his machine:
 [import-test-runs.md](import-test-runs.md).
+
+### Impersonation
+
+| Route                         | Answer                                                                                                                                                          |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /admin/members`          | `{ items, page, pageSize, total }`, by organization then name; `search` (at most 100 characters), `page`, `pageSize` (25, at most 100); `400` otherwise         |
+| `GET /admin/impersonation`    | `{ impersonation }`, the admin's impersonation that applies now (not ended, not expired), or null                                                               |
+| `POST /admin/impersonation`   | `201` with the impersonation started from `{ targetUserId, reason }`, after ending the active one; `400`, or `422` with `target_not_member` or `target_is_self` |
+| `DELETE /admin/impersonation` | `204` after ending the active one, or when none is active                                                                                                       |
+| `GET /admin/impersonations`   | `{ items, page, pageSize, total }`, the admin's impersonations, newest first; `page`, `pageSize` (25, at most 100)                                              |
+
+**The members** come from `admin_list_members` with the secret key
+([data model](data-model.md#platform-admins-and-impersonation)). Each item has `userId`, `email`,
+`fullName` (null until named), `organization` (`id`, `name`), `role`, `subscription`
+(`plan`, `status`, or null without one) and `lastSignInAt`. `search` matches the email, the name or
+the organization's name, ignoring case and diacritics.
+
+**An impersonation** is `{ id, target, reason, startedAt, expiresAt, endedAt }`, its `target`
+`{ userId, email, fullName, organization, role }` from `admin_accounts` with the secret key;
+`organization` and `role` are null once the member has left. The rows themselves are read with
+the admin's own token, which the policies limit to his own.
+
+**Starting** takes a `reason` of 1 to 500 characters once trimmed and a `targetUserId`; a body
+that is not that is `400` with `issues`, before the database. The route calls
+`start_impersonation` with the admin's own token, which ends his open impersonation and starts
+the new one in one transaction, so switching member is one request and a refused one changes
+nothing. A target that does not exist or belongs to no organization (`IMS02`) is `422` with
+`reason: target_not_member`; the admin himself is `422` with `target_is_self`. The audit log
+records `impersonation_ended` and `impersonation_started` with the admin as actor, from the
+trigger on the row; the route records nothing of its own. The impersonation lasts two hours.
+
+**Ending** updates the admin's active row with his own token, here or through the public API's
+`DELETE /me/impersonation` from the member app's banner. An expired row is left as it is.
+
+**`me.impersonation`** on the public API's `GET /me` is null unless an impersonation applies:
+then `{ targetMemberId, targetOrganizationId, expiresAt, targetName }`, `targetName` the member's
+name, else their email, else null when neither could be read.
 
 ## Supabase Auth emails
 
