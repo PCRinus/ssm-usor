@@ -815,6 +815,22 @@ their tab bars read.
   choice while undecided, opens the add dialog when the list is chosen but empty, and opens the
   first incomplete entry at its first missing field. The missing-data row of `fire.substances`
   names the incomplete substances from the readiness's `incompleteFireSubstances`.
+  The dialog opens with a notice "Completează din fișa cu date de securitate" (ADR 042,
+  `safety-sheet-reader.tsx`): its cost and what is left (the import's `CreditsLine`; the button
+  disabled when the balance does not cover 3 credits) and "Alege fișa (PDF)", which checks the type
+  and size, sends the file with `apiUpload` and shows a spinner notice while the API reads it; Save
+  waits. The draft fills the empty fields, and those still holding an earlier sheet's text, each
+  tagged "Din fișă" until edited; a field the member filled keeps its text, with "Păstrăm textul
+  tău. În fișă: …" and "Folosește textul din fișă" under it (`mergeSafetySheetDraft`). A success
+  notice counts what was filled and what differs, a warning asks to check the codes when
+  `droppedCodes` is above zero, and each refusal is worded by its reason, saying the credits came
+  back only when the answer's `creditsRefunded` is true. A second sheet adds its marks to the
+  first one's; editing or clearing a field drops its mark and its offer, and both are in the
+  field's `aria-describedby`. While a sheet is read the dialog cannot be closed (its
+  `onOpenChange` ignores a close, "Renunță" is disabled and the close button hidden) and the
+  notice says so; it is one notice with one button throughout, so the focus stays on it. Every
+  reading invalidates the `me` query, so the balance is fresh for the next one. The quantity and the storage place are never filled. The name field keeps
+  the dialog's first focus.
 - `/clienti/:clientId/documente-ssm`: the "Documente SSM" section of a client (ADR 005), in
   `src/features/documents/`. The card is the whole pack (`buildPack` in `pack-status.ts`): every
   document of the set once, in the binder's sections (`documentSections`), under its most

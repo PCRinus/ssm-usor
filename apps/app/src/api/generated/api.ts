@@ -123,6 +123,7 @@ export interface ApiErrorResponse {
   resumesAt?: string;
   /** @minimum 1 */
   employeeCount?: number;
+  creditsRefunded?: boolean;
 }
 
 export type MeResponseUser = {
@@ -6945,6 +6946,35 @@ export interface FireSubstanceRequest {
    * @nullable
    */
   handling?: string | null;
+}
+
+export type ReadSafetySheetResponseDraft = {
+  /** @nullable */
+  name: string | null;
+  /** @nullable */
+  classification: string | null;
+  /** @nullable */
+  physicalChemicalProperties: string | null;
+  /** @nullable */
+  identificationCodes: string | null;
+  /** @nullable */
+  healthEnvironmentRisks: string | null;
+  /** @nullable */
+  protectionMeans: string | null;
+  /** @nullable */
+  interventionMeasures: string | null;
+  /** @nullable */
+  extinguishingAgents: string | null;
+  /** @nullable */
+  handling: string | null;
+};
+
+export interface ReadSafetySheetResponse {
+  draft: ReadSafetySheetResponseDraft;
+  /** @minimum 0 */
+  droppedCodes: number;
+  /** @minimum 0 */
+  credits: number;
 }
 
 export type DocumentsBehindResponseItemsItemNewestVersionKind =
@@ -32189,6 +32219,114 @@ export const useUpdateFireSubstancesState = <
   TContext
 > => {
   return useMutation(getUpdateFireSubstancesStateMutationOptions(options), queryClient);
+};
+
+export const getReadSafetySheetUrl = (clientId: string) => {
+  return `/clients/${clientId}/fire-substances/read-safety-sheet`;
+};
+
+/**
+ * Takes one PDF with a text layer as the body, at most 10 MiB and 40 pages: the safety data sheet of one product. A model reads it and the answer is a draft of the substance's fields; nothing is saved, and the file is not kept (ADR 042). The quantity and the storage place are never in the draft. Every H statement, CAS, EC and UN number the reading wrote that the file does not hold is left out, and `droppedCodes` counts them. A reading takes 3 credits, refused with `409` and `credits_insufficient` (and `credits`) when what is left does not cover it, and given back when the reading fails or the file is refused; such an answer carries `creditsRefunded` (`true` once given back, `false` if that failed), and a refusal before the charge carries none. A body over the limit is refused by its `Content-Length` before anything else, and one without the header is read no further than the limit. Refused with `422`: `safety_sheet_not_pdf`, `safety_sheet_too_large`, `safety_sheet_too_many_pages`, `safety_sheet_scanned` for a PDF whose pages are mostly scans, `safety_sheet_unreadable` for a damaged or protected file, `safety_sheet_not_a_sheet` for a file that is not a safety data sheet. `503` with `safety_sheet_failed` when the reading fails, and `safety_sheet_unavailable` where the model gateway or the extractor is not configured.
+ * @summary Read a product's safety data sheet into a draft substance
+ */
+export const readSafetySheet = async (
+  clientId: string,
+  readSafetySheetBody: Blob,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ReadSafetySheetResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ReadSafetySheetResponse>(getReadSafetySheetUrl(clientId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/octet-stream', ...getHeaders(options?.headers) },
+    body: readSafetySheetBody,
+  });
+};
+
+export const getReadSafetySheetMutationKey = () => ['readSafetySheet'] as const;
+
+export const getReadSafetySheetMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof readSafetySheet>>,
+    TError,
+    ReadSafetySheetMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof readSafetySheet>>,
+  TError,
+  ReadSafetySheetMutationVariables,
+  TContext
+> => {
+  const mutationKey = getReadSafetySheetMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof readSafetySheet>>,
+    ReadSafetySheetMutationVariables
+  > = (props) => {
+    const { clientId, data } = props ?? {};
+
+    return readSafetySheet(clientId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReadSafetySheetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof readSafetySheet>>
+>;
+export type ReadSafetySheetMutationBody = Blob;
+export type ReadSafetySheetMutationError = ErrorType<ApiErrorResponse>;
+export type ReadSafetySheetMutationVariables = { clientId: string; data: Blob };
+
+/**
+ * @summary Read a product's safety data sheet into a draft substance
+ */
+export const useReadSafetySheet = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof readSafetySheet>>,
+      TError,
+      ReadSafetySheetMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof readSafetySheet>>,
+  TError,
+  ReadSafetySheetMutationVariables,
+  TContext
+> => {
+  return useMutation(getReadSafetySheetMutationOptions(options), queryClient);
 };
 
 export const getUpdateFireSubstanceUrl = (clientId: string, substanceId: string) => {

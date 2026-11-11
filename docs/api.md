@@ -153,6 +153,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/fire-substances`                             | Verified user with a membership       | `201 { "substance": { … } }`; `409` unless the state is `listed`                                                                                                                                   |
 | `PUT /clients/{clientId}/fire-substances/{substanceId}`                | Verified user with a membership       | `{ "substance": { … } }` after replacing it                                                                                                                                                        |
 | `DELETE /clients/{clientId}/fire-substances/{substanceId}`             | Verified user with a membership       | `204` after deleting it                                                                                                                                                                            |
+| `POST /clients/{clientId}/fire-substances/read-safety-sheet`           | Verified user with a membership       | `{ "draft", "droppedCodes", "credits" }`: a product's safety data sheet, the PDF as the body, read into a draft substance for 3 credits; nothing is saved (ADR 042)                                |
 | `GET /clients/{clientId}/fire-maintenance-items`                       | Verified user with a membership       | `{ "items": [ … ] }`: the free rows of the schedules 5.4, by workplace, in their order                                                                                                             |
 | `POST /clients/{clientId}/fire-maintenance-items`                      | Verified user with a membership       | `201 { "item": { … } }`, after the workplace's last row                                                                                                                                            |
 | `PUT /clients/{clientId}/fire-maintenance-items/{itemId}`              | Verified user with a membership       | `{ "item": { … } }` after replacing it                                                                                                                                                             |
@@ -1093,6 +1094,13 @@ chosen during the trial brings it only with that first payment.
   is a library part of its own, charged and given back the same way, 15 credits
   (`importCredits.riskEvaluations`). Its scanned pages were charged by the client reading, one
   credit each, and are not charged again.
+- **Safety data sheets** ([ADR 042](architecture/adr-042-substances-from-safety-data-sheets.md)).
+  `POST /clients/{clientId}/fire-substances/read-safety-sheet` charges 3 credits
+  (`importCredits.safetySheet`) as `safety_sheet`, with no import, under the key
+  `sheet:<uuid>`, refused like an import's start (`409`, `credits_insufficient`, `credits`) when
+  the balance does not cover it, so a reading never goes below zero. Every refusal or failure
+  after the charge gives it back once (`safety_sheet_refund`, `refund_safety_sheet_credits`, by
+  the charge's key), with a client that ignores a dropped connection.
 
 `GET /billing` answers `usage.creditsThisMonth` to every member: `used` (the month's credits
 used, net of refunds), `included` (allowance plus `granted`; null where nothing limits them),
@@ -1863,6 +1871,33 @@ while the client has not said, or has no fire-safety row. `PUT …/fire-substanc
 creating the row when there is none without counting as the card's first save; `none` while the
 client has entries is `409` with the reason `substances_listed`, and a new entry under any state
 but `listed` is `409` with `substances_not_listed`. Entries keep the order they were added in.
+`POST …/fire-substances/read-safety-sheet` ([ADR 042](architecture/adr-042-substances-from-safety-data-sheets.md))
+takes the bytes of one PDF as the body, at most 10 MiB and 40 pages, the safety data sheet of
+one product, under the same authorization as saving a substance (`404` for a client the caller
+does not see, `409` with `client_archived` or `client_is_lead`). The extractor takes its text, one
+structured request goes through the AI Gateway (`safetySheetModel`, two minutes an attempt), and
+code turns the answer into `draft`: `name`, `classification`, `physicalChemicalProperties`,
+`identificationCodes`, `healthEnvironmentRisks`, `protectionMeans`, `interventionMeasures`,
+`extinguishingAgents` and `handling`, each `null` where the sheet does not say, never the
+quantity or the storage place, each within its column's length. Every H or EUH statement, CAS, EC
+and UN number the reading wrote that the file's text does not hold is left out, and
+`droppedCodes` counts them. Nothing is written, the file is not stored, and no improvement copy is
+kept. Refusals before the charge: `422` with `safety_sheet_too_large`, by `Content-Length` before
+anything else and, without that header, once the body read passes the limit, which stops the
+reading; `422` with `safety_sheet_not_pdf`. The reading is charged (Import credits, below), then
+refused with `422` and its credits given back: `safety_sheet_too_many_pages`,
+`safety_sheet_scanned` (more than half the pages are scans), `safety_sheet_unreadable` (damaged or
+protected), `safety_sheet_not_a_sheet` (fewer than 12 of the sections 1 to 16 found, before the
+model is asked, or the model says it is no sheet); `503` with `safety_sheet_failed` when the
+extractor, the gateway or the model fails, also given back; `503` with
+`safety_sheet_unavailable` where the gateway or the extractor is not configured. Every answer
+after the charge carries `creditsRefunded`: `true` once the credits were given back, `false` when
+giving them back failed; a refusal before the charge carries none. A UN number counts only where
+the file writes UN or ONU before it, an H statement must match whole and with a capital H, and
+dashes, line breaks inside a number and labels in the model's fields are normalized before the
+comparison. Each request's
+tokens and cost are logged as a `safety_sheet_reading` line, and the gateway metadata carries
+`organizationId`, `clientId` and `reading: safety_sheet`.
 The free rows of the maintenance and check schedules (`fire-maintenance-items`, ADR 018, amended
 2026-10-11) sit on a workplace like the units, with the same `workplaceId` checks, and carry three
 required texts: `subject` (2 to 160), `intervalLabel` (2 to 60, printed as typed) and `checkedBy`

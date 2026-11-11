@@ -3,6 +3,7 @@ export const sortingModel = 'gpt-6-luna';
 export const readingModel = 'gpt-6.1-terra';
 export const instructionsModel = 'gpt-6.1-terra';
 export const risksModel = 'gpt-6.1-terra';
+export const safetySheetModel = 'gpt-6.1-terra';
 export const similarityModel = 'gpt-6-luna';
 
 export type ModelId =
@@ -10,6 +11,7 @@ export type ModelId =
   | typeof readingModel
   | typeof instructionsModel
   | typeof risksModel
+  | typeof safetySheetModel
   | typeof similarityModel;
 
 export interface Usage {

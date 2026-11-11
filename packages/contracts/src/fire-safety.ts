@@ -435,7 +435,7 @@ export const fireSubstanceDetailLabels: Record<
   },
   identificationCodes: {
     label: 'Coduri de identificare',
-    dataSheet: 'fișa cu date de securitate, secțiunile 1 și 3',
+    dataSheet: 'fișa cu date de securitate, secțiunile 1, 3 și 14',
   },
   healthEnvironmentRisks: {
     label: 'Riscuri pentru sănătate și mediu',
@@ -451,7 +451,7 @@ export const fireSubstanceDetailLabels: Record<
   },
   extinguishingAgents: {
     label: 'Substanțe pentru stingere, neutralizare sau decontaminare',
-    dataSheet: 'fișa cu date de securitate, secțiunea 5',
+    dataSheet: 'fișa cu date de securitate, secțiunile 5 și 6',
   },
   storagePlace: {
     label: 'Locul de depozitare',
@@ -463,20 +463,37 @@ export const fireSubstanceDetailLabels: Record<
   },
 };
 
+/** The longest text each field of a substance takes, as the table's checks have it. */
+export const fireSubstanceMaxLengths = {
+  name: 160,
+  classification: 600,
+  quantity: 160,
+  physicalChemicalProperties: 1000,
+  identificationCodes: 600,
+  healthEnvironmentRisks: 1000,
+  protectionMeans: 1000,
+  interventionMeasures: 1000,
+  extinguishingAgents: 600,
+  storagePlace: 600,
+  handling: 1000,
+} as const;
+
+const limits = fireSubstanceMaxLengths;
+
 export const fireSubstanceRequestSchema = z.object({
-  name: z.string().trim().min(2).max(160),
+  name: z.string().trim().min(2).max(limits.name),
   // Under the CLP regulation: the hazard classes and categories with their H statements. Either
   // left out makes the entry incomplete, which the set waits for (ADR 041).
-  classification: optionalText(2, 600),
-  quantity: optionalText(1, 160),
-  physicalChemicalProperties: optionalText(2, 1000),
-  identificationCodes: optionalText(2, 600),
-  healthEnvironmentRisks: optionalText(2, 1000),
-  protectionMeans: optionalText(2, 1000),
-  interventionMeasures: optionalText(2, 1000),
-  extinguishingAgents: optionalText(2, 600),
-  storagePlace: optionalText(2, 600),
-  handling: optionalText(2, 1000),
+  classification: optionalText(2, limits.classification),
+  quantity: optionalText(1, limits.quantity),
+  physicalChemicalProperties: optionalText(2, limits.physicalChemicalProperties),
+  identificationCodes: optionalText(2, limits.identificationCodes),
+  healthEnvironmentRisks: optionalText(2, limits.healthEnvironmentRisks),
+  protectionMeans: optionalText(2, limits.protectionMeans),
+  interventionMeasures: optionalText(2, limits.interventionMeasures),
+  extinguishingAgents: optionalText(2, limits.extinguishingAgents),
+  storagePlace: optionalText(2, limits.storagePlace),
+  handling: optionalText(2, limits.handling),
 });
 
 export type FireSubstanceRequest = z.infer<typeof fireSubstanceRequestSchema>;
@@ -513,6 +530,57 @@ export const missingSubstanceEssentials = (
 export const fireSubstanceResponseSchema = z.object({ substance: fireSubstanceSchema });
 
 export type FireSubstanceResponse = z.infer<typeof fireSubstanceResponseSchema>;
+
+/**
+ * What a product's safety data sheet fills in a substance (ADR 042). The quantity and the storage
+ * place are the client's own and never come from the sheet.
+ */
+export const safetySheetDraftFields = [
+  'name',
+  'classification',
+  'physicalChemicalProperties',
+  'identificationCodes',
+  'healthEnvironmentRisks',
+  'protectionMeans',
+  'interventionMeasures',
+  'extinguishingAgents',
+  'handling',
+] as const;
+
+export type SafetySheetDraftField = (typeof safetySheetDraftFields)[number];
+
+/** Null where the sheet does not say. */
+export const safetySheetDraftSchema = z.object(
+  Object.fromEntries(safetySheetDraftFields.map((field) => [field, z.string().nullable()])) as {
+    [Field in SafetySheetDraftField]: z.ZodNullable<z.ZodString>;
+  }
+);
+
+export type SafetySheetDraft = z.infer<typeof safetySheetDraftSchema>;
+
+export const readSafetySheetResponseSchema = z.object({
+  draft: safetySheetDraftSchema,
+  // H statements, CAS, EC and UN numbers the reading wrote that the file does not hold, left out
+  // of the draft.
+  droppedCodes: z.int().min(0),
+  credits: z.int().min(0),
+});
+
+export type ReadSafetySheetResponse = z.infer<typeof readSafetySheetResponseSchema>;
+
+/** One PDF with a text layer, as a supplier sends it (ADR 042). */
+export const safetySheetLimits = { maxBytes: 10 * 1024 * 1024, maxPages: 40 } as const;
+
+export const safetySheetErrorReasons = {
+  notPdf: 'safety_sheet_not_pdf',
+  tooLarge: 'safety_sheet_too_large',
+  tooManyPages: 'safety_sheet_too_many_pages',
+  scanned: 'safety_sheet_scanned',
+  unreadable: 'safety_sheet_unreadable',
+  notASheet: 'safety_sheet_not_a_sheet',
+  failed: 'safety_sheet_failed',
+  unavailable: 'safety_sheet_unavailable',
+} as const;
 
 export const fireSubstancesResponseSchema = z.object({
   state: fireSubstancesStateSchema,

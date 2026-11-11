@@ -107,7 +107,10 @@ each. All four are the secret key's alone.
 (`import_start`, an import's known part; `import_pages`, an employee import's pages settled on
 the extractor's count; `scanned_page`; `refund`; `grant`; `gift`; and, since
 `20261102130100_import_library_parts`, `library_part`, one reading of an import's own
-instructions or risk evaluations, and `library_part_refund`, its credits given back), `credits` (negative for what
+instructions or risk evaluations, and `library_part_refund`, its credits given back; and, since
+`20261112100000_safety_sheet_credit_kinds`, `safety_sheet`, one reading of a safety data sheet in
+the substance dialog, and `safety_sheet_refund`, its credits given back, both with no import, by
+a check, [ADR 042](architecture/adr-042-substances-from-safety-data-sheets.md)), `credits` (negative for what
 an import used, positive for what is given back or added), `gift_credits`, the part of it taken
 from or added to the welcome gift, the `import_id`, `import_file_id` and `page` it concerns (set
 null when the import is deleted: the credits stay used), a unique `key` per import step,
