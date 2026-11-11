@@ -168,6 +168,18 @@ Writes made during an impersonation carry the target's organization but the admi
 id in `created_by`. The admin starts and ends one in the admin app, and ends it from the member
 app too ([admin app](admin.md), [API](api.md#admin-routes)), always with his own token.
 
+The admin acts as the member to reproduce their problem, never in their name towards others: the
+API refuses him signing (a signing session of his own or its code) and every email or SMS to
+another person, such as an invitation, a portal invitation, a signing code or a contract sent to
+a client ([API](api.md#impersonation-refusals)). He keeps reading, editing, generating and
+issuing documents, importing and archiving. A training he saves issues its signature requests
+as the member's save would, and tells no signer. A document generated during an impersonation is
+the member's: its specialist and preparer are the member's profile, and an import he started
+names the member as its trainer, found from the impersonation that was active when it was
+created; `created_by` and `issued_by` still record the admin. A signature request names only an
+account of the organization or a participant of the client as signer, so never the admin in a
+member's organization, unless he is a member of it in his own right.
+
 Every impersonation has a reason, as the data processing agreement promises support access is
 logged with one: `impersonations_reason_given` refuses a null reason or one of whitespace only,
 for every writer (`20261112110000_impersonation_start`). Its target must be a member of an

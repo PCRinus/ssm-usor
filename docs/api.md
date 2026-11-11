@@ -251,7 +251,8 @@ access token in the Authorization header; the publishable API key is not a user 
 (nullable), their profile, and their organization with their role. It answers an account
 without a membership too, with `membership: null`, and never exposes Supabase metadata.
 During an impersonation `membership` is the impersonated user's while `user` and `profile`
-stay the platform admin's own.
+stay the platform admin's own, and some acts are refused him
+([impersonation refusals](#impersonation-refusals)).
 
 Client routes are scoped to the caller's organization. `src/lib/membership.ts` calls the database
 helper `current_membership()` and answers `403 forbidden` when the user has no membership.
@@ -826,6 +827,36 @@ and are protected by row-level security. User-editable `user_metadata` never gra
 New authenticated routes should attach `requireAuth`, `requireMembership` when they touch
 organization data, and `requireOwner` after it for what only an owner may do, then read `c.get('user')`, `c.get('membership')`, and `createDataClient(c)`.
 Transport schemas live in `packages/contracts`.
+
+## Impersonation refusals
+
+An admin impersonating a member reproduces their problem; he does not act in their name towards
+others or bind them ([ADR 038](architecture/adr-038-admin-area.md)). These routes answer him
+`403 forbidden` with `reason: impersonation_refused` before they write anything, so no invitation
+is left without its message:
+
+- `POST /organization/invitations` and `POST /organization/invitations/{invitationId}/resend`;
+- `POST /clients/{clientId}/employees/{employeeId}/participant-invitations`,
+  `POST /clients/{clientId}/participant-invitations`,
+  `POST /clients/{clientId}/employee-participant-invitations` and
+  `POST /participant-invitations/{invitationId}/resend`;
+- `POST /clients/{clientId}/service-contract/send`;
+- `POST /me/signing-sessions` and `POST /me/signing-sessions/{sessionId}/sign`.
+
+Any other email or SMS a request would send during an impersonation is refused at the sender,
+with the same answer: `src/lib/impersonation.ts` wraps the `MAIL` and `SMS` bindings of every
+request, and a send asks whether the caller is a platform admin acting as someone else, from the
+membership when the route has one, else from his active impersonation. Only a platform admin
+past the second factor costs that read. Queues, scheduled work and the webhooks get their
+bindings from the runtime and are not concerned. A training saved during an impersonation
+issues its signature requests and tells no signer, as when a message fails. Billing refuses an
+impersonating admin on its own (`requireOwnerInPerson`), and reporting an import answers
+`import_report_impersonated`.
+
+Everything else stays open to him: reading, editing, generating and issuing documents, imports
+(which spend the organization's credits) and archiving. Documents print the member: the training
+proposal's specialist and the documents' preparer are read from the member's profile, and an
+import he started proposes the member as its trainer.
 
 ## Waitlist
 
