@@ -130,7 +130,7 @@ export function SafetySheetReader({
       ) : outcome ? (
         <Notice
           variant="success"
-          title="Am completat din fișă"
+          title="Fișa a fost citită"
           action={choose}
           data-testid="fire-substance-sheet-done"
         >

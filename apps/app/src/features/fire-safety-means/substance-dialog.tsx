@@ -249,7 +249,15 @@ function SubstanceForm({
   );
 
   return (
-    <DialogContent data-testid="fire-substance-dialog" className="sm:max-w-2xl">
+    <DialogContent
+      data-testid="fire-substance-dialog"
+      className="sm:max-w-2xl"
+      onOpenAutoFocus={(event) => {
+        // The sheet's button comes first, but most entries are still typed by hand.
+        event.preventDefault();
+        document.getElementById('fire-substance-name')?.focus();
+      }}
+    >
       <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>{substance ? 'Modifică substanța' : 'Adaugă o substanță'}</DialogTitle>
