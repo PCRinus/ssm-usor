@@ -103,7 +103,7 @@ Scrie-l cum vrei să apară pe documente, de exemplu „0721 000 000”. Aplica�
 
 Cardul **Notițe** îl văd doar adminii organizației. Aici ții discuțiile, prețurile și pașii următori cu clientul, în cel mult 5000 de caractere. Notițele nu apar în niciun document și nici în portal.
 
-Salvezi cu **Salvează notițele**. Până atunci vezi „Modificări nesalvate”. Un client care a fost întâi client potențial își păstrează notițele de atunci.
+Salvezi cu **Salvează notițele**. Până atunci vezi „Modificări nesalvate”. Un client care a fost întâi ofertă își păstrează notițele de atunci.
 
 ## Importurile din documente
 

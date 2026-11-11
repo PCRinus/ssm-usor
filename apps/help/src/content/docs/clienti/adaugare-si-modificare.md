@@ -119,7 +119,7 @@ Bifează căsuța dacă firma e înregistrată în scopuri de TVA. Căutarea la 
 
 - „Există deja un client cu acest CUI în organizația ta.”: firma e deja în lista clienților. Caut-o acolo;
 - „Un client arhivat are deja acest CUI. Îl găsești în lista „Arhivați”, de unde un admin îl poate reactiva.”: firma a fost client și a fost arhivată. Reactiveaz-o în loc s-o adaugi din nou (vezi [Reactivarea unui client](/clienti/#reactivarea-unui-client));
-- „Firma cu acest CUI este deja printre clienții potențiali ai organizației. Un admin o poate transforma în client.”: firma e un client potențial. Un admin o transformă în client din **Clienți potențiali**, cu tot ce s-a scris deja despre ea.
+- „Firma cu acest CUI este deja printre ofertele organizației. Un admin o poate transforma în client.”: firma e o ofertă. Un admin o transformă în client din **Oferte**, cu tot ce s-a scris deja despre ea.
 
 ## Înregistrare
 

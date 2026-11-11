@@ -120,13 +120,6 @@ const navigation = [
     id: 'clients',
     label: 'Clienții tăi',
     entries: [
-      {
-        to: '/clienti-potentiali',
-        testId: 'leads',
-        label: 'Clienți potențiali',
-        icon: Handshake,
-        ownerOnly: true,
-      },
       { to: '/clienti', testId: 'clients', label: 'Clienți', icon: Briefcase, ownerOnly: false },
       {
         to: '/angajati',
@@ -141,6 +134,13 @@ const navigation = [
         label: 'Semnături',
         icon: Signature,
         ownerOnly: false,
+      },
+      {
+        to: '/oferte',
+        testId: 'leads',
+        label: 'Oferte',
+        icon: Handshake,
+        ownerOnly: true,
       },
     ],
   },

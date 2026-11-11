@@ -13,7 +13,7 @@ const searchSchema = z.object({
   status: z.literal('archived').optional().catch(undefined),
 });
 
-export const Route = createFileRoute('/_authenticated/clienti-potentiali/')({
+export const Route = createFileRoute('/_authenticated/oferte/')({
   validateSearch: searchSchema,
   component: LeadsPage,
 });

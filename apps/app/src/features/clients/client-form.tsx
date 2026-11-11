@@ -23,7 +23,7 @@ const describedBy = (id: string, error: unknown, hint?: boolean) =>
 
 const wording = {
   client: { new: 'Client nou', save: 'Salvează clientul', testId: 'client' },
-  lead: { new: 'Client potențial nou', save: 'Salvează clientul potențial', testId: 'lead' },
+  lead: { new: 'Ofertă nouă', save: 'Salvează oferta', testId: 'lead' },
 } as const;
 
 // With a lead, the form corrects what was entered about it; without, it adds a client, or a
@@ -145,11 +145,11 @@ export function ClientForm({ lead, newStage }: { lead?: Client; newStage?: Clien
           </Button>
           <Button asChild type="button" variant="ghost" className="h-11">
             {lead ? (
-              <Link to="/clienti-potentiali/$leadId" params={{ leadId: lead.id }}>
+              <Link to="/oferte/$leadId" params={{ leadId: lead.id }}>
                 Renunță
               </Link>
             ) : (
-              <Link to={stage === 'lead' ? '/clienti-potentiali' : '/clienti'}>Renunță</Link>
+              <Link to={stage === 'lead' ? '/oferte' : '/clienti'}>Renunță</Link>
             )}
           </Button>
         </div>

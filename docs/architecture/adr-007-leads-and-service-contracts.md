@@ -81,7 +81,7 @@ Rejected: an inbound address per send, with the reply parsed for its attachment,
 
 ### In the app
 
-"Clienți potențiali" is an entry of the sidebar that only owners see, with the clients' table: company, contact, contract state, date added, and a view of the archived ones. A lead's page has its own address and reuses the client page's parts; after promotion it leads to the client's page.
+"Oferte" is an entry of the sidebar that only owners see, with the clients' table: company, contact, contract state, date added, and a view of the archived ones. A lead's page has its own address and reuses the client page's parts; after promotion it leads to the client's page.
 
 ### Order of work
 

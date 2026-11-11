@@ -43,5 +43,5 @@ SignedCopyReceived.PreviewProps = {
   clientName: 'S.C. Gelateria Florești S.R.L.',
   contractNumber: 52,
   contractDate: '2026-09-21',
-  leadUrl: 'https://app.ssmusor.ro/clienti-potentiali/00000000-0000-4000-8000-000000000000',
+  leadUrl: 'https://app.ssmusor.ro/oferte/00000000-0000-4000-8000-000000000000',
 } satisfies SignedCopyReceivedProps;

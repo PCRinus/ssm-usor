@@ -20,13 +20,13 @@ import { leadColumns } from './lead-columns';
 import type { LeadSortKey } from './lead-sort';
 import { PromoteLeadDialog } from './promote-lead-dialog';
 
-const leadsRoute = getRouteApi('/_authenticated/clienti-potentiali/');
+const leadsRoute = getRouteApi('/_authenticated/oferte/');
 
 const defaultSort: DataTableSort & { sort: LeadSortKey } = { sort: 'legalName', order: 'asc' };
 
 const filters = [
   { status: undefined, label: 'Activi', testId: 'leads-filter-active' },
-  { status: 'archived', label: 'Arhivați', testId: 'leads-filter-archived' },
+  { status: 'archived', label: 'Arhivate', testId: 'leads-filter-archived' },
 ] as const;
 
 const rowKey = (row: ClientRow) => row.id;
@@ -67,23 +67,23 @@ export function LeadsPage() {
   return (
     <div data-testid="leads-page" className="space-y-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-3xl font-semibold tracking-tight">Clienți potențiali</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Oferte</h1>
         {(archived || !isEmptyOrLoading(listStatus, meta.total)) && (
           <Button asChild>
-            <Link to="/clienti-potentiali/nou" data-testid="leads-add">
+            <Link to="/oferte/nou" data-testid="leads-add">
               <Plus aria-hidden="true" />
-              Adaugă client potențial
+              Adaugă ofertă
             </Link>
           </Button>
         )}
       </div>
       <div className="overflow-hidden rounded-lg border bg-card">
         <ListCardHeader>
-          <FilterTabs label="Filtrează clienții potențiali">
+          <FilterTabs label="Filtrează ofertele">
             {filters.map((filter) => (
               <FilterTab
                 key={filter.label}
-                to="/clienti-potentiali"
+                to="/oferte"
                 search={filter.status ? { status: filter.status } : {}}
                 data-testid={filter.testId}
                 active={filter.status === status}
@@ -95,22 +95,22 @@ export function LeadsPage() {
           </FilterTabs>
           {leads.isSuccess && (
             <ListCount testId="leads-count">
-              {meta.total === 1 ? '1 client potențial' : `${meta.total} clienți potențiali`}
+              {meta.total === 1 ? '1 ofertă' : `${meta.total} oferte`}
             </ListCount>
           )}
         </ListCardHeader>
         <DataTable
           testId="leads-table"
           rowTestId="leads-row"
-          label="Lista clienților potențiali"
+          label="Lista ofertelor"
           columns={columns}
           data={leads.data?.items}
           rowKey={rowKey}
           onRowClick={(lead) =>
-            void navigate({ to: '/clienti-potentiali/$leadId', params: { leadId: lead.id } })
+            void navigate({ to: '/oferte/$leadId', params: { leadId: lead.id } })
           }
           meta={meta}
-          noun={['client potențial', 'clienți potențiali']}
+          noun={['ofertă', 'oferte']}
           status={listStatus}
           isFetching={leads.isFetching}
           isPlaceholderData={leads.isPlaceholderData}
@@ -135,8 +135,8 @@ export function LeadsPage() {
                 {leads.error instanceof ApiHttpError && leads.error.status === 401
                   ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
                   : leads.error instanceof ApiHttpError && leads.error.status === 403
-                    ? 'Doar adminii organizației lucrează cu clienții potențiali.'
-                    : 'Nu am putut încărca lista clienților potențiali. Încearcă din nou.'}
+                    ? 'Doar adminii organizației lucrează cu ofertele.'
+                    : 'Nu am putut încărca lista ofertelor. Încearcă din nou.'}
               </p>
               {apiRequest.baseUrl &&
                 !(leads.error instanceof ApiHttpError && leads.error.status === 403) && (
@@ -154,23 +154,19 @@ export function LeadsPage() {
           }
           empty={
             archived ? (
-              <EmptyState
-                icon={Archive}
-                title="Niciun client potențial arhivat"
-                data-testid="leads-empty"
-              >
-                Clienții potențiali arhivați vor apărea aici. Îi poți reactiva oricând.
+              <EmptyState icon={Archive} title="Nicio ofertă arhivată" data-testid="leads-empty">
+                Ofertele arhivate vor apărea aici. Le poți reactiva oricând.
               </EmptyState>
             ) : (
               <EmptyState
                 icon={Handshake}
-                title="Niciun client potențial încă"
+                title="Nicio ofertă încă"
                 data-testid="leads-empty"
                 actions={
                   <Button asChild>
-                    <Link to="/clienti-potentiali/nou" data-testid="leads-add">
+                    <Link to="/oferte/nou" data-testid="leads-add">
                       <Plus aria-hidden="true" />
-                      Adaugă primul client potențial
+                      Adaugă prima ofertă
                     </Link>
                   </Button>
                 }

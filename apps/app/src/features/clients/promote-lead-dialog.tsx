@@ -17,10 +17,10 @@ import { Notice } from '@/components/notice';
 
 function serverMessage(cause: unknown) {
   if (cause instanceof ApiHttpError) {
-    if (cause.status === 404) return 'Clientul potențial nu mai există în organizația ta.';
-    if (cause.status === 409) return 'Clientul potențial este arhivat. Reactivează-l mai întâi.';
+    if (cause.status === 404) return 'Oferta nu mai există în organizația ta.';
+    if (cause.status === 409) return 'Oferta este arhivată. Reactivează-o mai întâi.';
     if (cause.status === 403) {
-      return 'Doar un admin al organizației poate transforma un client potențial în client.';
+      return 'Doar un admin al organizației poate transforma o ofertă în client.';
     }
     if (cause.status === 401) {
       return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';

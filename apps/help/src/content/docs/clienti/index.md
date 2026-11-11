@@ -43,11 +43,11 @@ Un client e o firmă pentru care lucrezi. Pe pagina lui ții tot ce îi priveșt
 - **CUI**: cu prefixul RO când firma e plătitoare de TVA;
 - **Lucrători**: câți lucrători actuali are clientul; foștii lucrători nu intră în număr;
 - **Documentație SSM** și **Documentație SU**: cât din fiecare set de documente e emis (vezi [Documentația SSM și SU](#documentația-ssm-și-su));
-- **Adăugat**: ziua în care firma a devenit client, adică ziua în care ai adăugat-o sau, dacă a fost întâi client potențial, ziua în care a devenit client.
+- **Adăugat**: ziua în care firma a devenit client, adică ziua în care ai adăugat-o sau, dacă a fost întâi ofertă, ziua în care a devenit client.
 
 Lista e ordonată după denumire și împărțită pe pagini. O poți ordona după oricare dintre coloane. Un clic pe rând deschide pagina clientului, la tabul **Detalii**. Din meniul de la capătul rândului ajungi la **Modifică**, care deschide același tab, și, dacă ești admin, la **Arhivează…**.
 
-Clienții potențiali nu apar aici. Au lista lor, **Clienți potențiali**, pe care o văd doar adminii.
+Ofertele nu apar aici. Au lista lor, **Oferte**, pe care o văd doar adminii.
 
 ### Clienți activi și clienți arhivați
 

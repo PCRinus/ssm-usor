@@ -27,12 +27,12 @@ import {
 import { useEndWayBackOutside } from '@/features/missing-data/way-back';
 import { ServiceContractCard } from '@/features/service-contracts/service-contract-card';
 
-export const Route = createFileRoute('/_authenticated/clienti-potentiali/$leadId/')({
+export const Route = createFileRoute('/_authenticated/oferte/$leadId/')({
   validateSearch: focusSearch(leadFocus),
   component: LeadPage,
 });
 
-const leadRoute = getRouteApi('/_authenticated/clienti-potentiali/$leadId');
+const leadRoute = getRouteApi('/_authenticated/oferte/$leadId');
 
 // Only an owner gets here: for anyone else the lead does not exist.
 function LeadPage() {
@@ -79,7 +79,7 @@ function LeadPage() {
           !archived && (
             <>
               <Button asChild variant="outline" size="sm" data-testid="lead-edit">
-                <Link to="/clienti-potentiali/$leadId/editare" params={{ leadId: lead.id }}>
+                <Link to="/oferte/$leadId/editare" params={{ leadId: lead.id }}>
                   <Pencil aria-hidden="true" />
                   <span className="@max-md:sr-only">Modifică</span>
                 </Link>
@@ -105,7 +105,7 @@ function LeadPage() {
         <Notice
           variant="warning"
           data-testid="lead-archived-banner"
-          title="Client potențial arhivat"
+          title="Ofertă arhivată"
           action={
             <Button
               variant="outline"
@@ -119,8 +119,8 @@ function LeadPage() {
             </Button>
           }
         >
-          Datele și notițele lui pot fi citite, dar nu modificate, și nu poate fi transformat în
-          client până nu este reactivat.
+          Datele și notițele ei pot fi citite, dar nu modificate, iar oferta nu poate fi
+          transformată în client până nu este reactivată.
         </Notice>
       )}
       <div className="grid gap-6">
@@ -134,7 +134,7 @@ function LeadPage() {
           editor={(children, testId) => (
             <Button asChild variant="outline" size="sm">
               <Link
-                to="/clienti-potentiali/$leadId/contract"
+                to="/oferte/$leadId/contract"
                 params={{ leadId: lead.id }}
                 state={{ openedFromList: true }}
                 data-testid={testId}

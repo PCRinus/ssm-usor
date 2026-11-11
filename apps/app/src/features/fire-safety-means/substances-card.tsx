@@ -67,7 +67,7 @@ const failureMessage = (cause: unknown, fallback: string) => {
     return 'Clientul are substanțe în listă; șterge-le înainte să declari că nu utilizează niciuna.';
   }
   if (status === 409 && reason === 'client_is_lead') {
-    return 'Un client potențial nu are încă date SU.';
+    return 'O ofertă nu are încă date SU.';
   }
   if (status === 409) return 'Clientul este arhivat; datele lui nu se mai schimbă.';
   if (status === 404) return 'Substanța nu mai există la acest client; lista a fost reîncărcată.';

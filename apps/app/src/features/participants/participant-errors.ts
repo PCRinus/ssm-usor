@@ -46,7 +46,7 @@ const requestReasons: Record<string, string> = {
   [participantErrorReasons.invitationRevoked]: 'Invitația a fost revocată între timp.',
   client_archived: 'Clientul este arhivat; nu i se mai trimit invitații în portal.',
   client_is_lead:
-    'Clientul este încă un client potențial. Transformă-l în client înainte de a invita pe cineva în portal.',
+    'Clientul este încă o ofertă. Transformă-o în client înainte de a invita pe cineva în portal.',
 };
 
 const savedReasons = new Set<string>([

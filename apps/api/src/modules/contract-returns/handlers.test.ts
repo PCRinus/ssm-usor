@@ -251,7 +251,7 @@ describe('the return link', () => {
       clientName: 'S.C. VELOCITA URBANA S.R.L.',
       contractNumber: 51,
       contractDate: '2026-02-15',
-      leadUrl: `https://app.ssmusor.ro/clienti-potentiali/${clientId}`,
+      leadUrl: `https://app.ssmusor.ro/oferte/${clientId}`,
     });
   });
 

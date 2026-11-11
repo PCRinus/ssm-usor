@@ -16,7 +16,7 @@ import { NotFound, RouteError } from '@/app/route-states';
 
 // A lead is a client in an earlier stage (ADR 007), read through the same route. The
 // policies hide it from anyone who is not an owner, for whom the API answers 404.
-export const Route = createFileRoute('/_authenticated/clienti-potentiali/$leadId')({
+export const Route = createFileRoute('/_authenticated/oferte/$leadId')({
   params: { parse: (params) => ({ leadId: z.uuid().parse(params.leadId) }) },
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
     const userId = auth.getSnapshot().session?.user.id;
@@ -65,8 +65,8 @@ function LeadNotFound() {
   return (
     <NotFound
       testId="lead-not-found"
-      title="Clientul potențial nu a fost găsit"
-      description="Nu există niciun client potențial cu acest identificator în organizația ta, sau contul tău nu este de admin."
+      title="Oferta nu a fost găsită"
+      description="Nu există nicio ofertă cu acest identificator în organizația ta, sau contul tău nu este de admin."
       action={
         <Button size="lg" asChild>
           <Link to="/clienti">Înapoi la clienți</Link>
@@ -77,11 +77,5 @@ function LeadNotFound() {
 }
 
 function LeadError({ error }: ErrorComponentProps) {
-  return (
-    <RouteError
-      error={error}
-      testId="lead-error"
-      title="Clientul potențial nu a putut fi încărcat"
-    />
-  );
+  return <RouteError error={error} testId="lead-error" title="Oferta nu a putut fi încărcată" />;
 }

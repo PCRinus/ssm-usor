@@ -410,23 +410,23 @@ const contractTargets: Record<MissingServiceContractData, { client: string; lead
   },
   'client.tradeRegisterNumber': {
     client: `${details}company-trade-register`,
-    lead: `/clienti-potentiali/${clientId}?focus=company-trade-register`,
+    lead: `/oferte/${clientId}?focus=company-trade-register`,
   },
   'client.address': {
     client: `${details}company-address`,
-    lead: `/clienti-potentiali/${clientId}?focus=company-address`,
+    lead: `/oferte/${clientId}?focus=company-address`,
   },
   'client.representativeName': {
     client: `${details}legal-representative-name`,
-    lead: `/clienti-potentiali/${clientId}?focus=contract-representative-name`,
+    lead: `/oferte/${clientId}?focus=contract-representative-name`,
   },
   'client.representativeRole': {
     client: `${details}legal-representative-role`,
-    lead: `/clienti-potentiali/${clientId}?focus=contract-representative-role`,
+    lead: `/oferte/${clientId}?focus=contract-representative-role`,
   },
   'contract.details': {
     client: `/clienti/${clientId}/contract?focus=contract-details`,
-    lead: `/clienti-potentiali/${clientId}?focus=contract-details`,
+    lead: `/oferte/${clientId}?focus=contract-details`,
   },
 };
 

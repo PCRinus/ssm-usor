@@ -22,11 +22,11 @@ export const clientWording = {
     failed: 'Nu am putut salva clientul. Verifică conexiunea și încearcă din nou.',
   },
   lead: {
-    added: (name: string) => `${name} a fost adăugat printre clienții potențiali.`,
-    archived: 'Clientul potențial este arhivat; datele lui nu mai pot fi modificate.',
-    gone: 'Clientul potențial nu mai există în organizația ta.',
-    forbidden: 'Doar un admin al organizației lucrează cu clienții potențiali.',
-    failed: 'Nu am putut salva clientul potențial. Verifică conexiunea și încearcă din nou.',
+    added: (name: string) => `${name} a fost adăugată printre oferte.`,
+    archived: 'Oferta este arhivată; datele ei nu mai pot fi modificate.',
+    gone: 'Oferta nu mai există în organizația ta.',
+    forbidden: 'Doar un admin al organizației lucrează cu ofertele.',
+    failed: 'Nu am putut salva oferta. Verifică conexiunea și încearcă din nou.',
   },
 } as const;
 

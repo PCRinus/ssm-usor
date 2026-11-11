@@ -102,7 +102,7 @@ const to = {
   // Only the contract card on the same page links here, so it stays one entry of the history.
   lead: (leadId: string, focus: CompanyFocus | ContractFocus) =>
     linkOptions({
-      to: '/clienti-potentiali/$leadId',
+      to: '/oferte/$leadId',
       params: { leadId },
       search: { focus },
       replace: true,

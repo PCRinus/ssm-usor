@@ -1271,7 +1271,7 @@ describe('client archiving', () => {
 
   it.each([
     ['cui_taken_by_archived', 'Un client arhivat'],
-    ['cui_taken_by_lead', 'printre clienții potențiali'],
+    ['cui_taken_by_lead', 'printre ofertele'],
   ])('says where the company holding the CUI is: %s', async (reason, wording) => {
     mockApi({
       create: () => Response.json({ error: 'conflict', message: 'taken', reason }, { status: 409 }),

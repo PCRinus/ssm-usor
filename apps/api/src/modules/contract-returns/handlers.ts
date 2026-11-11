@@ -215,7 +215,7 @@ export const uploadContractReturn: RouteHandler<typeof uploadContractReturnRoute
     const page =
       found.client.stage === 'client'
         ? `/clienti/${found.client.id}/contract`
-        : `/clienti-potentiali/${found.client.id}`;
+        : `/oferte/${found.client.id}`;
     const leadUrl = new URL(page, appOrigin(c.env)).href;
     try {
       await c.env.MAIL.sendSignedCopyReceived({
