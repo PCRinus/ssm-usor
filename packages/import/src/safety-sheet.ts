@@ -80,8 +80,12 @@ export function safetySheetRequest(
 }
 
 const sectionWord =
-  /(?:sec[țţt]iunea|section|sektion|abschnitt|rubrique|sezione|secci[óo]n|sekcja|odd[íi]l|szakasz|rubriek)\s*:?\s*(\d{1,2})(?!\d)/giu;
-const subsection = /^\s*(\d{1,2})\.(\d{1,2})\.?\s+\S/gmu;
+  /(?:sec[țţt]iunea|section|sektion|abschnitt|rubrique|sezione|secci[óo]n|sekcja|odd[íi]l|szakasz|rubriek)[ \t]{0,3}:?[ \t]{0,3}(\d{1,2})(?!\d)/giu;
+const subsection = /^[ \t]*(\d{1,2})\.(\d{1,2})\.?[ \t]+\S/gmu;
+// A heading written as a bare number: "1. IDENTIFICAREA SUBSTANȚEI", "2 Hazards identification".
+const capitalHeading = /^[ \t]*(\d{1,2})[.:]?[ \t]+\p{Lu}{4,}/gmu;
+const titledHeading =
+  /^[ \t]*(\d{1,2})[.:]?[ \t]+(?:(?:identifica|pericol|hazard|compozi|composition|prim ajutor|first.aid|m[ăa]suri|incendi|fire|dispersi|accidental|manipul|handling|control|expuner|exposure|propriet|properties|stabilit|toxicolog|ecolog|elimin|disposal|transport|reglement|regulatory|alte informa|other information))/gimu;
 
 export function safetySheetSections(text: string) {
   const found = new Set<number>();
@@ -91,6 +95,8 @@ export function safetySheetSections(text: string) {
   };
   for (const match of text.matchAll(sectionWord)) add(match[1]!);
   for (const match of text.matchAll(subsection)) add(match[1]!);
+  for (const match of text.matchAll(capitalHeading)) add(match[1]!);
+  for (const match of text.matchAll(titledHeading)) add(match[1]!);
   return found;
 }
 
@@ -99,29 +105,46 @@ export const hasSafetySheetStructure = (text: string) => safetySheetSections(tex
 
 const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+// Dashes and line breaks a PDF's layout puts inside a CAS or EC number, and the runs of spaces it
+// pads tables with, which the patterns below would otherwise backtrack over.
+export function normalizeCodes(text: string) {
+  return text
+    .replace(/[‐-―−﹣－]/g, '-')
+    .replace(/\s+/g, ' ')
+    .replace(/(\d) ?- ?(?=\d)/g, '$1-');
+}
+
+const unLabel = String.raw`(?:UN|ONU)(?:[-:. ]{0,3}(?:nr|no|Nr|No|NO|number|Number|număr(?:ul)?|Număr(?:ul)?)\.?)?[-:. ]{0,3}`;
+
+const suffixPattern = (suffix: string) =>
+  [...suffix].map((letter) => `[${letter.toLowerCase()}${letter.toUpperCase()}]`).join('');
+
 function inFile(text: string) {
-  const has = (pattern: string) => new RegExp(pattern, 'iu').test(text);
+  const normalized = normalizeCodes(text);
+  const has = (pattern: string) => new RegExp(pattern, 'u').test(normalized);
   return {
     statement: (prefix: string, digits: string, suffix: string) =>
-      has(`(?<![A-Za-z])${prefix}\\s?${digits}${escape(suffix)}(?![0-9])`),
+      has(`(?<![A-Za-z])${prefix} ?${digits}${suffixPattern(suffix)}(?![0-9A-Za-z])`),
     number: (value: string) => has(`(?<![\\d-])${escape(value)}(?![\\d-])`),
+    un: (value: string) => has(`(?<![A-Za-z])${unLabel}${escape(value)}(?!\\d)`),
   };
 }
 
-const statementCode = /(?<![A-Za-z])(EUH|H)\s?(\d{3})([A-Za-z]{0,2})(?![0-9A-Za-z])/gu;
+const statementCode = /(?<![A-Za-z])(EUH|H) ?(\d{3})([A-Za-z]{0,2})(?![0-9A-Za-z])/gu;
 const casFormat = /^\d{2,7}-\d{2}-\d$/;
 const ecFormat = /^\d{3}-\d{3}-\d$/;
 
 // Every code-like token a free text may hold, with the label in front of it, so a dropped code
-// takes its label along.
+// takes its label along. Run on normalized text: every space in it is a single one.
 const codeInText =
-  /(?:\b(?:CAS|EC|CE|EINECS|UN|ONU)\b\s*(?:nr\.?|no\.?|number|număr(?:ul)?)?\s*[:.]?\s*)?(?<![\d-])(?:(\d{2,7}-\d{2}-\d)|(\d{3}-\d{3}-\d))(?![\d-])|(?<![A-Za-z])(EUH|H)\s?(\d{3})([A-Za-z]{0,2})(?![0-9A-Za-z])|\b(?:UN|ONU)\s*(\d{4})(?!\d)/gu;
+  /(?:\b(?:CAS|EC|CE|EINECS)\b(?: ?(?:nr\.?|no\.?|number|număr(?:ul)?))? ?[:.]? ?)?(?<![\d-])(?:(\d{2,7}-\d{2}-\d)|(\d{3}-\d{3}-\d))(?![\d-])|(?<![A-Za-z])(EUH|H) ?(\d{3})([A-Za-z]{0,2})(?![0-9A-Za-z])|\b(?:UN|ONU)(?:[-:. ]{0,3}(?:nr|no|Nr|No|number|număr(?:ul)?)\.?)?[-:. ]{0,3}(\d{4})(?!\d)/gu;
 
 function tidy(value: string) {
   return value
     .replace(/\(\s*[,;]?\s*\)/g, '')
     .replace(/\s+([,;.:)])/g, '$1')
     .replace(/([,;:])(?:\s*[,;:])+/g, '$1')
+    .replace(/[,;:]+(?=\.)/g, '')
     .replace(/\s{2,}/g, ' ')
     .replace(/^[\s,;:.]+|[\s,;:]+$/g, '')
     .trim();
@@ -129,7 +152,7 @@ function tidy(value: string) {
 
 function guardText(value: string, file: ReturnType<typeof inFile>) {
   let dropped = 0;
-  const kept = value.replace(
+  const kept = normalizeCodes(value).replace(
     codeInText,
     (
       whole,
@@ -142,7 +165,9 @@ function guardText(value: string, file: ReturnType<typeof inFile>) {
     ) => {
       const present = prefix
         ? file.statement(prefix, digits!, suffix ?? '')
-        : file.number((cas ?? ec ?? un)!);
+        : un
+          ? file.un(un)
+          : file.number((cas ?? ec)!);
       if (present) return whole;
       dropped += 1;
       return '';
@@ -165,6 +190,10 @@ const finish = (value: string, max: number) => {
   return clipped.length >= 2 ? clipped : null;
 };
 
+const casLabel = /^\s*CAS\b[^\d]*/i;
+const ecLabel = /^\s*(?:EC|CE|EINECS)\b[^\d]*/i;
+const unNumberLabel = /^\s*(?:UN|ONU)\b[^\d]*/i;
+
 export const notClassifiedText = 'Neclasificat conform Regulamentului (CE) nr. 1272/2008';
 
 export type SafetySheetReading =
@@ -184,11 +213,14 @@ export function readSafetySheetAnswer(answer: SafetySheetAnswer, text: string): 
 
   const hazards = answer.hazards.flatMap((hazard) => {
     const codes = hazard.statements.flatMap((statement) =>
-      [...statement.matchAll(statementCode)].flatMap(([, prefix, digits, suffix]) => {
-        if (file.statement(prefix!, digits!, suffix ?? '')) return [`${prefix}${digits}${suffix}`];
-        dropped += 1;
-        return [];
-      })
+      [...normalizeCodes(statement).matchAll(statementCode)].flatMap(
+        ([, prefix, digits, suffix]) => {
+          if (file.statement(prefix!, digits!, suffix ?? ''))
+            return [`${prefix}${digits}${suffix}`];
+          dropped += 1;
+          return [];
+        }
+      )
     );
     const hazardClass = guard(hazard.hazardClass);
     const parts = [hazardClass, [...new Set(codes)].join(', ')].filter(Boolean);
@@ -197,21 +229,21 @@ export function readSafetySheetAnswer(answer: SafetySheetAnswer, text: string): 
   const classification =
     hazards.length > 0 ? hazards.join('; ') : answer.notClassified ? notClassifiedText : '';
 
-  const checkedNumber = (value: string, format: RegExp) => {
-    const number = value.replace(/\s+/g, '');
+  const checkedNumber = (value: string, format: RegExp, label: RegExp, found = file.number) => {
+    const number = normalizeCodes(value).replace(label, '').replace(/\s+/g, '');
     if (number === '') return null;
-    if (format.test(number) && file.number(number)) return number;
+    if (format.test(number) && found(number)) return number;
     dropped += 1;
     return null;
   };
   const components = answer.components.flatMap((component) => {
-    const cas = checkedNumber(component.cas, casFormat);
-    const ec = checkedNumber(component.ec, ecFormat);
+    const cas = checkedNumber(component.cas, casFormat, casLabel);
+    const ec = checkedNumber(component.ec, ecFormat, ecLabel);
     const codes = [cas && `CAS ${cas}`, ec && `CE ${ec}`].filter(Boolean).join(', ');
     return codes ? [{ name: guard(component.name), codes }] : [];
   });
   const named = components.length > 1;
-  const un = checkedNumber(answer.unNumber.replace(/^(?:UN|ONU)\s*/i, ''), /^\d{4}$/);
+  const un = checkedNumber(answer.unNumber, /^\d{4}$/, unNumberLabel, file.un);
   const identificationCodes = [
     ...components.map(({ name, codes }) => (named && name ? `${name}: ${codes}` : codes)),
     ...(un ? [`UN ${un}`] : []),

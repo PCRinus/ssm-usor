@@ -179,6 +179,124 @@ describe('readSafetySheetAnswer', () => {
   });
 });
 
+describe('the guard on codes, against what a real file and a real answer hold', () => {
+  it('finishes fast on a label followed by a long run of spaces', () => {
+    const padded = `Etanol CAS${' '.repeat(20_000)}x; EC${'\n'.repeat(20_000)}y`;
+    const started = performance.now();
+
+    const { draft } = draftOf(
+      readSafetySheetAnswer(answer({ physicalChemicalProperties: padded }), sheetText)
+    );
+
+    expect(performance.now() - started).toBeLessThan(500);
+    expect(draft.physicalChemicalProperties).toBe('Etanol CAS x; EC y');
+  });
+
+  it('takes a UN number only where the file names it as one', () => {
+    const file = `${sheetText}\nRevizuită în 2019 după Regulamentul (CE) nr. 1272/2008.`;
+    const read = (unNumber: string, text = '') =>
+      draftOf(
+        readSafetySheetAnswer(
+          answer({ components: [], unNumber, healthEnvironmentRisks: text }),
+          file
+        )
+      );
+
+    expect(read('1272')).toMatchObject({ draft: { identificationCodes: null }, droppedCodes: 1 });
+    expect(read('2019').draft.identificationCodes).toBeNull();
+    expect(read('UN 1993').draft.identificationCodes).toBe('UN 1993');
+    expect(read('', 'Vapori inflamabili, UN 1272.')).toMatchObject({
+      draft: { healthEnvironmentRisks: 'Vapori inflamabili.' },
+      droppedCodes: 1,
+    });
+  });
+
+  it('reads a UN number the file writes with its label in other ways', () => {
+    for (const written of ['UN-Nr. 1993', 'UN No. 1993', 'UN number: 1993', 'UN1993']) {
+      const file = sheetText.replace('Numărul ONU: UN 1993', written);
+      expect(
+        draftOf(readSafetySheetAnswer(answer({ components: [] }), file)).draft.identificationCodes
+      ).toBe('UN 1993');
+    }
+  });
+
+  it('matches an H statement whole and by its capital letter', () => {
+    const file = `${sheetText}\nRepr. 1B, H360FD. Timp de expunere: 2 h 228 min.`;
+    const read = (statements: string[]) =>
+      draftOf(
+        readSafetySheetAnswer(answer({ hazards: [{ hazardClass: 'Repr. 1B', statements }] }), file)
+      );
+
+    expect(read(['H360F'])).toMatchObject({
+      draft: { classification: 'Repr. 1B' },
+      droppedCodes: 1,
+    });
+    expect(read(['H360FD']).draft.classification).toBe('Repr. 1B, H360FD');
+    expect(read(['H228'])).toMatchObject({
+      draft: { classification: 'Repr. 1B' },
+      droppedCodes: 1,
+    });
+  });
+
+  it('keeps a CAS or EC number the layout wrote with a dash, a break or a label', () => {
+    const file = sheetText
+      .replace('CAS 64-17-5', 'CAS 64–17–5')
+      .replace('CE 200-578-6', 'CE 200-578-\n     6')
+      .replace('CAS 67-63-0', 'CAS 67‑63‑0');
+    const { draft, droppedCodes } = draftOf(
+      readSafetySheetAnswer(
+        answer({
+          components: [
+            { name: 'Etanol', cas: 'CAS: 64-17-5', ec: 'CE nr. 200-578-6' },
+            { name: 'Propan-2-ol', cas: '67–63–0', ec: 'EC 200-661-7' },
+          ],
+          unNumber: 'UN 1993',
+        }),
+        file
+      )
+    );
+
+    expect(droppedCodes).toBe(0);
+    expect(draft.identificationCodes).toBe(
+      'Etanol: CAS 64-17-5, CE 200-578-6; Propan-2-ol: CAS 67-63-0, CE 200-661-7; UN 1993'
+    );
+  });
+});
+
+describe('safetySheetSections, headings with no section word', () => {
+  it('counts plain numbered heading lines', () => {
+    const titles = [
+      'IDENTIFICAREA SUBSTANȚEI/AMESTECULUI ȘI A SOCIETĂȚII',
+      'IDENTIFICAREA PERICOLELOR',
+      'COMPOZIȚIE/INFORMAȚII PRIVIND COMPONENȚII',
+      'Măsuri de prim ajutor',
+      'MĂSURI DE COMBATERE A INCENDIILOR',
+      'MĂSURI DE LUAT ÎN CAZ DE DISPERSIE ACCIDENTALĂ',
+      'MANIPULAREA ȘI DEPOZITAREA',
+      'CONTROALE ALE EXPUNERII',
+      'Proprietățile fizice și chimice',
+      'STABILITATE ȘI REACTIVITATE',
+      'INFORMAȚII TOXICOLOGICE',
+      'INFORMAȚII ECOLOGICE',
+      'CONSIDERAȚII PRIVIND ELIMINAREA',
+      'INFORMAȚII REFERITOARE LA TRANSPORT',
+      'INFORMAȚII DE REGLEMENTARE',
+      'ALTE INFORMAȚII',
+    ];
+    const plain = titles
+      .map((title, index) => `${index + 1}${index % 2 ? '.' : ''} ${title}\n   text`)
+      .join('\n');
+
+    expect(safetySheetSections(plain).size).toBe(16);
+    expect(hasSafetySheetStructure(plain)).toBe(true);
+  });
+
+  it('still finds no structure in numbered lines of another document', () => {
+    const decision = '1. Se numește dl Ion\n2. Se aprobă\n3. Prezenta decizie';
+    expect(hasSafetySheetStructure(decision)).toBe(false);
+  });
+});
+
 describe('clipText', () => {
   it('cuts at the last phrase that fits', () => {
     expect(clipText('unu doi; trei patru; cinci șase', 22)).toBe('unu doi; trei patru');
