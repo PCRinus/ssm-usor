@@ -35,6 +35,7 @@ function fakePostHog() {
   return {
     opt_in_capturing: vi.fn(),
     startSessionRecording: vi.fn(),
+    stopSessionRecording: vi.fn(),
     identify: vi.fn(),
     resetGroups: vi.fn(),
     unregister: vi.fn(),
@@ -363,6 +364,8 @@ describe('reporting a problem with an import', () => {
         impersonation: {
           targetMemberId: 'user-one',
           targetOrganizationId: meResponse.membership.organization.id,
+          expiresAt: new Date(Date.now() + 60 * 60_000).toISOString(),
+          targetName: 'Ana Popescu',
         },
       };
       mockImport(detail);

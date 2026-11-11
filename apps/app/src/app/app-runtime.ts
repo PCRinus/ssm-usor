@@ -3,6 +3,7 @@ import type { RouterHistory } from '@tanstack/react-router';
 
 import type { ApiRequestOptions } from '@/api/http';
 import { type AuthClient, createAuthStore } from '@/features/auth/auth-store';
+import { watchEffectiveIdentity } from '@/features/impersonation/identity';
 import { createQueryClient } from '@/lib/query-client';
 
 import { createAppRouter } from './router';
@@ -20,6 +21,7 @@ export function createAppRuntime(
     getAccessToken: () => auth.getAccessToken(),
   };
   const router = createAppRouter({ auth, queryClient, apiRequest }, history);
+  const unwatchIdentity = watchEffectiveIdentity(queryClient);
   // Route guards read the session at navigation time only. When the signed-in user changes
   // (sign-out, another tab, a different account) re-run them so protected pages disappear.
   let userId = auth.getSnapshot().session?.user.id;
@@ -42,6 +44,7 @@ export function createAppRuntime(
     dispose() {
       disposed = true;
       unsubscribe();
+      unwatchIdentity();
       auth.dispose();
       queryClient.clear();
     },
