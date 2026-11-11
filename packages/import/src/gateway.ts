@@ -22,10 +22,16 @@ export interface CompletionRequest<T> {
   maxCompletionTokens: number;
   // `part` names the library part a request reads for (ADR 034), as `instructions_ssm`;
   // `purpose` marks a test run's requests in the gateway's logs (docs/import-test-runs.md). A
-  // reading outside an import names what it reads and for which client instead (ADR 042).
-  metadata:
-    | { organizationId: string; importId: string; part?: string; purpose?: 'test-run' }
-    | { organizationId: string; reading: 'safety_sheet'; clientId: string };
+  // reading outside an import has no `importId` and names what it reads and for which client
+  // instead (ADR 042).
+  metadata: {
+    organizationId: string;
+    importId?: string;
+    part?: string;
+    purpose?: 'test-run';
+    reading?: 'safety_sheet';
+    clientId?: string;
+  };
 }
 
 export interface Completion<T> {
