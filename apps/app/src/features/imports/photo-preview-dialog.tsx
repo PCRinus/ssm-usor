@@ -15,7 +15,15 @@ import {
   LoaderCircle,
   X,
 } from 'lucide-react';
-import { Fragment, type ReactNode, useCallback, useEffect, useEffectEvent, useState } from 'react';
+import {
+  Fragment,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+} from 'react';
 
 import { pagesLabel } from './import-format';
 import type { SelectedFile } from './upload-selection';
@@ -36,6 +44,7 @@ export function PhotoPreviewDialog({
   onClose,
   onRemove,
   actions,
+  strip,
 }: {
   photos: PreviewPhoto[];
   current: string | null;
@@ -43,6 +52,7 @@ export function PhotoPreviewDialog({
   onClose: () => void;
   onRemove?: (key: string) => void;
   actions?: (key: string) => ReactNode;
+  strip?: (key: string) => ReactNode;
 }) {
   const index = photos.findIndex((photo) => photo.key === current);
   return (
@@ -55,6 +65,7 @@ export function PhotoPreviewDialog({
           onClose={onClose}
           onRemove={onRemove}
           actions={actions}
+          strip={strip}
         />
       )}
     </Dialog>
@@ -68,6 +79,7 @@ function PreviewContent({
   onClose,
   onRemove,
   actions,
+  strip,
 }: {
   photos: PreviewPhoto[];
   index: number;
@@ -75,6 +87,7 @@ function PreviewContent({
   onClose: () => void;
   onRemove?: (key: string) => void;
   actions?: (key: string) => ReactNode;
+  strip?: (key: string) => ReactNode;
 }) {
   const photo = photos[index]!;
   const step = (to: number) => {
@@ -102,6 +115,12 @@ function PreviewContent({
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
+
+  if (strip) {
+    return (
+      <WideContent photos={photos} index={index} step={step} onClose={onClose} strip={strip} />
+    );
+  }
 
   return (
     <DialogContent
@@ -165,6 +184,153 @@ function PreviewContent({
         </div>
       </div>
     </DialogContent>
+  );
+}
+
+function PreviewHeader({
+  photo,
+  index,
+  total,
+  onClose,
+}: {
+  photo: PreviewPhoto;
+  index: number;
+  total: number;
+  onClose: () => void;
+}) {
+  return (
+    <div className="flex items-start gap-3 border-b py-3 pr-3 pl-4 sm:pl-5">
+      <div className="grid min-w-0 flex-1 gap-0.5 pt-1">
+        <DialogTitle className="text-base leading-snug wrap-anywhere">{photo.name}</DialogTitle>
+        <DialogDescription className="text-[13px]">
+          {photo.detail ?? `Fotografia ${index + 1} din ${total}`}
+        </DialogDescription>
+      </div>
+      <Button variant="ghost" size="icon" aria-label="Închide" onClick={onClose}>
+        <X aria-hidden="true" />
+      </Button>
+    </div>
+  );
+}
+
+const swipeDistance = 60;
+
+function scrollsSideways(target: EventTarget | null) {
+  for (let node = target as HTMLElement | null; node; node = node.parentElement) {
+    if (node.dataset.testid === 'photo-preview-view') return false;
+    if (node.scrollWidth > node.clientWidth + 1) return true;
+  }
+  return false;
+}
+
+function WideContent({
+  photos,
+  index,
+  step,
+  onClose,
+  strip,
+}: {
+  photos: PreviewPhoto[];
+  index: number;
+  step: (to: number) => void;
+  onClose: () => void;
+  strip: (key: string) => ReactNode;
+}) {
+  const photo = photos[index]!;
+  const touch = useRef<{ x: number; y: number; zoomed: boolean } | null>(null);
+  const first = index === 0;
+  const last = index >= photos.length - 1;
+  return (
+    <DialogContent
+      data-testid="photo-preview"
+      showCloseButton={false}
+      className="flex h-svh max-h-svh w-full max-w-full flex-col gap-0 overflow-hidden rounded-none border-0 p-0 sm:h-[min(860px,calc(100svh-2.5rem))] sm:max-h-[calc(100svh-2.5rem)] sm:max-w-[min(1320px,calc(100vw-2.5rem))] sm:rounded-lg sm:border"
+    >
+      <PreviewHeader photo={photo} index={index} total={photos.length} onClose={onClose} />
+      <div
+        className="relative min-h-0 flex-1 overflow-hidden bg-muted/60"
+        data-testid="photo-preview-view"
+        onTouchStart={(event) => {
+          const point = event.touches[0];
+          touch.current =
+            point && event.touches.length === 1
+              ? { x: point.clientX, y: point.clientY, zoomed: scrollsSideways(event.target) }
+              : null;
+        }}
+        onTouchEnd={(event) => {
+          const start = touch.current;
+          const point = event.changedTouches[0];
+          touch.current = null;
+          if (!start || !point || start.zoomed) return;
+          const dx = point.clientX - start.x;
+          const dy = point.clientY - start.y;
+          if (Math.abs(dx) < swipeDistance || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+          step(index + (dx < 0 ? 1 : -1));
+        }}
+      >
+        <Fragment key={photo.key}>{photo.view}</Fragment>
+        <EdgeArrow side="previous" disabled={first} onClick={() => step(index - 1)} />
+        <EdgeArrow side="next" disabled={last} onClick={() => step(index + 1)} />
+      </div>
+      <div className="flex min-w-0 items-center gap-4 border-t px-3 py-2 sm:px-5 sm:py-2.5">
+        <div className="flex shrink-0 items-center gap-1.5 max-sm:hidden">
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Fotografia anterioară"
+            data-testid="photo-preview-previous"
+            disabled={first}
+            onClick={() => step(index - 1)}
+          >
+            <ChevronLeft aria-hidden="true" />
+          </Button>
+          <span
+            className="min-w-16 text-center text-sm text-muted-foreground tabular-nums"
+            data-testid="photo-preview-position"
+          >
+            {index + 1} din {photos.length}
+          </span>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Fotografia următoare"
+            data-testid="photo-preview-next"
+            disabled={last}
+            onClick={() => step(index + 1)}
+          >
+            <ChevronRight aria-hidden="true" />
+          </Button>
+        </div>
+        <div className="min-w-0 flex-1">{strip(photo.key)}</div>
+      </div>
+    </DialogContent>
+  );
+}
+
+function EdgeArrow({
+  side,
+  disabled,
+  onClick,
+}: {
+  side: 'previous' | 'next';
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  if (disabled) return null;
+  const Icon = side === 'previous' ? ChevronLeft : ChevronRight;
+  return (
+    <Button
+      variant="outline"
+      size="icon"
+      aria-label={side === 'previous' ? 'Fotografia anterioară' : 'Fotografia următoare'}
+      className={cn(
+        'absolute top-1/2 size-11 -translate-y-1/2 rounded-full bg-card shadow-md sm:hidden',
+        side === 'previous' ? 'left-3' : 'right-3'
+      )}
+      onClick={onClick}
+    >
+      <Icon aria-hidden="true" />
+    </Button>
   );
 }
 

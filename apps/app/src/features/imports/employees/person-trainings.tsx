@@ -6,7 +6,6 @@ import {
   trainingPhaseLabels,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Card } from '@ssm-usor/ui/components/card';
 import {
   Dialog,
   DialogBody,
@@ -20,16 +19,18 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { type FormEvent, type ReactNode, useState } from 'react';
+import { CalendarCheck, FileImage, GraduationCap, Pencil } from 'lucide-react';
+import { type FormEvent, type MouseEvent, type ReactNode, useState } from 'react';
 
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { roCount } from '@/features/employees/employee-format';
 
 import { Includable } from '../include-switch';
-import { Tag } from '../review-parts';
+import { Fact, Facts, SectionHeader, Tag } from '../review-parts';
 import {
   type Changes,
+  type Decision,
   type DomainTrainings,
   heldWith,
   isExisting,
@@ -49,7 +50,8 @@ import {
   trainingsByDomain,
   withRow,
 } from './employee-review-model';
-import { PageButton } from './photo-column';
+import { PhotoNumber, PhotoNumbers } from './person-photos';
+import { domainPhotos, trainingSectionId } from './person-sections';
 import { dateLabel, durationLabel, trainingsLabel } from './review-format';
 
 type Update = (mutate: (current: Changes) => Changes) => void;
@@ -97,12 +99,19 @@ function rowNote(row: SheetRow, values: RowValues, included: boolean, who: strin
   return notes.length > 0 ? notes.join(' ') : null;
 }
 
+const editTarget = (event: MouseEvent) =>
+  !(event.target as HTMLElement).closest('button, a, input, textarea, select, label');
+
+const rowLine =
+  'col-span-full grid scroll-mt-24 grid-cols-subgrid items-start gap-y-1 border-t px-5 py-2.5 outline-none focus-visible:bg-secondary/60';
+
 function TrainingRow({
   context,
   person,
   row,
   page,
   pages,
+  decision,
   onEdit,
   onChange,
 }: {
@@ -111,6 +120,7 @@ function TrainingRow({
   row: SheetRow;
   page: SheetPage;
   pages: SheetPage[];
+  decision: Decision | undefined;
   onEdit: (row: SheetRow) => void;
   onChange: Update;
 }) {
@@ -122,17 +132,25 @@ function TrainingRow({
   const include = (next: boolean) =>
     onChange((current) => withRow(current, row.id, (change) => ({ ...change, included: next })));
   const note = rowNote(row, values, included, personName(context, person));
-  const missing = (value: unknown, label: string) =>
-    value === null || value === '' ? (
-      <Tag tone={included ? 'destructive' : 'muted'} className="whitespace-normal">
-        {label}
-      </Tag>
-    ) : null;
+  const missing = (label: string) => (
+    <Tag tone={included ? 'destructive' : 'muted'} className="whitespace-normal">
+      {label}
+    </Tag>
+  );
+  const trainer = trainerText(values);
+  const gap =
+    values.heldOn === null || values.durationMinutes === null || !trainer || !values.material;
   return (
     <li
-      className={cn('grid gap-1 py-2.5', !included && 'text-muted-foreground')}
+      id={`row-${row.id}`}
+      tabIndex={-1}
+      className={cn(
+        rowLine,
+        included ? 'cursor-pointer hover:bg-secondary/50' : 'text-muted-foreground'
+      )}
       data-testid="person-training-row"
       data-included={included}
+      onClick={(event) => included && editTarget(event) && onEdit(row)}
     >
       <Includable
         id={`include-row-${row.id}`}
@@ -142,64 +160,85 @@ function TrainingRow({
         agreement="feminine"
         testId="person-row-include"
         onChange={include}
+        collapsed={(toggle) => (
+          <>
+            <span className="col-start-2 col-end-[-2] row-start-1 flex min-h-6 items-center text-sm font-medium">
+              {name}
+            </span>
+            <span className="col-start-[-2] row-start-1 flex h-6 items-center">{toggle}</span>
+          </>
+        )}
       >
         {(toggle) => (
           <>
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 sm:grid-cols-[1.5rem_6.5rem_5rem_minmax(0,1fr)_auto_auto]">
-              <span className="col-start-1 row-start-1 flex flex-wrap items-center gap-1.5 text-sm tabular-nums sm:col-start-2">
-                {date ?? missing(null, 'Data nu se citește')}
-              </span>
-              <span className="col-start-2 row-start-1 flex h-6 items-center sm:col-start-6">
-                {toggle}
-              </span>
-              <span className="order-last col-span-2 flex items-center gap-3 sm:contents">
-                <span className="flex sm:col-start-1 sm:row-start-1">
-                  <PageButton pages={pages} pageId={page.id} />
+            <span className="col-start-1 row-start-1 flex">
+              <PhotoNumber pages={pages} pageId={page.id} />
+            </span>
+            <span className="col-start-2 row-start-1 grid min-w-0 gap-0.5 text-sm lg:contents">
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-1 lg:contents">
+                <span className="flex min-h-6 items-center font-semibold tabular-nums lg:col-start-2 lg:font-normal">
+                  {date ?? missing('Data nu se citește')}
                 </span>
-                <span className="flex sm:col-start-5 sm:row-start-1">
-                  <Button
-                    type="button"
-                    variant="link"
-                    size="sm"
-                    className="h-6 px-1"
-                    onClick={() => onEdit(row)}
-                  >
-                    Schimbă
-                    <span className="sr-only"> instruirea din {date ?? 'data necitită'}</span>
-                  </Button>
+                <span className="flex min-h-6 items-center tabular-nums lg:col-start-3">
+                  {durationLabel(values.durationMinutes) ?? missing('Durata nu se citește')}
                 </span>
               </span>
               {row.phase !== 'periodic' && (
-                <span className="col-span-2 text-sm sm:hidden">
-                  {trainingPhaseLabels[row.phase]}
-                </span>
+                <span className="lg:hidden">{trainingPhaseLabels[row.phase]}</span>
               )}
-              <span className="col-span-2 flex flex-wrap items-center gap-1.5 text-sm tabular-nums sm:col-span-1 sm:col-start-3 sm:row-start-1">
-                {durationLabel(values.durationMinutes) ?? missing(null, 'Durata nu se citește')}
+              <span className="flex min-h-6 items-center lg:col-start-4">
+                {trainer || missing('Instructorul nu se citește')}
               </span>
-              <span className="col-span-2 text-sm sm:col-span-1 sm:col-start-4 sm:row-start-1">
-                {trainerText(values) || missing(null, 'Instructorul nu se citește')}
-              </span>
-              <span className="col-span-2 grid gap-1 text-sm sm:col-start-2 sm:col-end-5">
-                <span className="line-clamp-2">
-                  {row.phase === 'supplementary' && values.supplementaryReason
-                    ? `${supplementaryTrainingReasonLabels[values.supplementaryReason as SupplementaryTrainingReason] ?? ''}. `
-                    : ''}
-                  {values.material ?? missing(null, 'Materialul lipsește')}
-                </span>
-                <span className="flex flex-wrap gap-1 empty:hidden">
+              <span className="grid min-w-0 gap-1 lg:col-start-5">
+                <span className="flex min-h-6 flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="text-muted-foreground lg:text-foreground">
+                    {row.phase === 'supplementary' && values.supplementaryReason
+                      ? `${supplementaryTrainingReasonLabels[values.supplementaryReason as SupplementaryTrainingReason] ?? ''}. `
+                      : ''}
+                    {values.material ?? missing('Materialul lipsește')}
+                  </span>
                   {row.flags.includes('unusual_duration') && included && (
                     <Tag tone="warning">Verifică pe fotografie</Tag>
                   )}
                   <RowTags row={row} included={included} />
+                  {decision && !gap && (
+                    <Tag tone="destructive" className="whitespace-normal">
+                      {decision.label}
+                    </Tag>
+                  )}
                 </span>
+                {note && <span className="text-[13px] text-muted-foreground">{note}</span>}
               </span>
-            </div>
-            {note && <p className="text-[13px] text-muted-foreground sm:pl-9">{note}</p>}
+            </span>
+            <span className="col-start-3 row-start-1 flex lg:col-start-6">
+              <EditRowButton
+                label={`Modifică instruirea din ${date ?? 'data necitită'}`}
+                onClick={() => onEdit(row)}
+              />
+            </span>
+            <span className="col-start-4 row-start-1 flex h-7 items-center lg:col-start-7">
+              {toggle}
+            </span>
           </>
         )}
       </Includable>
     </li>
+  );
+}
+
+function EditRowButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon-sm"
+      className="-my-0.5 text-muted-foreground"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+    >
+      <Pencil aria-hidden="true" />
+    </Button>
   );
 }
 
@@ -240,41 +279,47 @@ function TestLine({
         values: { ...change.values, [field]: value.trim() === '' ? null : value },
       }))
     );
-  const switchId = `include-test-${row.id}`;
   return (
     <div
-      className="rounded-lg bg-muted/50 px-3 py-2.5 text-sm"
+      id={`test-${row.id}`}
+      tabIndex={-1}
+      className={cn(rowLine, 'bg-muted/50 text-sm')}
       data-testid="person-test"
       data-included={included}
     >
       <Includable
-        id={switchId}
+        id={`include-test-${row.id}`}
         name={name}
         included={included}
         proposed={proposedTestIncluded(row, matched)}
         testId="person-test-include"
         onChange={take}
+        collapsed={(toggle) => (
+          <>
+            <span className="col-start-2 col-end-[-2] row-start-1 flex min-h-6 items-center font-medium text-muted-foreground">
+              {name}
+            </span>
+            <span className="col-start-[-2] row-start-1 flex h-6 items-center">{toggle}</span>
+          </>
+        )}
       >
         {(toggle) => (
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
-            <span className="col-start-1 row-start-1 font-medium">
-              Testul la angajare: verificat pe fișă
+          <>
+            <span className="col-start-1 row-start-1 flex">
+              <PhotoNumber pages={pages} pageId={page.id} />
             </span>
-            <span className="col-start-2 row-start-1 flex h-6 items-center sm:col-start-3">
-              {toggle}
-            </span>
-            <span className="order-last col-span-2 flex sm:col-span-1 sm:col-start-2 sm:row-start-1">
-              <PageButton pages={pages} pageId={page.id} />
-            </span>
-            <span className="col-span-2 grid gap-1 sm:col-span-3">
+            <span className="col-start-2 col-end-[-3] row-start-1 grid min-w-0 gap-1">
+              <span className="flex min-h-6 items-center font-semibold">
+                Testul la angajare: verificat pe fișă
+              </span>
               {inApp ? (
                 <span className="text-muted-foreground">Testul e deja promovat în aplicație.</span>
               ) : test.verified ? (
                 <span className="text-muted-foreground">
                   Examinator:{' '}
                   {[examinerName, examinerTitle].filter(Boolean).join(', ') || 'nu se citește'}.
-                  Semnătura e în rubrica «Verificat» a instruirii{' '}
-                  {trainingPhaseLabels[row.phase].toLowerCase()}
+                  Semnătura e în rubrica <span className="font-semibold">Verificat</span> a
+                  instruirii {trainingPhaseLabels[row.phase].toLowerCase()}
                   {heldOn ? ` din ${dateLabel(heldOn)}` : ''}.
                 </span>
               ) : (
@@ -306,7 +351,8 @@ function TestLine({
                 </span>
               )}
             </span>
-          </div>
+            <span className="col-start-[-2] row-start-1 flex h-7 items-center">{toggle}</span>
+          </>
         )}
       </Includable>
     </div>
@@ -317,29 +363,114 @@ function Admission({ row, page, pages }: { row: SheetRow; page: SheetPage; pages
   const admission = row.admission;
   if (!admission?.admittedOn) return null;
   return (
-    <div className="flex items-start justify-between gap-3 text-sm tabular-nums">
-      <span>
-        <span className="font-medium">Admis la lucru</span> la {dateLabel(admission.admittedOn)}
-        {admission.admittedByName &&
-          `, de ${[admission.admittedByName, admission.admittedByJobTitle].filter(Boolean).join(', ')}`}
+    <div className={cn(rowLine, 'text-sm tabular-nums')}>
+      <span className="col-start-1 row-start-1 flex">
+        <PhotoNumber pages={pages} pageId={page.id} />
       </span>
-      <PageButton pages={pages} pageId={page.id} />
+      <span className="col-start-2 col-end-[-1] row-start-1 flex min-h-6 items-center">
+        <span>
+          <span className="font-medium">Admis la lucru</span> la {dateLabel(admission.admittedOn)}
+          {admission.admittedByName &&
+            `, de ${[admission.admittedByName, admission.admittedByJobTitle].filter(Boolean).join(', ')}`}
+        </span>
+      </span>
     </div>
   );
 }
 
-function photoNumbers(pages: SheetPage[], own: SheetPage[]) {
-  const numbers = own.map((page) => pages.indexOf(page) + 1).filter((number) => number > 0);
-  if (numbers.length === 0) return '';
-  if (numbers.length === 1) return `fotografia ${numbers[0]}`;
-  return `fotografiile ${numbers.slice(0, -1).join(', ')} și ${numbers.at(-1)}`;
+function AnnualTest({
+  context,
+  row,
+  page,
+  pages,
+  label,
+  matched,
+  onEdit,
+  onChange,
+}: {
+  context: ReviewContext;
+  row: SheetRow;
+  page: SheetPage;
+  pages: SheetPage[];
+  label: string;
+  matched: boolean;
+  onEdit: (row: SheetRow) => void;
+  onChange: Update;
+}) {
+  const included = testIncluded(context.changes, row, matched);
+  const heldOn = rowValues(context.changes, row).heldOn;
+  const name = `Testul anual ${label}, la ${dateLabel(heldOn) ?? 'o dată necitită'}`;
+  const take = (next: boolean) =>
+    onChange((current) => withRow(current, row.id, (change) => ({ ...change, test: next })));
+  return (
+    <div
+      id={`test-${row.id}`}
+      tabIndex={-1}
+      className={cn(rowLine, 'bg-muted/50 text-sm', included && 'cursor-pointer')}
+      data-testid="person-annual-test"
+      data-included={included}
+      onClick={(event) => included && editTarget(event) && onEdit(row)}
+    >
+      <Includable
+        id={`include-test-${row.id}`}
+        name={name}
+        included={included}
+        proposed={proposedTestIncluded(row, matched)}
+        testId="person-annual-test-include"
+        onChange={take}
+        collapsed={(toggle) => (
+          <>
+            <span className="col-start-2 col-end-[-2] row-start-1 flex min-h-6 items-center font-medium text-muted-foreground">
+              {name}
+            </span>
+            <span className="col-start-[-2] row-start-1 flex h-6 items-center">{toggle}</span>
+          </>
+        )}
+      >
+        {(toggle) => (
+          <>
+            <span className="col-start-1 row-start-1 flex">
+              <PhotoNumber pages={pages} pageId={page.id} />
+            </span>
+            <span className="col-start-2 col-end-[-3] row-start-1 grid min-w-0 gap-1">
+              <span className="flex min-h-6 items-center">
+                <span>
+                  <span className="font-semibold">Testul anual {label}</span>, la{' '}
+                  {dateLabel(heldOn) ?? 'o dată necitită'}: promovat pe fișă
+                </span>
+              </span>
+              {!row.testOnly && (
+                <span
+                  className="text-muted-foreground"
+                  data-testid="person-annual-test-with-training"
+                >
+                  Scris pe fișă în rândul instruirii periodice din aceeași zi. Instruirea și testul
+                  se preiau fiecare cu comutatorul lor.
+                </span>
+              )}
+            </span>
+            <span className="col-start-[-3] row-start-1 flex">
+              <EditRowButton
+                label={`Modifică testul anual din ${dateLabel(heldOn) ?? 'data necitită'}`}
+                onClick={() => onEdit(row)}
+              />
+            </span>
+            <span className="col-start-[-2] row-start-1 flex h-7 items-center">{toggle}</span>
+          </>
+        )}
+      </Includable>
+    </div>
+  );
 }
+
+const rowDecisionKeys = (rowId: string) => [`row-${rowId}`, `test-${rowId}`, `test-date-${rowId}`];
 
 function DomainSection({
   context,
   person,
   domain,
   pages,
+  decisions,
   onEdit,
   onEditTest,
   onChange,
@@ -348,6 +479,7 @@ function DomainSection({
   person: Person;
   domain: DomainTrainings;
   pages: SheetPage[];
+  decisions: Decision[];
   onEdit: (row: SheetRow) => void;
   onEditTest: (row: SheetRow) => void;
   onChange: Update;
@@ -358,31 +490,49 @@ function DomainSection({
   const all = [...domain.hiring.rows, ...domain.periodic];
   const taken = all.filter(({ row }) => rowIncluded(context.changes, row, matched)).length;
   const workplaceRow = domain.hiring.rows.find(({ row }) => row.phase === 'workplace');
+  const headingId = `${trainingSectionId(domain.domain)}-title`;
+  const own = new Set(
+    [...all, ...domain.annualTests, ...(domain.hiring.test ? [domain.hiring.test] : [])].flatMap(
+      ({ row }) => rowDecisionKeys(row.id)
+    )
+  );
+  const open = decisions.filter((decision) => own.has(decision.key)).length;
+  const rowDecision = (rowId: string) =>
+    decisions.find((decision) => decision.key === `row-${rowId}`);
+  const shell = (body: ReactNode, description?: ReactNode) => (
+    <section
+      id={trainingSectionId(domain.domain)}
+      aria-labelledby={headingId}
+      data-photo-section={trainingSectionId(domain.domain)}
+      className="scroll-mt-24 overflow-hidden rounded-xl border bg-card shadow-xs"
+      data-testid={`person-trainings-${domain.domain}`}
+    >
+      <div className="border-b px-5 py-3.5">
+        <SectionHeader
+          icon={GraduationCap}
+          headingId={headingId}
+          title={`Instruire ${label}`}
+          description={description}
+          status={open > 0 ? <Tag tone="destructive">{open} de hotărât</Tag> : null}
+        />
+      </div>
+      {body}
+    </section>
+  );
   if (domain.pages.length === 0) {
-    return (
-      <Card className="gap-2 px-5 py-4" data-testid={`person-trainings-${domain.domain}`}>
-        <h2 className="text-base font-semibold">Instruire {label}</h2>
-        <p className="text-sm text-muted-foreground">
-          Printre fotografii nu e nicio fișă {label} a lui {personName(context, person)}. Dacă are
-          una, o aduci cu un import nou.
-        </p>
-      </Card>
+    return shell(
+      <p className="px-5 py-4 text-sm text-muted-foreground">
+        Printre fotografii nu e nicio fișă {label} a lui {personName(context, person)}. Dacă are
+        una, o aduci cu un import nou.
+      </p>
     );
   }
-  return (
-    <Card className="gap-3 px-5 py-4" data-testid={`person-trainings-${domain.domain}`}>
-      <div className="grid gap-0.5">
-        <h2 className="text-base font-semibold">Instruire {label}</h2>
-        <p className="text-sm text-muted-foreground tabular-nums">
-          Fișa individuală de instruire {label}, {photoNumbers(pages, domain.pages)}.{' '}
-          {trainingsLabel(all.length)}
-          {taken < all.length ? `, ${taken} se preiau` : ''}.
-        </p>
-      </div>
+  return shell(
+    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] gap-x-3 pb-1 lg:grid-cols-[auto_max-content_max-content_fit-content(18rem)_minmax(0,1fr)_auto_auto]">
       {domain.hiring.rows.length > 0 && (
-        <div className="grid gap-2">
-          <h3 className="text-sm font-semibold">La angajare</h3>
-          <ul className="divide-y">
+        <>
+          <h3 className="col-span-full px-5 pt-3 pb-2 text-sm font-semibold">La angajare</h3>
+          <ul className="col-span-full grid grid-cols-subgrid">
             {domain.hiring.rows.map(({ row, page }) => (
               <TrainingRow
                 key={row.id}
@@ -391,6 +541,7 @@ function DomainSection({
                 row={row}
                 page={page}
                 pages={pages}
+                decision={rowDecision(row.id)}
                 onEdit={onEdit}
                 onChange={onChange}
               />
@@ -410,11 +561,11 @@ function DomainSection({
               onChange={onChange}
             />
           )}
-        </div>
+        </>
       )}
       {domain.periodic.length > 0 && (
-        <div className="grid gap-1">
-          <h3 className="text-sm font-semibold">
+        <>
+          <h3 className="col-span-full border-t px-5 pt-3 pb-2 text-sm font-semibold first:border-t-0">
             Instruire periodică{' '}
             <span className="font-normal text-muted-foreground tabular-nums">
               {domain.periodic.length === 1
@@ -422,7 +573,7 @@ function DomainSection({
                 : roCount(domain.periodic.length, 'rând', 'rânduri')}
             </span>
           </h3>
-          <ul className="divide-y">
+          <ul className="col-span-full grid grid-cols-subgrid">
             {domain.periodic.map(({ row, page }) => (
               <TrainingRow
                 key={row.id}
@@ -431,81 +582,32 @@ function DomainSection({
                 row={row}
                 page={page}
                 pages={pages}
+                decision={rowDecision(row.id)}
                 onEdit={onEdit}
                 onChange={onChange}
               />
             ))}
           </ul>
-        </div>
+        </>
       )}
-      {domain.annualTests.map(({ row, page }) => {
-        const included = testIncluded(context.changes, row, matched);
-        const heldOn = rowValues(context.changes, row).heldOn;
-        const name = `Testul anual ${label}, la ${dateLabel(heldOn) ?? 'o dată necitită'}`;
-        const take = (next: boolean) =>
-          onChange((current) => withRow(current, row.id, (change) => ({ ...change, test: next })));
-        const switchId = `include-test-${row.id}`;
-        return (
-          <div
-            key={row.id}
-            className="rounded-lg bg-muted/50 px-3 py-2.5 text-sm"
-            data-testid="person-annual-test"
-            data-included={included}
-          >
-            <Includable
-              id={switchId}
-              name={name}
-              included={included}
-              proposed={proposedTestIncluded(row, matched)}
-              testId="person-annual-test-include"
-              onChange={take}
-            >
-              {(toggle) => (
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
-                  <span className="col-start-1 row-start-1">
-                    <span className="font-medium">Testul anual {label}</span>, la{' '}
-                    {dateLabel(heldOn) ?? 'o dată necitită'}: promovat pe fișă
-                  </span>
-                  {!row.testOnly && (
-                    <span
-                      className="col-span-2 text-muted-foreground sm:col-span-4"
-                      data-testid="person-annual-test-with-training"
-                    >
-                      Scris pe fișă în rândul instruirii periodice din aceeași zi. Instruirea și
-                      testul se preiau fiecare cu comutatorul lor.
-                    </span>
-                  )}
-                  <span className="col-start-2 row-start-1 flex h-6 items-center sm:col-start-4">
-                    {toggle}
-                  </span>
-                  <span className="col-span-2 flex items-center gap-3 sm:contents">
-                    <span className="flex sm:col-start-2 sm:row-start-1">
-                      <PageButton pages={pages} pageId={page.id} />
-                    </span>
-                    <span className="flex sm:col-start-3 sm:row-start-1">
-                      <Button
-                        type="button"
-                        variant="link"
-                        size="sm"
-                        className="h-6 px-1"
-                        onClick={() => onEditTest(row)}
-                      >
-                        Schimbă
-                        <span className="sr-only">
-                          {' '}
-                          testul anual din {dateLabel(heldOn) ?? 'data necitită'}
-                        </span>
-                      </Button>
-                    </span>
-                  </span>
-                </div>
-              )}
-            </Includable>
-          </div>
-        );
-      })}
+      {domain.annualTests.map(({ row, page }) => (
+        <AnnualTest
+          key={row.id}
+          context={context}
+          row={row}
+          page={page}
+          pages={pages}
+          label={label}
+          matched={matched}
+          onEdit={onEditTest}
+          onChange={onChange}
+        />
+      ))}
       {domain.inApp.length > 0 && (
-        <div className="grid gap-1 text-sm" data-testid="person-trainings-in-app">
+        <div
+          className="col-span-full grid gap-1 border-t px-5 py-2.5 text-sm"
+          data-testid="person-trainings-in-app"
+        >
           <p className="flex flex-wrap items-baseline gap-x-2">
             <span>
               {domain.inApp.length === 1
@@ -537,21 +639,34 @@ function DomainSection({
           )}
         </div>
       )}
-      <p className="text-[13px] text-muted-foreground">
+      <p className="col-span-full border-t px-5 py-3 text-[13px] text-muted-foreground">
         Rândurile sunt transcrise de pe fișa pe hârtie, iar originalul rămâne la client. Nu cerem
         semnături pentru ele: pe fișa din aplicație apar ca semnate pe hârtie.
       </p>
-    </Card>
+    </div>,
+    <Facts>
+      <Fact icon={CalendarCheck}>
+        {trainingsLabel(all.length)}
+        {taken < all.length ? `, ${taken} se preiau` : ''}
+      </Fact>
+      <span className="inline-flex items-center gap-1.5">
+        <FileImage aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
+        {domain.pages.length === 1 ? 'fotografia' : 'fotografiile'}
+        <PhotoNumbers pages={pages} pageIds={domainPhotos(domain)} shown={domain.pages.length} />
+      </span>
+    </Facts>
   );
 }
 
 export function PersonTrainings({
   context,
   person,
+  decisions,
   onChange,
 }: {
   context: ReviewContext;
   person: Person;
+  decisions: Decision[];
   onChange: Update;
 }) {
   const [editing, setEditing] = useState<SheetRow | null>(null);
@@ -559,7 +674,7 @@ export function PersonTrainings({
   const pages = pagesOf(context, person.id);
   const domains = trainingsByDomain(context, person.id);
   return (
-    <div className="grid gap-4" id="trainings">
+    <div className="grid scroll-mt-24 gap-5" id="trainings">
       {domains.map((domain) => (
         <DomainSection
           key={domain.domain}
@@ -567,6 +682,7 @@ export function PersonTrainings({
           person={person}
           domain={domain}
           pages={pages}
+          decisions={decisions}
           onEdit={setEditing}
           onEditTest={setEditingTest}
           onChange={onChange}

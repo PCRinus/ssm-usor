@@ -61,37 +61,58 @@ describe('a value the sheets disagree on', () => {
     render(<Choice name="hiredAt" />);
     expect(
       screen.getAllByTestId('person-page-button').map((button) => button.getAttribute('aria-label'))
-    ).toEqual(['Arată fotografia 1', 'Arată fotografia 3']);
+    ).toEqual(['Deschide fotografia 1', 'Deschide fotografia 3']);
   });
 
   it('takes a date of its own, and moves between it and a value read', async () => {
     const user = userEvent.setup();
     render(<Choice name="hiredAt" />);
     const card = screen.getByTestId('person-decide-choice-hiredAt');
-    const [first, second] = within(card).getAllByRole('button', { pressed: false });
+    const group = within(card).getByRole('radiogroup', { name: 'Data angajării' });
+    const [first, second, other] = within(group).getAllByRole<HTMLInputElement>('radio');
+    expect(first!.labels?.[0]?.textContent).toBe('02.05.2023');
 
     await user.click(first!);
     expect(choice()).toEqual({ hiredAt: { option: 0 } });
 
-    await user.click(within(card).getByTestId('person-choice-other'));
-    expect(first!.getAttribute('aria-pressed')).toBe('false');
+    await user.click(other!);
+    expect(first!.checked).toBe(false);
     await user.click(within(card).getByTestId('person-choice-other-use'));
     expect(card.textContent).toContain('Scrie data, de exemplu 01.03.2024.');
     expect(choice()).toEqual({ hiredAt: { option: 0 } });
 
-    await user.type(within(card).getByLabelText('Data angajării'), '15.05.2023');
+    await user.type(
+      within(card).getByLabelText('Data angajării', { selector: 'input' }),
+      '15.05.2023'
+    );
     await user.click(within(card).getByTestId('person-choice-other-use'));
     expect(choice()).toEqual({ hiredAt: { value: '2023-05-15' } });
-    expect(within(card).getByTestId('person-choice-other').getAttribute('aria-pressed')).toBe(
-      'true'
-    );
+    expect(other!.checked).toBe(true);
 
     await user.click(second!);
     expect(choice()).toEqual({ hiredAt: { option: 1 } });
-    expect(within(card).getByTestId('person-choice-other').getAttribute('aria-pressed')).toBe(
-      'false'
-    );
-    expect(within(card).queryByLabelText('Data angajării')).toBeNull();
+    expect(other!.checked).toBe(false);
+    expect(within(card).queryByLabelText('Data angajării', { selector: 'input' })).toBeNull();
+  });
+
+  it('changes the value with the arrow keys, as a group of radio buttons', async () => {
+    const user = userEvent.setup();
+    render(<Choice name="hiredAt" />);
+    const [first] = within(screen.getByRole('radiogroup')).getAllByRole('radio');
+    await user.click(first!);
+    await user.keyboard('{ArrowDown}');
+    expect(choice()).toEqual({ hiredAt: { option: 1 } });
+  });
+
+  it('keeps the photo numbers of a choice out of the radio labels, and only the chosen in tab order', async () => {
+    const user = userEvent.setup();
+    render(<Choice name="hiredAt" />);
+    const [first] = within(screen.getByRole('radiogroup')).getAllByRole<HTMLInputElement>('radio');
+    const numbers = screen.getAllByTestId('person-page-button');
+    for (const number of numbers) expect(number.closest('label')).toBeNull();
+    expect(numbers.map((number) => number.tabIndex)).toEqual([0, 0]);
+    await user.click(first!);
+    expect(numbers.map((number) => number.tabIndex)).toEqual([0, -1]);
   });
 
   it('refuses a CNP of its own that is not valid, and takes a valid one', async () => {

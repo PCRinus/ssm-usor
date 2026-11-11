@@ -716,7 +716,7 @@ describe('the person page', () => {
     expect(
       within(test).getByRole('switch', { name: /^Nu e inclus: Testul anual SSM, la / })
     ).toBeTruthy();
-    expect(within(test).getByRole('button', { name: /^Schimbă/ })).toBeTruthy();
+    expect(within(test).getByRole('button', { name: /^Modifică testul anual din / })).toBeTruthy();
     expect(test.textContent).toContain('promovat pe fișă');
   });
 
@@ -755,7 +755,7 @@ describe('the person page', () => {
     mount(`${importPath}/pop`);
     const row = () => screen.getByTestId('person-training-row');
     await screen.findByTestId('person-page');
-    expect(within(row()).getByRole('button', { name: /^Schimbă/ })).toBeTruthy();
+    expect(within(row()).getByRole('button', { name: /^Modifică instruirea din / })).toBeTruthy();
 
     await user.click(
       within(row()).getByRole('switch', { name: /^Inclusă: Instruirea periodică din / })
@@ -767,7 +767,7 @@ describe('the person page', () => {
     await user.click(
       within(row()).getByRole('switch', { name: /^Nu e inclusă: Instruirea periodică din / })
     );
-    expect(within(row()).getByRole('button', { name: /^Schimbă/ })).toBeTruthy();
+    expect(within(row()).getByRole('button', { name: /^Modifică instruirea din / })).toBeTruthy();
     expect(document.activeElement).toBe(
       within(row()).getByRole('switch', { name: /^Inclusă: Instruirea periodică din / })
     );
@@ -811,7 +811,7 @@ describe('the person page', () => {
 
     await user.click(
       within(await screen.findByTestId('person-fields-personal')).getByRole('button', {
-        name: /Schimbă/,
+        name: 'Modifică datele personale',
       })
     );
     expect(label('lastName')).toBe('Nume*(obligatoriu)');
@@ -821,7 +821,7 @@ describe('the person page', () => {
 
     await user.click(
       within(screen.getByTestId('person-fields-employment')).getByRole('button', {
-        name: /Schimbă/,
+        name: 'Modifică datele de angajare',
       })
     );
     expect(label('jobTitle')).toContain('(obligatoriu)');
@@ -829,14 +829,15 @@ describe('the person page', () => {
     expect(label('employeeNumber')).toContain('(opțional)');
   });
 
-  it('names what is left, takes the corrected CNP and keeps the person to check', async () => {
+  it('counts what is left in the bar, takes the corrected CNP and keeps the person to check', async () => {
     mockEmployeeImport();
     const user = userEvent.setup();
     mount(`${importPath}/toma`);
-    const decisions = await screen.findByTestId('person-decisions');
-    await waitFor(() =>
-      expect(within(decisions).getByRole('heading').textContent).toBe('4 lucruri de rezolvat aici')
-    );
+    const bar = await screen.findByTestId('person-bar');
+    const badge = await within(bar).findByRole('button', {
+      name: '4 de hotărât. Mergi la următoarea alegere',
+    });
+    expect(badge.title).toBe('Mergi la următoarea alegere');
     await user.click(
       within(screen.getByTestId('person-decide-cnp')).getByTestId('person-cnp-correction')
     );
@@ -844,45 +845,99 @@ describe('the person page', () => {
       expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(1)
     );
     expect(saved(0).changes.people.toma).toEqual({ cnpCorrection: true });
-    expect(screen.getByTestId('person-decisions').textContent).toContain(
-      '3 lucruri de rezolvat aici'
-    );
+    expect(
+      within(bar).getByRole('button', { name: '3 de hotărât. Mergi la următoarea alegere' })
+    ).toBeTruthy();
 
     await user.click(screen.getByTestId('person-next'));
     await waitFor(() => expect(screen.getByTestId('person-page').dataset.state).toBe('to_check'));
     expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(1);
   });
 
-  it('names each photograph under the sheet by its place and kind, in full on hover', async () => {
-    mockEmployeeImport();
-    mount(`${importPath}/toma`);
-    const strip = within(await screen.findByTestId('person-photos')).getByRole('group');
-    const tiles = within(strip).getAllByRole('button');
-    expect(tiles.map((tile) => tile.textContent)).toEqual(['1. SSM, față', '2. SSM, periodice']);
-    expect(within(tiles[1]!).getByText('2. SSM, periodice').title).toBe('2. SSM, periodice');
-  });
-
-  it('opens the photograph beside the values large, on a click or with its button', async () => {
+  it('moves the focus to each thing left to decide in turn from the badge in the bar', async () => {
     mockEmployeeImport();
     const user = userEvent.setup();
     mount(`${importPath}/toma`);
-    const photos = await screen.findByTestId('person-photos');
-    await user.click(await within(photos).findByTestId('sheet-page-image'));
-    let preview = await screen.findByTestId('photo-preview');
-    expect(within(preview).getByTestId('photo-preview-position').textContent).toBe('1 din 2');
+    const bar = await screen.findByTestId('person-bar');
+    const badge = await within(bar).findByRole('button', { name: /^4 de hotărât/ });
+    const visited: string[] = [];
+    for (let step = 0; step < 5; step += 1) {
+      await user.click(badge);
+      visited.push((document.activeElement as HTMLElement).id);
+    }
+    expect(new Set(visited.slice(0, 4)).size).toBe(visited.slice(0, 4).length);
+    expect(visited[4]).toBe(visited[0]);
+    expect(visited).toContain('cnp');
+  });
+
+  it('names the photographs in the bar by place and kind, and opens one large from there', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const strip = await screen.findByTestId('person-strip');
+    const group = within(strip).getByRole('group', { name: 'Fotografiile lui Toma Andrei' });
+    expect(group.getAttribute('aria-description')).toBe(
+      'Subliniate: fotografiile secțiunii de pe ecran'
+    );
+    const frames = within(group).getAllByRole('button');
+    expect(frames.map((frame) => frame.getAttribute('aria-label'))).toEqual([
+      'Fotografia 1 din 2, Fișa SSM, față',
+      'Fotografia 2 din 2, Fișa SSM, periodice',
+    ]);
+    expect(frames[0]!.dataset.ringed).toBe('true');
+
+    await user.click(frames[1]!);
+    const preview = await screen.findByTestId('photo-preview');
+    expect(within(preview).getByTestId('photo-preview-position').textContent).toBe('2 din 2');
+    expect(within(preview).getByRole('heading').textContent).toBe('Toma Andrei');
+    expect(preview.textContent).toContain('Fotografia 2 din 2, Fișa SSM, periodice, IMG_p2.jpg');
     expect((await within(preview).findByRole<HTMLImageElement>('img')).src).toBe(
-      'https://storage.test/derived/IMG_p1.jpg'
+      'https://storage.test/derived/IMG_p2.jpg'
     );
     expect(within(preview).queryByTestId('photo-enlarge')).toBeNull();
-    await user.click(within(preview).getByTestId('photo-preview-next'));
-    expect(within(preview).getByTestId('photo-preview-position').textContent).toBe('2 din 2');
     await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByTestId('photo-preview')).toBeNull());
+    expect(within(strip).getAllByRole('button')[1]!.dataset.ringed).toBe('true');
+  });
 
-    within(photos).getByTestId('photo-enlarge').focus();
-    await user.keyboard('{Enter}');
-    preview = await screen.findByTestId('photo-preview');
-    expect(within(preview).getByTestId('photo-preview-position').textContent).toBe('2 din 2');
+  it('steps through the photographs with the arrows and the strip under the large photo', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const [first] = await within(await screen.findByTestId('person-strip')).findAllByRole('button');
+    await user.click(first!);
+    const preview = await screen.findByTestId('photo-preview');
+    const position = () => within(preview).getByTestId('photo-preview-position').textContent;
+    expect(position()).toBe('1 din 2');
+    expect(within(preview).getByTestId('photo-preview-previous')).toHaveProperty('disabled', true);
+    expect(within(preview).getByTestId('photo-preview-next').getAttribute('aria-label')).toBe(
+      'Fotografia următoare'
+    );
+
+    await user.click(within(preview).getByTestId('photo-preview-next'));
+    expect(position()).toBe('2 din 2');
+    const viewerStrip = within(preview).getByTestId('viewer-strip');
+    const frames = within(viewerStrip).getAllByRole('button');
+    expect(frames[1]!.dataset.ringed).toBe('true');
+
+    await user.click(frames[0]!);
+    expect(position()).toBe('1 din 2');
+    await user.keyboard('{ArrowRight}');
+    expect(position()).toBe('2 din 2');
+  });
+
+  it('opens the photograph a row was read from with the number beside the row', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(`${importPath}/pop`);
+    const row = await screen.findByTestId('person-training-row');
+    const number = within(row).getByTestId('person-page-button');
+    const total = within(screen.getByTestId('person-strip')).getAllByRole('button').length;
+    await user.click(number);
+    const preview = await screen.findByTestId('photo-preview');
+    expect(within(preview).getByTestId('photo-preview-position').textContent).toBe(
+      `${number.textContent} din ${total}`
+    );
   });
 
   it('takes a value of its own where the sheets disagree, and checks the person with it', async () => {
@@ -917,11 +972,13 @@ describe('the person page', () => {
     const user = userEvent.setup();
     mount(`${importPath}/pop`);
     const card = await screen.findByTestId('person-decide-choice-hiredAt');
-    expect(screen.getByTestId('person-decisions').textContent).toContain(
-      'Data angajării: fișele scriu valori diferite'
-    );
+    expect(within(card).getByRole('heading').textContent).toBe('Data angajării');
+    expect(card.textContent).toContain('Fișele scriu 2 variante');
     await user.click(within(card).getByTestId('person-choice-other'));
-    await user.type(within(card).getByLabelText('Data angajării'), '01.04.2023');
+    await user.type(
+      within(card).getByLabelText('Data angajării', { selector: 'input' }),
+      '01.04.2023'
+    );
     await user.click(within(card).getByTestId('person-choice-other-use'));
     await waitFor(() => expect(screen.queryByTestId('person-decisions')).toBeNull());
     expect(screen.getByTestId('person-fields-employment').textContent).toContain('01.04.2023');

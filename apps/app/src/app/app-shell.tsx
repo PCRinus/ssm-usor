@@ -101,6 +101,7 @@ import { useReleases } from '@/features/updates/use-releases';
 import { useUpdateDialogOpen } from '@/features/updates/use-update-dialog-open';
 import { captureHelpOpened, helpHref, helpTarget, openHelpTab } from '@/lib/help';
 
+import { BreadcrumbAsideContext } from './breadcrumb-aside-context';
 import { releaseTag } from './build-version';
 import { CommitVersion } from './commit-version';
 import { EditorLayoutContext } from './editor-layout';
@@ -535,6 +536,7 @@ export function AppShell() {
     []
   );
   const editorPage = editorRoute || editorViews > 0;
+  const [crumbAside, setCrumbAside] = useState<HTMLElement | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reportingByEmail, setReportingByEmail] = useState<{ note?: string } | null>(null);
@@ -666,24 +668,27 @@ export function AppShell() {
                 )}
               >
                 {!editorPage && (
-                  <Breadcrumb className="mb-7">
-                    <BreadcrumbList>
-                      {trail.map((crumb, index) => (
-                        <Fragment key={crumb.to}>
-                          {index > 0 && <BreadcrumbSeparator />}
-                          <BreadcrumbItem>
-                            {index === trail.length - 1 ? (
-                              <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                            ) : (
-                              <BreadcrumbLink asChild>
-                                <Link to={crumb.to}>{crumb.label}</Link>
-                              </BreadcrumbLink>
-                            )}
-                          </BreadcrumbItem>
-                        </Fragment>
-                      ))}
-                    </BreadcrumbList>
-                  </Breadcrumb>
+                  <div className="mb-7 flex items-center justify-between gap-x-4">
+                    <Breadcrumb className="min-w-0">
+                      <BreadcrumbList>
+                        {trail.map((crumb, index) => (
+                          <Fragment key={crumb.to}>
+                            {index > 0 && <BreadcrumbSeparator />}
+                            <BreadcrumbItem>
+                              {index === trail.length - 1 ? (
+                                <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                              ) : (
+                                <BreadcrumbLink asChild>
+                                  <Link to={crumb.to}>{crumb.label}</Link>
+                                </BreadcrumbLink>
+                              )}
+                            </BreadcrumbItem>
+                          </Fragment>
+                        ))}
+                      </BreadcrumbList>
+                    </Breadcrumb>
+                    <div ref={setCrumbAside} className="flex shrink-0 empty:hidden" />
+                  </div>
                 )}
                 {error && (
                   <Notice
@@ -706,7 +711,9 @@ export function AppShell() {
                 )}
                 <ReportProblemContext value={reportProblem}>
                   <EditorLayoutContext value={countEditorViews}>
-                    <Outlet />
+                    <BreadcrumbAsideContext value={crumbAside}>
+                      <Outlet />
+                    </BreadcrumbAsideContext>
                   </EditorLayoutContext>
                 </ReportProblemContext>
               </main>
