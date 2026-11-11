@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from 'react';
 import { apiFetch } from '@/api/http';
 import { AdminShell, LoadFailure } from '@/components/admin-shell';
 import { Pager } from '@/components/pager';
+import { useActiveImpersonation } from '@/features/impersonation/api';
 import { RecentImpersonations } from '@/features/impersonation/recent-impersonations';
 import { StartImpersonationDialog } from '@/features/impersonation/start-dialog';
 import { formatDateTime } from '@/lib/format';
@@ -64,6 +65,9 @@ export function MembersPage({ search }: { search: MembersSearch }) {
   });
   const [text, setText] = useState(search.search ?? '');
   const [chosen, setChosen] = useState<AdminMemberListItem | null>(null);
+  const opener = useRef<HTMLElement | null>(null);
+  const active = useActiveImpersonation();
+  const actingAs = active.data?.target.userId;
 
   const [seen, setSeen] = useState(search.search);
   if (seen !== search.search) {
@@ -153,6 +157,15 @@ export function MembersPage({ search }: { search: MembersSearch }) {
                   >
                     <TableCell className="max-w-56 min-w-36 font-medium whitespace-normal">
                       {member.fullName ?? <span className="text-muted-foreground">—</span>}
+                      {member.userId === actingAs && (
+                        <Badge
+                          variant="outline"
+                          data-testid="member-acting"
+                          className="border-warning-border bg-warning text-warning-foreground ml-2 align-middle"
+                        >
+                          Acting
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>{member.email ?? '—'}</TableCell>
                     <TableCell className="max-w-56 min-w-36 whitespace-normal">
@@ -173,7 +186,10 @@ export function MembersPage({ search }: { search: MembersSearch }) {
                           variant="outline"
                           size="sm"
                           data-testid="act-as"
-                          onClick={() => setChosen(member)}
+                          onClick={(event) => {
+                            opener.current = event.currentTarget;
+                            setChosen(member);
+                          }}
                         >
                           Act as
                         </Button>
@@ -203,7 +219,7 @@ export function MembersPage({ search }: { search: MembersSearch }) {
 
       <RecentImpersonations />
 
-      <StartImpersonationDialog member={chosen} onClose={() => setChosen(null)} />
+      <StartImpersonationDialog member={chosen} opener={opener} onClose={() => setChosen(null)} />
     </AdminShell>
   );
 }

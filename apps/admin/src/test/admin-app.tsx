@@ -35,7 +35,7 @@ const session = {
   },
 } as Session;
 
-const client = {
+export const authClient = {
   getSession: vi.fn(async () => ({ data: { session }, error: null })),
   onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
   signInWithPassword: vi.fn(),
@@ -52,7 +52,7 @@ const runtimes: AdminRuntime[] = [];
 
 export function mountAdmin(path: string) {
   const runtime = createAdminRuntime(
-    client,
+    authClient,
     createQueryClient(),
     createMemoryHistory({ initialEntries: [path] }),
     'http://localhost:5176'
