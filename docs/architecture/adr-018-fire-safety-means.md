@@ -4,6 +4,7 @@
 - Date: 2026-10-10
 - Amended by [ADR 039](adr-039-training-categories-from-job-positions.md): the starting intervals are the legal maximum, six months, and only the categories with posts need one.
 - Amended by [ADR 041](adr-041-su-import-questions-and-suggestions.md) (accepted 2026-11-10): a registered office with no activity carries no fire-safety data, and a substance's classification and quantity may be filled in after the entry exists.
+- Amended by [ADR 042](adr-042-substances-from-safety-data-sheets.md) (accepted 2026-11-11): a substance's classification, name and texts may be read from the product's safety data sheet in the dialog, as a draft the member saves.
 
 ## Context
 
