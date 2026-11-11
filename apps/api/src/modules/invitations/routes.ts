@@ -12,11 +12,13 @@ import {
 
 import { allowWhileReadOnly } from '../../lib/access';
 import { requireAuth } from '../../lib/auth';
+import { refuseDuringImpersonation } from '../../lib/impersonation';
 import { requireMembership, requireOwner } from '../../lib/membership';
 import {
   authErrors,
   bearerSecurity,
   errorContent,
+  inPersonOwnerErrors,
   ownerErrors,
   publicErrors,
 } from '../../lib/openapi';
@@ -65,7 +67,7 @@ export const createInvitationRoute = createRoute({
   description:
     'Owners only. Inviting an address that already has a pending invitation renews it and sends a fresh link. The response never says whether the address has an account.',
   security: bearerSecurity,
-  middleware: [requireAuth, requireMembership, requireOwner] as const,
+  middleware: [requireAuth, requireMembership, requireOwner, refuseDuringImpersonation] as const,
   request: {
     body: {
       required: true,
@@ -84,7 +86,7 @@ export const createInvitationRoute = createRoute({
         'Already a member, too many open invitations, or an email was sent in the last 10 minutes; see `reason`',
       content: errorContent,
     },
-    ...ownerErrors,
+    ...inPersonOwnerErrors,
   },
 });
 
@@ -95,14 +97,14 @@ export const resendInvitationRoute = createRoute({
   summary: 'Renew a pending invitation and email a fresh link',
   description: 'Owners only. The earlier link stops working.',
   security: bearerSecurity,
-  middleware: [requireAuth, requireMembership, requireOwner] as const,
+  middleware: [requireAuth, requireMembership, requireOwner, refuseDuringImpersonation] as const,
   request: { params: invitationParams },
   responses: {
     200: { description: 'The renewed invitation', content: invitationContent },
     400: { description: 'Invalid path', content: errorContent },
     404: { description: 'No pending invitation with this id', content: errorContent },
     409: { description: 'An email was sent in the last 10 minutes', content: errorContent },
-    ...ownerErrors,
+    ...inPersonOwnerErrors,
   },
 });
 

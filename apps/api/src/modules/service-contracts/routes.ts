@@ -6,8 +6,9 @@ import {
 } from '@ssm-usor/contracts';
 
 import { requireAuth } from '../../lib/auth';
+import { refuseDuringImpersonation } from '../../lib/impersonation';
 import { requireMembership, requireOwner } from '../../lib/membership';
-import { bearerSecurity, errorContent, ownerErrors } from '../../lib/openapi';
+import { bearerSecurity, errorContent, inPersonOwnerErrors, ownerErrors } from '../../lib/openapi';
 
 const clientParams = z.object({ clientId: z.uuid() });
 
@@ -97,7 +98,7 @@ export const sendServiceContractRoute = createRoute({
   description:
     "Owners only, and never by itself: issuing sends nothing. The PDF of the issued revision is attached; the email goes out in the owner's name, replies go to the owner, who is copied. Each send is recorded with its address and revision, and `lastSend` is about the revision in force. A contract can be sent again.",
   security: bearerSecurity,
-  middleware: [requireAuth, requireMembership, requireOwner] as const,
+  middleware: [requireAuth, requireMembership, requireOwner, refuseDuringImpersonation] as const,
   request: {
     params: clientParams,
     body: {
@@ -111,6 +112,7 @@ export const sendServiceContractRoute = createRoute({
   },
   responses: {
     ...responses,
+    ...inPersonOwnerErrors,
     400: { description: 'Invalid path or request body', content: errorContent },
     409: {
       description:

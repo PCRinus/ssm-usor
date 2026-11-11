@@ -13,8 +13,14 @@ import {
 
 import { allowWhileReadOnly } from '../../lib/access';
 import { requireAuth } from '../../lib/auth';
+import { refuseDuringImpersonation } from '../../lib/impersonation';
 import { requireMembership } from '../../lib/membership';
-import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
+import {
+  bearerSecurity,
+  errorContent,
+  inPersonMembershipErrors,
+  membershipErrors,
+} from '../../lib/openapi';
 
 const clientParams = z.object({ clientId: z.uuid() });
 const employeeParams = clientParams.extend({ employeeId: z.uuid() });
@@ -34,7 +40,7 @@ const conflicts = {
 };
 
 const sending = {
-  ...membershipErrors,
+  ...inPersonMembershipErrors,
   // After the shared 503, which it replaces for these routes.
   503: {
     description:
@@ -79,7 +85,7 @@ export const inviteEmployeeParticipantRoute = createRoute({
   description:
     "Every member invites. The address is the employee's own email or phone, as their record holds it. Inviting the same address again renews its invitation and resends the message. The account the person signs in with is created now, unconfirmed, or the address's existing account is reused; the response never says which.",
   security: bearerSecurity,
-  middleware: [requireAuth, requireMembership] as const,
+  middleware: [requireAuth, requireMembership, refuseDuringImpersonation] as const,
   request: {
     params: employeeParams,
     body: {
@@ -111,7 +117,7 @@ export const inviteClientAdministratorRoute = createRoute({
   description:
     "The person who runs the safety records on the employer's side: an employee of the client (`employeeId`), whose name is read from their record, or a person named in `fullName`. The address is typed. Otherwise as inviting an employee.",
   security: bearerSecurity,
-  middleware: [requireAuth, requireMembership] as const,
+  middleware: [requireAuth, requireMembership, refuseDuringImpersonation] as const,
   request: {
     params: clientParams,
     body: {
@@ -172,7 +178,7 @@ export const inviteEmployeeParticipantsRoute = createRoute({
   summary: 'Invite several employees to the portal, each at an address typed for them',
   description: `Up to ${bulkInvitationLimit} employees, one after the other (ADR 032). An address with \`@\` goes by email, any other as a phone by SMS, normalized to E.164 with Romania as the default country. A typed address the employee's row does not hold is saved to it in the same transaction as the invitation, so an invitation refused leaves the row as it was. Each invitation is the one \`inviteEmployeeParticipant\` sends, under the same rules. A former employee, a participant and an employee with an open invitation are skipped with nothing saved or sent. One result per row, in order: \`invited\`, \`skipped\` or \`failed\` with its \`reason\`; a row failing never stops the next. A failed message leaves the invitation saved, in \`invitation\`, for a resend 10 minutes after it.`,
   security: bearerSecurity,
-  middleware: [requireAuth, requireMembership] as const,
+  middleware: [requireAuth, requireMembership, refuseDuringImpersonation] as const,
   request: {
     params: clientParams,
     body: {
@@ -203,7 +209,7 @@ export const inviteEmployeeParticipantsRoute = createRoute({
       description: 'The client is archived or a lead; see `reason`',
       content: errorContent,
     },
-    ...membershipErrors,
+    ...inPersonMembershipErrors,
   },
 });
 
@@ -239,7 +245,7 @@ export const resendParticipantInvitationRoute = createRoute({
   summary: 'Renew a participant invitation for 30 days and send its message again',
   description: 'At most one message per 10 minutes. An expired invitation can be resent.',
   security: bearerSecurity,
-  middleware: [requireAuth, requireMembership] as const,
+  middleware: [requireAuth, requireMembership, refuseDuringImpersonation] as const,
   request: { params: invitationParams },
   responses: {
     200: { description: 'The renewed invitation', content: invitationContent },

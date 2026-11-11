@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
+import { accessTokenAt } from '../../lib/access-token.fixture';
 import {
   callsTo,
   clientId,
@@ -174,12 +175,17 @@ function upstream(overrides: Record<string, UpstreamRoute> = {}) {
   });
 }
 
-const save = (payload: unknown = body, path = `/clients/${clientId}/trainings`, method = 'POST') =>
+const save = (
+  payload: unknown = body,
+  path = `/clients/${clientId}/trainings`,
+  method = 'POST',
+  token = 'user-token'
+) =>
   createApp().request(
     path,
     {
       method,
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer user-token' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(payload),
     },
     env
@@ -416,6 +422,23 @@ describe('requests issued when a training is saved', () => {
     expect(response.status).toBe(201);
     const [stamp] = callsTo('/rest/v1/signature_requests', 'PATCH');
     expect(stamp!.url.searchParams.get('id')!.split(',')).toHaveLength(4);
+  });
+
+  it('issues the requests of a save by an admin impersonating a member, and tells no signer', async () => {
+    upstream({
+      '/auth/v1/user': () => ({ ...user, app_metadata: { provider: 'email', role: 'admin' } }),
+      '/rest/v1/rpc/current_membership': () => [
+        { user_id: trainerAccount, organization_id: organizationId, role: 'specialist' },
+      ],
+    });
+
+    const response = await save(body, undefined, undefined, accessTokenAt('aal2', user.id));
+
+    expect(response.status).toBe(201);
+    expect(issued()).toHaveLength(6);
+    expect(sendSignatureRequestEmail).not.toHaveBeenCalled();
+    expect(sendSignatureRequestSms).not.toHaveBeenCalled();
+    expect(callsTo('/rest/v1/signature_requests', 'PATCH')).toEqual([]);
   });
 
   it('logs each texted notice against the organization, uncounted', async () => {

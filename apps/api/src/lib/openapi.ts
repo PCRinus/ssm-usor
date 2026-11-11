@@ -24,6 +24,25 @@ export const ownerErrors = {
   403: { description: 'The account is not an owner of an organization', content: errorContent },
 } as const;
 
+const impersonationRefused =
+  'or is a platform admin impersonating a member, who neither signs nor sends an email or SMS in their name (reason `impersonation_refused`)';
+
+export const inPersonMembershipErrors = {
+  ...authErrors,
+  403: {
+    description: `The account is not a member of an organization, ${impersonationRefused}`,
+    content: errorContent,
+  },
+} as const;
+
+export const inPersonOwnerErrors = {
+  ...authErrors,
+  403: {
+    description: `The account is not an owner of an organization, ${impersonationRefused}`,
+    content: errorContent,
+  },
+} as const;
+
 export const bearerSecurity = [{ bearerAuth: [] }];
 
 export const openApiConfig = {

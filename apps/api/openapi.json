@@ -45736,7 +45736,7 @@
             }
           },
           "403": {
-            "description": "The account is not an owner of an organization",
+            "description": "The account is not an owner of an organization, or is a platform admin impersonating a member, who neither signs nor sends an email or SMS in their name (reason `impersonation_refused`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -47555,7 +47555,7 @@
             }
           },
           "403": {
-            "description": "The account is not an owner of an organization",
+            "description": "The account is not an owner of an organization, or is a platform admin impersonating a member, who neither signs nor sends an email or SMS in their name (reason `impersonation_refused`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -47650,7 +47650,7 @@
             }
           },
           "403": {
-            "description": "The account is not an owner of an organization",
+            "description": "The account is not an owner of an organization, or is a platform admin impersonating a member, who neither signs nor sends an email or SMS in their name (reason `impersonation_refused`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -48218,7 +48218,7 @@
             }
           },
           "403": {
-            "description": "The account is not a member of an organization",
+            "description": "The account is not a member of an organization, or is a platform admin impersonating a member, who neither signs nor sends an email or SMS in their name (reason `impersonation_refused`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -48333,7 +48333,7 @@
             }
           },
           "403": {
-            "description": "The account is not a member of an organization",
+            "description": "The account is not a member of an organization, or is a platform admin impersonating a member, who neither signs nor sends an email or SMS in their name (reason `impersonation_refused`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -48448,7 +48448,7 @@
             }
           },
           "403": {
-            "description": "The account is not a member of an organization",
+            "description": "The account is not a member of an organization, or is a platform admin impersonating a member, who neither signs nor sends an email or SMS in their name (reason `impersonation_refused`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -48752,7 +48752,7 @@
             }
           },
           "403": {
-            "description": "The account is not a member of an organization",
+            "description": "The account is not a member of an organization, or is a platform admin impersonating a member, who neither signs nor sends an email or SMS in their name (reason `impersonation_refused`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -52575,7 +52575,7 @@
             }
           },
           "403": {
-            "description": "The account is not a member of an organization",
+            "description": "The account is not a member of an organization, or is a platform admin impersonating a member, who neither signs nor sends an email or SMS in their name (reason `impersonation_refused`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -52700,7 +52700,7 @@
             }
           },
           "403": {
-            "description": "The account is not a member of an organization",
+            "description": "The account is not a member of an organization, or is a platform admin impersonating a member, who neither signs nor sends an email or SMS in their name (reason `impersonation_refused`)",
             "content": {
               "application/json": {
                 "schema": {
