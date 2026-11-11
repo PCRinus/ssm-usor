@@ -183,7 +183,7 @@ member's organization, unless he is a member of it in his own right.
 
 Every impersonation has a reason, as the data processing agreement promises support access is
 logged with one: `impersonations_reason_given` refuses a null reason or one of whitespace only,
-for every writer (`20261112120000_impersonation_end_and_reason`). It is not validated, so a row
+for every writer (`20261112130100_impersonation_end_and_reason`). It is not validated, so a row
 written before it stays, and Postgres checks it on every later update of a row, so the same
 migration first ends every open row without a reason, which could otherwise never be ended. Its target must be a member of an
 organization: `impersonations_target_is_member`, a trigger after the row is written, raises

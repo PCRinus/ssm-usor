@@ -266,7 +266,7 @@ select is_empty(
   'an expired one is not in force, though nobody ended it'
 );
 
--- 20261112120000's own statements, on a row written before reasons were required.
+-- 20261112130100's own statements, on a row written before reasons were required.
 select pg_temp.act_as_postgres();
 alter table public.impersonations drop constraint if exists impersonations_reason_given;
 update public.impersonations set ended_at = now()
