@@ -16,7 +16,9 @@ PostHog starts only after the app has loaded an authenticated membership. It ide
 Supabase user, associates ordinary member events with their organization, captures signed-in
 page views and unhandled browser errors, and records all eligible sessions. During impersonation,
 it keeps the real administrator as the actor and marks the target member and organization as
-context. The replay masks text, input values, and element attributes; network recording includes
+context, and records no session: a recording would keep a member organization's pages under the
+administrator's identity. Recording is off from opt-in until the session knows whether it acts
+as a member. The replay masks text, input values, and element attributes; network recording includes
 URL, method, status, and timing but excludes headers and bodies. The Support widget attaches the
 replay link and current URL to a new report. Sign-out clears the PostHog and Support identities.
 An event from before the account is a member, such as `signed_up`, goes through
@@ -384,6 +386,39 @@ back to login. Their backdrop, `src/app/auth-backdrop.tsx`, is an isometric latt
 logo's angle with slabs in the corners; a short glint runs along a lattice line every eight
 seconds, hidden for reduced motion. The portal passes no backdrop and keeps the flat
 tint.
+
+## Acting as a member
+
+A platform admin acts as a member from the admin app ([ADR 038](architecture/adr-038-admin-area.md),
+[data model](data-model.md#platform-admins-and-impersonation)). He stays signed in to the member
+app as himself; `GET /me` then answers with the member's `membership` and an `impersonation`
+(whom, until when), while `user` and `profile` stay his own. Everything lives in
+`src/features/impersonation/`.
+
+- **The banner** (`impersonation-banner.tsx`) heads the shell's content column on every page,
+  editor pages included, above the subscription bar: "Acționezi ca {member} · {organization}
+  până la {HH:mm} (încă {n} min)", that signing and sending are off, and **Încheie**, which calls
+  `DELETE /me/impersonation`. It cannot be closed. It sits below the header, not above it: the
+  sticky header, the sidebar and the section tabs are placed by the header's fixed height.
+- **A change of identity reloads the page.** The query cache is keyed by the signed-in user, who
+  stays the admin, so `watchEffectiveIdentity` (`identity.ts`, started by `createAppRuntime`)
+  watches every `/me` answer and, when the member he acts as changes, to another one, from none
+  or to none, replaces the page with `/`: nothing of the previous member can show. **Încheie**
+  does the same on success. At `expiresAt` the banner asks for `/me` again, and every 15 seconds
+  after it while the API still reports the impersonation. For a platform admin `/me` refetches
+  whenever the tab regains focus, so a start, a switch or an end in the admin app's tab is
+  found on coming back.
+- **A platform admin without an organization** of his own is never sent to `/configurare`: the
+  shell shows him a page with a link to the admin area and sign-out, titled that acting as a
+  member ended when the reload followed an end or an expiry (a `sessionStorage` mark), else that
+  he acts as no member. `/me` does not say who is an admin; the session's
+  `app_metadata.role === 'admin'` does, and decides only what he sees. The admin area's address
+  replaces the host's leading `app.` with `admin.`; elsewhere it is `VITE_ADMIN_URL`, by
+  default `http://localhost:5176`.
+- **Refusals.** The API refuses signing as the member and anything that sends email or SMS to
+  other people with `403` and `reason: 'impersonation_refused'`. `apiFetch` and `apiUpload`
+  (`src/api/http.ts`) show one error toast for it, whatever page sent the request; the page's
+  own failure message shows as well.
 
 ## Verification
 
