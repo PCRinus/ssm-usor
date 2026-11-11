@@ -110,7 +110,7 @@ the extractor's count; `scanned_page`; `refund`; `grant`; `gift`; and, since
 instructions or risk evaluations, and `library_part_refund`, its credits given back; and, since
 `20261112100000_safety_sheet_credit_kinds`, `safety_sheet`, one reading of a safety data sheet in
 the substance dialog, and `safety_sheet_refund`, its credits given back, both with no import, by
-a check, [ADR 042](architecture/adr-042-substances-from-safety-data-sheets.md)), `credits` (negative for what
+a check, [ADR 030, amendment of 2026-11-11](architecture/adr-030-import-from-documents.md#amendment-2026-11-11-a-reading-outside-an-import)), `credits` (negative for what
 an import used, positive for what is given back or added), `gift_credits`, the part of it taken
 from or added to the welcome gift, the `import_id`, `import_file_id` and `page` it concerns (set
 null when the import is deleted: the credits stay used), a unique `key` per import step,

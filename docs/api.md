@@ -153,7 +153,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/fire-substances`                             | Verified user with a membership       | `201 { "substance": { … } }`; `409` unless the state is `listed`                                                                                                                                   |
 | `PUT /clients/{clientId}/fire-substances/{substanceId}`                | Verified user with a membership       | `{ "substance": { … } }` after replacing it                                                                                                                                                        |
 | `DELETE /clients/{clientId}/fire-substances/{substanceId}`             | Verified user with a membership       | `204` after deleting it                                                                                                                                                                            |
-| `POST /clients/{clientId}/fire-substances/read-safety-sheet`           | Verified user with a membership       | `{ "draft", "droppedCodes", "credits" }`: a product's safety data sheet, the PDF as the body, read into a draft substance for 3 credits; nothing is saved (ADR 042)                                |
+| `POST /clients/{clientId}/fire-substances/read-safety-sheet`           | Verified user with a membership       | `{ "draft", "droppedCodes", "credits" }`: a product's safety data sheet, the PDF as the body, read into a draft substance for 3 credits; nothing is saved (ADR 018, amendment of 2026-11-11)       |
 | `GET /clients/{clientId}/fire-maintenance-items`                       | Verified user with a membership       | `{ "items": [ … ] }`: the free rows of the schedules 5.4, by workplace, in their order                                                                                                             |
 | `POST /clients/{clientId}/fire-maintenance-items`                      | Verified user with a membership       | `201 { "item": { … } }`, after the workplace's last row                                                                                                                                            |
 | `PUT /clients/{clientId}/fire-maintenance-items/{itemId}`              | Verified user with a membership       | `{ "item": { … } }` after replacing it                                                                                                                                                             |
@@ -1094,7 +1094,7 @@ chosen during the trial brings it only with that first payment.
   is a library part of its own, charged and given back the same way, 15 credits
   (`importCredits.riskEvaluations`). Its scanned pages were charged by the client reading, one
   credit each, and are not charged again.
-- **Safety data sheets** ([ADR 042](architecture/adr-042-substances-from-safety-data-sheets.md)).
+- **Safety data sheets** ([ADR 030, amendment of 2026-11-11](architecture/adr-030-import-from-documents.md#amendment-2026-11-11-a-reading-outside-an-import)).
   `POST /clients/{clientId}/fire-substances/read-safety-sheet` charges 3 credits
   (`importCredits.safetySheet`) as `safety_sheet`, with no import, under the key
   `sheet:<uuid>`, refused like an import's start (`409`, `credits_insufficient`, `credits`) when
@@ -1871,7 +1871,7 @@ while the client has not said, or has no fire-safety row. `PUT …/fire-substanc
 creating the row when there is none without counting as the card's first save; `none` while the
 client has entries is `409` with the reason `substances_listed`, and a new entry under any state
 but `listed` is `409` with `substances_not_listed`. Entries keep the order they were added in.
-`POST …/fire-substances/read-safety-sheet` ([ADR 042](architecture/adr-042-substances-from-safety-data-sheets.md))
+`POST …/fire-substances/read-safety-sheet` ([ADR 018, amendment of 2026-11-11](architecture/adr-018-fire-safety-means.md#amendment-2026-11-11-a-substance-read-from-its-safety-data-sheet))
 takes the bytes of one PDF as the body, at most 10 MiB and 40 pages, the safety data sheet of
 one product, under the same authorization as saving a substance (`404` for a client the caller
 does not see, `409` with `client_archived` or `client_is_lead`). The extractor takes its text, one

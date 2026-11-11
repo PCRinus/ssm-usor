@@ -4,7 +4,7 @@
 - Date: 2026-10-10
 - Amended by [ADR 039](adr-039-training-categories-from-job-positions.md): the starting intervals are the legal maximum, six months, and only the categories with posts need one.
 - Amended by [ADR 041](adr-041-su-import-questions-and-suggestions.md) (accepted 2026-11-10): a registered office with no activity carries no fire-safety data, and a substance's classification and quantity may be filled in after the entry exists.
-- Amended by [ADR 042](adr-042-substances-from-safety-data-sheets.md) (accepted 2026-11-11): a substance's classification, name and texts may be read from the product's safety data sheet in the dialog, as a draft the member saves.
+- Amended 2026-11-11, [below](#amendment-2026-11-11-a-substance-read-from-its-safety-data-sheet): a substance's name, classification and texts may be read from the product's safety data sheet in the dialog, as a draft the member saves.
 
 ## Context
 
@@ -185,3 +185,17 @@ The units' inventory number, location and last service were recorded for the reg
 The year of manufacture stays unprinted: no column of these forms asks for it, and "Tipul și modelul" is not the place for it.
 
 The two registers print the inventory from merge names of their own, `extinguisherRegister` and `installationSheets`, outside `fire`. Since they used to print the client alone, their drafts were never marked "Date modificate"; from their next generation an edit of the units or the installations marks them, and nothing else does. They need none of the facts `fire` waits for, so they still generate for a client whose stage-two data is incomplete. The new keys under `fire.workplaces` and the last service in `fire.schedules` change `fire` once for every client, so every fire-safety draft that prints `fire` reads "Date modificate" once after this change.
+
+## Amendment 2026-11-11: a substance read from its safety data sheet
+
+Since ADR 041 the client import proposes substances by their names only, and an entry without its classification or quantity blocks the set. No document pack states a classification. The facts are in the product's safety data sheet (_fișa cu date de securitate_), which its supplier owes the client: Regulation (EC) No 1907/2006 (REACH) art. 31 and annex II, which fixes the sheet's 16 sections. The eight texts of the list were modelled on those sections.
+
+The substance dialog takes one sheet, a PDF with a text layer, and a model reads the name, the classification and the texts the sheet answers into a draft. What the app does with it is in `docs/app.md` and `docs/api.md`; three decisions are recorded here because they would be easy to undo by mistake.
+
+- **Read, not guessed.** ADR 041 rejected a classification guessed from a product's category. This is the opposite case: the classification of the product bought, written by its supplier. A sheet that does not state it gives an empty field.
+- **The reading writes nothing.** It fills the dialog's empty fields, marked as coming from the sheet, and offers its text beside a field the member already filled. Only the member's save writes, so what the list sends to the inspectorate has passed through a member's eyes.
+- **The quantity and the storage place are never filled.** They are the client's own facts; a sheet gives storage conditions, not where this client keeps the product.
+
+How a value is checked without a quote, and how the reading is charged outside an import, are in [ADR 030](adr-030-import-from-documents.md#amendment-2026-11-11-a-reading-outside-an-import).
+
+Left out: several sheets at once, scanned or photographed sheets, keeping the sheet among the client's files, reading sheets during a client import, and the other papers a client holds (service reports of the extinguishers, electrical check bulletins, building papers).

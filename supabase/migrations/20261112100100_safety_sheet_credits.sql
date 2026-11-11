@@ -1,4 +1,4 @@
--- ADR 042: a safety data sheet's reading belongs to no import, so its charge and its refund carry
+-- ADR 030: a safety data sheet's reading belongs to no import, so its charge and its refund carry
 -- no import and are matched by their key.
 
 alter table public.credit_entries

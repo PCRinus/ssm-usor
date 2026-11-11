@@ -7,6 +7,7 @@
 - Amended by [ADR 037](adr-037-import-quality-and-alerts.md) (accepted 2026-11-04): every import, abandoned and failed ones included, leaves an improvement copy kept apart for 12 months; see "Where the files go".
 - Amended 2026-11-07: a new client's name defaults to ANAF's where ANAF registers the CUI under another name than the documents give, and a spelling correction is a choice with the document's spelling; see "Decision".
 - Amended by [ADR 041](adr-041-su-import-questions-and-suggestions.md) (accepted 2026-11-10): the means several files give are counted once, the assembly point and the smoking place are confirmed by the member, the substances are proposed, and the model drafts suggested values for a workplace's fire-safety card.
+- Amended 2026-11-11, [below](#amendment-2026-11-11-a-reading-outside-an-import): a product's safety data sheet is read in the substance dialog, outside any import, with its values checked by their codes and charged in credits of its own kind.
 
 ## Context
 
@@ -178,3 +179,11 @@ Each step is a pull request in one stack, on this ADR.
 
 - **The size cap of an import.** 150 files and 100 MiB, with 20 MiB a file as for client files, and the extracted text capped at 600,000 characters to bound the cost and size of the one reading request. The five real archives held 49 to 60 files and 8 to 29 MiB, the largest file 6.7 MiB. Nothing in the path holds a whole import at once: files go from the browser straight to Storage, and every later step takes one file, so the per-file limit is what protects a Worker's 128 MiB of memory, with a Word file's unpacked text and a PDF's pages capped as well. The total protects the model's bill, the member's browser while it opens a ZIP, and the download of an import folder as one ZIP, which the browser builds in memory.
 - **Retention.** 14 days for an abandoned or failed import, 30 days for a confirmed import's proposal, 30 days of gateway logs. An import is failed after 6 hours without progress while it is read, or 14 days left uploading or unconfirmed.
+
+## Amendment 2026-11-11: a reading outside an import
+
+A product's safety data sheet is read in the substance dialog ([ADR 018](adr-018-fire-safety-means.md#amendment-2026-11-11-a-substance-read-from-its-safety-data-sheet)). It is the first reading that belongs to no import, and it departs from this ADR in three ways.
+
+- **No quote for each value.** The rule that every value carries the passage that contains it cannot hold: the texts are condensed, and translated when the sheet is not in Romanian. What can be checked is checked in code: every hazard statement code and every CAS, EC and UN number in the draft must occur in the file's text, or it is left out and the member is told how many were. A file without the sheet's structure of sections is refused before a model is asked. The rest is the member's to read before saving, which is why the reading writes nothing.
+- **Credits with no import.** Every earlier charge named an import. This reading has kinds of its own in the ledger, `safety_sheet` and `safety_sheet_refund`, with no import, the refund matched to the charge by its key. It is refused unless the balance covers it, never takes the balance below zero, and is given back when the file is refused or the reading fails. It takes 3 credits, set from an estimate of about 3 to 5 cents a sheet. A later reading outside an import takes the same shape rather than borrowing an import's kinds.
+- **Nothing is kept.** The file is not stored and leaves no improvement copy (ADR 037 is about imports). Its tokens and cost are a log line, not a row.

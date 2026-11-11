@@ -41,7 +41,7 @@ sources:
   - docs/architecture/adr-020-fire-safety-from-ten-employees.md
   - docs/architecture/adr-021-training-records-and-individual-sheets.md
   - docs/architecture/adr-041-su-import-questions-and-suggestions.md
-  - docs/architecture/adr-042-substances-from-safety-data-sheets.md
+  - docs/architecture/adr-030-import-from-documents.md
   - packages/contracts/src/fire-safety.ts
   - packages/contracts/src/documents.ts
   - apps/api/src/modules/documents/fire-safety.ts

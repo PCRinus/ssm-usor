@@ -78,7 +78,7 @@ export function creditsStore(db: AdminClient) {
         'import_start' | 'import_pages' | 'scanned_page' | 'library_part' | 'safety_sheet'
       >;
       credits: number;
-      // Null for a reading outside any import, a safety data sheet's (ADR 042).
+      // Null for a reading outside any import, a safety data sheet's (ADR 030).
       importId: string | null;
       fileId?: string;
       page?: number;

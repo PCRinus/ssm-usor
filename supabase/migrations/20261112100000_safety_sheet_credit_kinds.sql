@@ -1,4 +1,4 @@
--- ADR 042: reading a product's safety data sheet in the substance dialog is charged in credits
+-- ADR 030: reading a product's safety data sheet in the substance dialog is charged in credits
 -- and given back when it fails or the file is refused. Postgres refuses a new enum value inside
 -- the transaction that adds it, so the migration after this one uses them.
 

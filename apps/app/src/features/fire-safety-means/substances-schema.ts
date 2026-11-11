@@ -149,7 +149,7 @@ const sameText = (a: string, b: string) =>
   b.replace(/\s+/g, ' ').trim().toLocaleLowerCase('ro');
 
 /**
- * Where a safety data sheet's draft goes in the form (ADR 042): an empty field takes the sheet's
+ * Where a safety data sheet's draft goes in the form (ADR 018): an empty field takes the sheet's
  * value, and so does one still holding an earlier sheet's; a field the member filled keeps their
  * text, and the sheet's differing value is offered beside it.
  */

@@ -815,7 +815,7 @@ their tab bars read.
   choice while undecided, opens the add dialog when the list is chosen but empty, and opens the
   first incomplete entry at its first missing field. The missing-data row of `fire.substances`
   names the incomplete substances from the readiness's `incompleteFireSubstances`.
-  The dialog opens with a notice "Completează din fișa cu date de securitate" (ADR 042,
+  The dialog opens with a notice "Completează din fișa cu date de securitate" (ADR 018, amendment of 2026-11-11,
   `safety-sheet-reader.tsx`): its cost and what is left (the import's `CreditsLine`; the button
   disabled when the balance does not cover 3 credits) and "Alege fișa (PDF)", which checks the type
   and size, sends the file with `apiUpload` and shows a spinner notice while the API reads it; Save

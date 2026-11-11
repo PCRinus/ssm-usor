@@ -187,7 +187,7 @@ export type ImportCharges = ReturnType<typeof importCharges>;
 
 /**
  * One reading of a safety data sheet, refused unless the balance covers it, and given back when
- * it fails or the file is refused (ADR 042).
+ * it fails or the file is refused (ADR 030).
  */
 export function safetySheetCharges(store: CreditsStore, now: () => Date = () => new Date()) {
   return {

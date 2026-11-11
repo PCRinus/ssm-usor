@@ -532,7 +532,7 @@ export const fireSubstanceResponseSchema = z.object({ substance: fireSubstanceSc
 export type FireSubstanceResponse = z.infer<typeof fireSubstanceResponseSchema>;
 
 /**
- * What a product's safety data sheet fills in a substance (ADR 042). The quantity and the storage
+ * What a product's safety data sheet fills in a substance (ADR 018). The quantity and the storage
  * place are the client's own and never come from the sheet.
  */
 export const safetySheetDraftFields = [
@@ -568,7 +568,7 @@ export const readSafetySheetResponseSchema = z.object({
 
 export type ReadSafetySheetResponse = z.infer<typeof readSafetySheetResponseSchema>;
 
-/** One PDF with a text layer, as a supplier sends it (ADR 042). */
+/** One PDF with a text layer, as a supplier sends it (ADR 018). */
 export const safetySheetLimits = { maxBytes: 10 * 1024 * 1024, maxPages: 40 } as const;
 
 export const safetySheetErrorReasons = {

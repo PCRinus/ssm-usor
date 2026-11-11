@@ -6,7 +6,7 @@ import { safetySheetModel } from './models';
 import { type ChatMessage, dataNotInstructions } from './prompts';
 import { type AnswerFormat, answerFormat } from './wire';
 
-// 40 pages of a dense sheet stay well below it; it bounds the request's cost (ADR 042).
+// 40 pages of a dense sheet stay well below it; it bounds the request's cost (ADR 018).
 export const safetySheetCharacters = 200_000;
 export const safetySheetOutputTokens = 8_000;
 
@@ -200,7 +200,7 @@ export type SafetySheetReading =
   { kind: 'draft'; draft: SafetySheetDraft; droppedCodes: number } | { kind: 'not_a_sheet' };
 
 // The prompt asks for no invented code, but only code can hold to it: every H statement, CAS, EC
-// and UN number must occur in the file's text, or it is left out and counted (ADR 042).
+// and UN number must occur in the file's text, or it is left out and counted (ADR 030).
 export function readSafetySheetAnswer(answer: SafetySheetAnswer, text: string): SafetySheetReading {
   if (!answer.isSafetyDataSheet || !hasSafetySheetStructure(text)) return { kind: 'not_a_sheet' };
   const file = inFile(text);
