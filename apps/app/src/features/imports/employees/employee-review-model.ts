@@ -947,6 +947,7 @@ export type PersonView = {
   name: string;
   decisions: Decision[];
   notes: Note[];
+  included: boolean;
 };
 
 export function peopleViews(context: ReviewContext): PersonView[] {
@@ -957,31 +958,27 @@ export function peopleViews(context: ReviewContext): PersonView[] {
     name: personName(context, person),
     decisions: decisionsOf(context, person),
     notes: notesOf(context, person),
+    included: personIncluded(context, person),
   }));
 }
 
-export function peopleCounts(context: Pick<ReviewContext, 'proposal' | 'states'>) {
-  const counts = { total: 0, toCheck: 0, checked: 0, setAside: 0 };
-  for (const person of context.proposal.people) {
-    counts.total += 1;
-    const state = stateOf(context, person.id);
-    if (state === 'checked') counts.checked += 1;
-    else if (state === 'set_aside') counts.setAside += 1;
-    else counts.toCheck += 1;
-  }
-  return counts;
-}
+const toCheck = (view: PersonView) => view.state === 'to_check' && view.included;
+
+export const firstToCheck = (views: PersonView[]) => views.find(toCheck);
 
 const ownDecisions = (view: Pick<PersonView, 'decisions'>) =>
   view.decisions.filter((decision) => !decision.above);
 
+const abbreviation = /^(?:Rh|CNP)\b/;
+
 const lowerFirst = (label: string) =>
-  /^\p{Lu}\p{Ll}/u.test(label) ? label[0]!.toLowerCase() + label.slice(1) : label;
+  /^\p{Lu}\p{Ll}/u.test(label) && !abbreviation.test(label)
+    ? label[0]!.toLowerCase() + label.slice(1)
+    : label;
 
 const joinAnd = (parts: string[]) =>
   parts.length > 1 ? `${parts.slice(0, -1).join(', ')} și ${parts.at(-1)}` : (parts[0] ?? '');
 
-/** Leaves out what is decided above; the values that differ between sheets make one part. */
 export function decisionSummary(view: Pick<PersonView, 'decisions'>) {
   const own = ownDecisions(view);
   const differing = own
@@ -1013,23 +1010,22 @@ function waitingTitle(views: PersonView[]) {
   return 'Așteaptă doar postul sau locul de muncă';
 }
 
-/** The people list in the order they are worked through; what is decided above is not counted. */
 export function peopleGroups(views: PersonView[]): PeopleGroup[] {
-  const toCheck = views.filter((view) => view.state === 'to_check');
-  const waiting = toCheck.filter(
+  const checking = views.filter(toCheck);
+  const waiting = checking.filter(
     (view) => view.decisions.length > 0 && ownDecisions(view).length === 0
   );
   const groups: PeopleGroup[] = [
     {
       key: 'decide',
       title: 'Cu ceva de hotărât',
-      views: toCheck.filter((view) => ownDecisions(view).length > 0),
+      views: checking.filter((view) => ownDecisions(view).length > 0),
     },
     { key: 'waiting', title: waitingTitle(waiting), views: waiting },
     {
       key: 'unopened',
       title: 'Încă nedeschise',
-      views: toCheck.filter((view) => view.decisions.length === 0),
+      views: checking.filter((view) => view.decisions.length === 0),
     },
     {
       key: 'checked',
@@ -1039,7 +1035,7 @@ export function peopleGroups(views: PersonView[]): PeopleGroup[] {
     {
       key: 'set_aside',
       title: 'Lăsați deoparte',
-      views: views.filter((view) => view.state === 'set_aside'),
+      views: views.filter((view) => !view.included),
     },
   ];
   return groups.filter((group) => group.views.length > 0);
@@ -1059,7 +1055,8 @@ const openGroups = <Group extends JobTitleGroup | WorkplaceGroup>(
 export function hubCounts(context: ReviewContext, views: PersonView[]) {
   const { proposal, changes } = context;
   const unplaced = unplacedPages(proposal);
-  const people = peopleCounts(context);
+  const checking = views.filter(toCheck);
+  const setAside = views.filter((view) => !view.included).length;
   return {
     posts: openGroups(proposal.jobTitles, (group) => titleStatus(changes, group)),
     workplaces:
@@ -1067,10 +1064,12 @@ export function hubCounts(context: ReviewContext, views: PersonView[]) {
         ? openGroups(proposal.workplaces, (group) => workplaceStatus(changes, group))
         : { decide: 0, confirm: 0 },
     people: {
-      ...people,
-      deciding: views.filter((view) => view.state === 'to_check' && ownDecisions(view).length > 0)
-        .length,
-      included: people.total - people.setAside,
+      total: views.length,
+      toCheck: checking.length,
+      checked: views.filter((view) => view.state === 'checked').length,
+      setAside,
+      deciding: checking.filter((view) => ownDecisions(view).length > 0).length,
+      included: views.length - setAside,
     },
     photos: {
       total: unplaced.length,

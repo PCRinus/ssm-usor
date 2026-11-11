@@ -20,6 +20,7 @@ import {
   decisionsOf,
   decisionSummary,
   emptyChanges,
+  firstToCheck,
   heldWith,
   hiringTestRowIds,
   hubCounts,
@@ -484,7 +485,17 @@ describe('the people list', () => {
         each.id === 'pop'
           ? {
               ...each,
-              fields: { ...each.fields, homeAddress: differing(['p3', 'p5']), jobTitle: twoTitles },
+              fields: {
+                ...each.fields,
+                homeAddress: differing(['p3', 'p5']),
+                rhFactor: {
+                  options: [
+                    { value: '+', pageIds: ['p3'] },
+                    { value: '-', pageIds: ['p5'] },
+                  ],
+                },
+                jobTitle: twoTitles,
+              },
             }
           : each
       ),
@@ -492,9 +503,37 @@ describe('the people list', () => {
     const context = { ...contextOf(withPage(emptyChanges(), 'p5', 'pop')), proposal: changed };
     const pop = peopleViews(context).find((view) => view.person.id === 'pop')!;
     expect(decisionSummary(pop)).toEqual({
-      count: 2,
-      text: 'Domiciliul și funcția diferă între fișe',
+      count: 3,
+      text: 'Domiciliul, Rh-ul și funcția diferă între fișe',
     });
+  });
+
+  it('sets aside a leaver not taken, out of what is left to check, until switched on', () => {
+    const left = withField(emptyChanges(), 'pop', 'leftOn', { value: '2026-09-30' });
+    const context = contextOf(left);
+    const views = peopleViews(context);
+    expect(groupsOf(context)).toEqual([
+      ['Cu ceva de hotărât', ['toma']],
+      ['Încă nedeschise', ['lazar']],
+      ['Lăsați deoparte', ['pop']],
+    ]);
+    expect(hubCounts(context, views).people).toEqual({
+      total: 3,
+      toCheck: 2,
+      checked: 0,
+      setAside: 1,
+      deciding: 1,
+      included: 2,
+    });
+    expect(firstToCheck(views.filter((view) => view.person.id !== 'toma'))?.person.id).toBe(
+      'lazar'
+    );
+
+    const taken = contextOf(withPersonIncluded(context, person('pop'), true));
+    expect(groupsOf(taken)).toEqual([
+      ['Cu ceva de hotărât', ['toma']],
+      ['Încă nedeschise', ['pop', 'lazar']],
+    ]);
   });
 
   it('counts what each section of the hub still waits on', () => {
