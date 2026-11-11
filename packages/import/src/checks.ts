@@ -400,11 +400,12 @@ export const workplaceValueAllowed = (field: string, value: string | number) =>
 // As `fire_substances.name` takes it.
 export const substanceNameAllowed = (name: string) => textOf(2, 160)(name);
 
-// Split by the joining words only, never by word: "ulei" must not meet "ulei uzat".
+// Split by the joining words only, never by word: "ulei" must not meet "ulei uzat". A comma
+// between digits is a decimal ("2,5%"), not a list.
 export const substanceParts = (name: string) =>
   new Set(
     name
-      .split(/\s*,\s*|\s+(?:și|şi|si)\s+/iu)
+      .split(/\s*(?<!\d),\s*|\s*,(?!\d)\s*|\s+(?:și|şi|si)\s+/iu)
       .map((part) => foldText(part))
       .filter(Boolean)
   );

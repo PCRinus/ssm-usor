@@ -263,6 +263,8 @@ function joinedSubstances<T extends Traced & { name: string }>(items: T[]) {
       kept,
       (a, b) => {
         if (foldText(a.name) === foldText(b.name)) return true;
+        // A fuller name read in another company's passage would bring its other items along.
+        if (a.otherCompanyName !== b.otherCompanyName) return false;
         const [partsA, partsB] = [substanceParts(a.name), substanceParts(b.name)];
         return within(partsA, partsB) || within(partsB, partsA);
       },

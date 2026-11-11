@@ -205,6 +205,54 @@ describe('the substances a client import proposes', () => {
     ]);
   });
 
+  it('does not split a name at a decimal comma, nor hold its quote by a digit', () => {
+    const proposal = toProposal(
+      reading([
+        named('Hipoclorit 2,5%', meansList, '| Hipoclorit 2,5% | 5 l |'),
+        named('Hipoclorit', meansList, '| Hipoclorit 2,5% | 5 l |'),
+      ])
+    );
+
+    expect(proposal.substances.map((substance) => substance.name)).toEqual([
+      'Hipoclorit 2,5%',
+      'Hipoclorit',
+    ]);
+    expect(
+      checkQuotes(
+        {
+          ...proposal,
+          substances: [
+            {
+              ...proposal.substances[0]!,
+              sources: [
+                { file: meansList, quote: 'Soluție de 5 litri pentru spălarea pardoselilor' },
+              ],
+            },
+          ],
+        },
+        {
+          [meansList]: '| Hipoclorit 2,5% | 5 l |\nSoluție de 5 litri pentru spălarea pardoselilor',
+        }
+      ).map((flag) => flag.code)
+    ).toEqual(['value_not_in_quote']);
+  });
+
+  it('does not join the client’s substance to a fuller name read in another company’s passage', () => {
+    const proposal = toProposal(
+      reading([
+        named('Detergenți', riskEvaluation, 'Detergenți'),
+        named('Detergenți și clor', meansList, 'detergenți și clor', 'ALTĂ FIRMĂ SRL'),
+      ])
+    );
+
+    expect(
+      proposal.substances.map((substance) => [substance.name, substance.otherCompanyName])
+    ).toEqual([
+      ['Detergenți', null],
+      ['Detergenți și clor', 'ALTĂ FIRMĂ SRL'],
+    ]);
+  });
+
   it('writes a name in capitals in sentence case and keeps the document’s spelling beside it', () => {
     const proposal = toProposal(
       reading([named('BUTELIE GPL', meansList, '| BUTELIE GPL | 1 buc. |')])
