@@ -5,6 +5,9 @@ import {
   type FireSubstanceEssential,
   type FireSubstancesState,
   missingSubstanceEssentials,
+  type SafetySheetDraft,
+  type SafetySheetDraftField,
+  safetySheetDraftFields,
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
@@ -140,3 +143,39 @@ export function missingEssentialsLabel(substance: Record<FireSubstanceEssential,
   if (missing.length === 0) return null;
   return missing.length === 1 ? `Lipsește ${missing[0]}` : `Lipsesc ${missing.join(' și ')}`;
 }
+
+const sameText = (a: string, b: string) =>
+  a.replace(/\s+/g, ' ').trim().toLocaleLowerCase('ro') ===
+  b.replace(/\s+/g, ' ').trim().toLocaleLowerCase('ro');
+
+/**
+ * Where a safety data sheet's draft goes in the form (ADR 042): an empty field takes the sheet's
+ * value, and so does one still holding an earlier sheet's; a field the member filled keeps their
+ * text, and the sheet's differing value is offered beside it.
+ */
+export function mergeSafetySheetDraft(
+  values: SubstanceFormValues,
+  draft: SafetySheetDraft,
+  fromSheet: ReadonlySet<SafetySheetDraftField>
+) {
+  const filled: SafetySheetDraftField[] = [];
+  const offers: Partial<Record<SafetySheetDraftField, string>> = {};
+  for (const field of safetySheetDraftFields) {
+    const value = draft[field];
+    if (!value) continue;
+    const current = values[field].trim();
+    if (current === '' || fromSheet.has(field)) filled.push(field);
+    else if (!sameText(current, value)) offers[field] = value;
+  }
+  return { filled, offers };
+}
+
+const takesDe = (count: number) => count % 100 === 0 || count % 100 >= 20;
+
+/** "1 câmp", "3 câmpuri", "20 de câmpuri". */
+export const fieldCountLabel = (count: number) =>
+  count === 1 ? '1 câmp' : `${count} ${takesDe(count) ? 'de ' : ''}câmpuri`;
+
+/** "un cod", "3 coduri", "20 de coduri". */
+export const codeCountLabel = (count: number) =>
+  count === 1 ? 'un cod' : `${count} ${takesDe(count) ? 'de ' : ''}coduri`;

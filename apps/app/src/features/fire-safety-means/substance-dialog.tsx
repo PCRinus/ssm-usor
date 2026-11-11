@@ -3,6 +3,9 @@ import {
   type FireSubstanceDetail,
   fireSubstanceDetailLabels,
   fireSubstanceDetails,
+  type ReadSafetySheetResponse,
+  type SafetySheetDraftField,
+  safetySheetDraftFields,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
@@ -17,6 +20,7 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { useRouteContext } from '@tanstack/react-router';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import {
@@ -29,11 +33,14 @@ import { ApiHttpError } from '@/api/http';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
+import { Tag } from '@/features/imports/review-parts';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 
+import { SafetySheetReader, type SheetOutcome } from './safety-sheet-reader';
 import { saveFailure } from './save-failure';
 import {
   type FireSubstance,
+  mergeSafetySheetDraft,
   newSubstanceForm,
   substanceDetailHint,
   substanceDetailPlaceholders,
@@ -42,6 +49,9 @@ import {
   toSubstanceForm,
   toSubstanceRequest,
 } from './substances-schema';
+
+const isSheetField = (name: string): name is SafetySheetDraftField =>
+  (safetySheetDraftFields as readonly string[]).includes(name);
 
 // `null` is closed, `'new'` adds an entry, otherwise the entry to edit.
 export type SubstanceEditing = FireSubstance | 'new' | null;
@@ -99,7 +109,88 @@ function SubstanceForm({
   });
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
+  const [readingSheet, setReadingSheet] = useState(false);
+  const [fromSheet, setFromSheet] = useState<ReadonlySet<SafetySheetDraftField>>(new Set());
+  const [offers, setOffers] = useState<Partial<Record<SafetySheetDraftField, string>>>({});
   const busy = create.isPending || update.isPending;
+
+  const markFromSheet = (field: SafetySheetDraftField, marked: boolean) =>
+    setFromSheet((current) => {
+      if (current.has(field) === marked) return current;
+      const next = new Set(current);
+      if (marked) next.add(field);
+      else next.delete(field);
+      return next;
+    });
+
+  const applyDraft = ({ draft, droppedCodes }: ReadSafetySheetResponse): SheetOutcome => {
+    const merged = mergeSafetySheetDraft(form.getValues(), draft, fromSheet);
+    for (const field of merged.filled) {
+      form.setValue(field, draft[field]!, {
+        shouldDirty: true,
+        shouldValidate: form.formState.isSubmitted,
+      });
+    }
+    setFromSheet(new Set(merged.filled));
+    setOffers(merged.offers);
+    return {
+      filled: merged.filled.length,
+      offered: Object.keys(merged.offers).length,
+      droppedCodes,
+    };
+  };
+
+  const takeOffer = (field: SafetySheetDraftField) => {
+    form.setValue(field, offers[field]!, {
+      shouldDirty: true,
+      shouldValidate: form.formState.isSubmitted,
+    });
+    markFromSheet(field, true);
+    setOffers((current) => {
+      const rest = { ...current };
+      delete rest[field];
+      return rest;
+    });
+  };
+
+  const register = (name: keyof SubstanceFormValues) =>
+    form.register(name, {
+      onChange: () => {
+        if (isSheetField(name)) markFromSheet(name, false);
+      },
+    });
+
+  const sheetNote = (name: keyof SubstanceFormValues, id: string) => {
+    if (!isSheetField(name)) return null;
+    const offer = offers[name];
+    return (
+      <>
+        {fromSheet.has(name) && (
+          <Tag tone="info" testId={`${id}-from-sheet`} className="w-fit">
+            Din fișă
+          </Tag>
+        )}
+        {offer && (
+          <div className="grid gap-1 text-sm" data-testid={`${id}-sheet-offer`}>
+            <span className="text-muted-foreground">
+              Păstrăm textul tău. În fișă: <span className="text-foreground">{offer}</span>
+            </span>
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="h-auto w-fit px-0"
+              data-testid={`${id}-take-sheet`}
+              disabled={busy}
+              onClick={() => takeOffer(name)}
+            >
+              Folosește textul din fișă
+            </Button>
+          </div>
+        )}
+      </>
+    );
+  };
 
   const onSubmit = form.handleSubmit(async (values) => {
     const data = toSubstanceRequest(values);
@@ -151,8 +242,9 @@ function SubstanceForm({
         disabled={busy}
         aria-invalid={Boolean(errors[name])}
         aria-describedby={errors[name] ? `${id}-error` : hint ? `${id}-hint` : undefined}
-        {...form.register(name)}
+        {...register(name)}
       />
+      {sheetNote(name, id)}
     </Field>
   );
 
@@ -168,6 +260,12 @@ function SubstanceForm({
           </DialogDescription>
         </DialogHeader>
         <DialogBody className="mt-5 grid gap-5 sm:grid-cols-2">
+          <SafetySheetReader
+            clientId={clientId}
+            disabled={busy}
+            onReading={setReadingSheet}
+            onDraft={applyDraft}
+          />
           {text('name', 'fire-substance-name', 'Denumirea')}
           {text(
             'classification',
@@ -205,8 +303,9 @@ function SubstanceForm({
                   disabled={busy}
                   aria-invalid={Boolean(errors[detail])}
                   aria-describedby={errors[detail] ? `${id}-error` : `${id}-hint`}
-                  {...form.register(detail)}
+                  {...register(detail)}
                 />
+                {sheetNote(detail, id)}
               </Field>
             );
           })}
@@ -220,7 +319,7 @@ function SubstanceForm({
           <Button type="button" variant="ghost" disabled={busy} onClick={onClose}>
             Renunță
           </Button>
-          <Button type="submit" data-testid="fire-substance-save" disabled={busy}>
+          <Button type="submit" data-testid="fire-substance-save" disabled={busy || readingSheet}>
             {busy ? 'Se salvează…' : substance ? 'Salvează' : 'Adaugă'}
           </Button>
         </DialogFooter>

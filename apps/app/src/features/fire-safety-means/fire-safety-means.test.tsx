@@ -1175,3 +1175,195 @@ describe('client dangerous substances', () => {
     }
   });
 });
+
+describe('a substance filled in from its safety data sheet', () => {
+  type Sent = { url: URL; body: Blob };
+  const uploads: Sent[] = [];
+  let answerUpload: () => { status: number; body: unknown };
+
+  class FakeXhr {
+    upload: { onprogress: ((event: ProgressEvent) => void) | null } = { onprogress: null };
+    onload: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+    onabort: (() => void) | null = null;
+    status = 0;
+    responseText = '';
+    responseURL = '';
+    private url = '';
+
+    open(_method: string, url: URL | string) {
+      this.url = String(url);
+    }
+    setRequestHeader() {}
+    getResponseHeader() {
+      return null;
+    }
+    abort() {}
+    send(body: Blob) {
+      uploads.push({ url: new URL(this.url), body });
+      setTimeout(() => {
+        const answer = answerUpload();
+        this.status = answer.status;
+        this.responseText = JSON.stringify(answer.body);
+        this.responseURL = this.url;
+        this.onload?.();
+      }, 0);
+    }
+  }
+
+  const draft = {
+    name: 'Degresant Rapid DX-40',
+    classification: 'Flam. Liq. 2, H225; Eye Irrit. 2, H319',
+    physicalChemicalProperties: 'Lichid incolor; punct de inflamabilitate 13 °C.',
+    identificationCodes: 'CAS 64-17-5, CE 200-578-6; UN 1993',
+    healthEnvironmentRisks: 'Lichid și vapori foarte inflamabili; iritare gravă a ochilor.',
+    protectionMeans: 'Ochelari de protecție; mănuși din cauciuc nitrilic.',
+    interventionMeasures: null,
+    extinguishingAgents: 'Spumă rezistentă la alcool, pulbere, CO2.',
+    handling: 'Departe de surse de aprindere; în recipientul original închis.',
+  };
+  const read =
+    (overrides: Record<string, unknown> = {}) =>
+    () => ({ status: 200, body: { draft, droppedCodes: 0, credits: 3, ...overrides } });
+  const sheet = new File(['%PDF-1.7'], 'FDS Degresant DX-40.pdf', { type: 'application/pdf' });
+
+  beforeEach(() => {
+    uploads.length = 0;
+    answerUpload = read();
+    vi.stubGlobal('XMLHttpRequest', FakeXhr);
+  });
+
+  const card = async () => {
+    await screen.findByTestId('fire-substances-state');
+    return screen.getByTestId('fire-substances-card');
+  };
+  const value = (dialog: HTMLElement, id: string) =>
+    within(dialog).getByTestId<HTMLInputElement | HTMLTextAreaElement>(id).value;
+
+  it('fills the empty fields of a new substance from the sheet and marks them until edited', async () => {
+    mockApi({ substancesState: 'listed', substances: [] });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(within(await card()).getByTestId('fire-substance-add'));
+    const dialog = await screen.findByTestId('fire-substance-dialog');
+    expect(within(dialog).getByTestId('fire-substance-sheet-offer').textContent).toContain(
+      'Citirea folosește 3 credite.'
+    );
+    await user.type(within(dialog).getByTestId('fire-substance-quantity'), '2 bidoane de 5 l');
+    await user.upload(within(dialog).getByTestId('fire-substance-sheet-input'), sheet);
+
+    const done = await within(dialog).findByTestId('fire-substance-sheet-done');
+    expect(done.textContent).toContain('Am completat 8 câmpuri');
+    expect(uploads[0]!.url.pathname).toBe(`/clients/${clientId}/fire-substances/read-safety-sheet`);
+    expect(value(dialog, 'fire-substance-name')).toBe('Degresant Rapid DX-40');
+    expect(value(dialog, 'fire-substance-classification')).toBe(draft.classification);
+    expect(value(dialog, 'fire-substance-codes')).toBe(draft.identificationCodes);
+    expect(value(dialog, 'fire-substance-quantity')).toBe('2 bidoane de 5 l');
+    expect(value(dialog, 'fire-substance-storage')).toBe('');
+    expect(value(dialog, 'fire-substance-intervention')).toBe('');
+    expect(within(dialog).getByTestId('fire-substance-classification-from-sheet')).toBeTruthy();
+    expect(within(dialog).queryByTestId('fire-substance-quantity-from-sheet')).toBeNull();
+    expect(within(dialog).queryByTestId('fire-substance-intervention-from-sheet')).toBeNull();
+    expect(within(dialog).queryByTestId('fire-substance-sheet-dropped')).toBeNull();
+
+    await user.type(within(dialog).getByTestId('fire-substance-protection'), ' Mască.');
+    expect(within(dialog).queryByTestId('fire-substance-protection-from-sheet')).toBeNull();
+
+    await user.click(within(dialog).getByTestId('fire-substance-save'));
+    await waitFor(() =>
+      expect(requests(substancesPath, 'POST')).toEqual([
+        expect.objectContaining({
+          name: 'Degresant Rapid DX-40',
+          classification: draft.classification,
+          quantity: '2 bidoane de 5 l',
+          protectionMeans: 'Ochelari de protecție; mănuși din cauciuc nitrilic. Mască.',
+          storagePlace: null,
+          interventionMeasures: null,
+        }),
+      ])
+    );
+  });
+
+  it("keeps what the member wrote on an imported entry and offers the sheet's text beside it", async () => {
+    const imported = {
+      ...propane,
+      name: 'Detergenți',
+      classification: null,
+      quantity: null,
+      identificationCodes: null,
+      storagePlace: null,
+      protectionMeans: 'Ochelari de protecție; mănuși din cauciuc nitrilic.',
+    };
+    mockApi({ substancesState: 'listed', substances: [imported] });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByText('Detergenți'));
+    const dialog = await screen.findByTestId('fire-substance-dialog');
+    await user.upload(within(dialog).getByTestId('fire-substance-sheet-input'), sheet);
+
+    const done = await within(dialog).findByTestId('fire-substance-sheet-done');
+    expect(done.textContent).toContain('La 1 câmp completate deja, fișa spune altceva');
+    expect(value(dialog, 'fire-substance-name')).toBe('Detergenți');
+    expect(value(dialog, 'fire-substance-classification')).toBe(draft.classification);
+    expect(within(dialog).queryByTestId('fire-substance-protection-sheet-offer')).toBeNull();
+    const offer = within(dialog).getByTestId('fire-substance-name-sheet-offer');
+    expect(offer.textContent).toContain('În fișă: Degresant Rapid DX-40');
+
+    await user.click(within(dialog).getByTestId('fire-substance-name-take-sheet'));
+    expect(value(dialog, 'fire-substance-name')).toBe('Degresant Rapid DX-40');
+    expect(within(dialog).getByTestId('fire-substance-name-from-sheet')).toBeTruthy();
+    expect(within(dialog).queryByTestId('fire-substance-name-sheet-offer')).toBeNull();
+  });
+
+  it('tells the member to check the codes the reading left out', async () => {
+    answerUpload = read({ droppedCodes: 2 });
+    mockApi({ substancesState: 'listed', substances: [] });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(within(await card()).getByTestId('fire-substance-add'));
+    const dialog = await screen.findByTestId('fire-substance-dialog');
+    await user.upload(within(dialog).getByTestId('fire-substance-sheet-input'), sheet);
+
+    const dropped = await within(dialog).findByTestId('fire-substance-sheet-dropped');
+    expect(dropped.textContent).toContain('Am lăsat deoparte 2 coduri');
+  });
+
+  it('says a scanned sheet is not read yet and that its credits came back', async () => {
+    answerUpload = () => ({
+      status: 422,
+      body: { error: 'unprocessable', message: 'x', reason: 'safety_sheet_scanned' },
+    });
+    mockApi({ substancesState: 'listed', substances: [] });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(within(await card()).getByTestId('fire-substance-add'));
+    const dialog = await screen.findByTestId('fire-substance-dialog');
+    await user.upload(within(dialog).getByTestId('fire-substance-sheet-input'), sheet);
+
+    const error = await within(dialog).findByTestId('fire-substance-sheet-error');
+    expect(error.textContent).toContain('scanată sau fotografiată');
+    expect(error.textContent).toContain('Creditele ți-au fost returnate.');
+    expect(value(dialog, 'fire-substance-name')).toBe('');
+  });
+
+  it('refuses a file that is not a PDF without sending it', async () => {
+    mockApi({ substancesState: 'listed', substances: [] });
+    mount();
+    const user = userEvent.setup({ applyAccept: false });
+
+    await user.click(within(await card()).getByTestId('fire-substance-add'));
+    const dialog = await screen.findByTestId('fire-substance-dialog');
+    await user.upload(
+      within(dialog).getByTestId('fire-substance-sheet-input'),
+      new File(['PK'], 'fisa.docx', { type: 'application/msword' })
+    );
+
+    const error = await within(dialog).findByTestId('fire-substance-sheet-error');
+    expect(error.textContent).toContain('Fișa trebuie să fie un PDF');
+    expect(uploads).toHaveLength(0);
+  });
+});
