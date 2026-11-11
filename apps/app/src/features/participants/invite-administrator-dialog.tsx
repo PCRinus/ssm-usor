@@ -21,6 +21,7 @@ import { Notice } from '@/components/notice';
 import { PhoneInput } from '@/components/phone-input';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import type { Client } from '@/features/clients/client-form-schema';
+import { wordingRefusalHere } from '@/features/impersonation/refusal';
 import { EmployeeCombobox } from '@/features/training/employee-combobox';
 
 import {
@@ -77,7 +78,7 @@ function InviteAdministratorForm({
   onMessage: (message: ParticipantMessage) => void;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
-  const invite = useInviteClientAdministrator({ request: apiRequest });
+  const invite = useInviteClientAdministrator({ request: wordingRefusalHere(apiRequest) });
   const refresh = useRefreshParticipants(client.id);
   const smsOff = useSmsOff();
   const form = useForm<AdministratorInviteFormValues>({

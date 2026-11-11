@@ -28,6 +28,7 @@ import {
 } from '@/api/generated/api';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
+import { wordingRefusalHere } from '@/features/impersonation/refusal';
 
 import { AgreementWarning } from './agreement-warning';
 import {
@@ -80,8 +81,8 @@ function SigningFlow({
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const create = useCreateMySigningSession({ request: apiRequest });
-  const sign = useSignMySigningSession({ request: apiRequest });
+  const create = useCreateMySigningSession({ request: wordingRefusalHere(apiRequest) });
+  const sign = useSignMySigningSession({ request: wordingRefusalHere(apiRequest) });
   // What the code signs stays as it was opened, whatever the list refetches meanwhile.
   const [requests] = useState(chosen);
   const [step, setStep] = useState<Step>({ kind: 'review' });

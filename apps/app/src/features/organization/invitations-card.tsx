@@ -24,10 +24,13 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
+import { impersonationRefusal, wordingRefusalHere } from '@/features/impersonation/refusal';
 
 import { formatDay, roleLabels } from './labels';
 
 function actionMessage(cause: unknown, email: string) {
+  const refused = impersonationRefusal(cause);
+  if (refused) return refused;
   if (cause instanceof ApiHttpError) {
     const body = cause.body as Partial<ApiErrorResponse> | undefined;
     if (body?.reason === 'sent_recently') {
@@ -45,7 +48,7 @@ export function InvitationsCard({ userId }: { userId: string }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const queryKey = [...getListInvitationsQueryKey(), userId];
   const invitations = useListInvitations({ request: apiRequest, query: { queryKey } });
-  const resend = useResendInvitation({ request: apiRequest });
+  const resend = useResendInvitation({ request: wordingRefusalHere(apiRequest) });
   const revoke = useRevokeInvitation({ request: apiRequest });
   const [error, setError] = useState<string | null>(null);
   const busy = resend.isPending || revoke.isPending;

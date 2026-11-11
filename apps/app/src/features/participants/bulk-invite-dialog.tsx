@@ -29,6 +29,7 @@ import {
 } from '@/api/generated/api';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
+import { wordingRefusalHere } from '@/features/impersonation/refusal';
 
 import {
   bulkSmsBlockMessages,
@@ -170,7 +171,7 @@ function BulkInviteForm({
         const { results: answered } = await inviteEmployeeParticipants(
           clientId,
           { invitations: chunk },
-          apiRequest
+          wordingRefusalHere(apiRequest)
         );
         for (const result of answered) {
           outcome[result.employeeId] = {

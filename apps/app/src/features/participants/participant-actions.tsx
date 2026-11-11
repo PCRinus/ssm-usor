@@ -19,6 +19,7 @@ import {
   useRevokeClientParticipant,
   useRevokeParticipantInvitation,
 } from '@/api/generated/api';
+import { wordingRefusalHere } from '@/features/impersonation/refusal';
 
 import { participantFailure } from './participant-errors';
 import { channelLabels, formatDay, formatTime, languageLabels } from './participant-format';
@@ -42,7 +43,7 @@ export function InvitationStatus({
   onMessage: (message: ParticipantMessage) => void;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
-  const resend = useResendParticipantInvitation({ request: apiRequest });
+  const resend = useResendParticipantInvitation({ request: wordingRefusalHere(apiRequest) });
   const revoke = useRevokeParticipantInvitation({ request: apiRequest });
   const refresh = useRefreshParticipants(invitation.clientId);
   const [confirming, setConfirming] = useState(false);

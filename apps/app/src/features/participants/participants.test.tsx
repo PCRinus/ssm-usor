@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiHttpError } from '@/api/http';
+import { impersonationRefusedMessage } from '@/features/impersonation/refusal';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { smsUsage } from '@/test/billing-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
@@ -731,5 +732,11 @@ describe('participant failures', () => {
     expect(
       participantFailure(new ApiHttpError(503, { reason: 'participant_account_unavailable' }))
     ).toMatchObject({ saved: true, message: expect.stringContaining('salvată') });
+  });
+
+  it('gives an impersonation refusal its own reason, not a failed connection', () => {
+    expect(
+      participantFailure(new ApiHttpError(403, { reason: 'impersonation_refused' }))
+    ).toMatchObject({ message: impersonationRefusedMessage, saved: false, aboutAddress: false });
   });
 });

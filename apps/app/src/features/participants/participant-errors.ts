@@ -2,6 +2,7 @@ import { participantErrorReasons, type SmsRefusalReason } from '@ssm-usor/contra
 
 import type { ApiErrorResponse } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { impersonationRefusal } from '@/features/impersonation/refusal';
 
 import { formatTime } from './participant-format';
 
@@ -72,6 +73,8 @@ const failure = (message: string, aboutAddress = false, saved = false): Particip
 });
 
 export function participantFailure(cause: unknown, resendableAt?: string): ParticipantFailure {
+  const refused = impersonationRefusal(cause);
+  if (refused) return failure(refused);
   if (!(cause instanceof ApiHttpError)) {
     return failure('Acțiunea nu a reușit. Verifică conexiunea și încearcă din nou.');
   }
