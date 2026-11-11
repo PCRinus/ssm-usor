@@ -1127,6 +1127,13 @@ export function countWorkplaceName(
   return values ? itemName('workplaces', values) : (count.workplace.name ?? '');
 }
 
+const countPlace = (count: FireEquipmentCount, where: string) => {
+  if (count.workplace.id !== null) return where ? `, ${where}` : '';
+  return count.workplace.name
+    ? `, „${count.workplace.name}”, care nu e printre locurile de muncă`
+    : ', fără loc de muncă';
+};
+
 export const roleLabel = (role: string) =>
   responsiblePersonRoleLabels[role as ResponsiblePersonRole] ?? role;
 
@@ -1284,7 +1291,7 @@ export function blockerLink(proposal: Proposal, changes: Changes, blocker: Block
       anchor: anchorOf(blocker.path),
       code: blocker.code,
       text: count
-        ? `Alege numărul de bucăți: ${countName(count)}${count.workplace.id === null ? ', fără loc de muncă' : where ? `, ${where}` : ''}`
+        ? `Alege numărul de bucăți: ${countName(count)}${countPlace(count, where)}`
         : 'Alege numărul de bucăți',
     };
   }
