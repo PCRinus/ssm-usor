@@ -11,8 +11,8 @@ import {
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import { substanceNameAllowed, workplaceValueAllowed } from './checks';
-import { inferValues } from './inference';
+import { substanceNameAllowed, substanceParts, workplaceValueAllowed } from './checks';
+import { inferValues, officeWithoutActivity } from './inference';
 import { contained, cuiDigits, foldName, foldText, sameAddress, similar, streetKey } from './match';
 import { countedOnce } from './means-count';
 import {
@@ -250,6 +250,40 @@ function joined<T extends Traced>(
     merge(known, item);
   }
   return kept;
+}
+
+// Joining widens a name, which can then hold an entry kept apart before, so it runs until
+// nothing joins.
+function joinedSubstances<T extends Traced & { name: string }>(items: T[]) {
+  const within = (a: Set<string>, b: Set<string>) =>
+    a.size > 0 && [...a].every((part) => b.has(part));
+  let kept = items;
+  for (;;) {
+    const next = joined(
+      kept,
+      (a, b) => {
+        if (foldText(a.name) === foldText(b.name)) return true;
+        // A fuller name read in another company's passage would bring its other items along.
+        if (a.otherCompanyName !== b.otherCompanyName) return false;
+        const [partsA, partsB] = [substanceParts(a.name), substanceParts(b.name)];
+        return within(partsA, partsB) || within(partsB, partsA);
+      },
+      (into, from) => {
+        const [intoParts, fromParts] = [
+          substanceParts(into.name).size,
+          substanceParts(from.name).size,
+        ];
+        if (
+          fromParts > intoParts ||
+          (fromParts === intoParts && nonAsciiCount(from.name) > nonAsciiCount(into.name))
+        ) {
+          into.name = from.name;
+        }
+      }
+    );
+    if (next.length === kept.length) return next;
+    kept = next;
+  }
 }
 
 const employeeName = (employee: { lastName: string | null; firstName: string | null }) =>
@@ -693,10 +727,9 @@ export function toProposal(...readings: Reading[]): Proposal {
       return [{ workplaceId, field: suggestion.field, value, sources }];
     }
   );
-  const workplaceReference = (name: string | null, defaultToOnly: boolean) => ({
+  const workplaceReference = (name: string | null, unnamed: string | null = null) => ({
     name,
-    id:
-      name === null ? (defaultToOnly ? onlyWorkplace : null) : resolve(name, workplaceNames, true),
+    id: name === null ? unnamed : resolve(name, workplaceNames, true),
   });
 
   const jobPositions = joined(
@@ -739,10 +772,52 @@ export function toProposal(...readings: Reading[]): Proposal {
     (name) => resolve(name, jobPositions)
   );
 
+  const responsiblePersons = joined(
+    list((reading) => reading.responsiblePersons)
+      .filter((person) => named(person.fullName) && person.roles.length > 0)
+      .map((person) => {
+        const roles: Roles = { roles: [], roleSources: {} };
+        for (const entry of person.roles) {
+          const { role, ...source } = roleOf(person, entry);
+          addRoles(roles, { roles: [role], roleSources: { [role]: [sourceOf(source)] } });
+        }
+        return {
+          ...traced(person),
+          fullName: person.fullName,
+          jobTitle: person.jobTitle,
+          ...roles,
+          workplace: person.workplace,
+        };
+      }),
+    (a, b) => foldName(a.fullName) === foldName(b.fullName),
+    (into, from) => {
+      fillGaps(into, from);
+      addRoles(into, from);
+    }
+  ).map((person, index) => ({
+    id: `person-${index + 1}`,
+    ...person,
+    workplace: workplaceReference(person.workplace),
+  }));
+
+  // Means no document ties to a workplace go to the only one where activity can take place,
+  // whatever the member later answers for the office (ADR 041, amended 2026-11-11).
+  const inactiveOffice = officeWithoutActivity(workplaces, [
+    ...list((reading) => reading.fireEquipment).map((each) => workplaceReference(each.workplace)),
+    ...list((reading) => reading.fireInstallations).map((each) =>
+      workplaceReference(each.workplace)
+    ),
+    ...responsiblePersons.map((person) => person.workplace),
+  ])?.office;
+  const active = workplaces.filter(
+    (workplace) => workplace.otherCompanyName === null && workplace !== inactiveOffice
+  );
+  const meansWorkplace = onlyWorkplace ?? (active.length === 1 ? active[0]!.id : null);
+
   const { fireEquipment, fireEquipmentCounts } = countedOnce(
     list((reading) => reading.fireEquipment).map((equipment) => ({
       ...traced(equipment),
-      workplace: workplaceReference(equipment.workplace, true),
+      workplace: workplaceReference(equipment.workplace, meansWorkplace),
       room: equipment.room,
       kind: equipment.kind,
       agent: equipment.agent,
@@ -805,7 +880,7 @@ export function toProposal(...readings: Reading[]): Proposal {
     }
   }
 
-  const substances = joined(
+  const substances = joinedSubstances(
     // A scan's page read before the field existed has none.
     list((reading) => reading.substances ?? [])
       .filter((substance) => substanceNameAllowed(substance.name))
@@ -813,11 +888,7 @@ export function toProposal(...readings: Reading[]): Proposal {
         ...traced(substance),
         name: substance.name.trim(),
         spelling: {} as Record<string, string>,
-      })),
-    (a, b) => foldText(a.name) === foldText(b.name),
-    (into, from) => {
-      if (nonAsciiCount(from.name) > nonAsciiCount(into.name)) into.name = from.name;
-    }
+      }))
   ).map((substance, index) => ({ id: `substance-${index + 1}`, ...substance }));
   if (substances.length > 0) {
     const own = substances.filter((substance) => substance.otherCompanyName === null);
@@ -837,39 +908,13 @@ export function toProposal(...readings: Reading[]): Proposal {
     fireSafety: groups.fireSafety as Proposal['fireSafety'],
     workplaces,
     jobPositions,
-    responsiblePersons: joined(
-      list((reading) => reading.responsiblePersons)
-        .filter((person) => named(person.fullName) && person.roles.length > 0)
-        .map((person) => {
-          const roles: Roles = { roles: [], roleSources: {} };
-          for (const entry of person.roles) {
-            const { role, ...source } = roleOf(person, entry);
-            addRoles(roles, { roles: [role], roleSources: { [role]: [sourceOf(source)] } });
-          }
-          return {
-            ...traced(person),
-            fullName: person.fullName,
-            jobTitle: person.jobTitle,
-            ...roles,
-            workplace: person.workplace,
-          };
-        }),
-      (a, b) => foldName(a.fullName) === foldName(b.fullName),
-      (into, from) => {
-        fillGaps(into, from);
-        addRoles(into, from);
-      }
-    ).map((person, index) => ({
-      id: `person-${index + 1}`,
-      ...person,
-      workplace: workplaceReference(person.workplace, false),
-    })),
+    responsiblePersons,
     fireEquipment,
     fireEquipmentCounts,
     fireInstallations: list((reading) => reading.fireInstallations).map((installation, index) => ({
       id: `installation-${index + 1}`,
       ...traced(installation),
-      workplace: workplaceReference(installation.workplace, true),
+      workplace: workplaceReference(installation.workplace, meansWorkplace),
       kind: installation.kind,
       description: installation.description,
     })),

@@ -7,7 +7,7 @@ import { type Reading, readingAnswer, toProposal } from './reading';
 type Named = Reading['substances'][number];
 type Fact = Reading['facts'][number];
 
-const wasteDecision = 'Dosar/PSI/Decizia 9 deșeuri.docx';
+const riskEvaluation = 'Dosar/SSM/Evaluarea riscurilor.docx';
 const cleaningPlan = 'Dosar/SSM/Plan de igienizare.docx';
 const meansList = 'Dosar/PSI/Lista mijloacelor.docx';
 
@@ -46,8 +46,8 @@ describe('the substances a client import proposes', () => {
   it('proposes "listed" with one entry for each substance the documents name, each with its passage', () => {
     const proposal = toProposal(
       reading([
-        named('Detergenți', wasteDecision, 'ambalaje de la detergenți și produse de curățenie'),
-        named('Ulei uzat', wasteDecision, 'uleiul uzat de la friteuză se predă firmei autorizate'),
+        named('Detergenți', riskEvaluation, '| Detergenți | spălarea vaselor |'),
+        named('Ulei de prăjit', riskEvaluation, '| Ulei de prăjit | friteuză |'),
       ])
     );
 
@@ -56,10 +56,10 @@ describe('the substances a client import proposes', () => {
         {
           value: 'listed',
           sources: [
-            { file: wasteDecision, quote: 'ambalaje de la detergenți și produse de curățenie' },
+            { file: riskEvaluation, quote: '| Detergenți | spălarea vaselor |' },
             {
-              file: wasteDecision,
-              quote: 'uleiul uzat de la friteuză se predă firmei autorizate',
+              file: riskEvaluation,
+              quote: '| Ulei de prăjit | friteuză |',
             },
           ],
           otherCompanyName: null,
@@ -70,18 +70,14 @@ describe('the substances a client import proposes', () => {
       {
         id: 'substance-1',
         name: 'Detergenți',
-        sources: [
-          { file: wasteDecision, quote: 'ambalaje de la detergenți și produse de curățenie' },
-        ],
+        sources: [{ file: riskEvaluation, quote: '| Detergenți | spălarea vaselor |' }],
         otherCompanyName: null,
         spelling: {},
       },
       {
         id: 'substance-2',
-        name: 'Ulei uzat',
-        sources: [
-          { file: wasteDecision, quote: 'uleiul uzat de la friteuză se predă firmei autorizate' },
-        ],
+        name: 'Ulei de prăjit',
+        sources: [{ file: riskEvaluation, quote: '| Ulei de prăjit | friteuză |' }],
         otherCompanyName: null,
         spelling: {},
       },
@@ -134,7 +130,7 @@ describe('the substances a client import proposes', () => {
   it('folds a name several files give into one entry with every passage, keeping its diacritics', () => {
     const proposal = toProposal(
       reading([
-        named('Detergenti', wasteDecision, 'ambalaje de la detergenti'),
+        named('Detergenti', riskEvaluation, '| Detergenti | spalarea vaselor |'),
         named('Benzină', meansList, '| Benzină | canistră 10 l |'),
       ]),
       reading([named('Detergenți', cleaningPlan, 'Detergenți pentru vase')])
@@ -146,8 +142,114 @@ describe('the substances a client import proposes', () => {
         substance.sources.map((source) => source.file),
       ])
     ).toEqual([
-      ['Detergenți', [wasteDecision, cleaningPlan]],
+      ['Detergenți', [riskEvaluation, cleaningPlan]],
       ['Benzină', [meansList]],
+    ]);
+  });
+
+  it('joins a name to the fuller one that lists it with "și" or a comma, in any order', () => {
+    const row = '| Detergenți și soluții de curățare | spălarea pardoselilor |';
+    const proposal = toProposal(
+      reading([
+        named('Detergenți', cleaningPlan, 'Detergenți pentru pardoseli'),
+        named('Soluții de curățare', cleaningPlan, 'soluții de curățare diluate'),
+        named('Detergenți și soluții de curățare', riskEvaluation, row),
+        named('Soluții de curățare, detergenți', meansList, 'soluții de curățare, detergenți'),
+        named('Benzină', meansList, '| Benzină | canistră 10 l |'),
+      ])
+    );
+
+    expect(
+      proposal.substances.map((substance) => [
+        substance.name,
+        substance.sources.map((source) => source.quote),
+      ])
+    ).toEqual([
+      [
+        'Detergenți și soluții de curățare',
+        [
+          'Detergenți pentru pardoseli',
+          row,
+          'soluții de curățare, detergenți',
+          'soluții de curățare diluate',
+        ],
+      ],
+      ['Benzină', ['| Benzină | canistră 10 l |']],
+    ]);
+    expect(
+      checkQuotes(proposal, {
+        [cleaningPlan]: 'Detergenți pentru pardoseli; soluții de curățare diluate.',
+        [riskEvaluation]: row,
+        [meansList]: 'soluții de curățare, detergenți | Benzină | canistră 10 l |',
+      })
+    ).toEqual([]);
+  });
+
+  it('keeps apart names that share a word but not a listed item', () => {
+    const proposal = toProposal(
+      reading([
+        named('Ulei', meansList, '| Ulei hidraulic | Ulei |'),
+        named('Ulei hidraulic', meansList, '| Ulei hidraulic | Ulei |'),
+        named('Vopsele și diluanți', meansList, 'vopsele și diluanți'),
+        named('Diluanți și lacuri', meansList, 'diluanți și lacuri'),
+        named('?!', meansList, '?!'),
+      ])
+    );
+
+    expect(proposal.substances.map((substance) => substance.name)).toEqual([
+      'Ulei',
+      'Ulei hidraulic',
+      'Vopsele și diluanți',
+      'Diluanți și lacuri',
+      '?!',
+    ]);
+  });
+
+  it('does not split a name at a decimal comma, nor hold its quote by a digit', () => {
+    const proposal = toProposal(
+      reading([
+        named('Hipoclorit 2,5%', meansList, '| Hipoclorit 2,5% | 5 l |'),
+        named('Hipoclorit', meansList, '| Hipoclorit 2,5% | 5 l |'),
+      ])
+    );
+
+    expect(proposal.substances.map((substance) => substance.name)).toEqual([
+      'Hipoclorit 2,5%',
+      'Hipoclorit',
+    ]);
+    expect(
+      checkQuotes(
+        {
+          ...proposal,
+          substances: [
+            {
+              ...proposal.substances[0]!,
+              sources: [
+                { file: meansList, quote: 'Soluție de 5 litri pentru spălarea pardoselilor' },
+              ],
+            },
+          ],
+        },
+        {
+          [meansList]: '| Hipoclorit 2,5% | 5 l |\nSoluție de 5 litri pentru spălarea pardoselilor',
+        }
+      ).map((flag) => flag.code)
+    ).toEqual(['value_not_in_quote']);
+  });
+
+  it('does not join the client’s substance to a fuller name read in another company’s passage', () => {
+    const proposal = toProposal(
+      reading([
+        named('Detergenți', riskEvaluation, 'Detergenți'),
+        named('Detergenți și clor', meansList, 'detergenți și clor', 'ALTĂ FIRMĂ SRL'),
+      ])
+    );
+
+    expect(
+      proposal.substances.map((substance) => [substance.name, substance.otherCompanyName])
+    ).toEqual([
+      ['Detergenți', null],
+      ['Detergenți și clor', 'ALTĂ FIRMĂ SRL'],
     ]);
   });
 
@@ -223,13 +325,13 @@ describe('the substances a client import proposes', () => {
 
   it('asks the model for the substances and the statement on the wire, with no nullable member', () => {
     const answer = readingAnswer.parse({
-      ...reading([named('Detergenți', wasteDecision, 'ambalaje de la detergenți')]),
+      ...reading([named('Detergenți', riskEvaluation, '| Detergenți | spălarea vaselor |')]),
       facts: [{ ...noneUsed, otherCompany: '' }],
       substances: [
         {
           name: 'Detergenți',
-          file: wasteDecision,
-          quote: 'ambalaje de la detergenți',
+          file: riskEvaluation,
+          quote: '| Detergenți | spălarea vaselor |',
           otherCompany: '',
         },
       ],
@@ -239,8 +341,8 @@ describe('the substances a client import proposes', () => {
     expect(answer.substances).toEqual([
       {
         name: 'Detergenți',
-        file: wasteDecision,
-        quote: 'ambalaje de la detergenți',
+        file: riskEvaluation,
+        quote: '| Detergenți | spălarea vaselor |',
         otherCompany: null,
       },
     ]);

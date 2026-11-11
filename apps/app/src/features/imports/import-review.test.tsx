@@ -2899,6 +2899,46 @@ describe('means the files count differently', () => {
     );
   });
 
+  it('says the means of a count with no workplace have none yet', async () => {
+    const detail = countDetail();
+    const proposal = proposalOf(detail);
+    const unplaced = { name: null, id: null };
+    proposal.fireEquipmentCounts![0]!.workplace = unplaced;
+    for (const entry of proposal.fireEquipment) entry.workplace = unplaced;
+    mockReview(detail);
+    mount();
+
+    const link = await screen.findByTestId('import-blocker-link');
+    expect(link.textContent).toBe('Alege numărul de bucăți: Stingător P6, fără loc de muncă');
+    await userEvent.click(link);
+
+    const row = await screen.findByTestId('review-count-choice');
+    expect(row.textContent).toContain(
+      'Documentele nu spun la ce loc de muncă sunt aceste mijloace și dau 2 numere diferite.'
+    );
+  });
+
+  it('names the workplace the documents give a count that no workplace read matches', async () => {
+    const detail = countDetail();
+    const proposal = proposalOf(detail);
+    const unknown = { name: 'Hală Nord', id: null };
+    proposal.fireEquipmentCounts![0]!.workplace = unknown;
+    for (const entry of proposal.fireEquipment) entry.workplace = unknown;
+    mockReview(detail);
+    mount();
+
+    const link = await screen.findByTestId('import-blocker-link');
+    expect(link.textContent).toBe(
+      'Alege numărul de bucăți: Stingător P6, „Hală Nord”, care nu e printre locurile de muncă'
+    );
+    await userEvent.click(link);
+
+    const row = await screen.findByTestId('review-count-choice');
+    expect(row.textContent).toContain(
+      'Documentele pun aceste mijloace la „Hală Nord”, care nu e printre locurile de muncă citite, și dau 2 numere diferite.'
+    );
+  });
+
   it('asks no count for a workplace left out', async () => {
     const detail = Object.assign(countDetail(), {
       changes: { fields: {}, items: { 'workplace-1': { included: false } } },

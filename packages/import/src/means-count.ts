@@ -14,8 +14,12 @@ const roomCount = (entries: ReadEquipment[]) =>
 
 const typed = (entry: ReadEquipment) => entry.agent !== null && entry.capacity !== null;
 
+// A name no workplace matches may be a place of its own, so it is not joined to the unnamed.
+const placeOf = (entry: ReadEquipment) =>
+  entry.workplace.id ?? `?${foldText(entry.workplace.name ?? '')}`;
+
 const keyOf = (entry: ReadEquipment) =>
-  JSON.stringify([entry.workplace.id, entry.kind, entry.agent, entry.capacity, entry.wheeled]);
+  JSON.stringify([placeOf(entry), entry.kind, entry.agent, entry.capacity, entry.wheeled]);
 
 function sourcesOf(entries: ReadEquipment[]) {
   const sources: Source[] = [];
@@ -33,22 +37,19 @@ export function countedOnce(read: ReadEquipment[]): {
   fireEquipment: ProposedFireEquipment[];
   fireEquipmentCounts: ProposedFireEquipmentCount[];
 } {
-  const counted = read.filter(
-    // Another company's passages state nothing of this client's means, and an entry with no
-    // workplace waits for the member to place it.
-    (entry) => entry.workplace.id !== null && entry.otherCompanyName === null
-  );
+  // Another company's passages state nothing of this client's means.
+  const counted = read.filter((entry) => entry.otherCompanyName === null);
   const typedGroups = new Map<string, Map<string, ReadEquipment>>();
   for (const entry of counted) {
     if (entry.kind !== 'extinguisher' || !typed(entry)) continue;
-    const at = typedGroups.get(entry.workplace.id!) ?? new Map<string, ReadEquipment>();
+    const at = typedGroups.get(placeOf(entry)) ?? new Map<string, ReadEquipment>();
     if (!at.has(keyOf(entry))) at.set(keyOf(entry), entry);
-    typedGroups.set(entry.workplace.id!, at);
+    typedGroups.set(placeOf(entry), at);
   }
   // "Stingătoare cu pulbere" in a decision beside "P6" in the list of means is the same means
   // once the workplace has one type of extinguisher; with several, which one it is stays unknown.
   const groupKey = (entry: ReadEquipment) => {
-    const at = typedGroups.get(entry.workplace.id!);
+    const at = typedGroups.get(placeOf(entry));
     if (entry.kind !== 'extinguisher' || typed(entry) || at?.size !== 1) return keyOf(entry);
     const [key, group] = [...at][0]!;
     const fits =
