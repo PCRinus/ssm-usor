@@ -37,7 +37,14 @@ import {
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { useSidebar } from '@ssm-usor/ui/hooks/use-sidebar';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { Link, Outlet, useLocation, useMatches, useNavigate } from '@tanstack/react-router';
+import {
+  Link,
+  Outlet,
+  useLocation,
+  useMatches,
+  useNavigate,
+  useRouteContext,
+} from '@tanstack/react-router';
 import {
   BookOpenText,
   Briefcase,
@@ -73,7 +80,11 @@ import { usePostHogSession } from '@/app/observability/use-posthog-session';
 import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
-import { ImpersonationBanner } from '@/features/impersonation/impersonation-banner';
+import { endImpersonationBeforeSignOut } from '@/features/impersonation/end-before-sign-out';
+import {
+  ImpersonationBanner,
+  ImpersonationMarker,
+} from '@/features/impersonation/impersonation-banner';
 import { ImportReadyWatcher } from '@/features/imports/import-ready-watcher';
 import { ImportsHeaderButton } from '@/features/imports/imports-header-button';
 import { MyImportsProvider } from '@/features/imports/my-imports';
@@ -504,6 +515,7 @@ function AppNavigation({
 
 export function AppShell() {
   const { auth, session } = useAuth();
+  const context = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();
   // A route whose title depends on data returns it as `crumb` from its loader; a static title
   // beside it stands in when the loader has no name to give.
@@ -545,6 +557,7 @@ export function AppShell() {
     setPending(true);
     setError(null);
     try {
+      await endImpersonationBeforeSignOut(context, session?.user.id);
       await auth.signOut();
       await navigate({ to: '/autentificare', replace: true });
     } catch {
@@ -585,6 +598,12 @@ export function AppShell() {
                   className="h-auto w-28 sm:w-36"
                 />
               </Link>
+              {me.data?.impersonation && (
+                <ImpersonationMarker
+                  impersonation={me.data.impersonation}
+                  organizationName={me.data.membership?.organization.name}
+                />
+              )}
               {!phone && me.data?.subscription && (
                 <SubscriptionBadge
                   subscription={me.data.subscription}

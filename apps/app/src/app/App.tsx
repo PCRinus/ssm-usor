@@ -4,6 +4,8 @@ import { RouterProvider } from '@tanstack/react-router';
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 
 import { AuthContext } from '@/features/auth/auth-context';
+import { PageIdentityContext } from '@/features/impersonation/page-identity-context';
+import { ReloadingPage } from '@/features/impersonation/reloading-page';
 import { ReloadPrompts } from '@/features/reload-prompts/reload-prompts';
 import { useToasterOffset } from '@/features/setup-guide/toast-offset';
 
@@ -11,8 +13,9 @@ import type { AppRuntime } from './app-runtime';
 import { PublicFrame, PublicFrameAction } from './public-frame';
 
 export default function App({ runtime }: { runtime: AppRuntime }) {
-  const { auth, queryClient, router } = runtime;
+  const { auth, queryClient, router, identity } = runtime;
   const { status } = useSyncExternalStore(auth.subscribe, auth.getSnapshot);
+  const leaving = useSyncExternalStore(identity.subscribe, identity.leaving);
   const toasterOffset = useToasterOffset();
   const reloadPage = useMemo(
     () => ({
@@ -56,10 +59,16 @@ export default function App({ runtime }: { runtime: AppRuntime }) {
     );
   }
 
+  // In place of the router, so nothing built for the identity before stays usable, even when the
+  // admin chooses to stay on the page as it unloads.
+  if (leaving) return <ReloadingPage onReload={identity.reload} />;
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthContext.Provider value={auth}>
-        <RouterProvider router={router} />
+        <PageIdentityContext value={identity}>
+          <RouterProvider router={router} />
+        </PageIdentityContext>
         {/* Confirms actions that leave the user on the same page; errors stay inline. */}
         <Toaster position="bottom-right" closeButton {...toasterOffset} />
         <ReloadPrompts {...reloadPage} />

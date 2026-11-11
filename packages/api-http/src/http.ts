@@ -167,7 +167,7 @@ export function createApiHttp({
     body: Blob,
     options: ApiRequestOptions & { onProgress?: (sent: number, total: number) => void }
   ): Promise<T> {
-    const { baseUrl, getAccessToken, signal, onProgress } = options;
+    const { baseUrl, getAccessToken, signal, onProgress, headers } = options;
     const url = apiUrl(baseUrl, path);
     signal?.throwIfAborted();
     const token = await getAccessToken?.();
@@ -176,6 +176,7 @@ export function createApiHttp({
     return new Promise<T>((resolve, reject) => {
       const request = new XMLHttpRequest();
       request.open('POST', url);
+      new Headers(headers).forEach((value, name) => request.setRequestHeader(name, value));
       request.setRequestHeader('Accept', 'application/json');
       request.setRequestHeader('Content-Type', 'application/octet-stream');
       if (token) request.setRequestHeader('Authorization', `Bearer ${token}`);
