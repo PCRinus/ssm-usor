@@ -1,5 +1,5 @@
 begin;
-select plan(20);
+select plan(19);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -87,14 +87,6 @@ select lives_ok(
   $$ insert into public.service_contracts (organization_id, client_id, contract_number, contract_date, start_date, duration_months)
      values ('11111111-0000-4000-8000-000000000001', 'cccccccc-0000-4000-8000-000000000001', 51, '2027-01-10', '2027-01-10', 12) $$,
   'and again the year after'
-);
-
-select throws_ok(
-  $$ update public.service_contracts set covers_occupational_safety = false
-     where client_id = 'cccccccc-0000-4000-8000-000000000001' $$,
-  '23514',
-  null,
-  'a contract covers something'
 );
 
 select lives_ok(

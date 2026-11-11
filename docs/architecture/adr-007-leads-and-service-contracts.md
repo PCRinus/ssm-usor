@@ -49,6 +49,8 @@ The built-in template is a starter in our own words, following the structure of 
 
 A record of its own, readable by owners only, holds what the app needs to know about the contract: the number and date, the start date, the duration in months, whether it renews by itself, and which of the two services it covers. They are required before generating. Columns on the client were rejected: the row policy cannot hide a column from a specialist, and an amendment later needs a second record beside the first, not an overwritten one.
 
+(Amended 2026-11-11, Mircea's decision. An offer is always made for both services, so the contract no longer records which it covers: the two checkboxes, the two columns and their check are gone, and the starter template prints the occupational safety and the fire-safety chapters and obligations every time. The fire-safety technician is therefore asked before every contract, not only before one that covered fire safety. [ADR 016](adr-016-fire-safety-documents.md) had already stopped reading the flag for the fire-safety set and expected the checkboxes to go.)
+
 The number continues the provider's own register: the app proposes the last number plus one and the owner can change it.
 
 Prices are not stored. The price article is generated with gaps and the owner fills it in the editor, in whatever pricing model they use. A stored price would be a second copy that falls out of step the first time the file is edited, and nothing in the app uses one yet. Storing them, for a view of expected income, is an issue of its own, with the ways of keeping the two in step.

@@ -71,8 +71,8 @@ const organizationRow: ServiceContractFacts['organization'] = {
   authorization_certificate_date: '2022-09-30',
   authorization_certificate_issuer: 'DMPS Timiș',
   vat_payer: false,
-  fire_safety_technician_name: null,
-  fire_safety_technician_certificate: null,
+  fire_safety_technician_name: 'Ion IONESCU',
+  fire_safety_technician_certificate: 'seria CT nr. 1234',
 };
 const contractRow = {
   contract_number: 51,
@@ -80,8 +80,6 @@ const contractRow = {
   start_date: '2026-02-15',
   duration_months: 12,
   renews_automatically: true,
-  covers_occupational_safety: true,
-  covers_fire_safety: false,
 };
 const documentId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
 const revisionId = '9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d';
@@ -239,8 +237,6 @@ describe('what a contract is waiting for', () => {
       startDate: '2026-02-15',
       durationMonths: 12,
       renewsAutomatically: true,
-      coversOccupationalSafety: true,
-      coversFireSafety: false,
       endDate: '2027-02-14',
     },
     ...overrides,
@@ -272,10 +268,12 @@ describe('what a contract is waiting for', () => {
     ]);
   });
 
-  it('asks for the fire-safety technician only when fire safety is sold', () => {
-    const selling = facts();
-    selling.contract = { ...selling.contract!, coversFireSafety: true };
-    expect(missingServiceContractData(selling)).toEqual(['provider.fireSafetyTechnician']);
+  it('asks for the fire-safety technician, whom every contract names', () => {
+    expect(
+      missingServiceContractData(
+        facts({ organization: { ...organizationRow, fire_safety_technician_certificate: null } })
+      )
+    ).toEqual(['provider.fireSafetyTechnician']);
   });
 });
 
@@ -291,8 +289,6 @@ describe('GET /clients/{clientId}/service-contract', () => {
         startDate: '2026-02-15',
         durationMonths: 12,
         renewsAutomatically: true,
-        coversOccupationalSafety: true,
-        coversFireSafety: false,
         endDate: '2027-02-14',
       },
       suggestedNumber: null,
@@ -368,8 +364,6 @@ describe('PUT /clients/{clientId}/service-contract', () => {
       start_date: '2026-02-15',
       duration_months: 12,
       renews_automatically: true,
-      covers_occupational_safety: true,
-      covers_fire_safety: false,
       updated_by: user.id,
     });
   });
@@ -385,7 +379,6 @@ describe('PUT /clients/{clientId}/service-contract', () => {
     });
     const response = await request('PUT', {
       ...validBody,
-      coversFireSafety: true,
       clientRepresentativeName: ' Adnana POPA ',
       clientRepresentativeRole: 'Administrator',
     });
@@ -399,7 +392,6 @@ describe('PUT /clients/{clientId}/service-contract', () => {
     ).toMatchObject({
       organization_id: organizationId,
       client_id: clientId,
-      covers_fire_safety: true,
       created_by: user.id,
     });
   });
@@ -434,7 +426,6 @@ describe('PUT /clients/{clientId}/service-contract', () => {
     [{ ...validBody, contractNumber: 0 }, 'contractNumber'],
     [{ ...validBody, startDate: '15.02.2026' }, 'startDate'],
     [{ ...validBody, durationMonths: 121 }, 'durationMonths'],
-    [{ ...validBody, coversOccupationalSafety: false }, 'coversOccupationalSafety'],
   ])('refuses %j before touching the database', async (body, path) => {
     mockUpstream({});
     const response = await request('PUT', body);

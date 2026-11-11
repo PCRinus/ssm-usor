@@ -146,8 +146,6 @@ export const saveServiceContract: RouteHandler<typeof saveServiceContractRoute, 
     start_date: body.startDate,
     duration_months: body.durationMonths,
     renews_automatically: body.renewsAutomatically,
-    covers_occupational_safety: body.coversOccupationalSafety,
-    covers_fire_safety: body.coversFireSafety,
     updated_by: userId,
   };
   // An update, then an insert: an upsert would write `created_by` again on every save.

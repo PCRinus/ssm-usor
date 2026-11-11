@@ -78,8 +78,6 @@ export function buildServiceContractContext({
       durationText: monthsText(contract.durationMonths),
       renewsAutomatically: contract.renewsAutomatically,
       endsWithoutRenewal: !contract.renewsAutomatically,
-      coversOccupationalSafety: contract.coversOccupationalSafety,
-      coversFireSafety: contract.coversFireSafety,
     },
   };
 }

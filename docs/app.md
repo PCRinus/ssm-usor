@@ -979,7 +979,7 @@ their tab bars read.
 - `/oferte`: "Oferte", an entry of the sidebar that only an owner gets. A lead is a
   client in an earlier stage (ADR 007), so the pages reuse the clients' parts over the same
   routes of the API: the list is `GET /clients?stage=lead` on the shared data table, with the
-  contact and the day it was added, "Activi" and "Arhivate" in the URL, and a row menu with
+  contact and the day it was added, "Active" and "Arhivate" in the URL, and a row menu with
   "Modifică", "Transformă în client…" and "Arhivează…". A specialist who types the address is
   told that leads are the owners'; for them `/oferte/:id` is the not-found screen, because the
   API answers `404`. `/oferte/nou` and `/oferte/:id/editare` are `ClientForm` with the lead's
@@ -1000,8 +1000,8 @@ their tab bars read.
   the address is told what is there and whose it is, and nothing is asked of the API). It is
   two cards. "Detaliile contractului" keeps what the app reads about the contract: the number,
   which starts from the API's suggestion and says so, the two dates, the duration, the
-  renewal, the two services, and who signs for the client, which is saved on the client
-  because a lead has no other form for it. Once saved it shows as a summary with "Modifică",
+  renewal, and who signs for the client, which is saved on the client because a lead has no
+  other form for it. There is no choice of services: every contract covers both (ADR 007). Once saved it shows as a summary with "Modifică",
   so that the form does not stand between the owner and the contract on every visit.
   "Contractul" is the document: a sentence on where it stands, its badges, and its actions.
   Until it is issued, a notice says that prices are written by hand over `DE COMPLETAT` and

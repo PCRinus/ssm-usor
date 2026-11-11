@@ -1313,8 +1313,8 @@ both sets and nothing `other`, so a lead has its contract.
 
 `service_contracts` holds what the app reads about a contract: `contract_number` and
 `contract_date` (the provider's own register, a number used once per organization and year),
-`start_date`, `duration_months`, `renews_automatically`, `covers_occupational_safety` and
-`covers_fire_safety`, at least one of them. Owners only, to read as well. It is its own table
+`start_date`, `duration_months` and `renews_automatically`. Every contract covers both
+services, so none is recorded (ADR 007, amendment of 2026-11-11). Owners only, to read as well. It is its own table
 because a policy hides rows and not columns and the team reads a client's row, and its key is
 its own because an amendment later is a second row; for now a client has one. Prices are not
 stored: they live in the file, where they are binding. The archived-client trigger applies.

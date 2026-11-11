@@ -17,8 +17,6 @@ export const serviceContractSchema = z.object({
   startDate: z.iso.date(),
   durationMonths: z.int().min(1).max(120),
   renewsAutomatically: z.boolean(),
-  coversOccupationalSafety: z.boolean(),
-  coversFireSafety: z.boolean(),
   // The last day of the first term: the start date plus the duration, less a day.
   endDate: z.iso.date(),
 });
@@ -29,16 +27,10 @@ export const saveServiceContractRequestSchema = serviceContractSchema
   .omit({ endDate: true })
   .extend({
     renewsAutomatically: z.boolean().default(true),
-    coversOccupationalSafety: z.boolean().default(true),
-    coversFireSafety: z.boolean().default(false),
     // Who signs for the client. They are facts about the client, kept on it, and asked here
     // because a lead has no other form for them. Left out, they stay as they are.
     clientRepresentativeName: z.string().trim().min(2).max(160).nullish(),
     clientRepresentativeRole: z.string().trim().min(2).max(80).nullish(),
-  })
-  .refine((body) => body.coversOccupationalSafety || body.coversFireSafety, {
-    path: ['coversOccupationalSafety'],
-    message: 'A contract covers occupational safety, fire safety, or both.',
   });
 
 export type SaveServiceContractRequest = z.infer<typeof saveServiceContractRequestSchema>;
@@ -46,7 +38,6 @@ export type SaveServiceContractRequest = z.infer<typeof saveServiceContractReque
 /**
  * What a contract cannot be generated without, by where it is filled in: the organization's
  * legal details and contract details, the client's data, and the contract's own details.
- * The fire-safety technician is asked only for a contract that covers fire safety.
  */
 export const missingServiceContractData = [
   'provider.legalName',

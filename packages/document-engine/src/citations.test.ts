@@ -218,13 +218,13 @@ describe('the block a citation sits in', () => {
   it('is the innermost section open where the citation stands', () => {
     expect(
       cite(
-        '{{#contract.coversFireSafety}}',
+        '{{#contract.renewsAutomatically}}',
         'În temeiul Legii 307/2006.',
-        '{{/contract.coversFireSafety}}',
+        '{{/contract.renewsAutomatically}}',
         'Sub 10 lucrători{{^workersRepresentativeDecision}} (H.G. 1425/2006 – art. 53){{/workersRepresentativeDecision}}, Legea 319/2006.'
       ).map((c) => [c.act, c.block])
     ).toEqual([
-      ['lege-307-2006', '#contract.coversFireSafety'],
+      ['lege-307-2006', '#contract.renewsAutomatically'],
       ['hg-1425-2006', '^workersRepresentativeDecision'],
       ['lege-319-2006', null],
     ]);

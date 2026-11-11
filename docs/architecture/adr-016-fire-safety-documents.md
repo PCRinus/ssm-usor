@@ -28,6 +28,8 @@ A client has two documentation sets: the **occupational safety set** and the **f
 
 A per-client switch was rejected because the provider sells both services together. The contract's `covers_fire_safety` was rejected twice over: only owners can read contracts, so a specialist could not see whether the set applies, and the checkboxes are expected to go.
 
+(Amended 2026-11-11. The checkboxes went: every service contract covers both services and the column is gone, as [ADR 007](adr-007-leads-and-service-contracts.md) records in its amendment of that day.)
+
 ### What a set keeps to itself
 
 Each set has its own tab on the client, _Documente SSM_ and _Documente PSI_, with its own sections, its own "Generează documentația" action and its own readiness. Listing, readiness, generation and the memory of what the last generation asked are per set. Missing data of one set never blocks the other, and generating one set never creates documents of the other. A document's own routes (edit, regenerate, issue, print, download, signed copy) do not change, and neither do revisions, snapshots, the "Date modificate" badge or the PDF at issuing.
