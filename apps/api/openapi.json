@@ -39814,7 +39814,7 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/pdf": {
+            "application/octet-stream": {
               "schema": {
                 "type": "string",
                 "format": "binary"

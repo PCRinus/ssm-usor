@@ -32255,7 +32255,7 @@ export const readSafetySheet = async (
   return apiFetch<ReadSafetySheetResponse>(getReadSafetySheetUrl(clientId), {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/pdf', ...getHeaders(options?.headers) },
+    headers: { 'Content-Type': 'application/octet-stream', ...getHeaders(options?.headers) },
     body: readSafetySheetBody,
   });
 };

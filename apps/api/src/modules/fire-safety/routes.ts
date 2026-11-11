@@ -456,7 +456,7 @@ export const readSafetySheetRoute = createRoute({
     body: {
       required: true,
       content: {
-        'application/pdf': {
+        'application/octet-stream': {
           schema: z.string().openapi({ type: 'string', format: 'binary' }),
         },
       },

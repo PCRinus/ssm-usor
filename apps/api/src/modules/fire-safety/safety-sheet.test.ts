@@ -148,7 +148,7 @@ const read = (body: BodyInit = pdfBytes, headers: Record<string, string> = {}) =
       method: 'POST',
       headers: {
         Authorization: 'Bearer user-token',
-        'Content-Type': 'application/pdf',
+        'Content-Type': 'application/octet-stream',
         ...headers,
       },
       body,
@@ -383,7 +383,7 @@ describe('POST /clients/{clientId}/fire-substances/read-safety-sheet', () => {
       `/clients/${clientId}/fire-substances/read-safety-sheet`,
       {
         method: 'POST',
-        headers: { Authorization: 'Bearer user-token', 'Content-Type': 'application/pdf' },
+        headers: { Authorization: 'Bearer user-token', 'Content-Type': 'application/octet-stream' },
         body: pdfBytes,
       },
       { ...env, AI_GATEWAY_TOKEN: undefined }
