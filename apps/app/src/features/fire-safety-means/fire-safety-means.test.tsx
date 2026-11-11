@@ -1,11 +1,13 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authFixture, makeSession } from '@/test/auth-fixture';
+import { meWithCredits } from '@/test/import-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
 import { extinguisherHint } from './fire-means-schema';
+import { droppedSentence, filledSentence, offeredSentence } from './substances-schema';
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const sampleClient = {
@@ -190,6 +192,7 @@ function mockApi({
   updateEquipment = ((init) =>
     Response.json({ equipment: { ...officeP6, ...JSON.parse(String(init?.body)) } })) as Route,
   deleteEquipment = (() => new Response(null, { status: 204 })) as Route,
+  me = { user: { id: 'user-one', email: 'review@example.test' } } as unknown,
   substancesState = 'none',
   substances = [] as unknown[],
   saveState = ((init) => Response.json(JSON.parse(String(init?.body)))) as Route,
@@ -202,9 +205,7 @@ function mockApi({
   fetchMock.mockImplementation(async (input, init) => {
     const { pathname } = new URL(String(input));
     const method = init?.method ?? 'GET';
-    if (pathname === '/me') {
-      return Response.json({ user: { id: 'user-one', email: 'review@example.test' } });
-    }
+    if (pathname === '/me') return Response.json(me);
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
     if (pathname === `/clients/${clientId}/workplaces`) return Response.json({ items: workplaces });
     if (pathname === equipmentPath) {
@@ -1304,7 +1305,9 @@ describe('a substance filled in from its safety data sheet', () => {
     await user.upload(within(dialog).getByTestId('fire-substance-sheet-input'), sheet);
 
     const done = await within(dialog).findByTestId('fire-substance-sheet-done');
-    expect(done.textContent).toContain('La 1 câmp completate deja, fișa spune altceva');
+    expect(done.textContent).toContain(
+      'La 1 câmp completat deja, fișa spune altceva: vezi sub el.'
+    );
     expect(value(dialog, 'fire-substance-name')).toBe('Detergenți');
     expect(value(dialog, 'fire-substance-classification')).toBe(draft.classification);
     expect(within(dialog).queryByTestId('fire-substance-protection-sheet-offer')).toBeNull();
@@ -1334,7 +1337,12 @@ describe('a substance filled in from its safety data sheet', () => {
   it('says a scanned sheet is not read yet and that its credits came back', async () => {
     answerUpload = () => ({
       status: 422,
-      body: { error: 'unprocessable', message: 'x', reason: 'safety_sheet_scanned' },
+      body: {
+        error: 'unprocessable',
+        message: 'x',
+        reason: 'safety_sheet_scanned',
+        creditsRefunded: true,
+      },
     });
     mockApi({ substancesState: 'listed', substances: [] });
     mount();
@@ -1365,5 +1373,183 @@ describe('a substance filled in from its safety data sheet', () => {
     const error = await within(dialog).findByTestId('fire-substance-sheet-error');
     expect(error.textContent).toContain('Fișa trebuie să fie un PDF');
     expect(uploads).toHaveLength(0);
+  });
+
+  it('never says the credits came back for a refusal that charged nothing', async () => {
+    answerUpload = () => ({
+      status: 503,
+      body: { error: 'service_unavailable', message: 'x', reason: 'safety_sheet_unavailable' },
+    });
+    mockApi({ substancesState: 'listed', substances: [] });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(within(await card()).getByTestId('fire-substance-add'));
+    const dialog = await screen.findByTestId('fire-substance-dialog');
+    await user.upload(within(dialog).getByTestId('fire-substance-sheet-input'), sheet);
+
+    const error = await within(dialog).findByTestId('fire-substance-sheet-error');
+    expect(error.textContent).toContain('Nu am putut citi fișa acum.');
+    expect(error.textContent).not.toContain('returnate');
+  });
+
+  it('asks for the balance again after a reading', async () => {
+    mockApi({ substancesState: 'listed', substances: [] });
+    mount();
+    const user = userEvent.setup();
+    const meRequests = () =>
+      fetchMock.mock.calls.filter(([input]) => new URL(String(input)).pathname === '/me').length;
+
+    await user.click(within(await card()).getByTestId('fire-substance-add'));
+    const dialog = await screen.findByTestId('fire-substance-dialog');
+    const before = meRequests();
+    await user.upload(within(dialog).getByTestId('fire-substance-sheet-input'), sheet);
+    await within(dialog).findByTestId('fire-substance-sheet-done');
+
+    await waitFor(() => expect(meRequests()).toBeGreaterThan(before));
+  });
+
+  it('says the reading needs more credits than are left and keeps the button off', async () => {
+    mockApi({
+      substancesState: 'listed',
+      substances: [],
+      me: meWithCredits({ left: 2, giftLeft: 0, used: 1498, state: 'near' }),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(within(await card()).getByTestId('fire-substance-add'));
+    const dialog = await screen.findByTestId('fire-substance-dialog');
+    const offer = within(dialog).getByTestId('fire-substance-sheet-offer');
+    await waitFor(() =>
+      expect(within(offer).getByTestId('import-credits-line').dataset.short).toBe('true')
+    );
+    expect(within(offer).getByTestId('import-credits-line').textContent).toContain(
+      'Citirea folosește 3 credite. Îți mai rămân 2'
+    );
+    expect(within(dialog).getByTestId('fire-substance-sheet-choose')).toHaveProperty(
+      'disabled',
+      true
+    );
+  });
+
+  it('cannot be closed while a sheet is read, and says why', async () => {
+    let answer: () => void = () => undefined;
+    const answered = new Promise<void>((resolve) => (answer = resolve));
+    answerUpload = read();
+    vi.stubGlobal(
+      'XMLHttpRequest',
+      class extends FakeXhr {
+        send(body: Blob) {
+          void answered.then(() => super.send(body));
+        }
+      }
+    );
+    mockApi({ substancesState: 'listed', substances: [] });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(within(await card()).getByTestId('fire-substance-add'));
+    const dialog = await screen.findByTestId('fire-substance-dialog');
+    await user.upload(within(dialog).getByTestId('fire-substance-sheet-input'), sheet);
+    const reading = await within(dialog).findByTestId('fire-substance-sheet-reading');
+    expect(reading.textContent).toContain('Fereastra rămâne deschisă până se termină citirea');
+    expect(within(dialog).getByTestId('fire-substance-cancel')).toHaveProperty('disabled', true);
+    expect(within(dialog).queryByRole('button', { name: 'Close' })).toBeNull();
+
+    await user.keyboard('{Escape}');
+    expect(screen.getByTestId('fire-substance-dialog')).toBeTruthy();
+
+    answer();
+    await within(dialog).findByTestId('fire-substance-sheet-done');
+    expect(within(dialog).getByTestId('fire-substance-cancel')).toHaveProperty('disabled', false);
+  });
+
+  it('reads a second sheet over the first, keeping the marks of what only the first filled and leaving what the member wrote', async () => {
+    mockApi({ substancesState: 'listed', substances: [] });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(within(await card()).getByTestId('fire-substance-add'));
+    const dialog = await screen.findByTestId('fire-substance-dialog');
+    await user.upload(within(dialog).getByTestId('fire-substance-sheet-input'), sheet);
+    await within(dialog).findByTestId('fire-substance-sheet-done');
+    await user.clear(within(dialog).getByTestId('fire-substance-protection'));
+    await user.type(within(dialog).getByTestId('fire-substance-protection'), 'Mănuși.');
+
+    const choose = within(dialog).getByTestId('fire-substance-sheet-choose');
+    await user.click(choose);
+    expect(choose.textContent).toBe('Citește altă fișă');
+    answerUpload = read({
+      draft: {
+        ...draft,
+        name: 'Degresant Rapid DX-40 Plus',
+        classification: null,
+        protectionMeans: 'Ochelari de protecție.',
+      },
+    });
+    // As the browser's picker does: the file arrives while the button keeps the focus.
+    fireEvent.change(within(dialog).getByTestId('fire-substance-sheet-input'), {
+      target: { files: [sheet] },
+    });
+    expect(document.activeElement).toBe(choose);
+    await waitFor(() => expect(uploads).toHaveLength(2));
+    await within(dialog).findByTestId('fire-substance-sheet-done');
+
+    expect(document.activeElement).toBe(within(dialog).getByTestId('fire-substance-sheet-choose'));
+    expect(value(dialog, 'fire-substance-name')).toBe('Degresant Rapid DX-40 Plus');
+    expect(value(dialog, 'fire-substance-classification')).toBe(draft.classification);
+    expect(within(dialog).getByTestId('fire-substance-classification-from-sheet')).toBeTruthy();
+    expect(value(dialog, 'fire-substance-protection')).toBe('Mănuși.');
+    expect(within(dialog).queryByTestId('fire-substance-protection-from-sheet')).toBeNull();
+    expect(
+      within(dialog).getByTestId('fire-substance-protection-sheet-offer').textContent
+    ).toContain('În fișă: Ochelari de protecție.');
+  });
+
+  it('ties the mark and the offer to their field, and drops the offer once the field is edited', async () => {
+    const imported = { ...propane, name: 'Detergenți', classification: null, quantity: null };
+    mockApi({ substancesState: 'listed', substances: [imported] });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByText('Detergenți'));
+    const dialog = await screen.findByTestId('fire-substance-dialog');
+    await user.upload(within(dialog).getByTestId('fire-substance-sheet-input'), sheet);
+    await within(dialog).findByTestId('fire-substance-sheet-done');
+
+    const describedBy = (id: string) =>
+      within(dialog).getByTestId(id).getAttribute('aria-describedby')?.split(' ') ?? [];
+    expect(describedBy('fire-substance-classification')).toContain(
+      'fire-substance-classification-from-sheet'
+    );
+    expect(describedBy('fire-substance-name')).toContain('fire-substance-name-sheet-offer');
+    expect(document.getElementById('fire-substance-name-sheet-offer')?.textContent).toContain(
+      'Degresant Rapid DX-40'
+    );
+
+    await user.clear(within(dialog).getByTestId('fire-substance-name'));
+    expect(within(dialog).queryByTestId('fire-substance-name-sheet-offer')).toBeNull();
+    expect(describedBy('fire-substance-name')).not.toContain('fire-substance-name-sheet-offer');
+  });
+});
+
+describe('the sentences of a reading', () => {
+  it('agree with one, a few and twenty', () => {
+    expect(filledSentence(1)).toBe(
+      'Am completat 1 câmp, marcat „Din fișă”. Verifică-l înainte să salvezi.'
+    );
+    expect(filledSentence(2)).toContain('Am completat 2 câmpuri, marcate „Din fișă”');
+    expect(filledSentence(20)).toContain('Am completat 20 de câmpuri, marcate');
+    expect(offeredSentence(1)).toBe('La 1 câmp completat deja, fișa spune altceva: vezi sub el.');
+    expect(offeredSentence(2)).toContain('La 2 câmpuri completate deja');
+    expect(offeredSentence(20)).toContain('La 20 de câmpuri completate deja');
+    expect(droppedSentence(1)).toContain(
+      'un cod (o frază H sau un număr CAS, CE sau ONU) pe care nu l-am găsit'
+    );
+    expect(droppedSentence(2)).toContain(
+      '2 coduri (fraze H, numere CAS, CE sau ONU) pe care nu le-am găsit'
+    );
+    expect(droppedSentence(20)).toContain('20 de coduri');
   });
 });

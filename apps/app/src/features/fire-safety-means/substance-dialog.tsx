@@ -20,7 +20,7 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { useRouteContext } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import {
@@ -76,13 +76,20 @@ export function SubstanceDialog({
   editing: SubstanceEditing;
   onClose: () => void;
 }) {
+  const [readingSheet, setReadingSheet] = useState(false);
   return (
-    <Dialog open={editing !== null} onOpenChange={(open) => !open && onClose()}>
+    <Dialog
+      open={editing !== null}
+      // Closed while its sheet is read, the dialog would lose a reading already charged.
+      onOpenChange={(open) => !open && !readingSheet && onClose()}
+    >
       {editing && (
         <SubstanceForm
           key={editing === 'new' ? 'new' : editing.id}
           clientId={clientId}
           substance={editing === 'new' ? null : editing}
+          readingSheet={readingSheet}
+          onReadingSheet={setReadingSheet}
           onClose={onClose}
         />
       )}
@@ -93,10 +100,14 @@ export function SubstanceDialog({
 function SubstanceForm({
   clientId,
   substance,
+  readingSheet,
+  onReadingSheet,
   onClose,
 }: {
   clientId: string;
   substance: FireSubstance | null;
+  readingSheet: boolean;
+  onReadingSheet: (reading: boolean) => void;
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
@@ -109,10 +120,15 @@ function SubstanceForm({
   });
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
-  const [readingSheet, setReadingSheet] = useState(false);
   const [fromSheet, setFromSheet] = useState<ReadonlySet<SafetySheetDraftField>>(new Set());
   const [offers, setOffers] = useState<Partial<Record<SafetySheetDraftField, string>>>({});
   const busy = create.isPending || update.isPending;
+
+  // The answer arrives after renders the reading began in; it must see the marks as they are now.
+  const fromSheetNow = useRef(fromSheet);
+  useEffect(() => {
+    fromSheetNow.current = fromSheet;
+  }, [fromSheet]);
 
   const markFromSheet = (field: SafetySheetDraftField, marked: boolean) =>
     setFromSheet((current) => {
@@ -124,15 +140,18 @@ function SubstanceForm({
     });
 
   const applyDraft = ({ draft, droppedCodes }: ReadSafetySheetResponse): SheetOutcome => {
-    const merged = mergeSafetySheetDraft(form.getValues(), draft, fromSheet);
+    const merged = mergeSafetySheetDraft(form.getValues(), draft, fromSheetNow.current);
     for (const field of merged.filled) {
       form.setValue(field, draft[field]!, {
         shouldDirty: true,
         shouldValidate: form.formState.isSubmitted,
       });
     }
-    setFromSheet(new Set(merged.filled));
-    setOffers(merged.offers);
+    setFromSheet((current) => new Set([...current, ...merged.filled]));
+    setOffers((current) => ({
+      ...Object.fromEntries(Object.entries(current).filter(([field]) => !draft[field as never])),
+      ...merged.offers,
+    }));
     return {
       filled: merged.filled.length,
       offered: Object.keys(merged.offers).length,
@@ -146,19 +165,34 @@ function SubstanceForm({
       shouldValidate: form.formState.isSubmitted,
     });
     markFromSheet(field, true);
+    dropOffer(field);
+  };
+
+  const dropOffer = (field: SafetySheetDraftField) =>
     setOffers((current) => {
+      if (!(field in current)) return current;
       const rest = { ...current };
       delete rest[field];
       return rest;
     });
-  };
 
   const register = (name: keyof SubstanceFormValues) =>
     form.register(name, {
       onChange: () => {
-        if (isSheetField(name)) markFromSheet(name, false);
+        if (!isSheetField(name)) return;
+        markFromSheet(name, false);
+        dropOffer(name);
       },
     });
+
+  const describedBy = (name: keyof SubstanceFormValues, id: string, hint: boolean) =>
+    [
+      errors[name] ? `${id}-error` : hint ? `${id}-hint` : null,
+      isSheetField(name) && fromSheet.has(name) ? `${id}-from-sheet` : null,
+      isSheetField(name) && offers[name] ? `${id}-sheet-offer` : null,
+    ]
+      .filter(Boolean)
+      .join(' ') || undefined;
 
   const sheetNote = (name: keyof SubstanceFormValues, id: string) => {
     if (!isSheetField(name)) return null;
@@ -166,12 +200,18 @@ function SubstanceForm({
     return (
       <>
         {fromSheet.has(name) && (
-          <Tag tone="info" testId={`${id}-from-sheet`} className="w-fit">
-            Din fișă
-          </Tag>
+          <span id={`${id}-from-sheet`} className="w-fit">
+            <Tag tone="info" testId={`${id}-from-sheet`}>
+              Din fișă
+            </Tag>
+          </span>
         )}
         {offer && (
-          <div className="grid gap-1 text-sm" data-testid={`${id}-sheet-offer`}>
+          <div
+            id={`${id}-sheet-offer`}
+            className="grid gap-1 text-sm"
+            data-testid={`${id}-sheet-offer`}
+          >
             <span className="text-muted-foreground">
               Păstrăm textul tău. În fișă: <span className="text-foreground">{offer}</span>
             </span>
@@ -241,7 +281,7 @@ function SubstanceForm({
         autoComplete="off"
         disabled={busy}
         aria-invalid={Boolean(errors[name])}
-        aria-describedby={errors[name] ? `${id}-error` : hint ? `${id}-hint` : undefined}
+        aria-describedby={describedBy(name, id, Boolean(hint))}
         {...register(name)}
       />
       {sheetNote(name, id)}
@@ -252,6 +292,7 @@ function SubstanceForm({
     <DialogContent
       data-testid="fire-substance-dialog"
       className="sm:max-w-2xl"
+      showCloseButton={!readingSheet}
       onOpenAutoFocus={(event) => {
         // The sheet's button comes first, but most entries are still typed by hand.
         event.preventDefault();
@@ -271,7 +312,7 @@ function SubstanceForm({
           <SafetySheetReader
             clientId={clientId}
             disabled={busy}
-            onReading={setReadingSheet}
+            onReading={onReadingSheet}
             onDraft={applyDraft}
           />
           {text('name', 'fire-substance-name', 'Denumirea')}
@@ -310,7 +351,7 @@ function SubstanceForm({
                   placeholder={substanceDetailPlaceholders[detail]}
                   disabled={busy}
                   aria-invalid={Boolean(errors[detail])}
-                  aria-describedby={errors[detail] ? `${id}-error` : `${id}-hint`}
+                  aria-describedby={describedBy(detail, id, true)}
                   {...register(detail)}
                 />
                 {sheetNote(detail, id)}
@@ -324,7 +365,13 @@ function SubstanceForm({
           </Notice>
         )}
         <DialogFooter className="mt-6">
-          <Button type="button" variant="ghost" disabled={busy} onClick={onClose}>
+          <Button
+            type="button"
+            variant="ghost"
+            data-testid="fire-substance-cancel"
+            disabled={busy || readingSheet}
+            onClick={onClose}
+          >
             Renunță
           </Button>
           <Button type="submit" data-testid="fire-substance-save" disabled={busy || readingSheet}>

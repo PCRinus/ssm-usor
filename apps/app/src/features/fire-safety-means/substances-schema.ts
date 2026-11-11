@@ -179,3 +179,20 @@ export const fieldCountLabel = (count: number) =>
 /** "un cod", "3 coduri", "20 de coduri". */
 export const codeCountLabel = (count: number) =>
   count === 1 ? 'un cod' : `${count} ${takesDe(count) ? 'de ' : ''}coduri`;
+
+export const filledSentence = (count: number) =>
+  count === 1
+    ? 'Am completat 1 câmp, marcat „Din fișă”. Verifică-l înainte să salvezi.'
+    : `Am completat ${fieldCountLabel(count)}, marcate „Din fișă”. Verifică-le înainte să salvezi.`;
+
+export const offeredSentence = (count: number) =>
+  count === 1
+    ? 'La 1 câmp completat deja, fișa spune altceva: vezi sub el.'
+    : `La ${fieldCountLabel(count)} completate deja, fișa spune altceva: vezi sub fiecare câmp.`;
+
+export const droppedSentence = (count: number) =>
+  `${
+    count === 1
+      ? 'Am lăsat deoparte un cod (o frază H sau un număr CAS, CE sau ONU) pe care nu l-am găsit în fișă.'
+      : `Am lăsat deoparte ${codeCountLabel(count)} (fraze H, numere CAS, CE sau ONU) pe care nu le-am găsit în fișă.`
+  } Verifică în fișă clasificarea și codurile de identificare.`;
