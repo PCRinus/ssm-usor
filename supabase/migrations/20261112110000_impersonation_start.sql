@@ -4,9 +4,10 @@
 -- impersonation and starts the next.
 --   IMS02  the impersonated user is not a member of an organization
 
--- The data processing agreement says support access is logged with a reason.
+-- The data processing agreement says support access is logged with a reason. Not validated: a
+-- row written by SQL before this is evidence nobody rewrites, and must not stop the migration.
 alter table public.impersonations
-  add constraint impersonations_reason_given check (reason is not null and reason ~ '[^[:space:]]');
+  add constraint impersonations_reason_given check (reason is not null and reason ~ '[^[:space:]]') not valid;
 
 -- Impersonation is for members: a participant without a membership has nothing it would show.
 -- After the row is written, so that a caller the policies refuse learns nothing about who is a
