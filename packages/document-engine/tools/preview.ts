@@ -858,7 +858,9 @@ function siteSheetSample({
       ),
       row(
         'Personal angajat',
-        `${long ? '14 angajați' : '4 angajați'} în total, după lista clientului; numărul estimativ pe fiecare clădire: ${gap}`,
+        long
+          ? '14 angajați în total; Clădirea 1 (Punct de lucru Calea Aradului) – 3; Clădirea 2 (Depozit central) – 11'
+          : `4 angajați în total; numărul estimativ pe fiecare clădire: ${gap}`,
         'număr estimativ, pentru fiecare clădire'
       ),
       row(
@@ -1233,12 +1235,41 @@ function annualReportSample(people: ReturnType<typeof person>[], long: boolean) 
             months: 'februarie, mai, august, noiembrie',
           },
         ],
+    yearDecisions: long
+      ? [
+          {
+            text: 'Decizia privind organizarea apărării împotriva incendiilor, nr.\u00a01\u00a0SU din 19.01.2026',
+          },
+          {
+            text: 'Decizia privind instruirea în domeniul situațiilor de urgență, nr.\u00a02\u00a0SU din 19.01.2026',
+          },
+          {
+            text: 'Decizia privind instruirea în domeniul situațiilor de urgență, nr.\u00a02\u00a0SU din 02.06.2026, revizia 2',
+          },
+        ]
+      : [],
+    hasYearDecisions: long,
+    noYearDecisions: !long,
+    trainingRecords: long
+      ? [
+          {
+            text: 'Potrivit evidenței instruirilor, în anul 2026 s-au efectuat: 3 instruiri introductiv-generale, la care au participat 3 angajați; 3 instruiri specifice locului de muncă, la care au participat 3 angajați; 4 instruiri periodice, în lunile martie, iunie, septembrie și decembrie, la care au participat 11 angajați; 1 instruire suplimentară, la care a participat 1 angajat.',
+          },
+          {
+            text: 'În același an, testul la angajare a fost susținut de 3 angajați, care l-au promovat toți, iar testul anual a fost susținut de 11 angajați, dintre care 10 l-au promovat.',
+          },
+        ]
+      : [],
+    noTrainingRecords: !long,
     controls: long ? controls : [],
     hasControls: long,
     noControls: !long,
     documents,
     missingCount: long ? 1 : 0,
     allGenerated: !long,
+    documentsSummary: long
+      ? 'Documente neîntocmite încă: 1.'
+      : 'Documentele cerute operatorului sunt întocmite; starea fiecăruia este cea din tabel.',
   };
 }
 
