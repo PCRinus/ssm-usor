@@ -270,15 +270,15 @@ select throws_ok(
   'IMS01', 'An ended impersonation is not changed.', 'an ended impersonation stays as it ended'
 );
 select throws_ok(
-  $$ insert into public.impersonations (admin_user_id, target_user_id, started_at) values ('eeeeeeee-0000-4000-8000-000000000001', 'aaaaaaaa-0000-4000-8000-000000000002', now() + interval '1 year') $$,
+  $$ insert into public.impersonations (admin_user_id, target_user_id, reason, started_at) values ('eeeeeeee-0000-4000-8000-000000000001', 'aaaaaaaa-0000-4000-8000-000000000002', 'Reproduce #123', now() + interval '1 year') $$,
   '42501', null, 'an admin does not choose when an impersonation starts'
 );
 select throws_ok(
-  $$ insert into public.impersonations (admin_user_id, target_user_id, expires_at) values ('eeeeeeee-0000-4000-8000-000000000001', 'aaaaaaaa-0000-4000-8000-000000000002', now() + interval '3 hours') $$,
+  $$ insert into public.impersonations (admin_user_id, target_user_id, reason, expires_at) values ('eeeeeeee-0000-4000-8000-000000000001', 'aaaaaaaa-0000-4000-8000-000000000002', 'Reproduce #123', now() + interval '3 hours') $$,
   '23514', null, 'nor lets it last more than two hours'
 );
 select lives_ok(
-  $$ insert into public.impersonations (admin_user_id, target_user_id, expires_at) values ('eeeeeeee-0000-4000-8000-000000000001', 'aaaaaaaa-0000-4000-8000-000000000002', now() + interval '30 minutes') $$,
+  $$ insert into public.impersonations (admin_user_id, target_user_id, reason, expires_at) values ('eeeeeeee-0000-4000-8000-000000000001', 'aaaaaaaa-0000-4000-8000-000000000002', 'Reproduce #123', now() + interval '30 minutes') $$,
   'a shorter one is fine'
 );
 select pg_temp.act_as_postgres();

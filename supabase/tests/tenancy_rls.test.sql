@@ -67,7 +67,7 @@ select is(
 );
 
 select throws_ok(
-  $$ insert into public.impersonations (admin_user_id, target_user_id) values ('aaaaaaaa-0000-4000-8000-000000000001', 'bbbbbbbb-0000-4000-8000-000000000002') $$,
+  $$ insert into public.impersonations (admin_user_id, target_user_id, reason) values ('aaaaaaaa-0000-4000-8000-000000000001', 'bbbbbbbb-0000-4000-8000-000000000002', 'reproduce bug') $$,
   '42501',
   null,
   'members cannot start impersonations'

@@ -7080,6 +7080,17 @@ export type Database = {
         };
         Returns: string;
       };
+      admin_accounts: {
+        Args: { p_user_ids: string[] };
+        Returns: {
+          email: string;
+          full_name: string;
+          organization_id: string;
+          organization_name: string;
+          role: Database['public']['Enums']['organization_role'];
+          user_id: string;
+        }[];
+      };
       admin_list_imports: {
         Args: {
           p_has_copy?: boolean;
@@ -7110,6 +7121,21 @@ export type Database = {
           row_deleted: boolean;
           status: Database['public']['Enums']['import_status'];
           total: number;
+        }[];
+      };
+      admin_list_members: {
+        Args: { p_limit?: number; p_offset?: number; p_search?: string };
+        Returns: {
+          email: string;
+          full_name: string;
+          last_sign_in_at: string;
+          organization_id: string;
+          organization_name: string;
+          role: Database['public']['Enums']['organization_role'];
+          subscription_plan: Database['public']['Enums']['subscription_plan'];
+          subscription_status: Database['public']['Enums']['subscription_status'];
+          total: number;
+          user_id: string;
         }[];
       };
       answer_test_attempt: {
@@ -8334,6 +8360,24 @@ export type Database = {
       split_import: {
         Args: { p_file_ids: string[]; p_import_id: string };
         Returns: Json;
+      };
+      start_impersonation: {
+        Args: { p_reason: string; p_target_user_id: string };
+        Returns: {
+          admin_user_id: string;
+          ended_at: string | null;
+          expires_at: string;
+          id: string;
+          reason: string | null;
+          started_at: string;
+          target_user_id: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'impersonations';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
       start_regeneration_job: {
         Args: {
