@@ -52,6 +52,7 @@ type ListProps = PreviewProps & {
 
 export type StripProps = PreviewProps & {
   strip: (key: string) => ReactNode;
+  aside?: (key: string) => ReactNode;
   onCloseAutoFocus?: (event: Event) => void;
 };
 
@@ -82,6 +83,8 @@ function useStep(photos: PreviewPhoto[], index: number, onCurrent: (key: string)
     function onKeyDown(event: KeyboardEvent) {
       if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      if (event.target instanceof Element && event.target.closest('input, textarea, select'))
+        return;
       event.preventDefault();
       stepBy(event.key === 'ArrowLeft' ? -1 : 1);
     }
@@ -216,6 +219,7 @@ function WideContent({
   onCurrent,
   onClose,
   strip,
+  aside,
   onCloseAutoFocus,
 }: StripProps & { index: number }) {
   const photo = photos[index]!;
@@ -223,72 +227,125 @@ function WideContent({
   const touch = useRef<{ x: number; y: number; zoomed: boolean } | null>(null);
   const first = index === 0;
   const last = index >= photos.length - 1;
+  const keyboard = useKeyboardViewport();
   return (
     <DialogContent
       data-testid="photo-preview"
+      data-keyboard-open={keyboard ? true : undefined}
       showCloseButton={false}
       onCloseAutoFocus={onCloseAutoFocus}
+      style={
+        keyboard
+          ? {
+              height: keyboard.height,
+              maxHeight: keyboard.height,
+              top: keyboard.top,
+              left: 0,
+              translate: 'none',
+            }
+          : undefined
+      }
       className="flex h-svh max-h-svh w-full max-w-full flex-col gap-0 overflow-hidden rounded-none border-0 p-0 sm:h-[min(860px,calc(100svh-2.5rem))] sm:max-h-[calc(100svh-2.5rem)] sm:max-w-[min(1320px,calc(100vw-2.5rem))] sm:rounded-lg sm:border"
     >
       <PreviewHeader photo={photo} index={index} total={photos.length} onClose={onClose} />
       <div
-        className="relative min-h-0 flex-1 overflow-hidden bg-muted/60"
-        data-testid="photo-preview-view"
-        onTouchStart={(event) => {
-          const point = event.touches[0];
-          touch.current =
-            point && event.touches.length === 1
-              ? { x: point.clientX, y: point.clientY, zoomed: scrollsSideways(event.target) }
-              : null;
-        }}
-        onTouchEnd={(event) => {
-          const start = touch.current;
-          const point = event.changedTouches[0];
-          touch.current = null;
-          if (!start || !point || start.zoomed) return;
-          const dx = point.clientX - start.x;
-          const dy = point.clientY - start.y;
-          if (Math.abs(dx) < swipeDistance || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-          step(index + (dx < 0 ? 1 : -1));
-        }}
+        className={cn(
+          'flex min-h-0 flex-1 flex-col',
+          aside && 'sm:grid sm:grid-cols-[minmax(0,1fr)_360px]'
+        )}
       >
-        <Fragment key={photo.key}>{photo.view}</Fragment>
-        <EdgeArrow side="previous" disabled={first} onClick={() => step(index - 1)} />
-        <EdgeArrow side="next" disabled={last} onClick={() => step(index + 1)} />
-      </div>
-      <div className="flex min-w-0 items-center gap-4 border-t px-3 py-2 sm:px-5 sm:py-2.5">
-        <div className="flex shrink-0 items-center gap-1.5 max-sm:hidden">
-          <Button
-            variant="outline"
-            size="icon"
-            aria-label="Fotografia anterioară"
-            data-testid="photo-preview-previous"
-            disabled={first}
-            onClick={() => step(index - 1)}
+        <div className="flex min-h-0 flex-1 flex-col max-sm:min-h-[38svh]">
+          <div
+            className="relative min-h-0 flex-1 overflow-hidden bg-muted/60"
+            data-testid="photo-preview-view"
+            onTouchStart={(event) => {
+              const point = event.touches[0];
+              touch.current =
+                point && event.touches.length === 1
+                  ? { x: point.clientX, y: point.clientY, zoomed: scrollsSideways(event.target) }
+                  : null;
+            }}
+            onTouchEnd={(event) => {
+              const start = touch.current;
+              const point = event.changedTouches[0];
+              touch.current = null;
+              if (!start || !point || start.zoomed) return;
+              const dx = point.clientX - start.x;
+              const dy = point.clientY - start.y;
+              if (Math.abs(dx) < swipeDistance || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+              step(index + (dx < 0 ? 1 : -1));
+            }}
           >
-            <ChevronLeft aria-hidden="true" />
-          </Button>
-          <span
-            className="min-w-16 text-center text-sm text-muted-foreground tabular-nums"
-            data-testid="photo-preview-position"
-          >
-            {index + 1} din {photos.length}
-          </span>
-          <Button
-            variant="outline"
-            size="icon"
-            aria-label="Fotografia următoare"
-            data-testid="photo-preview-next"
-            disabled={last}
-            onClick={() => step(index + 1)}
-          >
-            <ChevronRight aria-hidden="true" />
-          </Button>
+            <Fragment key={photo.key}>{photo.view}</Fragment>
+            <EdgeArrow side="previous" disabled={first} onClick={() => step(index - 1)} />
+            <EdgeArrow side="next" disabled={last} onClick={() => step(index + 1)} />
+          </div>
+          <div className="flex min-w-0 items-center gap-4 border-t px-3 py-2 sm:px-5 sm:py-2.5">
+            <div className="flex shrink-0 items-center gap-1.5 max-sm:hidden">
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="Fotografia anterioară"
+                data-testid="photo-preview-previous"
+                disabled={first}
+                onClick={() => step(index - 1)}
+              >
+                <ChevronLeft aria-hidden="true" />
+              </Button>
+              <span
+                className="min-w-16 text-center text-sm text-muted-foreground tabular-nums"
+                data-testid="photo-preview-position"
+              >
+                {index + 1} din {photos.length}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="Fotografia următoare"
+                data-testid="photo-preview-next"
+                disabled={last}
+                onClick={() => step(index + 1)}
+              >
+                <ChevronRight aria-hidden="true" />
+              </Button>
+            </div>
+            <div className="min-w-0 flex-1">{strip(photo.key)}</div>
+          </div>
         </div>
-        <div className="min-w-0 flex-1">{strip(photo.key)}</div>
+        {aside && (
+          <div
+            className="min-h-0 overflow-y-auto border-t bg-background max-sm:max-h-[48svh] max-sm:shrink-0 sm:border-t-0 sm:border-l"
+            data-testid="photo-preview-aside"
+          >
+            {aside(photo.key)}
+          </div>
+        )}
       </div>
     </DialogContent>
   );
+}
+
+// iOS keeps the layout viewport under the keyboard, so a dialog the height of the screen hides
+// its bottom behind it; the visual viewport is what stays above the keyboard.
+function useKeyboardViewport() {
+  const [keyboard, setKeyboard] = useState<{ height: number; top: number } | null>(null);
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const update = () => {
+      const open =
+        window.matchMedia?.('(pointer: coarse)').matches &&
+        window.innerHeight - viewport.height > 150;
+      setKeyboard(open ? { height: viewport.height, top: viewport.offsetTop } : null);
+    };
+    viewport.addEventListener('resize', update);
+    viewport.addEventListener('scroll', update);
+    return () => {
+      viewport.removeEventListener('resize', update);
+      viewport.removeEventListener('scroll', update);
+    };
+  }, []);
+  return keyboard;
 }
 
 function EdgeArrow({

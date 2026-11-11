@@ -136,3 +136,13 @@ export const ownedPages = (
   proposal.pages.filter(
     (page) => (moved[page.id] === undefined ? page.personId : moved[page.id]!.personId) === personId
   );
+
+export const openChoice = (decisions: Decision[], field: FieldName) =>
+  decisions.some((decision) => decision.key === `choice-${field}`);
+
+export function nextChoice(decisions: Decision[], queue: FieldName[], field: FieldName) {
+  const at = queue.indexOf(field);
+  return [...queue.slice(at + 1), ...queue.slice(0, Math.max(at, 0))].find(
+    (each) => each !== field && openChoice(decisions, each)
+  );
+}

@@ -1,4 +1,5 @@
 import { Button } from '@ssm-usor/ui/components/button';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link, useNavigate } from '@tanstack/react-router';
 import {
   BriefcaseBusiness,
@@ -67,6 +68,7 @@ import {
   ownedPages,
   photoLabel,
   type PhotoSection,
+  showChoice,
   trainingSectionId,
   useSectionOnScreen,
   viewerDetail,
@@ -74,13 +76,19 @@ import {
 import { PersonTrainings } from './person-trainings';
 import { dateLabel, pageKindLabel, pagesPhotosLabel, trainingsLabel } from './review-format';
 import { SheetPageView } from './sheet-page-view';
-import { ShowPageContext } from './show-page';
+import { ShowPageContext, ViewedPhotoContext } from './show-page';
 import { positionName, useReviewContext } from './use-review-context';
+import { type Highlight, PhotoCitations, ViewerChoice } from './viewer-aside';
 
 const stateLabels: Record<PersonState, { label: string; tone: 'info' | 'success' | 'muted' }> = {
   to_check: { label: 'De verificat', tone: 'info' },
   checked: { label: 'Verificat', tone: 'success' },
   set_aside: { label: 'Lăsat deoparte', tone: 'muted' },
+};
+
+type Viewer = {
+  photo: string;
+  mode: { kind: 'photo' } | { kind: 'choice'; field: FieldName; queue: FieldName[] };
 };
 
 const stripDescription = 'Subliniate: fotografiile secțiunii de pe ecran';
@@ -144,7 +152,10 @@ export function EmployeePersonPage({
   const moved = context.changes.pages;
   const pages = useMemo(() => ownedPages(proposal, moved, personId), [proposal, moved, personId]);
   const photos = useMemo(() => stripPhotos(detail, pages), [detail, pages]);
-  const [enlarged, setEnlarged] = useState<string | null>(null);
+  const [viewer, setViewer] = useState<Viewer | null>(null);
+  const [highlight, setHighlight] = useState<Highlight | null>(null);
+  const [typing, setTyping] = useState(false);
+  const focusAfterViewer = useRef<string | null>(null);
   const [opened, setOpened] = useState<{ section: string; photo: string } | null>(null);
   const opener = useRef<HTMLElement | null>(null);
   const lastJump = useRef<string | null>(null);
@@ -230,20 +241,74 @@ export function EmployeePersonPage({
   const ringed =
     (opened?.section === section ? opened.photo : null) ?? sectionPhotos[0] ?? pages[0]?.id ?? null;
 
-  const showPage = (pageId: string) => {
-    if (enlarged === null && document.activeElement instanceof HTMLElement)
-      opener.current = document.activeElement;
-    setEnlarged(pageId);
+  const showPhoto = (pageId: string) => {
+    setViewer((current) => (current ? { ...current, photo: pageId } : current));
     setOpened({ section, photo: pageId });
   };
 
+  const chosenHighlight = (field: FieldName): Highlight | null => {
+    const option = resolveField(context, person, field).options.find(
+      (each) => each.index === context.changes.people[person.id]?.fields?.[field]?.option
+    );
+    return option
+      ? {
+          photos: option.pageIds,
+          caption: `Subliniate: fotografiile unde scrie ${showChoice(field, option.value)}`,
+        }
+      : null;
+  };
+
+  const showPage = (pageId: string, choice?: FieldName) => {
+    if (viewer === null && document.activeElement instanceof HTMLElement)
+      opener.current = document.activeElement;
+    setOpened({ section, photo: pageId });
+    setHighlight(choice ? chosenHighlight(choice) : null);
+    setViewer((current) => {
+      if (choice) {
+        const queue = current?.mode.kind === 'choice' ? current.mode.queue : openChoiceFields;
+        return {
+          photo: pageId,
+          mode: {
+            kind: 'choice',
+            field: choice,
+            queue: queue.includes(choice) ? queue : [...queue, choice],
+          },
+        };
+      }
+      return { photo: pageId, mode: current?.mode ?? { kind: 'photo' } };
+    });
+  };
+
+  const openChoiceInViewer = (field: FieldName) => {
+    const options = resolveField(context, person, field).options;
+    const change = context.changes.people[person.id]?.fields?.[field];
+    const chosen = options.find((option) => option.index === change?.option);
+    const photo =
+      orderedPhotos(pages, chosen?.pageIds ?? options.flatMap((option) => option.pageIds))[0] ??
+      viewer?.photo;
+    if (photo) showPage(photo, field);
+  };
+
+  const closeViewer = () => {
+    setViewer(null);
+    setHighlight(null);
+    setTyping(false);
+  };
+
   const giveFocusBack = (event: Event) => {
-    const target = opener.current?.isConnected
-      ? opener.current
-      : document.querySelector<HTMLElement>('[data-testid="person-strip"] [aria-current="true"]');
+    const after = focusAfterViewer.current;
+    focusAfterViewer.current = null;
+    const target =
+      (after ? document.getElementById(after) : null) ??
+      (opener.current?.isConnected
+        ? opener.current
+        : document.querySelector<HTMLElement>(
+            '[data-testid="person-strip"] [aria-current="true"]'
+          ));
     opener.current = null;
     if (!target) return;
     event.preventDefault();
+    if (after) target.scrollIntoView({ block: 'center' });
     target.focus({ preventScroll: true });
   };
 
@@ -590,32 +655,83 @@ export function EmployeePersonPage({
             {next ? 'Persoana următoare' : 'Înapoi la listă'}
           </Button>
         </ImportActionBar>
-        <PhotoPreviewDialog
-          photos={pages.map((page) => ({
-            key: page.id,
-            name,
-            detail: viewerDetail(pages, page),
-            view: (
-              <SheetPageView importId={detail.id} page={page} className="h-full rounded-none" />
-            ),
-          }))}
-          current={enlarged}
-          onCurrent={showPage}
-          onClose={() => setEnlarged(null)}
-          onCloseAutoFocus={giveFocusBack}
-          strip={(key) => (
-            <PhotoStrip
-              photos={photos}
-              ringed={key}
-              underlined={new Set()}
-              onOpen={showPage}
-              label={`Fotografiile lui ${name}`}
-              size="viewer"
-              positionClassName="sm:hidden"
-              testId="viewer-strip"
-            />
-          )}
-        />
+        <ViewedPhotoContext value={viewer?.photo ?? null}>
+          <PhotoPreviewDialog
+            photos={pages.map((page) => ({
+              key: page.id,
+              name,
+              detail: viewerDetail(pages, page),
+              view: (
+                <SheetPageView importId={detail.id} page={page} className="h-full rounded-none" />
+              ),
+            }))}
+            current={viewer?.photo ?? null}
+            onCurrent={showPhoto}
+            onClose={closeViewer}
+            onCloseAutoFocus={giveFocusBack}
+            strip={(key) => (
+              <div
+                className={cn(
+                  'flex min-w-0 items-center gap-4 max-sm:flex-col max-sm:items-stretch max-sm:gap-1',
+                  typing && 'max-sm:hidden'
+                )}
+              >
+                <PhotoStrip
+                  photos={photos}
+                  ringed={key}
+                  underlined={new Set(highlight?.photos ?? [])}
+                  onOpen={showPhoto}
+                  label={`Fotografiile lui ${name}`}
+                  size="viewer"
+                  positionClassName="sm:hidden"
+                  className="min-w-0 sm:flex-[0_1_auto]"
+                  testId="viewer-strip"
+                />
+                {(highlight || viewer?.mode.kind === 'choice') && (
+                  <p
+                    className="text-[13px] text-muted-foreground sm:max-w-56"
+                    aria-live="polite"
+                    data-testid="viewer-underline-caption"
+                  >
+                    {highlight?.caption ?? 'Alege o variantă ca să vezi pe ce fotografii apare'}
+                  </p>
+                )}
+              </div>
+            )}
+            aside={(key) => {
+              const page = pages.find((each) => each.id === key);
+              if (!page || !viewer) return null;
+              return viewer.mode.kind === 'choice' ? (
+                <ViewerChoice
+                  context={context}
+                  person={person}
+                  field={viewer.mode.field}
+                  queue={viewer.mode.queue}
+                  decisions={decisions}
+                  onHighlight={setHighlight}
+                  onTyping={setTyping}
+                  onGo={openChoiceInViewer}
+                  onClose={closeViewer}
+                  onChange={review.update}
+                />
+              ) : (
+                <PhotoCitations
+                  key={key}
+                  context={context}
+                  person={person}
+                  decisions={decisions}
+                  page={page}
+                  onHighlight={setHighlight}
+                  onOpenChoice={openChoiceInViewer}
+                  onOpenRow={(rowId) => {
+                    focusAfterViewer.current = `row-${rowId}`;
+                    closeViewer();
+                  }}
+                />
+              );
+            }}
+          />
+        </ViewedPhotoContext>
       </div>
     </ShowPageContext>
   );

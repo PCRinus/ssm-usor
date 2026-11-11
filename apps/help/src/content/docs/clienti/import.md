@@ -122,6 +122,7 @@ sources:
   - apps/app/src/features/imports/employees/person-trainings.tsx
   - apps/app/src/features/imports/employees/person-sections.ts
   - apps/app/src/features/imports/photo-strip-model.ts
+  - apps/app/src/features/imports/employees/viewer-aside.tsx
   - apps/app/src/features/imports/employees/employee-review-model.ts
   - apps/app/src/features/imports/employees/employee-confirm-dialog.tsx
   - apps/app/src/features/client-files/import-folder.tsx
@@ -343,6 +344,10 @@ Un clic pe miniatură deschide fotografia mare, peste pagină; treci la celelalt
 Pagina unei persoane are o singură coloană: sus numele, cu postul, data angajării, câte instruiri și câte fotografii are, apoi **De hotărât**, **Datele de pe fișe**, pe trei grupuri, și instruirile, pe domenii. Comutatorul de lângă nume spune dacă persoana intră în import: oprit, o lasă deoparte, cu „Nu e inclus”; pornit din nou, o ia înapoi la verificat. La confirmare se creează doar persoanele incluse și verificate; cele încă de verificat rămân în afara importului. Lângă calea de navigare, „Persoana 3 din 8” și săgețile ei te duc la persoana anterioară sau la următoarea.
 
 Fotografiile persoanei stau în bara de jos, numerotate. Conturul arată fotografia deschisă ultima dată sau, când ajungi la o secțiune, prima ei fotografie. Când secțiunea de pe ecran trimite la puține fotografii, cel mult cinci și sub 40% dintre ele, acestea sunt subliniate; altfel nu e subliniată niciuna. Când treci cu mouse-ul peste o fotografie sau ajungi la ea cu tastatura, o vezi puțin mai mare, cu felul paginii. Cu tastatura, banda e un singur pas: săgețile trec de la o fotografie la alta, iar Enter o deschide. Un clic pe ea o deschide mare, peste pagină, cu butoanele de mărire; treci la celelalte cu săgețile de sub ea, cu săgețile tastaturii sau cu un clic pe banda de dedesubt, iar pe telefon și glisând stânga-dreapta. Când nu încap toate, banda se derulează, cu „17 din 30” lângă ea. Numerele de lângă variante, rânduri și titlurile secțiunilor deschid și ele fotografia lor.
+
+Numerele de lângă o variantă deschid fotografia mare cu alegerea ei alături. Alegi varianta chiar acolo: eticheta „de hotărât” scade pe loc și apare „Aleasă”. Fotografiile pe care apare varianta aleasă sau cea de sub mouse sunt subliniate în banda de sub fotografie. **Mai departe: …** te duce la următoarea alegere deschisă, cu fotografia ei; la ultima, **Gata, închide** închide fotografia. O valoare scrisă la **Altă valoare** se folosește și când apeși **Mai departe**, fără **Folosește**; dacă n-ai scris nimic, alegerea rămâne deschisă și treci mai departe. Ca să schimbi o alegere făcută, alegi altă variantă.
+
+O fotografie deschisă din bandă arată alături **Pe această fotografie**: alegerile și rândurile de instruire care trimit la ea, primele cinci, apoi **Încă …**. Cu mouse-ul, rândul de sub cursor își subliniază fotografiile, iar un clic îl deschide: o alegere, chiar lângă fotografia mare, un rând de instruire, pe pagină. Pe telefon, prima atingere subliniază, a doua deschide. Tot pe telefon, alegerea stă sub fotografie; cât scrii, banda se ascunde, iar **Mai departe** rămâne deasupra tastaturii.
 
 Tot în bară, eticheta „4 de hotărât” te duce, la fiecare clic, la următorul lucru de hotărât de pe pagină; când nu mai e nimic, arată **Gata**. Sub ea vezi starea salvării: „Salvat în propunere”, „Se salvează…” sau „Ultima schimbare nu s-a salvat.”, cu **Salvează din nou**. **Persoana următoare** te duce la persoana următoare; la ultima persoană, **Înapoi la listă** te duce înapoi la listă. Când treci mai departe, persoana fără nimic de hotărât e marcată verificată. Pe telefon, cât timp scrii, bara păstrează doar eticheta și starea salvării.
 

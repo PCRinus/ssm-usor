@@ -3,7 +3,14 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
-import { type FormEvent, type ReactNode, useId, useState } from 'react';
+import {
+  type FormEvent,
+  type ReactNode,
+  type RefObject,
+  useId,
+  useImperativeHandle,
+  useState,
+} from 'react';
 
 import { roCount } from '@/features/employees/employee-format';
 import { JobPositionDialog } from '@/features/job-positions/job-position-dialog';
@@ -470,17 +477,27 @@ export function FieldChoice({
   );
 }
 
+export type OtherCommit = () => 'committed' | 'empty' | 'invalid';
+
 export function ChoiceCards({
   context,
   person,
   name,
   labelledBy,
+  stacked = false,
+  commitRef,
+  onHighlight,
+  onTyping,
   onChange,
 }: {
   context: ReviewContext;
   person: Person;
   name: FieldName;
   labelledBy: string;
+  stacked?: boolean;
+  commitRef?: RefObject<OtherCommit | null>;
+  onHighlight?: (option: { pageIds: string[]; value: string } | null) => void;
+  onTyping?: (typing: boolean) => void;
   onChange: Update;
 }) {
   const field = resolveField(context, person, name);
@@ -495,8 +512,7 @@ export function ChoiceCards({
   const picked = otherOpen ? null : (change?.option ?? null);
   const anyPicked = otherOpen || picked !== null;
 
-  function submitOther(event: FormEvent) {
-    event.preventDefault();
+  function takeOther() {
     const problem =
       other.trim() === ''
         ? dateFields.has(name)
@@ -504,20 +520,44 @@ export function ChoiceCards({
           : 'Scrie valoarea.'
         : fieldProblem(name, other);
     setOtherError(problem);
-    if (problem) return;
+    if (problem) return false;
     onChange((current) => withFields(current, person.id, { [name]: typedValue(name, other) }));
+    return true;
   }
 
+  function submitOther(event: FormEvent) {
+    event.preventDefault();
+    takeOther();
+  }
+
+  useImperativeHandle(commitRef, () => () => {
+    if (!otherOpen || other.trim() === '') return 'empty';
+    if (typed !== undefined && String(typed) === other.trim()) return 'committed';
+    return takeOther() ? 'committed' : 'invalid';
+  });
+
+  const chosen = field.options.find((option) => option.index === picked);
+  const highlight = (option: (typeof field.options)[number] | undefined) =>
+    onHighlight?.(
+      option ? { pageIds: option.pageIds, value: showChoice(name, option.value) } : null
+    );
+
   return (
-    <div role="radiogroup" aria-labelledby={labelledBy} className="flex min-w-0 flex-wrap gap-2">
+    <div
+      role="radiogroup"
+      aria-labelledby={labelledBy}
+      className={cn('flex min-w-0 gap-2', stacked ? 'flex-col' : 'flex-wrap')}
+      onPointerLeave={() => highlight(chosen)}
+    >
       {field.options.map((option) => {
         const checked = picked === option.index;
         return (
           <div
             key={option.index}
-            className={choiceCard}
+            className={cn(choiceCard, stacked && 'w-full justify-between')}
             data-checked={checked}
             data-testid="person-choice-option"
+            onPointerEnter={() => highlight(option)}
           >
             <label className="flex min-w-0 cursor-pointer items-center gap-2.5 py-2 pr-3 pl-3 text-sm">
               <input
@@ -526,6 +566,7 @@ export function ChoiceCards({
                 checked={checked}
                 onChange={() => {
                   setOtherOpen(false);
+                  highlight(option);
                   onChange((current) =>
                     withField(current, person.id, name, { option: option.index })
                   );
@@ -538,26 +579,40 @@ export function ChoiceCards({
               pages={pages}
               pageIds={option.pageIds}
               about={`${fieldLabels[name]}: ${showChoice(name, option.value)}`}
+              choice={name}
               tabIndex={anyPicked && !checked ? -1 : undefined}
               className="my-2 mr-2 border-l pl-2"
             />
           </div>
         );
       })}
-      <div className={cn(choiceCard, otherOpen && 'basis-full flex-wrap')} data-checked={otherOpen}>
+      <div
+        className={cn(choiceCard, (otherOpen || stacked) && 'basis-full flex-wrap')}
+        data-checked={otherOpen}
+        onPointerEnter={() => highlight(undefined)}
+      >
         <label className="flex min-w-0 cursor-pointer items-center gap-2.5 py-2 pr-3 pl-3 text-sm">
           <input
             type="radio"
             name={group}
             checked={otherOpen}
-            onChange={() => setOtherOpen(true)}
+            onChange={() => {
+              setOtherOpen(true);
+              highlight(undefined);
+            }}
             className="size-4 shrink-0 cursor-pointer accent-primary"
             data-testid="person-choice-other"
           />
           Altă valoare
         </label>
         {otherOpen && (
-          <form className="grid basis-full gap-1.5 px-3 pb-3" noValidate onSubmit={submitOther}>
+          <form
+            className="grid basis-full gap-1.5 px-3 pb-3"
+            noValidate
+            onSubmit={submitOther}
+            onFocus={() => onTyping?.(true)}
+            onBlur={() => onTyping?.(false)}
+          >
             <span className="flex flex-wrap items-center gap-2">
               <label htmlFor={inputId} className="sr-only">
                 {fieldTitles[name]}
