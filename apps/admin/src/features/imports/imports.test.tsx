@@ -210,13 +210,17 @@ function mount(path: string) {
   return runtime;
 }
 
-const requested = () => fetchMock.mock.calls.map(([input]) => new URL(String(input)));
+const requested = () =>
+  fetchMock.mock.calls
+    .map(([input]) => new URL(String(input)))
+    .filter((url) => url.pathname !== '/api/impersonation');
 
 beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock);
   fetchMock.mockReset();
   fetchMock.mockImplementation(async (input) => {
     const url = new URL(String(input));
+    if (url.pathname === '/api/impersonation') return Response.json({ impersonation: null });
     if (url.pathname === '/api/imports') return Response.json(list);
     if (url.pathname === `/api/imports/${importId}`) return Response.json(detail);
     if (url.pathname === `/api/imports/${importId}/files`) {
