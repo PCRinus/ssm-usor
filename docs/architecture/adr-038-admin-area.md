@@ -6,6 +6,7 @@
 - Issue: #611
 - Amended 2026-11-05: platform-admin power requires `aal2` everywhere, the database included: `is_platform_admin()` asks for the token's `aal` as well as the claim, the public API's admin tools too, and the member app asks an account with an authenticator for its code, since verifying one ends the account's `aal1` sessions and Supabase Auth refuses a password change at `aal1`.
 - Amended 2026-11-11: impersonation is built ahead of the Accounts page, from a list of every organization's members; the database refuses an impersonation without a reason (the agreement promises support access is logged with one) or of an account that is not a member; and the public API has one route of the admin's, `DELETE /me/impersonation`, so the member app's banner can end it.
+- Amended 2026-11-11: during an impersonation the API refuses the admin signing and every email or SMS to another person (`impersonation_refused`), checked by the routes and again at the mail and SMS bindings; he keeps reading, editing, generating, importing and archiving, and the documents he generates print the member, not him.
 
 ## Context
 
