@@ -1273,8 +1273,9 @@ function FireEquipmentCountRow({
       label={<span id={`${name}-label`}>{label}</span>}
     >
       <KindLine icon={<Split aria-hidden="true" />} tone={chosen === null ? 'warning' : undefined}>
-        {where ? `La ${where}, documentele` : 'Documentele'} dau {count.options.length} numere
-        diferite. Alege-l pe cel de acum.
+        {count.workplace.id === null
+          ? `Documentele nu spun la ce loc de muncă sunt aceste mijloace și dau ${count.options.length} numere diferite. Alege-l pe cel de acum, apoi, mai jos, locul de muncă al fiecărui mijloc.`
+          : `${where ? `La ${where}, documentele` : 'Documentele'} dau ${count.options.length} numere diferite. Alege-l pe cel de acum.`}
       </KindLine>
       <PickList labelledBy={`${name}-label`}>
         {count.options.map((option, index) => {

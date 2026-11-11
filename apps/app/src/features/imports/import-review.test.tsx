@@ -2899,6 +2899,25 @@ describe('means the files count differently', () => {
     );
   });
 
+  it('says the means of a count with no workplace have none yet', async () => {
+    const detail = countDetail();
+    const proposal = proposalOf(detail);
+    const unplaced = { name: null, id: null };
+    proposal.fireEquipmentCounts![0]!.workplace = unplaced;
+    for (const entry of proposal.fireEquipment) entry.workplace = unplaced;
+    mockReview(detail);
+    mount();
+
+    const link = await screen.findByTestId('import-blocker-link');
+    expect(link.textContent).toBe('Alege numărul de bucăți: Stingător P6, fără loc de muncă');
+    await userEvent.click(link);
+
+    const row = await screen.findByTestId('review-count-choice');
+    expect(row.textContent).toContain(
+      'Documentele nu spun la ce loc de muncă sunt aceste mijloace și dau 2 numere diferite.'
+    );
+  });
+
   it('asks no count for a workplace left out', async () => {
     const detail = Object.assign(countDetail(), {
       changes: { fields: {}, items: { 'workplace-1': { included: false } } },

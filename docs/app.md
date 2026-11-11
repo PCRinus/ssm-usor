@@ -1045,7 +1045,8 @@ their tab bars read.
   values back instead of saving a row); the other items open `ItemEditDialog`. Items and values
   only another company's passages give are listed unticked. On "Apărarea împotriva incendiilor",
   the means files count differently ("Câte mijloace de stingere sunt") come first, one row per
-  kind and workplace with each file's total, rooms and "Vezi în document"; until one is picked
+  kind and workplace with each file's total, rooms and "Vezi în document" (a count of means with
+  no workplace says so, and the hub's link reads "fără loc de muncă"); until one is picked
   their entries stay out of the list and of what confirming creates, then only the chosen
   file's are listed. An entry the document gives without a number says it is taken as one. The
   smoking place, where it applies, and each kept workplace's assembly point (a card "Punctul de

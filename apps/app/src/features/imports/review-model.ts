@@ -1284,7 +1284,7 @@ export function blockerLink(proposal: Proposal, changes: Changes, blocker: Block
       anchor: anchorOf(blocker.path),
       code: blocker.code,
       text: count
-        ? `Alege numărul de bucăți: ${countName(count)}${where ? `, ${where}` : ''}`
+        ? `Alege numărul de bucăți: ${countName(count)}${count.workplace.id === null ? ', fără loc de muncă' : where ? `, ${where}` : ''}`
         : 'Alege numărul de bucăți',
     };
   }
