@@ -110,6 +110,31 @@ async function sheetText(pdf: () => Promise<PdfText>) {
     .join('\n\n');
 }
 
+// The header is checked first, but a chunked body has none: it is read no further than the limit.
+async function bodyWithin(body: ReadableStream<Uint8Array> | null, limit: number) {
+  if (!body) return new Uint8Array();
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > limit) {
+      await reader.cancel();
+      throw tooLarge();
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
+
 const notASheet = () =>
   refused(safetySheetErrorReasons.notASheet, 'The file is not a safety data sheet.');
 
@@ -128,6 +153,7 @@ function logUsage(fields: {
 
 export const readSafetySheet: RouteHandler<typeof readSafetySheetRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
+  if (Number(c.req.header('Content-Length') ?? 0) > safetySheetLimits.maxBytes) throw tooLarge();
   const model = sheetModel(c.env);
   const extractor = createExtractor(c.env);
   if (!model || !extractor) {
@@ -138,9 +164,7 @@ export const readSafetySheet: RouteHandler<typeof readSafetySheetRoute, ApiEnv> 
       safetySheetErrorReasons.unavailable
     );
   }
-  if (Number(c.req.header('Content-Length') ?? 0) > safetySheetLimits.maxBytes) throw tooLarge();
-  const bytes = new Uint8Array(await c.req.arrayBuffer());
-  if (bytes.length > safetySheetLimits.maxBytes) throw tooLarge();
+  const bytes = await bodyWithin(c.req.raw.body, safetySheetLimits.maxBytes);
   if (!isPdf(bytes)) throw refused(safetySheetErrorReasons.notPdf, 'The file is not a PDF.');
   await writableClient(createDataClient(c), clientId);
 
@@ -189,15 +213,28 @@ export const readSafetySheet: RouteHandler<typeof readSafetySheetRoute, ApiEnv> 
       200
     );
   } catch (error) {
-    await charges
-      .refund(key)
-      .catch((refund: unknown) =>
+    const refunded = await charges.refund(key).then(
+      () => true,
+      (refund: unknown) => {
         console.error(
           `Credits of safety sheet reading ${key} were not given back: ${refund instanceof Error ? refund.message : String(refund)}`
-        )
+        );
+        return false;
+      }
+    );
+    const refusal =
+      error instanceof ApiError ? error : failed('The safety data sheet could not be read.');
+    if (!(error instanceof ApiError)) {
+      console.error(
+        `Safety data sheet reading broke: ${error instanceof Error ? error.name : 'unknown'}`
       );
-    const reason = error instanceof ApiError ? (error.reason ?? error.code) : 'error';
-    if (spent.cost > 0) logUsage({ organizationId, clientId, ...spent, outcome: reason });
-    throw error;
+    }
+    if (spent.cost > 0) {
+      logUsage({ organizationId, clientId, ...spent, outcome: refusal.reason ?? refusal.code });
+    }
+    throw new ApiError(refusal.code, refusal.message, refusal.issues, refusal.reason, undefined, {
+      ...refusal.extra,
+      creditsRefunded: refunded,
+    });
   }
 };

@@ -146,6 +146,7 @@ export interface ApiErrorResponse {
   resumesAt?: string;
   /** @minimum 1 */
   employeeCount?: number;
+  creditsRefunded?: boolean;
 }
 
 export interface PortalNoticeRequest {

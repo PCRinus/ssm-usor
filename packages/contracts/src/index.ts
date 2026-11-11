@@ -150,6 +150,9 @@ export const apiErrorResponseSchema = z.object({
   resumesAt: z.iso.datetime({ offset: true }).optional(),
   // With `office_has_employees`: how many current employees work at the registered office.
   employeeCount: z.int().min(1).optional(),
+  // With a refusal of a safety data sheet's reading: true when the reading had been charged and
+  // its credits were given back, false when they could not be; absent when nothing was charged.
+  creditsRefunded: z.boolean().optional(),
 });
 
 export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;

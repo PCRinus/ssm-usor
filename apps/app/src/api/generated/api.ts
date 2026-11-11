@@ -123,6 +123,7 @@ export interface ApiErrorResponse {
   resumesAt?: string;
   /** @minimum 1 */
   employeeCount?: number;
+  creditsRefunded?: boolean;
 }
 
 export type MeResponseUser = {
@@ -32225,7 +32226,7 @@ export const getReadSafetySheetUrl = (clientId: string) => {
 };
 
 /**
- * Takes one PDF with a text layer as the body, at most 10 MiB and 40 pages: the safety data sheet of one product. A model reads it and the answer is a draft of the substance's fields; nothing is saved, and the file is not kept (ADR 042). The quantity and the storage place are never in the draft. Every H statement, CAS, EC and UN number the reading wrote that the file does not hold is left out, and `droppedCodes` counts them. A reading takes 3 credits, refused with `409` and `credits_insufficient` (and `credits`) when what is left does not cover it, and given back when the reading fails or the file is refused. Refused with `422`: `safety_sheet_not_pdf`, `safety_sheet_too_large`, `safety_sheet_too_many_pages`, `safety_sheet_scanned` for a PDF whose pages are mostly scans, `safety_sheet_unreadable` for a damaged or protected file, `safety_sheet_not_a_sheet` for a file that is not a safety data sheet. `503` with `safety_sheet_failed` when the reading fails, and `safety_sheet_unavailable` where the model gateway or the extractor is not configured.
+ * Takes one PDF with a text layer as the body, at most 10 MiB and 40 pages: the safety data sheet of one product. A model reads it and the answer is a draft of the substance's fields; nothing is saved, and the file is not kept (ADR 042). The quantity and the storage place are never in the draft. Every H statement, CAS, EC and UN number the reading wrote that the file does not hold is left out, and `droppedCodes` counts them. A reading takes 3 credits, refused with `409` and `credits_insufficient` (and `credits`) when what is left does not cover it, and given back when the reading fails or the file is refused; such an answer carries `creditsRefunded` (`true` once given back, `false` if that failed), and a refusal before the charge carries none. A body over the limit is refused by its `Content-Length` before anything else, and one without the header is read no further than the limit. Refused with `422`: `safety_sheet_not_pdf`, `safety_sheet_too_large`, `safety_sheet_too_many_pages`, `safety_sheet_scanned` for a PDF whose pages are mostly scans, `safety_sheet_unreadable` for a damaged or protected file, `safety_sheet_not_a_sheet` for a file that is not a safety data sheet. `503` with `safety_sheet_failed` when the reading fails, and `safety_sheet_unavailable` where the model gateway or the extractor is not configured.
  * @summary Read a product's safety data sheet into a draft substance
  */
 export const readSafetySheet = async (

@@ -257,7 +257,9 @@ describe('POST /clients/{clientId}/fire-substances/read-safety-sheet', () => {
     const response = await read(new TextEncoder().encode('PK\u0003\u0004 a Word file'));
 
     expect(response.status).toBe(422);
-    expect((await refusal(response)).reason).toBe('safety_sheet_not_pdf');
+    const body = await refusal(response);
+    expect(body.reason).toBe('safety_sheet_not_pdf');
+    expect(body).not.toHaveProperty('creditsRefunded');
     expect(charges()).toHaveLength(0);
   });
 
@@ -279,7 +281,8 @@ describe('POST /clients/{clientId}/fire-substances/read-safety-sheet', () => {
     const response = await read();
 
     expect(response.status).toBe(422);
-    expect((await refusal(response)).reason).toBe('safety_sheet_scanned');
+    const body = await refusal(response);
+    expect(body).toMatchObject({ reason: 'safety_sheet_scanned', creditsRefunded: true });
     expect(callsTo('/v1/account/ssm-usor/openai/chat/completions')).toHaveLength(0);
     expect(refunds()).toHaveLength(1);
     const { p_key: key } = charges()[0]!.body as { p_key: string };
@@ -390,6 +393,79 @@ describe('POST /clients/{clientId}/fire-substances/read-safety-sheet', () => {
     );
 
     expect(response.status).toBe(503);
-    expect((await refusal(response)).reason).toBe('safety_sheet_unavailable');
+    const body = await refusal(response);
+    expect(body.reason).toBe('safety_sheet_unavailable');
+    expect(body).not.toHaveProperty('creditsRefunded');
+  });
+
+  it('says the credits were given back when a reading fails after its charge', async () => {
+    mockUpstream({ model: () => new Response('bad request', { status: 400 }) });
+
+    const body = await refusal(await read());
+
+    expect(body).toMatchObject({ reason: 'safety_sheet_failed', creditsRefunded: true });
+  });
+
+  it('does not say the credits came back when giving them back failed', async () => {
+    mockUpstream({
+      pages: [page('', 1), page('', 2)],
+      custom: (call) =>
+        call.url.pathname === '/rest/v1/rpc/refund_safety_sheet_credits'
+          ? Response.json({ code: 'XX000', message: 'down' }, { status: 500 })
+          : undefined,
+    });
+
+    const body = await refusal(await read());
+
+    expect(body).toMatchObject({ reason: 'safety_sheet_scanned', creditsRefunded: false });
+  });
+
+  it('refuses an oversized length before anything else, even where reading is not configured', async () => {
+    mockUpstream();
+
+    const response = await createApp().request(
+      `/clients/${clientId}/fire-substances/read-safety-sheet`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer user-token',
+          'Content-Type': 'application/octet-stream',
+          'Content-Length': String(safetySheetLimits.maxBytes + 1),
+        },
+        body: pdfBytes,
+      },
+      { ...env, AI_GATEWAY_TOKEN: undefined }
+    );
+
+    expect((await refusal(response)).reason).toBe('safety_sheet_too_large');
+  });
+
+  it('stops reading a body without a length once it passes the limit', async () => {
+    mockUpstream();
+    const chunk = new Uint8Array(1024 * 1024);
+    chunk.set(pdfBytes);
+    let sent = 0;
+    // Past the limit it never ends: a route that buffered the whole body would wait forever.
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (sent > safetySheetLimits.maxBytes) return new Promise<void>(() => undefined);
+        sent += chunk.byteLength;
+        controller.enqueue(chunk);
+      },
+    });
+
+    const response = await createApp().request(
+      `/clients/${clientId}/fire-substances/read-safety-sheet`,
+      {
+        method: 'POST',
+        headers: { Authorization: 'Bearer user-token', 'Content-Type': 'application/octet-stream' },
+        body,
+        duplex: 'half',
+      } as RequestInit,
+      env
+    );
+
+    expect((await refusal(response)).reason).toBe('safety_sheet_too_large');
+    expect(charges()).toHaveLength(0);
   });
 });
