@@ -2360,9 +2360,16 @@ parts match, and on its own otherwise. Files whose totals agree keep the entries
 names the most distinct rooms (the first on a tie), the others' are left out. Files that disagree are a
 `fireEquipmentCounts` item: its workplace reference and kind, and `options`, each a `total`, the
 `sources` of every file that gives it and the `equipmentIds` of the one file's entries confirming
-writes. A room only some options of a count name is not added to the workplace's `rooms`. An
-entry with no workplace among several, or only another company's, is not counted. A
-proposal stored before reads `fireEquipmentCounts` as `[]`, and all its entries are written.
+writes. A room only some options of a count name is not added to the workplace's `rooms`. A
+means or installation entry that names no workplace goes to the only workplace, or to the
+client's only own workplace left once a registered office suggested to have no activity is set
+aside (that suggestion is weighed on the entries that name a workplace, and the entries stay put
+whatever the member answers). Entries still without a workplace are counted among themselves,
+those naming no workplace as one place and those naming one the reading does not know one place
+per name: their count's `workplace.id` is null, it is asked whatever workplaces are left out, and
+each entry of the chosen option still waits for the member's workplace (`unknown_reference`).
+Only another company's entries are not counted. A proposal stored before reads
+`fireEquipmentCounts` as `[]`, and all its entries are written.
 The dangerous substances ([ADR 041](architecture/adr-041-su-import-questions-and-suggestions.md))
 are `substances`, one item per name the documents give as used, stored or collected at the client
 (`substance-1`: its `name`, `sources` and `spelling`), a name of fewer than 2 or more than 160

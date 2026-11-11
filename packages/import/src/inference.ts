@@ -108,20 +108,33 @@ export function inferOfficePosts(proposal: Proposal) {
 // likely an address where nobody works (ADR 041): suggested, never stated, so the member decides.
 // The documents tie no post to a workplace, so the office's own activity and a person heading it
 // stand for one.
-export function suggestOfficeWithoutActivity(proposal: Proposal) {
-  const own = proposal.workplaces.filter((workplace) => workplace.otherCompanyName === null);
+type OfficeCandidate = Pick<
+  Proposal['workplaces'][number],
+  | 'id'
+  | 'otherCompanyName'
+  | 'isRegisteredOffice'
+  | 'rooms'
+  | 'activity'
+  | 'fieldSources'
+  | 'sources'
+>;
+
+// The reading asks it before placing the means no document ties to a workplace, so it is given
+// the workplaces the documents name: an entry with no workplace never keeps the office active.
+export function officeWithoutActivity<W extends OfficeCandidate>(
+  workplaces: W[],
+  placedAt: { id: string | null }[]
+): { office: W; sources: Source[] } | null {
+  const own = workplaces.filter((workplace) => workplace.otherCompanyName === null);
   const office = own.find((workplace) => workplace.isRegisteredOffice);
   const points = own.filter((workplace) => !workplace.isRegisteredOffice);
-  if (!office || points.length === 0) return;
-  const at = (reference: { id: string | null }) => reference.id === office.id;
+  if (!office || points.length === 0) return null;
   const placed =
     office.rooms.length > 0 ||
     office.activity !== null ||
     Object.keys(office.fieldSources).length > 0 ||
-    proposal.fireEquipment.some((equipment) => at(equipment.workplace)) ||
-    proposal.fireInstallations.some((installation) => at(installation.workplace)) ||
-    proposal.responsiblePersons.some((person) => at(person.workplace));
-  if (placed) return;
+    placedAt.some((reference) => reference.id === office.id);
+  if (placed) return null;
   const sources: Source[] = [];
   for (const point of points) {
     for (const source of point.sources) {
@@ -130,9 +143,18 @@ export function suggestOfficeWithoutActivity(proposal: Proposal) {
       }
     }
   }
-  if (sources.length === 0) return;
-  office.officeHasActivity = false;
-  office.suggested.officeHasActivity = sources;
+  return sources.length === 0 ? null : { office, sources };
+}
+
+export function suggestOfficeWithoutActivity(proposal: Proposal) {
+  const found = officeWithoutActivity(proposal.workplaces, [
+    ...proposal.fireEquipment.map((equipment) => equipment.workplace),
+    ...proposal.fireInstallations.map((installation) => installation.workplace),
+    ...proposal.responsiblePersons.map((person) => person.workplace),
+  ]);
+  if (!found) return;
+  found.office.officeHasActivity = false;
+  found.office.suggested.officeHasActivity = found.sources;
 }
 
 export function inferValues(proposal: Proposal): Proposal {

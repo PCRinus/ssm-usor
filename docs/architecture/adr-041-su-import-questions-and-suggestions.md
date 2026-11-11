@@ -40,6 +40,8 @@ A row that names a space and a type with no count is proposed as one unit, with 
 
 Adding the entries was the fault. Taking the highest, or the list of means over the others, was rejected: which document is current is the specialist's knowledge, and a pack's documents are often written years apart.
 
+Amended 2026-11-11, after a test run on real packs: a pack with a registered office suggested to have no activity and one point of work gave its extinguishers once at the point of work and three times with no workplace, so nothing was counted and a member who placed them all at the point got every file's units added. An entry of the means or installations that names no workplace now goes to the client's only own workplace left once such an office is set aside; the office's suggestion is weighed without those entries, and they stay where they went whatever the member answers for the office. Where several workplaces remain, the entries with no workplace are counted once among themselves, as one place (one per name where they name a workplace the reading does not know); the member picks the file, then a workplace for each of its entries.
+
 ### Site facts are confirmed, never accepted
 
 The assembly point of a workplace and the smoking place are proposed as read, with their source, and are a decision the member takes: keep it, change it, or leave it empty. They are never accepted by default, as other read values are. Both print on what is posted at the workplace, and both are what a provider copies from one client's pack to the next.

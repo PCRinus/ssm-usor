@@ -12,7 +12,7 @@ import {
 import { z } from 'zod';
 
 import { substanceNameAllowed, workplaceValueAllowed } from './checks';
-import { inferValues } from './inference';
+import { inferValues, officeWithoutActivity } from './inference';
 import { contained, cuiDigits, foldName, foldText, sameAddress, similar, streetKey } from './match';
 import { countedOnce } from './means-count';
 import {
@@ -693,10 +693,9 @@ export function toProposal(...readings: Reading[]): Proposal {
       return [{ workplaceId, field: suggestion.field, value, sources }];
     }
   );
-  const workplaceReference = (name: string | null, defaultToOnly: boolean) => ({
+  const workplaceReference = (name: string | null, unnamed: string | null = null) => ({
     name,
-    id:
-      name === null ? (defaultToOnly ? onlyWorkplace : null) : resolve(name, workplaceNames, true),
+    id: name === null ? unnamed : resolve(name, workplaceNames, true),
   });
 
   const jobPositions = joined(
@@ -739,10 +738,52 @@ export function toProposal(...readings: Reading[]): Proposal {
     (name) => resolve(name, jobPositions)
   );
 
+  const responsiblePersons = joined(
+    list((reading) => reading.responsiblePersons)
+      .filter((person) => named(person.fullName) && person.roles.length > 0)
+      .map((person) => {
+        const roles: Roles = { roles: [], roleSources: {} };
+        for (const entry of person.roles) {
+          const { role, ...source } = roleOf(person, entry);
+          addRoles(roles, { roles: [role], roleSources: { [role]: [sourceOf(source)] } });
+        }
+        return {
+          ...traced(person),
+          fullName: person.fullName,
+          jobTitle: person.jobTitle,
+          ...roles,
+          workplace: person.workplace,
+        };
+      }),
+    (a, b) => foldName(a.fullName) === foldName(b.fullName),
+    (into, from) => {
+      fillGaps(into, from);
+      addRoles(into, from);
+    }
+  ).map((person, index) => ({
+    id: `person-${index + 1}`,
+    ...person,
+    workplace: workplaceReference(person.workplace),
+  }));
+
+  // Means no document ties to a workplace go to the only one where activity can take place,
+  // whatever the member later answers for the office (ADR 041, amended 2026-11-11).
+  const inactiveOffice = officeWithoutActivity(workplaces, [
+    ...list((reading) => reading.fireEquipment).map((each) => workplaceReference(each.workplace)),
+    ...list((reading) => reading.fireInstallations).map((each) =>
+      workplaceReference(each.workplace)
+    ),
+    ...responsiblePersons.map((person) => person.workplace),
+  ])?.office;
+  const active = workplaces.filter(
+    (workplace) => workplace.otherCompanyName === null && workplace !== inactiveOffice
+  );
+  const meansWorkplace = onlyWorkplace ?? (active.length === 1 ? active[0]!.id : null);
+
   const { fireEquipment, fireEquipmentCounts } = countedOnce(
     list((reading) => reading.fireEquipment).map((equipment) => ({
       ...traced(equipment),
-      workplace: workplaceReference(equipment.workplace, true),
+      workplace: workplaceReference(equipment.workplace, meansWorkplace),
       room: equipment.room,
       kind: equipment.kind,
       agent: equipment.agent,
@@ -837,39 +878,13 @@ export function toProposal(...readings: Reading[]): Proposal {
     fireSafety: groups.fireSafety as Proposal['fireSafety'],
     workplaces,
     jobPositions,
-    responsiblePersons: joined(
-      list((reading) => reading.responsiblePersons)
-        .filter((person) => named(person.fullName) && person.roles.length > 0)
-        .map((person) => {
-          const roles: Roles = { roles: [], roleSources: {} };
-          for (const entry of person.roles) {
-            const { role, ...source } = roleOf(person, entry);
-            addRoles(roles, { roles: [role], roleSources: { [role]: [sourceOf(source)] } });
-          }
-          return {
-            ...traced(person),
-            fullName: person.fullName,
-            jobTitle: person.jobTitle,
-            ...roles,
-            workplace: person.workplace,
-          };
-        }),
-      (a, b) => foldName(a.fullName) === foldName(b.fullName),
-      (into, from) => {
-        fillGaps(into, from);
-        addRoles(into, from);
-      }
-    ).map((person, index) => ({
-      id: `person-${index + 1}`,
-      ...person,
-      workplace: workplaceReference(person.workplace, false),
-    })),
+    responsiblePersons,
     fireEquipment,
     fireEquipmentCounts,
     fireInstallations: list((reading) => reading.fireInstallations).map((installation, index) => ({
       id: `installation-${index + 1}`,
       ...traced(installation),
-      workplace: workplaceReference(installation.workplace, true),
+      workplace: workplaceReference(installation.workplace, meansWorkplace),
       kind: installation.kind,
       description: installation.description,
     })),
