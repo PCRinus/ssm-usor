@@ -137,9 +137,9 @@ export async function employeeImportClient(
 // as the member's own import would, while `created_by` keeps the admin (ADR 038).
 export async function importSpecialist(
   admin: AdminClient,
-  row: { created_by: string | null; created_at: string }
+  row: { organization_id: string; created_by: string | null; created_at: string | null }
 ) {
-  if (!row.created_by) return null;
+  if (!row.created_by || !row.created_at) return row.created_by;
   const at = new Date(row.created_at).toISOString();
   const { data, error } = await admin
     .from('impersonations')
@@ -151,7 +151,15 @@ export async function importSpecialist(
     .limit(1)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'impersonation of an import');
-  return data?.target_user_id ?? row.created_by;
+  if (!data) return row.created_by;
+  const member = await admin
+    .from('organization_members')
+    .select('user_id')
+    .eq('user_id', data.target_user_id)
+    .eq('organization_id', row.organization_id)
+    .maybeSingle();
+  if (member.error) throw fromDatabaseError(member.error, 'impersonated member of an import');
+  return member.data ? data.target_user_id : row.created_by;
 }
 
 export async function clientTrainingThemes(
