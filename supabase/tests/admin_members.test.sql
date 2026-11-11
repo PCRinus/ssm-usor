@@ -1,5 +1,5 @@
 begin;
-select plan(28);
+select plan(39);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, last_sign_in_at)
 select v.id::uuid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', v.email, '', now(), v.app_metadata::jsonb, '{}', now(), now(), v.signed_in::timestamptz
@@ -219,6 +219,79 @@ select pg_temp.act_as('eeeeeeee-0000-4000-8000-0000000000b1', 'aal2');
 select lives_ok(
   $$ select public.start_impersonation('aaaaaaaa-0000-4000-8000-0000000000b2', 'Reproduce #79') $$,
   'an expired impersonation never ended does not stand in the way of the next'
+);
+
+select pg_temp.act_as_postgres();
+select is(
+  (select ended_at from public.impersonations where reason = 'Reproduce #78'),
+  now() - interval '1 hour 30 minutes',
+  'and is closed at its expiry, not when the next one started'
+);
+select is_empty(
+  $$ select 1 from audit.events e join public.impersonations i on i.id = e.row_id
+     where i.reason = 'Reproduce #78' and e.action = 'impersonation_ended' $$,
+  'without an end recorded, as an expiry records none'
+);
+select is(
+  (select ended_at from public.impersonations where reason = 'Reproduce #77'),
+  now(),
+  'one ended before its expiry ends when it is ended'
+);
+select ok(
+  (select bool_and(ended_at - started_at <= interval '2 hours') from public.impersonations
+   where admin_user_id = 'eeeeeeee-0000-4000-8000-0000000000b1' and ended_at is not null),
+  'no impersonation lasts more than two hours'
+);
+
+select pg_temp.act_as('eeeeeeee-0000-4000-8000-0000000000b1', 'aal2');
+select results_eq(
+  $$ select target_user_id, reason from public.current_impersonation() $$,
+  $$ values ('aaaaaaaa-0000-4000-8000-0000000000b2'::uuid, 'Reproduce #79') $$,
+  'the admin reads the impersonation in force now'
+);
+select pg_temp.act_as('eeeeeeee-0000-4000-8000-0000000000b1');
+select is_empty(
+  $$ select 1 from public.current_impersonation() $$,
+  'not in a password-only session, which effective_user_id() does not act on'
+);
+select pg_temp.act_as('aaaaaaaa-0000-4000-8000-0000000000b2');
+select is_empty($$ select 1 from public.current_impersonation() $$, 'nor does the member');
+
+select pg_temp.act_as_postgres();
+update public.impersonations set started_at = now() - interval '3 hours', expires_at = now() - interval '1 hour 30 minutes'
+where ended_at is null and admin_user_id = 'eeeeeeee-0000-4000-8000-0000000000b1';
+select pg_temp.act_as('eeeeeeee-0000-4000-8000-0000000000b1', 'aal2');
+select is_empty(
+  $$ select 1 from public.current_impersonation() $$,
+  'an expired one is not in force, though nobody ended it'
+);
+
+-- 20261112120000's own statements, on a row written before reasons were required.
+select pg_temp.act_as_postgres();
+alter table public.impersonations drop constraint if exists impersonations_reason_given;
+update public.impersonations set ended_at = now()
+where ended_at is null and admin_user_id = 'eeeeeeee-0000-4000-8000-0000000000b1';
+insert into public.impersonations (admin_user_id, target_user_id, reason, started_at, expires_at)
+values ('eeeeeeee-0000-4000-8000-0000000000b1', 'aaaaaaaa-0000-4000-8000-0000000000b1', null, now() - interval '3 hours', now() - interval '2 hours');
+update public.impersonations set ended_at = now()
+where ended_at is null and (reason is null or reason !~ '[^[:space:]]');
+alter table public.impersonations
+  add constraint impersonations_reason_given check (reason is not null and reason ~ '[^[:space:]]') not valid;
+select results_eq(
+  $$ select ended_at = expires_at from public.impersonations
+     where admin_user_id = 'eeeeeeee-0000-4000-8000-0000000000b1' and reason is null $$,
+  $$ values (true) $$,
+  'an open row without a reason is closed at its expiry'
+);
+select is_empty(
+  $$ select 1 from audit.events e join public.impersonations i on i.id = e.row_id
+     where i.reason is null and e.action = 'impersonation_ended' $$,
+  'without an end recorded'
+);
+select pg_temp.act_as('eeeeeeee-0000-4000-8000-0000000000b1', 'aal2');
+select lives_ok(
+  $$ select public.start_impersonation('aaaaaaaa-0000-4000-8000-0000000000b1', 'Reproduce #80') $$,
+  'and the next start does not trip on it'
 );
 
 select * from finish();

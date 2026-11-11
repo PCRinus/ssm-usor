@@ -7447,6 +7447,24 @@ export type Database = {
           error: true;
         } & 'the function public.current_employee_count with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
       };
+      current_impersonation: {
+        Args: never;
+        Returns: {
+          admin_user_id: string;
+          ended_at: string | null;
+          expires_at: string;
+          id: string;
+          reason: string | null;
+          started_at: string;
+          target_user_id: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'impersonations';
+          isOneToOne: true;
+          isSetofReturn: true;
+        };
+      };
       current_membership: {
         Args: never;
         Returns: {
