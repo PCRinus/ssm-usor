@@ -435,7 +435,7 @@ export const fireSubstanceDetailLabels: Record<
   },
   identificationCodes: {
     label: 'Coduri de identificare',
-    dataSheet: 'fișa cu date de securitate, secțiunile 1 și 3',
+    dataSheet: 'fișa cu date de securitate, secțiunile 1, 3 și 14',
   },
   healthEnvironmentRisks: {
     label: 'Riscuri pentru sănătate și mediu',
@@ -451,7 +451,7 @@ export const fireSubstanceDetailLabels: Record<
   },
   extinguishingAgents: {
     label: 'Substanțe pentru stingere, neutralizare sau decontaminare',
-    dataSheet: 'fișa cu date de securitate, secțiunea 5',
+    dataSheet: 'fișa cu date de securitate, secțiunile 5 și 6',
   },
   storagePlace: {
     label: 'Locul de depozitare',

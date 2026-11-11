@@ -261,7 +261,8 @@ describe('a dangerous substance', () => {
 
   it('names the section of the safety data sheet for each of its eight texts', () => {
     expect(fireSubstanceDetails).toHaveLength(8);
-    expect(fireSubstanceDetailLabels.extinguishingAgents.dataSheet).toMatch(/secțiunea 5$/);
+    expect(fireSubstanceDetailLabels.extinguishingAgents.dataSheet).toMatch(/secțiunile 5 și 6$/);
+    expect(fireSubstanceDetailLabels.identificationCodes.dataSheet).toMatch(/1, 3 și 14$/);
     expect(fireSubstanceDetailLabels.interventionMeasures.dataSheet).toMatch(/4, 5 și 6$/);
   });
 
