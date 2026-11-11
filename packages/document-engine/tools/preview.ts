@@ -933,7 +933,7 @@ function siteSheetSample({
       ),
       row(
         'Instruirea personalului',
-        `da, periodic, potrivit Deciziei nr.\u00a02 SU: personalul administrativ la 3 luni și personalul de execuție la ${long ? '1 lună' : '3 luni'}, câte 2 ore la fiecare instruire periodică; personalul administrativ este instruit de cadrul tehnic PSI, ${technician}, titular al certificatului seria A nr. 1234/2024; personalul de execuție, de șefii locurilor de muncă (${listed(people.map(({ name }) => name))}), cu cadrul tehnic, după caz`,
+        `da, periodic, potrivit Deciziei nr.\u00a02 SU: personalul administrativ la 3 luni și personalul de execuție la ${long ? '1 lună' : '3 luni'}, câte 2 ore la fiecare instructaj periodic; personalul administrativ este instruit de cadrul tehnic PSI, ${technician}, titular al certificatului seria A nr. 1234/2024; personalul de execuție, de șefii locurilor de muncă (${listed(people.map(({ name }) => name))}), cu cadrul tehnic, după caz`,
         'dacă se face periodic (periodicitatea pe categorii de personal), de către cine, dacă este persoană atestată'
       ),
       row(
@@ -1253,7 +1253,7 @@ function annualReportSample(people: ReturnType<typeof person>[], long: boolean) 
     trainingRecords: long
       ? [
           {
-            text: 'Potrivit evidenței instruirilor, în anul 2026 s-au efectuat: 3 instruiri introductiv-generale, la care au participat 3 angajați; 3 instruiri specifice locului de muncă, la care au participat 3 angajați; 4 instruiri periodice, în lunile martie, iunie, septembrie și decembrie, la care au participat 11 angajați; 1 instruire suplimentară, la care a participat 1 angajat.',
+            text: 'Potrivit evidenței instruirilor, în anul 2026 s-au efectuat: 3 instructaje introductive generale, la care au participat 3 angajați; 3 instructaje specifice locului de muncă, la care au participat 3 angajați; 4 instructaje periodice, în lunile martie, iunie, septembrie și decembrie, la care au participat 11 angajați; 1 instructaj suplimentar, la care a participat 1 angajat.',
           },
           {
             text: 'În același an, testul la angajare a fost susținut de 3 angajați, care l-au promovat toți, iar testul anual a fost susținut de 11 angajați, dintre care 10 l-au promovat.',

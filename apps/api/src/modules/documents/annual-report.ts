@@ -179,10 +179,10 @@ function yearDecisions(stored: ReadonlyMap<string, StoredDocument>, year: number
 }
 
 const phaseNouns: Record<TrainingPhase, readonly [one: string, many: string]> = {
-  introductory_general: ['instruire introductiv-generală', 'instruiri introductiv-generale'],
-  workplace: ['instruire specifică locului de muncă', 'instruiri specifice locului de muncă'],
-  periodic: ['instruire periodică', 'instruiri periodice'],
-  supplementary: ['instruire suplimentară', 'instruiri suplimentare'],
+  introductory_general: ['instructaj introductiv general', 'instructaje introductive generale'],
+  workplace: ['instructaj specific locului de muncă', 'instructaje specifice locului de muncă'],
+  periodic: ['instructaj periodic', 'instructaje periodice'],
+  supplementary: ['instructaj suplimentar', 'instructaje suplimentare'],
 };
 
 const employeesCounted = (count: number) => countOf(count, 'angajat', 'angajați');

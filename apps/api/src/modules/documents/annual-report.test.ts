@@ -296,13 +296,13 @@ describe('the annual report', () => {
           held('periodic', '2025-12-10', [ana, bogdan]),
         ])
       ).toEqual([
-        'Potrivit evidenței instruirilor, în anul 2026 s-au efectuat: 2 instruiri introductiv-generale, la care au participat 3 angajați; 1 instruire specifică locului de muncă, la care a participat 1 angajat; 3 instruiri periodice, în lunile martie și septembrie, la care au participat 4 angajați; 1 instruire suplimentară, la care a participat 1 angajat.',
+        'Potrivit evidenței instruirilor, în anul 2026 s-au efectuat: 2 instructaje introductive generale, la care au participat 3 angajați; 1 instructaj specific locului de muncă, la care a participat 1 angajat; 3 instructaje periodice, în lunile martie și septembrie, la care au participat 4 angajați; 1 instructaj suplimentar, la care a participat 1 angajat.',
       ]);
     });
 
     it('in the singular for one training, and only for the phases held', () => {
       expect(recordsOf([held('periodic', '2026-03-10', [ana, bogdan])])).toEqual([
-        'Potrivit evidenței instruirilor, în anul 2026 s-a efectuat: 1 instruire periodică, în luna martie, la care au participat 2 angajați.',
+        'Potrivit evidenței instruirilor, în anul 2026 s-a efectuat: 1 instructaj periodic, în luna martie, la care au participat 2 angajați.',
       ]);
     });
 
