@@ -1882,14 +1882,20 @@ code turns the answer into `draft`: `name`, `classification`, `physicalChemicalP
 quantity or the storage place, each within its column's length. Every H or EUH statement, CAS, EC
 and UN number the reading wrote that the file's text does not hold is left out, and
 `droppedCodes` counts them. Nothing is written, the file is not stored, and no improvement copy is
-kept. Refusals before the charge: `422` with `safety_sheet_not_pdf` or `safety_sheet_too_large`
-(by `Content-Length` and by the body). The reading is charged (Import credits, below), then
+kept. Refusals before the charge: `422` with `safety_sheet_too_large`, by `Content-Length` before
+anything else and, without that header, once the body read passes the limit, which stops the
+reading; `422` with `safety_sheet_not_pdf`. The reading is charged (Import credits, below), then
 refused with `422` and its credits given back: `safety_sheet_too_many_pages`,
 `safety_sheet_scanned` (more than half the pages are scans), `safety_sheet_unreadable` (damaged or
 protected), `safety_sheet_not_a_sheet` (fewer than 12 of the sections 1 to 16 found, before the
 model is asked, or the model says it is no sheet); `503` with `safety_sheet_failed` when the
 extractor, the gateway or the model fails, also given back; `503` with
-`safety_sheet_unavailable` where the gateway or the extractor is not configured. Each request's
+`safety_sheet_unavailable` where the gateway or the extractor is not configured. Every answer
+after the charge carries `creditsRefunded`: `true` once the credits were given back, `false` when
+giving them back failed; a refusal before the charge carries none. A UN number counts only where
+the file writes UN or ONU before it, an H statement must match whole and with a capital H, and
+dashes, line breaks inside a number and labels in the model's fields are normalized before the
+comparison. Each request's
 tokens and cost are logged as a `safety_sheet_reading` line, and the gateway metadata carries
 `organizationId`, `clientId` and `reading: safety_sheet`.
 The free rows of the maintenance and check schedules (`fire-maintenance-items`, ADR 018, amended
