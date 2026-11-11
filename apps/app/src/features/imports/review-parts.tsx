@@ -1,7 +1,16 @@
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { Check, FileSearch, Pencil, ShieldCheck, SpellCheck, TriangleAlert } from 'lucide-react';
+import {
+  Check,
+  ChevronRight,
+  FileSearch,
+  type LucideIcon,
+  Pencil,
+  ShieldCheck,
+  SpellCheck,
+  TriangleAlert,
+} from 'lucide-react';
 import { type ComponentProps, type ReactNode, use, useEffect, useId, useRef } from 'react';
 
 import { filesLabel } from './import-format';
@@ -401,6 +410,104 @@ export function KindLine({
       {icon}
       {children}
     </span>
+  );
+}
+
+export function Facts({ children }: { children: ReactNode }) {
+  return (
+    <span className="flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-[13px] font-normal text-foreground tabular-nums">
+      {children}
+    </span>
+  );
+}
+
+export function Fact({
+  icon: Icon,
+  label,
+  wrap = false,
+  children,
+}: {
+  icon: LucideIcon;
+  label?: string;
+  wrap?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <span
+      title={label}
+      className={cn('inline-flex min-w-0 items-start gap-1.5', !wrap && 'whitespace-nowrap')}
+    >
+      <Icon aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+      <span className="min-w-0">
+        {label && <span className="sr-only">{label}: </span>}
+        {children}
+      </span>
+    </span>
+  );
+}
+
+type SectionHeaderPlace =
+  { headingId: string; linked?: never } | { linked: true; headingId?: never };
+
+export function SectionHeader({
+  icon: Icon,
+  title,
+  description,
+  hint,
+  status,
+  ...place
+}: {
+  icon: LucideIcon;
+  title: ReactNode;
+  description?: ReactNode;
+  hint?: ReactNode;
+  status: ReactNode;
+} & SectionHeaderPlace) {
+  const Title = place.linked ? 'span' : 'h2';
+  return (
+    <div
+      className={cn(
+        'grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-x-3.5',
+        place.linked ? 'gap-y-1 sm:grid-cols-[2.5rem_minmax(0,1fr)_auto_1rem]' : 'gap-y-2'
+      )}
+    >
+      <span className="grid size-10 place-items-center rounded-lg bg-secondary" aria-hidden="true">
+        <Icon className="size-5" />
+      </span>
+      <span className={cn('grid min-w-0 gap-0.5', !place.linked && 'max-sm:contents')}>
+        <Title
+          id={place.headingId}
+          tabIndex={place.linked ? undefined : -1}
+          className="font-semibold outline-none"
+        >
+          {title}
+        </Title>
+        {description && (
+          <span
+            className={cn(
+              'text-sm text-muted-foreground',
+              place.linked ? 'max-sm:hidden' : 'max-sm:col-span-full'
+            )}
+          >
+            {description}
+          </span>
+        )}
+        {hint && (
+          <span
+            className={cn(
+              'text-[13px] text-info-foreground',
+              !place.linked && 'max-sm:col-span-full'
+            )}
+          >
+            {hint}
+          </span>
+        )}
+      </span>
+      <span className="col-start-3 row-start-1 justify-self-end">{status}</span>
+      {place.linked && (
+        <ChevronRight className="size-4 text-muted-foreground max-sm:hidden" aria-hidden="true" />
+      )}
+    </div>
   );
 }
 

@@ -1,7 +1,7 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { ChevronRight, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
@@ -15,7 +15,7 @@ import { ImportReviewIssues } from './import-review-issues';
 import { LibraryGroup, RisksGroup } from './library/library-group';
 import { ReportImportButton } from './report-import-button';
 import { anchorOf, type Blocker, sectionIds, sectionLabels, sectionOf } from './review-model';
-import { StatusTag } from './review-parts';
+import { SectionHeader, StatusTag } from './review-parts';
 import {
   blockerHeading,
   blockerLinks,
@@ -157,7 +157,6 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
         </div>
         <ul className="divide-y overflow-hidden rounded-xl border bg-card shadow-xs">
           {sectionIds.map((section) => {
-            const Icon = sectionIcons[section];
             const hint =
               statuses[section].kind === 'check'
                 ? sectionReviewHints(section, proposal, review.changes)[0]
@@ -169,43 +168,28 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
                   params={{ importId: detail.id, section }}
                   data-testid="import-section-link"
                   data-section={section}
-                  className="grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-x-3.5 gap-y-1 px-4 py-3.5 transition-colors hover:bg-muted/50 sm:grid-cols-[2.5rem_minmax(0,1fr)_auto_1rem] sm:px-5"
+                  className="block px-4 py-3.5 transition-colors hover:bg-muted/50 sm:px-5"
                 >
-                  <span
-                    className="grid size-10 place-items-center rounded-lg bg-secondary"
-                    aria-hidden="true"
-                  >
-                    <Icon className="size-5" />
-                  </span>
-                  <span className="grid min-w-0 gap-0.5">
-                    <span className="font-semibold">{sectionLabels[section]}</span>
-                    <span className="text-sm text-muted-foreground max-sm:hidden">
-                      {sectionDescription(
-                        section,
-                        detail,
-                        proposal,
-                        review.changes,
-                        applying,
-                        scope
-                      )}
-                    </span>
-                    {hint && (
-                      <span
-                        className={cn(
-                          'text-[13px] text-info-foreground',
-                          section === 'job-positions' && 'sm:hidden'
-                        )}
-                      >
-                        {hint.summary}
-                      </span>
+                  <SectionHeader
+                    linked
+                    icon={sectionIcons[section]}
+                    title={sectionLabels[section]}
+                    description={sectionDescription(
+                      section,
+                      detail,
+                      proposal,
+                      review.changes,
+                      applying,
+                      scope
                     )}
-                  </span>
-                  <span className="justify-self-end">
-                    <StatusTag status={statuses[section]} />
-                  </span>
-                  <ChevronRight
-                    className="size-4 text-muted-foreground max-sm:hidden"
-                    aria-hidden="true"
+                    hint={
+                      hint && (
+                        <span className={cn(section === 'job-positions' && 'sm:hidden')}>
+                          {hint.summary}
+                        </span>
+                      )
+                    }
+                    status={<StatusTag status={statuses[section]} />}
                   />
                 </Link>
               </li>

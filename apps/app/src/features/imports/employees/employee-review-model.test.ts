@@ -18,15 +18,19 @@ import {
   type Changes,
   confirmSummary,
   decisionsOf,
+  decisionSummary,
   emptyChanges,
+  firstToCheck,
   heldWith,
   hiringTestRowIds,
+  hubCounts,
   includedByDefault,
   includedOf,
   isWritten,
   leaving,
   nextToCheck,
   notesOf,
+  peopleGroups,
   peopleViews,
   personIncluded,
   personName,
@@ -37,7 +41,6 @@ import {
   rowIncluded,
   statesOf,
   testIncluded,
-  toCheckGroups,
   trainingsByDomain,
   untestedDomains,
   withField,
@@ -411,10 +414,151 @@ describe('rows and tests', () => {
 });
 
 describe('the people list', () => {
+  const groupsOf = (context: ReviewContext) =>
+    peopleGroups(peopleViews(context)).map((group) => [
+      group.title,
+      group.views.map((view) => view.person.id),
+    ]);
+
   it('splits those still to check into what has a decision and what is unopened', () => {
-    const { decide, unopened } = toCheckGroups(peopleViews(contextOf()));
-    expect(decide.map((view) => view.person.id)).toEqual(['toma']);
-    expect(unopened.map((view) => view.person.id)).toEqual(['pop', 'lazar']);
+    expect(groupsOf(contextOf())).toEqual([
+      ['Cu ceva de hotărât', ['toma']],
+      ['Încă nedeschise', ['pop', 'lazar']],
+    ]);
+  });
+
+  it('keeps apart those who wait only on what is decided once for everyone above', () => {
+    const ownAnswered = withRow(
+      withPersonChange(emptyChanges(), 'toma', () => ({ cnpCorrection: true })),
+      'r5',
+      () => ({ values: { trainerName: 'Barbu Ionuț' } })
+    );
+    expect(groupsOf(contextOf(ownAnswered))[0]).toEqual([
+      'Așteaptă doar postul sau locul de muncă',
+      ['toma'],
+    ]);
+    expect(groupsOf(contextOf(ownAnswered, 1))[0]).toEqual(['Așteaptă doar postul', ['toma']]);
+    expect(groupsOf(contextOf(withTitle(ownAnswered, 'title-helper', bakerId)))[0]).toEqual([
+      'Așteaptă doar locul de muncă',
+      ['toma'],
+    ]);
+  });
+
+  it('ends with those checked and those set aside', () => {
+    const changes = withPersonChange(
+      withPersonChange(emptyChanges(), 'pop', () => ({ state: 'checked' })),
+      'lazar',
+      () => ({ state: 'set_aside' })
+    );
+    expect(groupsOf(contextOf(changes))).toEqual([
+      ['Cu ceva de hotărât', ['toma']],
+      ['Verificați', ['pop']],
+      ['Lăsați deoparte', ['lazar']],
+    ]);
+  });
+
+  it('sums up what a person decides on their own pages, not the post decided above', () => {
+    const toma = peopleViews(contextOf()).find((view) => view.person.id === 'toma')!;
+    expect(toma.decisions.map((decision) => decision.key)).toContain('post');
+    expect(decisionSummary(toma)).toEqual({
+      count: 2,
+      text: 'CNP cu o cifră necitită · Lipsește cine a instruit la o instruire',
+    });
+  });
+
+  it('names the values that differ between sheets on one line, each counted', () => {
+    const differing = (pageIds: string[]) => ({
+      options: [
+        { value: 'Str. Fabricii nr. 21, Sibiu', pageIds: [pageIds[0]] },
+        { value: 'Str. Morii nr. 4, Cisnădie', pageIds: [pageIds[1]] },
+      ],
+    });
+    const twoTitles = {
+      options: [
+        { value: 'Vânzător', pageIds: ['p3'] },
+        { value: 'Casier', pageIds: ['p5'] },
+      ],
+    };
+    const changed = {
+      ...proposal,
+      people: proposal.people.map((each) =>
+        each.id === 'pop'
+          ? {
+              ...each,
+              fields: {
+                ...each.fields,
+                homeAddress: differing(['p3', 'p5']),
+                rhFactor: {
+                  options: [
+                    { value: '+', pageIds: ['p3'] },
+                    { value: '-', pageIds: ['p5'] },
+                  ],
+                },
+                jobTitle: twoTitles,
+              },
+            }
+          : each
+      ),
+    } as unknown as Proposal;
+    const context = { ...contextOf(withPage(emptyChanges(), 'p5', 'pop')), proposal: changed };
+    const pop = peopleViews(context).find((view) => view.person.id === 'pop')!;
+    expect(decisionSummary(pop)).toEqual({
+      count: 3,
+      text: 'Domiciliul, Rh-ul și funcția diferă între fișe',
+    });
+  });
+
+  it('sets aside a leaver not taken, out of what is left to check, until switched on', () => {
+    const left = withField(emptyChanges(), 'pop', 'leftOn', { value: '2026-09-30' });
+    const context = contextOf(left);
+    const views = peopleViews(context);
+    expect(groupsOf(context)).toEqual([
+      ['Cu ceva de hotărât', ['toma']],
+      ['Încă nedeschise', ['lazar']],
+      ['Lăsați deoparte', ['pop']],
+    ]);
+    expect(hubCounts(context, views).people).toEqual({
+      total: 3,
+      toCheck: 2,
+      checked: 0,
+      setAside: 1,
+      deciding: 1,
+      included: 2,
+    });
+    expect(firstToCheck(views.filter((view) => view.person.id !== 'toma'))?.person.id).toBe(
+      'lazar'
+    );
+
+    const taken = contextOf(withPersonIncluded(context, person('pop'), true));
+    expect(groupsOf(taken)).toEqual([
+      ['Cu ceva de hotărât', ['toma']],
+      ['Încă nedeschise', ['pop', 'lazar']],
+    ]);
+  });
+
+  it('counts what each section of the hub still waits on', () => {
+    const context = contextOf();
+    expect(hubCounts(context, peopleViews(context))).toEqual({
+      posts: { decide: 1, confirm: 0 },
+      workplaces: { decide: 1, confirm: 0 },
+      people: { total: 3, toCheck: 3, checked: 0, setAside: 0, deciding: 1, included: 3 },
+      photos: { total: 1, toAssign: 1 },
+    });
+    const decided = withPage(
+      withWorkplace(withTitle(emptyChanges(), 'title-helper', bakerId), 'place-none', null),
+      'p5',
+      null
+    );
+    const after = contextOf(
+      withPersonChange(decided, 'pop', () => ({ state: 'set_aside' })),
+      1
+    );
+    expect(hubCounts(after, peopleViews(after))).toMatchObject({
+      posts: { decide: 0, confirm: 0 },
+      workplaces: { decide: 0, confirm: 0 },
+      people: { setAside: 1, included: 2 },
+      photos: { total: 1, toAssign: 0 },
+    });
   });
 
   it('checks a person with nothing to decide on moving on, and no one else', () => {

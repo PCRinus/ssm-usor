@@ -121,7 +121,7 @@ export function ImportActionBar({
         data-keyboard-open={keyboard.open || undefined}
         style={{ ...bounds, bottom: keyboard.open ? keyboard.bottom : (bounds?.bottom ?? 0) }}
         className={cn(
-          'fixed bottom-0 z-20 grid gap-3 border-t border-sidebar-border bg-sidebar px-5 pt-3 text-sidebar-foreground sm:px-8 sm:pt-4 lg:px-10',
+          'fixed bottom-0 z-20 grid gap-3 border-t border-sidebar-border bg-sidebar px-5 pt-3 text-sidebar-foreground shadow-[0_-4px_14px_rgb(24_52_46/0.08)] sm:px-8 sm:pt-4 lg:px-10',
           keyboard.open
             ? 'pb-3'
             : 'pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(1rem+env(safe-area-inset-bottom))]'

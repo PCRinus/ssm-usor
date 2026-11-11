@@ -429,6 +429,8 @@ export type Decision = {
   tag: string;
   // A near post or workplace to confirm, rather than a gap.
   tone: 'destructive' | 'warning';
+  // Answered once for everyone with the same text on their sheets, above the people list.
+  above?: 'post' | 'workplace';
 };
 
 export type Note = { key: string; tag: string };
@@ -701,6 +703,7 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
             : 'Alege postul',
         tag: 'Post de hotărât',
         tone: 'destructive',
+        above: 'post',
       });
     } else if (status === 'confirm') {
       decisions.push({
@@ -709,6 +712,7 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
         label: 'Confirmă postul propus',
         tag: 'Post de confirmat',
         tone: 'warning',
+        above: 'post',
       });
     }
   }
@@ -824,6 +828,7 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
       label: 'Alege locul de muncă',
       tag: 'Loc de muncă de ales',
       tone: 'warning',
+      above: 'workplace',
     });
   }
 
@@ -942,6 +947,7 @@ export type PersonView = {
   name: string;
   decisions: Decision[];
   notes: Note[];
+  included: boolean;
 };
 
 export function peopleViews(context: ReviewContext): PersonView[] {
@@ -952,26 +958,123 @@ export function peopleViews(context: ReviewContext): PersonView[] {
     name: personName(context, person),
     decisions: decisionsOf(context, person),
     notes: notesOf(context, person),
+    included: personIncluded(context, person),
   }));
 }
 
-export function peopleCounts(context: Pick<ReviewContext, 'proposal' | 'states'>) {
-  const counts = { total: 0, toCheck: 0, checked: 0, setAside: 0 };
-  for (const person of context.proposal.people) {
-    counts.total += 1;
-    const state = stateOf(context, person.id);
-    if (state === 'checked') counts.checked += 1;
-    else if (state === 'set_aside') counts.setAside += 1;
-    else counts.toCheck += 1;
+const toCheck = (view: PersonView) => view.state === 'to_check' && view.included;
+
+export const firstToCheck = (views: PersonView[]) => views.find(toCheck);
+
+const ownDecisions = (view: Pick<PersonView, 'decisions'>) =>
+  view.decisions.filter((decision) => !decision.above);
+
+const abbreviation = /^(?:Rh|CNP)\b/;
+
+const lowerFirst = (label: string) =>
+  /^\p{Lu}\p{Ll}/u.test(label) && !abbreviation.test(label)
+    ? label[0]!.toLowerCase() + label.slice(1)
+    : label;
+
+const joinAnd = (parts: string[]) =>
+  parts.length > 1 ? `${parts.slice(0, -1).join(', ')} și ${parts.at(-1)}` : (parts[0] ?? '');
+
+export function decisionSummary(view: Pick<PersonView, 'decisions'>) {
+  const own = ownDecisions(view);
+  const differing = own
+    .filter((decision) => decision.key.startsWith('choice-'))
+    .map((decision, index) => {
+      const label = fieldLabels[decision.key.slice('choice-'.length) as FieldName];
+      return index === 0 ? label : lowerFirst(label);
+    });
+  const parts: string[] = [];
+  for (const decision of own) {
+    const part = decision.key.startsWith('choice-')
+      ? `${joinAnd(differing)} diferă între fișe`
+      : decision.tag;
+    if (!parts.includes(part)) parts.push(part);
   }
-  return counts;
+  return { count: own.length, text: parts.join(' · ') };
 }
 
-export function toCheckGroups(views: PersonView[]) {
-  const toCheck = views.filter((view) => view.state === 'to_check');
+export type PeopleGroup = {
+  key: 'decide' | 'waiting' | 'unopened' | 'checked' | 'set_aside';
+  title: string;
+  views: PersonView[];
+};
+
+function waitingTitle(views: PersonView[]) {
+  const above = new Set(views.flatMap((view) => view.decisions.map((decision) => decision.above)));
+  if (!above.has('workplace')) return 'Așteaptă doar postul';
+  if (!above.has('post')) return 'Așteaptă doar locul de muncă';
+  return 'Așteaptă doar postul sau locul de muncă';
+}
+
+export function peopleGroups(views: PersonView[]): PeopleGroup[] {
+  const checking = views.filter(toCheck);
+  const waiting = checking.filter(
+    (view) => view.decisions.length > 0 && ownDecisions(view).length === 0
+  );
+  const groups: PeopleGroup[] = [
+    {
+      key: 'decide',
+      title: 'Cu ceva de hotărât',
+      views: checking.filter((view) => ownDecisions(view).length > 0),
+    },
+    { key: 'waiting', title: waitingTitle(waiting), views: waiting },
+    {
+      key: 'unopened',
+      title: 'Încă nedeschise',
+      views: checking.filter((view) => view.decisions.length === 0),
+    },
+    {
+      key: 'checked',
+      title: 'Verificați',
+      views: views.filter((view) => view.state === 'checked'),
+    },
+    {
+      key: 'set_aside',
+      title: 'Lăsați deoparte',
+      views: views.filter((view) => !view.included),
+    },
+  ];
+  return groups.filter((group) => group.views.length > 0);
+}
+
+const openGroups = <Group extends JobTitleGroup | WorkplaceGroup>(
+  groups: Group[],
+  status: (group: Group) => GroupStatus
+) => {
+  const statuses = groups.map(status);
   return {
-    decide: toCheck.filter((view) => view.decisions.length > 0),
-    unopened: toCheck.filter((view) => view.decisions.length === 0),
+    decide: statuses.filter((each) => each === 'decide').length,
+    confirm: statuses.filter((each) => each === 'confirm').length,
+  };
+};
+
+export function hubCounts(context: ReviewContext, views: PersonView[]) {
+  const { proposal, changes } = context;
+  const unplaced = unplacedPages(proposal);
+  const checking = views.filter(toCheck);
+  const setAside = views.filter((view) => !view.included).length;
+  return {
+    posts: openGroups(proposal.jobTitles, (group) => titleStatus(changes, group)),
+    workplaces:
+      context.workplaceCount > 1
+        ? openGroups(proposal.workplaces, (group) => workplaceStatus(changes, group))
+        : { decide: 0, confirm: 0 },
+    people: {
+      total: views.length,
+      toCheck: checking.length,
+      checked: views.filter((view) => view.state === 'checked').length,
+      setAside,
+      deciding: checking.filter((view) => ownDecisions(view).length > 0).length,
+      included: views.length - setAside,
+    },
+    photos: {
+      total: unplaced.length,
+      toAssign: unplaced.filter((page) => changes.pages[page.id] === undefined).length,
+    },
   };
 }
 

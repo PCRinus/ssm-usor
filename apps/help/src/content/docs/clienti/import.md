@@ -314,19 +314,27 @@ O pagină ajunge la o persoană după CNP, dacă cifra lui de control se potrive
 
 ## Lista persoanelor
 
-**Verifică lucrătorii propuși** arată câte persoane au fost găsite și câte ai verificat. Fiecare persoană e:
+**Verifică lucrătorii propuși** e împărțită în secțiuni: **Posturi de lucru**, **Locuri de muncă** (doar când clientul are mai multe și fișele nu se potrivesc exact), **Persoane** și **Fotografii neatribuite**. Fiecare secțiune spune în dreapta ce mai are de făcut, de exemplu „3 de hotărât”, „7 de verificat” sau „2 de atribuit”, ori **Gata**.
 
-- **De verificat**: încă nu ai trecut prin ea sau are ceva de hotărât;
-- **Verificat**: o persoană fără nimic de hotărât devine verificată când treci de pe pagina ei la următoarea; una cu ceva de hotărât, după ce ai hotărât. Redevine **De verificat** când o corectură, o pagină pe care i-o dai sau o alegere îi lasă din nou ceva de hotărât;
-- **Lăsat deoparte**: nu se creează. Aici ajunge și cine a plecat din firmă, dacă treci mai departe fără să-l preiei. O iei înapoi oricând, cu comutatorul de lângă numele ei, pe pagina ei.
+**Posturi de lucru** și **Locuri de muncă** arată funcțiile și locurile scrise pe fișe care nu se potrivesc exact cu ale clientului, fiecare cu persoanele care o au. Ce hotărăști acolo se aplică tuturor celor care au același text pe fișă, așa că nu se mai cere la fiecare persoană. Dacă clientul nu are încă niciun post, secțiunea îți spune asta, iar **Adaugă postul** îl creează pe cel scris pe fișe.
 
-Lista se filtrează după aceste stări. Persoanele de verificat sunt împărțite în **Cu ceva de hotărât** și **Încă nedeschise**. **Continuă cu …** te duce la următoarea persoană de verificat.
+În **Persoane**, fiecare rând arată postul, data angajării, câte instruiri și câte fotografii are persoana și, alături, ce are de hotărât pe fișele ei, de exemplu „2 de hotărât: Domiciliul și funcția diferă între fișe · Lipsește data la o instruire”. Semnalările care nu opresc nimic, ca „O pagină pusă după ordine”, apar dedesubt. Un clic pe rând deschide pagina persoanei. Persoanele sunt grupate așa:
 
-Deasupra listei apar posturile scrise pe fișe care nu se potrivesc exact cu un post al clientului și locurile de muncă de ales. Ce hotărăști acolo se aplică tuturor celor care au același text pe fișă.
+- **Cu ceva de hotărât**: au pe fișele lor ceva de ales sau de completat;
+- **Așteaptă doar postul**: nu au nimic de hotărât pe fișe, doar postul sau locul de muncă hotărât mai sus;
+- **Încă nedeschise**: nu au nimic de hotărât; devin verificate când treci de pe pagina lor la următoarea;
+- **Verificați**: o persoană cu ceva de hotărât devine verificată după ce ai hotărât. Redevine de verificat când o corectură, o pagină pe care i-o dai sau o alegere îi lasă din nou ceva de hotărât;
+- **Lăsați deoparte**: nu se creează și nu se numără printre cei de verificat. Aici e și cine a plecat din firmă, cât timp nu-l preiei cu comutatorul lui.
+
+Comutatorul din dreapta fiecărui rând e același cu cel de lângă numele persoanei, pe pagina ei: oprit, o lasă deoparte, iar rândul se strânge la nume, cu „Nu e inclus”; pornit din nou, o ia înapoi la verificat.
+
+Jos, o bară rămâne mereu pe ecran. Arată ce mai e de făcut, de exemplu „3 posturi de hotărât”, „5 persoane cu ceva de hotărât” sau „2 fotografii de atribuit”; un clic pe una te duce la secțiunea ei. Tot acolo vezi că alegerile s-au salvat, câte persoane ai verificat, până când se păstrează importul, **Creează lucrătorii…** și **Continuă cu …**, care te duce la următoarea persoană de verificat. Pe telefon, cât timp scrii, bara păstrează doar ce e de făcut.
 
 ### Fotografiile neatribuite
 
-O pagină pe care aplicația nu o poate lega de nicio persoană apare sub listă, cu ce s-a citit pe ea. **Atribuie…** o dă unei persoane de pe fișe sau o lasă deoparte. O pagină lăsată deoparte nu ajunge la fișierele nimănui.
+O pagină pe care aplicația nu o poate lega de nicio persoană apare în **Fotografii neatribuite**, cu felul paginii și ce rânduri s-au citit pe ea. Un clic oriunde pe rând deschide atribuirea: o dai unei persoane de pe fișe sau o lași deoparte. O pagină lăsată deoparte nu ajunge la fișierele nimănui.
+
+Un clic pe miniatură deschide fotografia mare, peste pagină; treci la celelalte fotografii neatribuite cu butoanele de jos sau cu săgețile tastaturii, iar **Atribuie…** deschide atribuirea chiar pentru fotografia pe care o vezi. Și în fereastra de atribuire, **Deschide mare**, de lângă butoanele de mărire, o deschide mare.
 
 ## Pagina unei persoane
 
@@ -340,7 +348,7 @@ Funcția scrisă pe fișă e potrivită cu posturile clientului:
 
 - când se potrivește exact cu un post, lucrătorul îl primește fără să te întrebe;
 - când seamănă cu un post, ți-l propune, iar tu îl confirmi sau alegi altul;
-- când nu seamănă cu niciunul, alegi un post existent sau **Adaugă un post nou**, care deschide aceeași fereastră ca în tabul **Posturi de lucru**.
+- când nu seamănă cu niciunul, alegi un post existent sau **Adaugă un post nou** (**Adaugă postul**, când clientul nu are încă niciun post), care deschide aceeași fereastră ca în tabul **Posturi de lucru**.
 
 Aceeași funcție scrisă pe fișele mai multor persoane o hotărăști o singură dată, pentru toate. Funcția de pe fișă rămâne funcția din contract a lucrătorului. Importul nu creează niciodată un post fără să-l alegi tu.
 
@@ -410,11 +418,11 @@ Când semnătura nu se vede, vezi „Testul la angajare nu a putut fi verificat 
 
 Tot ce verifici și schimbi se salvează pe loc. Poți închide pagina și continua mai târziu: importul deschis apare pe tabul **Lucrători** al clientului, cu câte persoane ai verificat și **Continuă**.
 
-Un import la care nu mai lucrezi se păstrează 14 zile de la ultima schimbare; data o vezi pe card, „Se păstrează până pe …”. După aceea se oprește, iar fotografiile încărcate se șterg după încă 14 zile. La fel se întâmplă când alegi **Renunță la import**: nu se creează și nu se modifică niciun lucrător. Separat, păstrăm o copie a fiecărui import 12 luni de la încheierea lui, ca să îmbunătățim citirea documentelor, așa cum descrie acordul de prelucrare a datelor; la ea avem acces doar noi.
+Un import la care nu mai lucrezi se păstrează 14 zile de la ultima schimbare; data o vezi pe card și în bara de jos a importului, „Se păstrează până pe …”. După aceea se oprește, iar fotografiile încărcate se șterg după încă 14 zile. La fel se întâmplă când alegi **Renunță la import**: nu se creează și nu se modifică niciun lucrător. Separat, păstrăm o copie a fiecărui import 12 luni de la încheierea lui, ca să îmbunătățim citirea documentelor, așa cum descrie acordul de prelucrare a datelor; la ea avem acces doar noi.
 
 ## Crearea lucrătorilor
 
-Lucrătorii se creează o singură dată, la final, cu **Creează lucrătorii…**. Fereastra îți arată ce se adaugă: lucrătorii noi, cei existenți care se completează, foștii lucrători preluați, instruirile ținute, testele la angajare verificate pe fișă și fotografiile. Arată și ce rămâne de făcut după: emailurile și telefoanele lipsă, testele neverificate pe fișă, traseele de deplasare lipsă și valorile neobișnuite. Dacă la creare o valoare tot nu se poate salva, fereastra le numește pe toate cele refuzate, nu doar prima, iar tu le corectezi pe paginile persoanelor și încerci din nou.
+Lucrătorii se creează o singură dată, la final, cu **Creează lucrătorii…** din bara de jos; butonul se poate folosi după ce ai verificat cel puțin o persoană. Fereastra îți arată ce se adaugă: lucrătorii noi, cei existenți care se completează, foștii lucrători preluați, instruirile ținute, testele la angajare verificate pe fișă și fotografiile. Arată și ce rămâne de făcut după: emailurile și telefoanele lipsă, testele neverificate pe fișă, traseele de deplasare lipsă și valorile neobișnuite. Dacă la creare o valoare tot nu se poate salva, fereastra le numește pe toate cele refuzate, nu doar prima, iar tu le corectezi pe paginile persoanelor și încerci din nou.
 
 Poți crea lucrătorii și înainte să-i verifici pe toți. Fereastra îi numește pe cei încă de verificat: ei și cei lăsați deoparte rămân în afara acestui import, iar un import nou îi poate aduce mai târziu. Nu poți crea doar o parte acum și restul din același import.
 
