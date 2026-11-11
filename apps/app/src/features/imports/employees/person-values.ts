@@ -42,7 +42,7 @@ export function compareWithApp(context: ReviewContext, person: Person) {
     if (field.app === null || field.app === undefined) added.push({ name, field });
     // Confirming replaces the app's value with one the member wrote unless equal, and with the
     // sheet's only when they differ past case, spacing and diacritics.
-    else if (written !== undefined ? written !== field.app : differ(field.app, sheet))
+    else if (written !== undefined ? written !== field.app : differ(name, field.app, sheet))
       differs.push({ name, field });
     else same.push({ name, field });
   }

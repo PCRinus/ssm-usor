@@ -98,6 +98,7 @@ sources:
   - packages/import/src/sheet-people.ts
   - packages/import/src/employee-match.ts
   - packages/import/src/employee-checks.ts
+  - packages/contracts/src/home-address.ts
   - apps/app/src/features/imports/start-ways.tsx
   - apps/app/src/features/imports/import-upload-dialog.tsx
   - apps/app/src/features/imports/upload-selection.ts
@@ -331,7 +332,7 @@ O pagină pe care aplicația nu o poate lega de nicio persoană apare sub listă
 
 Pe pagina unei persoane vezi, alături, fotografiile fișelor ei. Un clic pe fotografie, sau pe **Deschide mare** de lângă butoanele de mărire, o deschide mare, peste pagină; treci la celelalte fotografii ale persoanei cu butoanele de jos sau cu săgețile tastaturii. Pe telefon, o atingi în lista fotografiilor. Comutatorul de lângă nume spune dacă persoana intră în import: oprit, o lasă deoparte; pornit din nou, o ia înapoi la verificat. La confirmare se creează doar persoanele incluse și verificate; cele încă de verificat rămân în afara importului. Sus sunt lucrurile de hotărât, apoi datele citite, pe grupuri, și instruirile, pe domenii. O valoare citită greșit o corectezi cu **Schimbă**. Cu butoanele de jos treci la persoana anterioară sau la următoarea.
 
-Ca să fie creat, un lucrător are nevoie de nume, prenume, funcția din contract, data angajării și un post. Emailul și telefonul nu sunt obligatorii: când lipsesc, vezi „Fără email sau telefon. Îl adaugi când îl inviți în portal.” Când fișele aceleiași persoane scriu valori diferite, de exemplu două date ale angajării, alegi una dintre ele sau, dacă niciuna nu e cea corectă, **Altă valoare**, unde o scrii tu și apeși **Folosește**. Data angajării se ia de pe fișa SSM sau din declarația privind traseul. Fișa SU scrie de obicei admiterea la lucru cu o zi sau două mai târziu, după instruirea ei la locul de muncă, așa că data ei se folosește pentru angajare doar când celelalte pagini nu scriu niciuna; ea rămâne oricum la instruirea SU la locul de muncă, ca „Admis la lucru”.
+Ca să fie creat, un lucrător are nevoie de nume, prenume, funcția din contract, data angajării și un post. Emailul și telefonul nu sunt obligatorii: când lipsesc, vezi „Fără email sau telefon. Îl adaugi când îl inviți în portal.” Când fișele aceleiași persoane scriu valori diferite, de exemplu două date ale angajării, alegi una dintre ele sau, dacă niciuna nu e cea corectă, **Altă valoare**, unde o scrii tu și apeși **Folosește**. Domiciliul scris o dată cu județul și o dată fără, cu sau fără „str.”, „nr.” sau „mun.”, cu alte virgule, fără diacritice sau cu părțile în altă ordine e o singură adresă, iar lucrătorul o primește în varianta cea mai completă. Alegi doar când adresele diferă prin localitate, stradă, număr, bloc, scară, etaj sau apartament, ori când una are bloc sau apartament și cealaltă nu, pentru că poate fi o mutare. Data angajării se ia de pe fișa SSM sau din declarația privind traseul. Fișa SU scrie de obicei admiterea la lucru cu o zi sau două mai târziu, după instruirea ei la locul de muncă, așa că data ei se folosește pentru angajare doar când celelalte pagini nu scriu niciuna; ea rămâne oricum la instruirea SU la locul de muncă, ca „Admis la lucru”.
 
 ### Postul de lucru
 
@@ -357,7 +358,7 @@ Un CNP valid, dar greșit, îl corectezi la **Date personale**. Un CNP a cărui 
 
 ### Un lucrător pe care clientul îl are deja
 
-O persoană cu același CNP ca un lucrător al clientului, sau cu același nume și aceeași dată a nașterii, nu se dublează: importul îl completează. Câmpurile goale se umplu de pe fișă, iar o valoare care diferă de cea din aplicație apare la **Diferă de aplicație**, unde valoarea din aplicație rămâne dacă nu alegi **Folosește valoarea de pe fișă**.
+O persoană cu același CNP ca un lucrător al clientului, sau cu același nume și aceeași dată a nașterii, nu se dublează: importul îl completează. Câmpurile goale se umplu de pe fișă, iar o valoare care diferă de cea din aplicație apare la **Diferă de aplicație**, unde valoarea din aplicație rămâne dacă nu alegi **Folosește valoarea de pe fișă**. Domiciliul de pe fișă care e aceeași adresă cu cea din aplicație, scrisă doar cu mai multe sau mai puține detalii, ca mai sus, nu apare acolo.
 
 O persoană fără un CNP valid și fără data nașterii, de obicei cu paginile de continuare aduse de un import ulterior, îți e propusă ca lucrătorul clientului cu același nume, dacă e unul singur. Confirmi că e el sau alegi că e altă persoană, care se creează ca lucrător nou. Două persoane din import nu pot completa același lucrător.
 

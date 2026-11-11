@@ -504,6 +504,33 @@ describe('toEmployeeProposal', () => {
     ]);
   });
 
+  it('takes one address written with and without its county once, the fuller one kept', () => {
+    const proposal = toEmployeeProposal({
+      pages: pagesOf(
+        page({
+          pageKind: 'commute_declaration',
+          person: { lastName: 'Marin', firstName: 'Ioana' },
+          fields: { homeAddress: 'Cluj-Napoca, str. Horea nr. 12' },
+        }),
+        page({
+          pageKind: 'ssm_sheet_front',
+          person: { lastName: 'Marin', firstName: 'Ioana' },
+          fields: { homeAddress: 'Mun. Cluj-Napoca, jud. Cluj, str. Horea, nr. 12' },
+        })
+      ),
+      client,
+      themes,
+      today,
+    });
+
+    expect(proposal.people[0]!.fields.homeAddress.options).toEqual([
+      {
+        value: 'Mun. Cluj-Napoca, jud. Cluj, str. Horea, nr. 12',
+        pageIds: ['page-2', 'page-1'],
+      },
+    ]);
+  });
+
   it('groups a name written surname last with the same person, matched once', () => {
     const proposal = toEmployeeProposal({
       pages: pagesOf(

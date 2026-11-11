@@ -141,6 +141,37 @@ describe('resolving a field', () => {
     });
   });
 
+  it('replaces nothing when the sheet writes the app’s address with more detail', () => {
+    const detailed = {
+      ...proposal,
+      people: proposal.people.map((each) =>
+        each.id === 'lazar'
+          ? {
+              ...each,
+              fields: {
+                ...each.fields,
+                homeAddress: {
+                  options: [
+                    { value: 'Mun. Sibiu, jud. Sibiu, str. Viitorului, nr. 3', pageIds: ['p4'] },
+                  ],
+                  app: 'Str. Viitorului nr. 3, Sibiu',
+                },
+              },
+            }
+          : each
+      ),
+    } as Proposal;
+    const changes = withField(emptyChanges(), 'lazar', 'homeAddress', {
+      option: 0,
+      replace: true,
+    });
+    const lazar = detailed.people.find((each) => each.id === 'lazar')!;
+
+    expect(
+      resolveField({ ...contextOf(changes), proposal: detailed }, lazar, 'homeAddress')
+    ).toMatchObject({ value: 'Str. Viitorului nr. 3, Sibiu', replaced: false });
+  });
+
   it('fills an empty field of an existing employee from the sheet', () => {
     expect(resolveField(contextOf(), person('lazar'), 'hiredAt').value).toBe('2019-04-03');
   });

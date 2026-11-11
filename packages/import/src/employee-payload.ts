@@ -8,6 +8,7 @@ import {
   isValidCnp,
   type KnowledgeTest,
   rhFactors,
+  sameHomeAddress,
   type SupplementaryTrainingReason,
   supplementaryTrainingReasons,
   testResultMaterial,
@@ -183,10 +184,12 @@ function allowed(name: EmployeeImportFieldName, value: Value): boolean {
   return value.trim().length >= limits[0] && value.trim().length <= limits[1];
 }
 
-const differs = (a: Value, b: Value) =>
+const differs = (name: EmployeeImportFieldName, a: Value, b: Value) =>
   typeof a === 'number' || typeof b === 'number'
     ? Number(a) !== Number(b)
-    : foldText(a) !== foldText(b);
+    : name === 'homeAddress'
+      ? !sameHomeAddress(a, b)
+      : foldText(a) !== foldText(b);
 
 interface Resolved {
   value: Value | null;
@@ -199,6 +202,7 @@ type PersonChange = EmployeeImportChanges['people'][string];
 type RowChange = EmployeeImportChanges['rows'][string];
 
 function resolveField(
+  name: EmployeeImportFieldName,
   field: PersonField<Value>,
   change: NonNullable<PersonChange['fields']>[EmployeeImportFieldName],
   pages: ReadonlySet<string>,
@@ -226,7 +230,7 @@ function resolveField(
   }
   if (value === null) return { value: app, replace: false, changed: change?.option !== undefined };
   if (app === null) return { value, replace: false, changed: change?.option !== undefined };
-  const replace = differs(app, value) && change?.replace === true;
+  const replace = differs(name, app, value) && change?.replace === true;
   return {
     value: replace ? value : app,
     replace,
@@ -360,6 +364,7 @@ export function toEmployeePayload(input: {
     const state = change?.state ?? 'to_check';
     if (state === 'to_check') toCheck.push(person.id);
     const leftOn = resolveField(
+      'leftOn',
       fieldsOf(person, change).leftOn,
       change?.fields?.leftOn,
       new Set(pagesOf.get(person.id) ?? []),
@@ -407,7 +412,7 @@ export function toEmployeePayload(input: {
     for (const name of employeeImportFieldNames) {
       const field = fields[name] as PersonField<Value>;
       const fieldPath = `${path}.fields.${name}`;
-      const resolved = resolveField(field, change?.fields?.[name], pages, (code) =>
+      const resolved = resolveField(name, field, change?.fields?.[name], pages, (code) =>
         block(fieldPath, code)
       );
       let value = resolved.value;

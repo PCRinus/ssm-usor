@@ -1,7 +1,9 @@
 import {
   type EmployeeImportFieldName,
   employeeImportFieldNames,
+  homeAddressDetail,
   isValidCnp,
+  sameHomeAddress,
   type TrainingDomain,
   type TrainingPhase,
 } from '@ssm-usor/contracts';
@@ -112,26 +114,20 @@ type FieldValue = string | number;
 const nonAscii = (value: FieldValue) =>
   typeof value === 'number' ? 0 : (value.match(/[^\p{ASCII}]/gu)?.length ?? 0);
 
-const placeLabels =
-  /^(?:loc|localitatea|mun|municipiul|oras|orasul|com|comuna|jud|judetul|str|strada) /;
-
-// The cover and the commute declaration write one address in another order ("Loc. Dumbrăvița,
-// jud. Timiș, str. Florilor, nr. 12" and "str. Florilor, nr. 12, Dumbrăvița, Timiș"): the same
-// parts between commas are the same address. A part keeps its own label and number, so "bl. 3,
-// ap. 5" is never "bl. 5, ap. 3".
-const addressParts = (value: string) =>
-  value
-    .split(/[,;]/)
-    .map((part) => `${foldText(part)} `.replace(placeLabels, '').trim())
-    .filter((part) => part !== '')
-    .sort()
-    .join('|');
-
 const sameValue = (name: EmployeeImportFieldName, a: FieldValue, b: FieldValue) =>
   typeof a === 'number' || typeof b === 'number'
     ? a === b
-    : foldText(a) === foldText(b) ||
-      (name === 'homeAddress' && addressParts(a) === addressParts(b));
+    : name === 'homeAddress'
+      ? sameHomeAddress(a, b)
+      : foldText(a) === foldText(b);
+
+function fuller(name: EmployeeImportFieldName, value: FieldValue, than: FieldValue) {
+  if (name === 'homeAddress' && typeof value === 'string' && typeof than === 'string') {
+    const detail = homeAddressDetail(value) - homeAddressDetail(than);
+    if (detail !== 0) return detail > 0;
+  }
+  return nonAscii(value) > nonAscii(than);
+}
 
 function addOption(
   name: EmployeeImportFieldName,
@@ -145,7 +141,7 @@ function addOption(
     return;
   }
   if (!known.pageIds.includes(pageId)) known.pageIds.push(pageId);
-  if (nonAscii(value) > nonAscii(known.value)) known.value = value;
+  if (fuller(name, value, known.value)) known.value = value;
 }
 
 const text = (value: string | null) => {
