@@ -1,5 +1,5 @@
-export const actingAsHeader = 'X-Acting-As';
+import { actingAsHeader, actingAsSelf, impersonationErrorReasons } from '@ssm-usor/contracts';
 
-export const actingAsSelf = 'self';
+export { actingAsHeader, actingAsSelf };
 
-export const identityChangedReason = 'identity_changed';
+export const identityChangedReason = impersonationErrorReasons.identityChanged;

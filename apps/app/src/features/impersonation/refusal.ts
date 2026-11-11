@@ -1,4 +1,5 @@
 import { ApiHttpError } from '@ssm-usor/api-http';
+import { impersonationErrorReasons } from '@ssm-usor/contracts';
 
 import { identityChangedReason } from './acting-as';
 
@@ -11,7 +12,7 @@ const reasonOf = (error: unknown) =>
     : undefined;
 
 export const isImpersonationRefused = (error: unknown) =>
-  reasonOf(error) === 'impersonation_refused';
+  reasonOf(error) === impersonationErrorReasons.refused;
 
 export const isIdentityChanged = (error: unknown) =>
   error instanceof ApiHttpError &&

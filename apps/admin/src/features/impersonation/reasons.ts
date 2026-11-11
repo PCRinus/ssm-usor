@@ -1,1 +1,3 @@
-export const startInProgressReason = 'impersonation_start_in_progress';
+import { adminImpersonationErrorReasons } from '@ssm-usor/contracts';
+
+export const startInProgressReason = adminImpersonationErrorReasons.startInProgress;
