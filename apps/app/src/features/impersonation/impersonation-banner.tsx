@@ -7,11 +7,15 @@ import { useEffect, useState } from 'react';
 
 import { getGetMeQueryKey, type MeResponse, useEndMyImpersonation } from '@/api/generated/api';
 
-import { leaveIdentity } from './identity';
+import { usePageIdentity } from './page-identity-context';
 
 type Impersonation = NonNullable<MeResponse['impersonation']>;
 
-const clockTime = new Intl.DateTimeFormat('ro-RO', { hour: '2-digit', minute: '2-digit' });
+const clockTime = new Intl.DateTimeFormat('ro-RO', {
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: 'Europe/Bucharest',
+});
 
 const tick = 15_000;
 
@@ -41,6 +45,9 @@ function useExpiry(expiresAt: string) {
   };
 }
 
+const targetOf = (impersonation: Impersonation, organizationName: string | undefined) =>
+  [impersonation.targetName ?? 'un membru', organizationName].filter(Boolean).join(' · ');
+
 export function ImpersonationBanner({
   impersonation,
   organizationName,
@@ -49,17 +56,15 @@ export function ImpersonationBanner({
   organizationName: string | undefined;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
+  const identity = usePageIdentity();
   const { until, minutesLeft } = useExpiry(impersonation.expiresAt);
   const end = useEndMyImpersonation({
     request: apiRequest,
     mutation: {
-      onSuccess: () => leaveIdentity({ ended: true }),
+      onSuccess: () => identity?.leave(true),
       onError: () => toast.error('Nu am putut încheia. Verifică conexiunea și încearcă din nou.'),
     },
   });
-  const target = [impersonation.targetName ?? 'un membru', organizationName]
-    .filter(Boolean)
-    .join(' · ');
 
   return (
     <section
@@ -70,7 +75,7 @@ export function ImpersonationBanner({
       <UserRoundKey aria-hidden="true" className="mt-0.5 size-4 shrink-0 md:mt-0" />
       <p className="min-w-0 flex-1">
         <span data-testid="impersonation-target" className="font-semibold">
-          Acționezi ca {target}
+          Acționezi ca {targetOf(impersonation, organizationName)}
         </span>{' '}
         <span data-testid="impersonation-until" className="block md:inline">
           până la {until} {minutesLeft > 0 ? `(încă ${minutesLeft} min).` : '(se încheie acum).'}
@@ -89,5 +94,30 @@ export function ImpersonationBanner({
         Încheie
       </Button>
     </section>
+  );
+}
+
+// The banner scrolls away with the page; the header stays. On a phone the header has room for the
+// icon alone, beside the menu, the logo and the round buttons on the right.
+export function ImpersonationMarker({
+  impersonation,
+  organizationName,
+}: {
+  impersonation: Impersonation;
+  organizationName: string | undefined;
+}) {
+  const target = targetOf(impersonation, organizationName);
+  return (
+    <span
+      role="img"
+      aria-label={`Acționezi ca ${target}, până la ${clockTime.format(Date.parse(impersonation.expiresAt))}.`}
+      data-testid="impersonation-marker"
+      className="inline-flex h-8 max-w-56 min-w-8 shrink items-center justify-center gap-1.5 rounded-full border border-warning-border bg-warning px-2 text-[13px] font-semibold text-warning-foreground sm:justify-start sm:px-2.5"
+    >
+      <UserRoundKey aria-hidden="true" className="size-4 shrink-0" />
+      <span className="hidden min-w-0 truncate sm:inline">
+        {impersonation.targetName ?? 'un membru'}
+      </span>
+    </span>
   );
 }

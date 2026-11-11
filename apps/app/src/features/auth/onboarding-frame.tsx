@@ -1,5 +1,7 @@
 import { Progress } from '@ssm-usor/ui/components/progress';
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate, useRouteContext } from '@tanstack/react-router';
+
+import { endImpersonationBeforeSignOut } from '@/features/impersonation/end-before-sign-out';
 
 import { useAuth } from './auth-context';
 
@@ -25,10 +27,12 @@ export function OnboardingProgress({ step, name }: { step: number; name: string 
 }
 
 export function SignedInAs({ email }: { email: string | null }) {
-  const { auth } = useAuth();
+  const { auth, session } = useAuth();
+  const context = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();
 
   async function signOut() {
+    await endImpersonationBeforeSignOut(context, session?.user.id);
     await auth.signOut().catch(() => undefined);
     await navigate({ to: '/autentificare', replace: true });
   }

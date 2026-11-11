@@ -79,7 +79,12 @@ describe('session recording while acting as a member', () => {
     mountApp(admin().client);
 
     await screen.findByTestId('impersonation-banner');
-    await waitFor(() => expect(client.stopSessionRecording).toHaveBeenCalled());
+    // The stop before opting in comes earlier; the register comes after the recording's effect.
+    await waitFor(() =>
+      expect(client.register).toHaveBeenCalledWith(
+        expect.objectContaining({ is_impersonating: true })
+      )
+    );
     expect(client.startSessionRecording).not.toHaveBeenCalled();
     expect(client.stopSessionRecording.mock.invocationCallOrder[0]).toBeLessThan(
       client.opt_in_capturing.mock.invocationCallOrder[0]!

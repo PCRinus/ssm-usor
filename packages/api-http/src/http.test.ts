@@ -305,6 +305,14 @@ describe('uploading a file', () => {
     expect(progress).toEqual([0.5]);
   });
 
+  it('sends the headers it is given', async () => {
+    await apiUpload('/clients/c/files', new Blob(['bytes']), {
+      baseUrl,
+      headers: { 'X-Acting-As': 'self' },
+    });
+    expect(sent[0]?.headers).toMatchObject({ 'x-acting-as': 'self' });
+  });
+
   it('sends the client contract and signals an outdated client', async () => {
     const onClientOutdated = vi.fn();
     const http = createApiHttp({
