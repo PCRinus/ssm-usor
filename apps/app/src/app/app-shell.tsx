@@ -73,6 +73,7 @@ import { usePostHogSession } from '@/app/observability/use-posthog-session';
 import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
+import { ImpersonationBanner } from '@/features/impersonation/impersonation-banner';
 import { ImportReadyWatcher } from '@/features/imports/import-ready-watcher';
 import { ImportsHeaderButton } from '@/features/imports/imports-header-button';
 import { MyImportsProvider } from '@/features/imports/my-imports';
@@ -619,6 +620,14 @@ export function AppShell() {
               subscription={me.data?.subscription ?? null}
             />
             <div className={cn('flex min-w-0 flex-1 flex-col', editorPage && 'min-h-0')}>
+              {/* In the content column, not above the header: the sticky header, the sidebar
+                  and the section tabs are all placed by the header's fixed height. */}
+              {me.data?.impersonation && (
+                <ImpersonationBanner
+                  impersonation={me.data.impersonation}
+                  organizationName={me.data.membership?.organization.name}
+                />
+              )}
               {me.data?.subscription && !editorPage && (
                 <SubscriptionBar
                   subscription={me.data.subscription}

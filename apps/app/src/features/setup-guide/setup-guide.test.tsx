@@ -144,6 +144,8 @@ function mockApi(state: ApiState) {
           ? {
               targetMemberId: '0e0c1d36-5a4e-4b19-9d4b-8a1f1b6f9f10',
               targetOrganizationId: organization.id,
+              expiresAt: new Date(Date.now() + 60 * 60_000).toISOString(),
+              targetName: 'Ana Popescu',
             }
           : null,
         subscription: state.subscription ?? null,
