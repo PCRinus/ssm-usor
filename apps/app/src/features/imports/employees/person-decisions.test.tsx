@@ -61,7 +61,10 @@ describe('a value the sheets disagree on', () => {
     render(<Choice name="hiredAt" />);
     expect(
       screen.getAllByTestId('person-page-button').map((button) => button.getAttribute('aria-label'))
-    ).toEqual(['Deschide fotografia 1', 'Deschide fotografia 3']);
+    ).toEqual([
+      'Fotografia 1, Data angajării: 02.05.2023',
+      'Fotografia 3, Data angajării: 02.06.2023',
+    ]);
   });
 
   it('takes a date of its own, and moves between it and a value read', async () => {

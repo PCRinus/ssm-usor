@@ -119,7 +119,7 @@ describe('the import action bar', () => {
     {
       name: 'failed save',
       change: { error: 'Nu am putut salva.', conflict: false },
-      label: 'Ultima schimbare nu s-a salvat.',
+      label: 'Ultima schimbare nu s-a salvat. Nu am putut salva.',
       action: 'Salvează din nou',
       callback: 'retry' as const,
     },
@@ -260,7 +260,9 @@ describe('the import action bar with leading content', () => {
     const state = { ...saved(), error: 'Nu am putut salva.' };
     render(<PersonBar save={state} />);
     const bar = screen.getByRole('region', { name: 'Verificarea persoanei' });
-    expect(within(bar).getByRole('alert').textContent).toBe('Ultima schimbare nu s-a salvat.');
+    const alert = within(bar).getByRole('alert');
+    expect(alert.textContent).toBe('Ultima schimbare nu s-a salvat. Nu am putut salva.');
+    expect(alert.title).toBe('Nu am putut salva.');
     const retry = within(bar).getByRole('button', { name: 'Salvează din nou' });
     expect(retry.parentElement).toBe(
       within(bar)

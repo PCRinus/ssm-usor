@@ -79,8 +79,6 @@ export function DecideRow({
   );
 }
 
-// A button, not a radio: arrow keys move a radio's choice, and a choice here is saved at once,
-// for every person of a title, and closes its card.
 function Option({
   checked,
   onSelect,
@@ -539,6 +537,7 @@ export function ChoiceCards({
             <PhotoNumbers
               pages={pages}
               pageIds={option.pageIds}
+              about={`${fieldLabels[name]}: ${showChoice(name, option.value)}`}
               tabIndex={anyPicked && !checked ? -1 : undefined}
               className="my-2 mr-2 border-l pl-2"
             />

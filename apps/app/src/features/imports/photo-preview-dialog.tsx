@@ -37,71 +37,44 @@ export type PreviewPhoto = {
   view: ReactNode;
 };
 
-export function PhotoPreviewDialog({
-  photos,
-  current,
-  onCurrent,
-  onClose,
-  onRemove,
-  actions,
-  strip,
-}: {
+type PreviewProps = {
   photos: PreviewPhoto[];
   current: string | null;
   onCurrent: (key: string) => void;
   onClose: () => void;
+};
+
+type ListProps = PreviewProps & {
   onRemove?: (key: string) => void;
   actions?: (key: string) => ReactNode;
-  strip?: (key: string) => ReactNode;
-}) {
+  strip?: undefined;
+};
+
+export type StripProps = PreviewProps & {
+  strip: (key: string) => ReactNode;
+  onCloseAutoFocus?: (event: Event) => void;
+};
+
+export function PhotoPreviewDialog(props: ListProps | StripProps) {
+  const { photos, current, onClose } = props;
   const index = photos.findIndex((photo) => photo.key === current);
   return (
     <Dialog open={index !== -1} onOpenChange={(open) => !open && onClose()}>
-      {index !== -1 && (
-        <PreviewContent
-          photos={photos}
-          index={index}
-          onCurrent={onCurrent}
-          onClose={onClose}
-          onRemove={onRemove}
-          actions={actions}
-          strip={strip}
-        />
-      )}
+      {index !== -1 &&
+        (props.strip ? (
+          <WideContent {...props} index={index} />
+        ) : (
+          <PreviewContent {...props} index={index} />
+        ))}
     </Dialog>
   );
 }
 
-function PreviewContent({
-  photos,
-  index,
-  onCurrent,
-  onClose,
-  onRemove,
-  actions,
-  strip,
-}: {
-  photos: PreviewPhoto[];
-  index: number;
-  onCurrent: (key: string) => void;
-  onClose: () => void;
-  onRemove?: (key: string) => void;
-  actions?: (key: string) => ReactNode;
-  strip?: (key: string) => ReactNode;
-}) {
-  const photo = photos[index]!;
+function useStep(photos: PreviewPhoto[], index: number, onCurrent: (key: string) => void) {
   const step = (to: number) => {
     const next = photos[to];
     if (next) onCurrent(next.key);
   };
-
-  function remove() {
-    const next = photos[index + 1] ?? photos[index - 1];
-    onRemove?.(photo.key);
-    if (next) onCurrent(next.key);
-    else onClose();
-  }
-
   const stepBy = useEffectEvent((by: number) => step(index + by));
   // On the window, not the dialog: a step to the last photo disables the button that held the
   // focus, and the focus leaves the dialog with it.
@@ -115,11 +88,25 @@ function PreviewContent({
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
+  return step;
+}
 
-  if (strip) {
-    return (
-      <WideContent photos={photos} index={index} step={step} onClose={onClose} strip={strip} />
-    );
+function PreviewContent({
+  photos,
+  index,
+  onCurrent,
+  onClose,
+  onRemove,
+  actions,
+}: ListProps & { index: number }) {
+  const photo = photos[index]!;
+  const step = useStep(photos, index, onCurrent);
+
+  function remove() {
+    const next = photos[index + 1] ?? photos[index - 1];
+    onRemove?.(photo.key);
+    if (next) onCurrent(next.key);
+    else onClose();
   }
 
   return (
@@ -226,17 +213,13 @@ function scrollsSideways(target: EventTarget | null) {
 function WideContent({
   photos,
   index,
-  step,
+  onCurrent,
   onClose,
   strip,
-}: {
-  photos: PreviewPhoto[];
-  index: number;
-  step: (to: number) => void;
-  onClose: () => void;
-  strip: (key: string) => ReactNode;
-}) {
+  onCloseAutoFocus,
+}: StripProps & { index: number }) {
   const photo = photos[index]!;
+  const step = useStep(photos, index, onCurrent);
   const touch = useRef<{ x: number; y: number; zoomed: boolean } | null>(null);
   const first = index === 0;
   const last = index >= photos.length - 1;
@@ -244,6 +227,7 @@ function WideContent({
     <DialogContent
       data-testid="photo-preview"
       showCloseButton={false}
+      onCloseAutoFocus={onCloseAutoFocus}
       className="flex h-svh max-h-svh w-full max-w-full flex-col gap-0 overflow-hidden rounded-none border-0 p-0 sm:h-[min(860px,calc(100svh-2.5rem))] sm:max-h-[calc(100svh-2.5rem)] sm:max-w-[min(1320px,calc(100vw-2.5rem))] sm:rounded-lg sm:border"
     >
       <PreviewHeader photo={photo} index={index} total={photos.length} onClose={onClose} />

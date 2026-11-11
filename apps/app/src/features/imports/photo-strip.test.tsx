@@ -85,7 +85,7 @@ describe('the photo strip', () => {
     render(strip());
     await user.tab();
     const tooltip = await screen.findByRole('tooltip');
-    expect(tooltip.textContent).toContain('Fotografia 1 din 14');
+    expect(tooltip.textContent).toContain('Fotografia 3 din 14');
     expect(tooltip.textContent).toContain('Fișa SSM, periodice');
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('tooltip')).toBeNull();
@@ -122,5 +122,32 @@ describe('the photo strip', () => {
       'disabled',
       true
     );
+  });
+
+  it('is one tab stop on the ringed photo, moved with the arrow keys and opened with Enter', async () => {
+    const onOpen = vi.fn();
+    const user = userEvent.setup();
+    render(strip({ onOpen }));
+    const frames = screen.getAllByTestId('photo-strip-frame');
+    expect(frames.filter((frame) => frame.tabIndex === 0)).toEqual([frames[2]]);
+    expect(frames[2]!.getAttribute('aria-current')).toBe('true');
+    await user.tab();
+    expect(document.activeElement).toBe(frames[2]);
+    await user.keyboard('{ArrowRight}{ArrowRight}');
+    expect(document.activeElement).toBe(frames[4]);
+    expect(frames.filter((frame) => frame.tabIndex === 0)).toEqual([frames[4]]);
+    await user.keyboard('{End}');
+    expect(document.activeElement).toBe(frames[13]);
+    await user.keyboard('{Home}{Enter}');
+    expect(onOpen).toHaveBeenCalledWith('p1');
+  });
+
+  it('opens no preview when the focus comes back without the keyboard', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    render(strip());
+    act(() => screen.getAllByTestId('photo-strip-frame')[2]!.focus());
+    await act(() => vi.advanceTimersByTimeAsync(800));
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    vi.useRealTimers();
   });
 });

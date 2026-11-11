@@ -7,7 +7,15 @@ import {
 } from '@ssm-usor/ui/components/tooltip';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  type KeyboardEvent,
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import type { StripPhoto } from './photo-strip-model';
 
@@ -19,6 +27,33 @@ const frameSizes = {
 const calm = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? true;
 
 type Overflow = { overflowing: boolean; atStart: boolean; atEnd: boolean };
+
+// A focus the member did not move with the keyboard, such as one given back when a dialog closes,
+// opens no preview over the page.
+let keyboardMoving = false;
+const navigationKeys = new Set(['Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End']);
+const onKey = (event: globalThis.KeyboardEvent) => {
+  keyboardMoving = navigationKeys.has(event.key);
+};
+const onPointer = () => {
+  keyboardMoving = false;
+};
+let listening = 0;
+
+function useKeyboardMoves() {
+  useEffect(() => {
+    if (listening++ === 0) {
+      document.addEventListener('keydown', onKey, true);
+      document.addEventListener('pointerdown', onPointer, true);
+    }
+    return () => {
+      if (--listening === 0) {
+        document.removeEventListener('keydown', onKey, true);
+        document.removeEventListener('pointerdown', onPointer, true);
+      }
+    };
+  }, []);
+}
 
 export function PhotoStrip({
   photos,
@@ -46,6 +81,13 @@ export function PhotoStrip({
   testId?: string;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
+  const opener = useRef(onOpen);
+  useLayoutEffect(() => {
+    opener.current = onOpen;
+  });
+  const open = useCallback((key: string) => opener.current(key), []);
+  const [focusKey, setFocusKey] = useState<string | null>(null);
+  useKeyboardMoves();
   const [overflow, setOverflow] = useState<Overflow>({
     overflowing: false,
     atStart: true,
@@ -98,6 +140,31 @@ export function PhotoStrip({
   };
 
   const ringIndex = photos.findIndex((photo) => photo.key === ringed);
+  const stop =
+    photos.find((photo) => photo.key === focusKey)?.key ?? ringed ?? photos[0]?.key ?? null;
+
+  function move(event: KeyboardEvent) {
+    const frames = [...(scroller.current?.querySelectorAll<HTMLElement>('[data-photo-key]') ?? [])];
+    const at = frames.findIndex((frame) => frame === document.activeElement);
+    if (at === -1) return;
+    const to =
+      event.key === 'ArrowRight'
+        ? Math.min(at + 1, frames.length - 1)
+        : event.key === 'ArrowLeft'
+          ? Math.max(at - 1, 0)
+          : event.key === 'Home'
+            ? 0
+            : event.key === 'End'
+              ? frames.length - 1
+              : null;
+    if (to === null) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const target = frames[to]!;
+    setFocusKey(target.dataset.photoKey!);
+    target.focus();
+    target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
   const descriptionProps = description
     ? { title: description, 'aria-description': description }
     : {};
@@ -111,6 +178,7 @@ export function PhotoStrip({
           aria-label={label}
           {...descriptionProps}
           onScroll={measure}
+          onKeyDown={move}
           className={cn(
             'flex min-w-0 gap-1.5 overflow-x-auto overscroll-x-contain p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
             overflow.overflowing &&
@@ -127,9 +195,10 @@ export function PhotoStrip({
               total={photos.length}
               ringed={photo.key === ringed}
               underlined={photo.key !== ringed && underlined.has(photo.key)}
+              tabbable={photo.key === stop}
               size={size}
               preview={preview}
-              onOpen={onOpen}
+              onOpen={open}
             />
           ))}
         </div>
@@ -171,12 +240,13 @@ export function PhotoStrip({
   );
 }
 
-function Frame({
+const Frame = memo(function Frame({
   photo,
   number,
   total,
   ringed,
   underlined,
+  tabbable,
   size,
   preview,
   onOpen,
@@ -186,18 +256,33 @@ function Frame({
   total: number;
   ringed: boolean;
   underlined: boolean;
+  tabbable: boolean;
   size: keyof typeof frameSizes;
   preview: boolean;
   onOpen: (key: string) => void;
 }) {
+  const [previewing, setPreviewing] = useState(false);
+  const hovered = useRef(false);
   const button = (
     <button
       type="button"
       aria-label={photo.label}
+      aria-current={ringed || undefined}
+      tabIndex={tabbable ? 0 : -1}
+      data-photo-key={photo.key}
       data-ringed={ringed || undefined}
       data-underlined={underlined || undefined}
       data-testid="photo-strip-frame"
-      onClick={() => onOpen(photo.key)}
+      onPointerMove={() => {
+        hovered.current = true;
+      }}
+      onPointerLeave={() => {
+        hovered.current = false;
+      }}
+      onClick={() => {
+        hovered.current = false;
+        onOpen(photo.key);
+      }}
       className={cn(
         "group/frame grid shrink-0 cursor-pointer justify-items-stretch gap-1 rounded-md outline-none after:h-[3px] after:rounded-full after:content-['']",
         underlined && 'after:bg-foreground'
@@ -225,7 +310,10 @@ function Frame({
   );
   if (!preview) return button;
   return (
-    <Tooltip>
+    <Tooltip
+      open={previewing}
+      onOpenChange={(next) => setPreviewing(next && (hovered.current || keyboardMoving))}
+    >
       <TooltipTrigger asChild>{button}</TooltipTrigger>
       <TooltipContent
         side="top"
@@ -243,4 +331,4 @@ function Frame({
       </TooltipContent>
     </Tooltip>
   );
-}
+});

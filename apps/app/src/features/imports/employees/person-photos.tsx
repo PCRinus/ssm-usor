@@ -11,10 +11,12 @@ const chip =
 export function PhotoNumber({
   pages,
   pageId,
+  about,
   tabIndex,
 }: {
   pages: SheetPage[];
   pageId: string;
+  about: string;
   tabIndex?: number;
 }) {
   const show = use(ShowPageContext);
@@ -25,7 +27,7 @@ export function PhotoNumber({
       type="button"
       tabIndex={tabIndex}
       onClick={() => show(pageId)}
-      aria-label={`Deschide fotografia ${index + 1}`}
+      aria-label={`Fotografia ${index + 1}, ${about}`}
       data-testid="person-page-button"
       className={chip}
     >
@@ -37,12 +39,14 @@ export function PhotoNumber({
 export function PhotoNumbers({
   pages,
   pageIds,
+  about,
   shown = 2,
   tabIndex,
   className,
 }: {
   pages: SheetPage[];
   pageIds: string[];
+  about: string;
   shown?: number;
   tabIndex?: number;
   className?: string;
@@ -56,14 +60,14 @@ export function PhotoNumbers({
   return (
     <span className={cn('flex items-center gap-1', className)}>
       {known.slice(0, shown).map((pageId) => (
-        <PhotoNumber key={pageId} pages={pages} pageId={pageId} tabIndex={tabIndex} />
+        <PhotoNumber key={pageId} pages={pages} pageId={pageId} about={about} tabIndex={tabIndex} />
       ))}
       {rest.length > 0 && (
         <button
           type="button"
           tabIndex={tabIndex}
           onClick={() => show(rest[0]!)}
-          aria-label={`Încă ${rest.length === 1 ? 'o fotografie' : `${rest.length} fotografii`}: ${rest.map((pageId) => pageIndex(pages, pageId) + 1).join(', ')}`}
+          aria-label={`${rest.length === 1 ? 'Încă o fotografie' : `Încă ${rest.length} fotografii`}, ${about}: ${rest.map((pageId) => pageIndex(pages, pageId) + 1).join(', ')}`}
           data-testid="person-page-more"
           className={chip}
         >

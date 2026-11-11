@@ -67,7 +67,6 @@ export function ImportIssueBadge({
         className="underline-offset-2 transition-[filter] group-hover:underline group-hover:brightness-95 group-active:brightness-90"
       >
         {children}
-        {hint && <span className="sr-only">. {hint}</span>}
       </Tag>
     </button>
   );

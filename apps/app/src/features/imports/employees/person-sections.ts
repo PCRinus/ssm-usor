@@ -2,9 +2,11 @@ import type { TrainingDomain } from '@ssm-usor/contracts';
 import { useEffect, useState } from 'react';
 
 import {
+  type Decision,
   type DomainTrainings,
   type FieldName,
   type Person,
+  type Proposal,
   resolveField,
   type ReviewContext,
   type SheetPage,
@@ -54,7 +56,18 @@ export const domainPhotos = (domain: DomainTrainings) => domain.pages.map((page)
 
 export type PhotoSection = { key: string; photos: string[] };
 
-// The section crossing a line a little above the middle of the screen is the one being read.
+export function sectionOnScreen(
+  order: string[],
+  crossing: ReadonlySet<string>,
+  atBottom: boolean
+): string | null {
+  if (atBottom) return order.at(-1) ?? null;
+  return order.find((key) => crossing.has(key)) ?? null;
+}
+
+const atPageBottom = () =>
+  window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+
 export function useSectionOnScreen(sections: PhotoSection[]) {
   const [current, setCurrent] = useState<string | null>(null);
   const keys = sections.map((section) => section.key).join(' ');
@@ -62,6 +75,10 @@ export function useSectionOnScreen(sections: PhotoSection[]) {
     if (typeof IntersectionObserver === 'undefined') return;
     const crossing = new Set<string>();
     const order = keys.split(' ');
+    const update = () => {
+      const key = sectionOnScreen(order, crossing, atPageBottom());
+      if (key) setCurrent(key);
+    };
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -69,15 +86,53 @@ export function useSectionOnScreen(sections: PhotoSection[]) {
           if (entry.isIntersecting) crossing.add(key);
           else crossing.delete(key);
         }
-        const first = order.find((key) => crossing.has(key));
-        if (first) setCurrent(first);
+        update();
       },
       { rootMargin: '-35% 0px -55% 0px' }
     );
     for (const element of document.querySelectorAll<HTMLElement>('[data-photo-section]')) {
       observer.observe(element);
     }
-    return () => observer.disconnect();
+    window.addEventListener('scroll', update, { passive: true });
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('scroll', update);
+    };
   }, [keys]);
   return sections.find((section) => section.key === current) ?? sections[0] ?? null;
 }
+
+export type DecisionStop = { key: string; element: HTMLElement };
+
+export function decisionStops(
+  decisions: Decision[],
+  elementOf: (decision: Decision) => HTMLElement | null
+): DecisionStop[] {
+  return decisions
+    .flatMap((decision) => {
+      const element = elementOf(decision);
+      return element ? [{ key: decision.key, element }] : [];
+    })
+    .sort((a, b) =>
+      a.element === b.element
+        ? 0
+        : a.element.compareDocumentPosition(b.element) & Node.DOCUMENT_POSITION_FOLLOWING
+          ? -1
+          : 1
+    );
+}
+
+export function nextStop(stops: DecisionStop[], last: string | null) {
+  if (stops.length === 0) return null;
+  const at = last === null ? -1 : stops.findIndex((stop) => stop.key === last);
+  return stops[(at + 1) % stops.length]!;
+}
+
+export const ownedPages = (
+  proposal: Proposal,
+  moved: Record<string, { personId: string | null }>,
+  personId: string
+) =>
+  proposal.pages.filter(
+    (page) => (moved[page.id] === undefined ? page.personId : moved[page.id]!.personId) === personId
+  );

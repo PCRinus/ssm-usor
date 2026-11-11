@@ -172,7 +172,11 @@ function TrainingRow({
         {(toggle) => (
           <>
             <span className="col-start-1 row-start-1 flex">
-              <PhotoNumber pages={pages} pageId={page.id} />
+              <PhotoNumber
+                pages={pages}
+                pageId={page.id}
+                about={`Instruire ${trainingDomainLabels[row.domain]} din ${date ?? 'data necitită'}`}
+              />
             </span>
             <span className="col-start-2 row-start-1 grid min-w-0 gap-0.5 text-sm lg:contents">
               <span className="flex flex-wrap items-center gap-x-2 gap-y-1 lg:contents">
@@ -306,7 +310,7 @@ function TestLine({
         {(toggle) => (
           <>
             <span className="col-start-1 row-start-1 flex">
-              <PhotoNumber pages={pages} pageId={page.id} />
+              <PhotoNumber pages={pages} pageId={page.id} about={name} />
             </span>
             <span className="col-start-2 col-end-[-3] row-start-1 grid min-w-0 gap-1">
               <span className="flex min-h-6 items-center font-semibold">
@@ -365,7 +369,11 @@ function Admission({ row, page, pages }: { row: SheetRow; page: SheetPage; pages
   return (
     <div className={cn(rowLine, 'text-sm tabular-nums')}>
       <span className="col-start-1 row-start-1 flex">
-        <PhotoNumber pages={pages} pageId={page.id} />
+        <PhotoNumber
+          pages={pages}
+          pageId={page.id}
+          about={`Admis la lucru la ${dateLabel(admission.admittedOn)}`}
+        />
       </span>
       <span className="col-start-2 col-end-[-1] row-start-1 flex min-h-6 items-center">
         <span>
@@ -430,7 +438,7 @@ function AnnualTest({
         {(toggle) => (
           <>
             <span className="col-start-1 row-start-1 flex">
-              <PhotoNumber pages={pages} pageId={page.id} />
+              <PhotoNumber pages={pages} pageId={page.id} about={name} />
             </span>
             <span className="col-start-2 col-end-[-3] row-start-1 grid min-w-0 gap-1">
               <span className="flex min-h-6 items-center">
@@ -652,7 +660,12 @@ function DomainSection({
       <span className="inline-flex items-center gap-1.5">
         <FileImage aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
         {domain.pages.length === 1 ? 'fotografia' : 'fotografiile'}
-        <PhotoNumbers pages={pages} pageIds={domainPhotos(domain)} shown={domain.pages.length} />
+        <PhotoNumbers
+          pages={pages}
+          pageIds={domainPhotos(domain)}
+          about={`Instruire ${label}`}
+          shown={domain.pages.length}
+        />
       </span>
     </Facts>
   );

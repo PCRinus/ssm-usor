@@ -10,11 +10,12 @@ import {
   FileImage,
   UserRound,
 } from 'lucide-react';
-import { type ReactNode, useRef, useState } from 'react';
+import { type ReactNode, useMemo, useRef, useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
 import { BreadcrumbAside } from '@/app/breadcrumb-aside';
 import { Notice } from '@/components/notice';
+import { roCount } from '@/features/employees/employee-format';
 
 import { ImportActionBar } from '../import-action-bar';
 import { ImportIssueBadge } from '../import-review-issues';
@@ -31,7 +32,6 @@ import {
   isExisting,
   leaving,
   matchedName,
-  pagesOf,
   type Person,
   personIncluded,
   personName,
@@ -57,11 +57,14 @@ import {
 } from './person-decisions';
 import { ExistingComparison, PersonData } from './person-fields';
 import {
+  decisionStops,
   decisionTarget,
   domainPhotos,
   fieldOfDecision,
   groupPhotos,
+  nextStop,
   orderedPhotos,
+  ownedPages,
   photoLabel,
   type PhotoSection,
   trainingSectionId,
@@ -137,11 +140,23 @@ export function EmployeePersonPage({
   const people = context.proposal.people;
   const index = people.findIndex((each) => each.id === personId);
   const person = people[index];
-  const pages = person ? pagesOf(context, person.id) : [];
+  const { proposal } = context;
+  const moved = context.changes.pages;
+  const pages = useMemo(() => ownedPages(proposal, moved, personId), [proposal, moved, personId]);
+  const photos = useMemo(() => stripPhotos(detail, pages), [detail, pages]);
   const [enlarged, setEnlarged] = useState<string | null>(null);
   const [opened, setOpened] = useState<{ section: string; photo: string } | null>(null);
-  const lastJump = useRef<HTMLElement | null>(null);
+  const opener = useRef<HTMLElement | null>(null);
+  const lastJump = useRef<string | null>(null);
   const decisions = person ? decisionsOf(context, person) : [];
+  const openChoiceFields = decisions
+    .filter((decision) => decision.key.startsWith('choice-'))
+    .map((decision) => decision.key.slice('choice-'.length) as FieldName);
+  // A choice answered stays on the page until the member leaves it, so the radio just moved with
+  // the arrow keys keeps the focus and can still be changed.
+  const [choiceFields, setChoiceFields] = useState(openChoiceFields);
+  const newChoices = openChoiceFields.filter((field) => !choiceFields.includes(field));
+  if (newChoices.length > 0) setChoiceFields([...choiceFields, ...newChoices]);
   const anchors = new Set(decisions.map((decision) => decision.anchor));
   const leftOn = person ? resolveField(context, person, 'leftOn').value : null;
   const existing = person ? isExisting(context, person) : false;
@@ -150,8 +165,12 @@ export function EmployeePersonPage({
   const rowDecisions = decisions.filter(
     (decision) => rowKeys.has(decision.key) || decision.key.startsWith('choice-')
   );
+  const decisionsShown =
+    rowDecisions.some((decision) => !decision.key.startsWith('choice-')) ||
+    choiceFields.length > 0 ||
+    leaver;
   const sections: PhotoSection[] = [
-    ...(rowDecisions.length > 0 || leaver
+    ...(decisionsShown
       ? [
           {
             key: 'decisions',
@@ -160,6 +179,11 @@ export function EmployeePersonPage({
               person
                 ? [
                     ...decisionPhotos(context, person, rowDecisions),
+                    ...choiceFields.flatMap((field) =>
+                      resolveField(context, person, field).options.flatMap(
+                        (option) => option.pageIds
+                      )
+                    ),
                     ...(leaver
                       ? resolveField(context, person, 'leftOn').options.flatMap(
                           (option) => option.pageIds
@@ -172,12 +196,10 @@ export function EmployeePersonPage({
         ]
       : []),
     { key: 'data', photos: orderedPhotos(pages, person ? groupPhotos(context, person) : []) },
-    ...domains
-      .filter((domain) => domain.pages.length > 0)
-      .map((domain) => ({
-        key: trainingSectionId(domain.domain),
-        photos: orderedPhotos(pages, domainPhotos(domain)),
-      })),
+    ...domains.map((domain) => ({
+      key: trainingSectionId(domain.domain),
+      photos: orderedPhotos(pages, domainPhotos(domain)),
+    })),
   ];
   const onScreen = useSectionOnScreen(sections);
 
@@ -207,11 +229,22 @@ export function EmployeePersonPage({
   const sectionPhotos = onScreen?.photos ?? [];
   const ringed =
     (opened?.section === section ? opened.photo : null) ?? sectionPhotos[0] ?? pages[0]?.id ?? null;
-  const photos = stripPhotos(detail, pages);
 
   const showPage = (pageId: string) => {
+    if (enlarged === null && document.activeElement instanceof HTMLElement)
+      opener.current = document.activeElement;
     setEnlarged(pageId);
     setOpened({ section, photo: pageId });
+  };
+
+  const giveFocusBack = (event: Event) => {
+    const target = opener.current?.isConnected
+      ? opener.current
+      : document.querySelector<HTMLElement>('[data-testid="person-strip"] [aria-current="true"]');
+    opener.current = null;
+    if (!target) return;
+    event.preventDefault();
+    target.focus({ preventScroll: true });
   };
 
   const go = (to: Person | undefined) => {
@@ -230,16 +263,12 @@ export function EmployeePersonPage({
   };
 
   const jump = () => {
-    const targets = [
-      ...new Set(decisions.map(decisionElement).filter((each): each is HTMLElement => !!each)),
-    ].sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
-    if (targets.length === 0) return;
-    const after = lastJump.current ? targets.indexOf(lastJump.current) : -1;
-    const target = targets[(after + 1) % targets.length]!;
-    lastJump.current = target;
+    const stop = nextStop(decisionStops(decisions, decisionElement), lastJump.current);
+    if (!stop) return;
+    lastJump.current = stop.key;
     const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? true;
-    target.scrollIntoView({ block: 'center', behavior: calm ? 'auto' : 'smooth' });
-    target.focus({ preventScroll: true });
+    stop.element.scrollIntoView({ block: 'center', behavior: calm ? 'auto' : 'smooth' });
+    stop.element.focus({ preventScroll: true });
   };
 
   const postId = positionOf(context, person);
@@ -251,9 +280,6 @@ export function EmployeePersonPage({
     0
   );
   const contact = withoutContact(context, person);
-  const choiceFields = rowDecisions
-    .filter((decision) => decision.key.startsWith('choice-'))
-    .map((decision) => decision.key.slice('choice-'.length) as FieldName);
   const fieldDecisions = decisions.filter((decision) => fieldOfDecision(decision.key) !== null);
 
   const header = (toggle: ReactNode) => (
@@ -378,7 +404,7 @@ export function EmployeePersonPage({
             </Link>
           </Notice>
         )}
-        {(rowDecisions.length > 0 || leaver) && (
+        {decisionsShown && (
           <section
             aria-labelledby="person-decisions-title"
             data-photo-section="decisions"
@@ -393,9 +419,11 @@ export function EmployeePersonPage({
                 status={
                   rowDecisions.length > 0 ? (
                     <Tag tone="destructive" testId="person-decisions-count">
-                      {rowDecisions.length} de hotărât
+                      {roCount(rowDecisions.length, 'alegere', 'alegeri')}
                     </Tag>
-                  ) : null
+                  ) : (
+                    <StatusTag status={{ kind: 'done' }} />
+                  )
                 }
               />
             </div>
@@ -574,6 +602,7 @@ export function EmployeePersonPage({
           current={enlarged}
           onCurrent={showPage}
           onClose={() => setEnlarged(null)}
+          onCloseAutoFocus={giveFocusBack}
           strip={(key) => (
             <PhotoStrip
               photos={photos}

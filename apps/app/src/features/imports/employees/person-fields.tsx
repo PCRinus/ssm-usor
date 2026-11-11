@@ -140,7 +140,15 @@ function FieldRow({
         ))}
         {extra}
       </dd>
-      {pageId ? <PhotoNumber pages={pages} pageId={pageId} /> : <span />}
+      {pageId ? (
+        <PhotoNumber
+          pages={pages}
+          pageId={pageId}
+          about={`${fieldTitles[name]}: ${shown ?? 'necompletat'}`}
+        />
+      ) : (
+        <span />
+      )}
     </div>
   );
 }
@@ -518,7 +526,9 @@ export function ExistingComparison({
               return (
                 <div
                   key={name}
-                  className="grid grid-cols-[minmax(0,8.75rem)_minmax(0,1fr)_auto] items-start gap-3 border-t py-2.5 text-sm first:border-t-0"
+                  id={`field-${name}`}
+                  tabIndex={-1}
+                  className="grid scroll-mt-24 grid-cols-[minmax(0,8.75rem)_minmax(0,1fr)_auto] items-start gap-3 border-t py-2.5 text-sm outline-none first:border-t-0 focus-visible:bg-secondary/60"
                   data-testid="person-existing-differs"
                 >
                   <dt className="text-muted-foreground">{fieldTitles[name]}</dt>
@@ -573,7 +583,15 @@ export function ExistingComparison({
                       </>
                     )}
                   </dd>
-                  {pageId ? <PhotoNumber pages={pages} pageId={pageId} /> : <span />}
+                  {pageId ? (
+                    <PhotoNumber
+                      pages={pages}
+                      pageId={pageId}
+                      about={`${fieldTitles[name]}: ${showValue(name, sheet) ?? 'necompletat'}`}
+                    />
+                  ) : (
+                    <span />
+                  )}
                 </div>
               );
             })}

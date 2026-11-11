@@ -26,7 +26,6 @@ export function ImportActionBar({
   summary?: ReactNode;
   note?: ReactNode;
   error?: string | null;
-  // With it, the summary and the save status stack, so the bar keeps one height in every state.
   leading?: ReactNode;
   children: ReactNode;
   testId?: string;
@@ -245,10 +244,12 @@ function SaveText({ save, role }: { save: ImportSaveState; role: 'status' | 'ale
       : saving
         ? 'Se salvează…'
         : 'Salvat în propunere';
+  const cause = !save.conflict && save.error && save.error !== label ? save.error : null;
   return (
     <span
       role={role}
       aria-live={role === 'status' ? 'polite' : undefined}
+      title={cause ?? undefined}
       className="flex items-center gap-1.5"
       data-testid="import-save-status"
     >
@@ -257,6 +258,7 @@ function SaveText({ save, role }: { save: ImportSaveState; role: 'status' | 'ale
         className={cn('size-4 shrink-0', saving && 'animate-spin motion-reduce:animate-none')}
       />
       {label}
+      {cause && <span className="sr-only"> {cause}</span>}
     </span>
   );
 }
