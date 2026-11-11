@@ -481,6 +481,21 @@ describe('toEmployeePayload', () => {
     });
   });
 
+  it('replaces nothing when the sheet writes the app’s address with more detail', () => {
+    const { proposal, changes, check, map } = setUp({
+      ...popFront,
+      fields: { ...popFront.fields, homeAddress: 'Mun. Sibiu, jud. Sibiu, str. Viitorului, nr. 3' },
+    });
+    const pop = idOf(proposal, 'Pop');
+    check(pop);
+    changes.people[pop]!.fields = { homeAddress: { replace: true } };
+
+    expect(map().payload.employees[0]).toMatchObject({
+      home_address: 'Str. Viitorului nr. 3, Sibiu',
+    });
+    expect(map().payload.employees[0]!.replace).toBeUndefined();
+  });
+
   it('blocks a second person proposed as the employee another one completes', () => {
     const { proposal, check, map } = setUp(popFront, comanFront);
     const pop = idOf(proposal, 'Pop');

@@ -27,6 +27,7 @@ export * from './extractor-http';
 export * from './files';
 export * from './fire-safety';
 export * from './fold-text';
+export * from './home-address';
 export * from './iban';
 export * from './imports';
 export * from './instruction-body';

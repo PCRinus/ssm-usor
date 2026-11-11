@@ -3,6 +3,7 @@ import {
   decodeCnp,
   isValidCnp,
   rhFactors,
+  sameHomeAddress,
   type TrainingDomain,
   trainingDomainLabels,
   type TrainingPhase,
@@ -153,10 +154,12 @@ export type ResolvedField = {
   replaced: boolean;
 };
 
-export const differs = (a: FieldValue, b: FieldValue) =>
+export const differs = (name: FieldName, a: FieldValue, b: FieldValue) =>
   typeof a === 'number' || typeof b === 'number'
     ? Number(a) !== Number(b)
-    : foldText(String(a)) !== foldText(String(b));
+    : name === 'homeAddress'
+      ? !sameHomeAddress(a, b)
+      : foldText(String(a)) !== foldText(String(b));
 
 /** A person's field as confirming would take it, as `@ssm-usor/import` resolves it. */
 export function resolveField(
@@ -198,7 +201,7 @@ export function resolveField(
   const kept = app ?? null;
   if (value === null) return { ...base, value: kept, choice, edited };
   if (kept === null) return { ...base, value, choice, edited };
-  const replaced = differs(kept, value) && change?.replace === true;
+  const replaced = differs(name, kept, value) && change?.replace === true;
   return { ...base, value: replaced ? value : kept, choice, edited, replaced };
 }
 
