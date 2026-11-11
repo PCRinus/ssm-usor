@@ -28,6 +28,25 @@ export const meRoute = createRoute({
   },
 });
 
+export const endMyImpersonationRoute = createRoute({
+  method: 'delete',
+  path: '/me/impersonation',
+  operationId: 'endMyImpersonation',
+  summary: "End the platform admin's active impersonation",
+  description:
+    "For the banner of the member app, with the admin's own token past the second factor (ADR 038). Answers `204` when no impersonation is active too. An impersonation starts only in the admin app.",
+  security: bearerSecurity,
+  middleware: [requireAuth] as const,
+  responses: {
+    204: { description: 'No impersonation is active any more' },
+    403: {
+      description: 'The caller is not a platform admin past the second factor',
+      content: errorContent,
+    },
+    ...authErrors,
+  },
+});
+
 export const supportIdentityRoute = createRoute({
   method: 'get',
   path: '/me/support-identity',

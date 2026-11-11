@@ -7,6 +7,7 @@ import { membershipSchema } from './organizations';
 import { profileSchema } from './profile';
 import { subscriptionSummarySchema } from './subscriptions';
 
+export * from './admin-impersonation';
 export * from './admin-imports';
 export * from './banks';
 export * from './billing';
@@ -96,7 +97,13 @@ export const meResponseSchema = z.object({
   // the impersonated user's membership, while `user` and `profile` stay the caller's own.
   membership: membershipSchema.nullable(),
   impersonation: z
-    .object({ targetMemberId: z.uuid(), targetOrganizationId: z.uuid() })
+    .object({
+      targetMemberId: z.uuid(),
+      targetOrganizationId: z.uuid(),
+      expiresAt: z.iso.datetime({ offset: true }),
+      // The member's name, else their email; null when neither can be read.
+      targetName: z.string().nullable(),
+    })
     .nullable()
     .optional(),
   // Null for an organization without a subscription, which has full access indefinitely.
