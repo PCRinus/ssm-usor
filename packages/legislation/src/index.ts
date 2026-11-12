@@ -39,6 +39,17 @@ export {
   type LegislationTables,
 } from './database';
 export {
+  assessImpact,
+  type CitationImpact,
+  type CitedPassage,
+  type Impact,
+  type ImpactOutcome,
+  type LocatedQuote,
+  locateQuote,
+  type Locator,
+  parseLocator,
+} from './impact';
+export {
   describeAct,
   fetchPortalAct,
   type PortalAct,
