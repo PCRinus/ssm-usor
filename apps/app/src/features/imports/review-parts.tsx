@@ -455,6 +455,7 @@ export function SectionHeader({
   description,
   hint,
   status,
+  statusBelowOnPhone = false,
   ...place
 }: {
   icon: LucideIcon;
@@ -462,8 +463,11 @@ export function SectionHeader({
   description?: ReactNode;
   hint?: ReactNode;
   status: ReactNode;
+  // Keeps a long status, such as a pending note, from squeezing the title on a phone.
+  statusBelowOnPhone?: boolean;
 } & SectionHeaderPlace) {
   const Title = place.linked ? 'span' : 'h2';
+  const spread = !place.linked && !statusBelowOnPhone;
   return (
     <div
       className={cn(
@@ -474,7 +478,7 @@ export function SectionHeader({
       <span className="grid size-10 place-items-center rounded-lg bg-secondary" aria-hidden="true">
         <Icon className="size-5" />
       </span>
-      <span className={cn('grid min-w-0 gap-0.5', !place.linked && 'max-sm:contents')}>
+      <span className={cn('grid min-w-0 gap-0.5', spread && 'max-sm:contents')}>
         <Title
           id={place.headingId}
           tabIndex={place.linked ? undefined : -1}
@@ -486,7 +490,7 @@ export function SectionHeader({
           <span
             className={cn(
               'text-sm text-muted-foreground',
-              place.linked ? 'max-sm:hidden' : 'max-sm:col-span-full'
+              place.linked ? 'max-sm:hidden' : spread && 'max-sm:col-span-full'
             )}
           >
             {description}
@@ -494,16 +498,21 @@ export function SectionHeader({
         )}
         {hint && (
           <span
-            className={cn(
-              'text-[13px] text-info-foreground',
-              !place.linked && 'max-sm:col-span-full'
-            )}
+            className={cn('text-[13px] text-info-foreground', spread && 'max-sm:col-span-full')}
           >
             {hint}
           </span>
         )}
       </span>
-      <span className="col-start-3 row-start-1 justify-self-end">{status}</span>
+      <span
+        className={cn(
+          'col-start-3 row-start-1 justify-self-end',
+          statusBelowOnPhone &&
+            'max-sm:col-span-full max-sm:col-start-1 max-sm:row-start-2 max-sm:justify-self-start'
+        )}
+      >
+        {status}
+      </span>
       {place.linked && (
         <ChevronRight className="size-4 text-muted-foreground max-sm:hidden" aria-hidden="true" />
       )}
