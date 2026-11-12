@@ -175,7 +175,7 @@ La **Încercări în portal** vezi fiecare încercare cu scorul ei și dacă a f
 
 ### Rezultatul de pe hârtie
 
-Pentru un lucrător fără portal, tipărește testul din documentele clientului. După ce l-a completat și l-a promovat, alege **Înregistrează un rezultat de pe hârtie** și completează testul, ziua în care l-a susținut, examinatorul și funcția lui.
+Pentru un lucrător fără portal, tipărește testul din documentele clientului. După ce l-a completat și l-a promovat, alege **Înregistrează un rezultat de pe hârtie** și completează testul, ziua în care l-a susținut, examinatorul și funcția lui. Pentru un test consemnat pe o fișă veche care nu scrie examinatorul, lasă goale numele și funcția examinatorului: rezultatul se înregistrează fără examinator și apare cu „nume neînscris pe fișă”. Dacă scrii unul dintre ele, îl completezi și pe celălalt.
 
 Butonul apare cât timp testul la angajare e de susținut sau neverificat pe fișă și, în SU, pentru testul anual: oricând după primul test promovat, iar la un lucrător neverificat pe fișă și fără el, pentru testele anuale consemnate pe fișa pe hârtie. Ziua nu poate fi în viitor. Un test nepromovat nu se înregistrează: contează susținerea următoare.
 

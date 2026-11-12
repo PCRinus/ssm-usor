@@ -1221,6 +1221,29 @@ describe("an employee's knowledge tests", () => {
     expect(screen.queryByTestId('tests-gap')).toBeNull();
   });
 
+  it('records a paper result whose sheet names no examiner', async () => {
+    mockApi({
+      [`GET ${testsPath}`]: () => Response.json(employeeTests(testStatus('pending', 'hiring'))),
+      [`GET ${trainingsPath}/proposal`]: () =>
+        Response.json(proposal({ trainer: { name: 'Dan Marin', jobTitle: null } })),
+      [`POST ${testsPath}/results`]: () =>
+        Response.json({ result: { ...paperResult, examiner: null } }, { status: 201 }),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/ssm`);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('tests-record-paper'));
+    const dialog = within(await screen.findByTestId('test-result-dialog'));
+    const name = dialog.getByTestId('test-result-examiner-name') as HTMLInputElement;
+    expect(name.placeholder).toBe('nume neînscris pe fișă');
+    await user.clear(name);
+    await user.click(dialog.getByTestId('test-result-submit'));
+    await waitFor(() => expect(screen.queryByTestId('test-result-dialog')).toBeNull());
+    expect(requests('POST', `${testsPath}/results`)[0]!.body).toMatchObject({
+      test: 'hiring',
+      examiner: null,
+    });
+  });
+
   it('offers the annual test on paper after a fire-safety pass, and words a refusal', async () => {
     mockApi({
       [`GET ${testsPath}`]: () =>
