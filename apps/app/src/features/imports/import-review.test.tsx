@@ -399,7 +399,9 @@ describe('a section of the review', () => {
     expect(savedChanges(0).changes.fields).toEqual({
       'client.contactPhone': { value: '0745 218 903' },
     });
-    expect(await within(contact).findByTestId('edited-tag')).toBeTruthy();
+    const edited = await within(contact).findByTestId('edited-tag');
+    expect(edited.textContent).toBe('Modificat de tine');
+    expect(edited.querySelector('svg')).toBeNull();
     expect(within(contact).queryByTestId('review-row-editing')).toBeNull();
     expect(contact.textContent).toContain('Din documente: 0269 214 377');
   });

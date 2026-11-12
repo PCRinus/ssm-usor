@@ -5,6 +5,8 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { Check, Pencil, SpellCheck, TriangleAlert } from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
 
+import { rowTones } from './row-tones';
+
 export type Tone = 'done' | 'todo' | 'optional' | 'info' | 'warning' | 'spelling' | 'editing';
 
 const toneLabels: Record<Tone, string> = {
@@ -17,11 +19,12 @@ const toneLabels: Record<Tone, string> = {
   editing: 'Schimbi acum',
 };
 
-export function StatusDot({ tone }: { tone: Tone }) {
+export function StatusDot({ tone, className }: { tone: Tone; className?: string }) {
   return (
     <span
       className={cn(
         'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full sm:mt-0',
+        className,
         tone === 'done' && 'border border-success-border bg-success text-success-foreground',
         tone === 'todo' && 'border border-warning-border bg-warning',
         tone === 'info' && 'border border-info-border bg-info',
@@ -98,8 +101,7 @@ export function DecisionRow({
         toggle &&
           'grid-cols-[1.25rem_minmax(0,1fr)_auto] sm:grid-cols-[1.25rem_12rem_minmax(0,1fr)_auto_auto]',
         !top && 'sm:items-center',
-        tone === 'todo' && 'bg-warning/40',
-        tone === 'editing' && 'bg-info/60 shadow-[inset_0_0_0_2px_var(--color-ring)]'
+        rowTones[tone]
       )}
     >
       <StatusDot tone={tone} />

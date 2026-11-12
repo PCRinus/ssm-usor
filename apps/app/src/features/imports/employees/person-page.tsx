@@ -45,7 +45,6 @@ import {
   type SheetPage,
   trainingsByDomain,
   withMatchRestored,
-  withoutContact,
   withPersonIncluded,
 } from './employee-review-model';
 import { PageThumb } from './page-thumb';
@@ -57,7 +56,7 @@ import {
   PostDecision,
   WorkplaceDecision,
 } from './person-decisions';
-import { ExistingComparison, PersonData } from './person-fields';
+import { DataPending, ExistingComparison, PersonData } from './person-fields';
 import {
   decisionStops,
   decisionTarget,
@@ -353,8 +352,6 @@ export function EmployeePersonPage({
     (sum, domain) => sum + domain.hiring.rows.length + domain.periodic.length,
     0
   );
-  const contact = withoutContact(context, person);
-  const fieldDecisions = decisions.filter((decision) => fieldOfDecision(decision.key) !== null);
 
   const header = (toggle: ReactNode) => (
     <div className="grid gap-2">
@@ -567,10 +564,16 @@ export function EmployeePersonPage({
               icon={UserRound}
               headingId="person-data-title"
               title="Datele de pe fișe"
+              statusBelowOnPhone
+              description={
+                existing
+                  ? 'Completează lucrătorul din aplicație.'
+                  : 'Se preiau la crearea lucrătorului.'
+              }
               status={
-                fieldDecisions.length > 0 ? (
-                  <Tag tone="destructive">{fieldDecisions.length} de hotărât</Tag>
-                ) : null
+                state === 'set_aside' ? null : (
+                  <DataPending context={context} person={person} decisions={decisions} />
+                )
               }
             />
           </div>
@@ -603,14 +606,6 @@ export function EmployeePersonPage({
                     )}
                   </span>
                 ),
-                employeeNumber: contact ? (
-                  <span
-                    className="text-[13px] text-muted-foreground"
-                    data-testid="person-no-contact"
-                  >
-                    Fără email sau telefon. Îl adaugi când îl inviți în portal.
-                  </span>
-                ) : undefined,
               }}
             />
           )}
