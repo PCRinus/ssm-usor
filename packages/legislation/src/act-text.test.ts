@@ -4,9 +4,12 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   type ActUnit,
+  fetchActForm,
   fetchActText,
+  formOn,
   hasActText,
   parseActText,
+  parseConsolidations,
   textLink,
   unitLines,
   unitsOf,
@@ -206,6 +209,72 @@ describe('fetching the consolidated text of an act', () => {
     for (const [, init] of fetchMock.mock.calls) {
       expect(new Headers(init?.headers).get('CF-Access-Client-Id')).toBe('id.access');
     }
+  });
+
+  it('lists the forms of an act, newest first, the page read having no link', () => {
+    const forms = parseConsolidations(roadCode);
+    expect(forms).toEqual([
+      { date: '2026-11-06', kind: 'consolidation', path: null },
+      { date: '2026-08-25', kind: 'consolidation', path: '/Public/DetaliiDocument/312713' },
+    ]);
+    expect(formOn(forms, '2026-10-01')?.date).toBe('2026-08-25');
+    expect(formOn(forms, '2026-11-06')?.date).toBe('2026-11-06');
+    expect(formOn(forms, '2026-01-01')).toBeNull();
+  });
+
+  it('counts a republication among the forms, its link with its query', () => {
+    const page =
+      "<a title='Republicarea din 06.04.2022' style='color:red'>Republicarea 1</a>" +
+      "<a title='Consolidarea din 11.01.2022' href='~/../../../Public/DetaliiDocument/249634'>11.01.2022</a>" +
+      "<a title='Republicarea din 20.09.2006' href='~/../../../Public/DetaliiDocument/74028?isFormaDeBaza=True'>Republicarea</a>";
+    expect(parseConsolidations(page)).toEqual([
+      { date: '2022-04-06', kind: 'republication', path: null },
+      { date: '2022-01-11', kind: 'consolidation', path: '/Public/DetaliiDocument/249634' },
+      {
+        date: '2006-09-20',
+        kind: 'republication',
+        path: '/Public/DetaliiDocument/74028?isFormaDeBaza=True',
+      },
+    ]);
+  });
+
+  it('reads the form in force on a date from its own page', async () => {
+    const fetchMock = respond({
+      '/Public/DetaliiDocument/41006': roadCode,
+      '/Public/DetaliiDocument/312713': fixture('oug-195-2002-2026-08-25.html'),
+    });
+    const fetched = await fetchActForm(41006, '2026-10-01', { fetch: fetchMock, pauseMs: 0 });
+    expect(fetched).toMatchObject({
+      portalId: 41006,
+      formPortalId: 312713,
+      consolidatedOn: '2026-08-25',
+      source: 'page',
+    });
+    expect(unitLines(unitsOf(fetched.text, 'article', '36')[0]!.unit)[4]).toMatch(
+      /să poarte casca de protecție omologată\.$/
+    );
+  });
+
+  it("follows an earlier form's link to its text, as for the newest", async () => {
+    const fetchMock = respond({
+      '/Public/DetaliiDocument/109854': criminalCodePage,
+      '/Public/DetaliiDocument/311786': fixture('lege-286-2009-2026-07-23.html'),
+      '/Public/DetaliiDocumentAfis/311787': fixture('codul-penal-2026-07-23.html'),
+    });
+    const fetched = await fetchActForm(109854, '2026-08-01', { fetch: fetchMock, pauseMs: 0 });
+    expect(fetched).toMatchObject({
+      formPortalId: 311786,
+      consolidatedOn: '2026-07-23',
+      source: 'afis',
+      url: 'https://legislatie.just.ro/Public/DetaliiDocumentAfis/311787',
+    });
+  });
+
+  it('fails for a date before every consolidated form', async () => {
+    const fetchMock = respond({ '/Public/DetaliiDocument/41006': roadCode });
+    await expect(
+      fetchActForm(41006, '2020-01-01', { fetch: fetchMock, pauseMs: 0 })
+    ).rejects.toThrow(/no consolidated form on or before 2020-01-01/);
   });
 
   it('fails on a page with neither the text nor a link to it', async () => {

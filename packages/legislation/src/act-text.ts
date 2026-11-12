@@ -317,19 +317,44 @@ export function textLink(html: string): number | null {
   return heading ? Number(heading[1]) : null;
 }
 
-export function newestConsolidation(html: string) {
-  const dates = [...html.matchAll(/title='Consolidarea din (\d{2})\.(\d{2})\.(\d{4})'/g)].map(
-    (match) => `${match[3]}-${match[2]}-${match[1]}`
-  );
-  return dates.sort().at(-1) ?? null;
+export type ConsolidatedForm = {
+  date: string;
+  // A republication may renumber the act; a consolidation never does.
+  kind: 'consolidation' | 'republication';
+  // The page of that form, with the query a republication's link carries; null for the page the
+  // list was read from.
+  path: string | null;
+};
+
+export function parseConsolidations(html: string): ConsolidatedForm[] {
+  const forms = [
+    ...html.matchAll(
+      /<a title='(Consolidarea|Republicarea) din (\d{2})\.(\d{2})\.(\d{4})'([^>]*)>/g
+    ),
+  ].map((match): ConsolidatedForm => {
+    const link = /href='[^']*?(\/Public\/DetaliiDocument\/\d+[^']*)'/.exec(match[5]!);
+    return {
+      date: `${match[4]}-${match[3]}-${match[2]}`,
+      kind: match[1] === 'Consolidarea' ? 'consolidation' : 'republication',
+      path: link ? link[1]! : null,
+    };
+  });
+  return forms.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+export function formOn(forms: ConsolidatedForm[], date: string) {
+  return forms.find((form) => form.date <= date) ?? null;
 }
 
 export type FetchedActText = {
   portalId: number;
+  // The page of the form read, the act's own for its newest form.
+  formPortalId: number;
+  // Null for an act never consolidated, read as published.
+  consolidatedOn: string | null;
   source: 'page' | 'afis';
   url: string;
   annexUrls: string[];
-  consolidatedOn: string | null;
   text: ActText;
 };
 
@@ -361,45 +386,65 @@ async function readAnnexes(text: ActText, origin: string, options: PortalOptions
   return urls;
 }
 
-export async function fetchActText(
-  portalId: number,
-  options: PortalOptions = {}
-): Promise<FetchedActText> {
+async function readText(page: string, pageUrl: string, pageId: number, options: PortalOptions) {
   const origin = options.origin ?? portalOrigin;
-  const pageUrl = new URL(`/Public/DetaliiDocument/${portalId}`, origin).href;
-  const page = await (await request(pageUrl, {}, options)).text();
   if (hasActText(page)) {
-    const text = parseActText(page, portalId);
-    return {
-      portalId,
-      source: 'page',
-      url: pageUrl,
-      annexUrls: await readAnnexes(text, origin, options),
-      consolidatedOn: newestConsolidation(page),
-      text,
-    };
+    const text = parseActText(page, pageId);
+    const annexUrls = await readAnnexes(text, origin, options);
+    return { source: 'page' as const, url: pageUrl, annexUrls, text };
   }
   const afisId = textLink(page);
   if (afisId === null) {
-    throw new PortalError(
-      `Page ${portalId} holds no articles and links no text to read them from.`
-    );
+    throw new PortalError(`Page ${pageId} holds no articles and links no text to read them from.`);
   }
   await pause(options.pauseMs ?? portalPauseMs);
   const afisUrl = new URL(`/Public/DetaliiDocumentAfis/${afisId}`, origin).href;
   const afis = await (await request(afisUrl, {}, options)).text();
   if (!hasActText(afis)) {
-    throw new PortalError(`The text ${afisId} of act ${portalId} holds no articles.`);
+    throw new PortalError(`The text ${afisId} of page ${pageId} holds no articles.`);
   }
   const text = parseActText(afis, afisId);
+  const annexUrls = await readAnnexes(text, origin, options);
+  return { source: 'afis' as const, url: afisUrl, annexUrls, text };
+}
+
+// Every form's page lists the act's other forms, each with a page of its own, so the act's page is
+// read first even for an earlier form.
+export async function fetchActForm(
+  portalId: number,
+  on: string | null,
+  options: PortalOptions = {}
+): Promise<FetchedActText> {
+  const origin = options.origin ?? portalOrigin;
+  const pageUrl = new URL(`/Public/DetaliiDocument/${portalId}`, origin).href;
+  const page = await (await request(pageUrl, {}, options)).text();
+  const forms = parseConsolidations(page);
+  const form = on === null ? (forms[0] ?? null) : formOn(forms, on);
+  if (on !== null && !form && forms.length > 0) {
+    throw new PortalError(`Act ${portalId} has no consolidated form on or before ${on}.`);
+  }
+  if (!form?.path) {
+    return {
+      portalId,
+      formPortalId: portalId,
+      consolidatedOn: form?.date ?? null,
+      ...(await readText(page, pageUrl, portalId, options)),
+    };
+  }
+  await pause(options.pauseMs ?? portalPauseMs);
+  const formUrl = new URL(form.path, origin).href;
+  const formId = Number(/DetaliiDocument\/(\d+)/.exec(form.path)![1]);
+  const formPage = await (await request(formUrl, {}, options)).text();
   return {
     portalId,
-    source: 'afis',
-    url: afisUrl,
-    annexUrls: await readAnnexes(text, origin, options),
-    consolidatedOn: newestConsolidation(afis),
-    text,
+    formPortalId: formId,
+    consolidatedOn: form.date,
+    ...(await readText(formPage, formUrl, formId, options)),
   };
+}
+
+export function fetchActText(portalId: number, options: PortalOptions = {}) {
+  return fetchActForm(portalId, null, options);
 }
 
 const superscripts: Record<string, string> = {
