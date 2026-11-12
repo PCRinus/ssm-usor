@@ -52,11 +52,11 @@ export {
   type EmployeeMapping,
   type EmployeePayloadRow,
   matchOf,
+  rowExaminer,
   sheetFilesOf,
   type TestResultPayloadRow,
   toEmployeePayload,
   type TrainingPayloadRow,
-  writtenExaminer,
 } from './employee-payload';
 export * from './employee-proposal';
 export {

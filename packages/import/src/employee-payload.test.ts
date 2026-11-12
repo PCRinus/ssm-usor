@@ -685,6 +685,74 @@ describe('toEmployeePayload', () => {
     expect(written()).toMatchObject({ material: 'Riscuri la cuptor' });
   });
 
+  it('leaves out a themed value a dialog saved unchanged with a corrected date', () => {
+    const { proposal, changes, check, map } = setUp(comanFront, comanPeriodic);
+    check(idOf(proposal, 'Coman'));
+    const periodic = proposal.pages[1]!.rows[1]!;
+    Object.assign(periodic, {
+      trainerName: 'Barbu Ionuț',
+      trainerJobTitle: 'Inspector SSM',
+      material: 'Tematica semestrului',
+      durationMinutes: 120,
+      fromThemes: ['trainerName', 'trainerJobTitle', 'material', 'durationMinutes'],
+      flags: ['month_only', 'from_client_themes'],
+    });
+    changes.rows[periodic.id] = {
+      values: {
+        heldOn: '2025-01-15',
+        durationMinutes: 120,
+        trainerName: 'Barbu Ionuț',
+        trainerJobTitle: 'Inspector SSM',
+        material: 'Tematica semestrului',
+      },
+    };
+
+    const { payload, blockers } = map();
+
+    expect(blockers).toEqual([]);
+    expect(payload.trainings.find((training) => training.held_on === '2025-01-15')).toEqual({
+      key: expect.any(String),
+      domain: 'ssm',
+      phase: 'periodic',
+      held_on: '2025-01-15',
+      records: [{ employee_key: idOf(proposal, 'Coman') }],
+    });
+  });
+
+  it('leaves out an examiner taken from a themed trainer that a dialog saved unchanged', () => {
+    const { proposal, changes, check, map } = setUp(comanFront, comanFire);
+    check(idOf(proposal, 'Coman'));
+    const annual = proposal.pages[1]!.rows.find((each) => each.test?.test === 'annual')!;
+    Object.assign(annual, {
+      trainerName: 'Barbu Ionuț',
+      trainerJobTitle: 'Cadru tehnic PSI',
+      fromThemes: ['trainerName', 'trainerJobTitle'],
+    });
+    Object.assign(annual.test!, {
+      examinerName: 'Barbu Ionuț',
+      examinerJobTitle: 'Cadru tehnic PSI',
+    });
+    changes.rows[annual.id] = {
+      values: {
+        heldOn: annual.heldOn,
+        examinerName: 'Barbu Ionuț',
+        examinerJobTitle: 'Cadru tehnic PSI',
+      },
+    };
+    const result = () => map().payload.test_results.find((each) => each.test === 'annual');
+
+    expect(map().blockers).toEqual([]);
+    expect(result()).not.toHaveProperty('examiner_name');
+
+    changes.rows[annual.id] = {
+      values: { examinerName: 'Pavel Dan', examinerJobTitle: 'Cadru tehnic PSI' },
+    };
+    expect(result()).toMatchObject({
+      examiner_name: 'Pavel Dan',
+      examiner_job_title: 'Cadru tehnic PSI',
+    });
+  });
+
   it('writes a paper test whose sheet names no examiner, and never a trainer from the themes', () => {
     const { proposal, changes, check, map } = setUp(comanFront, comanFire);
     check(idOf(proposal, 'Coman'));

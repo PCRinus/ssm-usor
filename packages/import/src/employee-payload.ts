@@ -24,6 +24,7 @@ import type {
   ProposedSheetPage,
   ProposedSheetPerson,
   ProposedSheetRow,
+  ThemeFillableField,
 } from './employee-proposal';
 import { groupHeldTrainings, type HeldRow } from './held-trainings';
 import { foldText } from './match';
@@ -241,31 +242,59 @@ function resolveField(
   };
 }
 
+const sameValue = (a: unknown, b: unknown) =>
+  (typeof a === 'string' ? a.trim() : (a ?? null)) ===
+  (typeof b === 'string' ? b.trim() : (b ?? null));
+
 // A value an older proposal took from the client's themes is no reading of the sheet, so it counts
-// as empty unless the member typed one (ADR 042).
+// as empty unless the member typed one (ADR 042). The row dialogs saved every field on any edit, so
+// a stored change equal to the themed value is that save, not a value the member typed.
+function reviewedValue(
+  values: RowChange['values'],
+  name: string,
+  proposed: unknown,
+  themed: boolean
+): unknown {
+  if (values && name in values && !(themed && sameValue(values[name], proposed))) {
+    return values[name];
+  }
+  return themed ? null : proposed;
+}
+
 const rowValue = <K extends keyof ProposedSheetRow>(
   row: ProposedSheetRow,
   change: RowChange | undefined,
   name: K
 ) =>
-  (change?.values && name in change.values
-    ? change.values[name]
-    : (row.fromThemes as readonly string[]).includes(name)
-      ? null
-      : row[name]) as ProposedSheetRow[K];
+  reviewedValue(
+    change?.values,
+    name,
+    row[name],
+    (row.fromThemes as readonly string[]).includes(name)
+  ) as ProposedSheetRow[K];
 
 /**
- * The examiner a row's test names on the sheet: the verifier's box, else the trainer's, never a
- * trainer an older proposal took from the client's themes.
+ * The examiner a row's test names, as the member left it: the verifier's box, else the trainer's,
+ * never a trainer an older proposal took from the client's themes.
  */
-export function writtenExaminer(row: ProposedSheetRow) {
-  const test = row.test;
-  if (!test) return { examinerName: null, examinerJobTitle: null };
+export function rowExaminer(row: ProposedSheetRow, change: RowChange | undefined) {
   const byVerifier = row.signatures.verifier !== 'no_box' && row.verifierName !== null;
+  const stored = change?.values ?? {};
+  // An examiner is a name and a function together: once the member typed one, the other saved
+  // with it is theirs too, else a function equal to the themed one could never be kept.
+  const typed = (['examinerName', 'examinerJobTitle'] as const).some(
+    (name) => name in stored && !sameValue(stored[name], row.test?.[name] ?? null)
+  );
+  const examiner = (name: 'examinerName' | 'examinerJobTitle', trainer: ThemeFillableField) =>
+    reviewedValue(
+      change?.values,
+      name,
+      row.test?.[name] ?? null,
+      !(typed && name in stored) && !byVerifier && row.fromThemes.includes(trainer)
+    ) as string | null;
   return {
-    examinerName: !byVerifier && row.fromThemes.includes('trainerName') ? null : test.examinerName,
-    examinerJobTitle:
-      !byVerifier && row.fromThemes.includes('trainerJobTitle') ? null : test.examinerJobTitle,
+    examinerName: examiner('examinerName', 'trainerName'),
+    examinerJobTitle: examiner('examinerJobTitle', 'trainerJobTitle'),
   };
 }
 
@@ -595,12 +624,7 @@ export function toEmployeePayload(input: {
       if (!included) {
         if (proposedTest) quality.tests.unticked++;
       } else {
-        const written = writtenExaminer(sheetRow);
-        const typed = (name: 'examinerName' | 'examinerJobTitle') =>
-          (change?.values && name in change.values ? change.values[name] : written[name]) as
-            string | null;
-        const examinerName = typed('examinerName');
-        const examinerJobTitle = typed('examinerJobTitle');
+        const { examinerName, examinerJobTitle } = rowExaminer(sheetRow, change);
         // A sheet dates its test only by the row it signs, so the row's date as the member left
         // it is the test's.
         const takenOn = filled(heldOn) ? String(heldOn) : null;
