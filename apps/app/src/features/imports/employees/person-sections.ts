@@ -128,26 +128,38 @@ export function nextStop(stops: DecisionStop[], last: string | null) {
   return stops[(at + 1) % stops.length]!;
 }
 
-const readingOrder: SheetPage['kind'][] = [
+// The reader tells a sheet's cover from its first page only by the rows: the cover has none.
+// Printed booklets that carry the commute declaration put it on the SSM sheet before or facing
+// the first page, never at the back.
+const readingOrder = [
+  'ssm_cover',
+  'commute_declaration',
   'ssm_sheet_front',
   'ssm_periodic',
+  'su_cover',
   'su_sheet_front',
   'su_periodic',
-  'commute_declaration',
   'other',
   null,
-];
+] as const;
 
-const fronts = new Set<SheetPage['kind']>(['ssm_sheet_front', 'su_sheet_front']);
+function readingPlace(page: SheetPage) {
+  if (page.rows.length === 0 && page.kind === 'ssm_sheet_front')
+    return readingOrder.indexOf('ssm_cover');
+  if (page.rows.length === 0 && page.kind === 'su_sheet_front')
+    return readingOrder.indexOf('su_cover');
+  return readingOrder.indexOf(page.kind);
+}
 
 // The dates as read, not as edited, so the photos keep their numbers while the member corrects
-// a date. A sheet's cover has no rows and opens it; a periodic page with no date read goes last.
+// a date.
 function readingKey(page: SheetPage) {
-  const first = page.rows
-    .flatMap((row) => (row.heldOn ? [row.heldOn] : []))
-    .sort()
-    .at(0);
-  return first ?? (fronts.has(page.kind) ? '' : '~');
+  return (
+    page.rows
+      .flatMap((row) => (row.heldOn ? [row.heldOn] : []))
+      .sort()
+      .at(0) ?? '~'
+  );
 }
 
 export const ownedPages = (
@@ -160,12 +172,10 @@ export const ownedPages = (
       (page) =>
         (moved[page.id] === undefined ? page.personId : moved[page.id]!.personId) === personId
     )
-    .map((page, index) => ({ page, index, key: readingKey(page) }))
+    .map((page, index) => ({ page, index, place: readingPlace(page), key: readingKey(page) }))
     .sort(
       (a, b) =>
-        readingOrder.indexOf(a.page.kind) - readingOrder.indexOf(b.page.kind) ||
-        (a.key === b.key ? 0 : a.key < b.key ? -1 : 1) ||
-        a.index - b.index
+        a.place - b.place || (a.key === b.key ? 0 : a.key < b.key ? -1 : 1) || a.index - b.index
     )
     .map(({ page }) => page);
 
