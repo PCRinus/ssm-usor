@@ -53,6 +53,42 @@ On a change the job works in this order:
 
 The text comparison in step 2 decides whether a change touches the documents; the model only proposes words and explains. A model that reads an amendment as harmless cannot resolve a change whose quoted text the comparison found altered. A frontier model called over HTTP is the first choice; the open-weight models Workers AI hosts were not tested on Romanian legal text and are not assumed to be enough.
 
+### What changed is read without a model, and the fix is a scheduled pull request
+
+(Amended 2026-11-12. Steps 1–5 above were never built, and the first changes showed what their absence costs. On 12 November non-prod had two open changes and production one, and the page could say of neither what had changed. The difference came from the baseline: no act had a verified form, so each environment took the first form it saw as the reference. Production, wiped on 23 October, first ran on the 24th and took the Fiscal Code's form of 25 October as its baseline, where non-prod had already seen the form before it. Read by hand, the Fiscal Code change touched nothing we cite. The Code of the Road's form of 6 November (Legea 207/2026) changed art. 36 alin. (2), which the general training material quotes. The Criminal Code's form of 18 October predated both environments' first runs and was absorbed without a word, harmlessly as it turned out. This section replaces steps 1–5 and the Worker's pull request from the amendment above.)
+
+**The portal says what changed.** On a newer form, the Worker fetches the act's full consolidated text. The act's page carries it inline, except for the largest acts: the Criminal Code's page links a separate full-text view, `/Public/DetaliiDocumentAfis/<id>`. Each amended unit in the text carries the portal's note, "(la 06-11-2026, Alineatul (2), Articolul 36 … a fost modificat de … LEGEA nr. 207 din 3 noiembrie 2026 …)". The job reads the notes for the units amended since the form it last compared, and for the amending act. The act's list of actions misses that act for republished acts: O.U.G. 195/2002's list ends in 2006. The text is fetched only when a change appears, so the relay carries a few more requests per change, not per act per day.
+
+**The outcome is decided by comparison.** Each change gets one of three outcomes, without a model:
+
+- **No impact**: no unit we cite was amended and no quoted text differs. The job resolves the change itself, with a note naming the amended articles.
+- **Quote differs**: a quoted passage differs from the current text after spacing, the portal's missing diacritics, cedilla letters, superscripts and our act names are normalized. The job stores the template's passage and the current one.
+- **Needs review**: an article the templates refer to without quoting was amended.
+
+Quotes are compared with the current text itself, not only through the notes, so drift without a note is caught too. For a quote, the reference is the template's own text, which is the same in every environment. The form each act was verified against is recorded by a migration, so a new or wiped environment starts from the same forms instead of from whatever it sees first.
+
+**Notifications go to Discord, for the platform admin.** Each environment's Worker posts to its own channel, `#legislatie-prod` and `#legislatie-non-prod`. The second shows any drift between the two analyses and can be retired. It posts:
+
+- a message per change, with its outcome, the amending act and the articles touched, and old → new text for every quote that differs;
+- one line for a change resolved as no impact;
+- a failed run, or no successful run in two days;
+- the pull request that answers a change, with every replacement in it.
+
+The webhook is the secret `DISCORD_LEGISLATION_WEBHOOK` of each environment. Legislation is public text and the messages carry no personal or client data, so ADR 037's rule for alerts holds. Members still learn nothing by message: they see a change "în verificare" on their Legislație page until it is resolved, as before, and no email is sent to anyone.
+
+**The fix is a GitHub Action, not the Worker.** `legislation-fix.yml` runs daily after production's run, and by hand. It reads production's open changes whose quote differs. Only production's changes open pull requests: the templates are shared, and non-prod's detections serve the drift comparison. For each change it:
+
+- replaces the passages with the engine's tool. The tool keeps the template's conventions (its diacritics, act names, quote marks and superscripts) and changes the copies `copied-passages.json` lists too;
+- regenerates the citation index;
+- writes the template's manifest change `{ kind: 'legal', note, resolves: { act, consolidatedOn } }`;
+- asks a model through the AI Gateway for the note and for a reading of the template's own sentences that restate the changed rule;
+- opens the pull request with a GitHub App's token, since one opened with the Action's own token starts no CI;
+- posts the replacements and the link to Discord.
+
+The Action needs no portal access: the Worker stored the current text. The Worker holds no GitHub token. The amendment above put the pull request in the Worker because a Worker can edit Word XML, which is still true. But the Action has the repository, its tools and its tests, and a schedule's delay does not matter for a fix that waits for a review anyway. A change whose passages cannot be replaced opens an issue instead, and so does a change that needs review.
+
+**The merge is the sign-off, and registration resolves.** A person reads the replacements, in Discord or the pull request, and merges. Registration links the new version to its change by act and consolidation date in each environment, since a change's id differs between environments, and resolves it. An environment that never recorded the change gets it recorded as resolved.
+
 ### A template version says why it exists
 
 A template version gains a **note** for users, a **kind** and, when it answers one, the legal change it resolves. The kinds are **legal**, a change in a quoted or referred text; **correction**, a fix of the template's own content, such as the audit's pictogram captions and diacritics; and **layout**, which changes no words. `register_built_in_template_version` takes the three, and `templates:register` reads them from the manifest or its arguments. A legal or correction version prompts regeneration; a layout version is silent. Without the three, the page below could tell a specialist to regenerate and could not say what changed.
@@ -62,6 +98,12 @@ A template version gains a **note** for users, a **kind** and, when it answers o
 Each organization has a **Legislație** page. It lists the watched acts with their status, the consolidated form last seen and the date last checked, and the legal changes: open ones as "în verificare", those resolved with no impact as such, and those answered by a template version with the version's note, the text that differs between the two versions, and the documents **behind** it: for each document type, the clients whose newest revision was generated from an older version of a kind that prompts, with their count and a way to regenerate for all of them. A document is behind by its revision's template version alone, so a hand edit changes nothing about whether it is behind.
 
 The documents behind are also marked where documents are listed, as "Date modificate" marks a draft today. Nothing is sent by email, and no document prints a "verified on" date: the client does not read it, the inspector checks content, and a wrong date is a liability. The dates belong on this page.
+
+(Amended 2026-11-12.) A change answered by a template version shows its passages old → new beside the version's note, from the text the job stored.
+
+### The admin area's Legislație page
+
+(Amended 2026-11-12.) The admin app ([ADR 038](adr-038-admin-area.md)) has a Legislație page for the platform admin. It lists the changes with their outcome, the amended units, old → new text for every quote that differs, and the pull request or issue that answers each one. It also shows the watched acts with the form each was verified against, and the run log. On it he marks a change as no impact with a note, links a change to a template version, and records an act's verified form. It replaces resolving changes by hand in SQL, and it is the only place in the product that writes the legislation data.
 
 ### Bulk regeneration runs in a queue
 
@@ -83,7 +125,8 @@ Regenerating a document type for every client behind it is one action on the pag
 - A third sibling Worker joins mail and PDF, with a cron trigger, the database's secret key, a GitHub token and a model gateway among its secrets, and it opens pull requests. The API gains its first queue.
 - Template versions become meaningful to users: release notes per template, with a kind that decides whether anyone is asked to act.
 - The provider's sign-off stays the gate on legal content, as a merge, and the whole pipeline before it is automatic.
-- "Resolving" a change has no screen and no role: it happens in the repository, in a pull request and the registration that follows its merge. Members read; nobody in the app writes to the legislation data.
+- "Resolving" a change has no screen and no role: it happens in the repository, in a pull request and the registration that follows its merge. Members read; nobody in the app writes to the legislation data. (Amended 2026-11-12: the platform admin resolves changes with no impact, and records verified forms, on the admin area's page.)
+- (Amended 2026-11-12.) The repository gains a GitHub App with write access to contents and pull requests, used only by `legislation-fix.yml`. The Worker gains a Discord webhook and no GitHub token.
 
 ## Order of work
 
@@ -94,10 +137,16 @@ Regenerating a document type for every client behind it is one action on the pag
 5. The watched acts, legal changes and run log in the database; the legislation Worker's daily check, with the run log as its alert; the verification dates once the content issues close.
 6. The Legislație page, read-only, with the documents behind.
 7. The queue and bulk regeneration from the page.
-8. The resolution steps of the Worker: the text comparison, the model's proposal, the pull request and the issue it falls back to.
+8. The resolution steps of the Worker: the text comparison, the model's proposal, the pull request and the issue it falls back to. (Amended 2026-11-12, replaced by 8a–8f.)
+   1. Reading the full text and the portal's notes, the comparison with the index, and a check of every quote against today's text.
+   2. The engine's tool that replaces a quoted passage in a template and its copies.
+   3. The outcome and passages stored per change, verified forms recorded for every act, and changes with no impact resolved by the Worker.
+   4. Discord messages from the Worker, per environment.
+   5. The admin area's Legislație page.
+   6. `legislation-fix.yml`: the replacement, the model's note and reading, the pull request and its Discord message, and the registration that links a version to its change. Its first run answers O.U.G. 195/2002 art. 36 alin. (2).
 
 ## Open
 
 1. Whether to add the Monitorul Oficial table of contents as the second signal, and when.
-2. Whether the pull request may merge itself once the comparison, the tests and a period of reading the model's proposals have earned it.
+2. Whether the pull request may merge itself once the comparison, the tests and a period of reading the model's proposals have earned it. (2026-11-12: not yet. The first candidates are pull requests that only replace quotes and whose model reading found no sentence of ours to change.)
 3. Whether an act the index names only through references, never a quoted article, should be watched at all, or listed and not fetched.
