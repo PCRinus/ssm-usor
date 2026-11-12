@@ -80,6 +80,19 @@ describe('comparing a quoted passage with the current text', () => {
     ]);
   });
 
+  it('keeps each change in its alineat when words match across their boundary', () => {
+    const comparison = compare(
+      '(1) Legea securității și sănătății în muncă are ca scop instituirea de măsuri privind promovarea îmbunătățirii securității și sănătății lucrătorilor în timpul desfășurării activității.\n' +
+        '(2) Legea securității și sănătății în muncă stabilește principiile generale referitoare la prevenirea riscurilor profesionale.',
+      '(1) Prezenta lege are ca scop instituirea de măsuri privind promovarea îmbunătățirii securității și sănătății în munca a lucrătorilor.\n' +
+        '(2) Prezenta lege stabilește principii generale referitoare la prevenirea riscurilor profesionale.'
+    );
+    const changes = comparison.differences.flatMap((difference) => difference.changes);
+    expect(
+      changes.filter((change) => `${change.template} ${change.current}`.includes('(2)'))
+    ).toEqual([]);
+  });
+
   it('reports an alineat the act gained', () => {
     const comparison = compare(
       '(1) Primul.\n(2) Al doilea.',

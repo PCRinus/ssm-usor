@@ -156,9 +156,11 @@ function diff(template: Token[], current: Token[]): Op[] {
   const at = (i: number, j: number) => table[i * width + j]!;
   for (let i = n - 1; i >= 0; i -= 1) {
     for (let j = m - 1; j >= 0; j -= 1) {
+      // An alineat's label counts as a few words, so alineate pair up rather than words that
+      // happen to match across their boundary; a template that renumbers them still aligns.
       table[i * width + j] =
         template[i]!.value === current[j]!.value
-          ? at(i + 1, j + 1) + 1
+          ? at(i + 1, j + 1) + (template[i]!.value.startsWith('¶') ? 8 : 1)
           : Math.max(at(i + 1, j), at(i, j + 1));
     }
   }
