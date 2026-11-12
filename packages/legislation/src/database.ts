@@ -47,35 +47,109 @@ export type LegislationTables = {
     };
     Relationships: [];
   };
+  legal_change_passages: {
+    Row: {
+      article: string | null;
+      change_id: string;
+      citation_form: string;
+      hunks: Json;
+      id: string;
+      locator: string | null;
+      manifest: string;
+      new_text: string | null;
+      old_text: string | null;
+      paragraph: number;
+      status: string;
+      template_file: string;
+      unit_label: string;
+    };
+    Insert: {
+      article?: string | null;
+      change_id: string;
+      citation_form: string;
+      hunks?: Json;
+      id?: string;
+      locator?: string | null;
+      manifest: string;
+      new_text?: string | null;
+      old_text?: string | null;
+      paragraph: number;
+      status: string;
+      template_file: string;
+      unit_label: string;
+    };
+    Update: {
+      article?: string | null;
+      change_id?: string;
+      citation_form?: string;
+      hunks?: Json;
+      id?: string;
+      locator?: string | null;
+      manifest?: string;
+      new_text?: string | null;
+      old_text?: string | null;
+      paragraph?: number;
+      status?: string;
+      template_file?: string;
+      unit_label?: string;
+    };
+    Relationships: [
+      {
+        foreignKeyName: 'legal_change_passages_change_id_fkey';
+        columns: ['change_id'];
+        isOneToOne: false;
+        referencedRelation: 'legal_changes';
+        referencedColumns: ['id'];
+      },
+    ];
+  };
   legal_changes: {
     Row: {
       act_id: string;
+      amended_units: Json | null;
       amending_act: string | null;
+      amending_acts: Json | null;
+      assessed_at: string | null;
+      compared_with: string | null;
       consolidated_on: string;
       id: string;
+      outcome: string | null;
       resolution: string;
       resolved_at: string | null;
       resolved_by_note: string | null;
+      review: Json | null;
       seen_at: string;
     };
     Insert: {
       act_id: string;
+      amended_units?: Json | null;
       amending_act?: string | null;
+      amending_acts?: Json | null;
+      assessed_at?: string | null;
+      compared_with?: string | null;
       consolidated_on: string;
       id?: string;
+      outcome?: string | null;
       resolution?: string;
       resolved_at?: string | null;
       resolved_by_note?: string | null;
+      review?: Json | null;
       seen_at?: string;
     };
     Update: {
       act_id?: string;
+      amended_units?: Json | null;
       amending_act?: string | null;
+      amending_acts?: Json | null;
+      assessed_at?: string | null;
+      compared_with?: string | null;
       consolidated_on?: string;
       id?: string;
+      outcome?: string | null;
       resolution?: string;
       resolved_at?: string | null;
       resolved_by_note?: string | null;
+      review?: Json | null;
       seen_at?: string;
     };
     Relationships: [

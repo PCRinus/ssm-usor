@@ -2394,7 +2394,7 @@ both `anon` and `authenticated` are revoked, so only the API's secret key reache
 ## Legislation
 
 The legal acts the built-in templates cite are watched on the Portal Legislativ
-([ADR 017](architecture/adr-017-legislation-monitoring.md)). The three tables belong to no
+([ADR 017](architecture/adr-017-legislation-monitoring.md)). The four tables belong to no
 organization: every member reads every row, nobody signed in writes, and the daily check
 writes with the secret key, run by the cron of the legislation Worker
 ([deployment](deployment.md#legislation-worker)) or by `pnpm legislation:check`.
@@ -2407,20 +2407,56 @@ keyed by its id there (`lege-319-2006`). `pnpm legislation:check` writes `name` 
 | -------------------------- | ------------------------------------------------------------------------------------------------------- |
 | `portal_id`                | The act's page, `legislatie.just.ro/Public/DetaliiDocument/<id>`. Null skips the act.                   |
 | `portal_status`            | `in_force` or `repealed`, from the portal's list of actions the act underwent.                          |
-| `verified_consolidated_on` | The consolidated form the templates were verified against. Set by hand; the job never writes it.        |
+| `verified_consolidated_on` | The consolidated form the templates were verified against. Recorded by migration; the job advances it.  |
 | `last_consolidated_on`     | The newest consolidated form seen.                                                                      |
 | `last_amending_act`        | The acts adopted between the last two consolidations, as the portal names them (`LEGE 208 21/07/2021`). |
 | `last_checked_at`          | The last time the page was read.                                                                        |
 | `checked_by_hand_on`       | Set by hand when someone read the act because the job could not.                                        |
 
-`legal_changes` holds a **legal change**: a consolidated form newer than the last one seen, or
-newer than `verified_consolidated_on`, which is how the first run reports drift instead of
-taking today's form as the baseline. Without either date the first form seen is the baseline.
+`verified_consolidated_on` starts as each act's newest form on the portal on 2026-11-13, a
+republication included, written by the migration `legal_change_outcomes` so that a new or wiped
+environment compares against the same forms. O.U.G. 195/2002 starts at 2026-08-25 instead, so
+that its change of 2026-11-06 stays open. An act never consolidated has none. The job's upsert
+of the act list writes only `name` and `portal_id`, so it never clears the date; the job moves
+it forward only when it resolves a change as no impact.
+
+`legal_changes` holds a **legal change**: a consolidated form newer than both the last one
+seen and `verified_consolidated_on`, which is how the first run reports drift instead of
+taking today's form as the baseline. Without either date the first form seen is the baseline,
+except for an act read before as never consolidated, whose first consolidation is a change.
 A form is recorded once per act (unique `act_id`, `consolidated_on`), so the daily run can
 see it again without repeating it. `resolution` is `open` until it is `no_impact` or
 `template_version`, and `resolved_at` is set exactly when it is not open; `resolved_by_note`
-says why. `document_template_versions.resolves_legal_change_id` names the change a template
-version answers.
+says why, in Romanian, since members read it on the Legislație page.
+`document_template_versions.resolves_legal_change_id` names the change a template version
+answers.
+
+The job assesses a change by comparing the verified form with the new one, for the units the
+citation index cites, both read from the portal:
+
+| Column          | Notes                                                                                                                                                                                                                          |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `outcome`       | `no_impact`, `quote_differs` or `needs_review`; null until assessed. `assessed_at` is set exactly when it is not null.                                                                                                         |
+| `compared_with` | The verified form it was compared with, earlier than `consolidated_on`; null for the act as published, which an act with no verified form is compared with.                                                                    |
+| `amending_acts` | The acts the portal's notes in the new text name, `[{ name, kind, number, date, portalId, gazette }]`; more exact than `amending_act`.                                                                                         |
+| `amended_units` | The units those notes say were amended since the verified form, `[{ unit, subject, operation, date, amendingAct }]`.                                                                                                           |
+| `review`        | Why a person should read it, in English for the platform admin: a referred unit amended, a cited unit repealed, missing or not compared, a note against a text that reads the same, a republication. Members cannot select it. |
+
+A change with no impact is resolved in the same run, with a note naming the amended units, and
+its act's `verified_consolidated_on` moves to its form. The other two stay open. A run that
+cannot read a form leaves `outcome` null and fails the act; the next run assesses every open
+change whose outcome is null, oldest first. The outcome is written after the passages, so a
+run that stops in between leaves the change unassessed.
+
+`legal_change_passages` holds one row per cited unit a change touched, per citation:
+`manifest`, `template_file` and `paragraph` (as the citation index counts it), `citation_form`
+(`quote` or `reference`), the template's `locator`, the `article` of a reference,
+`unit_label`, `status` (`changed`, `added`, `repealed`, `missing`, or `uncompared` for a unit in
+both forms with no words to read in one of them or too long to compare), the law's `old_text` and
+`new_text` of the unit, each present as the status requires, and `hunks`, the words that
+changed with a few around them. A citation records a unit once per change, and the rows go
+with their change. Members read them, nobody signed in writes them, and the job writes them
+with the secret key.
 
 `legal_check_runs` logs every run of the check, because a cron that fails tells nobody. A run
 inserts its row as `running` when it starts and updates it when it ends, even when the check
