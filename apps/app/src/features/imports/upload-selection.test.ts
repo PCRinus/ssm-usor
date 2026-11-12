@@ -365,8 +365,10 @@ describe('files chosen twice', () => {
     expect(keptOf('IMG_2031 (1).jpg', 'IMG_2031.jpg')).toBe('IMG_2031.jpg');
     expect(keptOf('IMG_2031 (2).jpg', 'IMG_2031 (1).jpg')).toBe('IMG_2031 (1).jpg');
     expect(keptOf('Dosar SSM/Decizie numire.pdf', 'Copie/Decizie numire.pdf')).toBe(
-      'Copie/Decizie numire.pdf'
+      'Dosar SSM/Decizie numire.pdf'
     );
+    expect(keptOf('Fișe (1)/Plan.pdf', 'Fișe/Plan.pdf')).toBe('Fișe/Plan.pdf');
+    expect(keptOf('Dosar/Plan.pdf', 'Copii/Plan.pdf')).toBe('Copii/Plan.pdf');
     expect(keptOf('Plan - Copy.pdf', 'Plan.pdf')).toBe('Plan.pdf');
     expect(keptOf('Plan - copie.pdf', 'Plan nou.pdf')).toBe('Plan nou.pdf');
     expect(keptOf('Plan COPY.pdf', 'Plan 2.pdf')).toBe('Plan 2.pdf');
@@ -391,16 +393,16 @@ describe('files chosen twice', () => {
     const selection = withCopiesAside(chosen);
 
     expect(selection.files.map((file) => file.path)).toEqual([
-      'Construct Grup.zip/Copie/Decizie numire.pdf',
+      'Construct Grup.zip/Dosar SSM/Decizie numire.pdf',
       'Construct Grup.zip/Dosar SSM/Evaluare riscuri 2025.pdf',
       'IMG_2031.jpg',
       'IMG_2034.jpg',
     ]);
     expect(selection.setAside).toMatchObject([
       {
-        path: 'Construct Grup.zip/Dosar SSM/Decizie numire.pdf',
+        path: 'Construct Grup.zip/Copie/Decizie numire.pdf',
         reason: 'duplicate',
-        duplicateOf: 'Construct Grup.zip/Copie/Decizie numire.pdf',
+        duplicateOf: 'Construct Grup.zip/Dosar SSM/Decizie numire.pdf',
         mimeType: 'application/pdf',
       },
       { path: 'IMG_2031 (1).jpg', reason: 'duplicate', duplicateOf: 'IMG_2031.jpg' },

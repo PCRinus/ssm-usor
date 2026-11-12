@@ -762,7 +762,7 @@ describe('files chosen twice', () => {
     expect(chosen.textContent).toContain('2 fotografii');
     expect(setAsideLines(dialog)).toEqual([
       'dosar-ssm-spicul-auriu.zip/Dosar SSM/plan evacuare.dwg, tip de fișier pe care nu-l citim',
-      'dosar-ssm-spicul-auriu.zip/Dosar SSM/Decizie numire.pdf, același fișier ca dosar-ssm-spicul-auriu.zip/Copie/Decizie numire.pdf',
+      'dosar-ssm-spicul-auriu.zip/Copie/Decizie numire.pdf, același fișier ca dosar-ssm-spicul-auriu.zip/Dosar SSM/Decizie numire.pdf',
       'IMG_2031 (1).jpg, aceeași fotografie ca IMG_2031.jpg',
     ]);
     expect((await creditsLine()).textContent).toContain(
@@ -775,7 +775,7 @@ describe('files chosen twice', () => {
       files: { uploadPath: string }[];
     };
     expect(registered.files.map((file) => file.uploadPath)).toEqual([
-      'dosar-ssm-spicul-auriu.zip/Copie/Decizie numire.pdf',
+      'dosar-ssm-spicul-auriu.zip/Dosar SSM/Decizie numire.pdf',
       'dosar-ssm-spicul-auriu.zip/Dosar SSM/Evaluare riscuri.pdf',
       'IMG_2031.jpg',
       'IMG_2034.jpg',

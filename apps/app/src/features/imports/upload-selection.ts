@@ -345,11 +345,19 @@ export const removeLoosePhotos = (selection: Selection): Selection => ({
 
 const copyMark = /(?: \(\d+\)| - cop(?:y|ie)| cop(?:y|ie))$/i;
 
-const isMarkedCopy = (path: string) =>
-  copyMark.test(path.slice(path.lastIndexOf('/') + 1).replace(/\.[^.]+$/, ''));
+const copyFolder = /^cop(?:y|ie)(?: \(\d+\))?$/i;
+
+const isMarkedCopy = (path: string) => {
+  const folders = path.split('/');
+  const name = folders.pop()!.replace(/\.[^.]+$/, '');
+  return (
+    copyMark.test(name) ||
+    folders.some((folder) => copyFolder.test(folder) || copyMark.test(folder))
+  );
+};
 
 // A computer or a phone marks the copy it makes, so "IMG_2031.jpg" is the original of
-// "IMG_2031 (1).jpg" though the list puts it second.
+// "IMG_2031 (1).jpg" though the list puts it second; a person names the folder of copies "Copie".
 export const keptFirst = (a: { path: string }, b: { path: string }) =>
   Number(isMarkedCopy(a.path)) - Number(isMarkedCopy(b.path)) ||
   a.path.length - b.path.length ||
