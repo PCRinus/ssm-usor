@@ -845,6 +845,14 @@ msgstr "Instructor {name}, {jobTitle}. {duration}."
 msgid "Instructor {name}. {duration}."
 msgstr "Instructor {name}. {duration}."
 
+#: src/features/training/training-records-list.tsx
+msgid "Instructor: nume neînscris pe fișă, {jobTitle}. {duration}."
+msgstr "Instructor: nume neînscris pe fișă, {jobTitle}. {duration}."
+
+#: src/features/training/training-records-list.tsx
+msgid "Instructor: nume neînscris pe fișă. {duration}."
+msgstr "Instructor: nume neînscris pe fișă. {duration}."
+
 #: src/features/training/training-summary.tsx
 msgid "Instruire {label}"
 msgstr "Instruire {label}"
@@ -1145,10 +1153,6 @@ msgstr "Nu s-a semnat nimic. Vezi mai jos de ce."
 #: src/features/auth/sign-in-address.ts
 msgid "Numărul nu pare scris corect. Scrie-l cu 0 în față, de exemplu 0721 234 567."
 msgstr "Numărul nu pare scris corect. Scrie-l cu 0 în față, de exemplu 0721 234 567."
-
-#: src/features/training/training-records-list.tsx
-msgid "nume neînscris pe fișă"
-msgstr "nume neînscris pe fișă"
 
 #: src/features/my-data/my-data-page.tsx
 msgid "Nume și prenume"

@@ -373,7 +373,7 @@ describe('Instruiri', () => {
       'Material necompletat pe fișă'
     );
     expect(record!.textContent).toContain(
-      'Instructor nume neînscris pe fișă. Durata necompletată pe fișă.'
+      'Instructor: nume neînscris pe fișă. Durata necompletată pe fișă.'
     );
   });
 
