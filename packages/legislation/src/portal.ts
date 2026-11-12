@@ -145,7 +145,10 @@ export function parseActPage(html: string, portalId: number): PortalPage {
   if (!title) throw new PortalError(`Page ${portalId} has no act heading (S_DEN).`);
 
   const dates = new Set<string>();
-  for (const match of html.matchAll(/title='Consolidarea din (\d{2})\.(\d{2})\.(\d{4})'/g)) {
+  // A republication is a form like a consolidation; H.G. 1048/2006's newest is one.
+  for (const match of html.matchAll(
+    /title='(?:Consolidarea|Republicarea) din (\d{2})\.(\d{2})\.(\d{4})'/g
+  )) {
     const date = isoDate(match[1]!, match[2]!, match[3]!);
     if (!date) throw new PortalError(`Page ${portalId} lists an impossible date: ${match[0]}.`);
     dates.add(date);

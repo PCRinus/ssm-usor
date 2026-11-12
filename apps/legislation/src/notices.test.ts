@@ -1,8 +1,11 @@
 import { discordPayloads } from '@ssm-usor/discord';
-import type { CheckRun, LegalAct, PortalAct } from '@ssm-usor/legislation-check';
+import type { ChangeAssessment, CheckRun, LegalAct, PortalAct } from '@ssm-usor/legislation-check';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  changeDetails,
+  changeEmbed,
+  type ChangeNotice,
   changesMessage,
   changesOf,
   failedRunMessage,
@@ -40,6 +43,92 @@ const portal = (act: LegalAct, newest: string) =>
     amendingActs: [],
   }) as PortalAct;
 
+const helmetOld =
+  '(2) Pe timpul deplasării pe drumurile publice, conducătorii motocicletelor, mopedelor și persoanele transportate pe acestea au obligația să poarte casca de protecție omologată.';
+const helmetNew =
+  '(2) Pe timpul deplasării pe drumurile publice, conducătorii motocicletelor, mopedelor și persoanele transportate pe acestea au obligația să poarte pe cap cască de protecție omologată pentru această categorie de vehicul, cu elementele de siguranță cuplate în mod corespunzător.';
+
+const law207 = {
+  kind: 'LEGEA',
+  number: '207',
+  date: '2026-11-03',
+  name: 'Legea 207/2026',
+  portalId: null,
+  gazette: { number: '905', date: '2026-11-04' },
+};
+
+const amended = (unit: string) => ({
+  unit,
+  subject: unit,
+  operation: 'modified' as const,
+  date: '2026-11-06',
+  amendingAct: 'Legea 207/2026',
+});
+
+const quoteDiffers: ChangeAssessment = {
+  changeId: 'c1',
+  consolidatedOn: '2026-11-06',
+  comparedWith: '2026-08-25',
+  compared: true,
+  backfilled: false,
+  outcome: 'quote_differs',
+  resolved: false,
+  note: null,
+  amendingActs: [law207],
+  amendedUnits: [amended('Art. 6'), amended('Art. 36 alin. (2)')],
+  review: [],
+  passages: [
+    {
+      manifest: 'ssm',
+      file: '2.2_general_training_material.docx',
+      paragraph: 2048,
+      form: 'quote',
+      locator: 'Art. 36 alin. (1) – (3)',
+      article: '36',
+      unit: 'Art. 36 alin. (2)',
+      status: 'changed',
+      old: helmetOld,
+      new: helmetNew,
+      hunks: [],
+    },
+    {
+      manifest: 'ssm',
+      file: '2.2_general_training_material.docx',
+      paragraph: 1970,
+      form: 'reference',
+      locator: null,
+      article: '36',
+      unit: 'Art. 36',
+      status: 'changed',
+      old: helmetOld,
+      new: helmetNew,
+      hunks: [],
+    },
+  ],
+};
+
+const needsReview: ChangeAssessment = {
+  ...quoteDiffers,
+  changeId: 'c2',
+  backfilled: true,
+  outcome: 'needs_review',
+  review: ['Art. 6 is referred to and was changed.'],
+  passages: [],
+};
+
+const noImpact: ChangeAssessment = {
+  ...quoteDiffers,
+  changeId: 'c3',
+  consolidatedOn: '2026-10-25',
+  comparedWith: '2026-10-18',
+  outcome: 'no_impact',
+  resolved: true,
+  note: 'Modificarea adusă de Legea 204/2026 atinge art. 342; niciun text citat în documente nu s-a schimbat.',
+  amendingActs: [{ ...law207, number: '204', name: 'Legea 204/2026' }],
+  amendedUnits: [amended('Art. 342')],
+  passages: [],
+};
+
 const run: CheckRun = {
   id: 'r1',
   status: 'failed',
@@ -48,13 +137,20 @@ const run: CheckRun = {
       act: roads,
       result: 'checked',
       portal: portal(roads, '2026-11-06'),
-      change: { consolidatedOn: '2026-11-06', amendingAct: 'LEGEA 207/2026', recorded: true },
+      change: {
+        id: 'c1',
+        consolidatedOn: '2026-11-06',
+        amendingAct: 'LEGEA 207/2026',
+        recorded: true,
+      },
+      assessments: [quoteDiffers],
     },
     {
       act: fire,
       result: 'checked',
       portal: portal(fire, '2026-10-25'),
-      change: { consolidatedOn: '2026-10-25', amendingAct: null, recorded: false },
+      change: { id: null, consolidatedOn: '2026-10-25', amendingAct: null, recorded: false },
+      assessments: [],
     },
     {
       act: safety,
@@ -75,11 +171,49 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+const notice = (assessment: ChangeAssessment | null, extra: Partial<ChangeNotice> = {}) => ({
+  act: roads,
+  consolidatedOn: assessment?.consolidatedOn ?? '2026-11-06',
+  amendingAct: 'LEGEA 207/2026',
+  assessment,
+  ...extra,
+});
+
 describe('the messages', () => {
-  it('names a change with its act, form, amending act and portal page', () => {
-    const [change] = changesOf(run);
-    expect(changesOf(run)).toHaveLength(1);
-    expect(discordPayloads(changesMessage([change!], 'production'))).toEqual([
+  it('finds every change assessed in the run, and a new one that could not be', () => {
+    const notices = changesOf({
+      ...run,
+      outcomes: [
+        ...run.outcomes,
+        {
+          act: fire,
+          result: 'checked',
+          portal: portal(fire, '2026-11-01'),
+          change: null,
+          assessments: [{ ...needsReview, consolidatedOn: '2026-11-01' }],
+        },
+        {
+          act: safety,
+          result: 'failed',
+          error: { kind: 'fetch', message: 'Could not assess its change: fetch failed' },
+          change: { id: 'c9', consolidatedOn: '2026-11-10', amendingAct: null, recorded: true },
+          assessments: [],
+        },
+      ],
+    });
+    expect(
+      notices.map((each) => [each.act.id, each.consolidatedOn, each.assessment?.outcome ?? null])
+    ).toEqual([
+      ['oug-195-2002', '2026-11-06', 'quote_differs'],
+      ['legea-307-2006', '2026-11-01', 'needs_review'],
+      ['legea-319-2006', '2026-11-10', null],
+    ]);
+    expect(notices[0]!.amendingAct).toBe('LEGEA 207/2026');
+    expect(notices[2]!.notAssessed).toBe('Could not assess its change: fetch failed');
+  });
+
+  it('shows a quote that differs as the law’s old and new text, with the templates that quote it', () => {
+    expect(discordPayloads(changesMessage([notice(quoteDiffers)], 'production'))).toEqual([
       {
         content: '📜 **New legal change** · production',
         embeds: [
@@ -87,19 +221,92 @@ describe('the messages', () => {
             title: 'O.U.G. 195/2002',
             url: 'https://legislatie.just.ro/Public/DetaliiDocument/41006',
             description: roads.title,
-            color: 0x2f6fde,
+            color: 0xe8a317,
             fields: [
               { name: 'Consolidated on', value: '2026-11-06', inline: true },
-              { name: 'Amending act', value: 'LEGEA 207/2026', inline: true },
+              { name: 'Compared with', value: '2026-08-25', inline: true },
+              { name: 'Outcome', value: 'Quote differs', inline: true },
+              { name: 'Amending acts', value: 'Legea 207/2026', inline: true },
+              { name: 'Amended units', value: 'Art. 6\nArt. 36 alin. (2)' },
             ],
           },
         ],
         allowed_mentions: { parse: [] },
       },
     ]);
-    const unnamed = changesMessage([{ ...change!, amendingAct: null }], 'non-prod');
-    expect(unnamed.content).toBe('📜 **New legal change** · non-prod');
-    expect(unnamed.embeds![0]!.fields![1]).toEqual({
+    expect(changeDetails(notice(quoteDiffers))).toEqual({
+      content: [
+        '**O.U.G. 195/2002**, form of 2026-11-06',
+        '**Art. 36 alin. (2)** · 2.2_general_training_material.docx (Art. 36 alin. (1) – (3))',
+        '```diff',
+        `- ${helmetOld}`,
+        `+ ${helmetNew}`,
+        '```',
+      ].join('\n'),
+    });
+  });
+
+  it('shows only the changed words of a long unit, with the words around them', () => {
+    const long = 'Cuvinte de umplutură. '.repeat(60);
+    const details = changeDetails(
+      notice({
+        ...quoteDiffers,
+        passages: [
+          {
+            ...quoteDiffers.passages[0]!,
+            old: `${long}casca de protecție`,
+            new: `${long}cască de protecție omologată`,
+            hunks: [
+              { old: 'casca', new: 'cască', before: 'de umplutură.', after: 'de protecție' },
+              { old: '', new: 'omologată', before: 'casca de protecție', after: '' },
+            ],
+          },
+        ],
+      })
+    );
+    expect(details!.content!.split('\n').slice(2)).toEqual([
+      '```diff',
+      '- … de umplutură. casca de protecție …',
+      '+ … de umplutură. cască de protecție …',
+      '',
+      '- … casca de protecție …',
+      '+ … casca de protecție omologată …',
+      '```',
+    ]);
+  });
+
+  it('names the act as published as the form compared with, and none when nothing was', () => {
+    const fields = (assessment: ChangeAssessment) =>
+      changeEmbed(notice(assessment)).fields!.find((field) => field.name === 'Compared with');
+    expect(fields({ ...needsReview, comparedWith: null })!.value).toBe('the act as published');
+    expect(fields({ ...needsReview, comparedWith: null, compared: false })!.value).toBe('—');
+  });
+
+  it('colours a change by its outcome and lists why it needs review', () => {
+    const embed = changeEmbed(notice(needsReview));
+    expect(embed.color).toBe(0xd9534f);
+    expect(embed.fields![2]).toEqual({ name: 'Outcome', value: 'Needs review', inline: true });
+    expect(changesMessage([notice(needsReview)], 'non-prod').content).toBe(
+      '📜 **Legal change assessed** · non-prod'
+    );
+    expect(changeDetails(notice(needsReview))!.content).toBe(
+      '**O.U.G. 195/2002**, form of 2026-11-06\n**To review**\n- Art. 6 is referred to and was changed.'
+    );
+  });
+
+  it('says when a new change could not be assessed, with nothing after it', () => {
+    const unassessed = notice(null, { notAssessed: 'Could not assess its change: fetch failed.' });
+    expect(changeDetails(unassessed)).toBeNull();
+    expect(changeEmbed(unassessed).fields).toEqual([
+      { name: 'Consolidated on', value: '2026-11-06', inline: true },
+      {
+        name: 'Outcome',
+        value: 'Not assessed: Could not assess its change: fetch failed. The next run tries again.',
+        inline: false,
+      },
+      { name: 'Amending act', value: 'LEGEA 207/2026', inline: true },
+    ]);
+    expect(changeEmbed(notice(null, { amendingAct: null })).fields![2]).toEqual({
       name: 'Amending act',
       value: '—',
       inline: true,
@@ -119,6 +326,17 @@ describe('the messages', () => {
         '```',
       ].join('\n')
     );
+  });
+
+  it('lists ten failed acts at most', () => {
+    const failed = Array.from({ length: 13 }, (_, index): CheckRun['outcomes'][number] => ({
+      act: { ...safety, id: `lege-${index + 1}-2000`, name: `Legea ${index + 1}/2000` },
+      result: 'failed',
+      error: { kind: 'fetch', message: 'fetch failed' },
+    }));
+    const lines = failedRunMessage({ ...run, outcomes: failed }, 'production').content!.split('\n');
+    expect(lines.filter((line) => line.includes('FAILED'))).toHaveLength(10);
+    expect(lines.at(-2)).toBe('and 3 more');
   });
 
   it('says why a run stopped', () => {
@@ -163,7 +381,45 @@ describe('legislationNotices', () => {
     const contents = fetcher.mock.calls.map(([, init]) => JSON.parse(String(init?.body)).content);
     expect(contents).toEqual([
       '📜 **New legal change** · local',
+      expect.stringMatching(
+        /^\*\*O\.U\.G\. 195\/2002\*\*, form of 2026-11-06\n\*\*Art\. 36 alin\. \(2\)\*\*/
+      ),
       expect.stringMatching(/^🟡 \*\*Legislation check failed\*\* · local\n/),
+    ]);
+  });
+
+  it('puts the changes resolved as no impact in one post, a line each, after the others', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () => new Response(null, { status: 204 }));
+    await legislationNotices(
+      { DISCORD_LEGISLATION_WEBHOOK: 'https://discord.example/w', ENVIRONMENT: 'non-prod' },
+      fetcher
+    ).ran({
+      ...run,
+      status: 'succeeded',
+      outcomes: [
+        {
+          act: { ...roads, id: 'lege-227-2015', name: 'Legea 227/2015' },
+          result: 'checked',
+          portal: portal(roads, '2026-10-25'),
+          change: null,
+          assessments: [noImpact],
+        },
+        {
+          act: fire,
+          result: 'checked',
+          portal: portal(fire, '2026-10-25'),
+          change: null,
+          assessments: [{ ...noImpact, amendedUnits: [], amendingActs: [] }],
+        },
+      ],
+      errors: [],
+    });
+    const contents = fetcher.mock.calls.map(([, init]) => JSON.parse(String(init?.body)).content);
+    expect(contents).toEqual([
+      [
+        '✅ **Resolved, no impact** · non-prod: Legea 227/2015, form of 2026-10-25, Art. 342 (Legea 204/2026)',
+        '✅ **Resolved, no impact** · non-prod: Legea 307/2006, form of 2026-10-25, no unit named',
+      ].join('\n'),
     ]);
   });
 
@@ -173,7 +429,8 @@ describe('legislationNotices', () => {
       act: { ...roads, id: `act-${index}`, name: `Act ${index}` },
       result: 'checked',
       portal: portal(roads, '2026-11-06'),
-      change: { consolidatedOn: '2026-11-06', amendingAct: null, recorded: true },
+      change: { id: `c${index}`, consolidatedOn: '2026-11-06', amendingAct: null, recorded: true },
+      assessments: [],
     });
     await legislationNotices(
       { DISCORD_LEGISLATION_WEBHOOK: 'https://discord.example/w', ENVIRONMENT: 'production' },

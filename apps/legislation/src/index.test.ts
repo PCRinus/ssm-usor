@@ -1,4 +1,4 @@
-import { legalActs } from '@ssm-usor/document-engine/citations';
+import { citationIndex, legalActs } from '@ssm-usor/document-engine/citations';
 import {
   type CheckRun,
   fetchPortalAct,
@@ -43,12 +43,13 @@ afterEach(() => {
 });
 
 describe('the daily cron', () => {
-  it('checks every act the templates cite', async () => {
+  it('checks every act the templates cite, and assesses changes against their citations', async () => {
     vi.mocked(runLegislationCheck).mockResolvedValue(run('succeeded'));
     await scheduled(env);
-    const [, acts] = vi.mocked(runLegislationCheck).mock.calls[0]!;
+    const [, acts, options] = vi.mocked(runLegislationCheck).mock.calls[0]!;
     expect(acts.map((act) => act.id)).toEqual(legalActs().map((act) => act.id));
     expect(acts.length).toBeGreaterThan(0);
+    expect(options?.citations).toEqual(citationIndex());
   });
 
   it('fails the invocation when the run failed', async () => {
@@ -114,7 +115,8 @@ describe('the notices on Discord', () => {
       newestConsolidation: '2026-11-06',
       amendingActs: ['LEGEA 207/2026'],
     },
-    change: { consolidatedOn: '2026-11-06', amendingAct: 'LEGEA 207/2026', recorded },
+    change: { id: 'c1', consolidatedOn: '2026-11-06', amendingAct: 'LEGEA 207/2026', recorded },
+    assessments: [],
   });
   const failedAct: CheckRun['outcomes'][number] = {
     act: second!,

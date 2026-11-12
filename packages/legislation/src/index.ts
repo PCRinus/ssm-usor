@@ -25,7 +25,20 @@ export {
   type UnitPath,
 } from './amendments';
 export {
+  type AmendedUnit,
+  amendedUnitsOf,
+  assessChange,
+  type ChangeAssessment,
+  type ChangePassage,
+  type IndexedCitation,
+  noImpactNote,
+  type PendingChange,
+  readableUnit,
+  type ReadForm,
+} from './assess';
+export {
   type ActOutcome,
+  type ChangeSeen,
   checkLegislation,
   type CheckOptions,
   describeOutcome,

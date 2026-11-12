@@ -1,4 +1,4 @@
-import { legalActs } from '@ssm-usor/document-engine/citations';
+import { citationIndex, legalActs } from '@ssm-usor/document-engine/citations';
 import {
   type CheckRun,
   createLegislationClient,
@@ -34,7 +34,11 @@ function connect(env: LegislationEnv) {
 
 async function check(db: LegislationClient, env: LegislationEnv, options: RunOptions = {}) {
   const { acts } = legalActsSchema.parse({ acts: legalActs() });
-  return runLegislationCheck(db, acts, { ...options, portal: portalOptionsFromEnv(env) });
+  return runLegislationCheck(db, acts, {
+    ...options,
+    citations: citationIndex(),
+    portal: portalOptionsFromEnv(env),
+  });
 }
 
 const messageOf = (error: unknown) => (error instanceof Error ? error.message : String(error));

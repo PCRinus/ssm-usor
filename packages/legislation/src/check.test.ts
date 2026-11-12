@@ -26,6 +26,7 @@ type Row = {
   id: string;
   last_consolidated_on: string | null;
   verified_consolidated_on: string | null;
+  last_checked_at: string | null;
 };
 
 function database(rows: Row[], options: { changeExists?: boolean } = {}) {
@@ -58,10 +59,16 @@ function database(rows: Row[], options: { changeExists?: boolean } = {}) {
   return { db, sent };
 }
 
-const row = (id: string, last: string | null = null, verified: string | null = null): Row => ({
+const row = (
+  id: string,
+  last: string | null = null,
+  verified: string | null = null,
+  checkedAt: string | null = null
+): Row => ({
   id,
   last_consolidated_on: last,
   verified_consolidated_on: verified,
+  last_checked_at: checkedAt,
 });
 
 describe('reading the act list', () => {
@@ -84,8 +91,20 @@ describe('deciding whether a form is a change', () => {
 
   it('reports a form newer than the verified one, also on the first run', () => {
     expect(isNewer('2021-07-25', row('a', null, '2021-05-06'))).toBe(true);
-    expect(isNewer('2021-07-25', row('a', '2021-07-25', '2021-05-06'))).toBe(true);
     expect(isNewer('2021-07-25', row('a', null, '2021-07-25'))).toBe(false);
+  });
+
+  it('reports a form once, the day it is first seen', () => {
+    expect(isNewer('2021-07-25', row('a', '2021-07-25', '2021-05-06'))).toBe(false);
+  });
+
+  it('takes a verified republication newer than the last form seen as known', () => {
+    expect(isNewer('2022-04-06', row('hg-1048-2006', '2022-01-11', '2022-04-06'))).toBe(false);
+    expect(isNewer('2022-05-01', row('hg-1048-2006', '2022-01-11', '2022-04-06'))).toBe(true);
+  });
+
+  it('reports the first consolidation of an act read before as never consolidated', () => {
+    expect(isNewer('2026-11-06', row('a', null, null, '2026-11-05T03:17:00Z'))).toBe(true);
   });
 
   it('has nothing to compare for an act never consolidated', () => {
@@ -146,7 +165,7 @@ describe('checking the watched acts', () => {
   });
 
   it('records a change once, however often it runs', async () => {
-    const { db } = database([row(law.id, '2021-07-25', '2021-05-06')], { changeExists: true });
+    const { db } = database([row(law.id, '2021-05-06')], { changeExists: true });
     const outcomes = await checkLegislation(db, [law], {
       readAct: async (portalId) => portalAct(portalId, '2021-07-25'),
       pauseMs: 0,

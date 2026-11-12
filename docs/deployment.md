@@ -305,7 +305,8 @@ no `workers.dev` address. Wrangler creates the hostname's DNS record and certifi
 as for `api.ssmusor.ro`, with the same token's **Zone → Workers Routes → Edit**; do not create
 a record for it by hand.
 
-It reads every watched act on the Portal Legislativ, records newer consolidated forms, and
+It reads every watched act on the Portal Legislativ, records newer consolidated forms, assesses
+each against the form the templates were verified against, resolves those with no impact, and
 logs each run in `legal_check_runs` ([data model](data-model.md#legislation)). The portal
 refuses requests from Cloudflare's network, so the Worker reads it through a relay on
 Mircea's home server, reached through his Cloudflare Tunnel at
@@ -342,7 +343,12 @@ since the Worker refuses to send the token to the portal itself.
 A run takes about four minutes, most of it the two-second pause between requests to the
 portal; that is wall time, which a cron invocation may spend up to fifteen minutes of, while
 the 30-second CPU limit counts only the parsing. It makes about two hundred subrequests, within
-the Workers Paid limit.
+the Workers Paid limit. Assessing a change reads two forms of the act in full, three to six
+more requests through the relay, among them earlier forms' pages
+(`/Public/DetaliiDocument/<id>`, a republication's with the query `?isFormaDeBaza=True`) and
+full texts (`/Public/DetaliiDocumentAfis/<id>`). The largest, the Fiscal Code's two texts of
+7.6 MB each, took 0.3–0.4 s of CPU and under 60 MB of heap to compare, measured in Node on
+2026-11-13, so the default limits hold and `wrangler.jsonc` sets none.
 
 A failed run shows four ways: the row in `legal_check_runs` says `failed`, with one error per
 act it could not read; the invocation is marked failed under the Worker's **Cron Events** in
@@ -356,9 +362,14 @@ Each environment's Worker posts to its own Discord channel, `#legislatie-prod` a
 `#legislatie-non-prod`, through the GitHub environment secret `DISCORD_LEGISLATION_WEBHOOK`
 ([ADR 017](architecture/adr-017-legislation-monitoring.md)). The deploy job uploads it when it is
 set and warns without it; nothing is then posted and the check runs as usual. A run, by the
-cron or by hand, posts the changes it records, ten to a message, each with the act, its new
-consolidated form, the amending act and the act's page on the portal, and a failed run with the
-acts it could not read. Every cron run, before it starts and also on a morning it skips, looks
+cron or by hand, posts the changes it assesses, new or recorded on an earlier day, ten to a
+message, each with the act, its new consolidated form, the form it was compared with, the
+outcome, the amending acts, the amended units and the act's page on the portal. After it, a post
+for each change gives the law's old and new text of every unit a template quotes that changed,
+only the changed words with a few around them for a long unit, with the templates that quote it,
+and the reasons to review. The changes resolved as no impact are one post, a line each. A new
+change that could not be assessed is posted as such, and a failed run with the acts it could not
+read, ten at most. Every cron run, before it starts and also on a morning it skips, looks
 for the last successful run and warns when none started in the last two days, so a run the
 platform cut off is reported the next morning. A cron that never fires posts nothing. The
 messages are in English and carry legislation only, no personal or client data. To set it up,

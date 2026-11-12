@@ -41,6 +41,18 @@ describe('reading an act page of the Portal Legislativ', () => {
     expect(page.consolidations).toEqual(['2022-03-07', '2016-10-21', '2011-12-27', '2010-09-27']);
   });
 
+  it('counts a republication among the forms, as H.G. 1048/2006 was republished last', () => {
+    const page = lawPage.replace(
+      "<a title='Consolidarea din 25.07.2021'",
+      "<a title='Republicarea din 06.04.2022' style='color:red'>Republicarea 1</a>" +
+        "<a title='Consolidarea din 25.07.2021'"
+    );
+    expect(parseActPage(page, 73772).consolidations.slice(0, 2)).toEqual([
+      '2022-04-06',
+      '2021-07-25',
+    ]);
+  });
+
   it('reads an act never consolidated, whose page has no "Forme act" section', () => {
     expect(parseActPage(fixture('lege-459-2001.html'), 29843)).toEqual({
       title: 'LEGE nr. 459 din 18 iulie 2001',

@@ -4,7 +4,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { parseArgs } from 'node:util';
 
-import { legalActs } from '@ssm-usor/document-engine/citations';
+import { citationIndex, legalActs } from '@ssm-usor/document-engine/citations';
 import {
   createLegislationClient,
   describeRun,
@@ -50,7 +50,7 @@ try {
       : { acts: legalActs() }
   );
   const portal = portalOptionsFromEnv(process.env);
-  const run = await runLegislationCheck(client, acts, { portal });
+  const run = await runLegislationCheck(client, acts, { portal, citations: citationIndex() });
   console.log(describeRun(run));
   console.log(
     `Checked against ${new URL(config.url).hostname}${portal.origin ? `, through ${new URL(portal.origin).hostname}` : ''}.`
