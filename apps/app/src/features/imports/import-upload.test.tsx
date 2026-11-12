@@ -372,6 +372,89 @@ describe('starting an import from the client list', () => {
   });
 });
 
+describe('files the API skips as copies of others in the import', () => {
+  function mockImportApiSkipping(registeredBefore: { sha256: string; uploadPath: string }[] = []) {
+    mockImportApi();
+    const answer = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (input, init) => {
+      if (new URL(String(input)).pathname !== `/imports/${importId}/files`) {
+        return answer(input, init);
+      }
+      const { files } = JSON.parse(String(init?.body)) as {
+        files: { uploadPath: string; sha256: string }[];
+      };
+      const kept = new Map(registeredBefore.map((file) => [file.sha256, file.uploadPath]));
+      const registered = [];
+      const skipped = [];
+      for (const file of files) {
+        const duplicateOf = kept.get(file.sha256);
+        if (duplicateOf) {
+          skipped.push({ uploadPath: file.uploadPath, duplicateOf });
+          continue;
+        }
+        kept.set(file.sha256, file.uploadPath);
+        registered.push({
+          id: `f0000000-0000-4000-8000-${String(registered.length + 1).padStart(12, '0')}`,
+          uploadPath: file.uploadPath,
+          bucket: 'imports',
+          storagePath: `org/${importId}/${registered.length + 1}`,
+        });
+      }
+      return Response.json({ files: registered, skipped }, { status: 201 });
+    });
+  }
+
+  it('uploads only the files registered, and starts', async () => {
+    mockImportApiSkipping();
+    const runtime = await uploadFrom('/clienti', [
+      new File(['%PDF decizie'], 'Decizie.pdf', { type: 'application/pdf' }),
+      new File(['%PDF decizie'], 'Decizie (1).pdf', { type: 'application/pdf' }),
+      new File(['%PDF plan'], 'Plan.pdf', { type: 'application/pdf' }),
+    ]);
+
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe(`/clienti/import/${importId}`)
+    );
+    expect(vi.mocked(uploadImportObject).mock.calls.map(([path]) => path)).toEqual([
+      `org/${importId}/1`,
+      `org/${importId}/2`,
+    ]);
+    expect(requestsTo(`/imports/${importId}/start`, 'POST')).toHaveLength(1);
+  });
+
+  it('starts without uploading when every file is a copy of one the import holds', async () => {
+    const bytes = new TextEncoder().encode('%PDF decizie');
+    const sha256 = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))]
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('');
+    mockImportApiSkipping([{ sha256, uploadPath: 'Dosar/Decizie.pdf' }]);
+    const runtime = await uploadFrom('/clienti', [
+      new File([bytes], 'Decizie.pdf', { type: 'application/pdf' }),
+    ]);
+
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe(`/clienti/import/${importId}`)
+    );
+    expect(vi.mocked(uploadImportObject)).not.toHaveBeenCalled();
+    expect(requestsTo(`/imports/${importId}/start`, 'POST')).toHaveLength(1);
+  });
+
+  it('offers no reading without the failed files when the only one registered did not go up', async () => {
+    mockImportApiSkipping();
+    vi.mocked(uploadImportObject).mockImplementation(async (path) => {
+      if (path === `org/${importId}/1`) throw new Error('Network down');
+    });
+    await uploadFrom('/clienti', [
+      new File(['%PDF decizie'], 'Decizie.pdf', { type: 'application/pdf' }),
+      new File(['%PDF decizie'], 'Decizie (1).pdf', { type: 'application/pdf' }),
+    ]);
+
+    const stalled = await screen.findByTestId('import-upload-stalled');
+    expect(stalled.textContent).toContain('Niciun fișier nu s-a încărcat.');
+    expect(within(stalled).queryByRole('button', { name: 'Citește fără ele' })).toBeNull();
+  });
+});
+
 describe('an upload that does not go through', () => {
   it('lets go of an import none of whose files went up', async () => {
     mockImportApi();

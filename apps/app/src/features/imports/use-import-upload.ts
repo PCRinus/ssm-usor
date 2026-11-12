@@ -209,7 +209,6 @@ export function useImportUpload(
   ) {
     if (!choosingSteps.has(phase.step)) return;
     abandoned.current = false;
-    fileCount.current = chosen.length;
     try {
       const files = kind === 'employees' ? await shrink(chosen) : chosen;
       if (abandoned.current) return;
@@ -256,8 +255,12 @@ export function useImportUpload(
           apiRequest
         );
         const byPath = new Map(registered.files.map((each) => [each.uploadPath, each.storagePath]));
-        for (const file of batch) jobs.push({ file, storagePath: byPath.get(file.path)! });
+        for (const file of batch) {
+          const storagePath = byPath.get(file.path);
+          if (storagePath) jobs.push({ file, storagePath });
+        }
       }
+      fileCount.current = jobs.length;
       void queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() });
       if (jobs.length === 0) await start(id);
       else await send(id, jobs);
