@@ -14,7 +14,15 @@ import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Pencil } from 'lucide-react';
-import { type FormEvent, type KeyboardEvent, type ReactNode, useState } from 'react';
+import {
+  type ComponentProps,
+  type FormEvent,
+  type KeyboardEvent,
+  type ReactNode,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
@@ -36,6 +44,7 @@ import {
   type ReviewContext,
   withField,
 } from './employee-review-model';
+import { dialogRowsFor } from './person-dialog-rows';
 import { PhotoNumber } from './person-photos';
 import {
   compareWithApp,
@@ -254,42 +263,6 @@ const lengthLimits: Partial<Record<FieldName, number>> = {
   commuteRoute: 1000,
 };
 
-type DialogRow =
-  | { full: FieldName }
-  | { half: FieldName }
-  | { pair: readonly [FieldName, FieldName]; onPhone?: 'paired' };
-
-const dialogRows: readonly DialogRow[] = [
-  { pair: ['lastName', 'firstName'] },
-  { pair: ['cnp', 'birthDate'] },
-  { full: 'birthPlace' },
-  { full: 'homeAddress' },
-  { full: 'education' },
-  { full: 'qualification' },
-  { full: 'jobTitle' },
-  { pair: ['hiredAt', 'leftOn'] },
-  { half: 'employeeNumber' },
-  { pair: ['bloodGroup', 'rhFactor'], onPhone: 'paired' },
-  { full: 'commuteRoute' },
-  { half: 'commuteMinutes' },
-];
-
-function dialogRowsFor(names: readonly FieldName[]): DialogRow[] {
-  const wanted = new Set(names);
-  const rows: DialogRow[] = [];
-  for (const row of dialogRows) {
-    if (!('pair' in row)) {
-      const name = 'full' in row ? row.full : row.half;
-      if (wanted.delete(name)) rows.push(row);
-      continue;
-    }
-    const kept = row.pair.filter((name) => wanted.delete(name));
-    if (kept.length === 2) rows.push(row);
-    else if (kept[0]) rows.push({ half: kept[0] });
-  }
-  return [...rows, ...[...wanted].map((name) => ({ full: name }))];
-}
-
 const wrappingFields = new Set<FieldName>(['homeAddress', 'jobTitle', 'commuteRoute']);
 
 // Enter saves and a pasted line break becomes a space: these values print inside sentences and
@@ -300,6 +273,39 @@ function submitOnEnter(event: KeyboardEvent<HTMLTextAreaElement>) {
   if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
   event.preventDefault();
   event.currentTarget.form?.requestSubmit();
+}
+
+function OneLineTextarea({
+  onChange,
+  ...props
+}: Omit<ComponentProps<typeof Textarea>, 'onChange' | 'size'> & {
+  onChange: (value: string) => void;
+}) {
+  const box = useRef<HTMLTextAreaElement>(null);
+  const caret = useRef<number | null>(null);
+  // Rewriting a controlled value moves the caret to the end, so it is put back where the typed or
+  // pasted text ended.
+  useLayoutEffect(() => {
+    if (caret.current === null || !box.current) return;
+    box.current.setSelectionRange(caret.current, caret.current);
+    caret.current = null;
+  });
+  return (
+    <Textarea
+      {...props}
+      ref={box}
+      size="line"
+      onKeyDown={submitOnEnter}
+      onChange={(event) => {
+        const written = event.target.value;
+        const value = oneLine(written);
+        if (value !== written) {
+          caret.current = oneLine(written.slice(0, event.target.selectionEnd)).length;
+        }
+        onChange(value);
+      }}
+    />
+  );
 }
 
 export function FieldInput({
@@ -358,20 +364,19 @@ export function FieldInput({
   }
   if (multiline && wrappingFields.has(name)) {
     return (
-      <Textarea
+      <OneLineTextarea
         id={id}
-        size="line"
         value={value}
         maxLength={lengthLimits[name]}
         aria-invalid={invalid}
         aria-describedby={describedBy}
         autoFocus={autoFocus}
         className={className}
-        onKeyDown={submitOnEnter}
-        onChange={(event) => onChange(oneLine(event.target.value))}
+        onChange={onChange}
       />
     );
   }
+  const unitId = `${id}-unit`;
   const input = (
     <Input
       id={id}
@@ -379,7 +384,9 @@ export function FieldInput({
       inputMode={name === 'commuteMinutes' || name === 'cnp' ? 'numeric' : undefined}
       maxLength={lengthLimits[name]}
       aria-invalid={invalid}
-      aria-describedby={describedBy}
+      aria-describedby={
+        name === 'commuteMinutes' ? [unitId, describedBy].filter(Boolean).join(' ') : describedBy
+      }
       autoFocus={autoFocus}
       className={name === 'commuteMinutes' ? 'pr-12' : className}
       onChange={(event) => onChange(event.target.value)}
@@ -389,7 +396,9 @@ export function FieldInput({
   return (
     <div className={cn('relative', className)}>
       {input}
+      {/* aria-describedby still reads hidden text, so the unit is announced once, with the field. */}
       <span
+        id={unitId}
         aria-hidden="true"
         className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground"
       >

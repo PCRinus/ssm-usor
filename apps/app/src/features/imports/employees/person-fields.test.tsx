@@ -1,11 +1,12 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { employeeProposal } from '@/test/employee-import-fixture';
 
 import { emptyChanges, type Proposal, statesOf } from './employee-review-model';
+import { dialogRowsFor } from './person-dialog-rows';
 import { PersonData } from './person-fields';
 
 const proposal = employeeProposal() as unknown as Proposal;
@@ -44,6 +45,20 @@ const rows = () =>
 async function open(user: ReturnType<typeof userEvent.setup>, label: string) {
   await user.click(screen.getByRole('button', { name: label }));
 }
+
+describe('the rows of a dialog with only some of the fields', () => {
+  it('keeps the canonical order, halves a pair that lost its partner and puts the unknown last', () => {
+    expect(dialogRowsFor(['workplace', 'hiredAt', 'homeAddress', 'firstName'])).toEqual([
+      { half: 'firstName' },
+      { full: 'homeAddress' },
+      { half: 'hiredAt' },
+      { full: 'workplace' },
+    ]);
+    expect(dialogRowsFor(['rhFactor', 'bloodGroup'])).toEqual([
+      { pair: ['bloodGroup', 'rhFactor'], onPhone: 'paired' },
+    ]);
+  });
+});
 
 describe('the dialogs that correct the data read from the sheets', () => {
   it('lays each group out in its own rows, pairing the short fields', async () => {
@@ -131,14 +146,76 @@ describe('the dialogs that correct the data read from the sheets', () => {
     const user = userEvent.setup();
     render(<Data />);
     await open(user, 'Modifică datele medicale și celelalte');
+    const minutes = screen.getByLabelText(/^Durata drumului/);
 
-    await user.type(screen.getByLabelText(/^Durata drumului/), '900');
+    await user.type(minutes, '900');
     await user.click(screen.getByLabelText(/^Traseul spre locul de muncă/));
     await user.keyboard('{Enter}');
+    expect(screen.getByTestId('person-fields-dialog')).toBeTruthy();
     expect(within(dialog()).getByRole('alert').textContent).toBe(
       'Scrie un număr de minute între 1 și 600.'
     );
     expect(written()).toBeNull();
+
+    await user.clear(minutes);
+    await user.type(minutes, '45');
+    await user.click(screen.getByLabelText(/^Traseul spre locul de muncă/));
+    await user.keyboard('{Enter}');
+    expect(screen.queryByTestId('person-fields-dialog')).toBeNull();
+    expect(written()).toEqual({ commuteMinutes: { value: 45 } });
+  });
+
+  it('keeps the caret where a pasted text ends when its line breaks become spaces', async () => {
+    const user = userEvent.setup();
+    render(<Data />);
+    await open(user, 'Modifică datele personale');
+    const address = screen.getByLabelText<HTMLTextAreaElement>(/^Domiciliul/);
+
+    await user.type(address, 'Timișoara, nr. 81');
+    address.setSelectionRange(10, 10);
+    await user.paste('\n str. Ardealului,\n');
+    expect(address.value).toBe('Timișoara, str. Ardealului, nr. 81');
+    expect(address.selectionStart).toBe('Timișoara, str. Ardealului, '.length);
+    expect(address.selectionEnd).toBe('Timișoara, str. Ardealului, '.length);
+  });
+
+  it('sizes the wrapping fields to their text where the browser cannot', async () => {
+    vi.stubGlobal('CSS', { supports: () => false });
+    const scrollHeight = vi
+      .spyOn(HTMLTextAreaElement.prototype, 'scrollHeight', 'get')
+      .mockImplementation(function (this: HTMLTextAreaElement) {
+        return this.value.length > 30 ? 62 : 42;
+      });
+    try {
+      const user = userEvent.setup();
+      render(<Data />);
+      await open(user, 'Modifică datele personale');
+      const address = screen.getByLabelText<HTMLTextAreaElement>(/^Domiciliul/);
+      expect(address.rows).toBe(1);
+      expect(address.style.height).toBe('42px');
+
+      await user.type(address, 'Mun. Timișoara, jud. Timiș, str. Ardealului, nr. 81');
+      expect(address.style.height).toBe('62px');
+    } finally {
+      scrollHeight.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('names the minutes unit with the travel time, beside its error when there is one', async () => {
+    const user = userEvent.setup();
+    render(<Data />);
+    await open(user, 'Modifică datele medicale și celelalte');
+    const minutes = screen.getByLabelText(/^Durata drumului/);
+    const described = () =>
+      minutes
+        .getAttribute('aria-describedby')!
+        .split(' ')
+        .map((id) => document.getElementById(id)!.textContent);
+
+    expect(described()).toEqual(['min']);
+    await user.type(minutes, '900');
+    expect(described()).toEqual(['min', 'Scrie un număr de minute între 1 și 600.']);
   });
 
   it('opens on the field whose row was clicked', async () => {
