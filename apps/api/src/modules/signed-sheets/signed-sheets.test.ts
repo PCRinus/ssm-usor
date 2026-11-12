@@ -4,6 +4,7 @@ import {
   type TrainingDomain,
   transcriptionLineField,
 } from '@ssm-usor/contracts';
+import { strToU8, zipSync } from 'fflate';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '../../lib/errors';
@@ -224,6 +225,8 @@ const pdf: PdfConverter = {
 let memory: MemoryStore;
 let files: Map<string, Uint8Array>;
 let drawn: TrainingSheetData[];
+let templateFields: string;
+const transcribingTemplate = `<w:alias w:val="${transcriptionLineField}"/><w:alias w:val="p1_note"/>`;
 let ctx: SignedSheetContext;
 
 beforeEach(() => {
@@ -231,6 +234,7 @@ beforeEach(() => {
   memory = new MemoryStore();
   files = new Map();
   drawn = [];
+  templateFields = transcribingTemplate;
   ctx = {
     store: memory,
     files: {
@@ -249,7 +253,7 @@ beforeEach(() => {
     sheetFacts: async () => sheetFacts,
     drawForm: async (_domain, data) => {
       drawn.push(data);
-      return encode('docx');
+      return zipSync({ 'word/document.xml': strToU8(templateFields) });
     },
     now: () => new Date('2026-10-18T10:00:00Z'),
   };
@@ -532,6 +536,29 @@ describe('placeRecord', () => {
     const values = signer.fillFields.mock.calls[0]![1];
     expect(values).toMatchObject({ p1_note: 'semnat pe hârtie' });
     expect(values).not.toHaveProperty(transcriptionLineField);
+  });
+
+  it('keeps a sheet drawn from a template registered before the transcription form as the earlier form, for good', async () => {
+    templateFields = '<w:alias w:val="p1_note"/>';
+    add(sheetRecord('periodic', '2026-04-01'));
+    const sheet = await ensureSignedSheet(ctx, employeeId, 'ssm');
+    expect(sheet.form).toBe(1);
+
+    templateFields = transcribingTemplate;
+    signer.fillFields.mockClear();
+    const late = add(sheetRecord('periodic', '2024-04-03', { source: 'paper' }));
+    await placeRecord(ctx, late.id);
+    const values = signer.fillFields.mock.calls[0]![1];
+    expect(values).toMatchObject({ p2_note: 'semnat pe hârtie' });
+    expect(values).not.toHaveProperty(transcriptionLineField);
+  });
+
+  it('fills no line on a sheet with paper rows drawn from a template without its field', async () => {
+    templateFields = '<w:alias w:val="p1_note"/>';
+    add(sheetRecord('periodic', '2025-04-01', { source: 'paper' }));
+    const sheet = await ensureSignedSheet(ctx, employeeId, 'ssm');
+    expect(sheet.form).toBe(1);
+    expect(signer.fillFields).not.toHaveBeenCalled();
   });
 
   it('frees the row again when the fill fails', async () => {

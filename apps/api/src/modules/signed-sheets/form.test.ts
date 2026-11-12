@@ -14,11 +14,13 @@ import { describe, expect, it } from 'vitest';
 import { transcribedNote, transcriptionLine } from '../trainings/sheet';
 import {
   continuationLine,
+  drawnSheetForm,
   materialPlaceholder,
   printedSheets,
   resultRowValues,
   rowKindOf,
   rowValues,
+  sheetForms,
   signatureFieldsOf,
   signedOn,
   signedSheetData,
@@ -289,6 +291,7 @@ describe.each(['ssm', 'su'] as const)('the %s template', (domain) => {
       }),
     ];
     expect([...titles].sort()).toEqual([...expected].sort());
+    expect(drawnSheetForm(docx)).toBe(sheetForms.transcribing);
     expect(signatureFieldsOf(domain, []).every((name) => titles.includes(name))).toBe(true);
   });
 });

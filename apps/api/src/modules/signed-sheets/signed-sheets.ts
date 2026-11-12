@@ -35,13 +35,14 @@ import {
 } from '../trainings/sheet';
 import { loadSheetFacts } from '../trainings/sheet-handlers';
 import {
-  currentSheetForm,
+  drawnSheetForm,
   type HiringMaterials,
   type PrintedRow,
   printedSheets,
   resultRowValues,
   rowKindOf,
   rowValues,
+  sheetForms,
   type SheetTrainingRecord,
   signatureFieldsOf,
   signatureReason,
@@ -273,12 +274,13 @@ async function createSheet(
     domain,
     signedSheetData(facts, domain, sequence, printed, materials)
   );
+  const form = drawnSheetForm(docx);
   const pdf = await need(ctx.pdf, pdfUnavailable).convertForm(docx);
   const signer = need(ctx.signer, signerUnavailable);
   let prepared = new Uint8Array(
     await signer.prepareSheet(buffer(pdf), signatureFieldsOf(domain, printed))
   );
-  if (printed.length > 0) {
+  if (printed.length > 0 && form >= sheetForms.transcribing) {
     prepared = new Uint8Array(
       await signer.fillFields(buffer(prepared), {
         [transcriptionLineField]: transcriptionLine,
@@ -304,7 +306,7 @@ async function createSheet(
     digest: await sha256(prepared),
     rowCapacity: rowCapacity(domain),
     rowsUsed: Math.max(0, ...periodic),
-    form: currentSheetForm,
+    form,
   });
   if (!sheet) {
     await forget(ctx, path);

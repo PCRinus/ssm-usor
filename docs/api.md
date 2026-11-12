@@ -1823,8 +1823,10 @@ record of the domain then takes the next rows as filled fields, the hiring block
 newest training of each phase; a record nobody is asked to sign electronically prints _semnat pe
 hârtie_ in its note, and a record from paper _transcris; semnat pe hârtie_ with the line on
 transcribed rows under the title ([ADR 042](architecture/adr-042-paper-history-as-written.md)),
-on a sheet of `form_version` 2; a sheet stored before keeps _semnat pe hârtie_ for both. A record of an employee with a sheet takes its row when a training is saved,
-or at its first signature. A row is filled again, when the values it was last filled with
+on a sheet of `form_version` 2. The form is the one the sheet was drawn from, read from the
+registered template the draw used (`drawnSheetForm`), so a sheet drawn from a template registered
+before keeps _semnat pe hârtie_ for both, for good. A record of an employee with a sheet takes its
+row when a training is saved, or at its first signature. A row is filled again, when the values it was last filled with
 (`filled_digest`) differ from the record's, only while no live electronic signature made since
 the row was taken holds it; the signer refuses to fill a field a signature locks
 (`locked_field`), which is taken as the row filled when another write filled it with these values

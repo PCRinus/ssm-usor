@@ -20,7 +20,7 @@ export type StoredSheet = {
   rowsUsed: number;
   certifiedAt: string | null;
   createdAt: string;
-  /** The template form it was drawn from (`currentSheetForm`), which rows filled later follow. */
+  /** The template form it was drawn from (`sheetForms`), which rows filled later follow. */
   form: number;
 };
 

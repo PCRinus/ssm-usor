@@ -13,6 +13,7 @@ import {
   type TrainingPhase,
   transcriptionLineField,
 } from '@ssm-usor/contracts';
+import { unzipSync } from 'fflate';
 
 import { printedDate } from '../documents/context';
 import {
@@ -41,12 +42,22 @@ export const signedByHand = 'semnat pe hârtie';
 export const voidedNote = 'anulat';
 
 /**
- * The template form a stored sheet is drawn from, kept with it: 2 carries the field for the line on
- * transcribed rows and two lines of note in each table row (ADR 042). A sheet drawn up before
- * prints its paper rows filled later as it printed its own, with `signedByHand`.
+ * The template forms a stored sheet can be drawn from, kept with it: `transcribing` carries the
+ * field for the line on transcribed rows and two lines of note in each table row (ADR 042). A
+ * sheet drawn from an earlier template prints its paper rows filled later as it printed its own,
+ * with `signedByHand`.
  */
-export const currentSheetForm = 2;
-const transcribingForm = 2;
+export const sheetForms = { plain: 1, transcribing: 2 } as const;
+
+// The template is the registered one, which a deployment registers apart from the API's code, so
+// the form is read from what was drawn and never assumed from the code.
+export function drawnSheetForm(docx: Uint8Array): number {
+  const xml = unzipSync(docx, { filter: (file) => file.name === 'word/document.xml' })[
+    'word/document.xml'
+  ];
+  const drawn = xml && new TextDecoder().decode(xml).includes(`w:val="${transcriptionLineField}"`);
+  return drawn ? sheetForms.transcribing : sheetForms.plain;
+}
 
 export function rowKindOf(domain: TrainingDomain, phase: TrainingPhase): 'h1' | 'h2' | SheetTable {
   switch (phase) {
@@ -209,14 +220,16 @@ function boxed(values: Record<string, string>, boxes: Record<string, Box>, rowKe
 }
 
 function noteOf(record: SheetTrainingRecord, byHand: boolean, form: number) {
-  if (record.source === 'paper') return form >= transcribingForm ? transcribedNote : signedByHand;
+  if (record.source === 'paper') {
+    return form >= sheetForms.transcribing ? transcribedNote : signedByHand;
+  }
   return byHand ? signedByHand : '';
 }
 
 /**
  * `place` is the employee's place of work, which the workplace training prints. `byHand` is true
  * when nobody is asked to sign the record electronically, which the note then says. `form` is the
- * sheet's (`currentSheetForm`): on one that transcribes, a record from paper also fills the line on
+ * sheet's (`sheetForms`): on one that transcribes, a record from paper also fills the line on
  * transcribed rows.
  */
 export function rowValues(
@@ -224,14 +237,17 @@ export function rowValues(
   rowKey: SheetRowKey,
   record: SheetTrainingRecord,
   place: string,
-  { byHand = false, form = currentSheetForm }: { byHand?: boolean; form?: number } = {}
+  {
+    byHand = false,
+    form = sheetForms.transcribing as number,
+  }: { byHand?: boolean; form?: number } = {}
 ): Record<string, string> {
   const { training } = record;
   const table = tableRowOf(rowKey);
   const text = noteOf(record, byHand, form);
   const note = {
-    [`${rowKey}_note`]: table && form >= transcribingForm ? wrapToBox(text, noteBox) : text,
-    ...(record.source === 'paper' && form >= transcribingForm
+    [`${rowKey}_note`]: table && form >= sheetForms.transcribing ? wrapToBox(text, noteBox) : text,
+    ...(record.source === 'paper' && form >= sheetForms.transcribing
       ? { [transcriptionLineField]: transcriptionLine }
       : {}),
   };

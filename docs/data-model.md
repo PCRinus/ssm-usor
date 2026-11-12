@@ -2230,7 +2230,7 @@ typed.
 `storage_path` (starting with the organization, `signed_sheets_path_in_organization`, not valid
 for the older sheets stored under `signed-sheets/`), the `digest` (SHA-256, hex) and
 `version` of the current bytes, the `row_capacity` of periodic rows and the `rows_used`, the highest `p` row taken (a voided row's key is never
-reused), `certified_at` from its first signature, and `form_version`, the template form it was drawn from: 2 from [ADR 042](architecture/adr-042-paper-history-as-written.md), with the field for the line on transcribed rows and two lines of note per table row, 1 for every sheet stored before, whose rows filled later keep the old note _semnat pe hârtie_ and fill no line. `signed_sheet_rows` says which
+reused), `certified_at` from its first signature, and `form_version`, the template form it was drawn from: 2 from [ADR 042](architecture/adr-042-paper-history-as-written.md), with the field for the line on transcribed rows and two lines of note per table row, 1 for every sheet stored before and for one drawn from a template without that field, whose rows filled later keep the old note _semnat pe hârtie_ and fill no line; the API reads it from what it drew, never from its own code. `signed_sheet_rows` says which
 `training_record_id` fills which `row_key` of a sheet: `h1` and `h2` for the hiring trainings, `adm`
 for the admission, `p1` and onward for the periodic rows, and `s1` and onward for the occupational
 safety sheet's supplementary table; one row per key and sheet, and one live row per record,
