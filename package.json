@@ -55,6 +55,7 @@
     "templates:register:local": "pnpm --filter @ssm-usor/api templates:register:local",
     "legislation:check": "pnpm --filter @ssm-usor/api legislation:check",
     "legislation:check:local": "pnpm --filter @ssm-usor/api legislation:check:local",
+    "legislation:verify-quotes": "pnpm --filter @ssm-usor/api legislation:verify-quotes",
     "legislation:cron": "pnpm --filter @ssm-usor/legislation start",
     "generate:db": "supabase gen types typescript --local --schema public > apps/api/src/database.types.ts && prettier --write apps/api/src/database.types.ts",
     "supabase:test": "supabase test db",
