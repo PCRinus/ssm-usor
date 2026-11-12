@@ -65,7 +65,7 @@ The text comparison in step 2 decides whether a change touches the documents; th
 - **Quote differs**: a quoted passage differs from the current text after spacing, the portal's missing diacritics, cedilla letters, superscripts and our act names are normalized. The job stores the template's passage and the current one.
 - **Needs review**: an article the templates refer to without quoting was amended.
 
-Quotes are compared with the current text itself, not only through the notes, so drift without a note is caught too. For a quote, the reference is the template's own text, which is the same in every environment. The form each act was verified against is recorded by a migration, so a new or wiped environment starts from the same forms instead of from whatever it sees first.
+The comparison is of the law with itself. The portal keeps every earlier consolidated form as a page of its own, linked from the act's history. On a change, the job compares the form the templates were verified against with the new one, for the units we cite. Both sides are the portal's text, so the comparison is exact, punctuation included. Comparing the templates with the current law was tried first and rejected: across 25 acts, 84 quotes differed from today's text. Some were the provider's rewording ("Prezenta hotărâre" spelled out as the act's title, merged or renumbered articles), some were quotes adapted with merge fields, and some were markers naming more of an article than they quote. Only a handful were real drift. Every later change of those acts would have come back as a differing quote. The form each act was verified against is recorded by a migration, so a new or wiped environment starts from the same forms instead of from whatever it sees first.
 
 **Notifications go to Discord, for the platform admin.** Each environment's Worker posts to its own channel, `#legislatie-prod` and `#legislatie-non-prod`. The second shows any drift between the two analyses and can be retired. It posts:
 
@@ -78,14 +78,16 @@ The webhook is the secret `DISCORD_LEGISLATION_WEBHOOK` of each environment. Leg
 
 **The fix is a GitHub Action, not the Worker.** `legislation-fix.yml` runs daily after production's run, and by hand. It reads production's open changes whose quote differs. Only production's changes open pull requests: the templates are shared, and non-prod's detections serve the drift comparison. For each change it:
 
-- replaces the passages with the engine's tool. The tool keeps the template's conventions (its diacritics, act names, quote marks and superscripts) and changes the copies `copied-passages.json` lists too;
+- applies the law's own change, old words → new words, to the template's passage with the engine's tool, and only where the passage still holds the old words. The provider's rewording and the merge fields around the change survive. The tool keeps the template's conventions (its diacritics, act names, quote marks and superscripts) and changes the copies `copied-passages.json` lists too;
 - regenerates the citation index;
 - writes the template's manifest change `{ kind: 'legal', note, resolves: { act, consolidatedOn } }`;
 - asks a model through the AI Gateway for the note and for a reading of the template's own sentences that restate the changed rule;
 - opens the pull request with a GitHub App's token, since one opened with the Action's own token starts no CI;
 - posts the replacements and the link to Discord.
 
-The Action needs no portal access: the Worker stored the current text. The Worker holds no GitHub token. The amendment above put the pull request in the Worker because a Worker can edit Word XML, which is still true. But the Action has the repository, its tools and its tests, and a schedule's delay does not matter for a fix that waits for a review anyway. A change whose passages cannot be replaced opens an issue instead, and so does a change that needs review.
+The Action needs no portal access: the Worker stored the current text. The Worker holds no GitHub token. The amendment above put the pull request in the Worker because a Worker can edit Word XML, which is still true. But the Action has the repository, its tools and its tests, and a schedule's delay does not matter for a fix that waits for a review anyway. A change whose old words are not in our passage opens an issue instead, and so does a change that needs review.
+
+**The drift that exists is fixed once, by hand.** The comparison of every quote with the current law, kept as the script `legislation:verify-quotes`, gave the list of 84 for a one-time review. That review brings the real drift up to date. It narrows markers that name more than they quote, and it keeps the provider's rewording and the adapted quotes. The provider signs off on the review's pull request. After it, every act's verified form is its current one.
 
 **The merge is the sign-off, and registration resolves.** A person reads the replacements, in Discord or the pull request, and merges. Registration links the new version to its change by act and consolidation date in each environment, since a change's id differs between environments, and resolves it. An environment that never recorded the change gets it recorded as resolved.
 
@@ -137,13 +139,14 @@ Regenerating a document type for every client behind it is one action on the pag
 5. The watched acts, legal changes and run log in the database; the legislation Worker's daily check, with the run log as its alert; the verification dates once the content issues close.
 6. The Legislație page, read-only, with the documents behind.
 7. The queue and bulk regeneration from the page.
-8. The resolution steps of the Worker: the text comparison, the model's proposal, the pull request and the issue it falls back to. (Amended 2026-11-12, replaced by 8a–8f.)
-   1. Reading the full text and the portal's notes, the comparison with the index, and a check of every quote against today's text.
-   2. The engine's tool that replaces a quoted passage in a template and its copies.
-   3. The outcome and passages stored per change, verified forms recorded for every act, and changes with no impact resolved by the Worker.
-   4. Discord messages from the Worker, per environment.
-   5. The admin area's Legislație page.
-   6. `legislation-fix.yml`: the replacement, the model's note and reading, the pull request and its Discord message, and the registration that links a version to its change. Its first run answers O.U.G. 195/2002 art. 36 alin. (2).
+8. The resolution steps of the Worker: the text comparison, the model's proposal, the pull request and the issue it falls back to. (Amended 2026-11-12, replaced by 8a–8g.)
+   1. Reading the full text, earlier forms and the portal's notes; the comparison of two forms for the units the index cites; a check of every quote against today's text.
+   2. The engine's tool that applies a law's change to a quoted passage in a template and its copies.
+   3. The one-time review of the quotes that differ from today's law.
+   4. The outcome and passages stored per change, verified forms recorded for every act, and changes with no impact resolved by the Worker.
+   5. Discord messages from the Worker, per environment.
+   6. The admin area's Legislație page.
+   7. `legislation-fix.yml`: the replacement, the model's note and reading, the pull request and its Discord message, and the registration that links a version to its change. Its first run answers O.U.G. 195/2002 art. 36 alin. (2).
 
 ## Open
 
