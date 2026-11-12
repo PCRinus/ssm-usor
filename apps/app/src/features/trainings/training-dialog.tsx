@@ -72,7 +72,7 @@ import {
   trainingFormSchema,
   type TrainingFormValues,
 } from './training-form-schema';
-import { trainingSourceLabels } from './training-format';
+import { notOnSheet, trainingSourceLabels } from './training-format';
 import { type CurrentEmployee, invalidateTrainings, useCurrentEmployees } from './training-queries';
 
 export type TrainingDialogTarget =
@@ -407,6 +407,7 @@ function TrainingForm({
     );
   };
   const signing = source === 'app';
+  const fromPaper = source === 'paper';
 
   const position = positions.find((item) => item.id === jobPositionId);
   const options: AttendeeOption[] = attendeeOptions(employees, phase, jobPositionId).map(
@@ -734,13 +735,14 @@ function TrainingForm({
           <Field
             id="training-duration"
             label="Durata (minute)"
-            mark="required"
+            mark={fromPaper ? 'optional' : 'required'}
             hint={durationHint}
             error={errors.durationMinutes}
           >
             <Input
               id="training-duration"
               data-testid="training-duration"
+              placeholder={fromPaper ? notOnSheet.duration : undefined}
               inputMode="numeric"
               autoComplete="off"
               disabled={busy}
@@ -754,13 +756,14 @@ function TrainingForm({
           <Field
             id="training-material"
             label="Materialul predat"
-            mark="required"
+            mark={fromPaper ? 'optional' : 'required'}
             error={errors.material}
             className="sm:col-span-2"
           >
             <Textarea
               id="training-material"
               data-testid="training-material"
+              placeholder={fromPaper ? notOnSheet.material : undefined}
               rows={4}
               disabled={busy}
               aria-invalid={Boolean(errors.material)}
@@ -771,12 +774,13 @@ function TrainingForm({
           <Field
             id="training-trainer-name"
             label="A instruit"
-            mark="required"
+            mark={fromPaper ? 'optional' : 'required'}
             error={errors.trainerName}
           >
             <Input
               id="training-trainer-name"
               data-testid="training-trainer-name"
+              placeholder={fromPaper ? notOnSheet.name : undefined}
               autoComplete="off"
               disabled={busy}
               aria-invalid={Boolean(errors.trainerName)}
@@ -787,7 +791,7 @@ function TrainingForm({
           <Field
             id="training-trainer-job-title"
             label="Funcția celui care a instruit"
-            mark="required"
+            mark={fromPaper ? 'optional' : 'required'}
             error={errors.trainerJobTitle}
           >
             <Input

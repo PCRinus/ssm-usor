@@ -22,6 +22,7 @@ import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { formatDate } from '@/features/employees/employee-format';
 import { formatDay } from '@/features/participants/participant-format';
+import { notOnSheet } from '@/features/trainings/training-format';
 
 import { type TestResult, TestResultDialog, type TestResultTarget } from './test-result-dialog';
 import { TestSheetLine } from './test-sheet-line';
@@ -228,7 +229,9 @@ function TestsBody({
                       {result.examiner ? (
                         `${result.examiner.name}, ${result.examiner.jobTitle}`
                       ) : (
-                        <span className="text-muted-foreground">nenumit încă</span>
+                        <span className="text-muted-foreground">
+                          {result.source === 'paper' ? notOnSheet.name : 'nenumit încă'}
+                        </span>
                       )}
                     </p>
                   </div>

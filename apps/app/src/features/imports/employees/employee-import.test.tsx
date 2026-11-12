@@ -513,7 +513,7 @@ describe('the people hub', () => {
     const toma = within(groups[0]!).getByTestId('employee-hub-person');
     expect(within(toma).getByTestId('employee-hub-person-link').textContent).toBe('Toma Andrei');
     const summary = within(toma).getByTestId('employee-hub-person-summary');
-    expect(within(summary).getByText('2 de hotărât')).toBeTruthy();
+    expect(within(summary).getByText('1 de hotărât')).toBeTruthy();
     expect(summary.textContent).toContain('CNP cu o cifră necitită');
     expect(within(toma).getByTitle('Postul').textContent).toContain('Ajutor brutar');
     expect(toma.textContent).not.toContain('Post de hotărât');
@@ -853,7 +853,7 @@ describe('the person page', () => {
     const bar = await screen.findByTestId('person-bar');
     expect(
       await within(bar).findByRole('button', {
-        name: '4 de hotărât',
+        name: '3 de hotărât',
         description: 'Mergi la următoarea alegere',
       })
     ).toBeTruthy();
@@ -864,7 +864,7 @@ describe('the person page', () => {
       expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(1)
     );
     expect(saved(0).changes.people.toma).toEqual({ cnpCorrection: true });
-    expect(within(bar).getByRole('button', { name: '3 de hotărât' })).toBeTruthy();
+    expect(within(bar).getByRole('button', { name: '2 de hotărât' })).toBeTruthy();
 
     await user.click(screen.getByTestId('person-next'));
     await waitFor(() => expect(screen.getByTestId('person-page').dataset.state).toBe('to_check'));
@@ -876,14 +876,14 @@ describe('the person page', () => {
     const user = userEvent.setup();
     mount(`${importPath}/toma`);
     const bar = await screen.findByTestId('person-bar');
-    const badge = await within(bar).findByRole('button', { name: /^4 de hotărât/ });
+    const badge = await within(bar).findByRole('button', { name: /^3 de hotărât/ });
     const visited: string[] = [];
-    for (let step = 0; step < 5; step += 1) {
+    for (let step = 0; step < 4; step += 1) {
       await user.click(badge);
       visited.push((document.activeElement as HTMLElement).id);
     }
-    expect(new Set(visited.slice(0, 4)).size).toBe(visited.slice(0, 4).length);
-    expect(visited[4]).toBe(visited[0]);
+    expect(new Set(visited.slice(0, 3)).size).toBe(visited.slice(0, 3).length);
+    expect(visited[3]).toBe(visited[0]);
     expect(visited).toContain('cnp');
   });
 
@@ -964,6 +964,45 @@ describe('the person page', () => {
     await waitFor(() => expect(screen.queryByTestId('photo-preview')).toBeNull());
     expect(document.activeElement).toBe(number);
     expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
+  it('says in words what a row does not write, and what an older reading took from the themes', async () => {
+    const base = employeeDetail();
+    const proposal = base.employees!.proposal;
+    mockEmployeeImport({
+      detail: employeeDetail({
+        employees: {
+          ...base.employees!,
+          proposal: {
+            ...proposal,
+            pages: proposal.pages.map((page) =>
+              page.id === 'p3'
+                ? {
+                    ...page,
+                    rows: [
+                      sheetRow('r3', {
+                        trainerName: 'Barbu Ionuț',
+                        trainerJobTitle: 'inspector SSM',
+                        material: 'Tematica semestrului',
+                        durationMinutes: null,
+                        fromThemes: ['trainerName', 'trainerJobTitle', 'material'],
+                        flags: ['from_client_themes'],
+                      }),
+                    ],
+                  }
+                : page
+            ),
+          },
+        },
+      }),
+    });
+    mount(`${importPath}/pop`);
+    const row = await screen.findByTestId('person-training-row');
+    expect(row.textContent).toContain('nume neînscris pe fișă');
+    expect(row.textContent).toContain('necompletat pe fișă');
+    expect(row.textContent).toContain('necompletată pe fișă');
+    expect(row.textContent).not.toContain('Barbu');
+    expect(row.textContent).not.toContain('Din tematica clientului');
   });
 
   it('opens the photograph a row was read from with the number beside the row', async () => {

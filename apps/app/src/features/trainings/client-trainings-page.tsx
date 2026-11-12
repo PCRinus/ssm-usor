@@ -46,13 +46,9 @@ import { trainingLocks } from '@/features/signatures/use-record-signatures';
 import { isEmptyOrLoading } from '@/lib/list-state';
 
 import { DeleteTrainingDialog, type TrainingToDelete } from './delete-training-dialog';
+import { TrainerName, TrainingDuration } from './not-on-sheet';
 import { TrainingDialog, type TrainingDialogTarget } from './training-dialog';
-import {
-  attendeeCountLabel,
-  formatDuration,
-  formatPerson,
-  paperTrainingBadge,
-} from './training-format';
+import { attendeeCountLabel, paperTrainingBadge } from './training-format';
 import { TrainingMaterial } from './training-material';
 
 const route = getRouteApi('/_authenticated/clienti/$clientId/instruiri-tinute');
@@ -285,9 +281,11 @@ function TrainingRow({
         </span>
       </TableCell>
       <TableCell className="whitespace-nowrap tabular-nums">
-        {formatDuration(training.durationMinutes)}
+        <TrainingDuration minutes={training.durationMinutes} />
       </TableCell>
-      <TableCell className="max-w-48 whitespace-normal">{formatPerson(training.trainer)}</TableCell>
+      <TableCell className="max-w-48 whitespace-normal">
+        <TrainerName trainer={training.trainer} />
+      </TableCell>
       <TableCell className="min-w-48 max-w-80 whitespace-normal" data-testid="trainings-attendees">
         <span className="block text-muted-foreground" data-testid="trainings-attendee-count">
           {attendeeCountLabel(training.attendeeCount)}

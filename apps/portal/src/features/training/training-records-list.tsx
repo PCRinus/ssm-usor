@@ -77,8 +77,12 @@ function TrainingRecordRow({
   const { t, i18n } = useLingui();
   const formatDate = useFormatDate();
   const formatDuration = useFormatDuration();
-  const { name, jobTitle } = record.trainer;
-  const duration = formatDuration(record.durationMinutes);
+  const { jobTitle } = record.trainer;
+  const name = record.trainer.name ?? t`nume neînscris pe fișă`;
+  const duration =
+    record.durationMinutes === null
+      ? t`Durata necompletată pe fișă`
+      : formatDuration(record.durationMinutes);
   const phase = i18n._(trainingPhaseMessages[record.phase]);
   const trainer = jobTitle
     ? t`Instructor ${name}, ${jobTitle}. ${duration}.`

@@ -20,6 +20,7 @@ import {
   decisionsOf,
   decisionSummary,
   emptyChanges,
+  examinerValues,
   firstToCheck,
   heldWith,
   hiringTestRowIds,
@@ -40,7 +41,9 @@ import {
   resolveField,
   type ReviewContext,
   rowIncluded,
+  rowValues,
   type SheetPage,
+  type SheetRow,
   statesOf,
   testIncluded,
   trainingsByDomain,
@@ -251,7 +254,6 @@ describe('what a person still needs', () => {
       'Post de hotărât',
       'CNP cu o cifră necitită',
       'Loc de muncă de ales',
-      'Lipsește cine a instruit la o instruire',
     ]);
   });
 
@@ -462,10 +464,7 @@ describe('the people list', () => {
   it('sums up what a person decides on their own pages, not the post decided above', () => {
     const toma = peopleViews(contextOf()).find((view) => view.person.id === 'toma')!;
     expect(toma.decisions.map((decision) => decision.key)).toContain('post');
-    expect(decisionSummary(toma)).toEqual({
-      count: 2,
-      text: 'CNP cu o cifră necitită · Lipsește cine a instruit la o instruire',
-    });
+    expect(decisionSummary(toma)).toEqual({ count: 1, text: 'CNP cu o cifră necitită' });
   });
 
   it('names the values that differ between sheets on one line, each counted', () => {
@@ -581,11 +580,13 @@ describe('the people list', () => {
 
     const unticked = withRow(checked, 'r3', () => ({
       included: true,
-      values: { trainerName: null },
+      values: { heldOn: null },
     }));
     expect(reopened({ ...fixed, changes: unticked }).people.pop?.state).toBeUndefined();
 
-    const given = withPage(checked, 'p2', 'pop');
+    const undatedElsewhere = withRow(checked, 'r5', () => ({ values: { heldOn: null } }));
+    expect(reopened({ ...fixed, changes: undatedElsewhere }).people.pop?.state).toBe('checked');
+    const given = withPage(undatedElsewhere, 'p2', 'pop');
     expect(reopened({ ...fixed, changes: given }).people.pop?.state).toBeUndefined();
 
     const aside = withField(
@@ -745,12 +746,30 @@ describe('the hiring test confirming writes', () => {
   });
 
   it('names a row without a date by its phase', () => {
-    const undated = withRow(emptyChanges(), 'r1', () => ({
-      values: { heldOn: null, material: null },
-    }));
+    const undated = withRow(emptyChanges(), 'r1', () => ({ values: { heldOn: null } }));
     expect(decisionsOf(contextOf(undated), person('toma')).map((each) => each.label)).toContain(
-      'Completează data, materialul la instruirea introductiv-generală'
+      'Completează data instruirii introductiv-generale'
     );
+  });
+
+  it('asks nothing of a row whose sheet writes no trainer, material or duration', () => {
+    const asWritten = withRow(emptyChanges(), 'r2', () => ({
+      values: { trainerName: null, trainerJobTitle: null, material: null, durationMinutes: null },
+    }));
+    expect(
+      decisionsOf(contextOf(asWritten), person('toma')).filter((each) => each.key === 'row-r2')
+    ).toEqual([]);
+  });
+
+  it('asks nothing of a hiring test whose sheet names no examiner, and the function of one named', () => {
+    const unnamed = withRow(emptyChanges(), 'r1', () => ({
+      values: { examinerName: null, examinerJobTitle: null },
+    }));
+    expect(tags(contextOf(unnamed), 'toma')).not.toContain('Lipsește examinatorul unui test');
+    const halfNamed = withRow(emptyChanges(), 'r1', () => ({
+      values: { examinerJobTitle: null },
+    }));
+    expect(tags(contextOf(halfNamed), 'toma')).toContain('Lipsește examinatorul unui test');
   });
 });
 
@@ -1146,5 +1165,43 @@ describe("a person's photos", () => {
       )
     ).toEqual(['elsewhere', 'b']);
     expect(ids(ownedPages(proposalOf(pages), {}, 'ana'))).toEqual(['b', 'a']);
+  });
+});
+
+describe('a value an older reading took from the client’s themes', () => {
+  const themed = sheetRow('t1', {
+    phase: 'introductory_general',
+    trainerName: 'Barbu Ionuț',
+    trainerJobTitle: 'inspector SSM',
+    material: 'Tematica semestrului',
+    durationMinutes: 120,
+    fromThemes: ['trainerName', 'trainerJobTitle', 'material'],
+    flags: ['from_client_themes'],
+    test: {
+      test: 'hiring',
+      takenOn: '2025-02-10',
+      examinerName: 'Barbu Ionuț',
+      examinerJobTitle: 'inspector SSM',
+      verified: true,
+      inApp: false,
+    },
+  }) as unknown as SheetRow;
+
+  it('counts as empty, and as the examiner of the row’s test too', () => {
+    expect(rowValues(emptyChanges(), themed)).toMatchObject({
+      trainerName: null,
+      trainerJobTitle: null,
+      material: null,
+      durationMinutes: 120,
+    });
+    expect(examinerValues(emptyChanges(), themed)).toEqual({
+      examinerName: null,
+      examinerJobTitle: null,
+    });
+  });
+
+  it('unless the member typed one over it', () => {
+    const typed = withRow(emptyChanges(), 't1', () => ({ values: { material: 'Riscuri' } }));
+    expect(rowValues(typed, themed).material).toBe('Riscuri');
   });
 });

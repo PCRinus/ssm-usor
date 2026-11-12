@@ -634,6 +634,10 @@ msgstr "Drumul tău obișnuit între casă și muncă. Un accident pe acest tras
 msgid "Durata"
 msgstr "Durata"
 
+#: src/features/training/training-records-list.tsx
+msgid "Durata necompletată pe fișă"
+msgstr "Durata necompletată pe fișă"
+
 #: src/lib/labels.ts
 msgid "Echipa de evaluare a riscurilor"
 msgstr "Echipa de evaluare a riscurilor"
@@ -962,6 +966,10 @@ msgstr "Mai puțin"
 msgid "Marca"
 msgstr "Marca"
 
+#: src/features/training/training-material.tsx
+msgid "Material necompletat pe fișă"
+msgstr "Material necompletat pe fișă"
+
 #: src/features/tests/study-card.tsx
 msgid "Materialul complet, emis pe {issuedOn}."
 msgstr "Materialul complet, emis pe {issuedOn}."
@@ -1137,6 +1145,10 @@ msgstr "Nu s-a semnat nimic. Vezi mai jos de ce."
 #: src/features/auth/sign-in-address.ts
 msgid "Numărul nu pare scris corect. Scrie-l cu 0 în față, de exemplu 0721 234 567."
 msgstr "Numărul nu pare scris corect. Scrie-l cu 0 în față, de exemplu 0721 234 567."
+
+#: src/features/training/training-records-list.tsx
+msgid "nume neînscris pe fișă"
+msgstr "nume neînscris pe fișă"
 
 #: src/features/my-data/my-data-page.tsx
 msgid "Nume și prenume"

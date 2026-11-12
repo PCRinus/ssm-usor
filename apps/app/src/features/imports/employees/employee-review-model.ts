@@ -436,10 +436,13 @@ export type RowValues = {
   verifierJobTitle: string | null;
 };
 
+// As `@ssm-usor/import`: a value an older proposal took from the client's themes is no reading
+// of the sheet, so it counts as empty unless the member typed one (ADR 042).
 export function rowValues(changes: Changes, row: SheetRow): RowValues {
   const values = changes.rows[row.id]?.values ?? {};
+  const fromThemes: readonly string[] = row.fromThemes;
   const pick = <K extends keyof RowValues>(name: K) =>
-    (name in values ? values[name] : row[name]) as RowValues[K];
+    (name in values ? values[name] : fromThemes.includes(name) ? null : row[name]) as RowValues[K];
   return {
     heldOn: pick('heldOn'),
     durationMinutes: pick('durationMinutes'),
@@ -449,6 +452,29 @@ export function rowValues(changes: Changes, row: SheetRow): RowValues {
     supplementaryReason: pick('supplementaryReason'),
     verifierName: pick('verifierName'),
     verifierJobTitle: pick('verifierJobTitle'),
+  };
+}
+
+/**
+ * The examiner a row's test names, as the member left it: the verifier's box, else the trainer's,
+ * never a trainer an older proposal took from the client's themes, as `@ssm-usor/import` reads it.
+ */
+export function examinerValues(changes: Changes, row: SheetRow) {
+  const own = changes.rows[row.id]?.values ?? {};
+  const byVerifier = row.signatures.verifier !== 'no_box' && row.verifierName !== null;
+  const fromThemes = (field: 'trainerName' | 'trainerJobTitle') =>
+    !byVerifier && (row.fromThemes as readonly string[]).includes(field);
+  return {
+    examinerName: ('examinerName' in own
+      ? own.examinerName
+      : fromThemes('trainerName')
+        ? null
+        : (row.test?.examinerName ?? null)) as string | null,
+    examinerJobTitle: ('examinerJobTitle' in own
+      ? own.examinerJobTitle
+      : fromThemes('trainerJobTitle')
+        ? null
+        : (row.test?.examinerJobTitle ?? null)) as string | null,
   };
 }
 
@@ -496,12 +522,10 @@ function missingLabel(row: SheetRow, values: RowValues, missing: string[]) {
     : `Completează ${missing.join(', ')} la instruirea ${rowDate(row, values)}`;
 }
 
+// A paper training holds what its sheet writes: its trainer, material and duration may stay
+// empty (ADR 042).
 const rowFieldLabels: Partial<Record<keyof RowValues, string>> = {
   heldOn: 'data',
-  durationMinutes: 'durata',
-  trainerName: 'cine a instruit',
-  trainerJobTitle: 'funcția instructorului',
-  material: 'materialul',
   supplementaryReason: 'motivul',
 };
 
@@ -898,7 +922,7 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
           tag: `Lipsește ${rowFieldLabels[missing[0]!]} la o instruire`,
           tone: 'destructive',
         });
-      } else if (!inMinutesRange(values.durationMinutes)) {
+      } else if (values.durationMinutes !== null && !inMinutesRange(values.durationMinutes)) {
         decisions.push({
           key: `row-${row.id}`,
           anchor: 'trainings',
@@ -918,7 +942,6 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
       }
     }
     if (row.test && tested.has(row.id) && testIncluded(changes, row, matched)) {
-      const own = changes.rows[row.id]?.values ?? {};
       const takenOn = values.heldOn;
       // A test on a training row takes the row's date, so the row's own decision answers both.
       if (!dateAsked) {
@@ -940,9 +963,9 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
           });
         }
       }
-      const name = 'examinerName' in own ? own.examinerName : row.test.examinerName;
-      const title = 'examinerJobTitle' in own ? own.examinerJobTitle : row.test.examinerJobTitle;
-      if (!filled(name) || !filled(title)) {
+      const examiner = examinerValues(changes, row);
+      // A sheet may name no examiner; one it names has a name and a function.
+      if (filled(examiner.examinerName) !== filled(examiner.examinerJobTitle)) {
         decisions.push({
           key: `test-${row.id}`,
           anchor: 'trainings',
