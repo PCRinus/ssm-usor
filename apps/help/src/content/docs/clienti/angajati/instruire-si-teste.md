@@ -43,6 +43,7 @@ sources:
   - docs/architecture/adr-023-advanced-electronic-signature.md
   - docs/architecture/adr-024-knowledge-tests.md
   - docs/architecture/adr-032-employees-imported-from-training-sheets.md
+  - docs/architecture/adr-042-paper-history-as-written.md
   - packages/contracts/src/trainings.ts
   - packages/contracts/src/tests.ts
   - packages/contracts/src/job-positions.ts
@@ -204,6 +205,8 @@ O fișă nu e un document din setul clientului. Se întocmește în momentul în
 - un rând pentru fiecare instruire periodică și, pe fișa SSM, fiecare instruire suplimentară;
 - rânduri goale până la capătul paginii, pentru semnăturile pe hârtie.
 
+O instruire preluată de pe fișa pe hârtie apare pe fișă cu mențiunea „transcris; semnat pe hârtie” în locul semnăturilor, iar numele celor care au instruit și au verificat rămân dedesubt. Cât timp fișa are măcar un astfel de rând, sub titlu scrie: „Rândurile cu mențiunea „transcris” sunt copiate de pe fișa pe hârtie. Originalul, cu semnăturile, se păstrează la angajator.” Fișa din aplicație nu înlocuiește fișa pe hârtie: clientul o păstrează în continuare.
+
 ### Ce lipsește pentru fișă
 
 O fișă se întocmește chiar dacă multe câmpuri sunt goale; ele se tipăresc goale. Doar două lipsuri o opresc:
@@ -226,4 +229,4 @@ Fiecare instruire înregistrată în aplicație are rubrici de semnătură: **In
 
 Lucrătorul își semnează rubrica din portal, cu un cod primit pe email sau prin SMS. O rubrică semnată de mână o marchezi cu **Marchează semnat pe hârtie**.
 
-O instruire de pe fișa pe hârtie nu are rubrici de semnat și nu cere nicio semnătură, nici în aplicație, nici în portal: semnăturile ei sunt pe fișa pe hârtie. În locul rubricilor scrie „Semnat pe hârtie: instruit, instructor”, la care se adaugă verificatorul și cel care admite la lucru când instruirea îi are. Pe fișa individuală, rândul ei apare cu mențiunea „semnat pe hârtie”.
+O instruire de pe fișa pe hârtie nu are rubrici de semnat și nu cere nicio semnătură, nici în aplicație, nici în portal: semnăturile ei sunt pe fișa pe hârtie. În locul rubricilor scrie „Semnat pe hârtie: instruit, instructor”, la care se adaugă verificatorul și cel care admite la lucru când instruirea îi are. Pe fișa individuală, rândul ei apare cu mențiunea „transcris; semnat pe hârtie”. O fișă semnată întocmită înainte ca fișele să scrie „transcris” rămâne cum era: rândurile adăugate pe ea mai târziu primesc tot mențiunea „semnat pe hârtie”.
