@@ -173,7 +173,7 @@ export function ClientFilesCard({
     <>
       <SectionCard
         data-testid={employee ? 'employee-files-card' : 'client-files-card'}
-        title={employee ? 'Fișiere' : 'Alte documente'}
+        title={employee ? 'Documente' : 'Alte documente'}
         className="relative"
         description={
           <>

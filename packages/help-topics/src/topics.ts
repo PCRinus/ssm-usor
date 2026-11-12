@@ -98,7 +98,7 @@ export const helpTopics = {
     path: '/clienti/angajati/instruire-si-teste/',
     anchor: 'copia-de-citire-și-originalele',
   },
-  'angajati.fisiere': { path: '/clienti/angajati/', anchor: 'fișierele-lucrătorului' },
+  'angajati.fisiere': { path: '/clienti/angajati/', anchor: 'documentele-lucrătorului' },
   'angajati.functia-din-contract': {
     path: '/clienti/angajati/adaugare-si-editare/',
     anchor: 'funcția-din-contract',

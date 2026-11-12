@@ -62,7 +62,7 @@ test('an owner uploads files to a client, renames one and deletes it', async ({ 
   await expect(page.getByTestId('client-files-empty')).toBeVisible();
 });
 
-test("a paper training sheet uploaded on the employee's Fișiere tab is listed there and not under the client", async ({
+test("a paper training sheet uploaded on the employee's Documente tab is listed there and not under the client", async ({
   page,
 }) => {
   const owner = await createAccount('employee-files-owner', 'Olga Angajați');
@@ -77,7 +77,7 @@ test("a paper training sheet uploaded on the employee's Fișiere tab is listed t
   await page.getByTestId('employees-open').click();
   await expect(page.getByTestId('employee-page')).toBeVisible();
   await expect(page.getByTestId('employee-files-card')).toHaveCount(0);
-  await page.getByTestId('employee-section').filter({ hasText: 'Fișiere' }).click();
+  await page.getByTestId('employee-section').filter({ hasText: 'Documente' }).click();
   const card = page.getByTestId('employee-files-card');
   await expect(card.getByTestId('client-files-empty')).toBeVisible();
 

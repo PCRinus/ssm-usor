@@ -291,7 +291,7 @@ afterEach(() => {
 });
 
 describe("an employee's training tabs", () => {
-  it('splits the page into Date, Instruire SSM, Instruire SU and Fișiere, in the tabs and not in the sidebar', async () => {
+  it('splits the page into Date, Instruire SSM, Instruire SU and Documente, in the tabs and not in the sidebar', async () => {
     mockApi();
     const runtime = mountApp(authFixture(makeSession()).client, employeePage);
     const user = userEvent.setup();
@@ -303,7 +303,7 @@ describe("an employee's training tabs", () => {
       'Date',
       'Instruire SSM',
       'Instruire SU',
-      'Fișiere',
+      'Documente',
     ]);
     expect(tabs[0]!.getAttribute('aria-current')).toBe('page');
     expect(screen.queryByTestId('nav-employee-group')).toBeNull();
@@ -319,11 +319,11 @@ describe("an employee's training tabs", () => {
 
     await user.click(screen.getAllByTestId('employee-section')[3]!);
     await screen.findByTestId('employee-files-card');
-    expect(runtime.router.state.location.pathname).toBe(`${employeePage}/fisiere`);
+    expect(runtime.router.state.location.pathname).toBe(`${employeePage}/documente`);
     expect(screen.queryByTestId('employee-training-tab')).toBeNull();
     expect(screen.getAllByTestId('employee-section')[3]!.getAttribute('aria-current')).toBe('page');
     expect(
-      within(screen.getByRole('navigation', { name: 'breadcrumb' })).getByText('Fișiere')
+      within(screen.getByRole('navigation', { name: 'breadcrumb' })).getByText('Documente')
     ).toBeTruthy();
   });
 

@@ -108,7 +108,7 @@ const trainingSheet = {
 
 const filesPath = `/clients/${clientId}/files`;
 const employeePath = `/clients/${clientId}/employees/${employee.id}`;
-const employeePage = `/clienti/${clientId}/angajati/${employee.id}/fisiere`;
+const employeePage = `/clienti/${clientId}/angajati/${employee.id}/documente`;
 
 type Handler = (init: RequestInit | undefined, url: URL) => Response;
 
@@ -663,12 +663,12 @@ describe('the files of an employee', () => {
     ).toEqual([false]);
   });
 
-  it("lists only their files on the employee's Fișiere tab", async () => {
+  it("lists only their files on the employee's Documente tab", async () => {
     mockApi({ items: [trainingSheet] });
     mount(employeePage);
 
     const card = await screen.findByTestId('employee-files-card');
-    expect(within(card).getByRole('heading', { level: 2, name: 'Fișiere' })).toBeTruthy();
+    expect(within(card).getByRole('heading', { level: 2, name: 'Documente' })).toBeTruthy();
     const [row] = await within(card).findAllByTestId('client-file-row');
     expect(within(row!).getByTestId('client-file-open').textContent).toBe('Fișă de instruire 2019');
     expect(within(row!).getByTestId('client-file-actions')).toBeTruthy();
@@ -679,7 +679,7 @@ describe('the files of an employee', () => {
     ).toEqual([employee.id]);
   });
 
-  it("uploads from the employee's Fișiere tab for that employee, whom the dialog names", async () => {
+  it("uploads from the employee's Documente tab for that employee, whom the dialog names", async () => {
     mockApi({ items: [] });
     mount(employeePage);
     const user = userEvent.setup();

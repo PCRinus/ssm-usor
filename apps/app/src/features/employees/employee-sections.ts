@@ -15,8 +15,8 @@ export const employeeSections = [
     exact: false,
   },
   {
-    to: '/clienti/$clientId/angajati/$employeeId/fisiere',
-    label: 'Fișiere',
+    to: '/clienti/$clientId/angajati/$employeeId/documente',
+    label: 'Documente',
     icon: FolderOpen,
     exact: false,
   },

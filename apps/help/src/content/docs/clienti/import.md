@@ -443,7 +443,7 @@ Poți crea lucrătorii și înainte să-i verifici pe toți. Fereastra îi nume�
 
 Lucrătorii apar în lista clientului, cu instruirile, testele și starea lor calculată ca la orice lucrător. Pe tabul **Lucrători** vezi câți au fost creați și ce urmează.
 
-Fiecare lucrător are pe tabul **Fișiere** un folder „Fișe importate pe …” cu fotografiile fișelor lui. Dintr-un PDF scanat cu fișele mai multor persoane, fiecare lucrător primește doar paginile lui, ca imagini, iar PDF-ul întreg rămâne o singură dată la fișierele clientului, în **Alte documente**.
+Fiecare lucrător are pe tabul **Documente** un folder „Fișe importate pe …” cu fotografiile fișelor lui. Dintr-un PDF scanat cu fișele mai multor persoane, fiecare lucrător primește doar paginile lui, ca imagini, iar PDF-ul întreg rămâne o singură dată la fișierele clientului, în **Alte documente**.
 
 Instruirile importate poartă eticheta **Transcris de pe fișa pe hârtie** și rândul „Semnat pe hârtie: …”, cu rubricile semnate pe fișă. Pentru ele nu se cere nicio semnătură, nici în aplicație, nici în portal, iar pe fișa individuală din aplicație apar cu mențiunea „semnat pe hârtie”. Instruirile ținute de acum înainte se semnează ca de obicei.
 

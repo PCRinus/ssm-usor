@@ -102,7 +102,7 @@ import { Route as AuthenticatedClientiImportImportIdSectionRouteImport } from '.
 import { Route as AuthenticatedClientiImportImportIdEvaluariDeRiscRouteImport } from './routes/_authenticated/clienti/import/$importId/evaluari-de-risc';
 import { Route as AuthenticatedClientiImportImportIdFisiereRouteImport } from './routes/_authenticated/clienti/import/$importId/fisiere';
 import { Route as AuthenticatedClientiClientIdAngajatiEmployeeIdIndexRouteImport } from './routes/_authenticated/clienti/$clientId/angajati/$employeeId/index';
-import { Route as AuthenticatedClientiClientIdAngajatiEmployeeIdFisiereRouteImport } from './routes/_authenticated/clienti/$clientId/angajati/$employeeId/fisiere';
+import { Route as AuthenticatedClientiClientIdAngajatiEmployeeIdDocumenteRouteImport } from './routes/_authenticated/clienti/$clientId/angajati/$employeeId/documente';
 import { Route as AuthenticatedClientiClientIdAngajatiEmployeeIdEditareRouteImport } from './routes/_authenticated/clienti/$clientId/angajati/$employeeId_.editare';
 import { Route as AuthenticatedClientiClientIdAngajatiImportImportIdRouteImport } from './routes/_authenticated/clienti/$clientId/angajati/import/$importId';
 import { Route as AuthenticatedClientiClientIdPosturiJobPositionIdIndexRouteImport } from './routes/_authenticated/clienti/$clientId/posturi/$jobPositionId/index';
@@ -642,10 +642,10 @@ const AuthenticatedClientiClientIdAngajatiEmployeeIdIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedClientiClientIdAngajatiEmployeeIdRoute,
   } as any);
-const AuthenticatedClientiClientIdAngajatiEmployeeIdFisiereRoute =
-  AuthenticatedClientiClientIdAngajatiEmployeeIdFisiereRouteImport.update({
-    id: '/fisiere',
-    path: '/fisiere',
+const AuthenticatedClientiClientIdAngajatiEmployeeIdDocumenteRoute =
+  AuthenticatedClientiClientIdAngajatiEmployeeIdDocumenteRouteImport.update({
+    id: '/documente',
+    path: '/documente',
     getParentRoute: () => AuthenticatedClientiClientIdAngajatiEmployeeIdRoute,
   } as any);
 const AuthenticatedClientiClientIdAngajatiEmployeeIdEditareRoute =
@@ -814,7 +814,7 @@ export interface FileRoutesByFullPath {
   '/clienti/$clientId/documente-su/': typeof AuthenticatedClientiClientIdDocumenteSuIndexRoute;
   '/clienti/$clientId/posturi/': typeof AuthenticatedClientiClientIdPosturiIndexRoute;
   '/clienti/import/$importId/': typeof AuthenticatedClientiImportImportIdIndexRoute;
-  '/clienti/$clientId/angajati/$employeeId/fisiere': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdFisiereRoute;
+  '/clienti/$clientId/angajati/$employeeId/documente': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdDocumenteRoute;
   '/clienti/$clientId/angajati/$employeeId/editare': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdEditareRoute;
   '/clienti/$clientId/angajati/import/$importId': typeof AuthenticatedClientiClientIdAngajatiImportImportIdRouteWithChildren;
   '/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare': typeof AuthenticatedClientiClientIdPosturiJobPositionIdFisaDeEvaluareRoute;
@@ -897,7 +897,7 @@ export interface FileRoutesByTo {
   '/clienti/$clientId/documente-su': typeof AuthenticatedClientiClientIdDocumenteSuIndexRoute;
   '/clienti/$clientId/posturi': typeof AuthenticatedClientiClientIdPosturiIndexRoute;
   '/clienti/import/$importId': typeof AuthenticatedClientiImportImportIdIndexRoute;
-  '/clienti/$clientId/angajati/$employeeId/fisiere': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdFisiereRoute;
+  '/clienti/$clientId/angajati/$employeeId/documente': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdDocumenteRoute;
   '/clienti/$clientId/angajati/$employeeId/editare': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdEditareRoute;
   '/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare': typeof AuthenticatedClientiClientIdPosturiJobPositionIdFisaDeEvaluareRoute;
   '/clienti/$clientId/posturi/fise-de-evaluare/$evaluationId': typeof AuthenticatedClientiClientIdPosturiFiseDeEvaluareEvaluationIdRoute;
@@ -1004,7 +1004,7 @@ export interface FileRoutesById {
   '/_authenticated/clienti/$clientId/documente-su/': typeof AuthenticatedClientiClientIdDocumenteSuIndexRoute;
   '/_authenticated/clienti/$clientId/posturi/': typeof AuthenticatedClientiClientIdPosturiIndexRoute;
   '/_authenticated/clienti/import/$importId/': typeof AuthenticatedClientiImportImportIdIndexRoute;
-  '/_authenticated/clienti/$clientId/angajati/$employeeId/fisiere': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdFisiereRoute;
+  '/_authenticated/clienti/$clientId/angajati/$employeeId/documente': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdDocumenteRoute;
   '/_authenticated/clienti/$clientId/angajati/$employeeId_/editare': typeof AuthenticatedClientiClientIdAngajatiEmployeeIdEditareRoute;
   '/_authenticated/clienti/$clientId/angajati/import/$importId': typeof AuthenticatedClientiClientIdAngajatiImportImportIdRouteWithChildren;
   '/_authenticated/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare': typeof AuthenticatedClientiClientIdPosturiJobPositionIdFisaDeEvaluareRoute;
@@ -1110,7 +1110,7 @@ export interface FileRouteTypes {
     | '/clienti/$clientId/documente-su/'
     | '/clienti/$clientId/posturi/'
     | '/clienti/import/$importId/'
-    | '/clienti/$clientId/angajati/$employeeId/fisiere'
+    | '/clienti/$clientId/angajati/$employeeId/documente'
     | '/clienti/$clientId/angajati/$employeeId/editare'
     | '/clienti/$clientId/angajati/import/$importId'
     | '/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare'
@@ -1193,7 +1193,7 @@ export interface FileRouteTypes {
     | '/clienti/$clientId/documente-su'
     | '/clienti/$clientId/posturi'
     | '/clienti/import/$importId'
-    | '/clienti/$clientId/angajati/$employeeId/fisiere'
+    | '/clienti/$clientId/angajati/$employeeId/documente'
     | '/clienti/$clientId/angajati/$employeeId/editare'
     | '/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare'
     | '/clienti/$clientId/posturi/fise-de-evaluare/$evaluationId'
@@ -1299,7 +1299,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clienti/$clientId/documente-su/'
     | '/_authenticated/clienti/$clientId/posturi/'
     | '/_authenticated/clienti/import/$importId/'
-    | '/_authenticated/clienti/$clientId/angajati/$employeeId/fisiere'
+    | '/_authenticated/clienti/$clientId/angajati/$employeeId/documente'
     | '/_authenticated/clienti/$clientId/angajati/$employeeId_/editare'
     | '/_authenticated/clienti/$clientId/angajati/import/$importId'
     | '/_authenticated/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare'
@@ -1982,11 +1982,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientiClientIdAngajatiEmployeeIdIndexRouteImport;
       parentRoute: typeof AuthenticatedClientiClientIdAngajatiEmployeeIdRoute;
     };
-    '/_authenticated/clienti/$clientId/angajati/$employeeId/fisiere': {
-      id: '/_authenticated/clienti/$clientId/angajati/$employeeId/fisiere';
-      path: '/fisiere';
-      fullPath: '/clienti/$clientId/angajati/$employeeId/fisiere';
-      preLoaderRoute: typeof AuthenticatedClientiClientIdAngajatiEmployeeIdFisiereRouteImport;
+    '/_authenticated/clienti/$clientId/angajati/$employeeId/documente': {
+      id: '/_authenticated/clienti/$clientId/angajati/$employeeId/documente';
+      path: '/documente';
+      fullPath: '/clienti/$clientId/angajati/$employeeId/documente';
+      preLoaderRoute: typeof AuthenticatedClientiClientIdAngajatiEmployeeIdDocumenteRouteImport;
       parentRoute: typeof AuthenticatedClientiClientIdAngajatiEmployeeIdRoute;
     };
     '/_authenticated/clienti/$clientId/angajati/$employeeId_/editare': {
@@ -2101,7 +2101,7 @@ const AuthenticatedClientiClientIdAlteDocumenteRouteWithChildren =
   );
 
 interface AuthenticatedClientiClientIdAngajatiEmployeeIdRouteChildren {
-  AuthenticatedClientiClientIdAngajatiEmployeeIdFisiereRoute: typeof AuthenticatedClientiClientIdAngajatiEmployeeIdFisiereRoute;
+  AuthenticatedClientiClientIdAngajatiEmployeeIdDocumenteRoute: typeof AuthenticatedClientiClientIdAngajatiEmployeeIdDocumenteRoute;
   AuthenticatedClientiClientIdAngajatiEmployeeIdIndexRoute: typeof AuthenticatedClientiClientIdAngajatiEmployeeIdIndexRoute;
   AuthenticatedClientiClientIdAngajatiEmployeeIdInstruireSsmRoute: typeof AuthenticatedClientiClientIdAngajatiEmployeeIdInstruireSsmRoute;
   AuthenticatedClientiClientIdAngajatiEmployeeIdInstruireSuRoute: typeof AuthenticatedClientiClientIdAngajatiEmployeeIdInstruireSuRoute;
@@ -2110,8 +2110,8 @@ interface AuthenticatedClientiClientIdAngajatiEmployeeIdRouteChildren {
 
 const AuthenticatedClientiClientIdAngajatiEmployeeIdRouteChildren: AuthenticatedClientiClientIdAngajatiEmployeeIdRouteChildren =
   {
-    AuthenticatedClientiClientIdAngajatiEmployeeIdFisiereRoute:
-      AuthenticatedClientiClientIdAngajatiEmployeeIdFisiereRoute,
+    AuthenticatedClientiClientIdAngajatiEmployeeIdDocumenteRoute:
+      AuthenticatedClientiClientIdAngajatiEmployeeIdDocumenteRoute,
     AuthenticatedClientiClientIdAngajatiEmployeeIdIndexRoute:
       AuthenticatedClientiClientIdAngajatiEmployeeIdIndexRoute,
     AuthenticatedClientiClientIdAngajatiEmployeeIdInstruireSsmRoute:

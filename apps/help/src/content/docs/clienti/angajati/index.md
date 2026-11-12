@@ -37,7 +37,7 @@ topics:
   - id: angajati.pagina-angajatului
     heading: Pagina unui lucrător
   - id: angajati.fisiere
-    heading: Fișierele lucrătorului
+    heading: Documentele lucrătorului
   - id: angajati.client-arhivat
     heading: Lucrătorii unui client arhivat
 sources:
@@ -174,15 +174,15 @@ Un document generat când clientul avea 10 lucrători rămâne în set și dacă
 
 - **Date**: identificarea, angajarea, contactul, datele pentru fișa de instruire, accesul la portal și actul adițional privind semnarea electronică;
 - **Instruire SSM** și **Instruire SU**: starea și termenul, testarea, instruirile înregistrate și fișa individuală. Vezi [Instruirea și testele unui lucrător](/clienti/angajati/instruire-si-teste/);
-- **Fișiere**: fișierele lucrătorului, cu fișele aduse dintr-un import. Vezi [Fișierele lucrătorului](#fișierele-lucrătorului).
+- **Documente**: fișierele încărcate despre lucrător, cu fișele aduse dintr-un import. Vezi [Documentele lucrătorului](#documentele-lucrătorului).
 
 CNP-ul apare ascuns, cu ultimele patru cifre. **Arată** îl afișează întreg până pleci de pe pagină. **Vechime** se calculează din data angajării până azi, iar la un fost lucrător până la data plecării.
 
 Accesul la portal și actul adițional sunt explicate în [Portalul și actul adițional](/clienti/angajati/portal-si-act-aditional/).
 
-### Fișierele lucrătorului
+### Documentele lucrătorului
 
-Pe tabul **Fișiere** încarci fotografiile sau scanurile fișelor de instruire completate pe hârtie, actul adițional semnat de mână și orice alt fișier despre lucrător. Fișierele unui lucrător apar doar pe pagina lui, nu și în **Alte documente** ale clientului, unde rămân fișierele clientului.
+Pe tabul **Documente** încarci fotografiile sau scanurile fișelor de instruire completate pe hârtie, actul adițional semnat de mână și orice alt fișier despre lucrător. Fișierele unui lucrător apar doar pe pagina lui, nu și în **Alte documente** ale clientului, unde rămân fișierele clientului.
 
 Un lucrător adus dintr-un import din fișe are aici un folder „Fișe importate pe …”, cu fotografiile fișelor lui și, dintr-un PDF scanat cu fișele mai multor persoane, doar paginile lui. Folderul se descarcă întreg cu **Descarcă fișele (ZIP)**.
 
