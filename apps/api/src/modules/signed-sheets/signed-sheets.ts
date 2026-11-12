@@ -12,6 +12,7 @@ import {
   tableRowOf,
   type TrainingDomain,
   trainingSheetTypeKeys,
+  transcriptionLineField,
 } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
@@ -30,9 +31,11 @@ import {
   placeOfWork,
   type SheetIdentity,
   type TrainingSheetData,
+  transcriptionLine,
 } from '../trainings/sheet';
 import { loadSheetFacts } from '../trainings/sheet-handlers';
 import {
+  currentSheetForm,
   type HiringMaterials,
   type PrintedRow,
   printedSheets,
@@ -271,12 +274,17 @@ async function createSheet(
     signedSheetData(facts, domain, sequence, printed, materials)
   );
   const pdf = await need(ctx.pdf, pdfUnavailable).convertForm(docx);
-  const prepared = new Uint8Array(
-    await need(ctx.signer, signerUnavailable).prepareSheet(
-      buffer(pdf),
-      signatureFieldsOf(domain, printed)
-    )
+  const signer = need(ctx.signer, signerUnavailable);
+  let prepared = new Uint8Array(
+    await signer.prepareSheet(buffer(pdf), signatureFieldsOf(domain, printed))
   );
+  if (printed.length > 0) {
+    prepared = new Uint8Array(
+      await signer.fillFields(buffer(prepared), {
+        [transcriptionLineField]: transcriptionLine,
+      })
+    );
+  }
   const placement = {
     clientId: owner.clientId,
     organizationId: owner.organizationId,
@@ -296,6 +304,7 @@ async function createSheet(
     digest: await sha256(prepared),
     rowCapacity: rowCapacity(domain),
     rowsUsed: Math.max(0, ...periodic),
+    form: currentSheetForm,
   });
   if (!sheet) {
     await forget(ctx, path);
@@ -435,11 +444,13 @@ async function freeKey(
   return index > capacity ? null : tableRowKey(kind, index);
 }
 
-async function valuesOf(ctx: SignedSheetContext, record: StoreRecord, rowKey: SheetRowKey) {
+async function valuesOf(ctx: SignedSheetContext, record: StoreRecord, row: StoredRow) {
   const facts = await ctx.sheetFacts(record.clientId, record.employeeId);
   const place = placeOfWork(facts);
   const byHand = !(await ctx.store.electronicRequested(record.id));
-  return rowValues(record.domain, rowKey, record, place, byHand);
+  const sheet = await ctx.store.sheet(row.signedSheetId);
+  if (!sheet) throw new ApiError('not_found', 'The signed sheet does not exist.');
+  return rowValues(record.domain, row.rowKey, record, place, { byHand, form: sheet.form });
 }
 
 async function resultValuesOf(ctx: SignedSheetContext, result: StoreResult, rowKey: SheetRowKey) {
@@ -447,10 +458,10 @@ async function resultValuesOf(ctx: SignedSheetContext, result: StoreResult, rowK
   return resultRowValues(result.domain, rowKey, result, facts.employee.position.name.trim());
 }
 
-const placeableValues = (ctx: SignedSheetContext, placeable: Placeable, rowKey: SheetRowKey) =>
+const placeableValues = (ctx: SignedSheetContext, placeable: Placeable, row: StoredRow) =>
   placeable.kind === 'record'
-    ? valuesOf(ctx, placeable.item, rowKey)
-    : resultValuesOf(ctx, placeable.item, rowKey);
+    ? valuesOf(ctx, placeable.item, row)
+    : resultValuesOf(ctx, placeable.item, row.rowKey);
 
 /** One version for any number of rows of one sheet; each row's digest once the version stands. */
 async function fillRows(
@@ -518,7 +529,7 @@ async function placeNewRows(ctx: SignedSheetContext, placeables: Placeable[]) {
       const filled = await Promise.all(
         rows.map(async ({ row, placeable }) => ({
           row,
-          values: await placeableValues(ctx, placeable, row.rowKey),
+          values: await placeableValues(ctx, placeable, row),
         }))
       );
       sheets.set(sheetId, await fillRows(ctx, sheetId, filled));
@@ -543,7 +554,7 @@ const fitsRow = (kind: ReturnType<typeof rowKindOf>, rowKey: SheetRowKey) =>
  */
 async function refreshRow(ctx: SignedSheetContext, row: StoredRow, record: StoreRecord) {
   if (row.printedAsText) return;
-  const values = await valuesOf(ctx, record, row.rowKey);
+  const values = await valuesOf(ctx, record, row);
   const digest = await rowDigest(values);
   if (row.filledDigest === digest) return;
   if (await ctx.store.signedSince(record.id, row.filledAt)) return;

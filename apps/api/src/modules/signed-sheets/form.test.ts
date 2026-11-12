@@ -5,11 +5,13 @@ import {
   sheetFieldNames,
   sheetRowKeys,
   type TrainingDomain,
+  transcriptionLineField,
 } from '@ssm-usor/contracts';
 import { renderDocument } from '@ssm-usor/document-engine';
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
+import { transcribedNote, transcriptionLine } from '../trainings/sheet';
 import {
   continuationLine,
   materialPlaceholder,
@@ -99,6 +101,14 @@ describe('signedSheetData', () => {
     expect(data.form.rows.t1).toBe(true);
   });
 
+  it('marks the printed paper rows and blocks transcribed', () => {
+    const data = signedSheetData(sheetFacts, 'ssm', 1, printed);
+    expect(data.hiring.introductory.note).toBe(transcribedNote);
+    expect(data.periodic.map((row) => row.note)).toEqual([transcribedNote]);
+    expect(data.transcriptionLine).toBe(transcriptionLine);
+    expect(signedSheetData(sheetFacts, 'ssm', 1, []).transcriptionLine).toBe('');
+  });
+
   it('draws the material field of a hiring training it is drawn up with as tall as its text', () => {
     const material = 'Legislația de securitate și sănătate în muncă; '.repeat(5).trim();
     const data = signedSheetData(sheetFacts, 'ssm', 1, [], { h2: material });
@@ -169,20 +179,41 @@ describe('rowValues', () => {
     });
   });
 
-  it('notes a record from paper as signed on paper, and gives the reason of a supplementary one', () => {
+  it('notes a record from paper as transcribed, fills the line, and gives the reason of a supplementary one', () => {
     const record = sheetRecord('supplementary', '2026-05-18', {
       source: 'paper',
       training: { material: 'IP Sudură.', supplementaryReason: 'after_accident' },
     });
     const values = rowValues('ssm', 's1', record, '');
-    expect(values.s1_note).toBe('semnat pe hârtie');
+    expect(values.s1_note).toBe('transcris;\nsemnat pe hârtie');
+    expect(values[transcriptionLineField]).toBe(transcriptionLine);
     expect(values.s1_material).toContain('(motivul:');
+    expect(
+      rowValues(
+        'ssm',
+        'h1',
+        { ...record, training: { ...record.training, phase: 'introductory_general' } },
+        ''
+      ).h1_note
+    ).toBe(transcribedNote);
+  });
+
+  it('keeps a sheet drawn up before the transcription form as it was', () => {
+    const record = sheetRecord('periodic', '2026-05-18', { source: 'paper' });
+    const values = rowValues('ssm', 'p2', record, '', { form: 1 });
+    expect(values.p2_note).toBe('semnat pe hârtie');
+    expect(values).not.toHaveProperty(transcriptionLineField);
   });
 
   it('notes a record recorded in the app that nobody is asked to sign electronically', () => {
     const record = sheetRecord('periodic', '2026-04-03');
-    expect(rowValues('ssm', 'p1', record, '', true).p1_note).toBe('semnat pe hârtie');
-    expect(rowValues('ssm', 'p1', record, '', false).p1_note).toBe('');
+    const byHand = rowValues('ssm', 'p1', record, '', { byHand: true });
+    expect(byHand.p1_note).toBe('semnat pe\nhârtie');
+    expect(byHand).not.toHaveProperty(transcriptionLineField);
+    expect(rowValues('ssm', 'p1', record, '', { byHand: true, form: 1 }).p1_note).toBe(
+      'semnat pe hârtie'
+    );
+    expect(rowValues('ssm', 'p1', record, '').p1_note).toBe('');
   });
 });
 
@@ -246,14 +277,17 @@ describe.each(['ssm', 'su'] as const)('the %s template', (domain) => {
         .asText()
         .matchAll(/<w:alias w:val="([^"]+)"\/>/g),
     ].map((match) => match[1]!);
-    const expected = sheetRowKeys(domain).flatMap((key) => {
-      const fields = sheetFieldNames(domain, key);
-      return [
-        ...fields.text,
-        ...(fields.note ? [fields.note] : []),
-        ...Object.values(fields.signatures),
-      ];
-    });
+    const expected = [
+      transcriptionLineField,
+      ...sheetRowKeys(domain).flatMap((key) => {
+        const fields = sheetFieldNames(domain, key);
+        return [
+          ...fields.text,
+          ...(fields.note ? [fields.note] : []),
+          ...Object.values(fields.signatures),
+        ];
+      }),
+    ];
     expect([...titles].sort()).toEqual([...expected].sort());
     expect(signatureFieldsOf(domain, []).every((name) => titles.includes(name))).toBe(true);
   });

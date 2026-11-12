@@ -35,7 +35,7 @@ ROW_CAPACITY = 17
 # The signed sheet's rows of test results: the five the paper sheet prints at the least.
 TEST_ROW_CAPACITY = 5
 FIELD_SIZE = 8
-PAPER_SIGNED = 'semnat pe hârtie'
+TRANSCRIPTION_LINE_FIELD = 'transcription_line'
 CONTROL_IDS = itertools.count(1)
 # Apple's viewers draw a multiline field's text at about 1.2 times the size plus 1.2 pt a line, and
 # take 3.5 pt more for the field (APPLE_LEADING, APPLE_LINE_GAP, APPLE_PADDING in the signer),
@@ -153,9 +153,14 @@ def fields(rows, label_width=3400, height=360):
     return table([label_width, value_width], drawn)
 
 
-def signatures(slots):
+def signatures(slots, note):
+    """`note` prints small at the foot of each box, the merge's mark of a training transcribed from
+    a paper sheet (ADR 042); empty, the box is left for the pen."""
     widths = signature_widths(len(slots))
-    room = [cell(each, [cell_paragraph()], borders=('bottom',)) for each in widths]
+    room = [
+        cell(each, [cell_paragraph(note, size=7, align='center')], borders=('bottom',), valign='bottom')
+        for each in widths
+    ]
     return signature_table(widths, room, signature_captions(widths, slots))
 
 
@@ -321,12 +326,12 @@ def run(text, size=FIELD_SIZE):
     return f'<w:r>{rpr(size)}<w:t xml:space="preserve">{escape(text)}</w:t></w:r>'
 
 
-def inline_paragraph(inner, *, size=FIELD_SIZE, align='left', line=None):
+def inline_paragraph(inner, *, size=FIELD_SIZE, align='left', line=None, after=0):
     spacing = f' w:line="{line}" w:lineRule="auto"' if line else ''
     props = (
         '<w:pStyle w:val="TableContents"/><w:keepNext w:val="false"/>'
         '<w:pageBreakBefore w:val="false"/><w:widowControl/><w:bidi w:val="0"/>'
-        f'<w:spacing w:before="0" w:after="0"{spacing}/><w:ind w:hanging="0" w:left="0"/>'
+        f'<w:spacing w:before="0" w:after="{after}"{spacing}/><w:ind w:hanging="0" w:left="0"/>'
         f'<w:jc w:val="{align}"/>{rpr(size)}'
     )
     return f'<w:p><w:pPr>{props}</w:pPr>{inner}</w:p>'
@@ -381,17 +386,6 @@ def signature_controls(slots):
     return signature_table(widths, room, signature_captions(widths, captions))
 
 
-def signed_on_paper(slots):
-    """`signatures` of a training signed before the form, `slots` as there: each box says so."""
-    widths = signature_widths(len(slots))
-    room = [
-        cell(each, [cell_paragraph(PAPER_SIGNED, size=7, align='center')], borders=('bottom',),
-             valign='bottom')
-        for each in widths
-    ]
-    return signature_table(widths, room, signature_captions(widths, slots))
-
-
 def form_rows(prefix, columns, capacity=ROW_CAPACITY):
     """The field rows `{prefix}1` to `{prefix}{capacity}` of a table, each printed where
     `form.rows.{key}` holds. `columns` are `(width, cell)`, `cell(key, width)` giving the inline
@@ -416,7 +410,8 @@ def field_cell(column, lines=1):
 
 
 def dated_cell(key, width):
-    return [control(f'{key}_date', width), control(f'{key}_note', width)]
+    # Two lines of note: "transcris; semnat pe hârtie" on one is set too small to read.
+    return [control(f'{key}_date', width), control(f'{key}_note', width, 2)]
 
 
 def number_cell(key, width):
@@ -428,7 +423,7 @@ SSM_PERIODIC_COLUMNS = [
     (700, 'Durata (h)', '{{hours}}'),
     (1300, 'Ocupația', '{{occupation}}'),
     (2555, 'Materialul predat', '{{material}}'),
-    (1200, ('Semnătura celui', 'instruit'), ''),
+    (1200, ('Semnătura celui', 'instruit'), ('{{note}}', True)),
     (1250, ('Semnătura celui', 'care a instruit'), ('{{trainer}}', True)),
     (1250, ('Semnătura celui', 'care a verificat instruirea'), ('{{verifier}}', True)),
 ]
@@ -437,7 +432,6 @@ SSM_PERIODIC_COLUMNS = [
 def ssm_periodic(title, first_heading, loop, prefix, page=True):
     columns = [(SSM_PERIODIC_COLUMNS[0][0], first_heading, '{{heldOn}}'), *SSM_PERIODIC_COLUMNS[1:]]
     values = [value for _, _, value in columns]
-    signed_on_paper_values = [*values[:4], (PAPER_SIGNED, True), *values[5:]]
     widths = [width for width, _, _ in columns]
     fields = form_rows(prefix, list(zip(widths, [
         dated_cell,
@@ -451,16 +445,15 @@ def ssm_periodic(title, first_heading, loop, prefix, page=True):
     return (
         heading(title, page=page, before=0)
         + paper(grid_table(columns, [(loop, values), (f'blankRows.{loop}', [''] * len(columns))]))
-        + form(grid_table(columns, [(loop, signed_on_paper_values)], extra_rows=fields))
+        + form(grid_table(columns, [(loop, values)], extra_rows=fields))
     )
 
 
-def hiring_form(key, paper_rows, slots, control_rows, control_slots):
-    """The form's variants of a hiring block: as printed with each signature box saying it was
-    signed on paper, for a training recorded from a paper sheet, else every value and signature a
-    field."""
+def hiring_form(key, paper_rows, slots, note, control_rows, control_slots):
+    """The form's variants of a hiring block: as printed, each signature box with the note, for a
+    training recorded from a paper sheet, else every value and signature a field."""
     return form(
-        section(f'form.{key}.paper', fields(paper_rows) + signed_on_paper(slots))
+        section(f'form.{key}.paper', fields(paper_rows) + signatures(slots, note))
         + section(
             f'form.{key}.paper',
             control_fields([*control_rows, ('Mențiuni', f'{key}_note')])
@@ -499,11 +492,12 @@ def ssm_hiring(number, title, line, signer, workplace=False):
         (slots[1][0], f'{key}_sig_trainer'),
         (slots[2][0], f'{key}_sig_verifier'),
     ]
+    note = f'{{{{hiring.{line}.note}}}}'
     return (
         paragraph(f'{number}) {title}', bold=True, before=0 if workplace else 240, after=60,
                   keep=True, page=workplace)
-        + paper(fields(rows) + signatures(slots))
-        + hiring_form(key, rows, slots, controls, control_slots)
+        + paper(fields(rows) + signatures(slots, note))
+        + hiring_form(key, rows, slots, note, controls, control_slots)
     )
 
 
@@ -542,6 +536,22 @@ def continuation():
                                                   after=240))
 
 
+def transcription_line():
+    """The line on transcribed rows (ADR 042): text where the merge gives it; on the signed sheet a
+    field, filled when the sheet is drawn up with paper rows or when one is filled on it later."""
+    def boxed(content):
+        # A table, as the house style sets text under the body size only in one.
+        return table([TEXT_WIDTH], [row([cell(TEXT_WIDTH, [content])])]) + paragraph(after=0)
+
+    return (
+        paper(section('transcriptionLine', boxed(cell_paragraph('{{transcriptionLine}}', size=9))))
+        + form(boxed(inline_paragraph(control(TRANSCRIPTION_LINE_FIELD, TEXT_WIDTH, 1, 9), size=9)))
+    )
+
+
+ADMITTED_ON = '{{admission.admittedOn}}{{#admission.note}}, {{admission.note}}{{/admission.note}}'
+
+
 def ssm_admission(dated):
     return [
         ('Numele și prenumele', '{{admission.name}}'),
@@ -558,6 +568,7 @@ def ssm_body():
         paragraph('conform anexei nr. 11 la normele metodologice aprobate prin H.G. 1425/2006',
                   align='center', after=240),
         continuation(),
+        transcription_line(),
         fields([
             ('Numele și prenumele', '{{employee.name}}'),
             ('Legitimația, marca', '{{employee.employeeNumber}}'),
@@ -574,11 +585,9 @@ def ssm_body():
         ssm_hiring(1, 'Instruirea introductiv-generală', 'introductory', 'introductory'),
         ssm_hiring(2, 'Instruirea la locul de muncă', 'workplace', 'workplace', workplace=True),
         paragraph('3) Admis la lucru', bold=True, before=240, after=60, keep=True),
-        paper(fields(ssm_admission('{{admission.admittedOn}}'))),
+        paper(fields(ssm_admission(ADMITTED_ON))),
         form(
-            section('form.h2.paper', fields(ssm_admission(
-                f'{{{{admission.admittedOn}}}}{{{{#admission.admittedOn}}}}, {PAPER_SIGNED}{{{{/admission.admittedOn}}}}'
-            )))
+            section('form.h2.paper', fields(ssm_admission(ADMITTED_ON)))
             + section('form.h2.paper', control_fields([
                 ('Numele și prenumele', 'adm_name'),
                 ('Funcția (șef secție, atelier, șantier etc.)', 'adm_job_title'),
@@ -640,11 +649,12 @@ def su_hiring(number, title, line, workplace=False):
     ]
     # The record names who verified as its trainer when it has no verifier (ADR 021).
     control_slots = [(slots[0][0], f'{key}_sig_trainer'), (slots[1][0], f'{key}_sig_trainee')]
+    note = f'{{{{hiring.{line}.note}}}}'
     return (
         paragraph(f'{number}. {title}', bold=True, before=0 if workplace else 240, after=60,
                   keep=True, page=workplace)
-        + paper(fields(rows) + signatures(slots))
-        + hiring_form(key, rows, slots, controls, control_slots)
+        + paper(fields(rows) + signatures(slots, note))
+        + hiring_form(key, rows, slots, note, controls, control_slots)
     )
 
 
@@ -654,14 +664,13 @@ SU_PERIODIC_COLUMNS = [
     (1500, 'Specialitatea', '{{occupation}}'),
     (2855, 'Materialul predat', '{{material}}'),
     (800, 'Durata (ore)', '{{hours}}'),
-    (1250, 'Semnătura persoanei instruite', ''),
+    (1250, 'Semnătura persoanei instruite', ('{{note}}', True)),
     (1250, 'Semnătura celui care a instruit', ('{{trainer}}', True)),
 ]
 
 
 def su_body():
     values = [value for _, _, value in SU_PERIODIC_COLUMNS]
-    signed_on_paper_values = [*values[:5], (PAPER_SIGNED, True), values[6]]
     widths = [width for width, _, _ in SU_PERIODIC_COLUMNS]
     fields_rows = form_rows('p', list(zip(widths, [
         number_cell,
@@ -685,6 +694,7 @@ def su_body():
         paragraph('conform anexei la dispozițiile generale aprobate prin OMAI 712/2005', align='center',
                   after=1200),
         continuation(),
+        transcription_line(),
         fields([
             ('Numele și prenumele', '{{employee.name}}'),
             ('Marca', '{{employee.employeeNumber}}'),
@@ -719,7 +729,7 @@ def su_body():
         heading('Instructaj periodic', page=True, before=0),
         paper(grid_table(SU_PERIODIC_COLUMNS,
                          [('periodic', values), ('blankRows.periodic', [''] * len(SU_PERIODIC_COLUMNS))])),
-        form(grid_table(SU_PERIODIC_COLUMNS, [('periodic', signed_on_paper_values)], extra_rows=fields_rows)),
+        form(grid_table(SU_PERIODIC_COLUMNS, [('periodic', values)], extra_rows=fields_rows)),
     ])
 
 

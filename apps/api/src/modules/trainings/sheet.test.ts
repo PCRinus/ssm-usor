@@ -8,6 +8,8 @@ import {
   type SheetRecord,
   type TrainingSheetFacts,
   trainingSheetFileName,
+  transcribedNote,
+  transcriptionLine,
 } from './sheet';
 
 const workshop = { id: 'w1', name: 'Punct de lucru Str. Fabricii 3' };
@@ -17,8 +19,10 @@ const record = (
   phase: SheetRecord['training']['phase'],
   heldOn: string,
   overrides: Partial<SheetRecord['training']> = {},
-  admission: SheetRecord['admission'] = null
+  admission: SheetRecord['admission'] = null,
+  origin: SheetRecord['source'] = 'app'
 ): SheetRecord => ({
+  source: origin,
   occupation: 'Sudor',
   admission,
   training: {
@@ -173,13 +177,16 @@ describe('buildTrainingSheetData', () => {
       material: 'I.P.S.S.M. Art. 1 – 60 (2026-01-05)',
       occupation: 'Sudor',
       place: '',
+      note: '',
     });
     expect(data.hiring.workplace.place).toBe('Punct de lucru Str. Fabricii 3 – Atelier');
     expect(data.admission).toEqual({
       admittedOn: '06.01.2026',
       name: 'Ion POP',
       jobTitle: 'Șef atelier',
+      note: '',
     });
+    expect(data.transcriptionLine).toBe('');
     expect(data.signers).toEqual({
       introductory: { trainer: 'Dan MARIN', verifier: 'Dan MARIN' },
       workplace: { trainer: 'Ion POP', verifier: 'Dan MARIN' },
@@ -206,15 +213,53 @@ describe('buildTrainingSheetData', () => {
           'IP Sudură Art. 31 – 42 (motivul: reluarea activității după un accident de muncă)',
         trainer: 'Ion POP',
         verifier: 'Dan MARIN',
+        note: '',
       },
     ]);
+  });
+
+  it('marks what a paper sheet was transcribed into, and prints the line on transcribed rows', () => {
+    const data = buildTrainingSheetData({
+      ...facts,
+      records: [
+        ...facts.records,
+        record('periodic', '2025-10-01', {}, null, 'paper'),
+        record(
+          'workplace',
+          '2025-01-06',
+          {},
+          { admittedOn: '2025-01-06', name: 'Ion POP', jobTitle: 'Șef atelier' },
+          'paper'
+        ),
+      ],
+    });
+    expect(data.periodic.map((row) => [row.heldOn, row.note])).toEqual([
+      ['01.10.2025', transcribedNote],
+      ['03.04.2026', ''],
+      ['02.07.2026', ''],
+    ]);
+    expect(data.hiring.workplace.note).toBe('');
+    expect(data.admission.note).toBe('');
+    expect(data.transcriptionLine).toBe(transcriptionLine);
+    expect(transcribedNote).toBe('transcris; semnat pe hârtie');
+  });
+
+  it('marks a hiring block and its admission transcribed when the latest training of the phase is from paper', () => {
+    const paperHiring = buildTrainingSheetData({
+      ...facts,
+      records: facts.records.map((each) => ({ ...each, source: 'paper' as const })),
+    });
+    expect(paperHiring.hiring.introductory.note).toBe(transcribedNote);
+    expect(paperHiring.hiring.workplace.note).toBe(transcribedNote);
+    expect(paperHiring.admission.note).toBe(transcribedNote);
+    expect(paperHiring.supplementary[0]!.note).toBe(transcribedNote);
   });
 
   it('leaves the hiring blocks blank before any training, and fills the table pages with blank rows', () => {
     const data = buildTrainingSheetData({ ...facts, records: [] });
     expect(Object.values(data.hiring.introductory).every((value) => value === '')).toBe(true);
     expect(data.hiring.workplace.place).toBe('Punct de lucru Str. Fabricii 3 – Atelier');
-    expect(data.admission).toEqual({ admittedOn: '', name: '', jobTitle: '' });
+    expect(data.admission).toEqual({ admittedOn: '', name: '', jobTitle: '', note: '' });
     expect(data.signers.workplace).toEqual({ trainer: '', verifier: '' });
     expect(data.blankRows.periodic).toHaveLength(17);
     expect(data.blankRows.supplementary).toHaveLength(17);
@@ -305,6 +350,7 @@ describe('buildTrainingSheetData', () => {
       material: 'Verificare anuală pe bază de test (TPSU): admis',
       trainer: 'Radu STAN',
       verifier: '',
+      note: '',
     });
   });
 
@@ -323,6 +369,7 @@ describe('blankRowsAfter', () => {
     material,
     trainer: 'Ion POP',
     verifier: '',
+    note: '',
   });
 
   it('fills the rest of the page, and of the next page once the rows run onto it', () => {

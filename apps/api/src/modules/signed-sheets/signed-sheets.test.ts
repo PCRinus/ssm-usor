@@ -1,9 +1,14 @@
-import { rowCapacity, type SignerService, type TrainingDomain } from '@ssm-usor/contracts';
+import {
+  rowCapacity,
+  type SignerService,
+  type TrainingDomain,
+  transcriptionLineField,
+} from '@ssm-usor/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '../../lib/errors';
 import type { PdfConverter } from '../../lib/pdf';
-import type { TrainingSheetData } from '../trainings/sheet';
+import { type TrainingSheetData, transcriptionLine } from '../trainings/sheet';
 import type { SheetTrainingRecord } from './form';
 import { sheetFacts, sheetRecord, sheetResult } from './form.fixture';
 import {
@@ -295,16 +300,20 @@ describe('ensureSignedSheet', () => {
     expect(fields).toContain('p2_sig_trainee');
     expect(fields).not.toContain('p1_sig_trainee');
     expect(await stored(sheet)).toMatch(
-      new RegExp(`^%PDF form\\|prepared ${fields.length}\\|fill `)
+      new RegExp(`^%PDF form\\|prepared ${fields.length}\\|fill .*transcription_line.*\\|fill `)
     );
+    expect(sheet.form).toBe(2);
     expect(memory.rows).toMatchObject([
       { rowKey: 'p1', trainingRecordId: paper.id, printedAsText: true, filledDigest: null },
       { rowKey: 'p2', trainingRecordId: recorded.id, printedAsText: false },
     ]);
     expect(memory.rows[1]!.filledDigest).toMatch(/^[0-9a-f]{64}$/);
-    expect(signer.fillFields.mock.calls[0]![1]).toMatchObject({
+    expect(signer.fillFields.mock.calls[0]![1]).toEqual({
+      [transcriptionLineField]: transcriptionLine,
+    });
+    expect(signer.fillFields.mock.calls[1]![1]).toMatchObject({
       p2_date: '01.04.2026',
-      p2_note: 'semnat pe hârtie',
+      p2_note: 'semnat pe\nhârtie',
     });
   });
 
@@ -489,11 +498,24 @@ describe('placeRecord', () => {
     expect(memory.rows.find((row) => row.id === original.id)!.voidedAt).not.toBeNull();
   });
 
-  it('notes a record from paper placed after its sheet was made as signed on paper', async () => {
+  it('notes a record from paper placed after its sheet was made as transcribed, with the line', async () => {
     await ensureSignedSheet(ctx, employeeId, 'ssm');
     const late = add(sheetRecord('periodic', '2024-04-03', { source: 'paper' }));
     await placeRecord(ctx, late.id);
-    expect(signer.fillFields.mock.calls[0]![1]).toMatchObject({ p1_note: 'semnat pe hârtie' });
+    expect(signer.fillFields.mock.calls[0]![1]).toMatchObject({
+      p1_note: 'transcris;\nsemnat pe hârtie',
+      [transcriptionLineField]: transcriptionLine,
+    });
+  });
+
+  it('keeps the old note and no line on a sheet stored before the transcription form', async () => {
+    const sheet = await ensureSignedSheet(ctx, employeeId, 'ssm');
+    memory.sheetRows.find((each) => each.id === sheet.id)!.form = 1;
+    const late = add(sheetRecord('periodic', '2024-04-03', { source: 'paper' }));
+    await placeRecord(ctx, late.id);
+    const values = signer.fillFields.mock.calls[0]![1];
+    expect(values).toMatchObject({ p1_note: 'semnat pe hârtie' });
+    expect(values).not.toHaveProperty(transcriptionLineField);
   });
 
   it('frees the row again when the fill fails', async () => {

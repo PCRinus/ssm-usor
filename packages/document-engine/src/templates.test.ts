@@ -13,6 +13,8 @@ import {
   testResult,
   trainingSheetFormSample,
   trainingSheetSamples,
+  transcribedNote,
+  transcriptionLine,
 } from '../tools/training-sheet-samples';
 import { annexTemplate } from './annex-template';
 import { renderDocument, templatePlaceholders } from './render';
@@ -2744,7 +2746,7 @@ describe('the individual training sheets', () => {
         : [`${prefix}${key}`]
     );
   const rowNames = [
-    ...['heldOn', 'hours', 'occupation', 'material', 'trainer', 'verifier', '$index'],
+    ...['heldOn', 'hours', 'occupation', 'material', 'trainer', 'verifier', 'note', '$index'],
     ...['date', 'grade', 'examiner'],
   ];
 
@@ -2781,6 +2783,17 @@ describe('the individual training sheets', () => {
       expect(text.split(data.employee.name)).toHaveLength(2);
     });
 
+    it('marks the transcribed rows and blocks, and prints the line on them only when there are some', () => {
+      const transcribed = (docx: Uint8Array) =>
+        documentText(docx).split(transcribedNote).length - 1;
+      const text = documentText(renderDocument(read(name), recorded.data));
+      expect(text).toContain(transcriptionLine);
+      expect(transcribed(renderDocument(read(name), recorded.data))).toBe(
+        (domain === 'ssm' ? 3 : 2) + 1
+      );
+      expect(documentText(renderDocument(read(name), empty.data))).not.toContain('transcris');
+    });
+
     const titles = (docx: Uint8Array) =>
       [
         ...new PizZip(docx)
@@ -2809,7 +2822,9 @@ describe('the individual training sheets', () => {
       expect(printed.includes('t2_date') && printed.includes('t5_examiner')).toBe(domain === 'ssm');
       expect(printed.some((title) => title.startsWith('t1_'))).toBe(false);
       const text = documentText(docx);
-      expect(text).toContain('semnat pe hârtie');
+      expect(text).toContain(transcribedNote);
+      expect(printed).toContain('transcription_line');
+      expect(text).not.toContain(transcriptionLine);
       expect(text).toContain(data.periodic[1]!.material);
       for (const result of data.testResults) expect(text).toContain(result.material);
       expect(text).not.toContain('{{');

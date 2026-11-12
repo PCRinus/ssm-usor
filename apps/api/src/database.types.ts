@@ -4932,6 +4932,7 @@ export type Database = {
           digest: string;
           domain: Database['public']['Enums']['training_domain'];
           employee_id: string;
+          form_version: number;
           id: string;
           organization_id: string;
           row_capacity: number;
@@ -4948,6 +4949,7 @@ export type Database = {
           digest: string;
           domain: Database['public']['Enums']['training_domain'];
           employee_id: string;
+          form_version?: number;
           id?: string;
           organization_id: string;
           row_capacity: number;
@@ -4964,6 +4966,7 @@ export type Database = {
           digest?: string;
           domain?: Database['public']['Enums']['training_domain'];
           employee_id?: string;
+          form_version?: number;
           id?: string;
           organization_id?: string;
           row_capacity?: number;
