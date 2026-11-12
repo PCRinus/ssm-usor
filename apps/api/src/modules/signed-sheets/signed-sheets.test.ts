@@ -317,6 +317,22 @@ describe('ensureSignedSheet', () => {
     });
   });
 
+  it('reads the sheet once for every row it fills on it', async () => {
+    add(sheetRecord('periodic', '2025-04-01', { source: 'paper' }));
+    add(sheetRecord('periodic', '2026-04-01'));
+    add(sheetRecord('periodic', '2026-07-01'));
+    add(sheetRecord('periodic', '2026-10-01', { source: 'paper' }));
+    const reads = vi.spyOn(memory, 'sheet');
+
+    await ensureSignedSheet(ctx, employeeId, 'ssm');
+
+    expect(signer.fillFields.mock.calls.at(-1)![1]).toMatchObject({
+      p3_date: '01.04.2026',
+      p4_date: '01.07.2026',
+    });
+    expect(reads).toHaveBeenCalledTimes(1);
+  });
+
   it('leaves the note empty for a record somebody is asked to sign electronically', async () => {
     const record = add(sheetRecord('periodic', '2026-04-01'));
     memory.requested.add(record.id);

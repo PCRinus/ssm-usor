@@ -444,13 +444,16 @@ async function freeKey(
   return index > capacity ? null : tableRowKey(kind, index);
 }
 
-async function valuesOf(ctx: SignedSheetContext, record: StoreRecord, row: StoredRow) {
+async function valuesOf(
+  ctx: SignedSheetContext,
+  record: StoreRecord,
+  rowKey: SheetRowKey,
+  sheet: Pick<StoredSheet, 'form'>
+) {
   const facts = await ctx.sheetFacts(record.clientId, record.employeeId);
   const place = placeOfWork(facts);
   const byHand = !(await ctx.store.electronicRequested(record.id));
-  const sheet = await ctx.store.sheet(row.signedSheetId);
-  if (!sheet) throw new ApiError('not_found', 'The signed sheet does not exist.');
-  return rowValues(record.domain, row.rowKey, record, place, { byHand, form: sheet.form });
+  return rowValues(record.domain, rowKey, record, place, { byHand, form: sheet.form });
 }
 
 async function resultValuesOf(ctx: SignedSheetContext, result: StoreResult, rowKey: SheetRowKey) {
@@ -458,10 +461,15 @@ async function resultValuesOf(ctx: SignedSheetContext, result: StoreResult, rowK
   return resultRowValues(result.domain, rowKey, result, facts.employee.position.name.trim());
 }
 
-const placeableValues = (ctx: SignedSheetContext, placeable: Placeable, row: StoredRow) =>
+const placeableValues = (
+  ctx: SignedSheetContext,
+  placeable: Placeable,
+  rowKey: SheetRowKey,
+  sheet: StoredSheet
+) =>
   placeable.kind === 'record'
-    ? valuesOf(ctx, placeable.item, row)
-    : resultValuesOf(ctx, placeable.item, row.rowKey);
+    ? valuesOf(ctx, placeable.item, rowKey, sheet)
+    : resultValuesOf(ctx, placeable.item, rowKey);
 
 /** One version for any number of rows of one sheet; each row's digest once the version stands. */
 async function fillRows(
@@ -493,13 +501,14 @@ async function fillRows(
  * filled is taken back.
  */
 async function placeNewRows(ctx: SignedSheetContext, placeables: Placeable[]) {
-  const placed: { row: StoredRow; placeable: Placeable }[] = [];
+  const placed: { row: StoredRow; placeable: Placeable; sheet: StoredSheet }[] = [];
   for (const placeable of placeables) {
     const { employeeId, domain } = placeable.item;
     const kind = kindOf(placeable);
     let row: StoredRow | undefined;
+    let sheet: StoredSheet | undefined;
     for (let attempt = 0; attempt < 3 && !row; attempt++) {
-      let sheet = (await ctx.store.sheets(employeeId, domain)).at(-1)!;
+      sheet = (await ctx.store.sheets(employeeId, domain)).at(-1)!;
       let rowKey = await freeKey(ctx, sheet, kind);
       if (!rowKey) {
         sheet = await createSheet(ctx, placeable.item, employeeId, domain, sheet.sequence + 1, []);
@@ -516,8 +525,8 @@ async function placeNewRows(ctx: SignedSheetContext, placeables: Placeable[]) {
           } as NewRow,
         ])) ?? [];
     }
-    if (!row) throw sheetBusy();
-    placed.push({ row, placeable });
+    if (!row || !sheet) throw sheetBusy();
+    placed.push({ row, placeable, sheet });
   }
   const bySheet = new Map<string, typeof placed>();
   for (const each of placed) {
@@ -527,9 +536,9 @@ async function placeNewRows(ctx: SignedSheetContext, placeables: Placeable[]) {
   try {
     for (const [sheetId, rows] of bySheet) {
       const filled = await Promise.all(
-        rows.map(async ({ row, placeable }) => ({
+        rows.map(async ({ row, placeable, sheet }) => ({
           row,
-          values: await placeableValues(ctx, placeable, row),
+          values: await placeableValues(ctx, placeable, row.rowKey, sheet),
         }))
       );
       sheets.set(sheetId, await fillRows(ctx, sheetId, filled));
@@ -552,9 +561,14 @@ const fitsRow = (kind: ReturnType<typeof rowKindOf>, rowKey: SheetRowKey) =>
  * the row's digest shows that another write filled it with these values meanwhile, that is the
  * row as wanted, else the row is held as signed.
  */
-async function refreshRow(ctx: SignedSheetContext, row: StoredRow, record: StoreRecord) {
+async function refreshRow(
+  ctx: SignedSheetContext,
+  row: StoredRow,
+  record: StoreRecord,
+  sheet: StoredSheet
+) {
   if (row.printedAsText) return;
-  const values = await valuesOf(ctx, record, row);
+  const values = await valuesOf(ctx, record, row.rowKey, sheet);
   const digest = await rowDigest(values);
   if (row.filledDigest === digest) return;
   if (await ctx.store.signedSince(record.id, row.filledAt)) return;
@@ -590,11 +604,12 @@ export async function syncRecordRow(
   }
   const kind = rowKindOf(domain, record.training.phase);
   let live = await ctx.store.liveRowOf(recordId);
+  let liveSheet: StoredSheet | null = null;
   if (live) {
-    const sheet = (await ctx.store.sheet(live.signedSheetId))!;
+    liveSheet = (await ctx.store.sheet(live.signedSheetId))!;
     const signatures = await ctx.store.signaturesSince(recordId, live.filledAt);
     const outgrown =
-      sheet.domain !== domain ||
+      liveSheet.domain !== domain ||
       !fitsRow(kind, live.rowKey) ||
       (signatures.voided > 0 && signatures.live === 0);
     if (outgrown) {
@@ -602,11 +617,11 @@ export async function syncRecordRow(
       live = null;
     }
   }
-  if (!live) {
+  if (!live || !liveSheet) {
     const [placed] = await placeNewRows(ctx, [{ kind: 'record', item: record }]);
     return placed!;
   }
-  await refreshRow(ctx, live, record);
+  await refreshRow(ctx, live, record, liveSheet);
   return { ...live, sheet: (await ctx.store.sheet(live.signedSheetId))! };
 }
 
