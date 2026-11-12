@@ -131,7 +131,7 @@ Când lipsește unul dintre ele, cardul îți spune ce și te trimite la câmpul
 
 ### Semnat pe hârtie
 
-Pentru un lucrător care semnează de mână: **Descarcă** actul, tipărește-l și dă-l spre semnare lucrătorului și angajatorului. Apoi alege **Marchează semnat pe hârtie**. Poți atașa scanul, dacă l-ai încărcat întâi în **Fișiere**, pe pagina lucrătorului.
+Pentru un lucrător care semnează de mână: **Descarcă** actul, tipărește-l și dă-l spre semnare lucrătorului și angajatorului. Apoi alege **Marchează semnat pe hârtie**. Poți atașa scanul, dacă l-ai încărcat întâi pe tabul **Fișiere** al lucrătorului.
 
 ### Clauza în contract
 

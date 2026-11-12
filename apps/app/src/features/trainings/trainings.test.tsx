@@ -291,7 +291,7 @@ afterEach(() => {
 });
 
 describe("an employee's training tabs", () => {
-  it('splits the page into Date, Instruire SSM and Instruire SU, in the tabs and not in the sidebar', async () => {
+  it('splits the page into Date, Instruire SSM, Instruire SU and Fișiere, in the tabs and not in the sidebar', async () => {
     mockApi();
     const runtime = mountApp(authFixture(makeSession()).client, employeePage);
     const user = userEvent.setup();
@@ -299,9 +299,15 @@ describe("an employee's training tabs", () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Popescu Ion' })).toBeTruthy();
     expect(screen.getByTestId('employee-header-client').textContent).toBe('OMV PETROM SA');
     const tabs = screen.getAllByTestId('employee-section');
-    expect(tabs.map((tab) => tab.textContent)).toEqual(['Date', 'Instruire SSM', 'Instruire SU']);
+    expect(tabs.map((tab) => tab.textContent)).toEqual([
+      'Date',
+      'Instruire SSM',
+      'Instruire SU',
+      'Fișiere',
+    ]);
     expect(tabs[0]!.getAttribute('aria-current')).toBe('page');
     expect(screen.queryByTestId('nav-employee-group')).toBeNull();
+    expect(screen.queryByTestId('employee-files-card')).toBeNull();
 
     await user.click(tabs[1]!);
     await screen.findByTestId('employee-training-tab');
@@ -310,6 +316,15 @@ describe("an employee's training tabs", () => {
     expect(screen.getAllByTestId('employee-section')[1]!.getAttribute('aria-current')).toBe('page');
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
     expect(within(breadcrumb).getByText('Instruire SSM')).toBeTruthy();
+
+    await user.click(screen.getAllByTestId('employee-section')[3]!);
+    await screen.findByTestId('employee-files-card');
+    expect(runtime.router.state.location.pathname).toBe(`${employeePage}/fisiere`);
+    expect(screen.queryByTestId('employee-training-tab')).toBeNull();
+    expect(screen.getAllByTestId('employee-section')[3]!.getAttribute('aria-current')).toBe('page');
+    expect(
+      within(screen.getByRole('navigation', { name: 'breadcrumb' })).getByText('Fișiere')
+    ).toBeTruthy();
   });
 
   it('shows the state, the due date and the records newest first, each with its facts', async () => {

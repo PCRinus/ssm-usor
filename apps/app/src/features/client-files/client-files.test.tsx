@@ -108,7 +108,7 @@ const trainingSheet = {
 
 const filesPath = `/clients/${clientId}/files`;
 const employeePath = `/clients/${clientId}/employees/${employee.id}`;
-const employeePage = `/clienti/${clientId}/angajati/${employee.id}`;
+const employeePage = `/clienti/${clientId}/angajati/${employee.id}/fisiere`;
 
 type Handler = (init: RequestInit | undefined, url: URL) => Response;
 
@@ -663,7 +663,7 @@ describe('the files of an employee', () => {
     ).toEqual([false]);
   });
 
-  it('lists only their files on the employee page', async () => {
+  it("lists only their files on the employee's Fișiere tab", async () => {
     mockApi({ items: [trainingSheet] });
     mount(employeePage);
 
@@ -679,7 +679,7 @@ describe('the files of an employee', () => {
     ).toEqual([employee.id]);
   });
 
-  it('uploads from the employee page for that employee, whom the dialog names', async () => {
+  it("uploads from the employee's Fișiere tab for that employee, whom the dialog names", async () => {
     mockApi({ items: [] });
     mount(employeePage);
     const user = userEvent.setup();

@@ -129,7 +129,7 @@ Pe fișa SSM, instruirile suplimentare au tabelul lor. Pe fișa SU apar în tabe
 
 Pentru un lucrător a cărui instruire s-a ținut până acum pe hârtie, înregistrează instruirile trecute cu sursa **Preluată de pe fișa pe hârtie**: ziua, durata și materialul ca pe fișă. Semnăturile rămân pe hârtie, iar instruirea apare cu eticheta **Transcris de pe fișa pe hârtie** și rândul „Semnat pe hârtie: …” (vezi „Semnăturile unei instruiri”).
 
-Ca termenele să fie corecte, sunt de ajuns instruirile la angajare și ultima instruire periodică. Fotografia sau scanul fișei pe hârtie îl încarci în **Fișiere**, pe tabul **Date**.
+Ca termenele să fie corecte, sunt de ajuns instruirile la angajare și ultima instruire periodică. Fotografia sau scanul fișei pe hârtie îl încarci pe tabul **Fișiere** al lucrătorului.
 
 Când ai fișele mai multor lucrători, nu le transcrie de mână: importul din fișe le citește din fotografii, cu toate instruirile lor. Vezi [Importul lucrătorilor din fișe](/clienti/import/#importul-lucrătorilor-din-fișe).
 
