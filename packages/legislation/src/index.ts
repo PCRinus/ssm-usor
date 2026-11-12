@@ -1,4 +1,24 @@
 export {
+  type ActText,
+  type ActUnit,
+  fetchActText,
+  type FetchedActText,
+  hasActText,
+  parseActText,
+  textLink,
+  type UnitKind,
+  unitLines,
+  type UnitMatch,
+  unitsOf,
+} from './act-text';
+export {
+  type AmendingAct,
+  type AmendmentNote,
+  type AmendmentOperation,
+  parseNote,
+  type UnitPath,
+} from './amendments';
+export {
   type ActOutcome,
   checkLegislation,
   type CheckOptions,

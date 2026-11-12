@@ -55,15 +55,17 @@ const entities: Record<string, string> = {
   nbsp: ' ',
 };
 
+export function decodeEntities(value: string) {
+  return value.replace(/&(#x[0-9a-f]+|#[0-9]+|[a-z]+);/gi, (entity, name: string) => {
+    if (name.startsWith('#x') || name.startsWith('#X'))
+      return String.fromCodePoint(parseInt(name.slice(2), 16));
+    if (name.startsWith('#')) return String.fromCodePoint(parseInt(name.slice(1), 10));
+    return entities[name.toLowerCase()] ?? entity;
+  });
+}
+
 function text(html: string) {
-  return html
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&(#x[0-9a-f]+|#[0-9]+|[a-z]+);/gi, (entity, name: string) => {
-      if (name.startsWith('#x') || name.startsWith('#X'))
-        return String.fromCodePoint(parseInt(name.slice(2), 16));
-      if (name.startsWith('#')) return String.fromCodePoint(parseInt(name.slice(1), 10));
-      return entities[name.toLowerCase()] ?? entity;
-    })
+  return decodeEntities(html.replace(/<[^>]*>/g, ' '))
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -199,7 +201,7 @@ export function portalOptionsFromEnv(env: PortalEnv): Pick<PortalOptions, 'origi
   };
 }
 
-async function request(
+export async function request(
   url: string,
   init: RequestInit,
   { fetch: fetchImpl = fetch, headers }: PortalOptions
