@@ -6,10 +6,10 @@ import { parseArgs } from 'node:util';
 
 import { citationIndex, legalActs } from '@ssm-usor/document-engine/citations';
 import {
-  assessImpact,
   fetchActText,
   legalActsSchema,
   portalOptionsFromEnv,
+  reviewQuotes,
 } from '@ssm-usor/legislation-check';
 
 // Compares every quote of the built-in templates with its act's current text on the portal:
@@ -84,21 +84,16 @@ for (const [index, act] of quoted.entries()) {
     console.log(`${act.name}: FAILED, ${error instanceof Error ? error.message : String(error)}`);
     continue;
   }
-  const impact = assessImpact({
-    actId: act.id,
-    citations: quotes,
-    text: fetched.text,
-    since: null,
-  });
-  const seen = new Map<string, (typeof impact.citations)[number] & { files: string[] }>();
-  for (const result of impact.citations) {
+  const reviews = reviewQuotes(fetched.text, quotes);
+  const seen = new Map<string, (typeof reviews)[number] & { files: string[] }>();
+  for (const result of reviews) {
     const key = `${result.citation.locator}\n${result.citation.text}`;
     const entry = seen.get(key);
     if (entry) entry.files.push(result.citation.file);
     else seen.set(key, { ...result, files: [result.citation.file] });
   }
   const results = [...seen.values()];
-  const differs = results.filter((result) => result.status === 'quote_differs');
+  const differs = results.filter((result) => result.status === 'differs');
   const lost = results.filter((result) => result.status === 'not_located');
   differing += differs.length;
   unlocated += lost.length;
@@ -128,7 +123,7 @@ for (const [index, act] of quoted.entries()) {
       );
       continue;
     }
-    if (result.status !== 'quote_differs') continue;
+    if (result.status !== 'differs') continue;
     const adapted = result.citation.text?.includes('{{') ? ', adapted with merge fields' : '';
     console.log(
       `  DIFFERS ${where}, ${Math.round(result.similarity * 100)}% of its words found${adapted}`

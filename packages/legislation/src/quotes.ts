@@ -143,9 +143,10 @@ export function tokenize(text: string): Token[] {
   return tokens;
 }
 
-type Op = { kind: 'same' | 'template' | 'current'; template?: Token; current?: Token };
+export type AlignOp<T> = { kind: 'same' | 'template' | 'current'; template?: T; current?: T };
+type Op = AlignOp<Token>;
 
-function diff(template: Token[], current: Token[]): Op[] {
+export function align<T extends { value: string }>(template: T[], current: T[]): AlignOp<T>[] {
   const n = template.length;
   const m = current.length;
   const width = m + 1;
@@ -164,7 +165,7 @@ function diff(template: Token[], current: Token[]): Op[] {
           : Math.max(at(i + 1, j), at(i, j + 1));
     }
   }
-  const ops: Op[] = [];
+  const ops: AlignOp<T>[] = [];
   let i = 0;
   let j = 0;
   while (i < n || j < m) {
@@ -382,7 +383,7 @@ export function compareTexts(
     const [start, end] = excerptWindow(template, current);
     current = current.slice(start, end);
   }
-  const ops = diff(template, current);
+  const ops = align(template, current);
   const hunks = hunksOf(ops);
   if (options.excerpt) {
     const first = hunks[0];

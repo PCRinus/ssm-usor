@@ -43,16 +43,21 @@ export {
   type LegislationTables,
 } from './database';
 export {
+  type CitedUnit,
+  citedUnits,
+  compareUnit,
+  type LawHunk,
+  lawHunks,
+  type UnitChange,
+} from './forms';
+export {
   assessImpact,
   type CitationImpact,
-  type CitedPassage,
+  type ComparedForm,
   type Impact,
   type ImpactOutcome,
-  type LocatedQuote,
-  locateQuote,
-  type Locator,
-  parseLocator,
 } from './impact';
+export { type CitedPassage, type Locator, parseLocator } from './locator';
 export {
   describeAct,
   fetchPortalAct,
@@ -75,6 +80,13 @@ export {
   type Token,
   tokenize,
 } from './quotes';
+export {
+  locatedAt,
+  type LocatedQuote,
+  locateQuote,
+  type QuoteReview,
+  reviewQuotes,
+} from './review';
 export {
   type CheckRun,
   describeRun,
