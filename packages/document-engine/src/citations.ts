@@ -122,6 +122,12 @@ export function parseMarker(text: string): Marker | null {
   };
 }
 
+/** Where a marker's locator is written in `text`, as the marker spells it. */
+export function markerLocatorSpan(text: string): { start: number; end: number } | null {
+  const span = new RegExp(marker.source, 'du').exec(text)?.indices?.groups?.locator;
+  return span ? { start: span[0], end: span[1] } : null;
+}
+
 export function readsLikeArticle(text: string) {
   return opensLikeArticle.test(text.trimStart());
 }

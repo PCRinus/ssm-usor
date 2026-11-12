@@ -7,7 +7,7 @@ import PizZip from 'pizzip';
 const paragraphPattern = /<w:p[ >][\s\S]*?<\/w:p>/g;
 const textPattern = /(<w:t(?: [^>]*)?>)([^<]*)(<\/w:t>)/g;
 
-const decode = (text: string) =>
+export const decode = (text: string) =>
   text
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
@@ -15,7 +15,7 @@ const decode = (text: string) =>
     .replace(/&apos;/g, "'")
     .replace(/&amp;/g, '&');
 
-const encode = (text: string) =>
+export const encode = (text: string) =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 export const isTextPart = (name: string) =>
@@ -84,7 +84,7 @@ export interface Paragraph {
 // reach the first run.
 const runPart =
   /<w:r(?=[\s>])[^>]*>|<w:rPr>[\s\S]*?<\/w:rPr>|<w:t(?: [^>]*)?>([^<]*)<\/w:t>|(<w:tab\/>)/g;
-const superscriptDigits = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+export const superscriptDigits = '⁰¹²³⁴⁵⁶⁷⁸⁹';
 
 /**
  * Every `<w:p>` of a part in order, empty ones included, with its text as a reader sees it. Digits

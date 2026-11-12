@@ -12,6 +12,10 @@
       "types": "./dist/citation-index.d.ts",
       "import": "./dist/citation-index.js"
     },
+    "./quotes": {
+      "types": "./dist/quote-replacement.d.ts",
+      "import": "./dist/quote-replacement.js"
+    },
     "./signing": {
       "types": "./dist/signing.d.ts",
       "import": "./dist/signing.js"
