@@ -120,6 +120,7 @@ export function sheetPage(parts: {
     },
     admission: { admittedOn: null, admittedByName: null, admittedByJobTitle: null },
     trainings: parts.trainings ?? [sheetRow({})],
+    handovers: [],
     unreadable: [],
     notes: [],
   };

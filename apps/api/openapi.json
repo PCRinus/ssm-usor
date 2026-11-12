@@ -16064,6 +16064,24 @@
                         ]
                       }
                     },
+                    "handovers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "date": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "date"
+                          },
+                          "text": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["date", "text"]
+                      },
+                      "default": []
+                    },
                     "unreadable": {
                       "type": "array",
                       "items": {

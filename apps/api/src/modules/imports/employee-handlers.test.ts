@@ -118,6 +118,7 @@ const page = (
     fields: { ...noFields, ...fields },
     admission: { admittedOn: null, admittedByName: null, admittedByJobTitle: null },
     trainings,
+    handovers: [],
     unreadable: [],
     notes: [],
   },

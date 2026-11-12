@@ -9144,6 +9144,12 @@ export type EmployeeImportReviewProposalPagesItemRowsItem = {
   proposedIncluded: boolean;
 };
 
+export type EmployeeImportReviewProposalPagesItemHandoversItem = {
+  /** @nullable */
+  date: string | null;
+  text: string;
+};
+
 export type EmployeeImportReviewProposalPagesItem = {
   /** @minLength 1 */
   id: string;
@@ -9161,6 +9167,7 @@ export type EmployeeImportReviewProposalPagesItem = {
   personId: string | null;
   placement: EmployeeImportReviewProposalPagesItemPlacement;
   rows: EmployeeImportReviewProposalPagesItemRowsItem[];
+  handovers?: EmployeeImportReviewProposalPagesItemHandoversItem[];
   unreadable: string[];
   notes: string[];
 };

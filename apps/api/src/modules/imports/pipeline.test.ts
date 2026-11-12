@@ -1536,6 +1536,7 @@ describe('an employee import', () => {
     fields: noFields,
     admission: { admittedOn: null, admittedByName: null, admittedByJobTitle: null },
     trainings: [],
+    handovers: [],
     unreadable: [],
     notes: [],
     ...overrides,
@@ -1580,6 +1581,7 @@ describe('an employee import', () => {
           verifierSignature: 'no_box',
         }),
       ],
+      handovers: [{ date: '2022-10-03', text: '03.10.22 Preluare CD Safety Core SRL' }],
     }),
     'Fise/Ionescu.pdf (pagina 1)': sheet({
       person: { ...noPerson, lastName: 'Ionescu', firstName: 'Maria' },
@@ -1700,6 +1702,10 @@ describe('an employee import', () => {
       material: 'IPSSM',
       fromThemes: [],
     });
+    expect(proposal.pages[3]!.handovers).toEqual([
+      { date: '2022-10-03', text: '03.10.22 Preluare CD Safety Core SRL' },
+    ]);
+    expect(proposal.pages[3]!.rows).toHaveLength(1);
     expect(proposal.pages[2]!.rows[0]!.test).toMatchObject({ test: 'hiring', verified: true });
   });
 
