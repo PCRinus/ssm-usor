@@ -37,6 +37,7 @@
     "@peculiar/x509": "2.1.0",
     "@scalar/hono-api-reference": "^0.12.14",
     "@ssm-usor/contracts": "workspace:*",
+    "@ssm-usor/discord": "workspace:*",
     "@ssm-usor/document-engine": "workspace:*",
     "@ssm-usor/import": "workspace:*",
     "@ssm-usor/legislation-check": "workspace:*",

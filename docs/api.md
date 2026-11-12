@@ -2706,7 +2706,7 @@ copy of it is incomplete (below). After it, one message sums up the previous UTC
 library part for 12 months, to improve the reading, and tells support on Discord when one goes
 wrong. The module's `copies.ts`, `import-alerts.ts`, `reading-flags.ts`, `reading-version.ts`,
 `records.ts` (the reads they need, with the secret key) and `report-handlers.ts`, and
-`lib/alerts.ts` (the webhook).
+`lib/alerts.ts` (the alert's text, posted through the shared `@ssm-usor/discord` webhook sender).
 
 **When a copy is written.** An import's copy when it ends: confirmed (`ended` after
 `apply_client_import` or `apply_employee_import`), abandoned (after `abandon_import`), or failed by
