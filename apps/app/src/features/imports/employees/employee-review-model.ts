@@ -129,11 +129,54 @@ const requiredForNew = ['lastName', 'firstName', 'jobTitle', 'hiredAt'] as const
 export const requiredForNewField = (name: FieldName) =>
   (requiredForNew as readonly FieldName[]).includes(name);
 
-export function pagesOf(context: Pick<ReviewContext, 'proposal' | 'changes'>, personId: string) {
-  return context.proposal.pages.filter((page) => ownerOf(context, page) === personId);
+// The reader tells a sheet's cover from its first page only by the rows: the cover has none.
+// Printed booklets that carry the commute declaration put it on the SSM sheet before or facing
+// the first page, never at the back.
+const readingOrder = [
+  'ssm_cover',
+  'commute_declaration',
+  'ssm_sheet_front',
+  'ssm_periodic',
+  'su_cover',
+  'su_sheet_front',
+  'su_periodic',
+  'other',
+  null,
+] as const;
+
+function readingPlace(page: SheetPage) {
+  if (page.rows.length === 0 && page.kind === 'ssm_sheet_front')
+    return readingOrder.indexOf('ssm_cover');
+  if (page.rows.length === 0 && page.kind === 'su_sheet_front')
+    return readingOrder.indexOf('su_cover');
+  return readingOrder.indexOf(page.kind);
 }
 
-export function ownerOf(context: Pick<ReviewContext, 'changes'>, page: SheetPage) {
+// The dates as read, not as edited, so the photos keep their numbers while the member corrects
+// a date.
+function readingKey(page: SheetPage) {
+  return (
+    page.rows
+      .flatMap((row) => (row.heldOn ? [row.heldOn] : []))
+      .sort()
+      .at(0) ?? '~'
+  );
+}
+
+type PageOwners = { changes: Pick<Changes, 'pages'> };
+
+export function pagesOf(context: PageOwners & Pick<ReviewContext, 'proposal'>, personId: string) {
+  return context.proposal.pages
+    .filter((page) => ownerOf(context, page) === personId)
+    .map((page, index) => ({ page, index, place: readingPlace(page), key: readingKey(page) }))
+    .sort(
+      (a, b) =>
+        a.place - b.place || (a.key === b.key ? 0 : a.key < b.key ? -1 : 1) || a.index - b.index
+    )
+    .map(({ page }) => page);
+}
+
+export function ownerOf(context: PageOwners, page: SheetPage) {
   const moved = context.changes.pages[page.id];
   return moved === undefined ? page.personId : moved.personId;
 }

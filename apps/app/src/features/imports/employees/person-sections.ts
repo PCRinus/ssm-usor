@@ -6,7 +6,6 @@ import {
   type DomainTrainings,
   type FieldName,
   type Person,
-  type Proposal,
   resolveField,
   type ReviewContext,
   type SheetPage,
@@ -127,15 +126,6 @@ export function nextStop(stops: DecisionStop[], last: string | null) {
   const at = last === null ? -1 : stops.findIndex((stop) => stop.key === last);
   return stops[(at + 1) % stops.length]!;
 }
-
-export const ownedPages = (
-  proposal: Proposal,
-  moved: Record<string, { personId: string | null }>,
-  personId: string
-) =>
-  proposal.pages.filter(
-    (page) => (moved[page.id] === undefined ? page.personId : moved[page.id]!.personId) === personId
-  );
 
 export const openChoice = (decisions: Decision[], field: FieldName) =>
   decisions.some((decision) => decision.key === `choice-${field}`);

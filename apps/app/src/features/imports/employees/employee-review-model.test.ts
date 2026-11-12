@@ -30,6 +30,7 @@ import {
   leaving,
   nextToCheck,
   notesOf,
+  pagesOf,
   peopleGroups,
   peopleViews,
   personIncluded,
@@ -39,6 +40,7 @@ import {
   resolveField,
   type ReviewContext,
   rowIncluded,
+  type SheetPage,
   statesOf,
   testIncluded,
   trainingsByDomain,
@@ -1082,5 +1084,67 @@ describe('the switches and what confirming writes', () => {
       expect(payload.trainings.some((each) => each.domain === 'su')).toBe(training);
       expect(payload.test_results.some((each) => each.test === 'annual')).toBe(test);
     }
+  });
+});
+
+describe("a person's photos", () => {
+  const sheet = (id: string, kind: SheetPage['kind'], dates: (string | null)[] = []) =>
+    ({
+      id,
+      kind,
+      personId: 'ana',
+      rows: dates.map((heldOn) => ({ heldOn })),
+    }) as unknown as SheetPage;
+  const proposalOf = (pages: SheetPage[]) => ({ pages }) as unknown as Proposal;
+  const ids = (pages: SheetPage[]) => pages.map((page) => page.id);
+  const ownedPages = (
+    proposal: Proposal,
+    moved: Record<string, { personId: string | null }>,
+    personId: string
+  ) => pagesOf({ proposal, changes: { pages: moved } }, personId);
+
+  it('read as the booklets do: the SSM cover, the declaration, its pages by their first date, then the SU sheet', () => {
+    const pages = [
+      sheet('su-2022', 'su_periodic', ['2022-03-01']),
+      sheet('ssm-first', 'ssm_sheet_front', ['2021-05-02']),
+      sheet('ssm-2022', 'ssm_periodic', [null, '2022-09-06', '2022-03-07']),
+      sheet('declaration', 'commute_declaration'),
+      sheet('su-cover', 'su_sheet_front'),
+      sheet('su-first', 'su_sheet_front', ['2021-05-03']),
+      sheet('ssm-cover', 'ssm_sheet_front'),
+      sheet('unread', null),
+      sheet('ssm-2021', 'ssm_periodic', ['2021-09-06']),
+      sheet('ssm-blank', 'ssm_periodic', [null]),
+    ];
+    expect(ids(ownedPages(proposalOf(pages), {}, 'ana'))).toEqual([
+      'ssm-cover',
+      'declaration',
+      'ssm-first',
+      'ssm-2021',
+      'ssm-2022',
+      'ssm-blank',
+      'su-cover',
+      'su-first',
+      'su-2022',
+      'unread',
+    ]);
+  });
+
+  it('keep the upload order between pages the sheets cannot tell apart, and follow a moved page', () => {
+    const pages = [
+      sheet('b', 'ssm_periodic'),
+      sheet('a', 'ssm_periodic'),
+      { ...sheet('elsewhere', 'ssm_sheet_front'), personId: 'ion' },
+    ];
+    expect(
+      ids(
+        ownedPages(
+          proposalOf(pages),
+          { elsewhere: { personId: 'ana' }, a: { personId: null } },
+          'ana'
+        )
+      )
+    ).toEqual(['elsewhere', 'b']);
+    expect(ids(ownedPages(proposalOf(pages), {}, 'ana'))).toEqual(['b', 'a']);
   });
 });
