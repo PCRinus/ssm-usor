@@ -5,7 +5,6 @@ import { Eye, EyeOff } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
 import { useAuth } from '@/features/auth/auth-context';
-import { EmployeeFilesCard } from '@/features/client-files/employee-files-card';
 import { EmployeePortalCard } from '@/features/participants/employee-portal-card';
 import { SigningAgreementCard } from '@/features/signatures/signing-agreement-card';
 
@@ -170,8 +169,6 @@ export function EmployeePage() {
             readOnly={client.archivedAt !== null}
           />
         )}
-
-        <EmployeeFilesCard employee={employee} />
       </div>
       <EmployeeJobPositionDialog
         clientId={clientId}

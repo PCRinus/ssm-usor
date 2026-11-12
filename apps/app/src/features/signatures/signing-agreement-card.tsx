@@ -645,7 +645,7 @@ function PaperAgreementForm({
             mark="optional"
             hint={
               noFiles
-                ? 'Lucrătorul nu are fișiere. Încarcă scanul în „Fișiere”, pe pagina lui, ca să-l poți atașa.'
+                ? 'Lucrătorul nu are fișiere. Încarcă scanul pe tabul „Documente” al lucrătorului, ca să-l poți atașa.'
                 : undefined
             }
           >
